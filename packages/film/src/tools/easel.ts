@@ -104,6 +104,26 @@ const easelUrl = (origin: string, film: string, kept: number, wedge: string): st
 const failedLook = (error: { readonly message: string }) =>
   LookFailed.make({ reason: error.message });
 
+/**
+ * The refusal when the asker's films folder (`from`) is not the one the lab
+ * serves `film` from (`dir`, the film's folder there), naming both: a lab
+ * answers for its own checkout's files only, never another's under the same
+ * film's name. None when they are the one folder.
+ */
+export const elsewhereOf = (
+  path: Path.Path,
+  dir: string,
+  from: string,
+  film: string,
+): Option.Option<LabElsewhere> =>
+  Option.map(
+    Option.liftPredicate(
+      { lab: path.resolve(dir), here: path.resolve(from, film) },
+      (where) => where.here !== where.lab,
+    ),
+    (where) => LabElsewhere.make(where),
+  );
+
 export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/tools/Easel') {
   /** Pages in this process's Chrome, held until the layer's scope closes. */
   static readonly layer: Layer.Layer<
@@ -184,14 +204,10 @@ export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/t
       const look = Effect.fn('Easel.look')(function* (film: FilmName, post: LookPost) {
         const started = yield* Clock.currentTimeMillis;
         const paths = folder.paths(film);
-        const elsewhere = Option.filter(
-          Option.map(Option.fromUndefinedOr(post.from), (from) => ({
-            lab: path.resolve(paths.dir),
-            here: path.resolve(from, film),
-          })),
-          (where) => where.here !== where.lab,
+        const elsewhere = Option.flatMap(Option.fromUndefinedOr(post.from), (from) =>
+          elsewhereOf(path, paths.dir, from, film),
         );
-        if (Option.isSome(elsewhere)) return yield* LabElsewhere.make(elsewhere.value);
+        if (Option.isSome(elsewhere)) return yield* elsewhere.value;
         const levels = Option.getOrElse(Option.fromUndefinedOr(post.levels), () => ({}));
         const wedge = wedgeName(levels);
         const now = yield* buildFor(film, levels);

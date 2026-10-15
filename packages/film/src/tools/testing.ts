@@ -1,11 +1,12 @@
 // Test doubles for the tools: an in-memory file system, and ElevenLabs, media,
 // a browser and its pages that answer from memory and count their calls; a
-// film's notes in memory, and `film notes` run over them. No network, no
-// Chromium, no credits.
+// film's notes in memory, and `film notes` run over them; the lab's MCP, and
+// a client of it as one calls `/mcp`. No network, no Chromium, no credits.
 
 import { AskStore } from './ask-store.ts';
 import {
   Array as Arr,
+  Boolean as Bool,
   ByteSize,
   ConfigProvider,
   Console,
@@ -67,6 +68,8 @@ import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
 import { ManifestLock, type ManifestLockService } from './manifest-lock.ts';
 import { labHandler } from './lab.ts';
+import { LabEvents } from './lab-events.ts';
+import { type LabMcpNeeds, MCP_PATH, labMcp } from './lab-mcp.ts';
 import { notes } from './notes-cli.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
@@ -301,11 +304,11 @@ const memoryOps = (
   mtimes: ReadonlyMap<string, number> = new Map(),
 ) => {
   const tree = treeOn(files, folders);
-  /** A folder under `/tmp` no other call has made: `<prefix><n>`. */
-  const tempFolder = (prefix = 'tmp-') => {
+  /** A folder in `directory` (`/tmp`, unless given) no other call has made: `<prefix><n>`. */
+  const tempFolder = (prefix = 'tmp-', directory = '/tmp') => {
     let n = 1;
-    while (folders.has(`/tmp/${prefix}${n}`)) n += 1;
-    const dir = `/tmp/${prefix}${n}`;
+    while (folders.has(`${directory}/${prefix}${n}`)) n += 1;
+    const dir = `${directory}/${prefix}${n}`;
     folders.add(dir);
     return dir;
   };
@@ -330,6 +333,23 @@ const memoryOps = (
       return notFound(method, key);
     });
   const bytesAt = (method: string, path: string) => keyed(path, (key) => fileAt(method, key));
+  /**
+   * An empty file in a folder of its own, made in `directory` (`/tmp`, unless
+   * given; NotFound when no folder is there), as Node's `makeTempFile` makes it.
+   */
+  const tempFile = (
+    method: string,
+    options?: { readonly directory?: string; readonly prefix?: string; readonly suffix?: string },
+  ) =>
+    placed(method, options?.directory ?? '/tmp', (directory) => {
+      if (directory !== '/tmp' && tree.holds(directory) !== 'folder')
+        return Effect.fail(notFound(method, directory));
+      return Effect.sync(() => {
+        const file = `${tempFolder(options?.prefix, directory)}/file${options?.suffix ?? ''}`;
+        files.set(file, new Uint8Array(0));
+        return file;
+      });
+    });
   return {
     // Whether a path is there; a path below a file is refused (ENOTDIR), as Node's stat does.
     exists: (path) =>
@@ -431,6 +451,13 @@ const memoryOps = (
       Effect.acquireRelease(
         Effect.sync(() => tempFolder(options?.prefix)),
         (dir) => Effect.sync(() => drop(dir)),
+      ),
+    // An empty file in a new folder, as Node's are; the scoped one gone, its
+    // folder and all, when the scope closes.
+    makeTempFile: (options) => tempFile('makeTempFile', options),
+    makeTempFileScoped: (options) =>
+      Effect.acquireRelease(tempFile('makeTempFileScoped', options), (file) =>
+        Effect.sync(() => drop(file.slice(0, file.lastIndexOf('/')))),
       ),
     // The names in a folder, made or holding a file, or with `recursive`
     // every path under it; NotFound for nothing there, BadResource for a
@@ -546,6 +573,7 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
       script: unused('read script'),
       cue: unused('read cue'),
       sites: unused('read sites'),
+      cues: unused('read cues'),
       remix: unused('mix'),
       project: unused('project'),
       check: unused('check'),
@@ -1709,6 +1737,130 @@ export const labInMemory = (
       ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: NOTES_LAB })),
     ]),
   );
+
+// ---------------------------------------------------------------------------
+// The lab's MCP as a client calls it at `/mcp`
+
+/** The lab's address in an MCP test: where its links point. */
+export const MCP_BASE = 'http://127.0.0.1:4401/';
+
+/** The lab's address on the owner's phone, in an MCP test. */
+export const MCP_PHONE = 'http://100.64.0.9:8230/';
+
+/** The server a request comes in on: the lab's own bind. */
+export const mcpBound = { hostname: '127.0.0.1', port: 4401 } as const;
+
+/** The lab's handler as a client's request reaches it. */
+export type LabFetch = (request: Request, server: typeof mcpBound) => Promise<Response>;
+
+/** The lab's handler with its MCP beside it, over a feed the test reads (`look`) when it says. */
+export const labWithMcp = Effect.gen(function* () {
+  const events = yield* LabEvents.make({ base: MCP_BASE });
+  yield* events.look;
+  const services = yield* Effect.context<LabMcpNeeds>();
+  const mcp = labMcp({ base: MCP_BASE, phone: MCP_PHONE }).pipe(
+    Layer.provide(Layer.succeedContext(Context.add(services, LabEvents, events))),
+  );
+  const lab = yield* labHandler({ hosts: [] }, mcp);
+  return { lab, events };
+});
+
+/** JSON as an MCP request carries it and its answer is read. */
+const McpJson = Schema.fromJsonString(Schema.Json);
+const writeMcpJson = Schema.encodeSync(McpJson);
+const readMcpJson = Schema.decodeUnknownEffect(McpJson);
+
+/** One JSON-RPC message posted to the lab's MCP, `headers` beside the ones every call sends. */
+export const mcpPost = (
+  lab: LabFetch,
+  body: Schema.Json,
+  headers: Readonly<Record<string, string>> = {},
+) =>
+  Effect.promise(() =>
+    lab(
+      new Request(`${MCP_BASE.slice(0, -1)}${MCP_PATH}`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+          ...headers,
+        },
+        body: writeMcpJson(body),
+      }),
+      mcpBound,
+    ),
+  );
+
+/** The messages of an answer: JSON, or, the client taking both, server-sent events (any notifications the server queued, then the answer). */
+const answerTexts = (answer: Response, body: string): ReadonlyArray<string> => {
+  const streamed = Option.exists(Option.fromNullishOr(answer.headers.get('content-type')), (type) =>
+    type.startsWith('text/event-stream'),
+  );
+  return Bool.match(streamed, {
+    onTrue: () =>
+      body
+        .split('\n')
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => line.slice('data:'.length)),
+    onFalse: () => [body],
+  });
+};
+
+/**
+ * A JSON-RPC client of the lab's MCP: a session started (the test dies when
+ * the lab answers the handshake otherwise, or names no session), then each
+ * call's result, and each tool's structured answer or its refusal's words.
+ */
+export const mcpSession = Effect.fn('mcpSession')(function* (lab: LabFetch) {
+  const started = yield* mcpPost(lab, {
+    jsonrpc: '2.0',
+    id: 0,
+    method: 'initialize',
+    params: {
+      protocolVersion: '2025-06-18',
+      capabilities: {},
+      clientInfo: { name: 't', version: '0' },
+    },
+  });
+  const id = Option.fromNullishOr(started.headers.get('mcp-session-id'));
+  if (started.status !== 200 || Option.isNone(id))
+    return yield* Effect.die(`the lab started no MCP session (it answered ${started.status})`);
+  const headers = { 'mcp-session-id': id.value, 'mcp-protocol-version': '2025-06-18' };
+  const initialized = yield* mcpPost(
+    lab,
+    { jsonrpc: '2.0', method: 'notifications/initialized' },
+    headers,
+  );
+  if (initialized.status !== 202)
+    return yield* Effect.die(`the lab answered notifications/initialized ${initialized.status}`);
+  let n = 0;
+  const call = Effect.fn('mcpSession.call')(function* (method: string, params: Schema.Json) {
+    n += 1;
+    const asked = n;
+    const answer = yield* mcpPost(lab, { jsonrpc: '2.0', id: asked, method, params }, headers);
+    const body = yield* Effect.promise(() => answer.text());
+    // Read as a client reads JSON: the test names the fields it checks.
+    // oxlint-disable-next-line typescript/no-explicit-any -- a test reads an answer's fields as a client reads JSON
+    const messages: ReadonlyArray<any> = yield* Effect.orDie(
+      Effect.forEach(answerTexts(answer, body), (text) => readMcpJson(text)),
+    );
+    const said = messages.find((message) => message.id === asked);
+    // A JSON-RPC error (the arguments did not decode) is said as a refusal.
+    return Option.getOrElse(Option.fromNullishOr(said?.result), () => ({
+      isError: true,
+      content: [{ type: 'text', text: writeMcpJson(said?.error) }],
+    }));
+  });
+  /** A tool's structured answer, or its refusal's words. */
+  const tool = (name: string, args: Schema.Json = {}) =>
+    Effect.map(call('tools/call', { name, arguments: args }), (result) =>
+      Bool.match(result.isError === true, {
+        onTrue: () => ({ refused: String(result.content[0].text) }),
+        onFalse: () => result.structuredContent,
+      }),
+    );
+  return { call, tool };
+});
 
 /** The console a run prints to: each line it logs, offered to `lines`. */
 export const printingTo = (lines: Queue.Queue<string>): Console.Console => ({

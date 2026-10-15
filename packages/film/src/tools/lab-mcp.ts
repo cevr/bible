@@ -19,6 +19,11 @@
 //   (`close_ask`), what closed it (answers, or withdrawn) filed on its
 //   production's timeline once by its id
 //   (`AskStore`, `ProductionStore`; `core/ask.ts`).
+// - The easel's tools (`easel-mcp.ts`): a scene looked at as its files
+//   stand, its stills answered as images (`look`), the film's clock
+//   (`cues`), scenes checked as drawn (`check`), and the film's journal read
+//   and noted (`journal`, `journal_note`), so any agent paints a scene
+//   through the lab.
 // - Resources (`lab://…`) say the same reads for a client that attaches
 //   them; the `inbox` prompt opens a session on what waits.
 //
@@ -69,7 +74,10 @@ import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
 import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
 import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts';
+import type { Easel } from './easel.ts';
+import { EASEL_INSTRUCTIONS, easelMcp } from './easel-mcp.ts';
 import { FilmFolder, type FilmName, filmNamed, filmsOut } from './film-repo.ts';
+import type { FreshFilm } from './fresh-film.ts';
 import { LabChanges, LabEvents, reviewFolders } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
@@ -1181,9 +1189,13 @@ const INSTRUCTIONS = [
   'Listen with `changes`: pass the cursor from `overview` as `since` and a `wait` in seconds; it answers as soon as the owner does something (a note, a reply, a kept try, an approval or withdrawal, a comment, a render or set, an answer to an ask), each change with its film, panel or render, its words and its lab link. Call it again with the cursor it answers.',
   'Hand the owner work as a set (`publish_set`) and its link, never a path; reply on the note that asked for it.',
   "When a decision is the owner's, ask it (`ask`): one page of blocks, or a short machine of pages, each question a `choose` where it can be (an optional `free_text` beside it for anything else; words are a burden to require); hand the owner its link, hear each answer on `changes` (`ask.step`, `ask.answered`), and `close_ask` once acted on.",
+  EASEL_INSTRUCTIONS,
 ].join('\n\n');
 
-/** What the lab's MCP runs over beside its router: the lab's stores and its change feed. */
+/**
+ * What the lab's MCP runs over beside its router: the lab's stores, its
+ * change feed, its easel and its fresh runs of the film CLI.
+ */
 export type LabMcpNeeds =
   | AskStore
   | ProductionStore
@@ -1193,6 +1205,8 @@ export type LabMcpNeeds =
   | FilmFolder
   | Review
   | ContentStore
+  | Easel
+  | FreshFilm
   | FileSystem.FileSystem
   | Path.Path;
 
@@ -1205,6 +1219,7 @@ export type LabMcpNeeds =
 export const labMcp = (options: LabMcpOptions) =>
   Layer.mergeAll(
     McpServer.toolkit(LabToolkit).pipe(Layer.provideMerge(handlers(options))),
+    easelMcp,
     resources(options),
     inbox(options),
   ).pipe(

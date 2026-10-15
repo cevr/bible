@@ -173,6 +173,24 @@ const CASES: ReadonlyArray<readonly [string, Operation]> = [
   ['links a file over one there', (fs, at) => fs.link(at('a.txt'), at('sub/inner.txt'))],
   ['links a file not there', (fs, at) => fs.link(at('nope.txt'), at('b.txt'))],
   ['links into a folder never made', (fs, at) => fs.link(at('a.txt'), at('no/b.txt'))],
+  // A draft as journal.ts's note makes one beside the journal: empty, in the
+  // folder named, and gone, its own folder and all, with its scope.
+  [
+    'makes a file for a scope, in a folder',
+    (fs, at) =>
+      Effect.scoped(
+        Effect.flatMap(fs.makeTempFileScoped({ directory: at('sub'), prefix: 'p-' }), (file) =>
+          Effect.map(
+            fs.readFileString(file),
+            (body) => `in sub ${file.startsWith(`${at('sub')}/p-`)}, "${body}"`,
+          ),
+        ),
+      ),
+  ],
+  [
+    'makes a file for a scope, in a folder not there',
+    (fs, at) => Effect.scoped(fs.makeTempFileScoped({ directory: at('nope'), prefix: 'p-' })),
+  ],
   ['tells a file', (fs, at) => Effect.map(fs.stat(at('a.txt')), (info) => info.type)],
   ['tells a folder', (fs, at) => Effect.map(fs.stat(at('sub')), (info) => info.type)],
   ['tells a path not there', (fs, at) => Effect.map(fs.stat(at('nope')), (info) => info.type)],

@@ -14,11 +14,9 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import {
-  Boolean as Bool,
   Cause,
   ConfigProvider,
   Console,
-  Context,
   Deferred,
   Effect,
   Exit,
@@ -49,18 +47,26 @@ import { AskStore } from './ask-store.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { production } from './production-cli.ts';
 import { ProductionStore } from './production-store.ts';
-import { labHandler } from './lab.ts';
 import { channel } from './lab-channel.ts';
-import { LabEvents } from './lab-events.ts';
 import { labClient } from './lab-client.ts';
-import { Changes, type LabMcpNeeds, MCP_PATH, labMcp } from './lab-mcp.ts';
+import { Changes } from './lab-mcp.ts';
 import { Review } from './review.ts';
-import { formatAsIs, labInMemory, noRenders, printingTo, text } from './testing.ts';
+import {
+  type LabFetch,
+  MCP_BASE,
+  MCP_PHONE,
+  formatAsIs,
+  labInMemory,
+  labWithMcp,
+  mcpBound,
+  mcpPost,
+  mcpSession,
+  noRenders,
+  printingTo,
+  text,
+} from './testing.ts';
 
 const STRANGER = 'x.example.net';
-const BASE = 'http://127.0.0.1:4401/';
-const PHONE = 'http://100.64.0.9:8230/';
-const bound = { hostname: '127.0.0.1', port: 4401 } as const;
 
 const board: BoardFile = {
   film: 'f',
@@ -114,18 +120,6 @@ const reviewAt = (others: ReadonlyArray<{ readonly label: string; readonly path:
   ).pipe(Layer.provide([noRenders, Path.layer]));
 const reviewAtOut = reviewAt([]);
 
-/** The lab's handler with its MCP beside it, over a feed the test reads (`look`) when it says. */
-const labWithMcp = Effect.gen(function* () {
-  const events = yield* LabEvents.make({ base: BASE });
-  yield* events.look;
-  const services = yield* Effect.context<LabMcpNeeds>();
-  const mcp = labMcp({ base: BASE, phone: PHONE }).pipe(
-    Layer.provide(Layer.succeedContext(Context.add(services, LabEvents, events))),
-  );
-  const lab = yield* labHandler({ hosts: [] }, mcp);
-  return { lab, events };
-});
-
 const providedWith =
   (review: typeof reviewAtOut) =>
   <A, E, R>(self: Effect.Effect<A, E, R>) =>
@@ -139,102 +133,16 @@ const providedWith =
     );
 const provided = providedWith(reviewAtOut);
 
-type Lab = (request: Request, server: typeof bound) => Promise<Response>;
-
 /** JSON as a request carries it and an answer is read. */
 const JsonText = Schema.fromJsonString(Schema.Json);
 const writeJson = Schema.encodeSync(JsonText);
 const readJson = Schema.decodeUnknownEffect(JsonText);
 
-const ask = (lab: Lab, body: Schema.Json, headers: Readonly<Record<string, string>> = {}) =>
-  Effect.promise(() =>
-    lab(
-      new Request(`${BASE.slice(0, -1)}${MCP_PATH}`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          accept: 'application/json, text/event-stream',
-          ...headers,
-        },
-        body: writeJson(body),
-      }),
-      bound,
-    ),
-  );
-
-/** A JSON-RPC client of the lab's MCP: a session started, then each call's result. */
-const session = (lab: Lab) =>
-  Effect.gen(function* () {
-    const started = yield* ask(lab, {
-      jsonrpc: '2.0',
-      id: 0,
-      method: 'initialize',
-      params: {
-        protocolVersion: '2025-06-18',
-        capabilities: {},
-        clientInfo: { name: 't', version: '0' },
-      },
-    });
-    expect(started.status).toBe(200);
-    const id = Option.fromNullishOr(started.headers.get('mcp-session-id'));
-    expect(Option.isSome(id)).toBe(true);
-    const headers = {
-      'mcp-session-id': Option.getOrElse(id, () => ''),
-      'mcp-protocol-version': '2025-06-18',
-    };
-    const initialized = yield* ask(
-      lab,
-      { jsonrpc: '2.0', method: 'notifications/initialized' },
-      headers,
-    );
-    expect(initialized.status).toBe(202);
-    let n = 0;
-    const call = (method: string, params: Schema.Json) =>
-      Effect.gen(function* () {
-        n += 1;
-        const r = yield* ask(lab, { jsonrpc: '2.0', id: n, method, params }, headers);
-        const body = yield* Effect.promise(() => r.text());
-        // A call is answered as JSON or, the client taking both, as server-sent
-        // events: any notifications the server queued, then the answer.
-        const streamed = Option.exists(
-          Option.fromNullishOr(r.headers.get('content-type')),
-          (type) => type.startsWith('text/event-stream'),
-        );
-        const texts = Bool.match(streamed, {
-          onTrue: () =>
-            body
-              .split('\n')
-              .filter((line) => line.startsWith('data:'))
-              .map((line) => line.slice('data:'.length)),
-          onFalse: () => [body],
-        });
-        // Read as a client reads JSON: the test names the fields it checks.
-        const messages: ReadonlyArray<any> = yield* Effect.orDie(
-          Effect.forEach(texts, (t) => readJson(t)),
-        );
-        const answer = messages.find((m) => m.id === n);
-        // A JSON-RPC error (the arguments did not decode) is said as a refusal.
-        return Option.getOrElse(Option.fromNullishOr(answer?.result), () => ({
-          isError: true,
-          content: [{ text: writeJson(answer?.error) }],
-        }));
-      });
-    /** A tool's structured answer, or its refusal's words. */
-    const tool = (name: string, args: Schema.Json = {}) =>
-      Effect.map(call('tools/call', { name, arguments: args }), (result) =>
-        Bool.match(result.isError === true, {
-          onTrue: () => ({ refused: String(result.content[0].text) }),
-          onFalse: () => result.structuredContent,
-        }),
-      );
-    return { call, tool };
-  });
-
 /** The owner's note on the film's frame, as the lab's page posts it. */
-const ownerNote = (lab: Lab, words: string) =>
+const ownerNote = (lab: LabFetch, words: string) =>
   Effect.promise(() =>
     lab(
-      new Request(`${BASE.slice(0, -1)}${labUrls.notes.add({ params: { film: 'f' } })}`, {
+      new Request(`${MCP_BASE.slice(0, -1)}${labUrls.notes.add({ params: { film: 'f' } })}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: writeJson({
@@ -245,7 +153,7 @@ const ownerNote = (lab: Lab, words: string) =>
           still: Base64.encode(text('frame')),
         }),
       }),
-      bound,
+      mcpBound,
     ),
   );
 
@@ -258,13 +166,13 @@ describe('who may use the MCP', () => {
           const { lab } = yield* labWithMcp;
           const status = (headers: Readonly<Record<string, string>>) =>
             Effect.map(
-              ask(lab, { jsonrpc: '2.0', id: 1, method: 'ping' }, headers),
+              mcpPost(lab, { jsonrpc: '2.0', id: 1, method: 'ping' }, headers),
               (r) => r.status,
             );
           expect(yield* status({ host: STRANGER })).toBe(403);
           expect(yield* status({ origin: `http://${STRANGER}` })).toBe(403);
-          // No Authorization header: a session starts (`session` checks its header).
-          yield* session(lab);
+          // No Authorization header: a session starts (`mcpSession` checks its header).
+          yield* mcpSession(lab);
         }),
       ),
   );
@@ -275,7 +183,7 @@ describe('the lab as an MCP server', () => {
     provided(
       Effect.gen(function* () {
         const { lab, events } = yield* labWithMcp;
-        const { call, tool } = yield* session(lab);
+        const { call, tool } = yield* mcpSession(lab);
         const listed = yield* call('tools/list', {});
         expect(listed.tools.map((t: { name: string }) => t.name).toSorted()).toEqual(
           [
@@ -295,6 +203,11 @@ describe('the lab as an MCP server', () => {
             'ask_read',
             'asks',
             'close_ask',
+            'check',
+            'cues',
+            'journal',
+            'journal_note',
+            'look',
           ].toSorted(),
         );
         const { cursor } = yield* tool('overview');
@@ -314,7 +227,7 @@ describe('the lab as an MCP server', () => {
             ],
           ),
         ).toEqual([['note.added', 'f', 'n1', 'owner', 'the judge looks away too soon']]);
-        expect(heard.changes[0].link).toBe(`${BASE}films/f/lab/cold?note=n1`);
+        expect(heard.changes[0].link).toBe(`${MCP_BASE}films/f/lab/cold?note=n1`);
         const replied = yield* tool('reply', {
           film: 'f',
           note: 'n1',
@@ -328,8 +241,8 @@ describe('the lab as an MCP server', () => {
         // The page reads the thread from the same store.
         const page = yield* Effect.promise(() =>
           lab(
-            new Request(`${BASE.slice(0, -1)}${labUrls.notes.list({ params: { film: 'f' } })}`),
-            bound,
+            new Request(`${MCP_BASE.slice(0, -1)}${labUrls.notes.list({ params: { film: 'f' } })}`),
+            mcpBound,
           ),
         );
         const log = yield* Effect.promise(() => page.json());
@@ -351,7 +264,7 @@ describe('the lab as an MCP server', () => {
     provided(
       Effect.gen(function* () {
         const { lab, events } = yield* labWithMcp;
-        const { tool } = yield* session(lab);
+        const { tool } = yield* mcpSession(lab);
         const { cursor } = yield* tool('overview');
         const tweak = yield* tool('request_tweak', {
           film: 'f',
@@ -359,7 +272,7 @@ describe('the lab as an MCP server', () => {
           text: 'softer eyes',
         });
         expect(tweak.note.panel).toEqual({ id: 'cold.judge', try: 1, ask: 'tweak' });
-        expect(tweak.note.link).toBe(`${BASE}films/f/board/cold?panel=judge&note=n1`);
+        expect(tweak.note.link).toBe(`${MCP_BASE}films/f/board/cold?panel=judge&note=n1`);
         expect(
           (yield* tool('request_tweak', { film: 'f', panel: 'cold.x', text: 'x' })).refused,
         ).toContain('no panel cold.x');
@@ -370,7 +283,7 @@ describe('the lab as an MCP server', () => {
         });
         expect([published.set, published.link]).toEqual([
           'spare/judge-faces',
-          `${BASE}sets/spare%2Fjudge-faces`,
+          `${MCP_BASE}sets/spare%2Fjudge-faces`,
         ]);
         expect(
           (yield* tool('publish_set', {
@@ -399,16 +312,16 @@ describe('the lab as an MCP server', () => {
 });
 
 /** The owner's answers to a step of an ask, as its page posts them. */
-const ownerAnswers = (lab: Lab, ask: string, step: string, values: Record<string, string>) =>
+const ownerAnswers = (lab: LabFetch, ask: string, step: string, values: Record<string, string>) =>
   Effect.flatMap(
     Effect.promise(() =>
       lab(
-        new Request(`${BASE.slice(0, -1)}${labUrls.asks.answer({ params: { ask } })}`, {
+        new Request(`${MCP_BASE.slice(0, -1)}${labUrls.asks.answer({ params: { ask } })}`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: writeJson({ step, values }),
         }),
-        bound,
+        mcpBound,
       ),
     ),
     (r) => Effect.promise(() => r.json().then((body) => ({ status: r.status, body }))),
@@ -419,7 +332,7 @@ describe('asks through the MCP', () => {
     provided(
       Effect.gen(function* () {
         const { lab } = yield* labWithMcp;
-        const { tool } = yield* session(lab);
+        const { tool } = yield* mcpSession(lab);
         const who = { title: 'A name', why: 'the set needs one', by: 'agent' };
         const looped = yield* tool('ask', {
           ...who,
@@ -461,8 +374,8 @@ describe('asks through the MCP', () => {
         });
         expect(one).toMatchObject({ status: 'asking', step: 'ask', answers: {}, answered: [] });
         expect(one.links).toEqual({
-          local: `${BASE}asks/${one.ask}`,
-          phone: `${PHONE}asks/${one.ask}`,
+          local: `${MCP_BASE}asks/${one.ask}`,
+          phone: `${MCP_PHONE}asks/${one.ask}`,
         });
         expect(
           (yield* tool('asks', { status: 'asking' })).asks.map((a: { ask: string }) => a.ask),
@@ -477,7 +390,7 @@ describe('asks through the MCP', () => {
       provided(
         Effect.gen(function* () {
           const { lab, events } = yield* labWithMcp;
-          const { tool } = yield* session(lab);
+          const { tool } = yield* mcpSession(lab);
           const productions = yield* ProductionStore;
           yield* productions.start('f', {
             title: 'F',
@@ -562,7 +475,7 @@ describe('asks through the MCP', () => {
               made.ask,
               'pick',
               { try: { kind: 'choose', value: 'calm', label: 'Calmer' } },
-              `${BASE}asks/${made.ask}`,
+              `${MCP_BASE}asks/${made.ask}`,
             ],
           ]);
           yield* ownerAnswers(lab, made.ask, 'why', { why: 'he listens' });
@@ -633,7 +546,7 @@ describe('asks through the MCP', () => {
 });
 
 /**
- * `film production …args` run to its end against the lab at `BASE`, its
+ * `film production …args` run to its end against the lab at `MCP_BASE`, its
  * requests answered by `fetch` (the lab's handler, or no lab at all): whether
  * it succeeded, its printed lines, and its failure's words.
  */
@@ -662,7 +575,7 @@ const productionCli = (
             Stdio.layerTest({}),
             formatAsIs,
             BunTerminal.layer,
-            ConfigProvider.layer(ConfigProvider.fromUnknown({ FILM_LAB_URL: BASE })),
+            ConfigProvider.layer(ConfigProvider.fromUnknown({ FILM_LAB_URL: MCP_BASE })),
           ),
         ),
       ),
@@ -688,7 +601,7 @@ describe('film production ask', () => {
       provided(
         Effect.gen(function* () {
           const { lab } = yield* labWithMcp;
-          const { tool } = yield* session(lab);
+          const { tool } = yield* mcpSession(lab);
           const productions = yield* ProductionStore;
           yield* productions.start('f', {
             title: 'F',
@@ -703,7 +616,7 @@ describe('film production ask', () => {
             manifest: { title: 'Judge faces', images: ['calmer.png'] },
           });
           const asked = yield* productionCli(
-            (request) => lab(request, bound),
+            (request) => lab(request, mcpBound),
             [
               'ask',
               'f',
@@ -734,8 +647,8 @@ describe('film production ask', () => {
           });
           expect(asked.lines).toEqual([
             `asked ${made.ask} on f: waits on its timeline at judge-faces, render:cold`,
-            `local ${BASE}asks/${made.ask}`,
-            `phone ${PHONE}asks/${made.ask}`,
+            `local ${MCP_BASE}asks/${made.ask}`,
+            `phone ${MCP_PHONE}asks/${made.ask}`,
             `then: its answers with the lab's MCP (ask_read ${made.ask}); close_ask it once acted on`,
           ]);
           // The page: a choice, and words beside it the owner may leave out.
@@ -778,14 +691,14 @@ describe('film production ask', () => {
           // The set named by the lab's ref, or by a folder the lab lists not: refused, nothing asked.
           const again = (set: string) =>
             productionCli(
-              (request) => lab(request, bound),
+              (request) => lab(request, mcpBound),
               ['ask', 'f', 'Q?', '--why', 'w', '--option', 'A', '--option', 'B', '--set', set],
             );
           expect((yield* again('spare/judge-faces')).failed).toBe(
             "SetByRef: spare/judge-faces is the lab's ref for it: the production commands name a set by its folder under its root, --set judge-faces",
           );
           expect((yield* again('nowhere')).failed).toBe(
-            `SetUnlisted: the lab at ${BASE} lists no set nowhere: name a set by its folder under its review root, as \`film production show\` prints it (set=…)`,
+            `SetUnlisted: the lab at ${MCP_BASE} lists no set nowhere: name a set by its folder under its review root, as \`film production show\` prints it (set=…)`,
           );
           expect((yield* tool('asks', {})).asks.map((a: { ask: string }) => a.ask)).toEqual([
             made.ask,
@@ -800,7 +713,7 @@ describe('film production ask', () => {
       providedWith(reviewAt([{ label: 'other', path: '/elsewhere' }]))(
         Effect.gen(function* () {
           const { lab } = yield* labWithMcp;
-          const { tool } = yield* session(lab);
+          const { tool } = yield* mcpSession(lab);
           yield* (yield* ProductionStore).start('f', {
             title: 'F',
             film: Option.some('f'),
@@ -815,7 +728,7 @@ describe('film production ask', () => {
           });
           const asking = (set: string) =>
             productionCli(
-              (request) => lab(request, bound),
+              (request) => lab(request, mcpBound),
               [
                 'ask',
                 'f',
@@ -845,7 +758,7 @@ describe('film production ask', () => {
       provided(
         Effect.gen(function* () {
           const { lab } = yield* labWithMcp;
-          const { tool } = yield* session(lab);
+          const { tool } = yield* mcpSession(lab);
           const productions = yield* ProductionStore;
           yield* productions.start('f', {
             title: 'F',
@@ -854,7 +767,7 @@ describe('film production ask', () => {
             first: 'the board',
             at: 1,
           });
-          const atLab = (request: Request) => lab(request, bound);
+          const atLab = (request: Request) => lab(request, mcpBound);
           const words = yield* productionCli(atLab, [
             'ask',
             'f',
@@ -903,18 +816,18 @@ describe('film production ask', () => {
 });
 
 /** The lab's handler as an HTTP client sees it; `polling` is told once a client waits on `changes`. */
-const httpOf = (lab: Lab, polling: Deferred.Deferred<void>) =>
+const httpOf = (lab: LabFetch, polling: Deferred.Deferred<void>) =>
   HttpClient.make((request) =>
     Effect.gen(function* () {
       const web = yield* Effect.orDie(HttpClientRequest.toWeb(request));
       const body = yield* Effect.promise(() => web.clone().text());
       if (body.includes('"wait":50')) yield* Deferred.done(polling, Exit.void);
-      const answer = yield* Effect.promise(() => lab(web, bound));
+      const answer = yield* Effect.promise(() => lab(web, mcpBound));
       return HttpClientResponse.fromWeb(request, answer);
     }),
   );
 
-const clientOf = (lab: Lab, polling: Deferred.Deferred<void>) =>
+const clientOf = (lab: LabFetch, polling: Deferred.Deferred<void>) =>
   Layer.succeed(HttpClient.HttpClient, httpOf(lab, polling));
 
 describe('the lab client', () => {
@@ -923,14 +836,14 @@ describe('the lab client', () => {
       Effect.gen(function* () {
         const { lab } = yield* labWithMcp;
         const polling = yield* Deferred.make<void>();
-        const client = yield* labClient(BASE).pipe(
+        const client = yield* labClient(MCP_BASE).pipe(
           Effect.provideService(HttpClient.HttpClient, httpOf(lab, polling)),
         );
         const ended = yield* Effect.scoped(
           Effect.tap(client.session, (session) => client.call(session, Changes, { wait: 0 })),
         );
         const after = yield* Effect.flip(client.call(ended, Changes, { wait: 0 }));
-        expect(after.message).toContain(`no lab answered at ${BASE} (it answered 404)`);
+        expect(after.message).toContain(`no lab answered at ${MCP_BASE} (it answered 404)`);
       }),
     ),
   );
@@ -949,16 +862,16 @@ describe('the lab client', () => {
               return yield* new HttpClientError.HttpClientError({
                 reason: new HttpClientError.TransportError({ request, description: 'lost' }),
               });
-            const answer = yield* Effect.promise(() => lab(web, bound));
+            const answer = yield* Effect.promise(() => lab(web, mcpBound));
             answered.push(`${web.method} ${answer.status}`);
             return HttpClientResponse.fromWeb(request, answer);
           }),
         );
-        const client = yield* labClient(BASE).pipe(
+        const client = yield* labClient(MCP_BASE).pipe(
           Effect.provideService(HttpClient.HttpClient, losing),
         );
         const failed = yield* Effect.flip(Effect.scoped(client.session));
-        expect(failed.message).toContain(`no lab answered at ${BASE}`);
+        expect(failed.message).toContain(`no lab answered at ${MCP_BASE}`);
         // The session the lab named is ended all the same.
         expect(answered).toEqual(['POST 200', 'DELETE 204']);
       }),
@@ -999,7 +912,7 @@ describe('film channel', () => {
                 formatAsIs,
                 BunTerminal.layer,
                 ConfigProvider.layer(
-                  ConfigProvider.fromUnknown({ FILM_LAB_URL: BASE, HOME: '/home' }),
+                  ConfigProvider.fromUnknown({ FILM_LAB_URL: MCP_BASE, HOME: '/home' }),
                 ),
               ),
             ),
@@ -1031,7 +944,7 @@ describe('film channel', () => {
         expect(yield* heard).toMatchObject({
           method: 'notifications/claude/channel',
           params: {
-            content: `f n1: note on scene cold: the light comes up too fast\n${BASE}films/f/lab/cold?note=n1`,
+            content: `f n1: note on scene cold: the light comes up too fast\n${MCP_BASE}films/f/lab/cold?note=n1`,
             meta: { kind: 'note.added', film: 'f', note: 'n1', by: 'owner', seq: '1' },
           },
         });

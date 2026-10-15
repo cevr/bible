@@ -53,12 +53,61 @@ when `FILM_LAB_HOSTS` names one).
 | `ask_read`      | an ask: where its run is, every answer so far (typed), each step answered, its links                                    |
 | `asks`          | every ask, newest first, narrowed by `status` (`asking`, `answered`, `closed`)                                          |
 | `close_ask`     | closes an ask with `why`; with a production, files `Decided` (answered) or `Noted` (withdrawn), once, by ask id         |
+| `look`          | stills of a scene as its files stand, each an image after its line (see [The easel's tools](#the-easels-tools))         |
+| `cues`          | each scene's placement, marks and named cues, as `film cues` prints them; one scene's when named                        |
+| `check`         | the scenes named (or the film) checked as drawn, `film check --draw`, the findings a page at a time                     |
+| `journal`       | a film's journal: the newest entries (of one scene, when named) that fit, the rest counted with its file                |
+| `journal_note`  | one observation in a film's journal, of a scene or the whole film, at the time now                                      |
 
 Resources: `lab://overview`, `lab://changes` (the last 50), `lab://films/{film}/notes`, `lab://films/{film}/board`.
 Prompt: `inbox` (every waiting note across the films, and how to work them).
 
 `publish_set` merges at the JSON level, so keys it does not know (the timeline's `production`, `version`,
 `published`) stay as they were.
+
+## The easel's tools
+
+The owner (2026-10-14): "lets also remove .gent, make it something all agents can benefit from". The tools a
+painter works with were a gent extension (`.gent/extensions/film.ts`), which ran the film CLI for gent alone. They
+are the lab's now (`tools/easel-mcp.ts`), so every client that reaches the lab paints with them: Claude Code, Codex,
+gent, any MCP client.
+
+- **One owner each.** `look` is the lab's own easel (`Easel.look`, the warm export page `film look` asks over
+  HTTP), its stills answered as MCP images, each after its line (`lookLine`: file, scene, place, time, frame,
+  size, build), so the model reads the picture itself. `journal` and `journal_note` are `journal.ts`'s `read` and
+  `note`. `cues` and `check` read the film's modules, which the lab never imports (`lab.test.ts`), so they run
+  the film CLI fresh (`FreshFilm`), as the lab's after-write check does: `film read cues <film> [scene]`
+  answers `film cues`' lines (`sceneReport`) as one line of JSON, and `film check <film> --draw --scene …
+  --allow-stale --json` answers its findings. A scene named to `journal` or `journal_note` is found the same way,
+  so one the film lacks is the film's own `UnknownScene`.
+- **`films`, the asker's checkout.** Each tool takes `films`, the asker's films folder, absolute
+  (`<repo>/apps/animations/src/films`). The lab on 8229 serves one checkout, and an agent in a rift that asked it
+  would look at, check and note in another checkout's film under the same name. A folder other than the lab's is
+  `LabElsewhere` (`elsewhereOf`, which `Easel.look` checks too), naming both, with the way to a lab of the asker's
+  own: `LAB_PORT=<port> bun cli.ts lab` in `apps/animations`, and its MCP at `http://127.0.0.1:<port>/mcp`.
+- **Answers that fit.** A client cuts a long result (Claude Code warns past 10,000 tokens and cuts past 25,000),
+  and a toolkit sends each answer twice, as text and as `structuredContent`. So each answer encodes to at most
+  8,000 characters of JSON (`core/tool-pages.ts`) and says how to read on. `check` lists its findings errors
+  first, a page at a time; `next` is the `from` and the `report` to ask again with, and a page asked of a report
+  whose findings changed since (some fixed, or new) starts again from the first and says so (`restarted`), so
+  none is skipped. `cues` answers whole lines; `next` is the line and the column to ask again with (a column past
+  1 goes on inside a line longer than one answer). `journal` answers the newest entries that fit, each cut to 800
+  characters, and how many earlier ones its file holds.
+- **Images a model's request takes.** `look` takes 1 to 8 places and a `size` of at most 2,000 pixels (the
+  Claude API holds every image to 2,000 pixels a side once a request carries more than 20). A still past 3.75 MB
+  (5 MB in base64), or a look's stills past 15 MB together, is `LookTooLarge`, naming each still and its size:
+  they are written, and a smaller size, a crop or fewer places reads them. `look` is added to the server by hand
+  (`McpServer.addTool`), since a toolkit answers JSON alone; its arguments are decoded as a toolkit's are, and
+  ones that do not decode are the call's `InvalidParams`.
+- **Refusals in the film's words.** A tool's failure is a tool error: the film's tag, then its words
+  (`UnknownScene: the film has no scene "x"; its scenes are …`, `PagesBroken: …`, `FilmUnknown: …`). A fresh run's
+  failure keeps the tag it carried (`ServerFailed`'s); a check that cannot run is its one error finding.
+- **Long checks.** `check` without `scenes` draws every scene of the film, which takes minutes for a long one (its
+  fresh run is given 5). Name the scenes worked on. Codex stops a tool after 60 s unless the server's
+  `tool_timeout_sec` says more ([Registration](#registration-the-owner-runs-these)).
+
+`film look`, `film cues`, `film check` and `film journal` are unchanged: the tools are the same owners, reached
+through the lab.
 
 ## Events
 
@@ -119,6 +168,10 @@ server's own handler as a new request (`api-server.ts`), so a route's answer kee
 claude mcp add --transport http lab http://localhost:8229/mcp -s user
 # from another machine on the tailnet: http://100.92.183.50:8230/mcp
 
+# Codex, the same tools; then give a whole film's check time to draw, in
+# ~/.codex/config.toml under [mcp_servers.lab]: tool_timeout_sec = 360
+codex mcp add lab --url http://localhost:8229/mcp
+
 # optional: the owner's actions pushed into a main session
 claude mcp add lab-events -s user -e FILM_LAB_URL=http://127.0.0.1:8229/ \
   -- bun /Users/cvr/Developer/personal/bible-tools/apps/animations/cli.ts channel
@@ -137,6 +190,8 @@ terminal; learn of a pick when told. Now:
    note, pick or approval arrives with its film, panel or render, words and link.
 5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run production ask`),
    give the owner its link, hear the answers on `changes`, act, and `close_ask`.
+6. A scene painted: `journal` and `cues` first, then a passage at a time, `look` at its marks and its cues'
+   middles, `journal_note` what a look taught, and `check` the scenes touched before stopping.
 
 ## Asks
 
