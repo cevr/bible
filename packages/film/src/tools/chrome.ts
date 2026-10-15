@@ -17,9 +17,8 @@
 // Every Chrome keeps its profile in a folder of its own, removed when its
 // process exits (`chrome-profile.ts`).
 
-import { tmpdir } from 'node:os';
 import { Config, Effect, FileSystem, Option, Order, Path, Schema, type Scope } from 'effect';
-import { PROFILES, profileFolder } from './chrome-profile.ts';
+import { PROFILE_ROOT, profileFolder } from './chrome-profile.ts';
 import { BrowserFailed, BrowserMissing } from './errors.ts';
 
 /**
@@ -112,8 +111,7 @@ const spawnView = (
 /** The process's first view: Chrome spawned from the first executable found. */
 const firstView = (argv: ReadonlyArray<string>, options: ViewOptions) =>
   Effect.gen(function* () {
-    const path = yield* Path.Path;
-    const profile = yield* profileFolder(path.join(tmpdir(), PROFILES));
+    const profile = yield* profileFolder(PROFILE_ROOT);
     const named = yield* Config.option(Config.String('BUN_CHROME_PATH')).pipe(Effect.orDie);
     if (Option.isSome(named))
       return yield* Effect.flatMap(spawnView(named, argv, profile, options), (view) =>
