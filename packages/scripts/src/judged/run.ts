@@ -1,13 +1,14 @@
 // The judged rules' runner. Every item of a run the cache does not answer
 // goes to the model in ONE request (a classify per item, keys c0…cN), split
 // only past `bound` items or `budget` estimated input tokens, the parts sent
-// at once. A run never fails on the
-// model: no key, a request past its deadline, a rate limit, an HTTP error or
-// an answer that misses items skips the items it could not judge, and says
-// so on one line per rule. A finding is a warning.
+// at once. A run never fails on the model: no key, a request past its
+// deadline, a rate limit, an HTTP error or an answer that misses items skips
+// the items it could not judge, and says so on one line per rule. Nor on its
+// cache: answers it cannot keep are asked again next run. A finding is a
+// warning.
 
 import type { Duration } from 'effect';
-import { Effect, Option, Result, Schema } from 'effect';
+import { Console, Effect, Option, Result, Schema } from 'effect';
 import { type AiError, Decision, DecisionModel } from 'effect/ai';
 
 import { type Answer, cacheKey, keepAnswers, readCache } from './cache.js';
@@ -197,6 +198,18 @@ export const ask = Effect.fn('judged.ask')(function* <Label extends string>(
   return asked;
 });
 
+const TaggedReason = Schema.Struct({ reason: Schema.Struct({ _tag: Schema.String }) });
+
+/**
+ * A failure's name on a skip line: its tag, with its reason's when that is
+ * tagged too (`PlatformError.AlreadyExists`).
+ */
+export const detailOf = (error: { readonly _tag: string }) =>
+  Option.match(Schema.decodeUnknownOption(TaggedReason)(error), {
+    onNone: () => error._tag,
+    onSome: ({ reason }) => `${error._tag}.${reason._tag}`,
+  });
+
 /** An item the rule reports, with the model's probability for the reporting label. */
 interface Finding {
   readonly file: string;
@@ -231,10 +244,15 @@ export const judge = Effect.fn('judged.judge')(function* <Label extends string>(
     (text) => !cache.has(keyOf(text)),
   );
   const asked = yield* ask(rule, fresh, judging);
+  // Answers that cannot be kept are asked again next run; the findings still print.
   if (asked.answers.size > 0)
     yield* keepAnswers(
       judging.cacheFile,
       new Map([...asked.answers].map(([text, answer]) => [keyOf(text), answer])),
+    ).pipe(
+      Effect.catch((error) =>
+        Console.error(`[judged] answers not kept rule=${rule.id} detail=${detailOf(error)}`),
+      ),
     );
   const answerOf = (text: string) =>
     Option.orElse(Option.fromUndefinedOr(cache.get(keyOf(text))), () =>

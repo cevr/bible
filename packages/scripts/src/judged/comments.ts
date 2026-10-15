@@ -6,7 +6,7 @@
 // as one item, with its file and its first line.
 
 import { Glob, JSONC } from 'bun';
-import { Effect, FileSystem, Path, Schema } from 'effect';
+import { Effect, FileSystem, Path, Schema, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 import { parseSync } from 'oxc-parser';
@@ -121,13 +121,60 @@ const LintConfig = Schema.Struct({
   ignorePatterns: Schema.optional(Schema.Array(Schema.String)),
 });
 
+/** A git command exited non-zero: its subcommand and its code (git's own words are dropped). */
+class GitFailed extends Schema.TaggedError<GitFailed>()('GitFailed', {
+  command: Schema.String,
+  code: Schema.Finite,
+}) {
+  override get message() {
+    return `git ${this.command} exited ${this.code}`;
+  }
+}
+
+/** The repo's lint config is not JSONC, or not the shape it reads. */
+class LintConfigUnreadable extends Schema.TaggedError<LintConfigUnreadable>()(
+  'LintConfigUnreadable',
+  { file: Schema.String },
+) {
+  override get message() {
+    return `${this.file} does not read as a lint config`;
+  }
+}
+
+/** `git <args>` run in `root`: what it prints, or `GitFailed` when it exits non-zero. */
 const git = (root: string, args: ReadonlyArray<string>) =>
-  Effect.flatMap(ChildProcessSpawner, (spawner) =>
-    spawner.string(ChildProcess.make('git', args, { cwd: root })),
+  Effect.scoped(
+    Effect.gen(function* () {
+      const spawner = yield* ChildProcessSpawner;
+      const handle = yield* spawner.spawn(
+        ChildProcess.make('git', args, { cwd: root, stderr: 'ignore' }),
+      );
+      const [out, code] = yield* Effect.all(
+        [Stream.mkString(Stream.decodeText(handle.stdout)), handle.exitCode],
+        { concurrency: 'unbounded' },
+      );
+      if (code !== 0)
+        return yield* GitFailed.make({
+          command: args.find((arg) => !arg.startsWith('-') && !arg.includes('=')) ?? 'git',
+          code,
+        });
+      return out;
+    }),
   );
 
 /** The repo's root, as git names it from the working directory. */
 export const repoRoot = Effect.map(git('.', ['rev-parse', '--show-toplevel']), (out) => out.trim());
+
+/** The ignore patterns of the lint config at `file`, from its text. */
+const ignorePatternsOf = (file: string, text: string) =>
+  Effect.try({
+    try: () => JSONC.parse(text),
+    catch: () => LintConfigUnreadable.make({ file }),
+  }).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(LintConfig)),
+    Effect.mapError(() => LintConfigUnreadable.make({ file })),
+    Effect.map((config) => config.ignorePatterns ?? []),
+  );
 
 /**
  * The comment items of the linted TypeScript files whose lines the working
@@ -148,9 +195,10 @@ export const changedComments = Effect.fn('judged.changedComments')(function* (
     '--diff-filter=AMR',
     mergeBase,
   ]);
-  const config = yield* fs.readFileString(path.join(root, '.oxlintrc.json'));
-  const { ignorePatterns = [] } = yield* Schema.decodeUnknownEffect(LintConfig)(
-    JSONC.parse(config),
+  const configFile = path.join(root, '.oxlintrc.json');
+  const ignorePatterns = yield* ignorePatternsOf(
+    '.oxlintrc.json',
+    yield* fs.readFileString(configFile),
   );
   const files = [...changedLines(diff)].filter(([file]) => linted(file, ignorePatterns));
   const items = yield* Effect.forEach(

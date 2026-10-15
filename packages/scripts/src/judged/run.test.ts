@@ -372,4 +372,22 @@ describe('a judged rule never fails on its model', () => {
       }).pipe(Effect.provide(keyless), withFs);
     },
   );
+
+  it.effect('still reports its findings when its answers cannot be kept', () => {
+    const model = countingModel((text) => P.get(text) ?? 0);
+    return Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const options = yield* judging;
+      // The cache's folder is a file, so the answers cannot be written.
+      const folder = path.dirname(options.cacheFile);
+      yield* fs.makeDirectory(path.dirname(folder), { recursive: true });
+      yield* fs.writeFileString(folder, 'a file, not a folder\n');
+      const outcome = yield* judge(historyComment, ITEMS, options);
+      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97 }]);
+      expect(runLine(historyComment, outcome)).toBe(
+        '[judged] rule=historyComment items=3 cached=0 asked=3 findings=1',
+      );
+    }).pipe(Effect.provide(model.layer), withFs);
+  });
 });

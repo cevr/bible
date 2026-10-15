@@ -56,10 +56,11 @@ const missingKey = Layer.effect(DecisionModel.DecisionModel)(
   }),
 );
 
-/** TypeSafe's DecisionModel for `model`, over the key `key` finds. */
+/** TypeSafe's DecisionModel for `model`, over the key `key` finds, at `apiUrl` (TypeSafe's own when none). */
 export const typesafeModel = <E, R>(
   model: string,
   key: Effect.Effect<Option.Option<Redacted.Redacted<string>>, E, R>,
+  apiUrl?: string,
 ) =>
   Layer.unwrap(
     Effect.map(
@@ -68,8 +69,20 @@ export const typesafeModel = <E, R>(
         onNone: () => missingKey,
         onSome: (apiKey) =>
           TypeSafeDecisionModel.layer({ model }).pipe(
-            Layer.provide(TypeSafeClient.layer({ apiKey })),
+            Layer.provide(TypeSafeClient.layer({ apiKey, apiUrl })),
           ),
       }),
     ),
   );
+
+/**
+ * The model the lint asks: `JUDGED_MODEL` on TypeSafe, over its key, at
+ * `TYPESAFE_API_URL` when that is set (a test's fake), else TypeSafe's.
+ */
+export const judgedModel = Layer.unwrap(
+  Effect.gen(function* () {
+    const model = yield* modelName;
+    const apiUrl = yield* Config.option(Config.String('TYPESAFE_API_URL'));
+    return typesafeModel(model, typesafeKey, Option.getOrUndefined(apiUrl));
+  }),
+);

@@ -21,7 +21,7 @@ import { Clock, Console, Effect, FileSystem, Layer, Option, Path, Schema } from 
 import { Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 
-import { modelName, typesafeKey, typesafeModel } from './model.js';
+import { judgedModel, modelName } from './model.js';
 import { historyComment } from './rule.js';
 import { LIMITS, ask, partsOf } from './run.js';
 
@@ -110,11 +110,12 @@ const command = Command.make(
   Command.withDescription('Measure historyComment on its labelled corpus against the live model'),
 );
 
-const model = Layer.unwrap(Effect.map(modelName, (name) => typesafeModel(name, typesafeKey)));
-
 Command.run(command, { version: '1.0.0' }).pipe(
   Effect.provide(
-    model.pipe(Layer.provideMerge(FetchHttpClient.layer), Layer.provideMerge(BunServices.layer)),
+    judgedModel.pipe(
+      Layer.provideMerge(FetchHttpClient.layer),
+      Layer.provideMerge(BunServices.layer),
+    ),
   ),
   BunRuntime.runMain,
 );

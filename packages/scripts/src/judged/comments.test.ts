@@ -148,4 +148,19 @@ describe('the changed-comments selector', () => {
         }),
       ),
   );
+
+  it.live('fails, tagged, when git fails or the lint config does not read', () =>
+    withFs(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = yield* repo({ 'src/a.ts': A }, {}, {});
+        const noBase = yield* Effect.flip(changedComments(dir, 'no-such-ref'));
+        expect(noBase._tag).toBe('GitFailed');
+        yield* fs.writeFileString(path.join(dir, '.oxlintrc.json'), '{ "ignorePatterns": [');
+        const badConfig = yield* Effect.flip(changedComments(dir, 'main'));
+        expect(badConfig._tag).toBe('LintConfigUnreadable');
+      }),
+    ),
+  );
 });

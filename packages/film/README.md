@@ -3432,10 +3432,12 @@ decision, the label that reports, a threshold and a message. The first,
 that the working tree adds or changes against the merge base with
 origin/main (`--base` names another), and asks TypeSafe's model about all of
 them in one request, split only past 200 items or about 60,000 input tokens
-(the model refused a request near 65,536). They never block on the model: no key
+(the model refused a request near 65,536). They never block a push: no key
 (`TYPESAFE_API_KEY`, else the keychain item `typesafe-api-key`), a timeout, a
 rate limit, an HTTP error or an answer that misses items passes, and prints
-`[judged] skipped rule=<rule> reason=<reason> items=<n>`. The answers are
+`[judged] skipped rule=<rule> reason=<reason> items=<n>`; any other failure
+(git, the lint config, a defect) is `reason=error` with `detail=<tag>`, and
+answers the cache cannot keep are asked again next run. The answers are
 cached under the repo's ignored tmp folder, keyed by the rule and its version,
 the model and the text, so a rerun asks only for new text and says what it
 said before. A finding is a warning (at p 0.9 or more) until a labelled corpus
