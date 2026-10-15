@@ -84,6 +84,7 @@ import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
 import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts';
 import type { Easel } from './easel.ts';
 import { EASEL_INSTRUCTIONS, easelMcp } from './easel-mcp.ts';
+import { logged } from './mcp-calls.ts';
 import { FilmFolder, type FilmName, filmNamed, filmsOut } from './film-repo.ts';
 import type { FreshFilm } from './fresh-film.ts';
 import { LabChanges, LabEvents, reviewFolders } from './lab-events.ts';
@@ -1176,27 +1177,34 @@ const handlers = (options: LabMcpOptions) =>
   LabToolkit.toLayer(
     Effect.map(labReads(options), (lab) =>
       LabToolkit.of({
-        overview: () => lab.overview,
-        changes: ({ since, wait }) =>
+        overview: logged('overview', () => lab.overview),
+        changes: logged('changes', ({ since, wait }) =>
           lab.events.wait(Option.fromUndefinedOr(since), Duration.seconds(wait ?? 0)),
-        notes: ({ film, status }) => lab.notesOf(film, status ?? 'unresolved'),
-        board: ({ film, beat }) => lab.boardOf(film, Option.fromUndefinedOr(beat)),
-        catalogue: ({ film, set }) =>
+        ),
+        notes: logged('notes', ({ film, status }) => lab.notesOf(film, status ?? 'unresolved')),
+        board: logged('board', ({ film, beat }) => lab.boardOf(film, Option.fromUndefinedOr(beat))),
+        catalogue: logged('catalogue', ({ film, set }) =>
           lab.catalogueOf(Option.fromUndefinedOr(film), Option.fromUndefinedOr(set)),
-        sets: () => Effect.map(lab.sets, (sets) => ({ sets })),
-        set: ({ set }) => lab.setOf(set),
-        reply: ({ film, note, text }) => lab.reply(film, note, text),
-        resolve: ({ film, note }) => lab.resolve(film, note),
-        request_tweak: ({ film, panel, text, try: n }) =>
+        ),
+        sets: logged('sets', () => Effect.map(lab.sets, (sets) => ({ sets }))),
+        set: logged('set', ({ set }) => lab.setOf(set)),
+        reply: logged('reply', ({ film, note, text }) => lab.reply(film, note, text)),
+        resolve: logged('resolve', ({ film, note }) => lab.resolve(film, note)),
+        request_tweak: logged('request_tweak', ({ film, panel, text, try: n }) =>
           lab.requestTweak(film, panel, text, Option.fromUndefinedOr(n)),
-        publish_set: ({ name, files, manifest }) => lab.publishSet(name, files ?? [], manifest),
-        record_render: ({ film, render }) => lab.recordRender(film, render),
-        ask: (given) => lab.ask(given),
-        ask_read: ({ ask }) => lab.askOf(ask),
-        asks: ({ status }) => lab.asksOf(Option.fromUndefinedOr(status)),
-        close_ask: ({ ask, why }) => lab.closeAsk(ask, why),
-        decide: (given) => lab.fileWord('Decided', given),
-        note: (given) => lab.fileWord('Noted', given),
+        ),
+        publish_set: logged('publish_set', ({ name, files, manifest }) =>
+          lab.publishSet(name, files ?? [], manifest),
+        ),
+        record_render: logged('record_render', ({ film, render }) =>
+          lab.recordRender(film, render),
+        ),
+        ask: logged('ask', (given) => lab.ask(given)),
+        ask_read: logged('ask_read', ({ ask }) => lab.askOf(ask)),
+        asks: logged('asks', ({ status }) => lab.asksOf(Option.fromUndefinedOr(status))),
+        close_ask: logged('close_ask', ({ ask, why }) => lab.closeAsk(ask, why)),
+        decide: logged('decide', (given) => lab.fileWord('Decided', given)),
+        note: logged('note', (given) => lab.fileWord('Noted', given)),
       }),
     ),
   );

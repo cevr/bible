@@ -48,6 +48,7 @@ import { CuesLate } from './errors.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { JOURNAL_LAST, note, read } from './journal.ts';
+import { logged } from './mcp-calls.ts';
 
 /** The most stills one look takes: each is an image the model reads, and a request keeps 20 at full size. */
 const LOOK_MAX_PLACES = 8;
@@ -389,10 +390,12 @@ const easelWork = Effect.gen(function* () {
 const handlers = EaselToolkit.toLayer(
   Effect.map(easelWork, (work) =>
     EaselToolkit.of({
-      check: (params) => Effect.mapError(work.check(params), refusedAs),
-      cues: (params) => Effect.mapError(work.cues(params), refusedAs),
-      journal: (params) => Effect.mapError(work.journal(params), refusedAs),
-      journal_note: (params) => Effect.mapError(work.journalNote(params), refusedAs),
+      check: logged('check', (params) => Effect.mapError(work.check(params), refusedAs)),
+      cues: logged('cues', (params) => Effect.mapError(work.cues(params), refusedAs)),
+      journal: logged('journal', (params) => Effect.mapError(work.journal(params), refusedAs)),
+      journal_note: logged('journal_note', (params) =>
+        Effect.mapError(work.journalNote(params), refusedAs),
+      ),
     }),
   ),
 );
