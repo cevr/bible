@@ -10,6 +10,7 @@ import {
   NO_FILTER,
   NO_SELECTION,
   SELECTABLE_SUBTYPES,
+  sectionsByFolder,
   SignedFromStrings,
 } from './corpus-class.js';
 
@@ -124,5 +125,35 @@ describe('SELECTABLE_SUBTYPES', () => {
       }
       expect(SELECTABLE_SUBTYPES).toContain('devotional');
       expect(SELECTABLE_SUBTYPES).toContain('commentary');
+    }));
+});
+
+describe('sectionsByFolder', () => {
+  const test = it.effect;
+  const folder = (folder_id: number, name: string, children: readonly FolderNode[] = []) => ({
+    folder_id,
+    name,
+    children,
+  });
+  type FolderNode = {
+    readonly folder_id: number;
+    readonly name: string;
+    readonly children: readonly FolderNode[];
+  };
+
+  test('carries each root section down to every folder beneath it', () =>
+    Effect.sync(() => {
+      const sections = sectionsByFolder([
+        folder(1, 'EGW Writings', [folder(2, 'Books', [folder(3, 'Devotionals')])]),
+        folder(4, 'Bible', [folder(5, 'KJV')]),
+        folder(6, 'Periodicals', [folder(7, 'Review')]),
+      ]);
+      expect([...sections]).toEqual([
+        [1, 'egw-writings'],
+        [2, 'egw-writings'],
+        [3, 'egw-writings'],
+        [4, 'bible'],
+        [5, 'bible'],
+      ]);
     }));
 });
