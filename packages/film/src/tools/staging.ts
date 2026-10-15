@@ -251,7 +251,7 @@ interface Spent {
 }
 
 /** The local day of epoch milliseconds `ms`: `YYYY-MM-DD`. */
-const dayOf = (ms: number): string =>
+export const dayOf = (ms: number): string =>
   DateTime.formatIsoDate(DateTime.makeZonedUnsafe(ms, { timeZone: DateTime.zoneMakeLocal() }));
 
 /** The spend with `characters` charged to `day`, or the cap that refuses them. Pure. */

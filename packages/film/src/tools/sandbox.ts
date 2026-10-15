@@ -1,103 +1,73 @@
-// The counsel's sandbox: a program run where it can read only what it is
-// handed, by bubblewrap (`bwrap`, a mount namespace an unprivileged user may
-// make). The sandbox starts empty: nothing of the machine is there unless a
-// mount puts it there, so the repo, the films' out folders (an earlier
-// judge's key among them), the caches, the real `/tmp` and every home are
-// simply absent, not hidden by a rule a program could get round. What is
-// there: the system a program runs on (`/usr` and its merged links, `/etc`
-// for names and TLS, the resolver's stub folder), a fresh `/proc`, `/dev`
-// and `/tmp`, the packet's folder read-only at `SEEN.packet` (the working
-// folder), a folder the program writes at `SEEN.answer`, and the mounts
-// the program itself needs (`SandboxPlan.mounts`). The network is shared:
-// the counsel needs the internet, so a service on this machine's loopback
-// (the lab at :8229) stays reachable, though nothing in the sandbox says it
-// is there. The environment is cleared but for what the plan sets. Pure:
-// `sandboxArgs` is bwrap's argv, tested for what it mounts.
+// The counsel's sandbox: a program run under macOS's sandbox (`sandbox-exec`,
+// a Seatbelt profile the kernel enforces on it and on every process it
+// starts), where it reads only what it is handed of the user's. The profile
+// allows the system a program runs on and the network (the counsel needs the
+// internet), and closes every user's home, the system's temp folders and
+// every other volume to reading: the repo, the films' out folders (an
+// earlier judge's key among them), the caches and the owner's sessions are
+// unreadable there, not merely unlisted. What stays readable is the system's
+// own (`/System`, `/Library`, `/usr`, `/Applications`, `/opt`, `/etc` and
+// the like, every path outside the closed folders), which holds no
+// key or verdict. Inside the closed folders it opens only what the plan
+// names, an allow-list: places to read, and places to write, each of which
+// it reads too. It writes nowhere else (but `/dev`). A path's metadata (that
+// it exists, its size) stays visible, so a program can resolve the paths it
+// is handed; a file's bytes and a folder's listing do not. Pure: `profileOf`
+// is the profile, tested for what it opens.
 
-/** Where the sandbox shows what it is handed. */
-export const SEEN = {
-  /** The packet's folder, read-only: the program's working folder. */
-  packet: '/judge/packet',
-  /** The folder the program writes its answer in. */
-  answer: '/judge/answer',
-  /** The program's home: empty but for what a plan mounts in it. */
-  home: '/judge/home',
-  /** The program's PATH folder: the commands a plan links there. */
-  bin: '/judge/bin',
-  /** Where a plan mounts the programs it runs. */
-  tools: '/judge/tools',
-} as const;
+import { Array as Arr } from 'effect';
 
-/** One mount: a host path read-only (or there only if it exists), one written, a link, an empty folder. */
-export type Mount =
-  | {
-      readonly _tag: 'Read';
-      readonly from: string;
-      readonly to: string;
-      readonly optional: boolean;
-    }
-  | { readonly _tag: 'Write'; readonly from: string; readonly to: string }
-  | { readonly _tag: 'Link'; readonly target: string; readonly to: string }
-  | { readonly _tag: 'Empty'; readonly to: string };
-
-/** What a sandboxed run is handed: its packet's folder, its answer's folder, its own mounts and environment. */
-interface SandboxPlan {
-  readonly packet: string;
-  readonly answer: string;
-  readonly mounts: ReadonlyArray<Mount>;
-  readonly env: Readonly<Record<string, string>>;
+/**
+ * What a sandboxed run may touch inside the closed folders, nothing it is
+ * not given: each a folder and everything under it, by its real path.
+ */
+export interface SandboxPlan {
+  /** Opened to read: the packet's folder, the program and what it reads to run. */
+  readonly reads: ReadonlyArray<string>;
+  /** Opened to read and write: the program's own state and temp files. */
+  readonly writes: ReadonlyArray<string>;
 }
 
-/** The system a program runs on, and nothing of anyone's. */
-const SYSTEM: ReadonlyArray<Mount> = [
-  { _tag: 'Read', from: '/usr', to: '/usr', optional: false },
-  // Links into /usr on a merged system, folders of their own on another.
-  ...['/bin', '/sbin', '/lib', '/lib64'].map((dir): Mount => ({
-    _tag: 'Read',
-    from: dir,
-    to: dir,
-    optional: true,
-  })),
-  // Names, TLS roots and users; `/etc/resolv.conf` may link into the resolver's folder.
-  { _tag: 'Read', from: '/etc', to: '/etc', optional: false },
-  { _tag: 'Read', from: '/run/systemd/resolve', to: '/run/systemd/resolve', optional: true },
+/** What is closed to reading but where a plan opens it: every home, the temp folders, other volumes. */
+const CLOSED: ReadonlyArray<string> = [
+  '/Users',
+  '/Volumes',
+  '/private/tmp',
+  '/private/var/folders',
+  '/private/var/tmp',
 ];
 
-/** `mount` as bwrap's words. */
-const mountArgs = (mount: Mount): ReadonlyArray<string> => {
-  if (mount._tag === 'Read') {
-    if (mount.optional) return ['--ro-bind-try', mount.from, mount.to];
-    return ['--ro-bind', mount.from, mount.to];
-  }
-  if (mount._tag === 'Write') return ['--bind', mount.from, mount.to];
-  if (mount._tag === 'Link') return ['--symlink', mount.target, mount.to];
-  return ['--tmpfs', mount.to];
-};
+/** `text` as an SBPL string: its backslashes and quotes escaped. */
+const quoted = (text: string) => `"${text.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
 
-/** bwrap's argv that runs `command` in `plan`'s sandbox, from `SEEN.packet`. */
+/** One rule over `folders`; none when there are none. */
+const rule = (verdict: 'allow' | 'deny', ops: string, folders: ReadonlyArray<string>) =>
+  Arr.match(folders, {
+    onEmpty: () => [],
+    onNonEmpty: (some) => [
+      `(${verdict} ${ops} ${some.map((folder) => `(subpath ${quoted(folder)})`).join(' ')})`,
+    ],
+  });
+
+/**
+ * The Seatbelt profile that runs a program in `plan`'s sandbox. A later rule
+ * wins over an earlier one it overlaps, so the order is the policy: allow
+ * all, then write nowhere but `/dev`, read nothing closed, and open the
+ * plan's reads and writes.
+ */
+const profileOf = (plan: SandboxPlan): string =>
+  [
+    '(version 1)',
+    '(allow default)',
+    '(deny file-write*)',
+    '(allow file-write* (subpath "/dev"))',
+    ...rule('deny', 'file-read-data', CLOSED),
+    ...rule('allow', 'file-read-data', [...plan.reads, ...plan.writes]),
+    ...rule('allow', 'file-write*', plan.writes),
+  ].join('\n');
+
+/** The argv that runs `command` in `plan`'s sandbox. */
 export const sandboxArgs = (
   plan: SandboxPlan,
   command: ReadonlyArray<string>,
-): ReadonlyArray<string> => [
-  // Its own namespaces but the network; gone with its parent; no way back to the terminal.
-  '--unshare-all',
-  '--share-net',
-  '--die-with-parent',
-  '--new-session',
-  ...SYSTEM.flatMap(mountArgs),
-  '--proc',
-  '/proc',
-  '--dev',
-  '/dev',
-  '--tmpfs',
-  '/tmp',
-  ...mountArgs({ _tag: 'Read', from: plan.packet, to: SEEN.packet, optional: false }),
-  ...mountArgs({ _tag: 'Write', from: plan.answer, to: SEEN.answer }),
-  ...plan.mounts.flatMap(mountArgs),
-  '--clearenv',
-  ...Object.entries(plan.env).flatMap(([name, value]) => ['--setenv', name, value]),
-  '--chdir',
-  SEEN.packet,
-  '--',
-  ...command,
-];
+): ReadonlyArray<string> => ['sandbox-exec', '-p', profileOf(plan), ...command];

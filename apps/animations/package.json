@@ -30,7 +30,7 @@
     "store:keys": "bun infra/keys.ts --stage prod",
     "seed-look": "bun art/seed-look.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test --parallel src/films/cold-studies/looks && bun cli.ts drafts"
+    "test": "bun test --parallel src/films/cold-studies/looks ./checkouts.test.ts && bun cli.ts drafts"
   },
   "dependencies": {
     "@bible/film": "workspace:*",

@@ -4,7 +4,7 @@
 // change kept, said as a reset.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Option, Schema } from 'effect';
+import { Effect, Fiber, FileSystem, Option, Schema } from 'effect';
 import { type BoardFile, BoardFileJson } from '../core/board.ts';
 import { LabEvents } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
@@ -46,7 +46,7 @@ describe('the change feed', () => {
       const film = yield* filmNamed('f');
       const draft = { scene: 'cold', T: 1, frame: 30 };
       yield* notes.add(film, { ...draft, text: 'before the lab' }, text('png'));
-      const events = yield* LabEvents.make({ base: 'http://127.0.0.1:8229/' });
+      const events = yield* LabEvents.make({ links: { local: 'http://localhost:8229/' } });
       yield* events.look;
       const { cursor } = yield* events.since(Option.none());
       expect((yield* events.since(Option.some(cursor))).changes).toEqual([]);
@@ -59,13 +59,34 @@ describe('the change feed', () => {
         [1, 'note.added', 'after it'],
         [2, 'board.tried', 1],
       ]);
-      expect(seen.changes[0]?.link).toBe('http://127.0.0.1:8229/films/f/lab/cold?note=n2');
+      expect(seen.changes[0]?.links).toEqual({
+        local: 'http://localhost:8229/films/f/lab/cold?note=n2',
+      });
       expect(seen.reset).toBe(false);
       // Read again with nothing new: nothing said twice.
       yield* events.look;
       expect((yield* events.since(Option.some(seen.cursor))).changes).toEqual([]);
       const other = yield* events.since(Option.some('zzz.1'));
       expect([other.reset, other.changes.length]).toEqual([true, 2]);
+    }).pipe(Effect.provide(labInMemory(files()))),
+  );
+
+  it.effect('wakes a wait on the change itself, with no clock passing', () =>
+    Effect.gen(function* () {
+      const notes = yield* NotesStore;
+      const film = yield* filmNamed('f');
+      const events = yield* LabEvents.make({ links: { local: 'http://localhost:8229/' } });
+      yield* events.look;
+      const { cursor } = yield* events.since(Option.none());
+      const waiting = yield* Effect.forkChild(events.wait(Option.some(cursor), '5 seconds'));
+      // The wait has heard nothing yet when the note lands.
+      yield* Effect.repeat(Effect.yieldNow, { times: 10 });
+      expect(waiting.pollUnsafe()).toBeUndefined();
+      yield* notes.add(film, { scene: 'cold', T: 1, frame: 30, text: 'heard' }, text('png'));
+      yield* events.look;
+      // The test clock stands still: a wait that polled the clock would never answer.
+      const heard = yield* Fiber.join(waiting);
+      expect(heard.changes.map((change) => change.text)).toEqual(['heard']);
     }).pipe(Effect.provide(labInMemory(files()))),
   );
 });

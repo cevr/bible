@@ -38,6 +38,21 @@ export class MicLost extends Schema.TaggedError<MicLost>()('MicLost', {}) {
   }
 }
 
+/**
+ * Why the page at `href` gets no microphone before it asks, when it is not a
+ * secure page (`secure`: the phone's plain `http://` link): a browser gives
+ * the microphone only to a secure one, and the lab's local link
+ * (`localhost`, the same path) is. None on a secure page. Pure.
+ */
+export const insecureMic = (href: string, secure: boolean): Option.Option<MicDenied> =>
+  Option.map(
+    Option.liftPredicate(new URL(href), () => !secure),
+    (page) =>
+      MicDenied.make({
+        reason: `this page is plain http (the phone's link), and a browser gives the microphone only to a secure page: record on the laptop, on the lab's local link to this page (localhost, ${page.pathname}${page.search})`,
+      }),
+  );
+
 /** What the meter shows: the loudest sample and the RMS of the last block, linear 0–1, and the seconds kept. */
 export const Level = Schema.Struct({
   peak: Schema.Finite,

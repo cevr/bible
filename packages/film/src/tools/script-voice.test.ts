@@ -4,7 +4,7 @@
 // is. No network, no media files.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer, Option, Path } from 'effect';
+import { ConfigProvider, Effect, Exit, Fiber, Layer, Logger, Option, Path } from 'effect';
 import { TestClock } from 'effect/testing';
 import { silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
@@ -12,7 +12,7 @@ import { stagingVoice } from '../core/staging-voice.ts';
 import type { ReadBeat, StudioReading } from '../core/studio.ts';
 import { FilmFolder, type FilmName } from './film-repo.ts';
 import { Narrator } from './narrator.ts';
-import { ScriptVoices } from './script-voice.ts';
+import { fillBeside, ScriptVoices, stagingFill } from './script-voice.ts';
 import { SeriesDrafts } from './series-drafts.ts';
 import { StagingCache } from './staging.ts';
 import { StudioReadings } from './studio.ts';
@@ -55,24 +55,25 @@ const DRAFT = [
 ].join('\n');
 
 /**
- * The service over memory, one film read as `reading`, the series folder
- * holding `drafts` (path under it → Markdown), the day capped at `cap`.
+ * The service over memory (`files`, shared by two labs), one film read as
+ * `reading`, the series folder holding `drafts` (path under it → Markdown),
+ * the day capped at `cap`, the films listed as `names` lists them.
  */
 const voices = (
   cap: number,
   heard: ReadonlyMap<string, string> = new Map(),
   drafts: ReadonlyMap<string, string> = new Map(),
+  files = new Map<string, Uint8Array>(),
+  names: Effect.Effect<ReadonlyArray<string>> = Effect.succeed([film]),
 ) => {
-  const files = new Map<string, Uint8Array>(
-    [...drafts].map(([at, text]) => [`/series/${at}`, new TextEncoder().encode(text)]),
-  );
+  for (const [at, text] of drafts) files.set(`/series/${at}`, new TextEncoder().encode(text));
   const calls: ElevenLabsCalls = emptyCalls();
   const folder = Layer.succeed(
     FilmFolder,
     FilmFolder.of({
       // The fill writes nothing of a film's: its paths are never read.
       paths: () => testFilm([], { voice: '', scenes: {} }).paths,
-      names: Effect.succeed([film]),
+      names,
       sounds: Option.none(),
       footage: Option.none(),
       stamp: () => Effect.succeed(0),
@@ -149,30 +150,94 @@ describe('ScriptVoices', () => {
   });
 
   it.effect(
-    'a misread take is refused, saying what was heard; read again once that day, and healed the next',
+    'a misread take is refused, saying what was heard; not read again the day it was made, by any lab, and healed the next',
     () => {
       const heard = new Map([['By faith.', 'Buy fate.']]);
-      const { calls, layer } = voices(1000, heard);
+      const files = new Map<string, Uint8Array>();
+      // Two labs over one staging cache: the owner's, and one started after it (a restart).
+      const first = voices(1000, heard, new Map(), files);
+      const second = voices(1000, heard, new Map(), files);
+      /** A lab's fill run until nothing of the film is voicing, and the film's voice then. */
+      const filled = (layer: typeof first.layer) =>
+        Effect.gen(function* () {
+          yield* Effect.forkScoped((yield* ScriptVoices).fill);
+          yield* Effect.yieldNow;
+          const voice = yield* settledVoice;
+          // A reader asking again the same day queues nothing more.
+          yield* (yield* ScriptVoices).voice(film);
+          yield* Effect.yieldNow;
+          return voice;
+        }).pipe(Effect.scoped, Effect.provide(layer));
       return Effect.gen(function* () {
-        yield* Effect.forkScoped((yield* ScriptVoices).fill);
-        yield* Effect.yieldNow;
-        const voice = yield* settledVoice;
+        const voice = yield* filled(first.layer);
         expect(tags(voice)).toEqual(['Ready', 'Refused']);
         const refused = voice.beats[1]?.take;
         expect(refused?._tag === 'Refused' && refused.reason).toContain('heard "Buy fate."');
-        // Read once, then once more that day: no more.
-        expect(calls.dialogue).toHaveLength(3);
-        yield* (yield* ScriptVoices).voice(film);
-        yield* Effect.yieldNow;
-        expect(calls.dialogue).toHaveLength(3);
-        // The next day it is asked again, and reads its line.
+        // Each beat read once: the misread is not read again that day.
+        expect(first.calls.dialogue).toHaveLength(2);
+        // Nor by a lab started later that day: the take's own record says when it was made.
+        expect(tags(yield* filled(second.layer))).toEqual(['Ready', 'Refused']);
+        expect(second.calls.dialogue).toHaveLength(0);
+        // The next day it is read again, once, and reads its line.
         heard.clear();
         yield* TestClock.adjust('1 day');
-        expect(tags(yield* settledVoice)).toEqual(['Ready', 'Ready']);
-        expect(calls.dialogue).toHaveLength(4);
-      }).pipe(Effect.scoped, Effect.provide(layer));
+        expect(tags(yield* filled(second.layer))).toEqual(['Ready', 'Ready']);
+        expect(second.calls.dialogue).toHaveLength(1);
+      });
     },
   );
+
+  it.effect(
+    'the fill is off unless the start says FILM_STAGING_FILL=true: a spare lab spends nothing',
+    () =>
+      Effect.gen(function* () {
+        const read = (env: Record<string, string>) =>
+          Effect.gen(function* () {
+            return yield* stagingFill;
+          }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown(env))));
+        expect(yield* read({})).toBe(false);
+        expect(yield* read({ FILM_STAGING_FILL: 'false' })).toBe(false);
+        expect(yield* read({ FILM_STAGING_FILL: 'true' })).toBe(true);
+      }),
+  );
+
+  it.effect('a fill that dies beside the lab ends alone: the lab’s scope runs on', () =>
+    Effect.gen(function* () {
+      const fiber = yield* fillBeside(Effect.die(new Error('a voicer broke')));
+      expect(Exit.isSuccess(yield* Fiber.await(fiber))).toBe(true);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a sweep that dies ends the fill, logged, rather than leaving its voicers idle', () => {
+    const lines: Array<string> = [];
+    const { layer } = voices(
+      1000,
+      new Map(),
+      new Map(),
+      new Map(),
+      Effect.die(new Error('the films folder went away')),
+    );
+    return Effect.gen(function* () {
+      const fiber = yield* fillBeside((yield* ScriptVoices).fill);
+      const ended = yield* Fiber.await(fiber).pipe(Effect.timeoutOption('2 seconds'));
+      expect(Option.isSome(ended)).toBe(true);
+      expect(lines.filter((line) => line.startsWith('staging.fill.died'))).toEqual([
+        'staging.fill.died cause="Error: the films folder went away"',
+      ]);
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        Layer.merge(
+          layer,
+          Logger.layer([
+            Logger.make(({ message }) => {
+              lines.push([message].flat().join(' '));
+            }),
+          ]),
+        ),
+      ),
+    );
+  });
 
   it.effect('a series draft is voiced as a film is, in the staging voice, by the sweep', () => {
     const { calls, layer } = voices(

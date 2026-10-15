@@ -4,7 +4,8 @@
 // page load, not for a new renderer: a fresh view costs Chrome a renderer
 // process and a cold compile of the page's script, three to four times the
 // CPU of the load itself. Each case still gets an origin of its own
-// (`https://<n>.lab.test`, secure, so the microphone may be asked for), so
+// (`https://<n>.lab.test`, secure, so the microphone may be asked for; plain
+// `http://` when a case is the phone's link), so
 // cases running at once, or one after another in a view, share no storage
 // and no permissions; and between cases the view waits on an empty page of
 // the tests' site, its history, scripts and listeners dropped (`lend`).
@@ -15,7 +16,17 @@
 
 import type { SourceMap } from 'node:module';
 import { BunServices } from '@effect/platform-bun';
-import { Config, Effect, FileSystem, Option, Path, Schema, Scope, Semaphore } from 'effect';
+import {
+  Boolean as Bool,
+  Config,
+  Effect,
+  FileSystem,
+  Option,
+  Path,
+  Schema,
+  Scope,
+  Semaphore,
+} from 'effect';
 import { openView, thrownBy } from '../../tools/chrome.ts';
 import { BrowserFailed } from '../../tools/errors.ts';
 import { HOST_REACH, failureOf, mapOf, toldOf } from './host-reach.ts';
@@ -241,7 +252,9 @@ const makeSlot = Effect.gen(function* () {
   yield* Effect.promise(() => view.navigate('about:blank'));
   yield* Effect.promise(() => slot.lent.cdp('Runtime.enable'));
   yield* Effect.promise(() =>
-    slot.lent.cdp('Fetch.enable', { patterns: [{ urlPattern: `https://*${SITE}/*` }] }),
+    slot.lent.cdp('Fetch.enable', {
+      patterns: [{ urlPattern: `https://*${SITE}/*` }, { urlPattern: `http://*${SITE}/*` }],
+    }),
   );
   return slot;
 }).pipe(Effect.provide(BunServices.layer));
@@ -320,6 +333,11 @@ interface TabOptions {
    * scrollbars.
    */
   readonly coarse?: boolean;
+  /**
+   * Served on plain http (`http://t<n>.lab.test`), as the phone's link is: not
+   * a secure page, so the browser gives it no microphone. None: https.
+   */
+  readonly plain?: boolean;
 }
 
 /** A tab on an origin of its own, on an empty page, given back with the scope. */
@@ -334,7 +352,11 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
         open -= 1;
       }),
     );
-    const origin = `https://t${tabs}.${SITE}`;
+    const scheme = Bool.match(options.plain === true, {
+      onTrue: () => 'http',
+      onFalse: () => 'https',
+    });
+    const origin = `${scheme}://t${tabs}.${SITE}`;
     const assets = new Map(options.assets.map((a) => [a.url, a.response]));
     // The source map each of the case's scripts carries, read once.
     const maps = new Map<string, Option.Option<SourceMap>>();

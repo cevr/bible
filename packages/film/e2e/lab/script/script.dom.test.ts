@@ -518,7 +518,7 @@ describe('the Script', () => {
     () =>
       overTheLab(
         Effect.gen(function* () {
-          const lab = yield* labHandler({ hosts: [] });
+          const lab = yield* labHandler();
           const { page, asked, errors } = yield* openLab(labNotes(lab), {
             href: pageHref.scriptBeat(PROBE, 'one'),
           });
@@ -604,7 +604,7 @@ describe('the Script', () => {
     () =>
       overTheLab(
         Effect.gen(function* () {
-          const lab = yield* labHandler({ hosts: [] });
+          const lab = yield* labHandler();
           const { page, asked, errors } = yield* openLab(labNotes(lab), {
             href: pageHref.scriptBeat(PROBE, 'one', { words: '8-9' }),
             viewport: PHONE,

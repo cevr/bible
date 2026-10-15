@@ -162,44 +162,40 @@ const reversed = (prompt: string) => {
 const decodeKey = Schema.decodeSync(JudgeKeyJson);
 
 /**
- * A counsel's run, in the sandbox, that answers no preference and writes
- * what it could reach: whether it read the packet, each still it found
- * beside it, and each of the paths it is given, `SEEN` or `ABSENT`. The
- * packet's and the answer's folders are the sandbox's (`PACKET` and
- * `ANSWER` name others, for a run outside it).
+ * A counsel's run, in the sandbox, from the packet's folder, that answers no
+ * preference on stdout with what it could read: whether it read the packet
+ * (its prompt on stdin, and the file), each still it found beside it, and
+ * each of the paths it is given, `SEEN` (a folder listed, a file's first
+ * byte read) or `ABSENT`.
  */
 const PROBE = [
-  'P=${PACKET:-/judge/packet} A=${ANSWER:-/judge/answer}',
-  'mkdir -p "$A/run"',
-  '{',
-  '  echo "RANKING: no preference"',
-  '  echo',
-  '  if head -c 1 "$P/packet.md" >/dev/null 2>&1; then echo "READ packet.md"; fi',
-  '  for still in "$P"/stills/*; do echo "STILL ${still##*/}"; done',
-  '  for p in "$@"; do',
-  '    if ls -a "$p" >/dev/null 2>&1; then echo "SEEN $p"; else echo "ABSENT $p"; fi',
-  '  done',
-  '} > "$A/run/codex.md"',
+  'echo "RANKING: no preference"',
+  'echo',
+  'if head -c 1 >/dev/null; then echo "ASKED on stdin"; fi',
+  'if head -c 1 packet.md >/dev/null 2>&1; then echo "READ packet.md"; fi',
+  'for still in stills/*; do echo "STILL ${still##*/}"; done',
+  'for p in "$@"; do',
+  '  if { [ -d "$p" ] && ls "$p"; } >/dev/null 2>&1 || head -c 1 "$p" >/dev/null 2>&1; then echo "SEEN $p"; else echo "ABSENT $p"; fi',
+  'done',
 ].join('\n');
 
 /** The probe, run in the counsel's sandbox, given each of `paths` to try. */
 const probing = (paths: Ref.Ref<ReadonlyArray<string>>) =>
-  Counsel.sandboxed(
+  Counsel.sandboxed((folders) =>
     Effect.map(Ref.get(paths), (tried): SandboxedRun => ({
-      mounts: [],
+      plan: { reads: [folders.packet], writes: [folders.scratch] },
       env: { PATH: '/usr/bin:/bin' },
-      command: () => ['/usr/bin/sh', '-c', PROBE, 'probe', ...tried],
+      command: ['/bin/sh', '-c', PROBE, 'probe', ...tried],
     })),
   );
 
-/** Whether bwrap can make a sandbox here: a runner may forbid an unprivileged user its namespaces. */
+/** Whether sandbox-exec can make a sandbox here: macOS's, so on macOS alone. */
 const sandboxHere = Effect.scoped(
   Effect.gen(function* () {
+    if (process.platform !== 'darwin') return false;
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-    const fs = yield* FileSystem.FileSystem;
-    const answer = yield* fs.makeTempDirectoryScoped();
-    const argv = sandboxArgs({ packet: answer, answer, mounts: [], env: {} }, ['/usr/bin/true']);
-    return yield* collect(spawner, ChildProcess.make('bwrap', [...argv])).pipe(
+    const [program = '', ...args] = sandboxArgs({ reads: [], writes: [] }, ['/usr/bin/true']);
+    return yield* collect(spawner, ChildProcess.make(program, args)).pipe(
       Effect.map((done) => done.exitCode === 0),
     );
   }),
@@ -458,7 +454,9 @@ describe('film judge', () => {
     () =>
       Effect.gen(function* () {
         if (!(yield* sandboxHere)) {
-          yield* Effect.logWarning('judge.test.sandbox skipped: bwrap cannot make a sandbox here');
+          yield* Effect.logWarning(
+            'judge.test.sandbox skipped: sandbox-exec cannot make a sandbox here',
+          );
           return;
         }
         const fs = yield* FileSystem.FileSystem;
@@ -483,6 +481,7 @@ describe('film judge', () => {
         yield* Ref.set(tried, hidden);
         const judged = yield* judgeOpen(Option.some('look:ground'));
         const reached = (yield* fs.readFileString(judged.counsel)).split('\n');
+        expect(reached).toContain('ASKED on stdin');
         expect(reached).toContain('READ packet.md');
         expect(reached.filter((line) => line.startsWith('STILL '))).toEqual([
           'STILL A-01.jpg',
@@ -490,7 +489,7 @@ describe('film judge', () => {
         ]);
         expect(reached.filter((line) => line.startsWith('SEEN '))).toEqual([]);
         expect(reached.filter((line) => line.startsWith('ABSENT '))).toHaveLength(hidden.length);
-        // Its answer, written in the sandbox, is copied into the run's folder and read as a verdict.
+        // Its answer, its stdout, is written into the run's folder and read as a verdict.
         expect(judged.counsel.startsWith(path.join(judged.dir, 'counsel'))).toBe(true);
         expect(judged.ranking).toEqual({ _tag: 'NoPreference' });
       }).pipe(

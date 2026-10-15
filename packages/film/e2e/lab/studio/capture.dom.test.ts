@@ -26,14 +26,18 @@ import { jsonOf } from '../../../src/lab/fixtures/tab.ts';
 
 const script = bundleOf('capture-page.ts');
 
-/** The capture page in a tab of its own, allowed the microphone or not, probed as `setup` says. */
-const probe = (microphone: boolean, setup: ProbeSetup) =>
+/**
+ * The capture page in a tab of its own, allowed the microphone or not, probed
+ * as `setup` says; on plain http (the phone's link) when `plain`.
+ */
+const probe = (microphone: boolean, setup: ProbeSetup, plain = false) =>
   Effect.gen(function* () {
     const capture = asset('capture.js', respond(yield* script, 'text/javascript; charset=utf-8'));
     const page = yield* openTab({
       width: 800,
       height: 600,
       microphone,
+      plain,
       init: Arr.filter([CLOCK_SCRIPT], () => setup.dropFlush === true),
       assets: [capture],
       serve: servePaths({
@@ -164,6 +168,19 @@ describe('the AudioWorklet capture', () => {
         const probed = yield* probe(false, { seconds: 1 });
         expect(probed.refused).toBe(
           'no microphone: the browser was not allowed to use it; allow the microphone for this page',
+        );
+      }).pipe(Effect.scoped),
+    30_000,
+  );
+
+  it.live(
+    'a page on plain http (the phone’s link) gets MicDenied naming the local link, not a TypeError',
+    () =>
+      Effect.gen(function* () {
+        // No grant: Chrome grants nothing to an http page, so the phone's browser has none.
+        const probed = yield* probe(false, { seconds: 1 }, true);
+        expect(probed.refused).toBe(
+          "no microphone: this page is plain http (the phone's link), and a browser gives the microphone only to a secure page: record on the laptop, on the lab's local link to this page (localhost, /capture)",
         );
       }).pipe(Effect.scoped),
     30_000,

@@ -41,7 +41,7 @@ When a long session is condensed or resumed, what you remember of the earlier tu
 
 ## When the lab is not yours
 
-`LabDown` means no lab answers; `LabElsewhere` means the lab serves another checkout (it names both folders). Stop and say so in your report: you start no lab. Whoever started you starts a spare lab from this checkout (`LAB_PORT=<port> bun cli.ts lab` in `apps/animations`, never on port 8229, the owner's) and reaches it as the `lab` server. In Claude Code that is `claude mcp add --transport http lab http://127.0.0.1:<port>/mcp -s local`, run in the checkout (a local server overrides the user's `lab` there), then a new session; without MCP, `FILM_LAB_URL=http://127.0.0.1:<port>/`.
+`LabDown` means no lab answers; `LabElsewhere` means the lab serves another checkout (it names both folders). Stop and say so in your report: you start no lab. Whoever started you starts a spare lab from this checkout (`LAB_PORT=<port> bun cli.ts lab` in `apps/animations`, never on port 8229, the owner's) and reaches it as the `lab` server. In Claude Code that is `claude mcp add --transport http lab http://localhost:<port>/mcp -s local`, run in the checkout (a local server overrides the user's `lab` there), then a new session; without MCP, `FILM_LAB_URL=http://127.0.0.1:<port>/`.
 
 ## Your report
 

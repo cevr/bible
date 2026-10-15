@@ -84,7 +84,6 @@
       "name": "@bible/triedgold",
       "version": "0.1.0",
       "dependencies": {
-        "@react-router/node": "8.4.0",
         "effect": "catalog:",
         "isbot": "5.2.2",
         "lucide-react": "1.55.0",
@@ -93,8 +92,6 @@
         "react-router": "8.4.0",
       },
       "devDependencies": {
-        "@distilled.cloud/core": "1.0.0-rc.15",
-        "@distilled.cloud/railway": "1.0.0-rc.15",
         "@effect/platform-bun": "catalog:",
         "@effect/platform-node": "catalog:",
         "@react-router/dev": "8.4.0",

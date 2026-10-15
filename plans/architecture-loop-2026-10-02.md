@@ -163,3 +163,24 @@ All 14 sweeps reported, plus the retro. The batches, what each owns and the merg
   - Round 2's B1: `onTestFinished` is refused inside concurrent tests, so 0.5.0 as written would fail 58 concurrent e2e files.
   - The release waits for this unit's acceptance; the owner authorized publishing it.
   - Also m5/m6, and 32 hand-run `test.serial` sites moved to the runner.
+- **p6-host:** done `199aadd86..810cd381f`, merged `42d570140`.
+  - The lab listens on `FILM_LAB_PHONE_URL` itself behind `admit`; the forwarder is retired. A phone address it cannot bind leaves loopback serving.
+  - Links are `{local, phone?}` on `localhost`, with no `public` or https.
+  - Checkouts are found by root package name; a Rift lab never lists the warm source.
+  - The staging fill is off by default; a misread take is re-read at most once a day; a fill crash keeps the lab up.
+  - Each MCP call logs one `[mcp]` line.
+  - Record says the mic needs the local link.
+  - The judge is headless Claude (Opus, max) under `sandbox-exec` with an allow-list; Codex and bwrap are gone.
+  - The Workbox is dropped from the docs.
+  - Gate green at the merge. E2e failures are timeouts only; each branch-only one passes alone at load under 12.
+  - Reviewer: Codex (gpt-6.1-sol), 2 rounds. Round 1: 1 Blocker, 2 Major. Round 2: accepted.
+  - Two implementors; the first compacted, and a restart cut off a third partway through.
+  - Owner lab restarted on the new start command (fill on). Live check: local 200, phone 200, foreign Host 403, draft 08 200.
+  - Item 6 (the judge's answer): closed 2026-10-15. The dry run hit the weekly limit because the counsel skipped the owner's teamclaude proxy. p6-hostfix `2698034fe` (merged `cfe485ddf`) passes the host's `ANTHROPIC_BASE_URL` into the sandbox, as the owner asked. Dry run through it: `RANKING: B >> A`, `key.json` refused.
+  - Carried, to p6-hostfix:
+    - N1: a held loopback port exits with a bare `ServeError`.
+    - N2: `reusePort: false`.
+    - N3: the fill comment.
+    - N4: the judge description.
+    - N7: a forced kill after SIGTERM.
+  - Carried, to p6-guards: a `[SERVER_WRITE]` signal-write warning seen at lab start.

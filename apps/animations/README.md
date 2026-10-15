@@ -8,7 +8,7 @@ scrubbable preview and a frame-exact MP4 export.
 ## Commands
 
 ```sh
-bun run lab                                    # the lab at http://127.0.0.1:8229/: the review at /, a film's lab at /films/<film>/lab, its Scenes (the whole film as stills) at /films/<film>/scenes (LAB_HOST, LAB_PORT, FILM_LAB_HOSTS)
+bun run lab                                    # the lab at http://localhost:8229/: the review at /, a film's lab at /films/<film>/lab, its Scenes (the whole film as stills) at /films/<film>/scenes (LAB_HOST, LAB_PORT, FILM_LAB_PHONE_URL, FILM_STAGING_FILL)
 bun run narrate <film>                         # stage stale beats with ElevenLabs, verify, remix full.wav
 bun run script <film> [--sheet]                # the reading sheet; --sheet writes out/<film>/script-sheet.md + .html to print
 bun run takes import <film> <folder|file>      # the owner's recordings as takes (trimmed, levelled, timed), remix full.wav
@@ -57,7 +57,7 @@ bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.j
 bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
 bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer, or its failure as the route answers it (`ToolFailure`), as one line
 bun run look <film> ... --level <look>=<level>  # a wedge: that look (palette.ts's looks) drawn at that level instead of the one it plays, the pick left unwritten
-bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by okra counsel --deep in a bwrap sandbox that reads only the packet; prints the verdict's path (out/<film>/judge/<scene>-<stamp>-<draw>/verdict.md) and the ranking; writes no choice
+bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by a fresh Opus at max effort (headless Claude) in a macOS sandbox that reads only the packet; prints the verdict's path (out/<film>/judge/<scene>-<stamp>-<draw>/verdict.md) and the ranking; writes no choice
 bun run journal <film> note "text" [--scene <id>]   # append an observation to src/films/<film>/journal.md (committed), dated and placed; an empty note is refused
 bun run journal <film> read [--scene <id>] [--last N]  # the newest N entries (20), oldest first, one line each, under 8,000 characters
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
@@ -89,7 +89,8 @@ Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 `cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
 and `check` load (`index.html`, on a free loopback port; the render's server never serves
 Solid) and, for `lab`, the lab: one server for every film, meant to stay up
-(on the box, the `film-lab` user unit on port 8229). The lab builds its pages
+(on the laptop, port 8229, and the phone's address on the tailnet when
+`FILM_LAB_PHONE_URL` gives one). The lab builds its pages
 from this app's source in its own process when they are asked for, and again
 after a file they were built from changes: the review (`review.html`) at `/`,
 `/sets/<folder>[/<point>]` and a film's `/films/<film>/choices` and
@@ -243,10 +244,9 @@ attempts play again and Keep makes one the take; a keep, like every lab write,
 is undone by Undo (⌘Z) and redone by Redo: the track remixes and the lab reloads, the take it replaced playing again (the editor waits as long as for a keep, then asks the lab whether the step landed). A reload never takes a take being recorded or under review, nor a note being written: it waits until you submit, discard or save it, and the panel says what it waits for. A kept take reloads the lab
 at the same time, on the same beat, playing the new take (`/films/*` is served
 uncached for that). Use Chrome or Firefox on a computer (every iPhone and
-iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to `https://` or
-`localhost`, so record on the box's own browser or through the box's HTTPS
-address (`https://bite-cristian.exe.xyz:8229/…`, the exe proxy in front of
-8229); pick the interface in Record's mic list
+iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to a secure page,
+and the phone's plain `http://` link is not one, so record on the local link
+(`http://localhost:8229/…`; on the phone's, Record says so); pick the interface in Record's mic list
 (it is remembered in the browser). The capture is raw PCM (no echo cancelling,
 noise suppression or gain control) posted as a 24-bit WAV at the microphone's
 own rate. `bun studio-harness.ts` runs the same lab over a temp
@@ -287,8 +287,8 @@ sources or its sound, missing with the command that renders it), approval
 and comments; a tap opens its sheet (`?point=`), with Approve, Unapprove, a
 comment, Open in Lab and the choices that play in it, each a link to its
 card on Choices. An act's and the film's approvals and comments are in
-their inspectors, context menus and ⌘K, with "Approve all current". The lab answers loopback, and the names in
-`FILM_LAB_HOSTS` when `LAB_HOST=0.0.0.0`, on every path (the pages too: built
+their inspectors, context menus and ⌘K, with "Approve all current". The lab answers each of its listeners' own names
+(loopback, and the phone's address at `FILM_LAB_PHONE_URL`), on every path (the pages too: built
 in process and served behind the check); every request passes one gate
 (`admit`), and writes are JSON, from the lab's own origin or from a tool's
 (no Origin). The
@@ -377,14 +377,15 @@ the colour script, the paper and what we never do for every beat; human
 scale, figures and staging for a STORY beat; words off the picture,
 repetition and type for an IDEA beat). It never says which version is
 newer, which is picked or who made it, nor where anything lives (each still
-is named by its path beside the packet). The counsel reads it in a sandbox
-(bubblewrap, `bwrap`, which must be installed) that shows it the packet's
-folder (the packet and the stills, under the system's temp folder) and what
-okra and Codex need to run, and no other file: no earlier judge's folder,
-no look file, no repo, no cache. The network is shared, since Codex needs
-the internet, so the lab stays reachable on this machine's loopback, though
-nothing in the sandbox says it is there. The key stays in the judge's
-memory until the counsel has answered. `okra counsel --deep` (Codex)
+is named by its path beside the packet). The counsel, a fresh Opus at max effort
+(headless Claude Code, its customizations off and Read its one tool), reads
+it under macOS's sandbox (`sandbox-exec`) that opens it the packet's folder
+(the packet and the stills, under the system's temp folder) and what Claude
+needs to run, and no other file: no earlier judge's folder, no look file,
+no repo, no cache, none of the owner's other sessions. The network is
+shared, since the counsel needs the internet, so the lab stays reachable on
+this machine's loopback, though nothing in the sandbox says it is there.
+The key stays in the judge's memory until the counsel has answered. It
 answers with a ranking (one
 whole line: labels and `>` or `=`, or exactly `no preference`) and, for
 each version, the still and the rule that decide it. The judge unblinds
@@ -427,7 +428,7 @@ static leg and each scene drawn by its own code, no browser). Each tool
 takes `films`, the asker's films folder, absolute and with no `..` (anything
 else is refused): a lab that serves another checkout, the folders compared
 as the disk resolves them, refuses (`LabElsewhere`) and names the way to a
-spare lab of the asker's own, its MCP at `http://127.0.0.1:<port>/mcp`.
+spare lab of the asker's own, its MCP at `http://localhost:<port>/mcp`.
 Every answer encodes to at most 8,000 characters of JSON and says how to
 read on: `check` and `cues` answer `next`, to ask again with as it is, and a
 check whose findings changed between pages lists them again from the first
@@ -456,7 +457,7 @@ codex mcp add lab --url http://localhost:8229/mcp
 
 A workspace paints with a spare lab of its own (`LAB_PORT=<port> bun cli.ts
 lab`, here), registered as `lab` for the workspace alone:
-`claude mcp add --transport http lab http://127.0.0.1:<port>/mcp -s local`,
+`claude mcp add --transport http lab http://localhost:<port>/mcp -s local`,
 run there, overrides the user's `lab` from the next session.
 
 ### New art directions: the seeder

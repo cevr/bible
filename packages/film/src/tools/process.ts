@@ -2,7 +2,7 @@
 // printed. The ElevenLabs layer maps a failure into its own typed errors;
 // this module only runs and collects.
 
-import { Duration, Effect, Stream } from 'effect';
+import { Duration, Effect, FileSystem, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import type { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { ProcessTimedOut } from './errors.ts';
@@ -45,6 +45,47 @@ export const collectWithin = (
   limit: Duration.Duration,
 ): Effect.Effect<Finished, PlatformError | ProcessTimedOut> =>
   collect(spawner, command).pipe(
+    Effect.timeoutOrElse({
+      duration: limit,
+      orElse: () =>
+        Effect.fail(ProcessTimedOut.make({ command: name, seconds: Duration.toSeconds(limit) })),
+    }),
+  );
+
+/** Where a run's two streams are written as they arrive. */
+interface Outputs {
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+/**
+ * `collectWithin`, its stdout and stderr written to `outputs` chunk by chunk
+ * as they arrive rather than held, so a run that fails, is stopped at
+ * `limit` or is interrupted keeps what it printed: its exit code. The files
+ * are made once the process starts; a spawn that fails makes none.
+ */
+export const runInto = (
+  spawner: ChildProcessSpawner.ChildProcessSpawner['Service'],
+  name: string,
+  command: ChildProcess.Command,
+  limit: Duration.Duration,
+  outputs: Outputs,
+): Effect.Effect<number, PlatformError | ProcessTimedOut, FileSystem.FileSystem> =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const handle = yield* spawner.spawn(command);
+      const [, , exitCode] = yield* Effect.all(
+        [
+          Stream.run(handle.stdout, fs.sink(outputs.stdout)),
+          Stream.run(handle.stderr, fs.sink(outputs.stderr)),
+          handle.exitCode,
+        ],
+        { concurrency: 3 },
+      );
+      return exitCode;
+    }),
+  ).pipe(
     Effect.timeoutOrElse({
       duration: limit,
       orElse: () =>

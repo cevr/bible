@@ -23,7 +23,14 @@ import {
   Semaphore,
   Stream,
 } from 'effect';
-import { Capture, type CaptureOps, CaptureFailed, type Level, MicDenied } from './capture.ts';
+import {
+  Capture,
+  type CaptureOps,
+  CaptureFailed,
+  type Level,
+  MicDenied,
+  insecureMic,
+} from './capture.ts';
 import type { Pcm } from './wav.ts';
 import { PROCESSOR, WorkletBlock, workletSource } from './worklet.ts';
 
@@ -147,6 +154,13 @@ const makeBrowserCapture = Effect.gen(function* () {
   /** The microphone `device`, open in `scope`: the stream, the context, the worklet, connected. */
   const acquire = (device: Option.Option<string>, scope: Scope.Closeable) =>
     Effect.gen(function* () {
+      // On the phone's plain http link the browser has no microphone to ask
+      // for (`navigator.mediaDevices` is gone): say where one is.
+      // oxlint-disable-next-line no-restricted-properties -- Capture's live adapter: the page the microphone is asked from
+      yield* Option.match(insecureMic(window.location.href, window.isSecureContext), {
+        onNone: () => Effect.void,
+        onSome: Effect.fail,
+      });
       const stream = yield* Effect.acquireRelease(
         Effect.tryPromise({
           try: () =>
