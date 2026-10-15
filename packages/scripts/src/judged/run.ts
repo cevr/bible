@@ -121,16 +121,20 @@ const askPart = <Label extends string>(
 
 /**
  * A text's share of a request's input tokens, from its characters and its
- * classify's, at 3.2 characters a token: over what TypeSafe's Jev counted
- * (55,326 tokens for the corpus' 182 comment blocks, an estimate of 58,800;
- * 38,716 for their lines, an estimate of 39,500).
+ * classify's: 3.2 ASCII characters a token, and a token for each UTF-16
+ * unit past ASCII. Over what TypeSafe's Jev counted: 55,326 tokens for the
+ * corpus' 182 comment blocks (an estimate of 58,800), 38,716 for their lines
+ * (39,500), and about 0.9 a letter for Greek, which at 3.2 a token it
+ * counted 1.655 times the estimate (24,828 for 15,000).
  */
 const tokensOf = <Label extends string>(rule: JudgedRule<Label>, text: string) => {
   const criteria = Object.entries(rule.decision.criteria).reduce(
     (n, [label, words]) => n + label.length + String(words).length,
     0,
   );
-  return Math.ceil((instructionsFor(rule, 'c000').length + criteria + text.length) / 3.2) + 8;
+  const wide = text.split('').filter((unit) => unit.charCodeAt(0) > 0x7f).length;
+  const ascii = instructionsFor(rule, 'c000').length + criteria + text.length - wide;
+  return Math.ceil(ascii / 3.2) + wide + 8;
 };
 
 /** `texts` in order, cut into parts of at most `bound` texts and `budget` estimated tokens. */
@@ -217,7 +221,11 @@ interface Finding {
   readonly p: number;
 }
 
-/** What a rule's run came to: its findings, how many items it read, found cached and asked about, and its skip. */
+/**
+ * What a rule's run came to: its findings, how many items it read, how many
+ * of those the cache answered and how many it asked about (`items` is
+ * `cached + asked`; items of one text go in the request once), and its skip.
+ */
 interface Outcome {
   readonly findings: ReadonlyArray<Finding>;
   readonly items: number;
@@ -273,7 +281,7 @@ export const judge = Effect.fn('judged.judge')(function* <Label extends string>(
     findings,
     items: items.length,
     cached: items.filter((item) => cache.has(keyOf(item.text))).length,
-    asked: fresh.length,
+    asked: items.filter((item) => !cache.has(keyOf(item.text))).length,
     skip: Option.map(asked.reason, (reason) => ({
       reason,
       items: items.filter((item) => unanswered.has(item.text)).length,

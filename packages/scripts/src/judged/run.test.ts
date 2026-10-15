@@ -139,6 +139,10 @@ describe('a judged rule', () => {
         'src/a.ts:3',
         'src/c.ts:7',
       ]);
+      // The line counts items: both were asked about, in one text.
+      expect(runLine(historyComment, outcome)).toBe(
+        '[judged] rule=historyComment items=2 cached=0 asked=2 findings=2',
+      );
     }).pipe(Effect.provide(model.layer), withFs);
   });
 
@@ -156,6 +160,13 @@ describe('a judged rule', () => {
         ['a', 'b'],
         ['c', 'd'],
         ['e'],
+      ]);
+      // A letter past ASCII is a token of its own: Jev counted Greek near
+      // 0.9 tokens a letter, so two of these do not fit in 1,500.
+      const greek = 'λόγος'.repeat(200);
+      expect(partsOf(historyComment, [greek, greek], { bound: 200, budget: 1500 })).toEqual([
+        [greek],
+        [greek],
       ]);
       // A text past the budget alone still goes, in a part of its own.
       const long = 'x'.repeat(5000);
