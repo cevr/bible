@@ -10,7 +10,17 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
-import { ConfigProvider, Duration, Effect, FileSystem, Layer, Path, Sink, Stream } from 'effect';
+import {
+  ConfigProvider,
+  Duration,
+  Effect,
+  FileSystem,
+  Layer,
+  Logger,
+  Path,
+  Sink,
+  Stream,
+} from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { CounselFailed } from '../core/judge.ts';
 import { Counsel } from './counsel.ts';
@@ -188,43 +198,67 @@ describe("the counsel's sandbox", () => {
     },
   );
 
-  it.effect("routes through the host's Claude proxy (`ANTHROPIC_BASE_URL`) when it has one", () => {
-    const spawned: Array<Spawned> = [];
-    return Effect.gen(function* () {
-      if (process.platform !== 'darwin') return;
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const counsel = yield* Counsel;
-      const packet = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
-      yield* fs.writeFileString(path.join(packet, 'packet.md'), 'rank A and B');
-      const run = path.join(yield* fs.makeTempDirectoryScoped(), 'counsel');
-      yield* counsel.ask(path.join(packet, 'packet.md'), run);
-      expect(spawned.map((one) => one.env['ANTHROPIC_BASE_URL'])).toEqual([
-        'http://localhost:3456',
-      ]);
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        Counsel.claudeAt(Effect.succeed(claude)).pipe(
-          Layer.provide(
-            Layer.succeed(
-              ChildProcessSpawner.ChildProcessSpawner,
-              answering('RANKING: B > A', spawned),
+  // The host's route (`ANTHROPIC_BASE_URL`, unset: direct), which the counsel's run is
+  // given as it is, and the route its start line names (a login in the URL left out).
+  const routes = [
+    ['no proxy', {}, 'route=direct'],
+    ['a proxy', { ANTHROPIC_BASE_URL: 'http://localhost:3456' }, 'route=http://localhost:3456'],
+    [
+      'a proxy with a login',
+      { ANTHROPIC_BASE_URL: 'http://me:secret@localhost:3456' },
+      'route=http://localhost:3456',
+    ],
+  ] as const;
+  for (const [what, host, route] of routes)
+    it.effect(
+      `asks through the host's Claude proxy when it has one, and says its route: ${what}`,
+      () => {
+        const spawned: Array<Spawned> = [];
+        const lines: Array<string> = [];
+        return Effect.gen(function* () {
+          if (process.platform !== 'darwin') return;
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const counsel = yield* Counsel;
+          const packet = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+          yield* fs.writeFileString(path.join(packet, 'packet.md'), 'rank A and B');
+          const run = path.join(yield* fs.makeTempDirectoryScoped(), 'counsel');
+          yield* counsel.ask(path.join(packet, 'packet.md'), run);
+          const proxied = spawned.map((one) =>
+            Object.entries(one.env).filter(([name]) => name === 'ANTHROPIC_BASE_URL'),
+          );
+          expect(proxied).toEqual([Object.entries(host)]);
+          const started = lines.filter((line) => line.startsWith('counsel.start '));
+          expect(
+            started.map((line) => line.split(' ').filter((word) => word.startsWith('route='))),
+          ).toEqual([[route]]);
+          expect(started.join('\n')).not.toContain('secret');
+        }).pipe(
+          Effect.scoped,
+          Effect.provide(
+            Layer.merge(
+              Counsel.claudeAt(Effect.succeed(claude)).pipe(
+                Layer.provide(
+                  Layer.succeed(
+                    ChildProcessSpawner.ChildProcessSpawner,
+                    answering('RANKING: B > A', spawned),
+                  ),
+                ),
+                Layer.provide(
+                  ConfigProvider.layer(ConfigProvider.fromUnknown({ HOME: home, ...host })),
+                ),
+                Layer.provideMerge(BunServices.layer),
+              ),
+              Logger.layer([
+                Logger.make(({ message }) => {
+                  lines.push([message].flat().join(' '));
+                }),
+              ]),
             ),
           ),
-          Layer.provide(
-            ConfigProvider.layer(
-              ConfigProvider.fromUnknown({
-                HOME: home,
-                ANTHROPIC_BASE_URL: 'http://localhost:3456',
-              }),
-            ),
-          ),
-          Layer.provideMerge(BunServices.layer),
-        ),
-      ),
+        );
+      },
     );
-  });
 
   it.effect(
     "refuses a Claude that is no version of the native installer's (a wrapper script) before it runs",

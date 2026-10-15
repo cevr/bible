@@ -72,6 +72,16 @@ const COUNSEL_LIMIT = Duration.minutes(30);
 /** The counsel's bounds: `COUNSEL_LIMIT`, then 10 s to exit once stopped. */
 const COUNSEL_BOUNDS: CounselBounds = { limit: COUNSEL_LIMIT, killAfter: Duration.seconds(10) };
 
+/**
+ * The way a run's `env` sends it to Claude: its proxy (`ANTHROPIC_BASE_URL`,
+ * any login in the URL left out), or `direct`.
+ */
+const routeOf = (env: Readonly<Record<string, string>>): string =>
+  Option.match(Option.fromNullishOr(env['ANTHROPIC_BASE_URL']), {
+    onNone: () => 'direct',
+    onSome: (url) => url.replace(/\/\/[^/@]*@/, '//'),
+  });
+
 /** The last lines `text` printed, for a failure's reason. */
 const tailOf = (text: string) => text.trim().split('\n').slice(-3).join(' | ');
 
@@ -216,7 +226,9 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
                 Effect.provideContext(context),
               );
               const [program = 'claude', ...args] = sandboxArgs(how.plan, how.command);
-              yield* Effect.log(`counsel.start prompt=${prompt} dir=${dir} sandbox=sandbox-exec`);
+              yield* Effect.log(
+                `counsel.start prompt=${prompt} dir=${dir} sandbox=sandbox-exec route=${routeOf(how.env)}`,
+              );
               return yield* runInto(
                 spawner,
                 'claude',
