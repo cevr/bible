@@ -1,6 +1,7 @@
-// The recorder machine, with no DOM: Arm opens the microphone (a denied one
-// fails with MicDenied) and counts in, on the TestClock, one a second; the
-// count's end starts the capture; Stop makes the WAV to review; Submit posts
+// The recorder machine, with no DOM: Arm opens the microphone, offering
+// nothing while the browser opens it (a denied one fails with MicDenied), and
+// counts in, on the TestClock, one a second; the count's end starts the
+// capture; Stop makes the WAV to review; Submit posts
 // it and a take kept rests with what was heard, a refusal fails with the
 // server's words and the recording kept for Retry. Accept anyway keeps the
 // attempt a TakeMismatch saved, and only that; a beat cannot be changed while
@@ -13,6 +14,7 @@ import {
   Effect,
   Exit,
   Layer,
+  Match,
   Option,
   Predicate,
   Stream,
@@ -30,12 +32,13 @@ import { Capture, type CaptureOps, MicDenied, MicLost } from './capture.ts';
 import {
   COUNT_IN,
   ImportUnanswered,
+  type RecorderActor,
   RecorderEvent,
   RecorderState,
   limitAt,
   recorderMachine,
 } from './machine.ts';
-import { statusOf } from './view.ts';
+import { controlsOf, statusOf } from './view.ts';
 import { type Pcm, encodeWav } from './wav.ts';
 
 const pcm: Pcm = { rate: 48000, samples: Float32Array.of(0, 0.25, -0.25, 0.5) };
@@ -138,39 +141,68 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, LabFailure>>)
     Layer.succeed(StudioApi, api),
     Layer.succeed(Stage, stage),
   );
-  return { log, layer, lose, listed };
+  return { log, layer, lose, listed, capture, api, stage };
 };
 
 const machine = recorderMachine('a');
 const arm = RecorderEvent.Arm({ device: Option.none() });
-const armed = [arm, ...Array.from({ length: COUNT_IN - 1 }, () => RecorderEvent.Tick)];
+/** Arm, and the browser's answer: the microphone open. */
+const opened = [arm, RecorderEvent.Opened];
+const armed = [...opened, ...Array.from({ length: COUNT_IN - 1 }, () => RecorderEvent.Tick)];
 const recorded = [...armed, RecorderEvent.CountDone, RecorderEvent.Stop];
 
-describe('arming', () => {
+/**
+ * `events` sent to `actor` in turn, but for the browser's Opened: the actor's own open
+ * answers it, so it is waited for (the count-in) rather than sent.
+ */
+const sendAll = (actor: RecorderActor, events: ReadonlyArray<RecorderEvent>) =>
+  Effect.forEach(
+    events,
+    (event) =>
+      Match.value(event).pipe(
+        Match.tag('Opened', () => Effect.asVoid(actor.waitFor(Predicate.isTagged('CountIn')))),
+        Match.orElse((e) => actor.send(e)),
+      ),
+    { discard: true },
+  );
+
+describe('arming, through an actor', () => {
+  /** The recorder's actor, started, `events` sent to it (`sendAll`), once it is `there`. */
+  const after = (events: ReadonlyArray<RecorderEvent>, there: (state: RecorderState) => boolean) =>
+    Effect.gen(function* () {
+      const actor = yield* Machine.spawn(machine);
+      yield* actor.start;
+      yield* sendAll(actor, events);
+      return { actor, state: yield* actor.waitFor(there) };
+    });
+
   it.effect('Arm pauses the film, opens the microphone chosen and counts in from COUNT_IN', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
       const chosen = RecorderEvent.Arm({ device: Option.some('usb') });
-      const result = yield* simulate(machine, [chosen]);
-      expect(result.finalState).toEqual(RecorderState.CountIn({ beat: 'a', n: COUNT_IN }));
+      const { state } = yield* after([chosen, RecorderEvent.Opened], Predicate.isTagged('CountIn'));
+      expect(state).toEqual(RecorderState.CountIn({ beat: 'a', n: COUNT_IN }));
       expect(log.calls).toEqual(['pause', 'open usb']);
-    }).pipe(Effect.provide(layer));
+    }).pipe(Effect.scoped, Effect.provide(layer));
   });
 
   it.effect('a denied microphone fails with MicDenied, and Retry rests', () => {
     const { layer } = fakes();
     return Effect.gen(function* () {
       const denied = RecorderEvent.Arm({ device: Option.some('denied') });
-      const result = yield* simulate(machine, [denied, RecorderEvent.Retry]);
-      expect(result.states[1]).toEqual(
+      const { actor, state } = yield* after([denied], Predicate.isTagged('Failed'));
+      expect(state).toEqual(
         RecorderState.Failed({
           beat: 'a',
           refusal: MicDenied.make({ reason: 'NotAllowedError' }),
           wav: Option.none(),
         }),
       );
-      expect(result.finalState).toEqual(RecorderState.Idle({ beat: 'a', kept: Option.none() }));
-    }).pipe(Effect.provide(layer));
+      yield* actor.send(RecorderEvent.Retry);
+      expect(yield* actor.waitFor(Predicate.isTagged('Idle'))).toEqual(
+        RecorderState.Idle({ beat: 'a', kept: Option.none() }),
+      );
+    }).pipe(Effect.scoped, Effect.provide(layer));
   });
 
   it.effect('each Tick counts one down, and CountDone starts the capture', () => {
@@ -179,33 +211,82 @@ describe('arming', () => {
       yield* assertPath(
         machine,
         [...armed, RecorderEvent.CountDone],
-        ['Idle', ...Array.from({ length: COUNT_IN }, () => 'CountIn'), 'Recording'],
+        ['Idle', 'Opening', ...Array.from({ length: COUNT_IN }, () => 'CountIn'), 'Recording'],
       );
-      expect(log.calls).toEqual(['pause', 'open default', 'start']);
+      // The path runs the transitions alone (its Arm pauses the film); the actor runs the open.
+      const pathCalls = log.calls.length;
+      yield* after([...armed, RecorderEvent.CountDone], Predicate.isTagged('Recording'));
+      expect(log.calls.slice(pathCalls)).toEqual(['pause', 'open default', 'start']);
       expect(log.open).toBe(true);
-    }).pipe(Effect.provide(layer));
+    }).pipe(Effect.scoped, Effect.provide(layer));
   });
 
   it.effect('Cancel in the count-in rests and closes the microphone', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
-      yield* assertPath(machine, [arm, RecorderEvent.Cancel], ['Idle', 'CountIn', 'Idle']);
+      yield* after([...opened, RecorderEvent.Cancel], Predicate.isTagged('Idle'));
       expect(log.open).toBe(false);
-      expect(log.calls.at(-1)).toBe('close');
-    }).pipe(Effect.provide(layer));
+      expect(log.calls).toEqual(['pause', 'open default', 'close']);
+    }).pipe(Effect.scoped, Effect.provide(layer));
   });
 
   it.effect('Cancel in the recording rests and closes the microphone, keeping nothing', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
-      yield* assertPath(
-        machine,
+      yield* after(
         [...armed, RecorderEvent.CountDone, RecorderEvent.Cancel],
-        ['Idle', ...Array.from({ length: COUNT_IN }, () => 'CountIn'), 'Recording', 'Idle'],
+        Predicate.isTagged('Idle'),
       );
       expect(log.open).toBe(false);
-      expect(log.calls.at(-1)).toBe('close');
-    }).pipe(Effect.provide(layer));
+      expect(log.calls).toEqual(['pause', 'open default', 'start', 'close']);
+    }).pipe(Effect.scoped, Effect.provide(layer));
+  });
+});
+
+describe('the microphone opening, through an actor', () => {
+  // A browser opens a microphone in its own time (a permission prompt, a device waking):
+  // until it is open the recorder offers nothing, Record least of all.
+  it.live('is a state of its own that offers no control, until the count-in', () => {
+    const { log, capture, api, stage } = fakes();
+    const open = Deferred.makeUnsafe<void>();
+    const layer = Layer.mergeAll(
+      Layer.succeed(
+        Capture,
+        Capture.of({
+          ...capture,
+          open: (device) => Effect.andThen(Deferred.await(open), capture.open(device)),
+        }),
+      ),
+      Layer.succeed(StudioApi, api),
+      Layer.succeed(Stage, stage),
+    );
+    return Effect.gen(function* () {
+      const actor = yield* Machine.spawn(machine);
+      yield* actor.start;
+      yield* actor.send(arm);
+      const opening = yield* actor
+        .waitFor((s) => s._tag !== 'Idle')
+        .pipe(Effect.timeoutOption('1 second'));
+      expect(Option.map(opening, (s) => s._tag)).toEqual(Option.some('Opening'));
+      expect(controlsOf(yield* actor.snapshot)).toEqual([]);
+      expect(log.calls).toEqual(['pause']);
+      yield* Deferred.done(open, Exit.void);
+      yield* actor.waitFor((s) => s._tag === 'CountIn');
+      expect(log.calls).toEqual(['pause', 'open default']);
+    }).pipe(Effect.scoped, Effect.provide(layer));
+  });
+
+  it.effect('a beat chosen while it opens waits for it, then rests and closes it', () => {
+    const { log, layer } = fakes();
+    return Effect.gen(function* () {
+      const actor = yield* Machine.spawn(machine);
+      yield* actor.start;
+      yield* actor.send(arm);
+      yield* actor.send(RecorderEvent.SelectBeat({ beat: 'b' }));
+      yield* actor.waitFor((s) => s._tag === 'Idle' && s.beat === 'b');
+      expect(log.calls).toEqual(['pause', 'open default', 'close']);
+      expect(log.open).toBe(false);
+    }).pipe(Effect.scoped, Effect.provide(layer));
   });
 });
 
@@ -318,12 +399,14 @@ describe('review', () => {
     return Effect.gen(function* () {
       yield* assertPath(
         machine,
-        [...recorded, RecorderEvent.Arm({ device: Option.none() })],
+        [...recorded, ...opened],
         [
           'Idle',
+          'Opening',
           ...Array.from({ length: COUNT_IN }, () => 'CountIn'),
           'Recording',
           'Review',
+          'Opening',
           'CountIn',
         ],
       );
@@ -533,7 +616,7 @@ describe('the import task, through an actor', () => {
     return Effect.gen(function* () {
       const actor = yield* Machine.spawn(machine);
       yield* actor.start;
-      for (const event of events) yield* actor.send(event);
+      yield* sendAll(actor, events);
       const state = yield* actor.waitFor(settled);
       return { state, log };
     }).pipe(Effect.provide(layer));
@@ -581,7 +664,7 @@ describe('the import task, through an actor', () => {
     return Effect.gen(function* () {
       const actor = yield* Machine.spawn(machine);
       yield* actor.start;
-      for (const event of recorded) yield* actor.send(event);
+      yield* sendAll(actor, recorded);
       yield* actor.send(RecorderEvent.Submit);
       yield* actor.waitFor(Predicate.isTagged('Failed'));
       yield* actor.send(RecorderEvent.AcceptAnyway);
@@ -621,7 +704,7 @@ describe('an import the lab does not answer', () => {
     return Effect.gen(function* () {
       const actor = yield* Machine.spawn(machine);
       yield* actor.start;
-      for (const event of events) yield* actor.send(event);
+      yield* sendAll(actor, events);
       yield* actor.waitFor(RecorderState.Importing);
       listed.attempts = now;
       yield* TestClock.adjust(Duration.seconds(STUDIO_IMPORT_WAIT_S));

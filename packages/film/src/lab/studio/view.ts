@@ -45,6 +45,8 @@ export const controlsOf = (state: RecorderState): ReadonlyArray<Control> =>
   Match.value(state).pipe(
     Match.tagsExhaustive({
       Idle: () => [ARM],
+      // Nothing until the browser has answered: a second Record would only wait on the first.
+      Opening: () => [],
       CountIn: () => [CANCEL],
       Recording: () => [control('stop', 'Stop', 'studio.stop'), CANCEL],
       Review: () => [
@@ -163,6 +165,7 @@ export const statusOf = (state: RecorderState, level: Option.Option<Level>, keye
               ),
             ].join(' · '),
         }),
+      Opening: () => 'opening the microphone…',
       CountIn: (s) => `recording in ${s.n}…`,
       Recording: (s) =>
         Option.match(
