@@ -33,6 +33,7 @@
     "ci": "bun packages/scripts/src/ci-verdict.ts",
     "merge-audit": "bun packages/scripts/src/merge-audit.ts",
     "redfirst": "bun packages/scripts/src/redfirst.ts",
+    "doc-lines": "bun packages/film/src/fixtures/doc-lines.ts",
     "gate:fix": "bun run lint:fix && bun run fmt && bun run gate",
     "clean": "rm -rf .turbo */.turbo */*/.turbo",
     "prepare": "(test -d .git && lefthook install || true) && effect-tsgo patch --force"

@@ -78,6 +78,24 @@ import { JSONC, TOML } from 'bun';
 import { type Node, type Program, Visitor, parseSync } from 'oxc-parser';
 import { LabHttpApi } from './core/api.ts';
 import { declares as declaresRoute, routesOf } from './core/testing.ts';
+import {
+  ANCHORED,
+  ANOTHER_REPO,
+  type Anchor,
+  DESIGN_LANGUAGE,
+  type Doc,
+  FILM_SRC,
+  type Line,
+  type Markdown,
+  SPANNED,
+  anchorsIn,
+  firstGroup,
+  group,
+  markdownOf,
+  matches,
+  readDocs,
+  readEach,
+} from './fixtures/doc-anchors.ts';
 
 /** What the docs are read against. */
 interface Code {
@@ -119,33 +137,12 @@ interface Code {
   readonly written: ReadonlySet<string>;
 }
 
-interface Doc {
-  readonly path: string;
-  readonly text: string;
-  /** Where a relative path in it is read from, first match wins; `''` is the repo's root. */
-  readonly bases: ReadonlyArray<string>;
-  /**
-   * Every path it writes is under its bases, so a first directory under none
-   * of them is a mistyped path; a doc that writes a film's own paths
-   * (`narration/full.wav`, `scenes/index.ts`) is not whole.
-   */
-  readonly whole: boolean;
-}
-
-const matches = (text: string, pattern: RegExp): ReadonlyArray<RegExpExecArray> =>
-  Array.from(text.matchAll(pattern));
-
-const firstGroup = (m: RegExpExecArray) => Option.getOrElse(Option.fromUndefinedOr(m[1]), () => '');
-
 /** `/api/films/<film>/choices/mix?point=&variant=` as declared: `/api/films/:film/choices/mix`; a `<ref>` is the rest of the path. */
 const declaredPath = (written: string) =>
   written
     .replace(/\[?\?.*$/, '')
     .replaceAll('<ref>', '*')
     .replace(/<(\w+)>/g, ':$1');
-
-const group = (m: RegExpExecArray, n: number) =>
-  Option.getOrElse(Option.fromUndefinedOr(m[n]), () => '');
 
 /** The path a span writes, read against the path before it: `…/say` below it, `/redo` beside it. */
 const pathAfter = (before: string, written: string) => {
@@ -283,109 +280,6 @@ const scriptDrift = (markdown: Markdown, code: Code) =>
     )
     .map((run) => `bun run ${run.script}: no such script`);
 
-/**
- * A path a doc writes in backticks, read from one of the doc's bases, and the
- * symbols written after it (`lab/page-shell.tsx` `partHref`, `Review.read`).
- */
-interface Anchor {
-  readonly written: string;
-  /** The path without a `:line`, a trailing `/` or a call's `(…)`. */
-  readonly path: string;
-  /** Written as `path:line`, which a moved line breaks without a sound. */
-  readonly line: boolean;
-  /** A receipt that names the tree as it was: `… at \`<commit>\`` or `… deleted`. */
-  readonly receipt: boolean;
-  readonly symbols: ReadonlyArray<string>;
-  /** A markdown link's target (`[CRAFT](../CRAFT.md#5)`), read from the doc's own directory as a reader's viewer reads it. */
-  readonly link: boolean;
-}
-
-/**
- * A table row about another repo, its first cell the repo's slug
- * (`cgwire/kitsu`; a `film/<rule>` is a rule): its paths are that repo's.
- */
-const ANOTHER_REPO = /^\| `(?!film\/)[\w-]+\/[\w.-]+` +\|/;
-
-/** A line of a doc as its viewer shows it: prose (a paragraph's, a heading's, a list item's, a table row's), or a code block's. */
-interface Line {
-  readonly text: string;
-  readonly code: boolean;
-}
-
-/** A doc as the Markdown parser reads it: its lines, and the target of each link and image in its prose. */
-interface Markdown {
-  readonly lines: ReadonlyArray<Line>;
-  readonly links: ReadonlyArray<string>;
-}
-
-/** What starts a code block's line in the parser's output. */
-const CODE = '\u0000';
-
-/** A code span as the parser's output writes it: in a run of backticks longer than any it holds (`` `xs[0](y)` ``, ``` `` a`b `` ```). */
-const spanOf = (text: string) => {
-  const fence = '`'.repeat(Math.max(0, ...matches(text, /`+/g).map((m) => m[0].length)) + 1);
-  // A span that starts or ends with a backtick is written with a space inside its run.
-  const pad = ' '.repeat(Number(text.startsWith('`') || text.endsWith('`')));
-  return `${fence}${pad}${text}${pad}${fence}`;
-};
-
-/** A block of the parser's output: on lines of its own. */
-const block = (children: string) => `\n${children}\n`;
-
-/**
- * A doc as GitHub reads it, through Bun's CommonMark and GFM parser
- * (`Bun.markdown`): each block on lines of its own, the marks of its
- * containers (a quote's `>`, a list item's `-` or `1)`) left out, so a code
- * block in a list or a quote is code too; a code block's lines marked as
- * code (a fence's length, its character and its info string are the
- * parser's); a code span written in backticks; a table's row as
- * `| cell | cell |`; a link's or an image's text in its line (left out of
- * a link to a URL when `linkText` is `'local'`), and its target kept. An
- * HTML block (a comment, `<details>`) is a line of prose, as written.
- */
-const markdownOf = (text: string, linkText: 'all' | 'local' = 'all'): Markdown => {
-  const links: Array<string> = [];
-  const shown = (children: string, target: string) => {
-    if (linkText === 'local' && URL_TARGET.test(target)) return '';
-    return children;
-  };
-  const out = Bun.markdown.render(text, {
-    heading: block,
-    paragraph: block,
-    listItem: block,
-    table: block,
-    html: block,
-    hr: block,
-    tr: (cells) => `\n|${cells}\n`,
-    th: (cell) => ` ${cell} |`,
-    td: (cell) => ` ${cell} |`,
-    code: (lines) =>
-      block(
-        lines
-          .replace(/\n$/, '')
-          .split('\n')
-          .map((line) => `${CODE}${line}`)
-          .join('\n'),
-      ),
-    codespan: spanOf,
-    link: (children, { href }) => {
-      links.push(href);
-      return shown(children, href);
-    },
-    image: (children, { src }) => {
-      links.push(src);
-      return shown(children, src);
-    },
-  });
-  return {
-    lines: out
-      .split('\n')
-      .filter((line) => line.trim() !== '')
-      .map((line) => ({ text: line.replace(CODE, ''), code: line.startsWith(CODE) })),
-    links,
-  };
-};
-
 /** A doc's prose: the lines of its paragraphs, headings, list items and table rows, each code span in backticks. */
 const proseOf = (markdown: Markdown) =>
   markdown.lines
@@ -395,68 +289,6 @@ const proseOf = (markdown: Markdown) =>
 
 /** A code span in a line of prose (`spanOf`): its text. */
 const SPAN = /(`+) ?(.*?) ?\1/g;
-
-/** A link's target that is a URL (`https://…`, `mailto:…`): another site's, never a file of this tree. */
-const URL_TARGET = /^[a-z][\w+.-]*:/i;
-
-/**
- * Each relative link a doc writes (`[x](reference/vision.md#part)`, an
- * image's source, a reference's target), its target without the part: a
- * link the parser reads in its prose, never code that looks like one
- * (`handlers[i](event)`) in a span or a code block. A URL, a link within the
- * doc (`#part`) and a site's path (`/…`) name no file of this tree.
- */
-const linksIn = (doc: Doc): ReadonlyArray<Anchor> =>
-  markdownOf(doc.text)
-    .links.map((target) => target.replace(/[#?].*$/, ''))
-    .filter((target) => target !== '' && !URL_TARGET.test(target) && !target.startsWith('/'))
-    .map((target) => ({
-      written: target,
-      path: target.replace(/\/$/, ''),
-      line: false,
-      receipt: false,
-      symbols: [],
-      link: true,
-    }));
-
-/**
- * Each path a doc writes in backticks, with the symbols after it: `path`
- * `A`, `B`; in its prose's code spans and in its code blocks' lines alike (a
- * fenced template an agent pastes names the tree as surely as a sentence).
- */
-const spannedIn = (doc: Doc): ReadonlyArray<Anchor> =>
-  markdownOf(doc.text)
-    .lines.map((line) => line.text)
-    .filter((line) => !ANOTHER_REPO.test(line))
-    .flatMap((line) =>
-      matches(
-        line,
-        /`([\w@-][\w.@-]*\/[^`\s]*)`((?:\s+`[^`\n]+`(?:,\s+`[^`\n]+`)*)?)(\s+(?:at\s+`[0-9a-f]{7,40}`|deleted\b))?/g,
-      ).flatMap((m) => {
-        const written = firstGroup(m);
-        if (/[<*{…]/.test(written)) return [];
-        const path = written.replace(/:[\d,-]+$/, '').replace(/\/$/, '');
-        return [
-          {
-            written,
-            path,
-            line: path !== written.replace(/\/$/, ''),
-            receipt: group(m, 3) !== '',
-            // A directory's list (`tools/` `lab*.ts`, `api-server.ts`) names files, not symbols.
-            symbols: matches(group(m, 2), /`([^`]+)`/g)
-              .map(firstGroup)
-              .filter(
-                (symbol) =>
-                  /\.\w+$/.test(path) && /^(?:'[\w-]+'|[A-Za-z_$][\w$.]*(?:\(.*\))?)$/.test(symbol),
-              ),
-            link: false,
-          },
-        ];
-      }),
-    );
-
-/** Each path a doc writes, in backticks with the symbols after it, or as a link's target. */
-const anchorsIn = (doc: Doc): ReadonlyArray<Anchor> => [...spannedIn(doc), ...linksIn(doc)];
 
 /** An anchor as the tree has it: the file it names under the doc's bases, and that file's text. */
 interface Found {
@@ -1088,63 +920,6 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
     ),
     written: yield* writtenIn(root, workspaces.flat()),
   } satisfies Code;
-});
-
-const FILM_SRC = 'packages/film/src';
-const DESIGN_LANGUAGE = 'design-language/design-language.md';
-
-/** The docs that teach the framework, read in full against the code. */
-const readDocs = Effect.fn('test.docs.readDocs')(function* (root: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const skills = yield* Effect.forEach(
-    ['.claude/skills/film', '.claude/skills/film-architecture-loop'],
-    (dir) =>
-      Effect.map(fs.readDirectory(path.join(root, dir), { recursive: true }), (files) =>
-        files.filter((f) => f.endsWith('.md')).map((f) => [`${dir}/${f}`, ['', FILM_SRC]] as const),
-      ),
-  );
-  return yield* readEach(
-    root,
-    [['packages/film/README.md', ['', 'packages/film', FILM_SRC]], ...skills.flat()],
-    false,
-  );
-});
-
-/** The docs that name the code in passing: their routes and anchors are read. */
-const SPANNED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
-  ['NORTH_STAR.md', ['', FILM_SRC]],
-  ['PRIOR_ARTS.md', ['', FILM_SRC]],
-  ['apps/animations/README.md', ['', 'apps/animations', 'apps/animations/src', FILM_SRC]],
-];
-
-/**
- * The docs read for their anchors alone: they teach another package, or the
- * studio's look. Each is whole: every path it writes is under its bases.
- */
-const ANCHORED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
-  ['CLAUDE.md', ['', 'packages/core']],
-  ['packages/ui/README.md', ['', 'packages/ui']],
-  ['packages/url-state/README.md', ['', 'packages/url-state']],
-  ['packages/atom-solid/README.md', ['', 'packages/atom-solid']],
-  ['apps/egw-search/README.md', ['', 'apps/egw-search']],
-  [DESIGN_LANGUAGE, ['', FILM_SRC]],
-];
-
-const readEach = Effect.fn('test.docs.readEach')(function* (
-  root: string,
-  docs: ReadonlyArray<readonly [string, ReadonlyArray<string>]>,
-  whole: boolean,
-) {
-  const fs = yield* FileSystem.FileSystem;
-  return yield* Effect.forEach(docs, ([file, bases]) =>
-    Effect.map(fs.readFileString(`${root}/${file}`), (text): Doc => ({
-      path: file,
-      text,
-      bases,
-      whole,
-    })),
-  );
 });
 
 /** What each doc's anchors name that the tree lacks, one line each: each file they name parsed once. */
