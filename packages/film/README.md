@@ -2585,7 +2585,10 @@ opus --effort max --safe-mode --restricted --tools Read --strict-mcp-config
 packet's folder, under macOS's sandbox (`tools/sandbox.ts`, `sandbox-exec`
 with a Seatbelt profile, `profileOf`): every home, the system's temp
 folders and other volumes are closed to reading, then an allow-list is
-opened: the packet's folder, Claude's install and the user's keychains (its
+opened: the packet's folder, Claude's install (the native installer's
+`…/claude`, its program's real path a version under `versions/`; any other
+program, a wrapper script among them, is `CounselFailed` before anything
+runs, `installOf`) and the user's keychains (its
 sign-in) to read, and a scratch folder of the run's own to read and write,
 which holds Claude's temp files (`TMPDIR`, `CLAUDE_CODE_TMPDIR`) and a
 fresh state folder (`CLAUDE_CONFIG_DIR`; `CLAUDE_SECURESTORAGE_CONFIG_DIR`

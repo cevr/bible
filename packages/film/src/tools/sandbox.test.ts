@@ -223,6 +223,43 @@ describe("the counsel's sandbox", () => {
   });
 
   it.effect(
+    "refuses a Claude that is no version of the native installer's (a wrapper script) before it runs",
+    () => {
+      const spawned: Array<Spawned> = [];
+      const wrapper = `${home}/.local/bin/claude`;
+      return Effect.gen(function* () {
+        if (process.platform !== 'darwin') return;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const counsel = yield* Counsel;
+        const packet = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+        yield* fs.writeFileString(path.join(packet, 'packet.md'), 'rank A and B');
+        const run = path.join(yield* fs.makeTempDirectoryScoped(), 'counsel');
+        const refused = yield* Effect.flip(counsel.ask(path.join(packet, 'packet.md'), run));
+        // Its install's folder would be `~/.local`, opened whole: it fails closed.
+        expect(refused.message).toBe(
+          `the counsel run failed (Claude's program is ${wrapper}, not a version under …/claude/versions/ (the native installer's): the sandbox opens its install's folder to reading, and this one's could hold anything)`,
+        );
+        expect(spawned).toEqual([]);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          Counsel.claudeAt(Effect.succeed(wrapper)).pipe(
+            Layer.provide(
+              Layer.succeed(
+                ChildProcessSpawner.ChildProcessSpawner,
+                answering('RANKING: B > A', spawned),
+              ),
+            ),
+            Layer.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ HOME: home }))),
+            Layer.provideMerge(BunServices.layer),
+          ),
+        ),
+      );
+    },
+  );
+
+  it.effect(
     "on macOS Claude's run reads none of the home's Claude state, and writes only its own",
     () =>
       Effect.gen(function* () {
