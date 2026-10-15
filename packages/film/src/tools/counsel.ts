@@ -278,26 +278,21 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
    * Headless Claude, Opus at max effort, in the sandbox (`claudeRun`), its
    * program the one `program` finds, its home `HOME`, and its route the
    * host's `ANTHROPIC_BASE_URL` when it has one (the owner's teamclaude),
-   * within `bounds` (`COUNSEL_BOUNDS`; a test's shorter).
+   * within `COUNSEL_BOUNDS`.
    */
-  static readonly claudeAt = <R>(
-    program: Effect.Effect<string, CounselFailed, R>,
-    bounds: CounselBounds = COUNSEL_BOUNDS,
-  ) =>
-    Counsel.sandboxed(
-      (folders) =>
-        Effect.gen(function* () {
-          const claude = yield* program;
-          const install = yield* installOf(claude);
-          const home = yield* Config.String('HOME').pipe(
-            Effect.mapError((error) => CounselFailed.make({ reason: error.message })),
-          );
-          const proxy = yield* Config.option(Config.String('ANTHROPIC_BASE_URL')).pipe(
-            Effect.mapError((error) => CounselFailed.make({ reason: error.message })),
-          );
-          return claudeRun(claude, install, home, proxy, folders);
-        }),
-      bounds,
+  static readonly claudeAt = <R>(program: Effect.Effect<string, CounselFailed, R>) =>
+    Counsel.sandboxed((folders) =>
+      Effect.gen(function* () {
+        const claude = yield* program;
+        const install = yield* installOf(claude);
+        const home = yield* Config.String('HOME').pipe(
+          Effect.mapError((error) => CounselFailed.make({ reason: error.message })),
+        );
+        const proxy = yield* Config.option(Config.String('ANTHROPIC_BASE_URL')).pipe(
+          Effect.mapError((error) => CounselFailed.make({ reason: error.message })),
+        );
+        return claudeRun(claude, install, home, proxy, folders);
+      }),
     );
 
   /** Headless Claude in the sandbox (`claudeAt`), its program found on PATH. */

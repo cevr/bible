@@ -69,11 +69,7 @@ const answering = (answer: string, spawned: Array<Spawned>) =>
  * script that reads the prompt and runs `body`. Its answer, and the folder
  * the run's files are kept in.
  */
-const askingAt = (
-  home: string,
-  body: ReadonlyArray<string>,
-  bounds?: Parameters<typeof Counsel.claudeAt>[1],
-) =>
+const askingAt = (home: string, body: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -89,7 +85,7 @@ const askingAt = (
       Effect.flatMap(Counsel, (counsel) => counsel.ask(path.join(packet, 'packet.md'), dir)).pipe(
         // oxlint-disable-next-line effect/noInlineProvide -- the counsel's HOME is the fixture home this test made
         Effect.provide(
-          Counsel.claudeAt(Effect.succeed(fake), bounds).pipe(
+          Counsel.claudeAt(Effect.succeed(fake)).pipe(
             Layer.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ HOME: home }))),
             Layer.provideMerge(BunServices.layer),
           ),
@@ -390,27 +386,45 @@ describe("the counsel's sandbox", () => {
       Effect.gen(function* () {
         if (process.platform !== 'darwin') return;
         const fs = yield* FileSystem.FileSystem;
-        const home = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
-        // Deaf to SIGTERM (its sleeps too, which inherit the ignored signal); it would end
-        // by itself after 4 s.
-        const [took, asked] = yield* Effect.timed(
-          askingAt(
-            home,
-            [
-              "trap '' TERM",
-              'echo "a first thought"',
-              'i=0',
-              'while [ $i -lt 40 ]; do sleep 0.1; i=$((i+1)); done',
-            ],
-            { limit: Duration.millis(200), killAfter: Duration.millis(200) },
-          ),
+        const path = yield* Path.Path;
+        const counsel = yield* Counsel;
+        const packet = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+        yield* fs.writeFileString(path.join(packet, 'packet.md'), 'rank A and B');
+        const dir = path.join(yield* fs.realPath(yield* fs.makeTempDirectoryScoped()), 'counsel');
+        const [took, failure] = yield* Effect.timed(
+          Effect.flip(counsel.ask(path.join(packet, 'packet.md'), dir)),
         );
-        const failure = yield* Effect.flip(Effect.fromResult(asked.answer));
         expect(failure.message).toBe(
-          `the counsel run failed (claude did not finish within 0.2 s and was stopped); what it printed is under ${asked.dir}`,
+          `the counsel run failed (claude did not finish within 0.2 s and was stopped); what it printed is under ${dir}`,
         );
+        // It printed after its trap: SIGTERM was ignored, and the kill ended it.
+        expect(yield* fs.readFileString(path.join(dir, 'claude.md'))).toBe('a first thought\n');
         expect(Duration.toMillis(took)).toBeLessThan(2_500);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          Counsel.sandboxed(
+            (folders) =>
+              Effect.succeed({
+                plan: { reads: [folders.packet], writes: [folders.scratch] },
+                env: { PATH: '/usr/bin:/bin' },
+                // Deaf to SIGTERM (its sleeps too, which inherit the ignored signal); it
+                // would end by itself after 4 s.
+                command: [
+                  '/bin/sh',
+                  '-c',
+                  [
+                    "trap '' TERM",
+                    'echo "a first thought"',
+                    'i=0',
+                    'while [ $i -lt 40 ]; do sleep 0.1; i=$((i+1)); done',
+                  ].join('\n'),
+                ],
+              }),
+            { limit: Duration.millis(200), killAfter: Duration.millis(200) },
+          ).pipe(Layer.provideMerge(BunServices.layer)),
+        ),
+      ),
     5_000,
   );
 
