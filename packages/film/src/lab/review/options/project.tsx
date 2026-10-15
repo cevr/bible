@@ -852,13 +852,18 @@ const Dock = () => (
   </section>
 );
 
-/** A film's project by its address tree, in the studio's shell, with its scene cards' styles (no other place of the review draws them). */
+/**
+ * A film's project by its address tree, in the studio's shell, with its scene cards' styles (no
+ * other place of the review draws them), held ahead of the film's reads as every place's own are.
+ */
 export const ProjectPage = (props: { readonly film: string }) => (
-  <FilmProvider film={props.film}>
+  <>
     <PlaceStyle css={SCENE_CARD_STYLE} />
-    <StepCommands />
-    <Dock />
-    <OnlyShown />
-    <ProjectReady film={props.film} />
-  </FilmProvider>
+    <FilmProvider film={props.film}>
+      <StepCommands />
+      <Dock />
+      <OnlyShown />
+      <ProjectReady film={props.film} />
+    </FilmProvider>
+  </>
 );
