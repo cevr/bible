@@ -41,7 +41,7 @@ export type Align = 'start' | 'center' | 'end';
 const COLLISION_PADDING = 5;
 
 /** The positioner's CSS variables (upstream's `MenuPositionerCssVars`). */
-export const PositionerCssVars = {
+const PositionerCssVars = {
   /** The available width between the anchor and the edge of the boundary. */
   availableWidth: '--available-width',
   /** The available height between the anchor and the edge of the boundary. */
