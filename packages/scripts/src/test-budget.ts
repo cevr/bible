@@ -8,7 +8,8 @@
 // Local only, like `test:perf`: CI's runners are smaller
 // and shared, so a wall-clock budget there would fail on the runner, not on
 // the code. In CI the guard is each test's own timeout: bun's 5 s, or the
-// `--timeout` a workspace's `test` script names.
+// `--timeout` a workspace's `test` script names (`packages/film` also sets
+// the same number in a preload, for effect-bun-test's runners).
 //
 // The load average before the run and the core count are printed beside the
 // times. A machine busier than its cores measures nothing: the run prints

@@ -47,14 +47,12 @@ for (const device of DEVICES) {
 
   // Serial: while a finger is down on one tab, Chrome drops, or lands as a bare click, the
   // touches the file's other cases send their own tabs at the same time.
-  test.serial(
+  it.live.serial(
     `${LONG_PRESSED.name} on ${device.name}: its targets are the device's size, and it is drawn in its tokens`,
     () =>
-      Effect.runPromise(
-        Effect.andThen(
-          targetsIn('project', LONG_PRESSED, device),
-          drawnIn('project', LONG_PRESSED, device),
-        ),
+      Effect.andThen(
+        targetsIn('project', LONG_PRESSED, device),
+        drawnIn('project', LONG_PRESSED, device),
       ),
     2 * SLOW,
   );

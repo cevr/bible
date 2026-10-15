@@ -5,7 +5,7 @@
 // and on a phone it is a face of the selection's sheet, or a sheet of its own.
 
 import { Deferred, Effect, Exit, Option } from 'effect';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { HeadUnavailable } from '../../../src/core/refusals.ts';
 import {
@@ -1261,7 +1261,7 @@ describe('a line of the code in a phone sheet, served', () => {
   // Serial, each case here: a finger's touches (`film/touches-serial`).
   for (const { name, sheet, picked } of SHEETS) {
     const line = `${sheet} .lab-source-line[data-line="${RISE_LINE}"]`;
-    test.serial(
+    it.scopedLive.serial(
       `in ${name}, a touch held still on a line opens its menu: Note this line, Copy link`,
       () =>
         Effect.gen(function* () {
@@ -1278,37 +1278,41 @@ describe('a line of the code in a phone sheet, served', () => {
           yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
           yield* evaluates(page, `${MENU_ITEMS}.includes('notes.line')`, true);
           yield* page.finger.up;
-        }).pipe(Effect.scoped, Effect.runPromise),
+        }),
     );
 
-    test.serial(`in ${name}, a right-click on a line opens its menu, not the browser's`, () =>
-      Effect.gen(function* () {
-        const { page } = yield* openServed('lab', [codeRoute, sourceRoute], {
-          href: labOne(1, { ...picked, code: 'follow' }),
-          viewport: PHONE,
-        });
-        yield* page.waitFor(line);
-        expect(yield* rightClick(page, line)).toBe(false);
-        yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
-      }).pipe(Effect.scoped, Effect.runPromise),
+    it.scopedLive.serial(
+      `in ${name}, a right-click on a line opens its menu, not the browser's`,
+      () =>
+        Effect.gen(function* () {
+          const { page } = yield* openServed('lab', [codeRoute, sourceRoute], {
+            href: labOne(1, { ...picked, code: 'follow' }),
+            viewport: PHONE,
+          });
+          yield* page.waitFor(line);
+          expect(yield* rightClick(page, line)).toBe(false);
+          yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
+        }),
     );
   }
 
-  test.serial("a field in a sheet keeps the browser's own menu, and opens none of ours", () =>
-    Effect.gen(function* () {
-      const { page } = yield* openServed('lab', [sourceRoute], {
-        href: labAt(1, { selection: { _tag: 'Knob', scene: 'one', name: 'size' } }),
-        viewport: PHONE,
-      });
-      const field = '.lab-selection-sheet .lab-knob[data-knob="size"] input';
-      // The sheet raised whole: its knob's field in sight.
-      yield* page.waitFor('.lab-selection-sheet [data-act="sheet"]');
-      yield* page.click('.lab-selection-sheet [data-act="sheet"]');
-      yield* page.waitFor(field);
-      expect(yield* rightClick(page, field)).toBe(true);
-      yield* page.clock.runFor(100);
-      yield* evaluates(page, NO_MENU, true);
-    }).pipe(Effect.scoped, Effect.runPromise),
+  it.scopedLive.serial(
+    "a field in a sheet keeps the browser's own menu, and opens none of ours",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openServed('lab', [sourceRoute], {
+          href: labAt(1, { selection: { _tag: 'Knob', scene: 'one', name: 'size' } }),
+          viewport: PHONE,
+        });
+        const field = '.lab-selection-sheet .lab-knob[data-knob="size"] input';
+        // The sheet raised whole: its knob's field in sight.
+        yield* page.waitFor('.lab-selection-sheet [data-act="sheet"]');
+        yield* page.click('.lab-selection-sheet [data-act="sheet"]');
+        yield* page.waitFor(field);
+        expect(yield* rightClick(page, field)).toBe(true);
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, NO_MENU, true);
+      }),
   );
 });
 

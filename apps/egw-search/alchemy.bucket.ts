@@ -2,7 +2,7 @@
  * Bucket-only variant of the EGW Search stack.
  *
  * It declares the adopted project and the new `egw-celld` bucket, and nothing
- * else. It shares the stack name and stage with `alchemy.run.ts`, so both
+ * else. It shares the stack name and stage with `alchemy.railway.ts`, so both
  * files write to one state and the bucket has one owner.
  *
  * Deploy this first. On a first run it creates the bucket, and the project

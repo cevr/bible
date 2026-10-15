@@ -3498,7 +3498,21 @@ Run `bun run test:e2e` from the repository root or this package to exercise
 the real browser workflows and canvas pixel checks. The E2E script uses
 `src/lab/fixtures/run-suite.ts` to compile fresh browser bundles and run
 `bun test --parallel --no-isolate --max-concurrency=3 --timeout 20000 e2e`.
-On CI the runner takes eight workers, or the host's core count when smaller;
+A film test that sets no timeout of its own has 20 s
+(`TEST_TIMEOUT_MS`, `src/lab/fixtures/test-timeout.ts`), set in two places
+that `test-timeout.test.ts` keeps equal. The preload `bunfig.toml` names
+passes it to effect-bun-test's `setDefaultTimeout`: the deadline its
+runners hold for the whole process, at which they interrupt a concurrent
+case, since a test cannot read `--timeout`. So a runner case that times out
+has its scope closed, its tabs and its lab, at its limit, where before its
+fiber ran on beside the cases after it. The `test` and `test:e2e` scripts
+pass it as `--timeout 20000` too: bun keeps the preload's half, its own
+default, for a process's first file only, and these scripts run several
+files in one process (`--no-isolate`), so plain `test(...)` calls and hooks
+in the later files take theirs from `--timeout`. To give a case more time,
+give it a timeout of its own: a different `--timeout` on the command line
+reaches only plain tests and hooks in files after a process's first, never
+the runner cases. On CI the runner takes eight workers, or the host's core count when smaller;
 on a shared machine (the laptop, the workbox) it takes the cores free when it
 starts, the core count less the one-minute load, at least two and at most the
 cores (`src/lab/fixtures/workers.ts`), and prints the count it took. Each
@@ -3529,8 +3543,8 @@ error bun caught between tests, under the file printed above it (bun's
 ` N error` count beside them: an error the log does not place is a failure
 of its own). It also reads whether the suite finished, by bun's
 `Ran N tests across M files` line. Every failure reruns alone three times
-(a case by its name, a file's failure as the whole file), its output in
-`<log>.alone.log`.
+(a case by its name, a file's failure as the whole file) in one worker, at
+the suite's own `--max-concurrency`, its output in `<log>.alone.log`.
 
 `<log>.verdict.md` then classes each failure:
 

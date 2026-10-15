@@ -2,7 +2,7 @@
 // nothing else does.
 import { describe, test, test as serialTest } from 'bun:test';
 import { it } from 'effect-bun-test';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import * as gestures from '../../src/lab/fixtures/gestures.ts';
 import { touch as press } from '../../src/lab/fixtures/gestures.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
@@ -66,6 +66,17 @@ test.serial('two fingers in a case that runs alone', () =>
 
 test.serial('the touch gesture and a helper in a case that runs alone', () =>
   Effect.runPromise(Effect.andThen(press(page, 'button', 4), pinch())),
+);
+
+it.live.serial('a finger in a runner case that runs alone', () => page.finger.down(1, 1));
+
+it.scopedLive.serial('the touch gesture and a helper in a scoped runner case that runs alone', () =>
+  Effect.andThen(press(page, 'button', 4), pinch()),
+);
+
+it.live.layer(Layer.empty)(
+  'a finger in a layered runner case beside its siblings',
+  () => page.finger.down(1, 1), // RED film/touches-serial
 );
 
 describe('cases made serial from a table that touches', () => {

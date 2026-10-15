@@ -13,7 +13,7 @@
 // targets a finger's size.
 
 import { Boolean as Bool, Deferred, Effect, Exit, Option, Result } from 'effect';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import { type TalkWords, pageHref } from '../../../src/core/api.ts';
 import { createTalk } from '../../../src/canvas/talk.ts';
 import { SourceRefused } from '../../../src/core/refusals.ts';
@@ -469,7 +469,7 @@ describe('selecting words', () => {
   );
 
   // Serial, each case here: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     'on a phone, a word tapped and another held then Select to here selects the words between, and Cut cuts them',
     () =>
       Effect.gen(function* () {
@@ -497,7 +497,7 @@ describe('selecting words', () => {
         expect(posted(asked)).toEqual([
           { path: `${TALK_API}/talk/cut`, body: Option.some({ section: 'ask', from: 3, to: 4 }) },
         ]);
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
   );
 });
 

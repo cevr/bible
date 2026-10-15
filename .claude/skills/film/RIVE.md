@@ -66,7 +66,7 @@ From `packages/film`:
 
 ```sh
 bun test src/rive src/tools/draw-check.test.ts src/player/narrated.test.ts src/lab/review/options/draw-stills.test.ts src/canvas/gl.test.ts
-lockf -k /tmp/bible-tools-e2e.lock bun src/lab/fixtures/run-suite.ts --timeout 60000 e2e/canvas/rive.pixel.test.ts   # flock on Linux
+lockf -k /tmp/bible-tools-e2e.lock bun src/lab/fixtures/run-suite.ts e2e/canvas/rive.pixel.test.ts   # flock on Linux
 ```
 
 - `src/rive/rive.test.ts` proves purity path for path (60 shuffled frames against a newly loaded rig), and that a load stopped, failed or closed mid-way frees everything; `e2e/canvas/rive.pixel.test.ts` proves it in pixels (five times after two histories, against a fresh page) and past a lost context.

@@ -115,8 +115,13 @@ export const failuresIn = (log: string): ReadonlyArray<Failure> => {
 /** Whether the suite of `log` finished: bun printed its `Ran N tests across M files` line. */
 export const finishedIn = (log: string): boolean => RAN.test(cleaned(log).join('\n'));
 
-/** The flags of the suite that size its run, which a rerun alone leaves out. */
-const SIZING = ['--parallel', '--max-concurrency'];
+/**
+ * The flag of the suite that spreads its files over workers, which a rerun
+ * alone leaves out: one worker runs the rerun. `--max-concurrency` stays, so a
+ * file rerun whole runs no more of its cases at once than the suite did (bun's
+ * own default is 20).
+ */
+const WORKERS = '--parallel';
 
 /**
  * The `bun test -t` pattern that runs `name` alone: bun matches a case by
@@ -129,16 +134,16 @@ const casePattern = (name: string): string =>
 /**
  * The command that reruns `failure` alone, from the suite's own script
  * (`test:e2e`, `bun src/lab/fixtures/run-suite.ts … e2e`): its runner and
- * flags but those that size the run (`--parallel`, `--max-concurrency`, as
- * `--flag=n` or `--flag n`), so one worker runs one case at a time, on the
- * failure's file, and on the case alone unless the failure is the file's.
+ * flags but `--parallel` (as `--parallel=n` or `--parallel n`), so one
+ * worker runs it at the suite's own concurrency, on the failure's file, and
+ * on the case alone unless the failure is the file's.
  */
 export const aloneArgs = (suite: string, failure: Failure): ReadonlyArray<string> => {
   const tokens = suite.split(/\s+/).filter((arg) => arg !== '' && arg !== 'e2e');
   const kept = tokens.filter((arg, i) => {
-    const sizing = SIZING.some((flag) => arg === flag || arg.startsWith(`${flag}=`));
-    const valueOfSizing = tokens[i - 1] === '--max-concurrency' && /^\d+$/.test(arg);
-    return !sizing && !valueOfSizing;
+    const workers = arg === WORKERS || arg.startsWith(`${WORKERS}=`);
+    const valueOfWorkers = tokens[i - 1] === WORKERS && /^\d+$/.test(arg);
+    return !workers && !valueOfWorkers;
   });
   return [
     ...kept,
@@ -289,15 +294,43 @@ export const ancestorsIn = (ps: string, pid: number): ReadonlyArray<string> => {
   return commands;
 };
 
+/** A locker's options that take a value as the next word: `flock -w 5`, `flock -E 3`, `lockf -t 5`. */
+const VALUED = new Set(['-w', '--wait', '--timeout', '-E', '--conflict-exit-code', '-t']);
+
+/** A locker's first word past its options. */
+const operandOf = (args: ReadonlyArray<string>): Option.Option<string> =>
+  Option.flatMap(Arr.head(args), (head) => {
+    if (!head.startsWith('-')) return Option.some(head);
+    if (VALUED.has(head)) return operandOf(args.slice(2));
+    return operandOf(args.slice(1));
+  });
+
+/**
+ * The file a command holds locked, when the command is a locker: its program
+ * `flock` or `lockf` (by any path), its first word past its options. A
+ * shell whose script names a locker is not one: the locker it starts is a
+ * process, and an ancestor, of its own.
+ */
+export const lockedBy = (command: string): Option.Option<string> => {
+  const [program = '', ...args] = command.trim().split(/\s+/);
+  if (!/^(?:\S*\/)?(?:flock|lockf)$/.test(program)) return Option.none();
+  return operandOf(args);
+};
+
 /**
  * Whether one of `commands` (this process's ancestors' command lines) holds
- * `lock` already: a `flock` or `lockf` on a file of its name. A check run
+ * `lock` already: a `flock` or `lockf` on that very file, the two paths
+ * compared by `realPath` (macOS's `/tmp` is `/private/tmp`). A check run
  * inside one runs in that hold, rather than wait on itself.
  */
-export const heldByAncestor = (commands: ReadonlyArray<string>, lock: string): boolean => {
-  const name = lock.split('/').at(-1) ?? lock;
-  return commands.some(
-    (command) => /(?:^|[\s/])(?:flock|lockf)\s/.test(command) && command.includes(name),
+export const heldByAncestor = (
+  commands: ReadonlyArray<string>,
+  lock: string,
+  realPath: (path: string) => string,
+): boolean => {
+  const held = realPath(lock);
+  return commands.some((command) =>
+    Option.exists(lockedBy(command), (file) => realPath(file) === held),
   );
 };
 

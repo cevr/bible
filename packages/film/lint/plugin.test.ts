@@ -71,7 +71,7 @@ const MESSAGES = {
   'pages-in-case-scope.ts:10 film/pages-in-case-scope':
     "a scope made by hand in a browser test: a step that fails before it is closed keeps its page open, and the process's next touching case dies. Open the page in the case's scope, or in Scope.fork(yield* Effect.scope) to close it early.",
   'touches-serial.ts:17 film/touches-serial':
-    "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case as test.serial.",
+    "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case alone: test.serial, or a runner's .serial form (it.live.serial).",
   'no-test-seam.ts:3 film/no-test-seam':
     "a test seam imported by product code: a testing.ts module holds a package's test-only doubles and fixtures, so a shipped import never reaches one. Move what this file needs out of the seam, into the module it belongs to.",
   'no-read-once.ts:23 film/no-read-once':

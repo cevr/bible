@@ -18,7 +18,7 @@
 // page (a selector, a condition) or its clock, never a fixed time.
 
 import { Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import { PARTS, pageHref } from '../../../../src/core/api.ts';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import {
@@ -1298,7 +1298,7 @@ describe("a film's choices", () => {
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     "a long press on the page itself (on no thing) opens the page's menu: Undo, Show only…",
     () =>
       Effect.gen(function* () {
@@ -1315,7 +1315,7 @@ describe("a film's choices", () => {
         yield* waitFor(page, '[data-role="context-menu"] [data-command="review.only-stale"]');
         yield* page.finger.up;
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
     SLOW,
   );
 

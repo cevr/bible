@@ -11,7 +11,7 @@
 // command line shows (`tools/chrome.ts` adds the flags to every launch).
 
 import { Deferred, Effect, Exit, Option, Schedule } from 'effect';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import {
   asset,
   chromeCommandLine,
@@ -208,7 +208,7 @@ describe('the pool of views', () => {
     );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.live.serial(
     'dies on a finger put down while another tab is open: a touch runs alone, whatever its spelling',
     () =>
       Effect.gen(function* () {
@@ -242,11 +242,11 @@ describe('the pool of views', () => {
             yield* tab.finger.up;
           }),
         );
-      }).pipe(Effect.runPromise),
+      }),
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.live.serial(
     "closes a view two fingers were down on at once, and the next case's touch lands",
     () =>
       Effect.gen(function* () {
@@ -282,7 +282,7 @@ describe('the pool of views', () => {
             yield* evaluates(tab, 'window.seen', ['touchstart']);
           }),
         );
-      }).pipe(Effect.runPromise),
+      }),
   );
 });
 

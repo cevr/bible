@@ -13,7 +13,7 @@ import { Array as Arr, Console, Effect, Layer, ManagedRuntime, Option, Result } 
 
 import { QueryEmbedder } from './embedder.js';
 import { layerBunEmbedder } from './embedder-bun.js';
-import { DOCUMENT_PREFIX, QUERY_PREFIX, truncateToMrl } from './embedder-transformers.js';
+import { DOCUMENT_PREFIX, QUERY_PREFIX, truncateToMrl } from './embedding.js';
 import { GOLDEN_QUERIES } from './golden-fixture.js';
 import { DIMENSIONS, MODEL_FINGERPRINT } from './vector-index.js';
 

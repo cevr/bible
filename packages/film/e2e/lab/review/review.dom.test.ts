@@ -13,7 +13,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { Deferred, Effect, Exit, FileSystem, Layer, Match, Option, Schedule, Schema } from 'effect';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { FILM_FPS, frameAtOrBefore, timecode } from '../../../src/core/time.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
@@ -1225,7 +1225,7 @@ describe('the review page', () => {
   );
 
   // Serial: a finger's touches (`film/touches-serial`).
-  test.serial(
+  it.scopedLive.serial(
     "a long-press on a version's picture steps the set on or back, one step or ten (SU-11)",
     () =>
       Effect.gen(function* () {
@@ -1265,7 +1265,7 @@ describe('the review page', () => {
         yield* held('[data-command="review.step-next"][data-step="normal"]');
         yield* textIs(page, '.rv-time-at', timecode(11 / FILM_FPS));
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
     SLOW,
   );
 

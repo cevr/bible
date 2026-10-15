@@ -11,7 +11,7 @@
 // names no row and says so beside the list.
 
 import { Effect } from 'effect';
-import { describe, expect, it, test } from 'effect-bun-test';
+import { describe, expect, it } from 'effect-bun-test';
 import {
   MENU_ITEMS,
   closeCommandMenu,
@@ -283,7 +283,7 @@ describe("a cue's context menu", () => {
   );
 
   // Serial, each case here: a finger's touches (`film/touches-serial`).
-  test.serial('a touch held still opens it; a touch that moves does not', () =>
+  it.scopedLive.serial('a touch held still opens it; a touch that moves does not', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor(RISE);
@@ -300,10 +300,10 @@ describe("a cue's context menu", () => {
       yield* page.clock.runFor(700);
       yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
       yield* evaluates(page, URL_T, 1);
-    }).pipe(Effect.scoped, Effect.runPromise),
+    }),
   );
 
-  test.serial(
+  it.scopedLive.serial(
     'a finger that drags a cue owns the press: the bar follows it, and no menu opens',
     () =>
       Effect.gen(function* () {
@@ -335,10 +335,10 @@ describe("a cue's context menu", () => {
           true,
         );
         yield* page.finger.up;
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
   );
 
-  test.serial(
+  it.scopedLive.serial(
     'a finger held still owns the press as the menu: moved once it opens, the bar stays',
     () =>
       Effect.gen(function* () {
@@ -354,6 +354,6 @@ describe("a cue's context menu", () => {
         yield* page.clock.runFor(100);
         yield* evaluates(page, BAR_LEFT, before);
         yield* page.finger.up;
-      }).pipe(Effect.scoped, Effect.runPromise),
+      }),
   );
 });
