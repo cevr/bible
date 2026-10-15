@@ -53,7 +53,7 @@ export const collectWithin = (
   );
 
 /** Where a run's two streams are written as they arrive. */
-export interface Outputs {
+interface Outputs {
   readonly stdout: string;
   readonly stderr: string;
 }
