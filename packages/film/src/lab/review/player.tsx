@@ -254,6 +254,8 @@ export const PlayedAlone = (
     readonly poster: string;
     /** The video it plays, whose own frames its clock counts. */
     readonly video: Pick<ReviewFile, 'ref' | 'mtime'>;
+    /** Where it stands as it opens, in seconds (its start, 0, when none). */
+    readonly at?: number;
   }>,
 ) => {
   const { meta } = useReview();
@@ -279,7 +281,14 @@ export const PlayedAlone = (
     ),
   }));
   return (
-    <Actor runtime={meta.runtime} spawn={spawnSync(ALONE, 0)}>
+    <Actor
+      runtime={meta.runtime}
+      spawn={spawnSync(
+        ALONE,
+        0,
+        untrack(() => Option.getOrElse(Option.fromUndefinedOr(props.at), () => 0)),
+      )}
+    >
       {(actor) => {
         const syncAtom = ActorAtom.make(actor);
         const sync = useAtomValue(() => syncAtom);

@@ -23,6 +23,22 @@ const BOARD_TOKENS = `
 }
 `;
 
+/**
+ * A panel's thumb and the line under it (`PanelThumb`, `PanelSaid`): the
+ * Board's, and an ask's Board, alike.
+ */
+export const PANEL_THUMB_CSS = `
+.lab-board-thumb { display: flex; align-items: center; justify-content: center; width: 100%; height: auto;
+  aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); background: var(--surface-3);
+  outline: 1px solid var(--line); outline-offset: -1px; }
+.lab-board-thumb-empty, .lab-board-thumb-card { padding: var(--s-2); color: var(--text-3); font-size: var(--fs-2);
+  line-height: var(--lh-2); text-align: center; }
+/* A card or a verse: the engine sets it in the film's card style, so its thumb is the words, not a picture. */
+.lab-board-thumb-card { background: var(--surface-1); color: var(--text-1); font-weight: var(--w-2); }
+.lab-board-panel-meta { display: flex; flex-wrap: wrap; gap: var(--s-1); font-size: var(--fs-1); line-height: var(--lh-1);
+  color: var(--text-3); }
+`;
+
 export const BOARD_CSS = `${BOARD_TOKENS}
 .lab-board { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--surface-1); }
 .lab-board-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--panel-head-h);
@@ -76,19 +92,11 @@ export const BOARD_CSS = `${BOARD_TOKENS}
 .lab-board-panel-words { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: clip;
   color: var(--text-1); font-size: var(--fs-2); line-height: var(--lh-2); }
 @media (hover: hover) { .lab-board-panel:not([aria-current='true']):hover { background: var(--surface-3); } }
-.lab-board-thumb { display: flex; align-items: center; justify-content: center; width: 100%; height: auto;
-  aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); background: var(--surface-3);
-  outline: 1px solid var(--line); outline-offset: -1px; }
-.lab-board-thumb-empty, .lab-board-thumb-card { padding: var(--s-2); color: var(--text-3); font-size: var(--fs-2);
-  line-height: var(--lh-2); text-align: center; }
-/* A card or a verse: the engine sets it in the film's card style, so its thumb is the words, not a picture. */
-.lab-board-thumb-card { background: var(--surface-1); color: var(--text-1); font-weight: var(--w-2); }
+${PANEL_THUMB_CSS}
 .lab-board-panel-label { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
   font-size: var(--fs-1); line-height: var(--lh-1); }
 .lab-board-panel-at { color: var(--text-1); font-weight: var(--w-2); }
 .lab-board-panel-time { color: var(--text-3); }
-.lab-board-panel-meta { display: flex; flex-wrap: wrap; gap: var(--s-1); font-size: var(--fs-1); line-height: var(--lh-1);
-  color: var(--text-3); }
 /* The panel picked, open under its beat: a raised box, as the Script's ties. */
 .lab-board-open { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-2) var(--s-3) var(--s-3);
   border: var(--border); border-radius: var(--r-2); background: var(--surface-2); }

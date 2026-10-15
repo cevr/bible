@@ -390,13 +390,17 @@ const voice = Command.make(
   ),
 );
 
-/** Each beat of a film's script as the Script page reads it: its id, its picture's brief, its sources. Pure. */
+/** Each beat of a film's script as the Script page reads it: its id, its line, its picture's brief, its sources. Pure. */
 const scriptBeatsOf = (
   script: Option.Option<ReadonlyArray<ScriptLine & { readonly picture?: string }>>,
 ): ReadonlyArray<ScriptBeat> =>
-  Option.getOrElse(script, () => []).map(({ id, cite, picture }): ScriptBeat => ({
+  Option.getOrElse(script, () => []).map(({ id, say, cite, picture }): ScriptBeat => ({
     id,
     cite,
+    ...Option.match(Option.fromUndefinedOr(say), {
+      onNone: () => ({}),
+      onSome: (line) => ({ say: line }),
+    }),
     ...Option.match(Option.fromUndefinedOr(picture), {
       onNone: () => ({}),
       onSome: (brief) => ({ picture: brief }),

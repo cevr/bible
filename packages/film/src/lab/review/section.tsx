@@ -453,7 +453,7 @@ const Doc = (props: { readonly doc: ReviewFile }) => {
  * A markdown file's text, shown as HTML (every character of it escaped
  * first): the file as the index names it, so a file written again is read again.
  */
-const Markdown = (props: { readonly file: ReviewFile }) => {
+export const Markdown = (props: { readonly file: ReviewFile }) => {
   const { meta } = useReview();
   const read = useAtomValue(() => meta.text(props.file));
   return (
