@@ -73,14 +73,15 @@ export const rive = (step: string, args: ReadonlyArray<string>) =>
   }).pipe(Effect.scoped);
 
 /**
- * Write `rml` as the project in `dir` (`rive.yaml` and `figures.rml`) and
- * compile it offline and unsigned (`rive --once`): the built file, its size,
- * what the build warned of and its problems.
+ * Write `rml` as the project in `dir` (`rive.yaml` and `figures.rml`), its
+ * main artboard `main` (the court's accused unless named), and compile it
+ * offline and unsigned (`rive --once`): the built file, its size, what the
+ * build warned of and its problems.
  */
-export const compile = Effect.fn('compile')(function* (dir: string, rml: string) {
+export const compile = Effect.fn('compile')(function* (dir: string, rml: string, main = 'Accused') {
   const fs = yield* FileSystem.FileSystem;
   yield* fs.makeDirectory(dir, { recursive: true });
-  yield* fs.writeFileString(`${dir}/rive.yaml`, 'name: figures\nmain: Accused\n');
+  yield* fs.writeFileString(`${dir}/rive.yaml`, `name: figures\nmain: ${main}\n`);
   yield* fs.writeFileString(`${dir}/figures.rml`, rml);
   const printed = yield* rive('rive --once', [dir, '--once', '--quiet', '--format=json']);
   const report = yield* Schema.decodeEffect(Built)(printed.trim());

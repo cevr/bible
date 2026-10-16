@@ -1,0 +1,190 @@
+// The plain lead as a Rive rig (character-design 2.3), on the cold-studies
+// generator's parts: a round head on a trapezoid tunic, stub legs, one
+// lilac-grey paper, no hair, no neck; the face kit at his size. His hands are
+// the hand rig's (`hand-rig.ts`), drawn by the host where they work (on the
+// dock's rail, over the stain), so the rig is the body alone.
+//
+// Units are the Board's pixels (a panel is 1536 × 1024): in `cold.evidence`
+// he stands 373 tall, his head 146 across. His feet are the artboard's
+// origin.
+//
+// The host poses him by the view model `Lead`, every frame:
+// - the face kit's numbers (`FACE`);
+// - `lean`, radians about his feet; `tilt`, radians, his head about his
+//   neck; `nod`, units, his head sinking toward his tunic (a bow);
+// - `stain`, the scarlet blot on his tunic, 0..1; `robe`, the white tunic
+//   laid over his own, 0..1.
+// The rig keeps its `breath` and the paper's `boil`.
+
+import {
+  FACE,
+  type Figure,
+  artboard,
+  boilTimeline,
+  ellipse,
+  faceKit,
+  gazeTarget,
+  piece,
+  timeline,
+} from '../../cold-studies/looks/rive/parts.ts';
+import { el } from '../../cold-studies/looks/rive/rml.ts';
+import { PAPERS, STAIN, looked } from './papers.ts';
+import { blotOutline, roundedPolygon } from './shapes.ts';
+
+/** His measures, units: height, head, neck (the tunic's top under the head), hem, legs. */
+export const LEAD = {
+  height: 373,
+  head: { y: -300, r: 73 },
+  neck: -236,
+  hem: -34,
+  /** Where the stain's middle sits on his tunic, and its half-width and half-height. */
+  stain: { x: -6, y: -168, rx: 27, ry: 32 },
+} as const;
+
+/** The stain's soaked edge: each ring's size against the blot and its opacity, inner first. */
+const SOAK = [
+  [1.05, 0.55],
+  [1.1, 0.32],
+  [1.16, 0.16],
+] as const;
+
+/** The artboard, and where his feet stand on it: room for his head's tilt and his outline. */
+export const LEAD_ART = { width: 360, height: 470, feet: [180, 440] } as const;
+
+/** The face kit's scale on his head: his eyes small and close set, low in the round. */
+export const LEAD_FACE = { scale: 1.15, y: 23 } as const;
+
+/** The view model's numbers at rest: the face kit's, his eyes on us, upright, stained, in his own tunic. */
+export const LEAD_KNOBS = {
+  ...FACE,
+  gazeX: 0,
+  gazeY: LEAD.head.y + LEAD_FACE.y,
+  lean: 0,
+  tilt: 0,
+  nod: 0,
+  stain: 1,
+  robe: 0,
+} as const;
+
+export const LEAD_TIMELINES = {
+  breath: { seconds: 4, move: 4 },
+  boil: { seconds: 4, move: 4 },
+} as const;
+export type LeadTimeline = keyof typeof LEAD_TIMELINES;
+
+/** The face `check` reads (`RivePropSpec.face`): its node, and his head's height. */
+export const LEAD_FACE_CHECK = { node: 'face', height: 2 * LEAD.head.r } as const;
+
+/** The view model's property keys (`rive schema`). */
+const KEY = { y: 14, rotation: 15, opacity: 18 } as const;
+
+/** The tunic: narrow at the neck, wide at the hem, its corners rounded. */
+export const TUNIC = roundedPolygon(
+  [
+    [-36, LEAD.neck],
+    [36, LEAD.neck],
+    [80, LEAD.hem],
+    [-80, LEAD.hem],
+  ],
+  22,
+);
+
+/** One stub leg about `x`: from under the hem to the feet, rounded at the foot. */
+const leg = (x: number) =>
+  roundedPolygon(
+    [
+      [x - 14, LEAD.hem - 16],
+      [x + 14, LEAD.hem - 16],
+      [x + 14, 0],
+      [x - 14, 0],
+    ],
+    10,
+  );
+
+export const leadRig = (fig: Figure) => {
+  const lead = looked(PAPERS.lead);
+  const { stain } = LEAD;
+  const stainNode = el('Node', { x: stain.x, y: stain.y, name: 'stain', id: fig.idOf('stain') }, [
+    fig.bind('stain', KEY.opacity),
+    piece(fig, 'stainBlot', blotOutline(stain.rx, stain.ry, 0.07, 11), {
+      color: STAIN,
+      light: STAIN,
+      ink: 'none',
+      shadow: 0,
+    }),
+    // Rings round the blot, each wider and fainter, so its edge reads soaked into the cloth
+    // rather than cut (the canvas engine draws no feather).
+    ...SOAK.map(([grow, opacity], i) =>
+      el('Node', { opacity, name: `stainSoak${i}` }, [
+        piece(
+          fig,
+          `stainSoak${i}Paper`,
+          blotOutline(stain.rx * grow, stain.ry * grow, 0.08, 7 + i),
+          {
+            color: STAIN,
+            light: STAIN,
+            ink: 'none',
+            shadow: 0,
+          },
+        ),
+      ]),
+    ),
+  ]);
+  const head = el('Node', { y: LEAD.neck, name: 'neck', id: fig.idOf('neck') }, [
+    el('Node', { name: 'head', id: fig.idOf('head') }, [
+      fig.bind('tilt', KEY.rotation),
+      el('Node', { name: 'nodded', id: fig.idOf('nodded') }, [
+        fig.bind('nod', KEY.y),
+        el('Node', { y: LEAD.head.y - LEAD.neck, name: 'skull' }, [
+          faceKit(fig, { x: 0, y: LEAD_FACE.y, scale: LEAD_FACE.scale }),
+          piece(fig, 'headPaper', ellipse(0, 0, LEAD.head.r, LEAD.head.r - 1, 22), lead),
+        ]),
+      ]),
+    ]),
+  ]);
+  // Rive draws a node's children front first: the head over the tunic's shoulders, the tunic
+  // over the legs, the white robe over the stain over his own tunic.
+  const body = el('Node', { name: 'body', id: fig.idOf('body') }, [
+    fig.bind('lean', KEY.rotation),
+    head,
+    el('Node', { y: LEAD.hem, name: 'trunk', id: fig.idOf('trunk') }, [
+      el('Node', { y: -LEAD.hem, name: 'tunicSide' }, [
+        el('Node', { name: 'robe', id: fig.idOf('robe') }, [
+          fig.bind('robe', KEY.opacity),
+          piece(fig, 'robePaper', TUNIC, looked(PAPERS.robe)),
+        ]),
+        stainNode,
+        piece(fig, 'tunic', TUNIC, lead),
+      ]),
+    ]),
+    piece(fig, 'legL', leg(-26), lead, { boil: 0.6 }),
+    piece(fig, 'legR', leg(26), lead, { boil: 0.6 }),
+  ]);
+  const figure = el('Node', { x: LEAD_ART.feet[0], y: LEAD_ART.feet[1], name: 'figure' }, [
+    gazeTarget(fig, LEAD_KNOBS),
+    body,
+  ]);
+  const breath = timeline(
+    fig,
+    'breath',
+    LEAD_TIMELINES.breath.seconds,
+    {
+      trunk: {
+        scaleY: [
+          [0, 1],
+          [2, 1.012],
+          [4, 1],
+        ],
+      },
+      neck: {
+        y: [
+          [0, LEAD.neck],
+          [2, LEAD.neck - 2],
+          [4, LEAD.neck],
+        ],
+      },
+    },
+    { loop: true },
+  );
+  return artboard(fig, LEAD_ART, [figure], [breath, boilTimeline(fig)], LEAD_KNOBS);
+};
