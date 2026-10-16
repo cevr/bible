@@ -4,7 +4,8 @@
 // it, and a beat key steps the playhead; a drag along the ruler holds play
 // while it scrubs and plays on once it lets go; a beat chosen on the script outlines every clip of that
 // beat, opens the inspector and names it in the address; the zoom steps in
-// and Fit (⇧Z) fits the film again; another version reads its own timeline;
+// and Fit (⇧Z) fits the film again, the playhead held where it was on
+// screen; another version reads its own timeline;
 // the flag strip flags the open ask; the inspector's Words, Board and Notes
 // rows link to the beat on the pages that still hold it. A phone keeps three lanes. Its touch
 // targets are measured with every place's (`touch-targets.dom.test.ts`, the
@@ -221,6 +222,29 @@ describe('the zoom on a laptop', () => {
         yield* page.press('Shift+Z');
         yield* attributeIs(page, '[data-act="fit"]', 'aria-pressed', 'true');
         yield* until(page, `!(${WIDER})`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe('a zoom step on a laptop', () => {
+  it.live(
+    'keeps the playhead where it was on screen, in and out',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioAt(DESK, `${pageHref.studio(PROBE)}#t=9`);
+        yield* textIs(page, '.st-tc', /^0:09\.0/);
+        const AT = `document.querySelector('.st-playhead').getBoundingClientRect().left`;
+        yield* until(page, `(window.__studioPlayheadX = ${AT}) > 0`);
+        const HELD = `Math.abs(${AT} - window.__studioPlayheadX) <= 1`;
+        for (const step of ['zoom-in', 'zoom-in', 'zoom-out', 'zoom-in', 'zoom-out', 'zoom-out']) {
+          const WIDTH = `document.querySelector('.st-canvas').offsetWidth`;
+          yield* until(page, `(window.__studioCanvasW = ${WIDTH}) > 0`);
+          yield* page.click(`[data-act="${step}"]`);
+          yield* until(page, `${WIDTH} !== window.__studioCanvasW`);
+          yield* until(page, HELD);
+        }
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

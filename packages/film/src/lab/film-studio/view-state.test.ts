@@ -19,6 +19,7 @@ import {
   pictureAt,
   pictureTag,
   pxPerSecond,
+  scrollForZoom,
   rulerTicks,
   timecode,
   waitsText,
@@ -143,6 +144,24 @@ describe('the zoom and the ruler', () => {
     expect(pxPerSecond(1000, 0, 1)).toBe(0);
     expect(zoomFor(400, 1000, 10)).toBe(4);
     expect(zoomFor(10, 1000, 10)).toBe(1);
+  });
+
+  test('a zoom step keeps the playhead where it was on screen, held to the scroll range', () => {
+    // At 100 px a second the playhead at 5 s sits 300 px into a view scrolled to 200 px.
+    expect(scrollForZoom({ T: 5, from: 100, to: 150, left: 200, width: 400, duration: 10 })).toBe(
+      450,
+    );
+    expect(scrollForZoom({ T: 5, from: 150, to: 100, left: 450, width: 400, duration: 10 })).toBe(
+      200,
+    );
+    // Held to the scroll range: never before the start, never past the end.
+    expect(scrollForZoom({ T: 0.5, from: 100, to: 200, left: 0, width: 400, duration: 10 })).toBe(
+      50,
+    );
+    expect(scrollForZoom({ T: 1, from: 200, to: 100, left: 0, width: 400, duration: 10 })).toBe(0);
+    expect(scrollForZoom({ T: 9, from: 300, to: 200, left: 2600, width: 400, duration: 10 })).toBe(
+      1600,
+    );
   });
 
   test('labels the ruler at the first step that leaves room between labels', () => {

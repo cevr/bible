@@ -65,6 +65,7 @@ import {
   rulerTicks,
   timecode,
   waitsText,
+  scrollForZoom,
   zoomFor,
   type BeatPage,
   type CardPicture,
@@ -938,19 +939,44 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
         );
     },
   );
-  // The playhead stays in view: while it plays, the view pages on past the right edge; at rest,
-  // a playhead out of view is brought to the view's first third.
+  // A zoom step keeps the playhead where it was on screen. Then the playhead stays in view:
+  // while it plays, the view pages on past the right edge; at rest, a playhead out of view is
+  // brought to the view's first third. The scroll a step starts from is the one last seen
+  // (`viewLeft`, kept by the scroller's scroll events): by the time the step runs, a canvas
+  // narrowed by a step out has already clamped the scroller's own.
+  let shownAt = { zoom: 0, perSecond: 0 };
+  let viewLeft = 0;
   createEffect(
-    () => ({ x: scale.x(state.T()), playing: state.playing(), w: width() }),
-    ({ x, playing, w }) => {
+    () => ({
+      T: state.T(),
+      x: scale.x(state.T()),
+      playing: state.playing(),
+      w: width(),
+      zoom: state.zoom(),
+      ps: perSecond(),
+    }),
+    ({ T, x, playing, w, zoom, ps }) => {
+      const before = shownAt;
+      shownAt = { zoom, perSecond: ps };
       Option.map(scroller, (el) => {
+        if (before.perSecond > 0 && before.zoom !== zoom)
+          el.scrollLeft = scrollForZoom({
+            T,
+            from: before.perSecond,
+            to: ps,
+            left: viewLeft,
+            width: w,
+            duration: untrack(() => props.timeline.duration),
+          });
         const left = el.scrollLeft;
+        viewLeft = left;
         const edge = 24;
         if (x >= left + edge && x <= left + w - edge) return;
         el.scrollLeft = Math.max(
           0,
           Bool.match(playing && x > left, { onTrue: () => x - edge, onFalse: () => x - w / 3 }),
         );
+        viewLeft = el.scrollLeft;
       });
     },
   );
@@ -1005,6 +1031,9 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
         ref={(el: HTMLDivElement) => {
           scroller = Option.some(el);
           sized.observe(el);
+        }}
+        onScroll={(e) => {
+          viewLeft = e.currentTarget.scrollLeft;
         }}
       >
         <ScaleContext value={scale}>

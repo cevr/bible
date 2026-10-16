@@ -255,6 +255,23 @@ export const pxPerSecond = (width: number, duration: number, zoom: number): numb
     onFalse: () => 0,
   });
 
+/**
+ * The scroll a zoom step from `from` to `to` px a second leaves, in a view `width` px wide
+ * scrolled to `left`: the playhead at `T` keeps its x on screen, held to the scroll range.
+ */
+export const scrollForZoom = (zoom: {
+  readonly T: number;
+  readonly from: number;
+  readonly to: number;
+  readonly left: number;
+  readonly width: number;
+  readonly duration: number;
+}): number =>
+  Math.min(
+    Math.max(0, zoom.duration * zoom.to - zoom.width),
+    Math.max(0, zoom.T * zoom.to - (zoom.T * zoom.from - zoom.left)),
+  );
+
 /** The zoom at which a film second takes `px` pixels: a phone opens so a beat is readable. */
 export const zoomFor = (px: number, width: number, duration: number): number => {
   const fit = pxPerSecond(width, duration, 1);
