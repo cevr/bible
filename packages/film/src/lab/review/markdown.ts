@@ -64,17 +64,23 @@ const pre = (lines: ReadonlyArray<string>): string =>
 const startsBlock = (line: string): boolean =>
   [TABLE_ROW, LIST_ITEM, HEADING, FENCE, QUOTE].some((starts) => starts.test(line));
 
+/** How far `line` is indented: its leading spaces. */
+const indentOf = (line: string): number => line.length - line.trimStart().length;
+
 /** The HTML being written: the lists and the table open, and the paragraph
  *  or list item still taking lines, its words gathered. Each list open has
- *  its last item open too, so a list under it is written inside it. */
+ *  its last item open too, so a list under it is written inside it, and
+ *  the column its item's words start at, so a paragraph after a rest goes
+ *  in the deepest item its indent reaches (CommonMark's continuation). */
 const writer = () => {
   const out: Array<string> = [];
   const lists: Array<List> = [];
+  const columns: Array<number> = [];
   let table = false;
   let tag: 'p' | 'li' | 'none' = 'none';
   let words: Array<string> = [];
-  // A rest that ended a list: the indented line after it is no code.
-  let afterList = false;
+  // A rest inside a list: the next line says whether the list goes on.
+  let rested = false;
   const flush = () => {
     if (tag === 'p') out.push(`<p>${inline(words.join(' '))}</p>`);
     if (tag === 'li') out.push(inline(words.join(' ')));
@@ -82,6 +88,7 @@ const writer = () => {
     words = [];
   };
   const closeLists = (to: number) => {
+    columns.splice(to);
     for (const list of lists.splice(to).reverse()) out.push(`</li></${list}>`);
   };
   const closeTable = () => {
@@ -93,16 +100,16 @@ const writer = () => {
     flush();
     closeLists(0);
     closeTable();
-    afterList = false;
+    rested = false;
   };
   return {
     end,
-    /** Whether an indented line here is code: nothing open, nor a list just ended, for it to go on in. */
-    codeMay: () => tag === 'none' && lists.length === 0 && table === false && !afterList,
+    /** Whether an indented line here is code: nothing open for it to go on in. */
+    codeMay: () => tag === 'none' && lists.length === 0 && table === false,
     row: (line: string) => {
       flush();
       closeLists(0);
-      afterList = false;
+      rested = false;
       if (!table) out.push('<table>');
       table = true;
       out.push(tableRow(line));
@@ -110,7 +117,7 @@ const writer = () => {
     item: (indent: string, marker: string, text: string) => {
       closeTable();
       flush();
-      afterList = false;
+      rested = false;
       const list = listOf(marker);
       // An item nests one list deeper at most than the one open.
       const want = Math.min(Math.floor(indent.length / 2) + 1, lists.length + 1);
@@ -121,6 +128,7 @@ const writer = () => {
         out.push(opening(list, marker), '<li>');
         lists.push(list);
       }
+      columns[want - 1] = indent.length + marker.length + 1;
       tag = 'li';
       words = [text];
     },
@@ -128,15 +136,23 @@ const writer = () => {
       end();
       out.push(`<h${level}>${inline(text)}</h${level}>`);
     },
+    /** A rest: it ends the paragraph, and a list only once a line too shallow for it follows. */
     blank: () => {
-      const listed = lists.length > 0 || afterList;
-      end();
-      afterList = listed;
+      if (lists.length === 0) return end();
+      flush();
+      rested = true;
     },
-    /** A line of words: it goes on in the paragraph or item open, else opens one. */
+    /**
+     * A line of words: it goes on in the paragraph or item open, else opens
+     * one. After a rest in a list, it opens a paragraph in the deepest item
+     * whose words its indent reaches, or ends the lists when it reaches none.
+     */
     words: (line: string) => {
       closeTable();
-      afterList = false;
+      if (rested) {
+        rested = false;
+        closeLists(columns.filter((column) => column <= indentOf(line)).length);
+      }
       if (tag === 'none') tag = 'p';
       words.push(line.trim());
     },
@@ -263,7 +279,10 @@ const reader = (html: Writer) => {
 /** Markdown as HTML (escaped throughout). Lines that follow one another make
  *  one paragraph, and a line under a list item (indented or not) goes on in
  *  that item, as Markdown reads them: a blank line, a heading, a list item, a
- *  table row, a fence or a quote ends either. A fence's lines (to its close,
+ *  table row, a fence or a quote ends either. A blank line ends no list: the
+ *  words after it, indented as far as an item's words, are a paragraph in
+ *  that item (CommonMark's continuation), items a blank line apart are one
+ *  list, and words less indented end the list. A fence's lines (to its close,
  *  or the doc's end) and lines indented four after a rest are code, kept as
  *  they are; a quote's lines are a quote, read as Markdown of their own. */
 export const markdownHtml = (text: string): string => {
