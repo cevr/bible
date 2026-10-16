@@ -6,7 +6,10 @@
 // film's notes as the server read them, which the browser adopts (no second
 // read) and goes on following. The browser hydrates with no mismatch, then
 // stages the film, puts its tools in the panel, and fits a phone as ever;
-// what the server painted first stays where the staged page has it.
+// what the server painted first stays where the staged page has it. A
+// film's studio is served the same way: the header and a quiet line, none of
+// the film, its root held until the faces land; the browser hydrates it,
+// shows it, and its keys and clips work.
 
 import { Effect, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -41,7 +44,9 @@ const mismatches = (logged: ReadonlyArray<{ readonly type: string; readonly text
  * The face hold's script (`faceHold`): the one script the head runs before
  * the root is painted, which shows the root once the UI faces have loaded.
  */
-const HOLD = faceHold(`[${PAGE_ROOT}]`).script;
+/** The face hold the page server writes: its script and the attribute it shows the root by. */
+const HOLD_TERMS = faceHold(`[${PAGE_ROOT}]`);
+const HOLD = HOLD_TERMS.script;
 
 /**
  * The markup as a browser paints it before the page's scripts run: every
@@ -232,6 +237,47 @@ describe("a film's pages served as the lab renders them", () => {
           yield* evaluates(page, SEEN, first);
           yield* evaluates(page, shownWith(NAMING), shows);
           yield* evaluates(page, MOVED, []);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+  for (const { where, viewport } of [
+    { where: 'a desk', viewport: DESK },
+    { where: 'a phone', viewport: PHONE },
+  ] as const)
+    it.live(
+      `Studio on ${where}: the server's document is the header and a quiet line, none of the film, its root held for the faces; the browser hydrates with no mismatch, shows the root once the faces land, and plays and selects`,
+      () =>
+        Effect.gen(function* () {
+          const { page, documents, errors } = yield* openServed('player', [], {
+            href: pageHref.studio(PROBE),
+            viewport,
+          });
+          const whole = documents[0]?.html ?? '';
+          // The hold the head carries: the root unpainted until the faces load, its script beside it.
+          expect(whole).toContain(faceHold(`[${PAGE_ROOT}]`).head);
+          const html = rooted(painted(whole));
+          expect(html).toContain('class="st-app"');
+          expect(html).toContain(`<b class="st-film">${PROBE}</b>`);
+          expect(html).toContain(`Opening ${PROBE}…`);
+          for (const film of FILM_PARTS) expect(html).not.toContain(film);
+          // The hold let go: the root is shown in its faces.
+          yield* evaluates(
+            page,
+            `[document.documentElement.getAttribute('${HOLD_TERMS.shown}'), getComputedStyle(document.querySelector('[${PAGE_ROOT}]')).visibility]`,
+            ['in', 'visible'],
+          );
+          // The studio took the quiet line's place, and works by key and by pointer.
+          yield* waitFor(page, '.st-timeline .st-clip');
+          yield* page.press('Space');
+          yield* attributeIs(page, '.st-key[data-act="play.toggle"]', 'aria-pressed', 'true');
+          yield* page.press('k');
+          yield* attributeIs(page, '.st-key[data-act="play.toggle"]', 'aria-pressed', 'false');
+          yield* page.click('.st-clip[data-kind="script"][data-beat="two"]');
+          yield* waitFor(page, '.st-pane[data-beat="two"]');
+          if (viewport === PHONE) yield* fitsPhone(page);
+          expect(mismatches(page.logged)).toEqual([]);
+          expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,
     );
