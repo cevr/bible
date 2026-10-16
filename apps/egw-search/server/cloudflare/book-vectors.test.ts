@@ -6,7 +6,12 @@ import { SqlClient } from 'effect/sql';
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { DIMENSIONS, QueryEmbedderUnavailable } from '@bible/core/search';
 
-import { BOOK_VECTORS_PAGE, bookVectorsPage, type VectorizeUpsert } from './book-vectors.ts';
+import {
+  BOOK_VECTORS_PAGE,
+  bookVectorsPage,
+  removedVectorIds,
+  type VectorizeUpsert,
+} from './book-vectors.ts';
 import { UNCLASSIFIED } from './vectorize.ts';
 
 /** A corpus with the schema the writer builds, over one in-memory file. */
@@ -67,7 +72,7 @@ describe('bookVectorsPage', () => {
         const written: Parameters<VectorizeUpsert['upsert']>[0][number][] = [];
 
         const page = yield* bookVectorsPage(
-          { bookId: 1, after: 0 },
+          { bookId: 1, after: 0, scope: 'book' },
           embedder(seen),
           index(written),
         );
@@ -97,13 +102,21 @@ describe('bookVectorsPage', () => {
         const written: Parameters<VectorizeUpsert['upsert']>[0][number][] = [];
         const upsert = index(written);
 
-        const first = yield* bookVectorsPage({ bookId: 1, after: 0 }, embedder([]), upsert);
-        const second = yield* bookVectorsPage(
-          { bookId: 1, after: first.after },
+        const first = yield* bookVectorsPage(
+          { bookId: 1, after: 0, scope: 'book' },
           embedder([]),
           upsert,
         );
-        const other = yield* bookVectorsPage({ bookId: 2, after: 0 }, embedder([]), upsert);
+        const second = yield* bookVectorsPage(
+          { bookId: 1, after: first.after, scope: 'book' },
+          embedder([]),
+          upsert,
+        );
+        const other = yield* bookVectorsPage(
+          { bookId: 2, after: 0, scope: 'book' },
+          embedder([]),
+          upsert,
+        );
 
         expect([first.read, second.read]).toEqual([BOOK_VECTORS_PAGE, 1]);
         expect(new Set(written.map((vector) => vector.id)).size).toBe(BOOK_VECTORS_PAGE + 1);
@@ -118,13 +131,50 @@ describe('bookVectorsPage', () => {
         yield* paragraph(1, 1, Option.some('84.4'), 'text');
         const failure = yield* Effect.flip(
           bookVectorsPage(
-            { bookId: 1, after: 0 },
+            { bookId: 1, after: 0, scope: 'book' },
             () => Effect.fail(QueryEmbedderUnavailable.make({ adapter: 'test', reason: 'down' })),
             index([]),
           ),
         );
         expect(failure).toMatchObject({ _tag: 'BookVectorsFailed', bookId: 1 });
         expect(failure.reason).toContain('down');
+      }).pipe(Effect.provide(corpus)),
+    ));
+
+  test("a recheck embeds only what the book's latest install added or edited, and names what it removed", () =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        const database = yield* EGWParagraphDatabase;
+        // Reading the change log creates it, as the first install would.
+        yield* database.paragraphChanges(1, 'zip:new');
+        yield* book(1, 'PP', 'Ellen Gould White', Option.none());
+        yield* paragraph(1, 1, Option.some('84.1'), 'kept');
+        yield* paragraph(1, 2, Option.some('84.2'), 'edited now');
+        yield* paragraph(1, 3, Option.some('84.3'), 'added');
+        yield* sql`
+          INSERT INTO sync_status (book_id, book_code, status, last_attempt, paragraph_count, revision)
+          VALUES (1, 'PP', 'success', 'then', 3, 'zip:new')
+        `;
+        const change = (paraId: string, kind: string, revision: string) => sql`
+          INSERT INTO paragraph_changes (book_id, ref_code, para_id, kind, puborder, to_revision, recorded_at)
+          VALUES (1, ${paraId}, ${paraId}, ${kind}, 1, ${revision}, 'then')
+        `;
+        yield* change('84.2', 'edited', 'zip:new');
+        yield* change('84.3', 'added', 'zip:new');
+        yield* change('84.9', 'removed', 'zip:new');
+        yield* change('84.1', 'edited', 'zip:older');
+        const seen: string[] = [];
+
+        const page = yield* bookVectorsPage(
+          { bookId: 1, after: 0, scope: 'changed' },
+          embedder(seen),
+          index([]),
+        );
+
+        expect(seen).toEqual(['edited now', 'added']);
+        expect(page.read).toBe(2);
+        expect(yield* removedVectorIds(1)).toEqual(['PP:84.9']);
       }).pipe(Effect.provide(corpus)),
     ));
 });

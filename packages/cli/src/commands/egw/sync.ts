@@ -19,6 +19,12 @@ const syncRefresh = Flag.Boolean('refresh').pipe(
   Flag.withDescription('Download every remote book again'),
   Flag.withDefault(false),
 );
+const syncRecheck = Flag.Int('recheck').pipe(
+  Flag.withDescription(
+    'Installed books whose catalog revision moved to download again and compare (default: 0)',
+  ),
+  Flag.withDefault(0),
+);
 const syncJson = Flag.Boolean('json').pipe(
   Flag.withDescription('Output the final report as JSON'),
   Flag.withDefault(false),
@@ -36,6 +42,7 @@ export const egwSync = Command.make(
     lang: syncLang,
     concurrency: syncConcurrency,
     refresh: syncRefresh,
+    recheck: syncRecheck,
     json: syncJson,
   },
   (args) =>
@@ -44,6 +51,7 @@ export const egwSync = Command.make(
         lang: args.lang,
         concurrency: args.concurrency,
         refresh: args.refresh,
+        recheckLimit: args.recheck,
         onProgress: (progress) => Console.error(progressLine(progress)),
       });
 
@@ -52,6 +60,9 @@ export const egwSync = Command.make(
       } else {
         yield* Console.log(`Remote books: ${String(report.remote)}`);
         yield* Console.log(`Present before: ${String(report.installedBefore)}`);
+        yield* Console.log(
+          `Rechecked: ${String(report.rechecked)} (${String(report.recheckLeft)} left)`,
+        );
         yield* Console.log(`Attempted: ${String(report.attempted)}`);
         yield* Console.log(`Installed: ${String(report.installed)}`);
         yield* Console.log(`Present now: ${String(report.present)}`);
