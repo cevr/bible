@@ -731,15 +731,24 @@ const CopySaid = (props: { readonly copy: PhoneCopy }) => (
 export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
   const { actions } = useReview();
   const failed = () => props.video.phone === 'failed';
+  // Its still, while it can be drawn: one that cannot (a video no frame is read from) leaves the
+  // box empty at its 16:9, never a broken image. Kept by the still's address, so another video's
+  // is drawn afresh.
+  const still = () => reviewFrameUrl(props.video.ref, Option.none(), POSTER_W);
+  const [undrawn, setUndrawn] = createSignal(Option.none<string>(), { ownedWrite: true });
+  const drawn = () => !Option.contains(undrawn(), still());
   return (
     <div class="rv-pending" data-proxy={STATE_PROXY[`${failed()}`]}>
       <div class="rv-pending-picture">
-        <img
-          class="rv-media"
-          loading="lazy"
-          alt=""
-          src={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
-        />
+        <Show when={drawn()} fallback={<div class="rv-media" aria-hidden="true" />}>
+          <img
+            class="rv-media"
+            loading="lazy"
+            alt=""
+            src={still()}
+            onError={(e) => setUndrawn(Option.some(e.currentTarget.getAttribute('src') ?? ''))}
+          />
+        </Show>
         <Show when={!failed()} fallback={<CopySaid copy="failed" />}>
           <CopyAwaited video={props.video} />
         </Show>

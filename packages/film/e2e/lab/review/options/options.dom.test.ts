@@ -1797,6 +1797,12 @@ describe("a film's choices", () => {
     'on a phone, a picture whose phone copy failed says so in its box, and the page stops asking after it',
     () =>
       Effect.gen(function* () {
+        const POSTER_DRAWN_OR_NONE = `(() => {
+          const box = document.querySelector('.rv-picture .rv-pending-picture');
+          const broken = [...box.querySelectorAll('img')].some((i) => !i.complete || i.naturalWidth === 0);
+          const media = box.querySelector('.rv-media').getBoundingClientRect();
+          return !broken && Math.abs(media.width / media.height - 16 / 9) < 0.02;
+        })()`;
         const pictureOf = (phone: string) =>
           route('GET', /^\/api\/films\/toy\/choices$/, () =>
             json({
@@ -1830,6 +1836,9 @@ describe("a film's choices", () => {
         yield* waitFor(failed.page, '.rv-picture [data-proxy="failed"]');
         yield* textIs(failed.page, hint, 'The phone copy could not be made');
         yield* textHas(failed.page, '.rv-picture [data-proxy="failed"]', 'Play the original');
+        // Its still cannot be drawn either (no frame is served): the box keeps its 16:9, and no
+        // broken image shows in it.
+        yield* until(failed.page, POSTER_DRAWN_OR_NONE);
         expect(asked).toBe(0);
         expect(failed.errors).toEqual([]);
       }).pipe(Effect.scoped),
