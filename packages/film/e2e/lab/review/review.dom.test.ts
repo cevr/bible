@@ -261,6 +261,8 @@ const LONE = '.rv-tall';
 const LONE_ROW = `${LONE} .rv-alone-row`;
 const LONE_VIDEO = `document.querySelector('${LONE} video')`;
 const LONE_FAILED = `${LONE} [data-act="play-video"] [data-role="failed"]`;
+/** Whether the lone video's caption is right under its picture: no more than the card's gap between. */
+const CAPTION_UNDER = `(() => { const p = document.querySelector('${LONE} .rv-alone-picture').getBoundingClientRect(); const c = document.querySelector('${LONE} .rv-cap').getBoundingClientRect(); return c.top >= p.bottom && c.top - p.bottom <= 12; })()`;
 /** Its picture's sign at rest that it plays. */
 const LONE_REST = `${LONE} [data-act="play-video"] [data-role="at-rest"]`;
 
@@ -442,13 +444,11 @@ describe('the review page', () => {
           `/^\\d+:\\d\\d$/.test(document.querySelector('${LONE_REST} .rv-rest-length')?.textContent ?? '')`,
           true,
         );
-        // The row's room is kept at rest, so the first play pushes nothing down.
-        const tall = `Math.round(document.querySelector('${LONE}').getBoundingClientRect().height)`;
-        const rest = (yield* page.evaluate(tall)) as number;
+        // At rest no room is kept for the row: the caption is right under its picture.
+        yield* evaluates(page, CAPTION_UNDER, true);
         yield* page.click(`${LONE} [data-act="play-video"]`);
         yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '❚❚');
         yield* countIs(page, LONE_REST, 0);
-        yield* evaluates(page, tall, rest);
         // Its time moves, and the row's clock says so, as its length did at rest (m:ss).
         yield* until(page, `${LONE_VIDEO}.currentTime > 1.5`);
         yield* until(
@@ -510,6 +510,7 @@ describe('the review page', () => {
         yield* textIs(page, LONE_FAILED, CANNOT_PLAY);
         yield* attributeIs(page, LONE_FAILED, 'data-reason', 'error');
         yield* countIs(page, LONE_ROW, 0);
+        yield* evaluates(page, CAPTION_UNDER, true);
         yield* evaluates(page, `${LONE_VIDEO}.paused`, true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

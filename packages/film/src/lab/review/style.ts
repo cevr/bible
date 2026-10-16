@@ -163,8 +163,6 @@ a.rv-card:hover { background: var(--surface-2); }
   font-size: var(--fs-2); line-height: var(--lh-2); text-align: left;
 }
 .rv-alone-row { padding: var(--s-2) var(--s-3); }
-/* The row's room at rest: its padding and its tallest part, a button at the hit or the control's height. */
-.rv-alone-room { height: calc(max(var(--control-h), var(--hit)) + 2 * var(--s-2)); }
 /* At rest its picture says it plays: the kit's ▶ on a disc at its middle, and its length in a corner. */
 .rv-rest { position: absolute; inset: 0; pointer-events: none; }
 .rv-rest-play { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: grid; place-items: center;

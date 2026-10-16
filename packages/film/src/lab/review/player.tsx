@@ -384,11 +384,12 @@ export const PlayedAlone = (
                 </span>
               </Show>
             </button>
-            {/* At rest (or failed) its row's room is kept, empty, so the first play pushes nothing down. */}
-            <Show
-              when={!atRest(sync()) && !failed()}
-              fallback={<div class="rv-alone-room" aria-hidden="true" />}
-            >
+            {/*
+             * Its row only once it has moved: none at rest or failed, and no room kept for it, so
+             * what follows the picture (its caption) is right under it. The first play pushes that
+             * down; the picture pressed stays where it is.
+             */}
+            <Show when={!atRest(sync()) && !failed()}>
               <TransportRow
                 sync={sync}
                 send={send}
