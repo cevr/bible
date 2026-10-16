@@ -389,8 +389,10 @@ export const library = defineLibrary({
   ),
   'snake.hiss': oneShot('a snake hissing low in the sand, close, dry', 2, {
     why: 'Generated until a code version is heard beside it: a hiss is a texture code makes.',
-    // Loudest from about 0.4 to 1 s, as the take is: a swell, no single hit.
-    code: trial(hiss({ hz: 8500, q: 1.2, rise: 0.45, hold: 0.95, secs: 1.8 })),
+    // Up evenly over 0.4 s, held to 1.3 s, then falling evenly in dB to its
+    // end, as the take swells, holds and dies away: no single hit. A low
+    // breath behind it, as the take has.
+    code: trial(hiss({ hz: 8500, q: 1.2, top: 11000, breath: -24, rise: 0.4, hold: 1.3, secs: 2 })),
   }),
   'pole.creak': oneShot('a tall wooden pole raised upright and creaking as it settles', 2, {
     why: 'Generated until a code version is tried: a creak is a stick-slip texture code may make.',

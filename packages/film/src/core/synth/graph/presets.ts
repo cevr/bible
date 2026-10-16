@@ -681,13 +681,19 @@ export const whoosh = (settings: {
 };
 
 /**
- * A hiss: breath forced out, white noise through a high band at `hz`, rising
- * over `rise` seconds, held to `hold` and fading to silence at `secs`. Each
- * seed draws the band within two semitones.
+ * A hiss: breath forced out. White noise through a high band at `hz`, dulled
+ * above `top`, over the breath behind it (pink noise between 40 and 450 Hz,
+ * its gain `breath` dB), both under one envelope: up evenly over `rise`
+ * seconds, held to `hold`, then falling evenly in dB, by 60 dB at `secs`.
+ * Each seed draws the band within two semitones. The band passes more of its
+ * noise the wider it is: the breath stands about `breath` dB under a band at
+ * 8.5 kHz and q 1.2, and about 5 dB less under one at 3 kHz and q 4.
  */
 export const hiss = (settings: {
   readonly hz: number;
   readonly q: number;
+  readonly top: number;
+  readonly breath: number;
   readonly rise: number;
   readonly hold: number;
   readonly secs: number;
@@ -696,16 +702,32 @@ export const hiss = (settings: {
   points: [
     [0, 0],
     [settings.rise, 1],
-    [settings.hold, 1],
-    [settings.secs, 0],
+    [settings.secs, 1],
   ],
-  curve: 'smooth',
+  curve: 'linear',
   of: {
-    _tag: 'Filter',
-    type: 'bandpass',
-    hz: around(settings.hz, 2),
-    q: settings.q,
-    of: { _tag: 'Noise', color: 'white', secs: settings.secs },
+    _tag: 'Envelope',
+    points: [
+      [0, 1],
+      [settings.hold, 1],
+      [settings.secs, level(-60)],
+    ],
+    curve: 'exponential',
+    of: {
+      _tag: 'Layer',
+      of: [
+        {
+          node: lowpass(settings.top, {
+            _tag: 'Filter',
+            type: 'bandpass',
+            hz: around(settings.hz, 2),
+            q: settings.q,
+            of: { _tag: 'Noise', color: 'white', secs: settings.secs },
+          }),
+        },
+        { node: lowpass(450, highpass(40, pink(settings.secs))), db: settings.breath },
+      ],
+    },
   },
 });
 

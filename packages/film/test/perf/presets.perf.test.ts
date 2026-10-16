@@ -48,7 +48,7 @@ const TIMED: ReadonlyArray<readonly [string, Node]> = [
     scatter({ count: 4, first: 0.025, every: 0.17, fall: 6, material: 'stone', hz: 600, secs: 1 }),
   ],
   ['whoosh', whoosh({ onset: 0.05, hit: 0.5, fall: 0.5, low: 1200, high: 6000, q: 0.5 })],
-  ['hiss', hiss({ hz: 8500, q: 1.2, rise: 0.3, hold: 0.8, secs: 1 })],
+  ['hiss', hiss({ hz: 8500, q: 1.2, top: 11000, breath: -24, rise: 0.3, hold: 0.8, secs: 1 })],
   ['sizzle', sizzle({ flash: 0.05, crackle: 120, secs: 1 })],
 ];
 

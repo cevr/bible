@@ -50,6 +50,9 @@ import { renderCode } from './render.ts';
 /** The seeds a preset is heard on: a code trial's three variants. */
 const TRIAL_SEEDS = [1, 2, 3] as const;
 
+/** A hiss as the snake's: up over 0.4 s, held to 1.3 s, and 60 dB down by 2 s. */
+const HISS = { hz: 8500, q: 1.2, top: 11000, breath: -24, rise: 0.4, hold: 1.3, secs: 2 } as const;
+
 /**
  * Each preset at settings like the library's sounds, and how it is heard: a
  * tone short, so its tests are quick, and long enough that its draws even
@@ -86,7 +89,7 @@ const PRESETS = {
     play: whoosh({ onset: 0.05, hit: 0.4, fall: 0.2, low: 1200, high: 6000, q: 0.5 }),
     use: 'one-shot',
   },
-  hiss: { play: hiss({ hz: 8500, q: 1.2, rise: 0.3, hold: 0.8, secs: 1.2 }), use: 'one-shot' },
+  hiss: { play: hiss(HISS), use: 'one-shot' },
   sizzle: { play: sizzle({ flash: 0.05, crackle: 120, secs: 1 }), use: 'one-shot' },
   breeze: { play: breeze({ secs: 4, hz: 550 }), use: 'bed' },
   'rain on a roof': { play: rain({ secs: 1, hiss: 900, taps: 10 }), use: 'bed' },
@@ -109,7 +112,7 @@ const PINNED = {
   'knock of stone': 'e9a34544a67ceec5583da449577500b707fff06cb794b4990db961e53d3ef41b',
   scatter: '8aa2f325d58d1dad59e92441f3e8962485ddd03950558e462967eaef436239aa',
   whoosh: '9bf2214547f868339e0858c59a4db894114ee5d6764a35295447f16b13ccf8e9',
-  hiss: '8043c59bf54af3f095ffb7e47fc1ef2110d4c248e6ca0c8ff54b3a69d865b160',
+  hiss: '247a294a55300389b1e196820ded91b44547c3435d67d6f454a448278fc7a858',
   sizzle: '4ae478da5b1af5a52c63fa5c04c6423ab0564b7d942d220be80fc98350847faf',
   breeze: 'a6d700a5a95b6d6f06d540068a1d503e3ec11a51331f5bb08f405a363ea15d80',
   'rain on a roof': 'b6e06e739d1e84568a7d09bd0296bf4035705d57055f7e352f87e99856d096d6',
@@ -431,16 +434,49 @@ describe('each preset does what its doc says, on seeds 1–3', () => {
     }
   });
 
-  test('hiss: held within 1.5 dB from its rise to its hold, its first and last 50 ms 20 dB under that', () => {
+  test('hiss: up evenly over its rise, held within 1.5 dB to its hold, then falling evenly in dB, 60 dB by its end', () => {
     for (const pcm of rendersOf('hiss')) {
-      const held = Array.from({ length: 10 }, (_, k) =>
-        powerDb(pcm, 0.3 + k * 0.05, 0.35 + k * 0.05),
+      const held = Array.from({ length: 18 }, (_, k) =>
+        powerDb(pcm, HISS.rise + k * 0.05, HISS.rise + 0.05 + k * 0.05),
       );
-      const top = Math.max(...held);
-      expect(top - Math.min(...held)).toBeLessThanOrEqual(1.5);
-      expect(top - powerDb(pcm, 0, 0.05)).toBeGreaterThanOrEqual(20);
-      expect(top - powerDb(pcm, 1.15, 1.2)).toBeGreaterThanOrEqual(20);
+      expect(Math.max(...held) - Math.min(...held)).toBeLessThanOrEqual(1.5);
+      // Up evenly: a quarter of its level a quarter of the way up its rise
+      // (12 dB under it), half halfway (6 dB under). An eased rise is half its
+      // level halfway too, but 17 dB under it a quarter of the way up.
+      for (const [share, under] of [
+        [0.25, 12],
+        [0.5, 6],
+      ] as const) {
+        const rising = powerDb(pcm, HISS.rise * share - 0.025, HISS.rise * share + 0.025);
+        expect(Math.abs(median(held) - rising - under)).toBeLessThanOrEqual(1.5);
+      }
+      // 60 dB over the 0.7 s after its hold: 60/7 dB each tenth of a second.
+      const tenths = Array.from({ length: 6 }, (_, k) =>
+        powerDb(pcm, HISS.hold + 0.05 + k * 0.1, HISS.hold + 0.1 + k * 0.1),
+      );
+      for (const [before, after] of Arr.zip(tenths, tenths.slice(1)))
+        expect(Math.abs(before - after - 60 / 7)).toBeLessThanOrEqual(1.5);
     }
+  });
+
+  test('hiss: its breath under 450 Hz, `breath` dB under a band at 8.5 kHz and q 1.2 within 2 dB (at that and 12 dB more), 5 dB less under one at 3 kHz and q 4', () => {
+    const louder = codeSound(hiss({ ...HISS, breath: HISS.breath + 12 }), 'one-shot');
+    const narrow = codeSound(hiss({ ...HISS, hz: 3000, q: 4, top: 6000 }), 'one-shot');
+    for (const [seed, pcm] of Arr.zip(TRIAL_SEEDS, rendersOf('hiss')))
+      for (const [breath, render] of [
+        [HISS.breath, pcm],
+        [HISS.breath + 12, renderCode(louder, seed)],
+        [HISS.breath + 5, renderCode(narrow, seed)],
+      ] as const) {
+        // A render is peaked as a whole, so the breath is read against the band, not alone.
+        const profile = profileOf(render, 'one-shot');
+        const under =
+          10 *
+          Math.log10(
+            shareWhere(profile, (hz) => hz <= 400) / shareWhere(profile, (hz) => hz >= 2000),
+          );
+        expect(Math.abs(under - breath)).toBeLessThanOrEqual(2);
+      }
   });
 
   test('sizzle: its hit at its flash, then falling evenly, about 4.5 dB a tenth of a second', () => {
