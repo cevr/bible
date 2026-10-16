@@ -572,6 +572,41 @@ describe('EGWParagraphDatabase', () => {
       ));
   });
 
+  describe('paragraph changes', () => {
+    test('prunes the rows recorded before a time, at most a round at a time', () =>
+      runTestWithPath((dbPath) =>
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          // The first call makes the table, which holds nothing yet.
+          expect(yield* db.pruneParagraphChanges('9999', 10)).toBe(0);
+
+          const raw = new Database(dbPath);
+          const insert = raw.prepare(
+            `INSERT INTO paragraph_changes (book_id, ref_code, kind, after_text, puborder,
+               to_revision, recorded_at)
+             VALUES (1, ?, 'added', 'text', 1, 'zip:a', ?)`,
+          );
+          insert.run('TEST 1.1', '2026-08-01T09:00:00.000Z');
+          insert.run('TEST 1.2', '2026-08-08T09:00:00.000Z');
+          insert.run('TEST 1.3', '2026-10-11T09:00:00.000Z');
+
+          const cutoff = '2026-09-16T09:00:00.000Z';
+          const rounds = [
+            yield* db.pruneParagraphChanges(cutoff, 1),
+            yield* db.pruneParagraphChanges(cutoff, 1),
+            yield* db.pruneParagraphChanges(cutoff, 1),
+          ];
+          const left = raw
+            .query<{ readonly ref_code: string }, []>('SELECT ref_code FROM paragraph_changes')
+            .all();
+          raw.close();
+
+          expect(rounds).toEqual([1, 1, 0]);
+          expect(left).toEqual([{ ref_code: 'TEST 1.3' }]);
+        }),
+      ));
+  });
+
   describe('chapter heading detection', () => {
     test('detects h1-h6 elements as chapter headings', () =>
       runTest(
