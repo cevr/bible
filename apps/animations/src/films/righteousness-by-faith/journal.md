@@ -37,3 +37,19 @@ concept, plain lead (owner 2026-10-15): three accused designs drawn into the col
 ## 2026-10-16T00:56:38Z · film
 
 v3 beat `court` (no scene of that id yet), concept frames at `how` with the plain lead (court.7-9, drawn over cold.21, lead A), judged blind (judge/concept-court-20261016T004740Z-o2kh): court.9 > court.7 > court.8. Only court.9 changes the light (the whole wall teal under a warm beam, the bench's front and top aglow) but drops the judge's white bands and gavel; court.7 keeps the cold open's cream wall and a seed too small to read; court.8 holds an oversized gold almond against his chest and shows Christ one hand circle. The plain man stays one design from cold.21 to court.7-9 (short dark hair, round face). The bench's shadow band turns 7-13 deg toward red in all three, the brown dimmed (measured).
+
+## 2026-10-16T02:26:51Z · cold
+
+Concept cold.34 (locked house look, the plain lead from his sheet, judged SAME world): his head top 9 px above the bench top (level), head 0.381, head width 0.421, hem 0.416 of his height against the sheet's 0.375, 0.409, 0.437; the dock rail crosses his tunic two thirds down; the cool act light lifts his lit paper to #e7e2f2 (saturation 0.066, value 0.95), measured.
+
+## 2026-10-16T02:26:58Z · film
+
+Concept tweaks (a try as the first reference, a note of one or two changes) hold a frame's layout and figures, but each pass moves the plain lead's paper a little: lit saturation 0.052, 0.064, 0.066 over cold.28, cold.33, cold.34, measured. Tries drawn with an earlier frame as a layout reference (cold.21) copy its painting and do not take the style reference's place or haze (cold.22 to 27).
+
+## 2026-10-16T02:27:05Z · film
+
+v3 concept court.12, drawn over cold.34 with the robe sheet (SAME world): the plain lead the same height as in the cold open (372 px against 373), his head level with the bench top and with Christ's eyes; court.10 and court.11 drew him 5 % and 6 % shorter; the blade grew outside the rail; his head paper sits one step under the robe's white (head shade saturation 0.13), measured.
+
+## 2026-10-16T02:27:07Z · film
+
+v3 concept grain tries: a repaint that starts from a try keeps that try's figure on the cross; grain.13's two arms stayed through its three repaints (grain.16 to 18), and grain.15's armless figure held through grain.19 to 21. Smooth earth planes in a fine grain with haze between read as the locked look (grain.20, 21 SAME); thick torn rims, a coarse texture or light bands along the ridges do not (grain.13 to 15, 19 NOT SAME).

@@ -27,6 +27,21 @@ Numbers in brackets (#n) are findings in [longform-research.md](longform-researc
 
 ## Look bible
 
+### The locked house look
+
+The owner locked the films' look on 2026-10-15. He pointed at a frame of the RBF Board, `woman.court.1` ("i like the general art style of the board here"), and said "lets lock in that style". Its image is [house-look.png](../../../../apps/animations/docs/ref/house-look.png), and the block every prompt opens with is [house-look.txt](../../../../apps/animations/docs/ref/house-look.txt). A film's board takes both as style 9005 ([storyboard.md](storyboard.md), step 1). Concepts, the Board and the render are all held to it:
+
+- a warm, soft key light from the upper left that falls in soft, hazy beams;
+- a real place behind the figures, of flat paper planes with no outline, each plane further back paler in a haze (Planes, below);
+- the paper grain on every piece and every plane;
+- shade turned toward violet, never a darker brown (Shadow colour, below);
+- the K1 figures at that frame's scale and outline weight;
+- a muted, warm palette in which only the accents are loud.
+
+An act's light (the colour script below) changes the key and the hue of that light, never the way it is painted: the cold open's cool, sunless day takes the same soft haze, with a soft cool shaft at most.
+
+Figures are held to their sheets as firmly. Owner, 2026-10-15: "whats important is character consistency between scenes, he cant be taller, slimmer, different color, or different clothes (unless the scene calls for it)". Every figure keeps one sheet ([character-design.md](character-design.md); the plain lead's is 2.3), and each try of it is measured against the sheet before it is judged.
+
 ### Palette logic
 
 - **Three grounds, one per world:**
@@ -92,7 +107,7 @@ The last row is the rule that the landing is both the most saturated and the cal
 
 ### Figures, scale, hands and faces
 
-- **One figure grammar.** Paper bean figures in the K1 look: a hue per garment, with the head about ⅓ of body height (owner, 2026-10-13). What each colour and role means, and every figure's sheet: [character-design.md](character-design.md).
+- **One figure grammar.** Paper bean figures in the K1 look: a hue per garment, with the head about ⅓ of body height (owner, 2026-10-13). The plain lead is the one figure in a near-neutral paper, his head 0.375 of his height (owner, 2026-10-15; character-design 2.3). What each colour and role means, and every figure's sheet: [character-design.md](character-design.md).
   - The face is minimal but characterful: a few marks (eyes, brows, a mouth; lids and eye whites in the richer kits) moved by view-model numbers and bones, never redrawn for an expression. It carries eight expressions (rest, glad, troubled, set, astonished, ashamed, tender, angry) at five ages, and each cast member has one feature of their own. **OWNER QUESTION:** which kit. The four, from today's three marks sharpened to the RimWorld mods' whites and pupils, are specified in [face-study.md](face-study.md); the art they come from is in [prior-art.md](prior-art.md).
   - `browTilt` > 0 is the default (SKILL gotcha: flat brows read as cross).
 - **Scale.**

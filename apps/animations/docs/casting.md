@@ -102,7 +102,7 @@ Within a tier, more talk appearances and then more planned appearances rank high
 
 **Scripture** is quoted from the KJV and checked against the local corpus with `bible verse`. The KJV's bracketed words, which the translators supplied, are printed without brackets.
 
-**The scripts' "grey" figures.** Many scripts describe "grey" figures (grey Paul, grey Philip, grey travellers). That wording predates K1, which retires grey (§1.2). Read every "grey" as "in story cloth" for Bible figures, "in their slot" for the cast, and "in its one quiet hue" for a plain lead (§2.3).
+**The scripts' "grey" figures.** Many scripts describe "grey" figures (grey Paul, grey Philip, grey travellers). That wording predates K1, which retires grey (§1.2). Read every "grey" as "in story cloth" for Bible figures and "in their slot" for the cast. For a plain lead it stays: the plain lead is the one figure K1 keeps in a pale cool grey paper with a lilac cast (§2.3; owner, 2026-10-15).
 
 ---
 
@@ -1103,7 +1103,7 @@ Fourteen figures are named and never shown in any script:
 
 The recurring eight are in [ensemble.md](ensemble.md). The rules for everything else:
 
-- **Plain leads in front.** The figure a parable scene is about (its lead, the one whose need is its question, the one who does its main action) is a plain figure (§2.3), never a cast member. Each film has its own; the country series keeps one plain family and its plain grandmother through the series.
+- **Plain leads in front.** The figure a parable scene is about (its lead, the one whose need is its question, the one who does its main action) is the plain lead (§2.3; owner, 2026-10-15: "though this is what i mean by non descript"), never a cast member: one figure, the same in every film. Where a scene needs a second plain figure, it differs by its paper or its height only (§2.3); the country series keeps one plain family and its plain grandmother through the series, told apart that way.
 - **The cast behind.** Where a background needs a person a viewer might know (a neighbour on the stair, a face in the gallery), a cast member stands there (ensemble, How often), never featured (owner, 2026-10-15).
 - **The minor set.** The guide's §5 set is used before any new figure: the neighbour, the teacher, the shopkeeper, the elder, the child friend, Leo's friend, the official and the stranger.
 - **The crowd kit.** Six 0.20 ramps (79°, 120°, 188°, 226°, 263°, 299°) plus oat. Five bodies; five hats; never a hood; no two neighbours alike (§5).
@@ -1299,7 +1299,7 @@ Each item gives where the conflict is and what the guide says. A recommendation 
    - Answered (owner, 2026-10-13): "He should be pictured as a man, just an indistinct figure." The judge whose verdict is God's is the Father's veiled form on the judge's seat (§3.3, Dan 7:9–10): a man's shape in gold-white light, no face, no outline, no gavel. The Advocate stands before Him, drawn plainly. §5's official stays for a parable's human judge only.
 9. **RBF's grey figures.**
    - Where: the accused, the meeting-hall crowd and the stained figure at the gate are grey, and the accuser is "shadow-grey".
-   - The guide: K1 retires grey (§1.2). The accused becomes a plain lead in one quiet hue (§2.3; the owner, 2026-10-15, reversing ensemble open choice 7, which had recommended Max), the crowd takes the crowd kit, and the accuser takes `#444152` (§2.5).
+   - The guide: K1 retires grey (§1.2). The accused is the plain lead, the grey everyman kept in his own pale cool grey paper with a lilac cast (§2.3; the owner, 2026-10-15, reversing ensemble open choice 7, which had recommended Max, and then "though this is what i mean by non descript"), the crowd takes the crowd kit, and the accuser takes `#444152` (§2.5).
    - New point: RBF's `daily` has a second stained figure, never robed, beside the robed one. It must not read as the accused, so it is someone else (2.1 proposes §5's stranger).
 10. **The centurion's crest.**
     - Where: the script says a "red crest".
