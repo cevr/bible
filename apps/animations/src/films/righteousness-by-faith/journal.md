@@ -137,3 +137,11 @@ r3: with the prosecutor's hairline at 0.45 of the half-height and an 18-unit swe
 ## 2026-10-16T18:39:35Z · title
 
 r3: the figures' new proportions read at the title's wide too (0.2 s, 2.8 s): the prosecutor's raised hand at the title pose stands clear of his narrower robe; the cast's staging is unchanged.
+
+## 2026-10-16T19:16:18Z · cold
+
+round 4 at 3.87 s (1920): one ink line round each head, none at hairline or ear (hairline columns go hair→darker skin band→skin, as cold-34); eye midpoint left of the head's centre by 0.16 of its width (prosecutor, concept 0.15) and 0.18 (judge, concept 0.17); prosecutor face lit 192/shade 179 (concept 193/184), robe 117/91 with its crease 14° off upright (concept 117/91, 13°); rims 216-219 prosecutor, 235-241 lead (concept 213-224, 247-255).
+
+## 2026-10-16T19:16:20Z · cold
+
+the room's vignette (0.2) dims the judge in the upper-right corner: his face reads lit 181/shade 169 from the same paper the prosecutor reads 192/179 from, so his crease barely shows; cold-34 has no such falloff at the bench (judge face 193/179). The lead in the room reads 221/189 against cold-34's 230/195, the warm room light taking blue out of his lilac.
