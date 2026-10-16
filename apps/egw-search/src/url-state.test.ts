@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
+import { DEFAULT_LIMIT } from '../server/api.js';
 import {
   cycle,
-  DEFAULT_LIMIT,
   EMPTY_PARAMS,
   MAX_PANES,
   paneKey,
