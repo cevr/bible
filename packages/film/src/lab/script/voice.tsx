@@ -6,9 +6,12 @@
 // through the reader's own audio (never a film's: its track and timings
 // stay as they are), with the word heard lit; and the one write a reader
 // makes, a beat's delivery marks, one at a time, the takes read again once
-// it lands. A film's Script reader (`VoiceProvider`) reads its film's
-// (`GET …/script/voice`, `POST …/script/marks`: the lab rebuilds and the
-// page reloads with the marks); a series draft's reader its draft's
+// it lands and the line read again once those takes do: a line put back
+// elsewhere after the lab answered the page's read-back, before the takes
+// past the write land, shows as put back. A film's Script reader
+// (`VoiceProvider`) reads its film's (`GET …/script/voice`,
+// `POST …/script/marks`: the lab rebuilds and the page reloads with the
+// marks); a series draft's reader its draft's
 // (`review/draft.tsx`). Either way the fill voices the beat again first.
 
 import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
@@ -123,6 +126,10 @@ export const useVoice = (): VoiceContextValue => useContext(VoiceContext);
 /** Whether any beat of `voice` is still voicing. */
 const voicing = (voice: ScriptVoice): boolean => voice.beats.some((b) => b.take._tag === 'Voicing');
 
+/** Whether two reads of the takes are the one read (a waiting result keeps its value). */
+const sameRead = (a: Option.Option<ScriptVoice>, b: Option.Option<ScriptVoice>): boolean =>
+  Option.isSome(a) && Option.isSome(b) && a.value === b.value;
+
 /** How often to ask again after `voice`. */
 const voicingOrResting = (voice: ScriptVoice): keyof typeof ASKED_AGAIN => {
   if (voicing(voice)) return 'voicing';
@@ -189,12 +196,22 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
       ),
   );
   // A line changed under the reader (another hand's marks, its takes keyed anew) is read again.
+  // So is the line once the first takes read past the page's own write land (`pastWrite`, the
+  // takes it had then: a stream's read is always waiting, so a new read is a new value): a line
+  // put back elsewhere before that read keeps the takes it had before the write, and no change
+  // would show to read it again for.
   let seen: ReadonlyMap<string, StagingTake> = new Map();
-  createEffect(takes, (now) => {
-    const before = seen;
-    seen = now;
-    if (retaken(before, now)) Option.map(source.reread, (reread) => reread());
-  });
+  let pastWrite = Option.none<Option.Option<ScriptVoice>>();
+  createEffect(
+    () => ({ now: takes(), read: voice() }),
+    ({ now, read }) => {
+      const before = seen;
+      seen = now;
+      const landed = Option.exists(pastWrite, (had) => Option.isSome(read) && !sameRead(had, read));
+      if (landed) pastWrite = Option.none();
+      if (landed || retaken(before, now)) Option.map(source.reread, (reread) => reread());
+    },
+  );
   const take = (id: string) => Option.fromUndefinedOr(takes().get(id));
   const readyOf = (id: string): Option.Option<Ready> =>
     Option.filter(take(id), (t): t is Ready => t._tag === 'Ready');
@@ -343,6 +360,7 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
       if (Exit.isSuccess(exit)) {
         setWrote((was) => new Map(was).set(beat, { read: read.marks, now: marks }));
         setMarking(Marking.Written({ beat }));
+        pastWrite = Option.some(untrack(voice));
         readAgain();
         return;
       }

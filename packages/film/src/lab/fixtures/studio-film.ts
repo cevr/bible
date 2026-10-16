@@ -8,13 +8,21 @@
 // pictures under the Choices transport, a comment on the film, the act, scene open and
 // the score's strings and the set's main version (their counts), and the check's two findings, one at a
 // time. The app's series hold one draft of three beats, its first take
-// ready and its second voicing. Each route answers as the lab's server
-// encodes it.
+// ready and its second voicing, and its marks written are read back as
+// written (`draftWrites`). Each route answers as the lab's server encodes it.
 
-import { Option, Schema } from 'effect';
+import { Boolean as Bool, Option, Schema } from 'effect';
 import { sceneAddress } from '../../core/address.ts';
 import { Render, RenderVariantName } from '../../core/catalogue.ts';
-import { type FakeRoute, type Json, file, json, route, text as textAnswer } from './harness.ts';
+import {
+  type Asked,
+  type FakeRoute,
+  type Json,
+  file,
+  json,
+  route,
+  text as textAnswer,
+} from './harness.ts';
 
 /** The film's name. */
 export const STUDIO_FILM = 'toy';
@@ -477,6 +485,29 @@ export const draftRecordWith = (say = 'The first thing God {*}gave was breath.')
 
 /** The draft as its Markdown reads now: its first beat's second word stressed. */
 const draftRecord = draftRecordWith();
+
+/**
+ * The draft's marks written and read as the lab keeps them: each write
+ * (`POST …/marks`) is kept in `posted` and answered with the draft as it
+ * leaves it, its first beat's line said `say`, and every read of the draft
+ * after it (`GET …`) answers the same. Put before `studioRoutes`, whose read
+ * answers the draft as it was: the reader reads its line again once the
+ * takes past its write land, and a lab that forgot the write would read as
+ * the marks put back.
+ */
+export const draftWrites = (say: string, posted: Array<Asked>): ReadonlyArray<FakeRoute> => {
+  let written = false;
+  return [
+    route('POST', new RegExp(`^/api/series/${STUDIO_SERIES}/${STUDIO_DRAFT}/marks$`), (asked) => {
+      posted.push(asked);
+      written = true;
+      return json(draftRecordWith(say));
+    }),
+    route('GET', new RegExp(`^/api/series/${STUDIO_SERIES}/${STUDIO_DRAFT}$`), () =>
+      json(Bool.match(written, { onTrue: () => draftRecordWith(say), onFalse: () => draftRecord })),
+    ),
+  ];
+};
 
 /** A take's word, `at` seconds in, heard for a third of a second. */
 const takeWord = (text: string, at: number): Json => ({

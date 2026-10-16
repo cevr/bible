@@ -36,6 +36,8 @@ import {
   PHONE,
   file,
   json,
+  later,
+  madeBy,
   openReview,
   refused,
   route,
@@ -54,20 +56,17 @@ import {
 } from '../../../src/lab/fixtures/settled.ts';
 import {
   STUDIO_ASK,
-  STUDIO_DRAFT,
   STUDIO_FILM,
   STUDIO_GUIDED,
-  STUDIO_SERIES,
   askRecordWith,
-  draftRecordWith,
   draftVoice,
+  draftWrites,
   guidedRoutes,
   studioRoutes,
 } from '../../../src/lab/fixtures/studio-film.ts';
 import { ASK_READY, SLOW } from '../studio-states.ts';
 
 const ANSWER = new RegExp(`^/api/asks/${STUDIO_ASK}/answer$`);
-const DRAFT_MARKS = new RegExp(`^/api/series/${STUDIO_SERIES}/${STUDIO_DRAFT}/marks$`);
 /** A still at 1920×1080: the size of a Board's. */
 const STILL_1080 = new URL('../../../src/tools/fixtures/still-1080.svg', import.meta.url).pathname;
 /** A real H.264 take at 1280×720: the size of a render's. */
@@ -514,6 +513,77 @@ describe("an agent's ask on a phone", () => {
   );
 
   it.live(
+    "a line put back before the takes read past the page's own write land shows as put back",
+    () =>
+      Effect.gen(function* () {
+        const SAY = {
+          M0: 'The first thing God {*}gave was breath.',
+          M1: 'The first thing {*}God {*}gave was breath.',
+        } as const;
+        let line: keyof typeof SAY = 'M0';
+        let written = false;
+        // The takes read the page asks for past its write: held until the line is put back, so
+        // the takes it reads are the ones it had before the write, with no change in them.
+        const [readBack, takesAsked, putBackDone] = [
+          Deferred.makeUnsafe<void>(),
+          Deferred.makeUnsafe<void>(),
+          Deferred.makeUnsafe<void>(),
+        ];
+        const takes = () => {
+          const [first, ...rest] = (draftVoice as { beats: ReadonlyArray<Json> }).beats;
+          const take = (first as { take: Record<string, Json> }).take;
+          return json({
+            ...(draftVoice as Record<string, Json>),
+            beats: [{ id: '1', take: { ...take, file: `k-${line}.mp3` } }, ...rest],
+          });
+        };
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('GET', new RegExp(`^/api/asks/${SCRIPT_ASK}$`), () => json(scriptAsk)),
+          route('GET', /^\/api\/films\/toy\/script$/, () =>
+            told(
+              Effect.when(Deferred.done(readBack, Exit.void), Effect.succeed(line === 'M1')),
+              json(said(SAY[line])),
+            ),
+          ),
+          route('GET', /^\/api\/films\/toy\/script\/voice$/, () => {
+            if (!written) return takes();
+            return told(
+              Deferred.done(takesAsked, Exit.void),
+              later(putBackDone, madeBy(Effect.sync(takes))),
+            );
+          }),
+          route('POST', /^\/api\/films\/toy\/script\/marks$/, () => {
+            line = 'M1';
+            written = true;
+            return json({ file: 'script.ts', target: 'marks of 1', findings: [] });
+          }),
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.ask(SCRIPT_ASK),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, ASK_READY);
+        const word = (i: number) =>
+          `.lab-script-beat[data-beat="1"] .lab-script-w[data-index="${i}"]`;
+        yield* waitFor(page, `${word(4)}[data-stress="true"]`);
+        // The page's own write: M0 to M1; the lab reads the line back as M1.
+        yield* page.click(word(3));
+        yield* page.click('.lab-script-delivery [data-act="stress-words"]');
+        yield* waitFor(page, `${word(3)}[data-stress="true"]`);
+        yield* Deferred.await(readBack);
+        yield* Deferred.await(takesAsked);
+        // Another hand puts the line back before the takes land: M1 to M0, its take k-M0 again.
+        line = 'M0';
+        yield* Deferred.done(putBackDone, Exit.void);
+        yield* countIs(page, `${word(3)}[data-stress="true"]`, 0);
+        yield* waitFor(page, `${word(4)}[data-stress="true"]`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a line changed under the reader is read again once the voice's poll sees its take change",
     () =>
       Effect.gen(function* () {
@@ -564,10 +634,7 @@ describe("an agent's ask on a phone", () => {
             posted.push(asked);
             return json(askRecordWith({ _tag: 'Answered', step: 'done', answers: {} }));
           }),
-          route('POST', DRAFT_MARKS, (asked) => {
-            marked.push(asked);
-            return json(draftRecordWith('The first thing {*}God {*}gave was breath.'));
-          }),
+          ...draftWrites('The first thing {*}God {*}gave was breath.', marked),
           // The cut is a real 1280×720 take: its picture keeps to the phone's column.
           route('GET', /^\/api\/review\/(files|phone)\/out\/toy\/take-1\.mp4/, () => file(HD_720)),
           ...guidedRoutes,

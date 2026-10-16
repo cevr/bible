@@ -30,6 +30,7 @@ import {
   STUDIO_SERIES,
   draftRecordWith,
   draftVoice,
+  draftWrites,
   studioRoutes,
 } from '../../../src/lab/fixtures/studio-film.ts';
 import { DELIVERY_READY, DRAFT_READY, SLOW } from '../studio-states.ts';
@@ -53,10 +54,7 @@ describe('a series draft in the Script reader, on a phone', () => {
         const posted: Array<Asked> = [];
         let voiceReads = 0;
         const routes: ReadonlyArray<FakeRoute> = [
-          route('POST', MARKS, (asked) => {
-            posted.push(asked);
-            return json(draftRecordWith('The first thing {*}God {*}gave was breath.'));
-          }),
+          ...draftWrites('The first thing {*}God {*}gave was breath.', posted),
           route('GET', VOICE, () => {
             voiceReads += 1;
             return json(draftVoice);
@@ -126,10 +124,7 @@ describe('a series draft in the Script reader, on a phone', () => {
       Effect.gen(function* () {
         const posted: Array<Asked> = [];
         const routes: ReadonlyArray<FakeRoute> = [
-          route('POST', MARKS, (asked) => {
-            posted.push(asked);
-            return json(draftRecordWith('The first thing God {*}gave {/} was breath.'));
-          }),
+          ...draftWrites('The first thing God {*}gave {/} was breath.', posted),
           ...studioRoutes,
         ];
         const { page, errors } = yield* openReview(routes, {
@@ -265,10 +260,7 @@ describe('a series draft in the Script reader, on a phone', () => {
       Effect.gen(function* () {
         const posted: Array<Asked> = [];
         const routes: ReadonlyArray<FakeRoute> = [
-          route('POST', MARKS, (asked) => {
-            posted.push(asked);
-            return json(draftRecordWith('The first {*}thing {*}God {*}gave was breath.'));
-          }),
+          ...draftWrites('The first {*}thing {*}God {*}gave was breath.', posted),
           ...studioRoutes,
         ];
         const { page, errors } = yield* openReview(routes, {
