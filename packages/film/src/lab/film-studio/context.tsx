@@ -60,7 +60,15 @@ import {
   spawnTimeline,
   spawnTransport,
 } from './machine.ts';
-import { type Picture, beatAt, beatNamed, beatStep, pictureAt, zoomStep } from './view-state.ts';
+import {
+  type Picture,
+  beatAt,
+  beatNamed,
+  beatStep,
+  keptInFilm,
+  pictureAt,
+  zoomStep,
+} from './view-state.ts';
 
 /** The film staged in the page: its preview's player and the stage its canvas stands in. */
 export interface StagedFilm {
@@ -192,8 +200,7 @@ const Body = (
   const timeline = createMemo(() => timelineOf(read()));
   // The registry's film plays the version kept in the film's own files.
   const drawable = createMemo(
-    () =>
-      Option.isSome(props.staged) && Option.exists(timeline(), (t) => t.version.files === 'film'),
+    () => Option.isSome(props.staged) && Option.exists(timeline(), keptInFilm),
   );
   const duration = () =>
     Option.getOrElse(
@@ -307,9 +314,7 @@ const Body = (
   const script = useAtomValue(() => scriptRead);
   const words = (beat: string): Option.Option<ScriptBeat> =>
     Option.flatMap(
-      Option.filter(AsyncResult.value(script()), () =>
-        Option.exists(timeline(), (t) => t.version.files === 'film'),
-      ),
+      Option.filter(AsyncResult.value(script()), () => Option.exists(timeline(), keptInFilm)),
       (read) =>
         Option.map(
           Arr.findFirst(read.beats, (b) => b.id === beat),

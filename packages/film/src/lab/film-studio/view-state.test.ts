@@ -13,6 +13,7 @@ import {
   beatPageHref,
   beatStep,
   clipFit,
+  keptInFilm,
   lanesShown,
   marksFit,
   nextText,
@@ -56,20 +57,29 @@ describe('the page a beat is still worked on', () => {
   const two = Option.getOrThrow(beatNamed(drawn, 'two'));
 
   test("opens at the playhead in the beat's own time, else at the beat's start", () => {
-    expect(beatPageHref('Script', 'probe', two, 6.215)).toEqual(
+    expect(beatPageHref('Script', drawn, 'probe', two, 6.215)).toEqual(
       Option.some('/films/probe/script/two#t=1.5'),
     );
-    expect(beatPageHref('Board', 'probe', two, 6.215)).toEqual(
+    expect(beatPageHref('Board', drawn, 'probe', two, 6.215)).toEqual(
       Option.some('/films/probe/board/two#t=1.5'),
     );
-    expect(beatPageHref('Lab', 'probe', two, 6.215)).toEqual(
+    expect(beatPageHref('Lab', drawn, 'probe', two, 6.215)).toEqual(
       Option.some('/films/probe/lab/two#t=1.5'),
     );
-    expect(beatPageHref('Script', 'probe', two, 1)).toEqual(Option.some('/films/probe/script/two'));
+    expect(beatPageHref('Script', drawn, 'probe', two, 1)).toEqual(
+      Option.some('/films/probe/script/two'),
+    );
   });
 
   test('is none for a short, which has no such page', () => {
-    expect(beatPageHref('Lab', 'probe/shorts/hook', two, 6.215)).toEqual(Option.none());
+    expect(beatPageHref('Lab', drawn, 'probe/shorts/hook', two, 6.215)).toEqual(Option.none());
+  });
+
+  test("is none on a version kept in its own folder: the pages show the film's own files", () => {
+    for (const page of ['Script', 'Board', 'Lab'] as const)
+      expect(beatPageHref(page, firstCut, 'probe', two, 6.215)).toEqual(Option.none());
+    expect(keptInFilm(drawn)).toBe(true);
+    expect(keptInFilm(firstCut)).toBe(false);
   });
 });
 

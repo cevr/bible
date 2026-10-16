@@ -428,17 +428,27 @@ const BEAT_PAGE: Readonly<
 };
 
 /**
+ * Whether `timeline`'s version is the one kept in the film's own files: the
+ * registry's film plays it, the film's script holds its words, and the
+ * Script, Board and Lab pages show it. A version in its own folder, or with
+ * nothing kept, is none of these.
+ */
+export const keptInFilm = (timeline: FilmTimeline): boolean => timeline.version.files === 'film';
+
+/**
  * `beat`'s page `page` on `film`, open at the playhead `T` when it is in the
  * beat (`beatTime`), else at the beat's start; none for a short, which has
- * no such page.
+ * no such page, and none on a version not kept in the film's own files
+ * (`keptInFilm`), which those pages cannot show.
  */
 export const beatPageHref = (
   page: BeatPage,
+  timeline: FilmTimeline,
   film: string,
   beat: ScriptClip,
   T: number,
 ): Option.Option<string> =>
   Option.map(
-    Option.liftPredicate(film, (f) => !isShortKey(f)),
+    Option.liftPredicate(film, (f) => !isShortKey(f) && keptInFilm(timeline)),
     (f) => BEAT_PAGE[page](f, beat.beat, beatTime(beat, T)),
   );

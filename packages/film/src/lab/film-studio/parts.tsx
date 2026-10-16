@@ -1140,10 +1140,12 @@ const Inspector = () => {
                 <Show
                   when={Option.getOrUndefined(
                     Option.flatMap(section.page, (page) =>
-                      Option.map(beatPageHref(page, meta.film, beat(), state.T()), (href) => ({
-                        page,
-                        href,
-                      })),
+                      Option.flatMap(state.timeline(), (timeline) =>
+                        Option.map(
+                          beatPageHref(page, timeline, meta.film, beat(), state.T()),
+                          (href) => ({ page, href }),
+                        ),
+                      ),
                     ),
                   )}
                   fallback={
