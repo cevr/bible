@@ -8,6 +8,7 @@ import {
   diffLines,
   newOrChanged,
   reportLines,
+  skippedOf,
   unloaded,
 } from './report.js';
 
@@ -140,6 +141,29 @@ describe('redfirst', () => {
         file: 'packages/film/src/core/gone.test.ts',
         from: 'packages/film/src/core/gone.test.ts',
       },
+    ]);
+  });
+
+  test('a test file the branch does not run is named, with why: deleted, renamed out of the tests, a browser tier', () => {
+    const status = [
+      'D\tpackages/film/src/core/gone.test.ts',
+      'R100\tpackages/film/src/core/old.test.ts\tpackages/film/src/core/fixture.ts',
+      'R090\tpackages/film/src/core/a.test.ts\tpackages/film/src/core/b.test.ts',
+      'A\tpackages/film/e2e/canvas/look.pixel.test.ts',
+      'T\tpackages/film/src/core/link.test.ts',
+      'M\tpackages/film/src/core/api.ts',
+    ].join('\n');
+    expect(skippedOf(changesOf(status))).toEqual([
+      { file: 'packages/film/src/core/gone.test.ts', why: 'deleted: its cases are gone' },
+      {
+        file: 'packages/film/src/core/old.test.ts',
+        why: 'renamed to packages/film/src/core/fixture.ts, which is no test: its cases are gone',
+      },
+      {
+        file: 'packages/film/e2e/canvas/look.pixel.test.ts',
+        why: 'a browser tier: run it by hand',
+      },
+      { file: 'packages/film/src/core/link.test.ts', why: 'git status T: not read' },
     ]);
   });
 

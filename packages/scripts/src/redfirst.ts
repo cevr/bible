@@ -33,8 +33,11 @@ import {
   casesOf,
   changesOf,
   diffLines,
+  isBrowserTier,
+  isTest,
   newOrChanged,
   reportLines,
+  skippedOf,
   unloaded,
 } from './redfirst/report.js';
 
@@ -79,8 +82,6 @@ const run = (command: string, args: ReadonlyArray<string>, cwd: string) =>
 
 const lines = (out: string) => out.split('\n').filter((line) => line !== '');
 
-const isTest = (file: string) => /\.test\.tsx?$/.test(file);
-const isBrowserTier = (file: string) => /\.(dom|pixel)\.test\.ts$/.test(file);
 /** Test code a test file may lean on: its fixtures and its package's doubles. */
 const isTestCode = (file: string) =>
   isTest(file) || file.includes('/fixtures/') || file.endsWith('/testing.ts');
@@ -169,15 +170,7 @@ const redfirst = Effect.fn('redfirst')(function* (baseRef: string) {
   /** A test file's path at the base: its old one when the branch renamed it. */
   const fromOf = new Map(kept.map((c) => [c.file, c.from]));
   const toOf = new Map(kept.map((c) => [c.from, c.file]));
-  const skipped = statuses
-    .filter((c) => isTest(c.file))
-    .flatMap((c) => {
-      if (c.status === 'D') return [{ file: c.file, why: 'deleted: its cases are gone' }];
-      if (!['A', 'M', 'R'].includes(c.status))
-        return [{ file: c.file, why: `git status ${c.status}: not read` }];
-      if (isBrowserTier(c.file)) return [{ file: c.file, why: 'a browser tier: run it by hand' }];
-      return [];
-    });
+  const skipped = skippedOf(statuses);
   const range = `${base.slice(0, 9)}..${head.slice(0, 9)}`;
   if (tests.length === 0) {
     yield* Effect.forEach(reportLines(range, [], { skipped, unloaded: [] }), (line) =>

@@ -98,6 +98,32 @@ export const changesOf = (nameStatus: string): ReadonlyArray<Change> =>
       return { status, file: second ?? first, from: first };
     });
 
+/** A test file: the tier redfirst runs, and the browser tiers it does not. */
+export const isTest = (file: string) => /\.test\.tsx?$/.test(file);
+export const isBrowserTier = (file: string) => /\.(dom|pixel)\.test\.ts$/.test(file);
+
+/**
+ * Each changed test file redfirst does not run, and why. A rename is read by
+ * both paths: one out of the tests (`old.test.ts` to `fixture.ts`) is named by
+ * its old path, since its cases are gone.
+ */
+export const skippedOf = (
+  statuses: ReadonlyArray<Change>,
+): ReadonlyArray<{ readonly file: string; readonly why: string }> =>
+  statuses
+    .filter((c) => isTest(c.file) || isTest(c.from))
+    .flatMap((c) => {
+      if (!isTest(c.file))
+        return [
+          { file: c.from, why: `renamed to ${c.file}, which is no test: its cases are gone` },
+        ];
+      if (c.status === 'D') return [{ file: c.file, why: 'deleted: its cases are gone' }];
+      if (!['A', 'M', 'R'].includes(c.status))
+        return [{ file: c.file, why: `git status ${c.status}: not read` }];
+      if (isBrowserTier(c.file)) return [{ file: c.file, why: 'a browser tier: run it by hand' }];
+      return [];
+    });
+
 /** The lines (1-based, both ends in) of one case's own code: its title and its body. */
 interface Span {
   readonly from: number;
