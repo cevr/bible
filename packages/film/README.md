@@ -1715,39 +1715,59 @@ writes over the other. A note on a panel is a lab note (`POST
 A film's timeline is one read model (`core/film-timeline.ts`, pure:
 `timelineOf`), the one the studio page draws and the lab's MCP answers
 (`timeline`). It reads one version of the film: the production's open one,
-or one asked by number. A version whose folder holds a script
-(`<film>/v<n>/script.ts`) is read from it; the newest version without one is
-the film's registered files; an older one without a folder is refused
-(`FilmVersionUnkept`), and a number past the ledger too
+or one asked by number. A version kept in its own folder
+(`<film>/v<n>/`, a `script.ts` in it) is read wholly from that folder with
+the film's own loaders: its scenes, takes, acts (`acts.ts`), score, shorts
+and Board (`FilmRepo.load(film, folder)`, `BoardStore.read(film, folder)`),
+the film's voice and palette where it keeps none. The newest version without
+a folder is the film's registered files; an older one without a folder is
+refused (`FilmVersionUnkept`), and a number past the ledger too
 (`FilmVersionUnknown`). Its clock is read fresh (`film read clock <film>
 [--folder v<n>]`, `FreshFilm.clock`), kept under the film's source stamp
 (`tools/film-timeline.ts`, `FilmTimelines`), so a script or a take changed
 while the lab is open is read once after the change.
 
 - **Lanes.** Each stage of the flow with material on the clock is a lane of
-  clips: the script's beats, the Board's panels on their marks (each held to
-  the next panel of its beat or the beat's end), the takes, the scenes drawn, the score's
-  movements, the renders. A clip says its state (made, kept, approved) and
-  its clock: `estimated` while its beat has no take (words at the reading
-  pace), `measured` once it has. The Board, the catalogue and the notes are
-  the film's registered files', so a version read from its folder shows its
-  script and its takes alone.
+  clips: the script's beats, the Board's panels, the takes, the scenes
+  drawn, the score's movements, the renders. A panel sits where the
+  animatic shows it (`core/animatic.ts`, `shotsOf`, the one rule both
+  read): a beat's first panel from the beat's start, a later one from its
+  mark, each held to the next panel of its beat or the beat's end. A clip
+  says its state (made, kept, approved) and its clock: `estimated` while
+  its beat has no take (words at the reading pace), `measured` once it has.
+  A render records no version, so the catalogue (renders, scene approvals,
+  shorts) shows on the registered files alone, and the notes too, timed on
+  their clock.
 - **The flow.** The nine stages (script, concept, Board, voice, animatic,
   Rive scenes, sound, render, shorts), each `reached`, a `gap` or `ahead`.
-  The concept stage keeps no record yet, so it is a gap. The Next row is the
-  first stage ahead and what starts it.
-- **Bands and markers.** The script's acts are `bands` over the clock. A
+  The concept frames keep no record of their own yet, so the concept is
+  reached when a decision filed in the version answers an ask that showed
+  pictures alone, and a gap otherwise (the script is kept the same way, by
+  an ask that showed it). The Next row is the first stage ahead and what
+  starts it; when the stage before it is a gap, it names the gap and says
+  so (`Board starts from kept concept frames, and none is kept yet`).
+- **The stage.** The header's stage is the first, in the flow's order, whose
+  "done when" is not met: the script and the concept once a later stage has
+  material or a decision keeps them; the Board when every beat is approved;
+  the voice when every spoken beat is the owner's take; the animatic and
+  the sound once a later stage has material; the scenes when every beat is
+  drawn and approved; the render when a render of the film is approved.
+- **Bands and markers.** The version's acts are `bands` over the clock. A
   marker (a flag on the page) is something that waits on the owner, at its
   time: an open ask at the first beat its material names, and a note of his
   not yet done.
-- **The header.** The stage the version shown has reached; what waits on the
-  owner (asks, notes replied, beats whose every picture is kept but not
-  approved), counted; and the agents' "doing now" lines.
+- **The header.** The stage; what waits on the owner, counted: the asks
+  open about the film or its production (less one whose set and choice a
+  decision filed since has answered), the notes an agent replied to, and
+  the beats the open version's Board holds ready (every picture kept, not
+  approved as it stands), whichever version is shown; and the agents'
+  "doing now" lines.
 
 The `working` tool says an agent's line (`tools/working.ts`, `Working`): one
-line per agent per film, replaced by its next, cleared when the agent says
-`done` or after `WORKING_HELD` (half an hour) of silence. The lab holds the
-lines in memory only, so a restart clears them.
+line per agent (`by`, which the tool needs) per film, replaced by its next,
+cleared when the agent says `done` (no words needed) or after
+`WORKING_HELD` (half an hour) of silence. The lab holds the lines in memory
+only, so a restart clears them.
 
 ### Studio
 

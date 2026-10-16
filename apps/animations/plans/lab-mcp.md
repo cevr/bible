@@ -62,7 +62,7 @@ when `FILM_LAB_HOSTS` names one).
 | `journal`       | a film's journal: the newest entries (of one scene, when named) that fit, the rest counted with its file                |
 | `journal_note`  | one observation in a film's journal, of a scene or the whole film, at the time now                                      |
 | `timeline`      | a film's timeline at one version (its open one by default): lanes, bands, flags, the nine stages, Next, the header      |
-| `working`       | an agent's "doing now" line on a film's studio header, by `by`; `done` clears it, 30 min of silence too (memory only)   |
+| `working`       | an agent's "doing now" line on a film's studio header, as `by`; `done` clears it (no `text`), 30 min of silence too     |
 
 Resources: `lab://overview`, `lab://changes` (the last 50), `lab://films/{film}/notes`, `lab://films/{film}/board`.
 Prompt: `inbox` (every waiting note across the films, and how to work them).
