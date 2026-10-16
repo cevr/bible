@@ -1098,6 +1098,24 @@ describe('lab routes', () => {
           );
           expect(yield* row(json(MCP_PATH, method, navigation))).toEqual(refused);
         }
+        // A DELETE or OPTIONS with no body meets the Host, Sec-Fetch-Site and Origin
+        // checks as one with a body does: the body-less pass comes after them.
+        const bodiless = (method: string, headers: Record<string, string>) =>
+          new Request(at(MCP_PATH), { method, headers });
+        for (const method of ['DELETE', 'OPTIONS']) {
+          const refused = [`${method} ${MCP_PATH}`, 403, 'RequestRefused'] as const;
+          for (const headers of [
+            foreign,
+            { host: '127.0.0.1' },
+            crossSite,
+            { 'sec-fetch-site': 'same-site' },
+            navigation,
+            { origin: 'http://evil.example' },
+            { origin: 'null' },
+            { origin: 'https://127.0.0.1:4401' },
+          ])
+            expect(yield* row(bodiless(method, headers))).toEqual(refused);
+        }
         yield* refusedWrites(MCP_PATH);
         // A DELETE or OPTIONS that carries a body is judged as any write; one with none
         // (a client ending its session) reaches the MCP: no session named (400), a
