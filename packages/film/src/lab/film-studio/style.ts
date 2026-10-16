@@ -225,7 +225,8 @@ a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
   .st-r-head span { font-family: var(--font-mono); color: var(--text-2); }
   .st-reading p { margin: 0 0 var(--s-2); font-size: var(--fs-4); line-height: var(--lh-4); text-wrap: pretty; }
   .st-reading .st-r-cite { font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
-  .st-reading .st-reading-waits { display: flex; align-items: center; min-height: var(--hit); margin: 0; color: var(--text-1); font-size: var(--fs-3); line-height: var(--lh-3); }
+  /* What waits, a tap from its list: the header's menu, a full line here. */
+  .st-app .st-reading .st-waits { display: flex; align-items: center; width: 100%; height: auto; min-height: var(--hit); margin: 0 0 var(--s-2); padding: 0; white-space: normal; text-align: start; font-size: var(--fs-3); line-height: var(--lh-3); }
   .st-insp { grid-area: reading; padding: 0; display: none; }
   .st-studio[data-open="true"] .st-insp { display: block; }
   .st-pane { border-radius: 0; border-width: 1px 0 0; border-color: var(--line-strong); }

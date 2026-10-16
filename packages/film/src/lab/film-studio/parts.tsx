@@ -38,7 +38,6 @@ import type {
   SoundClip,
   Track,
   VoiceClip,
-  Waiting,
 } from '../../core/timeline-schema.ts';
 import { hubKeys } from '../command/changes.ts';
 import { pressed } from '../pressed.ts';
@@ -64,6 +63,8 @@ import {
   pxPerSecond,
   rulerTicks,
   timecode,
+  waitingText,
+  waitsLine,
   waitsText,
   scrollForZoom,
   sentenceAt,
@@ -190,16 +191,6 @@ const VersionMenu = (props: { readonly chip: VersionChip }) => {
     </Menu.Root>
   );
 };
-
-/** One thing waiting on the owner, as the waits menu lists it. */
-const waitingText = (waiting: Waiting): string =>
-  Match.value(waiting).pipe(
-    Match.discriminatorsExhaustive('kind')({
-      ask: (w) => `Ask: ${w.title}`,
-      note: (w) => `Note: ${w.text}`,
-      approve: (w) => `Approve ${w.beat}’s Board`,
-    }),
-  );
 
 /** "N wait on you": a menu of what waits, each opening its page. */
 const Waits = (props: { readonly timeline: FilmTimeline; readonly words: string }) => {
@@ -1212,8 +1203,8 @@ const Reading = () => {
     <section class="st-reading" aria-label="Words" aria-live="off">
       <Show when={Option.getOrUndefined(state.timeline())}>
         {(timeline) => (
-          <Show when={Option.getOrUndefined(waitsText(timeline()))}>
-            {(words) => <p class="st-reading-waits">{words()}</p>}
+          <Show when={Option.getOrUndefined(waitsLine(timeline()))}>
+            {(words) => <Waits timeline={timeline()} words={words()} />}
           </Show>
         )}
       </Show>

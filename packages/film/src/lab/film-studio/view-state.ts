@@ -19,6 +19,7 @@ import type {
   Lane,
   ScriptClip,
   Track,
+  Waiting,
 } from '../../core/timeline-schema.ts';
 
 /** A clip as the timeline lays it out: where it starts and how long it lasts, in film seconds. */
@@ -381,6 +382,25 @@ export const waitsText = (timeline: FilmTimeline): Option.Option<string> =>
     Option.filter(Option.fromUndefinedOr(timeline.header.waits), (w) => w.count > 0),
     (w) =>
       `${w.count} ${Bool.match(w.count === 1, { onTrue: () => 'waits', onFalse: () => 'wait' })} on you`,
+  );
+
+/** One thing waiting on the owner, as the waits menu lists it. */
+export const waitingText = (waiting: Waiting): string =>
+  Match.value(waiting).pipe(
+    Match.discriminatorsExhaustive('kind')({
+      ask: (w) => `Ask: ${w.title}`,
+      note: (w) => `Note: ${w.text}`,
+      approve: (w) => `Approve ${w.beat}’s Board`,
+    }),
+  );
+
+/** The phone's waits line: "N wait on you", then the first thing that waits. */
+export const waitsLine = (timeline: FilmTimeline): Option.Option<string> =>
+  Option.flatMap(Option.fromUndefinedOr(timeline.header.waits), (waits) =>
+    Option.map(
+      waitsText(timeline),
+      (words) => `${words} · ${waitingText(Arr.headNonEmpty(waits.items))}`,
+    ),
   );
 
 /** The stage's word in the header (`Board`). */

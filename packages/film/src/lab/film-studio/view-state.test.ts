@@ -26,6 +26,7 @@ import {
   timecode,
   versionChip,
   versionOpens,
+  waitsLine,
   waitsText,
   zoomFor,
   zoomStep,
@@ -254,6 +255,10 @@ describe('the words and the numbers', () => {
     });
     expect(waitsText(waiting(2))).toEqual(Option.some('2 wait on you'));
     expect(waitsText(waiting(0))).toEqual(Option.none());
+    // The phone's line names the first thing that waits.
+    expect(waitsLine(drawn)).toEqual(Option.some('1 waits on you · Ask: Which opening?'));
+    expect(waitsLine(waiting(2))).toEqual(Option.some('2 wait on you · Ask: Which?'));
+    expect(waitsLine(waiting(0))).toEqual(Option.none());
     expect(nextText(drawn)).toEqual(
       Option.some({ first: 'Render comes once the scenes are approved', later: 'Shorts' }),
     );

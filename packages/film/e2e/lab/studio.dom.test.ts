@@ -272,6 +272,27 @@ describe('a zoom step on a laptop', () => {
   );
 });
 
+describe('what waits, on a phone', () => {
+  it.live(
+    'is a line a thumb can tap, naming the first thing, that opens the list',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioAt(PHONE);
+        const WAITS = '.st-reading [data-act="waits"]';
+        yield* textIs(page, WAITS, '1 waits on you · Ask: Which opening?');
+        yield* until(
+          page,
+          `document.querySelector('${WAITS}').getBoundingClientRect().height >= 44`,
+        );
+        yield* page.click(WAITS);
+        yield* waitFor(page, '[data-role="waits"] .lab-context-item');
+        yield* textIs(page, '[data-role="waits"] .lab-context-item', 'Ask: Which opening?');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
 describe('the version menu', () => {
   const MENU = '[data-role="versions"]';
   /** The open v2's timeline, v1 replaced in place: nothing kept to show. */
