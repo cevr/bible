@@ -1814,11 +1814,14 @@ export const labInMemory = (
     mtimes = new Map(),
     asking = Layer.mergeAll(noStudio, noRenders),
   }: LabInMemory = {},
-) =>
+) => withTimelines(labStores(files, pages, { film, mtimes, asking }));
+
+/** `stores` with the films' timelines read over them (`FilmTimelines`), as the lab's handler reads them. */
+export const withTimelines = <A, E, R>(stores: Layer.Layer<A, E, R>) =>
   FilmTimelines.layer.pipe(
     Layer.provide(RenderCatalogue.layer),
     Layer.provideMerge(Working.layer),
-    Layer.provideMerge(labStores(files, pages, { film, mtimes, asking })),
+    Layer.provideMerge(stores),
   );
 
 /** The lab's stores in memory under `labInMemory`'s timelines. */
@@ -2393,6 +2396,7 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
         ),
         Layer.merge(reviewFilmServices(films, runs)),
         Layer.merge(Layer.succeed(ReviewProjectRuns, runs)),
+        withTimelines,
       );
     }),
   ).pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, BunHttpPlatform.layer)));

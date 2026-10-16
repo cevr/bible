@@ -13,7 +13,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Duration, Effect, Layer, Option, Result, Schema } from 'effect';
 import { TestClock } from 'effect/testing';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
-import type { FilmClock } from '../core/film-timeline.ts';
+import type { FilmClock } from '../core/timeline-schema.ts';
 import { Segment } from '../core/segment.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ProductionStore } from './production-store.ts';

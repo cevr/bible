@@ -44,6 +44,8 @@ import type { Choices } from './choices.ts';
 import { LabPage, mixedAnswer } from './lab-page.ts';
 import { projectGroup } from './project-http.ts';
 import { productionsGroup } from './production-http.ts';
+import { timelineGroup } from './timeline-http.ts';
+import type { FilmTimelines } from './film-timeline.ts';
 import { CACHE, serveFile } from './review-file.ts';
 import { reviewGroup } from './review-http.ts';
 import type { Review } from './review.ts';
@@ -628,7 +630,8 @@ export type LabContext =
   | Review
   | Choices
   | LabPage
-  | Easel;
+  | Easel
+  | FilmTimelines;
 
 /**
  * The lab's whole server as one web handler over the services the caller
@@ -662,6 +665,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         looksGroup,
         productionsGroup,
         asksGroup,
+        timelineGroup,
       ),
     ),
   );

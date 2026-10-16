@@ -34,7 +34,7 @@ import { LONGEST_WAIT } from '../core/wait.ts';
 import { Project } from '../core/catalogue.ts';
 import { ChoicePoint, type ChoiceVerb } from '../core/choice.ts';
 import { UnknownAct, UnknownScene } from '../core/errors.ts';
-import { FilmClock } from '../core/film-timeline.ts';
+import { FilmClock } from '../core/timeline-schema.ts';
 import {
   CatalogueInvalid,
   ChoiceUnknown,

@@ -87,6 +87,8 @@ import {
   DraftUnread,
   ElevenLabsFailed,
   FilmUnknown,
+  FilmVersionUnkept,
+  FilmVersionUnknown,
   FreshProcessFailed,
   HeadUnavailable,
   MediaFailed,
@@ -140,6 +142,7 @@ import {
   SceneSource,
   TakeWord,
 } from './schema.ts';
+import { FilmTimeline } from './timeline-schema.ts';
 import { KeepPost, StudioAttempts, StudioBeats, StudioTake, TakePost } from './studio.ts';
 import { LineRead, Mark } from './delivery.ts';
 
@@ -221,6 +224,8 @@ const Refusals = [
   SceneNotLocated.pipe(status(404)),
   HeadUnavailable.pipe(status(404)),
   FilmUnknown.pipe(status(404)),
+  FilmVersionUnknown.pipe(status(404)),
+  FilmVersionUnkept.pipe(status(404)),
   ChoiceUnknown.pipe(status(404)),
   VariantUnknown.pipe(status(404)),
   TakeUnknown.pipe(status(404)),
@@ -1079,6 +1084,22 @@ class PageGroup extends HttpApiGroup.make('page').add(
  * project, and the pages' build.
  */
 /**
+ * A film's timeline as the studio page draws it (`core/film-timeline.ts`,
+ * the model the `timeline` tool answers too): at version `v`, else at its
+ * production's open version. A version the film has not is
+ * `FilmVersionUnknown`; one whose files a later version replaced in place,
+ * `FilmVersionUnkept`.
+ */
+class TimelineGroup extends HttpApiGroup.make('timeline').add(
+  HttpApiEndpoint.get('read', `${FILM}/timeline`, {
+    params: film,
+    query: { v: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))) },
+    success: FilmTimeline,
+    error: Refusals,
+  }),
+) {}
+
+/**
  * The productions (`core/production.ts`): every ledger, which the page lays
  * the review's folders into as each production's timeline, and a production
  * moved forward from the version the mover saw (`VersionMoved` once it has
@@ -1108,6 +1129,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(ProjectGroup)
   .add(LooksGroup)
   .add(ProductionsGroup)
+  .add(TimelineGroup)
   .add(PageGroup)
   .add(AsksGroup) {}
 

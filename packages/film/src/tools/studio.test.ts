@@ -47,6 +47,7 @@ import {
   testVoice,
   text,
   voicesHere,
+  withTimelines,
 } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [
@@ -186,6 +187,7 @@ const setup = (
     Layer.provideMerge(repo),
     Layer.provideMerge(storeLayer(files)),
     Layer.provideMerge(Layer.mergeAll(base, HttpPlatform.layer.pipe(Layer.provide(base)))),
+    withTimelines,
   );
   return { files, mixes, reads, stamp, source, layer };
 };

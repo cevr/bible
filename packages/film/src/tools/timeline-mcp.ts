@@ -5,7 +5,8 @@
 
 import { Duration, Effect, Layer, Option, Schema } from 'effect';
 import { McpServer, Tool, Toolkit } from 'effect/ai';
-import { FilmTimeline, Track, WorkingLine, onlyTracks } from '../core/film-timeline.ts';
+import { onlyTracks } from '../core/film-timeline.ts';
+import { FilmTimeline, Track, WorkingLine } from '../core/timeline-schema.ts';
 import { LabLinks } from '../core/lab-events.ts';
 import { type FilmFolder, filmNamed } from './film-repo.ts';
 import { FilmTimelines } from './film-timeline.ts';

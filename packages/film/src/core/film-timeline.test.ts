@@ -22,18 +22,11 @@ import {
   emptyCatalogue,
   subjectOf,
 } from './catalogue.ts';
-import {
-  type FilmTimeline,
-  FilmClock,
-  filmClock,
-  onlyTracks,
-  pickVersion,
-  timelineOf,
-  versionsOf,
-} from './film-timeline.ts';
+import { filmClock, onlyTracks, pickVersion, timelineOf, versionsOf } from './film-timeline.ts';
 import { layout } from './layout.ts';
 import { ProductionFile } from './production.ts';
 import type { Note, NotesFile } from './schema.ts';
+import { type FilmTimeline, FilmClock } from './timeline-schema.ts';
 import coldClockJson from './fixtures/timeline/cold-studies-clock.json' with { type: 'json' };
 import rbfV2BoardJson from './fixtures/timeline/rbf-v2-board.json' with { type: 'json' };
 import rbfV2ClockJson from './fixtures/timeline/rbf-v2-clock.json' with { type: 'json' };

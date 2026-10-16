@@ -1769,6 +1769,12 @@ cleared when the agent says `done` (no words needed) or after
 `WORKING_HELD` (half an hour) of silence. The lab holds the lines in memory
 only, so a restart clears them.
 
+The studio page reads the same model over HTTP (`tools/timeline-http.ts`):
+
+| Route                                  | Answers                                                                                                                            |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/timeline?v=<n>` | `FilmTimeline` at version `n`, else at the production's open version; 404 `FilmVersionUnknown`, `FilmVersionUnkept`, `FilmUnknown` |
+
 ### Studio
 
 **The Studio** (`lab/studio/`, Solid 2 + effect-machine) is the lab's panel

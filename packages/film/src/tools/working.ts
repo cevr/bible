@@ -6,7 +6,7 @@
 // replaces its last. The lab's restart clears every line: nothing is written.
 
 import { Array as Arr, Context, DateTime, Duration, Effect, Layer, Order, Ref } from 'effect';
-import type { WorkingLine } from '../core/film-timeline.ts';
+import type { WorkingLine } from '../core/timeline-schema.ts';
 
 /** How long a line is held after its agent last said it: half an hour of silence clears it. */
 export const WORKING_HELD = Duration.minutes(30);

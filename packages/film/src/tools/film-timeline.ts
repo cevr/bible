@@ -19,7 +19,8 @@ import {
   Path,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { type FilmTimeline, pickVersion, timelineOf, versionsOf } from '../core/film-timeline.ts';
+import { pickVersion, timelineOf, versionsOf } from '../core/film-timeline.ts';
+import type { FilmTimeline } from '../core/timeline-schema.ts';
 import type { FilmUnknown, FilmVersionUnkept, FilmVersionUnknown } from '../core/refusals.ts';
 import { Segment } from '../core/segment.ts';
 import { AskStore } from './ask-store.ts';
