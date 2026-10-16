@@ -134,6 +134,13 @@ export interface Crease {
   readonly at?: number;
   readonly soft?: number;
   readonly toward?: number;
+  /**
+   * A round piece's turn: the paper is laid in its shade and its light is
+   * its own outline moved this share of its half-size toward the light,
+   * clipped to it, so the shade is a crescent on the far side (`litOf`)
+   * rather than a straight cut.
+   */
+  readonly crescent?: number;
 }
 
 /** A colour as a paint. */
@@ -373,7 +380,9 @@ const paints = (d: Direction, look: PieceLook, box: Box, inside = false): Elemen
   const paper = el('Fill', { name: 'Paper' }, [
     look.shade === undefined
       ? solid(look.color)
-      : creased(look.color, look.shade, box, look.crease),
+      : look.crease?.crescent === undefined
+        ? creased(look.color, look.shade, box, look.crease)
+        : solid(look.shade),
   ]);
   if (inside) return [paper];
   const out: Element[] = [];
@@ -706,9 +715,11 @@ const paperOf = (fig: Figure, part: Part, inside: boolean): Element => {
     smoothPath(fig, key, pts, part.skin),
     ...paints(fig.direction, look, box, inside),
   ]);
+  const crescent = look.shade === undefined ? undefined : look.crease?.crescent;
   const onTop = [
     ...(look.rim === undefined ? [] : [rimOf(fig, part, look.rim, box, boil > 0)]),
     ...(look.tones ?? []).map((t, i) => toneOf(fig, key, t, i)).reverse(),
+    ...(crescent === undefined ? [] : [litOf(fig, part, crescent, box, boil > 0)]),
   ];
   const cast = !inside && look.over !== undefined && castOf(fig.direction, look);
   if (onTop.length === 0 && !cast) return shape;
@@ -779,6 +790,34 @@ const rimOf = (fig: Figure, part: Part, width: number, box: Box, boils: boolean)
         el('GradientStop', { colorValue: argb(part.look.light, 0), position: 1 }),
       ]),
     ]),
+  ]);
+};
+
+/**
+ * The lit side of a piece that turns in a crescent (`Crease.crescent`): its
+ * outline moved `share` of its half-size back toward the light, in its
+ * colour, clipped to its paper and crawling with it, so its shade shows only
+ * as the crescent the move uncovers on the far side.
+ */
+const litOf = (fig: Figure, part: Part, share: number, box: Box, boils: boolean): Element => {
+  const name = `${part.key}Lit`;
+  const toward = part.look.crease?.toward ?? LIGHT.toward;
+  const by: Pt = [
+    (-Math.cos(toward) * share * (box.x1 - box.x0)) / 2,
+    (-Math.sin(toward) * share * (box.y1 - box.y0)) / 2,
+  ];
+  const pts = part.pts.map(([x, y]): Pt => [x + by[0], y + by[1]]);
+  if (boils)
+    fig.echo(
+      name,
+      part.key,
+      pts.length,
+      pts.map(() => by),
+    );
+  return el('Shape', { name, id: fig.idOf(name) }, [
+    smoothPath(fig, name, pts, part.skin),
+    el('Fill', { name: 'Lit' }, [solid(part.look.color)]),
+    el('ClippingShape', { sourceId: fig.idOf(part.key), name: 'Clip' }),
   ]);
 };
 

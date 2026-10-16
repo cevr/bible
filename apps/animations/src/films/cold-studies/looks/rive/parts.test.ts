@@ -8,10 +8,11 @@ import {
   ellipse,
   figure,
   inset,
+  piece,
   reachAbout,
   silhouette,
 } from './parts.ts';
-import { type Element, ids } from './rml.ts';
+import { type Element, argb, ids } from './rml.ts';
 
 // The parts every figure is built from, whatever the art direction. What a
 // direction changes is checked for every option in `direction-*.test.ts`.
@@ -100,5 +101,30 @@ describe('silhouette', () => {
     const papers = node.children.slice(0, -1);
     expect(papers).toHaveLength(3);
     for (const paper of papers) expect(named(paper, 'Fill').length).toBeGreaterThan(0);
+  });
+});
+
+describe('a crescent turn', () => {
+  const fig = figure(ids(), 'Test', 7, 0, K1);
+  const look = {
+    color: '#ece7fa',
+    shade: '#c9bcf2',
+    light: '#fffffb',
+    crease: { crescent: 0.4, toward: 0 },
+  };
+  const node = piece(fig, 'head', ellipse(0, 0, 50, 50, 22), look);
+  const colours = (e: Element): string[] =>
+    e.children.flatMap((c) => [
+      ...c.attrs.filter(([k]) => k === 'colorValue').map(([, v]) => String(v)),
+      ...colours(c),
+    ]);
+
+  test('lays the paper in its shade and its light as its own outline moved toward the light, clipped to it', () => {
+    const [lit, paper] = node.children;
+    expect(lit?.attrs).toContainEqual(['name', 'headLit']);
+    expect(lit?.children.map((c) => c.name)).toContain('ClippingShape');
+    expect(colours(lit as Element)).toEqual([argb('#ece7fa')]);
+    expect(colours(paper as Element)).toContain(argb('#c9bcf2'));
+    expect(colours(paper as Element)).not.toContain(argb('#ece7fa'));
   });
 });
