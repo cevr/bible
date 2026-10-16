@@ -1,9 +1,11 @@
 // A film's timeline as the lab reads it (`core/film-timeline.ts` is the
 // model): the version's clock read fresh (`film read clock`, kept under the
 // film's source stamp, so a script or a take changed while the lab is open
-// is read once after the change), beside the film's Board, catalogue, notes,
-// the lab's asks, the production's ledger and the agents' "doing now" lines.
-// The `timeline` tool answers it; the studio page reads the same service.
+// is read once after the change) and its Board, each from the version's own
+// files (its folder, `<film>/v<n>/`, or the film's registered files); the
+// open version's Board; and the film's catalogue, notes, the lab's asks, the
+// production's ledger and the agents' "doing now" lines. The `timeline` tool
+// answers it; the studio page reads the same service.
 
 import {
   Array as Arr,
@@ -19,6 +21,7 @@ import {
 import type { PlatformError } from 'effect/PlatformError';
 import { type FilmTimeline, pickVersion, timelineOf, versionsOf } from '../core/film-timeline.ts';
 import type { FilmUnknown, FilmVersionUnkept, FilmVersionUnknown } from '../core/refusals.ts';
+import { Segment } from '../core/segment.ts';
 import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
 import { type CatalogueError, RenderCatalogue } from './catalogue.ts';
@@ -51,7 +54,7 @@ interface FilmTimelinesService {
 class Clocked extends Data.Class<{
   readonly film: FilmName;
   readonly stamp: number;
-  /** The version folder (`v3`); none for the film's registered files. */
+  /** The version folder (`v2`); none for the film's registered files. */
   readonly folder: Option.Option<string>;
 }> {}
 
@@ -59,7 +62,14 @@ class Clocked extends Data.Class<{
 const CLOCKS_KEPT = 16;
 
 /** A version folder's name: `v<n>`. */
-const folderOf = (n: number) => `v${n}`;
+const folderOf = (n: number) => Segment.make(`v${n}`);
+
+/** The folder a version's files are in: its own for a folder version, none for the film's registered files. */
+const filesOf = (version: { readonly n: number; readonly files: string }) =>
+  Option.as(
+    Option.liftPredicate(version, (v) => v.files === 'folder'),
+    folderOf(version.n),
+  );
 
 export class FilmTimelines extends Context.Service<FilmTimelines, FilmTimelinesService>()(
   '@bible/film/tools/FilmTimelines',
@@ -100,23 +110,18 @@ export class FilmTimelines extends Context.Service<FilmTimelines, FilmTimelinesS
         );
         const versions = versionsOf(ledger, folders, film);
         const version = yield* Effect.fromResult(pickVersion(film, versions, asked));
+        const open = Option.getOrElse(
+          Arr.findFirst(versions, (v) => v.open),
+          () => version,
+        );
         const stamp = yield* folder.stamp(film);
         const sources = yield* Effect.all(
           {
-            clock: Cache.get(
-              clocks,
-              new Clocked({
-                film,
-                stamp,
-                folder: Option.as(
-                  Option.liftPredicate(version, (v) => v.files === 'folder'),
-                  folderOf(version.n),
-                ),
-              }),
-            ),
-            board: boards.read(film),
+            clock: Cache.get(clocks, new Clocked({ film, stamp, folder: filesOf(version) })),
+            board: boards.read(film, Option.getOrUndefined(filesOf(version))),
+            openBoard: boards.read(film, Option.getOrUndefined(filesOf(open))),
             catalogue: catalogues.read(at),
-            notes: Effect.map(notes.read(film), (log) => log.notes),
+            notes: notes.read(film),
             asks: asks.list,
             working: working.on(film),
           },
@@ -127,7 +132,7 @@ export class FilmTimelines extends Context.Service<FilmTimelines, FilmTimelinesS
         );
         return timelineOf({
           film,
-          production: Option.map(ledger, (l) => l.production),
+          ledger,
           version,
           versions,
           ...sources,

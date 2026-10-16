@@ -1,10 +1,12 @@
 // The studio's tools through the lab's MCP, as an agent calls them: a film's
-// timeline at its production's open version (a version folder's clock, read
-// fresh with its folder), at a version asked (the registered files', its Board
-// on its lane), a version it has not refused by name, and only the lanes
-// asked; an agent's "doing now" line on the header, replaced by its next and
-// cleared when it says it is done. The lines themselves clear after half an
-// hour of silence (`Working`, on the test clock).
+// timeline at its production's open version (the registered files, read
+// fresh), at a version asked (a version folder's clock, read fresh with its
+// folder, and its own Board on its lane), a version it has not refused by
+// name, and only the lanes asked; the header waits on the open version's
+// Board whichever version is read; a clock is read once per stamp of the
+// film's sources; an agent's "doing now" line on the header, replaced by its
+// next and cleared when it says it is done. The lines themselves clear after
+// half an hour of silence (`Working`, on the test clock).
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Duration, Effect, Layer, Option, Result, Schema } from 'effect';
@@ -17,8 +19,8 @@ import { ProductionStore } from './production-store.ts';
 import { echoPages, freshFilm, labInMemory, labWithMcp, mcpSession, text } from './testing.ts';
 import { WORKING_HELD, Working } from './working.ts';
 
-/** Film `f`'s registered clock: a voiced beat with a mark, its take staged, and a silent one. */
-const registered: FilmClock = {
+/** Film `f`'s v1, kept in its folder (`v1/`): a voiced beat with a mark, its take staged, and a silent one. */
+const older: FilmClock = {
   beats: [
     {
       id: 'cold',
@@ -35,8 +37,8 @@ const registered: FilmClock = {
   movements: [],
 };
 
-/** Its v2 folder's clock: the script rewritten, no take yet. */
-const written: FilmClock = {
+/** Its registered files' clock (v2, open): the script rewritten, no take yet. */
+const registered: FilmClock = {
   beats: [
     {
       id: 'seed',
@@ -52,17 +54,18 @@ const written: FilmClock = {
   movements: [],
 };
 
-const board: BoardFile = {
+/** A Board of one panel, its one try kept. */
+const boardOf = (beat: string, at: string): BoardFile => ({
   film: 'f',
   panels: [
     {
-      id: 'cold.judge',
-      beat: BoardName.make('cold'),
-      at: BoardName.make('judge'),
+      id: `${beat}.${at}`,
+      beat: BoardName.make(beat),
+      at: BoardName.make(at),
       tries: [
         {
           n: 1,
-          file: Segment.make('cold.judge.1.png'),
+          file: Segment.make(`${beat}.${at}.1.png`),
           sha256: 's1',
           made: 'import',
           refs: [],
@@ -73,31 +76,36 @@ const board: BoardFile = {
     },
   ],
   approvals: [],
-};
+});
 
-/** Film `f` with its Board and a version folder's script. */
+/** Film `f` with its Board, and its v1 folder with its own script and Board. */
 const files = () =>
   new Map<string, Uint8Array>([
     ['/films/f/scenes/index.ts', text('export {};\n')],
-    ['/films/f/board.json', text(Schema.encodeSync(BoardFileJson)(board))],
-    ['/films/f/v2/script.ts', text('export const script = [];\n')],
+    ['/films/f/board.json', text(Schema.encodeSync(BoardFileJson)(boardOf('seed', 'start')))],
+    ['/films/f/v1/script.ts', text('export const script = [];\n')],
+    ['/films/f/v1/board.json', text(Schema.encodeSync(BoardFileJson)(boardOf('cold', 'judge')))],
   ]);
 
 /** The folders the fresh clock was asked for, in order. */
 const asked: Array<Option.Option<string>> = [];
 
-const provided = <A, E, R>(self: Effect.Effect<A, E, R>) =>
+const provided = <A, E, R>(
+  self: Effect.Effect<A, E, R>,
+  mtimes: ReadonlyMap<string, number> = new Map(),
+) =>
   self.pipe(
     Effect.scoped,
     Effect.provide(
       RenderCatalogue.layer.pipe(
         Layer.provideMerge(
           labInMemory(files(), echoPages, {
+            mtimes,
             film: freshFilm({
               clock: (_film, folder) =>
                 Effect.sync(() => {
                   asked.push(folder);
-                  return Option.match(folder, { onNone: () => registered, onSome: () => written });
+                  return Option.match(folder, { onNone: () => registered, onSome: () => older });
                 }),
             }),
           }),
@@ -106,7 +114,7 @@ const provided = <A, E, R>(self: Effect.Effect<A, E, R>) =>
     ),
   );
 
-/** Film `f`'s production, its v2 open: written from scratch in its folder. */
+/** Film `f`'s production: v1 kept in its folder, v2 open on the registered files. */
 const twoVersions = Effect.gen(function* () {
   const productions = yield* ProductionStore;
   yield* productions.start('f', {
@@ -127,6 +135,12 @@ const twoVersions = Effect.gen(function* () {
   );
 });
 
+/** What the open version's Board holds ready: its one beat waits on the owner's approval. */
+const SEED_WAITS = {
+  count: 1,
+  items: [{ kind: 'approve', beat: 'seed', href: '/films/f/board/seed' }],
+};
+
 describe('timeline', () => {
   it.effect(
     'answers the open version, a version asked, only the lanes asked, and refuses one it has not',
@@ -142,44 +156,47 @@ describe('timeline', () => {
             n: 2,
             title: 'written from scratch',
             open: true,
-            files: 'folder',
+            files: 'film',
           });
-          expect(open.lanes.map((l: { track: string }) => l.track)).toEqual(['script']);
-          expect(open.next.starts).toBe('Board starts from the kept concept frames');
+          expect(open.lanes.map((l: { track: string }) => l.track)).toEqual(['script', 'board']);
+          expect(open.lanes[1].clips.map((c: { panel: string }) => c.panel)).toEqual([
+            'seed.start',
+          ]);
+          expect(open.header.stage).toBe('board');
           expect(open.lab).toEqual({
             local: 'http://localhost:4401/',
             phone: 'http://100.64.0.9:8230/',
           });
-          // The Board's one beat, every picture kept, waits on the owner's approval.
-          expect(open.header.waits).toEqual({
-            count: 1,
-            items: [{ kind: 'approve', beat: 'cold', href: '/films/f/board/cold' }],
-          });
+          expect(open.header.waits).toEqual(SEED_WAITS);
           const v1 = yield* tool('timeline', { film: 'f', version: 1 });
-          expect(v1.version.files).toBe('film');
+          expect(v1.version.files).toBe('folder');
           expect(v1.lanes.map((l: { track: string }) => l.track)).toEqual([
             'script',
             'board',
             'voice',
             'scenes',
           ]);
+          // Its own Board (`v1/board.json`): the beat's one panel shows from the beat's start.
           expect(v1.lanes[1].clips).toEqual([
             {
-              start: 3,
-              dur: 3,
+              start: 0,
+              dur: 6,
               state: 'kept',
               clock: 'measured',
               panel: 'cold.judge',
               beat: 'cold',
               mark: 'judge',
+              markAt: 3,
               try: 1,
               card: false,
             },
           ]);
+          // The header still waits on the open version's Board, not v1's.
+          expect(v1.header.waits).toEqual(SEED_WAITS);
           expect(v1.bands.map((b: { name: string }) => b.name)).toEqual(['open']);
           const only = yield* tool('timeline', { film: 'f', version: 1, tracks: ['voice'] });
           expect(only.lanes.map((l: { track: string }) => l.track)).toEqual(['voice']);
-          expect(asked).toEqual([Option.some('v2'), Option.none()]);
+          expect(asked).toEqual([Option.none(), Option.some('v1')]);
           expect((yield* tool('timeline', { film: 'f', version: 5 })).refused).toBe(
             'f has no v5 (its versions: v1, v2)',
           );
@@ -187,6 +204,24 @@ describe('timeline', () => {
         }),
       ),
   );
+
+  it.effect("reads a clock once per stamp of the film's sources, and again once it moves", () => {
+    const mtimes = new Map([['/films/f/scenes/index.ts', 1]]);
+    return provided(
+      Effect.gen(function* () {
+        asked.length = 0;
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        yield* tool('timeline', { film: 'f' });
+        yield* tool('timeline', { film: 'f' });
+        expect(asked.length).toBe(1);
+        mtimes.set('/films/f/scenes/index.ts', 2);
+        yield* tool('timeline', { film: 'f' });
+        expect(asked.length).toBe(2);
+      }),
+      mtimes,
+    );
+  });
 });
 
 describe('working', () => {

@@ -356,7 +356,7 @@ export const versionAt = (file: ProductionFile, at: number): number =>
 type Decided = Extract<Said, { readonly _tag: 'Decided' }>;
 
 /** The owner's decisions filed in version `version` (in chat, or an ask's answer), newest first. */
-const decisionsIn = (file: ProductionFile, version: number): ReadonlyArray<Decided> =>
+export const decisionsIn = (file: ProductionFile, version: number): ReadonlyArray<Decided> =>
   file.said
     .filter((s): s is Decided => s._tag === 'Decided' && versionAt(file, s.at) === version)
     .toReversed();
@@ -438,6 +438,18 @@ const decides = (said: Said, path: string, point: Option.Option<string>): boolea
     onNone: () => true,
     onSome: (p) => Option.match(point, { onNone: () => false, onSome: (q) => q === p }),
   });
+
+/**
+ * Whether a decision on the set `ref` (a set's ref, `<root>/<folder>`, as an
+ * ask names it) covering `point` was filed at or after `since`: what answers
+ * a question about that choice, as `waitingIn` reads it.
+ */
+export const decidedSince = (
+  said: ReadonlyArray<Said>,
+  ref: string,
+  point: Option.Option<string>,
+  since: number,
+): boolean => said.some((s) => s.at >= since && decides(s, setPathOf(ref), point));
 
 /** The decision on `point` of the set at `path`, newest first, when there is one. */
 const decisionOn = (said: ReadonlyArray<Said>, path: string, point: string): Option.Option<Said> =>
