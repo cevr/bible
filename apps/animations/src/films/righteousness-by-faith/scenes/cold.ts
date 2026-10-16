@@ -262,9 +262,9 @@ export const cold = drawing({
     // Back from the card, close on the lead, room above him for the seal to come down.
     lead: [318, 470],
     leadZoom: 1.6,
-    // The lead and the prosecutor together on `cover`.
-    two: [520, 470],
-    twoZoom: 1.42,
+    // On `cover`: the dock, the table and the bench with the judge, as the kept cover panel frames them.
+    two: [800, 440],
+    twoZoom: 1.3,
     // In on the seal over his stain (`bible`), his head's top clear of the frame's.
     seal: [292, 505],
     sealZoom: 2.8,

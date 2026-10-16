@@ -16,6 +16,7 @@ import { lerp } from '@bible/film/core';
 import { COURT_RIGS, courtFigures, courtShadows, restPose } from '../court-cast.ts';
 import { widePews, wideRoom } from '../court-set.ts';
 import { C, F, piece } from '../kit.ts';
+import { LIGHT } from '../light.ts';
 import { TITLE } from '../script.ts';
 
 /**
@@ -75,6 +76,9 @@ export const title = drawing({
     near: 1.08,
   },
   rigs: COURT_RIGS,
+  // The court's light with a little of the film's vignette: the kept title panel darkens toward
+  // its corners, where the room's own light (`LIGHT.room`) lets the bench keep its full light.
+  light: { ...LIGHT.room, vignette: 0.1 },
   draw: (f) => {
     const { ctx, w, h } = f;
     const zoom = lerp(f.knob('near'), 1, f.at('pull'));
