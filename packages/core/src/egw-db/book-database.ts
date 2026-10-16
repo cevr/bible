@@ -1590,46 +1590,52 @@ export class EGWParagraphDatabase extends Context.Service<
          *  `ref_code` by refcode (`AA v.1`) where this one keys it by
          *  `para_id` (`127.8`), so matching by `ref_code` would report every
          *  paragraph of such a book removed and added again. The primary key
-         *  makes a retried install record each change once. */
+         *  makes a retried install record each change once.
+         *
+         *  Each side is one book, materialized with its match key as a plain
+         *  column, so SQLite joins them through an automatic index. Joined on
+         *  the `COALESCE` itself, no index applies and the cost grows with
+         *  the square of the book: The Desire of Ages (2,705 paragraphs) took
+         *  1.6 s locally that way, and over D1's limit on the library. */
         const recordParagraphChanges = (bookId: number, revision: string, now: string) => sql`
+          WITH
+            before AS MATERIALIZED (
+              SELECT COALESCE(para_id, ref_code) AS match_key, ref_code, para_id, refcode_short,
+                content_text, puborder
+              FROM paragraphs WHERE book_id = ${bookId}
+            ),
+            after AS MATERIALIZED (
+              SELECT COALESCE(para_id, ref_code) AS match_key, ref_code, para_id, refcode_short,
+                content_text, puborder
+              FROM paragraphs_incoming WHERE book_id = ${bookId}
+            ),
+            previous AS (SELECT revision FROM sync_status WHERE book_id = ${bookId})
           INSERT OR IGNORE INTO paragraph_changes (
             book_id, ref_code, para_id, refcode_short, kind,
             before_text, after_text, puborder, from_revision, to_revision, recorded_at
           )
           SELECT
-            i.book_id, i.ref_code, i.para_id, i.refcode_short, 'edited',
-            p.content_text, i.content_text, i.puborder,
-            (SELECT revision FROM sync_status WHERE book_id = ${bookId}), ${revision}, ${now}
-          FROM paragraphs p
-          JOIN paragraphs_incoming i
-            ON i.book_id = p.book_id
-            AND COALESCE(i.para_id, i.ref_code) = COALESCE(p.para_id, p.ref_code)
-          WHERE p.book_id = ${bookId} AND p.content_text <> i.content_text
+            ${bookId}, a.ref_code, a.para_id, a.refcode_short, 'edited',
+            b.content_text, a.content_text, a.puborder,
+            (SELECT revision FROM previous), ${revision}, ${now}
+          FROM before b
+          JOIN after a ON a.match_key = b.match_key
+          WHERE b.content_text <> a.content_text
           UNION ALL
           SELECT
-            p.book_id, p.ref_code, p.para_id, p.refcode_short, 'removed',
-            p.content_text, NULL, p.puborder,
-            (SELECT revision FROM sync_status WHERE book_id = ${bookId}), ${revision}, ${now}
-          FROM paragraphs p
-          WHERE p.book_id = ${bookId}
-            AND NOT EXISTS (
-              SELECT 1 FROM paragraphs_incoming i
-              WHERE i.book_id = p.book_id
-                AND COALESCE(i.para_id, i.ref_code) = COALESCE(p.para_id, p.ref_code)
-            )
+            ${bookId}, b.ref_code, b.para_id, b.refcode_short, 'removed',
+            b.content_text, NULL, b.puborder,
+            (SELECT revision FROM previous), ${revision}, ${now}
+          FROM before b
+          WHERE NOT EXISTS (SELECT 1 FROM after a WHERE a.match_key = b.match_key)
           UNION ALL
           SELECT
-            i.book_id, i.ref_code, i.para_id, i.refcode_short, 'added',
-            NULL, i.content_text, i.puborder,
-            (SELECT revision FROM sync_status WHERE book_id = ${bookId}), ${revision}, ${now}
-          FROM paragraphs_incoming i
-          WHERE i.book_id = ${bookId}
-            AND EXISTS (SELECT 1 FROM paragraphs p WHERE p.book_id = i.book_id)
-            AND NOT EXISTS (
-              SELECT 1 FROM paragraphs p
-              WHERE p.book_id = i.book_id
-                AND COALESCE(p.para_id, p.ref_code) = COALESCE(i.para_id, i.ref_code)
-            )
+            ${bookId}, a.ref_code, a.para_id, a.refcode_short, 'added',
+            NULL, a.content_text, a.puborder,
+            (SELECT revision FROM previous), ${revision}, ${now}
+          FROM after a
+          WHERE EXISTS (SELECT 1 FROM before)
+            AND NOT EXISTS (SELECT 1 FROM before b WHERE b.match_key = a.match_key)
         `;
 
         const paragraphChanges = (bookId: number, revision: string) =>
