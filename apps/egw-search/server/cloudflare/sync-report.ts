@@ -12,12 +12,13 @@
  * the file; nothing here touches either.
  */
 
-import { Array as Arr } from 'effect';
+import { Array as Arr, Option } from 'effect';
 
-import type {
-  EgwParagraphChangeCounts,
-  EgwSyncBook,
-  EgwSyncFailure,
+import {
+  type EgwParagraphChangeCounts,
+  type EgwSyncBook,
+  type EgwSyncFailure,
+  unavailableReason,
 } from '@bible/core/corpus-supply';
 import type { ParagraphChangeRow } from '@bible/core/egw-db';
 
@@ -93,6 +94,30 @@ export const changeCount = (changes: EgwParagraphChangeCounts): number =>
 /** Where a paragraph is: its refcode, else its book and id. */
 export const changeLabel = (book: EgwSyncBook, change: ParagraphChangeRow): string =>
   change.refcode_short ?? `${book.code} ${change.para_id ?? change.ref_code}`;
+
+/** Why the library withholds these books, by the known list's reasons:
+ *  `13 need an EGW subscription, 5 are translations licensed for reading
+ *  only`. */
+export const withheldReasons = (bookIds: readonly number[]): string => {
+  const reasons = bookIds.map((id) => unavailableReason(id));
+  const count = (reason: string) =>
+    reasons.filter((found) => Option.contains(found, reason)).length;
+  const parts = [
+    [count('subscription'), 'needs an EGW subscription', 'need an EGW subscription'],
+    [
+      count('third-party-licence'),
+      'is a translation licensed for reading only',
+      'are translations licensed for reading only',
+    ],
+  ] as const;
+  return parts
+    .filter(([found]) => found > 0)
+    .map(([found, one, many]) => {
+      if (found === 1) return `1 ${one}`;
+      return `${String(found)} ${many}`;
+    })
+    .join(', ');
+};
 
 const MARKDOWN_SPECIAL = /[\\`*_[\]{}()<>#+\-.!|~]/g;
 
@@ -199,7 +224,8 @@ export const syncReport = (run: SyncRun, changes: ChangesByBook, at: string): st
     ]),
     ifAny(expected, (some) => [
       `## Withheld by the library (${String(some.length)})`,
-      `Listed but not served, as expected: ${some.map((failure) => escapeMarkdown(failure.code)).join(', ')}.`,
+      `Listed but not served, as expected (${withheldReasons(some.map((failure) => failure.id))}): ` +
+        `${some.map((failure) => escapeMarkdown(failure.code)).join(', ')}.`,
     ]),
   ];
   return `${sections.flat().join('\n\n')}\n`;
