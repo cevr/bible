@@ -63,7 +63,8 @@ import {
   versionAt,
 } from '../core/production.ts';
 import { type LabClient, labClient, labUrl } from './lab-client.ts';
-import { AskTool, Sets } from './lab-mcp.ts';
+import { AskTool } from './asks-mcp.ts';
+import { Sets } from './sets-mcp.ts';
 import { ProductionStore } from './production-store.ts';
 import { Review, refOf } from './review.ts';
 
