@@ -389,7 +389,7 @@ export interface FreshFilmService {
   /**
    * A version's clock as its files now stand (`film read clock`): the film's
    * registered scenes and takes, or, with `folder`, the version folder's
-   * script (`<film>/<folder>/script.ts`) on the film's takes.
+   * (`<film>/<folder>/`: its scenes, takes, acts and score).
    */
   readonly clock: (
     film: FilmName,

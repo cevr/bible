@@ -31,9 +31,11 @@
 //       speech, marks and voice, its acts and its score's movements, laid
 //       out by `layout()` with no cue resolved (a beat's length never
 //       reads its cues), so a scene whose timeline does not resolve still
-//       has its place; with `--folder`, the version folder's `script.ts` on
-//       the film's takes (no acts, no score, no scene draws it yet). The
-//       lab's `timeline` tool and the studio read it
+//       has its place; with `--folder`, the version folder's
+//       (`<film>/<folder>/`: its scenes, takes, acts and score, loaded as the
+//       film's are), or, for a folder that holds a script alone, its
+//       `script.ts` on the folder's own takes (no acts, no score, no scene
+//       draws it). The lab's `timeline` tool and the studio read it
 //   film read scenes <film>
 //       the film's scenes by id, in order, as `film journal` knows them: no
 //       timeline is resolved, so a scene that does not lay out still names
@@ -44,6 +46,7 @@
 
 import {
   Array as Arr,
+  Boolean as Bool,
   Effect,
   FileSystem,
   Layer,
@@ -64,6 +67,7 @@ import { Segment } from '../core/segment.ts';
 import { type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
 import type { StudioReading } from '../core/studio.ts';
 import { patchSpan, resolveTimeline, writtenPatch } from '../core/timeline.ts';
+import { ContentStore } from './content-store.ts';
 import { sceneReport } from './cues.ts';
 import { FilmModuleInvalid, type TalkUnvoiced } from './errors.ts';
 import {
@@ -520,45 +524,55 @@ const clock = Command.make(
     folder: Flag.String('folder').pipe(
       Flag.withSchema(Segment),
       Flag.optional,
-      Flag.withDescription("a version folder (`v3`): its script.ts on the film's takes"),
+      Flag.withDescription('a version folder (`v2`): its scenes, takes, acts and score'),
     ),
   },
   Effect.fn('film.read.clock')(function* (input) {
     const repo = yield* FilmRepo;
-    const loaded = yield* repo.load(input.film);
-    const read = yield* Option.match(input.folder, {
-      onNone: () =>
-        Effect.fromResult(
-          Result.flatMap(layout(untimed(loaded.scenes), loaded.timings), (placed) =>
-            filmClock(placed, {
-              acts: Option.match(loaded.look, { onNone: () => [], onSome: (look) => look.acts }),
-              movements: Option.getOrElse(
-                Option.flatMap(
-                  Option.flatMap(loaded.sound, (sound) => Option.fromUndefinedOr(sound.score)),
-                  (score) =>
-                    Option.map(
-                      Option.fromUndefinedOr(score.options[score.play]),
-                      (m) => m.movements,
-                    ),
-                ),
-                () => [],
-              ),
-              drawn: (p) => p.spec.storyboard !== true,
-            }),
-          ),
-        ),
-      onSome: (folder) =>
-        Effect.flatMap(repo.script(input.film, folder), (script) =>
-          Effect.fromResult(
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const at = (yield* FilmFolder).paths(input.film, Option.getOrUndefined(input.folder));
+    const scriptAlone =
+      Option.isSome(input.folder) && !(yield* fs.exists(path.join(at.dir, 'scenes', 'index.ts')));
+    const read = yield* Bool.match(scriptAlone, {
+      // A script written alone in its folder: its beats on the folder's own takes.
+      onTrue: () =>
+        Effect.gen(function* () {
+          const script = yield* repo.script(input.film, Option.getOrUndefined(input.folder));
+          const timings = yield* (yield* ContentStore).read(at.timings);
+          return yield* Effect.fromResult(
             Result.flatMap(
               layout(
                 Option.getOrElse(script, () => []),
-                loaded.timings,
+                timings,
               ),
               (placed) => filmClock(placed, { acts: [], movements: [], drawn: () => false }),
             ),
-          ),
-        ),
+          );
+        }),
+      onFalse: () =>
+        Effect.gen(function* () {
+          const loaded = yield* repo.load(input.film, Option.getOrUndefined(input.folder));
+          return yield* Effect.fromResult(
+            Result.flatMap(layout(untimed(loaded.scenes), loaded.timings), (placed) =>
+              filmClock(placed, {
+                acts: Option.match(loaded.look, { onNone: () => [], onSome: (look) => look.acts }),
+                movements: Option.getOrElse(
+                  Option.flatMap(
+                    Option.flatMap(loaded.sound, (sound) => Option.fromUndefinedOr(sound.score)),
+                    (score) =>
+                      Option.map(
+                        Option.fromUndefinedOr(score.options[score.play]),
+                        (m) => m.movements,
+                      ),
+                  ),
+                  () => [],
+                ),
+                drawn: (p) => p.spec.storyboard !== true,
+              }),
+            ),
+          );
+        }),
     });
     yield* printLine(ClockRead.make({ clock: read }));
   }, answering),
