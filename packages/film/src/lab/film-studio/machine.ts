@@ -1,12 +1,16 @@
 // The studio page's machines. One reads the film's timeline at the version
 // the address names and reads it again when the owner opens another
 // version; one follows the transport: paused, playing, or held by a scrub
-// (which resumes play on release when it interrupted it). Time itself is the
-// clock's (`clock.ts`), never a machine's state: it moves every frame.
+// (which remembers whether it cut play off; the page resumes play on
+// release, `context.tsx`). Time itself is the clock's (`clock.ts`), never a
+// machine's state: it moves every frame.
 //
 //   Timeline:  Reading ─Read→ Shown ─Version→ Reading
 //              Reading ─Unread→ Unreadable ─Retry | Version→ Reading
+//              Reading ─Version (another)→ Reading, its read started again
 //              Shown ─Version (the one shown)→ Shown
+//   A read's answer names its version: Reading hears only its own, so a
+//   read the owner left while it was in flight never shows.
 //   Transport: Paused ─Played→ Playing ─Paused→ Paused
 //              Paused | Playing ─Grab→ Scrubbing{resume} ─Release→ Paused
 //              Scrubbing hears no Played or Paused: the scrub holds the clock.
@@ -29,8 +33,10 @@ export const TimelineState = State({
 export type TimelineState = typeof TimelineState.Type;
 
 export const TimelineEvent = Event({
-  Read: { timeline: FilmTimeline },
-  Unread: { why: Schema.String },
+  /** Version `v`'s timeline, read. */
+  Read: { v: Schema.Int, timeline: FilmTimeline },
+  /** Version `v` could not be read: `why`. */
+  Unread: { v: Schema.Int, why: Schema.String },
   /** The owner opened version `v` (0: the open one). */
   Version: { v: Schema.Int },
   Retry: {},
@@ -47,22 +53,44 @@ const timelineMachine = <R>(
     event: TimelineEvent,
     initial: TimelineState.Reading({ v: first }),
   })
-    .task(TimelineState.Reading, ({ state }) => read(state.v), {
-      onSuccess: (timeline) => TimelineEvent.Read({ timeline }),
-      onFailure: (failure) => TimelineEvent.Unread({ why: failure.message }),
-    })
-    .on(TimelineState.Reading, TimelineEvent.Read, ({ state, event }) =>
-      TimelineState.Shown({ v: state.v, timeline: event.timeline }),
+    .task(
+      TimelineState.Reading,
+      ({ state }) =>
+        read(state.v).pipe(
+          Effect.map((timeline) => TimelineEvent.Read({ v: state.v, timeline })),
+          Effect.catch((failure) =>
+            Effect.succeed(TimelineEvent.Unread({ v: state.v, why: failure.message })),
+          ),
+        ),
+      { onSuccess: (event) => event },
     )
-    .on(TimelineState.Reading, TimelineEvent.Unread, ({ state, event }) =>
-      TimelineState.Unreadable({ v: state.v, why: event.why }),
+    .when(
+      TimelineState.Reading,
+      TimelineEvent.Read,
+      function readOfThisVersion({ state, event }) {
+        return event.v === state.v;
+      },
+      ({ state, event }) => TimelineState.Shown({ v: state.v, timeline: event.timeline }),
     )
-    .on(TimelineState.Reading, TimelineEvent.Version, ({ state, event }) =>
-      Bool.match(event.v === state.v, {
-        onTrue: (): TimelineState => state,
-        onFalse: () => TimelineState.Reading({ v: event.v }),
-      }),
+    .on(TimelineState.Reading, TimelineEvent.Read, ({ state }) => state)
+    .when(
+      TimelineState.Reading,
+      TimelineEvent.Unread,
+      function unreadOfThisVersion({ state, event }) {
+        return event.v === state.v;
+      },
+      ({ state, event }) => TimelineState.Unreadable({ v: state.v, why: event.why }),
     )
+    .on(TimelineState.Reading, TimelineEvent.Unread, ({ state }) => state)
+    .reenterWhen(
+      TimelineState.Reading,
+      TimelineEvent.Version,
+      function anotherVersion({ state, event }) {
+        return event.v !== state.v;
+      },
+      ({ event }) => TimelineState.Reading({ v: event.v }),
+    )
+    .on(TimelineState.Reading, TimelineEvent.Version, ({ state }) => state)
     .on(TimelineState.Shown, TimelineEvent.Version, ({ state, event }) =>
       Bool.match(event.v === state.v, {
         onTrue: (): TimelineState => state,
