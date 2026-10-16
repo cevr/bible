@@ -274,6 +274,7 @@ describe('mixPlan', () => {
     narration: 'n',
     soundDir: 's',
     play: Option.none<string>(),
+    inPlace: Option.none(),
     pieces: new Map(),
   };
   const keyOf = (music: Music) => musicKey(music, Result.getOrThrow(musicPlan(music, placed)));
@@ -741,6 +742,7 @@ describe('mixKey', () => {
         narration: '/box/narration',
         soundDir: '/box/sound',
         play: Option.none(),
+        inPlace: Option.none(),
         pieces: new Map(),
       }),
     );
@@ -773,6 +775,7 @@ describe("a talk's voice, played in pieces", () => {
         narration: 'n',
         soundDir: 's',
         play: Option.none(),
+        inPlace: Option.none(),
         pieces: new Map([['claim', { file, content, pieces }]]),
       }),
     );

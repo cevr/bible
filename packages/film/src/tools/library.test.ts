@@ -680,6 +680,30 @@ describe.concurrent('SoundLibrary', () => {
     30_000,
   );
 
+  it.effect.layer(fixture)(
+    'curates no take of a code sound or a recipe: its seeds play as its data says',
+    () =>
+      withLibrary(({ calls }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const kept = yield* Effect.flip(library.keep('tone.tick', ['a take']));
+          expect(kept).toMatchObject({
+            _tag: 'SoundKindMismatch',
+            name: 'tone.tick',
+            kind: 'code',
+            wanted: 'generated or recorded',
+          });
+          const unkept = yield* Effect.flip(library.unkeep('tone.chime', ['a take']));
+          expect(unkept).toMatchObject({ _tag: 'SoundKindMismatch', kind: 'procedural' });
+          const rejected = yield* Effect.flip(library.reject('tone.tick', ['a take']));
+          expect(rejected._tag).toBe('SoundKindMismatch');
+          const picked = yield* Effect.flip(library.takesAt('tone.chime', [1], 'kept'));
+          expect(picked._tag).toBe('SoundKindMismatch');
+          expect(calls).toHaveLength(0);
+        }),
+      ),
+  );
+
   it.effect.layer(fixture)('renders a code sound from its graph, each seed its own draw', () =>
     withLibrary(({ calls }) =>
       Effect.gen(function* () {

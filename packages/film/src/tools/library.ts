@@ -135,6 +135,7 @@ const soundsOf = (loaded: LoadedLibrary): Sounds => ({
   lock: loaded.lock,
   dir: loaded.paths.dir,
   code: loaded.code,
+  trials: loaded.trials,
   measured: new Map(),
 });
 
@@ -321,30 +322,31 @@ interface SoundLibraryService {
     among: 'candidates' | 'kept',
   ) => Effect.Effect<
     ReadonlyArray<string>,
-    LibraryError | UnknownSound | CandidateMissing | VariantMissing
+    LibraryError | UnknownSound | SoundKindMismatch | CandidateMissing | VariantMissing
   >;
   /**
    * Move candidates (by sha256, among those for the current request) into the
    * variants that play: beside the kept ones, or with `replace` in their place
    * (the variants they replace wait again as candidates). Each take is found
    * in the lock under its write lock, so a curation landing first cannot move
-   * another take into its place.
+   * another take into its place. A code sound or a recipe has no takes to
+   * curate (`SoundKindMismatch`): its seeds play as its data says.
    */
   readonly keep: (
     name: string,
     takes: ReadonlyArray<string>,
     replace?: boolean,
-  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | TakeUnknown>;
+  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | SoundKindMismatch | TakeUnknown>;
   /** Move kept variants (by sha256) back to the candidates waiting. */
   readonly unkeep: (
     name: string,
     takes: ReadonlyArray<string>,
-  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | TakeUnknown>;
+  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | SoundKindMismatch | TakeUnknown>;
   /** Drop candidates (by sha256), never to be offered again. */
   readonly reject: (
     name: string,
     takes: ReadonlyArray<string>,
-  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | TakeUnknown>;
+  ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | SoundKindMismatch | TakeUnknown>;
   /** A recording into a declared `recorded` sound: trimmed, resampled, kept as a variant under `public/`. */
   readonly importFile: (
     file: string,
@@ -665,6 +667,15 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           );
         });
 
+        /** `entry` when its takes are curated; a code sound's or a recipe's seeds play as its data says. */
+        const curatable = (name: string, entry: LibraryEntry) => {
+          if (isDerived(entry))
+            return Effect.fail(
+              SoundKindMismatch.make({ name, kind: entry.kind, wanted: 'generated or recorded' }),
+            );
+          return Effect.succeed(entry);
+        };
+
         /** `name`'s candidates for its current request, or its kept variants, as `lock` holds them. */
         const offeredIn = (
           entry: LibraryEntry,
@@ -681,7 +692,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           among: 'candidates' | 'kept',
         ) {
           const loaded = yield* load;
-          const entry = yield* entryOf(loaded, name);
+          const entry = yield* curatable(name, yield* entryOf(loaded, name));
           const offered = offeredIn(entry, Option.fromUndefinedOr(loaded.lock[name]), among);
           const chosen = yield* picked<CandidateMissing | VariantMissing>(
             offered,
@@ -708,7 +719,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         ) =>
           Effect.gen(function* () {
             const loaded = yield* load;
-            const entry = yield* entryOf(loaded, name);
+            const entry = yield* curatable(name, yield* entryOf(loaded, name));
             const next = yield* store.modify(paths.lock, (lock) => {
               const record = Option.fromUndefinedOr(lock[name]);
               const had = Option.getOrElse(record, () => emptyEntry);

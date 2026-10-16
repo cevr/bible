@@ -64,13 +64,8 @@ export const declares = <Id extends string, Groups extends HttpApiGroup.Constrai
  * measures the sounds a film places.
  */
 export const measuredSounds = (library: Library, lock: Lock, dir: string): Sounds => {
-  const bare: Sounds = {
-    library,
-    lock,
-    dir,
-    code: Result.getOrThrow(resolveCode(library)).code,
-    measured: new Map(),
-  };
+  const { code, trials } = Result.getOrThrow(resolveCode(library));
+  const bare: Sounds = { library, lock, dir, code, trials, measured: new Map() };
   const sources = Object.keys(library).flatMap((name) =>
     Option.match(Option.filter(soundEntry(library, name), isDerived), {
       onNone: () => [],

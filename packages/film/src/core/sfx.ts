@@ -21,6 +21,7 @@ import { describeSound } from './synth/analyse.ts';
 import { loudness } from './synth/loudness.ts';
 import { CodeSound } from './synth/graph/nodes.ts';
 import type { ResolvedSound } from './synth/graph/plan.ts';
+import type { ResolvedTrial } from './synth/resolve.ts';
 import { portOf } from './synth/graph/presets.ts';
 import { RENDER_VERSION, renderCode } from './synth/graph/render.ts';
 import { Recipe, synthesize } from './synth/recipes.ts';
@@ -532,6 +533,12 @@ export interface Sounds {
   readonly dir: string;
   /** Each code sound, resolved: its graph and the sounds it samples (core/synth/resolve.ts). */
   readonly code: ReadonlyMap<string, ResolvedSound>;
+  /**
+   * Each code trial, resolved, by its sound's name: heard beside what plays
+   * (Choices, `sfx compare`), never placed. A mix plays a trial's seed only
+   * where it is asked to play it in its sound's place (`film options mix`).
+   */
+  readonly trials: ReadonlyMap<string, ResolvedTrial>;
   /** Each derived variant measured, by its source's label: those of the sounds being played. */
   readonly measured: ReadonlyMap<string, Measure>;
 }
@@ -542,6 +549,7 @@ export const NO_SOUNDS: Sounds = {
   lock: {},
   dir: '',
   code: new Map(),
+  trials: new Map(),
   measured: new Map(),
 };
 
@@ -609,6 +617,60 @@ export const seedSources = (
     Option.toArray(seedSource(sounds, name, entry, seed)),
   );
 
+/** A sound's code trial's seeds 1…n as sources; none when it has no trial. */
+export const trialSources = (sounds: Sounds, name: string): ReadonlyArray<DerivedSource> =>
+  Option.match(Option.fromUndefinedOr(sounds.trials.get(name)), {
+    onNone: () => [],
+    onSome: (trial) =>
+      Arr.range(1, trial.variants).map((seed): DerivedSource => ({
+        _tag: 'Code',
+        sound: trial.sound,
+        seed,
+      })),
+  });
+
+/**
+ * What of `name` is heard from its data, each by its source's label: a
+ * derived sound's seeds, then its code trial's.
+ */
+const heardSources = (sounds: Sounds, name: string): ReadonlyArray<DerivedSource> => [
+  ...Option.match(Option.filter(soundEntry(sounds.library, name), isDerived), {
+    onNone: () => [],
+    onSome: (entry) => seedSources(sounds, name, entry),
+  }),
+  ...trialSources(sounds, name),
+];
+
+/** The seed of `name` (its own, or its code trial's) whose source's label is `label`. */
+export const heardSource = (
+  sounds: Sounds,
+  name: string,
+  label: string,
+): Option.Option<DerivedSource> =>
+  Arr.findFirst(heardSources(sounds, name), (source) => sourceLabel(source) === label);
+
+/** A kept or waiting variant as it plays: its file in the library's folder, as the lock measured it. */
+export const variantPlayable = (sounds: Sounds, variant: Variant): Playable => ({
+  source: fileSource(`${sounds.dir}/${variant.file}`),
+  loudness: variant.loudness,
+  onset: Option.fromUndefinedOr(variant.onset),
+  hit: Option.fromUndefinedOr(variant.hit),
+});
+
+/** A derived source as it plays, measured as `measured` says. */
+export const derivedPlayable = (source: DerivedSource, measured: Measure): Playable => ({
+  source,
+  loudness: measured.loudness,
+  onset: Option.some(measured.onset),
+  hit: Option.some(measured.hit),
+});
+
+/** A derived source as it plays, as `sounds` measured it; none until it is measured. */
+const measuredPlayable = (sounds: Sounds, source: DerivedSource): Option.Option<Playable> =>
+  Option.map(Option.fromUndefinedOr(sounds.measured.get(sourceLabel(source))), (measured) =>
+    derivedPlayable(source, measured),
+  );
+
 /** The library's names a film's sound plays: each bed's and each effect's, once each. */
 export const placedSounds = (sound: Sound): ReadonlyArray<string> =>
   Arr.dedupe([
@@ -636,28 +698,13 @@ export const playablesOf = (
 ): ReadonlyArray<Playable> => {
   if (isDerived(entry))
     return seedSources(sounds, name, entry).flatMap((source) =>
-      Option.match(Option.fromUndefinedOr(sounds.measured.get(sourceLabel(source))), {
-        onNone: (): ReadonlyArray<Playable> => [],
-        onSome: (measured) => [
-          {
-            source,
-            loudness: measured.loudness,
-            onset: Option.some(measured.onset),
-            hit: Option.some(measured.hit),
-          },
-        ],
-      }),
+      Option.toArray(measuredPlayable(sounds, source)),
     );
   const kept = Option.match(Option.fromUndefinedOr(sounds.lock[name]), {
     onNone: (): ReadonlyArray<Variant> => [],
     onSome: (l) => l.variants,
   });
-  return kept.map((v) => ({
-    source: fileSource(`${sounds.dir}/${v.file}`),
-    loudness: v.loudness,
-    onset: Option.fromUndefinedOr(v.onset),
-    hit: Option.fromUndefinedOr(v.hit),
-  }));
+  return kept.map((v) => variantPlayable(sounds, v));
 };
 
 // ---------------------------------------------------------------------------

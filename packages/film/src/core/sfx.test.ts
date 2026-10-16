@@ -14,6 +14,7 @@ import {
   influenceOf,
   defineLibrary,
   gainFor,
+  heardSource,
   jitterOf,
   levelOf,
   lockLoudness,
@@ -22,8 +23,12 @@ import {
   requestKey,
   resolveSound,
   resolveUse,
+  seedSources,
   soundState,
+  sourceLabel,
+  trialSources,
 } from './sfx.ts';
+import { measuredSounds } from './testing.ts';
 
 const library = defineLibrary({
   'paper.slide': {
@@ -268,6 +273,41 @@ describe('soundState', () => {
   test('kept variants for this request are current', () => {
     const lock = Option.some({ variants: [made(requestKey(slide))], candidates: [], rejected: [] });
     expect(soundState(slide, lock)).toEqual({ _tag: 'Current', variants: 1, candidates: 0 });
+  });
+});
+
+describe('heardSource', () => {
+  const tick = (pitch: string) =>
+    ({ play: { _tag: 'Partials', pitch, set: 'glass', secs: 0.1 } }) as const;
+  const heard = defineLibrary({
+    'tone.tick': { kind: 'code', sound: tick('E5'), variants: 2, use: 'one-shot' },
+    'tone.chime': {
+      kind: 'generated',
+      prompt: 'a chime',
+      why: 'a test sound',
+      secs: 1,
+      use: 'one-shot',
+      code: { sound: tick('A4'), variants: 3 },
+    },
+  });
+  const sounds = measuredSounds(heard, {}, '');
+  const own = seedSources(sounds, 'tone.tick', heard['tone.tick']);
+  const trial = trialSources(sounds, 'tone.chime');
+
+  test("finds a seed by its source's label: a code sound's own, a code trial's", () => {
+    expect([own.length, trial.length]).toEqual([2, 3]);
+    expect(trialSources(sounds, 'tone.tick')).toEqual([]);
+    expect(heardSource(sounds, 'tone.tick', sourceLabel(own[1]!))).toEqual(Option.some(own[1]!));
+    expect(heardSource(sounds, 'tone.chime', sourceLabel(trial[2]!))).toEqual(
+      Option.some(trial[2]!),
+    );
+  });
+
+  test("never another sound's seed, a seed past its own, or a take's sha256", () => {
+    expect(heardSource(sounds, 'tone.chime', sourceLabel(own[0]!))).toEqual(Option.none());
+    const past = sourceLabel({ ...own[1]!, seed: 3 });
+    expect(heardSource(sounds, 'tone.tick', past)).toEqual(Option.none());
+    expect(heardSource(sounds, 'paper.slide', '7e41c0a9d2f3aa')).toEqual(Option.none());
   });
 });
 

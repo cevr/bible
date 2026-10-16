@@ -27,7 +27,7 @@ import {
 const film = testFilm([{ id: 'a', min: 20 }], { voice: '', scenes: {} });
 
 /** The film's own plan: no score option or take in place of its own. */
-const NOW = { score: Option.none<string>(), take: Option.none() };
+const NOW = { score: Option.none<string>(), inPlace: Option.none() };
 
 /** The film's track as `mix` leaves it: the WAV, and its stamp for the plan the film plays now. */
 const mixed = (files: Map<string, Uint8Array>, rendered: LoadedFilm = film) =>

@@ -39,7 +39,7 @@ const recorded: Timings = {
 };
 const film = testFilm(scenes, recorded);
 const placed = Result.getOrThrow(layout(scenes, recorded));
-const NOW = { score: Option.none<string>(), take: Option.none() };
+const NOW = { score: Option.none<string>(), inPlace: Option.none() };
 
 /** The same film in a folder on Windows. */
 const onWindows: LoadedFilm = {

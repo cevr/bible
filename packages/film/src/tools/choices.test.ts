@@ -1,6 +1,7 @@
 // The Choices service at its own boundary, over fakes: a film in memory, its
 // takes made by the real Takes (fake media and transcriber), its writes and
-// their Undo by the real SourceWriter (oxfmt leaves a text as it is), and the
+// their Undo by the real SourceWriter (oxfmt leaves a text as it is), the
+// review's cache made once per name (as `Review.derive` makes it), and the
 // fresh process answered in this one, as `film options` would over the same
 // files. No network, no ffmpeg, no film CLI.
 
@@ -10,6 +11,7 @@ import { withSay } from '../core/choice.ts';
 import { pointIdOf } from '../core/point.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
+import { LockJson, type Variant } from '../core/sfx.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { Choices } from './choices.ts';
 import { ContentStore } from './content-store.ts';
@@ -17,6 +19,7 @@ import { FilmFolder, FilmName, FilmRepo, masterFile } from './film-repo.ts';
 import type { FreshFilmService } from './fresh-film.ts';
 import { NO_SCORES } from './media-store.ts';
 import { voicedOf } from './narrator.ts';
+import { Review } from './review.ts';
 import { SourceWriter } from './source-writer.ts';
 import { Takes } from './takes.ts';
 import {
@@ -88,6 +91,31 @@ const scorePoints = () =>
     }),
   ]);
 
+/** The app's sound library folder: its lock holds one take of `tone.tick` from before it was code. */
+const LIBRARY = '/lib';
+
+/** The take the lock holds. */
+const EARLIER: Variant = {
+  request: 'a request from before',
+  file: 'files/tone.tick/earlier.flac',
+  sha256: 'earlier',
+  made: '2026-09-30T00:00:00Z',
+  model: 'eleven_text_to_sound_v2',
+  format: 'pcm_44100',
+  secs: 1,
+  loudness: { integrated: -24, momentaryMax: -20, peak: -3 },
+  licence: 'elevenlabs-paid-sfx',
+  credits: 40,
+};
+
+/** A `film options sound` the fresh process ran: where it was asked to write the seed. */
+interface Sounded {
+  readonly film: string;
+  readonly point: string;
+  readonly variant: string;
+  readonly to: string;
+}
+
 const setup = (
   /** What `film mix` does: a test that watches a remake holds it. */
   remixing: Effect.Effect<void> = Effect.void,
@@ -95,6 +123,8 @@ const setup = (
   points: Option.Option<FreshFilmService['choices']> = Option.none(),
   /** What the transcriber hears a reading of the line as; the line itself when none. */
   heardAs: Option.Option<string> = Option.none(),
+  /** What `film options sound` does before it writes the seed: a test that watches a render holds it. */
+  sounding: Effect.Effect<void> = Effect.void,
 ) => {
   const files = new Map<string, Uint8Array>([
     [TIMINGS, text(Schema.encodeSync(TimingsJson)(staged))],
@@ -103,7 +133,16 @@ const setup = (
     // Two readings of the line: other audio, the same words heard.
     ['/rec/a1.wav', text('Hello world.')],
     ['/rec/a2.wav', text('Hello world, again.')],
+    [
+      `${LIBRARY}/library.lock.json`,
+      text(
+        Schema.encodeSync(LockJson)({
+          'tone.tick': { variants: [EARLIER], candidates: [], rejected: [] },
+        }),
+      ),
+    ],
   ]);
+  const sounded: Array<Sounded> = [];
   // Each mix lands the track anew: its mtime is the number of mixes made.
   const mtimes = new Map<string, number>();
   const landTrack = Effect.sync(() => {
@@ -136,31 +175,58 @@ const setup = (
     FilmFolder.of({
       paths: () => film.paths,
       names: Effect.succeed([film.paths.name]),
-      sounds: Option.none(),
+      sounds: Option.some(LIBRARY),
       footage: Option.none(),
       stamp: () => Effect.succeed(1),
     }),
   );
-  // The fresh process, run here over the same files: `film options list` and `keep-voice`.
+  // The fresh process, run here over the same files: `film options list`, `keep-voice` and `sound`.
   const fresh = Layer.unwrap(
     Effect.map(Effect.context<FilmRepo | Takes>(), (context) =>
       freshFilm({
         choices: Option.getOrElse(points, () => voicesHere(context)),
         keepVoice: keepVoiceHere(context),
         remix: () => Effect.andThen(remixing, landTrack),
+        sound: (film, point, variant, to) =>
+          Effect.andThen(
+            sounding,
+            Effect.sync(() => {
+              sounded.push({ film, point, variant, to });
+              files.set(to, text(variant));
+            }),
+          ),
       }),
     ),
   );
+  // The review's cache: a file there already, or made into a partial and renamed into place.
+  const cache = Layer.effect(
+    Review,
+    Effect.gen(function* () {
+      const review = yield* Review;
+      return Review.of({
+        ...review,
+        derive: (name, make) =>
+          Effect.gen(function* () {
+            const out = `/cache/${name}`;
+            if (files.has(out)) return out;
+            yield* make(`${out}.partial`);
+            files.set(out, files.get(`${out}.partial`) ?? new Uint8Array());
+            files.delete(`${out}.partial`);
+            return out;
+          }),
+      });
+    }),
+  ).pipe(Layer.provide(noRenders));
   const layer = Choices.layer.pipe(
     Layer.provideMerge(fresh),
     Layer.provideMerge(
-      Layer.mergeAll(Takes.layer, SourceWriter.layer, RenderCatalogue.layer, noRenders),
+      Layer.mergeAll(Takes.layer, SourceWriter.layer, RenderCatalogue.layer, cache),
     ),
     Layer.provideMerge(Layer.mergeAll(repo, folder)),
     Layer.provideMerge(storeLayer(files)),
     Layer.provideMerge(base),
   );
-  return { files, layer };
+  return { files, layer, sounded };
 };
 
 /** The film's timings as they are stored now. */
@@ -394,3 +460,93 @@ const takesIn = (files: ReadonlyMap<string, Uint8Array>) =>
   [...files.keys()]
     .filter((f) => f.startsWith(`${NARRATION}/a.`))
     .map((f) => f.slice(NARRATION.length + 1));
+
+describe('Choices: a seed of a sound made from data', () => {
+  const POINT = pointIdOf({ _tag: 'Take', sound: 'tone.tick' });
+  const SEED = 'code:render:graph/1';
+  const heard = { _tag: 'Heard' as const, alone: true, inPlace: true };
+  /** `tone.tick`'s point as `film options list` offers a code sound's: its seed, and the take its lock holds. */
+  const seedPoints = () =>
+    Effect.succeed([
+      withSay(Option.none(), {
+        ref: { _tag: 'Take', sound: 'tone.tick' },
+        address: Option.some({ _tag: 'Film' }),
+        title: 'tone.tick',
+        lines: [],
+        variants: [
+          {
+            id: SEED,
+            label: 'seed 1',
+            lines: [],
+            state: 'current',
+            picked: true,
+            verbs: [],
+            fixed: Option.some('a code sound is tuned by editing its data'),
+            media: heard,
+            key: SEED,
+          },
+          {
+            id: EARLIER.sha256,
+            label: 'was 1',
+            lines: [],
+            state: 'stale',
+            picked: false,
+            verbs: [],
+            fixed: Option.some('a code sound is tuned by editing its data: its seeds play'),
+            media: heard,
+            key: EARLIER.sha256,
+          },
+        ],
+      }),
+    ]);
+
+  it.effect('takes no verb, and the refusal says why', () => {
+    const { layer } = setup(Effect.void, Option.some(seedPoints));
+    return Effect.gen(function* () {
+      const refused = yield* Effect.flip(
+        (yield* Choices).pick(F, { point: POINT, variant: SEED, verb: 'reject' }),
+      );
+      expect(refused).toMatchObject({
+        _tag: 'VerbRefused',
+        verb: 'reject',
+        reason: 'a code sound is tuned by editing its data',
+      });
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect(
+    "is heard alone as the film CLI renders it, into the review's cache once for two asks at once",
+    () => {
+      const [started, release] = [Deferred.makeUnsafe<boolean>(), Deferred.makeUnsafe<boolean>()];
+      const { layer, sounded } = setup(
+        Effect.void,
+        Option.some(seedPoints),
+        Option.none(),
+        Effect.andThen(Deferred.succeed(started, true), Deferred.await(release)),
+      );
+      return Effect.gen(function* () {
+        const choices = yield* Choices;
+        const first = yield* Effect.forkChild(choices.alone(F, POINT, SEED));
+        yield* Deferred.await(started);
+        const second = yield* Effect.forkChild(choices.alone(F, POINT, SEED));
+        yield* Deferred.succeed(release, true);
+        const [one, two] = yield* Effect.all([Fiber.join(first), Fiber.join(second)]);
+        expect(two).toBe(one);
+        // Named by the label alone: it names the data and the renderer, so the file never goes stale.
+        expect(one).toMatch(/^\/cache\/sound\/[0-9a-f]{20}\.wav$/);
+        expect(sounded).toEqual([
+          { film: 'test', point: POINT, variant: SEED, to: `${one}.partial` },
+        ]);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
+  it.effect('a take its lock holds is its own file, never rendered', () => {
+    const { layer, sounded } = setup(Effect.void, Option.some(seedPoints));
+    return Effect.gen(function* () {
+      const file = yield* (yield* Choices).alone(F, POINT, EARLIER.sha256);
+      expect(file).toBe(`${LIBRARY}/${EARLIER.file}`);
+      expect(sounded).toEqual([]);
+    }).pipe(Effect.provide(layer));
+  });
+});

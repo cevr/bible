@@ -10,7 +10,11 @@
 //   operations (`SoundLibrary.keep`/`unkeep`/`reject`) by the film CLI in a
 //   fresh process (the library's prompts are its sources too), recorded
 //   around the lock's rewrite by the SourceWriter, so it is undone the same
-//   way;
+//   way. A seed of a sound made from data (a code sound's, a recipe's, a code
+//   trial's) takes no verb: it is tuned by editing that data (its `fixed`
+//   says so). It is heard alone as the film CLI renders it in a fresh process
+//   (`film options sound`), once into the review's cache under its label,
+//   which names the data and the renderer;
 // - voice: an attempt kept as its beat's take by `keepVoice`, the one way an
 //   attempt becomes a take, which the studio's keep and its posted take call
 //   too: by the film CLI in a fresh process (it reads the script, and
@@ -144,12 +148,12 @@ interface ChoicesService {
     film: FilmName,
     asked: SayPost,
   ) => Effect.Effect<FilmChoices, ChoicesError | CatalogueError>;
-  /** A variant's own file: a take's, an attempt's. */
+  /** A variant's own file: a take's, an attempt's, or a seed's, rendered once into the review's cache. */
   readonly alone: (
     film: FilmName,
     point: string,
     variant: string,
-  ) => Effect.Effect<string, ChoicesError>;
+  ) => Effect.Effect<string, ChoicesError | ReviewToolFailed>;
   /** The film's whole mix with the variant in place, as an m4a in the review's cache. */
   readonly inPlace: (
     film: FilmName,
@@ -228,6 +232,10 @@ export const verbFits = (
   verb: ChoiceVerb,
 ): Result.Result<void, VerbRefused> => {
   if (variant.verbs.includes(verb)) return Result.void;
+  if (Option.isSome(variant.fixed))
+    return Result.fail(
+      VerbRefused.make({ point: point.id, variant: variant.id, verb, reason: variant.fixed.value }),
+    );
   const standing = Match.value(variant.picked).pipe(
     Match.when(true, () => `it is picked`),
     Match.orElse(() => `it is ${variant.state}, not picked`),
@@ -333,6 +341,8 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
       const fresh = yield* FreshFilm;
       const catalogues = yield* RenderCatalogue;
       const takes = yield* Takes;
+      /** The seeds being rendered alone, by file, in the service's scope (as `mixing`). */
+      const sounding = yield* FiberMap.make<string, string, FreshError | ReviewToolFailed>();
       /** What `keepVoice` runs with. */
       const keeping = yield* Effect.context<
         FileSystem.FileSystem | FilmFolder | SourceWriter | FreshFilm | Takes
@@ -608,10 +618,15 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         const take = Option.flatMap(Option.fromUndefinedOr(lock[name]), (entry) =>
           Arr.findFirst([...entry.variants, ...entry.candidates], (v) => v.sha256 === variant),
         );
-        return yield* Option.match(take, {
-          onNone: () => Effect.fail(unheard()),
-          onSome: (t) => Effect.succeed(path.join(path.dirname(manifest.file), t.file)),
-        });
+        if (Option.isSome(take)) return path.join(path.dirname(manifest.file), take.value.file);
+        // Any other variant of a take point is a seed. Its label names its
+        // data and the renderer, so the file made for it never goes stale.
+        const file = `sound/${cacheKey([variant])}.wav`;
+        return yield* once(
+          sounding,
+          file,
+          review.derive(file, (temporary) => fresh.sound(film, point, variant, temporary)),
+        );
       });
 
       /** The mix `name` made in a fresh process: the film's with `variant` of `point` in place. */

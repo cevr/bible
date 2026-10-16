@@ -67,6 +67,9 @@ export class OptionsChecked extends Schema.TaggedClass<OptionsChecked>()('Option
 /** `film options mix`'s answer: the mix is written where it was asked. */
 export class OptionsMixed extends Schema.TaggedClass<OptionsMixed>()('OptionsMixed', {}) {}
 
+/** `film options sound`'s answer: the seed is written where it was asked, as a WAV. */
+export class OptionsSounded extends Schema.TaggedClass<OptionsSounded>()('OptionsSounded', {}) {}
+
 /**
  * `film options keep-voice`'s answer: the attempt is the beat's take, and the
  * track remixed. A film CLI older than this lab answers `mixed` alone; the
@@ -185,6 +188,7 @@ const FreshLine = Schema.Union([
   OptionsListed,
   OptionsChecked,
   OptionsMixed,
+  OptionsSounded,
   OptionsKept,
   OptionsTaken,
   ProjectRead,
@@ -323,6 +327,17 @@ export interface FreshFilmService {
   readonly checked: (film: FilmName) => Effect.Effect<OptionsChecked, FreshError>;
   /** The film's whole mix with `variant` of `point` in place, written to `to` as an m4a. */
   readonly mix: (
+    film: FilmName,
+    point: string,
+    variant: string,
+    to: string,
+  ) => Effect.Effect<void, FreshError>;
+  /**
+   * A seed of a sound made from data (`variant`, its source's label: a code
+   * sound's, a recipe's, a code trial's) of the take point `point`, rendered
+   * alone and written to `to` as a WAV.
+   */
+  readonly sound: (
     film: FilmName,
     point: string,
     variant: string,
@@ -487,6 +502,19 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           );
         });
 
+        const sound = Effect.fn('FreshFilm.sound')(function* (
+          film: FilmName,
+          point: string,
+          variant: string,
+          to: string,
+        ) {
+          yield* ask(
+            ['options', 'sound', film, '--point', point, '--variant', variant, '--to', to],
+            READ_LIMIT,
+            OptionsSounded,
+          );
+        });
+
         const keepVoice = Effect.fn('FreshFilm.keepVoice')(function* (
           film: FilmName,
           beat: string,
@@ -613,6 +641,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           choices,
           checked,
           mix,
+          sound,
           keepVoice,
           take,
           reading,

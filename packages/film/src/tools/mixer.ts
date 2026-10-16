@@ -9,12 +9,22 @@
 // streams and the renderer encodes a video's audio from. Remixing never calls
 // a paid API.
 
-import { Context, Effect, FileSystem, Layer, Option, Result, Schema } from 'effect';
+import {
+  Array as Arr,
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  type Result,
+  Schema,
+} from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, levels } from '../core/audio.ts';
 import type { Placed } from '../core/layout.ts';
 import {
   type BedSpan,
+  type InPlace,
   MIX_RATE,
   type MixPlan,
   type MixPlanError,
@@ -27,7 +37,16 @@ import {
   renderMix,
 } from '../core/mix.ts';
 import { repoJson } from '../core/schema.ts';
-import { type DerivedSource, type SoundSource, type Sounds, fileSource } from '../core/sfx.ts';
+import {
+  type DerivedSource,
+  type Measure,
+  type SoundSource,
+  type Sounds,
+  derivedPlayable,
+  fileSource,
+  heardSource,
+  variantPlayable,
+} from '../core/sfx.ts';
 import {
   ContentStore,
   type Manifest,
@@ -141,32 +160,48 @@ interface RenderOptions {
   readonly warn: boolean;
   /** The score option to play in place of the one the score names. */
   readonly score: Option.Option<string>;
-  /** One take of a library sound to play at each of its placements, in place of its kept ones. */
+  /** One variant of a library sound to play at each of its placements, in place of its own. */
   readonly take: Option.Option<TakeInPlace>;
 }
 
-/** A take of a library sound, by its sha256, heard where the film plays that sound. */
+/**
+ * A variant of a library sound heard where the film plays that sound, by its
+ * id: a take's sha256 (kept or waiting), or a seed's source label (a code
+ * sound's, a recipe's, a code trial's).
+ */
 interface TakeInPlace {
   readonly sound: string;
   readonly take: string;
 }
 
+/** What a plan plays in place of the film's own: a score option, one sound's variant. */
+interface PlanOptions {
+  readonly score: Option.Option<string>;
+  readonly inPlace: Option.Option<InPlace>;
+}
+
 /**
- * `sounds` with `sound` playing only the take `take` names (kept or waiting),
- * at every placement; `TakeUnknown` when it has no such take.
+ * `take` as it plays in its sound's place: a kept or waiting take by its
+ * sha256, else a seed by its source's label, measured (`measure`);
+ * `TakeUnknown` when the sound has neither.
  */
-const withTake = (sounds: Sounds, take: TakeInPlace): Result.Result<Sounds, TakeUnknown> => {
-  const entry = Option.fromUndefinedOr(sounds.lock[take.sound]);
-  const found = Option.flatMap(entry, (e) =>
-    Option.fromUndefinedOr([...e.variants, ...e.candidates].find((v) => v.sha256 === take.take)),
+const inPlaceOf = (
+  measure: (source: DerivedSource) => Effect.Effect<Measure>,
+  sounds: Sounds,
+  take: TakeInPlace,
+): Effect.Effect<InPlace, TakeUnknown> => {
+  const kept = Option.flatMap(Option.fromUndefinedOr(sounds.lock[take.sound]), (entry) =>
+    Arr.findFirst([...entry.variants, ...entry.candidates], (v) => v.sha256 === take.take),
   );
-  return Option.match(Option.all([entry, found]), {
-    onNone: () => Result.fail(TakeUnknown.make(take)),
-    onSome: ([e, variant]) =>
-      Result.succeed({
-        ...sounds,
-        lock: { ...sounds.lock, [take.sound]: { ...e, variants: [variant] } },
-      }),
+  if (Option.isSome(kept))
+    return Effect.succeed({ sound: take.sound, playable: variantPlayable(sounds, kept.value) });
+  return Option.match(heardSource(sounds, take.sound, take.take), {
+    onNone: () => Effect.fail(TakeUnknown.make(take)),
+    onSome: (source) =>
+      Effect.map(measure(source), (measured) => ({
+        sound: take.sound,
+        playable: derivedPlayable(source, measured),
+      })),
   });
 };
 
@@ -293,41 +328,31 @@ const presentOnly = (
     };
   });
 
-/** `film`'s plan, by source, with `options`' score or take in place of its own. Pure. */
+/** `film`'s plan, by source, with `options`' score or variant in place of its own. Pure. */
 export const planOf = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
-  options: Pick<RenderOptions, 'score' | 'take'>,
-): Result.Result<MixPlan<SoundSource>, MixPlanError | TakeUnknown> =>
-  Result.flatMap(
-    Option.match(options.take, {
-      onNone: () => Result.succeed(film.sounds),
-      onSome: (take) => withTake(film.sounds, take),
-    }),
-    (sounds) =>
-      mixPlan({
-        film: film.paths.name,
-        placed,
-        sound: film.sound,
-        manifest: film.manifest,
-        sounds,
-        narration: film.paths.narration,
-        soundDir: film.paths.sound,
-        play: options.score,
-        pieces: voicePiecesOf(film),
-      }),
-  );
+  options: PlanOptions,
+): Result.Result<MixPlan<SoundSource>, MixPlanError> =>
+  mixPlan({
+    film: film.paths.name,
+    placed,
+    sound: film.sound,
+    manifest: film.manifest,
+    sounds: film.sounds,
+    narration: film.paths.narration,
+    soundDir: film.paths.sound,
+    play: options.score,
+    inPlace: options.inPlace,
+    pieces: voicePiecesOf(film),
+  });
 
 /** What `film` mixes to now: its plan (`planOf`), less the files not on disk, each named in a warning. */
 const filmPlan = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
-  options: Pick<RenderOptions, 'score' | 'take'>,
-): Effect.Effect<
-  MixPlan<SoundSource>,
-  MixPlanError | TakeUnknown | PlatformError,
-  FileSystem.FileSystem
-> =>
+  options: PlanOptions,
+): Effect.Effect<MixPlan<SoundSource>, MixPlanError | PlatformError, FileSystem.FileSystem> =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const planned = yield* Effect.fromResult(planOf(film, placed, options));
@@ -343,7 +368,7 @@ export const planKey = (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
 ): Effect.Effect<Option.Option<string>, never, FileSystem.FileSystem> =>
-  filmPlan(film, placed, { score: Option.none(), take: Option.none() }).pipe(
+  filmPlan(film, placed, { score: Option.none(), inPlace: Option.none() }).pipe(
     Effect.map(mixKey),
     Effect.option,
   );
@@ -378,7 +403,10 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
       const render = Effect.fn('Mixer.render')(function* (name: string, options: RenderOptions) {
         const film = yield* repo.load(name);
         const placed = yield* placeFilm(film);
-        const present = yield* filmPlan(film, placed, options).pipe(
+        const inPlace = yield* Effect.transposeOption(
+          Option.map(options.take, (take) => inPlaceOf(made.measure, film.sounds, take)),
+        );
+        const present = yield* filmPlan(film, placed, { score: options.score, inPlace }).pipe(
           Effect.provideService(FileSystem.FileSystem, fs),
         );
         if (options.warn) for (const warning of present.warnings) yield* Effect.logWarning(warning);

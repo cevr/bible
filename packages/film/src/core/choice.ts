@@ -63,7 +63,10 @@ export type VariantMedia = typeof VariantMedia.Type;
 
 /** One variant of a choice point. */
 export const ChoiceVariant = Schema.Struct({
-  /** Its name at its point: an option's, a take's sha256, an attempt's file, a render's variant. */
+  /**
+   * Its name at its point: an option's, a take's sha256, a seed's source label
+   * (`sourceLabel`), an attempt's file, a render's variant.
+   */
   id: Schema.String,
   label: Schema.String,
   /** What it is, a line each: its styles, its length and loudness, its size and commit. */
@@ -74,8 +77,13 @@ export const ChoiceVariant = Schema.Struct({
   picked: Schema.Boolean,
   /** The verbs its state allows. */
   verbs: Schema.Array(ChoiceVerb),
+  /**
+   * Why no verb reaches it, when none can: a seed of a sound made from data,
+   * or of a code trial, is tuned by editing that data, never kept or rejected.
+   */
+  fixed: maybe(Schema.String),
   media: VariantMedia,
-  /** What it is now, which the owner's say is given on (a render's stamp key, a take's sha256). */
+  /** What it is now, which the owner's say is given on (a render's stamp key, a take's sha256, a seed's label). */
   key: Schema.String,
   approval: ApprovalState,
   comments: Schema.Array(SaidComment),
@@ -156,9 +164,13 @@ export const ChoicePoint = Schema.Struct(pointFields).pipe(
 export type ChoicePoint = typeof ChoicePoint.Type;
 
 /** A variant as its adapter describes it, before the owner's say is read. */
-export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes' | 'staleBy'> & {
+export type VariantDraft = Omit<
+  ChoiceVariant,
+  'approval' | 'comments' | 'notes' | 'staleBy' | 'fixed'
+> & {
   readonly notes?: Option.Option<ReviewFile>;
   readonly staleBy?: Option.Option<StaleBy>;
+  readonly fixed?: Option.Option<string>;
 };
 
 /** A point's ref, with its id and kind, both read off it. */
@@ -252,6 +264,7 @@ export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft):
         ...variant,
         notes: variant.notes ?? Option.none(),
         staleBy: variant.staleBy ?? Option.none(),
+        fixed: variant.fixed ?? Option.none(),
         approval: Option.match(said, {
           onNone: (): ApprovalState => 'none',
           onSome: ({ cat, subject }) => approvalState(cat, subject),

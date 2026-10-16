@@ -1,6 +1,6 @@
 // `film options`: a film's choice points read, a mix of one variant made, a
-// library take kept, unkept or rejected, and a beat's attempt kept, in this
-// process, as the film's sources stand on disk. The review runs these in a
+// seed rendered alone, a library take kept, unkept or rejected, and a beat's
+// attempt kept, in this process, as the film's sources stand on disk. The review runs these in a
 // fresh process (`FreshFilm`, `fresh-film.ts`) because its own imports of the
 // film and the app's sound library are as they were at its start. Each prints
 // one line of JSON (`FreshLine`) on stdout: its answer, or the failure it
@@ -12,8 +12,12 @@
 //       voices, levels, each with the owner's approvals and comments; with
 //       --check, the static check of the same sources beside them
 //   film options mix <film> --point <id> --variant <id> --to <file.m4a>
-//       the film's whole mix with that variant in place (a score option, a
-//       take at every placement of its sound), written as an m4a
+//       the film's whole mix with that variant in place (a score option; a
+//       take, or a seed by its source's label, at every placement of its
+//       sound), written as an m4a
+//   film options sound <film> --point take:<sound> --variant <label> --to <file.wav>
+//       a seed of a sound made from data (a code sound's, a recipe's, a code
+//       trial's), by its source's label, rendered alone and written as a WAV
 //   film options take <film> --point take:<sound> --variant <sha256> --verb pick|unpick|reject
 //       the take kept, unkept or rejected through the library, as it stands
 //   film options keep-voice <film> <beat> <file> [--accept-mismatch]
@@ -29,6 +33,7 @@ import { RenderCatalogue } from './catalogue.ts';
 import { type BeatAttempts, filmPoints } from './choice-points.ts';
 import { offered, verbFits } from './choices.ts';
 import { VerbRefused } from '../core/refusals.ts';
+import { heardSource } from '../core/sfx.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { staticLeg } from './film-check.ts';
 import { lineOf, report } from './findings.ts';
@@ -37,6 +42,7 @@ import {
   OptionsKept,
   OptionsListed,
   OptionsMixed,
+  OptionsSounded,
   OptionsTaken,
   answering,
   printLine,
@@ -45,6 +51,7 @@ import { SoundLibrary } from './library.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
 import { beatsOf, voicedOf } from './narrator.ts';
+import { SoundRender } from './sound-render.ts';
 import { Takes } from './takes.ts';
 
 const film = Argument.String('film').pipe(
@@ -157,7 +164,7 @@ const mix = Command.make(
     film,
     point: Flag.String('point').pipe(Flag.withDescription('the choice point: score, take:<sound>')),
     variant: Flag.String('variant').pipe(
-      Flag.withDescription('the variant to play: a score option, a take sha256'),
+      Flag.withDescription("the variant to play: a score option, a take sha256, a seed's label"),
     ),
     to: Flag.String('to').pipe(Flag.withDescription('the m4a to write')),
   },
@@ -189,6 +196,40 @@ const mix = Command.make(
     yield* printLine(OptionsMixed.make({}));
   }, answering),
 ).pipe(Command.withDescription("The film's whole mix with one variant in place, as an m4a"));
+
+const sound = Command.make(
+  'sound',
+  {
+    film,
+    point: Flag.String('point').pipe(Flag.withDescription('the take point: take:<sound>')),
+    variant: Flag.String('variant').pipe(Flag.withDescription("the seed, by its source's label")),
+    to: Flag.String('to').pipe(Flag.withDescription('the WAV to write')),
+  },
+  Effect.fn('film.options.sound')(function* (input) {
+    const loaded = yield* (yield* FilmRepo).load(input.film);
+    // The point and the seed are checked against the film and its library as they stand.
+    const found = offered(input.film, yield* pointsOf(loaded), input.point, input.variant);
+    if (Result.isFailure(found)) return yield* found.failure;
+    const { point, variant } = found.success;
+    const notMade = () =>
+      VerbRefused.make({
+        point: point.id,
+        variant: variant.id,
+        verb: 'hear alone',
+        reason: 'it is not made from data',
+      });
+    const { ref } = point;
+    if (!PointRef.guards.Take(ref)) return yield* notMade();
+    const source = yield* Effect.fromOption(
+      heardSource(loaded.sounds, ref.sound, variant.id),
+      notMade,
+    );
+    yield* (yield* Media).writeWav(input.to, yield* (yield* SoundRender).pcm(source));
+    yield* printLine(OptionsSounded.make({}));
+  }, answering),
+).pipe(
+  Command.withDescription("A seed of a sound made from data, by its source's label, as a WAV"),
+);
 
 const keepVoice = Command.make(
   'keep-voice',
@@ -227,7 +268,7 @@ const keepVoice = Command.make(
 
 export const options = Command.make('options').pipe(
   Command.withDescription(
-    "A film's choices, their mixes, a take or a voice kept, read fresh from disk (what the lab's review asks)",
+    "A film's choices, their mixes, a seed alone, a take or a voice kept, read fresh from disk (what the lab's review asks)",
   ),
-  Command.withSubcommands([list, mix, take, keepVoice]),
+  Command.withSubcommands([list, mix, sound, take, keepVoice]),
 );

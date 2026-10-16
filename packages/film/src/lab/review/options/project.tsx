@@ -150,6 +150,7 @@ const renderVariantOf = (
   staleBy: scene.staleBy,
   picked: false,
   verbs: [],
+  fixed: Option.none(),
   media: Option.match(Option.fromUndefinedOr(view.videos[scene.scene]), {
     onNone: (): VariantMedia => ({ _tag: 'Unseen' }),
     onSome: (video): VariantMedia => ({ _tag: 'Seen', video }),

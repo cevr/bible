@@ -186,8 +186,20 @@ interface MixInput {
   readonly soundDir: string;
   /** The score option to play in place of the one the score names (`mix --score`). */
   readonly play: Option.Option<string>;
+  /** One sound's variant to play at its every placement, in place of its own (`film options mix`). */
+  readonly inPlace: Option.Option<InPlace>;
   /** A talk's sections' voices, by scene, played in pieces in place of a take (none for a drawn film). */
   readonly pieces: ReadonlyMap<string, VoicePieces>;
+}
+
+/**
+ * A variant heard in its sound's place: a take kept or waiting, or a seed
+ * (the sound's own, or its code trial's), levelled and nudged as the sound's
+ * placements play it.
+ */
+export interface InPlace {
+  readonly sound: string;
+  readonly playable: Playable;
 }
 
 export type MixPlanError =
@@ -201,13 +213,19 @@ export type MixPlanError =
   | UnknownSound
   | SoundUseMismatch;
 
-/** A sound's variants that play, or a warning when none does (and one when they are stale or unmeasured). */
+/**
+ * A sound's variants that play: the one heard in its place, else its own, or
+ * a warning when none does (and one when they are stale or unmeasured).
+ */
 const variantsFor = (
-  sounds: Sounds,
+  input: MixInput,
   name: string,
   entry: Parameters<typeof playablesOf>[2],
   warnings: Array<string>,
 ): ReadonlyArray<Playable> => {
+  const heard = Option.filter(input.inPlace, (inPlace) => inPlace.sound === name);
+  if (Option.isSome(heard)) return [heard.value.playable];
+  const { sounds } = input;
   const state = soundState(entry, Option.fromUndefinedOr(sounds.lock[name]));
   if (state._tag === 'Missing') {
     warnings.push(`mix.missing sound=${name} hint="run sfx make ${name}, then sfx keep"`);
@@ -246,7 +264,7 @@ const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>
     const pending: Array<Pending> = [];
     for (const [id, fx] of Object.entries(sound.effects)) {
       const entry = yield* resolveUse(input.sounds.library, fx.sound, 'one-shot');
-      const playables = variantsFor(input.sounds, fx.sound, entry, warnings);
+      const playables = variantsFor(input, fx.sound, entry, warnings);
       if (playables.length === 0) continue;
       const level = levelOf(entry, Option.fromUndefinedOr(fx.level));
       const sync = fx.sync ?? 'start';
@@ -293,7 +311,7 @@ const bedSpans = (input: MixInput, sound: Sound, warnings: Array<string>) =>
     const seen = new Map<string, number>();
     for (const bed of sound.beds ?? []) {
       const entry = yield* resolveUse(input.sounds.library, bed.sound, 'bed');
-      const playables = variantsFor(input.sounds, bed.sound, entry, warnings);
+      const playables = variantsFor(input, bed.sound, entry, warnings);
       if (playables.length === 0) continue;
       const from = yield* cueTime(bed.from, input.placed);
       const to = yield* cueTime(bed.to, input.placed);

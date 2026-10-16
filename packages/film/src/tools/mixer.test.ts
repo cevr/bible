@@ -1,17 +1,34 @@
 // Mixer with fakes: the track is replaced only by a mix that finishes; a
 // failed or interrupted mix leaves the previous track and no partial file
 // behind. A sound at another rate fails the mix rather than being resampled.
+// One variant heard in its sound's place (a take by its sha256, a seed by its
+// source's label) plays at every placement of that sound.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Fiber, Layer, Option, Path, Result, Schedule, Schema } from 'effect';
 import { silence } from '../core/audio.ts';
 import { filmEnd, layout } from '../core/layout.ts';
 import { MIX_RATE, mixKey } from '../core/mix.ts';
+import {
+  type DerivedSource,
+  type Playable,
+  type Variant,
+  defineLibrary,
+  derivedPlayable,
+  measurePcm,
+  renderSource,
+  requestKey,
+  seedSources,
+  sourceLabel,
+  trialSources,
+  variantPlayable,
+} from '../core/sfx.ts';
+import { measuredSounds } from '../core/testing.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { MediaFailed } from '../core/refusals.ts';
-import { FilmRepo } from './film-repo.ts';
+import { FilmRepo, type LoadedFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { MasterStampJson, Mixer, planOf, stampManifest } from './mixer.ts';
 import { NO_SCORES } from './media-store.ts';
@@ -71,14 +88,14 @@ const writingMedia = (
     }),
   );
 
-const setup = (finish: Finish, rate = MIX_RATE) => {
+const setup = (finish: Finish, rate = MIX_RATE, loaded: LoadedFilm = film) => {
   const files = new Map<string, Uint8Array>([[TRACK, text('old')]]);
   const decoded: Array<string> = [];
   const hung = Deferred.makeUnsafe<void>();
   const repo = Layer.succeed(
     FilmRepo,
     FilmRepo.of({
-      load: () => Effect.succeed(film),
+      load: () => Effect.succeed(loaded),
       script: () => Effect.succeedNone,
       scores: Effect.succeed(NO_SCORES),
     }),
@@ -135,7 +152,7 @@ describe('Mixer', () => {
       // The film has no score or library sound to be missing: its plan is the one `mix` played.
       const now = planOf(film, Result.getOrThrow(layout(scenes, timings)), {
         score: Option.none(),
-        take: Option.none(),
+        inPlace: Option.none(),
       });
       expect(stamp.key).toBe(mixKey(Result.getOrThrow(now)));
     }),
@@ -223,6 +240,109 @@ describe('Mixer', () => {
         expect.objectContaining({ _tag: 'SampleRateMismatch', file: TAKE, rate: 48000 }),
       );
       expect(read(TRACK)).toBe('old');
+    }),
+  );
+});
+
+describe('Mixer: one variant in its sound’s place', () => {
+  const TICK = { play: { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } } as const;
+  const library = defineLibrary({
+    'tone.tick': { kind: 'code', sound: TICK, variants: 2, use: 'one-shot' },
+    'tone.chime': {
+      kind: 'generated',
+      prompt: 'a chime',
+      why: 'a test sound',
+      secs: 1,
+      use: 'one-shot',
+      code: { sound: TICK, variants: 2 },
+    },
+  });
+  const take = (sha256: string): Variant => ({
+    request: requestKey(library['tone.chime']),
+    file: `files/${sha256}.flac`,
+    sha256,
+    made: '2026-09-30T00:00:00Z',
+    model: 'eleven_text_to_sound_v2',
+    format: 'pcm_44100',
+    secs: 1,
+    loudness: { integrated: -24, momentaryMax: -20, peak: -3 },
+    licence: 'elevenlabs-paid-sfx',
+    credits: 40,
+  });
+  const [KEPT, WAITING] = [take('kept'), take('waiting')];
+  const sounds = measuredSounds(
+    library,
+    { 'tone.chime': { variants: [KEPT], candidates: [WAITING], rejected: [] } },
+    '/lib',
+  );
+  const twice = [
+    { scene: 'a', at: 'start' },
+    { scene: 'a', at: 'start', offset: 2 },
+  ] as const;
+  const placing: LoadedFilm = {
+    ...film,
+    sound: Option.some({
+      effects: {
+        tick: { sound: 'tone.tick', at: twice },
+        chime: { sound: 'tone.chime', at: twice },
+      },
+    }),
+    sounds,
+  };
+  const placed = Result.getOrThrow(layout(scenes, timings));
+  /** The key of the film's plan with `playable` at every placement of `sound`, none for its own. */
+  const keyWith = (inPlace: Option.Option<{ sound: string; playable: Playable }>) =>
+    mixKey(Result.getOrThrow(planOf(placing, placed, { score: Option.none(), inPlace })));
+  /** `source` as it plays, measured as the mix measures a seed. */
+  const measured = (source: DerivedSource) =>
+    derivedPlayable(source, measurePcm(renderSource(source)));
+  /** The film rendered with `take` heard in `sound`'s place, its takes' files on disk. */
+  const rendered = (sound: string, take: string) => {
+    const { files, run } = setup('done', MIX_RATE, placing);
+    for (const v of [KEPT, WAITING]) files.set(`/lib/${v.file}`, text(v.sha256));
+    return run(
+      Mixer.use((mixer) =>
+        mixer.render('test', {
+          warn: false,
+          score: Option.none(),
+          take: Option.some({ sound, take }),
+        }),
+      ),
+    );
+  };
+
+  it.effect('a waiting take, by its sha256, plays at every placement of its sound', () =>
+    Effect.gen(function* () {
+      const { key } = yield* rendered('tone.chime', WAITING.sha256);
+      const sound = 'tone.chime';
+      expect(key).toBe(keyWith(Option.some({ sound, playable: variantPlayable(sounds, WAITING) })));
+      expect(key).not.toBe(keyWith(Option.none()));
+    }),
+  );
+
+  it.effect("a code sound's seed, by its label, in place of the seeds it plays", () =>
+    Effect.gen(function* () {
+      const [first, second] = seedSources(sounds, 'tone.tick', library['tone.tick']);
+      const { key } = yield* rendered('tone.tick', sourceLabel(second!));
+      expect(key).toBe(keyWith(Option.some({ sound: 'tone.tick', playable: measured(second!) })));
+      expect(key).not.toBe(
+        keyWith(Option.some({ sound: 'tone.tick', playable: measured(first!) })),
+      );
+    }),
+  );
+
+  it.effect("a code trial's seed, by its label, where its generated sound plays", () =>
+    Effect.gen(function* () {
+      const [first] = trialSources(sounds, 'tone.chime');
+      const { key } = yield* rendered('tone.chime', sourceLabel(first!));
+      expect(key).toBe(keyWith(Option.some({ sound: 'tone.chime', playable: measured(first!) })));
+    }),
+  );
+
+  it.effect('a variant its sound has not is refused, and nothing is mixed', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(rendered('tone.chime', 'nosuch'));
+      expect(error).toMatchObject({ _tag: 'TakeUnknown', sound: 'tone.chime', take: 'nosuch' });
     }),
   );
 });

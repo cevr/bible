@@ -148,7 +148,7 @@ describe('a talk through the tools, on real media', () => {
         // The voice is the take's own file, in the pieces the cut keeps, each where its section plays it.
         const placed = yield* placeFilm(loaded);
         const mixing = Result.getOrThrow(
-          planOf(loaded, placed, { score: Option.none(), take: Option.none() }),
+          planOf(loaded, placed, { score: Option.none(), inPlace: Option.none() }),
         );
         const source = Option.getOrThrow(Option.fromUndefinedOr(takes['a'])).source;
         const voice = path.join(copies, sourceFile(source, 'voice.flac'));

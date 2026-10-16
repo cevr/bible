@@ -436,8 +436,9 @@ export const useVariantThing = (props: {
  * line, how it is seen or heard, its pick (picked: a filled check, not a
  * colour), its approve where it is the picked one, and a dot counting what
  * was said of it. The rest is in its inspector (`VariantInspector`, the
- * page's, not the row's): every line, unapprove, unkeep and reject, the
- * comments and the comment box; and in its context menu.
+ * page's, not the row's): every line, why no verb reaches it when none
+ * can (a seed is tuned by editing its data), unapprove, unkeep and reject,
+ * the comments and the comment box; and in its context menu.
  */
 const VariantRow = (props: {
   readonly point: ChoicePoint;
@@ -515,6 +516,13 @@ const VariantInspector = (props: {
             <StateTags variant={props.variant} />
           </div>
           <For each={props.variant.lines}>{(line) => <div class="rv-meta">{line}</div>}</For>
+          <Show when={Option.getOrUndefined(props.variant.fixed)}>
+            {(why) => (
+              <div class="rv-meta" data-fixed>
+                {why()}
+              </div>
+            )}
+          </Show>
           <div class="rv-row">
             <Show when={said()}>
               <Approval variant={props.variant} sayer={props.sayer} />
