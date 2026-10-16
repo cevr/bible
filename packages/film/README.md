@@ -96,13 +96,17 @@ trials (`apps/animations/sounds/PROMPTING.md`).
 
 A `code` sound is a graph of nodes (`core/synth/graph/nodes.ts`), rendered from each of
 its seeds whenever it is needed, through `SoundRender` (`tools/sound-render.ts`):
-nothing of it is made, kept, stored or paid for. The library load refuses a
+nothing of it is made, kept, stored or paid for. A film's load resolves its
+sounds and renders none; what plays them measures them, once each: the mix,
+the check and the options (`measuredFilm`). The library load refuses a
 graph that cannot render (`core/synth/resolve.ts` `resolveCode`: a stream
 named twice, `StreamDuplicate`; a sample of itself, `SampleCycle`; a sound
 too long, `CodeTooLong`). A generated sound says `why` it needs ElevenLabs,
 since code makes every simpler sound (the owner's rule), and may carry a code
 trial, `code: { sound, variants }`, which no film places; a procedural
-sound's trial is its recipe's port (`core/sfx.ts` `codeTrialOf`). The free
+sound's trial is its recipe's port (`core/sfx.ts` `codeTrialOf`), and the
+library's schema refuses a recipe whose port the load would refuse, by the
+entry's name. The free
 commands read them: `render <name> [--seed n] [--trial] [--sheet]` writes a
 code or procedural sound's seeds, or its trial's, as WAVs under
 `<FILMS_OUT>/sounds`, each with its sheet as a PNG under `--sheet`;
@@ -3207,7 +3211,8 @@ film mid-edit and not loading) stays in its box beside the failure.
 `film check <film>` fails (after reporting every finding, not the first) on
 what a review used to find by eye. It runs in legs (`tools/film-check.ts`),
 each typed by what it needs: the static leg (`staticLeg`: the film's files,
-FileSystem and Media), the sound leg (`soundLeg`: the mix, Mixer), and the
+FileSystem and Media, and SoundRender for the derived sounds it places), the
+sound leg (`soundLeg`: the mix, Mixer), and the
 layout and look legs (`layoutLeg`: the browser, Checker and Looker), and the
 draw leg (`drawLeg`, `tools/draw-check.ts`: the film's `film.ts` built from
 its committed timings and each scene drawn in this process into the stand-in
