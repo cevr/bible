@@ -130,10 +130,10 @@ offset whose loop seam is smallest, past its first 2 seconds when the
 recording can spare them; no `secs`, the whole recording. A one-shot's quiet
 ends are trimmed, a bed's ends kept, and a recording that peaks over
 `TAKE_LEVEL.ceiling` (-1 dBFS) is scaled down to it. It records the cut in
-the variant (`cut`), prints the gain and the share of power under 30 Hz,
-filtered by nothing, and keeps the sound's variants made for another request
-(the ElevenLabs takes a recording replaced) as candidates: its history,
-never offered again. A CC BY recording a film places owes a credit line
+the variant (`cut`, clipped to the recording), prints the gain and the share
+of power under 30 Hz, filtered by nothing, and keeps the sound's variants made
+for another request (a generated sound's takes, once it is recorded) as
+candidates: its history, never offered again. A CC BY recording a film places owes a credit line
 (`soundCredits(library, sound)`, one a source): `creditRoll` gives each
 under a "Sound" head, a whole-film render writes each with its pages linked
 into `<video>.description.txt` after the chapters (`videoDescription`), and
@@ -2664,8 +2664,8 @@ whole-film `render` writes them beside the video as `main.chapters.txt`.
 Fewer than three, a first past 00:00, or one under 10 s fail with
 `ChaptersInvalid` (a render logs the reason and writes none). The whole film
 also gets `main.description.txt`, the video's description: its chapters, then
-a "Sound:" line for each CC BY recording it places, its pages linked
-(`videoDescription`); none when it has neither.
+one "Sound:" line, then a line for each CC BY recording it places, its pages
+linked (`videoDescription`); none when it has neither.
 
 ### The easel: `film look`
 

@@ -19,9 +19,9 @@
 // every film that places it, which `film check` holds the film to.
 //
 // The library: 19 generated one-shots, 3 generated beds, 12 code one-shots,
-// 4 code beds, 4 recorded one-shots and 4 recorded beds. The recorded ones
-// replaced ElevenLabs sounds; the lock keeps those takes as candidates, the
-// sounds' history. Prompts are concrete, close and dry: a
+// 4 code beds, 4 recorded one-shots and 4 recorded beds. The lock keeps a
+// recorded sound's generated takes, if it had any, as candidates, never
+// offered again, and the seconds its file was cut from. Prompts are concrete, close and dry: a
 // film's cue places them, the mix sets their level against the voice. How to
 // word a prompt and pick its settings, from the trials in sounds/PROMPTING.md.
 //
@@ -131,7 +131,7 @@ export const library = defineLibrary({
       influence: 0.6,
     },
   ),
-  // An audience murmuring in a hall: 132–154 s of the recording's HQ preview.
+  // An audience murmuring in a hall, cut from the recording's HQ preview.
   'amb.hall': recordedBed({
     id: 'CC-BY-4.0',
     title: 'M Murmer long loop.wav',
@@ -141,7 +141,7 @@ export const library = defineLibrary({
     openverse: 'f7e999a4-bb3d-4dae-9e77-8a53a9d27e48',
     changed: true,
   }),
-  // People murmuring close together indoors: 4–26 s of the recording's HQ preview.
+  // People murmuring close together indoors, cut from the recording's HQ preview.
   'amb.house': recordedBed({
     id: 'CC0-1.0',
     title: 'G28-10-Indoor Crowd Murmur - Constant.wav',
@@ -173,7 +173,7 @@ export const library = defineLibrary({
     use: 'bed',
     level: BED_LEVEL,
   },
-  // A city's hum at night: 80–102 s of the recording's HQ preview.
+  // A city's hum at night, cut from the recording's HQ preview.
   'amb.roof': recordedBed({
     id: 'CC-BY-4.0',
     title: 'city night hum 04 160927_0989.wav',
@@ -183,7 +183,7 @@ export const library = defineLibrary({
     openverse: '3bdb3b4b-c840-4fba-8033-48477bf14dee',
     changed: true,
   }),
-  // Birds singing at dawn: 16–38 s of the recording's HQ preview.
+  // Birds singing at dawn, cut from the recording's HQ preview.
   'amb.dawn': recordedBed({
     id: 'CC0-1.0',
     title: 'dawn chorus.wav',
@@ -263,7 +263,7 @@ export const library = defineLibrary({
     1.5,
     { why: 'Clay tiles scraped and clinking: a handled texture, which code cannot make.' },
   ),
-  // A pigeon's wings flapping once: the whole of the recording's HQ preview.
+  // A pigeon's wings flapping once, from the recording's HQ preview.
   'wings.pass': recordedOneShot(1.5, {
     id: 'CC0-1.0',
     title: 'short pigeon wing flap',
@@ -348,8 +348,8 @@ export const library = defineLibrary({
     variants: 3,
     use: 'one-shot',
   },
-  // A needle through fabric and the thread pulled: 1.95 s to the end of the
-  // recording's HQ preview.
+  // A needle through fabric and the thread pulled, cut from the recording's HQ
+  // preview.
   'needle.thread': recordedOneShot(2, {
     id: 'CC0-1.0',
     title: 'Sewing/stitching up some fabric',
@@ -375,7 +375,7 @@ export const library = defineLibrary({
     variants: 3,
     use: 'one-shot',
   },
-  // Clothing moved once: 6.41–7.61 s of the recording's HQ preview.
+  // Clothing moved once, cut from the recording's HQ preview.
   'cloth.lift': recordedOneShot(1.2, {
     id: 'CC0-1.0',
     title: 'clothing movement',
@@ -401,7 +401,7 @@ export const library = defineLibrary({
     use: 'one-shot',
   },
   // Recorded: every generated take (8 over two rolls) was one boomy hit, never
-  // steps. Two steps (2.25–4.75 s) of the recording's HQ preview.
+  // steps. Two steps, cut from the recording's HQ preview.
   'steps.stone': {
     kind: 'recorded',
     licence: {

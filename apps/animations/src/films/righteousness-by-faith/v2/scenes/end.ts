@@ -1,7 +1,9 @@
 // The credits, over the landing's last shot: the camera goes on easing back
 // from where `thesis` leaves the city, the two of them still sitting together
-// on the rooftop, while the film's name and its sources roll up a torn paper
-// strip at the left. The sources are each beat's `cite`, by author and work
+// on the rooftop, while the film's name, its sources and its sound roll up a
+// torn paper strip at the left at one pace (`PACE`), so a longer roll runs
+// longer. The sources are each beat's `cite`, by author and work, and the
+// Sound head gives the line each CC BY recording the film places owes
 // (`credits.ts`). Then the strip goes and the city holds, clear, for the end
 // screens. It does not breathe: the film has stopped breathing by its last
 // card, and the pull back is its only move.
@@ -55,16 +57,22 @@ const LAST = CREDITS.length - 1;
 const TOP_FROM = STRIP.y + STRIP.h - MARGIN - FADE - (BASELINES[0] ?? 0);
 const TOP_TO =
   STRIP.y + MARGIN + FADE + STYLES[CREDITS[LAST]?.kind ?? 'item'].size - (BASELINES[LAST] ?? 0);
+/** How fast the roll climbs, in pixels a second: one reading pace for a roll of any length. */
+const PACE = 128;
+/** The roll's seconds: its travel at `PACE`. */
+const ROLL = (TOP_FROM - TOP_TO) / PACE;
+/** How long the pull back goes on settling after the roll ends. */
+const SETTLE = 2;
 
 export const end = drawing({
   drift: 0,
   timeline: {
     // The strip comes in, the credits roll up it, and it goes: the rest is clear for the end screens.
     stripIn: { at: 'start', dur: 0.8 },
-    roll: { at: 'start', dur: 22, ease: 'linear' },
+    roll: { at: 'start', dur: ROLL, ease: 'linear' },
     stripOut: { after: 'roll', dur: 0.8 },
     // The pull back, from where `thesis` leaves the city, settling as the strip goes.
-    back: { with: 'roll', dur: 24, ease: 'inOutSine' },
+    back: { with: 'roll', dur: ROLL + SETTLE, ease: 'inOutSine' },
   },
   knobs: {
     // The wider city the card ends on.
