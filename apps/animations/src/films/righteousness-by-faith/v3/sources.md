@@ -418,7 +418,7 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > Who is he that condemneth? It is Christ that died, yea rather, that is risen again, who is even at the right hand of God, who also maketh intercession for us.
 
-- **1 John 2:1** (KJV). Paraphrased: "stands beside him". An advocate with the Father: Christ beside Max.
+- **1 John 2:1** (KJV). Paraphrased: "stands beside him". An advocate with the Father: Christ beside the accused.
 
   > My little children, these things write I unto you, that ye sin not. And if any man sin, we have an advocate with the Father, Jesus Christ the righteous:
 

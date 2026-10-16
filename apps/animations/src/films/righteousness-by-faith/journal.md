@@ -29,3 +29,11 @@ v3 beat `court` (no scene of that id yet), concept frames at `how`, drawn over c
 ## 2026-10-15T23:54:35Z · roof
 
 v3 concept frames at `saw`, second prompt (roof.4–6, the shade, blur, red cloth and torn rim said in the frame's own words), judged blind by a fresh Opus at max (judge/concept-roof-20261015T234324Z-tnxh): roof.6 > roof.5 > roof.4. Measured on the ceiling right of the hole, the darkest third against the lightest turns 5°, 3° and 0° in roof.1–3 (the brown dimmed) and 23°, 19° and 51° in roof.4–6; no new try wears red (roof.2's brick red covered 1.7% of its frame). roof.6's beams are violet on their lit faces too (hue 330–335°), its man wears a pale tunic near the robe's white, and it hangs five taut ropes; roof.5's pale cream walls read as an IDEA page's parchment; roof.4's sash crosses Jesus's chest. In all six tries the nearest heads are softly blurred at 1:1.
+
+## 2026-10-16T00:51:03Z · cold
+
+concept, plain lead (owner 2026-10-15): three accused designs drawn into the cold open (cold.7-21); the blind judge (concept-cold-20261016T003257Z-331h) read the bald one as a child, his baldness itself a mark, and the warm taupe top as sinking into the chipboard band (330-50 deg) with a weak value step, while the short dark-haired man in a plain slate-blue top read as anyone; the image model drew that slate blue at saturation 0.36-0.47 (measured) against the sheet's 0.22-0.28; four tries put letter-like scarlet strokes on the prosecutor's sheets (cold.9, 14, 15, 20) and one a sun disc in the window (cold.13); the third prompt (cold.19-21) says both in the frame's words.
+
+## 2026-10-16T00:56:38Z · film
+
+v3 beat `court` (no scene of that id yet), concept frames at `how` with the plain lead (court.7-9, drawn over cold.21, lead A), judged blind (judge/concept-court-20261016T004740Z-o2kh): court.9 > court.7 > court.8. Only court.9 changes the light (the whole wall teal under a warm beam, the bench's front and top aglow) but drops the judge's white bands and gavel; court.7 keeps the cold open's cream wall and a seed too small to read; court.8 holds an oversized gold almond against his chest and shows Christ one hand circle. The plain man stays one design from cold.21 to court.7-9 (short dark hair, round face). The bench's shadow band turns 7-13 deg toward red in all three, the brown dimmed (measured).
