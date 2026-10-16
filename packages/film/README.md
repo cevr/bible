@@ -1581,8 +1581,11 @@ behind one global middleware, the only place a request is admitted
 (`admit`): the Host must be the listener's own name or a loopback one at
 its port, a browser's `Sec-Fetch-Site`
 same-origin or none, a write's Origin none (a tool) or `http://` one of those hosts, with a JSON body
-(`WriteNotJson`, 415) of at most `STUDIO_MAX_BODY` bytes, counted as it
-streams (`BodyTooLarge`, 413). Anything else is a 403 `RequestRefused`,
+when it carries one (a POST always: a form or a no-cors fetch posts one with no
+preflight; `WriteNotJson`, 415) of at most `STUDIO_MAX_BODY` bytes, counted as it
+streams (`BodyTooLarge`, 413). A DELETE, PUT, PATCH or OPTIONS with no body
+meets the Host, `Sec-Fetch-Site` and Origin checks alone, with no body to judge,
+as an MCP client's session end does (`carriesBody`). Anything else is a 403 `RequestRefused`,
 logged `api.request.refused`. A new route is behind the gate by being a
 route; every route answers a foreign Host 403 (`lab.test.ts` walks
 `routesOf(LabHttpApi)`). Every film route names
@@ -2922,8 +2925,10 @@ that is not the listener's own is a 403 (DNS rebinding),
 and so is any request a browser marks cross-site (`Sec-Fetch-Site`), but a
 link opened on another site to one of the pages. A write
 must also carry an `Origin` of one of those hosts (`http://`)
-and a JSON body: another origin is a 403, a text/plain body a 415 (so a form
-on another site cannot post), a bad body a 400. The scene editor, the notes and the studio are behind the
+and, when it carries a body (a POST always), a JSON one: another origin is a
+403, a text/plain body a 415 (so a form on another site cannot post), a bad
+body a 400. A DELETE, PUT, PATCH or OPTIONS with no body is the one write
+with no JSON body, as an MCP client's session end is. The scene editor, the notes and the studio are behind the
 same gate: a write from the phone at its address is the lab's write. The
 studio's microphone needs a secure context, and the phone's plain `http://`
 link is not one, so a recording is made on the local link (`localhost`); on
