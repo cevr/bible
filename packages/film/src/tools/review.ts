@@ -606,9 +606,9 @@ interface ReviewService {
   /** Every folder under the roots with something to review, newest first; read again when `fresh` or stale. */
   readonly index: (fresh: boolean) => Effect.Effect<ReviewIndex>;
   /**
-   * A catalogue under the roots was written by another than `say` (a
-   * project's say, in its own run): the index reads it again on its next
-   * ask, as after a set's say.
+   * A record or a file under the roots was written by another than `say` (a
+   * render recorded, a set published, a project's say in its own run): the
+   * index reads them again on its next ask, as after a set's say.
    */
   readonly written: Effect.Effect<void>;
   /**
