@@ -272,6 +272,34 @@ describe('a zoom step on a laptop', () => {
   );
 });
 
+describe('the way home', () => {
+  // The pointer's target: a thumb's on a phone, the fine pointer's on a laptop (`--hit`).
+  const HIT = { 'a laptop': 28, 'a phone': 44 } as const;
+  for (const size of SIZES)
+    it.live(
+      `on ${size.name}, is Films in the header, a target the pointer meets, and ⇧1 goes there`,
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* studioAt(size.viewport);
+          const FILMS = '.st-header a[data-page="films"]';
+          yield* attributeIs(page, FILMS, 'href', '/');
+          yield* attributeIs(page, FILMS, 'aria-label', 'Films');
+          yield* until(
+            page,
+            `document.querySelector('${FILMS}').getBoundingClientRect().width >= ${HIT[size.name]} && document.querySelector('${FILMS}').getBoundingClientRect().height >= ${HIT[size.name]}`,
+          );
+          yield* page.press('Control+k');
+          yield* countIs(page, '[data-role="command-menu"] [data-command="page.films"]', 1);
+          yield* page.press('Escape');
+          yield* countIs(page, '[data-role="command-menu"]', 0);
+          yield* page.press('Shift+1');
+          yield* until(page, `location.pathname === '/'`);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+});
+
 describe("the studio's command menu", () => {
   it.live(
     "lists the studio's transport, and none of the preview's beside it",

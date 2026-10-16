@@ -40,6 +40,8 @@ import type {
   VoiceClip,
 } from '../../core/timeline-schema.ts';
 import { hubKeys } from '../command/changes.ts';
+import { FILMS_COMMAND } from '../../command/go.ts';
+import { FilmsLink } from './page.tsx';
 import { pressed } from '../pressed.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { useStudio } from './context.tsx';
@@ -221,11 +223,13 @@ const Waits = (props: { readonly timeline: FilmTimeline; readonly words: string 
   );
 };
 
-/** The header (44 px): the film, the version chip, the stage word; right, what waits and what the agents do now. */
+/** The header (44 px): Films, the film, the version chip, the stage word; right, what waits and what the agents do now. */
 const Header = () => {
   const { state, meta } = useStudio();
+  const keys = hubKeys(meta.hub);
   return (
     <header class="st-header">
+      <FilmsLink title={keys.titled('Films', FILMS_COMMAND)} />
       <b class="st-film">{meta.film}</b>
       <Show when={Option.getOrUndefined(state.chip())}>
         {(chip) => <VersionMenu chip={chip()} />}

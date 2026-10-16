@@ -12,10 +12,11 @@ import * as UrlAtom from '@bible/url-state/atom';
 import { clientOnly } from '@solidjs/web';
 import { Option } from 'effect';
 import { type Host, addressOn, hostLayer } from '../../browser/host.ts';
-import { filmOfPage } from '../../core/api.ts';
+import { filmOfPage, pageHref } from '../../core/api.ts';
 import { COMMAND_CSS } from '../command/style.ts';
 import type { FilmBody } from '../film-page.tsx';
 import { StudioFrame, studioOn } from '../studio-frame.tsx';
+import { StudioIcon } from './icons.tsx';
 import { STUDIO_CSS } from './style.ts';
 
 /** The studio's page as both sides render it: its body class, its root's class and its styles. */
@@ -25,10 +26,24 @@ export const STUDIO_PAGE = {
   style: `${COMMAND_CSS}${STUDIO_CSS}`,
 };
 
-/** The studio's place before the film is staged: the film's name in the header, and a quiet line. */
+/** The way home, first in the studio's header: Films (⇧1, `FILMS_COMMAND`), titled with its key once the keys are read. */
+export const FilmsLink = (props: { readonly title: string }) => (
+  <a
+    class="st-home"
+    data-page="films"
+    href={pageHref.home()}
+    aria-label="Films"
+    title={props.title}
+  >
+    <StudioIcon of="films" />
+  </a>
+);
+
+/** The studio's place before the film is staged: Films and the film's name in the header, and a quiet line. */
 const Opening = (props: { readonly name: string }) => (
   <div class="st-app">
     <header class="st-header">
+      <FilmsLink title="Films" />
       <b class="st-film">{props.name}</b>
     </header>
     <p class="st-await" role="status">{`Opening ${props.name}…`}</p>

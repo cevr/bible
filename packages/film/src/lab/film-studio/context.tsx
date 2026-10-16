@@ -31,6 +31,8 @@ import {
 } from 'solid-js';
 import { type Host, addressOn, hostLayer } from '../../browser/host.ts';
 import { quietly } from '../../command/command.ts';
+import { shellCommands } from '../../command/go.ts';
+import { PageLoad } from '../../browser/page-load.ts';
 import type { Hub } from '../../command/hub.ts';
 import {
   Places,
@@ -408,9 +410,16 @@ const Body = (
     retry: () => sendTimeline(TimelineEvent.Retry),
   };
 
-  // The keys: the editors' transport (Space, J K L, ← →, ↑ ↓, Home End) and ⇧Z.
+  // The keys: the editors' transport (Space, J K L, ← →, ↑ ↓, Home End), ⇧Z, and the way home,
+  // ⇧1 to Films, as the shell's (on the film's studio, the shell's ⇧2 to the studio is never
+  // offered).
   onSettled(() =>
     props.hub.commands.register(
+      ...shellCommands(
+        () => Option.none(),
+        () => false,
+        (href) => Effect.runForkWith(props.host)(PageLoad.use((load) => load.open(href))),
+      ),
       ...[
         {
           id: 'play.toggle',

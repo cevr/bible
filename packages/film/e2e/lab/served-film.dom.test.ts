@@ -259,13 +259,15 @@ describe("a film's pages served as the lab renders them", () => {
           const html = rooted(painted(whole));
           expect(html).toContain('class="st-app"');
           expect(html).toContain(`<b class="st-film">${PROBE}</b>`);
+          expect(html).toContain('class="st-home" data-page="films" href="/"');
           expect(html).toContain(`Opening ${PROBE}…`);
           for (const film of FILM_PARTS) expect(html).not.toContain(film);
-          // The hold let go: the root is shown in its faces.
+          // The hold let go: the root is shown, in its faces (`in`) or, past the cap a cold
+          // server's first font files can take, in their fallbacks (`late`).
           yield* evaluates(
             page,
-            `[document.documentElement.getAttribute('${HOLD_TERMS.shown}'), getComputedStyle(document.querySelector('[${PAGE_ROOT}]')).visibility]`,
-            ['in', 'visible'],
+            `[['in', 'late'].includes(document.documentElement.getAttribute('${HOLD_TERMS.shown}')), getComputedStyle(document.querySelector('[${PAGE_ROOT}]')).visibility]`,
+            [true, 'visible'],
           );
           // The studio took the quiet line's place, and works by key and by pointer.
           yield* waitFor(page, '.st-timeline .st-clip');

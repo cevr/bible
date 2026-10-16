@@ -42,6 +42,8 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-await { margin: 0; padding: var(--s-4); color: var(--text-2); }
 
 /* Header */
+.st-home { display: inline-grid; place-items: center; width: var(--hit); height: var(--hit); flex: none; margin-left: calc(-1 * var(--s-3)); color: var(--text-2); text-decoration: none; border-radius: var(--r-2); }
+.st-home:hover { color: var(--text-1); background: var(--surface-2); }
 .st-header { display: flex; align-items: center; gap: var(--s-3); padding: 0 var(--st-gutter); border-bottom: var(--border); min-width: 0; }
 .st-film { font-weight: var(--w-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .st-app .st-ver { display: inline-flex; align-items: center; gap: var(--s-1); height: var(--s-6); padding: 0 var(--s-2); border-radius: var(--r-1); background: var(--surface-2); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-2); line-height: var(--lh-2); font-weight: var(--w-1); flex: none; }
