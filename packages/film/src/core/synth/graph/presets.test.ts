@@ -14,7 +14,7 @@ import type { Pcm } from '../../audio.ts';
 import { distance, medianProfile, profileOf } from '../compare.ts';
 import { type Recipe, synthesize } from '../recipes.ts';
 import { resolveCode } from '../resolve.ts';
-import { defineLibrary } from '../../sfx.ts';
+import { type SoundUse, defineLibrary } from '../../sfx.ts';
 import { loopSeam, seamHeard } from '../seam.ts';
 import { CodeSound } from './nodes.ts';
 import type { ResolvedSound } from './plan.ts';
@@ -39,6 +39,18 @@ const MEASURED = {
   wind: { recipe: 'wind', secs: 3 },
   rain: { recipe: 'rain', secs: 1 },
 } as const satisfies { readonly [R in Recipe['recipe']]: Extract<Recipe, { recipe: R }> };
+
+/** How each recipe is heard: the ones made to loop are beds, read around their loop. */
+const USE = {
+  room: 'bed',
+  bell: 'one-shot',
+  drone: 'bed',
+  drain: 'one-shot',
+  bloom: 'one-shot',
+  notes: 'one-shot',
+  wind: 'one-shot',
+  rain: 'bed',
+} as const satisfies { readonly [R in Recipe['recipe']]: SoundUse };
 
 /**
  * The beds as their seams are read: four seconds, so a slow sway of level
@@ -145,8 +157,9 @@ const measuresAsItsRecipe = (recipe: Recipe, balanced: boolean) => {
   const renders = rendersOf(recipe);
   for (const [port, synth] of Arr.zip(renders.port, renders.recipe))
     expect(port.frames).toBe(synth.frames);
-  const recipeProfile = medianProfile(Arr.map(renders.recipe, profileOf));
-  const portProfile = medianProfile(Arr.map(renders.port, profileOf));
+  const profiled = (pcm: Pcm) => profileOf(pcm, USE[recipe.recipe]);
+  const recipeProfile = medianProfile(Arr.map(renders.recipe, profiled));
+  const portProfile = medianProfile(Arr.map(renders.port, profiled));
   expect(Math.abs(portProfile.integrated - recipeProfile.integrated)).toBeLessThanOrEqual(1);
   const apart = distance(recipeProfile, portProfile);
   if (balanced) expect(apart.balance).toBeLessThanOrEqual(1.5);

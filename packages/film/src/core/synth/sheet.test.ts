@@ -91,6 +91,18 @@ describe('sheetOf', () => {
     expect(Math.abs((lit[0] ?? 0) - (568 + Math.round((9.7 / 70) * 71)))).toBeLessThanOrEqual(1);
   });
 
+  test('a click at the very start lights its column as brightly as the same click in the middle', () => {
+    const plane = new Float32Array(RATE);
+    const click = sine(4000, 0.003, 0.5);
+    plane.set(click, 0);
+    plane.set(click, RATE / 2);
+    const clicked = sheetOf(pcmOf(plane), []);
+    // 4 kHz is ln(4000/30)/ln(16000/30) of the way up from 30 Hz: row 399 − ⌊0.780 · 400⌋.
+    const row = 399 - Math.floor((Math.log(4000 / 30) / Math.log(16000 / 30)) * 400);
+    expect(brightness(clicked, 600, row)).toBeGreaterThan(300);
+    expect(Math.abs(brightness(clicked, 0, row) - brightness(clicked, 600, row))).toBeLessThan(40);
+  });
+
   test('a faint line crosses each second, and a mark its own colour, in the order given', () => {
     const marked = sheetOf(pcmOf(sine(440, 2, 0.25)), [
       { kind: 'onset', at: 0.5 },

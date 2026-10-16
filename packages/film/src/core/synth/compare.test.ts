@@ -37,7 +37,13 @@ const band = (profile: Profile, k: number) => profile.bands[k] ?? 0;
 
 describe('profileOf', () => {
   test("a tone's power is in its own band, and none of it is rumble", () => {
-    const tone = profileOf(pcmOf(sine(1000, 1)));
+    // Faded in and out over 10 ms, so neither end clicks: a hard edge is heard in every band.
+    const fade = 0.01 * RATE;
+    const plane = sine(1000, 1);
+    const tone = profileOf(
+      pcmOf(plane.map((v, i) => v * Math.min(1, i / fade, (plane.length - 1 - i) / fade))),
+      'one-shot',
+    );
     expect(band(tone, 15)).toBeGreaterThan(0.99);
     expect(tone.rumble).toBeLessThan(1e-6);
     expect(tone.bands.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 3);
@@ -46,11 +52,11 @@ describe('profileOf', () => {
   });
 
   test('a 25 Hz tone is rumble: most of its power is below 30 Hz', () => {
-    expect(profileOf(pcmOf(sine(25, 1))).rumble).toBeGreaterThan(0.6);
+    expect(profileOf(pcmOf(sine(25, 1)), 'one-shot').rumble).toBeGreaterThan(0.6);
   });
 
   test('the bands are read over every channel: a tone in each is half of the power each', () => {
-    const both = profileOf(pcmOf(sine(1000, 1), sine(100, 1)));
+    const both = profileOf(pcmOf(sine(1000, 1), sine(100, 1)), 'one-shot');
     expect(band(both, 15)).toBeCloseTo(0.5, 1);
     expect(band(both, 5)).toBeCloseTo(0.5, 1);
   });
@@ -58,14 +64,39 @@ describe('profileOf', () => {
   test('a burst rings from its hit to its tail', () => {
     const plane = new Float32Array(RATE);
     plane.set(sine(440, 0.3), Math.round(RATE * 0.2));
-    const burst = profileOf(pcmOf(plane));
+    const burst = profileOf(pcmOf(plane), 'one-shot');
     expect(burst.onset).toBeCloseTo(0.2, 1);
     expect(burst.tail).toBeGreaterThan(0.25);
     expect(burst.tail).toBeLessThan(0.35);
   });
 
+  test('a click weighs alike in the bands at the very start, in the middle and at the very end', () => {
+    // A 3 ms click of 4 kHz over a soft 100 Hz hum, 0.3 s long: the click's
+    // band (4 kHz is band 21) holds the same share wherever it lands.
+    const share = (at: number) => {
+      const plane = sine(100, 0.3).map((v) => v * 0.2);
+      const click = sine(4000, 0.003);
+      plane.set(click, Math.min(plane.length - click.length, Math.round(at * RATE)));
+      return band(profileOf(pcmOf(plane), 'one-shot'), 21);
+    };
+    const middle = share(0.15);
+    expect(middle).toBeGreaterThan(0.05);
+    for (const at of [0, 0.3])
+      expect(Math.abs(10 * Math.log10(share(at) / middle))).toBeLessThan(0.5);
+  });
+
+  test('a bed is read as the mix loops it: a loop that joins its head has no edge to hear', () => {
+    // A thousand whole cycles of 1 kHz in a second: looped, it never ends.
+    const loop = sine(1000, 1);
+    const bed = profileOf(pcmOf(loop), 'bed');
+    expect(bed.rumble).toBeLessThan(1e-9);
+    expect(bed.bands.filter((share, k) => k !== 15).reduce((a, b) => a + b, 0)).toBeLessThan(1e-6);
+    // Heard once, its hard ends click in every band.
+    expect(profileOf(pcmOf(loop), 'one-shot').rumble).toBeGreaterThan(1e-7);
+  });
+
   test('silence has no share in any band', () => {
-    const quiet = profileOf(pcmOf(new Float32Array(RATE)));
+    const quiet = profileOf(pcmOf(new Float32Array(RATE)), 'one-shot');
     expect(quiet.bands.every((share) => share === 0)).toBe(true);
     expect(quiet.rumble).toBe(0);
     expect(distance(quiet, quiet)).toEqual({ bands: [], balance: 0, apart: [], hit: 0 });
@@ -74,7 +105,7 @@ describe('profileOf', () => {
 
 describe('medianProfile', () => {
   test('each number is the median of its renders, the mean of the middle two for an even count', () => {
-    const at = (secs: number) => profileOf(pcmOf(noise(secs, Math.round(secs * 10))));
+    const at = (secs: number) => profileOf(pcmOf(noise(secs, Math.round(secs * 10))), 'one-shot');
     const [one, two, three] = [at(0.5), at(1.5), at(1)];
     expect(medianProfile([one, two, three]).secs).toBe(1);
     expect(medianProfile([one, two]).secs).toBe(1);
@@ -88,7 +119,7 @@ describe('medianProfile', () => {
 
 describe('distance', () => {
   test('a sound stands at no distance from itself', () => {
-    const hiss = profileOf(pcmOf(noise(1, 3)));
+    const hiss = profileOf(pcmOf(noise(1, 3)), 'one-shot');
     const self = distance(hiss, hiss);
     expect(self.balance).toBe(0);
     expect(self.apart).toEqual([]);
@@ -98,7 +129,10 @@ describe('distance', () => {
 
   test('a low-pass moves the high bands down against the low, and names those that moved over 6 dB', () => {
     const hiss = noise(1, 4);
-    const away = distance(profileOf(pcmOf(hiss)), profileOf(pcmOf(lowPassed(hiss, 500))));
+    const away = distance(
+      profileOf(pcmOf(hiss), 'one-shot'),
+      profileOf(pcmOf(lowPassed(hiss, 500)), 'one-shot'),
+    );
     const moved = (name: string) => away.bands.find((row) => row.band === name)?.moved ?? 0;
     // Shares: the power the filter takes off the top is a larger share left at the bottom.
     expect(moved('8 kHz') - moved('100 Hz')).toBeLessThan(-20);
@@ -114,14 +148,14 @@ describe('distance', () => {
     const late = new Float32Array(RATE);
     early.set(burst, Math.round(RATE * 0.1));
     late.set(burst, Math.round(RATE * 0.2));
-    const moved = distance(profileOf(pcmOf(early)), profileOf(pcmOf(late)));
+    const moved = distance(profileOf(pcmOf(early), 'one-shot'), profileOf(pcmOf(late), 'one-shot'));
     expect(moved.hit).toBeCloseTo(0.1, 2);
     expect(moved.balance).toBeLessThan(0.5);
   });
 });
 
 describe('hitMove', () => {
-  const quiet = profileOf(pcmOf(new Float32Array(RATE)));
+  const quiet = profileOf(pcmOf(new Float32Array(RATE)), 'one-shot');
   const at = (onset: number, hit: number): Profile => ({ ...quiet, onset, hit });
   const takes = [at(0.05, 0.1), at(0.05, 0.12), at(0.05, 0.3)] as const;
 

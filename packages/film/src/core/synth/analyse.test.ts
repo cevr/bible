@@ -31,6 +31,18 @@ describe('describeSound', () => {
     expect(hiss.centroid).toBeGreaterThan(9000);
   });
 
+  test('a click brightens the sound alike at its very start and in its middle', () => {
+    // A 3 ms click of 4 kHz over a soft 100 Hz hum, half a second long.
+    const centroid = (at: number) => {
+      const plane = sine(100, 0.5).map((v) => v * 0.05);
+      plane.set(sine(4000, 0.003), Math.round(at * RATE));
+      return describeSound(mono(plane)).centroid;
+    };
+    const middle = centroid(0.25);
+    expect(middle).toBeGreaterThan(1000);
+    expect(Math.abs(centroid(0) / middle - 1)).toBeLessThan(0.05);
+  });
+
   test('the hit is where the sound is loudest, however soft its lead-in', () => {
     const plane = new Float32Array(RATE * 2);
     // A soft swell from 0.2 s, then a hit at 1.3 s.

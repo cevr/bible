@@ -1088,14 +1088,14 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           const plays = yield* Effect.forEach(playing, (p, i) =>
             Effect.map(decoded(p.source), (pcm): Measured => ({
               label: playableLabel(p, i),
-              profile: profileOf(pcm),
+              profile: profileOf(pcm, entry.use),
             })),
           );
           const { sound, variants } = trial.value;
           const tried = yield* Effect.forEach(Arr.range(1, variants), (seed) =>
             Effect.map(made.pcm({ _tag: 'Code', sound, seed }), (pcm): Measured => ({
               label: `seed ${seed}`,
-              profile: profileOf(pcm),
+              profile: profileOf(pcm, entry.use),
             })),
           );
           const compared: Comparison = { plays, trial: tried };

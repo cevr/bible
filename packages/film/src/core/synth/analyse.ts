@@ -94,9 +94,11 @@ const planOf = (size: number): FftPlan => {
         sin: Float64Array.from({ length: span / 2 }, (_, k) => Math.sin(step * k)),
       };
     }),
+    // Hann's periodic form: frames a quarter of a frame apart sum its square
+    // to 1.5 at every sample.
     hann: Float64Array.from(
       { length: size },
-      (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (size - 1)),
+      (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / size),
     ),
   };
   plans.set(size, plan);
@@ -116,15 +118,24 @@ const fft = (re: Float64Array, im: Float64Array, plan: FftPlan): void => {
 };
 
 /**
- * The power spectrum of one Hann-windowed frame of `plane`: its `size`
- * samples from `from` (`size` a power of two; silence past its end), in
- * `size / 2` bins. A full-scale sine's bin reads (size / 4)².
+ * What a sound holds past its ends: silence, as a one-shot is heard, or its
+ * own head again, as the mix loops a bed.
  */
-export const frameSpectrum = (plane: Float32Array, from: number, size: number): Float64Array => {
+type Ends = 'silent' | 'looped';
+
+/**
+ * The power spectrum of one Hann-windowed frame of `plane`: its `size`
+ * samples from `from` (`size` a power of two), in `size / 2` bins, what lies
+ * past its ends read as `ends` says. A full-scale sine's bin reads (size / 4)².
+ */
+const spectrumAt = (plane: Float32Array, from: number, size: number, ends: Ends): Float64Array => {
   const plan = planOf(size);
   const re = new Float64Array(size);
   const im = new Float64Array(size);
-  for (let i = 0; i < size; i++) re[i] = (plane[from + i] ?? 0) * (plan.hann[i] ?? 0);
+  const length = plane.length;
+  if (ends === 'looped' && length > 0)
+    for (let i = 0; i < size; i++) re[i] = (plane[(from + i) % length] ?? 0) * (plan.hann[i] ?? 0);
+  else for (let i = 0; i < size; i++) re[i] = (plane[from + i] ?? 0) * (plan.hann[i] ?? 0);
   fft(re, im, plan);
   const power = new Float64Array(size / 2);
   for (let k = 0; k < power.length; k++) power[k] = (re[k] ?? 0) ** 2 + (im[k] ?? 0) ** 2;
@@ -132,19 +143,47 @@ export const frameSpectrum = (plane: Float32Array, from: number, size: number): 
 };
 
 /**
- * `plane`'s power spectrum in `size / 2` bins (`size` a power of two),
- * averaged over Hann-windowed frames half a frame apart; one frame, padded
- * with silence, when `plane` is shorter.
+ * The power spectrum of one Hann-windowed frame of `plane`: its `size`
+ * samples from `from` (`size` a power of two; silence before its start and
+ * past its end), in `size / 2` bins. A full-scale sine's bin reads (size / 4)².
  */
-export const powerSpectrum = (plane: Float32Array, size: number): Float64Array => {
-  const power = new Float64Array(size / 2);
-  let frames = 0;
-  for (let from = 0; from + size <= Math.max(size, plane.length); from += size / 2) {
-    const frame = frameSpectrum(plane, from, size);
-    for (let k = 0; k < power.length; k++) power[k] = (power[k] ?? 0) + (frame[k] ?? 0);
-    frames++;
+export const frameSpectrum = (plane: Float32Array, from: number, size: number): Float64Array =>
+  spectrumAt(plane, from, size, 'silent');
+
+/**
+ * Where the frames of `plane`'s spectrum start, about a quarter of a frame
+ * apart, so that every sample lies in four of them. Silent ends: from the
+ * first frame that reaches its first sample to the last that holds its last.
+ * Looped: around the loop once, the starts spread evenly over its length.
+ */
+const frameStarts = (length: number, size: number, ends: Ends): ReadonlyArray<number> => {
+  const hop = size / 4;
+  if (ends === 'looped') {
+    const count = Math.max(4, Math.round(length / hop));
+    return Array.from({ length: count }, (_, k) => Math.floor((k * length) / count));
   }
-  return power.map((p) => p / Math.max(1, frames));
+  return Array.from(
+    { length: Math.ceil(Math.max(1, length) / hop) + 3 },
+    (_, k) => hop - size + k * hop,
+  );
+};
+
+/**
+ * `plane`'s power spectrum in `size / 2` bins (`size` a power of two), each
+ * sample weighed alike: averaged over Hann-windowed frames about a quarter
+ * of a frame apart (`frameStarts`), what lies past its ends read as `ends`
+ * says. Every sample lies in four frames, whose squared windows (Hann's
+ * periodic form) sum to 1.5, so a click at the very start or end of a sound
+ * counts as much as one in its middle.
+ */
+export const powerSpectrum = (plane: Float32Array, size: number, ends: Ends): Float64Array => {
+  const power = new Float64Array(size / 2);
+  const starts = frameStarts(plane.length, size, ends);
+  for (const from of starts) {
+    const frame = spectrumAt(plane, from, size, ends);
+    for (let k = 0; k < power.length; k++) power[k] = (power[k] ?? 0) + (frame[k] ?? 0);
+  }
+  return power.map((p) => p / starts.length);
 };
 
 /** `pcm` described. */
@@ -153,7 +192,7 @@ export const describeSound = (pcm: Pcm): Described => {
   const loudest = Math.max(...levels);
   const first = levels.findIndex((db) => db >= loudest - 30);
   const last = levels.findLastIndex((db) => db >= loudest - 40);
-  const power = powerSpectrum(pcm.channels[0] ?? new Float32Array(), FFT_SIZE);
+  const power = powerSpectrum(pcm.channels[0] ?? new Float32Array(), FFT_SIZE, 'silent');
   let weighted = 0;
   let total = 0;
   let logSum = 0;

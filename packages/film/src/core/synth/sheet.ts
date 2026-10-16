@@ -3,8 +3,10 @@
 // (`sfx ab`). Three panels share one clock, left to right over the sound:
 //
 // - the spectrogram (400 rows): each column the Hann frame of 2048 samples,
-//   on a 256-sample hop, nearest the column's middle (a sound longer than
-//   the columns' hops skips the frames between), each row a slice of 30 Hz
+//   on a 256-sample hop, whose middle lies nearest the column's (silence
+//   outside the sound, so a click at its very start shows as brightly as
+//   one in its middle; a sound longer than the columns' hops skips the
+//   frames between), each row a slice of 30 Hz
 //   to 16 kHz on a log scale coloured by its loudest bin, from -90 dB
 //   (black) to 0 dB (a full-scale sine: pale yellow), the power averaged
 //   over the channels;
@@ -162,7 +164,7 @@ const spectrogram = (paint: Canvas, pcm: Pcm): void => {
   };
   for (let x = 0; x < WIDTH; x++) {
     const middle = ((x + 0.5) / WIDTH) * pcm.frames;
-    const power = frameAt(Math.max(0, Math.round((middle - FRAME / 2) / HOP)));
+    const power = frameAt(Math.round((middle - FRAME / 2) / HOP));
     for (const [r, { from, to }] of rows.entries()) {
       let loudest = 0;
       for (let b = from; b < to; b++) loudest = Math.max(loudest, power[b] ?? 0);

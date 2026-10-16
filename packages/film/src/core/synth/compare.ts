@@ -3,7 +3,9 @@
 // brightness and band balance), each side's median over its renders, and how
 // far one side's median stands from the other's. The bands are earshot's
 // (tone.py): the 28 one-third octaves from 31.5 Hz to 16 kHz, each as its
-// share of the sound's power, so a quieter render keeps its balance. The
+// share of the sound's power, so a quieter render keeps its balance; a
+// one-shot is read with silence past its ends, a bed around its loop, as
+// the mix plays each, so an end nobody hears clicks in no band. The
 // share below 30 Hz stands apart: rumble spends headroom that the loudness
 // the mix levels by never hears (the app's sounds/PROMPTING.md). Numbers, no
 // verdict: a distance is a hint for the ear, never a target to make small.
@@ -15,6 +17,7 @@
 import { Array as Arr } from 'effect';
 import type { Pcm } from '../audio.ts';
 import type { SoundEffect } from '../schema.ts';
+import type { SoundUse } from '../sfx.ts';
 import { describeSound, powerSpectrum } from './analyse.ts';
 import { loudness } from './loudness.ts';
 
@@ -89,13 +92,13 @@ export interface Profile {
   readonly rumble: number;
 }
 
-/** `pcm`'s profile, its bands read over every channel's power. */
-export const profileOf = (pcm: Pcm): Profile => {
+/** `pcm`'s profile as a sound of `use` is heard, its bands read over every channel's power. */
+export const profileOf = (pcm: Pcm, use: SoundUse): Profile => {
   const described = describeSound(pcm);
   const loud = loudness(pcm);
   const power = new Float64Array(BAND_FFT / 2);
   for (const plane of pcm.channels)
-    powerSpectrum(plane, BAND_FFT).forEach((p, k) => {
+    powerSpectrum(plane, BAND_FFT, use === 'bed' ? 'looped' : 'silent').forEach((p, k) => {
       power[k] = (power[k] ?? 0) + p;
     });
   const binHz = pcm.rate / BAND_FFT;
