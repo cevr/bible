@@ -34,9 +34,9 @@ import { Argument, Command, Flag } from 'effect/cli';
 import type { SoundEffect } from '../core/schema.ts';
 import {
   type LibraryEntry,
-  type LockEntry,
   type MakeJob,
   familyOf,
+  keptLoudness,
   levelOf,
   soundState,
 } from '../core/sfx.ts';
@@ -78,17 +78,6 @@ const sourceOf = (entry: LibraryEntry): string => {
   }
 };
 
-/** The kept variants' mean loudness as the mix levels them: momentary max for a one-shot, integrated for a bed. */
-const keptLoudness = (entry: LibraryEntry, lock: Option.Option<LockEntry>): string => {
-  const kept = Option.match(lock, { onNone: () => [], onSome: (l) => l.variants });
-  if (kept.length === 0) return '-';
-  const measure = kept.map((v) => {
-    if (entry.use === 'bed') return v.loudness.integrated;
-    return v.loudness.momentaryMax;
-  });
-  return `${(measure.reduce((a, b) => a + b, 0) / measure.length).toFixed(1)}`;
-};
-
 /**
  * One line per sound: name, kind, use, state (current, stale, missing, or
  * derived for a code sound), variants kept (and candidates waiting),
@@ -125,7 +114,10 @@ const listLines = (
           state._tag.toLowerCase().padEnd(8),
           `${kept}${waiting}`.padEnd(7),
           `${level} dB`.padEnd(7),
-          keptLoudness(entry, lock).padStart(6),
+          Option.match(keptLoudness(entry, lock), {
+            onNone: () => '-',
+            onSome: (db) => db.toFixed(1),
+          }).padStart(6),
           ` ${sourceOf(entry)}${trial}`,
         ].join(' '),
       ];

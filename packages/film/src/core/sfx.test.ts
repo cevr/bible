@@ -13,6 +13,7 @@ import {
   creditsOf,
   influenceOf,
   defineLibrary,
+  keptLoudness,
   gainFor,
   heardSource,
   jitterOf,
@@ -237,7 +238,7 @@ describe('playPlacings', () => {
   });
 });
 
-describe('soundState', () => {
+describe('soundState and keptLoudness', () => {
   const slide = library['paper.slide'];
   const made = (request: string): Variant => ({
     request,
@@ -273,6 +274,19 @@ describe('soundState', () => {
   test('kept variants for this request are current', () => {
     const lock = Option.some({ variants: [made(requestKey(slide))], candidates: [], rejected: [] });
     expect(soundState(slide, lock)).toEqual({ _tag: 'Current', variants: 1, candidates: 0 });
+  });
+
+  test('the kept variants’ mean loudness as the mix levels them; none kept, or a code sound, has none', () => {
+    const quieter: Variant = {
+      ...made('old'),
+      loudness: { integrated: -30, momentaryMax: -21.6, peak: -5 },
+    };
+    const lock = Option.some({ variants: [made('new'), quieter], candidates: [], rejected: [] });
+    expect(keptLoudness(slide, lock)).toEqual(Option.some(-20.6));
+    expect(keptLoudness(library['amb.court'], lock)).toEqual(Option.some(-27));
+    expect(keptLoudness(slide, Option.none())).toEqual(Option.none());
+    // A code sound's lock holds the takes it was; its seeds play.
+    expect(keptLoudness(library['tone.chime'], lock)).toEqual(Option.none());
   });
 });
 

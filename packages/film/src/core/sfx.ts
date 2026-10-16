@@ -348,6 +348,28 @@ export const soundState = (entry: LibraryEntry, lock: Option.Option<LockEntry>):
   return { _tag: 'Current', variants: kept.length, candidates };
 };
 
+/**
+ * The kept variants' mean loudness as the mix levels them: momentary max for
+ * a one-shot, integrated for a bed. None when nothing is kept, and none for a
+ * code sound: its seeds play, and its lock holds only the takes it was.
+ */
+export const keptLoudness = (
+  entry: LibraryEntry,
+  lock: Option.Option<LockEntry>,
+): Option.Option<number> => {
+  if (isDerived(entry)) return Option.none();
+  const kept = Option.match(lock, {
+    onNone: (): ReadonlyArray<Variant> => [],
+    onSome: (l) => l.variants,
+  });
+  if (kept.length === 0) return Option.none();
+  const measure = kept.map((v) => {
+    if (entry.use === 'bed') return v.loudness.integrated;
+    return v.loudness.momentaryMax;
+  });
+  return Option.some(measure.reduce((a, b) => a + b, 0) / measure.length);
+};
+
 /** How many candidates a generated sound is made as, when it names no number. */
 // About a third of the sweet-spot takes were usable: six one-shots,
 // or three beds, give one usable take nearly always.
