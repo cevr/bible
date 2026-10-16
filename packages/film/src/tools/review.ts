@@ -413,20 +413,26 @@ const variantNames = (clip: string, id: string, set: ManifestSet): ReadonlyArray
     },
   );
 
+/**
+ * Every file a manifest names, relative to its folder, each as the names it
+ * may be found by (one, but a variant with no `file`: its share copy or its
+ * master). A file is there when one of its names is.
+ */
+export const filesInMontage = (manifest: ReviewManifest): ReadonlyArray<ReadonlyArray<string>> => [
+  ...[...manifest.docs, ...manifest.images, ...manifest.videos, ...manifest.downloads].map(
+    (name) => [name],
+  ),
+  ...Object.entries(manifest.sets).flatMap(([clip, set]) =>
+    variantIds(set).flatMap((id) => [
+      variantNames(clip, id, set),
+      ...Option.toArray(Option.flatMap(Rec.get(set.variants, id), (v) => v.notes)).map((n) => [n]),
+    ]),
+  ),
+];
+
 /** Every file a manifest names (or may, for a variant with no `file`), relative to its folder. */
 export const namesInMontage = (manifest: ReviewManifest): ReadonlyArray<string> =>
-  Arr.dedupe([
-    ...manifest.docs,
-    ...manifest.images,
-    ...manifest.videos,
-    ...manifest.downloads,
-    ...Object.entries(manifest.sets).flatMap(([clip, set]) =>
-      variantIds(set).flatMap((id) => [
-        ...variantNames(clip, id, set),
-        ...Option.toArray(Option.flatMap(Rec.get(set.variants, id), (v) => v.notes)),
-      ]),
-    ),
-  ]);
+  Arr.dedupe(filesInMontage(manifest).flat());
 
 /** Every file a manifest plays as video (its videos and its sets' variants), relative to its folder. */
 const playedInMontage = (manifest: ReviewManifest): ReadonlyArray<string> =>

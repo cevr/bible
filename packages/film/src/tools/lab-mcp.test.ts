@@ -359,6 +359,51 @@ describe('the lab as an MCP server', () => {
   );
 });
 
+describe('a set published through the MCP', () => {
+  it.effect(
+    "is refused into a film's project folder, and when a variant or its notes is a file the folder lacks",
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const out = path.resolve('out');
+          yield* fs.makeDirectory(path.join(out, 'old-render'), { recursive: true });
+          yield* fs.writeFileString(
+            path.join(out, 'old-render', 'catalogue.json'),
+            yield* Schema.encodeEffect(CatalogueJson)(emptyCatalogue('old-render')),
+          );
+          const { lab } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          const publish = (name: string, manifest: Schema.Json, files: Schema.Json = []) =>
+            tool('publish_set', { name, files, manifest });
+          // Film f's own folder, and a folder a catalogue keeps: the review shows them as projects.
+          expect((yield* publish('f', { title: 'x' })).refused).toContain(
+            "film f's project folder",
+          );
+          expect((yield* publish('old-render', { title: 'x' })).refused).toContain(
+            'project folder',
+          );
+          const clip = (variants: Schema.Json) => ({ sets: { cold: { variants } } });
+          const video = { from: '/work/judge-calmer.png', to: 'cold.b.mp4' };
+          // A variant's own file, its notes, and one with neither copy beside it.
+          expect((yield* publish('cuts', clip({ a: { file: 'a.mp4' } }))).refused).toContain(
+            'a.mp4',
+          );
+          expect(
+            (yield* publish('cuts', clip({ b: { notes: 'b.md' } }), [video])).refused,
+          ).toContain('b.md');
+          const implicit = (yield* publish('cuts', clip({ c: {} }))).refused;
+          expect(implicit).toContain('cold.c.share.mp4');
+          expect(implicit).toContain('cold.c.mp4');
+          // A variant with no file is its share copy or its master: either is enough.
+          const published = yield* publish('cuts', clip({ b: {} }), [video]);
+          expect(published.set).toBe('spare/cuts');
+        }),
+      ),
+  );
+});
+
 describe('the sets the MCP lists', () => {
   it.effect(
     'every folder the review walks, by the kind it reads it as: one nested below the first level, a project folder by its catalogue though a manifest sits beside it, and no record that does not decode; the feed hears a nested one published',

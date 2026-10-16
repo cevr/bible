@@ -81,7 +81,7 @@ import { Note, type NoteDraft, NoteStatus, repoJson } from '../core/schema.ts';
 import { Segment } from '../core/segment.ts';
 import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
-import { RenderCatalogue } from './catalogue.ts';
+import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
 import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts';
 import type { Easel } from './easel.ts';
 import { EASEL_INSTRUCTIONS, easelMcp } from './easel-mcp.ts';
@@ -91,7 +91,7 @@ import type { FreshFilm } from './fresh-film.ts';
 import { LabChanges, LabEvents } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
-import { Review, pathOf, recordsUnder, refOf } from './review.ts';
+import { Review, filesInMontage, pathOf, recordsUnder, refOf } from './review.ts';
 
 /** Where the lab answers MCP. */
 export const MCP_PATH = '/mcp';
@@ -372,7 +372,7 @@ const RequestTweak = Tool.make('request_tweak', {
 
 const PublishSet = Tool.make('publish_set', {
   description:
-    "Publish a set into the lab, or update one: its folder `name` in the lab's own `out/`, the files copied in (each `from` an absolute path, `to` its place in the folder), and its `review.json` written with the keys given (each replaces the one there; a key left out is kept). List each file the set shows under `images`, `videos`, `docs`, `downloads` or a comparison set's variants, by its path in the folder. Answers the set's ref and link: the owner sees it at once.",
+    "Publish a set into the lab, or update one: its folder `name` in the lab's own `out/` (never a project folder, a film's or one a catalogue keeps: a render is recorded there with `record_render`), the files copied in (each `from` an absolute path, `to` its place in the folder), and its `review.json` written with the keys given (each replaces the one there; a key left out is kept). List each file the set shows under `images`, `videos`, `docs`, `downloads` or a comparison set's variants (and their `notes`), by its path in the folder: each must be there once the files are in, a variant with no `file` as its share copy or its master. Answers the set's ref and link: the owner sees it at once.",
   parameters: Schema.Struct({
     name: SetName,
     files: Schema.optionalKey(Schema.Array(SetFile)),
@@ -821,6 +821,17 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     const ref = yield* Effect.fromOption(refOf(review.roots, dir, path), () =>
       LabRefused.make({ reason: `the lab's out/ (${out}) is under none of its review roots` }),
     );
+    // A project folder is a film's renders: the review reads it by its catalogue, never as a montage.
+    const elsewhere =
+      'publish the set under another name, and record a render there with `record_render`';
+    if ((yield* folder.names).includes(name))
+      return yield* LabRefused.make({
+        reason: `${name} is film ${name}'s project folder, where its renders are recorded: ${elsewhere}`,
+      });
+    if (yield* fs.exists(path.join(dir, CATALOGUE_FILE)).pipe(Effect.orElseSucceed(() => false)))
+      return yield* LabRefused.make({
+        reason: `${name} is a project folder (its ${CATALOGUE_FILE}): ${elsewhere}`,
+      });
     // Every file checked before anything is written.
     const copies = yield* Effect.forEach(files, (f) =>
       Effect.gen(function* () {
@@ -859,21 +870,18 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
           const manifest = yield* Schema.decodeUnknownEffect(ReviewManifest)(next).pipe(
             Effect.mapError((e) => LabRefused.make({ reason: `review.json: ${e.message}` })),
           );
-          const named = [
-            ...manifest.docs,
-            ...manifest.images,
-            ...manifest.videos,
-            ...manifest.downloads,
-          ];
-          const missing = yield* Effect.filter(named, (file) =>
-            Option.match(inside(path, dir, file), {
-              onNone: () => Effect.succeed(true),
-              onSome: (at) => Effect.map(fs.exists(at), (there) => !there),
-            }),
+          // Every file it names as the review finds it: a variant with no `file`, by either copy.
+          const there = (name: string) =>
+            Option.match(inside(path, dir, name), {
+              onNone: () => Effect.succeed(false),
+              onSome: (at) => fs.exists(at),
+            });
+          const missing = yield* Effect.filter(filesInMontage(manifest), (names) =>
+            Effect.map(Effect.forEach(names, there), (found) => !found.includes(true)),
           );
           if (missing.length > 0)
             return yield* LabRefused.make({
-              reason: `review.json names what the folder lacks: ${missing.join(', ')}`,
+              reason: `review.json names what the folder lacks: ${missing.map((names) => names.join(' or ')).join(', ')}`,
             });
           return [manifest, next] as const;
         }),
