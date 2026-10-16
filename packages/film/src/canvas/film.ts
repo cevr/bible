@@ -18,7 +18,7 @@ import {
   sceneOf,
   transitionDur,
 } from '../core/layout.ts';
-import { FloodInTransition, type UnknownScene } from '../core/errors.ts';
+import { CardsOverlap, FloodInTransition, type UnknownScene } from '../core/errors.ts';
 import {
   type Knob,
   Knobs,
@@ -213,7 +213,7 @@ const sceneHand = (scene: string, key: string | number, boil: number): Hand => (
 
 export interface SceneSpec extends Timed {
   /**
-   * The scene's picture at `f.t`. A scene whose card floods in from a
+   * The scene's picture at `f.t`. A scene with a card that floods in from a
    * highlight returns the highlight's box (`verse` gives it), which the flood
    * grows from on the same frame (`CardSpec.flood`); any other returns nothing.
    */
@@ -234,14 +234,16 @@ export interface SceneSpec extends Timed {
    */
   readonly light?: Light | ((f: Frame) => Light);
   /**
-   * The scene's full-screen card (`canvas/card.ts`, CRAFT rule 1): over its
-   * cue the card is the frame, drawn on the film's paper in place of the
-   * scene (no light or vignette on it, the film's finish over it, no caption:
-   * the card is the words); over its flood's cue it grows from the box the
-   * scene's draw returns, over the lit scene. A card held to the scene's end
-   * leaves as the card into a transition; a flood inside one stops the film.
+   * The scene's full-screen cards (`canvas/card.ts`, CRAFT rule 1), each over
+   * its own cue: there the card is the frame, drawn on the film's paper in
+   * place of the scene (no light or vignette on it, the film's finish over
+   * it, no caption: the card is the words); over its flood's cue it grows
+   * from the box the scene's draw returns, over the lit scene. Two cards whose
+   * cues hold at one instant stop the film (`CardsOverlap`). A card held to
+   * the scene's end leaves as the card into a transition; a flood inside one
+   * stops the film.
    */
-  readonly card?: CardSpec<string, Frame>;
+  readonly cards?: ReadonlyArray<CardSpec<string, Frame>>;
 }
 
 /**
@@ -295,13 +297,13 @@ export const drawing = <
   const K extends Knobs = NoKnobs,
   const R extends Rigs = NoRigs,
 >(
-  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'rigs' | 'draw' | 'light' | 'card'> & {
+  d: Omit<SceneSpec, 'id' | 'say' | 'timeline' | 'knobs' | 'rigs' | 'draw' | 'light' | 'cards'> & {
     readonly timeline: T & Closed<T>;
     readonly knobs?: K;
     readonly rigs?: R;
     readonly draw: (f: Frame<keyof T & string, K, R>) => Box | void;
     readonly light?: Light | ((f: Frame<keyof T & string, K, R>) => Light);
-    readonly card?: CardSpec<keyof T & string, Frame<keyof T & string, K, R>>;
+    readonly cards?: ReadonlyArray<CardSpec<keyof T & string, Frame<keyof T & string, K, R>>>;
   },
 ) => d;
 
@@ -534,9 +536,10 @@ export interface ShownEdit {
 
 /**
  * Why an edit does not resolve: the film has no such scene, its timeline
- * names what the scene lacks, or it moves the card's flood into a transition.
+ * names what the scene lacks, it moves a card's flood into a transition, or
+ * it makes two of the scene's cards hold the frame at once.
  */
-export type EditError = UnknownScene | TimelineError | FloodInTransition;
+export type EditError = UnknownScene | TimelineError | FloodInTransition | CardsOverlap;
 
 /**
  * One frame of footage a frame of a film reads (`Film.footageAt`): a derived
@@ -726,6 +729,12 @@ const rewindSink = (sink: ProbeSink | undefined) => {
   if (sink.hands !== undefined) sink.hands.length = SINK_MARK.hands;
 };
 
+/** A scene's card as the film sets it: as its drawing declares it, and the words it sets. */
+interface SetCard {
+  readonly spec: CardSpec<string, Frame>;
+  readonly words: ReadonlyArray<CardWord>;
+}
+
 /** The breath a scene draw is given (`SceneBreath`), rewritten for each draw. */
 interface BreathNow {
   through: number;
@@ -736,7 +745,7 @@ interface BreathNow {
 }
 
 /**
- * Scene `p`'s cues (`cues`: its own, or an edit's) unless its card's flood
+ * Scene `p`'s cues (`cues`: its own, or an edit's) unless a card's flood
  * would fall inside a transition: a flood is drawn over its scene's own frame
  * alone, never over a transition's two layers, so one that starts inside the
  * scene's way in (`enter`, not a cut) or runs past its end (`endsLate`, the
@@ -749,26 +758,70 @@ const floodInTransition = (
   next: Placed<SceneSpec> | undefined,
   cues: ReadonlyMap<string, ResolvedCue>,
 ): Result.Result<ReadonlyMap<string, ResolvedCue>, FloodInTransition> => {
-  const flood = p.spec.card?.flood;
-  const c = flood === undefined ? undefined : cues.get(flood.cue);
-  if (flood === undefined || c === undefined) return Result.succeed(cues);
   const enter = transitionDur(p.spec.enter);
-  const refused = (side: 'into' | 'out', at: number, edge: number) =>
-    Result.fail(
-      FloodInTransition.make({
-        scene: p.spec.id,
-        cue: flood.cue,
-        side,
-        next: next?.spec.id ?? '',
-        at,
-        edge,
-      }),
-    );
-  if (p.index > 0 && c.start < enter) return refused('into', c.start, enter);
-  if (next !== undefined && transitionDur(next.spec.enter) > 0 && endsLate(c, p.dur))
-    return refused('out', c.end, p.dur);
+  for (const card of p.spec.cards ?? []) {
+    const flood = card.flood;
+    const c = flood === undefined ? undefined : cues.get(flood.cue);
+    if (flood === undefined || c === undefined) continue;
+    const refused = (side: 'into' | 'out', at: number, edge: number) =>
+      Result.fail(
+        FloodInTransition.make({
+          scene: p.spec.id,
+          cue: flood.cue,
+          side,
+          next: next?.spec.id ?? '',
+          at,
+          edge,
+        }),
+      );
+    if (p.index > 0 && c.start < enter) return refused('into', c.start, enter);
+    if (next !== undefined && transitionDur(next.spec.enter) > 0 && endsLate(c, p.dur))
+      return refused('out', c.end, p.dur);
+  }
   return Result.succeed(cues);
 };
+
+/**
+ * Scene `p`'s cues (`cues`: its own, or an edit's) unless two of its cards
+ * would hold the frame at one instant: a frame shows one card, so cues that
+ * overlap by more than float noise (`CLOCK_EPSILON`) are refused, where the
+ * film is made and where an edit is, rather than one card silently hiding
+ * the other. A card naming a cue the scene lacks is the frame's to refuse
+ * (`holds`).
+ */
+const cardsOverlap = (
+  p: Placed<SceneSpec>,
+  cues: ReadonlyMap<string, ResolvedCue>,
+): Result.Result<ReadonlyMap<string, ResolvedCue>, CardsOverlap> => {
+  const spans = (p.spec.cards ?? [])
+    .flatMap((card) => {
+      const c = cues.get(card.cue);
+      return c === undefined ? [] : [{ cue: card.cue, start: c.start, end: c.end }];
+    })
+    .sort((a, b) => a.start - b.start);
+  for (const [i, first] of spans.entries())
+    for (const second of spans.slice(i + 1))
+      if (second.start < first.end - CLOCK_EPSILON)
+        return Result.fail(
+          CardsOverlap.make({
+            scene: p.spec.id,
+            first: first.cue,
+            second: second.cue,
+            from: first.start,
+            to: first.end,
+            at: second.start,
+          }),
+        );
+  return Result.succeed(cues);
+};
+
+/** Scene `p`'s cues (`cues`: its own, or an edit's) unless its cards' cues break a rule a frame keeps. */
+const cardsHold = (
+  p: Placed<SceneSpec>,
+  next: Placed<SceneSpec> | undefined,
+  cues: ReadonlyMap<string, ResolvedCue>,
+): Result.Result<ReadonlyMap<string, ResolvedCue>, FloodInTransition | CardsOverlap> =>
+  Result.flatMap(cardsOverlap(p, cues), (held) => floodInTransition(p, next, held));
 
 export const createFilm = (spec: FilmSpec): Film => {
   const width = spec.width ?? 1920;
@@ -788,19 +841,24 @@ export const createFilm = (spec: FilmSpec): Film => {
   const captions = spec.captions === undefined ? undefined : captionOf(spec.captions);
   const short = shortOf(spec.short, spec.shade);
   /**
-   * Each card's words, set once from its scene's take (`cardWords`): a card
-   * that names a mark its line lacks, or a payoff it never says, stops the
-   * film here, as a timeline that does not resolve does.
+   * Each scene's cards, in the order its drawing declares them, each with its
+   * words set once from the scene's take (`cardWords`): a card that names a
+   * mark its line lacks, or a payoff it never says, stops the film here, as
+   * a timeline that does not resolve does; so do two cards that would hold
+   * the frame at once, and a flood inside a transition (`cardsHold`).
    */
-  const cards = new Map<string, ReadonlyArray<CardWord>>();
+  const cards = new Map<string, ReadonlyArray<SetCard>>();
   for (const p of placed) {
-    const card = p.spec.card;
-    if (card === undefined) continue;
-    const words = cardWords(p.spec.id, p.voice, p.speechStart, card);
-    if (Result.isFailure(words)) throw new Error(words.failure);
-    cards.set(p.spec.id, words.success);
-    const flooded = floodInTransition(p, placed[p.index + 1], p.cues);
-    if (Result.isFailure(flooded)) throw new Error(flooded.failure.message);
+    const declared = p.spec.cards ?? [];
+    if (declared.length === 0) continue;
+    const set = declared.map((spec): SetCard => {
+      const words = cardWords(p.spec.id, p.voice, p.speechStart, spec);
+      if (Result.isFailure(words)) throw new Error(words.failure);
+      return { spec, words: words.success };
+    });
+    cards.set(p.spec.id, set);
+    const held = cardsHold(p, placed[p.index + 1], p.cues);
+    if (Result.isFailure(held)) throw new Error(held.failure.message);
   }
 
   // Built lazily: the film must lay out where there is no DOM (tools, tests).
@@ -973,9 +1031,10 @@ export const createFilm = (spec: FilmSpec): Film => {
           e.timeline === undefined
             ? Result.succeed(p.cues)
             : resolveTimeline(e.timeline, sceneClock(p)),
-          // An edit is refused a flood it would move into a transition, as the source is.
+          // An edit is refused cards that would overlap or a flood it would move
+          // into a transition, as the source is.
           (cues): Result.Result<ReadonlyMap<string, ResolvedCue>, EditError> =>
-            floodInTransition(p, placed[p.index + 1], cues),
+            cardsHold(p, placed[p.index + 1], cues),
         ),
         (cues): ShownEdit => ({
           edit: e,
@@ -1143,9 +1202,9 @@ export const createFilm = (spec: FilmSpec): Film => {
   let drawnLight: Light | undefined;
   /** Whether that light is fixed, not read per frame. */
   let drawnFixed = true;
-  /** The frame the last scene drawn was drawn on: what its card's flood reads. */
+  /** The frame the last scene drawn was drawn on: what a card's flood reads. */
   let drawnFrame: Frame | undefined;
-  /** The box that draw returned, reset before each draw: where its card's flood grows from on the same frame. */
+  /** The box that draw returned, reset before each draw: where a card's flood grows from on the same frame. */
   let drawnBox: Box | void;
 
   /** The breath each scene draw is given: one, rewritten per draw, never made per frame. */
@@ -1180,30 +1239,32 @@ export const createFilm = (spec: FilmSpec): Film => {
     return t >= c.start && t < c.end;
   };
 
-  /** Whether scene `p`'s card is the frame at `T`. */
+  /** Scene `p`'s cards as the film sets them, in the order its drawing declares them. */
+  const cardsOf = (p: Placed<SceneSpec>): ReadonlyArray<SetCard> => cards.get(p.spec.id) ?? [];
+
+  /** The card of scene `p` that is the frame at `T`: the one whose cue holds (at most one does, `cardsOverlap`). */
   const carded = (
     p: Placed<SceneSpec>,
     T: number,
     edits: ReadonlyMap<string, ShownEdit> | undefined,
-  ) => p.spec.card !== undefined && holds(p, p.spec.card.cue, T, edits);
+  ): SetCard | undefined => cardsOf(p).find((card) => holds(p, card.spec.cue, T, edits));
 
-  /** Scene `p`'s card on `ctx` as frame `f` draws it, probed as the scene's own text. */
+  /** A scene's `card` on `ctx` as frame `f` draws it, probed as the scene's own text. */
   const drawCard = (
     ctx: CanvasRenderingContext2D,
-    p: Placed<SceneSpec>,
+    card: SetCard,
     f: Frame,
     probe: Probe | undefined,
   ) => {
-    const card = p.spec.card;
-    if (card === undefined) return;
-    const words = cards.get(p.spec.id) ?? [];
     ctx.save();
-    probing(ctx, probe, () => hearingCameras(ctx, undefined, still, () => card.draw(f, words)));
+    probing(ctx, probe, () =>
+      hearingCameras(ctx, undefined, still, () => card.spec.draw(f, card.words)),
+    );
     ctx.restore();
   };
 
   /**
-   * Scene `p`'s card in place of its picture at `T`: on the film's paper
+   * Scene `p`'s `card` in place of its picture at `T`: on the film's paper
    * alone, opaque, so the frame is the same whatever was drawn on the canvas
    * before it (a look's card may paint a ground with alpha, or none); the
    * scene's picture, light and vignette are left off, so nothing dims or
@@ -1212,6 +1273,7 @@ export const createFilm = (spec: FilmSpec): Film => {
   const cardFrame = (
     ctx: CanvasRenderingContext2D,
     p: Placed<SceneSpec>,
+    card: SetCard,
     T: number,
     boil: number,
     probe: Probe | undefined,
@@ -1219,25 +1281,36 @@ export const createFilm = (spec: FilmSpec): Film => {
     edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     ctx.drawImage(getAssets().paper, 0, 0);
-    drawCard(ctx, p, frameOf(ctx, p, T, boil, reads, edits, []), probe);
+    drawCard(ctx, card, frameOf(ctx, p, T, boil, reads, edits, []), probe);
   };
 
   /**
-   * Whether scene `p`'s card holds to its scene's end (as `edits` show it):
-   * the card is then what the scene leaves on screen, so a transition out of
-   * it carries the card, never the picture under it.
+   * The card of scene `p` that holds to its scene's end (as `edits` show it),
+   * none when the last card to end ends before it: that card is then what the
+   * scene leaves on screen, so a transition out of it carries the card, never
+   * the picture under it.
    */
-  const cardToEnd = (p: Placed<SceneSpec>, edits: ReadonlyMap<string, ShownEdit> | undefined) => {
-    const card = p.spec.card;
-    if (card === undefined) return false;
-    const c = shownOf(p, edits).cues.get(card.cue);
-    return c !== undefined && p.dur - c.end <= CLOCK_EPSILON;
+  const cardToEnd = (
+    p: Placed<SceneSpec>,
+    edits: ReadonlyMap<string, ShownEdit> | undefined,
+  ): SetCard | undefined => {
+    const cues = shownOf(p, edits).cues;
+    const ending = cardsOf(p).flatMap((card) => {
+      const c = cues.get(card.spec.cue);
+      return c === undefined ? [] : [{ card, end: c.end }];
+    });
+    const last = ending.reduce<(typeof ending)[number] | undefined>(
+      (best, e) => (best === undefined || e.end > best.end ? e : best),
+      undefined,
+    );
+    return last !== undefined && p.dur - last.end <= CLOCK_EPSILON ? last.card : undefined;
   };
 
-  /** Scene `p`'s card at `T` into a layer, on the film's paper: the outgoing side of a transition out of a card. */
+  /** Scene `p`'s `card` at `T` into a layer, on the film's paper: the outgoing side of a transition out of a card. */
   const cardLayer = (
     target: Offscreen,
     p: Placed<SceneSpec>,
+    card: SetCard,
     T: number,
     boil: number,
     probe: Probe | undefined,
@@ -1247,13 +1320,14 @@ export const createFilm = (spec: FilmSpec): Film => {
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
     target.ctx.globalCompositeOperation = 'source-over';
-    cardFrame(target.ctx, p, T, boil, probe, reads, edits);
+    cardFrame(target.ctx, p, card, T, boil, probe, reads, edits);
     return target.c;
   };
 
   /**
-   * Scene `p`'s card flooding in over its lit frame at `T`, when its flood's
-   * cue holds: grown from the highlight's box toward the whole frame.
+   * Scene `p`'s card flooding in over its lit frame at `T`, when a card's
+   * flood cue holds (the first such card the drawing declares): grown from
+   * the highlight's box toward the whole frame.
    */
   const floodOver = (
     ctx: CanvasRenderingContext2D,
@@ -1264,9 +1338,13 @@ export const createFilm = (spec: FilmSpec): Film => {
     reads: Reads | undefined,
     edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
-    const flood = p.spec.card?.flood;
     const f = drawnFrame;
-    if (flood === undefined || f === undefined || !holds(p, flood.cue, T, edits)) return;
+    if (f === undefined) return;
+    const card = cardsOf(p).find(
+      (c) => c.spec.flood !== undefined && holds(p, c.spec.flood.cue, T, edits),
+    );
+    const flood = card?.spec.flood;
+    if (card === undefined || flood === undefined) return;
     const from = drawnBox;
     if (from === undefined)
       throw new Error(
@@ -1287,7 +1365,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       b.ctx.globalCompositeOperation = 'source-over';
       b.ctx.clearRect(0, 0, width, height);
       b.ctx.setTransform(frame);
-      drawCard(b.ctx, p, frameOf(b.ctx, p, T, boil, reads, edits, []), probe);
+      drawCard(b.ctx, card, frameOf(b.ctx, p, T, boil, reads, edits, []), probe);
       b.ctx.setTransform(1, 0, 0, 1, 0, 0);
       b.ctx.globalCompositeOperation = 'destination-in';
       mask(b.ctx, box, at, f);
@@ -1304,7 +1382,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx.rect(box.x, box.y, box.w, box.h);
     ctx.clip();
     ctx.setTransform(frame);
-    drawCard(ctx, p, f, probe);
+    drawCard(ctx, card, f, probe);
     ctx.restore();
   };
 
@@ -1454,10 +1532,10 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    const isCard = carded(cur, T, edits);
-    if (isCard) {
+    const shown = carded(cur, T, edits);
+    if (shown !== undefined) {
       // A full-screen card: the frame is the card alone, cut to and from.
-      cardFrame(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
+      cardFrame(ctx, cur, shown, T, boil, probe(cur, 0, 1), reads(true), edits);
     } else if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
       sheet(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
       // The scene's light over its page and all on it, with the vignette.
@@ -1470,11 +1548,14 @@ export const createFilm = (spec: FilmSpec): Film => {
       const dx = enter.kind === 'pan' ? -dir * p * width : 0;
       const fading = enter.kind === 'pan' ? 0 : 1;
       // A card held to its scene's end leaves as the card, not the picture under it.
-      const leavesCard = cardToEnd(prev, edits);
-      const outgoing = leavesCard ? cardLayer : layer;
-      const out = outgoing(a, prev, T, boil, probe(prev, dx, 1 - fading * p), reads(false), edits);
+      const leaving = cardToEnd(prev, edits);
+      const outProbe = probe(prev, dx, 1 - fading * p);
+      const out =
+        leaving === undefined
+          ? layer(a, prev, T, boil, outProbe, reads(false), edits)
+          : cardLayer(a, prev, leaving, T, boil, outProbe, reads(false), edits);
       // A card takes no vignette; a scene its light's share of it (read as its layer is drawn).
-      const from = leavesCard ? 0 : vignetteOf(drawnLight);
+      const from = leaving === undefined ? vignetteOf(drawnLight) : 0;
       const inn = layer(
         b,
         cur,
@@ -1492,7 +1573,8 @@ export const createFilm = (spec: FilmSpec): Film => {
     finishFrame(ctx, boil);
     // No caption over a card: the card is the words (CRAFT rule 1), set as they are
     // said; the caption track (`.vtt`) keeps the line.
-    if (opts.captions === true && !isCard) captionOver(ctx, cur, local, probe(cur, 0, 1));
+    if (opts.captions === true && shown === undefined)
+      captionOver(ctx, cur, local, probe(cur, 0, 1));
     ctx.restore();
   };
 

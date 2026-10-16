@@ -5,11 +5,12 @@
 // colour from the colour script. And the verse a card may follow: Scripture
 // on its page, the phrase highlighted, the highlight flooding into the card.
 //
-// A scene declares its card once on its drawing (`drawing({ card })`): the
-// cue the card holds the frame for (a hard cut in at its start and out at its
-// end), the words it sets (from a mark, as the take says them) and its payoff
-// word, and, when it follows a highlight, the cue the highlight floods the
-// frame over. The scene's draw returns where on the frame the highlight
+// A scene declares its cards on its drawing (`drawing({ cards })`), more than
+// one where it needs them, each over its own cue: the cue the card holds the
+// frame for (a hard cut in at its start and out at its end; no two cards of a
+// scene hold at one instant), the words it sets (from a mark, as the take says
+// them) and its payoff word, and, when it follows a highlight, the cue the
+// highlight floods the frame over. The scene's draw returns where on the frame the highlight
 // stands (`verse` returns it so), and the flood grows from that box: the
 // same frame's, never one an earlier frame left. The film draws the card in
 // place of the scene, on the film's paper (opaque, so the frame is the same
@@ -42,8 +43,8 @@ export interface CardWord {
 }
 
 /**
- * A scene's full-screen card, as its drawing declares it: `C` names the
- * drawing's cues and `F` is its frame.
+ * One of a scene's full-screen cards, as its drawing declares it
+ * (`drawing({ cards })`): `C` names the drawing's cues and `F` is its frame.
  */
 export interface CardSpec<C extends string, F> {
   /** The cue the card holds the frame for: a hard cut in at its start, a hard cut out at its end. */

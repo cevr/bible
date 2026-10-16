@@ -169,6 +169,24 @@ export class FloodInTransition extends Schema.TaggedError<FloodInTransition>()(
   }
 }
 
+/**
+ * Two of a scene's full-screen cards that would hold the frame at one
+ * instant: `first`'s cue (the earlier to start) runs from `from` to `to`,
+ * and `second`'s starts at `at`, before `to`.
+ */
+export class CardsOverlap extends Schema.TaggedError<CardsOverlap>()('CardsOverlap', {
+  scene: Schema.String,
+  first: Schema.String,
+  second: Schema.String,
+  from: Schema.Finite,
+  to: Schema.Finite,
+  at: Schema.Finite,
+}) {
+  override get message() {
+    return `scene "${this.scene}": its cards over "${this.first}" (${this.from.toFixed(2)}–${this.to.toFixed(2)} s) and "${this.second}" (from ${this.at.toFixed(2)} s) hold the frame at once; a frame shows one card: end "${this.first}" by ${this.at.toFixed(2)} s, or start "${this.second}" after ${this.to.toFixed(2)} s`;
+  }
+}
+
 /** Two scenes of a film share an id. */
 export class DuplicateScene extends Schema.TaggedError<DuplicateScene>()('DuplicateScene', {
   scene: Schema.String,

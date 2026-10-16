@@ -246,19 +246,96 @@ describe('a frame hears the names it reads off its clock', () => {
             if (f.t > 3) f.at('flood');
             return { x: 0, y: 0, w: 10, h: 10 };
           },
-          card: {
-            cue: 'card',
-            from: 'job',
-            payoff: 'just',
-            flood: { cue: 'flood' },
-            draw: () => undefined,
-          },
+          cards: [
+            {
+              cue: 'card',
+              from: 'job',
+              payoff: 'just',
+              flood: { cue: 'flood' },
+              draw: () => undefined,
+            },
+          ],
         },
       ],
     });
     const heard = clock();
     withDom(() => film.render(recorder().ctx, 0.5, { clock: heard }), { record: false });
     expect(names(heard.cues)).toEqual([]);
+  });
+});
+
+describe('a scene with more than one card', () => {
+  const LINE =
+    'He is {righteous}righteous, they said. And Job asked: {job}How should man be just with God?';
+  /** A film of one scene with a card over `one` and another over `two` (`timeline`), logging which draws ran. */
+  const twoCards = (timeline: {
+    readonly one: { readonly mark: string; readonly dur: number };
+    readonly two: { readonly mark: string; readonly until: { readonly at: 'end' } };
+  }) => {
+    const ran: string[] = [];
+    const scene = drawing({
+      timeline,
+      draw: () => void ran.push('scene'),
+      cards: [
+        {
+          cue: 'one',
+          from: 'righteous',
+          to: 'job',
+          payoff: 'righteous',
+          draw: (_f, words) => void ran.push(`one:${words.map((w) => w.text).join(' ')}`),
+        },
+        {
+          cue: 'two',
+          from: 'job',
+          payoff: 'just',
+          draw: (_f, words) => void ran.push(`two:${words.length}`),
+        },
+      ],
+    });
+    const make = () => createFilm({ ...spec(), scenes: [{ id: 'a', say: LINE, ...scene }] });
+    return { make, ran };
+  };
+  const apart = {
+    one: { mark: 'righteous', dur: 0.5 },
+    two: { mark: 'job', until: { at: 'end' } },
+  } as const;
+
+  test('shows each card over its own cue, its own words set, and the picture between them', () => {
+    const { make, ran } = twoCards(apart);
+    const film = make();
+    const p = film.placed[0];
+    const none = { start: Number.NaN, end: Number.NaN };
+    const one = p?.cues.get('one') ?? none;
+    const two = p?.cues.get('two') ?? none;
+    expect(two.start).toBeGreaterThan(one.end + 0.1);
+    const at = (t: number) => {
+      ran.length = 0;
+      withDom(() => film.render(recorder().ctx, (p?.start ?? 0) + t), { record: false });
+      // A scene's first frame may draw twice (its breath guessed, then known): once is what shows.
+      return [...new Set(ran)];
+    };
+    expect(at(one.start - 0.05)).toEqual(['scene']);
+    expect(at(one.start + 0.01)).toEqual(['one:righteous, they said. And Job asked:']);
+    expect(at(one.end - 0.01)).toEqual(['one:righteous, they said. And Job asked:']);
+    expect(at((one.end + two.start) / 2)).toEqual(['scene']);
+    expect(at(two.start + 0.01)).toEqual(['two:7']);
+    expect(at(two.end - 0.01)).toEqual(['two:7']);
+  });
+
+  test('refuses two cards that would hold the frame at once, naming the scene and both cues', () => {
+    const { make } = twoCards({ ...apart, one: { mark: 'righteous', dur: 30 } });
+    expect(make).toThrow('scene "a": its cards over "one"');
+    expect(make).toThrow('and "two"');
+  });
+
+  test('refuses an edit that makes two cards hold the frame at once, as the film is refused it', () => {
+    const film = twoCards(apart).make();
+    expect(Result.isSuccess(film.edit('a', {}))).toBe(true);
+    const moved = film.edit('a', {
+      timeline: { ...apart, one: { mark: 'righteous', dur: 30 } },
+    });
+    expect(Result.isFailure(moved) && moved.failure._tag).toBe('CardsOverlap');
+    expect(Result.isFailure(moved) && moved.failure.message).toContain('hold the frame at once');
   });
 });
 

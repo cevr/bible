@@ -260,13 +260,15 @@ describe('a scene with a card', () => {
         ran.push('scene');
         return { x: 800, y: 500, w: 300, h: 50 };
       },
-      card: {
-        cue: 'card',
-        from: 'job',
-        payoff: 'just',
-        flood: { cue: 'flood' },
-        draw: (_f, words) => void ran.push(`card:${words.length}`),
-      },
+      cards: [
+        {
+          cue: 'card',
+          from: 'job',
+          payoff: 'just',
+          flood: { cue: 'flood' },
+          draw: (_f, words) => void ran.push(`card:${words.length}`),
+        },
+      ],
     });
     const film = createFilm({
       title: 'card',
@@ -313,13 +315,15 @@ describe('a scene with a card', () => {
         card: { mark: 'job', until: { at: 'speechEnd' }, untilOffset: 0.4 },
       },
       draw: (f) => ({ x: 100 + 400 * f.t, y: 500, w: 300, h: 50 }),
-      card: {
-        cue: 'card',
-        from: 'job',
-        payoff: 'just',
-        flood: { cue: 'flood' },
-        draw: () => void log.push('card'),
-      },
+      cards: [
+        {
+          cue: 'card',
+          from: 'job',
+          payoff: 'just',
+          flood: { cue: 'flood' },
+          draw: () => void log.push('card'),
+        },
+      ],
     });
     const film = createFilm({
       title: 'card',
@@ -357,13 +361,15 @@ describe('a scene with a card', () => {
     const scene = drawing({
       timeline: { flood: { mark: 'job', dur: 0.5, ends: true }, card: { mark: 'job', dur: 1 } },
       draw: () => undefined,
-      card: {
-        cue: 'card',
-        from: 'job',
-        payoff: 'just',
-        flood: { cue: 'flood' },
-        draw: () => undefined,
-      },
+      cards: [
+        {
+          cue: 'card',
+          from: 'job',
+          payoff: 'just',
+          flood: { cue: 'flood' },
+          draw: () => undefined,
+        },
+      ],
     });
     const film = createFilm({
       title: 'card',
@@ -382,12 +388,14 @@ describe('a scene with a card', () => {
     const scene = drawing({
       timeline: { card: { mark: 'job', until: { at: 'end' } } },
       draw: (f) => void f.ctx.fillRect(0, 0, 1920, 1080),
-      card: {
-        cue: 'card',
-        from: 'job',
-        payoff: 'just',
-        draw: (f) => void f.ctx.fillRect(10, 10, 5, 5),
-      },
+      cards: [
+        {
+          cue: 'card',
+          from: 'job',
+          payoff: 'just',
+          draw: (f) => void f.ctx.fillRect(10, 10, 5, 5),
+        },
+      ],
     });
     return createFilm({
       title: 'card',
@@ -446,7 +454,7 @@ describe('a scene with a card', () => {
     const job = drawing({
       timeline: { card: { mark: 'job', until: { at: 'end' } } },
       draw: () => void ran.push('job'),
-      card: { cue: 'card', from: 'job', payoff: 'just', draw: () => void ran.push('card') },
+      cards: [{ cue: 'card', from: 'job', payoff: 'just', draw: () => void ran.push('card') }],
     });
     const next = drawing({ timeline: {}, draw: () => void ran.push('next') });
     const film = createFilm({
@@ -470,13 +478,15 @@ describe('a scene with a card', () => {
         card: { mark: 'job', until: { at: 'end' } },
       },
       draw: () => ({ x: 0, y: 0, w: 10, h: 10 }),
-      card: {
-        cue: 'card',
-        from: 'job',
-        payoff: 'just',
-        flood: { cue: 'flood' },
-        draw: () => undefined,
-      },
+      cards: [
+        {
+          cue: 'card',
+          from: 'job',
+          payoff: 'just',
+          flood: { cue: 'flood' },
+          draw: () => undefined,
+        },
+      ],
     });
     const first = drawing({ timeline: {}, draw: () => undefined });
     expect(() =>
@@ -499,13 +509,15 @@ describe('a scene with a card', () => {
         card: { mark: 'job', until: { at: 'end' } },
       },
       draw: () => ({ x: 0, y: 0, w: 10, h: 10 }),
-      card: {
-        cue: 'card',
-        from: 'job',
-        payoff: 'just',
-        flood: { cue: 'flood' },
-        draw: () => undefined,
-      },
+      cards: [
+        {
+          cue: 'card',
+          from: 'job',
+          payoff: 'just',
+          flood: { cue: 'flood' },
+          draw: () => undefined,
+        },
+      ],
     });
     const first = drawing({ timeline: {}, draw: () => undefined });
     const film = createFilm({
@@ -527,12 +539,14 @@ describe('a scene with a card', () => {
     const job = drawing({
       timeline: { card: { mark: 'job', until: { at: 'end' } } },
       draw: () => undefined,
-      card: {
-        cue: 'card',
-        from: 'job',
-        payoff: 'just',
-        draw: (f) => void f.ctx.fillRect(10, 10, 5, 5),
-      },
+      cards: [
+        {
+          cue: 'card',
+          from: 'job',
+          payoff: 'just',
+          draw: (f) => void f.ctx.fillRect(10, 10, 5, 5),
+        },
+      ],
     });
     const next = drawing({ timeline: {}, draw: () => undefined });
     const film = createFilm({
@@ -570,19 +584,21 @@ describe('a scene with a card', () => {
         card: { mark: 'job', until: { at: 'speechEnd' }, untilOffset: 0.4 },
       },
       draw: () => ({ x: 100, y: 500, w: 300, h: 50 }),
-      card: {
-        cue: 'card',
-        from: 'job',
-        payoff: 'just',
-        flood: {
-          cue: 'flood',
-          mask: (ctx, box, at) => {
-            masks.push([box, at]);
-            ran.push(`mask:${ctx.globalCompositeOperation}`);
+      cards: [
+        {
+          cue: 'card',
+          from: 'job',
+          payoff: 'just',
+          flood: {
+            cue: 'flood',
+            mask: (ctx, box, at) => {
+              masks.push([box, at]);
+              ran.push(`mask:${ctx.globalCompositeOperation}`);
+            },
           },
+          draw: () => void ran.push('card'),
         },
-        draw: () => void ran.push('card'),
-      },
+      ],
     });
     const film = createFilm({
       title: 'card',
@@ -606,7 +622,7 @@ describe('a scene with a card', () => {
     const scene = drawing({
       timeline: { card: { mark: 'job', dur: 1 } },
       draw: () => undefined,
-      card: { cue: 'card', from: 'job', payoff: 'grace', draw: () => undefined },
+      cards: [{ cue: 'card', from: 'job', payoff: 'grace', draw: () => undefined }],
     });
     expect(() =>
       createFilm({

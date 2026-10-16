@@ -4,7 +4,7 @@
 // landing on {job} (`flood`), and from {job} the full-screen card holds the
 // frame to the end (`card`): its words land as they are spoken, "just" the
 // payoff (CRAFT rule 1). The engine draws the card in place of the scene and
-// the flood over the lit scene (`drawing({ card })`), grown from the box the
+// the flood over the lit scene (`drawing({ cards })`), grown from the box the
 // draw returns on the same frame; the look in play draws the page and sets
 // the card (`look.ts`).
 
@@ -24,21 +24,23 @@ export const job = drawing({
   // Its type said, not inferred: a look's frame type is read off this draw (`JobFrame`).
   draw: (f): Box => lookOf().job(f),
   light: () => lookOf().light ?? { color: '#ffffff', amount: 0 },
-  card: {
-    cue: 'card',
-    from: 'job',
-    payoff: 'just',
-    flood: {
-      cue: 'flood',
-      // The look's own edge, or the box's straight one.
-      mask: (ctx, box, at, f) => {
-        const edge = lookOf().floodEdge;
-        if (edge === undefined) ctx.fillRect(box.x, box.y, box.w, box.h);
-        else edge(ctx, box, at, f);
+  cards: [
+    {
+      cue: 'card',
+      from: 'job',
+      payoff: 'just',
+      flood: {
+        cue: 'flood',
+        // The look's own edge, or the box's straight one.
+        mask: (ctx, box, at, f) => {
+          const edge = lookOf().floodEdge;
+          if (edge === undefined) ctx.fillRect(box.x, box.y, box.w, box.h);
+          else edge(ctx, box, at, f);
+        },
       },
+      draw: (f, words) => lookOf().card(f, words),
     },
-    draw: (f, words) => lookOf().card(f, words),
-  },
+  ],
 });
 
 /** What a look draws Job's verse and the card with. */
