@@ -84,6 +84,8 @@ export interface Profile {
   readonly hit: number;
   /** From the hit to the last 10 ms within 40 dB of the loudest: how long it rings (earshot's t40). */
   readonly tail: number;
+  /** How far the loudest 10 ms stands over its neighbours, in dB: under `HEARD_HIT`, no hit is heard. */
+  readonly stands: number;
   readonly centroid: number;
   readonly flatness: number;
   /** Each band's share of the power, low to high. */
@@ -119,6 +121,7 @@ export const profileOf = (pcm: Pcm, use: SoundUse): Profile => {
     onset: described.onset,
     hit: described.hit,
     tail: described.end - described.hit,
+    stands: described.stands,
     centroid: described.centroid,
     flatness: described.flatness,
     bands: BANDS.map(({ hz }) => share(between(hz / EDGE, hz * EDGE))),
@@ -145,6 +148,7 @@ export const medianProfile = (profiles: Arr.NonEmptyReadonlyArray<Profile>): Pro
     onset: of((p) => p.onset),
     hit: of((p) => p.hit),
     tail: of((p) => p.tail),
+    stands: of((p) => p.stands),
     centroid: of((p) => p.centroid),
     flatness: of((p) => p.flatness),
     bands: BANDS.map((_, k) => of((p) => p.bands[k] ?? 0)),
@@ -206,6 +210,13 @@ type Sync = NonNullable<SoundEffect['sync']>;
 /** How far a placement may hear the hit move before the sync check names it, in seconds. */
 export const HIT_MOVE = 0.02;
 
+/**
+ * How far a sound's loudest 10 ms stands over its neighbours for its hit to
+ * be heard, in dB: twice their power. The takes' hits stand 17 to 30 dB and
+ * their swells under 1 dB (measured), so the line falls in the gap between.
+ */
+export const HEARD_HIT = 3;
+
 /** Where a placement synced by `sync` hears a render's hit, in seconds after its cue. */
 const heardHit = (sync: Sync, p: Profile): number => {
   if (sync === 'start') return p.hit;
@@ -213,17 +224,25 @@ const heardHit = (sync: Sync, p: Profile): number => {
   return 0;
 };
 
-/** How far a placement hears the hit move, in seconds: the medians' move, and the move of the render furthest out. */
+/**
+ * How far a placement hears the hit move, in seconds: the medians' move, and
+ * the move of the render furthest out; and whether what plays has a hit to
+ * hear. Without one (a swell, a hiss), the move is a loudest moment's that no
+ * one hears as a hit.
+ */
 interface HitMove {
   readonly median: number;
   readonly worst: number;
+  readonly heard: boolean;
 }
 
 /**
  * How far a placement synced by `sync` hears the hit move when `to`'s
  * renders play in place of `from`'s: from the median of where it hears
  * `from`'s, to the median of `to`'s, and to the one of `to`'s furthest from
- * it (every render is judged, never the best).
+ * it (every render is judged, never the best); and whether `from` has a
+ * heard hit, its renders' hits standing `HEARD_HIT` over their neighbours by
+ * their median.
  */
 export const hitMove = (
   sync: Sync,
@@ -236,5 +255,6 @@ export const hitMove = (
   return {
     median: median(Arr.map(to, heard)) - base,
     worst: moves.reduce((worst, move) => (Math.abs(move) > Math.abs(worst) ? move : worst)),
+    heard: median(Arr.map(from, (p) => p.stands)) >= HEARD_HIT,
   };
 };

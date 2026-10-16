@@ -56,6 +56,26 @@ describe('describeSound', () => {
     expect(d.hit).toBeCloseTo(1.3, 1);
   });
 
+  test('a knock over a soft hiss stands out as a hit; a swell and a steady hiss do not', () => {
+    // A 30 ms knock 26 dB over a hiss, at 0.5 s.
+    const hiss = noise(1, 2).map((v) => v * 0.05);
+    const knocked = hiss.slice();
+    knocked.set(
+      sine(600, 0.03).map((v, i) => v * Math.exp(-i / 400)),
+      Math.round(RATE * 0.5),
+    );
+    expect(describeSound(mono(knocked)).stands).toBeGreaterThan(10);
+    expect(describeSound(mono(hiss)).stands).toBeLessThan(1);
+    // Noise swelling up over 0.6 s and down over 0.6 s: loudest in its middle,
+    // and nowhere a hit.
+    const swell = noise(1.2, 3).map((v, i) => v * Math.sin((Math.PI * i) / (1.2 * RATE)));
+    expect(describeSound(mono(swell)).stands).toBeLessThan(1);
+  });
+
+  test('a click alone in its file stands over the silence past its ends', () => {
+    expect(describeSound(mono(sine(1000, 0.01))).stands).toBeGreaterThan(60);
+  });
+
   test('onset and end find the sound inside its silence', () => {
     const plane = new Float32Array(RATE * 2);
     plane.set(sine(440, 0.5), RATE / 2);

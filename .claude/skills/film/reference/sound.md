@@ -160,7 +160,7 @@ Judge every seed, by the median and the worst, never by the best. Never say how 
 A trial goes into an ask only when each of its seeds meets all of these:
 
 - its onset is within `LEAD_IN` (0.05 s), unless the take's onset is later and a placement depends on it;
-- where a placement plays it from its start, the hit moves 20 ms or less (`HIT_MOVE`; compare's sync lines);
+- where a placement plays it from its start, the hit moves 20 ms or less (`HIT_MOVE`; compare's sync lines), when what plays has a hit to hear: a swell or a hiss whose loudest 10 ms stands under `HEARD_HIT` (3 dB) over its neighbours has none, and its sync line says so;
 - a bed's seam is unheard (`sfx check` finds no `LoopSeam`);
 - its share below 30 Hz is no higher than the take's.
 
@@ -188,13 +188,14 @@ Faint white lines cross at each second. A one-shot's onset is green and its hit 
 | `peak`             | its sample peak, dBFS                                                         |
 | `onset`            | where it starts to sound, seconds into the file                               |
 | `hit`              | its loudest moment                                                            |
+| `stands`           | how far that moment stands over the 150 ms either side, dB: under 3, no hit   |
 | `tail`             | from the hit to the last 10 ms within 40 dB of the loudest: how long it rings |
 | `centroid`, `flat` | its brightness, and how noise-like it is (0 a tone, 1 white noise)            |
 | `<30 Hz`           | its share of the power below 30 Hz: rumble the loudness never hears           |
 
 Each side's median follows its renders. The band table lists the one-third-octave bands within 40 dB of either side's loudest, each as its share of the power in dB, and how far it moved. `balance` is the RMS of those moves; the bands that moved over 6 dB are named, and how far the hit moved.
 
-The sync lines read each film's `sound.ts`: one line for each effect that places the sound, with how far it would hear the hit move (the medians' move, and the worst seed's), marked `over 20 ms` past `HIT_MOVE`. An effect synced to its hit never moves; one synced to its onset moves as far as the hit moved from the onset.
+The sync lines read each film's `sound.ts`: one line for each effect that places the sound, with how far it would hear the hit move (the medians' move, and the worst seed's), marked `over 20 ms` past `HIT_MOVE`. An effect synced to its hit never moves; one synced to its onset moves as far as the hit moved from the onset. Where what plays has no hit to hear, the line is marked `no heard hit in what plays (it stands under 3 dB)`: its move is of a loudest moment nobody hears, so judge its onset and the sheet's loudness panel instead.
 
 Numbers, no verdict: a distance is a hint for the ear, never a target to make small (`core/synth/compare.ts`).
 

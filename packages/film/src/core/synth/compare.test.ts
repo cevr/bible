@@ -5,7 +5,15 @@
 
 import { describe, expect, test } from 'bun:test';
 import type { Pcm } from '../audio.ts';
-import { HIT_MOVE, distance, hitMove, medianProfile, profileOf, type Profile } from './compare.ts';
+import {
+  HEARD_HIT,
+  HIT_MOVE,
+  distance,
+  hitMove,
+  medianProfile,
+  profileOf,
+  type Profile,
+} from './compare.ts';
 import { random } from './signal.ts';
 
 const RATE = 44100;
@@ -109,6 +117,9 @@ describe('medianProfile', () => {
     const [one, two, three] = [at(0.5), at(1.5), at(1)];
     expect(medianProfile([one, two, three]).secs).toBe(1);
     expect(medianProfile([one, two]).secs).toBe(1);
+    expect(medianProfile([one, two, three]).stands).toBe(
+      [one.stands, two.stands, three.stands].sort((a, b) => a - b)[1] ?? 0,
+    );
     const middle = medianProfile([one, two, three]).bands;
     expect(middle[15]).toBeCloseTo(
       [band(one, 15), band(two, 15), band(three, 15)].sort((a, b) => a - b)[1] ?? 0,
@@ -156,7 +167,7 @@ describe('distance', () => {
 
 describe('hitMove', () => {
   const quiet = profileOf(pcmOf(new Float32Array(RATE)), 'one-shot');
-  const at = (onset: number, hit: number): Profile => ({ ...quiet, onset, hit });
+  const at = (onset: number, hit: number): Profile => ({ ...quiet, onset, hit, stands: 20 });
   const takes = [at(0.05, 0.1), at(0.05, 0.12), at(0.05, 0.3)] as const;
 
   test('placed from its start, the hit moves as far as it moved, judged at its worst seed', () => {
@@ -173,6 +184,14 @@ describe('hitMove', () => {
   });
 
   test('synced to its hit, the hit lands on its cue and never moves', () => {
-    expect(hitMove('hit', takes, [at(0.4, 0.9)])).toEqual({ median: 0, worst: 0 });
+    expect(hitMove('hit', takes, [at(0.4, 0.9)])).toEqual({ median: 0, worst: 0, heard: true });
+  });
+
+  test('what plays has a heard hit only where its loudest 10 ms stands out, by the median of its renders', () => {
+    const standing = (stands: number) => ({ ...at(0.05, 0.1), stands });
+    const seeds = [at(0.05, 0.25)] as const;
+    expect(hitMove('start', [standing(0.6), standing(0.9), standing(17)], seeds).heard).toBe(false);
+    expect(hitMove('start', [standing(0.6), standing(17), standing(24)], seeds).heard).toBe(true);
+    expect(hitMove('start', [standing(HEARD_HIT)], seeds).heard).toBe(true);
   });
 });

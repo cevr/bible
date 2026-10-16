@@ -1,8 +1,9 @@
 // What a sound is like, in numbers an agent can compare when it cannot
-// listen: where it starts and stops being heard, how bright it is (spectral
-// centroid) and how noise-like (spectral flatness: 1 for white noise, near 0
-// for a pure tone). Used to rank candidates before a person auditions them;
-// its power spectrum is also the band balance `compare.ts` reads.
+// listen: where it starts and stops being heard, whether its loudest moment
+// stands out as a hit, how bright it is (spectral centroid) and how
+// noise-like (spectral flatness: 1 for white noise, near 0 for a pure tone).
+// Used to rank candidates before a person auditions them; its power spectrum
+// is also the band balance `compare.ts` reads.
 
 import type { Pcm } from '../audio.ts';
 
@@ -18,11 +19,24 @@ interface Described {
   readonly hit: number;
   /** When it last is within 40 dB of its loudest 10 ms. */
   readonly end: number;
+  /**
+   * How far its loudest 10 ms stands over its neighbours, in dB: over the
+   * median of the 10 ms windows within 150 ms either side, silence past its
+   * ends. A knock stands 17 dB and more; a swell or a steady hiss stands
+   * under 1 dB, and has no hit to hear.
+   */
+  readonly stands: number;
   readonly centroid: number;
   readonly flatness: number;
 }
 
 const WINDOW = 0.01;
+/** How many windows either side of the loudest its neighbours are: 150 ms. */
+const AROUND = 15;
+/** The least power a window is read at, so silence has a level. */
+const FLOOR = 1e-12;
+/** Silence's level in dB: a window past a sound's ends. */
+const SILENT_DB = 10 * Math.log10(FLOOR);
 /** The FFT the centroid and flatness are read from: the first channel's. */
 const FFT_SIZE = 2048;
 
@@ -35,7 +49,7 @@ const windowDb = (pcm: Pcm): ReadonlyArray<number> => {
     const to = Math.min(pcm.frames, from + n);
     for (const plane of pcm.channels) for (let i = from; i < to; i++) sum += (plane[i] ?? 0) ** 2;
     out.push(
-      10 * Math.log10(Math.max(1e-12, sum / Math.max(1, (to - from) * pcm.channels.length))),
+      10 * Math.log10(Math.max(FLOOR, sum / Math.max(1, (to - from) * pcm.channels.length))),
     );
   }
   return out;
@@ -186,10 +200,20 @@ export const powerSpectrum = (plane: Float32Array, size: number, ends: Ends): Fl
   return power.map((p) => p / starts.length);
 };
 
+/** How far the window at `at` stands over the median of its neighbours, silence past the ends. */
+const standing = (levels: ReadonlyArray<number>, at: number): number => {
+  const near = Array.from(
+    { length: 2 * AROUND + 1 },
+    (_, k) => levels[at - AROUND + k] ?? SILENT_DB,
+  ).sort((a, b) => a - b);
+  return (levels[at] ?? SILENT_DB) - (near[AROUND] ?? SILENT_DB);
+};
+
 /** `pcm` described. */
 export const describeSound = (pcm: Pcm): Described => {
   const levels = windowDb(pcm);
   const loudest = Math.max(...levels);
+  const hit = Math.max(0, levels.indexOf(loudest));
   const first = levels.findIndex((db) => db >= loudest - 30);
   const last = levels.findLastIndex((db) => db >= loudest - 40);
   const power = powerSpectrum(pcm.channels[0] ?? new Float32Array(), FFT_SIZE, 'silent');
@@ -207,8 +231,9 @@ export const describeSound = (pcm: Pcm): Described => {
   return {
     secs: pcm.frames / pcm.rate,
     onset: Math.max(0, first) * WINDOW,
-    hit: Math.max(0, levels.indexOf(loudest)) * WINDOW,
+    hit: hit * WINDOW,
     end: Math.min(pcm.frames / pcm.rate, (Math.max(0, last) + 1) * WINDOW),
+    stands: standing(levels, hit),
     centroid: total > 0 ? weighted / total : 0,
     flatness: total > 0 ? Math.exp(logSum / bins) / (total / bins) : 0,
   };

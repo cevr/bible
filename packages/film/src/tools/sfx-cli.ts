@@ -41,7 +41,14 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { VERDICT_LABEL, auditLibrary } from '../core/sfx-audit.ts';
-import { HIT_MOVE, type Profile, distance, hitMove, medianProfile } from '../core/synth/compare.ts';
+import {
+  HEARD_HIT,
+  HIT_MOVE,
+  type Profile,
+  distance,
+  hitMove,
+  medianProfile,
+} from '../core/synth/compare.ts';
 import { describeGraph } from '../core/synth/graph/describe.ts';
 import { FlagsConflict, LibraryCheckFailed } from './errors.ts';
 import { FilmFolder, FilmRepo } from './film-repo.ts';
@@ -150,6 +157,7 @@ const PROFILE_COLUMNS: ReadonlyArray<readonly [string, number]> = [
   ['peak', 6],
   ['onset', 6],
   ['hit', 6],
+  ['stands', 7],
   ['tail', 6],
   ['centroid', 9],
   ['flat', 5],
@@ -176,6 +184,7 @@ const profileLine = (label: string, p: Profile): string =>
     p.peak.toFixed(1),
     p.onset.toFixed(2),
     p.hit.toFixed(2),
+    p.stands.toFixed(1),
     p.tail.toFixed(2),
     `${p.centroid.toFixed(0)} Hz`,
     p.flatness.toFixed(2),
@@ -222,7 +231,7 @@ interface Placing {
  * The sync check `compare` prints: how far each film's placement of the
  * sound would hear the hit move if the code trial played in place of what
  * plays now, the medians' move and the worst seed's, marked where the worst
- * passes `HIT_MOVE`.
+ * passes `HIT_MOVE`, or where what plays has no hit to hear (`HEARD_HIT`).
  */
 const syncLines = (
   compared: Comparison,
@@ -237,7 +246,8 @@ const syncLines = (
     ...placings.map(({ film, effect, sync }) => {
       const moved = hitMove(sync, plays, trial);
       let over = '';
-      if (Math.abs(moved.worst) > HIT_MOVE) over = `  over ${Math.round(HIT_MOVE * 1000)} ms`;
+      if (!moved.heard) over = `  no heard hit in what plays (it stands under ${HEARD_HIT} dB)`;
+      else if (Math.abs(moved.worst) > HIT_MOVE) over = `  over ${Math.round(HIT_MOVE * 1000)} ms`;
       return `${`${film} ${effect}`.padEnd(width)}  ${sync.padEnd(5)}  median ${signed(moved.median * 1000, 0)} ms, worst ${signed(moved.worst * 1000, 0)} ms${over}`;
     }),
   ];
