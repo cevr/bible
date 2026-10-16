@@ -1959,7 +1959,7 @@ export const mcpSession = Effect.fn('mcpSession')(function* (lab: LabFetch) {
         onFalse: () => result.structuredContent,
       }),
     );
-  return { call, tool };
+  return { call, tool, session: id.value };
 });
 
 /** The console a run prints to: each line it logs, offered to `lines`. */

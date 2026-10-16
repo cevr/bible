@@ -187,6 +187,33 @@ describe('who may use the MCP', () => {
         }),
       ),
   );
+
+  it.effect(
+    'a client ends its session as the MCP spec says: a DELETE with no body and no type, then the lab forgets it',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab } = yield* labWithMcp;
+          const { session } = yield* mcpSession(lab);
+          // As the MCP SDK's `terminateSession` sends it: the session's headers, nothing else.
+          const end = () =>
+            Effect.promise(() =>
+              lab(
+                new Request(`${MCP_BASE.slice(0, -1)}/mcp`, {
+                  method: 'DELETE',
+                  headers: {
+                    'mcp-session-id': session,
+                    'mcp-protocol-version': '2025-06-18',
+                  },
+                }),
+                mcpBound,
+              ).then((r) => r.status),
+            );
+          expect(yield* end()).toBe(204);
+          expect(yield* end()).toBe(404);
+        }),
+      ),
+  );
 });
 
 describe('the lab as an MCP server', () => {
