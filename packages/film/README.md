@@ -3695,7 +3695,9 @@ error bun caught between tests, under the file printed above it (bun's
 of its own). It also reads whether the suite finished, by bun's
 `Ran N tests across M files` line. Every failure reruns alone three times
 (a case by its name, a file's failure as the whole file) in one worker, at
-the suite's own `--max-concurrency`, its output in `<log>.alone.log`.
+the suite's own `--max-concurrency`, its output in `<log>.alone.log`. Bun's
+own summary of a rerun (` N fail`, ` N error`) says whether it passed: an
+exit that is not 0 after bun passed the case is the runner's, not the case's.
 
 `<log>.verdict.md` then classes each failure:
 

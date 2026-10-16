@@ -194,6 +194,20 @@ describe('rerunning a failure alone', () => {
     expect(runOf(1, 'Ran 0 tests across 1 file. [0.10s]')).toBe('none');
     expect(runOf(1, 'error: script exited')).toBe('none');
   });
+
+  test("a rerun bun passed is a pass, though the runner's exit after it is not 0", () => {
+    // The case passed; then the runner's cleanup failed (run-suite's folder, `run-folder.ts`).
+    const cleanupFailed = [
+      ' 1 pass',
+      ' 26 filtered out',
+      ' 0 fail',
+      'Ran 1 test across 1 file. [3.03s]',
+      '[09:48:23.472] ERROR (#2): PlatformError: NotFound: FileSystem.makeTempDirectoryScoped (/tmp/film-test-bundles-8ecD5e)',
+    ].join('\n');
+    expect(runOf(1, cleanupFailed)).toBe('pass');
+    expect(runOf(1, ' 1 pass\n 0 fail\n 1 error\nRan 1 test across 1 file. [3.03s]')).toBe('fail');
+    expect(runOf(0, ' 0 pass\n 1 fail\nRan 1 test across 1 file. [3.03s]')).toBe('fail');
+  });
 });
 
 describe('the verdict on a failure', () => {

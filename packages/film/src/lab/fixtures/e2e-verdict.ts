@@ -156,19 +156,33 @@ export const aloneArgs = (suite: string, failure: Failure): ReadonlyArray<string
 export const Run = Schema.Literals(['pass', 'fail', 'none']);
 export type Run = typeof Run.Type;
 
-/** A rerun's outcome from its exit code and output. */
-export const runOf = (exit: number, output: string): Run =>
-  Option.match(
-    Option.filter(Option.map(captured(RAN, cleaned(output).join('\n')), Number), (n) => n > 0),
-    {
-      onNone: (): Run => 'none',
-      onSome: (): Run =>
-        Match.value(exit).pipe(
-          Match.when(0, () => 'pass' as const),
-          Match.orElse(() => 'fail' as const),
-        ),
-    },
+/** How many cases failed, in bun's summary of a run. */
+const FAILS = /^\s*(\d+) fail$/;
+
+/** The count bun's summary gives on its first line `pattern` matches, if it printed one. */
+const countIn = (lines: ReadonlyArray<string>, pattern: RegExp): Option.Option<number> =>
+  Arr.findFirst(lines, (line) => Option.map(captured(pattern, line), Number));
+
+/**
+ * A rerun's outcome from its exit code and output. Bun's own summary decides
+ * when it printed one: a failed case or an error it counted is a fail, and
+ * none failed is a pass, whatever the exit after it (the runner's own, once
+ * bun is done: a cleanup that failed is not the case's). With no summary of
+ * the failures, the exit decides.
+ */
+export const runOf = (exit: number, output: string): Run => {
+  const lines = cleaned(output);
+  const ran = Option.filter(Option.map(captured(RAN, lines.join('\n')), Number), (n) => n > 0);
+  if (Option.isNone(ran)) return 'none';
+  const fails = countIn(lines, FAILS);
+  const errors = Option.getOrElse(countIn(lines, ERRORS), () => 0);
+  if (errors > 0 || Option.exists(fails, (n) => n > 0)) return 'fail';
+  if (Option.isSome(fails)) return 'pass';
+  return Match.value(exit).pipe(
+    Match.when(0, () => 'pass' as const),
+    Match.orElse(() => 'fail' as const),
   );
+};
 
 /** What a failure is, by its reruns alone and the base's. */
 const Verdict = Schema.Literals(['unit-caused', 'unresolved', 'green-alone', 'base']);
