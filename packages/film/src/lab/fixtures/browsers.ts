@@ -307,6 +307,18 @@ idle.push(
   )),
 );
 
+/**
+ * How many times slower every tab's page runs (`FILM_E2E_CPU_THROTTLE`): a
+ * slow phone or a loaded CI runner, on demand. Read once from the process's
+ * environment, so a case that provides its own config does not hide it.
+ */
+const throttle = Effect.runSync(
+  Config.option(Config.Number('FILM_E2E_CPU_THROTTLE')).pipe(
+    Effect.map(Option.filter((rate) => rate > 1)),
+    Effect.orDie,
+  ),
+);
+
 let tabs = 0;
 /** How many tabs are open in this process now: cases that run at once each hold one. */
 let open = 0;
@@ -411,6 +423,16 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
         Effect.sync(() => errors.length > 0),
       ),
     );
+    // The page's main thread slowed `throttle` times (`Emulation.setCPUThrottlingRate`),
+    // and set back to full speed before the view goes back to the pool.
+    if (Option.isSome(throttle)) {
+      yield* Effect.promise(() =>
+        slot.lent.cdp('Emulation.setCPUThrottlingRate', { rate: throttle.value }),
+      );
+      yield* Effect.addFinalizer(() =>
+        Effect.promise(() => slot.lent.cdp('Emulation.setCPUThrottlingRate', { rate: 1 })),
+      );
+    }
     // Told through the view the case holds: Chrome drops what a protocol
     // session told it when the session closes, and a pooled view's never
     // closes while a case holds it.

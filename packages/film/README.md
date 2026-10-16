@@ -3705,6 +3705,23 @@ unit-caused or unresolved, when the suite never finished, or when it failed and
 named no failure; otherwise 0. `src/lab/fixtures/e2e-verdict.ts` holds the
 reading and classing.
 
+A case that fails only on a loaded runner is a race: something it waits on
+lands in another order there. `FILM_E2E_CPU_THROTTLE=<rate>` slows every tab's
+page that many times (Chrome's CPU throttling, set as `openTab`
+lends the tab and set back before the view returns to the pool; read once
+from the process's environment in `src/lab/fixtures/browsers.ts`), as a slow
+phone or a loaded runner runs it. Throttle one case, by its file and `-t`,
+under the e2e lock the check takes, never bare and never the suite: at 20 the
+page's own work takes seconds, and a suite of them only times out. From
+`packages/film` on a Mac:
+
+```sh
+FILM_E2E_CPU_THROTTLE=20 lockf -k /tmp/bible-tools-e2e.lock \
+  bun src/lab/fixtures/run-suite.ts --max-concurrency=3 --timeout 20000 <file> -t '<case>'
+```
+
+On the workbox, `flock /tmp/bible-tools-e2e.lock` in place of `lockf -k …`.
+
 ## Knobs
 
 A value a note might ask to tweak (where a hand rests, a tag's angle) is a
