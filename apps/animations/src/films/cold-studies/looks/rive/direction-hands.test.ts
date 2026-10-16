@@ -42,28 +42,33 @@ describe('the judge’s hand', () => {
     expect(castFaults(handCasts(A0, 0, GAVEL_REST, blackMiddleStop)).length).toBeGreaterThan(0);
   });
 
-  test('its cast is the shade of each surface it falls on, in every option and pose, past its ink', () => {
-    const casts = SHADED.flatMap(([name, d]) =>
-      LEANS.flatMap((lean) =>
+  test('under A0 the hand casts where it shows, so the sweep below has casts to read', () => {
+    expect(LEANS.flatMap((lean) => handCasts(A0, lean, GAVEL_REST)).length).toBeGreaterThan(0);
+  });
+
+  // One test an option: the whole sweep in one test runs past bun's 5 s on a CI runner.
+  test.each(SHADED)(
+    'its cast is the shade of each surface it falls on under %s, in every pose, past its ink',
+    (_, d) => {
+      const casts = LEANS.flatMap((lean) =>
         SWINGS.flatMap((swing) =>
           handCasts(d, lean, swing).map((c) => ({
             ...c,
-            at: `${name} lean ${lean} swing ${swing}`,
+            at: `lean ${lean} swing ${swing}`,
           })),
         ),
-      ),
-    );
-    expect(casts.length).toBeGreaterThan(0);
-    const wrong = new Map(
-      casts
-        .filter((c) => !castHolds(c))
-        .map((c) => [
-          `${c.at} on the ${c.on}`,
-          `${[...new Set(c.laid)].map(shown).join(', ')}, derives ${shown(c.want)}`,
-        ]),
-    );
-    expect(Object.fromEntries(wrong)).toEqual({});
-  });
+      );
+      const wrong = new Map(
+        casts
+          .filter((c) => !castHolds(c))
+          .map((c) => [
+            `${c.at} on the ${c.on}`,
+            `${[...new Set(c.laid)].map(shown).join(', ')}, derives ${shown(c.want)}`,
+          ]),
+      );
+      expect(Object.fromEntries(wrong)).toEqual({});
+    },
+  );
 });
 
 // ─── the hand, and what the outline axis lays ─────────────────────────────────

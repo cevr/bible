@@ -47,7 +47,7 @@ import { VectorIndexLoad } from '../vector-index.js';
 import { D1Atomic } from './d1-atomic.ts';
 import { Corpus, SyncReports, Vectors } from './resources.ts';
 import { DOMAIN, SERVED_FROM, type ServedFrom, WORKER_NAME } from './site.ts';
-import { nameOfKey, reportKey, type ReportStore, syncRoutes } from './sync-pages.ts';
+import { nameOfKey, type ReportStore, type StoredFile, syncRoutes } from './sync-pages.ts';
 import { vectorizeNeighbors, type VectorizeQuery } from './vectorize.ts';
 import { EMBEDDING_MODEL, workersAiEmbedder } from './workers-ai.ts';
 
@@ -77,6 +77,21 @@ interface Bindings {
   readonly vectors: VectorizeQuery;
   readonly ai: Cloudflare.Workers.AIClient;
 }
+
+/** An R2 object as the report pages send it: its own stream when the
+ *  platform offers one, so the bytes go to the response untouched; else its
+ *  text, read once. */
+const storedFile = (object: Cloudflare.R2.ObjectBody) =>
+  Option.match(Option.fromNullishOr(object.readable), {
+    onSome: (readable) =>
+      Effect.succeedSome<StoredFile>({ body: readable, text: object.text().pipe(Effect.orDie) }),
+    onNone: () =>
+      object
+        .text()
+        .pipe(
+          Effect.map((text) => Option.some<StoredFile>({ body: text, text: Effect.succeed(text) })),
+        ),
+  });
 
 /** The search's services over the Worker's bindings. */
 const searchLayer = (bindings: Bindings) => {
@@ -136,12 +151,12 @@ export default class Search extends Cloudflare.Worker<Search>()(
           cursor = Option.some(page.cursor);
         }
       }),
-      read: (name) =>
-        reports.get(reportKey(name)).pipe(
+      open: (key) =>
+        reports.get(key).pipe(
           Effect.flatMap((object) =>
             Option.match(Option.fromNullishOr(object), {
-              onNone: () => Effect.succeed(Option.none<string>()),
-              onSome: (body) => Effect.asSome(body.text()),
+              onNone: () => Effect.succeed(Option.none<StoredFile>()),
+              onSome: (body) => storedFile(body),
             }),
           ),
           Effect.provide(RuntimeContext.phantom),

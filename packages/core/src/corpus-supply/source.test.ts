@@ -1,11 +1,22 @@
-import { Effect, Option } from 'effect';
+import { Effect, Option, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
-import { PublicationArchive } from '../writings/archive.js';
+import { ArchiveChapter, PublicationArchive } from '../writings/archive.js';
 import { Publication, publicationCode, publicationId } from '../writings/model.js';
 import { CorpusContributionRejectedError, CorpusSourceUnavailableError } from './errors.js';
-import { WritingsContribution, unknownProvenance } from './model.js';
+import { type WritingsContribution, unknownProvenance } from './model.js';
 import { makeWritingsAssetRecipe } from './source.js';
+
+/** A whole archive as a publication streamed in one chapter. */
+const publicationStream = (archive: PublicationArchive) => ({
+  publication: archive.publication,
+  chapters: Stream.make(
+    ArchiveChapter.make({
+      paragraphs: archive.paragraphs,
+      bibleReferences: archive.bibleReferences,
+    }),
+  ),
+});
 
 /** One source the recipe merges. */
 type WritingsAssetSourceService = Parameters<typeof makeWritingsAssetRecipe>[0][number];
@@ -17,10 +28,12 @@ const publication = Publication.make({
   author: 'Ellen G. White',
   paragraphCount: Option.some(0),
 });
-const contribution = WritingsContribution.make({
+const contribution: WritingsContribution = {
   provenance: unknownProvenance('fixture', '1'),
-  archive: PublicationArchive.make({ publication, paragraphs: [], bibleReferences: [] }),
-});
+  publication: publicationStream(
+    PublicationArchive.make({ publication, paragraphs: [], bibleReferences: [] }),
+  ),
+};
 const unavailable = (kind: WritingsAssetSourceService['kind']): WritingsAssetSourceService => ({
   kind,
   catalog: Effect.fail(CorpusSourceUnavailableError.make({ operation: kind, cause: 'offline' })),

@@ -49,7 +49,12 @@ import {
 import * as EGWSchemas from '../egw/schemas.js';
 import { Node, nodesToText } from '../egw/ast.js';
 import { headingLevel, isChapterHeading } from '../egw/parse.js';
-import type { PublicationArchive } from '../writings/archive.js';
+import {
+  type ArchiveChapter,
+  collectPublication,
+  type PublicationArchive,
+  type PublicationStream,
+} from '../writings/archive.js';
 import type { CorpusProvenance } from '../corpus-supply/model.js';
 
 // Bump when the on-disk paragraphs schema changes shape (column rename, type
@@ -590,11 +595,14 @@ export interface ScoredParagraphRow {
 }
 
 export interface EGWParagraphDatabaseService {
-  /** Atomically replaces one publication from its canonical portable archive. */
-  readonly installPublicationArchive: (
-    archive: PublicationArchive,
+  /** Atomically replaces one publication with its chapters as they are read:
+   *  each is staged as it arrives, so the publication is never held whole.
+   *  A chapter that fails to read fails the install with its own error, and
+   *  leaves the publication as it was. */
+  readonly installPublication: <E>(
+    publication: PublicationStream<E>,
     provenance?: CorpusProvenance,
-  ) => Effect.Effect<number, ParagraphDatabaseError>;
+  ) => Effect.Effect<number, E | ParagraphDatabaseError>;
 
   // Book operations
   readonly storeBook: (book: EGWSchemas.Book) => Effect.Effect<void, ParagraphDatabaseError>;
@@ -967,28 +975,6 @@ const INCOMING_CHUNK_BYTES = 1_000_000;
 
 /** `items` in order, cut into runs whose summed `size` stays within `budget`
  *  (a single item larger than the budget is a run of its own). */
-const chunkBySize = <A>(
-  items: readonly A[],
-  size: (item: A) => number,
-  budget: number,
-): readonly (readonly A[])[] => {
-  const chunks: A[][] = [];
-  let current: A[] = [];
-  let used = 0;
-  for (const item of items) {
-    const cost = size(item);
-    if (current.length > 0 && used + cost > budget) {
-      chunks.push(current);
-      current = [];
-      used = 0;
-    }
-    current.push(item);
-    used += cost;
-  }
-  if (current.length > 0) chunks.push(current);
-  return chunks;
-};
-
 const utf8 = new TextEncoder();
 
 /** A row's size in its chunk: its JSON, escapes and all, in UTF-8 bytes,
@@ -1119,20 +1105,24 @@ const archivedParagraphToRow = (
   };
 };
 
-const validatePublicationArchive = (archive: PublicationArchive) =>
+/** Checks one chapter against its publication and the chapters before it:
+ *  every paragraph is the publication's and new, and every reference names a
+ *  paragraph seen so far. `refcodes` gains the chapter's paragraphs. */
+const validateChapter = (
+  publication: PublicationArchive['publication'],
+  chapter: ArchiveChapter,
+  refcodes: Set<string>,
+) =>
   Effect.gen(function* () {
-    const publicationId = archive.publication.id;
-    const publicationCode = archive.publication.code;
-    const refcodes = new Set<string>();
-
-    for (const archived of archive.paragraphs) {
+    const publicationId = publication.id;
+    for (const archived of chapter.paragraphs) {
       if (archived.paragraph.reference.publicationId !== publicationId) {
         return yield* ParagraphDataIntegrityError.make({
           cause: archived.paragraph.reference,
           location: `publication(${String(publicationId)}).paragraph-publication`,
         });
       }
-      if (archived.paragraph.publicationCode !== publicationCode) {
+      if (archived.paragraph.publicationCode !== publication.code) {
         return yield* ParagraphDataIntegrityError.make({
           cause: archived.paragraph.publicationCode,
           location: `publication(${String(publicationId)}).paragraph-code`,
@@ -1147,7 +1137,7 @@ const validatePublicationArchive = (archive: PublicationArchive) =>
       refcodes.add(archived.refcode);
     }
 
-    for (const reference of archive.bibleReferences) {
+    for (const reference of chapter.bibleReferences) {
       if (!refcodes.has(reference.paragraphRefcode)) {
         return yield* ParagraphDataIntegrityError.make({
           cause: reference.paragraphRefcode,
@@ -1659,83 +1649,114 @@ export class EGWParagraphDatabase extends Context.Service<
             ),
           );
 
-        const installPublicationArchive = Effect.fn(
-          'EGWParagraphDatabase.installPublicationArchive',
-        )(function* (archive: PublicationArchive, provenance?: CorpusProvenance) {
-          yield* validatePublicationArchive(archive);
+        const stageParagraphs = (publicationId: number, rows: readonly ParagraphRow[]) => sql`
+          INSERT INTO paragraphs_incoming (
+            book_id, ref_code, para_id, refcode_short, refcode_long,
+            nodes_json, content_text, puborder, element_type, element_subtype,
+            page_number, paragraph_number, is_chapter_heading,
+            created_at, updated_at
+          )
+          SELECT
+            ${publicationId},
+            json_extract(value, '$.ref_code'),
+            json_extract(value, '$.para_id'),
+            json_extract(value, '$.refcode_short'),
+            json_extract(value, '$.refcode_long'),
+            json_extract(value, '$.nodes_json'),
+            json_extract(value, '$.content_text'),
+            json_extract(value, '$.puborder'),
+            json_extract(value, '$.element_type'),
+            json_extract(value, '$.element_subtype'),
+            json_extract(value, '$.page_number'),
+            json_extract(value, '$.paragraph_number'),
+            json_extract(value, '$.is_chapter_heading'),
+            json_extract(value, '$.created_at'),
+            json_extract(value, '$.updated_at')
+          FROM json_each(${encodeIncomingParagraphs(rows)})
+        `;
+
+        const stageReferences = (publicationId: number, references: readonly IncomingBibleRef[]) =>
+          sql`
+            INSERT INTO paragraph_bible_refs_incoming (
+              para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
+            )
+            SELECT
+              ${publicationId},
+              json_extract(value, '$.para_ref_code'),
+              json_extract(value, '$.bible_book'),
+              json_extract(value, '$.bible_chapter'),
+              json_extract(value, '$.bible_verse')
+            FROM json_each(${encodeIncomingBibleRefs(references)})
+          `;
+
+        const installPublication = Effect.fn('EGWParagraphDatabase.installPublication')(function* <
+          E,
+        >(stream: PublicationStream<E>, provenance?: CorpusProvenance) {
           yield* incomingTables;
 
-          const publication = archive.publication;
+          const publication = stream.publication;
           const publicationId = publication.id;
           const now = DateTime.formatIso(yield* DateTime.now);
-          const rows = archive.paragraphs.map((paragraph) =>
-            archivedParagraphToRow(paragraph, publicationId, now),
-          );
-          const references = archive.bibleReferences.map((reference): IncomingBibleRef => {
-            let verse = Option.none<number>();
-            if (reference.scripture._tag === 'verse')
-              verse = Option.some(reference.scripture.verse);
-            return {
-              para_ref_code: reference.paragraphRefcode,
-              bible_book: reference.scripture.book,
-              bible_chapter: reference.scripture.chapter,
-              bible_verse: Option.getOrNull(verse),
-            };
-          });
 
           yield* sql`DELETE FROM paragraphs_incoming WHERE book_id = ${publicationId}`;
           yield* sql`DELETE FROM paragraph_bible_refs_incoming WHERE para_book_id = ${publicationId}`;
-          for (const chunk of chunkBySize(rows, incomingRowBytes, INCOMING_CHUNK_BYTES)) {
-            yield* sql`
-              INSERT INTO paragraphs_incoming (
-                book_id, ref_code, para_id, refcode_short, refcode_long,
-                nodes_json, content_text, puborder, element_type, element_subtype,
-                page_number, paragraph_number, is_chapter_heading,
-                created_at, updated_at
-              )
-              SELECT
-                ${publicationId},
-                json_extract(value, '$.ref_code'),
-                json_extract(value, '$.para_id'),
-                json_extract(value, '$.refcode_short'),
-                json_extract(value, '$.refcode_long'),
-                json_extract(value, '$.nodes_json'),
-                json_extract(value, '$.content_text'),
-                json_extract(value, '$.puborder'),
-                json_extract(value, '$.element_type'),
-                json_extract(value, '$.element_subtype'),
-                json_extract(value, '$.page_number'),
-                json_extract(value, '$.paragraph_number'),
-                json_extract(value, '$.is_chapter_heading'),
-                json_extract(value, '$.created_at'),
-                json_extract(value, '$.updated_at')
-              FROM json_each(${encodeIncomingParagraphs(chunk)})
-            `;
-          }
-          // A reference is under a hundred bytes of JSON: five thousand of
-          // them stay far inside the paragraphs' budget.
-          for (const chunk of Arr.chunksOf(references, 5_000)) {
-            yield* sql`
-              INSERT INTO paragraph_bible_refs_incoming (
-                para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
-              )
-              SELECT
-                ${publicationId},
-                json_extract(value, '$.para_ref_code'),
-                json_extract(value, '$.bible_book'),
-                json_extract(value, '$.bible_chapter'),
-                json_extract(value, '$.bible_verse')
-              FROM json_each(${encodeIncomingBibleRefs(chunk)})
-            `;
-          }
 
-          const staged = yield* sql<{ readonly count: number }>`
+          // Rows wait here until they fill a statement's budget; references
+          // until there are five thousand, each under a hundred bytes of
+          // JSON, far inside it.
+          const refcodes = new Set<string>();
+          let rows: ParagraphRow[] = [];
+          let rowBytes = 0;
+          let references: IncomingBibleRef[] = [];
+          let staged = 0;
+          const flushRows = Effect.suspend(() => {
+            if (rows.length === 0) return Effect.void;
+            const chunk = rows;
+            rows = [];
+            rowBytes = 0;
+            return Effect.asVoid(stageParagraphs(publicationId, chunk));
+          });
+          const flushReferences = Effect.suspend(() => {
+            if (references.length === 0) return Effect.void;
+            const chunk = references;
+            references = [];
+            return Effect.asVoid(stageReferences(publicationId, chunk));
+          });
+          yield* Stream.runForEach(stream.chapters, (chapter) =>
+            Effect.gen(function* () {
+              yield* validateChapter(publication, chapter, refcodes);
+              for (const archived of chapter.paragraphs) {
+                const row = archivedParagraphToRow(archived, publicationId, now);
+                const cost = incomingRowBytes(row);
+                if (rowBytes + cost > INCOMING_CHUNK_BYTES) yield* flushRows;
+                rows.push(row);
+                rowBytes += cost;
+                staged += 1;
+              }
+              for (const reference of chapter.bibleReferences) {
+                let verse = Option.none<number>();
+                if (reference.scripture._tag === 'verse')
+                  verse = Option.some(reference.scripture.verse);
+                references.push({
+                  para_ref_code: reference.paragraphRefcode,
+                  bible_book: reference.scripture.book,
+                  bible_chapter: reference.scripture.chapter,
+                  bible_verse: Option.getOrNull(verse),
+                });
+                if (references.length >= 5_000) yield* flushReferences;
+              }
+            }),
+          );
+          yield* flushRows;
+          yield* flushReferences;
+
+          const counted = yield* sql<{ readonly count: number }>`
             SELECT COUNT(*) AS count FROM paragraphs_incoming WHERE book_id = ${publicationId}
           `;
-          const stagedCount = staged[0]?.count ?? -1;
-          if (stagedCount !== rows.length) {
+          const stagedCount = counted[0]?.count ?? -1;
+          if (stagedCount !== staged) {
             return yield* ParagraphDataIntegrityError.make({
-              cause: { expected: rows.length, actual: stagedCount },
+              cause: { expected: staged, actual: stagedCount },
               location: `publication(${String(publicationId)}).staged-count`,
             });
           }
@@ -1752,7 +1773,7 @@ export class EGWParagraphDatabase extends Context.Service<
             ...changes,
             sql`DELETE FROM paragraph_bible_refs WHERE para_book_id = ${publicationId}`,
             sql`DELETE FROM paragraphs WHERE book_id = ${publicationId}`,
-            upsertPublicationBook(publication, rows.length, now),
+            upsertPublicationBook(publication, staged, now),
             sql`
               INSERT INTO paragraphs (
                 book_id, ref_code, para_id, refcode_short, refcode_long,
@@ -1782,7 +1803,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 book_id, book_code, status, error_message, last_attempt, paragraph_count,
                 source, revision, digest
               ) VALUES (
-                ${publicationId}, ${publication.code}, 'success', NULL, ${now}, ${rows.length},
+                ${publicationId}, ${publication.code}, 'success', NULL, ${now}, ${staged},
                 ${Option.getOrNull(Option.map(provenanceOption, (value) => value.source))},
                 ${Option.getOrNull(Option.map(provenanceOption, (value) => value.revision))},
                 ${Option.getOrNull(Option.flatMap(provenanceOption, (value) => value.digest))}
@@ -1800,7 +1821,7 @@ export class EGWParagraphDatabase extends Context.Service<
             sql`DELETE FROM paragraphs_incoming WHERE book_id = ${publicationId}`,
             sql`DELETE FROM paragraph_bible_refs_incoming WHERE para_book_id = ${publicationId}`,
           ]);
-          return rows.length;
+          return staged;
         });
 
         const storeParagraph = (paragraph: EGWSchemas.Paragraph, book: EGWSchemas.Book) =>
@@ -2659,7 +2680,7 @@ export class EGWParagraphDatabase extends Context.Service<
           });
 
         return EGWParagraphDatabase.of({
-          installPublicationArchive,
+          installPublication,
           storeBook,
           setBookSection,
           getBookById,
@@ -2722,10 +2743,8 @@ export class EGWParagraphDatabase extends Context.Service<
       paragraphs?: readonly TestParagraph[];
       bibleRefs?: readonly BibleRefRow[];
       syncStatuses?: readonly SyncStatusRow[];
-      installPublicationArchive?: (
-        archive: PublicationArchive,
-        provenance?: CorpusProvenance,
-      ) => number;
+      /** Sees each install's publication, collected whole. */
+      installPublication?: (archive: PublicationArchive, provenance?: CorpusProvenance) => number;
       needsSync?: (bookId: number, expected?: CorpusProvenance) => boolean;
       paragraphChanges?: readonly ParagraphChangeRow[];
     } = {},
@@ -2733,9 +2752,11 @@ export class EGWParagraphDatabase extends Context.Service<
     Layer.succeed(
       EGWParagraphDatabase,
       EGWParagraphDatabase.of({
-        installPublicationArchive: (archive, provenance) =>
-          Effect.succeed(
-            config.installPublicationArchive?.(archive, provenance) ?? archive.paragraphs.length,
+        installPublication: (stream, provenance) =>
+          Effect.map(
+            collectPublication(stream),
+            (archive) =>
+              config.installPublication?.(archive, provenance) ?? archive.paragraphs.length,
           ),
         storeBook: () => Effect.void,
         setBookSection: () => Effect.void,

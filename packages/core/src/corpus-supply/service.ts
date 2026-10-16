@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Match, Option } from 'effect';
+import { Context, Effect, Layer, Match, Option, Predicate } from 'effect';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type { PublicationId } from '../writings/model.js';
@@ -26,6 +26,12 @@ import {
   type WritingsTarget,
 } from './model.js';
 import { WritingsAssetRecipe, type WritingsAssetRecipeService } from './source.js';
+
+/** True for an error a writings source raised, as against the database. */
+const isSourceError = Predicate.or(
+  Predicate.isTagged('CorpusSourceUnavailableError'),
+  Predicate.isTagged('CorpusContributionRejectedError'),
+);
 
 interface CorpusSupplyService {
   readonly ensure: (
@@ -177,15 +183,15 @@ export class CorpusSupply extends Context.Service<CorpusSupply, CorpusSupplyServ
             continue;
           }
 
+          // A chapter the source fails to read fails as the source's error;
+          // only the database's own become an installation error.
           const installed = yield* database
-            .installPublicationArchive(contribution.archive, contribution.provenance)
+            .installPublication(contribution.publication, contribution.provenance)
             .pipe(
-              Effect.mapError((cause) =>
-                CorpusInstallationError.make({
-                  publication,
-                  cause,
-                }),
-              ),
+              Effect.mapError((cause) => {
+                if (isSourceError(cause)) return cause;
+                return CorpusInstallationError.make({ publication, cause });
+              }),
             );
           activated.push(
             CorpusActivation.make({

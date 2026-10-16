@@ -1,7 +1,8 @@
 import { type Crypto, Effect, Exit, Option, Schema } from 'effect';
 
-import { PublicationArchive } from '../writings/archive.js';
+import type { PublicationStream } from '../writings/archive.js';
 import { PublicationId } from '../writings/model.js';
+import type { CorpusContributionRejectedError, CorpusSourceUnavailableError } from './errors.js';
 
 /** The corpora installed as one verified file: a pinned manifest, a digest, a
  *  semantic verifier, an atomic swap. `makeFileCorpusArtifact` is parameterized
@@ -76,12 +77,15 @@ export class CorpusProvenance extends Schema.Class<CorpusProvenance>('CorpusSupp
   ),
 }) {}
 
-export class WritingsContribution extends Schema.Class<WritingsContribution>(
-  'CorpusSupply/WritingsContribution',
-)({
-  provenance: CorpusProvenance,
-  archive: PublicationArchive,
-}) {}
+/** One publication from a source: where it came from, and its chapters as
+ *  they are read. Reading a chapter can still fail, so the stream carries the
+ *  source's own errors. */
+export interface WritingsContribution {
+  readonly provenance: CorpusProvenance;
+  readonly publication: PublicationStream<
+    CorpusContributionRejectedError | CorpusSourceUnavailableError
+  >;
+}
 
 export class BootstrapTarget extends Schema.TaggedClass<BootstrapTarget>(
   'CorpusSupply/BootstrapTarget',
@@ -145,14 +149,15 @@ export const unknownProvenance = (source: string, revision: string): CorpusProve
     digest: Option.none(),
   });
 
-export const provenanceForArchive = Effect.fn('CorpusSupply.provenanceForArchive')(function* (
+/** Provenance whose digest names the bytes a source downloaded: known before
+ *  any of them is parsed, so an install can be skipped without reading the
+ *  publication. */
+export const provenanceForBytes = Effect.fn('CorpusSupply.provenanceForBytes')(function* (
   crypto: Crypto.Crypto,
   source: string,
   revision: string,
-  archive: PublicationArchive,
+  bytes: Uint8Array,
 ) {
-  const encoded = yield* Schema.encodeEffect(Schema.fromJsonString(PublicationArchive))(archive);
-  const bytes = new TextEncoder().encode(encoded);
   const digest = yield* crypto.digest('SHA-256', bytes);
   const hex = [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
   return CorpusProvenance.make({
