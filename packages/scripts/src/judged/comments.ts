@@ -60,8 +60,8 @@ const unquoted = (name: string) => {
 };
 
 /**
- * The new-side lines each file's hunks add or change, read from `git diff
- * --unified=0 --dst-prefix=b/`. A file's `+++` header is read only between
+ * The new-side lines each file's hunks add or change, read from `git diff-index
+ * -p --unified=0 --dst-prefix=b/`. A file's `+++` header is read only between
  * its `diff --git` row and its first hunk, so an added line that starts `++`
  * is code; the name loses the TAB git ends a name with a space by.
  */
@@ -231,18 +231,21 @@ export const changedComments = Effect.fn('judged.changedComments')(function* (
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const mergeBase = (yield* git(root, ['merge-base', base, 'HEAD'])).trim();
-  // The prefixes and quotePath are set here, over whatever the repo's or the
-  // user's git config says of them (diff.noprefix, diff.mnemonicPrefix).
+  // git's plumbing diff of the merge base against the working tree reads no
+  // porcelain config (diff.interHunkContext, textconv drivers, diff.noprefix,
+  // diff.mnemonicPrefix, diff.external, diff.relative, color): its hunks are
+  // the source's own changed lines. `--text` patches a file an attribute marks
+  // `-diff`; the prefixes and quotePath are set here all the same.
   const diff = yield* git(root, [
     '-c',
     'core.quotePath=false',
-    'diff',
+    'diff-index',
+    '-p',
+    '-M',
+    '--text',
+    '--unified=0',
     '--src-prefix=a/',
     '--dst-prefix=b/',
-    '--no-relative',
-    '--unified=0',
-    '--no-color',
-    '--no-ext-diff',
     '--diff-filter=AMR',
     mergeBase,
   ]);

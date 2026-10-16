@@ -181,6 +181,58 @@ describe('the changed-comments selector', () => {
     ),
   );
 
+  it.live('takes no unchanged comment between two changes under diff.interHunkContext', () =>
+    withFs(
+      Effect.gen(function* () {
+        const base = ['const a = 1;', '', '// untouched middle', '', '', 'const b = 2;'];
+        const dir = yield* repo(
+          { 'src/a.ts': base },
+          {
+            'src/a.ts': base.map((line, i) => {
+              if (i === 0) return 'const a = 1; // first';
+              if (i === 5) return 'const b = 2; // last';
+              return line;
+            }),
+          },
+          {},
+        );
+        yield* git(dir, 'config', 'diff.interHunkContext', '10');
+        expect((yield* changedComments(dir, 'main')).map((item) => item.text)).toEqual([
+          'first',
+          'last',
+        ]);
+      }),
+    ),
+  );
+
+  it.live("reads the source's own lines past a textconv driver or a -diff attribute", () =>
+    withFs(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const base = ['// keep', 'const a = 1;'];
+        const branch = ['// keep', 'const a = 1;', '// new words'];
+        // A driver that drops every comment row from what git compares.
+        const textconv = yield* repo({ 'src/a.ts': base }, { 'src/a.ts': branch }, {});
+        yield* git(textconv, 'config', 'diff.nocomments.textconv', "sed '/^\\/\\//d'");
+        yield* fs.writeFileString(
+          path.join(textconv, '.git', 'info', 'attributes'),
+          '*.ts diff=nocomments\n',
+        );
+        // An attribute that makes git call the file binary.
+        const binary = yield* repo(
+          { 'src/a.ts': base },
+          { 'src/a.ts': branch, '.gitattributes': ['*.ts -diff'] },
+          {},
+        );
+        for (const dir of [textconv, binary])
+          expect(yield* changedComments(dir, 'main')).toEqual([
+            { file: 'src/a.ts', line: 3, text: 'new words' },
+          ]);
+      }),
+    ),
+  );
+
   it.live('reads an added line that starts with ++ as code, not a file header', () =>
     withFs(
       Effect.gen(function* () {
