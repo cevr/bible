@@ -92,9 +92,11 @@ interface AskStoreService {
   ) => Effect.Effect<AskRecord, AskUnknown | AskRefused | StoreError>;
 }
 
-/** No record: what a manifest read gives for an ask that is not on disk. */
+/** The one step of `MISSING`'s ask: its end. */
 const MISSING_END = AskName.make('done');
+/** `MISSING`'s ask: it starts at its end. */
 const MISSING_ASK: Ask = { start: MISSING_END, steps: { [MISSING_END]: { end: true } } };
+/** No record: what a manifest read gives for an ask that is not on disk. */
 const MISSING: AskRecord = {
   id: AskName.make('missing'),
   title: '-',

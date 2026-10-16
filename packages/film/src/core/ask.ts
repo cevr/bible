@@ -25,6 +25,8 @@ import {
   Record,
   Result,
   Schema,
+  SchemaParser,
+  SchemaTransformation,
 } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { repoJson } from './schema.ts';
@@ -354,10 +356,37 @@ const AskStep = Schema.Union([PageStep, EndStep]);
 type AskStep = typeof AskStep.Type;
 type PageStep = typeof PageStep.Type;
 
+/** A key read as a step's name: the name, or why it is not one. */
+const decodeAskName = SchemaParser.decodeUnknownResult(AskName);
+
+/**
+ * A machine's steps by name. A record keyed by `AskName` sets aside a key the
+ * name refuses as an excess property, and a decode ignores those: so every key
+ * is read as written first, and each one `AskName` refuses is refused by its
+ * own path with the name's reason, the rest then branded.
+ */
+const AskSteps = Schema.Record(Schema.String, AskStep)
+  .check(
+    Schema.makeFilter((steps) =>
+      Arr.filterMap(Object.keys(steps), (key) =>
+        Result.match(decodeAskName(key), {
+          onFailure: (issue) => Result.succeed({ path: [key], issue }),
+          onSuccess: () => Result.failVoid,
+        }),
+      ),
+    ),
+  )
+  .pipe(
+    Schema.decodeTo(
+      Schema.Record(AskName, Schema.toType(AskStep)),
+      SchemaTransformation.passthrough(),
+    ),
+  );
+
 /** An ask's machine: where it starts, and its steps by name. */
 export const Ask = Schema.Struct({
   start: AskName,
-  steps: Schema.Record(AskName, AskStep),
+  steps: AskSteps,
 });
 export type Ask = typeof Ask.Type;
 

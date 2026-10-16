@@ -147,6 +147,26 @@ describe('the check before an ask renders', () => {
     }
   });
 
+  test('a step named only by its key, for a key every object answers to, is refused by name', () => {
+    const decode = Schema.decodeUnknownExit(Schema.fromJsonString(AskSchema));
+    const page =
+      '{"blocks":[{"kind":"free_text","id":"why","label":"Why?"}],"next":[{"to":"done"}]}';
+    // JSON, so `__proto__` is a key of its own, as an agent's tool call sends it.
+    const text = (...names: ReadonlyArray<string>) =>
+      `{"start":"pick","steps":{"pick":${page},${names
+        .map((name) => `"${name}":{"end":true},`)
+        .join('')}"done":{"end":true}}}`;
+    expect(decode(text())._tag).toBe('Success');
+    for (const name of ['constructor', 'prototype', '__proto__', 'Bad Name']) {
+      const exit = decode(text(name));
+      expect(exit._tag).toBe('Failure');
+      expect(String(exit)).toContain(`["steps"]["${name}"]`);
+    }
+    const both = String(decode(text('constructor', 'prototype')));
+    expect(both).toContain('every object answers to "constructor"');
+    expect(both).toContain('every object answers to "prototype"');
+  });
+
   test('a blank option value, label or text does not decode, so no blank answer can be sent', () => {
     const decode = Schema.decodeUnknownExit(AskSchema);
     const choice = (value: string, label: string) =>

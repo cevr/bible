@@ -368,6 +368,23 @@ describe('asks through the MCP', () => {
         });
         expect(looped.refused).toContain('the ask may not render');
         expect(looped.refused).toContain('step a goes on to itself');
+        const keyOnly = yield* tool('ask', {
+          ...who,
+          machine: {
+            start: 'a',
+            steps: {
+              a: { blocks: [{ kind: 'prose', text: 'a' }], next: [{ to: 'done' }] },
+              constructor: { end: true },
+              done: { end: true },
+            },
+          },
+        });
+        const { message: keyRefused } = yield* Schema.decodeUnknownEffect(
+          Schema.fromJsonString(Schema.Struct({ message: Schema.String })),
+        )(keyOnly.refused);
+        expect(keyRefused).toContain("Invalid parameters for tool 'ask'");
+        expect(keyRefused).toContain('every object answers to "constructor"');
+        expect(keyRefused).toContain('at ["machine"]["steps"]["constructor"]');
         expect((yield* tool('ask', who)).refused).toContain('give `blocks`');
         const wordsBesideChoice = yield* tool('ask', {
           ...who,

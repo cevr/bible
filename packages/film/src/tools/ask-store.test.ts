@@ -4,10 +4,11 @@
 // of the same answer is answered as it was and a different one refused; an
 // optional field left empty is answered skipped, and sent blank again is the
 // same answer; an ask past its deadline takes no answer; a close keeps what
-// was answered and is answered as it is when said again.
+// was answered and is answered as it is when said again; an ask on disk with
+// a step named by a key every object answers to is not read.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Boolean as Bool, Effect, Exit, Schema } from 'effect';
+import { Boolean as Bool, Effect, Exit, FileSystem, Schema } from 'effect';
 import { TestClock } from 'effect/testing';
 import {
   type Ask,
@@ -20,7 +21,7 @@ import {
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { Segment } from '../core/segment.ts';
 import { AskStore } from './ask-store.ts';
-import { labInMemory, text } from './testing.ts';
+import { labInMemory, NOTES_LAB, text } from './testing.ts';
 
 const tried = (n: number) => ({
   n,
@@ -89,7 +90,7 @@ const proof = (tries: ReadonlyArray<number>): Ask =>
 
 const draft = (ask: Ask) => ({ title: 'Keep a try', why: 'the beat waits', by: 'agent', ask });
 
-const run = <A, E>(self: Effect.Effect<A, E, AskStore>) =>
+const run = <A, E>(self: Effect.Effect<A, E, AskStore | FileSystem.FileSystem>) =>
   self.pipe(Effect.provide(labInMemory(files())));
 
 describe('the asks on disk', () => {
@@ -229,5 +230,26 @@ describe('the asks on disk', () => {
         expect(String(exit)).toContain('it was due by 2026-10-14T11:00:00.000Z');
       }),
     ),
+  );
+
+  it.effect(
+    'reads no ask on disk that holds a step named only by a key every object answers to',
+    () =>
+      run(
+        Effect.gen(function* () {
+          const asks = yield* AskStore;
+          const fs = yield* FileSystem.FileSystem;
+          const made = yield* asks.make(draft(proof([1, 7])));
+          const file = `${NOTES_LAB}/asks/${made.id}.json`;
+          const kept = yield* fs.readFileString(file);
+          yield* fs.writeFileString(
+            file,
+            kept.replace('"steps": {', '"steps": {\n      "constructor": { "end": true },'),
+          );
+          const refused = yield* Effect.flip(asks.read(made.id));
+          expect(String(refused)).toContain('every object answers to "constructor"');
+          expect(yield* asks.list).toEqual([]);
+        }),
+      ),
   );
 });
