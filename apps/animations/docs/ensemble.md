@@ -29,7 +29,7 @@ Everyone in the films' own world, outside the Bible's scenes, keeps these: the p
 
 ## The cast
 
-Eight people: a family of five in a city flat, the grandmother in the hills, and two neighbours in the same building. Ages are their ages in every film (see Continuity). They are background figures (owner, 2026-10-15): never a film's lead, its accused, or the one whose need is the film's question.
+Eight people: a family of five in a city flat, the grandmother in the hills, and two neighbours in the same building. Ages are their ages in every film (see Continuity). They are background figures (owner, 2026-10-15): never a film's lead, its accused, or the one whose need is the film's question. The one exception is a film's own "Picture a…" illustration when the owner casts a cast member as its figure (owner, 2026-10-16: "the grandmother should be one the background cast members, the old lady"): Rosa is the grandmother of RBF's `garden`.
 
 The hue slots sit inside the band of [CRAFT.md](../../../.claude/skills/film/CRAFT.md) rule 12: every garment at HSV saturation 0.20–0.35, with scarlet the only accent, gold only for God's word and gift, and white only for the robe. The slots spread round the wheel about 40° apart and skip the reds and oranges from 330° to 50°: scarlet (357°), the chipboard world (about 25°) and gold (41°) live there. Each ramp shades toward the cool side under a warm key and lights toward the warm side, as rimproto C2 did; the papercut look's ramp step governs the final numbers. Heads and hands are the shared figure paper (open choice 2), and hair is cut chipboard as today, so a person is told apart by garment hue, silhouette and hair.
 
