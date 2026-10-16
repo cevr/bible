@@ -3,11 +3,10 @@
 // written by the tools). A film names sounds (`paper.slide`, `amb.court`), never
 // prompts. A sound is generated (ElevenLabs, made once as candidates, curated,
 // then frozen: the model has no seed), code (a graph of nodes, rendered from
-// each seed whenever it is needed, so nothing is stored or paid for),
-// procedural (a synth recipe, rendered the same way), or recorded (a CC0 file
-// kept in the repo). Pure: names, schemas, the request hash that says whether
-// a sound is current, which variant each placement plays and its jitter, and
-// the level arithmetic the mix gains a sound by.
+// each seed whenever it is needed, so nothing is stored or paid for), or
+// recorded (a CC0 file kept in the repo). Pure: names, schemas, the request
+// hash that says whether a sound is current, which variant each placement
+// plays and its jitter, and the level arithmetic the mix gains a sound by.
 
 import { Array as Arr, Match, Option, Result, Schema } from 'effect';
 import type { Pcm } from './audio.ts';
@@ -19,14 +18,10 @@ import { fnv1a, rng } from './random.ts';
 import { TAKE_LEVEL } from './recording.ts';
 import { describeSound } from './synth/analyse.ts';
 import { ABSOLUTE_GATE, loudness } from './synth/loudness.ts';
-import { boundOf } from './synth/graph/bound.ts';
 import { CodeSound } from './synth/graph/nodes.ts';
 import type { ResolvedSound } from './synth/graph/plan.ts';
 import type { ResolvedTrial } from './synth/resolve.ts';
-import { portOf } from './synth/graph/presets.ts';
 import { RENDER_VERSION, renderCode } from './synth/graph/render.ts';
-import { MAX_CODE_SECS, MAX_CODE_WORK } from './synth/graph/units.ts';
-import { Recipe, synthesize } from './synth/recipes.ts';
 import { toMs } from './time.ts';
 
 // ---------------------------------------------------------------------------
@@ -114,46 +109,6 @@ export const Generated = Schema.Struct({
 });
 export type Generated = typeof Generated.Type;
 
-/** A length or a work in seconds as a refusal names it: to a tenth. */
-const tenths = (secs: number): number => Math.round(secs * 10) / 10;
-
-/**
- * Why `recipe`'s port (graph/presets.ts) is no code sound the library's walk
- * takes, when it is not: at the most its draws allow, longer than a code
- * sound may run or more work than a render may do (the walk's limits,
- * synth/resolve.ts), or a field the graph's schema refuses, a note past B8
- * or a frequency past the mix's Nyquist. A port samples no other sound.
- */
-const portFault = (recipe: Recipe): Option.Option<string> => {
-  const play = portOf(recipe);
-  const bound = boundOf(play, () => ({ secs: 0, work: 0 }));
-  if (bound.secs > MAX_CODE_SECS)
-    return Option.some(
-      `its code trial runs ${tenths(bound.secs)} s at the most, past the ${MAX_CODE_SECS} s a code sound may run`,
-    );
-  if (bound.work > MAX_CODE_WORK)
-    return Option.some(
-      `its code trial writes ${tenths(bound.work)} s of frames at the most, past the ${MAX_CODE_WORK} s a render may write`,
-    );
-  return Result.match(Schema.encodeResult(CodeSound)({ play }), {
-    onFailure: (error) => Option.some(`its code trial is no code sound: ${error.message}`),
-    onSuccess: () => Option.none(),
-  });
-};
-
-const Procedural = Schema.Struct({
-  kind: Schema.Literal('procedural'),
-  /** Its recipe, refused here when its code trial (`codeTrialOf`) would be no code sound the walk takes. */
-  recipe: Recipe.check(
-    Schema.makeFilter((recipe: Recipe) =>
-      Option.match(portFault(recipe), { onNone: () => true, onSome: (why) => why }),
-    ),
-  ),
-  variants: Seeds,
-  ...placing,
-});
-type Procedural = typeof Procedural.Type;
-
 /**
  * A sound made by code: a graph of nodes (core/synth/graph), rendered with
  * each seed whenever it is needed, the same samples on every host, so
@@ -179,24 +134,14 @@ const Recorded = Schema.Struct({
 });
 type Recorded = typeof Recorded.Type;
 
-export const LibraryEntry = Schema.Union([Generated, Procedural, Recorded, Code]);
+export const LibraryEntry = Schema.Union([Generated, Recorded, Code]);
 export type LibraryEntry = typeof LibraryEntry.Type;
 
-/** A sound rendered from its own data whenever it is needed: a code sound or a recipe. */
-type Derived = Code | Procedural;
+/** Whether `entry` is rendered from its data (a code sound), so nothing of it is made, kept or paid for. */
+export const isDerived = (entry: LibraryEntry): entry is Code => entry.kind === 'code';
 
-/** Whether `entry` is rendered from its data, so nothing of it is made, kept or paid for. */
-export const isDerived = (entry: LibraryEntry): entry is Derived =>
-  entry.kind === 'code' || entry.kind === 'procedural';
-
-/**
- * A sound's code trial: a generated sound's `code`, or a recipe's port with
- * the recipe's seeds (graph/presets.ts), derived so it is never written
- * twice; none for any other kind.
- */
+/** A sound's code trial: a generated sound's `code`; none for any other kind. */
 export const codeTrialOf = (entry: LibraryEntry): Option.Option<CodeTrial> => {
-  if (entry.kind === 'procedural')
-    return Option.some({ sound: { play: portOf(entry.recipe) }, variants: entry.variants });
   if (entry.kind !== 'generated') return Option.none();
   return Option.fromUndefinedOr(entry.code);
 };
@@ -329,7 +274,6 @@ const RequestKey = Schema.fromJsonString(
       model: Schema.String,
       format: Schema.String,
     }),
-    Schema.Struct({ kind: Schema.Literal('procedural'), recipe: Recipe }),
     Schema.Struct({ kind: Schema.Literal('recorded'), source: Schema.String }),
     Schema.Struct({ kind: Schema.Literal('code'), sound: CodeSound }),
   ]),
@@ -363,8 +307,6 @@ export const requestKey = (entry: LibraryEntry): string => {
           format: SFX_FORMAT,
         }),
       );
-    case 'procedural':
-      return hashText(Schema.encodeSync(RequestKey)({ kind: 'procedural', recipe: entry.recipe }));
     case 'recorded':
       return hashText(
         Schema.encodeSync(RequestKey)({ kind: 'recorded', source: entry.licence.source }),
@@ -377,7 +319,7 @@ export const requestKey = (entry: LibraryEntry): string => {
 
 /** Where a sound stands against the lock. */
 type SoundState =
-  /** Code or procedural: rendered from its graph or its recipe, nothing to make. */
+  /** Code: rendered from its graph, nothing to make. */
   | { readonly _tag: 'Derived'; readonly variants: number }
   /** No variant kept for any request: nothing plays. */
   | { readonly _tag: 'Missing'; readonly candidates: number }
@@ -429,8 +371,8 @@ export interface MakeJob {
  * What `sfx make` would generate, by name: every generated sound (of `names`,
  * when given) that has no variant kept for its current request, short of its
  * candidates by what already waits for audition. `force` makes a full set of
- * candidates again even for a current sound. Procedural and recorded sounds
- * are never generated.
+ * candidates again even for a current sound. Code and recorded sounds are
+ * never generated.
  */
 export const makePlan = (
   library: Library,
@@ -601,10 +543,9 @@ export const NO_SOUNDS: MeasuredSounds = {
   measured: new Map(),
 };
 
-/** Where a sound's audio comes from: a file, a recipe played with a seed, or a code sound rendered with one. */
+/** Where a sound's audio comes from: a file, or a code sound rendered with a seed. */
 export type SoundSource =
   | { readonly _tag: 'File'; readonly file: string }
-  | { readonly _tag: 'Synth'; readonly recipe: Recipe; readonly seed: number }
   | { readonly _tag: 'Code'; readonly sound: ResolvedSound; readonly seed: number };
 
 /** A source rendered from data: the same audio for the same label, whenever it is made. */
@@ -613,23 +554,18 @@ export type DerivedSource = Exclude<SoundSource, { readonly _tag: 'File' }>;
 export const fileSource = (file: string): SoundSource => ({ _tag: 'File', file });
 
 /**
- * A source by one line of text: its file, `synth:<request>/<seed>`, or
- * `code:<renderer>:<graph>/<seed>`, which names the renderer's version, so an
- * edit to the data or to the DSP gives a new label, and with it a new mix key.
+ * A source by one line of text: its file, or `code:<renderer>:<graph>/<seed>`,
+ * which names the renderer's version, so an edit to the data or to the DSP
+ * gives a new label, and with it a new mix key.
  */
 export const sourceLabel = (source: SoundSource): string =>
   Match.valueTags(source, {
     File: (file) => file.file,
-    Synth: (synth) =>
-      `synth:${hashText(Schema.encodeSync(Schema.fromJsonString(Recipe))(synth.recipe))}/${synth.seed}`,
     Code: (code) => `code:${RENDER_VERSION}:${code.sound.hash}/${code.seed}`,
   });
 
-/** A derived source's audio: the recipe or the graph rendered with its seed. */
-export const renderSource = (source: DerivedSource): Pcm => {
-  if (source._tag === 'Synth') return synthesize(source.recipe, source.seed);
-  return renderCode(source.sound, source.seed);
-};
+/** A derived source's audio: its graph rendered with its seed. */
+export const renderSource = (source: DerivedSource): Pcm => renderCode(source.sound, source.seed);
 
 /** One variant a placement may play: its audio, how loud it measured, and where its sound begins and hits (none unrecorded). */
 export interface Playable {
@@ -639,30 +575,26 @@ export interface Playable {
   readonly hit: Option.Option<number>;
 }
 
-/** A derived sound's audio with `seed`; none for a code sound the walk has not resolved. */
+/** A code sound's audio with `seed`; none for one the walk has not resolved. */
 export const seedSource = (
   sounds: Sounds,
   name: string,
-  entry: Derived,
   seed: number,
-): Option.Option<DerivedSource> => {
-  if (entry.kind === 'procedural')
-    return Option.some({ _tag: 'Synth', recipe: entry.recipe, seed });
-  return Option.map(Option.fromUndefinedOr(sounds.code.get(name)), (sound): DerivedSource => ({
+): Option.Option<DerivedSource> =>
+  Option.map(Option.fromUndefinedOr(sounds.code.get(name)), (sound): DerivedSource => ({
     _tag: 'Code',
     sound,
     seed,
   }));
-};
 
-/** A derived sound's seeds 1…n as sources; none for a code sound the walk has not resolved. */
+/** A code sound's seeds 1…n as sources; none for one the walk has not resolved. */
 export const seedSources = (
   sounds: Sounds,
   name: string,
-  entry: Derived,
+  entry: Code,
 ): ReadonlyArray<DerivedSource> =>
   Array.from({ length: entry.variants }, (_, i) => i + 1).flatMap((seed) =>
-    Option.toArray(seedSource(sounds, name, entry, seed)),
+    Option.toArray(seedSource(sounds, name, seed)),
   );
 
 /** A sound's code trial's seeds 1…n as sources; none when it has no trial. */

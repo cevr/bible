@@ -5,6 +5,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import type { Pcm } from '../audio.ts';
+import { rng } from '../random.ts';
 import {
   HEARD_HIT,
   HIT_MOVE,
@@ -14,7 +15,6 @@ import {
   profileOf,
   type Profile,
 } from './compare.ts';
-import { random } from './signal.ts';
 
 const RATE = 44100;
 const pcmOf = (...channels: ReadonlyArray<Float32Array>): Pcm => ({
@@ -28,7 +28,7 @@ const sine = (hz: number, secs: number) =>
     (_, i) => 0.5 * Math.sin((2 * Math.PI * hz * i) / RATE),
   );
 const noise = (secs: number, seed: number) => {
-  const r = random(seed);
+  const r = rng(seed);
   return Float32Array.from({ length: Math.round(secs * RATE) }, () => (r() * 2 - 1) * 0.5);
 };
 /** `plane` through a one-pole low-pass at `hz`. */

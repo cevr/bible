@@ -1,6 +1,6 @@
 // The sound library over a fixture library on disk (a temporary folder, one
-// generated one-shot, one generated bed with a code trial that fades, so its
-// seams are heard, one procedural chime, one code tick, one recording)
+// generated one-shot with a code trial, one generated bed with a code trial
+// that fades, so its seams are heard, a code chime, a code tick, one recording)
 // with a fake ElevenLabs that writes a seeded burst as `pcm_44100` bytes and
 // the real Media, but for its sheets and cards, which are kept by file for
 // the cases to read (media.test.ts writes real ones). Never a real call:
@@ -39,7 +39,15 @@ import { NO_SCORES, type Scores } from './media-store.ts';
 const PAPER_SLIDE = Segment.make('paper.slide');
 
 const LIBRARY = `export const library = {
-  'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', why: 'a test sound', secs: 0.5, candidates: 4, use: 'one-shot' },
+  'paper.slide': {
+    kind: 'generated',
+    prompt: 'paper slides on a desk',
+    why: 'a test sound',
+    secs: 0.5,
+    candidates: 4,
+    use: 'one-shot',
+    code: { sound: { play: { _tag: 'Partials', pitch: 'D5', set: 'glass', secs: 0.6 } }, variants: 3 },
+  },
   'amb.court': {
     kind: 'generated',
     prompt: 'a quiet stone court',
@@ -61,8 +69,8 @@ const LIBRARY = `export const library = {
     },
   },
   'tone.chime': {
-    kind: 'procedural',
-    recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 0.6 },
+    kind: 'code',
+    sound: { play: { _tag: 'Partials', pitch: 'D5', set: 'glass', secs: 0.6 } },
     variants: 3,
     use: 'one-shot',
   },
@@ -738,28 +746,26 @@ describe.concurrent('SoundLibrary', () => {
     30_000,
   );
 
-  it.effect.layer(fixture)(
-    'curates no take of a code sound or a recipe: its seeds play as its data says',
-    () =>
-      withLibrary(({ calls }) =>
-        Effect.gen(function* () {
-          const library = yield* SoundLibrary;
-          const kept = yield* Effect.flip(library.keep('tone.tick', ['a take']));
-          expect(kept).toMatchObject({
-            _tag: 'SoundKindMismatch',
-            name: 'tone.tick',
-            kind: 'code',
-            wanted: 'generated or recorded',
-          });
-          const unkept = yield* Effect.flip(library.unkeep('tone.chime', ['a take']));
-          expect(unkept).toMatchObject({ _tag: 'SoundKindMismatch', kind: 'procedural' });
-          const rejected = yield* Effect.flip(library.reject('tone.tick', ['a take']));
-          expect(rejected._tag).toBe('SoundKindMismatch');
-          const picked = yield* Effect.flip(library.takesAt('tone.chime', [1], 'kept'));
-          expect(picked._tag).toBe('SoundKindMismatch');
-          expect(calls).toHaveLength(0);
-        }),
-      ),
+  it.effect.layer(fixture)('curates no take of a code sound: its seeds play as its data says', () =>
+    withLibrary(({ calls }) =>
+      Effect.gen(function* () {
+        const library = yield* SoundLibrary;
+        const kept = yield* Effect.flip(library.keep('tone.tick', ['a take']));
+        expect(kept).toMatchObject({
+          _tag: 'SoundKindMismatch',
+          name: 'tone.tick',
+          kind: 'code',
+          wanted: 'generated or recorded',
+        });
+        const unkept = yield* Effect.flip(library.unkeep('tone.chime', ['a take']));
+        expect(unkept).toMatchObject({ _tag: 'SoundKindMismatch', kind: 'code' });
+        const rejected = yield* Effect.flip(library.reject('tone.tick', ['a take']));
+        expect(rejected._tag).toBe('SoundKindMismatch');
+        const picked = yield* Effect.flip(library.takesAt('tone.chime', [1], 'kept'));
+        expect(picked._tag).toBe('SoundKindMismatch');
+        expect(calls).toHaveLength(0);
+      }),
+    ),
   );
 
   it.effect.layer(fixture)('renders a code sound from its graph, each seed its own draw', () =>
@@ -767,7 +773,7 @@ describe.concurrent('SoundLibrary', () => {
       Effect.gen(function* () {
         const library = yield* SoundLibrary;
         const media = yield* Media;
-        expect([...(yield* library.load).code.keys()]).toEqual(['tone.tick']);
+        expect([...(yield* library.load).code.keys()]).toEqual(['tone.chime', 'tone.tick']);
         const renders = yield* library.render('tone.tick', {
           seed: Option.none(),
           trial: false,
@@ -793,7 +799,7 @@ describe.concurrent('SoundLibrary', () => {
         const wrong = yield* Effect.flip(
           library.render('paper.slide', { seed: Option.none(), trial: false, sheet: false }),
         );
-        expect(wrong).toMatchObject({ _tag: 'SoundKindMismatch', wanted: 'code or procedural' });
+        expect(wrong).toMatchObject({ _tag: 'SoundKindMismatch', wanted: 'code' });
         expect(calls).toHaveLength(0);
       }),
     ),
@@ -804,7 +810,7 @@ describe.concurrent('SoundLibrary', () => {
       Effect.gen(function* () {
         const library = yield* SoundLibrary;
         const media = yield* Media;
-        expect([...(yield* library.load).trials.keys()]).toEqual(['amb.court', 'tone.chime']);
+        expect([...(yield* library.load).trials.keys()]).toEqual(['paper.slide', 'amb.court']);
         const court = yield* library.render('amb.court', {
           seed: Option.none(),
           trial: true,
@@ -872,42 +878,48 @@ describe.concurrent('SoundLibrary', () => {
       ),
   );
 
-  it.effect.layer(fixture)(
+  it.effect.layer(made)(
     'clips a sound for an ask: what plays now, its code trial, and both, each under its sheet',
     () =>
       withLibrary(({ dir, calls, sheets, cards }) =>
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
+          // The first case on a made library makes it, in its own fixture: count from here.
+          const paid = calls.length;
           const out = `${dir}/../ab`;
-          const files = yield* library.ab('tone.chime', out);
+          yield* library.keep(
+            'paper.slide',
+            yield* library.takesAt('paper.slide', [1], 'candidates'),
+          );
+          const files = yield* library.ab('paper.slide', out);
           expect(named(files)).toEqual([
-            'tone.chime.now.mp4',
-            'tone.chime.now.png',
-            'tone.chime.code.mp4',
-            'tone.chime.code.png',
-            'tone.chime.now-then-code.mp4',
-            'tone.chime.now-then-code.png',
+            'paper.slide.now.mp4',
+            'paper.slide.now.png',
+            'paper.slide.code.mp4',
+            'paper.slide.code.png',
+            'paper.slide.now-then-code.mp4',
+            'paper.slide.now-then-code.png',
           ]);
           const [now, code, both] = [files[0], files[2], files[4]].map((file) =>
             cards.get(file ?? ''),
           );
-          // The recipe's three 0.6-second seeds and the port's, each followed by the half-second
-          // gap, levelled into one channel; both, a second apart.
+          // The half-second take, then the trial's three 0.6-second seeds, each followed by the
+          // half-second gap, levelled into one channel; both, a second apart.
           expect([now, code].map((card) => card?.pcm.frames)).toEqual([
-            3 * (26460 + 22050),
+            22050 + 22050,
             3 * (26460 + 22050),
           ]);
-          expect(both?.pcm.frames).toBe(6 * (26460 + 22050) + 22050);
+          expect(both?.pcm.frames).toBe(22050 + 22050 + 3 * (26460 + 22050) + 22050);
           expect(both?.pcm.channels).toHaveLength(1);
           // Each card's picture is its sheet, written beside it, a hit marked on every block.
           for (const [i, card] of [now, code, both].entries()) {
             expect(card?.image).toBe(sheets.get(files[2 * i + 1] ?? ''));
             const hits = marksOn(card?.image ?? NO_SHEET).filter(([, kind]) => kind === 'hit');
-            expect(hits).toHaveLength([3, 3, 6][i] ?? 0);
+            expect(hits).toHaveLength([1, 3, 4][i] ?? 0);
           }
           const none = yield* Effect.flip(library.ab('tone.tick', out));
           expect(none).toMatchObject({ _tag: 'CodeTrialMissing', name: 'tone.tick' });
-          expect(calls).toHaveLength(0);
+          expect(calls).toHaveLength(paid);
         }),
       ),
   );
@@ -956,39 +968,6 @@ describe.concurrent('SoundLibrary', () => {
     ),
   );
 
-  it.effect.layer(fixture)(
-    'renders a recipe’s port as its code trial, with the recipe’s seeds',
-    () =>
-      withLibrary(({ calls }) =>
-        Effect.gen(function* () {
-          const library = yield* SoundLibrary;
-          const media = yield* Media;
-          const ported = yield* library.render('tone.chime', {
-            seed: Option.none(),
-            trial: true,
-            sheet: false,
-          });
-          expect(named(ported)).toEqual([
-            'tone.chime-trial-1.wav',
-            'tone.chime-trial-2.wav',
-            'tone.chime-trial-3.wav',
-          ]);
-          const recipe = yield* library.render('tone.chime', {
-            seed: Option.some(1),
-            trial: false,
-            sheet: false,
-          });
-          const [port, synth] = yield* Effect.forEach([...ported.slice(0, 1), ...recipe], (file) =>
-            media.decode(file),
-          );
-          // As long as its recipe, and its own numbers.
-          expect(port?.frames).toBe(synth?.frames);
-          expect(port?.channels[0]).not.toEqual(synth?.channels[0]);
-          expect(calls).toHaveLength(0);
-        }),
-      ),
-  );
-
   it.effect.layer(made)('compares a code trial with the take that plays, free', () =>
     withLibrary(({ calls }) =>
       Effect.gen(function* () {
@@ -1006,11 +985,15 @@ describe.concurrent('SoundLibrary', () => {
         expect(one?.profile.bands).not.toEqual(two?.profile.bands);
         // The burst is white noise and the trial pink: the take is the brighter.
         expect(take.profile.centroid).toBeGreaterThan(one?.profile.centroid ?? 0);
-        // A recipe's port beside the recipe's own seeds.
-        const chime = yield* library.compare('tone.chime');
-        expect(chime.plays.map((m) => m.label)).toEqual(['seed 1', 'seed 2', 'seed 3']);
-        expect(chime.trial.map((m) => m.label)).toEqual(['seed 1', 'seed 2', 'seed 3']);
-        expect(chime.trial[0].profile.secs).toBe(chime.plays[0].profile.secs);
+        // A one-shot's trial beside its kept take.
+        yield* library.keep(
+          'paper.slide',
+          yield* library.takesAt('paper.slide', [1], 'candidates'),
+        );
+        const slide = yield* library.compare('paper.slide');
+        expect(slide.plays.map((m) => m.label)).toEqual(['take 1']);
+        expect(slide.trial.map((m) => m.label)).toEqual(['seed 1', 'seed 2', 'seed 3']);
+        expect(slide.trial[0].profile.secs).toBe(0.6);
         const none = yield* Effect.flip(library.compare('tone.tick'));
         expect(none).toMatchObject({ _tag: 'CodeTrialMissing', name: 'tone.tick' });
         expect(calls).toHaveLength(0);

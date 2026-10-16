@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
 import { type Library, type LibraryEntry, defineLibrary } from '../sfx.ts';
 import type { CodeSound, Node } from './graph/nodes.ts';
-import { portOf } from './graph/presets.ts';
 import { resolveCode } from './resolve.ts';
 
 const code = (sound: CodeSound): LibraryEntry => ({
@@ -201,8 +200,7 @@ describe('the walk of the code sounds', () => {
 });
 
 describe('the walk of the code trials', () => {
-  test('a generated sound’s trial and a recipe’s port resolve beside the code sounds', () => {
-    const bell = { recipe: 'bell', root: 'D5', partials: 'glass', secs: 0.6 } as const;
+  test('a generated sound’s trial resolves beside the code sounds', () => {
     const library = defineLibrary({
       'tone.drop': code({ play: noise(0.1) }),
       'paper.whoosh': trialled(sample('tone.drop')),
@@ -213,18 +211,13 @@ describe('the walk of the code trials', () => {
         secs: 10,
         use: 'bed',
       },
-      'tone.chime': { kind: 'procedural', recipe: bell, variants: 5, use: 'one-shot' },
     });
     const walk = Result.getOrThrow(resolveCode(library));
     expect([...walk.code.keys()]).toEqual(['tone.drop']);
-    expect([...walk.trials.keys()]).toEqual(['paper.whoosh', 'tone.chime']);
+    expect([...walk.trials.keys()]).toEqual(['paper.whoosh']);
     const whoosh = walk.trials.get('paper.whoosh')!;
     expect(whoosh.variants).toBe(2);
     expect(whoosh.sound.samples.get('tone.drop')).toBe(walk.code.get('tone.drop')!);
-    // A recipe's trial is its port, derived: with the recipe's own seeds.
-    const chime = walk.trials.get('tone.chime')!;
-    expect(chime.variants).toBe(5);
-    expect(chime.sound.sound.play).toEqual(portOf(bell));
   });
 
   test('a trial is refused as a code sound is, under its name and “(trial)”; nothing samples it', () => {

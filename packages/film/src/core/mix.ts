@@ -432,9 +432,8 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
 /**
  * A sound as the key reads it: a file by its name, which carries its content
  * hash (a take's `<scene>.<hash>`, a score's `<option>-<hash>`, a library
- * variant's sha256), so the key reads the same in every checkout; a recipe by
- * its request and seed; a code sound by its renderer's version, its graph's
- * hash and its seed.
+ * variant's sha256), so the key reads the same in every checkout; a code
+ * sound by its renderer's version, its graph's hash and its seed.
  */
 const soundKey = (source: SoundSource): string => {
   if (source._tag === 'File') return source.file.slice(source.file.lastIndexOf('/') + 1);

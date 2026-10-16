@@ -10,6 +10,7 @@ import { type ProbeSink, probing } from '../canvas/probe.ts';
 import { recorder } from '../canvas/fixtures/stand-in.ts';
 import { voicedAt } from '../core/voiced.ts';
 import { musicKey, musicPlan } from '../core/sound.ts';
+import { room } from '../core/synth/graph/presets.ts';
 import {
   HOLD,
   type Sample,
@@ -1245,8 +1246,8 @@ const library = defineLibrary({
     level: 0,
   },
   'room.paper': {
-    kind: 'procedural',
-    recipe: { recipe: 'room', secs: 4 },
+    kind: 'code',
+    sound: { play: room({ secs: 4 }) },
     variants: 1,
     use: 'bed',
   },

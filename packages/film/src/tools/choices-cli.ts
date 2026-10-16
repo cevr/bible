@@ -16,8 +16,8 @@
 //       take, or a seed by its source's label, at every placement of its
 //       sound), written as an m4a
 //   film options sound <film> --point take:<sound> --variant <label> --to <file.wav>
-//       a seed of a sound made from data (a code sound's, a recipe's, a code
-//       trial's), by its source's label, rendered alone and written as a WAV
+//       a seed of a sound made from data (a code sound's or a code trial's),
+//       by its source's label, rendered alone and written as a WAV
 //   film options take <film> --point take:<sound> --variant <sha256> --verb pick|unpick|reject
 //       the take kept, unkept or rejected through the library, as it stands
 //   film options keep-voice <film> <beat> <file> [--accept-mismatch]

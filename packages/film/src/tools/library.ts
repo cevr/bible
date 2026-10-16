@@ -3,9 +3,8 @@
 // `library.lock.json` records what was made for each, written only here
 // (committed); `files/` holds the generated audio (git-ignored, synced with a
 // private store by `pull`/`push`); `public/` holds recordings under a licence
-// that may be public (committed). Code and procedural sounds are rendered
-// from their data whenever they are needed (`SoundRender`), so nothing of
-// theirs is stored.
+// that may be public (committed). Code sounds are rendered from their data
+// whenever they are needed (`SoundRender`), so nothing of theirs is stored.
 //
 // `make` is the only paid call: generated sounds are made as candidates, each
 // measured and hashed into the lock, and curated by `keep` and `reject`. A
@@ -455,7 +454,7 @@ interface SoundLibraryService {
     LibraryError | UnknownSound | CodeTrialMissing | MediaFailed | PlatformError
   >;
   /**
-   * A code or procedural sound's seeds (or one) as WAVs, `<name>-<seed>.wav`;
+   * A code sound's seeds (or one) as WAVs, `<name>-<seed>.wav`;
    * with `trial`, its code trial's, `<name>-trial-<seed>.wav`. With `sheet`,
    * each WAV's sheet beside it as a PNG of the same name.
    */
@@ -782,7 +781,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           );
         });
 
-        /** `entry` when its takes are curated; a code sound's or a recipe's seeds play as its data says. */
+        /** `entry` when its takes are curated; a code sound's seeds play as its data says. */
         const curatable = (name: string, entry: LibraryEntry) => {
           if (isDerived(entry))
             return Effect.fail(
@@ -1049,11 +1048,11 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               return yield* SoundKindMismatch.make({
                 name,
                 kind: entry.kind,
-                wanted: 'code or procedural',
+                wanted: 'code',
               });
             const sounds = soundsOf(loaded);
             renders = seedsOf(entry.variants).flatMap((seed) =>
-              Option.toArray(seedSource(sounds, name, entry, seed)).map((source) => ({
+              Option.toArray(seedSource(sounds, name, seed)).map((source) => ({
                 out: path.join(paths.out, `${name}-${seed}.wav`),
                 source,
               })),

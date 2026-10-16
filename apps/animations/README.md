@@ -22,7 +22,7 @@ bun run sfx keep|reject <name> <n…>            # curate candidates; a rejected
 bun run sfx keep <name> <n…> --replace         # keep candidates in place of the kept variants (those wait again)
 bun run sfx unkeep <name> <n…>                 # stop playing kept variants (by audition number); they wait again
 bun run sfx import <file> <name>               # a CC0 recording into a declared recorded sound (public/)
-bun run sfx render <name> [--seed n] [--trial] [--sheet]  # a code or procedural sound's seeds (or its code trial's) as WAVs, each with its sheet as a PNG (free)
+bun run sfx render <name> [--seed n] [--trial] [--sheet]  # a code sound's seeds (or a code trial's) as WAVs, each with its sheet as a PNG (free)
 bun run sfx compare <name>                     # a code trial's numbers beside what plays, and how far each film's placement would hear the hit move (free)
 bun run sfx audit                              # which generated sounds code can make, read from their prompts (free)
 bun run sfx ab <name> --out <dir>              # the clips an ask plays, as MP4s beside their sheets: what plays now, the code trial, and both (free)

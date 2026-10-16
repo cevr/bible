@@ -9,7 +9,6 @@
 // libebur128 on the prototype's sounds). Pure.
 
 import type { Pcm } from '../audio.ts';
-import { type Coefficients, runBiquad } from './signal.ts';
 
 /** A sound's loudness: integrated and momentary max in LUFS, sample peak in dBFS; silence is -Infinity. */
 interface Loudness {
@@ -17,6 +16,34 @@ interface Loudness {
   readonly momentaryMax: number;
   readonly peak: number;
 }
+
+/** A normalised biquad: `y = b0 x + b1 x1 + b2 x2 - a1 y1 - a2 y2`. */
+interface Coefficients {
+  readonly b0: number;
+  readonly b1: number;
+  readonly b2: number;
+  readonly a1: number;
+  readonly a2: number;
+}
+
+/** `x` through one biquad (direct form I); a new array. */
+const runBiquad = (x: Float32Array, c: Coefficients): Float32Array => {
+  const out = new Float32Array(x.length);
+  let x1 = 0;
+  let x2 = 0;
+  let y1 = 0;
+  let y2 = 0;
+  for (let i = 0; i < x.length; i++) {
+    const x0 = x[i] ?? 0;
+    const y = c.b0 * x0 + c.b1 * x1 + c.b2 * x2 - c.a1 * y1 - c.a2 * y2;
+    x2 = x1;
+    x1 = x0;
+    y2 = y1;
+    y1 = y;
+    out[i] = y;
+  }
+  return out;
+};
 
 /** BS.1770's block and hop, in seconds. */
 const BLOCK = 0.4;

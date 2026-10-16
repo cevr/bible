@@ -392,11 +392,11 @@ export class SampleUnknown extends Schema.TaggedError<SampleUnknown>()('SampleUn
   }
 }
 
-/** A code sound samples a sound that is not code: a take or a recipe has no graph to render. */
+/** A code sound samples a sound that is not code: a take has no graph to render. */
 export class SampleNotCode extends Schema.TaggedError<SampleNotCode>()('SampleNotCode', {
   sound: Schema.String,
   sample: Schema.String,
-  kind: Schema.Literals(['generated', 'procedural', 'recorded']),
+  kind: Schema.Literals(['generated', 'recorded']),
 }) {
   override get message() {
     return `code sound "${this.sound}" samples "${this.sample}", a ${this.kind} sound; only a code sound can be sampled`;

@@ -3,23 +3,13 @@
 // preset computes its data with the graph's own maths (math.ts), so the same
 // settings give the same graph, hash and samples on every host.
 //
-// The eight recipes of core/synth/recipes.ts are here as graphs that take the
-// recipe's own settings: `portOf(recipe)` is a recipe's sound made by code
-// (core/sfx.ts `codeTrialOf`). Six of them are the app's tones, exported as
-// families: `room`, `chime`, `drone`, `drain`, `bloom` and `notes`.
-// A recipe whose port is no code sound the library's walk takes is refused
-// at its entry (core/sfx.ts), so a trial nobody wrote never fails the load.
-// A port draws its numbers from the graph's streams, so its samples are new;
-// its measures are the recipe's (presets.test.ts): the same length, loudness
-// within 1 LU, the band balance within 1.5 dB, the same notes and partials,
-// the bell's note by seed, and a loop seam heard on no more seeds.
-//
-// The families after them (`burst`, `thump`, `knock`, `scatter`, `whoosh`,
-// `hiss`, `sizzle`, `breeze`, and `rain` with its roof) are the shapes the
-// library's code sounds are built from: a few settings each, and the
-// variation their seeds draw (`@bible/film/core` exports them to the app).
+// The tones come first: `room`, `chime`, `drone`, `drain`, `bloom` and
+// `notes`, each made from a root note, a length or both. The families after
+// them (`burst`, `thump`, `knock`, `scatter`, `whoosh`, `hiss`, `sizzle`,
+// `breeze`, and `rain` with its roof) are the shapes the library's other
+// code sounds are built from: a few settings each, and the variation their
+// seeds draw. `@bible/film/core` exports them all to the app.
 
-import type { Recipe } from '../recipes.ts';
 import { dbToGain, exp, exp2, log } from './math.ts';
 import type { Node, Pitch, Ramp, Value } from './nodes.ts';
 import { noteMidi, pitchHz } from './pitch.ts';
@@ -62,7 +52,7 @@ const pink = (secs: number): Node => ({ _tag: 'Noise', color: 'pink', secs });
 
 const brown = (secs: number): Node => ({ _tag: 'Noise', color: 'brown', secs });
 
-/** The recipes' fixed filters: a Butterworth Q. */
+/** A fixed lowpass at `at` Hz with a Butterworth Q, as is `highpass`. */
 const lowpass = (at: number, of: Node): Node => ({
   _tag: 'Filter',
   type: 'lowpass',
@@ -103,27 +93,27 @@ const wobblePower = (c: number): number => {
 };
 
 /**
- * The mean square of a recipe's gain `low + (high − low) · w` (signal.ts
- * `wobble`): its knots even in [0, 1), smoothstepped between, so E[w] = 1/2
- * and E[w²] = 1/3 − E[s]/6 + E[s²]/6 = 131/420.
+ * The mean square of a gain `low + (high − low) · w` that wanders smoothly:
+ * w's knots even in [0, 1), smoothstepped between, so E[w] = 1/2 and
+ * E[w²] = 1/3 − E[s]/6 + E[s²]/6 = 131/420.
  */
-const recipePower = (low: number, high: number): number => {
+const wanderPower = (low: number, high: number): number => {
   const d = high - low;
   return low * low + low * d + (d * d * 131) / 420;
 };
 
 /**
- * A gain that wanders as a recipe's does between two levels (amplitudes) at
- * about `rate` a second: a wobble in dB as wide as their ratio, centred where
- * its mean power is the recipe's.
+ * A gain that wanders between two levels (amplitudes) at about `rate` a
+ * second: a wobble in dB as wide as their ratio, centred where its mean power
+ * is `wanderPower`'s between them.
  */
 const swaying = (low: number, high: number, rate: number, of: Node): Node => {
   const depth = (db(high) - db(low)) / 2;
-  const around = (log(recipePower(low, high)) - log(wobblePower(depth * DB_LN))) / (2 * DB_LN);
+  const around = (log(wanderPower(low, high)) - log(wobblePower(depth * DB_LN))) / (2 * DB_LN);
   return { _tag: 'Gain', db: { _tag: 'Wobble', around, depth, rate }, of };
 };
 
-/** A level drawn evenly between two amplitudes, as a recipe draws one: a one-point envelope. */
+/** A level drawn evenly between two amplitudes by each seed: a one-point envelope. */
 const levelBetween = (min: number, max: number, of: Node): Node => ({
   _tag: 'Envelope',
   points: [[0, { _tag: 'Vary', min, max }]],
@@ -131,7 +121,7 @@ const levelBetween = (min: number, max: number, of: Node): Node => ({
   of,
 });
 
-/** How long a bed recipe's loop crossfade is, in seconds: it makes the bed this much longer first. */
+/** How long a bed's loop crossfade is, in seconds: the bed is made this much longer first. */
 const BED_LOOP = 1;
 
 /** Room tone: brown body and pink hiss under a slow swell of air, made to loop. */
@@ -335,46 +325,10 @@ export const notes = (settings: {
   };
 };
 
-/**
- * The band the wind whistles through. The recipe moves it evenly between 350
- * and 1250 Hz; a pitch moves in semitones, so here it moves as far either
- * side (their ratio), centred where its mean is the recipe's, 800 Hz.
- */
-const WHISTLE = (() => {
-  const depth = (6 * log(1250 / 350)) / Math.LN2;
-  return { around: 800 / wobblePower((depth * Math.LN2) / 24), depth };
-})();
-
-/** Wind: brown body and pink air through a wandering band, gusting. */
-const wind = (settings: { readonly secs: number }): Node => {
-  const secs = settings.secs;
-  return {
-    _tag: 'Fade',
-    in: 0.5,
-    out: 0.5,
-    of: swaying(0.35, 1, 0.35, {
-      _tag: 'Layer',
-      of: [
-        { node: lowpass(500, brown(secs)), db: db(0.6) },
-        {
-          node: {
-            _tag: 'Filter',
-            type: 'bandpass',
-            hz: { _tag: 'Wobble', around: WHISTLE.around, depth: WHISTLE.depth, rate: 0.8 },
-            q: 2.2,
-            of: pink(secs),
-          },
-          db: db(1.2),
-        },
-      ],
-    }),
-  };
-};
-
 /** How long rain's loop crossfade is, in seconds. */
 const RAIN_LOOP = 0.5;
 
-/** How long a drop is: 300 frames, as the recipe makes it. */
+/** How long a drop is: 300 frames at 44.1 kHz. */
 const DROP_SECS = 300 / 44100;
 
 /** A drop's rise, and its fall's time constant, in seconds. */
@@ -832,26 +786,4 @@ export const breeze = (settings: { readonly secs: number; readonly hz: number })
       },
     },
   };
-};
-
-/** A recipe's sound made by code: its port, with the recipe's own settings. */
-export const portOf = (recipe: Recipe): Node => {
-  switch (recipe.recipe) {
-    case 'room':
-      return room(recipe);
-    case 'bell':
-      return chime(recipe);
-    case 'drone':
-      return drone(recipe);
-    case 'drain':
-      return drain(recipe);
-    case 'bloom':
-      return bloom(recipe);
-    case 'notes':
-      return notes(recipe);
-    case 'wind':
-      return wind(recipe);
-    case 'rain':
-      return rain({ secs: recipe.secs, hiss: 400 });
-  }
 };

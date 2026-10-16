@@ -71,8 +71,6 @@ const sourceOf = (entry: LibraryEntry): string => {
   switch (entry.kind) {
     case 'generated':
       return 'elevenlabs-paid-sfx';
-    case 'procedural':
-      return `procedural:${entry.recipe.recipe}`;
     case 'recorded':
       return entry.licence.id;
     case 'code':
@@ -93,7 +91,7 @@ const keptLoudness = (entry: LibraryEntry, lock: Option.Option<LockEntry>): stri
 
 /**
  * One line per sound: name, kind, use, state (current, stale, missing, or
- * derived for a code or procedural sound), variants kept (and candidates waiting),
+ * derived for a code sound), variants kept (and candidates waiting),
  * level in dB relative to the voice, kept loudness and source, and `+ code
  * trial` when it has one. `family` narrows to one family (`paper`); `filter`
  * to the missing or stale.
@@ -569,7 +567,7 @@ const render = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    "A code or procedural sound's seeds as WAVs, or with --trial its code trial's, to hear it (with --sheet, to read it)",
+    "A code sound's seeds as WAVs, or with --trial its code trial's, to hear it (with --sheet, to read it)",
   ),
 );
 

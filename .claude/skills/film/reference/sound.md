@@ -4,12 +4,11 @@ The owner's rule (2026-10-15): ElevenLabs makes a sound effect only when it need
 
 ## Which sounds are code
 
-| Kind         | Made by                                                    | Kept                                 | Use it for                                                                                                          |
-| ------------ | ---------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `code`       | a graph of nodes (`core/synth/graph/nodes.ts` `CodeSound`) | nothing: each seed renders on demand | every simple sound: a knock, a thud, a whoosh, a hiss, a chime, a drone, wind, rain                                 |
-| `generated`  | ElevenLabs, as candidates the owner curates                | the lock and the private store       | the realism code cannot reach: voices and crowds, creatures, life far off, paper and cloth handled, textured foley  |
-| `procedural` | a recipe (`core/synth/recipes.ts`)                         | nothing                              | none: the six recipes the app placed play their ports as code (`room`, `chime`, `drone`, `drain`, `bloom`, `notes`) |
-| `recorded`   | a CC0 recording under `public/`                            | the repo                             | a real sound already in hand                                                                                        |
+| Kind        | Made by                                                    | Kept                                 | Use it for                                                                                                         |
+| ----------- | ---------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `code`      | a graph of nodes (`core/synth/graph/nodes.ts` `CodeSound`) | nothing: each seed renders on demand | every simple sound: a knock, a thud, a whoosh, a hiss, a chime, a drone, wind, rain                                |
+| `generated` | ElevenLabs, as candidates the owner curates                | the lock and the private store       | the realism code cannot reach: voices and crowds, creatures, life far off, paper and cloth handled, textured foley |
+| `recorded`  | a CC0 recording under `public/`                            | the repo                             | a real sound already in hand                                                                                       |
 
 A generated entry says `why` it needs ElevenLabs: the realism its credits pay for. The schema requires it (`core/sfx.ts` `Generated`).
 
@@ -119,7 +118,7 @@ Most sounds are made of a few shapes. `core/synth/graph/presets.ts` builds each 
 | `bloom`   | `root`, `secs`                                              | a soft swell: the root's chord entering note by note under a rising shimmer                             | each note's entry, up to 40 ms late                |
 | `notes`   | `root`, `count`, `secs`                                     | `count` bright plinks on two octaves of the root's scale, one after another, each ringing on            | each plink's note, time and level                  |
 
-Each family is pinned by its samples and heard to do what its doc says (`core/synth/graph/presets.test.ts`). A one-second one-shot of each renders inside the 20 ms budget that **Speed is measured, never gated** sets below (`bun run test:perf` logs each). A family is the place to change a shape: an edit to it changes the label of every sound built from it.
+Each family is pinned by its samples and heard to do what its doc says (`core/synth/graph/presets.test.ts`). A second of each renders inside the 20 ms budget that **Speed is measured, never gated** sets below (`bun run test:perf` logs each). A family is the place to change a shape: an edit to it changes the label of every sound built from it.
 
 ### Seeds and streams
 
@@ -132,7 +131,7 @@ The load (`core/synth/resolve.ts` `resolveCode`) refuses these before anything r
 - a degree pitch with no key (`DegreeWithoutKey`);
 - a sound longer than `MAX_CODE_SECS` (120 s), or one that writes more than `MAX_CODE_WORK` seconds of frames, at the most its draws allow (`CodeTooLong`).
 
-What only a render shows, the film's check hears: a code or procedural sound that the film places, with a seed that renders silent (nothing over BS.1770's −70 LUFS gate), fails `bun run check <film>` (`SeedSilent`, an error that names the sound and the seed).
+What only a render shows, the film's check hears: a code sound that the film places, with a seed that renders silent (nothing over BS.1770's −70 LUFS gate), fails `bun run check <film>` (`SeedSilent`, an error that names the sound and the seed).
 
 ### The same samples on every host
 
@@ -140,7 +139,7 @@ The renderer computes with its own sine, cosine, exponential, logarithm and tanh
 
 ## A code trial
 
-A generated sound carries its code version as a trial: `code: { sound, variants }` on its entry. No film places a trial, so no film plays a code sound the owner did not choose. A procedural sound's trial is derived from its recipe (`core/synth/graph/presets.ts` `portOf`, through `core/sfx.ts` `codeTrialOf`), so it is never written twice. The library's schema refuses, by the entry's name, a recipe whose trial the load would refuse: one that ports longer than `MAX_CODE_SECS` or to more than `MAX_CODE_WORK` seconds of frames at the most its draws allow (room tone at 119.5 s ports to 120.5 s), or to a field the graph's schema refuses (a note past `B8`). So a trial nobody wrote never fails the load.
+A generated sound carries its code version as a trial: `code: { sound, variants }` on its entry. No film places a trial, so no film plays a code sound the owner did not choose.
 
 A trial is heard beside what plays:
 
@@ -186,7 +185,7 @@ Faint white lines cross at each second. A one-shot's onset is green and its hit 
 
 ## Compare's numbers
 
-`bun run sfx compare <name>` prints a line for each render of what plays (the kept takes, or a recipe's seeds), then for each seed of the trial:
+`bun run sfx compare <name>` prints a line for each render of what plays (the kept takes), then for each seed of the trial:
 
 | Column             | What it is                                                                    |
 | ------------------ | ----------------------------------------------------------------------------- |
@@ -209,14 +208,13 @@ Numbers, no verdict: a distance is a hint for the ear, never a target to make sm
 
 ## Put it to the owner
 
-1. Run `bun run sfx ab <name> --out <dir>` for each trial. It writes three clips and their sheets: `<name>.now.mp4` (what plays now: the kept takes, or a recipe's seeds), `<name>.code.mp4` (the trial's seeds), and `<name>.now-then-code.mp4` (both, 1 s apart). Each is the line-up levelled as the mix plays it, 0.5 s between renders; a bed plays 8 s of each render, faded at the ends. The picture is the line-up's sheet, held (`tools/media.ts` `Media.card`, a key frame a second), so a set's video player plays it on the phone.
+1. Run `bun run sfx ab <name> --out <dir>` for each trial. It writes three clips and their sheets: `<name>.now.mp4` (what plays now: the kept takes), `<name>.code.mp4` (the trial's seeds), and `<name>.now-then-code.mp4` (both, 1 s apart). Each is the line-up levelled as the mix plays it, 0.5 s between renders; a bed plays 8 s of each render, faded at the ends. The picture is the line-up's sheet, held (`tools/media.ts` `Media.card`, a key frame a second), so a set's video player plays it on the phone.
 2. Publish the clips as one set (the lab MCP's `publish_set`, or `bun cli.ts publish <folder> --production <production>`).
 3. Ask once (The flow, "Ask, don't chat" in [SKILL.md](../SKILL.md)): a section for each sound, video A (now) then video B (code), a choose of `code` (play the code sound), `keep` (keep the generated take) or `remake` (remake the code sound), one recommended with a why from the numbers, and an optional free text.
 4. Apply the answers:
    - `code`: the entry becomes `kind: 'code'` with the trial's `sound` and `variants`, keeping its `use`, `level` and `duck`. Its lock record stays (the Choices page lists those takes as "was"): put the generated entry back and its kept takes play again.
    - `keep`: delete the trial. Put the owner's reason in `why` when he gave one.
    - `remake`: edit the trial and ask again.
-   - For a procedural sound, `code` makes its port the entry's `sound` (`kind: 'code'`) in place of its recipe.
 5. Close the ask once its answers are in the source.
 
 ## Gotchas
@@ -226,6 +224,5 @@ Numbers, no verdict: a distance is a hint for the ear, never a target to make sm
 - **One stream name, one node.** Name a stream for the part it draws (`crack`, `body`), never for its node kind, so two noises never share one.
 - **A low drone draws a comb.** The waveform panel draws each column's least and greatest sample, so a wave whose cycle spans about two columns (a D2 drone over 8 s) draws a comb. That is the data, not a fault.
 - **An ab clip of a bed has no loop line.** It plays 8 s of each render; the seam is `sfx check`'s.
-- **A recipe's label names no renderer version.** A change to `core/synth/signal.ts` does not make a mix stale by itself; a code sound's label carries `RENDER_VERSION`.
 - **Shape, then filter.** A fast attack spreads power toward 0 Hz, which the loudness never hears and the headroom pays for. A filter after the envelope takes it off; one before the envelope cannot. So `burst` filters its struck noise, and a struck pitch carries a highpass under it: `thump` an octave under, `knock` two.
-- **Speed is measured, never gated.** The ports render within 1.5× their recipe's time, and each family's one-second one-shot in under 20 ms: `bun run test:perf` in `packages/film` (`packages/film/test/perf/presets.perf.test.ts`) logs each. A CI runner runs the film's CPU tests 17 to 35 times slower than the laptop, so no gate test times a render.
+- **Speed is measured, never gated.** Each family renders a second of sound in under 20 ms, a tone at the app's settings and a one-shot one second long: `bun run test:perf` in `packages/film` (`packages/film/test/perf/presets.perf.test.ts`) logs each. A CI runner runs the film's CPU tests 17 to 35 times slower than the laptop, so no gate test times a render.

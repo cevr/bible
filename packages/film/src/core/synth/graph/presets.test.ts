@@ -1,43 +1,45 @@
-// The eight recipes' ports (presets.ts), proved by measure against the
-// recipes themselves (recipes.ts `synthesize`) on seeds 1–5, read as `film sfx
-// compare` reads a sound: the same length and every seed heard, integrated
-// loudness within 1 LU, the band balance within 1.5 dB RMS, each recipe's
-// notes and partials at the recipe's levels (Goertzel), a one-shot's hit
-// within the sync check's 20 ms, and a bed's loop seam heard on no more seeds
-// than the recipe's and never a click. Each port is pinned too: its first
-// seed's samples by digest, the same on every render.
+// The presets (presets.ts), each pinned and each heard to do what its doc
+// says, read as `film sfx compare` reads a sound: on seeds 1–3, a code
+// trial's three variants. Each is pinned by its first seed's samples at the
+// settings below, by digest, the same on every render.
 //
-// A CI runner runs tests like these 17–50 times as slow as a laptop, so
-// each test here does about one seed's work: each seed is rendered and read
-// in a test of its own, and the test after a recipe's seeds judges the
-// medians of those reads (run alone, it reads the seeds it lacks).
+// The tones: a chime rings the degree its seed names, a drone's voices stand
+// at their levels, a drain glides from its note to the next and fades, a
+// bloom's chord enters note by note and stands over the notes off it, notes
+// keep to their scale, room tone's body is low and rain's hiss high, and room
+// tone, the drone and rain loop with no seam heard. The families the
+// library's other code sounds are built from: a burst's power in its band, a
+// thump and a knock with next to no rumble, a scatter's landings falling by
+// its step, a whoosh's and a sizzle's hit where they say, a hiss held, a
+// breeze looping unheard and a roof's taps in their band.
 //
-// The families the library's code sounds are built from are pinned the same
-// way, and each is heard to do what its doc says on seeds 1–3, a trial's three
-// variants: a burst's power in its band, a thump and a knock with next to no
-// rumble, a scatter's landings falling by its step, a whoosh's and a sizzle's
-// hit where they say, a hiss held, a breeze looping unheard and a roof's taps
-// in their band.
+// A CI runner runs tests like these 17–50 times as slow as a laptop, so a
+// bed's seam, read on four seconds of it, is read in a test of its own for
+// each seed.
 
 import { describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { Array as Arr, Result, Schema } from 'effect';
 import type { Pcm } from '../../audio.ts';
 import { describeSound } from '../analyse.ts';
-import { HIT_MOVE, type Profile, distance, medianProfile, profileOf } from '../compare.ts';
-import { type Recipe, synthesize } from '../recipes.ts';
+import { HIT_MOVE, type Profile, profileOf } from '../compare.ts';
 import { resolveCode } from '../resolve.ts';
 import { type SoundUse, defineLibrary } from '../../sfx.ts';
 import { loopSeam, seamHeard } from '../seam.ts';
 import { CodeSound, type Node } from './nodes.ts';
 import type { ResolvedSound } from './plan.ts';
 import {
+  bloom,
   breeze,
   burst,
+  chime,
+  drain,
+  drone,
   hiss,
   knock,
-  portOf,
+  notes,
   rain,
+  room,
   scatter,
   sizzle,
   thump,
@@ -45,108 +47,103 @@ import {
 } from './presets.ts';
 import { renderCode } from './render.ts';
 
-const SEEDS = [1, 2, 3, 4, 5] as const;
-
-/** A seed the ports are measured on. */
-type Seed = (typeof SEEDS)[number];
+/** The seeds a preset is heard on: a code trial's three variants. */
+const TRIAL_SEEDS = [1, 2, 3] as const;
 
 /**
- * Each recipe as the measures read it: short, so its tests are quick, and long
- * enough that its draws even out (room's air sways at 0.2 Hz, the drone
- * breathes at 0.15 Hz and wind's whistle wanders at 0.8 Hz: shorter, five
- * seeds read a knot or two of each).
+ * Each preset at settings like the library's sounds, and how it is heard: a
+ * tone short, so its tests are quick, and long enough that its draws even
+ * out (room's air sways at 0.2 Hz and the drone breathes at 0.15 Hz).
  */
-const MEASURED = {
-  room: { recipe: 'room', secs: 2 },
-  bell: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 0.6 },
-  drone: { recipe: 'drone', root: 'D2', secs: 2 },
-  drain: { recipe: 'drain', from: 'A4', to: 'D3', secs: 1 },
-  bloom: { recipe: 'bloom', root: 'D4', secs: 1 },
-  notes: { recipe: 'notes', root: 'D5', count: 3, secs: 1 },
-  wind: { recipe: 'wind', secs: 3 },
-  rain: { recipe: 'rain', secs: 1 },
-} as const satisfies { readonly [R in Recipe['recipe']]: Extract<Recipe, { recipe: R }> };
+const PRESETS = {
+  room: { play: room({ secs: 2 }), use: 'bed' },
+  chime: { play: chime({ root: 'D5', partials: 'glass', secs: 0.6 }), use: 'one-shot' },
+  drone: { play: drone({ root: 'D2', secs: 2 }), use: 'bed' },
+  drain: { play: drain({ from: 'A4', to: 'D3', secs: 1 }), use: 'one-shot' },
+  bloom: { play: bloom({ root: 'D4', secs: 1 }), use: 'one-shot' },
+  notes: { play: notes({ root: 'D5', count: 3, secs: 1 }), use: 'one-shot' },
+  rain: { play: rain({ secs: 1, hiss: 400 }), use: 'bed' },
+  burst: {
+    play: burst({ color: 'pink', low: 500, high: 2000, attack: 0.0005, decay: 0.05 }),
+    use: 'one-shot',
+  },
+  thump: { play: thump({ hz: 100, octaves: 1, drop: 0.02, decay: 0.3 }), use: 'one-shot' },
+  'knock of wood': { play: knock({ material: 'wood', hz: 480, secs: 0.3 }), use: 'one-shot' },
+  'knock of stone': { play: knock({ material: 'stone', hz: 165, secs: 0.4 }), use: 'one-shot' },
+  scatter: {
+    play: scatter({
+      count: 3,
+      first: 0.05,
+      every: 0.2,
+      fall: 6,
+      material: 'stone',
+      hz: 600,
+      secs: 0.8,
+    }),
+    use: 'one-shot',
+  },
+  whoosh: {
+    play: whoosh({ onset: 0.05, hit: 0.4, fall: 0.2, low: 1200, high: 6000, q: 0.5 }),
+    use: 'one-shot',
+  },
+  hiss: { play: hiss({ hz: 8500, q: 1.2, rise: 0.3, hold: 0.8, secs: 1.2 }), use: 'one-shot' },
+  sizzle: { play: sizzle({ flash: 0.05, crackle: 120, secs: 1 }), use: 'one-shot' },
+  breeze: { play: breeze({ secs: 4, hz: 550 }), use: 'bed' },
+  'rain on a roof': { play: rain({ secs: 1, hiss: 900, taps: 10 }), use: 'bed' },
+} as const satisfies Readonly<Record<string, { readonly play: Node; readonly use: SoundUse }>>;
 
-/** How each recipe is heard: the ones made to loop are beds, read around their loop. */
-const USE = {
-  room: 'bed',
-  bell: 'one-shot',
-  drone: 'bed',
-  drain: 'one-shot',
-  bloom: 'one-shot',
-  notes: 'one-shot',
-  wind: 'one-shot',
-  rain: 'bed',
-} as const satisfies { readonly [R in Recipe['recipe']]: SoundUse };
+type Preset = keyof typeof PRESETS;
+
+/** Each preset's first seed at its settings above, by the digest of its samples. */
+const PINNED = {
+  room: '56d2d52380c38159cddaa6e26047d2fc575370936dab386a23eb7e8e3e5a0b9d',
+  chime: '7b571ea9a7078df59c03d71babe1c6099e488fff1708416d5e1e1df5dd071dbe',
+  drone: '5a88d6d1c23ce6a5791d016a41316a0e76ba5c13c69b6a6965c3a3ea2ac2acb1',
+  drain: '932e95671e6ac15783f49d7790459ed06f5ee8b11897506a3195fb44bfe9ebab',
+  bloom: '0fbb94b9ff3e707082522dedaa5ef20367f2194f132dfb8c79564c48718f3076',
+  notes: '6b0bf8a0ed51553a8aeae7cf793fd539df0b19957564fd3b00eeccf06e2d377f',
+  rain: 'd9ffe903ac19b54464f7bd0262abdbb85cbab6efa8660714a520c80c31384691',
+  burst: 'b58430ad21faf696b8f63689b69ee9ac9e355735cf33e8bc25fdcf88ae873669',
+  thump: 'd28c58f3f28648ebf154e83fd390b5ad60948574e463aef5a3730eb9cc11a3fa',
+  'knock of wood': '68afd0577e6bd709cd7271a459df3062e6d9c2507851f64dc2649e6c4597156f',
+  'knock of stone': 'e9a34544a67ceec5583da449577500b707fff06cb794b4990db961e53d3ef41b',
+  scatter: '8aa2f325d58d1dad59e92441f3e8962485ddd03950558e462967eaef436239aa',
+  whoosh: '9bf2214547f868339e0858c59a4db894114ee5d6764a35295447f16b13ccf8e9',
+  hiss: '8043c59bf54af3f095ffb7e47fc1ef2110d4c248e6ca0c8ff54b3a69d865b160',
+  sizzle: '4ae478da5b1af5a52c63fa5c04c6423ab0564b7d942d220be80fc98350847faf',
+  breeze: 'a6d700a5a95b6d6f06d540068a1d503e3ec11a51331f5bb08f405a363ea15d80',
+  'rain on a roof': 'b6e06e739d1e84568a7d09bd0296bf4035705d57055f7e352f87e99856d096d6',
+} as const satisfies Readonly<Record<Preset, string>>;
 
 /**
  * The beds as their seams are read: four seconds, so a slow sway of level
  * (the drone breathes at 0.15 Hz) is not all a seam can hear.
  */
-const LOOPED: ReadonlyArray<Recipe> = [
-  { recipe: 'room', secs: 4 },
-  { recipe: 'drone', root: 'D2', secs: 4 },
-  { recipe: 'rain', secs: 4 },
-];
+const LOOPED = {
+  room: room({ secs: 4 }),
+  drone: drone({ root: 'D2', secs: 4 }),
+  rain: rain({ secs: 4, hiss: 400 }),
+} as const satisfies Readonly<Record<string, Node>>;
 
-/** Each port's first seed at its measured settings, by the digest of its samples. */
-const PINNED = {
-  room: '56d2d52380c38159cddaa6e26047d2fc575370936dab386a23eb7e8e3e5a0b9d',
-  bell: '7b571ea9a7078df59c03d71babe1c6099e488fff1708416d5e1e1df5dd071dbe',
-  drone: '5a88d6d1c23ce6a5791d016a41316a0e76ba5c13c69b6a6965c3a3ea2ac2acb1',
-  drain: '932e95671e6ac15783f49d7790459ed06f5ee8b11897506a3195fb44bfe9ebab',
-  bloom: '0fbb94b9ff3e707082522dedaa5ef20367f2194f132dfb8c79564c48718f3076',
-  notes: '6b0bf8a0ed51553a8aeae7cf793fd539df0b19957564fd3b00eeccf06e2d377f',
-  wind: '7a099527d1fc519757cffa98e3e8cddefa88f731124cb826cfb5ec0699efd7fd',
-  rain: 'd9ffe903ac19b54464f7bd0262abdbb85cbab6efa8660714a520c80c31384691',
-} as const satisfies { readonly [R in Recipe['recipe']]: string };
-
-/** A recipe's port as the library resolves it: the code trial of a procedural sound. */
-const portSound = (recipe: Recipe): ResolvedSound => {
+/** `play` as the library resolves a code sound heard as `use`. */
+const codeSound = (play: Node, use: SoundUse): ResolvedSound => {
   const library = defineLibrary({
-    'tone.port': { kind: 'procedural', recipe, variants: 5, use: 'one-shot' },
+    'family.trial': { kind: 'code', sound: { play }, variants: 3, use },
   });
-  return Result.getOrThrow(resolveCode(library)).trials.get('tone.port')!.sound;
+  return Result.getOrThrow(resolveCode(library)).code.get('family.trial')!;
 };
 
-/** One seed of a recipe as the recipe makes it and as its port does. */
-interface Sides<A> {
-  readonly recipe: A;
-  readonly port: A;
-}
-
-/** `make` on each recipe and seed, made once, when a test first asks for it. */
-const onceASeed = <A>(make: (recipe: Recipe, seed: Seed) => A) => {
-  const made = new Map<Recipe, Map<Seed, A>>();
-  return (recipe: Recipe, seed: Seed): A => {
-    const seeds = made.get(recipe) ?? new Map<Seed, A>();
-    made.set(recipe, seeds);
-    const had = seeds.get(seed);
-    if (had !== undefined) return had;
-    const value = make(recipe, seed);
-    seeds.set(seed, value);
-    return value;
-  };
+/** Each preset's renders on the trial seeds, made once, when a test first reads them. */
+const rendered = new Map<Preset, Arr.NonEmptyReadonlyArray<Pcm>>();
+const rendersOf = (preset: Preset): Arr.NonEmptyReadonlyArray<Pcm> => {
+  const had = rendered.get(preset);
+  if (had !== undefined) return had;
+  const { play, use } = PRESETS[preset];
+  const sound = codeSound(play, use);
+  const made = Arr.map(TRIAL_SEEDS, (seed) => renderCode(sound, seed));
+  rendered.set(preset, made);
+  return made;
 };
-
-/** A recipe's render on a seed, and its port's. */
-const renderedOn = onceASeed((recipe, seed): Sides<Pcm> => ({
-  recipe: synthesize(recipe, seed),
-  port: renderCode(portSound(recipe), seed),
-}));
-
-/** A recipe's render on a seed and its port's, each read as `film sfx compare` reads a sound of the recipe's use. */
-const readOn = onceASeed((recipe, seed): Sides<Profile> => {
-  const { recipe: made, port } = renderedOn(recipe, seed);
-  const use = USE[recipe.recipe];
-  return { recipe: profileOf(made, use), port: profileOf(port, use) };
-});
-
-/** A bed's loop seam on a seed, as the recipe makes it and as its port does. */
-const seamOn = onceASeed((recipe, seed): Sides<ReturnType<typeof loopSeam>> => {
-  const { recipe: made, port } = renderedOn(recipe, seed);
-  return { recipe: loopSeam(made), port: loopSeam(port) };
-});
 
 const digest = (pcm: Pcm): string => {
   const hash = createHash('sha256');
@@ -160,6 +157,17 @@ const median = (values: ReadonlyArray<number>): number => {
   const mid = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 1) return sorted[mid] ?? 0;
   return ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
+};
+
+/** `pcm` from `from` to `to` seconds. */
+const span = (pcm: Pcm, from: number, to: number): Pcm => {
+  const start = Math.max(0, Math.round(from * pcm.rate));
+  const end = Math.min(pcm.frames, Math.round(to * pcm.rate));
+  return {
+    rate: pcm.rate,
+    frames: end - start,
+    channels: pcm.channels.map((plane) => plane.subarray(start, end)),
+  };
 };
 
 /** A MIDI note's frequency, on A4 = 440 Hz. */
@@ -192,38 +200,18 @@ const levelAt = (pcm: Pcm, hz: number): number => {
   return 10 * Math.log10(Math.max(power / (x.length * energy), 1e-30));
 };
 
-/** The median over the seeds of each side's level at `hz`. */
-const levelsAt = (recipe: Recipe, hz: number): Sides<number> => {
-  const sides = SEEDS.map((seed) => renderedOn(recipe, seed));
-  return {
-    recipe: median(sides.map(({ recipe: made }) => levelAt(made, hz))),
-    port: median(sides.map(({ port }) => levelAt(port, hz))),
-  };
+/** When a note at `hz` has entered: the first 10 ms step whose 40 ms from there stand within 6 dB of its loudest 40 ms. */
+const entersAt = (pcm: Pcm, hz: number): number => {
+  const steps = Math.floor((pcm.frames / pcm.rate - 0.04) / 0.01);
+  const levels = Array.from({ length: steps }, (_, k) =>
+    levelAt(span(pcm, k * 0.01, k * 0.01 + 0.04), hz),
+  );
+  const loudest = Math.max(...levels);
+  return levels.findIndex((level) => level >= loudest - 6) * 0.01;
 };
 
-/**
- * What every port shares with its recipe by the median of its seeds' reads:
- * its loudness and, but for a melody, its band balance. Answers how far the
- * port's median stands from the recipe's.
- */
-const measuresAsItsRecipe = (recipe: Recipe, balanced: boolean) => {
-  const reads = Arr.map(SEEDS, (seed) => readOn(recipe, seed));
-  const from = medianProfile(Arr.map(reads, (read) => read.recipe));
-  const to = medianProfile(Arr.map(reads, (read) => read.port));
-  expect(Math.abs(to.integrated - from.integrated)).toBeLessThanOrEqual(1);
-  const apart = distance(from, to);
-  if (balanced) expect(apart.balance).toBeLessThanOrEqual(1.5);
-  return apart;
-};
-
-/** The bell's scale: the first five degrees on D5, the one variant n strikes its (n − 1)th. */
-const BELL_SCALE = degrees(74, 5);
-
-/** The degree of the bell's scale whose note is the loudest in `pcm`. */
-const loudestDegree = (pcm: Pcm): number => {
-  const levels = BELL_SCALE.map((midi) => levelAt(pcm, midiHz(midi)));
-  return levels.indexOf(Math.max(...levels));
-};
+/** The chime's scale: the first five degrees on D5, the one variant n strikes its (n − 1)th. */
+const CHIME_SCALE = degrees(74, 5);
 
 /** The notes' scale over two octaves on D5, and the notes off it. */
 const ON_SCALE = degrees(74, 10);
@@ -235,181 +223,6 @@ const OFF_SCALE = Array.from({ length: 24 }, (_, k) => 74 + k).filter(
 const scaleGap = (pcm: Pcm): number =>
   Math.max(...ON_SCALE.map((midi) => levelAt(pcm, midiHz(midi)))) -
   Math.max(...OFF_SCALE.map((midi) => levelAt(pcm, midiHz(midi))));
-
-describe('each port is pinned', () => {
-  for (const recipe of Object.values(MEASURED))
-    test(`${recipe.recipe}: decodes as a code sound, and renders byte for byte as pinned`, () => {
-      const sound = { play: portOf(recipe) };
-      expect(Schema.decodeSync(CodeSound)(sound)).toEqual(sound);
-      const once = digest(renderedOn(recipe, 1).port);
-      expect(digest(renderCode(portSound(recipe), 1))).toBe(once);
-      expect(once).toBe(PINNED[recipe.recipe]);
-    });
-});
-
-describe('each port measures as its recipe on seeds 1–5', () => {
-  for (const recipe of Object.values(MEASURED))
-    for (const seed of SEEDS)
-      test(`${recipe.recipe}, seed ${seed}: the recipe's frames, both heard (over BS.1770's −70 LUFS gate)`, () => {
-        const { recipe: made, port } = renderedOn(recipe, seed);
-        expect(port.frames).toBe(made.frames);
-        // A seed rendered silent would hide under the medians below.
-        const read = readOn(recipe, seed);
-        expect(read.recipe.integrated).toBeGreaterThan(-70);
-        expect(read.port.integrated).toBeGreaterThan(-70);
-      });
-
-  for (const seed of SEEDS)
-    test(`bell, seed ${seed}: both strike degree ${seed - 1}, each partial at the recipe’s level`, () => {
-      const { recipe: made, port } = renderedOn(MEASURED.bell, seed);
-      // Variant n rings degree n − 1.
-      expect(loudestDegree(port)).toBe(seed - 1);
-      expect(loudestDegree(made)).toBe(seed - 1);
-      const struck = midiHz(BELL_SCALE[seed - 1] ?? 0);
-      for (const ratio of [1, 2, 3.01, 4.18])
-        expect(
-          Math.abs(levelAt(port, struck * ratio) - levelAt(made, struck * ratio)),
-        ).toBeLessThanOrEqual(1.5);
-    });
-
-  for (const seed of SEEDS)
-    test(`notes, seed ${seed}: every plink on the scale in both, 20 dB over any note off it`, () => {
-      const { recipe: made, port } = renderedOn(MEASURED.notes, seed);
-      expect(scaleGap(port)).toBeGreaterThan(20);
-      expect(scaleGap(made)).toBeGreaterThan(20);
-    });
-
-  test('room: by the median, its loudness and band balance', () => {
-    measuresAsItsRecipe(MEASURED.room, true);
-  });
-
-  test('bell: by the median, its loudness, its band balance and its hit on time', () => {
-    expect(Math.abs(measuresAsItsRecipe(MEASURED.bell, true).hit)).toBeLessThanOrEqual(HIT_MOVE);
-  });
-
-  test('drone: by the median, its loudness, its band balance and its four voices at the recipe’s levels', () => {
-    measuresAsItsRecipe(MEASURED.drone, true);
-    for (const ratio of [1, 2, 3, 1.5]) {
-      const { recipe, port } = levelsAt(MEASURED.drone, midiHz(38) * ratio);
-      expect(Math.abs(port - recipe)).toBeLessThanOrEqual(1.5);
-    }
-  });
-
-  test('drain: by the median, its loudness, its band balance and its hit on time', () => {
-    expect(Math.abs(measuresAsItsRecipe(MEASURED.drain, true).hit)).toBeLessThanOrEqual(HIT_MOVE);
-  });
-
-  test('bloom: by the median, its loudness, its band balance and its chord’s notes at the recipe’s levels', () => {
-    measuresAsItsRecipe(MEASURED.bloom, true);
-    // The root, third and fifth (D4, F#4, A4). The octave shares its
-    // frequency with the root's second partial, so its level rides on two
-    // random phases in both and is read by the balance alone.
-    for (const midi of [62, 66, 69]) {
-      const { recipe, port } = levelsAt(MEASURED.bloom, midiHz(midi));
-      expect(Math.abs(port - recipe)).toBeLessThanOrEqual(1.5);
-    }
-  });
-
-  test('notes: by the median, its loudness', () => {
-    // A melody drawn anew each seed, in both: its band balance is the
-    // melody's, so it is read by the scale its plinks keep to, above.
-    measuresAsItsRecipe(MEASURED.notes, false);
-  });
-
-  test('wind: by the median, its loudness and band balance', () => {
-    measuresAsItsRecipe(MEASURED.wind, true);
-  });
-
-  test('rain: by the median, its loudness and band balance', () => {
-    measuresAsItsRecipe(MEASURED.rain, true);
-  });
-});
-
-describe('each bed’s port loops as its recipe', () => {
-  for (const recipe of LOOPED) {
-    for (const seed of SEEDS)
-      test(`${recipe.recipe}, seed ${seed}: the port's seam never a click`, () => {
-        expect(seamHeard({ db: 0, click: seamOn(recipe, seed).port.click })).toBe(false);
-      });
-
-    test(`${recipe.recipe}: its seam heard on no more seeds than the recipe's`, () => {
-      const seams = SEEDS.map((seed) => seamOn(recipe, seed));
-      expect(seams.filter(({ port }) => seamHeard(port)).length).toBeLessThanOrEqual(
-        seams.filter(({ recipe: made }) => seamHeard(made)).length,
-      );
-    });
-  }
-});
-
-/** The seeds a family is heard on: a code trial's three variants. */
-const TRIAL_SEEDS = [1, 2, 3] as const;
-
-/** Each family at settings like the library's sounds, and how it is heard. */
-const FAMILIES = {
-  burst: {
-    play: burst({ color: 'pink', low: 500, high: 2000, attack: 0.0005, decay: 0.05 }),
-    use: 'one-shot',
-  },
-  thump: { play: thump({ hz: 100, octaves: 1, drop: 0.02, decay: 0.3 }), use: 'one-shot' },
-  'knock of wood': { play: knock({ material: 'wood', hz: 480, secs: 0.3 }), use: 'one-shot' },
-  'knock of stone': { play: knock({ material: 'stone', hz: 165, secs: 0.4 }), use: 'one-shot' },
-  scatter: {
-    play: scatter({
-      count: 3,
-      first: 0.05,
-      every: 0.2,
-      fall: 6,
-      material: 'stone',
-      hz: 600,
-      secs: 0.8,
-    }),
-    use: 'one-shot',
-  },
-  whoosh: {
-    play: whoosh({ onset: 0.05, hit: 0.4, fall: 0.2, low: 1200, high: 6000, q: 0.5 }),
-    use: 'one-shot',
-  },
-  hiss: { play: hiss({ hz: 8500, q: 1.2, rise: 0.3, hold: 0.8, secs: 1.2 }), use: 'one-shot' },
-  sizzle: { play: sizzle({ flash: 0.05, crackle: 120, secs: 1 }), use: 'one-shot' },
-  breeze: { play: breeze({ secs: 4, hz: 550 }), use: 'bed' },
-  'rain on a roof': { play: rain({ secs: 1, hiss: 900, taps: 10 }), use: 'bed' },
-} as const satisfies Readonly<Record<string, { readonly play: Node; readonly use: SoundUse }>>;
-
-type Family = keyof typeof FAMILIES;
-
-/** Each family's first seed at its settings above, by the digest of its samples. */
-const FAMILY_PINNED = {
-  burst: 'b58430ad21faf696b8f63689b69ee9ac9e355735cf33e8bc25fdcf88ae873669',
-  thump: 'd28c58f3f28648ebf154e83fd390b5ad60948574e463aef5a3730eb9cc11a3fa',
-  'knock of wood': '68afd0577e6bd709cd7271a459df3062e6d9c2507851f64dc2649e6c4597156f',
-  'knock of stone': 'e9a34544a67ceec5583da449577500b707fff06cb794b4990db961e53d3ef41b',
-  scatter: '8aa2f325d58d1dad59e92441f3e8962485ddd03950558e462967eaef436239aa',
-  whoosh: '9bf2214547f868339e0858c59a4db894114ee5d6764a35295447f16b13ccf8e9',
-  hiss: '8043c59bf54af3f095ffb7e47fc1ef2110d4c248e6ca0c8ff54b3a69d865b160',
-  sizzle: '4ae478da5b1af5a52c63fa5c04c6423ab0564b7d942d220be80fc98350847faf',
-  breeze: 'a6d700a5a95b6d6f06d540068a1d503e3ec11a51331f5bb08f405a363ea15d80',
-  'rain on a roof': 'b6e06e739d1e84568a7d09bd0296bf4035705d57055f7e352f87e99856d096d6',
-} as const satisfies Readonly<Record<Family, string>>;
-
-/** `play` as the library resolves a code sound heard as `use`. */
-const codeSound = (play: Node, use: SoundUse): ResolvedSound => {
-  const library = defineLibrary({
-    'family.trial': { kind: 'code', sound: { play }, variants: 3, use },
-  });
-  return Result.getOrThrow(resolveCode(library)).code.get('family.trial')!;
-};
-
-/** Each family's renders on the trial seeds, made once, when a test first reads them. */
-const familyRendered = new Map<Family, Arr.NonEmptyReadonlyArray<Pcm>>();
-const familyRenders = (family: Family): Arr.NonEmptyReadonlyArray<Pcm> => {
-  const had = familyRendered.get(family);
-  if (had !== undefined) return had;
-  const { play, use } = FAMILIES[family];
-  const sound = codeSound(play, use);
-  const made = Arr.map(TRIAL_SEEDS, (seed) => renderCode(sound, seed));
-  familyRendered.set(family, made);
-  return made;
-};
 
 /** The centre of `Profile.bands`' k-th band: the base-ten third octaves, 1000·10^((k − 15)/10) Hz. */
 const centre = (k: number): number => 1000 * 10 ** ((k - 15) / 10);
@@ -429,6 +242,10 @@ const underLoudest = (profile: Profile): ReadonlyArray<number> => {
 /** The centre of the loudest band. */
 const loudestBand = (profile: Profile): number =>
   centre(profile.bands.indexOf(Math.max(...profile.bands)));
+
+/** The share of `profile`'s power in the bands centred where `where` holds. */
+const shareWhere = (profile: Profile, where: (hz: number) => boolean): number =>
+  profile.bands.reduce((sum, share, k) => sum + (where(centre(k)) ? share : 0), 0);
 
 /** How far under the loudest band the quietest-standing band centred where `where` holds lies: the least of their levels under it. */
 const leastUnder = (profile: Profile, where: (hz: number) => boolean): number =>
@@ -453,21 +270,111 @@ const loudest20ms = (pcm: Pcm, from: number, to: number) => {
   return best;
 };
 
-describe('each family is pinned', () => {
-  for (const family of Object.keys(FAMILIES) as ReadonlyArray<Family>)
-    test(`${family}: decodes as a code sound, and renders byte for byte as pinned`, () => {
-      const { play, use } = FAMILIES[family];
+describe('each preset is pinned', () => {
+  for (const preset of Object.keys(PRESETS) as ReadonlyArray<Preset>)
+    test(`${preset}: decodes as a code sound, and renders byte for byte as pinned`, () => {
+      const { play, use } = PRESETS[preset];
       const sound = { play };
       expect(Schema.decodeSync(CodeSound)(sound)).toEqual(sound);
-      const once = digest(Arr.headNonEmpty(familyRenders(family)));
+      const once = digest(Arr.headNonEmpty(rendersOf(preset)));
       expect(digest(renderCode(codeSound(play, use), 1))).toBe(once);
-      expect(once).toBe(FAMILY_PINNED[family]);
+      expect(once).toBe(PINNED[preset]);
     });
 });
 
-describe('each family does what its doc says, on seeds 1–3', () => {
+describe('each bed loops with no seam heard, on seeds 1–3', () => {
+  for (const [bed, play] of Object.entries(LOOPED))
+    for (const seed of TRIAL_SEEDS)
+      test(`${bed}, seed ${seed}: four seconds of it meet their start unheard`, () => {
+        expect(seamHeard(loopSeam(renderCode(codeSound(play, 'bed'), seed)))).toBe(false);
+      });
+});
+
+describe('each preset does what its doc says, on seeds 1–3', () => {
+  test('room: its body low, its loudest band and most of its power under 400 Hz, and 30 dB under that from 8 kHz up', () => {
+    for (const pcm of rendersOf('room')) {
+      const profile = profileOf(pcm, 'bed');
+      expect(loudestBand(profile)).toBeLessThanOrEqual(400);
+      expect(shareWhere(profile, (hz) => hz <= 400)).toBeGreaterThanOrEqual(0.6);
+      expect(leastUnder(profile, (hz) => hz >= 8000)).toBeGreaterThanOrEqual(30);
+    }
+  });
+
+  test('chime, on seeds 1–5: seed n rings degree n − 1, 40 dB over the scale’s other notes, with its glass partials and nothing between them', () => {
+    const sound = codeSound(PRESETS.chime.play, PRESETS.chime.use);
+    const renders = [...rendersOf('chime'), renderCode(sound, 4), renderCode(sound, 5)];
+    for (const [k, pcm] of renders.entries()) {
+      const levels = CHIME_SCALE.map((midi) => levelAt(pcm, midiHz(midi)));
+      const others = levels.filter((_, j) => j !== k);
+      expect((levels[k] ?? -Infinity) - Math.max(...others)).toBeGreaterThanOrEqual(40);
+      const struck = midiHz(CHIME_SCALE[k] ?? 0);
+      for (const ratio of [2, 3.01, 4.18])
+        expect(levelAt(pcm, struck * ratio)).toBeGreaterThan(-40);
+      for (const ratio of [1.5, 2.5, 3.6]) expect(levelAt(pcm, struck * ratio)).toBeLessThan(-80);
+    }
+  });
+
+  test('drone: past its loop’s crossfade, its octave, twelfth and fifth at 0.35, 0.12 and 0.18 of its root, within 1 dB', () => {
+    // Inside the crossfade each voice meets its own tail at the phase its
+    // frequency sets, so its level there is the crossfade's, not the drone's.
+    for (const pcm of rendersOf('drone')) {
+      const held = span(pcm, 1, 2);
+      const root = levelAt(held, midiHz(38));
+      for (const [ratio, level] of [
+        [2, 0.35],
+        [3, 0.12],
+        [1.5, 0.18],
+      ] as const)
+        expect(
+          Math.abs(levelAt(held, midiHz(38) * ratio) - root - 20 * Math.log10(level)),
+        ).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test('drain: on its glide from A4 to D3 at each fifth of it, 10 dB over a third either side, and 20 dB quieter by its end', () => {
+    for (const pcm of rendersOf('drain')) {
+      // Its pitch t seconds in, on the glide: A4 · (D3 / A4)^t.
+      for (const t of [0.1, 0.3, 0.5, 0.7, 0.9]) {
+        const on = midiHz(69) * (midiHz(50) / midiHz(69)) ** t;
+        const near = span(pcm, t - 0.04, t + 0.04);
+        for (const third of [0.8, 1.25])
+          expect(levelAt(near, on) - levelAt(near, on * third)).toBeGreaterThan(10);
+      }
+      expect(powerDb(pcm, 0.05, 0.15) - powerDb(pcm, 0.85, 0.95)).toBeGreaterThanOrEqual(20);
+    }
+  });
+
+  test('bloom: its root, third and fifth 40 dB over every note off the chord, entering in turn', () => {
+    // D4, F#4 and A4. The octave shares its frequency with the root's second
+    // partial, so it is read by neither.
+    const chord = [62, 66, 69];
+    const off = [61, 63, 64, 65, 67, 68, 70, 71];
+    for (const pcm of rendersOf('bloom')) {
+      const on = chord.map((midi) => levelAt(pcm, midiHz(midi)));
+      expect(
+        Math.min(...on) - Math.max(...off.map((midi) => levelAt(pcm, midiHz(midi)))),
+      ).toBeGreaterThanOrEqual(40);
+      // Each note 90 ms after the last, and up to 40 ms more: 50 ms at least.
+      const entries = chord.map((midi) => entersAt(pcm, midiHz(midi)));
+      for (const [before, after] of Arr.zip(entries, entries.slice(1)))
+        expect(after - before).toBeGreaterThanOrEqual(0.04);
+    }
+  });
+
+  test('notes: every plink on its scale over two octaves, 20 dB over any note off it', () => {
+    for (const pcm of rendersOf('notes')) expect(scaleGap(pcm)).toBeGreaterThan(20);
+  });
+
+  test('rain: its hiss and drops above its `hiss`, the bands from 100 Hz down 20 dB under its loudest, next to no rumble', () => {
+    for (const pcm of rendersOf('rain')) {
+      const profile = profileOf(pcm, 'bed');
+      expect(leastUnder(profile, (hz) => hz <= 100)).toBeGreaterThanOrEqual(20);
+      expect(profile.rumble).toBeLessThan(RUMBLE);
+    }
+  });
+
   test('burst: its power in its band, the bands two octaves out at least 18 dB under its loudest', () => {
-    for (const pcm of familyRenders('burst')) {
+    for (const pcm of rendersOf('burst')) {
       const profile = profileOf(pcm, 'one-shot');
       expect(loudestBand(profile)).toBeGreaterThanOrEqual(500);
       expect(loudestBand(profile)).toBeLessThanOrEqual(2000);
@@ -478,7 +385,7 @@ describe('each family does what its doc says, on seeds 1–3', () => {
   });
 
   test('thump: loudest between its pitch and the octave it falls from, next to no rumble', () => {
-    for (const pcm of familyRenders('thump')) {
+    for (const pcm of rendersOf('thump')) {
       const profile = profileOf(pcm, 'one-shot');
       expect(loudestBand(profile)).toBeGreaterThanOrEqual(100);
       expect(loudestBand(profile)).toBeLessThanOrEqual(200);
@@ -492,7 +399,7 @@ describe('each family does what its doc says, on seeds 1–3', () => {
       ['knock of wood', 480],
       ['knock of stone', 165],
     ] as const)
-      for (const pcm of familyRenders(family)) {
+      for (const pcm of rendersOf(family)) {
         const profile = profileOf(pcm, 'one-shot');
         expect(profile.rumble).toBeLessThan(RUMBLE);
         expect(leastUnder(profile, (band) => band <= hz / 4)).toBeGreaterThanOrEqual(25);
@@ -503,7 +410,7 @@ describe('each family does what its doc says, on seeds 1–3', () => {
   test('scatter: each landing about `every` after the last and, by the median, `fall` dB under it', () => {
     const { count, first, every, fall } = { count: 3, first: 0.05, every: 0.2, fall: 6 };
     const falls: Array<number> = [];
-    for (const pcm of familyRenders('scatter')) {
+    for (const pcm of rendersOf('scatter')) {
       const landings = Array.from({ length: count }, (_, k) => {
         const mean = first + k * every;
         return { mean, ...loudest20ms(pcm, mean - every / 2, mean + every / 2) };
@@ -517,7 +424,7 @@ describe('each family does what its doc says, on seeds 1–3', () => {
   });
 
   test('whoosh: its onset and its hit where it says, within the sync check’s 20 ms', () => {
-    for (const pcm of familyRenders('whoosh')) {
+    for (const pcm of rendersOf('whoosh')) {
       const described = describeSound(pcm);
       expect(Math.abs(described.onset - 0.05)).toBeLessThanOrEqual(HIT_MOVE);
       expect(Math.abs(described.hit - 0.4)).toBeLessThanOrEqual(HIT_MOVE);
@@ -525,7 +432,7 @@ describe('each family does what its doc says, on seeds 1–3', () => {
   });
 
   test('hiss: held within 1.5 dB from its rise to its hold, its first and last 50 ms 20 dB under that', () => {
-    for (const pcm of familyRenders('hiss')) {
+    for (const pcm of rendersOf('hiss')) {
       const held = Array.from({ length: 10 }, (_, k) =>
         powerDb(pcm, 0.3 + k * 0.05, 0.35 + k * 0.05),
       );
@@ -537,7 +444,7 @@ describe('each family does what its doc says, on seeds 1–3', () => {
   });
 
   test('sizzle: its hit at its flash, then falling evenly, about 4.5 dB a tenth of a second', () => {
-    for (const pcm of familyRenders('sizzle')) {
+    for (const pcm of rendersOf('sizzle')) {
       expect(Math.abs(describeSound(pcm).hit - 0.05)).toBeLessThanOrEqual(HIT_MOVE);
       // The flash is gone by 0.17 s: the tenths from 0.2 s are the body's alone.
       const tenths = Array.from({ length: 8 }, (_, k) =>
@@ -549,7 +456,7 @@ describe('each family does what its doc says, on seeds 1–3', () => {
   });
 
   test('breeze: its seam unheard, three quarters of it within an octave of its band, no rumble and no hiss', () => {
-    const renders = familyRenders('breeze');
+    const renders = rendersOf('breeze');
     for (const pcm of renders) expect(seamHeard(loopSeam(pcm))).toBe(false);
     const profile = profileOf(Arr.headNonEmpty(renders), 'bed');
     const near = profile.bands.reduce(
@@ -563,7 +470,7 @@ describe('each family does what its doc says, on seeds 1–3', () => {
 
   test('rain on a roof: its taps ring between 1.2 and 3.2 kHz, over the same rain without them', () => {
     const bare = codeSound(rain({ secs: 1, hiss: 900 }), 'bed');
-    for (const [seed, roofed] of Arr.zip(TRIAL_SEEDS, familyRenders('rain on a roof'))) {
+    for (const [seed, roofed] of Arr.zip(TRIAL_SEEDS, rendersOf('rain on a roof'))) {
       const without = renderCode(bare, seed);
       expect(roofed.frames).toBe(without.frames);
       // The rain under the taps draws the same numbers either way, so what

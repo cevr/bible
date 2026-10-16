@@ -6,11 +6,11 @@
 // - score: the score's options, `play` picked; heard in the film's mix;
 // - take: each library sound the film's effects place, at the scenes it
 //   plays in: a generated or recorded sound's kept takes (the picks: they
-//   rotate through its placements) and its candidates; a code sound's or a
-//   recipe's seeds (all picked: they all play), with the takes its lock still
-//   holds from before marked "was"; and a code trial's seeds beside either,
-//   never picked. Each is heard alone and in the mix. A seed is tuned by
-//   editing its data, so no verb reaches it (`fixed` says why);
+//   rotate through its placements) and its candidates; a code sound's seeds
+//   (all picked: they all play), with the takes its lock still holds from
+//   before marked "was"; and a code trial's seeds beside either, never
+//   picked. Each is heard alone and in the mix. A seed is tuned by editing
+//   its data, so no verb reaches it (`fixed` says why);
 // - look: each of `palette.ts`'s `looks`, its levels, `play` picked;
 // - voice: each beat's recorded attempts, the one the timings name picked;
 //   heard alone; at the beat's scene;
@@ -145,28 +145,19 @@ const WAITING: TakeStanding = {
   fixed: Option.none(),
 };
 
-/** Why no verb reaches a seed of a sound made from data, by its kind. */
-const SEED_FIXED = {
-  code: 'a code sound is tuned by editing its data',
-  procedural: 'a recipe is tuned by editing its data',
-} as const satisfies Record<DerivedKind, string>;
+/** Why no verb reaches a code sound's seed. */
+const SEED_FIXED = 'a code sound is tuned by editing its data';
 
 /** Why no verb reaches a code trial's seed: the owner chooses a swap in an ask. */
 const TRIAL_FIXED = 'a code trial is tuned by editing its data, and chosen in an ask';
 
-/** The kinds of sound made from data. */
-type DerivedKind = keyof typeof DERIVED_NAME;
-
-/** A sound made from data as its point names it. */
-const DERIVED_NAME = { code: 'code', procedural: 'recipe' } as const;
-
-/** A take the lock still holds for a sound now made from data: heard beside its seeds, never played. */
-const was = (kind: DerivedKind): TakeStanding => ({
+/** A take the lock still holds for a sound now made by code: heard beside its seeds, never played. */
+const WAS: TakeStanding = {
   name: 'was',
   picked: false,
   verbs: [],
-  fixed: Option.some(`${SEED_FIXED[kind]}: its seeds play, not its takes`),
-});
+  fixed: Option.some(`${SEED_FIXED}: its seeds play, not its takes`),
+};
 
 /** A lock variant as a take, as `standing` lists it, its 1-based index in that list. */
 const takeOf = (
@@ -249,11 +240,11 @@ const variantsOf = (sounds: MeasuredSounds, name: string, entry: LibraryEntry): 
   );
   if (isDerived(entry)) {
     const seeds = seedSources(sounds, name, entry).map((source, i) =>
-      seedOf(sounds, source, `seed ${i + 1}`, true, SEED_FIXED[entry.kind]),
+      seedOf(sounds, source, `seed ${i + 1}`, true, SEED_FIXED),
     );
-    const before = keptOf(lock).map((v, i) => takeOf(entry, v, was(entry.kind), i + 1));
+    const before = keptOf(lock).map((v, i) => takeOf(entry, v, WAS, i + 1));
     return {
-      lines: [`${counted(seeds.length, 'seed')} · ${DERIVED_NAME[entry.kind]}`, ...trialLines],
+      lines: [`${counted(seeds.length, 'seed')} · code`, ...trialLines],
       variants: [...seeds, ...trials, ...before],
     };
   }

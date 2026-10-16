@@ -37,7 +37,7 @@ const Factor = Schema.Finite.check(
 );
 
 /** A note by name: letter, optional sharp or flat, octave 0 to 8 (`D5`, `F#3`, `Bb2`). */
-export const NoteName = Schema.String.check(
+const NoteName = Schema.String.check(
   Schema.makeFilter(
     (note: string) => NOTE_NAME.test(note) || `"${note}" is no note name of octaves 0 to 8`,
   ),

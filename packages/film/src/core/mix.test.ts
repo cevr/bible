@@ -37,6 +37,7 @@ import {
   requestKey,
   sourceLabel,
 } from './sfx.ts';
+import { chime, room } from './synth/graph/presets.ts';
 import { RENDER_VERSION } from './synth/graph/render.ts';
 import { measuredSounds } from './testing.ts';
 
@@ -382,14 +383,14 @@ describe('mixPlan', () => {
         use: 'bed',
       },
       'tone.chime': {
-        kind: 'procedural',
-        recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 1 },
+        kind: 'code',
+        sound: { play: chime({ root: 'D5', partials: 'glass', secs: 1 }) },
         variants: 3,
         use: 'one-shot',
       },
       'room.paper': {
-        kind: 'procedural',
-        recipe: { recipe: 'room', secs: 4 },
+        kind: 'code',
+        sound: { play: room({ secs: 4 }) },
         variants: 1,
         use: 'bed',
         level: -36,
@@ -486,8 +487,8 @@ describe('mixPlan', () => {
       }
     });
 
-    test('a procedural one-shot plays its seeds, unjittered', () => {
-      const chimes = planned().effects.filter((e) => e.sound._tag === 'Synth');
+    test('a chime placed twice plays two of its seeds, unjittered', () => {
+      const chimes = planned().effects.filter((e) => e.sound._tag === 'Code');
       expect(chimes.map((c) => [c.pitch, c.at])).toEqual([
         [0, 0],
         [0, 2],

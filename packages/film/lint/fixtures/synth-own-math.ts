@@ -7,8 +7,8 @@ import * as Effect from 'effect'; // RED film/synth-own-math
 import { rng } from '../../src/core/random.ts';
 import { exp, sinTurn } from '../../src/core/synth/graph/math.ts';
 import type { Pcm } from '../../src/core/audio.ts';
-import { type Recipe } from '../../src/core/synth/recipes.ts';
-import { synthesize } from '../../src/core/synth/recipes.ts'; // RED film/synth-own-math
+import { type Profile } from '../../src/core/synth/compare.ts';
+import { profileOf } from '../../src/core/synth/compare.ts'; // RED film/synth-own-math
 import { loudness, type Loudness } from '../../src/core/synth/loudness.ts'; // RED film/synth-own-math
 import '../../src/core/dsp.ts'; // RED film/synth-own-math
 export { SYNTH_RATE } from '../../src/core/synth/graph/units.ts';
@@ -40,11 +40,11 @@ export const cubed = (y: number) => {
   z **= 3; // RED film/synth-own-math
   return z;
 };
-export const later = () => import('../../src/core/synth/recipes.ts'); // RED film/synth-own-math
+export const later = () => import('../../src/core/synth/compare.ts'); // RED film/synth-own-math
 
 // A local named Math is its own binding; a key named Math reads nothing.
 export const shadowed = (Math: { readonly sin: (v: number) => number }) => Math.sin(x);
 export const keyed = { Math: 1 }.Math;
 
-export const used = [Option, Effect, synthesize, loudness];
-export type Used = Pcm | Recipe | Loudness;
+export const used = [Option, Effect, profileOf, loudness];
+export type Used = Pcm | Profile | Loudness;

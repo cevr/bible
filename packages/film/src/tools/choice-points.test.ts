@@ -9,7 +9,7 @@
 // the owner's approvals and comments read onto the variant they were given on.
 
 import { describe, expect, test } from 'bun:test';
-import { Array as Arr, Option, Result } from 'effect';
+import { Option, Result } from 'effect';
 import { type Catalogue, approve, comment, emptyCatalogue } from '../core/catalogue.ts';
 import { type ChoicePoint, type VariantDraft, subjectAt } from '../core/choice.ts';
 import { layout } from '../core/layout.ts';
@@ -263,12 +263,6 @@ describe('a take point of a sound made from data', () => {
       use: 'one-shot',
       code: { sound: TICK, variants: 2 },
     },
-    'tone.bell': {
-      kind: 'procedural',
-      recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 0.3 },
-      variants: 2,
-      use: 'one-shot',
-    },
   });
   const take = (request: string, sha256: string): Variant => ({
     request,
@@ -290,7 +284,6 @@ describe('a take point of a sound made from data', () => {
       effects: {
         tick: { sound: 'tone.tick', at },
         chime: { sound: 'tone.chime', at },
-        bell: { sound: 'tone.bell', at },
       },
     }),
     sounds: measuredSounds(
@@ -356,19 +349,5 @@ describe('a take point of a sound made from data', () => {
     // The trial plays the graph its entry declares, as the code sound does.
     const tick = pointOf('tone.tick');
     expect(chime.variants[1]?.id).toBe(tick.variants[0]?.id);
-  });
-
-  test("a recipe's seeds, and its port as its code trial", () => {
-    const bell = pointOf('tone.bell');
-    expect(bell.lines).toEqual(['2 seeds · recipe', 'code trial: 2 seeds']);
-    expect(bell.variants.map((v) => [v.label, v.picked, v.id.split(':')[0]])).toEqual([
-      ['seed 1', true, 'synth'],
-      ['seed 2', true, 'synth'],
-      ['code trial 1', false, 'code'],
-      ['code trial 2', false, 'code'],
-    ]);
-    expect(fixedOf(Option.getOrThrow(Arr.head(bell.variants)))).toBe(
-      'a recipe is tuned by editing its data',
-    );
   });
 });

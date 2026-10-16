@@ -90,7 +90,7 @@ const SEAM_OF = {
 /** A bed whose loop point is heard: a level jump or a click where it wraps. */
 export class LoopSeam extends Schema.TaggedError<LoopSeam>()('LoopSeam', {
   name: Schema.String,
-  /** A kept take, or a seed of a derived sound (a code or procedural sound, or a code trial). */
+  /** A kept take, or a seed of a code sound or of a code trial. */
   of: Schema.Literals(['take', 'seed']),
   variant: Schema.Int,
   db: Schema.Finite,
@@ -120,8 +120,8 @@ export class LeadIn extends Schema.TaggedError<LeadIn>()('LeadIn', {
 }
 
 /**
- * A derived sound (a code or procedural sound) with a seed that renders
- * silent (`heardNothing`): where the film places it, that seed plays nothing.
+ * A code sound with a seed that renders silent (`heardNothing`): where the
+ * film places it, that seed plays nothing.
  */
 export class SeedSilent extends Schema.TaggedError<SeedSilent>()('SeedSilent', {
   name: Schema.String,
@@ -242,7 +242,7 @@ export class StoreCredentialsMissing extends Schema.TaggedError<StoreCredentials
   }
 }
 
-/** A command that takes one kind of sound given another (`sfx render` a generated one, `import` a procedural one). */
+/** A command that takes one kind of sound given another (`sfx render` a generated one, `import` a code one). */
 export class SoundKindMismatch extends Schema.TaggedError<SoundKindMismatch>()(
   'SoundKindMismatch',
   { name: Schema.String, kind: Schema.String, wanted: Schema.String },
@@ -252,13 +252,13 @@ export class SoundKindMismatch extends Schema.TaggedError<SoundKindMismatch>()(
   }
 }
 
-/** `sfx render --trial` or `sfx compare` on a sound with no code trial: only a generated sound with `code`, or a recipe, has one. */
+/** `sfx render --trial` or `sfx compare` on a sound with no code trial: only a generated sound with `code` has one. */
 export class CodeTrialMissing extends Schema.TaggedError<CodeTrialMissing>()('CodeTrialMissing', {
   name: Schema.String,
   kind: Schema.String,
 }) {
   override get message() {
-    return `sound "${this.name}" is ${this.kind} and has no code trial: a generated sound has one when it declares code: { sound, variants }, and a recipe's is its port`;
+    return `sound "${this.name}" is ${this.kind} and has no code trial: a generated sound has one when it declares code: { sound, variants }`;
   }
 }
 

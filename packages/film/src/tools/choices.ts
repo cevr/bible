@@ -10,9 +10,9 @@
 //   operations (`SoundLibrary.keep`/`unkeep`/`reject`) by the film CLI in a
 //   fresh process (the library's prompts are its sources too), recorded
 //   around the lock's rewrite by the SourceWriter, so it is undone the same
-//   way. A seed of a sound made from data (a code sound's, a recipe's, a code
-//   trial's) takes no verb: it is tuned by editing that data (its `fixed`
-//   says so). It is heard alone as the film CLI renders it in a fresh process
+//   way. A seed of a sound made from data (a code sound's or a code trial's)
+//   takes no verb: it is tuned by editing that data (its `fixed` says so).
+//   It is heard alone as the film CLI renders it in a fresh process
 //   (`film options sound`), once into the review's cache under its label,
 //   which names the data and the renderer;
 // - voice: an attempt kept as its beat's take by `keepVoice`, the one way an

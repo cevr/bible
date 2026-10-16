@@ -1,6 +1,6 @@
 // Pure film core: the clock, seeded randomness, narration timing, named cues,
-// sound cues, scene layout, the mix, the procedural synth and the families
-// code sounds are built from. Nothing here touches the DOM at runtime, so the
+// sound cues, scene layout, the mix, the sound graph and the families code
+// sounds are built from. Nothing here touches the DOM at runtime, so the
 // Bun scripts and tests import it directly. The entry names what films, their
 // kits, the app's sound library and tests import from `@bible/film/core`
 // (guarded by exports.test.ts); the framework's own code reads each module by

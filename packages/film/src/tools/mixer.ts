@@ -5,9 +5,9 @@
 // where, and the signal processing, are core (core/mix.ts); `Mixer.mix` loads
 // the film and the app's library once, measures each derived sound the film
 // places once (`filmPlan`, the path `planKey` takes too, so the key the check
-// reads is the key the mix stamps), decodes what its plan plays (a code or
-// procedural sound is rendered, `SoundRender`; a library file not on disk is
-// skipped with a hint to `sfx pull`), mixes it and writes the track: one WAV that the player
+// reads is the key the mix stamps), decodes what its plan plays (a code sound
+// is rendered, `SoundRender`; a library file not on disk is skipped with a
+// hint to `sfx pull`), mixes it and writes the track: one WAV that the player
 // streams and the renderer encodes a video's audio from. Remixing never calls
 // a paid API.
 

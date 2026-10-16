@@ -288,9 +288,9 @@
       }
     },
     {
-      // The procedural synth's sample loops (packages/film/src/core/synth):
-      // typed arrays indexed with `?? 0` and per-sample branches, as the mix's
-      // dsp.ts and audio.ts. Recipes stay pure functions of their seed.
+      // The sound graph's sample loops (packages/film/src/core/synth): typed
+      // arrays indexed with `?? 0` and per-sample branches, as the mix's dsp.ts
+      // and audio.ts. A render stays a pure function of its seed.
       "files": ["**/packages/film/src/core/synth/**/*.ts"],
       "rules": {
         "effect/noNullish": "off",

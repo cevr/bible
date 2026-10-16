@@ -24,8 +24,8 @@ const library = defineLibrary({
     use: 'one-shot',
   },
   'tone.chime': {
-    kind: 'procedural',
-    recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 0.2 },
+    kind: 'code',
+    sound: { play: { _tag: 'Partials', pitch: 'D5', set: 'glass', secs: 0.2 } },
     variants: 1,
     use: 'one-shot',
   },
@@ -42,11 +42,12 @@ const { code, trials } = Result.getOrThrow(resolveCode(library));
 /** The library as the film loader resolves it: nothing measured. */
 const sounds: Sounds = { library, lock: {}, dir: '', code, trials };
 
-const tick = (seed: number): DerivedSource => ({
-  _tag: 'Code',
-  sound: sounds.code.get('tone.tick')!,
-  seed,
-});
+/** Seed `seed` of the code sound `name`, as the film loader resolved it. */
+const seedOf =
+  (name: string) =>
+  (seed: number): DerivedSource => ({ _tag: 'Code', sound: sounds.code.get(name)!, seed });
+const tick = seedOf('tone.tick');
+const chime = seedOf('tone.chime');
 
 describe('SoundRender', () => {
   it.effect('measures each seed of the derived sounds named, once, and no other sound', () =>
@@ -59,11 +60,7 @@ describe('SoundRender', () => {
         'tone.tick',
       ]);
       const labels = [...measured.measured.keys()];
-      expect(labels).toEqual([
-        sourceLabel(tick(1)),
-        sourceLabel(tick(2)),
-        sourceLabel({ _tag: 'Synth', recipe: library['tone.chime'].recipe, seed: 1 }),
-      ]);
+      expect(labels).toEqual([sourceLabel(tick(1)), sourceLabel(tick(2)), sourceLabel(chime(1))]);
       expect(measured.measured.get(sourceLabel(tick(2)))).toEqual(
         measurePcm(renderSource(tick(2))),
       );
