@@ -9,7 +9,9 @@ import { DIMENSIONS, QueryEmbedderUnavailable } from '@bible/core/search';
 import {
   BOOK_VECTORS_PAGE,
   bookVectorsPage,
+  deleteVectorIds,
   removedVectorIds,
+  VECTOR_DELETE_LIMIT,
   type VectorizeUpsert,
 } from './book-vectors.ts';
 import { UNCLASSIFIED } from './vectorize.ts';
@@ -176,5 +178,22 @@ describe('bookVectorsPage', () => {
         expect(page.read).toBe(2);
         expect(yield* removedVectorIds(1)).toEqual(['PP:84.9']);
       }).pipe(Effect.provide(corpus)),
+    ));
+});
+
+describe('deleteVectorIds', () => {
+  test('deletes in calls of at most a hundred ids, every id once', () =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const ids = Array.from({ length: 197 }, (_, at) => `PP:${String(at)}`);
+        const calls: string[][] = [];
+        const deleted = yield* deleteVectorIds(1, ids, {
+          deleteByIds: (chunk) => Effect.runPromise(Effect.sync(() => calls.push(chunk))),
+        });
+
+        expect(deleted).toBe(197);
+        expect(calls.map((chunk) => chunk.length)).toEqual([VECTOR_DELETE_LIMIT, 97]);
+        expect(calls.flat()).toEqual(ids);
+      }),
     ));
 });
