@@ -31,6 +31,7 @@ import {
   type OwnerWord,
   type ProductionFile,
   type ProductionId,
+  aimedWord,
   currentVersion,
   moveForward,
   newProduction,
@@ -38,7 +39,7 @@ import {
   withFiled,
   withSaid,
 } from '../core/production.ts';
-import type { VersionMoved } from '../core/refusals.ts';
+import type { VersionMoved, WordUnaimed } from '../core/refusals.ts';
 import { ReviewManifest } from '../core/review.ts';
 import { repoJson } from '../core/schema.ts';
 import { FileInvalid } from './errors.ts';
@@ -103,11 +104,11 @@ interface ProductionStoreService {
     move: MoveForward,
     at: number,
   ) => Effect.Effect<ProductionFile, VersionMoved | StoreError>;
-  /** Record the owner's word given outside the lab (a question asked of them is a lab ask's, filed by it). */
+  /** Record the owner's word given outside the lab, aimed (`aimedWord`) (a question asked of them is a lab ask's, filed by it). */
   readonly say: (
     production: ProductionId,
     said: OwnerWord,
-  ) => Effect.Effect<ProductionFile, StoreError>;
+  ) => Effect.Effect<ProductionFile, WordUnaimed | StoreError>;
   /** File a set published before sets named their production in version `version`. */
   readonly file: (
     production: ProductionId,
@@ -197,7 +198,9 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
         forward: (production, move, at) =>
           modify(production, (current) => moveForward(current, move, at)),
         say: (production, said) =>
-          modify(production, (current) => Result.succeed(withSaid(current, said))),
+          modify(production, (current) =>
+            Result.map(aimedWord(said), (word) => withSaid(current, word)),
+          ),
         file: (production, set, version) =>
           modify(production, (current) => {
             const n = currentVersion(current);

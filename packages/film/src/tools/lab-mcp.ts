@@ -1117,9 +1117,9 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
 
   /**
    * The owner's word from chat on its production's timeline, through the
-   * store's own `say` (as `film production decide|note`), in the version
-   * open now: its words, who filed it, and the set, choice and variant it
-   * is about.
+   * store's own `say` (as `film production decide|note`, refused by it, as the
+   * terminal's is, when not aimed: `aimedWord`), in the version open now: its
+   * words, who filed it, and the set, choice and variant it is about.
    */
   const fileWord = Effect.fn('LabMcp.fileWord')(function* (
     tag: OwnerWord['_tag'],
@@ -1133,12 +1133,6 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     const point = Option.fromUndefinedOr(given.point);
     const variant = Option.fromUndefinedOr(given.variant);
     const named = Option.fromUndefinedOr(given.set);
-    if (Option.isSome(point) && Option.isNone(named))
-      return yield* LabRefused.make({ reason: '`point` is a choice in a set: name the `set`' });
-    if (Option.isSome(variant) && Option.isNone(point))
-      return yield* LabRefused.make({
-        reason: "`variant` is one of a choice's: name the `point`",
-      });
     const set = yield* Option.match(named, {
       onNone: () => Effect.succeed(Option.none<string>()),
       onSome: (ref) => Effect.asSome(folderNamed(ref)),

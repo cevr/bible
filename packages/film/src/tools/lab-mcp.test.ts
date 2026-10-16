@@ -1217,6 +1217,15 @@ describe("the owner's word through the MCP", () => {
           expect(
             (yield* tool('decide', { ...quoted, set: 'judge-faces', variant: 'calm' })).refused,
           ).toBe("`variant` is one of a choice's: name the `point`");
+          // `film production decide` files through the same store, so it refuses the same word.
+          const cli = (args: ReadonlyArray<string>) =>
+            productionCli((request) => lab(request, mcpBound), args);
+          expect((yield* cli(['decide', 'f', 'x', '--point', 'render:cold'])).failed).toBe(
+            'WordUnaimed: `point` is a choice in a set: name the `set`',
+          );
+          expect(
+            (yield* cli(['note', 'f', 'x', '--set', 'judge-faces', '--variant', 'calm'])).failed,
+          ).toBe("WordUnaimed: `variant` is one of a choice's: name the `point`");
           expect(Option.getOrThrow(yield* (yield* ProductionStore).read('f')).said).toEqual([]);
         }),
       ),

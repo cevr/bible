@@ -27,7 +27,7 @@
 import { Array as Arr, Data, Effect, Match, Option, Order, Result, Schema } from 'effect';
 import { type BoardFile, approvalOf } from './board.ts';
 import type { ChoicePoint } from './choice.ts';
-import { VersionMoved } from './refusals.ts';
+import { VersionMoved, WordUnaimed } from './refusals.ts';
 import type { ReviewFolder } from './review.ts';
 import { maybe } from './schema.ts';
 
@@ -202,6 +202,20 @@ export const withSaid = (file: ProductionFile, said: Said): ProductionFile => ({
     Order.mapInput(Order.Number, (s: Said) => s.at),
   ),
 });
+
+/**
+ * The owner's word as given outside the lab, aimed where it says: a choice
+ * (`point`) is one in a set, so it names the `set`; a variant is one of a
+ * choice's, so it names the `point`. The filing rule every caller of the
+ * store's `say` gets (the MCP's `decide|note`, `film production decide|note`).
+ */
+export const aimedWord = (word: OwnerWord): Result.Result<OwnerWord, WordUnaimed> => {
+  if (Option.isSome(word.point) && Option.isNone(word.set))
+    return Result.fail(WordUnaimed.make({ names: 'point' }));
+  if (Option.isSome(word.variant) && Option.isNone(word.point))
+    return Result.fail(WordUnaimed.make({ names: 'variant' }));
+  return Result.succeed(word);
+};
 
 /** An ask's id as the lab writes it into a word's text: `(ask <its id>)`. */
 const ASK_NAMED = /\(ask (a[0-9a-f]{10})\)/;

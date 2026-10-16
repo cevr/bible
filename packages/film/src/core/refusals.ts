@@ -487,6 +487,21 @@ export class VersionMoved extends Schema.TaggedError<VersionMoved>()('VersionMov
   }
 }
 
+/** The owner's word aimed at a choice with no set, or a variant with no choice: what it is about does not say where. */
+export class WordUnaimed extends Schema.TaggedError<WordUnaimed>()('WordUnaimed', {
+  /** What it names without what holds it: `point` (no `set`) or `variant` (no `point`). */
+  names: Schema.Literals(['point', 'variant']),
+}) {
+  override get message() {
+    return (
+      {
+        point: '`point` is a choice in a set: name the `set`',
+        variant: "`variant` is one of a choice's: name the `point`",
+      } as const
+    )[this.names];
+  }
+}
+
 /** A change to a film's storyboard it cannot make: a panel or try it lacks, a pick before approval, a card its line does not say. */
 export class BoardRefused extends Schema.TaggedError<BoardRefused>()('BoardRefused', {
   film: Schema.String,
