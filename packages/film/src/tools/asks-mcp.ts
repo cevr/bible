@@ -173,7 +173,7 @@ const NoteTool = Tool.make('note', {
   failure: LabRefused,
 });
 
-/** What `forward` moves a production by: the version the agent read as current, and what the next is for. */
+/** What `forward` moves a production by: the version the agent read as current, what the next is for, and the decision of the owner's it moves on. */
 const ForwardParams = Schema.Struct({
   production: OwnerWordParams.fields.production,
   after: VersionNumber.annotate({
@@ -182,6 +182,10 @@ const ForwardParams = Schema.Struct({
   }),
   title: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(200)).annotate({
     description: 'What the next version is for, in a line',
+  }),
+  decision: Schema.Finite.annotate({
+    description:
+      "The owner's decision the move is on, by its `at` as the ledger files it (`decide` answers it as `said.at`; a refusal lists the version's decisions with theirs): his word to move on, in the version open now",
   }),
 });
 
@@ -196,7 +200,7 @@ const MovedForward = Schema.Struct({
 
 const ForwardTool = Tool.make('forward', {
   description:
-    "Move a production forward, as `film production forward` does: its next version opens now, after `after` (the one you read as current), for `title`. Only on the owner's word: the version open now must hold his decision, filed with `decide` from chat or by an ask he answered, and the move is because of the newest one; with none it is refused (file or ask it first). Answers the version opened and the timeline's link.",
+    "Move a production forward, as `film production forward` does: its next version opens now, after `after` (the one you read as current), for `title`, because of `decision`. Only on the owner's word to move on: `decision` names one decision of his in the version open now (filed with `decide` from chat, or by an ask he answered) by its `at`, and the timeline records that one as the reason. With no decision of his in the version it is refused (file or ask it first); a `decision` the version does not hold is refused, naming those it holds. Answers the version opened and the timeline's link.",
   parameters: ForwardParams,
   success: MovedForward,
   failure: LabRefused,
@@ -343,33 +347,27 @@ const asksReads = Effect.fn('LabMcp.asksReads')(function* (options: LabMcpOption
   });
 
   /**
-   * The production moved forward on the owner's word, through the store's
-   * lock as `film production forward` moves it: refused unless the version
-   * open now holds his decision (`forwardOnDecision`), which it opens on.
+   * The production moved forward on the decision of the owner's the agent
+   * names (`forwardOnDecision`), through the store's own `forward`, which
+   * refuses it under the lock when the production moved on since the read.
    */
   const forward = Effect.fn('LabMcp.forward')(function* (given: typeof ForwardParams.Type) {
     const production = given.production;
-    if (Option.isNone(yield* refused(productions.read(production))))
+    const read = yield* refused(productions.read(production));
+    if (Option.isNone(read))
       return yield* LabRefused.make({
         reason: `no production ${production}: film production new ${production} --title "<title>"`,
       });
+    const move = yield* refused(Effect.fromResult(forwardOnDecision(read.value, given)));
     const at = yield* Clock.currentTimeMillis;
-    const file = yield* refused(
-      productions.modify(production, (current) =>
-        forwardOnDecision(current, { after: given.after, title: given.title }, at),
-      ),
-    );
+    const file = yield* refused(productions.forward(production, move, at));
     const version = currentVersion(file);
-    const opened = file.versions[version - 1];
     yield* Effect.log(`lab.mcp.forward production=${production} version=${version}`);
     return {
       production,
       version,
       title: given.title,
-      because: Option.getOrElse(
-        Option.flatMap(Option.fromUndefinedOr(opened), (v) => v.because),
-        () => '',
-      ),
+      because: Option.getOrElse(move.because, () => ''),
       links: linksOf(pageHref.production(production, version)),
     };
   });

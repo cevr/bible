@@ -27,7 +27,7 @@
 import { Array as Arr, Data, Effect, Match, Option, Order, Result, Schema } from 'effect';
 import { type BoardFile, approvalOf } from './board.ts';
 import type { ChoicePoint } from './choice.ts';
-import { Undecided, VersionMoved, WordUnaimed } from './refusals.ts';
+import { DecisionUnknown, Undecided, VersionMoved, WordUnaimed } from './refusals.ts';
 import type { ReviewFolder } from './review.ts';
 import { maybe } from './schema.ts';
 
@@ -360,24 +360,44 @@ const decisionsIn = (file: ProductionFile, version: number): ReadonlyArray<Decid
     .toReversed();
 
 /**
- * Moved forward on the owner's word, as an agent moves it: version
- * `after + 1` opens at `at`, because of the newest decision filed in the
- * version open now (`decisionsIn`); refused when that version holds none
- * (`Undecided`), and as `moveForward` refuses when the production moved on.
+ * The move an agent makes on the owner's word: from version `after`, because
+ * of the decision filed at `decision` in the version open now. Refused as
+ * `moveForward` refuses when the production moved on (`VersionMoved`), when
+ * that version holds no decision of his (`Undecided`), and when none of its
+ * decisions was filed at `decision` (`DecisionUnknown`, naming those it holds).
  */
 export const forwardOnDecision = (
   file: ProductionFile,
-  move: Omit<MoveForward, 'because'>,
-  at: number,
-): Result.Result<ProductionFile, VersionMoved | Undecided> => {
+  move: { readonly after: number; readonly title: string; readonly decision: number },
+): Result.Result<MoveForward, VersionMoved | Undecided | DecisionUnknown> => {
   const current = currentVersion(file);
-  return Option.match(Arr.head(decisionsIn(file, current)), {
-    onNone: () =>
-      Result.flatMap(moveForward(file, { ...move, because: Option.none() }, at), () =>
-        Result.fail(Undecided.make({ production: file.production, version: current })),
-      ),
-    onSome: (decided) => moveForward(file, { ...move, because: Option.some(decided.text) }, at),
-  });
+  if (move.after !== current)
+    return Result.fail(
+      VersionMoved.make({ production: file.production, after: move.after, current }),
+    );
+  const decisions = decisionsIn(file, current);
+  if (!Arr.isReadonlyArrayNonEmpty(decisions))
+    return Result.fail(Undecided.make({ production: file.production, version: current }));
+  return Option.match(
+    Arr.findFirst(decisions, (d) => d.at === move.decision),
+    {
+      onNone: () =>
+        Result.fail(
+          DecisionUnknown.make({
+            production: file.production,
+            version: current,
+            at: move.decision,
+            held: decisions.map((d) => ({ at: d.at, text: d.text })),
+          }),
+        ),
+      onSome: (decided) =>
+        Result.succeed({
+          after: move.after,
+          title: move.title,
+          because: Option.some(decided.text),
+        }),
+    },
+  );
 };
 
 /** A version number the ledger has, else none. */

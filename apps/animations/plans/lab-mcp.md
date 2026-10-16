@@ -55,7 +55,7 @@ when `FILM_LAB_HOSTS` names one).
 | `close_ask`     | closes an ask with `why`; with a production, files `Decided` (answered) or `Noted` (withdrawn), once, by ask id         |
 | `decide`        | files on a production's timeline a decision the owner made in chat, his words verbatim as `quote`                       |
 | `note`          | files the owner's feedback from chat on a production's timeline the same way: it decides nothing                        |
-| `forward`       | moves a production to its next version on the owner's decision filed in the version open now; refused with none         |
+| `forward`       | moves a production to its next version on the owner's decision it names, filed in the version open now; refused else    |
 | `look`          | stills of a scene as its files stand, each an image after its line (see [The easel's tools](#the-easels-tools))         |
 | `cues`          | each scene's placement, marks and named cues, as `film cues` prints them; one scene's when named                        |
 | `check`         | the scenes named (or the film) checked as drawn, `film check --draw`, the findings a page at a time                     |
@@ -444,11 +444,13 @@ record of versions and of what waits on the owner; asks file onto it rather than
   folders the same way); a folder two roots hold is refused here and for `ask` alike. A `point` needs its `set`,
   a `variant` its `point` (`aimedWord`, in the store's `say`, so the CLI refuses the same); the production must
   keep a ledger (`film production new`). Each call files once: a word filed twice is two words.
-- `forward {production, after, title}` moves a production as `film production forward` does, through the
-  store's lock, only on the owner's word: the version open now must hold his decision (filed by `decide`, or by
-  an ask he answered), and the move is because of the newest one (`forwardOnDecision`); with none it is refused
-  (`Undecided`), and a stale `after` as the CLI refuses it (`VersionMoved`). The decision stays his; the tool
-  only carries it out (HARNESS6-7).
+- `forward {production, after, title, decision}` moves a production as `film production forward` does,
+  through the store's `forward`, only on the owner's word to move on: `decision` names one decision of his in
+  the version open now (filed by `decide`, or by an ask he answered) by its `at`, and the timeline records that
+  one as the reason (`forwardOnDecision`). A stale `after` is refused first, as the CLI refuses it
+  (`VersionMoved`); a version with no decision of his is refused (`Undecided`), and a `decision` it does not
+  hold, naming those it holds (`DecisionUnknown`). The decision stays his; the tool only carries it out
+  (HARNESS6-7).
 - Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the
   ledgers, and `production.*` feed kinds.
 

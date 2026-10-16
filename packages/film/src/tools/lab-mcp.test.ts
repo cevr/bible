@@ -1285,46 +1285,88 @@ describe("the owner's word through the MCP", () => {
       ),
   );
 
-  it.effect('moves a production forward only on his decision, the newest in the version', () =>
+  it.effect('moves a production forward only on the decision of his it names', () =>
     provided(
       Effect.gen(function* () {
         const { lab } = yield* labWithMcp;
         const { tool } = yield* mcpSession(lab);
         yield* productionWithSet(tool);
+        const productions = yield* ProductionStore;
+        yield* productions.start('g', {
+          title: 'G',
+          film: Option.none(),
+          blurb: Option.none(),
+          first: 'v1',
+          at: 0,
+        });
         const word = { production: 'f', by: 'painter' };
         const undecided = (v: number) =>
           `f v${v} holds no decision of the owner's: file the word he gave with \`decide\` (his own words, verbatim), or ask him (\`ask\`), then move forward`;
-        const move = { production: 'f', after: 1, title: 'The calm judge' };
-        expect((yield* tool('forward', move)).refused).toBe(undecided(1));
+        const unknown = (v: number, at: number, held: ReadonlyArray<readonly [number, string]>) =>
+          `f v${v} holds no decision of the owner's at ${at}: name one it holds by its \`at\`: ${held.map(([a, t]) => `${a} "${t}"`).join(', ')}`;
+        const filedAt = (answer: { readonly said: { readonly at: number } }) => answer.said.at;
+        const move = (decision: number, after = 1) => ({
+          production: 'f',
+          after,
+          title: 'The calm judge',
+          decision,
+        });
+        expect((yield* tool('forward', move(0))).refused).toBe(undecided(1));
         // A note decides nothing.
-        yield* tool('note', { ...word, text: 'Warmer', quote: 'warm it up' });
-        expect((yield* tool('forward', move)).refused).toBe(undecided(1));
+        const noted = filedAt(
+          yield* tool('note', { ...word, text: 'Warmer', quote: 'warm it up' }),
+        );
+        expect((yield* tool('forward', move(noted))).refused).toBe(undecided(1));
         yield* TestClock.adjust('1 minute');
-        yield* tool('decide', { ...word, text: 'The cold judge', quote: 'the cold one' });
-        yield* tool('decide', { ...word, text: 'The calmer judge', quote: 'no, the calmer one' });
+        const cold = filedAt(
+          yield* tool('decide', { ...word, text: 'The cold judge', quote: 'the cold one' }),
+        );
         yield* TestClock.adjust('1 minute');
-        expect(yield* tool('forward', move)).toEqual({
+        const calmer = filedAt(
+          yield* tool('decide', { ...word, text: 'Warmer title card', quote: 'and warm the card' }),
+        );
+        const held = [
+          [calmer, 'Warmer title card'],
+          [cold, 'The cold judge'],
+        ] as const;
+        // A time that is no decision of his (the note's), and another production's decision.
+        expect((yield* tool('forward', move(noted))).refused).toBe(unknown(1, noted, held));
+        yield* TestClock.adjust('1 minute');
+        const elsewhere = filedAt(
+          yield* tool('decide', { ...word, production: 'g', text: 'G moves', quote: 'move g' }),
+        );
+        expect((yield* tool('forward', move(elsewhere))).refused).toBe(unknown(1, elsewhere, held));
+        yield* TestClock.adjust('1 minute');
+        // The decision named, not the newest: the move is on the cold judge.
+        expect(yield* tool('forward', move(cold))).toEqual({
           production: 'f',
           version: 2,
           title: 'The calm judge',
-          because: 'The calmer judge',
+          because: 'The cold judge',
           links: {
             local: `${MCP_BASE}productions/f?v=2`,
             phone: `${MCP_PHONE}productions/f?v=2`,
           },
         });
-        expect((yield* tool('forward', move)).refused).toBe(
+        expect((yield* tool('forward', move(cold))).refused).toBe(
           'f is at v2 now, not v1: read it again before moving forward',
         );
-        // The decision moved it into v2: v2 holds none of its own yet.
-        expect((yield* tool('forward', { ...move, after: 2 })).refused).toBe(undecided(2));
-        expect((yield* tool('forward', { ...move, production: 'nope' })).refused).toBe(
+        // The decision moved it into v2: v2 holds none of its own yet, and v1's is not v2's.
+        expect((yield* tool('forward', move(cold, 2))).refused).toBe(undecided(2));
+        yield* TestClock.adjust('1 minute');
+        const next = filedAt(
+          yield* tool('decide', { ...word, text: 'The animatic', quote: 'on to the animatic' }),
+        );
+        expect((yield* tool('forward', move(cold, 2))).refused).toBe(
+          unknown(2, cold, [[next, 'The animatic']]),
+        );
+        expect((yield* tool('forward', { ...move(cold), production: 'nope' })).refused).toBe(
           'no production nope: film production new nope --title "<title>"',
         );
-        const file = Option.getOrThrow(yield* (yield* ProductionStore).read('f'));
+        const file = Option.getOrThrow(yield* productions.read('f'));
         expect(file.versions.map((v) => [v.title, v.because])).toEqual([
           ['the board', Option.none()],
-          ['The calm judge', Option.some('The calmer judge')],
+          ['The calm judge', Option.some('The cold judge')],
         ]);
       }),
     ),
