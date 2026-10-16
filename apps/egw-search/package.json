@@ -26,6 +26,7 @@
     "@effect/sql-sqlite-bun": "catalog:",
     "@solidjs/web": "catalog:",
     "effect": "catalog:",
+    "marked": "18.0.14",
     "solid-js": "catalog:"
   },
   "devDependencies": {

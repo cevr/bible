@@ -191,6 +191,46 @@
       "set": "rbf-script-2026-10-14",
       "ask": "ad1157de05b",
       "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792102818659,
+      "text": "Righteousness by Faith v3: the script, its length (ask a086603ff6a)",
+      "set": "rbf-script-2026-10-14",
+      "ask": "a086603ff6a",
+      "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792102877183,
+      "text": "Righteousness by Faith v3: read the script, then decide (ask ad3aebb0697) withdrawn: Withdrawn: superseded by ask a086603ff6a, the same decision recomposed as one guided page (the draft in the Script reader, then the verdict, the length with the landing's figures, and the per-act step). Nothing was answered here.",
+      "set": "rbf-script-2026-10-14",
+      "ask": "ad3aebb0697",
+      "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792104249367,
+      "text": "RBF landing: under 35 s costs its marks (ask a75f3ab3fb6): trim: B: keep the core marks, drop 9 breaths. 36.25 s at 155 wpm, 34.35 s at 165. Measure again from your take. · note: <10 minutes is fine",
+      "quote": "<10 minutes is fine",
+      "ask": "a75f3ab3fb6",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792104249377,
+      "text": "Righteousness by Faith v3: the script, its length (ask a086603ff6a): verdict: Keep it: go on to the concept frames · length: Keep the length; trim the landing to under 35 s",
+      "set": "rbf-script-2026-10-14",
+      "ask": "a086603ff6a",
+      "by": "rbfscript (p5)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792108653446,
+      "text": "RBF v3: the concept frames (ask aa28806e8a9)",
+      "set": "rbf-v3-concepts-2026-10-15",
+      "ask": "aa28806e8a9",
+      "by": "rbfconcepts (p5)"
     }
   ],
   "filed": [

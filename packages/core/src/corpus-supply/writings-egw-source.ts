@@ -27,6 +27,7 @@ import {
   publicationOrder,
   type PublicationId,
 } from '../writings/model.js';
+import { egwBookRevision } from './egw-revision.js';
 import { CorpusContributionRejectedError, CorpusSourceUnavailableError } from './errors.js';
 import { provenanceForArchive, WritingsContribution } from './model.js';
 import { makeWritingsAssetRecipe, WritingsAssetRecipe } from './source.js';
@@ -305,11 +306,12 @@ export const layerEgwWritingsAssetSource: Layer.Layer<
         });
       }
       const archive = yield* archiveFromBook(book, paragraphs, requestedId, yield* sections);
-      let revision = book.pub_year;
-      if (Predicate.isNotNullish(book.last_modified)) {
-        revision = book.last_modified;
-      }
-      const provenance = yield* provenanceForArchive(crypto, 'egw-api', revision, archive);
+      const provenance = yield* provenanceForArchive(
+        crypto,
+        'egw-api',
+        egwBookRevision(book),
+        archive,
+      );
       return WritingsContribution.make({ provenance, archive });
     });
     return makeWritingsAssetRecipe([{ kind: 'provider', catalog, acquire }]);

@@ -208,9 +208,9 @@ describe('ScriptVoices', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('a sweep that dies ends the fill, logged, rather than leaving its voicers idle', () => {
+  it.live('a sweep that dies ends the whole fill, logged, readers’ voicing included', () => {
     const lines: Array<string> = [];
-    const { layer } = voices(
+    const { calls, layer } = voices(
       1000,
       new Map(),
       new Map(),
@@ -224,6 +224,12 @@ describe('ScriptVoices', () => {
       expect(lines.filter((line) => line.startsWith('staging.fill.died'))).toEqual([
         'staging.fill.died cause="Error: the films folder went away"',
       ]);
+      // A reader asking now queues nothing: its beats stay unvoiced until the lab restarts.
+      const asked = yield* (yield* ScriptVoices).voice(film);
+      yield* Effect.yieldNow;
+      expect(tags(asked)).toEqual(['Unvoiced', 'Unvoiced']);
+      expect(tags(yield* (yield* ScriptVoices).voice(film))).toEqual(['Unvoiced', 'Unvoiced']);
+      expect(calls.dialogue).toHaveLength(0);
     }).pipe(
       Effect.scoped,
       Effect.provide(

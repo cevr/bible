@@ -187,6 +187,27 @@ const SyncStatusRow = Schema.Struct({
 
 type SyncStatusRow = Schema.Schema.Type<typeof SyncStatusRow>;
 
+const ParagraphChangeKind = Schema.Literals(['added', 'removed', 'edited']);
+
+/** One paragraph a reinstall changed: its text before and after, by its
+ *  `ref_code`. A first install records none, so every row is a change to a
+ *  book that was already there. */
+export const ParagraphChangeRow = Schema.Struct({
+  book_id: Schema.Finite,
+  ref_code: Schema.String,
+  para_id: Schema.NullOr(Schema.String),
+  refcode_short: Schema.NullOr(Schema.String),
+  kind: ParagraphChangeKind,
+  before_text: Schema.NullOr(Schema.String),
+  after_text: Schema.NullOr(Schema.String),
+  puborder: Schema.Finite,
+  from_revision: Schema.NullOr(Schema.String),
+  to_revision: Schema.String,
+  recorded_at: Schema.String,
+});
+
+export interface ParagraphChangeRow extends Schema.Schema.Type<typeof ParagraphChangeRow> {}
+
 // Parse "PP 351.1" -> { page: 351, paragraph: 1 }; "PP 351" -> { page: 351, paragraph: none }
 interface RefcodeNumbers {
   readonly page: Option.Option<number>;
@@ -885,6 +906,13 @@ export interface EGWParagraphDatabaseService {
     bookId: number,
     expected?: CorpusProvenance,
   ) => Effect.Effect<boolean, ParagraphDatabaseError>;
+  /** The paragraphs the install of `revision` changed in a book, in reading
+   *  order: none for a first install, or for a revision whose text is the
+   *  same as the one it replaced. */
+  readonly paragraphChanges: (
+    bookId: number,
+    revision: string,
+  ) => Effect.Effect<readonly ParagraphChangeRow[], ParagraphDatabaseError>;
 
   // Maintenance
   readonly rebuildFtsIndex: Effect.Effect<void, ParagraphDatabaseError>;
@@ -1005,6 +1033,24 @@ const ensureIncomingTables = (sql: SqlClient.SqlClient): Effect.Effect<void, Sql
         bible_chapter INTEGER NOT NULL,
         bible_verse INTEGER,
         PRIMARY KEY (para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse)
+      )
+    `);
+    // The changes each reinstall made, kept: the weekly sync reports them,
+    // and a later look at a passage can ask when its text last moved.
+    yield* sql.unsafe(`
+      CREATE TABLE IF NOT EXISTS paragraph_changes (
+        book_id INTEGER NOT NULL,
+        ref_code TEXT NOT NULL,
+        para_id TEXT,
+        refcode_short TEXT,
+        kind TEXT NOT NULL CHECK (kind IN ('added', 'removed', 'edited')),
+        before_text TEXT,
+        after_text TEXT,
+        puborder INTEGER NOT NULL,
+        from_revision TEXT,
+        to_revision TEXT NOT NULL,
+        recorded_at TEXT NOT NULL,
+        PRIMARY KEY (book_id, to_revision, kind, ref_code)
       )
     `);
   });
@@ -1535,6 +1581,84 @@ export class EGWParagraphDatabase extends Context.Service<
          *  batch, which cannot branch on a result. So the count is checked on
          *  the stage, before the swap: the copy is `INSERT ... SELECT` from the
          *  stage under the same key, so it lands exactly the rows counted. */
+        /** The statement that records what replacing a book's paragraphs
+         *  with its staged ones changes: an edited text, a paragraph removed,
+         *  or one added to a book that was already there.
+         *
+         *  A paragraph is matched by its `para_id`, the library's own id, and
+         *  by `ref_code` only when it has none: an older import keyed
+         *  `ref_code` by refcode (`AA v.1`) where this one keys it by
+         *  `para_id` (`127.8`), so matching by `ref_code` would report every
+         *  paragraph of such a book removed and added again. The primary key
+         *  makes a retried install record each change once.
+         *
+         *  Each side is one book, materialized with its match key as a plain
+         *  column, so SQLite joins them through an automatic index. Joined on
+         *  the `COALESCE` itself, no index applies and the cost grows with
+         *  the square of the book: The Desire of Ages (2,705 paragraphs) took
+         *  1.6 s locally that way, and over D1's limit on the library. */
+        const recordParagraphChanges = (bookId: number, revision: string, now: string) => sql`
+          WITH
+            before AS MATERIALIZED (
+              SELECT COALESCE(para_id, ref_code) AS match_key, ref_code, para_id, refcode_short,
+                content_text, puborder
+              FROM paragraphs WHERE book_id = ${bookId}
+            ),
+            after AS MATERIALIZED (
+              SELECT COALESCE(para_id, ref_code) AS match_key, ref_code, para_id, refcode_short,
+                content_text, puborder
+              FROM paragraphs_incoming WHERE book_id = ${bookId}
+            ),
+            previous AS (SELECT revision FROM sync_status WHERE book_id = ${bookId})
+          INSERT OR IGNORE INTO paragraph_changes (
+            book_id, ref_code, para_id, refcode_short, kind,
+            before_text, after_text, puborder, from_revision, to_revision, recorded_at
+          )
+          SELECT
+            ${bookId}, a.ref_code, a.para_id, a.refcode_short, 'edited',
+            b.content_text, a.content_text, a.puborder,
+            (SELECT revision FROM previous), ${revision}, ${now}
+          FROM before b
+          JOIN after a ON a.match_key = b.match_key
+          WHERE b.content_text <> a.content_text
+          UNION ALL
+          SELECT
+            ${bookId}, b.ref_code, b.para_id, b.refcode_short, 'removed',
+            b.content_text, NULL, b.puborder,
+            (SELECT revision FROM previous), ${revision}, ${now}
+          FROM before b
+          WHERE NOT EXISTS (SELECT 1 FROM after a WHERE a.match_key = b.match_key)
+          UNION ALL
+          SELECT
+            ${bookId}, a.ref_code, a.para_id, a.refcode_short, 'added',
+            NULL, a.content_text, a.puborder,
+            (SELECT revision FROM previous), ${revision}, ${now}
+          FROM after a
+          WHERE EXISTS (SELECT 1 FROM before)
+            AND NOT EXISTS (SELECT 1 FROM before b WHERE b.match_key = a.match_key)
+        `;
+
+        const paragraphChanges = (bookId: number, revision: string) =>
+          incomingTables.pipe(
+            Effect.andThen(
+              sql`
+                SELECT * FROM paragraph_changes
+                WHERE book_id = ${bookId} AND to_revision = ${revision}
+                ORDER BY puborder, ref_code
+              `,
+            ),
+            Effect.flatMap((rows) =>
+              Schema.decodeUnknownEffect(Schema.Array(ParagraphChangeRow))(rows).pipe(
+                Effect.mapError((cause) =>
+                  ParagraphDataIntegrityError.make({
+                    cause,
+                    location: `publication(${String(bookId)}).changes`,
+                  }),
+                ),
+              ),
+            ),
+          );
+
         const installPublicationArchive = Effect.fn(
           'EGWParagraphDatabase.installPublicationArchive',
         )(function* (archive: PublicationArchive, provenance?: CorpusProvenance) {
@@ -1617,7 +1741,15 @@ export class EGWParagraphDatabase extends Context.Service<
           }
 
           const provenanceOption = Option.fromNullishOr(provenance);
+          // What this install changes, read before the old paragraphs go:
+          // only a revision can name the change, so an install without
+          // provenance records none.
+          const changes = Option.match(provenanceOption, {
+            onNone: () => [],
+            onSome: ({ revision }) => [recordParagraphChanges(publicationId, revision, now)],
+          });
           yield* atomic.run([
+            ...changes,
             sql`DELETE FROM paragraph_bible_refs WHERE para_book_id = ${publicationId}`,
             sql`DELETE FROM paragraphs WHERE book_id = ${publicationId}`,
             upsertPublicationBook(publication, rows.length, now),
@@ -2564,6 +2696,7 @@ export class EGWParagraphDatabase extends Context.Service<
           getBooksByStatus,
           getAllSyncStatus,
           needsSync,
+          paragraphChanges,
           rebuildFtsIndex,
           backfillBibleRefs,
         });
@@ -2594,6 +2727,7 @@ export class EGWParagraphDatabase extends Context.Service<
         provenance?: CorpusProvenance,
       ) => number;
       needsSync?: (bookId: number, expected?: CorpusProvenance) => boolean;
+      paragraphChanges?: readonly ParagraphChangeRow[];
     } = {},
   ): Layer.Layer<EGWParagraphDatabase> =>
     Layer.succeed(
@@ -2971,6 +3105,12 @@ export class EGWParagraphDatabase extends Context.Service<
         getAllSyncStatus: Effect.succeed(config.syncStatuses ?? []),
         needsSync: (bookId, expected) =>
           Effect.succeed(config.needsSync?.(bookId, expected) ?? true),
+        paragraphChanges: (bookId, revision) =>
+          Effect.succeed(
+            config.paragraphChanges?.filter(
+              (row) => row.book_id === bookId && row.to_revision === revision,
+            ) ?? [],
+          ),
         rebuildFtsIndex: Effect.void,
         backfillBibleRefs: () => Effect.succeed({ scanned: 0, inserted: 0 }),
       }),

@@ -901,7 +901,10 @@ keeps its `#…` across. A path no place declares is a 404, never a page.
 listens; `FILM_LAB_PHONE_URL` (a plain `http://` address by its IP, the
 laptop's on the tailnet: the gate admits the bound IP, so a MagicDNS name
 typed by hand would be refused) is a second listener with the same handler (`startLab`), logged
-`lab.phone.unbound` and left out when it cannot bind.
+`lab.phone.unbound` and left out when it cannot bind. A loopback address it
+cannot bind ends `film lab` with `LabUnbound`, whose message names the
+address and Bun's words. A port is one lab's (`reusePort: false`): a second
+lab started on a port another holds is refused, never served beside it.
 
 **Pages and links.** Every view a reviewer would talk about is a URL, so a
 pasted link opens what the sender saw and Back walks the views: the path
@@ -2587,7 +2590,10 @@ opus --effort max --safe-mode --restricted --tools Read --strict-mcp-config
 packet's folder, under macOS's sandbox (`tools/sandbox.ts`, `sandbox-exec`
 with a Seatbelt profile, `profileOf`): every home, the system's temp
 folders and other volumes are closed to reading, then an allow-list is
-opened: the packet's folder, Claude's install and the user's keychains (its
+opened: the packet's folder, Claude's install (the native installer's
+`…/claude`, its program's real path a version under `versions/`; any other
+program, a wrapper script among them, is `CounselFailed` before anything
+runs, `installOf`) and the user's keychains (its
 sign-in) to read, and a scratch folder of the run's own to read and write,
 which holds Claude's temp files (`TMPDIR`, `CLAUDE_CODE_TMPDIR`) and a
 fresh state folder (`CLAUDE_CONFIG_DIR`; `CLAUDE_SECURESTORAGE_CONFIG_DIR`
@@ -2597,11 +2603,17 @@ found). Nothing else is written, and none of `~/.claude` or
 repo, no cache, no other session or transcript. What stays readable is the
 system's own files outside the homes and temp folders. The environment is
 `HOME`, `PATH`, those four and `DISABLE_AUTOUPDATER`, `LANG` and `USER`
-alone. The network is shared (the counsel needs the internet), so the
+alone, and the host's `ANTHROPIC_BASE_URL` when it has one (the owner's
+teamclaude proxy), so the counsel asks the way the host's Claude does; its
+`counsel.start` line names that route by the proxy's scheme and host alone
+(`route=http://localhost:3456`; never its login, path, query or fragment,
+where a token can sit), `route=proxy` for a value that is not an `http`
+or `https` URL, or
+`route=direct` with none, so a lab started without the proxy says so. The network is shared (the counsel needs the internet), so the
 lab's loopback port stays reachable, though nothing names it. Its stdout
 is the answer and its stderr the run's words, written as they arrive to
 `claude.md` and `claude.err` in `<run>/counsel/` (a non-zero exit, or a
-run past `COUNSEL_LIMIT`, 30 minutes, is `CounselFailed`, naming that
+run past `COUNSEL_LIMIT`, 30 minutes, stopped with SIGTERM and killed 10 s later if it still runs, `COUNSEL_BOUNDS`, is `CounselFailed`, naming that
 folder once the run printed there; off macOS the counsel fails so too); `Counsel.sandboxed` runs any command
 so (the tests probe the sandbox with one); `Counsel.layerTest` answers
 from a function of the packet. Its last `RANKING:` line is read (`rankingOf`: a

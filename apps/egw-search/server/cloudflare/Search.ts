@@ -12,7 +12,8 @@
  * | ONNX EmbeddingGemma in process  | Workers AI (`./workers-ai.ts`)          |
  * | `HttpStaticServer` over `dist/` | the Worker's static assets              |
  *
- * Only `/api/*` and `/health` reach the Worker; every other path is an asset,
+ * Only `/api/*`, `/health` and the sync's reports under `/sync`
+ * (`./sync-pages.ts`) reach the Worker; every other path is an asset,
  * and an unknown one is the single-page app's `index.html`, as `spa: true`
  * makes it on the Bun server.
  *
@@ -44,15 +45,16 @@ import { SearchApi } from '../api.js';
 import { SearchGroupLive } from '../search-api.js';
 import { VectorIndexLoad } from '../vector-index.js';
 import { D1Atomic } from './d1-atomic.ts';
-import { Corpus, Vectors } from './resources.ts';
+import { Corpus, SyncReports, Vectors } from './resources.ts';
 import { DOMAIN, SERVED_FROM, type ServedFrom, WORKER_NAME } from './site.ts';
+import { nameOfKey, reportKey, type ReportStore, syncRoutes } from './sync-pages.ts';
 import { vectorizeNeighbors, type VectorizeQuery } from './vectorize.ts';
 import { EMBEDDING_MODEL, workersAiEmbedder } from './workers-ai.ts';
 
 const ASSETS = {
   directory: 'dist',
   notFoundHandling: 'single-page-application',
-  runWorkerFirst: ['/api/*', '/health'],
+  runWorkerFirst: ['/api/*', '/health', '/sync', '/sync/*'],
 } satisfies Cloudflare.AssetsProps;
 
 /** What `prod` claims, by where the search is served from. */
@@ -116,6 +118,36 @@ export default class Search extends Cloudflare.Worker<Search>()(
     const corpus = yield* Cloudflare.D1.QueryDatabase(yield* Corpus);
     const vectors = yield* Cloudflare.Vectorize.SearchIndex(yield* Vectors);
     const ai = yield* Cloudflare.Workers.AI();
+    const reports = yield* Cloudflare.R2.ReadBucket(yield* SyncReports);
+    /** The sync's reports, as its pages read them. A bucket that cannot be
+     *  read is a failure of the request, so it answers an error. */
+    const reportsPage = (cursor: Option.Option<string>) =>
+      reports
+        .list({ prefix: 'reports/', cursor: Option.getOrUndefined(cursor) })
+        .pipe(Effect.provide(RuntimeContext.phantom), Effect.orDie);
+    const store: ReportStore = {
+      names: Effect.gen(function* () {
+        const names: string[] = [];
+        let cursor = Option.none<string>();
+        while (true) {
+          const page = yield* reportsPage(cursor);
+          names.push(...page.objects.flatMap((object) => Option.toArray(nameOfKey(object.key))));
+          if (!page.truncated) return names.sort();
+          cursor = Option.some(page.cursor);
+        }
+      }),
+      read: (name) =>
+        reports.get(reportKey(name)).pipe(
+          Effect.flatMap((object) =>
+            Option.match(Option.fromNullishOr(object), {
+              onNone: () => Effect.succeed(Option.none<string>()),
+              onSome: (body) => Effect.asSome(body.text()),
+            }),
+          ),
+          Effect.provide(RuntimeContext.phantom),
+          Effect.orDie,
+        ),
+    };
     // The constructor also runs at deploy time, to collect the bindings, and
     // the handles are empty then. So the app is built on the first request,
     // once per isolate, in a scope that lives as long as the isolate does.
@@ -131,7 +163,9 @@ export default class Search extends Cloudflare.Worker<Search>()(
           Layer.provide(SearchGroupLive.pipe(Layer.provide(searchLayer(bindings)))),
           Layer.provide(Layer.mergeAll(Etag.layer, HttpPlatform.layer)),
         );
-        return yield* HttpRouter.toHttpEffect(api).pipe(Scope.provide(scope));
+        return yield* HttpRouter.toHttpEffect(Layer.mergeAll(api, syncRoutes(store))).pipe(
+          Scope.provide(scope),
+        );
       }),
     );
     return { fetch: Effect.flatten(app) };
@@ -141,6 +175,7 @@ export default class Search extends Cloudflare.Worker<Search>()(
         Cloudflare.D1.QueryDatabaseBinding,
         Cloudflare.Vectorize.SearchIndexBinding,
         Cloudflare.Workers.AIBinding,
+        Cloudflare.R2.ReadBucketBinding,
       ),
     ),
   ),

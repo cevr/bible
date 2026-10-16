@@ -10,7 +10,17 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
-import { ConfigProvider, Effect, FileSystem, Layer, Path, Sink, Stream } from 'effect';
+import {
+  ConfigProvider,
+  Duration,
+  Effect,
+  FileSystem,
+  Layer,
+  Logger,
+  Path,
+  Sink,
+  Stream,
+} from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { CounselFailed } from '../core/judge.ts';
 import { Counsel } from './counsel.ts';
@@ -184,43 +194,127 @@ describe("the counsel's sandbox", () => {
     },
   );
 
-  it.effect("routes through the host's Claude proxy (`ANTHROPIC_BASE_URL`) when it has one", () => {
-    const spawned: Array<Spawned> = [];
-    return Effect.gen(function* () {
-      if (process.platform !== 'darwin') return;
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const counsel = yield* Counsel;
-      const packet = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
-      yield* fs.writeFileString(path.join(packet, 'packet.md'), 'rank A and B');
-      const run = path.join(yield* fs.makeTempDirectoryScoped(), 'counsel');
-      yield* counsel.ask(path.join(packet, 'packet.md'), run);
-      expect(spawned.map((one) => one.env['ANTHROPIC_BASE_URL'])).toEqual([
-        'http://localhost:3456',
-      ]);
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        Counsel.claudeAt(Effect.succeed(claude)).pipe(
-          Layer.provide(
-            Layer.succeed(
-              ChildProcessSpawner.ChildProcessSpawner,
-              answering('RANKING: B > A', spawned),
+  // The host's route (`ANTHROPIC_BASE_URL`; unset or empty, direct), which the counsel's
+  // run is given as it is, and the route its start line names: the proxy's scheme and
+  // host alone (no login, path, query or fragment, where a token can sit), `proxy` for
+  // a value that is no `http` or `https` URL, `direct` with none.
+  const routes: ReadonlyArray<readonly [string, Record<string, string>, string]> = [
+    ['no proxy', {}, 'route=direct'],
+    ['an empty one', { ANTHROPIC_BASE_URL: '' }, 'route=direct'],
+    ['a proxy', { ANTHROPIC_BASE_URL: 'http://localhost:3456' }, 'route=http://localhost:3456'],
+    ...[
+      ['a login', 'http://me:secret@localhost:3456', 'route=http://localhost:3456'],
+      ['a raw @ in the password', 'http://me:p@ss@localhost:3456', 'route=http://localhost:3456'],
+      ['a token as the user', 'http://sk-secret@localhost:3456', 'route=http://localhost:3456'],
+      [
+        'a token in the query',
+        'http://localhost:3456/?api_key=sk-secret',
+        'route=http://localhost:3456',
+      ],
+      [
+        'a token in the path',
+        'https://gateway.example/sk-secret/anthropic',
+        'route=https://gateway.example',
+      ],
+      ['a token after #', 'http://localhost:3456#sk-secret', 'route=http://localhost:3456'],
+      ['a value that is no URL', 'http://me:se/cret@localhost:3456', 'route=proxy'],
+      // Each parses with a scheme that is no web one: its first word, a login or a token.
+      ['a login with no scheme', 'me:secret@localhost:3456', 'route=proxy'],
+      ['a token with no scheme', 'sk-secret:x@localhost:3456', 'route=proxy'],
+      ['a host with no scheme', 'localhost:3456', 'route=proxy'],
+      ['a scheme that is no web one', 'foo://me:secret@host/secret', 'route=proxy'],
+    ].map(
+      ([what = '', url = '', route = '']) => [what, { ANTHROPIC_BASE_URL: url }, route] as const,
+    ),
+  ];
+  for (const [what, host, route] of routes)
+    it.effect(
+      `asks through the host's Claude proxy when it has one, and says its route: ${what}`,
+      () => {
+        const spawned: Array<Spawned> = [];
+        const lines: Array<string> = [];
+        return Effect.gen(function* () {
+          if (process.platform !== 'darwin') return;
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const counsel = yield* Counsel;
+          const packet = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+          yield* fs.writeFileString(path.join(packet, 'packet.md'), 'rank A and B');
+          const run = path.join(yield* fs.makeTempDirectoryScoped(), 'counsel');
+          yield* counsel.ask(path.join(packet, 'packet.md'), run);
+          const proxied = spawned.map((one) =>
+            Object.entries(one.env).filter(([name]) => name === 'ANTHROPIC_BASE_URL'),
+          );
+          expect(proxied).toEqual([Object.entries(host).filter(([, url]) => url !== '')]);
+          const started = lines.filter((line) => line.startsWith('counsel.start '));
+          expect(
+            started.map((line) => line.split(' ').filter((word) => word.startsWith('route='))),
+          ).toEqual([[route]]);
+          for (const secret of ['secret', 'cret', 'p@ss', 'p%40ss', 'me:'])
+            expect([secret, started.join('\n').includes(secret)]).toEqual([secret, false]);
+        }).pipe(
+          Effect.scoped,
+          Effect.provide(
+            Layer.merge(
+              Counsel.claudeAt(Effect.succeed(claude)).pipe(
+                Layer.provide(
+                  Layer.succeed(
+                    ChildProcessSpawner.ChildProcessSpawner,
+                    answering('RANKING: B > A', spawned),
+                  ),
+                ),
+                Layer.provide(
+                  ConfigProvider.layer(ConfigProvider.fromUnknown({ HOME: home, ...host })),
+                ),
+                Layer.provideMerge(BunServices.layer),
+              ),
+              Logger.layer([
+                Logger.make(({ message }) => {
+                  lines.push([message].flat().join(' '));
+                }),
+              ]),
             ),
           ),
-          Layer.provide(
-            ConfigProvider.layer(
-              ConfigProvider.fromUnknown({
-                HOME: home,
-                ANTHROPIC_BASE_URL: 'http://localhost:3456',
-              }),
-            ),
-          ),
-          Layer.provideMerge(BunServices.layer),
-        ),
-      ),
+        );
+      },
     );
-  });
+
+  it.effect(
+    "refuses a Claude that is no version of the native installer's (a wrapper script) before it runs",
+    () => {
+      const spawned: Array<Spawned> = [];
+      const wrapper = `${home}/.local/bin/claude`;
+      return Effect.gen(function* () {
+        if (process.platform !== 'darwin') return;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const counsel = yield* Counsel;
+        const packet = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+        yield* fs.writeFileString(path.join(packet, 'packet.md'), 'rank A and B');
+        const run = path.join(yield* fs.makeTempDirectoryScoped(), 'counsel');
+        const refused = yield* Effect.flip(counsel.ask(path.join(packet, 'packet.md'), run));
+        // Its install's folder would be `~/.local`, opened whole: it fails closed.
+        expect(refused.message).toBe(
+          `the counsel run failed (Claude's program is ${wrapper}, not a version under …/claude/versions/ (the native installer's): the sandbox opens its install's folder to reading, and this one's could hold anything)`,
+        );
+        expect(spawned).toEqual([]);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          Counsel.claudeAt(Effect.succeed(wrapper)).pipe(
+            Layer.provide(
+              Layer.succeed(
+                ChildProcessSpawner.ChildProcessSpawner,
+                answering('RANKING: B > A', spawned),
+              ),
+            ),
+            Layer.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ HOME: home }))),
+            Layer.provideMerge(BunServices.layer),
+          ),
+        ),
+      );
+    },
+  );
 
   it.effect(
     "on macOS Claude's run reads none of the home's Claude state, and writes only its own",
@@ -288,6 +382,54 @@ describe("the counsel's sandbox", () => {
           'a first thought\n',
         );
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    5_000,
+  );
+
+  it.live(
+    'on macOS a run past its limit that ignores the stop is killed, and its failure says so',
+    () =>
+      Effect.gen(function* () {
+        if (process.platform !== 'darwin') return;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const counsel = yield* Counsel;
+        const packet = yield* fs.realPath(yield* fs.makeTempDirectoryScoped());
+        yield* fs.writeFileString(path.join(packet, 'packet.md'), 'rank A and B');
+        const dir = path.join(yield* fs.realPath(yield* fs.makeTempDirectoryScoped()), 'counsel');
+        const [took, failure] = yield* Effect.timed(
+          Effect.flip(counsel.ask(path.join(packet, 'packet.md'), dir)),
+        );
+        expect(failure.message).toBe(
+          `the counsel run failed (claude did not finish within 0.2 s and was stopped); what it printed is under ${dir}`,
+        );
+        // It printed after its trap: SIGTERM was ignored, and the kill ended it.
+        expect(yield* fs.readFileString(path.join(dir, 'claude.md'))).toBe('a first thought\n');
+        expect(Duration.toMillis(took)).toBeLessThan(2_500);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          Counsel.sandboxed(
+            (folders) =>
+              Effect.succeed({
+                plan: { reads: [folders.packet], writes: [folders.scratch] },
+                env: { PATH: '/usr/bin:/bin' },
+                // Deaf to SIGTERM (its sleeps too, which inherit the ignored signal); it
+                // would end by itself after 4 s.
+                command: [
+                  '/bin/sh',
+                  '-c',
+                  [
+                    "trap '' TERM",
+                    'echo "a first thought"',
+                    'i=0',
+                    'while [ $i -lt 40 ]; do sleep 0.1; i=$((i+1)); done',
+                  ].join('\n'),
+                ],
+              }),
+            { limit: Duration.millis(200), killAfter: Duration.millis(200) },
+          ).pipe(Layer.provideMerge(BunServices.layer)),
+        ),
+      ),
     5_000,
   );
 

@@ -34,7 +34,6 @@ import {
   HttpPlatform,
   HttpRouter,
   HttpServer,
-  HttpServerError,
   HttpServerRequest,
   HttpServerResponse,
 } from 'effect/http';
@@ -682,13 +681,30 @@ export interface LabAt {
 }
 
 /**
+ * A lab's listener this machine would not bind at `at` (`<host>:<port>`):
+ * no interface has the address, or the port is held. `cause` is Bun's
+ * words, which name every refused bind "Is port … in use?", an address on
+ * no interface included, so the message says both.
+ */
+class LabUnbound extends Schema.TaggedError<LabUnbound>()('LabUnbound', {
+  at: Schema.String,
+  cause: Schema.String,
+}) {
+  override get message() {
+    return `could not bind ${this.at}, no interface here has the address or the port is held: ${this.cause}`;
+  }
+}
+
+/**
  * The lab's HTTP server on `at`: Effect's over `Bun.serve`, with no route or
  * development server of Bun's (each would answer before the gate), its idle
- * limit and its body limit. `serveLab` answers every request it takes. A
- * bind this machine refuses (no interface has the address, or the port is
- * held) fails as a `ServeError` whose cause is Bun's: Effect's adapter calls
- * `Bun.serve` bare, so its throw would otherwise be a defect, though the
- * layer is typed to fail with `ServeError`.
+ * limit and its body limit. `serveLab` answers every request it takes. The
+ * port is its own: a second lab on a port one holds is refused, never
+ * shares it (Bun, with `development` off, would bind it beside the first,
+ * the newer taking every connection). A bind this machine refuses fails as
+ * `LabUnbound`, naming the address and Bun's words: Effect's adapter calls
+ * `Bun.serve` bare, so its throw would otherwise be a defect, and its own
+ * `ServeError` has no message.
  */
 export const labServer = (at: LabAt) =>
   Layer.effect(
@@ -697,10 +713,21 @@ export const labServer = (at: LabAt) =>
       hostname: at.hostname,
       port: at.port,
       development: false,
+      reusePort: false,
       idleTimeout: LAB_IDLE_SECONDS,
       maxRequestBodySize: MAX_REQUEST_BODY,
-    }).pipe(Effect.catchDefect((cause) => Effect.fail(new HttpServerError.ServeError({ cause })))),
+    }).pipe(
+      Effect.catchDefect((cause) => Effect.fail(unboundAt(at, cause))),
+      Effect.catchTag('ServeError', (error) => Effect.fail(unboundAt(at, error.cause))),
+    ),
   );
+
+/** `LabUnbound` at `at` (an IPv6 address in brackets, as a URL names it), for `cause`. */
+const unboundAt = (at: LabAt, cause: unknown) =>
+  LabUnbound.make({
+    at: `${at.hostname.replace(/^(.*:.*)$/, '[$1]')}:${at.port}`,
+    cause: String(cause),
+  });
 
 /** The name and port a server is bound to; none for a socket file. */
 const boundOf = (address: NetAddress.SocketAddress): LabBound => {
