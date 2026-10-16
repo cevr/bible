@@ -77,14 +77,18 @@
 //
 // Motifs (CRAFT rule 4), each introduced and paid off:
 // - The seed (the word). `cold`: the judge's "righteous" comes down as a gold
-//   seal pinned over the accused's stain, a label on the outside. `seed`: the
-//   seal lifts, turns over and is a seed, the blade curled inside it. `look`:
+//   wax seal with a ribbon tail and an R pressed into its wax, pressed over the
+//   accused's stain like a document's seal, a label on the outside. `seed`:
+//   the seal lifts, its R to the front, turns over, and its back opens: it is
+//   a seed, the blade curled inside it. `look`:
 //   the seed laid in the open hand. `grain`: the Seed that falls into the
 //   ground. `garden`: the grandmother's seeds, first the blade. `rain`: the
 //   rain's gold flecks, His word coming down. Paid off in `court`: a green
 //   blade has come up through the crack in the court's floor where the
 //   accused stands.
-// - The garment. `cold`: the accused's plain tunic with its scarlet stain.
+// - The garment. `cold`: the accused's plain tunic with its scarlet stain, a
+//   flat blot soaked into the cloth like a dye, with no drips or splatter
+//   (it reads as sin, never as blood); every stain in the film is drawn so.
 //   `word`: the fig leaves he pins over it, our cover-up. `roof` and `woman`:
 //   the scarlet lifts. `accuser`: Joshua's filthy garments. `robe`: the robe
 //   from heaven's loom, and under it the stain gone, not covered. Paid off in
@@ -98,8 +102,8 @@
 //   in `court`: all three in the picture itself, the seed in his hand, the
 //   robe on him, the blade at his feet, lit one by one as the refrain is said
 //   once more.
-// - The record. `cold`: the stacked evidence, sheets scribbled over in
-//   scarlet with no letters. Paid off in `rain` alone, the one glance ahead:
+// - The record. `cold`: the stacked evidence, sheets scribbled over in flat
+//   scarlet ink with no letters, no splatter and no drips. Paid off in `rain` alone, the one glance ahead:
 //   under the bench's light the sheets go white, blotted out, while the rain
 //   falls only on the field (the blotting out comes before the latter rain,
 //   CWCP 124.3). `court` never shows the record: forgiven sins stay on the
@@ -115,8 +119,8 @@
 // poles (CRAFT rules 6 and 11). The five poles are the concept stage's
 // frames:
 // 1. The verdict (`cold`, `title`): teal day, cool and even. "How can God
-//    call a guilty man righteous?" Pole `cold`: the accused in the dock, the gold seal
-//    over the stain, the crack at his feet.
+//    call a guilty man righteous?" Pole `cold`: the accused in the dock, the gold wax
+//    seal over the stain, the crack at his feet.
 // 2. The seed (`word`, `seed`, `spoke`): peach parchment. "Is God's
 //    verdict a cover-up?"
 // 3. The three gifts (`roof`, `woman`, `look`): peach afternoon. "What does
@@ -170,12 +174,16 @@ export const TITLE = 'Righteousness by Faith';
 const CARDS =
   "The narration's words appear only as full-screen cards: nothing in the picture carries lettering.";
 
+/** The one letter a picture carries: the R in the seal's wax, an emblem (owner's choice), not narration. */
+const SEAL_R =
+  'The only letter drawn is the single R pressed into the gold wax seal, an emblem for righteous; nothing else is lettered.';
+
 export const script = defineScript([
   {
     id: 'cold',
     say: "Picture a young man in a courtroom. {/} {evidence}Every piece of evidence says one thing: {/} {did}he {*}did it. {/} {judge}And the judge says one word. {//} {righteous}{*}Righteous. {/} {seal}Righteous? {/} {cover}That's not justice, that's a {*}cover-up. {/} {bible}Now, the Bible agrees: God will {*}not clear the guilty. {/} And yet it says He {*}justifies the ungodly. {//} {which}So the question is, how can God call a guilty man righteous? {/} {asked}Job asked long ago: {/} {job}“How should man be {*}just with God?”",
     cite: ['Exodus 23:7', 'Exodus 34:7', 'Romans 4:5', 'Job 9:2'],
-    picture: `IDEA: the court as a paper diorama on the parchment page, lit by a cool, even teal day from one high window (the act's light). Screen direction holds for the film: the accused screen-left, the bench screen-right. The accused, the film's plain lead (character-design 2.3, as his sheet draws him: one small figure of pale cool grey paper, a round head with no hair, a plain trapezoid tunic, stub legs and circle hands; no name and no mark that tells who he is), stands in the dock with a scarlet stain on the front of his tunic; a thin crack runs across the floor at his feet (paid off in \`court\`). On \`evidence\` sheets stack up on the prosecutor's table, each one scribbled over in scarlet, with no letters or numbers (the record, paid off in \`rain\`). On \`did\` his head drops: his face at a third of the frame, caught. On \`judge\` the judge leans over the bench. On \`righteous\` the gavel falls, and the picture hard-cuts to the full-screen card "Righteous.", the word large in gold, and cuts back on its last word. On \`seal\` a gold seal floats down and pins itself over the stain on his tunic, on the outside, like a label, the stain's edge still showing round it (the seed motif's start). On \`cover\` the prosecutor throws up his hands, and the accused's brow goes up, his head tipped back: he is as surprised as anyone. On \`bible\` the camera eases in on the seal over the stain, the scarlet edge still showing round it. On \`which\` the gavel hangs in the air above its block. On \`asked\` the page turns to Job 9:2 on its page, its phrase highlighted as it is said, and on \`job\` the highlight floods out into the full-screen card (cold-studies' model card), the words landing as they are spoken, "just" large in gold; hard cut out. ${CARDS}`,
+    picture: `IDEA: the court as a paper diorama on the parchment page, lit by a cool, even teal day from one high window (the act's light). Screen direction holds for the film: the accused screen-left, the bench screen-right. The accused, the film's plain lead (character-design 2.3, as his sheet draws him: one small figure of pale cool grey paper, a round head with no hair, a plain trapezoid tunic, stub legs and circle hands; no name and no mark that tells who he is), stands in the dock with a scarlet stain on the front of his tunic, a flat blot soaked into the cloth like a dye stain, with no drips or splatter; a thin crack runs across the floor at his feet (paid off in \`court\`). On \`evidence\` sheets stack up on the prosecutor's table, each one scribbled over in flat scarlet ink, with no letters or numbers and no splatter or drips (the record, paid off in \`rain\`). On \`did\` his head drops: his face at a third of the frame, caught. On \`judge\` the judge leans over the bench. On \`righteous\` the gavel falls, and the picture hard-cuts to the full-screen card "Righteous.", the word large in gold, and cuts back on its last word. On \`seal\` a gold wax seal with a ribbon tail, a single R pressed into its wax, floats down and presses itself over the stain on his tunic like a document's seal, on the outside, like a label, the stain's edge still showing round it (the seed motif's start). On \`cover\` the prosecutor throws up his hands, and the accused's brow goes up, his head tipped back: he is as surprised as anyone. On \`bible\` the camera eases in on the seal over the stain, the scarlet edge still showing round it. On \`which\` the gavel hangs in the air above its block. On \`asked\` the page turns to Job 9:2 on its page, its phrase highlighted as it is said, and on \`job\` the highlight floods out into the full-screen card (cold-studies' model card), the words landing as they are spoken, "just" large in gold; hard cut out. ${CARDS} ${SEAL_R}`,
   },
   {
     id: 'title',
@@ -193,13 +201,13 @@ export const script = defineScript([
       'Genesis 3:7',
       "Ellen G. White, Christ's Object Lessons, 311",
     ],
-    picture: `IDEA: a page turn into the act's peach parchment light. The accused alone on the page, the gold seal still pinned over his stain; on the act's question his brow goes up. On \`right\` a straight gold line draws itself along the page under his feet. On \`measure\` it rises and folds into two small stone tablets, standing upright, and on \`all\` their ten lines glow gold; he leans in, his face at a third of the frame. On \`short\` the tablets stand as tall as a doorway's height mark, and he, beside them, comes up short, his head well under their top. On \`cover\` he presses a hand circle over the stain; on \`fig\` fig leaves drift down and he pins them over it one by one, a patchwork round the gold seal. On \`going\` the leaves curl and drop off, and he gives the viewer a look (the light line). ${CARDS}`,
+    picture: `IDEA: a page turn into the act's peach parchment light. The accused alone on the page, the gold wax seal still pressed over his stain, its R and ribbon tail showing; on the act's question his brow goes up. On \`right\` a straight gold line draws itself along the page under his feet. On \`measure\` it rises and folds into two small stone tablets, standing upright, and on \`all\` their ten lines glow gold; he leans in, his face at a third of the frame. On \`short\` the tablets stand as tall as a doorway's height mark, and he, beside them, comes up short, his head well under their top. On \`cover\` he presses a hand circle over the stain; on \`fig\` fig leaves drift down and he pins them over it one by one, a patchwork round the gold seal. On \`going\` the leaves curl and drop off, and he gives the viewer a look (the light line). ${CARDS} ${SEAL_R}`,
   },
   {
     id: 'seed',
     say: "{label}But when God says righteous, it isn't a {*}label on the outside. {/} {seed}Jesus said, “The seed is the {*}word of God.” {//1} A seed looks like {*}nothing. {/} {alive}But it's {*}alive. {/} {folded}The life of the whole plant is folded up inside. {/} {life}In the same way, every word God speaks carries His {*}own life. {/} Take in His word by faith, {/} and you take in His life.",
     cite: ['Luke 8:11', "Ellen G. White, Christ's Object Lessons, 38"],
-    picture: `IDEA: the dropped leaves blow aside and the camera pushes in on the gold seal on the accused's tunic, in \`cold\`'s shape and scale (CRAFT rule 8). On \`label\` it lifts off, flat as a sticker, nothing behind it; the stain is still there under where it was. On \`seed\` the verse's full-screen card: "The seed is the word of God.", "seed" large in gold; hard cut back on its last word, and the seal turns over in the air and is a seed, small and plain, its gold unlit: it looks like nothing. On \`alive\` it opens along its seam in cross-section, and on \`folded\` the blade shows curled inside, green, its root and first two leaves folded tight. On \`life\` a warm light wakes in the seed's heart and its gold glows; the accused, close, his face at a third of the frame, tips his head: interested, despite himself. ${CARDS}`,
+    picture: `IDEA: the dropped leaves blow aside and the camera pushes in on the gold wax seal on the accused's tunic, its R pressed into the wax, in \`cold\`'s shape and scale (CRAFT rule 8). On \`label\` it lifts off, its R to the front, flat as a sticker, nothing behind it; the stain is still there under where it was. On \`seed\` the verse's full-screen card: "The seed is the word of God.", "seed" large in gold; hard cut back on its last word, and the seal turns over in the air and its back opens: it is a seed, small and plain, its gold unlit: it looks like nothing. On \`alive\` it opens along its seam in cross-section, and on \`folded\` the blade shows curled inside, green, its root and first two leaves folded tight. On \`life\` a warm light wakes in the seed's heart and its gold glows; the accused, close, his face at a third of the frame, tips his head: interested, despite himself. ${CARDS} ${SEAL_R}`,
   },
   {
     id: 'spoke',
@@ -234,7 +242,7 @@ export const script = defineScript([
     say: "{court}In the temple court, they drag in a woman caught in sin. {/} {law}They throw the law of Moses at Jesus: {/} stone her. {/} {dust}He stoops and writes in the dust. {/} {first}Then He stands: whoever is {*}without sin, throw the first stone. {//} {leave}One by one, they leave. {/} {alone}Woman, has no one condemned you? {/} {lord}No one, Lord. {/} {told}And Jesus says, {*}“Neither do I condemn thee: {/} go, and sin no more.” {//} {again}Do you see the three? {/} {one}She calls Him {*}Lord. {/} {two}He {*}doesn't condemn her. {/} {three}And she walks out into a {*}new life. {/} {order}Same three, same {*}order.",
     lead: 0.4,
     cite: ['John 8:2–11', 'Ellen G. White, The Desire of Ages, 461–462'],
-    picture: `STORY: on \`court\` cut to a temple court in the same peach light, early morning. The woman stands in the middle in a scarlet-stained garment, head bowed, her accusers round her holding stones (varied silhouettes). On \`law\` one accuser holds up a scroll, Moses' law, as the charge (the stone tablets of \`word\` never come into the accusers' hands). On \`dust\` Jesus stoops and writes in the dust with one finger; nothing in the dust is readable. On \`first\` he straightens. On \`leave\` the stones drop into the dust one by one and the accusers go out of frame, the eldest first; on \`alone\` the wide shot holds only the two of them. On \`lord\` her face at a third of the frame, still bowed: she dares not lift her eyes as she answers. On \`told\` reverse to Jesus's face as he speaks the quotation (the speaker's close-up); she lifts her head, her stain washes out, and she turns and walks out of frame screen-left, upright. On \`again\` the icon row slides up, and each gift replays its moment: on \`one\` her bowed answer, "Lord", and the open hand lights; on \`two\` Jesus speaking, and the white cloth lights; on \`three\` her walking out upright, and the green blade lights. On \`order\` pull back to IDEA: the three icons in \`spoke\`'s layout, all lit. ${CARDS}`,
+    picture: `STORY: on \`court\` cut to a temple court in the same peach light, early morning. The woman stands in the middle in a garment with a flat scarlet blot soaked into it (no drips), head bowed, her accusers round her holding stones (varied silhouettes). On \`law\` one accuser holds up a scroll, Moses' law, as the charge (the stone tablets of \`word\` never come into the accusers' hands). On \`dust\` Jesus stoops and writes in the dust with one finger; nothing in the dust is readable. On \`first\` he straightens. On \`leave\` the stones drop into the dust one by one and the accusers go out of frame, the eldest first; on \`alone\` the wide shot holds only the two of them. On \`lord\` her face at a third of the frame, still bowed: she dares not lift her eyes as she answers. On \`told\` reverse to Jesus's face as he speaks the quotation (the speaker's close-up); she lifts her head, her stain washes out, and she turns and walks out of frame screen-left, upright. On \`again\` the icon row slides up, and each gift replays its moment: on \`one\` her bowed answer, "Lord", and the open hand lights; on \`two\` Jesus speaking, and the white cloth lights; on \`three\` her walking out upright, and the green blade lights. On \`order\` pull back to IDEA: the three icons in \`spoke\`'s layout, all lit. ${CARDS}`,
   },
   {
     // A pause after the key quotation (CRAFT rule 9), for the pull back to the
@@ -299,7 +307,7 @@ export const script = defineScript([
       'Leviticus 16:30',
       'Ellen G. White, The Great Controversy, 480',
     ],
-    picture: `STORY: heaven's court, laid out like the cold open's courtroom (the same positions: the bench screen-right, the one accused screen-left; CRAFT rule 8), in gold dawn light. On \`zech\` the court fades up as a vision. On \`joshua\` Joshua the high priest, in a priest's turban, stands head bowed before the Angel, who stands at the bench in white and gold; on \`filthy\` Joshua's garments are filthy, stained scarlet, his face at a third of the frame. On \`satan\` a tall, angular, shadow-violet figure steps up at his right hand and points at the stains, and on \`points\` each stain flares as he points. On \`day\` the court's high window shows a low gold sun: a great day closing. On \`angel\` the Angel, Christ, raises a hand; on \`silence\` the accuser's pointing hand drops and he shrinks back into shadow at the court's edge. ${CARDS}`,
+    picture: `STORY: heaven's court, laid out like the cold open's courtroom (the same positions: the bench screen-right, the one accused screen-left; CRAFT rule 8), in gold dawn light. On \`zech\` the court fades up as a vision. On \`joshua\` Joshua the high priest, in a priest's turban, stands head bowed before the Angel, who stands at the bench in white and gold; on \`filthy\` Joshua's garments are filthy, flat scarlet blots soaked into the cloth (no drips or splatter), his face at a third of the frame. On \`satan\` a tall, angular, shadow-violet figure steps up at his right hand and points at the stains, and on \`points\` each stain flares as he points. On \`day\` the court's high window shows a low gold sun: a great day closing. On \`angel\` the Angel, Christ, raises a hand; on \`silence\` the accuser's pointing hand drops and he shrinks back into shadow at the court's edge. ${CARDS}`,
   },
   {
     // The deepest turn (CRAFT rule 7, 55–65 %): the cold open's doubt answered

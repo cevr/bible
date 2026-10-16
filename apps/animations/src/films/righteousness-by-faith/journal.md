@@ -85,3 +85,7 @@ Board: with the plain lead's sheet attached, standing tries kept his head at 0.3
 ## 2026-10-16T12:35:49Z · film
 
 Board redraw: with roof.6 attached as the place and Christ cut from robe.5 and court.12 attached as His own references, all 16 new Capernaum and temple-court tries drew Jesus with long straight brown hair and the gold sash; the paralytic kept roof.6's dark curly hair. The accuser cut from v2 accuser.day try 2 came back as the same angular slate-violet figure in all 12 tries; in both first accuser.satan tries he reached with a sleeved arm, as the v2 reference does, and once the brief named a floating circle hand with no arm, both tries drew the circle hand alone.
+
+## 2026-10-16T14:07:33Z · film
+
+Board stain/seal redraw: with the dye stain only in words, cold.evidence and title.start drew lumpy cloud-shaped blots in all 4 tries; with cold.did's soft oval as an image reference, both cold.evidence tries and title.start try 1 drew that oval. The wax seal's R came out legible in every seal try (8 of 8 across cold.cover, word.all, word.short, word.fig); 1 try (word.all) still drew small drips under the seal, and 1 (cold.cover) drew a red scalloped rim that read as a prize rosette.

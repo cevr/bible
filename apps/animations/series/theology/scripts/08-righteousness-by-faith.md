@@ -39,7 +39,7 @@ _Is God’s verdict a cover-up?_ · peach parchment
 
 **say:** {label}But when God says righteous, it isn't a {*}label on the outside. {/} {seed}Jesus said, “The seed is the {*}word of God.” {//1} A seed looks like {*}nothing. {/} {alive}But it's {*}alive. {/} {folded}The life of the whole plant is folded up inside. {/} {life}In the same way, every word God speaks carries His {*}own life. {/} Take in His word by faith, {/} and you take in His life.
 
-**picture:** IDEA: the dropped leaves blow aside and the camera pushes in on the gold seal on the accused's top, in cold's shape and scale (CRAFT rule 8).
+**picture:** IDEA: the dropped leaves blow aside and the camera pushes in on the gold wax seal on the accused's top, its R pressed in the wax and its ribbon tail hanging, in cold's shape and scale (CRAFT rule 8).
 
 **cite:** Luke 8:11; Ellen G. White, Christ's Object Lessons, 38
 
