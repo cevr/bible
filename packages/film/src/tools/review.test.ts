@@ -481,7 +481,8 @@ const projectCatalogue = [
  * through `files` (the file system as is, by default), and copies a video
  * over 100 bytes or over `phoneRate` bits a second (the review's own by
  * default); the media cannot read the length of a file named `unreadable`,
- * nor make a phone copy of one named `uncopyable`.
+ * nor make a phone copy of one named `uncopyable`; with `held`, a phone
+ * copy is begun and never ends, so the copies stay pending.
  */
 const fixture = (
   phoneCopies: boolean,
@@ -491,6 +492,7 @@ const fixture = (
     readonly phoneRate?: number;
     readonly unreadable?: string;
     readonly uncopyable?: string;
+    readonly held?: boolean;
   } = {},
 ) =>
   Layer.unwrap(
@@ -549,6 +551,8 @@ const fixture = (
                 Effect.when(
                   Effect.fail(MediaFailed.make({ op: 'encode', file: video, reason: 'no encode' })),
                   Effect.succeed(path.basename(video) === tune.uncopyable),
+                ).pipe(
+                  Effect.andThen(Effect.when(Effect.never, Effect.succeed(tune.held === true))),
                 ),
                 standIn.phoneCopy(video, out),
               ),
@@ -602,7 +606,7 @@ describe('the review service', () => {
         ['film', ['out/f/film/main.share.mp4', 'out/f/film/wide.share.mp4']],
         ['scene a', ['out/f/scenes/a/main.share.mp4']],
       ]);
-    }).pipe(Effect.provide(fixture(false))),
+    }).pipe(Effect.provide(fixture(true, Option.none(), Function.identity, { held: true }))),
   );
 
   it.effect("a film's pictures are its whole-film renders, newest first: never a scene's", () =>
@@ -1033,6 +1037,27 @@ describe('the review service', () => {
           Option.some('pending'),
           Option.some('pending'),
         ]);
+      }).pipe(
+        Effect.provide(
+          fixture(true, Option.none(), Function.identity, { phoneRate: 6, held: true }),
+        ),
+      ),
+  );
+
+  it.effect(
+    'with phone copies off (FILM_REVIEW_PHONE=off) a big video waits for none: it plays as made',
+    () =>
+      Effect.gen(function* () {
+        const { folders } = yield* (yield* Review).index(false);
+        const art = folders.find((f) => f.ref === 'out/art');
+        expect(art?.videos.map((v) => [v.name, v.phone])).toEqual([['big.mp4', 'none']]);
+        // Too dense to play as made, the variants too: none is made, so none is waited for.
+        expect(art?.sets[0]?.variants.map(phoneOf)).toEqual([
+          Option.some('none'),
+          Option.some('none'),
+          Option.some('none'),
+        ]);
+        expect((yield* Spawned).some((c) => c.startsWith('phone '))).toBe(false);
       }).pipe(Effect.provide(fixture(false, Option.none(), Function.identity, { phoneRate: 6 }))),
   );
 
@@ -1103,7 +1128,7 @@ describe('the review service', () => {
         const video = folders.flatMap((f) => f.videos).find((v) => v.name === 'big.mp4');
         expect(video?.phone).toBe('pending');
         expect(yield* review.phone('out/art/big.mp4')).toEqual(Option.none());
-      }).pipe(Effect.provide(fixture(false))),
+      }).pipe(Effect.provide(fixture(true, Option.none(), Function.identity, { held: true }))),
   );
 
   it.effect('answers the index from memory until it is asked fresh', () =>

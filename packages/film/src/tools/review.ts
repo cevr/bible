@@ -116,7 +116,7 @@ interface ReviewConfig {
   readonly phoneRate?: number;
   /** A video over this many bytes is not played inline; an authored download may still name it. */
   readonly maxVideo: number;
-  /** Whether phone copies are made in the background as the index finds videos that need one. */
+  /** Whether phone copies are made in the background as the index finds videos that need one; with none made, such a video's phone is `none`. */
   readonly phoneCopies: boolean;
 }
 
@@ -822,8 +822,11 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           );
         };
 
+        // With the copies off (`FILM_REVIEW_PHONE=off`) none is made, so none is waited for: the
+        // video plays as made, and a page neither waits nor asks again.
         const phoneState = Effect.fn('Review.phoneState')(function* (video: Found) {
           if (!(yield* copied(video))) return 'none' satisfies PhoneState;
+          if (!config.phoneCopies) return 'none' satisfies PhoneState;
           const out = yield* phonePath(video.path);
           if (yield* isFile(out)) return 'ready' satisfies PhoneState;
           if (unmade.has(out)) return 'failed' satisfies PhoneState;
