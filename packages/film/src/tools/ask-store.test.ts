@@ -10,7 +10,7 @@
 // to is not read.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Boolean as Bool, Effect, Exit, FileSystem, Option, Schema } from 'effect';
+import { Boolean as Bool, Effect, Exit, FileSystem, Option, Path, Schema } from 'effect';
 import { TestClock } from 'effect/testing';
 import {
   type Ask,
@@ -93,8 +93,9 @@ const proof = (tries: ReadonlyArray<number>): Ask =>
 
 const draft = (ask: Ask) => ({ title: 'Keep a try', why: 'the beat waits', by: 'agent', ask });
 
-const run = <A, E>(self: Effect.Effect<A, E, AskStore | ProductionStore | FileSystem.FileSystem>) =>
-  self.pipe(Effect.provide(labInMemory(files())));
+const run = <A, E>(
+  self: Effect.Effect<A, E, AskStore | ProductionStore | FileSystem.FileSystem | Path.Path>,
+) => self.pipe(Effect.provide(labInMemory(files())));
 
 describe('the asks on disk', () => {
   it.effect('keeps no ask that may not render, and finds a board try for its picture', () =>
@@ -272,6 +273,42 @@ describe('the asks on disk', () => {
         expect(said.map((s) => [s._tag, s.at, s.text])).toEqual([
           ['Decided', answered, `Keep a try (ask ${id}): try: Try 1`],
           ['Decided', Date.UTC(2026, 9, 14, 13, 1), 'Try 7 after all'],
+        ]);
+      }),
+    ),
+  );
+
+  it.effect('files a withdrawal its first filing missed at the time it was closed', () =>
+    run(
+      Effect.gen(function* () {
+        const asks = yield* AskStore;
+        const productions = yield* ProductionStore;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        yield* TestClock.setTime(Date.UTC(2026, 9, 14, 12));
+        yield* productions.start('f', {
+          title: 'F',
+          film: Option.none(),
+          blurb: Option.none(),
+          first: 'v1',
+          at: 0,
+        });
+        const ledger = path.resolve('productions', 'f.json');
+        const kept = yield* fs.readFileString(ledger);
+        const { id } = yield* asks.make({ ...draft(proof([1, 7])), production: 'f' });
+        // The ledger does not read when the ask is closed: the close stands, its filing fails.
+        yield* fs.writeFileString(ledger, '{');
+        yield* TestClock.adjust('1 minute');
+        const closed = Date.UTC(2026, 9, 14, 12, 1);
+        expect(Exit.isFailure(yield* Effect.exit(asks.close(id, 'not needed')))).toBe(true);
+        expect((yield* asks.read(id)).state._tag).toBe('Closed');
+        // Mended an hour on, the same close files it, at the time it was closed.
+        yield* fs.writeFileString(ledger, kept);
+        yield* TestClock.adjust('1 hour');
+        yield* asks.close(id, 'not needed');
+        const said = Option.getOrThrow(yield* productions.read('f')).said;
+        expect(said.map((s) => [s._tag, s.at, s.text])).toEqual([
+          ['Noted', closed, `Keep a try (ask ${id}) withdrawn: not needed`],
         ]);
       }),
     ),

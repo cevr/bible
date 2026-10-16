@@ -395,7 +395,11 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
                 reason: `it is closed already: ${current.state.why}`,
               });
             }
-            const state = yield* moved(current.ask, current.state, AskEvent.Close({ why }));
+            const state = yield* moved(
+              current.ask,
+              current.state,
+              AskEvent.Close({ why, at: yield* now }),
+            );
             const next: AskRecord = { ...current, state };
             return [next, next] as const;
           }),
@@ -414,7 +418,8 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
  * What an ask files on its production's timeline as it stands at `now`: its
  * question, when it names a set (at the time it was made); and once closed,
  * the owner's decision (its answers, answered to its end, at the time of his
- * last answer) or its withdrawal (a note, closed before, at `now`).
+ * last answer) or its withdrawal (a note, closed before, at the time it was
+ * closed; `now` for a record with no close time).
  */
 const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
   const set = Option.map(Option.fromUndefinedOr(record.set), setPathOf);
@@ -450,7 +455,7 @@ const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
         return [
           {
             _tag: 'Noted',
-            at: now,
+            at: timeOf(Option.fromUndefinedOr(closed.at)),
             text: `${named} withdrawn: ${closed.why}`,
             quote: Option.none(),
             ...on,

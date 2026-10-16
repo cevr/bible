@@ -714,15 +714,16 @@ export const filled = (values: StepValues): StepValues =>
 export const AskState = State({
   Asking: { step: AskName, answers: Answers },
   Answered: { step: AskName, answers: Answers },
-  Closed: { answers: Answers, why: Schema.String },
+  /** `at`: when it was closed (ISO); a record with none still reads (its withdrawal is then filed at the time it is filed). */
+  Closed: { answers: Answers, why: Schema.String, at: Schema.optionalKey(Schema.String) },
 });
 export type AskState = typeof AskState.Type;
 
 export const AskEvent = Event({
   /** The owner's answers to step `step`. */
   Answer: { step: AskName, values: StepValues },
-  /** The agent closes the ask (withdrawn, or filed once answered). */
-  Close: { why: Schema.String },
+  /** The agent closes the ask (withdrawn, or filed once answered), at `at` (ISO). */
+  Close: { why: Schema.String, at: Schema.optionalKey(Schema.String) },
 });
 export type AskEvent = typeof AskEvent.Type;
 
@@ -991,7 +992,14 @@ export const askMachine = (ask: Ask, from: AskState = askStart(ask)) =>
       ({ state, event }) => answered(ask, state, event.values),
     )
     .on([AskState.Asking, AskState.Answered], AskEvent.Close, ({ state, event }) =>
-      AskState.Closed({ answers: state.answers, why: event.why }),
+      AskState.Closed({
+        answers: state.answers,
+        why: event.why,
+        ...Option.match(Option.fromUndefinedOr(event.at), {
+          onNone: () => ({}),
+          onSome: (at) => ({ at }),
+        }),
+      }),
     )
     .final(AskState.Closed);
 
