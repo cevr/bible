@@ -175,7 +175,14 @@ const labBody = (films: Films, host: Host, fail: (why: string) => Effect.Effect<
     () => stageFilm(films, addressOn(host).href()),
     fail,
     (staged, hub) => {
-      const player = mountPreview(staged, host, labTime(staged.name, staged.film, host), hub, fail);
+      const player = mountPreview(
+        staged,
+        host,
+        labTime(staged.name, staged.film, host),
+        hub,
+        fail,
+        'own',
+      );
       const part = labPartOf(addressOn(host).href());
       const Body = BODIES[part];
       return Effect.as(Effect.logInfo(`lab.mounted film=${staged.name} part=${part}`), () => (

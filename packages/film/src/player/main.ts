@@ -192,6 +192,13 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
 };
 
 /**
+ * Whose commands a preview's transport is: its own (`own`: play, the frame
+ * and scene steps, the captions), or the page's that drives its clock (`page`:
+ * the film's studio keys its own, and the preview registers none).
+ */
+type PreviewTransport = 'own' | 'page';
+
+/**
  * The scrubbable preview of a staged film: its bar and timeline, its clock,
  * and its transport, registered as commands with the page's `hub` (whose
  * keymap binds their keys, which the `?` sheet lists). Its legend (the
@@ -207,6 +214,7 @@ export const mountPreview = (
   time: TimeInUrl,
   hub: Hub,
   fail: (why: string) => Effect.Effect<void>,
+  transport: PreviewTransport,
 ): Player => {
   const bar = document.createElement('div');
   bar.className = 'bar';
@@ -542,25 +550,27 @@ export const mountPreview = (
     captions.on = !captions.on;
     draw();
   });
-  // The transport, as the page's commands: its keys are the page's keymap's.
-  hub.commands.register(
-    ...transportCommands(page, {
-      toggle,
-      stepFrames: (frames) => seek(T + frames / film.fps),
-      nextScene: () => {
-        const cur = film.sceneAt(T);
-        seek((film.placed[cur.index + 1] ?? cur).start);
-      },
-      previousScene: () => {
-        const cur = film.sceneAt(T);
-        seek(T - cur.start > 0.5 ? cur.start : (film.placed[cur.index - 1] ?? cur).start);
-      },
-      toggleCaptions: () => {
-        captions.on = !captions.on;
-        draw();
-      },
-    }),
-  );
+  // The transport, as the page's commands: its keys are the page's keymap's. A page that
+  // drives the preview's clock itself keys its own transport, which these would repeat.
+  if (transport === 'own')
+    hub.commands.register(
+      ...transportCommands(page, {
+        toggle,
+        stepFrames: (frames) => seek(T + frames / film.fps),
+        nextScene: () => {
+          const cur = film.sceneAt(T);
+          seek((film.placed[cur.index + 1] ?? cur).start);
+        },
+        previousScene: () => {
+          const cur = film.sceneAt(T);
+          seek(T - cur.start > 0.5 ? cur.start : (film.placed[cur.index - 1] ?? cur).start);
+        },
+        toggleCaptions: () => {
+          captions.on = !captions.on;
+          draw();
+        },
+      }),
+    );
   hub.refine((now) => ({ ...now, playing }));
   // The lab's transport steps a frame at a time by touch too: the
   // frame keys' own commands, as a pair beside play. Its legend, hidden at

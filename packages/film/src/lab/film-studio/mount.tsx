@@ -49,7 +49,8 @@ const studioBody =
     Effect.runPromiseWith(host)(
       Effect.tryPromise(() => stageFilm(pages, addressOn(host).href())).pipe(
         Effect.map((staged): Option.Option<StagedFilm> => {
-          const player = mountPreview(staged, host, studioTime, hub, fail);
+          // The studio keys its own transport over the preview's clock.
+          const player = mountPreview(staged, host, studioTime, hub, fail, 'page');
           player.bar.remove();
           return Option.some({ staged, player });
         }),

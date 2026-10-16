@@ -272,6 +272,24 @@ describe('a zoom step on a laptop', () => {
   );
 });
 
+describe("the studio's command menu", () => {
+  it.live(
+    "lists the studio's transport, and none of the preview's beside it",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioAt(DESK);
+        const MENU = '[data-role="command-menu"]';
+        yield* page.press('Control+k');
+        yield* waitFor(page, `${MENU} [data-command="studio.on"]`);
+        for (const id of ['play.scene-next', 'play.scene-previous', 'view.captions'])
+          yield* countIs(page, `${MENU} [data-command="${id}"]`, 0);
+        yield* countIs(page, `${MENU} [data-command="play.toggle"]`, 1);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
 describe('what waits, on a phone', () => {
   it.live(
     'is a line a thumb can tap, naming the first thing, that opens the list',
