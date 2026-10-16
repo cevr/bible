@@ -152,8 +152,9 @@
 // landing shows what the verdict means, not his conversion:
 // the seed "makes a man righteous the moment he takes it" is said as a plain
 // truth, never as his decision. The garden's grandmother ("Picture a
-// grandmother…") is a second plain figure, the same figure in a warm oat
-// paper so she is never taken for him, in a garden that is no one's. The
+// grandmother…") is Rosa, the recurring cast's grandmother in the hills
+// (owner, 2026-10-16: "the grandmother should be one the background cast
+// members, the old lady"), the one cast member this film features. The
 // recurring cast (docs/ensemble.md) may stand in the court's gallery as
 // background, and none is required; no cast member stands in a Bible scene.
 // Christ in the STORY scenes, and as the Advocate at the landing.
@@ -266,7 +267,7 @@ export const script = defineScript([
     // Him there, never a stain in Him. The tail is the film's one black
     // moment, a designed silence (CRAFT rules 10 and 11).
     id: 'grain',
-    say: '{forgive}But how can God forgive? {//} {guilt}He will not clear the guilty. {/} {pays}So {*}who pays? {//} Jesus answers with a seed, a grain of wheat: {/} {except}“Except a corn of wheat fall into the ground and {*}die, it abideth alone: {/} but if it die, it bringeth forth much fruit.” {//1} {fruit}He was that seed. {/} {treated}He was treated as {*}we deserve, {/} so we could be treated as {*}He deserves. {/} {laid}He had no sin of His own, {/} but {*}ours were laid on Him. {/} He gave Himself for us as a sacrifice. {//} {cross}Why? {/} Because He {*}loves us.',
+    say: '{forgive}But how can God forgive? {//} {guilt}He will not clear the guilty. {/} {pays}So {*}who pays? {//} Jesus answers with a seed, a grain of wheat: {/} {except}“Except a corn of wheat fall into the ground and {*}die, it abideth alone: {/} but if it die, it bringeth forth much fruit.” {//1} {fruit}He was that seed. {/} {treated}He was treated as {*}we deserve, {/} so we could be treated as {*}He deserves. {/} {laid}He had no sin of His own, {/} but {*}ours were laid on Him. {/} He {*}Himself paid the price, {/} and gave Himself for us as a sacrifice. {//} {cross}Why? {/} Because He {*}loves us.',
     lead: 0.4,
     tail: 4.5,
     cite: [
@@ -277,6 +278,8 @@ export const script = defineScript([
       'Ellen G. White, The Desire of Ages, 25',
       '2 Corinthians 5:21',
       'Isaiah 53:6',
+      '1 Peter 2:24',
+      '1 Corinthians 6:20',
       'Ephesians 5:2',
     ],
     picture: `STORY: the page opens on \`look\`'s closing row; on \`forgive\` (the act's question) the white cloth pulses and the other two icons dim (forgiveness opens on its icon). On \`guilt\` the camera pushes through the cloth into a hill at sunset (the valley's light). The cross stands on the hill where the pole stood in \`look\`'s last shot, in the same position and scale (CRAFT rule 8). On \`pays\` the camera drifts down the hill to a ploughed field below it, its furrows dark. On \`except\` the set piece, one shot held throughout (CRAFT rule 2): a single grain of wheat falls, slow, into a furrow, and the earth closes over it. On \`fruit\` the furrow's line runs on up the hill to the cross. On \`treated\` close on Jesus's face at a third of the frame, under the darkening sky. On \`laid\` scarlet cloths lift off a crowd of small figures at the hill's foot and are laid on His shoulders: on Him, never a stain in Him, His own figure unmarked under them. On \`cross\` the hill, the cross and the figures go to silhouette against the last red, and the love line is said over it; then to black, held through the tail (4–6 s), the film's one black moment. ${CARDS}`,
@@ -315,18 +318,21 @@ export const script = defineScript([
     // The silenced accuser stays in the shadow at the court's edge throughout
     // (the frame: never the robe scene without the accuser).
     id: 'robe',
-    say: "{take}Then He has the filthy clothes taken off him, {/} {pass}and says, “Behold, I have caused thine iniquity to {*}pass from thee.” {//} {loom}And He dresses him in a robe from heaven's loom, without one thread of his own. {/} {nicer}Now, isn't that just a nicer coat over the stain? {/} {cloak}No. {/} He doesn't {*}cover the stain. {/} {away}He takes it {*}away. {//} {walk}And then He says, {*}walk in my ways.",
+    say: "{take}Then He has the filthy clothes taken off him, {/} {pass}and says, “Behold, I have caused thine iniquity to {*}pass from thee.” {//} {loom}And He dresses him in a robe from heaven's loom, without one thread of his own. {//} {exchange}It's an {*}exchange. {/} He asks for our sins, {/} and gives us His own {*}righteousness. {//} {nicer}Now, isn't that just a nicer coat over the stain? {/} {cloak}No. {/} He doesn't {*}cover the stain. {/} {away}He takes it {*}away. {//} {walk}And then He says, {*}walk in my ways.",
     lead: 0.4,
     tail: 1.2,
     cite: [
       'Zechariah 3:4',
       "Ellen G. White, Christ's Object Lessons, 311",
       'Isaiah 61:10',
+      'Ellen G. White, Letter 29, 1893',
+      'Ellen G. White, Sermons and Talks, vol. 1, 237',
+      '2 Corinthians 5:21',
       'E. J. Waggoner, Christ and His Righteousness, 64, 65',
       'Ellen G. White, Thoughts From the Mount of Blessing, 114',
       'Zechariah 3:7',
     ],
-    picture: `STORY: the same court, the silenced accuser in shadow at its edge from \`take\` to \`walk\`. On \`take\` those standing before Him lift the filthy garments off Joshua and carry them out of the frame; on \`pass\` the last scarlet speck lifts from him, and close on Joshua's face at a third of the frame, clean. On \`loom\` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light. The robe settles onto Joshua, and he looks down at it. On \`nicer\` the doubt from \`cold\`: the gold seal's old outline, a label, hovers over the robe for a breath. On \`cloak\` a cross-section: under the white robe, clean cloth on clean skin, nothing left to cover, the reverse of \`cold\`'s seal over the stain; on \`away\` the full-screen card, "away" large in white. On \`walk\` Joshua takes his first step across the court's floor toward the Angel, upright: the walk follows the pardon. After the last word, pull back to the three icons, the white cloth glowing. ${CARDS}`,
+    picture: `STORY: the same court, the silenced accuser in shadow at its edge from \`take\` to \`walk\`. On \`take\` those standing before Him lift the filthy garments off Joshua; on \`pass\` the last scarlet speck lifts from him, and close on Joshua's face at a third of the frame, clean. On \`loom\` push in to a gold loom in the light: white threads cross and a robe weaves itself, no hand at the loom but light. The robe settles onto Joshua, and he looks down at it. On \`exchange\` the two side by side in one frame: the Angel holds Joshua's filthy garments in His own hands, and Joshua stands in the white robe; our sins with Him, His robe on us. On \`nicer\` the doubt from \`cold\`: the gold seal's old outline, a label, hovers over the robe for a breath. On \`cloak\` a cross-section: under the white robe, clean cloth on clean skin, nothing left to cover, the reverse of \`cold\`'s seal over the stain; on \`away\` the full-screen card, "away" large in white. On \`walk\` Joshua takes his first step across the court's floor toward the Angel, upright: the walk follows the pardon. After the last word, pull back to the three icons, the white cloth glowing. ${CARDS}`,
   },
   {
     // Power opens on its icon, for the walk `robe` ends on, and the switch to
@@ -359,7 +365,7 @@ export const script = defineScript([
       'E. J. Waggoner, General Conference Daily Bulletin, March 8, 1897, 303',
       'Hebrews 4:10',
     ],
-    picture: `IDEA: a garden in the hills, set on the page (a gate, the beds, a bench under a fig tree), in morning light, the dawn of \`robe\` gone on to morning. On \`part\` the camera comes in over the garden's gate. On \`picture\` the grandmother, a second plain figure (character-design 2.3: the plain lead's figure in a warm oat paper, so she is never taken for the accused; no mark that tells who she is), kneels at a bed, her face at a third of the frame. On \`sow\` she presses seeds into the soil and waters them. On \`grow\` she sits back on her heels and waits: nothing she does pulls a shoot up. On \`power\` the soil over the seeds breaks and green comes through. On \`blade\` growth in three stages in one held shot: first the blade, then the ear, then the full corn in the ear; the verse's full-screen card may cut in, "blade" large in gold. On \`morning\` the sun rises over the garden two or three times, and each morning she is out at the beds before it. On \`will\` she stands and lifts her open hand, palm up, to the morning light (the hand from \`look\`), and the shoots stretch up toward it. On \`seventh\` the sixth sun sets gold; on \`rest\` her tools lie set down by the gate and she sits on the bench under the fig tree, face calm, the garden growing on round her. ${CARDS}`,
+    picture: `IDEA: a garden in the hills, set on the page (a gate, the beds, a bench under a fig tree), in morning light, the dawn of \`robe\` gone on to morning. On \`part\` the camera comes in over the garden's gate. On \`picture\` the grandmother, Rosa from the recurring cast (docs/ensemble.md: 71, short with a slight forward stoop, silver hair in a bun in a pale cool paper, a long plum skirt and a lighter plum shawl, a wide garden hat), kneels at a bed, her face at a third of the frame. On \`sow\` she presses seeds into the soil and waters them. On \`grow\` she sits back on her heels and waits: nothing she does pulls a shoot up. On \`power\` the soil over the seeds breaks and green comes through. On \`blade\` growth in three stages in one held shot: first the blade, then the ear, then the full corn in the ear; the verse's full-screen card may cut in, "blade" large in gold. On \`morning\` the sun rises over the garden two or three times, and each morning she is out at the beds before it. On \`will\` she stands and lifts her open hand, palm up, to the morning light (the hand from \`look\`), and the shoots stretch up toward it. On \`seventh\` the sixth sun sets gold; on \`rest\` her tools lie set down by the gate and she sits on the bench under the fig tree, face calm, the garden growing on round her. ${CARDS}`,
   },
   {
     // The one glance ahead (the owner's reach): the latter rain and the

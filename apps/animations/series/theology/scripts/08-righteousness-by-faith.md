@@ -85,7 +85,7 @@ _How can God forgive?_ · sunset to the one black moment
 
 ### `grain` · STORY · at 4:22 (45 %) · 90 words
 
-**say:** {forgive}But how can God forgive? {//} {guilt}He will not clear the guilty. {/} {pays}So {*}who pays? {//} Jesus answers with a seed, a grain of wheat: {/} {except}“Except a corn of wheat fall into the ground and {*}die, it abideth alone: {/} but if it die, it bringeth forth much fruit.” {//1} {fruit}He was that seed. {/} {treated}He was treated as {*}we deserve, {/} so we could be treated as {*}He deserves. {/} {laid}He had no sin of His own, {/} but {*}ours were laid on Him. {/} He gave Himself for us as a sacrifice. {//} {cross}Why? {/} Because He {*}loves us.
+**say:** {forgive}But how can God forgive? {//} {guilt}He will not clear the guilty. {/} {pays}So {*}who pays? {//} Jesus answers with a seed, a grain of wheat: {/} {except}“Except a corn of wheat fall into the ground and {*}die, it abideth alone: {/} but if it die, it bringeth forth much fruit.” {//1} {fruit}He was that seed. {/} {treated}He was treated as {*}we deserve, {/} so we could be treated as {*}He deserves. {/} {laid}He had no sin of His own, {/} but {*}ours were laid on Him. {/} He {*}Himself paid the price, {/} and gave Himself for us as a sacrifice. {//} {cross}Why? {/} Because He {*}loves us.
 
 **picture:** STORY: the page opens on look's closing row; on forgive (the act's question) the white cloth pulses and the other two icons dim (forgiveness opens on its icon).
 
@@ -113,7 +113,7 @@ _Does Jesus’s work end at the cross?_ · dawn to morning
 
 ### `robe` · STORY · at 6:06 (62 %) · 65 words
 
-**say:** {take}Then He has the filthy clothes taken off him, {/} {pass}and says, “Behold, I have caused thine iniquity to {*}pass from thee.” {//} {loom}And He dresses him in a robe from heaven's loom, without one thread of his own. {/} {nicer}Now, isn't that just a nicer coat over the stain? {/} {cloak}No. {/} He doesn't {*}cover the stain. {/} {away}He takes it {*}away. {//} {walk}And then He says, {*}walk in my ways.
+**say:** {take}Then He has the filthy clothes taken off him, {/} {pass}and says, “Behold, I have caused thine iniquity to {*}pass from thee.” {//} {loom}And He dresses him in a robe from heaven's loom, without one thread of his own. {//} {exchange}It's an {*}exchange. {/} He asks for our sins, {/} and gives us His own {*}righteousness. {//} {nicer}Now, isn't that just a nicer coat over the stain? {/} {cloak}No. {/} He doesn't {*}cover the stain. {/} {away}He takes it {*}away. {//} {walk}And then He says, {*}walk in my ways.
 
 **picture:** STORY: the same court, the silenced accuser in shadow at its edge from take to walk.
 

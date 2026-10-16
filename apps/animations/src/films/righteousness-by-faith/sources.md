@@ -204,6 +204,14 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 
   > All we like sheep have gone astray; we have turned every one to his own way; and the LORD hath laid on him the iniquity of us all.
 
+- **1 Peter 2:24** (KJV). Paraphrased: "He Himself paid the price". He bore our sins in His own body, Himself.
+
+  > Who his own self bare our sins in his own body on the tree, that we, being dead to sins, should live unto righteousness: by whose stripes ye were healed.
+
+- **1 Corinthians 6:20** (KJV). Paraphrased: "paid the price". We are bought with a price.
+
+  > For ye are bought with a price: therefore glorify God in your body, and in your spirit, which are God's.
+
 - **Ephesians 5:2** (KJV). Paraphrased: "He gave Himself for us as a sacrifice." and "Why? Because He loves us." Christ “hath loved us, and hath given himself for us an offering and a sacrifice to God”.
 
   > And walk in love, as Christ also hath loved us, and hath given himself for us an offering and a sacrifice to God for a sweetsmelling savour.
@@ -277,6 +285,16 @@ Bylines. “The Seed-sowing of the Gospel” (_The Signs of the Times_, November
 - **COL 311.4** · Ellen G. White, _Christ’s Object Lessons_ (1900). Paraphrased: "a robe from heaven's loom, without one thread of his own."
 
   > This robe, woven in the loom of heaven, has in it not one thread of human devising.
+
+- **8LtMs, Lt 29, 1893, par. 5** · Ellen G. White, _Letter 29, 1893_ (1893). Paraphrased: "It's an exchange: He asks for our sins, and gives us His own righteousness."
+
+  > He will take away your sins, He will give to you His own righteousness.
+
+- **1SAT 237.2** · Ellen G. White, _Sermons and Talks, vol. 1_ (compiled 1990). Paraphrased: "He asks for our sins". Christ offers to take the sinner's sin.
+
+  > Christ says He will take your sin if you lay hold of the merits of a crucified and risen Saviour.
+
+- **2 Corinthians 5:21** (KJV) and **DA 25.2**, as in `grain`. Paraphrased: "and gives us His own righteousness". He was made sin for us, that we might be made the righteousness of God in Him; condemned for our sins, that we might be justified by His righteousness.
 
 - **CHR 64.2** · E. J. Waggoner, _Christ and His Righteousness_ (1890). Paraphrased: "He doesn't cover the stain. He takes it away." God will by no means clear the guilty, and He does not: He removes the guilt.
 

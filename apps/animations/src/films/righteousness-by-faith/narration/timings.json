@@ -5260,16 +5260,16 @@
       "delivered": "a1457f19"
     },
     "grain": {
-      "hash": "cf83766b",
-      "file": "grain.5d5549717ce4.flac",
-      "duration": 37.4,
+      "hash": "d15f83a6",
+      "file": "grain.4405161cf4e8.flac",
+      "duration": 40.51,
       "words": [
         {
           "text": "But",
           "start": 0,
           "end": 0.16,
           "voiced": {
-            "start": 0.06,
+            "start": 0.07,
             "end": 0.16
           }
         },
@@ -5287,7 +5287,7 @@
           "start": 0.48,
           "end": 0.64,
           "voiced": {
-            "start": 0.48,
+            "start": 0.49,
             "end": 0.64
           }
         },
@@ -5321,10 +5321,10 @@
         {
           "text": "will",
           "start": 2.467,
-          "end": 2.627,
+          "end": 2.547,
           "voiced": {
             "start": 2.467,
-            "end": 2.627
+            "end": 2.547
           }
         },
         {
@@ -5333,7 +5333,7 @@
           "end": 2.947,
           "voiced": {
             "start": 2.707,
-            "end": 2.947
+            "end": 2.927
           }
         },
         {
@@ -5347,20 +5347,20 @@
         },
         {
           "text": "the",
-          "start": 3.307,
-          "end": 3.347,
+          "start": 3.347,
+          "end": 3.427,
           "voiced": {
-            "start": 3.307,
-            "end": 3.347
+            "start": 3.347,
+            "end": 3.427
           }
         },
         {
           "text": "guilty.",
-          "start": 3.427,
-          "end": 3.907,
+          "start": 3.467,
+          "end": 3.934,
           "voiced": {
-            "start": 3.427,
-            "end": 3.877
+            "start": 3.467,
+            "end": 3.907
           }
         },
         {
@@ -5386,489 +5386,471 @@
           "start": 5.347,
           "end": 5.854,
           "voiced": {
-            "start": 5.357,
-            "end": 5.854
+            "start": 5.347,
+            "end": 5.847
           }
         },
         {
           "text": "Jesus",
           "start": 6.454,
-          "end": 6.654,
+          "end": 6.774,
           "voiced": {
             "start": 6.454,
-            "end": 6.654
+            "end": 6.774
           }
         },
         {
           "text": "answers",
-          "start": 6.734,
-          "end": 7.134,
+          "start": 6.854,
+          "end": 7.254,
           "voiced": {
-            "start": 6.734,
-            "end": 7.134
+            "start": 6.854,
+            "end": 7.254
           }
         },
         {
           "text": "with",
-          "start": 7.214,
-          "end": 7.294,
+          "start": 7.334,
+          "end": 7.414,
           "voiced": {
-            "start": 7.214,
-            "end": 7.294
+            "start": 7.364,
+            "end": 7.414
           }
         },
         {
           "text": "a",
-          "start": 7.334,
-          "end": 7.374,
+          "start": 7.494,
+          "end": 7.574,
           "voiced": {
-            "start": 7.334,
-            "end": 7.374
+            "start": 7.494,
+            "end": 7.574
           }
         },
         {
           "text": "seed,",
-          "start": 7.534,
-          "end": 8.334,
+          "start": 7.654,
+          "end": 8.534,
           "voiced": {
-            "start": 7.534,
-            "end": 7.874
+            "start": 7.654,
+            "end": 8.074
           }
         },
         {
           "text": "a",
-          "start": 8.374,
-          "end": 8.414,
+          "start": 8.614,
+          "end": 8.694,
           "voiced": {
-            "start": 8.374,
-            "end": 8.414
+            "start": 8.624,
+            "end": 8.694
           }
         },
         {
           "text": "grain",
-          "start": 8.494,
-          "end": 8.734,
+          "start": 8.774,
+          "end": 9.014,
           "voiced": {
-            "start": 8.494,
-            "end": 8.734
+            "start": 8.774,
+            "end": 9.014
           }
         },
         {
           "text": "of",
-          "start": 8.814,
-          "end": 8.894,
+          "start": 9.094,
+          "end": 9.174,
           "voiced": {
-            "start": 8.814,
-            "end": 8.894
+            "start": 9.094,
+            "end": 9.174
           }
         },
         {
           "text": "wheat:",
-          "start": 8.974,
-          "end": 9.934,
+          "start": 9.254,
+          "end": 9.574,
           "voiced": {
-            "start": 8.974,
-            "end": 9.254
+            "start": 9.254,
+            "end": 9.534
           }
         },
         {
           "text": "“Except",
-          "start": 10.22,
-          "end": 10.334,
+          "start": 10.641,
+          "end": 10.774,
           "voiced": {
-            "start": 10.22,
-            "end": 10.334
+            "start": 10.641,
+            "end": 10.774
           }
         },
         {
           "text": "a",
-          "start": 10.414,
-          "end": 10.494,
+          "start": 10.854,
+          "end": 10.934,
           "voiced": {
-            "start": 10.414,
-            "end": 10.474
+            "start": 10.854,
+            "end": 10.904
           }
         },
         {
           "text": "corn",
-          "start": 10.574,
-          "end": 10.814,
+          "start": 11.014,
+          "end": 11.254,
           "voiced": {
-            "start": 10.574,
-            "end": 10.814
+            "start": 11.014,
+            "end": 11.254
           }
         },
         {
           "text": "of",
-          "start": 10.854,
-          "end": 10.894,
+          "start": 11.294,
+          "end": 11.334,
           "voiced": {
-            "start": 10.854,
-            "end": 10.894
+            "start": 11.294,
+            "end": 11.334
           }
         },
         {
           "text": "wheat",
-          "start": 11.054,
-          "end": 11.294,
+          "start": 11.494,
+          "end": 11.734,
           "voiced": {
-            "start": 11.054,
-            "end": 11.294
+            "start": 11.494,
+            "end": 11.734
           }
         },
         {
           "text": "fall",
-          "start": 11.454,
-          "end": 11.694,
+          "start": 11.894,
+          "end": 12.134,
           "voiced": {
-            "start": 11.454,
-            "end": 11.694
+            "start": 11.894,
+            "end": 12.134
           }
         },
         {
           "text": "into",
-          "start": 11.814,
-          "end": 11.934,
+          "start": 12.254,
+          "end": 12.374,
           "voiced": {
-            "start": 11.814,
-            "end": 11.934
+            "start": 12.254,
+            "end": 12.374
           }
         },
         {
           "text": "the",
-          "start": 11.974,
-          "end": 12.014,
+          "start": 12.414,
+          "end": 12.454,
           "voiced": {
-            "start": 11.974,
-            "end": 12.014
+            "start": 12.414,
+            "end": 12.454
           }
         },
         {
           "text": "ground",
-          "start": 12.094,
-          "end": 12.494,
+          "start": 12.534,
+          "end": 12.854,
           "voiced": {
-            "start": 12.094,
-            "end": 12.494
+            "start": 12.534,
+            "end": 12.854
           }
         },
         {
           "text": "and",
-          "start": 12.614,
-          "end": 12.734,
+          "start": 12.974,
+          "end": 13.094,
           "voiced": {
-            "start": 12.614,
-            "end": 12.734
+            "start": 12.974,
+            "end": 13.094
           }
         },
         {
           "text": "die,",
-          "start": 12.774,
-          "end": 13.534,
+          "start": 13.134,
+          "end": 13.894,
           "voiced": {
-            "start": 12.774,
-            "end": 13.164
+            "start": 13.134,
+            "end": 13.544
           }
         },
         {
           "text": "it",
-          "start": 13.614,
-          "end": 13.694,
+          "start": 13.934,
+          "end": 13.974,
           "voiced": {
-            "start": 13.624,
-            "end": 13.694
+            "start": 13.944,
+            "end": 13.974
           }
         },
         {
           "text": "abideth",
-          "start": 13.774,
-          "end": 14.174,
+          "start": 14.054,
+          "end": 14.534,
           "voiced": {
-            "start": 13.774,
-            "end": 14.174
+            "start": 14.054,
+            "end": 14.534
           }
         },
         {
           "text": "alone:",
-          "start": 14.414,
-          "end": 15.374,
+          "start": 14.774,
+          "end": 15.654,
           "voiced": {
-            "start": 14.414,
-            "end": 14.694
+            "start": 14.774,
+            "end": 15.014
           }
         },
         {
           "text": "but",
-          "start": 15.441,
-          "end": 15.454,
+          "start": 15.734,
+          "end": 15.814,
           "voiced": {
-            "start": 15.441,
-            "end": 15.454
+            "start": 15.734,
+            "end": 15.814
           }
         },
         {
           "text": "if",
-          "start": 15.534,
-          "end": 15.614,
+          "start": 15.894,
+          "end": 15.974,
           "voiced": {
-            "start": 15.534,
-            "end": 15.614
+            "start": 15.894,
+            "end": 15.974
           }
         },
         {
           "text": "it",
-          "start": 15.694,
-          "end": 15.774,
+          "start": 16.054,
+          "end": 16.134,
           "voiced": {
-            "start": 15.694,
-            "end": 15.754
+            "start": 16.054,
+            "end": 16.094
           }
         },
         {
           "text": "die,",
-          "start": 15.854,
-          "end": 16.574,
+          "start": 16.294,
+          "end": 16.854,
           "voiced": {
-            "start": 15.854,
-            "end": 16.154
+            "start": 16.294,
+            "end": 16.494
           }
         },
         {
           "text": "it",
-          "start": 16.654,
-          "end": 16.734,
+          "start": 16.934,
+          "end": 17.014,
           "voiced": {
-            "start": 16.654,
-            "end": 16.714
+            "start": 16.934,
+            "end": 17.004
           }
         },
         {
           "text": "bringeth",
-          "start": 16.814,
-          "end": 17.134,
+          "start": 17.094,
+          "end": 17.414,
           "voiced": {
-            "start": 16.814,
-            "end": 17.134
+            "start": 17.094,
+            "end": 17.414
           }
         },
         {
           "text": "forth",
-          "start": 17.214,
-          "end": 17.534,
+          "start": 17.494,
+          "end": 17.814,
           "voiced": {
-            "start": 17.214,
-            "end": 17.514
+            "start": 17.494,
+            "end": 17.814
           }
         },
         {
           "text": "much",
-          "start": 17.694,
-          "end": 17.934,
+          "start": 17.974,
+          "end": 18.214,
           "voiced": {
-            "start": 17.694,
-            "end": 17.934
+            "start": 17.974,
+            "end": 18.214
           }
         },
         {
           "text": "fruit.”",
-          "start": 18.014,
-          "end": 18.774,
+          "start": 18.294,
+          "end": 18.694,
           "voiced": {
-            "start": 18.014,
-            "end": 18.344
+            "start": 18.294,
+            "end": 18.634
           }
         },
         {
           "text": "He",
-          "start": 19.774,
-          "end": 20.014,
+          "start": 19.694,
+          "end": 19.934,
           "voiced": {
-            "start": 19.774,
-            "end": 20.014
+            "start": 19.694,
+            "end": 19.934
           }
         },
         {
           "text": "was",
-          "start": 20.094,
-          "end": 20.254,
+          "start": 20.014,
+          "end": 20.174,
           "voiced": {
-            "start": 20.094,
-            "end": 20.254
+            "start": 20.014,
+            "end": 20.174
           }
         },
         {
           "text": "that",
-          "start": 20.334,
-          "end": 20.494,
+          "start": 20.254,
+          "end": 20.414,
           "voiced": {
-            "start": 20.334,
-            "end": 20.494
+            "start": 20.254,
+            "end": 20.384
           }
         },
         {
           "text": "seed.",
-          "start": 20.574,
-          "end": 21.534,
+          "start": 20.494,
+          "end": 20.921,
           "voiced": {
-            "start": 20.574,
-            "end": 20.914
+            "start": 20.494,
+            "end": 20.874
           }
         },
         {
           "text": "He",
-          "start": 21.614,
-          "end": 21.694,
+          "start": 21.774,
+          "end": 21.854,
           "voiced": {
-            "start": 21.614,
-            "end": 21.694
+            "start": 21.774,
+            "end": 21.854
           }
         },
         {
           "text": "was",
-          "start": 21.774,
-          "end": 21.934,
+          "start": 21.934,
+          "end": 22.014,
           "voiced": {
-            "start": 21.774,
-            "end": 21.914
+            "start": 21.934,
+            "end": 22.014
           }
         },
         {
           "text": "treated",
-          "start": 21.974,
-          "end": 22.334,
+          "start": 22.094,
+          "end": 22.494,
           "voiced": {
-            "start": 21.974,
-            "end": 22.334
+            "start": 22.094,
+            "end": 22.494
           }
         },
         {
           "text": "as",
-          "start": 22.414,
-          "end": 22.654,
+          "start": 22.574,
+          "end": 22.734,
           "voiced": {
-            "start": 22.414,
-            "end": 22.654
+            "start": 22.574,
+            "end": 22.734
           }
         },
         {
           "text": "we",
-          "start": 22.734,
-          "end": 22.814,
+          "start": 22.894,
+          "end": 23.054,
           "voiced": {
-            "start": 22.734,
-            "end": 22.814
+            "start": 22.894,
+            "end": 23.054
           }
         },
         {
           "text": "deserve,",
-          "start": 22.894,
-          "end": 23.934,
+          "start": 23.134,
+          "end": 24.174,
           "voiced": {
-            "start": 22.894,
-            "end": 23.404
+            "start": 23.134,
+            "end": 23.674
           }
         },
         {
           "text": "so",
-          "start": 24.014,
-          "end": 24.174,
+          "start": 24.254,
+          "end": 24.414,
           "voiced": {
-            "start": 24.014,
-            "end": 24.174
+            "start": 24.254,
+            "end": 24.414
           }
         },
         {
           "text": "we",
-          "start": 24.254,
-          "end": 24.334,
+          "start": 24.494,
+          "end": 24.654,
           "voiced": {
-            "start": 24.254,
-            "end": 24.334
+            "start": 24.494,
+            "end": 24.654
           }
         },
         {
           "text": "could",
-          "start": 24.414,
-          "end": 24.574,
+          "start": 24.734,
+          "end": 24.814,
           "voiced": {
-            "start": 24.424,
-            "end": 24.574
+            "start": 24.734,
+            "end": 24.814
           }
         },
         {
           "text": "be",
-          "start": 24.654,
-          "end": 24.734,
+          "start": 24.894,
+          "end": 24.974,
           "voiced": {
-            "start": 24.654,
-            "end": 24.734
+            "start": 24.894,
+            "end": 24.974
           }
         },
         {
           "text": "treated",
-          "start": 24.774,
-          "end": 25.214,
+          "start": 25.054,
+          "end": 25.374,
           "voiced": {
-            "start": 24.774,
-            "end": 25.134
+            "start": 25.054,
+            "end": 25.374
           }
         },
         {
           "text": "as",
-          "start": 25.334,
-          "end": 25.454,
+          "start": 25.614,
+          "end": 25.774,
           "voiced": {
-            "start": 25.334,
-            "end": 25.454
+            "start": 25.624,
+            "end": 25.774
           }
         },
         {
           "text": "He",
-          "start": 25.534,
-          "end": 25.694,
+          "start": 25.934,
+          "end": 26.094,
           "voiced": {
-            "start": 25.534,
-            "end": 25.694
+            "start": 25.934,
+            "end": 26.094
           }
         },
         {
           "text": "deserves.",
-          "start": 25.774,
-          "end": 26.361,
+          "start": 26.174,
+          "end": 26.814,
           "voiced": {
-            "start": 25.774,
-            "end": 26.354
+            "start": 26.174,
+            "end": 26.794
           }
         },
         {
           "text": "He",
-          "start": 27.214,
-          "end": 27.294,
+          "start": 27.774,
+          "end": 27.854,
           "voiced": {
-            "start": 27.214,
-            "end": 27.294
+            "start": 27.774,
+            "end": 27.854
           }
         },
         {
           "text": "had",
-          "start": 27.374,
-          "end": 27.534,
-          "voiced": {
-            "start": 27.374,
-            "end": 27.534
-          }
-        },
-        {
-          "text": "no",
-          "start": 27.614,
-          "end": 27.774,
-          "voiced": {
-            "start": 27.614,
-            "end": 27.774
-          }
-        },
-        {
-          "text": "sin",
           "start": 27.934,
           "end": 28.094,
           "voiced": {
@@ -5877,205 +5859,268 @@
           }
         },
         {
-          "text": "of",
-          "start": 28.134,
-          "end": 28.174,
-          "voiced": {
-            "start": 28.134,
-            "end": 28.174
-          }
-        },
-        {
-          "text": "His",
-          "start": 28.254,
+          "text": "no",
+          "start": 28.174,
           "end": 28.334,
           "voiced": {
-            "start": 28.254,
+            "start": 28.174,
             "end": 28.334
           }
         },
         {
-          "text": "own,",
-          "start": 28.414,
-          "end": 29.134,
+          "text": "sin",
+          "start": 28.494,
+          "end": 28.654,
           "voiced": {
-            "start": 28.414,
-            "end": 28.694
+            "start": 28.494,
+            "end": 28.654
+          }
+        },
+        {
+          "text": "of",
+          "start": 28.694,
+          "end": 28.734,
+          "voiced": {
+            "start": 28.694,
+            "end": 28.734
+          }
+        },
+        {
+          "text": "His",
+          "start": 28.814,
+          "end": 28.894,
+          "voiced": {
+            "start": 28.814,
+            "end": 28.894
+          }
+        },
+        {
+          "text": "own,",
+          "start": 28.974,
+          "end": 29.694,
+          "voiced": {
+            "start": 28.974,
+            "end": 29.254
           }
         },
         {
           "text": "but",
-          "start": 29.214,
-          "end": 29.374,
-          "voiced": {
-            "start": 29.214,
-            "end": 29.314
-          }
-        },
-        {
-          "text": "ours",
-          "start": 29.454,
+          "start": 29.838,
           "end": 29.854,
           "voiced": {
-            "start": 29.454,
+            "start": 29.838,
             "end": 29.854
           }
         },
         {
-          "text": "were",
-          "start": 29.934,
-          "end": 30.014,
+          "text": "ours",
+          "start": 30.014,
+          "end": 30.494,
           "voiced": {
-            "start": 29.934,
-            "end": 30.014
+            "start": 30.014,
+            "end": 30.494
+          }
+        },
+        {
+          "text": "were",
+          "start": 30.574,
+          "end": 30.734,
+          "voiced": {
+            "start": 30.634,
+            "end": 30.734
           }
         },
         {
           "text": "laid",
-          "start": 30.094,
-          "end": 30.254,
+          "start": 30.814,
+          "end": 30.974,
           "voiced": {
-            "start": 30.094,
-            "end": 30.254
+            "start": 30.814,
+            "end": 30.974
           }
         },
         {
           "text": "on",
-          "start": 30.334,
-          "end": 30.414,
+          "start": 31.054,
+          "end": 31.134,
           "voiced": {
-            "start": 30.334,
-            "end": 30.414
+            "start": 31.054,
+            "end": 31.134
           }
         },
         {
           "text": "Him.",
-          "start": 30.494,
-          "end": 31.054,
+          "start": 31.214,
+          "end": 31.894,
           "voiced": {
-            "start": 30.494,
-            "end": 30.704
+            "start": 31.214,
+            "end": 31.454
           }
         },
         {
           "text": "He",
-          "start": 31.454,
-          "end": 31.534,
+          "start": 32.414,
+          "end": 32.574,
           "voiced": {
-            "start": 31.454,
-            "end": 31.534
-          }
-        },
-        {
-          "text": "gave",
-          "start": 31.614,
-          "end": 31.774,
-          "voiced": {
-            "start": 31.614,
-            "end": 31.774
+            "start": 32.414,
+            "end": 32.574
           }
         },
         {
           "text": "Himself",
-          "start": 31.854,
-          "end": 32.334,
+          "start": 32.654,
+          "end": 33.294,
           "voiced": {
-            "start": 31.854,
-            "end": 32.334
+            "start": 32.654,
+            "end": 33.294
+          }
+        },
+        {
+          "text": "paid",
+          "start": 33.374,
+          "end": 33.534,
+          "voiced": {
+            "start": 33.374,
+            "end": 33.534
+          }
+        },
+        {
+          "text": "the",
+          "start": 33.614,
+          "end": 33.694,
+          "voiced": {
+            "start": 33.614,
+            "end": 33.674
+          }
+        },
+        {
+          "text": "price,",
+          "start": 33.774,
+          "end": 34.574,
+          "voiced": {
+            "start": 33.774,
+            "end": 34.204
+          }
+        },
+        {
+          "text": "and",
+          "start": 34.707,
+          "end": 34.734,
+          "voiced": {
+            "start": 34.707,
+            "end": 34.734
+          }
+        },
+        {
+          "text": "gave",
+          "start": 34.814,
+          "end": 35.054,
+          "voiced": {
+            "start": 34.814,
+            "end": 35.054
+          }
+        },
+        {
+          "text": "Himself",
+          "start": 35.134,
+          "end": 35.534,
+          "voiced": {
+            "start": 35.134,
+            "end": 35.534
           }
         },
         {
           "text": "for",
-          "start": 32.414,
-          "end": 32.494,
+          "start": 35.614,
+          "end": 35.694,
           "voiced": {
-            "start": 32.414,
-            "end": 32.494
+            "start": 35.614,
+            "end": 35.694
           }
         },
         {
           "text": "us",
-          "start": 32.574,
-          "end": 32.814,
+          "start": 35.774,
+          "end": 36.014,
           "voiced": {
-            "start": 32.574,
-            "end": 32.774
+            "start": 35.774,
+            "end": 36.014
           }
         },
         {
           "text": "as",
-          "start": 32.854,
-          "end": 32.894,
+          "start": 36.174,
+          "end": 36.254,
           "voiced": {
-            "start": 32.854,
-            "end": 32.894
+            "start": 36.174,
+            "end": 36.254
           }
         },
         {
           "text": "a",
-          "start": 32.974,
-          "end": 33.054,
+          "start": 36.294,
+          "end": 36.334,
           "voiced": {
-            "start": 32.974,
-            "end": 33.054
+            "start": 36.294,
+            "end": 36.334
           }
         },
         {
           "text": "sacrifice.",
-          "start": 33.134,
-          "end": 34.254,
+          "start": 36.414,
+          "end": 37.214,
           "voiced": {
-            "start": 33.134,
-            "end": 33.934
+            "start": 36.414,
+            "end": 37.184
           }
         },
         {
           "text": "Why?",
-          "start": 34.854,
-          "end": 35.574,
+          "start": 37.814,
+          "end": 38.214,
           "voiced": {
-            "start": 34.854,
-            "end": 35.214
+            "start": 37.814,
+            "end": 38.144
           }
         },
         {
           "text": "Because",
-          "start": 36.214,
-          "end": 36.294,
+          "start": 39.334,
+          "end": 39.414,
           "voiced": {
-            "start": 36.214,
-            "end": 36.294
+            "start": 39.334,
+            "end": 39.414
           }
         },
         {
           "text": "He",
-          "start": 36.374,
-          "end": 36.534,
+          "start": 39.494,
+          "end": 39.654,
           "voiced": {
-            "start": 36.374,
-            "end": 36.534
+            "start": 39.494,
+            "end": 39.654
           }
         },
         {
           "text": "loves",
-          "start": 36.694,
-          "end": 36.934,
+          "start": 39.814,
+          "end": 40.054,
           "voiced": {
-            "start": 36.694,
-            "end": 36.934
+            "start": 39.814,
+            "end": 40.054
           }
         },
         {
           "text": "us.",
-          "start": 37.094,
-          "end": 37.4,
+          "start": 40.134,
+          "end": 40.51,
           "voiced": {
-            "start": 37.094,
-            "end": 37.394
+            "start": 40.134,
+            "end": 40.504
           }
         }
       ],
-      "delivered": "b8088468"
+      "delivered": "e18c0078"
     },
     "priest": {
       "hash": "65df5253",
@@ -7309,35 +7354,35 @@
       "delivered": "0c40cb87"
     },
     "robe": {
-      "hash": "cb8fca82",
-      "file": "robe.4e4a38b916a5.flac",
-      "duration": 25.78,
+      "hash": "5453712c",
+      "file": "robe.5f1dee41c269.flac",
+      "duration": 34.79,
       "words": [
         {
           "text": "Then",
           "start": 0,
           "end": 0.24,
           "voiced": {
-            "start": 0.01,
+            "start": 0.02,
             "end": 0.24
           }
         },
         {
           "text": "He",
-          "start": 0.32,
+          "start": 0.4,
           "end": 0.48,
           "voiced": {
-            "start": 0.32,
+            "start": 0.42,
             "end": 0.48
           }
         },
         {
           "text": "has",
-          "start": 0.6,
+          "start": 0.56,
           "end": 0.72,
           "voiced": {
-            "start": 0.6,
-            "end": 0.71
+            "start": 0.56,
+            "end": 0.72
           }
         },
         {
@@ -7352,428 +7397,374 @@
         {
           "text": "filthy",
           "start": 0.96,
-          "end": 1.2,
+          "end": 1.28,
           "voiced": {
             "start": 0.96,
-            "end": 1.2
+            "end": 1.28
           }
         },
         {
           "text": "clothes",
-          "start": 1.28,
-          "end": 1.76,
+          "start": 1.36,
+          "end": 1.84,
           "voiced": {
-            "start": 1.29,
-            "end": 1.76
+            "start": 1.36,
+            "end": 1.84
           }
         },
         {
           "text": "taken",
-          "start": 1.84,
-          "end": 2.08,
+          "start": 2,
+          "end": 2.16,
           "voiced": {
-            "start": 1.84,
-            "end": 2.08
+            "start": 2,
+            "end": 2.16
           }
         },
         {
           "text": "off",
-          "start": 2.16,
-          "end": 2.32,
+          "start": 2.24,
+          "end": 2.4,
           "voiced": {
-            "start": 2.16,
-            "end": 2.32
+            "start": 2.24,
+            "end": 2.4
           }
         },
         {
           "text": "him,",
-          "start": 2.44,
-          "end": 2.587,
+          "start": 2.52,
+          "end": 2.667,
           "voiced": {
-            "start": 2.44,
-            "end": 2.55
+            "start": 2.52,
+            "end": 2.63
           }
         },
         {
           "text": "and",
-          "start": 3.36,
-          "end": 3.44,
+          "start": 3.84,
+          "end": 4,
           "voiced": {
-            "start": 3.37,
-            "end": 3.44
+            "start": 3.85,
+            "end": 4
           }
         },
         {
           "text": "says,",
-          "start": 3.52,
-          "end": 4.12,
+          "start": 4.16,
+          "end": 4.4,
           "voiced": {
-            "start": 3.52,
-            "end": 3.9
+            "start": 4.16,
+            "end": 4.4
           }
         },
         {
           "text": "“Behold,",
-          "start": 4.4,
-          "end": 5.44,
+          "start": 5.04,
+          "end": 6.08,
           "voiced": {
-            "start": 4.45,
-            "end": 4.98
+            "start": 5.09,
+            "end": 5.62
           }
         },
         {
           "text": "I",
-          "start": 5.52,
-          "end": 5.6,
+          "start": 6.16,
+          "end": 6.24,
           "voiced": {
-            "start": 5.52,
-            "end": 5.6
+            "start": 6.19,
+            "end": 6.24
           }
         },
         {
           "text": "have",
-          "start": 5.68,
-          "end": 5.76,
-          "voiced": {
-            "start": 5.68,
-            "end": 5.76
-          }
-        },
-        {
-          "text": "caused",
-          "start": 5.84,
-          "end": 6.24,
-          "voiced": {
-            "start": 5.84,
-            "end": 6.23
-          }
-        },
-        {
-          "text": "thine",
           "start": 6.32,
           "end": 6.48,
           "voiced": {
             "start": 6.32,
-            "end": 6.48
+            "end": 6.43
           }
         },
         {
-          "text": "iniquity",
+          "text": "caused",
           "start": 6.56,
-          "end": 7.12,
+          "end": 6.88,
           "voiced": {
             "start": 6.56,
+            "end": 6.87
+          }
+        },
+        {
+          "text": "thine",
+          "start": 6.96,
+          "end": 7.12,
+          "voiced": {
+            "start": 6.96,
             "end": 7.12
           }
         },
         {
-          "text": "to",
+          "text": "iniquity",
           "start": 7.2,
-          "end": 7.36,
-          "voiced": {
-            "start": 7.25,
-            "end": 7.35
-          }
-        },
-        {
-          "text": "pass",
-          "start": 7.44,
           "end": 7.76,
           "voiced": {
-            "start": 7.44,
+            "start": 7.2,
             "end": 7.76
           }
         },
         {
-          "text": "from",
+          "text": "to",
           "start": 7.84,
           "end": 7.92,
           "voiced": {
             "start": 7.84,
-            "end": 7.92
+            "end": 7.91
           }
         },
         {
-          "text": "thee.”",
+          "text": "pass",
           "start": 8,
-          "end": 8.24,
+          "end": 8.32,
           "voiced": {
             "start": 8,
-            "end": 8.22
-          }
-        },
-        {
-          "text": "And",
-          "start": 8.84,
-          "end": 8.856,
-          "voiced": {
-            "start": 8.84,
-            "end": 8.856
-          }
-        },
-        {
-          "text": "He",
-          "start": 8.936,
-          "end": 9.016,
-          "voiced": {
-            "start": 8.936,
-            "end": 9.016
-          }
-        },
-        {
-          "text": "dresses",
-          "start": 9.096,
-          "end": 9.416,
-          "voiced": {
-            "start": 9.096,
-            "end": 9.416
-          }
-        },
-        {
-          "text": "him",
-          "start": 9.496,
-          "end": 9.656,
-          "voiced": {
-            "start": 9.496,
-            "end": 9.656
-          }
-        },
-        {
-          "text": "in",
-          "start": 9.696,
-          "end": 9.736,
-          "voiced": {
-            "start": 9.696,
-            "end": 9.736
-          }
-        },
-        {
-          "text": "a",
-          "start": 9.816,
-          "end": 9.896,
-          "voiced": {
-            "start": 9.816,
-            "end": 9.896
-          }
-        },
-        {
-          "text": "robe",
-          "start": 9.976,
-          "end": 10.296,
-          "voiced": {
-            "start": 9.976,
-            "end": 10.296
+            "end": 8.32
           }
         },
         {
           "text": "from",
-          "start": 10.376,
-          "end": 10.456,
+          "start": 8.4,
+          "end": 8.48,
           "voiced": {
-            "start": 10.376,
-            "end": 10.456
+            "start": 8.4,
+            "end": 8.48
           }
         },
         {
-          "text": "heaven's",
-          "start": 10.616,
-          "end": 10.936,
+          "text": "thee.”",
+          "start": 8.56,
+          "end": 9.36,
           "voiced": {
-            "start": 10.616,
-            "end": 10.936
+            "start": 8.56,
+            "end": 8.76
           }
         },
         {
-          "text": "loom,",
-          "start": 11.016,
-          "end": 11.536,
+          "text": "And",
+          "start": 9.96,
+          "end": 9.976,
           "voiced": {
-            "start": 11.016,
-            "end": 11.366
-          }
-        },
-        {
-          "text": "without",
-          "start": 11.736,
-          "end": 12.056,
-          "voiced": {
-            "start": 11.756,
-            "end": 12.056
-          }
-        },
-        {
-          "text": "one",
-          "start": 12.216,
-          "end": 12.376,
-          "voiced": {
-            "start": 12.216,
-            "end": 12.376
-          }
-        },
-        {
-          "text": "thread",
-          "start": 12.536,
-          "end": 12.776,
-          "voiced": {
-            "start": 12.536,
-            "end": 12.776
-          }
-        },
-        {
-          "text": "of",
-          "start": 12.856,
-          "end": 12.896,
-          "voiced": {
-            "start": 12.856,
-            "end": 12.896
-          }
-        },
-        {
-          "text": "his",
-          "start": 12.936,
-          "end": 13.096,
-          "voiced": {
-            "start": 12.936,
-            "end": 13.096
-          }
-        },
-        {
-          "text": "own.",
-          "start": 13.176,
-          "end": 13.856,
-          "voiced": {
-            "start": 13.176,
-            "end": 13.416
-          }
-        },
-        {
-          "text": "Now,",
-          "start": 14.488,
-          "end": 14.856,
-          "voiced": {
-            "start": 14.488,
-            "end": 14.588
-          }
-        },
-        {
-          "text": "isn't",
-          "start": 14.936,
-          "end": 15.136,
-          "voiced": {
-            "start": 14.946,
-            "end": 15.136
-          }
-        },
-        {
-          "text": "that",
-          "start": 15.176,
-          "end": 15.336,
-          "voiced": {
-            "start": 15.176,
-            "end": 15.296
-          }
-        },
-        {
-          "text": "just",
-          "start": 15.416,
-          "end": 15.496,
-          "voiced": {
-            "start": 15.416,
-            "end": 15.496
-          }
-        },
-        {
-          "text": "a",
-          "start": 15.576,
-          "end": 15.656,
-          "voiced": {
-            "start": 15.576,
-            "end": 15.656
-          }
-        },
-        {
-          "text": "nicer",
-          "start": 15.816,
-          "end": 16.216,
-          "voiced": {
-            "start": 15.816,
-            "end": 16.206
-          }
-        },
-        {
-          "text": "coat",
-          "start": 16.336,
-          "end": 16.456,
-          "voiced": {
-            "start": 16.336,
-            "end": 16.456
-          }
-        },
-        {
-          "text": "over",
-          "start": 16.536,
-          "end": 16.616,
-          "voiced": {
-            "start": 16.536,
-            "end": 16.616
-          }
-        },
-        {
-          "text": "the",
-          "start": 16.696,
-          "end": 16.776,
-          "voiced": {
-            "start": 16.696,
-            "end": 16.776
-          }
-        },
-        {
-          "text": "stain?",
-          "start": 16.856,
-          "end": 17.616,
-          "voiced": {
-            "start": 16.856,
-            "end": 17.166
-          }
-        },
-        {
-          "text": "No.",
-          "start": 18.136,
-          "end": 18.776,
-          "voiced": {
-            "start": 18.136,
-            "end": 18.406
+            "start": 9.96,
+            "end": 9.976
           }
         },
         {
           "text": "He",
-          "start": 19.224,
-          "end": 19.256,
+          "start": 10.056,
+          "end": 10.136,
           "voiced": {
-            "start": 19.224,
-            "end": 19.256
+            "start": 10.056,
+            "end": 10.136
           }
         },
         {
-          "text": "doesn't",
-          "start": 19.376,
-          "end": 19.656,
+          "text": "dresses",
+          "start": 10.216,
+          "end": 10.536,
           "voiced": {
-            "start": 19.376,
-            "end": 19.656
+            "start": 10.216,
+            "end": 10.536
           }
         },
         {
-          "text": "cover",
-          "start": 19.816,
-          "end": 19.976,
+          "text": "him",
+          "start": 10.616,
+          "end": 10.776,
           "voiced": {
-            "start": 19.816,
-            "end": 19.976
+            "start": 10.616,
+            "end": 10.776
           }
         },
         {
-          "text": "the",
+          "text": "in",
+          "start": 10.856,
+          "end": 10.936,
+          "voiced": {
+            "start": 10.856,
+            "end": 10.936
+          }
+        },
+        {
+          "text": "a",
+          "start": 10.976,
+          "end": 11.016,
+          "voiced": {
+            "start": 10.976,
+            "end": 11.016
+          }
+        },
+        {
+          "text": "robe",
+          "start": 11.096,
+          "end": 11.496,
+          "voiced": {
+            "start": 11.096,
+            "end": 11.496
+          }
+        },
+        {
+          "text": "from",
+          "start": 11.576,
+          "end": 11.656,
+          "voiced": {
+            "start": 11.576,
+            "end": 11.656
+          }
+        },
+        {
+          "text": "heaven's",
+          "start": 11.816,
+          "end": 12.136,
+          "voiced": {
+            "start": 11.816,
+            "end": 12.136
+          }
+        },
+        {
+          "text": "loom,",
+          "start": 12.216,
+          "end": 12.616,
+          "voiced": {
+            "start": 12.216,
+            "end": 12.596
+          }
+        },
+        {
+          "text": "without",
+          "start": 13.016,
+          "end": 13.336,
+          "voiced": {
+            "start": 13.086,
+            "end": 13.336
+          }
+        },
+        {
+          "text": "one",
+          "start": 13.576,
+          "end": 13.736,
+          "voiced": {
+            "start": 13.576,
+            "end": 13.736
+          }
+        },
+        {
+          "text": "thread",
+          "start": 13.896,
+          "end": 14.136,
+          "voiced": {
+            "start": 13.896,
+            "end": 14.136
+          }
+        },
+        {
+          "text": "of",
+          "start": 14.176,
+          "end": 14.216,
+          "voiced": {
+            "start": 14.176,
+            "end": 14.216
+          }
+        },
+        {
+          "text": "his",
+          "start": 14.296,
+          "end": 14.376,
+          "voiced": {
+            "start": 14.296,
+            "end": 14.376
+          }
+        },
+        {
+          "text": "own.",
+          "start": 14.456,
+          "end": 15.256,
+          "voiced": {
+            "start": 14.456,
+            "end": 14.756
+          }
+        },
+        {
+          "text": "It's",
+          "start": 15.864,
+          "end": 15.936,
+          "voiced": {
+            "start": 15.874,
+            "end": 15.936
+          }
+        },
+        {
+          "text": "an",
+          "start": 15.976,
+          "end": 16.016,
+          "voiced": {
+            "start": 15.976,
+            "end": 16.016
+          }
+        },
+        {
+          "text": "exchange.",
+          "start": 16.056,
+          "end": 16.856,
+          "voiced": {
+            "start": 16.056,
+            "end": 16.816
+          }
+        },
+        {
+          "text": "He",
+          "start": 17.816,
+          "end": 17.976,
+          "voiced": {
+            "start": 17.816,
+            "end": 17.976
+          }
+        },
+        {
+          "text": "asks",
+          "start": 18.056,
+          "end": 18.376,
+          "voiced": {
+            "start": 18.056,
+            "end": 18.376
+          }
+        },
+        {
+          "text": "for",
+          "start": 18.456,
+          "end": 18.536,
+          "voiced": {
+            "start": 18.456,
+            "end": 18.536
+          }
+        },
+        {
+          "text": "our",
+          "start": 18.616,
+          "end": 18.696,
+          "voiced": {
+            "start": 18.616,
+            "end": 18.696
+          }
+        },
+        {
+          "text": "sins,",
+          "start": 18.856,
+          "end": 19.363,
+          "voiced": {
+            "start": 18.856,
+            "end": 19.363
+          }
+        },
+        {
+          "text": "and",
           "start": 20.016,
           "end": 20.056,
           "voiced": {
@@ -7782,124 +7773,304 @@
           }
         },
         {
-          "text": "stain.",
-          "start": 20.136,
-          "end": 20.816,
+          "text": "gives",
+          "start": 20.216,
+          "end": 20.376,
           "voiced": {
-            "start": 20.136,
-            "end": 20.506
+            "start": 20.216,
+            "end": 20.376
+          }
+        },
+        {
+          "text": "us",
+          "start": 20.456,
+          "end": 20.616,
+          "voiced": {
+            "start": 20.456,
+            "end": 20.616
+          }
+        },
+        {
+          "text": "His",
+          "start": 20.696,
+          "end": 20.856,
+          "voiced": {
+            "start": 20.696,
+            "end": 20.856
+          }
+        },
+        {
+          "text": "own",
+          "start": 21.016,
+          "end": 21.176,
+          "voiced": {
+            "start": 21.016,
+            "end": 21.176
+          }
+        },
+        {
+          "text": "righteousness.",
+          "start": 21.256,
+          "end": 22.496,
+          "voiced": {
+            "start": 21.256,
+            "end": 22.086
+          }
+        },
+        {
+          "text": "Now,",
+          "start": 23.096,
+          "end": 23.496,
+          "voiced": {
+            "start": 23.096,
+            "end": 23.316
+          }
+        },
+        {
+          "text": "isn't",
+          "start": 23.576,
+          "end": 23.776,
+          "voiced": {
+            "start": 23.576,
+            "end": 23.776
+          }
+        },
+        {
+          "text": "that",
+          "start": 23.816,
+          "end": 23.976,
+          "voiced": {
+            "start": 23.816,
+            "end": 23.946
+          }
+        },
+        {
+          "text": "just",
+          "start": 24.056,
+          "end": 24.136,
+          "voiced": {
+            "start": 24.056,
+            "end": 24.136
+          }
+        },
+        {
+          "text": "a",
+          "start": 24.216,
+          "end": 24.296,
+          "voiced": {
+            "start": 24.216,
+            "end": 24.296
+          }
+        },
+        {
+          "text": "nicer",
+          "start": 24.376,
+          "end": 24.696,
+          "voiced": {
+            "start": 24.376,
+            "end": 24.696
+          }
+        },
+        {
+          "text": "coat",
+          "start": 24.856,
+          "end": 25.096,
+          "voiced": {
+            "start": 24.856,
+            "end": 25.096
+          }
+        },
+        {
+          "text": "over",
+          "start": 25.216,
+          "end": 25.336,
+          "voiced": {
+            "start": 25.216,
+            "end": 25.336
+          }
+        },
+        {
+          "text": "the",
+          "start": 25.376,
+          "end": 25.416,
+          "voiced": {
+            "start": 25.376,
+            "end": 25.416
+          }
+        },
+        {
+          "text": "stain?",
+          "start": 25.496,
+          "end": 26.416,
+          "voiced": {
+            "start": 25.496,
+            "end": 25.896
+          }
+        },
+        {
+          "text": "No.",
+          "start": 27.096,
+          "end": 27.736,
+          "voiced": {
+            "start": 27.096,
+            "end": 27.366
           }
         },
         {
           "text": "He",
-          "start": 21.224,
-          "end": 21.256,
+          "start": 28.12,
+          "end": 28.136,
           "voiced": {
-            "start": 21.224,
-            "end": 21.234
+            "start": 28.12,
+            "end": 28.136
+          }
+        },
+        {
+          "text": "doesn't",
+          "start": 28.216,
+          "end": 28.536,
+          "voiced": {
+            "start": 28.216,
+            "end": 28.536
+          }
+        },
+        {
+          "text": "cover",
+          "start": 28.696,
+          "end": 28.856,
+          "voiced": {
+            "start": 28.696,
+            "end": 28.856
+          }
+        },
+        {
+          "text": "the",
+          "start": 28.936,
+          "end": 29.016,
+          "voiced": {
+            "start": 28.936,
+            "end": 29.016
+          }
+        },
+        {
+          "text": "stain.",
+          "start": 29.096,
+          "end": 29.776,
+          "voiced": {
+            "start": 29.096,
+            "end": 29.436
+          }
+        },
+        {
+          "text": "He",
+          "start": 30.136,
+          "end": 30.216,
+          "voiced": {
+            "start": 30.136,
+            "end": 30.216
           }
         },
         {
           "text": "takes",
-          "start": 21.336,
-          "end": 21.576,
+          "start": 30.296,
+          "end": 30.536,
           "voiced": {
-            "start": 21.336,
-            "end": 21.576
+            "start": 30.296,
+            "end": 30.536
           }
         },
         {
           "text": "it",
-          "start": 21.616,
-          "end": 21.656,
+          "start": 30.576,
+          "end": 30.616,
           "voiced": {
-            "start": 21.616,
-            "end": 21.656
+            "start": 30.576,
+            "end": 30.616
           }
         },
         {
           "text": "away.",
-          "start": 21.736,
-          "end": 22.496,
+          "start": 30.696,
+          "end": 31.536,
           "voiced": {
-            "start": 21.736,
-            "end": 22.186
+            "start": 30.696,
+            "end": 31.136
           }
         },
         {
           "text": "And",
-          "start": 23.096,
-          "end": 23.128,
+          "start": 32.136,
+          "end": 32.168,
           "voiced": {
-            "start": 23.096,
-            "end": 23.128
+            "start": 32.136,
+            "end": 32.168
           }
         },
         {
           "text": "then",
-          "start": 23.208,
-          "end": 23.288,
+          "start": 32.208,
+          "end": 32.248,
           "voiced": {
-            "start": 23.208,
-            "end": 23.288
+            "start": 32.208,
+            "end": 32.248
           }
         },
         {
           "text": "He",
-          "start": 23.368,
-          "end": 23.448,
+          "start": 32.328,
+          "end": 32.488,
           "voiced": {
-            "start": 23.368,
-            "end": 23.448
+            "start": 32.328,
+            "end": 32.488
           }
         },
         {
           "text": "says,",
-          "start": 23.528,
-          "end": 23.928,
+          "start": 32.568,
+          "end": 32.888,
           "voiced": {
-            "start": 23.528,
-            "end": 23.928
+            "start": 32.568,
+            "end": 32.888
           }
         },
         {
           "text": "walk",
-          "start": 24.488,
-          "end": 24.808,
+          "start": 33.528,
+          "end": 33.848,
           "voiced": {
-            "start": 24.488,
-            "end": 24.808
+            "start": 33.528,
+            "end": 33.848
           }
         },
         {
           "text": "in",
-          "start": 24.888,
-          "end": 24.968,
+          "start": 33.928,
+          "end": 34.008,
           "voiced": {
-            "start": 24.888,
-            "end": 24.968
+            "start": 33.928,
+            "end": 34.008
           }
         },
         {
           "text": "my",
-          "start": 25.048,
-          "end": 25.128,
+          "start": 34.088,
+          "end": 34.168,
           "voiced": {
-            "start": 25.048,
-            "end": 25.128
+            "start": 34.088,
+            "end": 34.168
           }
         },
         {
           "text": "ways.",
-          "start": 25.288,
-          "end": 25.78,
+          "start": 34.328,
+          "end": 34.79,
           "voiced": {
-            "start": 25.288,
-            "end": 25.768
+            "start": 34.328,
+            "end": 34.778
           }
         }
       ],
-      "delivered": "baa8e8a3"
+      "delivered": "281854df"
     },
     "within": {
       "hash": "96efc70c",
