@@ -125,3 +125,15 @@ round 2: the wide drawn as its own perspective room in frame pixels (wideRoom, w
 ## 2026-10-16T18:06:53Z · cold
 
 Path2D is not defined in the check's draw process: a scene that builds one throws there (DrawThrew) though the lab draws it; a path drawn by a function twice works in both.
+
+## 2026-10-16T18:39:31Z · cold
+
+r3 proportions at 3.87 s, measured against each head's width: the prosecutor's head 1.26 tall to its width (concept 1.24), robe 0.82 under the chin, 1.06 at 0.7 below, 1.53 at the hem (concept 0.80, 1.065, 1.50); the judge's robe rises to his jaw (0.76/0.88/1.10/1.19 at -0.19/-0.06/+0.24/+0.49 against 0.72/0.89/1.05/1.19) and his inner jaw is 0.59 across (0.59); the lead's eyes 0.139 high (0.14), brows 0.125 long (0.128) and 0.25 above the eyes (0.247); hands 0.33, 0.44 and 0.44 (0.34, 0.44, 0.45); outlines 0.048, 0.058 and 0.055 (0.049, 0.065, 0.054).
+
+## 2026-10-16T18:39:33Z · cold
+
+r3: with the prosecutor's hairline at 0.45 of the half-height and an 18-unit sweep, his fringe hid his brows altogether; at 0.6 and 8 the brows read 0.166 above the eyes (concept 0.165). The narrower prosecutor still clears the table and his raised hands on 'cover' sit away from his body as the concept draws them.
+
+## 2026-10-16T18:39:35Z · title
+
+r3: the figures' new proportions read at the title's wide too (0.2 s, 2.8 s): the prosecutor's raised hand at the title pose stands clear of his narrower robe; the cast's staging is unchanged.
