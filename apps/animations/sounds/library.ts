@@ -17,10 +17,11 @@
 // sounds are recipes, played from their seeds the same way. A recorded sound
 // is CC0 only, under `public/` (`sfx import`).
 //
-// The first library (audio-design §9): 30 generated one-shots, 9 generated
-// beds, 1 recorded one-shot, 6 procedural sounds. Prompts are concrete, close and dry: a film's cue
-// places them, the mix sets their level against the voice. How to word a prompt
-// and pick its settings, from the trials in sounds/PROMPTING.md.
+// The library: 24 generated one-shots, 7 generated beds, 6 code one-shots,
+// 2 code beds, 1 recorded one-shot, 6 procedural sounds. Prompts are concrete,
+// close and dry: a film's cue places them, the mix sets their level against
+// the voice. How to word a prompt and pick its settings, from the trials in
+// sounds/PROMPTING.md.
 //
 // Influence and candidate count follow the framework's defaults by use
 // (one-shot 0.7 × 6, bed 0.3 × 3); a sound names its own only where a trial
@@ -40,8 +41,11 @@ import {
   whoosh,
 } from '@bible/film/core';
 
-/** Every generated bed's length: long enough that its loop point is rarely heard. */
+/** A bed's length when it names none: long enough that its loop point is rarely heard. */
 const BED_SECS = 22;
+
+/** Every bed's level against the voice, generated or code. */
+const BED_LEVEL = -30;
 
 /** A library's entries, as `defineLibrary` reads them. */
 type Entries = Parameters<typeof defineLibrary>[0];
@@ -77,7 +81,7 @@ const bed = (prompt: string, declared: Declared) =>
     secs: BED_SECS,
     loop: true,
     use: 'bed',
-    level: -30,
+    level: BED_LEVEL,
     ...declared,
   }) as const;
 
@@ -137,13 +141,14 @@ export const library = defineLibrary({
     why: 'Songbirds close by: birdsong, which code cannot make.',
     influence: 0.6,
   }),
-  // From the trials: an even, constant wind loops; "wide" and "empty" gave
-  // gusts, and 30 s evens the level out between the ends.
-  'amb.desert': bed('a soft steady wind blowing over sand, constant and even, no gusts, dry', {
-    why: 'Generated until a code version is heard beside it: steady wind is a shape code makes.',
-    secs: 30,
-    code: trial(breeze({ secs: 30, hz: 550 })),
-  }),
+  // A steady breeze over sand, 30 s a loop.
+  'amb.desert': {
+    kind: 'code',
+    sound: { play: breeze({ secs: 30, hz: 550 }) },
+    variants: 3,
+    use: 'bed',
+    level: BED_LEVEL,
+  },
   'amb.roof': bed('rooftop wind over a sleeping city at night, faint distant town sounds, soft', {
     why: 'Faint town sounds under the wind: life far off, which code cannot make.',
   }),
@@ -153,10 +158,14 @@ export const library = defineLibrary({
     why: 'Birds singing far off: birdsong, which code cannot make.',
     influence: 0.6,
   }),
-  'amb.rain': bed('steady soft rain on a tiled roof and ground, even, no thunder', {
-    why: 'Generated until a code version is heard beside it: steady rain is a texture code makes.',
-    code: trial(rain({ secs: BED_SECS, hiss: 900, taps: 10 })),
-  }),
+  // Soft rain on the ground, ten taps a second on the roof's tiles.
+  'amb.rain': {
+    kind: 'code',
+    sound: { play: rain({ secs: BED_SECS, hiss: 900, taps: 10 }) },
+    variants: 3,
+    use: 'bed',
+    level: BED_LEVEL,
+  },
 
   // One-shots --------------------------------------------------------------
   'paper.stack': oneShot(
@@ -164,34 +173,27 @@ export const library = defineLibrary({
     1.5,
     { why: 'A stack of sheets landing on wood: a handled texture, which code cannot make.' },
   ),
-  // From the trials: "sound block … short room" came out at −41 to −56 LUFS,
-  // starting on its peak. At 0.9 the knock is loud and clean; padded to 1.6 s
-  // it lands 20–30 ms in instead of on sample 0.
+  // A wooden knock 25 ms in, over a faint thump: loud.
   'wood.gavel': {
-    ...oneShot(
-      'a judge bangs a wooden gavel once on a hardwood block, loud sharp knock, close, dry',
-      1.6,
-      {
-        why: 'Generated until a code version is heard beside it: a wooden knock is a shape code makes.',
-        influence: 0.9,
-        code: trial({
-          _tag: 'Layer',
-          of: [
-            { node: knock({ material: 'wood', hz: 480, secs: 0.3 }), at: 0.025 },
-            { node: thump({ hz: 90, octaves: 1, drop: 0.02, decay: 0.4 }), at: 0.025, db: -16 },
-          ],
-        }),
+    kind: 'code',
+    sound: {
+      play: {
+        _tag: 'Layer',
+        of: [
+          { node: knock({ material: 'wood', hz: 480, secs: 0.3 }), at: 0.025 },
+          { node: thump({ hz: 90, octaves: 1, drop: 0.02, decay: 0.4 }), at: 0.025, db: -16 },
+        ],
       },
-    ),
+    },
+    variants: 3,
+    use: 'one-shot',
     level: -8,
   },
-  'stamp.press': oneShot(
-    'a rubber stamp pressed hard onto paper on a wooden desk, one thump, close',
-    1,
-    {
-      why: 'Generated until a code version is heard beside it: a thump is a shape code makes.',
-      // A bright crack of contact over the rubber's body, the thud faint under them.
-      code: trial({
+  // A bright crack of contact over the rubber's body, the thud faint under them.
+  'stamp.press': {
+    kind: 'code',
+    sound: {
+      play: {
         _tag: 'Layer',
         of: [
           { node: burst({ color: 'white', low: 300, high: 16000, attack: 0.0003, decay: 0.06 }) },
@@ -201,9 +203,11 @@ export const library = defineLibrary({
           },
           { node: thump({ hz: 90, octaves: 0.5, drop: 0.01, decay: 0.12 }), db: -14 },
         ],
-      }),
+      },
     },
-  ),
+    variants: 3,
+    use: 'one-shot',
+  },
   'paper.slide': oneShot(
     'a sheet of thick paper sliding across a wooden desk, soft and short, close, dry room',
     1,
@@ -259,24 +263,23 @@ export const library = defineLibrary({
   'dust.writing': oneShot('a finger writing slowly in dust on a stone floor, soft scratching', 2, {
     why: 'A finger scratching in dust: a handled texture, which code cannot make.',
   }),
-  'stones.dust': oneShot(
-    'a few stones dropped one by one into dust on the ground, dull thuds',
-    1.5,
-    {
-      why: 'Generated until a code version is heard beside it: thuds in dust are shapes code makes.',
-      code: trial(
-        scatter({
-          count: 4,
-          first: 0.025,
-          every: 0.17,
-          fall: 6,
-          material: 'stone',
-          hz: 600,
-          secs: 1,
-        }),
-      ),
+  // Four stones landing in dust one after another, each 6 dB quieter.
+  'stones.dust': {
+    kind: 'code',
+    sound: {
+      play: scatter({
+        count: 4,
+        first: 0.025,
+        every: 0.17,
+        fall: 6,
+        material: 'stone',
+        hz: 600,
+        secs: 1,
+      }),
     },
-  ),
+    variants: 3,
+    use: 'one-shot',
+  },
   // From the trials: "measuring tape" is a steel tape to the model, whatever the
   // cloth; describe the ribbon, not the tool. At 1.5 s it ticked; held to
   // 0.8 s it is a cloth swish.
@@ -288,16 +291,21 @@ export const library = defineLibrary({
       influence: 0.5,
     },
   ),
-  'tablet.set': oneShot('a heavy stone tablet set down on stone, one low knock, close', 1, {
-    why: 'Generated until a code version is heard beside it: a stone knock is a shape code makes.',
-    code: trial({
-      _tag: 'Layer',
-      of: [
-        { node: knock({ material: 'stone', hz: 165, secs: 0.4 }) },
-        { node: thump({ hz: 88, octaves: 1, drop: 0.015, decay: 0.3 }), db: -5 },
-      ],
-    }),
-  }),
+  // A low stone knock over a thump.
+  'tablet.set': {
+    kind: 'code',
+    sound: {
+      play: {
+        _tag: 'Layer',
+        of: [
+          { node: knock({ material: 'stone', hz: 165, secs: 0.4 }) },
+          { node: thump({ hz: 88, octaves: 1, drop: 0.015, decay: 0.3 }), db: -5 },
+        ],
+      },
+    },
+    variants: 3,
+    use: 'one-shot',
+  },
   // From the trials: a count in the prompt is not heard; give each stitch its
   // sound and room. "needle and thread" alone is a sewing machine; at 0.9 the
   // described action gives two punches.
@@ -318,15 +326,13 @@ export const library = defineLibrary({
   'paper.tear': oneShot('a sheet of paper torn in one quick rip, close, dry', 1, {
     why: 'Paper torn in one rip: a handled texture, which code cannot make.',
   }),
-  'paper.whoosh': oneShot(
-    'a paper cutout swept quickly through the air past the listener, soft whoosh',
-    1,
-    {
-      why: 'Generated until a code version is heard beside it: a swept whoosh is a shape code makes.',
-      // Placed by its onset: the pass lands 0.37 s after it, as the take's does.
-      code: trial(whoosh({ onset: 0.03, hit: 0.4, fall: 0.22, low: 1200, high: 6000, q: 0.5 })),
-    },
-  ),
+  // Placed by its onset: the pass lands 0.37 s after it.
+  'paper.whoosh': {
+    kind: 'code',
+    sound: { play: whoosh({ onset: 0.03, hit: 0.4, fall: 0.22, low: 1200, high: 6000, q: 0.5 }) },
+    variants: 3,
+    use: 'one-shot',
+  },
   // Every take (three prompts, influence 0.5 and 0.7) is a low thud under the
   // cloth; at 0.5 one came with the least of it.
   'cloth.lift': oneShot(
@@ -341,13 +347,14 @@ export const library = defineLibrary({
       why: 'Generated until a code version is tried: a rolled stone’s rumble is a texture code may make.',
     },
   ),
-  // From the trials: a stain has no sound; a sizzle does. The bare noun
-  // phrase is louder and dies away; "faint steady" gave a flat hiss.
-  'stain.hiss': oneShot('water sizzle on hot metal', 1.5, {
-    why: 'Generated until a code version is heard beside it: a sizzle is a texture code makes.',
-    influence: 0.5,
-    code: trial(sizzle({ flash: 0.02, crackle: 120, secs: 1.6 })),
-  }),
+  // A stain's sound is a sizzle: a flash of steam, then steam and a low boil
+  // that crackle and fall away.
+  'stain.hiss': {
+    kind: 'code',
+    sound: { play: sizzle({ flash: 0.02, crackle: 120, secs: 1.6 }) },
+    variants: 3,
+    use: 'one-shot',
+  },
   // Recorded: every generated take (8 over two rolls) was one boomy hit, never
   // steps. Two steps (2.25–4.75 s) of the recording's HQ preview.
   'steps.stone': {

@@ -31,7 +31,7 @@
 //     it lands true (`name`'s `true`);
 //   - a drain as the cold open's stamp drains to a hollow outline.
 //
-// Generated sounds: everything the picture does by hand (paper, wood, cloth,
+// The other sounds: everything the picture does by hand (paper, wood, cloth,
 // stone, steps) is a one-shot on the cue that draws it; a bed is placed only
 // where the picture has a real place to hear: the court's air under both
 // courts (`woman`'s temple court, and `accuser` into `robe`'s heavenly one),
