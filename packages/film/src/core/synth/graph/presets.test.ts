@@ -1,11 +1,16 @@
 // The eight recipes' ports (presets.ts), proved by measure against the
 // recipes themselves (recipes.ts `synthesize`) on seeds 1–5, read as `film sfx
-// compare` reads a sound: the same length, integrated loudness within 1 LU,
-// the band balance within 1.5 dB RMS, each recipe's notes and partials at the
-// recipe's levels (Goertzel), a one-shot's hit within the sync check's 20 ms,
-// and a bed's loop seam heard on no more seeds than the recipe's and never a
-// click. Each port is pinned too: its first seed's samples by digest, the
-// same on every render. One test a preset and a measure, each short.
+// compare` reads a sound: the same length and every seed heard, integrated
+// loudness within 1 LU, the band balance within 1.5 dB RMS, each recipe's
+// notes and partials at the recipe's levels (Goertzel), a one-shot's hit
+// within the sync check's 20 ms, and a bed's loop seam heard on no more seeds
+// than the recipe's and never a click. Each port is pinned too: its first
+// seed's samples by digest, the same on every render.
+//
+// A CI runner runs tests like these 17–50 times as slow as a laptop, so
+// each test here does about one seed's work: each seed is rendered and read
+// in a test of its own, and the test after a recipe's seeds judges the
+// medians of those reads (run alone, it reads the seeds it lacks).
 //
 // The families the library's code sounds are built from are pinned the same
 // way, and each is heard to do what its doc says on seeds 1–3, a trial's three
@@ -42,8 +47,11 @@ import { renderCode } from './render.ts';
 
 const SEEDS = [1, 2, 3, 4, 5] as const;
 
+/** A seed the ports are measured on. */
+type Seed = (typeof SEEDS)[number];
+
 /**
- * Each recipe as the measures read it: short, so its test is quick, and long
+ * Each recipe as the measures read it: short, so its tests are quick, and long
  * enough that its draws even out (room's air sways at 0.2 Hz, the drone
  * breathes at 0.15 Hz and wind's whistle wanders at 0.8 Hz: shorter, five
  * seeds read a knot or two of each).
@@ -101,25 +109,44 @@ const portSound = (recipe: Recipe): ResolvedSound => {
   return Result.getOrThrow(resolveCode(library)).trials.get('tone.port')!.sound;
 };
 
-/** A recipe's renders on the seeds, and its port's. */
-interface Renders {
-  readonly recipe: Arr.NonEmptyReadonlyArray<Pcm>;
-  readonly port: Arr.NonEmptyReadonlyArray<Pcm>;
+/** One seed of a recipe as the recipe makes it and as its port does. */
+interface Sides<A> {
+  readonly recipe: A;
+  readonly port: A;
 }
 
-/** Each recipe's renders, made once, when a test first reads them. */
-const rendered = new Map<Recipe, Renders>();
-const rendersOf = (recipe: Recipe): Renders => {
-  const had = rendered.get(recipe);
-  if (had !== undefined) return had;
-  const sound = portSound(recipe);
-  const made: Renders = {
-    recipe: Arr.map(SEEDS, (seed) => synthesize(recipe, seed)),
-    port: Arr.map(SEEDS, (seed) => renderCode(sound, seed)),
+/** `make` on each recipe and seed, made once, when a test first asks for it. */
+const onceASeed = <A>(make: (recipe: Recipe, seed: Seed) => A) => {
+  const made = new Map<Recipe, Map<Seed, A>>();
+  return (recipe: Recipe, seed: Seed): A => {
+    const seeds = made.get(recipe) ?? new Map<Seed, A>();
+    made.set(recipe, seeds);
+    const had = seeds.get(seed);
+    if (had !== undefined) return had;
+    const value = make(recipe, seed);
+    seeds.set(seed, value);
+    return value;
   };
-  rendered.set(recipe, made);
-  return made;
 };
+
+/** A recipe's render on a seed, and its port's. */
+const renderedOn = onceASeed((recipe, seed): Sides<Pcm> => ({
+  recipe: synthesize(recipe, seed),
+  port: renderCode(portSound(recipe), seed),
+}));
+
+/** A recipe's render on a seed and its port's, each read as `film sfx compare` reads a sound of the recipe's use. */
+const readOn = onceASeed((recipe, seed): Sides<Profile> => {
+  const { recipe: made, port } = renderedOn(recipe, seed);
+  const use = USE[recipe.recipe];
+  return { recipe: profileOf(made, use), port: profileOf(port, use) };
+});
+
+/** A bed's loop seam on a seed, as the recipe makes it and as its port does. */
+const seamOn = onceASeed((recipe, seed): Sides<ReturnType<typeof loopSeam>> => {
+  const { recipe: made, port } = renderedOn(recipe, seed);
+  return { recipe: loopSeam(made), port: loopSeam(port) };
+});
 
 const digest = (pcm: Pcm): string => {
   const hash = createHash('sha256');
@@ -166,119 +193,152 @@ const levelAt = (pcm: Pcm, hz: number): number => {
 };
 
 /** The median over the seeds of each side's level at `hz`. */
-const levelsAt = (renders: Renders, hz: number) => ({
-  recipe: median(renders.recipe.map((pcm) => levelAt(pcm, hz))),
-  port: median(renders.port.map((pcm) => levelAt(pcm, hz))),
-});
-
-/** What every port shares with its recipe: its length, its loudness and, but for a melody, its band balance. */
-const measuresAsItsRecipe = (recipe: Recipe, balanced: boolean) => {
-  const renders = rendersOf(recipe);
-  for (const [port, synth] of Arr.zip(renders.port, renders.recipe))
-    expect(port.frames).toBe(synth.frames);
-  const profiled = (pcm: Pcm) => profileOf(pcm, USE[recipe.recipe]);
-  const recipeProfile = medianProfile(Arr.map(renders.recipe, profiled));
-  const portProfile = medianProfile(Arr.map(renders.port, profiled));
-  expect(Math.abs(portProfile.integrated - recipeProfile.integrated)).toBeLessThanOrEqual(1);
-  const apart = distance(recipeProfile, portProfile);
-  if (balanced) expect(apart.balance).toBeLessThanOrEqual(1.5);
-  return { renders, apart };
+const levelsAt = (recipe: Recipe, hz: number): Sides<number> => {
+  const sides = SEEDS.map((seed) => renderedOn(recipe, seed));
+  return {
+    recipe: median(sides.map(({ recipe: made }) => levelAt(made, hz))),
+    port: median(sides.map(({ port }) => levelAt(port, hz))),
+  };
 };
+
+/**
+ * What every port shares with its recipe by the median of its seeds' reads:
+ * its loudness and, but for a melody, its band balance. Answers how far the
+ * port's median stands from the recipe's.
+ */
+const measuresAsItsRecipe = (recipe: Recipe, balanced: boolean) => {
+  const reads = Arr.map(SEEDS, (seed) => readOn(recipe, seed));
+  const from = medianProfile(Arr.map(reads, (read) => read.recipe));
+  const to = medianProfile(Arr.map(reads, (read) => read.port));
+  expect(Math.abs(to.integrated - from.integrated)).toBeLessThanOrEqual(1);
+  const apart = distance(from, to);
+  if (balanced) expect(apart.balance).toBeLessThanOrEqual(1.5);
+  return apart;
+};
+
+/** The bell's scale: the first five degrees on D5, the one variant n strikes its (n − 1)th. */
+const BELL_SCALE = degrees(74, 5);
+
+/** The degree of the bell's scale whose note is the loudest in `pcm`. */
+const loudestDegree = (pcm: Pcm): number => {
+  const levels = BELL_SCALE.map((midi) => levelAt(pcm, midiHz(midi)));
+  return levels.indexOf(Math.max(...levels));
+};
+
+/** The notes' scale over two octaves on D5, and the notes off it. */
+const ON_SCALE = degrees(74, 10);
+const OFF_SCALE = Array.from({ length: 24 }, (_, k) => 74 + k).filter(
+  (midi) => !ON_SCALE.includes(midi),
+);
+
+/** How far the loudest note on the scale stands over the loudest off it, in dB. */
+const scaleGap = (pcm: Pcm): number =>
+  Math.max(...ON_SCALE.map((midi) => levelAt(pcm, midiHz(midi)))) -
+  Math.max(...OFF_SCALE.map((midi) => levelAt(pcm, midiHz(midi))));
 
 describe('each port is pinned', () => {
   for (const recipe of Object.values(MEASURED))
     test(`${recipe.recipe}: decodes as a code sound, and renders byte for byte as pinned`, () => {
       const sound = { play: portOf(recipe) };
       expect(Schema.decodeSync(CodeSound)(sound)).toEqual(sound);
-      const once = digest(Arr.headNonEmpty(rendersOf(recipe).port));
+      const once = digest(renderedOn(recipe, 1).port);
       expect(digest(renderCode(portSound(recipe), 1))).toBe(once);
       expect(once).toBe(PINNED[recipe.recipe]);
     });
 });
 
 describe('each port measures as its recipe on seeds 1–5', () => {
-  test('room: its length, loudness and band balance', () => {
+  for (const recipe of Object.values(MEASURED))
+    for (const seed of SEEDS)
+      test(`${recipe.recipe}, seed ${seed}: the recipe's frames, both heard (over BS.1770's −70 LUFS gate)`, () => {
+        const { recipe: made, port } = renderedOn(recipe, seed);
+        expect(port.frames).toBe(made.frames);
+        // A seed rendered silent would hide under the medians below.
+        const read = readOn(recipe, seed);
+        expect(read.recipe.integrated).toBeGreaterThan(-70);
+        expect(read.port.integrated).toBeGreaterThan(-70);
+      });
+
+  for (const seed of SEEDS)
+    test(`bell, seed ${seed}: both strike degree ${seed - 1}, each partial at the recipe’s level`, () => {
+      const { recipe: made, port } = renderedOn(MEASURED.bell, seed);
+      // Variant n rings degree n − 1.
+      expect(loudestDegree(port)).toBe(seed - 1);
+      expect(loudestDegree(made)).toBe(seed - 1);
+      const struck = midiHz(BELL_SCALE[seed - 1] ?? 0);
+      for (const ratio of [1, 2, 3.01, 4.18])
+        expect(
+          Math.abs(levelAt(port, struck * ratio) - levelAt(made, struck * ratio)),
+        ).toBeLessThanOrEqual(1.5);
+    });
+
+  for (const seed of SEEDS)
+    test(`notes, seed ${seed}: every plink on the scale in both, 20 dB over any note off it`, () => {
+      const { recipe: made, port } = renderedOn(MEASURED.notes, seed);
+      expect(scaleGap(port)).toBeGreaterThan(20);
+      expect(scaleGap(made)).toBeGreaterThan(20);
+    });
+
+  test('room: by the median, its loudness and band balance', () => {
     measuresAsItsRecipe(MEASURED.room, true);
   });
 
-  test('bell: each seed strikes its own degree, each partial at the recipe’s level, the hit on time', () => {
-    const { renders, apart } = measuresAsItsRecipe(MEASURED.bell, true);
-    const scale = degrees(74, 5);
-    /** The degree whose note is the loudest in `pcm`. */
-    const loudest = (pcm: Pcm) => {
-      const levels = scale.map((midi) => levelAt(pcm, midiHz(midi)));
-      return levels.indexOf(Math.max(...levels));
-    };
-    for (const [seed, [port, synth]] of Arr.zip(SEEDS, Arr.zip(renders.port, renders.recipe))) {
-      // Variant n rings degree n − 1.
-      expect(loudest(port)).toBe(seed - 1);
-      expect(loudest(synth)).toBe(seed - 1);
-      const struck = midiHz(scale[seed - 1] ?? 0);
-      for (const ratio of [1, 2, 3.01, 4.18])
-        expect(
-          Math.abs(levelAt(port, struck * ratio) - levelAt(synth, struck * ratio)),
-        ).toBeLessThanOrEqual(1.5);
-    }
-    expect(Math.abs(apart.hit)).toBeLessThanOrEqual(0.02);
+  test('bell: by the median, its loudness, its band balance and its hit on time', () => {
+    expect(Math.abs(measuresAsItsRecipe(MEASURED.bell, true).hit)).toBeLessThanOrEqual(HIT_MOVE);
   });
 
-  test('drone: its four voices at the recipe’s levels', () => {
-    const { renders } = measuresAsItsRecipe(MEASURED.drone, true);
+  test('drone: by the median, its loudness, its band balance and its four voices at the recipe’s levels', () => {
+    measuresAsItsRecipe(MEASURED.drone, true);
     for (const ratio of [1, 2, 3, 1.5]) {
-      const { recipe, port } = levelsAt(renders, midiHz(38) * ratio);
+      const { recipe, port } = levelsAt(MEASURED.drone, midiHz(38) * ratio);
       expect(Math.abs(port - recipe)).toBeLessThanOrEqual(1.5);
     }
   });
 
-  test('drain: its band balance, and its hit on time', () => {
-    const { apart } = measuresAsItsRecipe(MEASURED.drain, true);
-    expect(Math.abs(apart.hit)).toBeLessThanOrEqual(0.02);
+  test('drain: by the median, its loudness, its band balance and its hit on time', () => {
+    expect(Math.abs(measuresAsItsRecipe(MEASURED.drain, true).hit)).toBeLessThanOrEqual(HIT_MOVE);
   });
 
-  test('bloom: its chord’s notes at the recipe’s levels', () => {
-    const { renders } = measuresAsItsRecipe(MEASURED.bloom, true);
+  test('bloom: by the median, its loudness, its band balance and its chord’s notes at the recipe’s levels', () => {
+    measuresAsItsRecipe(MEASURED.bloom, true);
     // The root, third and fifth (D4, F#4, A4). The octave shares its
     // frequency with the root's second partial, so its level rides on two
     // random phases in both and is read by the balance alone.
     for (const midi of [62, 66, 69]) {
-      const { recipe, port } = levelsAt(renders, midiHz(midi));
+      const { recipe, port } = levelsAt(MEASURED.bloom, midiHz(midi));
       expect(Math.abs(port - recipe)).toBeLessThanOrEqual(1.5);
     }
   });
 
-  test('notes: every plink on the scale, 20 dB over any note off it', () => {
+  test('notes: by the median, its loudness', () => {
     // A melody drawn anew each seed, in both: its band balance is the
-    // melody's, so it is read by the scale its plinks keep to.
-    const { renders } = measuresAsItsRecipe(MEASURED.notes, false);
-    const on = degrees(74, 10);
-    const off = Array.from({ length: 24 }, (_, k) => 74 + k).filter((m) => !on.includes(m));
-    const gap = (pcm: Pcm) =>
-      Math.max(...on.map((m) => levelAt(pcm, midiHz(m)))) -
-      Math.max(...off.map((m) => levelAt(pcm, midiHz(m))));
-    for (const pcm of [...renders.port, ...renders.recipe]) expect(gap(pcm)).toBeGreaterThan(20);
+    // melody's, so it is read by the scale its plinks keep to, above.
+    measuresAsItsRecipe(MEASURED.notes, false);
   });
 
-  test('wind: its length, loudness and band balance', () => {
+  test('wind: by the median, its loudness and band balance', () => {
     measuresAsItsRecipe(MEASURED.wind, true);
   });
 
-  test('rain: its length, loudness and band balance', () => {
+  test('rain: by the median, its loudness and band balance', () => {
     measuresAsItsRecipe(MEASURED.rain, true);
   });
 });
 
 describe('each bed’s port loops as its recipe', () => {
-  for (const recipe of LOOPED)
-    test(`${recipe.recipe}: its seam heard on no more seeds than the recipe's, and never a click`, () => {
-      const sound = portSound(recipe);
-      const port = SEEDS.map((seed) => loopSeam(renderCode(sound, seed)));
-      const heard = (seams: ReadonlyArray<ReturnType<typeof loopSeam>>) =>
-        seams.filter(seamHeard).length;
-      expect(heard(port)).toBeLessThanOrEqual(
-        heard(SEEDS.map((seed) => loopSeam(synthesize(recipe, seed)))),
+  for (const recipe of LOOPED) {
+    for (const seed of SEEDS)
+      test(`${recipe.recipe}, seed ${seed}: the port's seam never a click`, () => {
+        expect(seamHeard({ db: 0, click: seamOn(recipe, seed).port.click })).toBe(false);
+      });
+
+    test(`${recipe.recipe}: its seam heard on no more seeds than the recipe's`, () => {
+      const seams = SEEDS.map((seed) => seamOn(recipe, seed));
+      expect(seams.filter(({ port }) => seamHeard(port)).length).toBeLessThanOrEqual(
+        seams.filter(({ recipe: made }) => seamHeard(made)).length,
       );
-      for (const seam of port) expect(seamHeard({ db: 0, click: seam.click })).toBe(false);
     });
+  }
 });
 
 /** The seeds a family is heard on: a code trial's three variants. */

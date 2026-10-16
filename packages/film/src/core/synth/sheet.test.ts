@@ -103,7 +103,8 @@ describe('sheetOf', () => {
     expect(Math.abs(brightness(clicked, 0, row) - brightness(clicked, 600, row))).toBeLessThan(40);
   });
 
-  test('a faint line crosses each second, and a mark its own colour, in the order given', () => {
+  // One sheet a test: a CI runner draws them 17–50 times as slow as a laptop.
+  test('a faint line crosses each second, and a hit its own colour through every panel, over a mark given before it', () => {
     const marked = sheetOf(pcmOf(sine(440, 2, 0.25)), [
       { kind: 'onset', at: 0.5 },
       { kind: 'hit', at: 1.5 },
@@ -116,8 +117,14 @@ describe('sheetOf', () => {
         [255, 84, 84],
         [255, 84, 84],
       ]);
+  });
+
+  test('an onset is marked its own colour', () => {
     const onsetOnly = sheetOf(pcmOf(sine(440, 2, 0.25)), [{ kind: 'onset', at: 0.5 }]);
     expect(pixel(onsetOnly, 300, 402)).toEqual([84, 222, 120]);
+  });
+
+  test('a loop point is marked its own colour', () => {
     const looped = sheetOf(pcmOf(sine(440, 2, 0.25)), [{ kind: 'loop', at: 1.5 }]);
     expect(pixel(looped, 900, 402)).toEqual([84, 206, 255]);
   });
