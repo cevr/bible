@@ -14,6 +14,9 @@ describe("the sync's input", () => {
   test('a request to plan reads the same as an object or as its JSON', () => {
     expect(read({ mode: 'plan' })).toEqual(Exit.succeed({ mode: 'plan' }));
     expect(read('{"mode":"plan"}')).toEqual(Exit.succeed({ mode: 'plan' }));
+    expect(read('{"mode":"sync","recheck":1500}')).toEqual(
+      Exit.succeed({ mode: 'sync', recheck: 1500 }),
+    );
   });
 
   test('a payload that reads as neither fails rather than syncing', () => {
