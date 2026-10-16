@@ -6,19 +6,38 @@
 // and a bed's loop seam heard on no more seeds than the recipe's and never a
 // click. Each port is pinned too: its first seed's samples by digest, the
 // same on every render. One test a preset and a measure, each short.
+//
+// The families the library's code sounds are built from are pinned the same
+// way, and each is heard to do what its doc says on seeds 1–3, a trial's three
+// variants: a burst's power in its band, a thump and a knock with next to no
+// rumble, a scatter's landings falling by its step, a whoosh's and a sizzle's
+// hit where they say, a hiss held, a breeze looping unheard and a roof's taps
+// in their band.
 
 import { describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { Array as Arr, Result, Schema } from 'effect';
 import type { Pcm } from '../../audio.ts';
-import { distance, medianProfile, profileOf } from '../compare.ts';
+import { describeSound } from '../analyse.ts';
+import { HIT_MOVE, type Profile, distance, medianProfile, profileOf } from '../compare.ts';
 import { type Recipe, synthesize } from '../recipes.ts';
 import { resolveCode } from '../resolve.ts';
 import { type SoundUse, defineLibrary } from '../../sfx.ts';
 import { loopSeam, seamHeard } from '../seam.ts';
-import { CodeSound } from './nodes.ts';
+import { CodeSound, type Node } from './nodes.ts';
 import type { ResolvedSound } from './plan.ts';
-import { portOf } from './presets.ts';
+import {
+  breeze,
+  burst,
+  hiss,
+  knock,
+  portOf,
+  rain,
+  scatter,
+  sizzle,
+  thump,
+  whoosh,
+} from './presets.ts';
 import { renderCode } from './render.ts';
 
 const SEEDS = [1, 2, 3, 4, 5] as const;
@@ -260,4 +279,245 @@ describe('each bed’s port loops as its recipe', () => {
       );
       for (const seam of port) expect(seamHeard({ db: 0, click: seam.click })).toBe(false);
     });
+});
+
+/** The seeds a family is heard on: a code trial's three variants. */
+const TRIAL_SEEDS = [1, 2, 3] as const;
+
+/** Each family at settings like the library's sounds, and how it is heard. */
+const FAMILIES = {
+  burst: {
+    play: burst({ color: 'pink', low: 500, high: 2000, attack: 0.0005, decay: 0.05 }),
+    use: 'one-shot',
+  },
+  thump: { play: thump({ hz: 100, octaves: 1, drop: 0.02, decay: 0.3 }), use: 'one-shot' },
+  'knock of wood': { play: knock({ material: 'wood', hz: 480, secs: 0.3 }), use: 'one-shot' },
+  'knock of stone': { play: knock({ material: 'stone', hz: 165, secs: 0.4 }), use: 'one-shot' },
+  scatter: {
+    play: scatter({
+      count: 3,
+      first: 0.05,
+      every: 0.2,
+      fall: 6,
+      material: 'stone',
+      hz: 600,
+      secs: 0.8,
+    }),
+    use: 'one-shot',
+  },
+  whoosh: {
+    play: whoosh({ onset: 0.05, hit: 0.4, fall: 0.2, low: 1200, high: 6000, q: 0.5 }),
+    use: 'one-shot',
+  },
+  hiss: { play: hiss({ hz: 8500, q: 1.2, rise: 0.3, hold: 0.8, secs: 1.2 }), use: 'one-shot' },
+  sizzle: { play: sizzle({ flash: 0.05, crackle: 120, secs: 1 }), use: 'one-shot' },
+  breeze: { play: breeze({ secs: 4, hz: 550 }), use: 'bed' },
+  'rain on a roof': { play: rain({ secs: 1, hiss: 900, taps: 10 }), use: 'bed' },
+} as const satisfies Readonly<Record<string, { readonly play: Node; readonly use: SoundUse }>>;
+
+type Family = keyof typeof FAMILIES;
+
+/** Each family's first seed at its settings above, by the digest of its samples. */
+const FAMILY_PINNED = {
+  burst: 'b58430ad21faf696b8f63689b69ee9ac9e355735cf33e8bc25fdcf88ae873669',
+  thump: 'd28c58f3f28648ebf154e83fd390b5ad60948574e463aef5a3730eb9cc11a3fa',
+  'knock of wood': '68afd0577e6bd709cd7271a459df3062e6d9c2507851f64dc2649e6c4597156f',
+  'knock of stone': 'e9a34544a67ceec5583da449577500b707fff06cb794b4990db961e53d3ef41b',
+  scatter: '8aa2f325d58d1dad59e92441f3e8962485ddd03950558e462967eaef436239aa',
+  whoosh: '9bf2214547f868339e0858c59a4db894114ee5d6764a35295447f16b13ccf8e9',
+  hiss: '8043c59bf54af3f095ffb7e47fc1ef2110d4c248e6ca0c8ff54b3a69d865b160',
+  sizzle: '4ae478da5b1af5a52c63fa5c04c6423ab0564b7d942d220be80fc98350847faf',
+  breeze: 'a6d700a5a95b6d6f06d540068a1d503e3ec11a51331f5bb08f405a363ea15d80',
+  'rain on a roof': 'b6e06e739d1e84568a7d09bd0296bf4035705d57055f7e352f87e99856d096d6',
+} as const satisfies Readonly<Record<Family, string>>;
+
+/** `play` as the library resolves a code sound heard as `use`. */
+const codeSound = (play: Node, use: SoundUse): ResolvedSound => {
+  const library = defineLibrary({
+    'family.trial': { kind: 'code', sound: { play }, variants: 3, use },
+  });
+  return Result.getOrThrow(resolveCode(library)).code.get('family.trial')!;
+};
+
+/** Each family's renders on the trial seeds, made once, when a test first reads them. */
+const familyRendered = new Map<Family, Arr.NonEmptyReadonlyArray<Pcm>>();
+const familyRenders = (family: Family): Arr.NonEmptyReadonlyArray<Pcm> => {
+  const had = familyRendered.get(family);
+  if (had !== undefined) return had;
+  const { play, use } = FAMILIES[family];
+  const sound = codeSound(play, use);
+  const made = Arr.map(TRIAL_SEEDS, (seed) => renderCode(sound, seed));
+  familyRendered.set(family, made);
+  return made;
+};
+
+/** The centre of `Profile.bands`' k-th band: the base-ten third octaves, 1000·10^((k − 15)/10) Hz. */
+const centre = (k: number): number => 1000 * 10 ** ((k - 15) / 10);
+
+/**
+ * The most rumble a family may make: 1e-4 of its power below 30 Hz, what the
+ * cleanest takes hold (amb.rain and paper.whoosh; wood.gavel's holds 1.2e-3).
+ */
+const RUMBLE = 1e-4;
+
+/** Each band's level in dB under the loudest band (0 for the loudest). */
+const underLoudest = (profile: Profile): ReadonlyArray<number> => {
+  const loudest = Math.max(...profile.bands);
+  return profile.bands.map((share) => 10 * Math.log10(loudest / Math.max(share, 1e-30)));
+};
+
+/** The centre of the loudest band. */
+const loudestBand = (profile: Profile): number =>
+  centre(profile.bands.indexOf(Math.max(...profile.bands)));
+
+/** How far under the loudest band the quietest-standing band centred where `where` holds lies: the least of their levels under it. */
+const leastUnder = (profile: Profile, where: (hz: number) => boolean): number =>
+  Math.min(...underLoudest(profile).filter((_, k) => where(centre(k))));
+
+/** `pcm`'s mean power from `from` to `to` seconds over every channel, in dB. */
+const powerDb = (pcm: Pcm, from: number, to: number): number => {
+  const start = Math.max(0, Math.floor(from * pcm.rate));
+  const end = Math.min(pcm.frames, Math.floor(to * pcm.rate));
+  let sum = 0;
+  for (const plane of pcm.channels) for (let i = start; i < end; i++) sum += (plane[i] ?? 0) ** 2;
+  return 10 * Math.log10(Math.max(sum / (pcm.channels.length * Math.max(1, end - start)), 1e-30));
+};
+
+/** The loudest 20 ms of `pcm` that starts between `from` and `to` seconds, read a millisecond apart: its start and its power in dB. */
+const loudest20ms = (pcm: Pcm, from: number, to: number) => {
+  let best = { at: from, db: -Infinity };
+  for (let at = Math.max(0, from); at < to; at += 0.001) {
+    const db = powerDb(pcm, at, at + 0.02);
+    if (db > best.db) best = { at, db };
+  }
+  return best;
+};
+
+describe('each family is pinned', () => {
+  for (const family of Object.keys(FAMILIES) as ReadonlyArray<Family>)
+    test(`${family}: decodes as a code sound, and renders byte for byte as pinned`, () => {
+      const { play, use } = FAMILIES[family];
+      const sound = { play };
+      expect(Schema.decodeSync(CodeSound)(sound)).toEqual(sound);
+      const once = digest(Arr.headNonEmpty(familyRenders(family)));
+      expect(digest(renderCode(codeSound(play, use), 1))).toBe(once);
+      expect(once).toBe(FAMILY_PINNED[family]);
+    });
+});
+
+describe('each family does what its doc says, on seeds 1–3', () => {
+  test('burst: its power in its band, the bands two octaves out at least 18 dB under its loudest', () => {
+    for (const pcm of familyRenders('burst')) {
+      const profile = profileOf(pcm, 'one-shot');
+      expect(loudestBand(profile)).toBeGreaterThanOrEqual(500);
+      expect(loudestBand(profile)).toBeLessThanOrEqual(2000);
+      expect(leastUnder(profile, (hz) => hz <= 500 / 4 || hz >= 2000 * 4)).toBeGreaterThanOrEqual(
+        18,
+      );
+    }
+  });
+
+  test('thump: loudest between its pitch and the octave it falls from, next to no rumble', () => {
+    for (const pcm of familyRenders('thump')) {
+      const profile = profileOf(pcm, 'one-shot');
+      expect(loudestBand(profile)).toBeGreaterThanOrEqual(100);
+      expect(loudestBand(profile)).toBeLessThanOrEqual(200);
+      expect(leastUnder(profile, (hz) => hz <= 100 / 2)).toBeGreaterThanOrEqual(25);
+      expect(profile.rumble).toBeLessThan(RUMBLE);
+    }
+  });
+
+  test('knock: next to no rumble in wood or stone, nothing two octaves under its pitch, and wood loudest at its pitch', () => {
+    for (const [family, hz] of [
+      ['knock of wood', 480],
+      ['knock of stone', 165],
+    ] as const)
+      for (const pcm of familyRenders(family)) {
+        const profile = profileOf(pcm, 'one-shot');
+        expect(profile.rumble).toBeLessThan(RUMBLE);
+        expect(leastUnder(profile, (band) => band <= hz / 4)).toBeGreaterThanOrEqual(25);
+        if (family === 'knock of wood') expect(loudestBand(profile)).toBeCloseTo(501.2, 0);
+      }
+  });
+
+  test('scatter: each landing about `every` after the last and, by the median, `fall` dB under it', () => {
+    const { count, first, every, fall } = { count: 3, first: 0.05, every: 0.2, fall: 6 };
+    const falls: Array<number> = [];
+    for (const pcm of familyRenders('scatter')) {
+      const landings = Array.from({ length: count }, (_, k) => {
+        const mean = first + k * every;
+        return { mean, ...loudest20ms(pcm, mean - every / 2, mean + every / 2) };
+      });
+      for (const { mean, at } of landings)
+        expect(Math.abs(at - mean)).toBeLessThanOrEqual(every / 3 + 0.01);
+      for (const [before, after] of Arr.zip(landings, landings.slice(1)))
+        falls.push(before.db - after.db);
+    }
+    expect(Math.abs(median(falls) - fall)).toBeLessThanOrEqual(1.5);
+  });
+
+  test('whoosh: its onset and its hit where it says, within the sync check’s 20 ms', () => {
+    for (const pcm of familyRenders('whoosh')) {
+      const described = describeSound(pcm);
+      expect(Math.abs(described.onset - 0.05)).toBeLessThanOrEqual(HIT_MOVE);
+      expect(Math.abs(described.hit - 0.4)).toBeLessThanOrEqual(HIT_MOVE);
+    }
+  });
+
+  test('hiss: held within 1.5 dB from its rise to its hold, its first and last 50 ms 20 dB under that', () => {
+    for (const pcm of familyRenders('hiss')) {
+      const held = Array.from({ length: 10 }, (_, k) =>
+        powerDb(pcm, 0.3 + k * 0.05, 0.35 + k * 0.05),
+      );
+      const top = Math.max(...held);
+      expect(top - Math.min(...held)).toBeLessThanOrEqual(1.5);
+      expect(top - powerDb(pcm, 0, 0.05)).toBeGreaterThanOrEqual(20);
+      expect(top - powerDb(pcm, 1.15, 1.2)).toBeGreaterThanOrEqual(20);
+    }
+  });
+
+  test('sizzle: its hit at its flash, then falling evenly, about 4.5 dB a tenth of a second', () => {
+    for (const pcm of familyRenders('sizzle')) {
+      expect(Math.abs(describeSound(pcm).hit - 0.05)).toBeLessThanOrEqual(HIT_MOVE);
+      // The flash is gone by 0.17 s: the tenths from 0.2 s are the body's alone.
+      const tenths = Array.from({ length: 8 }, (_, k) =>
+        powerDb(pcm, 0.2 + k * 0.1, 0.3 + k * 0.1),
+      );
+      for (const [before, after] of Arr.zip(tenths, tenths.slice(1)))
+        expect(Math.abs(before - after - 4.5)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test('breeze: its seam unheard, three quarters of it within an octave of its band, no rumble and no hiss', () => {
+    const renders = familyRenders('breeze');
+    for (const pcm of renders) expect(seamHeard(loopSeam(pcm))).toBe(false);
+    const profile = profileOf(Arr.headNonEmpty(renders), 'bed');
+    const near = profile.bands.reduce(
+      (sum, share, k) => sum + (centre(k) >= 550 / 2 && centre(k) <= 550 * 2 ? share : 0),
+      0,
+    );
+    expect(near).toBeGreaterThanOrEqual(0.7);
+    expect(profile.rumble).toBeLessThan(RUMBLE);
+    expect(leastUnder(profile, (hz) => hz >= 4000)).toBeGreaterThanOrEqual(30);
+  });
+
+  test('rain on a roof: its taps ring between 1.2 and 3.2 kHz, over the same rain without them', () => {
+    const bare = codeSound(rain({ secs: 1, hiss: 900 }), 'bed');
+    for (const [seed, roofed] of Arr.zip(TRIAL_SEEDS, familyRenders('rain on a roof'))) {
+      const without = renderCode(bare, seed);
+      expect(roofed.frames).toBe(without.frames);
+      // The rain under the taps draws the same numbers either way, so what
+      // the roof adds is the taps alone.
+      const taps: Pcm = {
+        ...roofed,
+        channels: roofed.channels.map((plane, c) => {
+          const under = without.channels[c] ?? new Float32Array(0);
+          return plane.map((v, i) => v - (under[i] ?? 0));
+        }),
+      };
+      const band = loudestBand(profileOf(taps, 'bed'));
+      expect(band).toBeGreaterThanOrEqual(1200);
+      expect(band).toBeLessThanOrEqual(3200);
+    }
+  });
 });

@@ -11,9 +11,11 @@
 // generated sound's `code` is its code trial, heard beside its takes and
 // placed by no film until the owner chooses it in an ask (`sfx audit`,
 // `sfx render --trial --sheet`, `sfx compare`, `sfx ab`: the loop in the
-// film skill's reference/sound.md). Procedural sounds are recipes, played
-// from their seeds the same way. A recorded sound is CC0 only, under
-// `public/` (`sfx import`).
+// film skill's reference/sound.md). A trial is layered from the families
+// `@bible/film/core` exports (a burst, a thump, a knock, a whoosh, …), each a
+// shape with a few settings, so a shape is tuned in one place. Procedural
+// sounds are recipes, played from their seeds the same way. A recorded sound
+// is CC0 only, under `public/` (`sfx import`).
 //
 // The first library (audio-design §9): 30 generated one-shots, 9 generated
 // beds, 1 recorded one-shot, 6 procedural sounds. Prompts are concrete, close and dry: a film's cue
@@ -24,20 +26,45 @@
 // (one-shot 0.7 × 6, bed 0.3 × 3); a sound names its own only where a trial
 // heard better.
 
-import { defineLibrary, defineStore } from '@bible/film/core';
+import {
+  breeze,
+  burst,
+  defineLibrary,
+  defineStore,
+  hiss,
+  knock,
+  rain,
+  scatter,
+  sizzle,
+  thump,
+  whoosh,
+} from '@bible/film/core';
 
 /** Every generated bed's length: long enough that its loop point is rarely heard. */
 const BED_SECS = 22;
 
+/** A library's entries, as `defineLibrary` reads them. */
+type Entries = Parameters<typeof defineLibrary>[0];
+
+/** A generated sound's code trial, as `defineLibrary` reads it. */
+type CodeTrial = NonNullable<
+  Extract<Entries[keyof Entries], { readonly kind: 'generated' }>['code']
+>;
+
+/** A code trial of `play`, its variants seeds 1–3. */
+const trial = (play: CodeTrial['sound']['play']): CodeTrial => ({ sound: { play }, variants: 3 });
+
 /**
  * What a generated sound declares beside its prompt: why it needs
- * ElevenLabs, by name so it is never taken for the prompt, and any setting a
- * trial heard better than the default (absent, the default holds).
+ * ElevenLabs, by name so it is never taken for the prompt, any setting a
+ * trial heard better than the default (absent, the default holds), and its
+ * code trial, if it has one.
  */
 interface Declared {
   readonly why: string;
   readonly influence?: number;
   readonly secs?: number;
+  readonly code?: CodeTrial;
 }
 
 const oneShot = (prompt: string, secs: number, declared: Declared) =>
@@ -115,6 +142,7 @@ export const library = defineLibrary({
   'amb.desert': bed('a soft steady wind blowing over sand, constant and even, no gusts, dry', {
     why: 'Generated until a code version is heard beside it: steady wind is a shape code makes.',
     secs: 30,
+    code: trial(breeze({ secs: 30, hz: 550 })),
   }),
   'amb.roof': bed('rooftop wind over a sleeping city at night, faint distant town sounds, soft', {
     why: 'Faint town sounds under the wind: life far off, which code cannot make.',
@@ -127,6 +155,7 @@ export const library = defineLibrary({
   }),
   'amb.rain': bed('steady soft rain on a tiled roof and ground, even, no thunder', {
     why: 'Generated until a code version is heard beside it: steady rain is a texture code makes.',
+    code: trial(rain({ secs: BED_SECS, hiss: 900, taps: 10 })),
   }),
 
   // One-shots --------------------------------------------------------------
@@ -145,6 +174,13 @@ export const library = defineLibrary({
       {
         why: 'Generated until a code version is heard beside it: a wooden knock is a shape code makes.',
         influence: 0.9,
+        code: trial({
+          _tag: 'Layer',
+          of: [
+            { node: knock({ material: 'wood', hz: 480, secs: 0.3 }), at: 0.025 },
+            { node: thump({ hz: 90, octaves: 1, drop: 0.02, decay: 0.4 }), at: 0.025, db: -16 },
+          ],
+        }),
       },
     ),
     level: -8,
@@ -152,7 +188,21 @@ export const library = defineLibrary({
   'stamp.press': oneShot(
     'a rubber stamp pressed hard onto paper on a wooden desk, one thump, close',
     1,
-    { why: 'Generated until a code version is heard beside it: a thump is a shape code makes.' },
+    {
+      why: 'Generated until a code version is heard beside it: a thump is a shape code makes.',
+      // A bright crack of contact over the rubber's body, the thud faint under them.
+      code: trial({
+        _tag: 'Layer',
+        of: [
+          { node: burst({ color: 'white', low: 300, high: 16000, attack: 0.0003, decay: 0.06 }) },
+          {
+            node: burst({ color: 'pink', low: 500, high: 2000, attack: 0.0005, decay: 0.03 }),
+            db: 3,
+          },
+          { node: thump({ hz: 90, octaves: 0.5, drop: 0.01, decay: 0.12 }), db: -14 },
+        ],
+      }),
+    },
   ),
   'paper.slide': oneShot(
     'a sheet of thick paper sliding across a wooden desk, soft and short, close, dry room',
@@ -214,6 +264,17 @@ export const library = defineLibrary({
     1.5,
     {
       why: 'Generated until a code version is heard beside it: thuds in dust are shapes code makes.',
+      code: trial(
+        scatter({
+          count: 4,
+          first: 0.025,
+          every: 0.17,
+          fall: 6,
+          material: 'stone',
+          hz: 600,
+          secs: 1,
+        }),
+      ),
     },
   ),
   // From the trials: "measuring tape" is a steel tape to the model, whatever the
@@ -229,6 +290,13 @@ export const library = defineLibrary({
   ),
   'tablet.set': oneShot('a heavy stone tablet set down on stone, one low knock, close', 1, {
     why: 'Generated until a code version is heard beside it: a stone knock is a shape code makes.',
+    code: trial({
+      _tag: 'Layer',
+      of: [
+        { node: knock({ material: 'stone', hz: 165, secs: 0.4 }) },
+        { node: thump({ hz: 88, octaves: 1, drop: 0.015, decay: 0.3 }), db: -5 },
+      ],
+    }),
   }),
   // From the trials: a count in the prompt is not heard; give each stitch its
   // sound and room. "needle and thread" alone is a sewing machine; at 0.9 the
@@ -255,6 +323,8 @@ export const library = defineLibrary({
     1,
     {
       why: 'Generated until a code version is heard beside it: a swept whoosh is a shape code makes.',
+      // Placed by its onset: the pass lands 0.37 s after it, as the take's does.
+      code: trial(whoosh({ onset: 0.03, hit: 0.4, fall: 0.22, low: 1200, high: 6000, q: 0.5 })),
     },
   ),
   // Every take (three prompts, influence 0.5 and 0.7) is a low thud under the
@@ -276,6 +346,7 @@ export const library = defineLibrary({
   'stain.hiss': oneShot('water sizzle on hot metal', 1.5, {
     why: 'Generated until a code version is heard beside it: a sizzle is a texture code makes.',
     influence: 0.5,
+    code: trial(sizzle({ flash: 0.02, crackle: 120, secs: 1.6 })),
   }),
   // Recorded: every generated take (8 over two rolls) was one boomy hit, never
   // steps. Two steps (2.25–4.75 s) of the recording's HQ preview.
@@ -305,12 +376,31 @@ export const library = defineLibrary({
   ),
   'snake.hiss': oneShot('a snake hissing low in the sand, close, dry', 2, {
     why: 'Generated until a code version is heard beside it: a hiss is a texture code makes.',
+    // Loudest from about 0.4 to 1 s, as the take is: a swell, no single hit.
+    code: trial(hiss({ hz: 8500, q: 1.2, rise: 0.45, hold: 0.95, secs: 1.8 })),
   }),
   'pole.creak': oneShot('a tall wooden pole raised upright and creaking as it settles', 2, {
     why: 'Generated until a code version is tried: a creak is a stick-slip texture code may make.',
   }),
   'book.close': oneShot('an old leather-bound book closed firmly, one soft thump, close', 1, {
     why: 'Generated until a code version is heard beside it: a thump and a puff of air are shapes code makes.',
+    // Two thumps, the cover's and the table's, a puff of air and a faint slap of leather.
+    code: trial({
+      _tag: 'Layer',
+      of: [
+        { node: thump({ hz: 130, octaves: 1, drop: 0.02, decay: 0.3 }), at: 0.015 },
+        { node: thump({ hz: 60, octaves: 1, drop: 0.03, decay: 0.35 }), at: 0.015, db: -12 },
+        {
+          node: burst({ color: 'pink', low: 150, high: 1500, attack: 0.002, decay: 0.15 }),
+          at: 0.015,
+        },
+        {
+          node: burst({ color: 'white', low: 3000, high: 12000, attack: 0.002, decay: 0.08 }),
+          at: 0.015,
+          db: -14,
+        },
+      ],
+    }),
   }),
   'tone.drain': {
     kind: 'procedural',

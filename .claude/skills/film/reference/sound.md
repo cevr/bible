@@ -97,6 +97,24 @@ A short band of noise (the crack, its centre drawn per seed) over a falling sine
 
 A field fixed for a render takes a value: a number, a range drawn once per seed (`{ _tag: 'Vary', min, max }`, with `curve: 'log'` for a pitch or a time), or a choice (`{ _tag: 'Pick', of, by }`; with `by: 'seed'`, variant n plays the nth). A field that moves takes a signal: a value held, a `Ramp`, `Points`, a `Wobble` (smooth seeded noise) or an `Lfo`. Each field's name says its unit: `secs`, `hz`, `db`, `semitones`. A pitch is Hz, a note name (`D5`) or a degree of the key (`{ degree, octave }`).
 
+### The families
+
+Most sounds are made of a few shapes. `core/synth/graph/presets.ts` builds each as a function of a few settings that returns a node, and `@bible/film/core` exports them to the app. A sound layers them (`Layer`, each child at its `at` and `db`), and its seeds vary each as the table says.
+
+| Family    | Settings                                                    | What it makes                                                                                           | Each seed draws                                    |
+| --------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `burst`   | `color`, `low`, `high`, `attack`, `decay`                   | noise in a band, struck: a click when short and bright, a puff of air when soft and dark                | both edges of the band, within 2 semitones         |
+| `thump`   | `hz`, `octaves`, `drop`, `decay`                            | a sine struck `octaves` over its pitch, falling to it over `drop` seconds, as a drum skin's pitch falls | both ends of the fall, within a semitone           |
+| `knock`   | `material` (`wood` or `stone`), `hz`, `secs`                | a material's modes struck at a pitch, over its click of contact                                         | the pitch, within a semitone                       |
+| `scatter` | `count`, `first`, `every`, `fall`, `material`, `hz`, `secs` | things landing one after another, each `fall` dB quieter: a knock, a thud and a puff of dust each       | each landing's time but the first's                |
+| `whoosh`  | `onset`, `hit`, `fall`, `low`, `high`, `q`                  | noise through a band that rises to `high` at the hit, as something passes close by                      | the top of the band, within 2 semitones            |
+| `hiss`    | `hz`, `q`, `rise`, `hold`, `secs`                           | breath forced out: white noise in a high band, risen, held and faded                                    | the band, within 2 semitones                       |
+| `sizzle`  | `flash`, `crackle`, `secs`                                  | water on hot metal: a flash of steam, then steam, a low boil and pops, falling evenly by 45 dB          | the steam's edge, and the pops' times and levels   |
+| `breeze`  | `secs`, `hz`                                                | a steady breeze, made to loop: pink air through a band that wanders slowly, its level swaying           | its sway and its band's wander                     |
+| `rain`    | `secs`, `hiss`, `taps`                                      | soft rain, made to loop; with `taps`, that many taps a second on a roof's tiles                         | the drops' and the taps' times, levels and pitches |
+
+Each family is pinned by its samples and heard to do what its doc says (`core/synth/graph/presets.test.ts`). A one-second one-shot of each renders in under 3 ms on the laptop (measured, `bun run test:perf`). A family is the place to change a shape: an edit to it changes the label of every sound built from it.
+
 ### Seeds and streams
 
 Each node draws its numbers from a stream named for its place in the tree. A node that names its `stream` keeps its draws and its children's wherever it moves, so put a name on a node before you put nodes in front of it. A stream name is unique in its sound: two nodes with one name draw the same numbers, which is correlated noise nobody chose, and the library load refuses it (`StreamDuplicate`). A `Sample` renders on its own seed, so the sound it samples keeps its own names.
@@ -128,7 +146,7 @@ A trial is heard beside what plays:
 ## The loop
 
 1. Run `bun run sfx audit`. Pick a sound with the verdict "code can make this (sure)".
-2. Write `code: { sound, variants: 3 }` on its entry. Start from what the take does: its prompt, its lock record (`bun run sfx list`) and its numbers (step 4 reads them).
+2. Write `code: { sound, variants: 3 }` on its entry, from the families where one fits. Start from what the take does: its prompt, its lock record (`bun run sfx list`) and its numbers (step 4 reads them).
 3. Run `bun run sfx render <name> --trial --sheet`. Read each PNG.
 4. Run `bun run sfx compare <name>`: each seed's numbers, each side's median, how far apart they stand, and the sync lines.
 5. Edit the data and go again from step 3. A render takes milliseconds and no credits.
@@ -200,4 +218,5 @@ Numbers, no verdict: a distance is a hint for the ear, never a target to make sm
 - **A low drone draws a comb.** The waveform panel draws each column's least and greatest sample, so a wave whose cycle spans about two columns (a D2 drone over 8 s) draws a comb. That is the data, not a fault.
 - **An ab clip of a bed has no loop line.** It plays 8 s of each render; the seam is `sfx check`'s.
 - **A recipe's label names no renderer version.** A change to `core/synth/signal.ts` does not make a mix stale by itself; a code sound's label carries `RENDER_VERSION`.
-- **Speed is measured, never gated.** The ports render within 1.5× their recipe's time: `bun run test:perf` in `packages/film` (`packages/film/test/perf/presets.perf.test.ts`) logs each pair. A CI runner runs the film's CPU tests 17 to 35 times slower than the laptop, so no gate test times a render.
+- **Shape, then filter.** A fast attack spreads power toward 0 Hz, which the loudness never hears and the headroom pays for. A filter after the envelope takes it off; one before the envelope cannot. So `burst` filters its struck noise, and a struck pitch carries a highpass under it: `thump` an octave under, `knock` two.
+- **Speed is measured, never gated.** The ports render within 1.5× their recipe's time, and each family's one-second one-shot in under 20 ms: `bun run test:perf` in `packages/film` (`packages/film/test/perf/presets.perf.test.ts`) logs each. A CI runner runs the film's CPU tests 17 to 35 times slower than the laptop, so no gate test times a render.

@@ -10,10 +10,15 @@
 // its measures are the recipe's (presets.test.ts): the same length, loudness
 // within 1 LU, the band balance within 1.5 dB, the same notes and partials,
 // the bell's note by seed, and a loop seam heard on no more seeds.
+//
+// The families after them (`burst`, `thump`, `knock`, `scatter`, `whoosh`,
+// `hiss`, `sizzle`, `breeze`, and `rain` with its roof) are the shapes the
+// library's code sounds are built from: a few settings each, and the
+// variation their seeds draw (`@bible/film/core` exports them to the app).
 
 import type { Recipe } from '../recipes.ts';
-import { exp, log } from './math.ts';
-import type { Node, Pitch, Ramp } from './nodes.ts';
+import { dbToGain, exp, exp2, log } from './math.ts';
+import type { Node, Pitch, Ramp, Value } from './nodes.ts';
 import { pitchHz } from './pitch.ts';
 
 /** A note name names its own pitch: the key it is read in is never used. */
@@ -419,9 +424,45 @@ const DROP: Node = levelBetween(0.2, 1, {
   },
 });
 
-/** Soft rain: a bed of hiss, and drops at random, 176.4 a second on average (1 in 250 frames), made to loop. */
-const rain = (settings: { readonly secs: number }): Node => {
+/** How often rain's drops fall: 176.4 a second on average (1 in 250 frames). */
+const DROPS = 44100 / 250;
+
+/** A tap on a roof tile: a drop's knock, short and bright, its pitch drawn between 1.2 and 3 kHz. */
+const TAP: Node = levelBetween(0.3, 1, {
+  _tag: 'Partials',
+  pitch: { _tag: 'Vary', min: 1200, max: 3000, curve: 'log' },
+  set: [
+    { ratio: 1, level: 1, decay: 0.006 },
+    { ratio: 1.7, level: 0.5, decay: 0.004 },
+  ],
+  attack: 0.0003,
+  secs: 0.03,
+});
+
+/**
+ * Soft rain, made to loop: a bed of hiss above `hiss` Hz, and drops at
+ * random, 176.4 a second on average; on a roof, `taps` a second on its tiles,
+ * inside the loop with the rest.
+ */
+export const rain = (settings: {
+  readonly secs: number;
+  readonly hiss: number;
+  readonly taps?: number;
+}): Node => {
   const made = settings.secs + RAIN_LOOP;
+  const taps: ReadonlyArray<{ readonly node: Node; readonly db: number }> =
+    settings.taps === undefined
+      ? []
+      : [
+          {
+            node: {
+              _tag: 'Repeat',
+              timing: { _tag: 'Poisson', rate: settings.taps, secs: made },
+              of: TAP,
+            },
+            db: -6,
+          },
+        ];
   return {
     _tag: 'Loop',
     crossfade: RAIN_LOOP,
@@ -429,15 +470,384 @@ const rain = (settings: { readonly secs: number }): Node => {
       _tag: 'Layer',
       secs: made,
       of: [
-        { node: highpass(400, pink(made)), db: db(0.25) },
+        { node: highpass(settings.hiss, pink(made)), db: db(0.25) },
         {
           node: {
             _tag: 'Repeat',
-            timing: { _tag: 'Poisson', rate: 44100 / 250, secs: made },
+            timing: { _tag: 'Poisson', rate: DROPS, secs: made },
             of: DROP,
           },
         },
+        ...taps,
       ],
+    },
+  };
+};
+
+// Families: the shapes the library's code sounds are built from, each with
+// the few settings a sound chooses and the variation its seeds draw. A sound
+// layers them (apps/animations/sounds/library.ts); a family's shape lives
+// here once, so an edit to it changes the key of every sound built from it.
+
+/** A level `gain` dB from full scale. */
+const level = (gain: number): number => dbToGain(gain);
+
+/** `hz` drawn per seed within `spread` semitones either side, evenly in pitch. */
+const around = (hz: number, spread: number): Value<number> => ({
+  _tag: 'Vary',
+  min: hz / exp2(spread / 12),
+  max: hz * exp2(spread / 12),
+  curve: 'log',
+});
+
+/** Its child struck: up over `attack` seconds, then falling evenly in dB, by `depth` dB at `end` seconds. */
+const struck = (attack: number, end: number, depth: number, of: Node): Node => ({
+  _tag: 'Envelope',
+  points: [
+    [0, 0],
+    [attack, 1],
+    [end, level(-depth)],
+  ],
+  curve: 'exponential',
+  of,
+});
+
+/**
+ * A burst of noise in a band, struck: up over `attack` seconds and down by
+ * 80 dB at `decay`, its band between `low` and `high` Hz (a Butterworth
+ * highpass and lowpass, 12 dB an octave outside it). Short and bright, it is
+ * a click; soft and dark, a puff of air. Each seed draws both edges within
+ * two semitones.
+ */
+export const burst = (settings: {
+  readonly color: 'white' | 'pink' | 'brown';
+  readonly low: number;
+  readonly high: number;
+  readonly attack: number;
+  readonly decay: number;
+}): Node => ({
+  _tag: 'Filter',
+  type: 'lowpass',
+  hz: around(settings.high, 2),
+  q: 0.7,
+  of: {
+    _tag: 'Filter',
+    type: 'highpass',
+    hz: around(settings.low, 2),
+    q: 0.7,
+    of: struck(settings.attack, settings.decay, 80, {
+      _tag: 'Noise',
+      color: settings.color,
+      secs: settings.decay,
+    }),
+  },
+});
+
+/**
+ * A thump: a sine struck `octaves` above its pitch and falling to it over
+ * `drop` seconds, as a drum skin's pitch falls, dying away by 80 dB at
+ * `decay`. A highpass an octave under its pitch takes off the rumble its
+ * strike spreads below it. Each seed draws both ends of the fall within a
+ * semitone.
+ */
+export const thump = (settings: {
+  readonly hz: number;
+  readonly octaves: number;
+  readonly drop: number;
+  readonly decay: number;
+}): Node =>
+  highpass(
+    settings.hz / 2,
+    struck(0.001, settings.decay, 80, {
+      _tag: 'Osc',
+      wave: 'sine',
+      phase: 0,
+      pitch: {
+        _tag: 'Ramp',
+        from: around(settings.hz * exp2(settings.octaves), 1),
+        to: around(settings.hz, 1),
+        secs: settings.drop,
+        curve: 'exponential',
+      },
+      secs: settings.decay,
+    }),
+  );
+
+/**
+ * How a struck material sounds: the modes it rings with (each a ratio to its
+ * pitch, a level and a decay's time constant), and its click of contact: a
+ * band of noise between two ratios to its pitch, its level in dB over the
+ * modes', and when it has fallen by 80 dB.
+ */
+const MATERIALS = {
+  // A hardwood block: a low body mode, two strong modes a little over an
+  // octave apart and fainter ones above, damped within a few hundredths of a
+  // second, so it knocks rather than rings; its contact a bright click.
+  wood: {
+    modes: [
+      { ratio: 0.6, level: 0.3, decay: 0.015 },
+      { ratio: 1, level: 1, decay: 0.012 },
+      { ratio: 1.35, level: 0.4, decay: 0.01 },
+      { ratio: 2.1, level: 0.7, decay: 0.009 },
+      { ratio: 2.6, level: 0.9, decay: 0.008 },
+      { ratio: 3.4, level: 0.6, decay: 0.006 },
+      { ratio: 5.1, level: 0.25, decay: 0.004 },
+    ],
+    contact: { color: 'pink', low: 1.2, high: 6, db: 8, decay: 0.03 },
+  },
+  // A stone slab: dense low modes, ringing a little longer; its contact a
+  // dull crack of dark noise, louder than its modes.
+  stone: {
+    modes: [
+      { ratio: 1, level: 0.6, decay: 0.03 },
+      { ratio: 1.3, level: 0.5, decay: 0.025 },
+      { ratio: 2, level: 0.3, decay: 0.02 },
+      { ratio: 2.5, level: 0.6, decay: 0.016 },
+      { ratio: 3.2, level: 0.7, decay: 0.012 },
+      { ratio: 4.1, level: 0.4, decay: 0.008 },
+      { ratio: 5.3, level: 0.2, decay: 0.006 },
+    ],
+    contact: { color: 'pink', low: 1, high: 2.5, db: 18, decay: 0.2 },
+  },
+} as const;
+
+/**
+ * A knock: `material` struck at `hz`, its modes ringing and dying for up to
+ * `secs`, over its click of contact: a burst of noise in a band at and above
+ * the pitch. A highpass two octaves under its pitch takes off the rumble its
+ * modes' strike spreads below them. Each seed draws the pitch within a
+ * semitone.
+ */
+export const knock = (settings: {
+  readonly material: keyof typeof MATERIALS;
+  readonly hz: number;
+  readonly secs: number;
+}): Node => {
+  const material = MATERIALS[settings.material];
+  return highpass(settings.hz / 4, {
+    _tag: 'Layer',
+    of: [
+      {
+        node: {
+          _tag: 'Partials',
+          pitch: around(settings.hz, 1),
+          set: material.modes,
+          attack: 0.0005,
+          secs: settings.secs,
+        },
+      },
+      {
+        node: burst({
+          color: material.contact.color,
+          low: settings.hz * material.contact.low,
+          high: settings.hz * material.contact.high,
+          attack: 0.0002,
+          decay: material.contact.decay,
+        }),
+        db: material.contact.db,
+      },
+    ],
+  });
+};
+
+/**
+ * Things landing one after another, `count` of them: the first at `first`
+ * seconds, each next one about `every` seconds after the last (drawn within
+ * a third of it) and `fall` dB quieter, the whole `secs` long. Each lands as
+ * a knock of `material` at `hz`, a soft thud three octaves below it and a
+ * puff of dust between 600 and 1600 Hz, dulled above three times its pitch.
+ */
+export const scatter = (settings: {
+  readonly count: number;
+  readonly first: number;
+  readonly every: number;
+  readonly fall: number;
+  readonly material: keyof typeof MATERIALS;
+  readonly hz: number;
+  readonly secs: number;
+}): Node => {
+  const landing: Node = lowpass(settings.hz * 3, {
+    _tag: 'Layer',
+    of: [
+      { node: knock({ material: settings.material, hz: settings.hz, secs: 0.3 }) },
+      {
+        node: thump({ hz: settings.hz / 8, octaves: 0.5, drop: 0.015, decay: 0.2 }),
+        db: -14,
+      },
+      {
+        node: burst({ color: 'pink', low: 600, high: 1600, attack: 0.001, decay: 0.08 }),
+        db: -10,
+      },
+    ],
+  });
+  const at = (k: number): Value<number> => {
+    const mean = settings.first + k * settings.every;
+    if (k === 0) return mean;
+    return { _tag: 'Vary', min: mean - settings.every / 3, max: mean + settings.every / 3 };
+  };
+  return {
+    _tag: 'Layer',
+    secs: settings.secs,
+    of: [
+      { node: landing, at: at(0) },
+      ...Array.from({ length: settings.count - 1 }, (_, j) => ({
+        node: landing,
+        at: at(j + 1),
+        db: -settings.fall * (j + 1),
+      })),
+    ],
+  };
+};
+
+/**
+ * A whoosh: noise above `low` Hz through a band, as something passes close
+ * by. Its level rises evenly in dB from −30 dB at `onset` to its loudest at
+ * `hit` (−8 dB a fifth of a second before it), then falls 40 dB over `fall`
+ * seconds; its band rises to `high` Hz at the hit and falls back. Each seed
+ * draws the band's top within two semitones.
+ */
+export const whoosh = (settings: {
+  readonly onset: number;
+  readonly hit: number;
+  readonly fall: number;
+  readonly low: number;
+  readonly high: number;
+  readonly q: number;
+}): Node => {
+  const end = settings.hit + settings.fall;
+  const near = Math.max(settings.onset, settings.hit - 0.2);
+  return {
+    _tag: 'Envelope',
+    points: [
+      [0, 0],
+      [settings.onset, level(-30)],
+      [near, level(-8)],
+      [settings.hit, 1],
+      [end, level(-40)],
+    ],
+    curve: 'exponential',
+    of: {
+      _tag: 'Filter',
+      type: 'bandpass',
+      hz: {
+        _tag: 'Points',
+        points: [
+          [0, settings.low * 2],
+          [settings.hit, around(settings.high, 2)],
+          [end, settings.low * 2],
+        ],
+        curve: 'exponential',
+      },
+      q: settings.q,
+      of: highpass(settings.low, { _tag: 'Noise', color: 'pink', secs: end }),
+    },
+  };
+};
+
+/**
+ * A hiss: breath forced out, white noise through a high band at `hz`, rising
+ * over `rise` seconds, held to `hold` and fading to silence at `secs`. Each
+ * seed draws the band within two semitones.
+ */
+export const hiss = (settings: {
+  readonly hz: number;
+  readonly q: number;
+  readonly rise: number;
+  readonly hold: number;
+  readonly secs: number;
+}): Node => ({
+  _tag: 'Envelope',
+  points: [
+    [0, 0],
+    [settings.rise, 1],
+    [settings.hold, 1],
+    [settings.secs, 0],
+  ],
+  curve: 'smooth',
+  of: {
+    _tag: 'Filter',
+    type: 'bandpass',
+    hz: around(settings.hz, 2),
+    q: settings.q,
+    of: { _tag: 'Noise', color: 'white', secs: settings.secs },
+  },
+});
+
+/** A pop of a sizzle's crackle: a millisecond of bright noise at a level drawn between 0.2 and 1. */
+const POP: Node = levelBetween(0.2, 1, {
+  _tag: 'Filter',
+  type: 'highpass',
+  hz: 3000,
+  q: 0.7,
+  of: { _tag: 'Noise', color: 'white', secs: 0.0015 },
+});
+
+/**
+ * A sizzle: water on hot metal. A flash of steam (white noise above about
+ * 700 Hz) at `flash` seconds, over steam and a low boil (pink noise above
+ * 60 Hz, 12 dB under it) that fall evenly by 45 dB to `secs`, crackling at
+ * random, `crackle` pops a second. Each seed draws the steam's edge within
+ * two semitones.
+ */
+export const sizzle = (settings: {
+  readonly flash: number;
+  readonly crackle: number;
+  readonly secs: number;
+}): Node => {
+  const steam = (secs: number): Node => ({
+    _tag: 'Filter',
+    type: 'highpass',
+    hz: around(700, 2),
+    q: 0.5,
+    of: { _tag: 'Noise', color: 'white', secs },
+  });
+  return {
+    _tag: 'Layer',
+    of: [
+      { node: struck(0.002, 0.12, 80, steam(0.12)), at: settings.flash },
+      {
+        node: struck(0.01, settings.secs, 45, {
+          _tag: 'Layer',
+          of: [
+            { node: steam(settings.secs) },
+            { node: highpass(60, pink(settings.secs)), db: -12 },
+            {
+              node: {
+                _tag: 'Repeat',
+                timing: { _tag: 'Poisson', rate: settings.crackle, secs: settings.secs },
+                of: POP,
+              },
+              db: -6,
+            },
+          ],
+        }),
+        db: -4,
+      },
+    ],
+  };
+};
+
+/**
+ * A steady breeze, made to loop: pink air through a band at `hz` that wanders
+ * slowly three semitones either side, its level swaying by a decibel and a
+ * half, between a highpass at 90 Hz that keeps rumble out and a lowpass at
+ * two and a half times the band that keeps hiss out.
+ */
+export const breeze = (settings: { readonly secs: number; readonly hz: number }): Node => {
+  const made = settings.secs + BED_LOOP;
+  return {
+    _tag: 'Loop',
+    crossfade: BED_LOOP,
+    of: {
+      _tag: 'Gain',
+      db: { _tag: 'Wobble', around: 0, depth: 1.5, rate: 0.15 },
+      of: {
+        _tag: 'Filter',
+        type: 'bandpass',
+        hz: { _tag: 'Wobble', around: settings.hz, depth: 3, rate: 0.1 },
+        q: 0.7,
+        of: lowpass(settings.hz * 2.5, highpass(90, pink(made))),
+      },
     },
   };
 };
@@ -460,6 +870,6 @@ export const portOf = (recipe: Recipe): Node => {
     case 'wind':
       return wind(recipe);
     case 'rain':
-      return rain(recipe);
+      return rain({ secs: recipe.secs, hiss: 400 });
   }
 };
