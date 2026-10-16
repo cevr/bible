@@ -46,7 +46,7 @@ import {
   type Word,
   isCast,
 } from './schema.ts';
-import { heardAtOrAfter } from './time.ts';
+import { heardAtOrAfter, justBefore } from './time.ts';
 import { unmeasured } from './voiced.ts';
 
 /** Another voice takes the line: `{@name}` before a word. */
@@ -431,6 +431,44 @@ export const wordAfter = (
     Arr.findFirst(words, (w) => heardAtOrAfter(w, from) && readsWord(w.text, word)),
     (w) => w.start,
   );
+
+/**
+ * The words a card sets (`PanelText`'s `Card`) from a line's `words`, each
+ * with when it starts on the clock `marks` keep: those heard from mark
+ * `card.from` to mark `card.to` (the line's end when none), and the index of
+ * the first that reads `card.payoff`; or why none: a mark the line lacks, no
+ * word between the marks, or no word that reads the payoff. The engine's card
+ * (`canvas/card.ts`) and the studio's timeline set a card by this one rule.
+ */
+export const cardSaid = <W extends { readonly text: string; readonly start: number }>(
+  scene: string,
+  words: ReadonlyArray<W>,
+  marks: ReadonlyMap<string, number>,
+  card: { readonly from: string; readonly to?: string; readonly payoff: string },
+): Result.Result<{ readonly said: ReadonlyArray<W>; readonly payoff: number }, string> => {
+  const markAt = (name: string) =>
+    Result.fromOption(
+      Option.fromUndefinedOr(marks.get(name)),
+      () => `scene ${scene}: its card starts or ends at {${name}}, which its line does not mark`,
+    );
+  const to = Option.match(Option.fromUndefinedOr(card.to), {
+    onNone: () => Result.succeed(Infinity),
+    onSome: markAt,
+  });
+  return Result.flatMap(markAt(card.from), (from) =>
+    Result.flatMap(to, (until) => {
+      const said = words.filter((w) => heardAtOrAfter(w, from) && w.start < justBefore(until));
+      if (said.length === 0)
+        return Result.fail(`scene ${scene}: its card from {${card.from}} sets no words`);
+      const payoff = said.findIndex((w) => readsWord(w.text, card.payoff));
+      if (payoff < 0)
+        return Result.fail(
+          `scene ${scene}: its card's payoff "${card.payoff}" is none of its words (${said.map((w) => w.text).join(' ')})`,
+        );
+      return Result.succeed({ said, payoff });
+    }),
+  );
+};
 
 /**
  * Words as spoken in a recorded take. ElevenLabs aligns characters; group them

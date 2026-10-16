@@ -7,7 +7,8 @@
 import { Menu } from '@bible/ui/menu';
 import { Place } from '@bible/url-state';
 import type { JSX } from '@solidjs/web';
-import { Boolean as Bool, Effect, Match, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Effect, Match, Option, Result } from 'effect';
+import { BOARD_PAPER, paintText } from '../../canvas/board.ts';
 import {
   type Accessor,
   For,
@@ -66,7 +67,9 @@ import {
   waitsText,
   zoomFor,
   type BeatPage,
+  type CardPicture,
   beatPageHref,
+  verseParts,
 } from './view-state.ts';
 
 /** Whether the window is a phone's: its lanes, its keys and its reading block. */
@@ -238,9 +241,110 @@ const Header = () => {
 // ---------------------------------------------------------------- Viewer
 
 /** The kind colour of the picture's tag. */
-const TAG_KIND = { Scene: 'scene', Board: 'board', Empty: 'script' } as const;
+const TAG_KIND = { Scene: 'scene', Board: 'board', Card: 'board', Empty: 'script' } as const;
 
-/** The frame at the playhead, 16:9: the drawn scene, else the Board panel, else the beat's empty frame. */
+/** A Board card's words as its paper shows them: a card's, its payoff large; a verse's page, its phrase lit. */
+const CardWords = (props: { readonly card: CardPicture }) => (
+  <>
+    {Match.value(props.card.text).pipe(
+      Match.tag('Card', (text) => (
+        <p class="st-card-words">
+          <Show when={Option.getOrUndefined(props.card.words)} fallback={<b>{text.payoff}</b>}>
+            {(words) => (
+              <For each={words()}>
+                {(word, i) => (
+                  <>
+                    <Show when={i() > 0}> </Show>
+                    <Show when={word.payoff} fallback={<span>{word.text}</span>}>
+                      <b>{word.text}</b>
+                    </Show>
+                  </>
+                )}
+              </For>
+            )}
+          </Show>
+        </p>
+      )),
+      Match.tag('Verse', (text) => {
+        const parts = verseParts(text.text, text.phrase);
+        return (
+          <>
+            <p class="st-card-verse">
+              {parts.before}
+              <mark>{parts.phrase}</mark>
+              {parts.after}
+            </p>
+            <p class="st-card-ref">{text.ref}</p>
+          </>
+        );
+      }),
+      Match.exhaustive,
+    )}
+  </>
+);
+
+/**
+ * The Board card at the playhead, never an empty frame: set by the engine on
+ * the staged film's canvas, as the Board sets it (`paintText` on the board's
+ * paper), when the version shown is the film registry's; else, or when the
+ * engine cannot set it, its words on the card's paper. `why` hears why the
+ * engine could not set it, for the tag.
+ */
+const CardFrame = (props: {
+  readonly card: CardPicture;
+  readonly why: (why: Option.Option<string>) => void;
+}) => {
+  const { state, meta } = useStudio();
+  const engine = createMemo(() =>
+    Option.flatMap(meta.drawn(), (film) =>
+      Option.map(
+        Arr.findFirst(film.placed, (p) => p.spec.id === props.card.beat),
+        (placed) => ({ film, placed }),
+      ),
+    ),
+  );
+  const [set, setSet] = createSignal(false, { ownedWrite: true });
+  let canvas = Option.none<HTMLCanvasElement>();
+  createEffect(
+    () => ({ T: state.T(), card: props.card, engine: engine() }),
+    ({ T, card, engine: on }) => {
+      const painted = Option.flatMap(on, ({ film, placed }) =>
+        Option.flatMap(canvas, (el) =>
+          Option.map(Option.fromNullishOr(el.getContext('2d')), (ctx) => {
+            el.width = film.width;
+            el.height = film.height;
+            ctx.fillStyle = BOARD_PAPER;
+            ctx.fillRect(0, 0, film.width, film.height);
+            return paintText(ctx, film, placed, card.text, card.mark, card.markAt, T);
+          }),
+        ),
+      );
+      const why = Option.flatMap(painted, (r) => Result.getFailure(r));
+      setSet(Option.isSome(painted) && Option.isNone(why));
+      props.why(why);
+    },
+  );
+  onCleanup(() => props.why(Option.none()));
+  return (
+    <>
+      <canvas
+        class="st-card-canvas"
+        hidden={!set()}
+        aria-hidden="true"
+        ref={(el: HTMLCanvasElement) => {
+          canvas = Option.some(el);
+        }}
+      />
+      <Show when={!set()}>
+        <div class="st-card" data-card={props.card.text._tag}>
+          <CardWords card={props.card} />
+        </div>
+      </Show>
+    </>
+  );
+};
+
+/** The frame at the playhead, 16:9: the drawn scene, else the Board panel or card, else the beat's empty frame. */
 const Viewer = () => {
   const { state, meta } = useStudio();
   const picture = state.picture;
@@ -261,6 +365,22 @@ const Viewer = () => {
       Match.orElse(() => Option.none<{ readonly file: string; readonly panel: string }>()),
     ),
   );
+  const card = createMemo(() =>
+    Match.value(picture()).pipe(
+      Match.tag('Card', (p) => Option.some(p)),
+      Match.orElse(() => Option.none<CardPicture>()),
+    ),
+  );
+  // Why the engine could not set the card shown: said on the tag, never a blank paper.
+  const [unset, setUnset] = createSignal(Option.none<string>(), { ownedWrite: true });
+  const tag = () =>
+    Option.match(
+      Option.filter(unset(), () => picture()._tag === 'Card'),
+      {
+        onNone: () => pictureTag(picture()),
+        onSome: (why) => `${pictureTag(picture())} · not set: ${why}`,
+      },
+    );
   return (
     <section class="st-viewer" aria-label="Viewer">
       <div class="st-frame" data-picture={picture()._tag}>
@@ -281,6 +401,9 @@ const Viewer = () => {
             />
           )}
         </Show>
+        <Show when={Option.getOrUndefined(card())}>
+          {(shown) => <CardFrame card={shown()} why={setUnset} />}
+        </Show>
         <Show when={picture()._tag === 'Empty'}>
           <div class="st-empty">
             <b>No picture yet</b>
@@ -289,7 +412,7 @@ const Viewer = () => {
         </Show>
         <span class="st-tag" data-kind={TAG_KIND[picture()._tag]}>
           <i aria-hidden="true" />
-          {pictureTag(picture())}
+          {tag()}
         </span>
       </div>
     </section>

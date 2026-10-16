@@ -5,6 +5,7 @@
 // without importing what the model imports (its links are `api.ts`'s own).
 
 import { Schema } from 'effect';
+import { PanelText } from './board.ts';
 import { RenderKind } from './catalogue.ts';
 
 /** How a beat's voice stands: no words, words read at the reading pace, a staging take, the owner's take. */
@@ -23,6 +24,10 @@ const ClockBeat = Schema.Struct({
   speech: Schema.optionalKey(Schema.Struct({ start: Schema.Finite, end: Schema.Finite })),
   /** Its `{mark}`s, film seconds. */
   marks: Schema.Array(TimedMark),
+  /** Its words as its take says them, each from the film second it starts; none for a clock read before they were kept. */
+  words: Schema.optionalKey(
+    Schema.Array(Schema.Struct({ text: Schema.String, start: Schema.Finite })),
+  ),
   voice: BeatVoice,
   /** Whether a scene draws it (a beat `storyboard()` sets plays as its card, drawn by none). */
   drawn: Schema.Boolean,
@@ -132,6 +137,12 @@ const BoardClip = Schema.Struct({
   file: Schema.optionalKey(Schema.String),
   /** Whether it is a card or a verse page the engine sets, not a picture. */
   card: Schema.Boolean,
+  /** What the engine sets on a card panel: a card's mark, end and payoff, or a verse's page. */
+  text: Schema.optionalKey(PanelText),
+  /** A card's words as its line says them (`cardSaid`), the payoff marked; none when they do not read. */
+  words: Schema.optionalKey(
+    Schema.Array(Schema.Struct({ text: Schema.String, payoff: Schema.Boolean })),
+  ),
 });
 export type BoardClip = typeof BoardClip.Type;
 

@@ -44,6 +44,7 @@ import { parse } from '../../core/narration.ts';
 import { Segment } from '../../core/segment.ts';
 import { FILM_FPS, onTheMs } from '../../core/time.ts';
 import type { FilmTimeline, ScriptClip } from '../../core/timeline-schema.ts';
+import type { Film } from '../../canvas/film.ts';
 import type { Player, Staged } from '../../player/main.ts';
 import { tInUrl } from '../../player/t-in-url.ts';
 import { timersOn } from '../../player/throttle.ts';
@@ -123,6 +124,8 @@ interface StudioMeta {
   readonly hub: Hub;
   /** The staged film's stage (its canvas), when the version shown is the film registry's. */
   readonly stage: Accessor<Option.Option<HTMLElement>>;
+  /** The staged film itself, when the version shown is the film registry's: what sets a Board card as the Board does. */
+  readonly drawn: Accessor<Option.Option<Film>>;
   /** A Board image's URL, from the version shown's own Board. */
   readonly boardUrl: (file: string) => string;
 }
@@ -502,6 +505,11 @@ const Body = (
         Option.map(
           Option.filter(props.staged, () => drawable()),
           (s) => s.staged.stage,
+        ),
+      drawn: () =>
+        Option.map(
+          Option.filter(props.staged, () => drawable()),
+          (s) => s.staged.film,
         ),
       boardUrl: (file) =>
         Option.match(

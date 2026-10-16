@@ -13,7 +13,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Array as Arr, Option, Result, Schema } from 'effect';
 import { type AskBlock, AskName, type AskRecord, AskState, oneQuestion } from './ask.ts';
-import { BoardFile, BoardName, approveBeat, emptyBoard } from './board.ts';
+import { BoardFile, BoardName, type Panel, approveBeat, emptyBoard } from './board.ts';
 import {
   type Catalogue,
   MAIN_VARIANT,
@@ -615,6 +615,49 @@ describe('the clock a version plays on', () => {
       { name: 'open', from: 'a', start: 0, end: close.start },
       { name: 'close', from: 'c', start: close.start, end: close.start + close.dur },
     ]);
+  });
+
+  test("a beat's words in film seconds; a card panel carries what the engine sets and the words its line says", () => {
+    const placed = Result.getOrThrow(
+      layout([{ id: 'a', say: 'one two {m} three four' }], NO_TAKES),
+    );
+    const clock = Result.getOrThrow(
+      filmClock(placed, { acts: [], movements: [], drawn: () => true }),
+    );
+    const a = beatOf(clock, 'a');
+    expect(a.words?.map((w) => w.text)).toEqual(['one', 'two', 'three', 'four']);
+    expect(a.words?.[0]?.start).toBe(a.speech?.start);
+    const panel = (at: string, text: Panel['text']): Panel => ({
+      id: `a.${at}`,
+      beat: BoardName.make('a'),
+      at: BoardName.make(at),
+      tries: [],
+      ...Option.match(Option.fromUndefinedOr(text), {
+        onNone: () => ({}),
+        onSome: (t) => ({ text: t }),
+      }),
+    });
+    const board: BoardFile = {
+      film: RBF,
+      panels: [
+        panel('start', { _tag: 'Card', to: BoardName.make('m'), payoff: 'two' }),
+        panel('m', { _tag: 'Card', payoff: 'grace' }),
+      ],
+      approvals: [],
+    };
+    const t = timelineOf({ ...rbf(3), clock, board });
+    // From the line's first word to {m}; the payoff marked.
+    expect(panelClip(t, 'a.start')).toMatchObject({
+      card: true,
+      text: { _tag: 'Card', payoff: 'two' },
+      words: [
+        { text: 'one', payoff: false },
+        { text: 'two', payoff: true },
+      ],
+    });
+    // A payoff the line never says sets no words: the panel keeps what the engine would set.
+    expect(panelClip(t, 'a.m').text).toEqual({ _tag: 'Card', payoff: 'grace' });
+    expect(panelClip(t, 'a.m').words).toBeUndefined();
   });
 
   test('an act on a beat the clock has not fails, naming it', () => {

@@ -10,6 +10,7 @@ import { Array as Arr, Boolean as Bool, Match, Option, Order } from 'effect';
 import { pageHref } from '../../core/api.ts';
 import { isShortKey } from '../../core/shorts.ts';
 import { CLOCK_EPSILON, frameAtOrBefore } from '../../core/time.ts';
+import type { PanelText } from '../../core/board.ts';
 import type {
   BoardClip,
   FilmTimeline,
@@ -72,7 +73,12 @@ export const beatStep = (timeline: FilmTimeline, T: number, step: -1 | 1): numbe
   );
 };
 
-/** What the viewer shows at the playhead: a drawn scene, a Board panel, or the beat's empty frame. */
+/**
+ * What the viewer shows at the playhead: a drawn scene, a Board panel's
+ * picture, a Board card the engine sets (its text, held from its mark said
+ * at `markAt`, and its words as the line says them), or the beat's empty
+ * frame.
+ */
 export type Picture =
   | { readonly _tag: 'Scene'; readonly beat: string }
   | {
@@ -81,6 +87,15 @@ export type Picture =
       readonly panel: string;
       readonly mark: string;
       readonly file: string;
+    }
+  | {
+      readonly _tag: 'Card';
+      readonly beat: string;
+      readonly panel: string;
+      readonly mark: string;
+      readonly markAt: number;
+      readonly text: PanelText;
+      readonly words: Option.Option<NonNullable<BoardClip['words']>>;
     }
   | { readonly _tag: 'Empty'; readonly beat: Option.Option<string> };
 
@@ -105,8 +120,8 @@ const boardClips = (timeline: FilmTimeline): ReadonlyArray<BoardClip> =>
 /**
  * The picture at film second `T`: the scene drawn there when the viewer
  * can draw it (`drawable`: the film staged is this version), else the Board
- * panel held there (a picture, not a card the engine sets), else the beat's
- * empty frame. The newest stage made wins, as design §1 says.
+ * panel held there (its picture, or the card the engine sets on it), else
+ * the beat's empty frame. The newest stage made wins, as design §1 says.
  */
 export const pictureAt = (timeline: FilmTimeline, T: number, drawable: boolean): Picture => {
   const beat = Option.map(beatAt(timeline, T), (b) => b.beat);
@@ -115,25 +130,61 @@ export const pictureAt = (timeline: FilmTimeline, T: number, drawable: boolean):
     () => drawable,
   );
   if (Option.isSome(scene)) return { _tag: 'Scene', beat: scene.value.beat };
-  const panel = Arr.findFirst(boardClips(timeline), (c) =>
-    Option.filter(Option.fromUndefinedOr(c.file), () => holds(c, T) && !c.card).pipe(
-      Option.map((file): Picture => ({
-        _tag: 'Board',
-        beat: c.beat,
-        panel: c.panel,
-        mark: c.mark,
-        file,
-      })),
-    ),
+  const panel = Option.flatMap(
+    Arr.findFirst(boardClips(timeline), (c) => holds(c, T)),
+    (c): Option.Option<Picture> =>
+      Option.orElse(
+        Option.map(Option.fromUndefinedOr(c.text), (text): Picture => ({
+          _tag: 'Card',
+          beat: c.beat,
+          panel: c.panel,
+          mark: c.mark,
+          markAt: c.markAt,
+          text,
+          words: Option.fromUndefinedOr(c.words),
+        })),
+        () =>
+          Option.map(Option.fromUndefinedOr(c.file), (file): Picture => ({
+            _tag: 'Board',
+            beat: c.beat,
+            panel: c.panel,
+            mark: c.mark,
+            file,
+          })),
+      ),
   );
   return Option.getOrElse(panel, (): Picture => ({ _tag: 'Empty', beat }));
 };
+
+/** A Board card at the playhead (`Picture`'s `Card`). */
+export type CardPicture = Extract<Picture, { readonly _tag: 'Card' }>;
+
+/**
+ * A verse page's text in three: before its phrase, the phrase highlighted,
+ * and after it; the whole text unhighlighted when the phrase is not in it.
+ */
+export const verseParts = (
+  text: string,
+  phrase: string,
+): { readonly before: string; readonly phrase: string; readonly after: string } =>
+  Option.match(
+    Option.liftPredicate(text.indexOf(phrase), (at) => at >= 0 && phrase !== ''),
+    {
+      onNone: () => ({ before: text, phrase: '', after: '' }),
+      onSome: (at) => ({
+        before: text.slice(0, at),
+        phrase,
+        after: text.slice(at + phrase.length),
+      }),
+    },
+  );
 
 /** The viewer's tag: the stage shown and the beat, in the owner's words (`Board · woman`), never a file. */
 export const pictureTag = (picture: Picture): string =>
   Match.value(picture).pipe(
     Match.tag('Scene', (p) => `Scene · ${p.beat}`),
     Match.tag('Board', (p) => `Board · ${p.beat}`),
+    Match.tag('Card', (p) => `Board · ${p.beat} · ${p.text._tag.toLowerCase()}`),
     Match.tag('Empty', (p) =>
       Option.match(p.beat, { onNone: () => 'No picture yet', onSome: (b) => `Script · ${b}` }),
     ),

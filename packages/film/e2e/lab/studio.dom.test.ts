@@ -14,9 +14,16 @@
 import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
-import { DESK, PHONE, type Viewport, openPlayer } from '../../src/lab/fixtures/harness.ts';
+import {
+  DESK,
+  PHONE,
+  type Viewport,
+  json,
+  openPlayer,
+  route,
+} from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { PROBE_ASK } from '../../src/lab/fixtures/probe-timeline.ts';
+import { PROBE_ASK, probeTimeline } from '../../src/lab/fixtures/probe-timeline.ts';
 import {
   attributeIs,
   countIs,
@@ -283,4 +290,49 @@ describe("the viewer's frame", () => {
           }).pipe(Effect.scoped),
         SLOW,
       );
+});
+
+// A Board card is a picture made: the viewer shows it as the Board does, never "No picture yet".
+describe('a Board card at the playhead', () => {
+  it.live(
+    "shows its words on the card's paper, its payoff large, on a version the staged film is not",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioAt(
+          DESK,
+          pageHref.studio(PROBE, { v: 1 }, Option.some(3)),
+        );
+        yield* attributeIs(page, '.st-frame', 'data-picture', 'Card');
+        yield* textIs(page, '.st-card', 'falls down again.');
+        yield* textIs(page, '.st-card b', 'down');
+        yield* textIs(page, '.st-tag', 'Board · one · card');
+        yield* countIs(page, '.st-empty', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'is set by the engine on the version the staged film is, and the tag says why when it cannot be',
+    () =>
+      Effect.gen(function* () {
+        // The open version with no scene drawn over the card: the staged probe film sets it, and
+        // the probe declares no card style.
+        const undrawn = {
+          ...probeTimeline(2),
+          lanes: probeTimeline(2).lanes.filter((lane) => lane.track !== 'scenes'),
+        };
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.studio(PROBE, {}, Option.some(3)), viewport: DESK },
+          READY,
+          [route('GET', /^\/timeline(\?|$)/, () => json(undrawn))],
+        );
+        yield* attributeIs(page, '.st-frame', 'data-picture', 'Card');
+        yield* textIs(page, '.st-tag', /^Board · one · card · not set: .*card style/);
+        yield* textIs(page, '.st-card', 'falls down again.');
+        yield* countIs(page, '.st-empty', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
 });

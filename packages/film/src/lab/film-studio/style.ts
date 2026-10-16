@@ -71,6 +71,15 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-scene[hidden] { display: none; }
 /* A Board panel is shown whole: never cropped to the frame. */
 .st-pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+/* A Board card: the engine's set on its canvas, else its words on the card's paper, sized by the frame. */
+.st-frame { container-type: inline-size; }
+.st-card-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.st-card-canvas[hidden] { display: none; }
+.st-card { position: absolute; inset: 0; display: grid; place-content: center; gap: 2cqw; padding: 8cqw; background: var(--card-paper); color: var(--card-ink); text-align: center; font-family: var(--font); }
+.st-card p { margin: 0; font-size: var(--fs-card); line-height: var(--lh-card); font-weight: var(--w-2); text-wrap: balance; }
+.st-card b { font-size: var(--fs-card-payoff); line-height: var(--lh-card-payoff); font-weight: var(--w-3); }
+.st-card mark { background: var(--k-board); color: var(--k-board-ink); border-radius: var(--r-0); padding: 0 0.15em; }
+.st-card .st-card-ref { font-family: var(--font-mono); font-size: var(--fs-card-ref); line-height: var(--lh-card-ref); color: var(--card-ink); }
 .st-empty { position: absolute; inset: 0; display: grid; place-content: center; gap: var(--s-2); text-align: center; color: var(--text-2); padding: var(--s-8); }
 .st-empty b { color: var(--text-1); font-weight: var(--w-2); font-size: var(--fs-4); line-height: var(--lh-4); }
 .st-empty p { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); }

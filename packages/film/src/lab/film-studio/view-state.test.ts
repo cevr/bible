@@ -84,6 +84,25 @@ describe("the viewer's picture", () => {
     expect(pictureAt(firstCut, 5, true)._tag).toBe('Board');
   });
 
+  test('is the card the engine sets on a Board card panel, with its words: never an empty frame', () => {
+    expect(pictureAt(firstCut, 3, true)).toEqual({
+      _tag: 'Card',
+      beat: 'one',
+      panel: 'one.fall',
+      mark: 'fall',
+      markAt: 2.6,
+      text: { _tag: 'Card', payoff: 'down' },
+      words: Option.some([
+        { text: 'falls', payoff: false },
+        { text: 'down', payoff: true },
+        { text: 'again.', payoff: false },
+      ]),
+    });
+    // The scene drawn there wins when the viewer can draw it.
+    expect(pictureAt(drawn, 3, true)._tag).toBe('Scene');
+    expect(pictureTag(pictureAt(firstCut, 3, true))).toBe('Board · one · card');
+  });
+
   test("is tagged in the owner's words: the stage and the beat", () => {
     expect(pictureTag(pictureAt(drawn, 0, true))).toBe('Scene · one');
     expect(pictureTag(pictureAt(firstCut, 9, true))).toBe('Board · three');

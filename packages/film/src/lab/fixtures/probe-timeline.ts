@@ -4,9 +4,10 @@
 // probe film draws its scenes), and v1 kept in its own folder (its Board
 // panels show, its clock is silent). Its beats are the probe film's three
 // scenes on the probe film's clock (`probe-film.ts`, 12.315 s), the first
-// with its two marks; one open ask flags the strip.
+// with its two marks and a Board card from its second (`{fall}`); one open
+// ask flags the strip.
 
-import { Match } from 'effect';
+import { Boolean as Bool, Match } from 'effect';
 import type { FilmTimeline, Lane } from '../../core/timeline-schema.ts';
 import { PROBE } from './probe-film.ts';
 
@@ -41,20 +42,46 @@ const scriptLane: Lane = {
   clips: BEATS.map((b) => ({ ...made, beat: b.beat, start: b.start, dur: b.dur, marks: b.marks })),
 };
 
+/** The card the probe's first beat cuts to from its `{fall}`: the line's words from there, `down` its payoff. */
+const FALL = 2.6;
+
 const boardLane: Lane = {
   track: 'board',
-  clips: BEATS.map((b) => ({
-    ...made,
-    start: b.start,
-    dur: b.dur,
-    panel: `${b.beat}.start`,
-    beat: b.beat,
-    mark: 'start',
-    markAt: b.start,
-    try: 1,
-    file: `${b.beat}.start.1.png`,
-    card: false,
-  })),
+  clips: BEATS.flatMap((b) => [
+    {
+      ...made,
+      start: b.start,
+      dur: Bool.match(b.beat === 'one', { onTrue: () => FALL - b.start, onFalse: () => b.dur }),
+      panel: `${b.beat}.start`,
+      beat: b.beat,
+      mark: 'start',
+      markAt: b.start,
+      try: 1,
+      file: `${b.beat}.start.1.png`,
+      card: false,
+    },
+    ...Bool.match(b.beat === 'one', {
+      onTrue: () => [
+        {
+          ...made,
+          start: FALL,
+          dur: b.start + b.dur - FALL,
+          panel: 'one.fall',
+          beat: b.beat,
+          mark: 'fall',
+          markAt: FALL,
+          card: true,
+          text: { _tag: 'Card', payoff: 'down' } as const,
+          words: [
+            { text: 'falls', payoff: false },
+            { text: 'down', payoff: true },
+            { text: 'again.', payoff: false },
+          ],
+        },
+      ],
+      onFalse: () => [],
+    }),
+  ]),
 };
 
 const voiceLane: Lane = {

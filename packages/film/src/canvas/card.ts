@@ -23,8 +23,8 @@ import { Option, Predicate, Result } from 'effect';
 import { type Hand, sub } from './ink.ts';
 import { type TextStyle, measure, write } from './type.ts';
 import type { TakeWord } from '../core/schema.ts';
-import { readsWord } from '../core/narration.ts';
-import { clamp, ease, heardAtOrAfter, justBefore, lerp } from '../core/time.ts';
+import { cardSaid } from '../core/narration.ts';
+import { clamp, ease, lerp } from '../core/time.ts';
 
 /** A rectangle on the frame (or in a drawing's own space), in px. */
 export interface Box {
@@ -93,35 +93,14 @@ export const cardWords = (
   voice: CardVoice,
   speechStart: number,
   card: { readonly from: string; readonly to?: string; readonly payoff: string },
-): Result.Result<ReadonlyArray<CardWord>, string> => {
-  const markAt = (name: string) =>
-    Result.fromOption(
-      Option.fromUndefinedOr(voice.marks.get(name)),
-      () => `scene ${scene}: its card starts or ends at {${name}}, which its line does not mark`,
-    );
-  return Result.flatMap(markAt(card.from), (from) =>
-    Result.flatMap(
-      card.to === undefined ? Result.succeed(Infinity) : markAt(card.to),
-      (to): Result.Result<ReadonlyArray<CardWord>, string> => {
-        const said = voice.words.filter((w) => heardAtOrAfter(w, from) && w.start < justBefore(to));
-        if (said.length === 0)
-          return Result.fail(`scene ${scene}: its card from {${card.from}} sets no words`);
-        const payoff = said.findIndex((w) => readsWord(w.text, card.payoff));
-        if (payoff < 0)
-          return Result.fail(
-            `scene ${scene}: its card's payoff "${card.payoff}" is none of its words (${said.map((w) => w.text).join(' ')})`,
-          );
-        return Result.succeed(
-          said.map((w, i) => ({
-            text: w.text,
-            at: speechStart + w.voiced.start,
-            payoff: i === payoff,
-          })),
-        );
-      },
-    ),
+): Result.Result<ReadonlyArray<CardWord>, string> =>
+  Result.map(cardSaid(scene, voice.words, voice.marks, card), ({ said, payoff }) =>
+    said.map((w, i) => ({
+      text: w.text,
+      at: speechStart + w.voiced.start,
+      payoff: i === payoff,
+    })),
   );
-};
 
 /** How a look sets a card: its ground, its face and sizes, and the payoff's colour and treatment. */
 export interface CardStyle {

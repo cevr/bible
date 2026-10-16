@@ -228,6 +228,13 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --on-picture: #fff;
   --on-picture-shade: rgb(0 0 0 / 0.55);
   --fs-on-picture: 30px; /* a label drawn in the picture's own units (the compare divider's) */
+  /* A Board card's words on its paper, in the frame's own units (`cqw`: a share of the frame's width). */
+  --fs-card: 4cqw;
+  --lh-card: 5.2cqw;
+  --fs-card-payoff: 6cqw;
+  --lh-card-payoff: 7cqw;
+  --fs-card-ref: 2cqw;
+  --lh-card-ref: 2.8cqw;
 
   /* State: each one meaning. */
   --state-rendered: #8aa9c8; /* a render exists and is current */

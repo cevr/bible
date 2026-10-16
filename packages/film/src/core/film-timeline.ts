@@ -42,7 +42,15 @@ import { type Address, addressKey } from './address-schema.ts';
 import { Shot, type TimedBeat, shotsOf } from './animatic.ts';
 import { pageHref } from './api.ts';
 import { type AskRecord, askStatus, blocksOf, materialsIn } from './ask.ts';
-import { type BoardFile, type Panel, approvalOf, approveBeat, shownTry } from './board.ts';
+import {
+  type BoardFile,
+  PANEL_START,
+  type Panel,
+  type PanelText,
+  approvalOf,
+  approveBeat,
+  shownTry,
+} from './board.ts';
 import {
   type Catalogue,
   MAIN_VARIANT,
@@ -54,6 +62,7 @@ import {
 import { type PartError, stretchesOf } from './acts.ts';
 import { boardPath, gist, notePath } from './lab-events.ts';
 import type { Placed } from './layout.ts';
+import { cardSaid } from './narration.ts';
 import { noteT, unresolved } from './notes.ts';
 import { type ProductionFile, decidedSince, decisionsIn } from './production.ts';
 import { FilmVersionUnkept, FilmVersionUnknown } from './refusals.ts';
@@ -140,6 +149,7 @@ export const filmClock = (
           },
         ),
         marks: [...p.voice.marks].map(([name, at]) => ({ name, at: speechStart + at })),
+        words: p.voice.words.map((w) => ({ text: w.text, start: speechStart + w.start })),
         voice: voiceOf(p),
         drawn: parts.drawn(p),
       };
@@ -315,6 +325,38 @@ const timedBeat = (beat: ClockBeat): TimedBeat => ({
 });
 
 /**
+ * The words card `text` of a panel held from mark `at` sets from `beat`'s
+ * line (`cardSaid`, the engine's rule): a panel held from the beat's start
+ * sets from its first word, as the engine's card does; none for a verse, or
+ * words that do not read.
+ */
+const cardWordsOf = (
+  beat: ClockBeat,
+  at: string,
+  text: PanelText,
+): Option.Option<ReadonlyArray<{ readonly text: string; readonly payoff: boolean }>> => {
+  if (text._tag !== 'Card') return Option.none();
+  const marks = new Map(beat.marks.map((m) => [m.name, m.at]));
+  if (at === PANEL_START && !marks.has(PANEL_START))
+    marks.set(PANEL_START, Number.NEGATIVE_INFINITY);
+  return Result.match(
+    cardSaid(beat.id, beat.words ?? [], marks, {
+      from: at,
+      payoff: text.payoff,
+      ...Option.match(Option.fromUndefinedOr(text.to), {
+        onNone: () => ({}),
+        onSome: (to) => ({ to }),
+      }),
+    }),
+    {
+      onSuccess: ({ said, payoff }) =>
+        Option.some(said.map((w, i) => ({ text: w.text, payoff: i === payoff }))),
+      onFailure: () => Option.none(),
+    },
+  );
+};
+
+/**
  * The Board's panels as the animatic shows them (`shotsOf`, the one rule):
  * each from where it shows (a beat's first panel from the beat's start, a
  * later one from its mark) to the next panel of its beat, or the beat's end.
@@ -354,6 +396,16 @@ const boardLane = (clock: FilmClock, board: BoardFile): ReadonlyArray<BoardClip>
           },
         ),
         card,
+        ...Option.match(Option.fromUndefinedOr(panel.text), {
+          onNone: () => ({}),
+          onSome: (text) => ({
+            text,
+            ...Option.match(cardWordsOf(beat, panel.at, text), {
+              onNone: () => ({}),
+              onSome: (words) => ({ words }),
+            }),
+          }),
+        }),
       };
     });
   });
