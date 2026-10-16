@@ -4,7 +4,8 @@
 // frame, falling to a deeper one at the corners, so the page dims round the
 // subject rather than all over, and gold stays the brightest thing on it. The parchment itself stays the parchment; the light is what
 // changes, act by act:
-//   - verdict: a cool, even room without sun;
+//   - verdict: the sunlit court of the kept panels, a near-white warm light
+//     from the high window at the upper left, the corners barely dimmed;
 //   - seed: a hazed noon on the parchment, the dark world's own black in
 //     `spoke`;
 //   - gifts: the peach afternoon going toward dusk;
@@ -38,7 +39,7 @@ const lit = (color: Hex, edge: Hex, share = 1): Light => {
 
 /** The film's lights. */
 export const LIGHT = {
-  room: lit('#e6e6e6', '#a9adb4'),
+  room: { ...lit('#fffcf5', '#f3ece2'), vignette: 0.2 },
   dusk: lit('#f2f2f4', '#cccfd8'),
   haze: lit('#e6e8f0', '#aab2c8'),
   sunset: lit('#c8ac9a', '#3e3034', VALLEY),

@@ -20,12 +20,13 @@ const range = (by: Readonly<Record<Ground, readonly [number, number]>>) => by[GR
 export const look = {
   acts: [
     {
-      // The verdict: the cool, even court.
+      // The verdict: the bright, warm, sunlit court of the kept panels.
       from: 'cold',
       name: 'verdict',
       chapter: 'How can God call a guilty man righteous?',
       luma: range({ now: [140, 165], light: [155, 180], lighter: [165, 190] }),
-      saturation: [0.15, 0.25],
+      // The kept panels measure 0.27–0.31 at the lookbook's thumb.
+      saturation: [0.25, 0.35],
     },
     {
       // The seed: the parchment page, and the dark world lit in `spoke`.

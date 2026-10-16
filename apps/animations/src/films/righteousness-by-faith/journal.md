@@ -113,3 +113,15 @@ Hair laid flat with a low hairline (0.3 of the head's half-height) read as a hel
 ## 2026-10-16T15:20:59Z · title
 
 v3 pilot: the court pulled back to zoom 0.6 with the pews on a near plane (z 0.72) frames as title.start does, the room small mid-frame; cream letters alone vanish on the cream wall, so the name carries an ink outline under its cream to read there.
+
+## 2026-10-16T18:06:49Z · cold
+
+round 2: with LIGHT.room near-white warm (vignette 0.2), the scenery unlined and hazed and the sun glow at the upper left, stills read luma 156-168 against the panels' 156-172 (evidence 160/161, did 163/172, cover 165/156); one camera travel with a creep between legs holds still 17% of the scene, longest 2 s (lookbook), against 77% before; the seal at wax 23 leaves scarlet 1.7-1.8 px per gold px, and the glint drawn under the R keeps its gap at 113.
+
+## 2026-10-16T18:06:51Z · title
+
+round 2: the wide drawn as its own perspective room in frame pixels (wideRoom, widePews) with the cast at 0.6 and spread as the panel spreads it reads as title.start.3: luma 191 against the panel's 191 before the name; the dark torn strip with cream letters lowers it to 181 and reads at once on the near-white wall.
+
+## 2026-10-16T18:06:53Z · cold
+
+Path2D is not defined in the check's draw process: a scene that builds one throws there (DrawThrew) though the lab draws it; a path drawn by a function twice works in both.

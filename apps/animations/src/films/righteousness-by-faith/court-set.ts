@@ -2,17 +2,22 @@
 // one set drawn in the Board's own pixels (a panel is 1536 × 1024), so a
 // scene frames it with a camera (`REST` is the evidence panel's framing) and
 // every figure stands where its panel stands it. The house look's paper:
-// flat pieces in the film's ink, each creased once at the light's angle, its
-// far side the paper's shade (a hue of its own, CRAFT rule 12); cast
-// shadows violet on the lilac floor, never grey. The room runs on past the
-// panel's edges, up the wall and back to the pews, for `title`'s high wide.
-// Its lines (outlines, creases, the crack, the sheets' red scrawl) are the
+// flat pieces, each creased once at the light's angle, its far side the
+// paper's shade (a hue of its own, CRAFT rule 12); the props (dock, table,
+// bench, gavel, sheets, pews) lined in the film's ink, the scenery (wall,
+// window, pilasters, wainscot) with no outline and hazed as it stands back;
+// the sun at the upper left, through the high window; cast shadows violet
+// on the lilac floor, never grey. The room runs on past the
+// panel's edges, so `cold`'s camera can travel over it. `title`'s high wide
+// (`title.start`) is a room of its own, drawn in the frame's pixels as its
+// panel draws it: three walls in perspective, the floor running far back,
+// the pews nearest. Its lines (outlines, creases, the crack, the sheets' red scrawl) are the
 // backdrop that a title or card covers, never ink that crosses one, so each
 // is drawn `unprobed`. The v2 canvas court (`court.ts`) stays for v2 and
 // cold-studies. Pure: the same frame draws the same set.
 
 import { type Camera, type Hex, mix, ramp, unprobed } from '@bible/film/canvas';
-import { rng } from '@bible/film/core';
+import { lerp, rng } from '@bible/film/core';
 import { keyLight, shading } from '../cold-studies/palette.ts';
 import { type Pt, boxOf, creaseOf } from '../cold-studies/looks/rive/parts.ts';
 import { C } from './kit.ts';
@@ -76,6 +81,12 @@ const P = {
 /** The violet a cast shadow lays on the floor, and the warm of a light beam. */
 const SHADOW: Hex = '#b7a3dc';
 const BEAM: Hex = '#fff0bf';
+
+/** The sun's glow at the upper left, off the frame: its colour, its centre and its reach. */
+const SUN = { color: '#ffe3b3', at: [-160, -220], r: 1000, alpha: 0.55 } as const;
+
+/** The cream haze over the back wall, so the room stands back from its people. */
+const HAZE = { color: '#fbf3e6', alpha: 0.2 } as const;
 
 /** A rectangle's corners, clockwise. */
 export const box = (x: number, y: number, w: number, h: number): Pt[] => [
@@ -173,7 +184,7 @@ export const contact = (ctx: CanvasRenderingContext2D, x: number, y: number, rx:
 
 // ─── the room ────────────────────────────────────────────────────────────────
 
-/** How far the room runs, for `title`'s wide: left, right, up, and down to the pews. */
+/** How far the room runs past the panels' edges, for the camera's travel: left, right, up and down. */
 const ROOM = {
   left: -1300,
   right: 2900,
@@ -192,11 +203,10 @@ const WINDOW = { x: 170, y: -10, w: 330, h: 316 } as const;
 /** One pilaster at `x`: shaft, capital and base, from the room's top to the wainscot. */
 const column = (ctx: CanvasRenderingContext2D, x: number) => {
   const w = 96;
-  cut(ctx, box(x - w / 2, ROOM.top, w, ROOM.wainscot - ROOM.top), P.column);
-  cut(ctx, box(x - w / 2 - 12, ROOM.top + 8, w + 24, 0), P.column, { line: 0 });
+  cut(ctx, box(x - w / 2, ROOM.top, w, ROOM.wainscot - ROOM.top), P.column, { line: 0 });
   // The base: two steps wider than the shaft, on the wainscot's rail.
-  cut(ctx, box(x - w / 2 - 10, ROOM.wainscot - 58, w + 20, 30), P.columnDeep, { line: LINE_SMALL });
-  cut(ctx, box(x - w / 2 - 16, ROOM.wainscot - 28, w + 32, 28), P.columnDeep, { line: LINE_SMALL });
+  cut(ctx, box(x - w / 2 - 10, ROOM.wainscot - 58, w + 20, 30), P.columnDeep, { line: 0 });
+  cut(ctx, box(x - w / 2 - 16, ROOM.wainscot - 28, w + 32, 28), P.columnDeep, { line: 0 });
   // The fluting: two shallow grooves down the shaft.
   ctx.save();
   ctx.strokeStyle = `${P.column.shade}`;
@@ -213,7 +223,7 @@ const column = (ctx: CanvasRenderingContext2D, x: number) => {
 /** The window: its frame, the teal day beyond it (sky, a far city, cypresses), its sill. */
 const window_ = (ctx: CanvasRenderingContext2D) => {
   const { x, y, w, h } = WINDOW;
-  cut(ctx, box(x, y, w, h), P.frame);
+  cut(ctx, box(x, y, w, h), P.frame, { line: 0 });
   const ix = x + 22;
   const iy = y + 22;
   const iw = w - 44;
@@ -251,13 +261,14 @@ const window_ = (ctx: CanvasRenderingContext2D) => {
     ctx.fill();
   }
   ctx.restore();
+  // The frame's inner edge: its own shade, no ink.
   ctx.save();
-  ctx.lineWidth = LINE;
-  ctx.strokeStyle = C.outline;
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = P.frame.shade;
   trace(ctx, box(ix, iy, iw, ih));
   unprobed(ctx, () => ctx.stroke());
   ctx.restore();
-  cut(ctx, box(x - 14, y + h - 6, w + 28, 22), P.frame, { line: LINE_SMALL });
+  cut(ctx, box(x - 14, y + h - 6, w + 28, 22), P.frame, { line: 0 });
 };
 
 /** The wainscot: its rail and the panels let into it, round the room. */
@@ -271,7 +282,7 @@ const wainscot = (ctx: CanvasRenderingContext2D) => {
     },
   );
   cut(ctx, box(ROOM.left, ROOM.wainscot, ROOM.right - ROOM.left, 22), P.wainscotRail, {
-    line: LINE_SMALL,
+    line: 0,
     flat: true,
   });
   ctx.save();
@@ -309,13 +320,35 @@ const beams = (ctx: CanvasRenderingContext2D) => {
   ctx.restore();
 };
 
-/** The back of the room: wall, window, pilasters and wainscot. Behind everything. */
+/** The sun's warm glow from the upper left, over what is drawn so far. */
+const sunGlow = (ctx: CanvasRenderingContext2D) => {
+  ctx.save();
+  const [x, y] = SUN.at;
+  const g = ctx.createRadialGradient(x, y, 0, x, y, SUN.r);
+  g.addColorStop(0, `${SUN.color}ff`);
+  g.addColorStop(0.45, `${SUN.color}99`);
+  g.addColorStop(1, `${SUN.color}00`);
+  ctx.globalAlpha = SUN.alpha;
+  ctx.fillStyle = g;
+  ctx.fillRect(x - SUN.r, y - SUN.r, 2 * SUN.r, 2 * SUN.r);
+  ctx.restore();
+};
+
+/** The back of the room: wall, window, pilasters and wainscot, hazed, the sun on it. Behind everything. */
 export const backWall = (ctx: CanvasRenderingContext2D) => {
+  const top = ROOM.top - 400;
+  const height = ROOM.floor - top;
   ctx.fillStyle = P.wall.color;
-  ctx.fillRect(ROOM.left, ROOM.top - 400, ROOM.right - ROOM.left, ROOM.wainscot - ROOM.top + 400);
+  ctx.fillRect(ROOM.left, top, ROOM.right - ROOM.left, ROOM.wainscot - top);
   window_(ctx);
   for (const x of COLUMNS) column(ctx, x);
   wainscot(ctx);
+  ctx.save();
+  ctx.globalAlpha = HAZE.alpha;
+  ctx.fillStyle = HAZE.color;
+  ctx.fillRect(ROOM.left, top, ROOM.right - ROOM.left, height);
+  ctx.restore();
+  sunGlow(ctx);
 };
 
 /** The crack across the floor from the dock's foot (paid off in `court`). */
@@ -337,9 +370,9 @@ export const floor = (ctx: CanvasRenderingContext2D) => {
   g.addColorStop(1, '#e6dcef');
   ctx.fillStyle = g;
   ctx.fillRect(ROOM.left, ROOM.floor, ROOM.right - ROOM.left, ROOM.bottom - ROOM.floor);
-  // The skirting where the wainscot meets the floor.
+  // The skirting where the wainscot meets the floor: the wainscot's shade, no ink.
   ctx.save();
-  ctx.strokeStyle = C.outline;
+  ctx.strokeStyle = P.wainscot.shade;
   ctx.lineWidth = LINE_SMALL;
   ctx.beginPath();
   ctx.moveTo(ROOM.left, ROOM.floor);
@@ -491,19 +524,239 @@ export const LAID_SHEETS = [
   { x: 905, y: TABLE.top + 2, rot: -0.04 },
 ] as const;
 
-// ─── the back of the room ────────────────────────────────────────────────────
+// ─── the wide: `title.start` ─────────────────────────────────────────────────
 
-/** The pews, nearest the camera in `title`'s wide: two banks either side of the aisle, three rows. */
-export const pews = (ctx: CanvasRenderingContext2D) => {
-  for (const [row, y] of [1110, 1250, 1390].entries()) {
-    const reach = 140 * row;
-    for (const [x0, x1] of [
-      [-760 - reach, 600 - reach * 0.3],
-      [960 + reach * 0.3, 2320 + reach],
-    ] as const) {
-      cut(ctx, box(x0, y, x1 - x0, 120), P.wood);
-      cut(ctx, box(x0 - 6, y - 12, x1 - x0 + 12, 24), P.woodLight, { line: LINE_SMALL });
-      for (const x of [x0 - 4, x1 - 40]) cut(ctx, box(x, y - 54, 44, 190), P.woodLight);
-    }
+/**
+ * `title.start`'s room, in the frame's pixels (1920 × 1080), seen from high
+ * at the back: where the back wall's floor and wainscot lines run, where
+ * the side walls meet it, and where the side walls leave the frame.
+ */
+const WIDE = {
+  /** The back wall's corners with the side walls, and its wainscot's top and foot. */
+  left: 350,
+  right: 1760,
+  rail: 395,
+  foot: 545,
+  /** Where the side walls' wainscot top and foot leave the frame. */
+  leftRail: 575,
+  leftFoot: 770,
+  rightRail: 560,
+  rightFoot: 740,
+} as const;
+
+/** The window in the left wall, foreshortened: its near and far edges (x) and each one's top and foot. */
+const WIDE_WINDOW = { near: 128, far: 302, nearFoot: 412, farFoot: 346, top: -20 } as const;
+
+/** A point on the left wall at `x`, `k` of the way from its wainscot top (0) to its foot (1). */
+const leftWall = (x: number, k: number): Pt => {
+  const t = x / WIDE.left;
+  const rail = lerp(WIDE.leftRail, WIDE.rail, t);
+  const foot = lerp(WIDE.leftFoot, WIDE.foot, t);
+  return [x, lerp(rail, foot, k)];
+};
+
+/** A pilaster standing on the wainscot: its shaft from the top of the frame, its pedestal down to `foot`. */
+const widePilaster = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  w: number,
+  rail: number,
+  foot: number,
+) => {
+  cut(ctx, box(x - w / 2, -20, w, rail + 20), P.column, { line: 0 });
+  cut(ctx, box(x - w / 2 - 8, rail - 22, w + 16, 24), P.columnDeep, { line: 0 });
+  cut(ctx, box(x - w / 2 - 4, rail, w + 8, foot - rail), P.wainscotRail, { line: 0 });
+  ctx.save();
+  ctx.strokeStyle = P.column.shade;
+  ctx.lineWidth = 4;
+  for (const dx of [-0.2, 0.2]) {
+    ctx.beginPath();
+    ctx.moveTo(x + dx * w, -20);
+    ctx.lineTo(x + dx * w, rail - 30);
+    unprobed(ctx, () => ctx.stroke());
   }
+  ctx.restore();
+};
+
+/** The left wall's window, foreshortened: its frame, the day beyond it, its inner edge. */
+const wideWindow = (ctx: CanvasRenderingContext2D) => {
+  const { near, far, nearFoot, farFoot, top } = WIDE_WINDOW;
+  cut(
+    ctx,
+    [
+      [near, top],
+      [far, top],
+      [far, farFoot],
+      [near, nearFoot],
+    ],
+    P.frame,
+    { line: 0 },
+  );
+  const inner: Pt[] = [
+    [near + 16, top],
+    [far - 14, top],
+    [far - 14, farFoot - 18],
+    [near + 16, nearFoot - 24],
+  ];
+  ctx.save();
+  trace(ctx, inner);
+  ctx.clip();
+  const sky = ctx.createLinearGradient(0, top, 0, nearFoot);
+  sky.addColorStop(0, '#8fcbe8');
+  sky.addColorStop(1, '#e4f3f6');
+  ctx.fillStyle = sky;
+  ctx.fillRect(near, top, far - near, nearFoot - top);
+  ctx.fillStyle = '#f6fbfb';
+  ctx.beginPath();
+  ctx.ellipse(near + 70, 70, 40, 14, 0, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.fillStyle = '#9fb3dc';
+  for (const [bx, bw, bh] of [
+    [30, 34, 130],
+    [62, 40, 170],
+    [110, 30, 110],
+  ] as const)
+    ctx.fillRect(near + bx, farFoot - bh, bw, bh + 80);
+  ctx.fillStyle = '#4f9a8f';
+  for (const [cx, ch, cw] of [
+    [104, 240, 16],
+    [50, 150, 11],
+  ] as const) {
+    ctx.beginPath();
+    ctx.ellipse(near + cx, farFoot - ch / 2, cw, ch / 2, 0, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = P.frame.shade;
+  trace(ctx, inner);
+  unprobed(ctx, () => ctx.stroke());
+  ctx.restore();
+};
+
+/** A wainscot band from its top edge `a0 → a1` down to its foot `b0 → b1`, its rail along the top. */
+const wideWainscot = (ctx: CanvasRenderingContext2D, a0: Pt, a1: Pt, b1: Pt, b0: Pt) => {
+  cut(ctx, [a0, a1, b1, b0], P.wainscot, { flat: true, line: 0 });
+  cut(ctx, [a0, a1, [a1[0], a1[1] + 16], [a0[0], a0[1] + 16]], P.wainscotRail, {
+    flat: true,
+    line: 0,
+  });
+};
+
+/** Warm beams from the window, falling down and to the right over the floor. */
+const wideBeams = (ctx: CanvasRenderingContext2D) => {
+  ctx.save();
+  for (const [x0, w, a] of [
+    [60, 70, 0.6],
+    [170, 60, 0.5],
+    [270, 110, 0.45],
+  ] as const) {
+    const g = ctx.createLinearGradient(x0, 0, x0 + 900, 1080);
+    g.addColorStop(0, `${BEAM}ff`);
+    g.addColorStop(1, `${BEAM}00`);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x0, 0);
+    ctx.lineTo(x0 + w, 0);
+    ctx.lineTo(x0 + w + 900, 1080);
+    ctx.lineTo(x0 + 900, 1080);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+};
+
+/** The crack in the wide: from the dock's foot down the floor toward the aisle. */
+const WIDE_CRACK: ReadonlyArray<Pt> = [
+  [612, 812],
+  [655, 842],
+  [700, 860],
+  [712, 905],
+  [705, 935],
+  [745, 975],
+  [780, 1020],
+  [826, 1080],
+];
+
+/**
+ * `title.start`'s room in the frame's pixels: the back wall with its
+ * pilasters and wainscot, the left wall with the high window, the right
+ * wall's edge, the floor running back under the sun's beams, and the crack.
+ * Behind the cast.
+ */
+export const wideRoom = (ctx: CanvasRenderingContext2D) => {
+  const { left, right, rail, foot } = WIDE;
+  // The floor, lit nearest the window.
+  const g = ctx.createLinearGradient(0, foot, 0, 1080);
+  g.addColorStop(0, P.floor.color);
+  g.addColorStop(1, '#ece2ef');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, foot - 4, 1920, 1080 - foot + 4);
+  // The back wall.
+  ctx.fillStyle = P.wall.color;
+  ctx.fillRect(left, -20, right - left, rail + 20);
+  wideWainscot(ctx, [left, rail], [right, rail], [right, foot], [left, foot]);
+  ctx.save();
+  ctx.strokeStyle = P.wainscot.shade;
+  ctx.lineWidth = 4;
+  for (let x = 600; x < 1360; x += 300)
+    unprobed(ctx, () => ctx.strokeRect(x, rail + 38, 250, foot - rail - 66));
+  ctx.restore();
+  for (const x of [518, 1462]) widePilaster(ctx, x, 110, rail, foot);
+  // The left wall, receding to its corner with the back wall.
+  cut(ctx, [[0, -20], [left, -20], leftWall(left, 1), [0, WIDE.leftFoot]], paper('#f7efe0'), {
+    flat: true,
+    line: 0,
+  });
+  wideWindow(ctx);
+  wideWainscot(ctx, leftWall(0, 0), leftWall(left, 0), leftWall(left, 1), leftWall(0, 1));
+  widePilaster(ctx, 72, 96, leftWall(72, 0)[1] - 30, leftWall(72, 1)[1]);
+  widePilaster(ctx, 382, 78, rail, foot);
+  // The right wall's edge, and its pilaster nearest the frame.
+  cut(
+    ctx,
+    [
+      [right, -20],
+      [1920, -20],
+      [1920, WIDE.rightFoot],
+      [right, foot],
+    ],
+    P.wall,
+    { flat: true, line: 0 },
+  );
+  wideWainscot(ctx, [right, rail], [1920, WIDE.rightRail], [1920, WIDE.rightFoot], [right, foot]);
+  widePilaster(ctx, 1815, 110, 490, 700);
+  // The haze over the walls, the sun's glow and its beams.
+  ctx.save();
+  ctx.globalAlpha = HAZE.alpha;
+  ctx.fillStyle = HAZE.color;
+  ctx.fillRect(0, -20, 1920, foot + 240);
+  ctx.restore();
+  sunGlow(ctx);
+  wideBeams(ctx);
+  ctx.save();
+  ctx.strokeStyle = '#6f64a2';
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'miter';
+  ctx.beginPath();
+  WIDE_CRACK.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+  unprobed(ctx, () => ctx.stroke());
+  ctx.restore();
+};
+
+/** One pew seen from behind: its back rail, its capped back, and its end posts. */
+const pew = (ctx: CanvasRenderingContext2D, x0: number, x1: number, y: number) => {
+  cut(ctx, box(x0, y, x1 - x0, 1080 - y + 20), P.wood);
+  cut(ctx, box(x0 - 4, y - 10, x1 - x0 + 8, 22), P.woodLight, { line: LINE_SMALL });
+  for (const x of [x0 - 2, x1 - 34]) cut(ctx, box(x, y - 46, 36, 1080 - y + 66), P.woodLight);
+};
+
+/** `title.start`'s pews, nearest the camera, in the frame's pixels: two either side of the aisle. */
+export const widePews = (ctx: CanvasRenderingContext2D) => {
+  pew(ctx, -40, 162, 900);
+  pew(ctx, 1758, 1960, 900);
+  pew(ctx, -40, 470, 985);
+  pew(ctx, 1440, 1960, 985);
 };

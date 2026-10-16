@@ -1,18 +1,22 @@
 // The cold open, drawn to its Board (`cold.evidence`, `cold.did`,
-// `cold.cover`, try 3 each): the v3 court in the house look, the plain lead
-// in the dock with the scarlet stain, the prosecutor at his table, the judge
-// at his bench, each a Rive rig (`court-cast.ts`). On `evidence` the
-// prosecutor lays sheet after sheet on the stack; on `did` the camera pushes
-// to the lead's face as his head drops; on `judge` it comes back as the
-// judge leans over the bench and takes up the gavel; it falls on
-// `righteous`, the hard cut to the card "Righteous." (`verdict`); back on
-// `seal`, the gold wax seal floats down over the stain; on `cover` the
-// prosecutor throws up his hands and the lead's brow goes up, his head back;
-// on `bible` the camera eases in on the seal, which glints on "justifies";
-// on `which` it pulls back and the gavel hangs above its block; on `asked`
-// Job 9:2 turns in on its page, its phrase highlighted as it is said, and on
-// `job` the highlight floods out into the card (`job`). The words on screen
-// are the two cards and the verse alone (CRAFT rule 1).
+// `cold.cover`, try 3 each): the v3 court in the house look, lit as the
+// panels light it, the plain lead in the dock with the scarlet stain, the
+// prosecutor at his table, the judge at his bench, each a Rive rig
+// (`court-cast.ts`). One continuous camera travel over the court, every leg
+// pinned to a mark, no cut but the cards' (IDEA register, CRAFT rule 5): on
+// `evidence` the prosecutor lifts each sheet at the lead before he lays it
+// on the stack, the camera drifting in; on `did` it pushes to the lead's face
+// as his head drops; on `judge` it travels to the bench as the judge leans
+// over and takes up the gavel; it falls on `righteous`, the hard cut to the
+// card "Righteous." (`verdict`); back on `seal`, close on the lead, the gold
+// wax seal floats down over the stain; on `cover` it opens to the lead and
+// the prosecutor as he throws up his hands and shouts; from `bible` one slow
+// push onto the seal, which glints on "justifies"; on `which` it pulls back
+// to the gavel hanging above its block, then in on the lead's doubt; on
+// `asked` Job 9:2 turns in on its page out of the court's light, its phrase
+// highlighted as it is said, and on `job` the highlight floods out into the
+// card (`job`). The words on screen are the two cards and the verse alone
+// (CRAFT rule 1).
 
 import {
   type Box,
@@ -29,8 +33,9 @@ import {
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
 import { EASE, type Expression, acted } from '../../cold-studies/looks/rive/face.ts';
-import { reachAbout } from '../../cold-studies/looks/rive/parts.ts';
+import { type Pt, reachAbout } from '../../cold-studies/looks/rive/parts.ts';
 import { CARD_STYLE, VERSE_STYLE } from '../card.ts';
+import { LIGHT } from '../light.ts';
 import {
   COURT_RIGS,
   GAVEL_REST,
@@ -86,14 +91,16 @@ const STERN: Expression = {
   mouthLine: 1,
   mouthOpen: 0,
 };
-/** "That's not justice": brows knit hard, eyes wide, the mouth open. */
+/** Making his case at the lead: the brows knit low, the mouth hard (face-study, Kit A's anger). */
+const ACCUSE: Expression = { ...STERN, browY: 2.8, browTilt: -0.35, mouth: -1.5 };
+/** "That's not justice": brows knit hard, eyes wide; the mouth is his rig's shout (`shout`). */
 const OUTRAGE: Expression = {
   ...EASE,
   browY: 0.5,
   browTilt: -0.34,
   eyes: 1.15,
   mouthLine: 0,
-  mouthOpen: 1,
+  mouthOpen: 0,
 };
 
 /** The judge at rest: stern (his rig's rest). */
@@ -106,10 +113,8 @@ const BENCH_FACE: Expression = {
   mouthLine: 1,
   mouthOpen: 0,
 };
-/** He gives the verdict: grave and sure, the brows easing. */
+/** He gives the verdict and keeps it through the uproar: grave and sure, the brows easing. */
 const VERDICT_FACE: Expression = { ...EASE, browY: 0.5, browTilt: 0, eyes: 1.05, mouth: -0.2 };
-/** The verdict given, the room in uproar: calm, kind. */
-const CALM: Expression = { ...EASE, browY: -1, browTilt: 0.2, eyes: 1, mouth: 0.8 };
 
 // ─── where things go ─────────────────────────────────────────────────────────
 
@@ -121,9 +126,14 @@ const LEAD_GAZE = {
   judge: [1300 - 293, 200 - 725],
 } as const;
 
-/** The prosecutor's near shoulder, from which his hand swings, and where it takes up each sheet (his far side). */
+/**
+ * The prosecutor's near shoulder, from which his hand swings; where it takes
+ * up each sheet (his far side); and where he holds it up at the lead before
+ * he lays it on the stack.
+ */
 const PROS_SHOULDER = [700, 340] as const;
 const PROS_PICK = [816, 520] as const;
+const PROS_RAISE = [606, 438] as const;
 /** His hands thrown up on `cover`. */
 const PROS_UP = [
   [612, 352],
@@ -134,7 +144,8 @@ const PROS_UP = [
 const JUDGE_SHOULDER = [1215, 300] as const;
 const GAVEL_UP = { grip: [1168, 292], rot: Math.PI / 2 + 0.1 } as const;
 const GAVEL_STRUCK = { grip: [BLOCK[0] + 66, BLOCK[1] - 14], rot: -0.2 } as const;
-export const GAVEL_HANGS = { grip: [1150, 262], rot: Math.PI / 2 - 0.05 } as const;
+/** Held still in the air, its head a hand's breadth above the block. */
+const GAVEL_HANGS = { grip: [1140, 296], rot: -0.12 } as const;
 
 /** Where the seal starts, above the frame, before it floats down. */
 const SEAL_FROM = { dx: -40, dy: -420, rot: -0.6 } as const;
@@ -148,23 +159,57 @@ const VERSE = {
 /** The page Job's verse is set on, frame px: the whole frame and a margin, and where its text starts. */
 const PAGE = { w: 2000, h: 1160, text: { x: 370, y: 540 } } as const;
 
-/** The sheets on the stack before the prosecutor lays his three; `title` finds all of them there. */
-export const STACK_BEFORE = 6;
-export const STACK_LAID = 3;
+/** A sheet's swing, as shares of its stagger: picked up, lifted at the lead, held there, laid on the stack. */
+const SWING = { pick: 0.15, up: 0.35, hold: 0.5, laid: 0.62 } as const;
+
+/** How far `k` is through `from..to`, held to 0..1. */
+const share = (k: number, from: number, to: number) =>
+  Math.min(1, Math.max(0, (k - from) / (to - from)));
+
+/** Of the sheets' swings `ks`: how many are laid on the stack, and the share of the one in hand (0: none). */
+const swingOf = (ks: ReadonlyArray<number>) => ({
+  laid: ks.filter((k) => k >= SWING.laid).length,
+  swing: ks.find((k) => k > 0 && k < 1) ?? 0,
+});
+
+/** The prosecutor's near hand `swing` through a sheet: to it, up at the lead, held, down on the stack, home. */
+const swingHand = (swing: number): Pt => {
+  const rest = HANDS.prosecutor[0];
+  const onStack: Pt = [STACK[0] + 8, STACK[1] - 30];
+  if (swing <= 0) return rest;
+  if (swing < SWING.pick)
+    return reachAbout(PROS_SHOULDER, rest, PROS_PICK, share(swing, 0, SWING.pick));
+  if (swing < SWING.up)
+    return reachAbout(PROS_SHOULDER, PROS_PICK, PROS_RAISE, share(swing, SWING.pick, SWING.up));
+  if (swing < SWING.hold) return PROS_RAISE;
+  if (swing < SWING.laid)
+    return reachAbout(PROS_SHOULDER, PROS_RAISE, onStack, share(swing, SWING.hold, SWING.laid));
+  return reachAbout(PROS_SHOULDER, onStack, rest, share(swing, SWING.laid, 1));
+};
+
+/** The sheets on the stack before the prosecutor lays his three. */
+const STACK_BEFORE = 6;
+const STACK_LAID = 3;
 
 /** The court's pose (scratch: rewritten each frame). */
 const POSE = restPose();
 
 export const cold = drawing({
   timeline: {
-    // The opening hold eases in on the court a little.
+    // The camera travels in from a little wider to the evidence panel's framing.
     settle: { mark: 'evidence', ends: true, dur: 3.6, ease: 'inOutSine' },
-    // The prosecutor lays three sheets on the stack, one after another.
+    // ...and drifts on in toward the dock and the table while the evidence is laid.
+    drift: { mark: 'evidence', until: { cue: 'push', edge: 'start' }, ease: 'linear' },
+    // The prosecutor lifts each of three sheets at the lead, then lays it on the stack.
     lay: { mark: 'evidence', dur: 3.1, stagger: 0.667, ease: 'inOutSine' },
+    accuse: { mark: 'evidence', dur: 0.5 },
     watch: { mark: 'evidence', offset: 0.2, dur: 0.6 },
     bow: { mark: 'did', dur: 0.45, ease: 'outCubic' },
     push: { mark: 'did', offset: -0.2, dur: 0.75 },
-    back: { mark: 'judge', offset: -0.05, dur: 0.6 },
+    sink: { after: 'push', until: { cue: 'toJudge', edge: 'start' }, ease: 'linear' },
+    // To the bench as the judge leans over it, and on in while he raises the gavel.
+    toJudge: { mark: 'judge', offset: -0.05, dur: 0.6, ease: 'inOutSine' },
+    onJudge: { after: 'toJudge', until: 'righteous', ease: 'linear' },
     lean: { mark: 'judge', dur: 0.55 },
     dread: { mark: 'judge', offset: 0.25, dur: 0.4 },
     reach: { mark: 'judge', offset: 0.35, dur: 0.55 },
@@ -172,21 +217,30 @@ export const cold = drawing({
     strike: { mark: 'righteous', ends: true, dur: 0.2, ease: 'inCubic' },
     // The card: the picture is gone from "Righteous." to the question.
     verdict: { mark: 'righteous', until: { cue: 'float', edge: 'start' }, track: 'card' },
+    // Under the card the camera is taken to the lead, so the picture comes back close on him.
+    toLead: { mark: 'seal', offset: -0.2, dur: 0.1 },
+    onLead: { mark: 'seal', until: { cue: 'toTwo', edge: 'start' }, ease: 'linear' },
     float: { mark: 'seal', dur: 1.1, ease: 'outCubic' },
     press: { after: 'float', dur: 0.22, ease: 'outBack' },
     amaze: { mark: 'seal', offset: 0.3, dur: 0.5 },
+    // Open to the lead and the prosecutor as he throws up his hands.
+    toTwo: { mark: 'cover', dur: 0.7, ease: 'inOutSine' },
+    onTwo: { after: 'toTwo', until: 'bible', ease: 'linear' },
     throw: { mark: 'cover', dur: 0.32, ease: 'outBack' },
     startle: { mark: 'cover', offset: 0.08, dur: 0.4, ease: 'outCubic' },
-    drop: { after: 'calm', offset: 0.8, dur: 0.9 },
     calm: { mark: 'cover', offset: 0.6, dur: 0.8 },
-    ease: { mark: 'bible', dur: 1.8, ease: 'inOutSine' },
+    drop: { after: 'calm', offset: 0.8, dur: 0.9 },
+    // One slow push from the two of them onto the seal over the stain.
+    closer: { mark: 'bible', until: 'which', ease: 'inOutSine' },
     ponder: { mark: 'bible', offset: 0.3, dur: 0.6 },
     // "will not clear the guilty": he winces at it.
     wince: { mark: 'bible', word: 'guilty', dur: 0.4 },
     glint: { mark: 'bible', word: 'justifies', dur: 0.9, ease: 'inOutSine' },
     wonder: { mark: 'bible', word: 'justifies', offset: 0.1, dur: 0.6 },
+    // Back to the court and the gavel hanging, then in on the lead under the question.
     out: { mark: 'which', dur: 1.1 },
     hang: { mark: 'which', offset: 0.2, dur: 0.9, ease: 'outCubic' },
+    ask: { after: 'out', until: { cue: 'page', edge: 'start' }, ease: 'inOutSine' },
     doubt: { mark: 'which', word: 'guilty', dur: 0.5 },
     page: { mark: 'asked', dur: 0.45, ease: 'outCubic', track: 'verse' },
     sweep: { mark: 'asked', offset: 0.5, until: { cue: 'flood', edge: 'start' }, track: 'verse' },
@@ -194,73 +248,100 @@ export const cold = drawing({
     card: { mark: 'job', until: { at: 'end' }, track: 'card' },
   },
   knobs: {
+    // Where the opening travel starts: a little wider than the evidence panel.
+    openZoom: 1.12,
+    // Where the drift over the evidence ends: in toward the dock and the table.
+    drift: [600, 488],
+    driftZoom: 1.4,
     // Close on the lead's face (`cold.did`): his face at a third of the frame.
-    face: [340, 492],
+    face: [340, 500],
     faceZoom: 2.67,
-    // In on the seal over his stain (`bible`).
-    seal: [292, 532],
-    sealZoom: 3,
-    // Where the opening hold starts: a little wider.
-    openZoom: 1.16,
+    // A medium on the bench: the judge's head at about a third of the frame.
+    judge: [1236, 318],
+    judgeZoom: 2,
+    // Back from the card, close on the lead, room above him for the seal to come down.
+    lead: [318, 470],
+    leadZoom: 1.6,
+    // The lead and the prosecutor together on `cover`.
+    two: [520, 470],
+    twoZoom: 1.42,
+    // In on the seal over his stain (`bible`), his head's top clear of the frame's.
+    seal: [292, 505],
+    sealZoom: 2.8,
+    // In on the lead under the question.
+    doubt: [330, 480],
+    doubtZoom: 1.4,
   },
   rigs: COURT_RIGS,
+  // The court's light, lifted off Job's page as it turns over the court.
+  light: (f) => ({
+    ...LIGHT.room,
+    amount: 1 - f.at('page'),
+    vignette: (LIGHT.room.vignette ?? 1) * (1 - f.at('page')),
+  }),
   draw: (f): Box | void => {
     const { ctx, w, h } = f;
     const p = POSE;
 
-    // ── the camera
+    // ── the camera: one travel, each leg on its mark, a slow creep between legs so nothing holds
+    const shot = (point: 'face' | 'judge' | 'lead' | 'two', zoom: number, creep = 1) =>
+      knobCamera(f.knob(point), zoom * creep);
     const cam = shotPath({ ...REST, zoom: f.knob('openZoom') }, [
       [f.at('settle'), REST],
-      [f.at('push'), knobCamera(f.knob('face'), f.knob('faceZoom')), pushInto],
-      [f.at('back'), REST],
-      [f.at('ease'), knobCamera(f.knob('seal'), f.knob('sealZoom')), pushInto],
+      [f.at('drift'), knobCamera(f.knob('drift'), f.knob('driftZoom'))],
+      [f.at('push'), shot('face', f.knob('faceZoom')), pushInto],
+      [f.at('sink'), shot('face', f.knob('faceZoom'), 1.06)],
+      [f.at('toJudge'), shot('judge', f.knob('judgeZoom'))],
+      [f.at('onJudge'), shot('judge', f.knob('judgeZoom'), 1.08)],
+      [f.at('toLead'), shot('lead', f.knob('leadZoom'))],
+      [f.at('onLead'), shot('lead', f.knob('leadZoom'), 1.08)],
+      [f.at('toTwo'), shot('two', f.knob('twoZoom'))],
+      [f.at('onTwo'), shot('two', f.knob('twoZoom'), 1.07)],
+      [f.at('closer'), knobCamera(f.knob('seal'), f.knob('sealZoom')), pushInto],
       [f.at('out'), REST],
+      [f.at('ask'), knobCamera(f.knob('doubt'), f.knob('doubtZoom'))],
     ]);
 
-    // ── the prosecutor: three sheets laid on the stack, his hands thrown up on `cover`
+    // ── the prosecutor: three sheets held up at the lead and laid on the stack; on `cover` he
+    // throws up his hands and shouts
     const thrown = f.at('throw') * (1 - f.at('drop'));
-    let laid = 0;
-    let swing = 0;
-    for (let i = 0; i < STACK_LAID; i++) {
-      const k = f.stagger('lay', i, STACK_LAID);
-      laid += k >= 0.55 ? 1 : 0;
-      if (k > 0 && k < 1) swing = k;
-    }
-    // A swing: to the pick (0..0.2), across to the stack (0.2..0.55), back to his side.
-    const toStack = Math.min(1, Math.max(0, (swing - 0.2) / 0.35));
-    const home = Math.max(0, (swing - 0.6) / 0.4);
-    const rest0 = HANDS.prosecutor[0];
-    const pick = reachAbout(PROS_SHOULDER, rest0, PROS_PICK, Math.min(1, swing / 0.2));
-    const onStack = reachAbout(PROS_SHOULDER, PROS_PICK, [STACK[0] + 8, STACK[1] - 30], toStack);
-    const back = reachAbout(PROS_SHOULDER, [STACK[0] + 8, STACK[1] - 30], rest0, home);
-    const near = swing <= 0 ? rest0 : swing < 0.2 ? pick : swing < 0.6 ? onStack : back;
+    const { laid, swing } = swingOf(
+      Array.from({ length: STACK_LAID }, (_, i) => f.stagger('lay', i, STACK_LAID)),
+    );
+    const near = swingHand(swing);
+    // Held up at the lead, the sheet shakes in his hand.
+    const shake = swing >= SWING.up && swing < SWING.hold ? 4 * Math.sin(f.t * 19) : 0;
     p.prosecutor.hands[0] = [
       lerp(near[0], PROS_UP[0][0], thrown),
-      lerp(near[1], PROS_UP[0][1], thrown),
+      lerp(near[1] + shake, PROS_UP[0][1], thrown),
     ];
     const far = HANDS.prosecutor[1];
     p.prosecutor.hands[1] = [
       lerp(far[0], PROS_UP[1][0], thrown),
       lerp(far[1], PROS_UP[1][1], thrown),
     ];
-    const carrying = swing >= 0.2 && swing < 0.55;
     const c = p.prosecutor.carried;
-    c.shown = carrying ? 1 : 0;
+    c.shown = swing >= SWING.pick && swing < SWING.laid ? 1 : 0;
     c.x = near[0] - 6;
-    c.y = near[1] + 26;
-    c.rot = 0.25 * (1 - toStack);
+    c.y = near[1] + shake + 26;
+    c.rot =
+      swing < SWING.hold
+        ? -0.35 * share(swing, SWING.pick, SWING.up)
+        : -0.35 * (1 - share(swing, SWING.hold, SWING.laid));
     p.stack = STACK_BEFORE + laid;
     const pn = p.prosecutor.numbers;
-    acted(pn, STERN, [[OUTRAGE, f.at('throw') * (1 - 0.9 * f.at('drop'))]]);
-    const onLead = 1 - Math.min(1, swing > 0 ? 1 : 0) * 0.8;
-    pn.gazeX = lerp(STACK[0] - 748, -400, onLead);
-    pn.gazeY = lerp(STACK[1] - 800, PROSECUTOR_KNOBS.gazeY, onLead);
-    // To the judge on the verdict, to the lead on his protest.
+    const accuse = f.at('accuse') * (1 - f.at('lean'));
+    acted(pn, STERN, [
+      [ACCUSE, accuse],
+      [OUTRAGE, thrown],
+    ]);
+    pn.shout = thrown;
+    // His eyes on the lead while he makes his case; to the judge on the verdict; back to the lead.
     pn.gazeX = lerp(pn.gazeX, 560, f.at('lean') * (1 - f.at('throw')));
     pn.gazeY = lerp(pn.gazeY, -560, f.at('lean') * (1 - f.at('throw')));
-    pn.lean = -0.02 * swing * (1 - thrown) + 0.03 * thrown;
-    pn.tilt = 0.06 * thrown;
-    pn.nod = 4 * (swing > 0 ? 1 : 0) * (1 - thrown);
+    pn.lean = -0.05 * accuse - 0.04 * thrown;
+    pn.tilt = -0.05 * accuse + 0.06 * thrown;
+    pn.nod = 2 * accuse * (1 - thrown);
 
     // ── the judge: leans over, takes up the gavel, strikes; it hangs on `which`
     const lean = f.at('lean');
@@ -297,18 +378,14 @@ export const cold = drawing({
     const holding = reach >= 1;
     p.judge.hands[0] = holding ? [grip[0], grip[1]] : toGrip;
     const jn = p.judge.numbers;
-    acted(jn, BENCH_FACE, [
-      [VERDICT_FACE, lean],
-      [CALM, f.at('calm')],
-      [VERDICT_FACE, hang],
-    ]);
+    acted(jn, BENCH_FACE, [[VERDICT_FACE, lean]]);
     jn.lean = -0.13 * lean * (1 - 0.6 * f.at('calm'));
     jn.nod = 8 * lean * (1 - f.at('calm'));
     jn.gazeX = lerp(-900, -560, lean);
     jn.gazeY = lerp(160, 420, lean);
     // To the prosecutor as he protests, back to the dock.
-    jn.gazeX = lerp(jn.gazeX, -540, f.at('throw') * (1 - f.at('ease')));
-    jn.gazeY = lerp(jn.gazeY, 300, f.at('throw') * (1 - f.at('ease')));
+    jn.gazeX = lerp(jn.gazeX, -540, f.at('throw') * (1 - f.at('closer')));
+    jn.gazeY = lerp(jn.gazeY, 300, f.at('throw') * (1 - f.at('closer')));
 
     // ── the lead
     const ln = p.lead.numbers;
@@ -339,10 +416,12 @@ export const cold = drawing({
     ln.gazeX = look(0);
     ln.gazeY = look(1);
     ln.nod =
-      14 * bow +
+      26 * bow +
       6 * f.at('amaze') * (1 - startle) -
       8 * startle * (1 - f.at('ponder')) +
       6 * f.at('ponder') * (1 - f.at('wonder'));
+    // Bowed, his marks slide down the round: he looks down.
+    ln.faceY = 28 * bow;
     ln.tilt = 0.06 * bow - 0.1 * startle * (1 - f.at('ponder'));
     ln.lean = -0.03 * startle * (1 - f.at('ponder'));
     // The seal floats down and presses over the stain.
