@@ -94,9 +94,10 @@ import { EGWParagraphDatabase, type ParagraphChangeRow } from '@bible/core/egw-d
 
 import {
   BOOK_VECTORS_PAGE,
-  BookVectorsFailed,
+  type BookVectorsFailed,
   bookVectorsPage,
   type BookVectorsScope,
+  deleteVectorIds,
   removedVectorIds,
 } from './book-vectors.ts';
 import { D1Atomic } from './d1-atomic.ts';
@@ -367,17 +368,7 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
             `unindex ${String(bookId)}`,
             Effect.gen(function* () {
               const ids = yield* removedVectorIds(bookId);
-              const index = yield* vectors.raw;
-              // Vectorize deletes at most a thousand ids a call.
-              for (let at = 0; at < ids.length; at += 1000) {
-                const chunk = ids.slice(at, at + 1000);
-                yield* Effect.tryPromise({
-                  try: () => index.deleteByIds(chunk),
-                  catch: (cause) =>
-                    BookVectorsFailed.make({ bookId, reason: `delete: ${String(cause)}` }),
-                });
-              }
-              return ids.length;
+              return yield* deleteVectorIds(bookId, ids, yield* vectors.raw);
             }).pipe(Effect.provide(readLayer)),
             { retries: RETRIES },
           );
