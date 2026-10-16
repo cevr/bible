@@ -778,9 +778,12 @@ export const STATES: ByPlace<State, AtRest> = {
       name: 'Studio',
       open: player(pageHref.studio(PROBE), '.st-timeline .st-clip'),
       disclose: AT_REST,
-      // On a laptop each of the probe's twelve clips is a control and the ruler labels each of its
-      // 13 seconds: 51 things (measured 2026-10-16).
-      budget: most(30, 51),
+      // On a laptop each of the probe's thirteen clips is a control and the ruler labels each of
+      // its 13 seconds: 53 things (measured 2026-10-16). Two earn their place in most visits: the
+      // Films link, the studio's way home that every visit that leaves the film takes, and the
+      // probe's card panel, a Board clip as a film's narration cards are (CRAFT rule 1), most of an
+      // animatic's panels.
+      budget: most(30, 53),
     },
     {
       name: 'Studio, a beat selected (the inspector)',
