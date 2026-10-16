@@ -287,7 +287,7 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
       return yield* LabRefused.make({
         reason: `${name} is a project folder (its ${CATALOGUE_FILE}): ${elsewhere}`,
       });
-    // Every file checked before anything is written.
+    // Every copy checked before anything is written.
     const copies = yield* Effect.forEach(files, (f) =>
       Effect.gen(function* () {
         if (!path.isAbsolute(f.from))
@@ -308,9 +308,28 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
         return { from: f.from, to };
       }),
     );
+    // The manifest and every name in it judged before a file is copied: a refused publish writes nothing.
     const written = yield* refused(
       store.transact(manifestAt(dir), (current) =>
         Effect.gen(function* () {
+          const next = { ...current, ...patch };
+          const manifest = yield* Schema.decodeUnknownEffect(ReviewManifest)(next).pipe(
+            Effect.mapError((e) => LabRefused.make({ reason: `review.json: ${e.message}` })),
+          );
+          // Every file it names as the review finds it once the copies land (a variant with no `file`, by either copy).
+          const there = (name: string) =>
+            Option.match(inside(path, dir, name), {
+              onNone: () => Effect.succeed(false),
+              onSome: (at) =>
+                Effect.map(fs.exists(at), (found) => found || copies.some((c) => c.to === at)),
+            });
+          const missing = yield* Effect.filter(filesInMontage(manifest), (names) =>
+            Effect.map(Effect.forEach(names, there), (found) => !found.includes(true)),
+          );
+          if (missing.length > 0)
+            return yield* LabRefused.make({
+              reason: `review.json names what the folder lacks: ${missing.map((names) => names.join(' or ')).join(', ')}`,
+            });
           for (const copy of copies) {
             yield* fs.makeDirectory(path.dirname(copy.to), { recursive: true });
             // Copied whole: the review never lists half a video.
@@ -321,23 +340,6 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
               (partial) => fs.rename(partial, copy.to),
             );
           }
-          const next = { ...current, ...patch };
-          const manifest = yield* Schema.decodeUnknownEffect(ReviewManifest)(next).pipe(
-            Effect.mapError((e) => LabRefused.make({ reason: `review.json: ${e.message}` })),
-          );
-          // Every file it names as the review finds it: a variant with no `file`, by either copy.
-          const there = (name: string) =>
-            Option.match(inside(path, dir, name), {
-              onNone: () => Effect.succeed(false),
-              onSome: (at) => fs.exists(at),
-            });
-          const missing = yield* Effect.filter(filesInMontage(manifest), (names) =>
-            Effect.map(Effect.forEach(names, there), (found) => !found.includes(true)),
-          );
-          if (missing.length > 0)
-            return yield* LabRefused.make({
-              reason: `review.json names what the folder lacks: ${missing.map((names) => names.join(' or ')).join(', ')}`,
-            });
           return [manifest, next] as const;
         }),
       ),

@@ -430,6 +430,58 @@ describe('a set published through the MCP', () => {
   );
 });
 
+describe('a refused publish', () => {
+  it.effect("writes nothing: the set's files and its review.json stay as they were", () =>
+    provided(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        yield* fs.writeFileString('/work/one.png', 'one');
+        yield* fs.writeFileString('/work/two.png', 'two');
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        const dir = path.join(path.resolve('out'), 'faces');
+        const first = yield* tool('publish_set', {
+          name: 'faces',
+          files: [{ from: '/work/one.png', to: 'a.png' }],
+          manifest: { title: 'Faces', images: ['a.png'] },
+        });
+        expect(first.set).toBe('spare/faces');
+        const manifest = yield* fs.readFileString(path.join(dir, 'review.json'));
+        // Each publish copies two.png over a.png and into a new b.png, and names a file the folder lacks.
+        const over = [
+          { from: '/work/two.png', to: 'a.png' },
+          { from: '/work/two.png', to: 'b.png' },
+        ];
+        const clip = (variants: Schema.Json) => ({ sets: { cold: { variants } } });
+        for (const [manifestPatch, lacking] of [
+          [{ images: ['a.png', 'b.png', 'missing.png'] }, 'missing.png'],
+          [{ docs: ['missing.md'] }, 'missing.md'],
+          [clip({ a: { file: 'a.mp4' } }), 'a.mp4'],
+          [clip({ b: { file: 'b.png', notes: 'b.md' } }), 'b.md'],
+        ] as const) {
+          expect(
+            (yield* tool('publish_set', { name: 'faces', files: over, manifest: manifestPatch }))
+              .refused,
+          ).toContain(lacking);
+          expect(yield* fs.readFileString(path.join(dir, 'a.png'))).toBe('one');
+          expect(yield* fs.exists(path.join(dir, 'b.png'))).toBe(false);
+          expect(yield* fs.readFileString(path.join(dir, 'review.json'))).toBe(manifest);
+        }
+        // A name a copy brings is there: the same publish with no missing name lands whole.
+        const landed = yield* tool('publish_set', {
+          name: 'faces',
+          files: over,
+          manifest: { images: ['a.png', 'b.png'] },
+        });
+        expect(landed.set).toBe('spare/faces');
+        expect(yield* fs.readFileString(path.join(dir, 'a.png'))).toBe('two');
+        expect(yield* fs.readFileString(path.join(dir, 'b.png'))).toBe('two');
+      }),
+    ),
+  );
+});
+
 /** The review itself over the lab's own out/: its index read and kept, as the page's is, until a write drops it. */
 const liveReview = Review.layer({
   roots: [{ label: 'spare', path: 'out' }],
