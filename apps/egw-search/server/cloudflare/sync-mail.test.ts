@@ -157,7 +157,7 @@ describe('the sync mail', () => {
       SyncOutcome.Planned({
         remote: 1505,
         installedBefore: 1487,
-        pending: [atn],
+        pending: [atn, { id: niv.id, code: niv.code, title: niv.title, revision: 'zip:niv' }],
         changed: [da],
         verify: 150,
         recheckLeft: 1330,
@@ -166,6 +166,10 @@ describe('the sync mail', () => {
     expect(mail.subject).toBe('EGW sync plan: 1 to add, 1 updated');
     expect(mail.text).toContain('nothing was written');
     expect(mail.text).toContain('It would check 150 older books');
+    expect(mail.text).toContain('A sync would add (1):\n- ATN: All Things New');
+    expect(mail.text).toContain(
+      'try again the 1 books the library lists but withholds (1 is a translation licensed for reading only)',
+    );
   });
 
   test('a run that stopped says so, with why', () => {
@@ -207,8 +211,11 @@ describe('the sync report', () => {
     expect(report).toContain('> A new \\*line\\*\\.');
     expect(report).toContain('> ~~Gone \\<b\\>now\\</b\\>~~');
     expect(report).toContain('## Checked against the library (2)');
+    expect(report).toContain('Only gained paragraphs (1): AA \\+1.');
+    expect(report).not.toContain('This chapter is based on Acts 2');
     expect(report).toContain('Unchanged (1): ATN.');
     expect(report).toContain('1480 books are still to check.');
     expect(report).toContain('## Withheld by the library (1)');
+    expect(report).toContain('(1 is a translation licensed for reading only): NIV.');
   });
 });

@@ -3439,6 +3439,28 @@ history takes on its face: a loop pass by number, a batch id, a ledger id and
 a commit hash, each outside a quoted literal and a URL. History told in words
 (what the code used to do, which pass changed it) is a review finding
 (`CLAUDE.md`, **Comments**), since no pattern can read it.
+**Judged rules** (`packages/scripts/src/judged/`, `bun run lint:judged`) are
+the rules a pattern cannot decide, decided by a model, outside oxlint. A rule
+is data (`packages/scripts/src/judged/rule.ts`): a selector, one classify
+decision, the label that reports, a threshold and a message. The first,
+`historyComment`, reads the comment blocks of every linted TypeScript file
+that the working tree adds or changes against the merge base with
+origin/main (`--base` names another), and asks TypeSafe's model about all of
+them in one request, split only past 200 items or about 60,000 input tokens
+(the model refused a request near 65,536). They never block a push: no key
+(`TYPESAFE_API_KEY`, else the keychain item `typesafe-api-key` within 2 s), a timeout, a
+rate limit, an HTTP error or an answer that misses items passes, and prints
+`[judged] skipped rule=<rule> reason=<reason> items=<n>`; any other failure
+(git, the lint config, a defect) is `reason=error` with `detail=<tag>`, and
+answers the cache cannot keep are asked again next run. The answers are
+cached under the repo's ignored tmp folder, keyed by the rule and its version,
+the model and the text, so a rerun asks only for new text and says what it
+said before. The key goes only to TypeSafe's own host, and the lint reads no
+`.env` file (`bun --no-env-file`): none in a checkout sets its key, its model
+or a proxy. A finding is a warning (at p 0.9 or more) until a labelled corpus
+with true positives shows the precision a gate needs; `bun run --cwd
+packages/scripts judged:measure` measures the rule on its corpus. The lefthook
+pre-push runs it; CI, which has no key, does not.
 `film/drawing-literal` and `film/no-unprobed-ink` hold a film's scenes to
 what the lab can locate and what `film check` can probe; the films' README
 (`apps/animations/README.md`, **Lint**) says what each refuses.

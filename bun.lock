@@ -194,10 +194,14 @@
       "dependencies": {
         "@bible/core": "workspace:*",
         "@bible/film": "workspace:*",
+        "@effect/ai-typesafe": "catalog:",
         "@effect/platform-bun": "catalog:",
         "effect": "catalog:",
         "oxc-parser": "0.153.0",
         "pdf-parse": "^2.4.5",
+      },
+      "devDependencies": {
+        "effect-bun-test": "catalog:",
       },
     },
     "packages/ui": {
@@ -225,6 +229,7 @@
     "effect": "4.0.2",
   },
   "catalog": {
+    "@effect/ai-typesafe": "4.0.2",
     "@effect/platform-bun": "4.0.2",
     "@effect/platform-node": "4.0.2",
     "@effect/platform-node-shared": "4.0.2",
@@ -377,6 +382,8 @@
     "@distilled.cloud/turso": ["@distilled.cloud/turso@1.0.0-rc.15", "", { "dependencies": { "@distilled.cloud/core": "1.0.0-rc.15" }, "peerDependencies": { "effect": "^4.0.0" } }, "sha512-hvudbvmdatgi198Exlid3zgF/WGBD3UDa0A2F4QPD3IYR08Y+O5ZFcovPcV841JDIREJN0hKmgsrmpoFczxbDA=="],
 
     "@distilled.cloud/zerossl": ["@distilled.cloud/zerossl@1.0.0-rc.15", "", { "dependencies": { "@distilled.cloud/core": "1.0.0-rc.15" }, "peerDependencies": { "effect": "^4.0.0" } }, "sha512-lu69h33Ib18kATq0W1c1zw6CH3YkUvKWGj1QUi8lbuINXPXHb2/88ATzehDQr5GM/qxtO+azgglhs/NVOf4UVw=="],
+
+    "@effect/ai-typesafe": ["@effect/ai-typesafe@4.0.2", "", { "peerDependencies": { "effect": "^4.0.2" } }, "sha512-ZOtVLS5pJSQYVG8srgHrshRcA9yRKv12ALGx/On/2KwCswmUdWjuUaXJqEeWdkBf+3NwXhsdq84Q0M5U8AL7yA=="],
 
     "@effect/platform-bun": ["@effect/platform-bun@4.0.2", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.2" }, "peerDependencies": { "effect": "^4.0.2" } }, "sha512-wbQ9jQKtTjqHOYvMrgINWKuP05Q0cXe/Rze2c2gOAakztE34tVzT4aRvvooUR2l+JGWf/hL26nmHXJ4/Urkqiw=="],
 

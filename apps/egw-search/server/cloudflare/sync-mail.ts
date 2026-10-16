@@ -13,7 +13,7 @@
 
 import { Array as Arr, Data, Option } from 'effect';
 
-import type { EgwSyncBook } from '@bible/core/corpus-supply';
+import { type EgwSyncBook, isKnownUnavailable } from '@bible/core/corpus-supply';
 
 import {
   type BookChange,
@@ -21,6 +21,7 @@ import {
   changeLabel,
   changeSummary,
   type SyncRun,
+  withheldReasons,
 } from './sync-report.ts';
 import { type DiffSegment, wordDiff } from './word-diff.ts';
 
@@ -113,7 +114,7 @@ const synced = (outcome: Extract<SyncOutcome, { _tag: 'Synced' }>): SyncMail => 
   const { run, excerpt, updateChanges, report } = outcome;
   const { counts } = run;
   const unexpected = counts.failures.filter((failure) => !failure.expected);
-  const expected = counts.failures.length - unexpected.length;
+  const expected = counts.failures.filter((failure) => failure.expected);
   const updated = run.updated.filter(({ changes }) => changeCount(changes) > 0);
   const corrected = run.verified.filter(({ changes }) => changeCount(changes) > 0);
   const correctedParagraphs = corrected.reduce((sum, { changes }) => sum + changeCount(changes), 0);
@@ -163,7 +164,8 @@ const synced = (outcome: Extract<SyncOutcome, { _tag: 'Synced' }>): SyncMail => 
       run.vectorFailures.map((failed) => `- book ${String(failed.id)}: ${failed.reason}`),
     ),
     '',
-    `Withheld by the library, as expected: ${String(expected)}.`,
+    `Withheld by the library, as expected: ${String(expected.length)} ` +
+      `(${withheldReasons(expected.map((failure) => failure.id))}).`,
     ...Option.match(report, {
       onNone: (): readonly string[] => [],
       onSome: (url) => ['', `Full report: ${url}`],
@@ -172,23 +174,44 @@ const synced = (outcome: Extract<SyncOutcome, { _tag: 'Synced' }>): SyncMail => 
   return { subject, text: text.join('\n') };
 };
 
+const planned = (plan: {
+  readonly remote: number;
+  readonly installedBefore: number;
+  readonly toAdd: readonly EgwSyncBook[];
+  readonly withheld: readonly EgwSyncBook[];
+  readonly changed: readonly EgwSyncBook[];
+  readonly verify: number;
+  readonly recheckLeft: number;
+}): SyncMail => ({
+  subject: `${PREFIX} plan: ${String(plan.toAdd.length)} to add, ${String(plan.changed.length)} updated`,
+  text: [
+    'A plan-only run: nothing was written.',
+    `The library lists ${String(plan.remote)} books; the corpus held ${String(plan.installedBefore)}.`,
+    ...section(
+      `A sync would add (${String(plan.toAdd.length)}):`,
+      capped(plan.toAdd.map(bookLine)),
+    ),
+    ...section(
+      `Updated by the library (${String(plan.changed.length)}):`,
+      capped(plan.changed.map(bookLine)),
+    ),
+    '',
+    `It would check ${String(plan.verify)} older books against the library, ` +
+      `and leave ${String(plan.recheckLeft)} for later runs.`,
+    `It would try again the ${String(plan.withheld.length)} books the library lists but withholds ` +
+      `(${withheldReasons(plan.withheld.map((book) => book.id))}).`,
+  ].join('\n'),
+});
+
 /** The mail for a run's outcome. */
 export const syncMail: (outcome: SyncOutcome) => SyncMail = SyncOutcome.$match({
-  Planned: ({ remote, installedBefore, pending, changed, verify, recheckLeft }) => ({
-    subject: `${PREFIX} plan: ${String(pending.length)} to add, ${String(changed.length)} updated`,
-    text: [
-      'A plan-only run: nothing was written.',
-      `The library lists ${String(remote)} books; the corpus held ${String(installedBefore)}.`,
-      ...section(`A sync would add (${String(pending.length)}):`, capped(pending.map(bookLine))),
-      ...section(
-        `Updated by the library (${String(changed.length)}):`,
-        capped(changed.map(bookLine)),
-      ),
-      '',
-      `It would check ${String(verify)} older books against the library, ` +
-        `and leave ${String(recheckLeft)} for later runs.`,
-    ].join('\n'),
-  }),
+  Planned: ({ remote, installedBefore, pending, changed, verify, recheckLeft }) => {
+    // The library lists some books it never serves; a sync tries them again
+    // and they fail as expected, so they are not books to add.
+    const withheld = pending.filter((book) => isKnownUnavailable(book.id));
+    const toAdd = pending.filter((book) => !isKnownUnavailable(book.id));
+    return planned({ remote, installedBefore, toAdd, withheld, changed, verify, recheckLeft });
+  },
   Synced: synced,
   Stopped: ({ reason }) => ({
     subject: `${PREFIX}: stopped before its report`,

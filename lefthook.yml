@@ -1,3 +1,16 @@
+pre-push:
+  jobs:
+    # The judged lint (packages/scripts/src/lint-judged.ts): the comments the
+    # branch and working tree add or change against origin/main, judged by a
+    # model. It warns and always passes: a model that fails (no key, a
+    # timeout, a rate limit) or a host that does (git, the cache, a defect)
+    # prints a skip line instead. The echo is the skip line for a program
+    # that cannot start (no bun, or no `bun install` since the lock changed);
+    # take it out when a rule turns --strict on. CI has no key, so it runs
+    # here, never in the gate.
+    - name: judged
+      run: bun run lint:judged || echo '[judged] skipped rule=historyComment reason=error items=0 detail=no-program'
+
 pre-commit:
   jobs:
     # Budget: under 5 s. Only the staged files are linted (with fixes) and
