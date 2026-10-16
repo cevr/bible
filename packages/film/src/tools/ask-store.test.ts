@@ -4,11 +4,13 @@
 // of the same answer is answered as it was and a different one refused; an
 // optional field left empty is answered skipped, and sent blank again is the
 // same answer; an ask past its deadline takes no answer; a close keeps what
-// was answered and is answered as it is when said again; an ask on disk with
-// a step named by a key every object answers to is not read.
+// was answered and is answered as it is when said again; an ask on a
+// production files its question as it is made and its answers once closed,
+// each once; an ask on disk with a step named by a key every object answers
+// to is not read.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Boolean as Bool, Effect, Exit, FileSystem, Schema } from 'effect';
+import { Boolean as Bool, Effect, Exit, FileSystem, Option, Schema } from 'effect';
 import { TestClock } from 'effect/testing';
 import {
   type Ask,
@@ -21,6 +23,7 @@ import {
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { Segment } from '../core/segment.ts';
 import { AskStore } from './ask-store.ts';
+import { ProductionStore } from './production-store.ts';
 import { labInMemory, NOTES_LAB, text } from './testing.ts';
 
 const tried = (n: number) => ({
@@ -90,7 +93,7 @@ const proof = (tries: ReadonlyArray<number>): Ask =>
 
 const draft = (ask: Ask) => ({ title: 'Keep a try', why: 'the beat waits', by: 'agent', ask });
 
-const run = <A, E>(self: Effect.Effect<A, E, AskStore | FileSystem.FileSystem>) =>
+const run = <A, E>(self: Effect.Effect<A, E, AskStore | ProductionStore | FileSystem.FileSystem>) =>
   self.pipe(Effect.provide(labInMemory(files())));
 
 describe('the asks on disk', () => {
@@ -167,6 +170,51 @@ describe('the asks on disk', () => {
           asks.answerPage(id, [{ step: step('why'), values: { why: 'again' } }]),
         );
         expect(after._tag).toBe('AskRefused');
+      }),
+    ),
+  );
+
+  it.effect('files its question as it is made, and its answers once closed, each once', () =>
+    run(
+      Effect.gen(function* () {
+        const asks = yield* AskStore;
+        const productions = yield* ProductionStore;
+        yield* productions.start('f', {
+          title: 'F',
+          film: Option.none(),
+          blurb: Option.none(),
+          first: 'v1',
+          at: 0,
+        });
+        const said = Effect.map(productions.read('f'), (file) =>
+          Option.getOrThrow(file).said.map((s) => [s._tag, s.text, s.set, s.quote]),
+        );
+        const { id } = yield* asks.make({
+          ...draft(proof([1, 7])),
+          production: 'f',
+          set: 'spare/judge-faces',
+        });
+        expect(yield* said).toEqual([
+          ['Asked', `Keep a try (ask ${id})`, Option.some('judge-faces'), Option.none()],
+        ]);
+        yield* asks.answerPage(id, [{ step: step('pick'), values: { try: '7' } }]);
+        yield* asks.answerPage(id, [{ step: step('why'), values: { why: 'the light' } }]);
+        yield* asks.close(id, 'kept try 7');
+        // Closed again with the same words: answered as it is, filed once.
+        yield* asks.close(id, 'kept try 7');
+        expect(yield* said).toEqual([
+          ['Asked', `Keep a try (ask ${id})`, Option.some('judge-faces'), Option.none()],
+          [
+            'Decided',
+            `Keep a try (ask ${id}): try: Try 7 · why: the light`,
+            Option.some('judge-faces'),
+            Option.some('the light'),
+          ],
+        ]);
+        // An ask on no production files nothing.
+        const loose = yield* asks.make(draft(proof([1, 7])));
+        yield* asks.close(loose.id, 'not needed');
+        expect(yield* said).toHaveLength(2);
       }),
     ),
   );

@@ -8,21 +8,30 @@
 // and the agent closes it. An answer is kept by its step, so the same
 // answer sent again (a retry, a second tab) is answered as it was; a
 // different one to a step already answered is refused, as is one to a step
-// the ask has left, as its machine has it, and one past the deadline. The
-// page, the MCP and the change feed all read and write through here.
+// the ask has left, as its machine has it, and one past the deadline. An ask
+// that names a production files its words on that production's timeline,
+// each once by the ask's id (`withAskSaid`, under the ledger's lock): its
+// question (when it names a set) as it is made, and once closed, its
+// answers (answered to its end) or its withdrawal. A filing that failed is
+// filed by the next close of the ask, and two closes at once file one word.
+// The page, the MCP and the change feed all read and write through here.
 
 import {
   Array as Arr,
+  Clock,
   Config,
   Context,
   DateTime,
   Effect,
   FileSystem,
   Layer,
+  Match,
   Option,
   Order,
   Path,
   Random,
+  Record,
+  Result,
 } from 'effect';
 import { Machine } from 'effect-machine';
 import {
@@ -36,21 +45,26 @@ import {
   type AskState,
   type StepValues,
   answerRefusal,
+  answeredToEnd,
+  answersLine,
   askMachine,
   askProblems,
   askStart,
   filled,
+  givenAnswers,
   imagesIn,
   mapImages,
   unrecommended,
 } from '../core/ask.ts';
 import { boardFileUrl } from '../core/api.ts';
 import { panelById, tryOf } from '../core/board.ts';
+import { type Said, setPathOf, withAskSaid } from '../core/production.ts';
 import { AskInvalid, AskRefused, AskUnknown } from '../core/refusals.ts';
 import { AskMaterials } from './ask-materials.ts';
 import { BoardStore } from './board-store.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { type FilmFolder, filmNamed } from './film-repo.ts';
+import { ProductionStore } from './production-store.ts';
 
 /** What an agent asks with: its title, why, who it is, by when, the film, and the machine. */
 interface AskDraft {
@@ -70,7 +84,7 @@ interface AskStoreService {
   readonly dir: string;
   /** The record file of ask `id`. */
   readonly file: (id: string) => string;
-  /** A new ask, its machine checked and its board tries found, or why it may not render. */
+  /** A new ask, its machine checked and its board tries found, or why it may not render; its question filed. */
   readonly make: (draft: AskDraft) => Effect.Effect<AskRecord, AskInvalid | StoreError>;
   readonly read: (id: string) => Effect.Effect<AskRecord, AskUnknown | StoreError>;
   /** Every ask, the newest first. */
@@ -85,7 +99,7 @@ interface AskStoreService {
     id: string,
     sections: ReadonlyArray<{ readonly step: AskName; readonly values: StepValues }>,
   ) => Effect.Effect<AskRecord, AskUnknown | AskRefused | StoreError>;
-  /** The ask closed, `why` (withdrawn, or filed once answered): what was answered is kept. */
+  /** The ask closed, `why` (withdrawn, or filed once answered): what was answered is kept, and filed. */
   readonly close: (
     id: string,
     why: string,
@@ -127,6 +141,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
       const path = yield* Path.Path;
       const store = yield* ContentStore;
       const boards = yield* BoardStore;
+      const productions = yield* ProductionStore;
       const materials = yield* AskMaterials;
       const films = yield* Effect.context<FilmFolder>();
       const root = yield* Config.String('FILMS_LAB').pipe(Config.withDefault(path.resolve('lab')));
@@ -198,6 +213,24 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         return { ask: withSrc, missing: [...new Set(missing)] };
       });
 
+      /**
+       * The ask's words on its production's timeline, each filed once by the
+       * ask's id: its question (when it names a set), and once closed, its
+       * answers (answered to its end) or its withdrawal (closed before).
+       */
+      const filed = (record: AskRecord) =>
+        Option.match(Option.fromUndefinedOr(record.production), {
+          onNone: () => Effect.void,
+          onSome: (production) =>
+            Effect.gen(function* () {
+              const words = askWords(record, yield* Clock.currentTimeMillis);
+              if (words.length === 0) return;
+              yield* productions.modify(production, (current) =>
+                Result.succeed(words.reduce(withAskSaid, current)),
+              );
+            }),
+        });
+
       const make = Effect.fn('AskStore.make')(function* (draft: AskDraft) {
         // A deadline kept as UTC ISO, so it compares with the time an answer comes in.
         const deadline = Option.map(Option.fromUndefinedOr(draft.deadline), (d) =>
@@ -254,6 +287,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
           answered: [],
         };
         yield* store.update(manifest(id, record), () => record);
+        yield* filed(record);
         yield* Effect.log(
           `asks.make id=${id} by=${draft.by} steps=${Object.keys(ask.steps).length}`,
         );
@@ -354,6 +388,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
             return [next, next] as const;
           }),
         );
+        yield* filed(record);
         yield* Effect.log(`asks.close id=${id}`);
         return record;
       });
@@ -362,6 +397,82 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
     }),
   );
 }
+
+/**
+ * What an ask files on its production's timeline as it stands at `now`: its
+ * question, when it names a set (at the time it was made); and once closed,
+ * the owner's decision (its answers, answered to its end) or its withdrawal
+ * (a note, closed before).
+ */
+const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
+  const set = Option.map(Option.fromUndefinedOr(record.set), setPathOf);
+  const on = {
+    set,
+    point: Option.fromUndefinedOr(record.point),
+    variant: Option.none<string>(),
+    ask: Option.some(record.id),
+    by: Option.some(record.by),
+  };
+  const named = `${record.title} (ask ${record.id})`;
+  const question = Arr.filter(
+    [
+      {
+        _tag: 'Asked' as const,
+        at: Option.getOrElse(
+          Option.map(DateTime.make(record.created), DateTime.toEpochMillis),
+          () => now,
+        ),
+        text: named,
+        quote: Option.none<string>(),
+        ...on,
+      },
+    ],
+    () => Option.isSome(set),
+  );
+  const closing = Match.value(record.state).pipe(
+    Match.tag('Closed', (closed): ReadonlyArray<Said> => {
+      if (!answeredToEnd(record))
+        return [
+          {
+            _tag: 'Noted',
+            at: now,
+            text: `${named} withdrawn: ${closed.why}`,
+            quote: Option.none(),
+            ...on,
+          },
+        ];
+      // The owner's decision: what they gave, an optional field left empty left out.
+      const given = givenAnswers(closed.answers);
+      const words = Object.values(given).flatMap((a) =>
+        Match.value(a).pipe(
+          Match.discriminatorsExhaustive('kind')({
+            choose: (): ReadonlyArray<string> => [],
+            free_text: (t) => [t.text],
+            skipped: (): ReadonlyArray<string> => [],
+          }),
+        ),
+      );
+      // Every answer skipped still reads as answered: the line then names them all.
+      const line = answersLine(
+        Option.getOrElse(
+          Option.liftPredicate(given, (g) => !Record.isEmptyRecord(g)),
+          () => closed.answers,
+        ),
+      );
+      return [
+        {
+          _tag: 'Decided',
+          at: now,
+          text: `${named}: ${line}`,
+          quote: Option.liftPredicate(words.join(' / '), (w) => w.length > 0),
+          ...on,
+        },
+      ];
+    }),
+    Match.orElse((): ReadonlyArray<Said> => []),
+  );
+  return [...question, ...closing];
+};
 
 /** Whether two steps' answers are the same: the same names, each the same value. */
 const sameValues = (a: StepValues, b: StepValues): boolean => {

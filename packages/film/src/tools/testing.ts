@@ -1817,7 +1817,7 @@ export const labInMemory = (
     BoardStore.layer.pipe(Layer.provide(FilmFolder.layer('/films'))),
     AskStore.layer.pipe(
       Layer.provide(AskMaterials.layer),
-      Layer.provide([BoardStore.layer, asking, film]),
+      Layer.provide([BoardStore.layer, ProductionStore.layer, asking, film]),
       Layer.provide(FilmFolder.layer('/films')),
     ),
     FilmFolder.layer('/films'),
@@ -2353,7 +2353,13 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
               BoardStore.layer.pipe(Layer.provide(FilmFolder.layer(films))),
               AskStore.layer.pipe(
                 Layer.provide(AskMaterials.layer),
-                Layer.provide([BoardStore.layer, noStudio, noRenders, freshFilm({})]),
+                Layer.provide([
+                  BoardStore.layer,
+                  ProductionStore.layer,
+                  noStudio,
+                  noRenders,
+                  freshFilm({}),
+                ]),
                 Layer.provide(FilmFolder.layer(films)),
               ),
             ).pipe(

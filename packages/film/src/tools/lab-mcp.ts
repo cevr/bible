@@ -18,7 +18,7 @@
 //   answers heard as `ask.step` changes; read (`ask_read`, `asks`) and closed
 //   (`close_ask`), what closed it (answers, or withdrawn) filed on its
 //   production's timeline once by its id
-//   (`AskStore`, `ProductionStore`; `core/ask.ts`).
+//   (by `AskStore`, through `ProductionStore`; `core/ask.ts`).
 // - The easel's tools (`easel-mcp.ts`): a scene looked at as its files
 //   stand, its stills answered as images (`look`), the film's clock
 //   (`cues`), scenes checked as drawn (`check`), and the film's journal read
@@ -37,7 +37,6 @@ import {
   Array as Arr,
   Boolean as Bool,
   Clock,
-  DateTime,
   Duration,
   Effect,
   FileSystem,
@@ -45,33 +44,14 @@ import {
   Match,
   Option,
   Path,
-  Record,
   Result,
   Schema,
   Struct,
 } from 'effect';
 import { McpProtocol, McpSchema, McpServer, Tool, Toolkit } from 'effect/ai';
 import { pageHref } from '../core/api.ts';
-import {
-  Ask,
-  AskAnswer,
-  AskBlock,
-  type AskRecord,
-  answeredToEnd,
-  answersLine,
-  askStatus,
-  givenAnswers,
-  oneQuestion,
-} from '../core/ask.ts';
-import {
-  type OwnerWord,
-  ProductionId,
-  Said,
-  setNamed,
-  setPathOf,
-  versionAt,
-  withAskSaid,
-} from '../core/production.ts';
+import { Ask, AskAnswer, AskBlock, type AskRecord, askStatus, oneQuestion } from '../core/ask.ts';
+import { type OwnerWord, ProductionId, Said, setNamed, versionAt } from '../core/production.ts';
 import {
   type BoardFile,
   BoardStyle,
@@ -947,95 +927,6 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     links: linksOf(pageHref.ask(record.id)),
   });
 
-  /**
-   * An ask's words on its production's timeline, each filed once by the ask's
-   * id (`withAskSaid`, under the ledger's lock): its question (when it names a
-   * set) as it is made, and once closed, its answers (answered to its end) or
-   * its withdrawal (closed before). A filing that failed is filed by the next
-   * close of the ask, and two closes at once file one word.
-   */
-  const fileAsk = (record: AskRecord) =>
-    Option.match(Option.fromUndefinedOr(record.production), {
-      onNone: () => Effect.void,
-      onSome: (production) =>
-        Effect.gen(function* () {
-          const now = yield* Clock.currentTimeMillis;
-          const set = Option.map(Option.fromUndefinedOr(record.set), setPathOf);
-          const on = {
-            set,
-            point: Option.fromUndefinedOr(record.point),
-            variant: Option.none<string>(),
-            ask: Option.some(record.id),
-            by: Option.some(record.by),
-          };
-          const named = `${record.title} (ask ${record.id})`;
-          const question = Arr.filter(
-            [
-              {
-                _tag: 'Asked' as const,
-                at: Option.getOrElse(
-                  Option.map(DateTime.make(record.created), DateTime.toEpochMillis),
-                  () => now,
-                ),
-                text: named,
-                quote: Option.none<string>(),
-                ...on,
-              },
-            ],
-            () => Option.isSome(set),
-          );
-          const closing = Match.value(record.state).pipe(
-            Match.tag('Closed', (closed): ReadonlyArray<Said> => {
-              if (!answeredToEnd(record))
-                return [
-                  {
-                    _tag: 'Noted',
-                    at: now,
-                    text: `${named} withdrawn: ${closed.why}`,
-                    quote: Option.none(),
-                    ...on,
-                  },
-                ];
-              // The owner's decision: what they gave, an optional field left empty left out.
-              const given = givenAnswers(closed.answers);
-              const words = Object.values(given).flatMap((a) =>
-                Match.value(a).pipe(
-                  Match.discriminatorsExhaustive('kind')({
-                    choose: (): ReadonlyArray<string> => [],
-                    free_text: (t) => [t.text],
-                    skipped: (): ReadonlyArray<string> => [],
-                  }),
-                ),
-              );
-              // Every answer skipped still reads as answered: the line then names them all.
-              const line = answersLine(
-                Option.getOrElse(
-                  Option.liftPredicate(given, (g) => !Record.isEmptyRecord(g)),
-                  () => closed.answers,
-                ),
-              );
-              return [
-                {
-                  _tag: 'Decided',
-                  at: now,
-                  text: `${named}: ${line}`,
-                  quote: Option.liftPredicate(words.join(' / '), (w) => w.length > 0),
-                  ...on,
-                },
-              ];
-            }),
-            Match.orElse((): ReadonlyArray<Said> => []),
-          );
-          const words: ReadonlyArray<Said> = [...question, ...closing];
-          if (words.length === 0) return;
-          yield* refused(
-            productions.modify(production, (current) =>
-              Result.succeed(words.reduce(withAskSaid, current)),
-            ),
-          );
-        }),
-    });
-
   /** The folder a timeline names the set `given` by (`setNamed`): by its ref or by its folder, held by one root. */
   const folderNamed = Effect.fn('LabMcp.folderNamed')(function* (given: string) {
     const named = setNamed(
@@ -1094,7 +985,6 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
         }),
       ),
     );
-    yield* fileAsk(record);
     return askRead(record);
   });
 
@@ -1111,7 +1001,6 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
 
   const closeAsk = Effect.fn('LabMcp.closeAsk')(function* (id: string, why: string) {
     const record = yield* refused(asks.close(id, why));
-    yield* fileAsk(record);
     return askRead(record);
   });
 
