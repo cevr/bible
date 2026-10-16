@@ -4,15 +4,14 @@
 // frame, falling to a deeper one at the corners, so the page dims round the
 // subject rather than all over, and gold stays the brightest thing on it. The parchment itself stays the parchment; the light is what
 // changes, act by act:
-//   - cold open: a cool, even room without sun;
-//   - message: the peach afternoon going toward dusk;
-//   - faith: a hazed noon, the dark world's own black in `spoke`;
-//   - forgiveness, the valley: sunset on `declared` and the cross, the court
-//     at first light after it, and the day coming up in `robe` as the loom
-//     weaves (its drawing's own light), so the robe is white again when it
-//     settles on him;
-//   - power: early gold morning, warm cream;
-//   - landing: teal day, the lightest touch.
+//   - verdict: a cool, even room without sun;
+//   - seed: a hazed noon on the parchment, the dark world's own black in
+//     `spoke`;
+//   - gifts: the peach afternoon going toward dusk;
+//   - grain, the valley: sunset on the hill and the furrow, down to black;
+//   - still at work: first light in heaven's sanctuary and its court
+//     (`priest`, `accuser`, `robe`), then early gold morning, warm cream;
+//   - harvest: teal day, the lightest touch.
 // As the ground lifts (`GROUND` in palette.ts), each light lifts with it: its
 // edge rises toward its colour by the lift, so the corners fall less far, and
 // its colour rises toward white by half the lift, so a deep light (sunset)
@@ -50,21 +49,23 @@ export const LIGHT = {
 
 /** Each act's light (`acts.ts` declares the acts and the scenes they hold). */
 const byAct: Readonly<Record<ActName, Light>> = {
-  'cold open': LIGHT.room,
-  message: LIGHT.dusk,
-  faith: LIGHT.haze,
-  forgiveness: LIGHT.sunset,
-  power: LIGHT.morning,
-  landing: LIGHT.day,
+  verdict: LIGHT.room,
+  seed: LIGHT.haze,
+  gifts: LIGHT.dusk,
+  grain: LIGHT.sunset,
+  'still at work': LIGHT.morning,
+  harvest: LIGHT.day,
 };
 
 /**
- * The scenes lit apart from their act: the valley's court at first light. A
- * light that changes on a scene's own cue (`robe`'s dawn as the loom weaves)
- * is that drawing's `light`, typed by its cues.
+ * The scenes lit apart from their act: dawn after the black, in heaven's
+ * sanctuary and its court. A light that changes on a scene's own cue is that
+ * drawing's `light`, typed by its cues.
  */
 const byScene: Partial<Record<BeatId, Light>> = {
+  priest: LIGHT.firstLight,
   accuser: LIGHT.firstLight,
+  robe: LIGHT.firstLight,
 };
 
 /** Each scene's act light. */

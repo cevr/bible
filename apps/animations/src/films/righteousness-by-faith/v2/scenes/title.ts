@@ -15,8 +15,8 @@ import {
   UNMOVED,
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
-import { ROOF, cityBack, cityFront } from '../city.ts';
-import { C, F, person } from '../kit.ts';
+import { ROOF, cityBack, cityFront } from '../../city.ts';
+import { C, F, person } from '../../kit.ts';
 import { TITLE } from '../script.ts';
 
 /** Where the film's name splits: its first word drops into `word`. */

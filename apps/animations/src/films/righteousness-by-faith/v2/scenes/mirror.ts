@@ -29,9 +29,9 @@ import {
   UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { type GestureAt, C, type Person, handOf, person, piece } from '../kit.ts';
-import { apron, tree } from '../garden.ts';
-import { ring, tabletShape, tablets } from '../law.ts';
+import { type GestureAt, C, type Person, handOf, person, piece } from '../../kit.ts';
+import { apron, tree } from '../../garden.ts';
+import { ring, tabletShape, tablets } from '../../law.ts';
 
 /** The stains the leaves hide and the mirror shows, in a person's units. */
 const STAINS = [

@@ -30,7 +30,7 @@ import {
   UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { AT_THE_HOLE, type House, RECALL_RISE, house, recall } from '../gospel.ts';
+import { AT_THE_HOLE, type House, RECALL_RISE, house, recall } from '../../gospel.ts';
 import { roof } from './roof.ts';
 import {
   type GestureAt,
@@ -45,7 +45,7 @@ import {
   pushZoom,
   pushedHand,
   piece,
-} from '../kit.ts';
+} from '../../kit.ts';
 
 /** What the figure holds up to pay with, bottom to top: a kind and its offset. */
 const STACK = [

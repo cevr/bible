@@ -43,8 +43,8 @@ import {
   person,
   piece,
   shifted,
-} from '../kit.ts';
-import { arc, flight, wordLight } from '../spoken.ts';
+} from '../../kit.ts';
+import { arc, flight, wordLight } from '../../spoken.ts';
 
 /** The soldier's hands: out in worry, up to stop, and held open for the word after the cut. */
 const WORRIED: GestureAt = { to: [-80, -90], reach: 0, grip: 'open' };

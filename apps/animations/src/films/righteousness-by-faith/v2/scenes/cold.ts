@@ -25,7 +25,7 @@ import {
   rounded,
 } from '@bible/film/canvas';
 import { type Key, lerp, rng } from '@bible/film/core';
-import { C, person, piece } from '../kit.ts';
+import { C, person, piece } from '../../kit.ts';
 import {
   type Stamp,
   ACCUSED,
@@ -38,7 +38,7 @@ import {
   benchStamp,
   judgeGavel,
   question,
-} from '../court.ts';
+} from '../../court.ts';
 
 const SHEETS = (() => {
   const r = rng(1889);

@@ -34,8 +34,8 @@ import {
   sky,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { FIGURE_STAINS } from '../court.ts';
-import { PATH_AHEAD, PATH_HILL, alongPath, restingField } from '../garden.ts';
+import { FIGURE_STAINS } from '../../court.ts';
+import { PATH_AHEAD, PATH_HILL, alongPath, restingField } from '../../garden.ts';
 import {
   type GestureAt,
   C,
@@ -46,7 +46,7 @@ import {
   person,
   pushedHand,
   piece,
-} from '../kit.ts';
+} from '../../kit.ts';
 
 // ─── A: the parchment ────────────────────────────────────────────────────────
 

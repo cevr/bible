@@ -34,8 +34,8 @@ import {
   sky,
 } from '@bible/film/canvas';
 import { lerp, gait } from '@bible/film/core';
-import { COURT_GONE, COURT_WIDE, GONE_LOOK, type Temple, temple } from '../gospel.ts';
-import { ICON_ROW, ICON_SKY, iconScratch } from '../kit.ts';
+import { COURT_GONE, COURT_WIDE, GONE_LOOK, type Temple, temple } from '../../gospel.ts';
+import { ICON_ROW, ICON_SKY, iconScratch } from '../../kit.ts';
 import { giftRow } from './message.ts';
 import { BAND_S, counted, roof } from './roof.ts';
 

@@ -18,8 +18,8 @@
 
 import { type Pt, drawing, shotPath, type Posed, knobCamera } from '@bible/film/canvas';
 import { type Key, lerp } from '@bible/film/core';
-import { landingSky } from '../city.ts';
-import { type GestureAt } from '../kit.ts';
+import { landingSky } from '../../city.ts';
+import { type GestureAt } from '../../kit.ts';
 import {
   ADVOCATE_POSE,
   FIGURE_LANDED,
@@ -31,7 +31,7 @@ import {
   WIDE,
   landingCourt,
   question,
-} from '../court.ts';
+} from '../../court.ts';
 
 /** Where the figure's near hand touches the robe on "receive": its own chest, on its own side. */
 const TOUCH: Pt = [8, -80];

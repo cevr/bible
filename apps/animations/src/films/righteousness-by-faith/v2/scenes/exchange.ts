@@ -39,9 +39,9 @@ import {
   UNMOVED,
 } from '@bible/film/canvas';
 import { gait, lerp } from '@bible/film/core';
-import { type GestureAt, C, type Hands, type Person, christ, person, piece } from '../kit.ts';
-import { FIGURE_STAINS } from '../court.ts';
-import { HOLY_PLACE, IN_SANCTUARY, ministry, priestAt, sanctuary } from '../heaven.ts';
+import { type GestureAt, C, type Hands, type Person, christ, person, piece } from '../../kit.ts';
+import { FIGURE_STAINS } from '../../court.ts';
+import { HOLY_PLACE, IN_SANCTUARY, ministry, priestAt, sanctuary } from '../../heaven.ts';
 
 const SCALE = 1.9;
 /** Where Jesus stops beside the figure, and the hilltop where the cross stands. */

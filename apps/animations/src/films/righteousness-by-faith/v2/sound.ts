@@ -1,3 +1,6 @@
+// Version 2's sound (the version folder `v2/`): its score's movements start
+// at version 2's scenes. The film declares no sound of its own yet.
+//
 // The film's score, beds and effects.
 //
 // The score: three options, one film in three musical languages, all warm and
