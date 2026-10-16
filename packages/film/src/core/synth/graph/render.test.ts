@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { Result, Schema } from 'effect';
 import { GOLDEN, PROBES, type Probe } from './fixtures/golden.ts';
+import { ALLPASSES, COMBS } from './kernels.ts';
 import { dbToGain } from './math.ts';
 import { CodeSound, type Key, type Node, type Signal } from './nodes.ts';
 import { pitchHz } from './pitch.ts';
@@ -173,6 +174,78 @@ describe('the draws', () => {
     // A frame step rounded once and added up would end 430 frames early.
     expect(out.length - 1).toBe(Math.round(999 * every * SYNTH_RATE));
     expect(out.length - 1 - 999 * Math.round(every * SYNTH_RATE)).toBe(430);
+  });
+});
+
+describe('the kernels, by what they make of a click', () => {
+  // One frame at the top of a sine: what a node makes of it is its impulse response.
+  const impulse: Node = {
+    _tag: 'Osc',
+    wave: 'sine',
+    pitch: 'A4',
+    secs: 1 / SYNTH_RATE,
+    phase: 0.25,
+  };
+  /** The click, then silence to `secs`. */
+  const click = (secs: number): Node => ({ _tag: 'Layer', secs, of: [{ node: impulse }] });
+
+  /** A response's gain at `hz` in dB: the magnitude of its frames' Fourier sum there. */
+  const gainDb = (response: Float32Array, hz: number): number => {
+    let re = 0;
+    let im = 0;
+    response.forEach((x, n) => {
+      const angle = (2 * Math.PI * hz * n) / SYNTH_RATE;
+      re += x * Math.cos(angle);
+      im -= x * Math.sin(angle);
+    });
+    return 20 * Math.log10(Math.hypot(re, im));
+  };
+
+  test('a shelf gives its side of `hz` its gain, the far side none, and `hz` itself half', () => {
+    for (const db of [12, -12]) {
+      const shelf = (type: 'lowshelf' | 'highshelf') =>
+        planned({ _tag: 'Filter', type, hz: 1000, q: 0.707, db, of: click(0.25) });
+      const low = shelf('lowshelf');
+      const high = shelf('highshelf');
+      // Five octaves under the corner and four over it, the shelves have reached their plateaus.
+      const near = (measured: number, want: number) =>
+        expect(Math.abs(measured - want)).toBeLessThan(0.05);
+      near(gainDb(low, 31.25), db);
+      near(gainDb(low, 1000), db / 2);
+      near(gainDb(low, 16000), 0);
+      near(gainDb(high, 31.25), 0);
+      near(gainDb(high, 1000), db / 2);
+      near(gainDb(high, 16000), db);
+    }
+  });
+
+  test('a delay hears its input `secs` behind, each echo `feedback` times the one before', () => {
+    const out = planned({
+      _tag: 'Delay',
+      secs: 0.1,
+      feedback: 0.5,
+      wet: 1,
+      tail: 0.45,
+      of: impulse,
+    });
+    // All wet: the click itself is not heard, its echoes are, each a frame of its own.
+    const heard = Array.from(out).flatMap((x, frame) => (x === 0 ? [] : [{ frame, x }]));
+    expect(heard).toEqual(
+      [1, 2, 3, 4].map((k) => ({ frame: k * framesOf(0.1), x: 0.5 ** (k - 1) })),
+    );
+  });
+
+  test("a room's allpasses ring on at half: each echo of its first reflection half the one before", () => {
+    const out = planned({ _tag: 'Reverb', size: 0.5, damp: 8000, wet: 1, tail: 0.1, of: impulse });
+    // The shortest comb's first pass is the first reflection, and the shortest allpass
+    // echoes it at its own length, inverted by the three it passes straight through,
+    // then again, feedback times. No other path of combs and allpasses lands on these frames.
+    const first = Math.min(...COMBS);
+    const ring = Math.min(...ALLPASSES);
+    expect(out.findIndex((x) => x !== 0)).toBe(first);
+    const at = (frame: number) => out[frame] ?? Number.NaN;
+    expect(at(first + ring) / at(first)).toBeCloseTo(-1, 6);
+    expect(at(first + 2 * ring) / at(first + ring)).toBeCloseTo(0.5, 6);
   });
 });
 
