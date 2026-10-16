@@ -64,7 +64,7 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-version-text { display: grid; }
 .st-version-note { font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
 
-/* The one grid: the inspector's place is these rules alone (layout C, provisional). */
+/* The one grid: the inspector's place is these rules alone (layout C, the owner's pick). */
 .st-studio { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 0; grid-template-rows: minmax(0, 1fr) var(--st-transport-h) var(--st-tl-h, 0); grid-template-areas: "viewer insp" "transport transport" "timeline timeline"; }
 .st-studio[data-open="true"] { grid-template-columns: minmax(0, 1fr) var(--st-insp-w); }
 

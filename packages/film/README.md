@@ -1201,7 +1201,9 @@ The page reads its data from `GET /api/films/<film>/timeline[?v=<n>]`
 the ledger does not have is refused with `FilmVersionUnknown`, and an older
 one kept in no folder with `FilmVersionUnkept`.
 
-Its layout is layout C, provisional: the owner's ask on the layout is open.
+Its layout is layout C (the owner's pick, 2026-10-16): the inspector beside the viewer, the
+timeline full width under them. The inspector's place is one grid template
+(`lab/film-studio/style.ts`) and one part (`Inspector`).
 
 - **The header**: the film, the version chip (`v2 ▾`, a menu of the
   versions), the stage, and `N wait on you` with a menu of what waits.

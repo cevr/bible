@@ -1284,7 +1284,7 @@ const Status = () => {
 };
 
 /**
- * The studio's one grid (layout C, provisional until the owner answers the layout ask): the
+ * The studio's one grid (layout C, the owner's pick): the
  * viewer with the inspector beside it, the transport and the timeline full
  * width under them; on a phone the viewer, the transport, the timeline and
  * the reading block, the inspector in the reading block's place.
