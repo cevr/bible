@@ -54,6 +54,7 @@ const sceneRender = (id: string, key: string, at = 1): Render => ({
     share: Option.none(),
     captions: Option.some(`scenes/${id}/main.vtt`),
     chapters: Option.none(),
+    description: Option.none(),
     images: [],
   },
   sound: Option.none(),

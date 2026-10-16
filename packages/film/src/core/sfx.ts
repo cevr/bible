@@ -4,9 +4,10 @@
 // prompts. A sound is generated (ElevenLabs, made once as candidates, curated,
 // then frozen: the model has no seed), code (a graph of nodes, rendered from
 // each seed whenever it is needed, so nothing is stored or paid for), or
-// recorded (a CC0 file kept in the repo). Pure: names, schemas, the request
-// hash that says whether a sound is current, which variant each placement
-// plays and its jitter, and the level arithmetic the mix gains a sound by.
+// recorded (a CC0 or CC BY file kept in the repo). Pure: names, schemas, the
+// request hash that says whether a sound is current, which variant each
+// placement plays and its jitter, the level arithmetic the mix gains a sound
+// by, and the credit lines a film owes for the CC BY recordings it places.
 
 import { Array as Arr, Match, Option, Result, Schema } from 'effect';
 import type { Pcm } from './audio.ts';
@@ -47,17 +48,50 @@ type Jitter = typeof Jitter.Type;
 
 /**
  * A licence that lets a recording sit in a public repo and a monetised film:
- * CC0 only (the owner's rule), so no credit line is ever owed.
+ * CC0 and CC BY (the owner's rule, 2026-10-16), a CC BY recording with its
+ * line in the credits of every film that places it (`soundCredits`). CC0
+ * owes nothing. Only the CC BY versions a recording has needed are listed:
+ * add one when a recording needs it.
  */
-const PublicLicence = Schema.Literals(['CC0-1.0']);
+const CreditedLicence = Schema.Literals(['CC-BY-3.0', 'CC-BY-4.0']);
+type CreditedLicence = typeof CreditedLicence.Type;
+const PublicLicence = Schema.Literals(['CC0-1.0', ...CreditedLicence.literals]);
 type PublicLicence = typeof PublicLicence.Type;
 
-/** A recording's licence, its author and where it came from. */
-const Licence = Schema.Struct({
-  id: PublicLicence,
+/** Who made a recording and where it came from, whatever its licence. */
+const provenance = {
   author: Schema.String,
+  /** Its landing page (Freesound's, as Openverse's `foreign_landing_url` gives it): what a credit links to. */
   source: Schema.String,
+  /** Its Openverse id, so its record can be looked up again. */
+  openverse: Schema.optionalKey(Schema.String),
+};
+
+/** A CC0 recording: no credit owed, so its title, its author's page and whether it was changed are its own business. */
+const FreeLicence = Schema.Struct({
+  id: Schema.Literal('CC0-1.0'),
+  ...provenance,
+  title: Schema.optionalKey(Schema.NonEmptyString),
+  authorUrl: Schema.optionalKey(Schema.String),
+  changed: Schema.optionalKey(Schema.Boolean),
 });
+
+/**
+ * A CC BY recording: everything its credit line says. `title` as its page
+ * gives it, `authorUrl` its author's page, `changed` whether the file the
+ * library keeps was changed from it (cut, trimmed, levelled: CC BY asks that
+ * a change be said).
+ */
+const CreditLicence = Schema.Struct({
+  id: CreditedLicence,
+  ...provenance,
+  title: Schema.NonEmptyString,
+  authorUrl: Schema.String,
+  changed: Schema.Boolean,
+});
+
+/** A recording's licence, its author and where it came from. */
+const Licence = Schema.Union([FreeLicence, CreditLicence]);
 type Licence = typeof Licence.Type;
 
 /** What every kind of sound declares besides how it is made. */
@@ -123,13 +157,19 @@ const Code = Schema.Struct({
 type Code = typeof Code.Type;
 
 /**
- * A recording under a licence that may be public: `sfx import` trims and
- * measures each one into the lock as a variant, its file under `public/`
+ * A recording under a licence that may be public: `sfx import` cuts, trims
+ * and measures each one into the lock as a variant, its file under `public/`
  * (committed).
  */
 const Recorded = Schema.Struct({
   kind: Schema.Literal('recorded'),
   licence: Licence,
+  /**
+   * How long `sfx import` cuts a longer recording when it is given no cut: a
+   * one-shot's window round its loudest moment, a bed's stretch whose loop
+   * seam is smallest (`importCut`). Absent, the recording is taken whole.
+   */
+  secs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThan(0))),
   ...placing,
 });
 type Recorded = typeof Recorded.Type;
@@ -198,7 +238,7 @@ export const SFX_FORMAT = 'pcm_44100';
 const CREDITS_PER_SECOND = 40;
 
 /** Where a variant's licence lets it live: a paid generation stays private. */
-const VariantLicence = Schema.Literals(['elevenlabs-paid-sfx', 'CC0-1.0']);
+const VariantLicence = Schema.Literals(['elevenlabs-paid-sfx', ...PublicLicence.literals]);
 type VariantLicence = typeof VariantLicence.Type;
 
 /** One made variant: a file named by its bytes' hash, as measured and paid for when it was made. */
@@ -222,6 +262,8 @@ export const Variant = Schema.Struct({
    */
   onset: Schema.optionalKey(Schema.Finite),
   hit: Schema.optionalKey(Schema.Finite),
+  /** A recording's cut: the seconds of its source `sfx import` took, before the quiet ends were trimmed. */
+  cut: Schema.optionalKey(Schema.Struct({ from: Schema.Finite, to: Schema.Finite })),
   licence: VariantLicence,
   credits: Schema.Int,
 });
@@ -679,6 +721,76 @@ export const placedSounds = (sound: Sound): ReadonlyArray<string> =>
     ...(sound.beds ?? []).map((bed) => bed.sound),
     ...Object.values(sound.effects).map((effect) => effect.sound),
   ]);
+
+// ---------------------------------------------------------------------------
+// Credits
+
+/** A CC BY recording a film places, as its credit line names it (`creditLine`, `creditLink`). */
+export interface SoundCredit {
+  readonly title: string;
+  readonly author: string;
+  readonly authorUrl: string;
+  /** Its landing page. */
+  readonly source: string;
+  readonly licence: CreditedLicence;
+  readonly changed: boolean;
+}
+
+/** How a credit names a licence, and where its deed is. */
+const LICENCE_NAME = {
+  'CC-BY-3.0': 'CC BY 3.0',
+  'CC-BY-4.0': 'CC BY 4.0',
+} satisfies Record<CreditedLicence, string>;
+const LICENCE_DEED = {
+  'CC-BY-3.0': 'https://creativecommons.org/licenses/by/3.0/',
+  'CC-BY-4.0': 'https://creativecommons.org/licenses/by/4.0/',
+} satisfies Record<CreditedLicence, string>;
+
+/** The credit a recording's licence owes: none for CC0. */
+const creditOf = (licence: Licence): Option.Option<SoundCredit> => {
+  if (licence.id === 'CC0-1.0') return Option.none();
+  return Option.some({
+    title: licence.title,
+    author: licence.author,
+    authorUrl: licence.authorUrl,
+    source: licence.source,
+    licence: licence.id,
+    changed: licence.changed,
+  });
+};
+
+/**
+ * The credits a film's sound owes: one for each CC BY recording it places
+ * (`placedSounds`: its beds and effects), in the order it names them, each
+ * recording once. A CC0 recording, a generated or code sound, and a sound
+ * the film does not place owe none. The film's credit roll and its video's
+ * description both read this list, and `film check` holds the roll to it.
+ */
+export const soundCredits = (library: Library, sound: Sound): ReadonlyArray<SoundCredit> =>
+  Arr.dedupeWith(
+    placedSounds(sound).flatMap((name) =>
+      Option.toArray(
+        Option.flatMap(soundEntry(library, name), (entry) => {
+          if (entry.kind !== 'recorded') return Option.none();
+          return creditOf(entry.licence);
+        }),
+      ),
+    ),
+    (a, b) => a.source === b.source,
+  );
+
+/** A credit as the roll sets it: `"title" by author, CC BY 4.0, changed`. */
+export const creditLine = (credit: SoundCredit): string =>
+  `"${credit.title}" by ${credit.author}, ${LICENCE_NAME[credit.licence]}${changedNote(credit)}`;
+
+/** A credit as a video's description gives it: the roll's line with each page it names linked. */
+export const creditLink = (credit: SoundCredit): string =>
+  `"${credit.title}" (${credit.source}) by ${credit.author} (${credit.authorUrl}), ${LICENCE_NAME[credit.licence]} (${LICENCE_DEED[credit.licence]})${changedNote(credit)}`;
+
+const changedNote = (credit: SoundCredit): string => {
+  if (credit.changed) return ', changed';
+  return '';
+};
 
 /** How many of a derived sound's seeds `sounds` holds no measure of (all, when it is not resolved); 0 for a kept sound. */
 export const unmeasuredOf = (sounds: MeasuredSounds, name: string, entry: LibraryEntry): number => {

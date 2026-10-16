@@ -8,6 +8,7 @@
 
 import { availableParallelism } from 'node:os';
 import {
+  Array as Arr,
   Clock,
   Context,
   Effect,
@@ -77,6 +78,7 @@ import {
   captionsName,
   chaptersName,
   contactSheetName,
+  descriptionName,
   cutPage,
   imagesOutput,
   lookbookName,
@@ -89,9 +91,11 @@ import {
   shareName,
   encoderLimits,
   stillName,
+  videoDescription,
   videoEncoders,
   videoWorkers,
 } from './render-plan.ts';
+import { soundCredits } from '../core/sfx.ts';
 
 /**
  * The cores this machine has: a software encoder takes one each, so they
@@ -591,33 +595,53 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           onSome: (short) => shortCaptions(where.placed, short, range),
         });
         yield* textWhole(captions, webVtt(cues));
-        // The whole film of a film that declares a look also gets its YouTube chapters.
-        const whole =
-          Option.isNone(where.short) &&
-          start === 0 &&
-          end === info.frames &&
-          Option.isSome(film.look);
-        const chapters = yield* Option.match(
-          Option.liftPredicate(film, () => whole),
+        // The whole film gets its video description; one that declares a look, its YouTube chapters too.
+        const full = Option.isNone(where.short) && start === 0 && end === info.frames;
+        const chapterLines = yield* Option.match(
+          Option.liftPredicate(film, (declared) => full && Option.isSome(declared.look)),
           {
-            onNone: () => Effect.succeedNone,
+            onNone: () => Effect.succeed<ReadonlyArray<string>>([]),
             onSome: (declared) =>
               Result.match(filmChapters(declared, where.placed), {
                 onFailure: (error) =>
                   Effect.as(
                     Effect.logWarning(`render.chapters skipped: ${error.message}`),
-                    Option.none<string>(),
+                    Arr.empty<string>(),
                   ),
-                onSuccess: (lines) => {
-                  const file = chaptersName(target);
-                  return textWhole(file, `${lines.join('\n')}\n`).pipe(
-                    Effect.andThen(
-                      Effect.log(`render.chapters count=${lines.length} file=${file}`),
-                    ),
-                    Effect.as(Option.some(file)),
-                  );
-                },
+                onSuccess: (lines) => Effect.succeed(lines),
               }),
+          },
+        );
+        const chapters = yield* Option.match(
+          Option.liftPredicate(chapterLines, Arr.isReadonlyArrayNonEmpty),
+          {
+            onNone: () => Effect.succeedNone,
+            onSome: (lines) => {
+              const file = chaptersName(target);
+              return textWhole(file, `${lines.join('\n')}\n`).pipe(
+                Effect.andThen(Effect.log(`render.chapters count=${lines.length} file=${file}`)),
+                Effect.as(Option.some(file)),
+              );
+            },
+          },
+        );
+        const credits = Option.match(film.sound, {
+          onNone: () => [],
+          onSome: (declared) => soundCredits(film.sounds.library, declared),
+        });
+        const description = yield* Option.match(
+          Option.filter(videoDescription(chapterLines, credits), () => full),
+          {
+            onNone: () => Effect.succeedNone,
+            onSome: (text) => {
+              const file = descriptionName(target);
+              return textWhole(file, text).pipe(
+                Effect.andThen(
+                  Effect.log(`render.description credits=${credits.length} file=${file}`),
+                ),
+                Effect.as(Option.some(file)),
+              );
+            },
           },
         );
 
@@ -632,6 +656,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
           share: shared,
           captions: Option.some(captions),
           chapters,
+          description,
           images: [],
           sound,
           // A stretch of a video goes to --out, never the catalogue (`jobOf`).

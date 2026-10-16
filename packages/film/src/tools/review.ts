@@ -255,6 +255,7 @@ const renderFiles = (render: Render): ReadonlyArray<string> => [
   ...Option.toArray(render.files.share),
   ...Option.toArray(render.files.captions),
   ...Option.toArray(render.files.chapters),
+  ...Option.toArray(render.files.description),
   ...render.files.images,
 ];
 
@@ -392,6 +393,7 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
         catalogue.renders.flatMap((r) => [
           ...Option.toArray(r.files.captions),
           ...Option.toArray(r.files.chapters),
+          ...Option.toArray(r.files.description),
         ]),
       ),
     ),

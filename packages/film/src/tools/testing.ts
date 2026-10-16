@@ -1690,6 +1690,7 @@ export const testFilm = (
   looks: {},
   sounds: NO_SOUNDS,
   talk: Option.none(),
+  credits: Option.none(),
 });
 
 /**

@@ -150,6 +150,7 @@ const renderOf = (id: string): Json =>
       share: Option.none(),
       captions: Option.none(),
       chapters: Option.none(),
+      description: Option.none(),
       images: [],
     },
     sound: Option.none(),

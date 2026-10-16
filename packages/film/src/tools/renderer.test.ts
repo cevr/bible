@@ -243,6 +243,7 @@ describe.concurrent('Renderer', () => {
           share: Option.some('/out/test/film/trial.share.mp4'),
           captions: Option.some('/out/test/film/trial.vtt'),
           chapters: Option.none(),
+          description: Option.none(),
           images: [],
           sound: Option.none(),
           span: Option.none(),

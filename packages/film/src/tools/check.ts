@@ -49,6 +49,7 @@ import type {
 import type { FaceMark, InkMark, Probed, TextBox } from '../core/export-handle.ts';
 import {
   LEAD_IN,
+  type Library,
   type LibraryEntry,
   type MeasuredSounds,
   type SoundUse,
@@ -59,8 +60,11 @@ import {
   resolveUse,
   seedSources,
   soundState,
+  creditLine,
+  soundCredits,
   sourceLabel,
 } from '../core/sfx.ts';
+import { type Credit, missingSoundCredits } from '../canvas/credits.ts';
 import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import {
   CLOCK_EPSILON,
@@ -82,6 +86,7 @@ import {
   type AudioStale,
   LeadIn,
   SeedSilent,
+  SoundCreditMissing,
   SoundStale,
   SoundUnmade,
 } from './errors.ts';
@@ -667,6 +672,28 @@ export const soundFindings = (
 };
 
 /**
+ * Each CC BY recording the film places (`soundCredits`) whose line its
+ * credit roll does not give: its licence asks for the line, so the film
+ * fails until its roll gives it. A film with no `credits.ts` has no roll to
+ * give it.
+ */
+const creditFindings = (
+  sound: Sound,
+  library: Library,
+  credits: Option.Option<ReadonlyArray<Credit>>,
+): ReadonlyArray<SoundCreditMissing> => {
+  const owed = soundCredits(library, sound);
+  return Option.match(credits, {
+    onNone: () =>
+      owed.map((credit) => SoundCreditMissing.make({ line: creditLine(credit), roll: false })),
+    onSome: (roll) =>
+      missingSoundCredits(roll, owed).map((credit) =>
+        SoundCreditMissing.make({ line: creditLine(credit), roll: true }),
+      ),
+  });
+};
+
+/**
  * How far the audio master may differ from the film's length. The check does
  * not know the film's frame rate, so it holds the master to a frame at 60 fps,
  * no looser than the render's one frame at any rate up to that; a mix is
@@ -816,6 +843,7 @@ export const staticFindings = (
       musicFindings(score, placed, film.manifest),
     ),
     ...soundFindings(s, placed, film.sounds),
+    ...creditFindings(s, film.sounds.library, film.credits),
   ]);
   const master = masterFindings(placed, audio);
   const takes = [...unknownVoices(film, placed), ...staleTakes(film, placed)];

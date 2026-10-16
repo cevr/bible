@@ -60,6 +60,12 @@ export const CHECK_RULES: ReadonlyArray<FlagRule> = [
   ['level', 'excludes', 'static', '--static draws nothing, --level changes what is drawn'],
   ['level', 'excludes', 'sound', '--sound hears the mix, --level changes only what is drawn'],
   ['level', 'excludes', 'short', "a short's page is drawn as the film plays"],
+  [
+    'folder',
+    'needs',
+    'static',
+    "a version folder is checked from its files: the film's page draws the film",
+  ],
 ];
 
 /** The film laid out, and the part of it a check covers. */

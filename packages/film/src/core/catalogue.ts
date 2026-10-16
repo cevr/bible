@@ -64,6 +64,8 @@ const RenderFiles = Schema.Struct({
   captions: maybe(Schema.String),
   /** The YouTube chapters, for a whole film that declares acts. */
   chapters: maybe(Schema.String),
+  /** The video's description, for a whole film: its chapters and the credits its sound owes. */
+  description: maybe(Schema.String),
   /** Stills, a contact sheet, a look-book: in time order. */
   images: Schema.Array(Schema.String),
 });

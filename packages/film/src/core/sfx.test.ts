@@ -10,6 +10,8 @@ import {
   SILENT,
   VOICE_LEVEL,
   candidatesOf,
+  creditLine,
+  creditLink,
   creditsOf,
   influenceOf,
   defineLibrary,
@@ -25,6 +27,7 @@ import {
   resolveSound,
   resolveUse,
   seedSources,
+  soundCredits,
   soundState,
   sourceLabel,
   trialSources,
@@ -351,5 +354,87 @@ describe('the lock file', () => {
     expect(text.endsWith('}\n')).toBe(true);
     expect(Schema.encodeSync(LockJson)(Schema.decodeSync(LockJson)(text))).toBe(text);
     expect(lock['paper.slide']?.variants[0]?.credits).toBe(40);
+  });
+});
+
+// The owner's rule (2026-10-16): a recording may be CC0, or CC BY with a
+// credits line. A CC BY licence carries everything its line says.
+describe("a recording's licence", () => {
+  const decode = Schema.decodeUnknownResult(LibraryEntry);
+  const recorded = (licence: Readonly<Record<string, string | boolean>>) => ({
+    kind: 'recorded',
+    licence,
+    use: 'bed',
+  });
+  const by = {
+    id: 'CC-BY-4.0',
+    title: 'city night hum 04 160927_0989.wav',
+    author: 'klankbeeld',
+    authorUrl: 'https://freesound.org/people/klankbeeld',
+    source: 'https://freesound.org/people/klankbeeld/sounds/440621',
+    openverse: '3bdb3b4b-c840-4fba-8033-48477bf14dee',
+    changed: true,
+  };
+
+  test('takes CC0 as it stood, and CC BY 3.0 and 4.0 with their credit', () => {
+    expect(Result.isSuccess(decode(recorded({ id: 'CC0-1.0', author: 'a', source: 's' })))).toBe(
+      true,
+    );
+    expect(Result.isSuccess(decode(recorded(by)))).toBe(true);
+    expect(Result.isSuccess(decode(recorded({ ...by, id: 'CC-BY-3.0' })))).toBe(true);
+  });
+
+  test('refuses a CC BY licence its line could not be written from, and any other licence', () => {
+    const { title: _title, ...untitled } = by;
+    const { changed: _changed, ...unsaid } = by;
+    const { authorUrl: _url, ...unlinked } = by;
+    for (const licence of [untitled, unsaid, unlinked, { ...by, title: '' }])
+      expect(Result.isFailure(decode(recorded(licence)))).toBe(true);
+    for (const id of ['CC-BY-NC-4.0', 'CC-BY-ND-4.0', 'CC-BY-SA-4.0', 'Sampling+'])
+      expect(Result.isFailure(decode(recorded({ ...by, id })))).toBe(true);
+  });
+});
+
+describe('soundCredits', () => {
+  const by = (title: string, source: string) =>
+    ({
+      id: 'CC-BY-4.0',
+      title,
+      author: 'klankbeeld',
+      authorUrl: 'https://freesound.org/people/klankbeeld',
+      source,
+      changed: true,
+    }) as const;
+  const credited = defineLibrary({
+    ...library,
+    'amb.roof': { kind: 'recorded', licence: by('city night hum 04', 'https://f/1'), use: 'bed' },
+    'amb.hall': { kind: 'recorded', licence: by('M Murmer', 'https://f/2'), use: 'bed' },
+    'amb.yard': { kind: 'recorded', licence: by('city night hum 04', 'https://f/1'), use: 'bed' },
+    'steps.stone': {
+      kind: 'recorded',
+      licence: { id: 'CC0-1.0', author: 'LordFluffeh', source: 'https://f/3' },
+      use: 'one-shot',
+    },
+  });
+  const cue = { scene: 'cold', at: 'start' } as const;
+  const bed = (sound: string) => ({ sound, from: cue, to: cue });
+  const effect = (sound: string) => ({ sound, at: [cue] });
+
+  test('owes one line per CC BY recording the film places, each recording once', () => {
+    const credits = soundCredits(credited, {
+      beds: [bed('amb.roof'), bed('amb.court'), bed('amb.yard'), bed('amb.roof')],
+      effects: { steps: effect('steps.stone'), slide: effect('paper.slide') },
+    });
+    expect(credits.map(creditLine)).toEqual([
+      '"city night hum 04" by klankbeeld, CC BY 4.0, changed',
+    ]);
+    expect(credits.map(creditLink)).toEqual([
+      '"city night hum 04" (https://f/1) by klankbeeld (https://freesound.org/people/klankbeeld), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), changed',
+    ]);
+  });
+
+  test('a CC0 recording, and a CC BY one the film does not place, owe none', () => {
+    expect(soundCredits(credited, { effects: { steps: effect('steps.stone') } })).toEqual([]);
+    expect(soundCredits(credited, { beds: [bed('amb.court')], effects: {} })).toEqual([]);
   });
 });

@@ -10,7 +10,7 @@ export { type Key, clamp, ease, gait, keys, lerp, staggered } from './time.ts';
 export { hash2, rng } from './random.ts';
 export { Look, Looks, Movement, Music, Shorts, Sound, defineScript } from './schema.ts';
 export { membersOf } from './acts.ts';
-export { defineLibrary } from './sfx.ts';
+export { defineLibrary, soundCredits } from './sfx.ts';
 export {
   bloom,
   breeze,

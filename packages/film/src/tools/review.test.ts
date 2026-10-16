@@ -115,6 +115,7 @@ const videoRender = (
     share: Option.some(`${folder}/${variant}.share.mp4`),
     captions: Option.some(`${folder}/${variant}.vtt`),
     chapters: Option.none(),
+    description: Option.none(),
     images: [],
   },
   sound: Option.none(),
@@ -351,6 +352,7 @@ describe('a project folder', () => {
       share: Option.none(),
       captions: Option.none(),
       chapters: Option.none(),
+      description: Option.none(),
       images: ['film/g/stills/t0001.00.png'],
     },
   };

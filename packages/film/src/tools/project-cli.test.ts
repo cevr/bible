@@ -49,6 +49,7 @@ const sceneRender = (id: string, key: string, mix = Option.none<string>()): Rend
     share: Option.none(),
     captions: Option.none(),
     chapters: Option.none(),
+    description: Option.none(),
     images: [],
   },
   sound: Option.map(mix, (m) => ({ mix: Option.some(m), pieces: [] })),

@@ -123,6 +123,7 @@ import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
 import { project, renderAndRecord, renderVariantFlag, variantFlag } from './project-cli.ts';
 import { Stamps, stampOf } from './stamp.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
+import { Segment } from '../core/segment.ts';
 
 const film = Argument.String('film').pipe(
   Argument.withDescription('the film, a folder under src/films'),
@@ -642,6 +643,13 @@ const check = <E, R>(
       act: act.pipe(
         Flag.withDescription("probe the layout of this act's scenes, and judge its colour script"),
       ),
+      folder: Flag.String('folder').pipe(
+        Flag.withSchema(Segment),
+        Flag.optional,
+        Flag.withDescription(
+          'a version folder (`v2`): its scenes, takes, sound and credits, checked from its files (with --static)',
+        ),
+      ),
       json: Flag.Boolean('json').pipe(
         Flag.withDefault(false),
         Flag.withDescription(
@@ -675,12 +683,13 @@ const check = <E, R>(
             draw: Option.liftPredicate(input.draw, Boolean),
             short: input.short,
             level: Arr.head(input.level),
+            folder: input.folder,
           }),
           CHECK_RULES,
         ),
       );
       const options = { allowStale: input.allowStale };
-      const loaded = yield* (yield* FilmRepo).load(input.film);
+      const loaded = yield* (yield* FilmRepo).load(input.film, Option.getOrUndefined(input.folder));
       // `--level`: the palette as the picks would write it, for the legs that draw.
       const swaps = yield* paletteSwaps(
         yield* FileSystem.FileSystem,

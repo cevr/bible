@@ -68,6 +68,7 @@ export const renderRecord = (
       share: Option.map(output.share, rel),
       captions: Option.map(output.captions, rel),
       chapters: Option.map(output.chapters, rel),
+      description: Option.map(output.description, rel),
       images: output.images.map(rel),
     },
     sound: output.sound,

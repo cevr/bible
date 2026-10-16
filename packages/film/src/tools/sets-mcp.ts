@@ -331,6 +331,7 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
       ...Option.toArray(given.files.share),
       ...Option.toArray(given.files.captions),
       ...Option.toArray(given.files.chapters),
+      ...Option.toArray(given.files.description),
       ...given.files.images,
     ];
     const missing = yield* Effect.filter(files, (file) =>

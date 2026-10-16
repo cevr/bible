@@ -8,6 +8,7 @@ import type { RenderKind, RenderSound, RenderVariantName } from '../core/catalog
 import { Encoder, encoderName, sharesInPage } from '../core/encoder.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
 import type { Short } from '../core/schema.ts';
+import { type SoundCredit, creditLink } from '../core/sfx.ts';
 import { frameAtOrAfter } from '../core/time.ts';
 import type { ExportInfo } from '../core/export-handle.ts';
 import { type FilmPiece, shortKey } from '../core/shorts.ts';
@@ -68,7 +69,7 @@ const addressFolder = (address: Address): string =>
 
 /** Where one render's files go in the film's project folder (`out/<film>`). */
 interface RenderPaths {
-  /** `<address>/<variant>.mp4`; its share copy, captions and chapters beside it (`shareName`, `captionsName`, `chaptersName`). */
+  /** `<address>/<variant>.mp4`; its share copy, captions, chapters and description beside it (`shareName`, `captionsName`, `chaptersName`, `descriptionName`). */
   readonly clip: string;
   /** `<address>/<variant>/`: its stills (`stills/`), contact sheet and look-book. */
   readonly dir: string;
@@ -87,6 +88,28 @@ export const captionsName = (video: string): string => `${video.replace(/\.[^./]
 export const chaptersName = (video: string): string =>
   `${video.replace(/\.[^./]+$/, '')}.chapters.txt`;
 
+/** The video's description beside a video: `main.mp4` → `main.description.txt`. */
+export const descriptionName = (video: string): string =>
+  `${video.replace(/\.[^./]+$/, '')}.description.txt`;
+
+/**
+ * A whole film's video description: its chapters, then a "Sound" paragraph
+ * with each credit its sound owes (`soundCredits`), each page it names
+ * linked (`creditLink`). None when it has neither.
+ */
+export const videoDescription = (
+  chapters: ReadonlyArray<string>,
+  credits: ReadonlyArray<SoundCredit>,
+): Option.Option<string> => {
+  const sound = Arr.match(credits, {
+    onEmpty: (): ReadonlyArray<string> => [],
+    onNonEmpty: (owed) => ['Sound:', ...owed.map(creditLink)],
+  });
+  const paragraphs = [chapters, sound].filter(Arr.isReadonlyArrayNonEmpty);
+  if (paragraphs.length === 0) return Option.none();
+  return Option.some(`${paragraphs.map((lines) => lines.join('\n')).join('\n\n')}\n`);
+};
+
 /** What a render wrote, by path: what the catalogue records of it. */
 export interface RenderOutput {
   readonly kind: RenderKind;
@@ -94,6 +117,8 @@ export interface RenderOutput {
   readonly share: Option.Option<string>;
   readonly captions: Option.Option<string>;
   readonly chapters: Option.Option<string>;
+  /** A whole film's video description (`videoDescription`). */
+  readonly description: Option.Option<string>;
   /** Stills (in time order), a contact sheet or a look-book. */
   readonly images: ReadonlyArray<string>;
   /** The sound a video carries: none for a silent one, and for images. */
@@ -117,6 +142,7 @@ export const imagesOutput = (
   share: Option.none(),
   captions: Option.none(),
   chapters: Option.none(),
+  description: Option.none(),
   images,
   sound: Option.none(),
   span,

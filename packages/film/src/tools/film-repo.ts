@@ -71,6 +71,7 @@ import { ContentStore, type Manifest, type StoreError } from './content-store.ts
 import { FilmUnknown } from '../core/refusals.ts';
 import { Segment, isSegment } from '../core/segment.ts';
 import { FilmModuleInvalid, TalkUnvoiced } from './errors.ts';
+import type { Credit } from '../canvas/credits.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */
@@ -114,6 +115,8 @@ export interface LoadedFilm {
   readonly sounds: Sounds;
   /** A talk's edit and how it plays (`core/talk.ts`); none for a drawn film. */
   readonly talk: Option.Option<LoadedTalk>;
+  /** The credit roll its `credits.ts` sets (`CREDITS`); none when it keeps none. */
+  readonly credits: Option.Option<ReadonlyArray<Credit>>;
 }
 
 /**
@@ -264,6 +267,14 @@ const ShortsModule = Schema.Struct({ shorts: Shorts });
 const TalkModule = Schema.Struct({ talk: Talk });
 /** The part of `palette.ts` the tools read: the looks it chooses between, when it has any. */
 const PaletteModule = Schema.Struct({ looks: Schema.optionalKey(Looks) });
+/** One line of a credit roll, as canvas/credits.ts `creditRoll` sets it. */
+const CreditLine = Schema.Struct({
+  text: Schema.String,
+  kind: Schema.Literals(['name', 'head', 'item']),
+  gap: Schema.Finite,
+});
+/** The part of `credits.ts` the tools read: the roll its end scene draws. */
+const CreditsModule = Schema.Struct({ CREDITS: Schema.Array(CreditLine) });
 
 /**
  * The one place a film module is imported by path. The process keeps the
@@ -540,6 +551,14 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             return Option.some((yield* loadModule(name, file, SoundModule)).sound);
           });
 
+        /** `name`'s credit roll (`credits.ts`), from its folder `at`; none when it keeps none. */
+        const creditsIn = (name: string, at: FilmPaths) =>
+          Effect.gen(function* () {
+            const file = path.join(at.dir, 'credits.ts');
+            if (!(yield* fs.exists(file))) return Option.none<ReadonlyArray<Credit>>();
+            return Option.some((yield* loadModule(name, file, CreditsModule)).CREDITS);
+          });
+
         const load = Effect.fn('FilmRepo.load')(function* (name: string, folder?: Segment) {
           if (!(yield* fs.exists(paths(name).dir))) return yield* unknown(name);
           const at = paths(name, folder);
@@ -571,6 +590,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
               looks: {},
               sounds: yield* loadSounds,
               talk: Option.some(talk),
+              credits: yield* creditsIn(name, at),
             };
             return loaded;
           }
@@ -619,6 +639,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             looks,
             sounds: library,
             talk: Option.none(),
+            credits: yield* creditsIn(name, at),
           };
           return loaded;
         });

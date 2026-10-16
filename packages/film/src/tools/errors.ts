@@ -120,6 +120,25 @@ export class LeadIn extends Schema.TaggedError<LeadIn>()('LeadIn', {
 }
 
 /**
+ * A CC BY recording the film places whose credit line its roll does not
+ * give: its licence asks for the line. `roll` is false when the film keeps
+ * no `credits.ts` at all.
+ */
+export class SoundCreditMissing extends Schema.TaggedError<SoundCreditMissing>()(
+  'SoundCreditMissing',
+  {
+    line: Schema.String,
+    roll: Schema.Boolean,
+  },
+) {
+  override get message() {
+    if (!this.roll)
+      return `the film places a CC BY recording but keeps no credits.ts to roll its line: ${this.line}; roll creditRoll(…, soundCredits(library, sound)) as CREDITS`;
+    return `the credit roll does not give the line a CC BY recording the film places owes: ${this.line}; pass soundCredits(library, sound) to creditRoll`;
+  }
+}
+
+/**
  * A code sound with a seed that renders silent (`heardNothing`): where the
  * film places it, that seed plays nothing.
  */

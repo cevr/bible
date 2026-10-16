@@ -3,7 +3,10 @@
 // to Christ, 17, 18, 47, 70"; "Letter 57, 1895 (TM 91–92)"; one periodical's
 // issues on one entry), set in lines of at most `CREDIT_MEASURE` characters that
 // never leave a locator on a line of its own. A cite that names none of the
-// film's authors is scripture.
+// film's authors is scripture. After the sources, a "Sound" head gives each
+// CC BY recording the film places its line (core/sfx.ts `soundCredits`).
+
+import { type SoundCredit, creditLine } from '../core/sfx.ts';
 
 /**
  * An author the credits group sources under: a cite starting `<name>, ` is
@@ -153,15 +156,24 @@ const wrap = (parts: ReadonlyArray<string>, sep: string): string[] => {
   return lines;
 };
 
+/** The head the sound credits stand under. */
+const SOUND_HEAD = 'Sound';
+
+/** A sound credit's lines on the roll: its line (`creditLine`), wrapped at the measure. */
+const soundItems = (credit: SoundCredit): string[] => wrap(creditLine(credit).split(' '), ' ');
+
 /**
  * The roll from `cites` (each beat's, in the order the film gives them): the
  * film's name, then scripture, then each of `authors`' works, in the order
- * given, each work in the order the film first cites it, one entry a work.
+ * given, each work in the order the film first cites it, one entry a work;
+ * then, when the film places any CC BY recording, a "Sound" head and each
+ * one's line (`sounds`: `soundCredits` of the film's sound).
  */
 export const creditRoll = (
   title: string,
   cites: ReadonlyArray<string>,
   authors: ReadonlyArray<Author>,
+  sounds: ReadonlyArray<SoundCredit> = [],
 ): ReadonlyArray<Credit> => {
   const unique = [...new Set(cites)];
   const out: Credit[] = [{ text: title, kind: 'name', gap: 0 }];
@@ -172,18 +184,51 @@ export const creditRoll = (
     ' · ',
   ))
     out.push({ text: line, kind: 'item', gap: 0 });
-  for (const { name: author } of authors) {
-    const works = new Map<string, Cited[]>();
-    for (const s of sources) {
-      if (s.author !== author) continue;
-      const cited = citedOf(s.work);
-      works.set(cited.title, [...(works.get(cited.title) ?? []), cited]);
-    }
-    if (works.size === 0) continue;
-    for (const [j, line] of wrap(author.split(' '), ' ').entries())
-      out.push({ text: line, kind: 'head', gap: j === 0 ? 46 : 0 });
-    for (const [title, cited] of works)
-      for (const line of workLines(title, cited)) out.push({ text: line, kind: 'item', gap: 0 });
+  for (const { name: author } of authors) out.push(...authorCredits(author, sources));
+  return [...out, ...soundSection(sounds)];
+};
+
+/** An author's head and works on the roll, each work once; none when the film cites none of theirs. */
+const authorCredits = (author: string, sources: ReadonlyArray<Source>): ReadonlyArray<Credit> => {
+  const works = new Map<string, Cited[]>();
+  for (const s of sources) {
+    if (s.author !== author) continue;
+    const cited = citedOf(s.work);
+    works.set(cited.title, [...(works.get(cited.title) ?? []), cited]);
   }
+  if (works.size === 0) return [];
+  const out: Credit[] = [];
+  for (const [j, line] of wrap(author.split(' '), ' ').entries())
+    out.push({ text: line, kind: 'head', gap: j === 0 ? 46 : 0 });
+  for (const [title, cited] of works)
+    for (const line of workLines(title, cited)) out.push({ text: line, kind: 'item', gap: 0 });
   return out;
+};
+
+/** The "Sound" head and each credit's lines; none when the film owes none. */
+const soundSection = (sounds: ReadonlyArray<SoundCredit>): ReadonlyArray<Credit> => {
+  if (sounds.length === 0) return [];
+  return [
+    { text: SOUND_HEAD, kind: 'head', gap: 46 },
+    ...sounds.flatMap((credit) =>
+      soundItems(credit).map((text): Credit => ({ text, kind: 'item', gap: 0 })),
+    ),
+  ];
+};
+
+/**
+ * The credits of `sounds` that `roll` does not give under its "Sound" head,
+ * each line as `creditRoll` sets it: what `film check` fails a film for.
+ */
+export const missingSoundCredits = (
+  roll: ReadonlyArray<Credit>,
+  sounds: ReadonlyArray<SoundCredit>,
+): ReadonlyArray<SoundCredit> => {
+  const head = roll.findIndex((c) => c.kind === 'head' && c.text === SOUND_HEAD);
+  const rest = head < 0 ? [] : roll.slice(head + 1);
+  const end = rest.findIndex((c) => c.kind !== 'item');
+  const given = (end < 0 ? rest : rest.slice(0, end)).map((c) => c.text);
+  const runs = (lines: ReadonlyArray<string>) =>
+    given.some((_, at) => lines.every((line, i) => given[at + i] === line));
+  return sounds.filter((credit) => !runs(soundItems(credit)));
 };

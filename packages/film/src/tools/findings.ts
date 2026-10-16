@@ -37,6 +37,7 @@ import type {
   AudioMissing,
   AudioStale,
   LeadIn,
+  SoundCreditMissing,
   SeedSilent,
   SoundStale,
   SoundUnmade,
@@ -730,6 +731,7 @@ export type StaticFinding =
   | SoundStale
   | SeedSilent
   | LeadIn
+  | SoundCreditMissing
   | WordPinFar
   | DurOnWord
   | CueTwin
@@ -814,6 +816,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       SoundStale: warning,
       SeedSilent: error,
       LeadIn: warning,
+      SoundCreditMissing: error,
       WordPinFar: warning,
       DurOnWord: warning,
       CueTwin: warning,
@@ -928,6 +931,7 @@ export const addressOf = (finding: Finding): FindingAddress => {
       SoundStale: none,
       SeedSilent: none,
       LeadIn: none,
+      SoundCreditMissing: none,
       WordPinFar: scene,
       DurOnWord: scene,
       CueTwin: scene,
