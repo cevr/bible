@@ -410,9 +410,9 @@ const Body = (
     retry: () => sendTimeline(TimelineEvent.Retry),
   };
 
-  // The keys: the editors' transport (Space, J K L, ← →, ↑ ↓, Home End), ⇧Z, and the way home,
-  // ⇧1 to Films, as the shell's (on the film's studio, the shell's ⇧2 to the studio is never
-  // offered).
+  // The keys: the editors' transport (Space, K L, ← →, ↑ ↓, Home End; J, the editors' reverse
+  // play, is left unbound), ⇧Z, and the way home, ⇧1 to Films, as the shell's (on the film's
+  // studio, the shell's ⇧2 to the studio is never offered).
   onSettled(() =>
     props.hub.commands.register(
       ...shellCommands(
@@ -439,7 +439,7 @@ const Body = (
         {
           id: 'studio.back',
           label: 'Previous beat',
-          keys: ['j', 'arrowup'],
+          keys: ['arrowup'],
           touch: 'the previous-beat key',
           act: () => actions.stepBeat(-1),
         },

@@ -92,8 +92,12 @@ for (const size of SIZES) {
           yield* textIs(page, '.st-tc', /^0:04\.7/);
           yield* page.press('ArrowDown');
           yield* textIs(page, '.st-tc', /^0:08\.2/);
-          yield* page.press('j');
+          yield* page.press('ArrowUp');
           yield* textIs(page, '.st-tc', /^0:04\.7/);
+          // J is the editors' reverse play, never a beat step: the next beat is still beat three.
+          yield* page.press('j');
+          yield* page.press('ArrowDown');
+          yield* textIs(page, '.st-tc', /^0:08\.2/);
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,
