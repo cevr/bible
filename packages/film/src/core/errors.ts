@@ -360,6 +360,84 @@ export class SoundUseMismatch extends Schema.TaggedError<SoundUseMismatch>()('So
   }
 }
 
+// ---------------------------------------------------------------------------
+// Code sounds: the library's walk of each graph before it renders
+// (core/synth/resolve.ts).
+
+/** A code sound samples a name the library does not declare. */
+export class SampleUnknown extends Schema.TaggedError<SampleUnknown>()('SampleUnknown', {
+  sound: Schema.String,
+  sample: Schema.String,
+}) {
+  override get message() {
+    return `code sound "${this.sound}" samples "${this.sample}", which the library does not declare`;
+  }
+}
+
+/** A code sound samples a sound that is not code: a take or a recipe has no graph to render. */
+export class SampleNotCode extends Schema.TaggedError<SampleNotCode>()('SampleNotCode', {
+  sound: Schema.String,
+  sample: Schema.String,
+  kind: Schema.Literals(['generated', 'procedural', 'recorded']),
+}) {
+  override get message() {
+    return `code sound "${this.sound}" samples "${this.sample}", a ${this.kind} sound; only a code sound can be sampled`;
+  }
+}
+
+/** Code sounds that sample each other round in a ring, so none can render first. */
+export class SampleCycle extends Schema.TaggedError<SampleCycle>()('SampleCycle', {
+  /** The ring, its first sound again at its end. */
+  path: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `code sounds sample each other in a ring: ${this.path.join(' → ')}`;
+  }
+}
+
+/** A code sound that can be longer, or write more, than a render allows (at the most its draws allow). */
+export class CodeTooLong extends Schema.TaggedError<CodeTooLong>()('CodeTooLong', {
+  sound: Schema.String,
+  /** `length`: its seconds; `work`: the seconds of frames its nodes write, repetitions counted. */
+  measure: Schema.Literals(['length', 'work']),
+  secs: Schema.Finite,
+  limit: Schema.Finite,
+}) {
+  override get message() {
+    if (this.measure === 'length')
+      return `code sound "${this.sound}" can be ${this.secs.toFixed(1)} s long, past the ${this.limit} s a code sound may be`;
+    return `code sound "${this.sound}" can write ${this.secs.toFixed(0)} s of frames, past the ${this.limit} s a render may write`;
+  }
+}
+
+/** A code sound plays a degree of a key, and names no key. */
+export class DegreeWithoutKey extends Schema.TaggedError<DegreeWithoutKey>()('DegreeWithoutKey', {
+  sound: Schema.String,
+}) {
+  override get message() {
+    return `code sound "${this.sound}" plays a degree but names no key: give it a key (a tonic and a scale)`;
+  }
+}
+
+/** Two nodes of one code sound name one stream, so they would draw the same numbers. */
+export class StreamDuplicate extends Schema.TaggedError<StreamDuplicate>()('StreamDuplicate', {
+  sound: Schema.String,
+  stream: Schema.String,
+}) {
+  override get message() {
+    return `code sound "${this.sound}" names stream "${this.stream}" on two nodes, which would draw the same numbers; a stream is one node's`;
+  }
+}
+
+/** Why the library's code sounds do not resolve. */
+export type CodeError =
+  | SampleUnknown
+  | SampleNotCode
+  | SampleCycle
+  | CodeTooLong
+  | DegreeWithoutKey
+  | StreamDuplicate;
+
 /** A film's timings file is there, but the page could not fetch or read it. */
 export class NarrationUnreadable extends Schema.TaggedError<NarrationUnreadable>()(
   'NarrationUnreadable',

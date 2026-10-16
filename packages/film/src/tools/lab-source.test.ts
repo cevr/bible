@@ -34,6 +34,7 @@ import {
   noStudio,
   sceneFixture,
 } from './testing.ts';
+import { SoundRender } from './sound-render.ts';
 
 /** The timeout of a test here that spawns (git): a cold start's time is the machine's (effect/requireSpawnBudget). */
 const SPAWNS_MS = 30_000;
@@ -94,7 +95,7 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
         echoPages,
         HttpPlatform.layer,
         Layer.succeed(HandFile, path.join(films, 'f', 'scenes', 'hand.ts')),
-      ).pipe(Layer.provideMerge(ContentStore.layer));
+      ).pipe(Layer.provideMerge(ContentStore.layer), Layer.provide(SoundRender.layer));
     }),
   ).pipe(Layer.provideMerge(BunServices.layer));
 

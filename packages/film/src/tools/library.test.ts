@@ -1,5 +1,6 @@
 // The sound library over a fixture library on disk (a temporary folder, one
-// generated one-shot, one generated bed, one procedural chime, one recording)
+// generated one-shot, one generated bed, one procedural chime, one code tick,
+// one recording)
 // with a fake ElevenLabs that writes a seeded burst as `pcm_44100` bytes and
 // the real Media. Never a real call: every paid path is counted by the fake.
 
@@ -27,6 +28,7 @@ import { ElevenLabsFailed } from '../core/refusals.ts';
 import { TALLY_HEADER, SoundLibrary, channelsFor, pcmFromS16, talliedCredits } from './library.ts';
 import { Media } from './media.ts';
 import { PrivateStore } from './private-store.ts';
+import { SoundRender } from './sound-render.ts';
 import { FetchHttpClient } from 'effect/http';
 import { NO_SCORES, type Scores } from './media-store.ts';
 
@@ -44,6 +46,19 @@ const LIBRARY = `export const library = {
   'wood.knock': {
     kind: 'recorded',
     licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/1/' },
+    use: 'one-shot',
+  },
+  'tone.tick': {
+    kind: 'code',
+    sound: {
+      play: {
+        _tag: 'Envelope',
+        points: [[0, 1], [0.1, 0]],
+        curve: 'linear',
+        of: { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 },
+      },
+    },
+    variants: 2,
     use: 'one-shot',
   },
 };
@@ -126,7 +141,7 @@ const fixture = Layer.unwrap(
     // The store the fixture's library.ts declares: a folder beside it.
     const store = PrivateStore.layer(dir).pipe(Layer.provide([FetchHttpClient.layer, config]));
     return SoundLibrary.layer(dir).pipe(
-      Layer.provide([ContentStore.layer, fakeSfx(calls), store, config]),
+      Layer.provide([ContentStore.layer, fakeSfx(calls), store, config, SoundRender.layer]),
       Layer.provideMerge(Media.layer),
       Layer.merge(Layer.succeed(Fixture, Fixture.of({ dir, storeDir, tally, calls }))),
     );
@@ -650,5 +665,32 @@ describe.concurrent('SoundLibrary', () => {
         }),
       ),
     30_000,
+  );
+
+  it.effect.layer(fixture)('renders a code sound from its graph, each seed its own draw', () =>
+    withLibrary(({ calls }) =>
+      Effect.gen(function* () {
+        const library = yield* SoundLibrary;
+        const media = yield* Media;
+        const named = (files: ReadonlyArray<string>) =>
+          files.map((file) => file.slice(file.lastIndexOf('/') + 1));
+        expect([...(yield* library.load).code.keys()]).toEqual(['tone.tick']);
+        const renders = yield* library.render('tone.tick', Option.none());
+        expect(named(renders)).toEqual(['tone.tick-1.wav', 'tone.tick-2.wav']);
+        const [one, two] = yield* Effect.forEach(renders, (file) => media.decode(file));
+        expect(one?.frames).toBe(4410);
+        expect(one?.channels[0]).not.toEqual(two?.channels[0]);
+        // Any seed renders, past the variants that play.
+        expect(named(yield* library.render('tone.tick', Option.some(7)))).toEqual([
+          'tone.tick-7.wav',
+        ]);
+        // Two 0.1-second ticks, each followed by the half-second gap.
+        const heard = yield* library.audition('tone.tick', false);
+        expect((yield* media.decode(heard)).frames).toBe(2 * (4410 + 22050));
+        const wrong = yield* Effect.flip(library.render('paper.slide', Option.none()));
+        expect(wrong).toMatchObject({ _tag: 'SoundKindMismatch', wanted: 'code or procedural' });
+        expect(calls).toHaveLength(0);
+      }),
+    ),
   );
 });

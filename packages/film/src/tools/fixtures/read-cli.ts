@@ -9,6 +9,7 @@ import { Command } from 'effect/cli';
 import { ContentStore } from '../content-store.ts';
 import { FilmRepo } from '../film-repo.ts';
 import { read } from '../read-cli.ts';
+import { SoundRender } from '../sound-render.ts';
 
 /** The film CLI with `read` alone: `film read …`. */
 const film = Command.make('film').pipe(Command.withSubcommands([read]));
@@ -16,7 +17,12 @@ const film = Command.make('film').pipe(Command.withSubcommands([read]));
 Stdio.Stdio.use(({ args }) =>
   Effect.flatMap(args, ([films = '', ...given]) =>
     Command.runWith(film, { version: '0.0.0' })(given).pipe(
-      Effect.provide(FilmRepo.layer(films).pipe(Layer.provideMerge(ContentStore.layer))),
+      Effect.provide(
+        FilmRepo.layer(films).pipe(
+          Layer.provideMerge(ContentStore.layer),
+          Layer.provide(SoundRender.layer),
+        ),
+      ),
     ),
   ),
 ).pipe(Effect.provide(BunServices.layer), BunRuntime.runMain({ disableErrorReporting: true }));

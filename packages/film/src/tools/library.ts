@@ -3,8 +3,9 @@
 // `library.lock.json` records what was made for each, written only here
 // (committed); `files/` holds the generated audio (git-ignored, synced with a
 // private store by `pull`/`push`); `public/` holds recordings under a licence
-// that may be public (committed). Procedural sounds are played from their
-// recipe whenever they are needed, so nothing of theirs is stored.
+// that may be public (committed). Code and procedural sounds are rendered
+// from their data whenever they are needed (`SoundRender`), so nothing of
+// theirs is stored.
 //
 // `make` is the only paid call: generated sounds are made as candidates, each
 // measured and hashed into the lock, and curated by `keep` and `reject`. A
@@ -46,6 +47,7 @@ import {
   trialEntry,
   influenceOf,
   gainFor,
+  isDerived,
   levelOf,
   lockLoudness,
   lockTiming,
@@ -54,17 +56,19 @@ import {
   playablesOf,
   requestKey,
   resolveSound,
+  seedSource,
   soundState,
 } from '../core/sfx.ts';
 import { describeSound } from '../core/synth/analyse.ts';
 import { loudness } from '../core/synth/loudness.ts';
-import { synthesize } from '../core/synth/recipes.ts';
+import type { ResolvedSound } from '../core/synth/graph/plan.ts';
+import { resolveCode } from '../core/synth/resolve.ts';
 import { loopSeam, seamHeard } from '../core/synth/seam.ts';
 import { toMs } from '../core/time.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { sha256Hex, sha256OfFile } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
-import { type UnknownSound } from '../core/errors.ts';
+import type { CodeError, UnknownSound } from '../core/errors.ts';
 import { ElevenLabsFailed, type MediaFailed, TakeUnknown } from '../core/refusals.ts';
 import {
   type ApiKeyMissing,
@@ -96,6 +100,7 @@ import {
   expandHome,
 } from './media-store.ts';
 import { PrivateStore, type StoreUnavailable } from './private-store.ts';
+import { SoundRender } from './sound-render.ts';
 
 /** Every path the library touches. */
 interface SoundsPaths {
@@ -111,18 +116,21 @@ interface SoundsPaths {
   readonly out: string;
 }
 
-/** The library as declared, and what was made. */
+/** The library as declared, what was made, and its code sounds resolved. */
 export interface LoadedLibrary {
   readonly paths: SoundsPaths;
   readonly library: Library;
   readonly lock: Lock;
+  readonly code: ReadonlyMap<string, ResolvedSound>;
 }
 
-/** What a mix reads of a loaded library. */
+/** What a mix reads of a loaded library, before any derived sound is measured. */
 const soundsOf = (loaded: LoadedLibrary): Sounds => ({
   library: loaded.library,
   lock: loaded.lock,
   dir: loaded.paths.dir,
+  code: loaded.code,
+  measured: new Map(),
 });
 
 /**
@@ -221,7 +229,7 @@ export const libraryLevel = (finding: LibraryFinding): 'error' | 'warning' => {
   }
 };
 
-type LibraryError = LibraryMissing | FilmModuleInvalid | StoreError;
+type LibraryError = LibraryMissing | FilmModuleInvalid | StoreError | CodeError;
 
 type MakeError =
   | LibraryError
@@ -321,7 +329,7 @@ interface SoundLibraryService {
     name: string,
     candidates: boolean,
   ) => Effect.Effect<string, LibraryError | UnknownSound | MediaFailed | PlatformError>;
-  /** A procedural sound's seeds (or one) as WAVs. */
+  /** A code or procedural sound's seeds (or one) as WAVs, `<name>-<seed>.wav`. */
   readonly render: (
     name: string,
     seed: Option.Option<number>,
@@ -421,6 +429,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const media = yield* Media;
         const elevenLabs = yield* ElevenLabs;
         const privateStore = yield* PrivateStore;
+        const made = yield* SoundRender;
         const outputs = yield* filmsOut;
         const home = yield* Config.String('HOME').pipe(Config.withDefault('~'));
 
@@ -438,11 +447,8 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             return yield* LibraryMissing.make({ file: paths.module });
           const declared = yield* libraryModule(paths.module);
           const lock = yield* store.read(paths.lock);
-          const loaded: LoadedLibrary = {
-            paths,
-            library: declared.library,
-            lock,
-          };
+          const code = yield* Effect.fromResult(resolveCode(declared.library));
+          const loaded: LoadedLibrary = { paths, library: declared.library, lock, code };
           return loaded;
         });
         const load = loadLibrary();
@@ -749,7 +755,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
 
         const decoded = (source: SoundSource): Effect.Effect<Pcm, MediaFailed> => {
           if (source._tag === 'File') return media.decode(source.file);
-          return Effect.sync(() => synthesize(source.recipe, source.seed));
+          return made.pcm(source);
         };
 
         /** `playables` decoded, each levelled as `entry` plays it, one after another with gaps, mono. */
@@ -781,7 +787,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           const loaded = yield* load;
           const entry = yield* entryOf(loaded, name);
           const record = Option.fromUndefinedOr(loaded.lock[name]);
-          const sounds = soundsOf(loaded);
+          const sounds = yield* made.measured(soundsOf(loaded), [name]);
           let playables = playablesOf(sounds, name, entry);
           if (candidates)
             playables = pendingOf(entry, record).map((v) => ({
@@ -805,17 +811,24 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         ) {
           const loaded = yield* load;
           const entry = yield* entryOf(loaded, name);
-          if (entry.kind !== 'procedural')
-            return yield* SoundKindMismatch.make({ name, kind: entry.kind, wanted: 'procedural' });
+          if (!isDerived(entry))
+            return yield* SoundKindMismatch.make({
+              name,
+              kind: entry.kind,
+              wanted: 'code or procedural',
+            });
+          // Any seed renders, past the variants that play: each seed is one draw of the sound.
           const seeds = Option.match(seed, {
             onNone: () => Array.from({ length: entry.variants }, (_, i) => i + 1),
             onSome: (s) => [s],
           });
+          const sounds = soundsOf(loaded);
+          const sources = seeds.flatMap((s) => Option.toArray(seedSource(sounds, name, entry, s)));
           yield* fs.makeDirectory(paths.out, { recursive: true });
-          return yield* Effect.forEach(seeds, (s) =>
+          return yield* Effect.forEach(sources, (source) =>
             Effect.gen(function* () {
-              const out = path.join(paths.out, `${name}-${s}.wav`);
-              yield* media.writeWav(out, synthesize(entry.recipe, s));
+              const out = path.join(paths.out, `${name}-${source.seed}.wav`);
+              yield* media.writeWav(out, yield* made.pcm(source));
               return out;
             }),
           );
@@ -933,9 +946,11 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
 
         const checkLibrary = Effect.fn('SoundLibrary.check')(function* () {
           const loaded = yield* load;
-          const sounds = soundsOf(loaded);
           const findings: Array<LibraryFinding> = [];
           const entries = Object.entries(loaded.library).sort(([a], [b]) => a.localeCompare(b));
+          // A bed's seams are heard in its audio: each derived bed is rendered and measured once.
+          const beds = entries.filter(([, entry]) => entry.use === 'bed').map(([name]) => name);
+          const sounds = yield* made.measured(soundsOf(loaded), beds);
           for (const [name, entry] of entries) {
             const record = Option.fromUndefinedOr(loaded.lock[name]);
             const state = soundState(entry, record);

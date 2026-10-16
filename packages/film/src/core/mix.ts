@@ -44,6 +44,7 @@ import {
   soundEntry,
   sourceLabel,
   soundState,
+  unmeasuredOf,
 } from './sfx.ts';
 import { SCORE, aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
 import { loudness } from './synth/loudness.ts';
@@ -200,7 +201,7 @@ export type MixPlanError =
   | UnknownSound
   | SoundUseMismatch;
 
-/** A sound's variants that play, or a warning when none does (and one when they are stale). */
+/** A sound's variants that play, or a warning when none does (and one when they are stale or unmeasured). */
 const variantsFor = (
   sounds: Sounds,
   name: string,
@@ -213,6 +214,13 @@ const variantsFor = (
     return [];
   }
   if (state._tag === 'Stale') warnings.push(`mix.stale sound=${name} hint="run sfx make ${name}"`);
+  // A derived sound plays only as measured, each seed or none, so a seed left
+  // unmeasured never moves which variant a placement plays.
+  const unmeasured = unmeasuredOf(sounds, name, entry);
+  if (unmeasured > 0) {
+    warnings.push(`mix.unmeasured sound=${name} seeds=${unmeasured}`);
+    return [];
+  }
   return playablesOf(sounds, name, entry);
 };
 
@@ -400,7 +408,8 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
  * A sound as the key reads it: a file by its name, which carries its content
  * hash (a take's `<scene>.<hash>`, a score's `<option>-<hash>`, a library
  * variant's sha256), so the key reads the same in every checkout; a recipe by
- * its request and seed.
+ * its request and seed; a code sound by its renderer's version, its graph's
+ * hash and its seed.
  */
 const soundKey = (source: SoundSource): string => {
   if (source._tag === 'File') return source.file.slice(source.file.lastIndexOf('/') + 1);

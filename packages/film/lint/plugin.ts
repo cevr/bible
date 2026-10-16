@@ -25,6 +25,7 @@ import { oneBreakpoint } from './one-breakpoint.ts';
 import { oneClockEpsilon } from './one-clock-epsilon.ts';
 import { pagesInCaseScope } from './pages-in-case-scope.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
+import { synthOwnMath } from './synth-own-math.ts';
 import { touchesSerial } from './touches-serial.ts';
 
 export default Plugin.define({
@@ -51,6 +52,7 @@ export default Plugin.define({
     'one-clock-epsilon': oneClockEpsilon,
     'pages-in-case-scope': pagesInCaseScope,
     'span-ends-on-anchor': spanEndsOnAnchor,
+    'synth-own-math': synthOwnMath,
     'touches-serial': touchesSerial,
   },
 });

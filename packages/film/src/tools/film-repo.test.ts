@@ -6,12 +6,13 @@ import { BunServices } from '@effect/platform-bun';
 import { ConfigProvider, Effect, FileSystem, Layer, Option, Path } from 'effect';
 import { ContentStore } from './content-store.ts';
 import { FilmFolder, FilmRepo, placeFilm } from './film-repo.ts';
+import { SoundRender } from './sound-render.ts';
 import { memoryFileSystem, storeLayer, testFilm } from './testing.ts';
 
 const files = new Map<string, Uint8Array>();
 const env = ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_DIR: '/elsewhere' }));
 const repo = FilmRepo.layer('/app/src/films').pipe(
-  Layer.provide([storeLayer(files), memoryFileSystem(files), Path.layer, env]),
+  Layer.provide([storeLayer(files), memoryFileSystem(files), Path.layer, env, SoundRender.layer]),
 );
 
 describe('FilmRepo', () => {
@@ -33,7 +34,7 @@ describe('FilmRepo', () => {
   // imported as a real film's are, and no real film's script pins the test.
   it.effect.layer(
     FilmRepo.layer(`${import.meta.dir}/fixtures/films`).pipe(
-      Layer.provide(ContentStore.layer),
+      Layer.provide([ContentStore.layer, SoundRender.layer]),
       Layer.provideMerge(BunServices.layer),
     ),
   )("reads a film's script: each beat's line and its sources", () =>

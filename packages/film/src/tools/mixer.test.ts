@@ -15,6 +15,7 @@ import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
 import { MasterStampJson, Mixer, planOf, stampManifest } from './mixer.ts';
 import { NO_SCORES } from './media-store.ts';
+import { SoundRender } from './sound-render.ts';
 import {
   memoryFileSystem,
   memoryLocks,
@@ -95,7 +96,10 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
   ).pipe(Layer.provide(writingMedia(files, finish, rate, hung)));
   const fs = memoryFileSystem(files);
   const store = ContentStore.layer.pipe(Layer.provide([fs, Path.layer, memoryLocks]));
-  const layer = Mixer.layer.pipe(Layer.provideMerge(store), Layer.provide([fs, repo, media]));
+  const layer = Mixer.layer.pipe(
+    Layer.provideMerge(store),
+    Layer.provide([fs, repo, media, SoundRender.layer]),
+  );
   /** `effect` with one mixer and one store, sharing their locks. */
   const run = <A, E>(effect: Effect.Effect<A, E, Mixer | ContentStore>) =>
     effect.pipe(Effect.provide(layer));

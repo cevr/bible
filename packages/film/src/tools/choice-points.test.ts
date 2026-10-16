@@ -15,6 +15,7 @@ import { layout } from '../core/layout.ts';
 import { pointIdOf } from '../core/point.ts';
 import type { Sound } from '../core/schema.ts';
 import { type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
+import { measuredSounds } from '../core/testing.ts';
 import {
   type BeatAttempts,
   filmPoints,
@@ -220,11 +221,11 @@ describe('a take point when the mix plan does not build', () => {
   const withEffect = (at: Sound['effects'][string]['at']) =>
     film({
       sound: Option.some({ ...SOUND, beds: [], effects: { page: { sound: 'tone.chime', at } } }),
-      sounds: {
-        library: chime,
-        lock: { 'tone.chime': { variants: [kept], candidates: [], rejected: [] } },
-        dir: '',
-      },
+      sounds: measuredSounds(
+        chime,
+        { 'tone.chime': { variants: [kept], candidates: [], rejected: [] } },
+        '',
+      ),
     });
 
   test('shows why its placements are missing, not an empty take list', () => {

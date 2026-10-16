@@ -58,6 +58,7 @@ import {
 import type { LoadedFilm } from './film-repo.ts';
 import type { Placed } from '../core/layout.ts';
 import { type Lock, type Sounds, type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
+import { measuredSounds } from '../core/testing.ts';
 import {
   holdScenes,
   holdTimings,
@@ -1206,7 +1207,7 @@ describe('musicFindings', () => {
   });
 });
 
-/** A test library: made and current, stale, unmade with a candidate waiting, a bed, and a loud one. */
+/** A test library: made and current, stale, unmade with a candidate waiting, a bed, a loud one, and code. */
 const library = defineLibrary({
   'paper.hit': { kind: 'generated', prompt: 'a hit', secs: 1, use: 'one-shot' },
   'paper.old': { kind: 'generated', prompt: 'an old hit', secs: 1, use: 'one-shot' },
@@ -1217,6 +1218,12 @@ const library = defineLibrary({
     recipe: { recipe: 'room', secs: 4 },
     variants: 1,
     use: 'bed',
+  },
+  'tone.tick': {
+    kind: 'code',
+    sound: { play: { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } },
+    variants: 2,
+    use: 'one-shot',
   },
 });
 const variant = (request: string): Variant => ({
@@ -1242,7 +1249,7 @@ const lock: Lock = {
   },
   'paper.loud': kept(requestKey(library['paper.loud'])),
 };
-const sounds: Sounds = { library, lock, dir: '/lib' };
+const sounds = measuredSounds(library, lock, '/lib');
 
 describe('soundFindings', () => {
   test('every cue naming an unknown scene, cue or mark; every sound unknown, misused, unmade or stale, once', () => {
@@ -1272,6 +1279,8 @@ describe('soundFindings', () => {
         fresh: { sound: 'paper.new', at: [{ scene: 'close', at: 'start' }] },
         gone: { sound: 'paper.gone', at: [{ scene: 'close', at: 'start' }] },
         room: { sound: 'room.paper', at: [{ scene: 'close', at: 'start' }] },
+        // A code sound is rendered from its graph: never unmade, never stale.
+        tick: { sound: 'tone.tick', at: [{ scene: 'close', at: 'start' }] },
       },
     };
     const found = soundFindings(sound, placedSound, sounds);

@@ -952,6 +952,18 @@
       }
     },
     {
+      // The sound graph makes the same samples on every host by construction
+      // (packages/film/lint/synth-own-math.ts): its transcendentals are its
+      // own (graph/math.ts), and it reads of the host only + − × ÷, sqrt and
+      // Math's exact members. Its tests measure the graph's maths against the
+      // host's, so they are let off.
+      "files": ["**/packages/film/src/core/synth/graph/**/*.ts"],
+      "excludeFiles": ["**/*.test.ts"],
+      "rules": {
+        "film/synth-own-math": "error"
+      }
+    },
+    {
       // A manifest's lock file is opened by SQLite alone
       // (packages/film/lint/lock-through-sqlite.ts).
       "files": ["**/packages/film/src/**/*.ts", "**/packages/film/src/**/*.tsx"],

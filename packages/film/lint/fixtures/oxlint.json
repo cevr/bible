@@ -45,6 +45,12 @@
       "rules": {
         "film/no-hand-timed-seconds": "off"
       }
+    },
+    {
+      "files": ["synth-own-math.ts"],
+      "rules": {
+        "film/synth-own-math": "error"
+      }
     }
   ]
 }

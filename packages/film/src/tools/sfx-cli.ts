@@ -29,6 +29,7 @@ import {
   levelOf,
   soundState,
 } from '../core/sfx.ts';
+import { describeGraph } from '../core/synth/graph/describe.ts';
 import { LibraryCheckFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { type LoadedLibrary, SoundLibrary, libraryLevel } from './library.ts';
@@ -48,6 +49,8 @@ const sourceOf = (entry: LibraryEntry): string => {
       return `procedural:${entry.recipe.recipe}`;
     case 'recorded':
       return entry.licence.id;
+    case 'code':
+      return `code:${describeGraph(entry.sound.play)}`;
   }
 };
 
@@ -64,7 +67,7 @@ const keptLoudness = (entry: LibraryEntry, lock: Option.Option<LockEntry>): stri
 
 /**
  * One line per sound: name, kind, use, state (current, stale, missing, or
- * derived for a procedural sound), variants kept (and candidates waiting),
+ * derived for a code or procedural sound), variants kept (and candidates waiting),
  * level in dB relative to the voice, kept loudness and source. `family`
  * narrows to one family (`paper`); `filter` to the missing or stale.
  */

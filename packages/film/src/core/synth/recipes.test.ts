@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import type { Pcm } from '../audio.ts';
 import { loudness } from './loudness.ts';
-import { type Recipe, SYNTH_PEAK, noteHz, synthesize } from './recipes.ts';
-import { SYNTH_RATE } from './signal.ts';
+import { SYNTH_PEAK, SYNTH_RATE } from './graph/units.ts';
+import { type Recipe, noteHz, synthesize } from './recipes.ts';
 
 const plane = (pcm: Pcm) => pcm.channels[0] ?? new Float32Array();
 const digest = (pcm: Pcm) =>

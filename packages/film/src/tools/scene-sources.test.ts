@@ -12,6 +12,7 @@ import { FilmFolder, FilmRepo } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { scenesLocatedHere } from './read-cli.ts';
 import { SceneSources } from './scene-sources.ts';
+import { SoundRender } from './sound-render.ts';
 import { sceneFixture } from './testing.ts';
 
 /** The fixture film's folder: a fresh one per test. */
@@ -24,7 +25,7 @@ const fixture = Layer.unwrap(
     const films = yield* sceneFixture(yield* fs.makeTempDirectoryScoped());
     return scenesLocatedHere.pipe(
       Layer.provide(FilmRepo.layer(films)),
-      Layer.provide(ContentStore.layer),
+      Layer.provide([ContentStore.layer, SoundRender.layer]),
       Layer.merge(Layer.succeed(Films, films)),
     );
   }),

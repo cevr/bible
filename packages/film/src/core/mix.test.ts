@@ -37,6 +37,8 @@ import {
   requestKey,
   sourceLabel,
 } from './sfx.ts';
+import { RENDER_VERSION } from './synth/graph/render.ts';
+import { measuredSounds } from './testing.ts';
 
 const RATE = MIX_RATE;
 
@@ -372,6 +374,12 @@ describe('mixPlan', () => {
         level: -36,
         duck: false,
       },
+      'tone.tick': {
+        kind: 'code',
+        sound: { play: { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } },
+        variants: 2,
+        use: 'one-shot',
+      },
     });
     const variant = (
       name: 'paper.tap' | 'amb.court',
@@ -397,7 +405,7 @@ describe('mixPlan', () => {
       },
       'amb.court': { variants: [variant('amb.court', 1, -30)], candidates: [], rejected: [] },
     };
-    const sounds: Sounds = { library, lock, dir: '/lib' };
+    const sounds = measuredSounds(library, lock, '/lib');
     const sound: Sound = {
       beds: [
         {
@@ -464,6 +472,45 @@ describe('mixPlan', () => {
         [0, 2],
       ]);
       expect(new Set(chimes.map((c) => sourceLabel(c.sound))).size).toBe(2);
+    });
+
+    /** The plan of `sounds` with `tone.tick` placed at the start of each scene. */
+    const ticked = (given: Sounds) =>
+      Result.getOrThrow(
+        mixPlan({
+          ...input,
+          placed: film,
+          sound: Option.some<Sound>({
+            effects: {
+              tick: {
+                sound: 'tone.tick',
+                at: [
+                  { scene: 'a', at: 'start' },
+                  { scene: 'b', at: 'start' },
+                ],
+              },
+            },
+          }),
+          sounds: given,
+        }),
+      );
+
+    test('a code one-shot plays its seeds, unjittered, each labelled by the renderer and its graph', () => {
+      const ticks = ticked(sounds).effects;
+      expect(ticks.map((t) => [t.pitch, t.at])).toEqual([
+        [0, 0],
+        [0, 8],
+      ]);
+      const labels = ticks.map((t) => sourceLabel(t.sound));
+      expect(new Set(labels).size).toBe(2);
+      for (const label of labels)
+        expect(label).toMatch(new RegExp(`^code:${RENDER_VERSION}:[0-9a-f]{8}/[12]$`));
+    });
+
+    test('a derived sound with a seed unmeasured plays nothing, and says so', () => {
+      const planned = ticked({ ...sounds, measured: new Map() });
+      expect(planned.effects).toEqual([]);
+      expect(planned.warnings).toEqual(['mix.unmeasured sound=tone.tick seeds=2']);
     });
 
     test('beds span their cues, levelled by integrated loudness; room tone does not duck', () => {

@@ -14,7 +14,9 @@
 // sheet and the contact sheet drawn on a canvas, and the fixture films (the
 // look-book's page around its sheet is chrome and is read). So does paper:
 // the reading sheet is printed for the narrator at the microphone, light and
-// in a book face, never shown in the studio. One family is written outside
+// in a book face, never shown in the studio. Sound code (`core/synth/`) is no
+// look at all: a noise's colour (`color: 'pink'`) names how its spectrum
+// falls, never a pixel. One family is written outside
 // the tokens, the UI face's own registration (`player/face.ts`: its faces,
 // and the `@font-face` rule a page's head declares), and it is held to the
 // token: it is the family `--font` names first.
@@ -44,7 +46,8 @@ const FACE = 'player/face.ts';
 
 /**
  * Not the studio's chrome: canvas code draws the film's pixels in the film's
- * own colours, and the reading sheet is a page printed on paper.
+ * own colours, the reading sheet is a page printed on paper, and sound code
+ * names a noise's colour, which is heard.
  */
 const OUTSIDE = [
   'canvas/',
@@ -52,6 +55,7 @@ const OUTSIDE = [
   'player/lookbook-sheet.ts',
   'player/contact.ts',
   'core/sheet.ts',
+  'core/synth/',
 ];
 
 /** The colours a reader names by word. */

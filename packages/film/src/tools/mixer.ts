@@ -3,9 +3,9 @@
 // library's beds ducked under the voice (room tone is not),
 // and each effect on its cue at its level relative to the voice. What plays
 // where, and the signal processing, are core (core/mix.ts); `Mixer.mix` loads
-// the film and the app's library, decodes what its plan plays (a procedural
-// sound is synthesized; a library file not on disk is skipped with a hint to
-// `sfx pull`), renders it and writes the track: one WAV that the player
+// the film and the app's library, decodes what its plan plays (a code or
+// procedural sound is rendered, `SoundRender`; a library file not on disk is
+// skipped with a hint to `sfx pull`), mixes it and writes the track: one WAV that the player
 // streams and the renderer encodes a video's audio from. Remixing never calls
 // a paid API.
 
@@ -27,8 +27,7 @@ import {
   renderMix,
 } from '../core/mix.ts';
 import { repoJson } from '../core/schema.ts';
-import { type SoundSource, type Sounds, fileSource } from '../core/sfx.ts';
-import { synthesize } from '../core/synth/recipes.ts';
+import { type DerivedSource, type SoundSource, type Sounds, fileSource } from '../core/sfx.ts';
 import {
   ContentStore,
   type Manifest,
@@ -36,6 +35,7 @@ import {
   writeWhole,
   writeWholeWith,
 } from './content-store.ts';
+import type { CodeError } from '../core/errors.ts';
 import { type FilmUnknown, type MediaFailed, TakeUnknown } from '../core/refusals.ts';
 import { AudioMissing, AudioStale, type FilmModuleInvalid, SampleRateMismatch } from './errors.ts';
 import {
@@ -48,6 +48,7 @@ import {
   voicePiecesOf,
 } from './film-repo.ts';
 import { Media, type MediaService } from './media.ts';
+import { SoundRender } from './sound-render.ts';
 
 /** What the track was mixed from: `full.json`, written beside `full.wav` by the same mix. */
 export const stampFile = (paths: FilmPaths): string => `${paths.narration}/full.json`;
@@ -131,7 +132,8 @@ type MixError =
   | StoreError
   | MediaFailed
   | SampleRateMismatch
-  | TakeUnknown;
+  | TakeUnknown
+  | CodeError;
 
 /** What a mix is rendered from beyond the film. */
 interface RenderOptions {
@@ -192,21 +194,22 @@ interface MixerService {
   ) => Effect.Effect<Rendered, MixError | PlatformError>;
 }
 
-/** Whether a sound is a file (not a recipe). */
+/** Whether a sound is a file (not rendered from data). */
 const isFile = (source: SoundSource): source is Extract<SoundSource, { readonly _tag: 'File' }> =>
   source._tag === 'File';
 
 /**
- * `plan` with every sound it plays decoded (a file) or played (a recipe), each
- * voice file once however many pieces of it play; the mix never resamples, so
- * a file at another rate fails.
+ * `plan` with every sound it plays decoded (a file) or rendered (`rendered`: a
+ * recipe or a code sound), each voice file once however many pieces of it
+ * play; the mix never resamples, so a file at another rate fails.
  */
 const decodePlan = (
   media: MediaService,
+  rendered: (source: DerivedSource) => Effect.Effect<Pcm>,
   plan: MixPlan<SoundSource>,
 ): Effect.Effect<MixPlan<Pcm>, MediaFailed | SampleRateMismatch> => {
   const decodeAt = (source: SoundSource): Effect.Effect<Pcm, MediaFailed | SampleRateMismatch> => {
-    if (source._tag === 'Synth') return Effect.sync(() => synthesize(source.recipe, source.seed));
+    if (source._tag !== 'File') return rendered(source);
     return Effect.filterOrFail(
       media.decode(source.file),
       (pcm) => pcm.rate === MIX_RATE,
@@ -366,6 +369,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
       const repo = yield* FilmRepo;
       const media = yield* Media;
       const store = yield* ContentStore;
+      const made = yield* SoundRender;
 
       /** `pcm` written to `file` as a WAV, whole (`writeWhole`). */
       const writeWav = (file: string, pcm: Pcm) =>
@@ -378,7 +382,7 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
           Effect.provideService(FileSystem.FileSystem, fs),
         );
         if (options.warn) for (const warning of present.warnings) yield* Effect.logWarning(warning);
-        const plan = yield* decodePlan(media, present);
+        const plan = yield* decodePlan(media, made.pcm, present);
         const rendered: Rendered = { plan, mixed: renderMix(plan), key: mixKey(present) };
         return rendered;
       });

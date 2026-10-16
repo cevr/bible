@@ -37,6 +37,7 @@ import {
   type LockEntry,
   type SoundSource,
   type Variant,
+  isDerived,
   levelOf,
   pendingOf,
   requestKey,
@@ -226,7 +227,7 @@ const markOf = (placed: ReadonlyArray<Placed>, p: Placement): ChoiceMark => ({
   label: `${p.effect} in ${sceneOfTime(placed, p.at)}`,
 });
 
-/** The library sounds the film's effects place, with where and their takes; recipes have none. */
+/** The library sounds the film's effects place, with where and their takes; a sound rendered from data has none. */
 export const takePoints = (
   loaded: LoadedFilm,
   placed: ReadonlyArray<Placed>,
@@ -241,7 +242,7 @@ export const takePoints = (
         Option.match(soundEntry(loaded.sounds.library, name), {
           onNone: () => [],
           onSome: (entry): ReadonlyArray<PointDraft> => {
-            if (entry.kind === 'procedural') return [];
+            if (isDerived(entry)) return [];
             const here = where.filter((w) => w.sound === name);
             const takes = takesOf(entry, Option.fromUndefinedOr(loaded.sounds.lock[name]));
             return [

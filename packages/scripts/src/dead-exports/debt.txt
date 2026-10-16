@@ -140,7 +140,6 @@ packages/film/src/core/sfx.ts candidatesOf
 packages/film/src/core/shorts.ts SHORT_PREROLL
 packages/film/src/core/sound.ts MAX_CHUNK_MS
 packages/film/src/core/spoken.ts spokenWords
-packages/film/src/core/synth/recipes.ts SYNTH_PEAK
 packages/film/src/core/synth/recipes.ts noteHz
 packages/film/src/core/time.ts invLerp
 packages/film/src/core/voiced.ts voicedSpan

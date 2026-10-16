@@ -34,6 +34,7 @@ import { FilmRepo, type FilmName } from './film-repo.ts';
 import { judge } from './judge.ts';
 import { collect } from './process.ts';
 import { sandboxArgs } from './sandbox.ts';
+import { SoundRender } from './sound-render.ts';
 import { reviewMedia } from './testing.ts';
 
 const film = 'sample' as FilmName;
@@ -123,7 +124,7 @@ const judging = (
         reviewMedia(calls),
         Layer.succeed(Here, Here.of({ root, rules, out })),
       ).pipe(
-        Layer.provide(ContentStore.layer),
+        Layer.provide([ContentStore.layer, SoundRender.layer]),
         Layer.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_OUT: out }))),
       );
     }),

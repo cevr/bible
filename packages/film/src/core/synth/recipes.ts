@@ -9,8 +9,8 @@
 
 import { Schema } from 'effect';
 import type { Pcm } from '../audio.ts';
+import { SYNTH_PEAK, SYNTH_RATE } from './graph/units.ts';
 import {
-  SYNTH_RATE,
   type Random,
   addAt,
   attackDecay,
@@ -303,9 +303,6 @@ const raw = (recipe: Recipe, seed: number): Float32Array => {
       return rain(r, recipe.secs);
   }
 };
-
-/** The peak every procedural sound is made at, in dBFS: the mix levels it by loudness after. */
-export const SYNTH_PEAK = -1;
 
 /**
  * `recipe` played with `seed`: one channel at `SYNTH_RATE`, its peak at
