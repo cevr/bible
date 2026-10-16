@@ -85,7 +85,7 @@ const shaded = (base: Hex): Ramp => ramp(base, keyLight, shading);
  * its base; every light, the colour a cut edge catches (its light core),
  * lighter and leaning to the key, never grey. A crease's far side is its
  * paper's shade; a cast shadow is the shade of the surface it falls on.
- * `looks/rive/direction.test.ts` holds every colour a rig paints to them.
+ * `looks/rive/direction-colours.test.ts` holds every colour a rig paints to them.
  */
 export const ramps = {
   /** The people's grey paper. */
@@ -107,7 +107,7 @@ export const ramps = {
 /**
  * The judge's robe under C2: three dark papers, each a base its ramp shades.
  * Indigo is drawn (K1); slate and violet are the owner's other options, one
- * edit to `hues.robe` and a rebuild (`direction.test.ts` checks each).
+ * edit to `hues.robe` and a rebuild (`direction-colours.test.ts` checks each).
  */
 export const robes = {
   /** Indigo, hsv(247, .30, .32): its shade navy, its light a dusk mauve. */

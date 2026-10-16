@@ -201,7 +201,7 @@ export interface UnderHand {
  * reads (`benchTop`), the gavel's block, the rim and the bench's face (the
  * court's `BENCH`), his robe as he leans, and past them all the court's
  * parchment wall. The one inventory of what his cast can fall on: the host
- * lays it from this, and `direction.test.ts` reads it.
+ * lays it from this, and the direction tests read it (`test/direction-host.ts`).
  */
 export const underHand = (
   d: Direction,

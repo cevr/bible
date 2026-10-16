@@ -4,7 +4,7 @@ import { type K, LIGHT, type Pt, creaseOf, figure, reachAbout } from './parts.ts
 import { ids } from './rml.ts';
 
 // The parts every figure is built from, whatever the art direction. What a
-// direction changes is checked for every option in `direction.test.ts`.
+// direction changes is checked for every option in `direction-*.test.ts`.
 
 describe('the figure parts', () => {
   test('an outline crawls: no point moves more than a fifth of its wander a tick, round the loop too', () => {

@@ -148,7 +148,7 @@ const command = Command.make(
   build,
 ).pipe(Command.withDescription("Build the court's figure rigs into figures.riv beside the looks"));
 
-// Run as a script; imported (the axis test, `direction.test.ts`), it only lends `compile`.
+// Run as a script; imported (the build test, `build.test.ts`), it only lends `compile`.
 if (import.meta.main)
   Command.run(command, { version: '1.0.0' }).pipe(
     Effect.provide(BunServices.layer),
