@@ -41,6 +41,7 @@ import {
   playPlacings,
   playablesOf,
   resolveUse,
+  soundEntry,
   sourceLabel,
   soundState,
 } from './sfx.ts';
@@ -257,10 +258,7 @@ const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>
       sound.seed ?? input.film,
       pending,
       (name) => pending.find((p) => p.sound === name)?.playables.length ?? 1,
-      (name) =>
-        Option.flatMap(Option.fromUndefinedOr(input.sounds.library[name]), (entry) =>
-          jitterOf(entry),
-        ),
+      (name) => Option.flatMap(soundEntry(input.sounds.library, name), (entry) => jitterOf(entry)),
     );
     return pending.flatMap((p, i) =>
       Option.toArray(

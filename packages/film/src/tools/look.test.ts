@@ -5,6 +5,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
 import { stretchesOf } from '../core/acts.ts';
+import { ActName } from '../core/address-schema.ts';
 import { type Placed, layout } from '../core/layout.ts';
 import type { Look, Timed } from '../core/schema.ts';
 import type { FaceMark, HandMark } from '../core/export-handle.ts';
@@ -38,6 +39,10 @@ import { holdScenes, holdTimings } from './testing.ts';
 const FPS = 30;
 const WIDTH = 1920;
 const HEIGHT = 1080;
+const VALLEY = ActName.make('valley');
+const ONE = ActName.make('one');
+const TWO = ActName.make('two');
+const THREE = ActName.make('three');
 const FRAME = { width: WIDTH, height: HEIGHT };
 const thumb = (grey: number) => new Uint8Array(THUMB_BYTES).fill(grey);
 const face = (scene: string, size: number, alpha = 1): FaceMark => ({
@@ -179,8 +184,8 @@ describe('FaceSmall', () => {
 describe('ColourScript', () => {
   const look: Look = {
     acts: [
-      { from: 'held', name: 'open', luma: [100, 140] },
-      { from: 'brief', name: 'valley', luma: [0, 50], dark: 0.1, saturation: [0, 0.1] },
+      { from: 'held', name: ActName.make('open'), luma: [100, 140] },
+      { from: 'brief', name: VALLEY, luma: [0, 50], dark: 0.1, saturation: [0, 0.1] },
     ],
   };
   const acts = Result.getOrThrow(actsIn(look, placed));
@@ -193,14 +198,14 @@ describe('ColourScript', () => {
   test('an act warns for each measure outside its target, and only those', () => {
     const found = colourScript(acts, looks);
     expect(found.map((f) => [f.act, f.measure])).toEqual([
-      ['valley', 'luma'],
-      ['valley', 'dark'],
+      [VALLEY, 'luma'],
+      [VALLEY, 'dark'],
     ]);
     expect(found[1]?.message).toContain('dark');
   });
 
   test('an act that names a scene the film lacks fails', () => {
-    const wrong = actsIn({ acts: [{ from: 'nowhere', name: 'x' }] }, placed);
+    const wrong = actsIn({ acts: [{ from: 'nowhere', name: ActName.make('x') }] }, placed);
     expect(Result.isFailure(wrong) && wrong.failure._tag).toBe('UnknownScene');
   });
 
@@ -257,9 +262,9 @@ describe('chapters', () => {
     const lines = Result.getOrThrow(
       named({
         acts: [
-          { from: 'a', name: 'one', chapter: 'Who?' },
-          { from: 'b', name: 'two', chapter: 'Why?' },
-          { from: 'c', name: 'three', chapter: 'How?' },
+          { from: 'a', name: ONE, chapter: 'Who?' },
+          { from: 'b', name: TWO, chapter: 'Why?' },
+          { from: 'c', name: THREE, chapter: 'How?' },
         ],
       }),
     );
@@ -269,7 +274,7 @@ describe('chapters', () => {
   });
 
   test('YouTube refuses fewer than three chapters, a first past 00:00, or one under 10 s', () => {
-    const tooFew = named({ acts: [{ from: 'a', name: 'one', chapter: 'Who?' }] });
+    const tooFew = named({ acts: [{ from: 'a', name: ONE, chapter: 'Who?' }] });
     expect(Result.isFailure(tooFew) && tooFew.failure.reason).toContain('YouTube needs 3');
     const four = Result.getOrThrow(
       layout([...three, { id: 'd', min: 12 }], { voice: '', scenes: {} }),
@@ -278,10 +283,10 @@ describe('chapters', () => {
       actsIn(
         {
           acts: [
-            { from: 'a', name: 'zero' },
-            { from: 'b', name: 'one', chapter: 'Who?' },
-            { from: 'c', name: 'two', chapter: 'Why?' },
-            { from: 'd', name: 'three', chapter: 'How?' },
+            { from: 'a', name: ActName.make('zero') },
+            { from: 'b', name: ONE, chapter: 'Who?' },
+            { from: 'c', name: TWO, chapter: 'Why?' },
+            { from: 'd', name: THREE, chapter: 'How?' },
           ],
         },
         four,
@@ -299,9 +304,9 @@ describe('chapters', () => {
       actsIn(
         {
           acts: [
-            { from: 'a', name: 'one', chapter: 'Who?' },
-            { from: 'b', name: 'two', chapter: 'Why?' },
-            { from: 'c', name: 'three', chapter: 'How?' },
+            { from: 'a', name: ONE, chapter: 'Who?' },
+            { from: 'b', name: TWO, chapter: 'Why?' },
+            { from: 'c', name: THREE, chapter: 'How?' },
           ],
         },
         tight,

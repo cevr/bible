@@ -484,7 +484,7 @@ const OXFMT_CONFIG = `${import.meta.dir}/../../../../.oxfmtrc.json`;
 /** What a test here posts: a talk write's body (a section and its words, or a mark), or an Undo's empty one. */
 type Posted = Readonly<Record<string, string | number>>;
 
-/** The timeout of a test here that writes: each write formats its text with oxfmt, a spawn (film/spawn-budget). */
+/** The timeout of a test here that writes: each write formats its text with oxfmt, a spawn (effect/requireSpawnBudget). */
 const SPAWNS_MS = 30_000;
 
 describe("a talk's writes in the lab", () => {

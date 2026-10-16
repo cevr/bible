@@ -33,7 +33,7 @@ import {
   rightClick,
   touch,
 } from '../../../../src/lab/fixtures/gestures.ts';
-import { Render } from '../../../../src/core/catalogue.ts';
+import { MAIN_VARIANT, Render } from '../../../../src/core/catalogue.ts';
 import {
   type FakeRoute,
   type Json,
@@ -96,7 +96,7 @@ const said = (address: Json, texts: ReadonlyArray<string>): ReadonlyArray<Json> 
 const renderJson = (id: string): Json =>
   Schema.encodeSync(Schema.toCodecJson(Render))({
     address: sceneAddress(id),
-    variant: 'main',
+    variant: MAIN_VARIANT,
     kind: 'video',
     settings: { scale: 1, captions: false },
     stamp: { commit: Option.none(), key: 'k' },

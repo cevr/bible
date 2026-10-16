@@ -997,7 +997,7 @@ the entry before it is exactly where the Close would write (a scene's tap moves
 the playhead, so Close keeps that time), else the entry is rewritten to the tape. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
 say; M puts the cursor in the selected scene's comment box (an unsent comment is kept per scene); an approve's receipt offers Undo (`project.undo-approve`), as
 Project's does. A say may go out while another is in flight: the project
-shows the newest asked of the answers (`lab/review/asked.ts`, the first read
+shows the newest asked of the answers (`core/asked.ts`, the first read
 its first ask), so an older approve's answer landing last never hides a newer
 one, and an answer a later ask overtook reads the project again. The palette and the film's counts are in
 the view menu (⋯). A short's Open goes to its play page, as the lab opens
@@ -3091,7 +3091,7 @@ film while it does). The page shows the film's one project owner
 (`FilmProject`), which a Set and a Films card read too, so it opens on the
 project as the review last knew it, unread again. The
 answers land in any order, so the page shows the newest asked
-(`lab/review/asked.ts`): a read asked before a say and answered after it is
+(`core/asked.ts`): a read asked before a say and answered after it is
 dropped, a say answered after a read asked later reads the project again, and
 so does an approve refused (`VerbRefused`) because a scene went stale since
 the page read it. The choices page keeps its choices the same way. Each control writes on a
@@ -3396,7 +3396,7 @@ ARK_IN, …)`, a camera spread from another with a field blended over it,
 `shotPath` of them, a held push `pushOn` with a number knob. The unmoved
 frame (`UNMOVED`, `canvas/camera.ts`, whose numbers the rule reads) and a framing derived from the scene's geometry (a point that is not
 two numbers) pass; one shared across scenes lives in a set file.
-`film/no-point-free-log` (`lint/no-point-free-log.ts`) holds the tools too,
+`effect/noPointFreeLog` (from `oxlint-plugin-effect`) holds the tools too,
 over all of `packages/film` and `apps/animations`: a variadic logger
 (`Console.*`, `console.*`, `Effect.log*`) handed point-free to a callback that
 is passed an index (`Effect.forEach(lines, Console.log)`, `xs.map(console.log)`)
@@ -3417,12 +3417,13 @@ literal that holds it and a value computed from it, as `after - before`)
 takes whatever the page had drawn at that instant, and
 is refused. An `evaluate` run for what it does is an action, and so is one
 whose kept answer only a wait reads (a baseline the page keeps).
-`film/spawn-budget` (`lint/spawn-budget.ts`) holds every test of
+`effect/requireSpawnBudget` (from `oxlint-plugin-effect`) holds every test of
 `packages/film`: a test whose body spawns a process (effect's
 `ChildProcess.make`, the global `Bun`'s `spawn` or `spawnSync`, `spawn`
-imported from `bun`, or a function of the same file that does) gives
-its timeout in milliseconds as its last argument: a cold start's time is the
-machine's, and bun's default 5 s fails a loaded one.
+imported from `bun`, `node:child_process`, or a function of the same file
+that does) gives its timeout in milliseconds as its last argument, at least
+the package's 20 s run default (its `minimum`): a cold start's time is the
+machine's, and a shorter budget fails a loaded one sooner than none.
 A spawn inside a service the test provides is not seen.
 `film/touches-serial` (`lint/touches-serial.ts`) holds the browser tests
 (`e2e/`): a finger (`page.finger`, one or two) is read, and the touch gesture
@@ -3431,11 +3432,13 @@ body, since while one tab's touches are under way Chrome drops, or lands as a
 bare click, the touches a file's other cases send their own tabs at the same
 time.
 `film/no-history-comment` (`lint/no-history-comment.ts`) holds every comment
-in `packages/film` and `apps/animations`: a comment says what the code does
-today and why, and how it got here lives in the ledger and `git log`. It
-refuses the forms history takes on its face: a loop pass by number, a batch
-id, a commit hash, and "used to" said of what the code did (not "is used
-to"). History told in other words is the sweep's to find.
+in `packages/film`, `apps/animations`, `packages/ui`, `packages/url-state`
+and `packages/atom-solid`: a comment says what the code does now and why, and
+how it got here lives in the ledger and `git log`. It refuses only the forms
+history takes on its face: a loop pass by number, a batch id, a ledger id and
+a commit hash, each outside a quoted literal and a URL. History told in words
+(what the code used to do, which pass changed it) is a review finding
+(`CLAUDE.md`, **Comments**), since no pattern can read it.
 `film/drawing-literal` and `film/no-unprobed-ink` hold a film's scenes to
 what the lab can locate and what `film check` can probe; the films' README
 (`apps/animations/README.md`, **Lint**) says what each refuses.
@@ -3451,13 +3454,6 @@ the lab's components: a boolean a control shows (`aria-pressed`,
 `pressed(on)` (`lab/pressed.ts`), never by hand as `String(x)`,
 `x.toString()`, `JSON.stringify(x)` or `` `${x}` ``. The player, which may
 not import the lab, is outside its reach.
-`film/no-host-alias` (`lint/no-host-alias.ts`) holds the pages that reach the
-host through its adapters: a host global (`window`, `document`, `navigator`,
-`performance`, `location`, `history`, `globalThis`, `self`) is never held
-under a name or a place of the page's own (`const perf = performance`,
-`{ w: window }`, `(w = window) =>`, `[document]`, `() => performance`), since
-the host bans of **The purity rule** read it only under its own name. Handing
-it to a call builds an adapter, and passes.
 `film/one-clock-epsilon` (`lint/one-clock-epsilon.ts`) holds the code that
 computes times to one owner of the grid, `core/time.ts`: a nudge written
 beside a time (`Math.ceil(t * fps - 1e-6)`, `m - 1e-3`, a const holding one)
@@ -3822,7 +3818,7 @@ black. The player's `renderShown` (the frame the lab's still, onion and
 compare read) resolves only once that frame is painted, so nothing reads
 the canvas before its footage is on it. The preview and the HEAD layer ask
 for frames faster than they may decode; each paints a frame only while it
-is the newest it asked for (`newestAsks`, `paintedIfNewest`), so a decode
+is the newest it asked for (an `Ask` of `newestAsked`, `paintedIfNewest`), so a decode
 that lands late neither paints over a newer frame nor says it failed. An
 onion ghost that will not decode takes the onion off its layer, and
 Motion's status says why (`onion off: …`) until one paints. A drawn film has no
@@ -3855,12 +3851,16 @@ from its voice); `src/tools/talk.test.ts` runs it with none, in the
 framework suite.
 
 The lint holds the host to its adapters in the lab, the player, `browser/`,
-`command/` and the app's page entries (`.oxlintrc.json`): `no-restricted-globals` and
-`no-restricted-properties` refuse the host's storage, frames, requests,
-media and recording, media queries (`Viewport`), timers, clock and URL, bare or through `window`/`globalThis`/`self`,
-each naming the service that owns it, and every chain of the global object
-to itself (`globalThis.window`, `window.top`, `parent`, `document.defaultView`),
-so no chain reaches a name past its ban; `effect/noReflectGet` refuses
+`command/` and the app's page entries (`.oxlintrc.json`): `effect/noGlobals`'
+`members` list refuses the host's storage, frames, requests,
+media and recording, media queries (`Viewport`), timers, clock and URL,
+each naming the service that owns it, however a page reaches it: bare,
+through any name of the global object and any chain of them
+(`window.`, `globalThis.window.`, `top.`, `parent.`, `document.defaultView.`),
+an alias or a destructure (`const perf = performance; perf.now()`); and a host
+global held where the rule cannot follow it (`{ w: window }`, `[document]`,
+`() => performance`) is refused too, while handing it to a call builds an
+adapter and passes; `effect/noReflectGet` refuses
 `Reflect.get(window, …)`; `film/host-events-through-adapter`
 (`lint/`) refuses a window or document listener for a navigation, key or
 drag event however it is spelled (an event named by a const or a loop, an

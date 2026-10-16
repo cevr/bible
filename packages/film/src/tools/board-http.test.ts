@@ -6,13 +6,14 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Schema } from 'effect';
 import { labUrls } from '../core/api.ts';
-import { type BoardFile, BoardFileJson } from '../core/board.ts';
+import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
+import { Segment } from '../core/segment.ts';
 import { labHandler } from './lab.ts';
 import { labInMemory, text } from './testing.ts';
 
 const tried = (n: number) => ({
   n,
-  file: `cold.righteous.${n}.png`,
+  file: Segment.make(`cold.righteous.${n}.png`),
   sha256: `s${n}`,
   made: 'import' as const,
   refs: [],
@@ -21,7 +22,14 @@ const tried = (n: number) => ({
 
 const board: BoardFile = {
   film: 'f',
-  panels: [{ id: 'cold.righteous', beat: 'cold', at: 'righteous', tries: [tried(1), tried(2)] }],
+  panels: [
+    {
+      id: 'cold.righteous',
+      beat: BoardName.make('cold'),
+      at: BoardName.make('righteous'),
+      tries: [tried(1), tried(2)],
+    },
+  ],
   approvals: [],
 };
 

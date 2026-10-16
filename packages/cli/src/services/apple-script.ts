@@ -34,13 +34,15 @@ export const AppleScriptLive = Layer.effect(
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const exec = (script: string) =>
       spawner
-        .string(ChildProcess.make('osascript', ['-e', script]))
+        .string(ChildProcess.make('osascript', ['-e', script], { forceKillAfter: '5 seconds' }))
         .pipe(Effect.mapError((cause) => new Cause.UnknownError(cause)));
     const execJxa = (script: string) =>
       Effect.scoped(
         Effect.gen(function* () {
           const handle = yield* spawner.spawn(
-            ChildProcess.make('osascript', ['-l', 'JavaScript', '-e', script]),
+            ChildProcess.make('osascript', ['-l', 'JavaScript', '-e', script], {
+              forceKillAfter: '5 seconds',
+            }),
           );
           const [out, err, code] = yield* Effect.all(
             [

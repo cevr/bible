@@ -4,7 +4,7 @@
 
 import { Array as Arr, Data, Match, Option, Result } from 'effect';
 import type { Address, Scope } from '../core/address.ts';
-import type { RenderKind, RenderSound } from '../core/catalogue.ts';
+import type { RenderKind, RenderSound, RenderVariantName } from '../core/catalogue.ts';
 import { Encoder, encoderName, sharesInPage } from '../core/encoder.ts';
 import { FlagsConflict, TooManyEncoders } from './errors.ts';
 import type { Short } from '../core/schema.ts';
@@ -16,7 +16,7 @@ interface JobBase {
   /** The part of the film it draws: where its files go in the project folder (`renderPaths`). */
   readonly address: Address;
   /** Which of the address's renders it is (`Variant`): its files are named for it. */
-  readonly variant: string;
+  readonly variant: RenderVariantName;
   /** Burn the captions in. */
   readonly captions: boolean;
   /**
@@ -239,7 +239,7 @@ const addressFlag = (address: Address): Option.Option<string> =>
 
 /** `film render`'s flags, parsed; `scope` is the address (`--act`, `--scene`, `--short`) resolved against the layout. */
 interface RenderFlags {
-  readonly variant: string;
+  readonly variant: RenderVariantName;
   readonly captions: boolean;
   /** `--workers`; none takes the job's default (`DRAW_WORKERS`, or the encoder's). */
   readonly workers: Option.Option<number>;

@@ -7,6 +7,7 @@
 import { Effect, Option, Path, Result } from 'effect';
 import type { HttpServerRequest } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
+import { decodeComponent } from '@bible/url-state';
 import { REVIEW_FILES, REVIEW_PHONE, LabHttpApi } from '../core/api.ts';
 import type { Project } from '../core/catalogue.ts';
 import { PhoneCopyUnmade, ReviewFileUnknown } from '../core/refusals.ts';
@@ -21,7 +22,9 @@ export const refFromUrl = (url: string, prefix: string): Option.Option<string> =
   const path = urlPath(url);
   if (!path.startsWith(prefix)) return Option.none();
   return Result.getSuccess(
-    Result.try(() => path.slice(prefix.length).split('/').map(decodeURIComponent).join('/')),
+    Result.map(Result.all(path.slice(prefix.length).split('/').map(decodeComponent)), (segments) =>
+      segments.join('/'),
+    ),
   );
 };
 

@@ -6,7 +6,7 @@ import { Viewport } from './viewport.ts';
 
 /** The window's answer to `query`, live. */
 const listFor = (query: string): MediaQueryList =>
-  // oxlint-disable-next-line no-restricted-globals -- Viewport's live adapter: the window's media queries
+  // oxlint-disable-next-line effect/noGlobals -- Viewport's live adapter: the window's media queries
   matchMedia(query);
 
 /** This window's answers, live. */

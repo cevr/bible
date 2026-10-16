@@ -300,9 +300,9 @@ export const levelsOf = (
  * otherwise with `--variant`.
  */
 export const wedgeVariant = (
-  variant: Option.Option<string>,
+  variant: Option.Option<RenderVariantName>,
   levels: Readonly<Record<string, string>>,
-): Result.Result<string, LookInvalid> => {
+): Result.Result<RenderVariantName, LookInvalid> => {
   const pairs = Arr.sortWith(Object.entries(levels), ([look]) => look, Order.String);
   if (pairs.length > 0 && Option.contains(variant, MAIN_VARIANT))
     return invalid('a wedge is never main: name it otherwise with --variant, or drop --variant');

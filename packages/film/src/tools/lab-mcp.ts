@@ -78,6 +78,7 @@ import { LabLinks, boardPath, gist, linksAt, notePath } from '../core/lab-events
 import { unresolved } from '../core/notes.ts';
 import { ReviewManifest, ReviewManifestJson } from '../core/review.ts';
 import { Note, type NoteDraft, NoteStatus, repoJson } from '../core/schema.ts';
+import { Segment } from '../core/segment.ts';
 import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
 import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
@@ -241,7 +242,7 @@ const ManifestPatch = Schema.Struct({
 const ManifestJson = repoJson(Schema.Record(Schema.String, Schema.Json));
 
 /** A set's folder name: one segment, as the dated sets are (`storyboard-2026-10-14`). */
-const SetName = Schema.String.check(
+const SetName = Segment.check(
   Schema.isPattern(/^[a-z0-9][a-z0-9._-]*$/, {
     message: 'a folder name of lower case, digits, `.`, `_` and `-`',
   }),

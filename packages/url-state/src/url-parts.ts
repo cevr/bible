@@ -36,11 +36,19 @@ export const UrlParts = Schema.Struct({
 });
 export type UrlParts = typeof UrlParts.Type;
 
-const decodeComponent = (text: string): string =>
-  Result.getOrElse(
+/**
+ * A URL component percent-decoded: its text, or, when an escape in it is
+ * broken (`%`, `%E0%A4%A`), a failure holding it as written. The one
+ * decoder of a URL's escapes (lint: no `decodeURIComponent` elsewhere).
+ */
+export const decodeComponent = (text: string): Result.Result<string, string> =>
+  Result.mapError(
     Result.try(() => decodeURIComponent(text)),
     () => text,
   );
+
+/** A component decoded, or kept as written when its escape is broken: decoding a URL is total. */
+const decodedOrAsWritten = (text: string): string => Result.merge(decodeComponent(text));
 
 /** `encodeURIComponent`, then the given escapes put back as their characters. */
 const encodeKeeping =
@@ -65,8 +73,11 @@ const splitHash = (hash: string): Array<readonly [string, string]> =>
     .filter((part) => part !== '')
     .map((part) => {
       const at = part.indexOf('=');
-      if (at === -1) return [decodeComponent(part), ''] as const;
-      return [decodeComponent(part.slice(0, at)), decodeComponent(part.slice(at + 1))] as const;
+      if (at === -1) return [decodedOrAsWritten(part), ''] as const;
+      return [
+        decodedOrAsWritten(part.slice(0, at)),
+        decodedOrAsWritten(part.slice(at + 1)),
+      ] as const;
     });
 
 const entriesOf = (record: Raw): Array<readonly [string, string]> =>
@@ -75,7 +86,7 @@ const entriesOf = (record: Raw): Array<readonly [string, string]> =>
 /** The root is no segments; `/a/` is `a` and an empty last segment. */
 const segmentsOf = (pathname: string): ReadonlyArray<string> => {
   if (pathname === '/') return [];
-  return pathname.split('/').slice(1).map(decodeComponent);
+  return pathname.split('/').slice(1).map(decodedOrAsWritten);
 };
 
 const toParts = (href: string): UrlParts => {

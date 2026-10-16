@@ -28,8 +28,10 @@ import {
 import { type BoardView, type ScriptBeat, boardFileUrl } from '../../core/api.ts';
 import {
   type BoardFile,
+  type BoardName,
   type BoardTry,
   type Panel,
+  boardNamed,
   panelById,
   shownTry,
   tryOf,
@@ -93,8 +95,8 @@ export interface PickedPanel {
 /** One write a panel asks of the lab. */
 type BoardWrite = Data.TaggedEnum<{
   Keep: { readonly panel: string; readonly tried: number; readonly why: Option.Option<string> };
-  Approve: { readonly beat: string };
-  Withdraw: { readonly beat: string };
+  Approve: { readonly beat: BoardName };
+  Withdraw: { readonly beat: BoardName };
   Post: {
     readonly asking: PanelAsking;
     readonly text: string;
@@ -496,8 +498,10 @@ export const Provider = (props: ParentProps) => {
             }),
           ),
         ),
-      approve: (beat) => ask(BoardWrite.Approve({ beat })),
-      withdraw: (beat) => ask(BoardWrite.Withdraw({ beat })),
+      // A beat whose id names no board panel has none to approve.
+      approve: (beat) => Option.map(boardNamed(beat), (b) => ask(BoardWrite.Approve({ beat: b }))),
+      withdraw: (beat) =>
+        Option.map(boardNamed(beat), (b) => ask(BoardWrite.Withdraw({ beat: b }))),
       write: setDraft,
       post: (asking) =>
         ask(BoardWrite.Post({ asking, text: untrack(draft), items: untrack(sketch).items })),

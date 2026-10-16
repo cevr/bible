@@ -12,30 +12,36 @@
 import { Array as Arr, Boolean as Bool, Option, Predicate, Result, Schema } from 'effect';
 import { parse, readsWord } from './narration.ts';
 import { repoJson } from './schema.ts';
-
-/** Where a panel is held from when the beat's picture names no mark: the beat's start. */
-export const PANEL_START = 'start';
+import { Segment } from './segment.ts';
 
 /** The most panels a beat's board plans from its picture's marks. */
 const PANELS_PER_BEAT = 3;
 
 /** A name the board writes into a file name and a link: a beat's id, a mark, a style's id. */
-const Name = Schema.String.check(
+export const BoardName = Segment.check(
   Schema.isPattern(/^[A-Za-z0-9_-]+$/, {
     message: 'a name of letters, digits, `_` and `-`',
   }),
 );
+export type BoardName = typeof BoardName.Type;
+
+/** `name` as a board name, when it is one. */
+export const boardNamed = Schema.decodeUnknownOption(BoardName);
+
+/** Where a panel is held from when the beat's picture names no mark: the beat's start. */
+export const PANEL_START = BoardName.make('start');
 
 /** How a try was made: by the board's own prompt, brought in from elsewhere, or made again on a note. */
 const TryMade = Schema.Literals(['generate', 'import', 'tweak']);
 type TryMade = typeof TryMade.Type;
 
 /** A file in the board's folder: never a path. */
-const BoardFileName = Schema.String.check(
+const BoardFileName = Segment.check(
   Schema.isPattern(/^[A-Za-z0-9_.-]+\.(png|jpe?g|webp)$/, {
     message: 'a file of the board folder (letters, digits, `_`, `.`, `-`; an image)',
   }),
 );
+type BoardFileName = typeof BoardFileName.Type;
 
 /** One image tried for a panel. */
 export const BoardTry = Schema.Struct({
@@ -69,7 +75,7 @@ export type BoardTry = typeof BoardTry.Type;
  */
 export const PanelText = Schema.Union([
   Schema.TaggedStruct('Card', {
-    to: Schema.optionalKey(Name),
+    to: Schema.optionalKey(BoardName),
     /** The payoff word, read as a take is checked: the first of the card's words that reads it. */
     payoff: Schema.String.check(Schema.isNonEmpty()),
   }),
@@ -92,9 +98,9 @@ export type PanelText = typeof PanelText.Type;
 export const Panel = Schema.Struct({
   /** `<beat>.<at>`: what a note, a link and the CLI name it by. */
   id: Schema.String,
-  beat: Name,
+  beat: BoardName,
   /** The `{mark}` it is held from, or `start`. */
-  at: Name,
+  at: BoardName,
   tries: Schema.Array(BoardTry),
   /** The try kept (its `n`); none until one is picked. */
   kept: Schema.optionalKey(Schema.Int),
@@ -108,7 +114,7 @@ export type Panel = typeof Panel.Type;
 /** The film's board look: one style block and its reference image, and the film's world in a paragraph. */
 export const BoardStyle = Schema.Struct({
   /** The style's id, as the looks study names it (`9005`). */
-  id: Name,
+  id: BoardName,
   name: Schema.String,
   /** The style block every prompt opens with. */
   block: Schema.String,
@@ -122,7 +128,7 @@ export type BoardStyle = typeof BoardStyle.Type;
 
 /** A beat's board approved: the tries kept when it was, so a later pick makes it stale. */
 const BeatApproval = Schema.Struct({
-  beat: Name,
+  beat: BoardName,
   kept: Schema.Array(Schema.Struct({ panel: Schema.String, try: Schema.Int })),
   /** ISO time. */
   at: Schema.String,
@@ -148,9 +154,21 @@ export const emptyBoard = (film: string): BoardFile => ({ film, panels: [], appr
 /** A panel's id: its beat and where it is held from. */
 export const panelId = (beat: string, at: string): string => `${beat}.${at}`;
 
+/** What a try's image is: the extensions a board file may end in (`BoardFileName`). */
+export const TryExt = Schema.Literals(['png', 'jpg', 'jpeg', 'webp']);
+export type TryExt = typeof TryExt.Type;
+
+/** The style's reference image, as the board folder keeps it. */
+export const styleFile = (id: BoardName, ext: TryExt): BoardFileName =>
+  BoardFileName.make(`style.${id}.${ext}`);
+
 /** The image file of try `n` of the panel held from `at` in `beat`. */
-export const tryFile = (beat: string, at: string, n: number, ext = 'png'): string =>
-  `${beat}.${at}.${n}.${ext}`;
+export const tryFile = (
+  beat: BoardName,
+  at: BoardName,
+  n: number,
+  ext: TryExt = 'png',
+): BoardFileName => BoardFileName.make(`${beat}.${at}.${n}.${ext}`);
 
 /** The panel `id` of `board`. */
 export const panelById = (board: BoardFile, id: string): Option.Option<Panel> =>
@@ -190,20 +208,21 @@ export const plannedAts = (
   beat: string,
   say: Option.Option<string>,
   picture: Option.Option<string>,
-): ReadonlyArray<string> => {
+): ReadonlyArray<BoardName> => {
   const named = new Set(
     [...Option.getOrElse(picture, () => '').matchAll(/`([A-Za-z0-9_-]+)`/g)].map((m) => m[1]),
   );
   const marks = Option.match(say, {
-    onNone: (): ReadonlyArray<string> => [],
+    onNone: (): ReadonlyArray<BoardName> => [],
     onSome: (text) =>
       Result.match(parse(beat, text), {
-        onFailure: (): ReadonlyArray<string> => [],
+        onFailure: (): ReadonlyArray<BoardName> => [],
         onSuccess: (parsed) =>
           [...parsed.marks]
             .toSorted(([, a], [, b]) => a - b)
             .map(([name]) => name)
-            .filter((name) => named.has(name)),
+            .filter((name) => named.has(name))
+            .flatMap((name) => Option.toArray(boardNamed(name))),
       }),
   });
   if (marks.length === 0) return [PANEL_START];
@@ -322,7 +341,7 @@ export const approvalOf = (board: BoardFile, beat: string): BoardApprovalState =
 /** `board` with `beat`'s board approved at `at`: refused while a panel of it keeps no try. */
 export const approveBeat = (
   board: BoardFile,
-  beat: string,
+  beat: BoardName,
   at: string,
 ): Result.Result<BoardFile, BoardRefusal> => {
   const panels = panelsOf(board, beat);

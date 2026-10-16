@@ -115,6 +115,7 @@ export const spawnSearchDaemon: Effect.Effect<
       stdin: 'ignore',
       stdout: 'ignore',
       stderr: 'ignore',
+      forceKillAfter: '5 seconds',
     }),
   );
   const _reref = yield* handle.unref;

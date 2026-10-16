@@ -12,6 +12,7 @@ import { Array as Arr, Option, Result, Schema } from 'effect';
 import { SoundUseMismatch, UnknownSound } from './errors.ts';
 import { hashText } from './narration.ts';
 import { repoJson } from './schema.ts';
+import { Segment } from './segment.ts';
 import { fnv1a, rng } from './random.ts';
 import { TAKE_LEVEL } from './recording.ts';
 import { describeSound } from './synth/analyse.ts';
@@ -23,7 +24,7 @@ import { toMs } from './time.ts';
 // Names and declarations
 
 /** `family.thing`, lower case: `paper.slide`, `amb.court`, `tone.chime`. */
-const SoundName = Schema.String.check(Schema.isPattern(/^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$/));
+const SoundName = Segment.check(Schema.isPattern(/^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$/));
 type SoundName = typeof SoundName.Type;
 
 /** A sound's family: what `sfx list <family>` searches by. */
@@ -112,6 +113,16 @@ export type LibraryEntry = typeof LibraryEntry.Type;
 /** An app's sounds by name (`sounds/library.ts`). */
 export const Library = Schema.Record(SoundName, LibraryEntry);
 export type Library = typeof Library.Type;
+
+const soundNamed = Schema.decodeOption(SoundName);
+
+/**
+ * The entry `library` declares under `name`, as a cue or a choice names it:
+ * the name is decoded first, so a name no library can hold (`constructor`)
+ * reads no entry off the prototype.
+ */
+export const soundEntry = (library: Library, name: string): Option.Option<LibraryEntry> =>
+  Option.flatMap(soundNamed(name), (sound) => Option.fromUndefinedOr(library[sound]));
 
 /** Declare a library: the identity, typed, so a film's app gets its checks at the declaration. */
 export const defineLibrary = <const L extends Library>(library: L): L => library;
@@ -336,7 +347,7 @@ export const makePlan = (
     .sort()
     .filter((name) => Option.match(names, { onNone: () => true, onSome: (set) => set.has(name) }))
     .flatMap((name) =>
-      Option.match(Option.filter(Option.fromUndefinedOr(library[name]), isGenerated), {
+      Option.match(Option.filter(soundEntry(library, name), isGenerated), {
         onNone: (): ReadonlyArray<MakeJob> => [],
         onSome: (entry) => makeJob(name, entry, Option.fromUndefinedOr(lock[name]), force),
       }),
@@ -389,7 +400,7 @@ export const resolveSound = (
   library: Library,
   name: string,
 ): Result.Result<LibraryEntry, UnknownSound> =>
-  Result.fromOption(Option.fromUndefinedOr(library[name]), () => {
+  Result.fromOption(soundEntry(library, name), () => {
     const names = Object.keys(library).sort();
     const family = names.filter((n) => familyOf(n) === familyOf(name));
     return UnknownSound.make({

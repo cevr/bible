@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { type Address, resolveAddress } from '../core/address.ts';
+import { ActName } from '../core/address-schema.ts';
+import { MAIN_VARIANT, RenderVariantName } from '../core/catalogue.ts';
 import { layout } from '../core/layout.ts';
 import {
   Cut,
@@ -50,7 +52,7 @@ const scoped = (address: Address) => Result.getOrThrow(resolveAddress(threeScene
 const bc = scoped({ _tag: 'Scenes', ids: ['b', 'c'] });
 
 const flags = {
-  variant: 'main',
+  variant: MAIN_VARIANT,
   captions: true,
   workers: Option.none(),
   stills: Option.none(),
@@ -117,18 +119,19 @@ describe('jobOf', () => {
       from: Option.some(4),
       to: Option.some(15),
     });
+    const TWO = ActName.make('two');
     const act = Result.getOrThrow(
       resolveAddress(
         {
           ...threeScenes,
           look: Option.some({
             acts: [
-              { from: 'a', name: 'one' },
-              { from: 'c', name: 'two' },
+              { from: 'a', name: ActName.make('one') },
+              { from: 'c', name: TWO },
             ],
           }),
         },
-        { _tag: 'Act', act: 'two' },
+        { _tag: 'Act', act: TWO },
       ),
     );
     expect(Result.getOrThrow(jobOf({ ...flags, scope: act }))).toMatchObject({
@@ -171,7 +174,7 @@ describe('jobOf', () => {
     expect(renderPaths('/out/f', { _tag: 'Scenes', ids: ['a', 'b'] }, 'main').clip).toBe(
       '/out/f/scenes/a+b/main.mp4',
     );
-    expect(renderPaths('/out/f', { _tag: 'Act', act: 'cold open' }, 'main').dir).toBe(
+    expect(renderPaths('/out/f', { _tag: 'Act', act: ActName.make('cold open') }, 'main').dir).toBe(
       '/out/f/acts/cold-open/main',
     );
     expect(renderPaths('/out/f', { _tag: 'Short', id: 'verdict' }, 'main').clip).toBe(
@@ -180,7 +183,9 @@ describe('jobOf', () => {
   });
 
   test('the job carries its address and variant', () => {
-    expect(Result.getOrThrow(jobOf({ ...flags, scope: bc, variant: 'ink' }))).toMatchObject({
+    expect(
+      Result.getOrThrow(jobOf({ ...flags, scope: bc, variant: RenderVariantName.make('ink') })),
+    ).toMatchObject({
       address: { _tag: 'Scenes', ids: ['b', 'c'] },
       variant: 'ink',
     });

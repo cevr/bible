@@ -35,7 +35,7 @@ import {
   sceneFixture,
 } from './testing.ts';
 
-/** The timeout of a test here that spawns (git): a cold start's time is the machine's (film/spawn-budget). */
+/** The timeout of a test here that spawns (git): a cold start's time is the machine's (effect/requireSpawnBudget). */
 const SPAWNS_MS = 30_000;
 
 /** The fixture's hand scene file. */
@@ -370,7 +370,10 @@ describe('lab source routes', () => {
         const dir = (yield* Path.Path).dirname(file);
         const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
         const git = (...args: ReadonlyArray<string>) =>
-          collect(spawner, ChildProcess.make('git', [...args], { cwd: dir }));
+          collect(
+            spawner,
+            ChildProcess.make('git', [...args], { cwd: dir, forceKillAfter: '5 seconds' }),
+          );
         const request = () =>
           Effect.promise(() =>
             lab(

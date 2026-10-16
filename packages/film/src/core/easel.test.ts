@@ -5,6 +5,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
+import { MAIN_VARIANT, RenderVariantName } from './catalogue.ts';
 import {
   type SceneTimes,
   type StillView,
@@ -163,14 +164,19 @@ describe('a crop and a format', () => {
   });
 
   test("a wedge's render is named for its levels unless --variant names it, never main", () => {
-    expect(Result.getOrThrow(wedgeVariant(Option.none(), {}))).toBe('main');
-    expect(Result.getOrThrow(wedgeVariant(Option.none(), { style: 'ps1' }))).toBe('style-ps1');
-    expect(Result.getOrThrow(wedgeVariant(Option.none(), { style: 'ps1', ground: 'light' }))).toBe(
-      'ground-light-style-ps1',
+    const TRY_2 = RenderVariantName.make('try-2');
+    expect(Result.getOrThrow(wedgeVariant(Option.none(), {}))).toBe(MAIN_VARIANT);
+    expect(Result.getOrThrow(wedgeVariant(Option.none(), { style: 'ps1' }))).toBe(
+      RenderVariantName.make('style-ps1'),
     );
-    expect(failureTag(wedgeVariant(Option.some('main'), { style: 'ps1' }))).toBe('LookInvalid');
-    expect(Result.getOrThrow(wedgeVariant(Option.some('main'), {}))).toBe('main');
-    expect(Result.getOrThrow(wedgeVariant(Option.some('try-2'), { style: 'ps1' }))).toBe('try-2');
+    expect(Result.getOrThrow(wedgeVariant(Option.none(), { style: 'ps1', ground: 'light' }))).toBe(
+      RenderVariantName.make('ground-light-style-ps1'),
+    );
+    expect(failureTag(wedgeVariant(Option.some(MAIN_VARIANT), { style: 'ps1' }))).toBe(
+      'LookInvalid',
+    );
+    expect(Result.getOrThrow(wedgeVariant(Option.some(MAIN_VARIANT), {}))).toBe(MAIN_VARIANT);
+    expect(Result.getOrThrow(wedgeVariant(Option.some(TRY_2), { style: 'ps1' }))).toBe(TRY_2);
     expect(failureTag(wedgeVariant(Option.none(), { style: 'PS 1' }))).toBe('LookInvalid');
   });
 

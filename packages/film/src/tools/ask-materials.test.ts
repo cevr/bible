@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Boolean as Bool, Effect, Layer, Option, Path, Schema } from 'effect';
 import { type Ask, type AskBlock, oneQuestion } from '../core/ask.ts';
-import { type BoardFile, BoardFileJson } from '../core/board.ts';
+import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { ReviewFileUnknown } from '../core/refusals.ts';
 import type { ReviewIndex } from '../core/review.ts';
 import { TimingsJson } from '../core/schema.ts';
@@ -45,7 +45,9 @@ const TALK = [
 
 const board: BoardFile = {
   film: 'f',
-  panels: [{ id: 'cold.judge', beat: 'cold', at: 'judge', tries: [] }],
+  panels: [
+    { id: 'cold.judge', beat: BoardName.make('cold'), at: BoardName.make('judge'), tries: [] },
+  ],
   approvals: [],
 };
 

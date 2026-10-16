@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { type Address, sceneAddress as scene } from '../core/address.ts';
+import { ActName } from '../core/address-schema.ts';
 import { UnknownScene } from '../core/errors.ts';
 import { AudioStale } from './errors.ts';
 import {
@@ -60,9 +61,10 @@ describe('addressOf', () => {
   });
 
   test("a colour script is its act's, a short's finding its short's, with no film second", () => {
+    const VALLEY = ActName.make('valley');
     expect(
-      addressOf(ColourScript.make({ act: 'valley', measure: 'luma', value: 80, low: 0, high: 50 })),
-    ).toEqual({ part: { _tag: 'Act', act: 'valley' } });
+      addressOf(ColourScript.make({ act: VALLEY, measure: 'luma', value: 80, low: 0, high: 50 })),
+    ).toEqual({ part: { _tag: 'Act', act: VALLEY } });
     expect(
       addressOf(ShortLength.make({ short: 's', length: 95, max: 90, from: 45, to: 75 })),
     ).toEqual({ part: { _tag: 'Short', id: 's' } });

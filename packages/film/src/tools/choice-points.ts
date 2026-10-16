@@ -40,6 +40,7 @@ import {
   levelOf,
   pendingOf,
   requestKey,
+  soundEntry,
 } from '../core/sfx.ts';
 import { type ScoreOptionState, cueTime, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import { type LoadedFilm, voicePiecesOf } from './film-repo.ts';
@@ -237,7 +238,7 @@ export const takePoints = (
       const where = placementsOf(sound, plan);
       const declared = Arr.dedupe(Object.values(sound.effects).map((e) => e.sound));
       return declared.flatMap((name) =>
-        Option.match(Option.fromUndefinedOr(loaded.sounds.library[name]), {
+        Option.match(soundEntry(loaded.sounds.library, name), {
           onNone: () => [],
           onSome: (entry): ReadonlyArray<PointDraft> => {
             if (entry.kind === 'procedural') return [];
@@ -367,7 +368,7 @@ const layersOf = (
 ): ReadonlyArray<LayerLevel> => {
   const plan = planOf(loaded, placed);
   const where = placementsOf(sound, plan);
-  const entry = (name: string) => Option.fromUndefinedOr(loaded.sounds.library[name]);
+  const entry = (name: string) => soundEntry(loaded.sounds.library, name);
   const score = Option.match(Option.fromUndefinedOr(sound.score), {
     onNone: () => [],
     onSome: (s): ReadonlyArray<LayerLevel> =>

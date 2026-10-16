@@ -156,7 +156,7 @@ const makeBrowserCapture = Effect.gen(function* () {
     Effect.gen(function* () {
       // On the phone's plain http link the browser has no microphone to ask
       // for (`navigator.mediaDevices` is gone): say where one is.
-      // oxlint-disable-next-line no-restricted-properties -- Capture's live adapter: the page the microphone is asked from
+      // oxlint-disable-next-line effect/noGlobals -- Capture's live adapter: the page the microphone is asked from
       yield* Option.match(insecureMic(window.location.href, window.isSecureContext), {
         onNone: () => Effect.void,
         onSome: Effect.fail,
@@ -164,7 +164,7 @@ const makeBrowserCapture = Effect.gen(function* () {
       const stream = yield* Effect.acquireRelease(
         Effect.tryPromise({
           try: () =>
-            // oxlint-disable-next-line no-restricted-properties -- Capture's live adapter: the microphone
+            // oxlint-disable-next-line effect/noGlobals -- Capture's live adapter: the microphone
             navigator.mediaDevices.getUserMedia({ audio: audioConstraints(device) }),
           catch: (error) =>
             MicDenied.make({
@@ -192,7 +192,7 @@ const makeBrowserCapture = Effect.gen(function* () {
       const context = yield* Effect.acquireRelease(
         Effect.try({
           try: () =>
-            // oxlint-disable-next-line no-restricted-globals -- Capture's live adapter: the recording's own context
+            // oxlint-disable-next-line effect/noGlobals -- Capture's live adapter: the recording's own context
             new AudioContext(
               Option.match(micRate, {
                 onNone: () => ({}),
@@ -238,7 +238,7 @@ const makeBrowserCapture = Effect.gen(function* () {
       // as two channels whatever `channelCount` asked, and the `speakers`
       // down-mix would halve input 1 and add input 2's noise to it. The
       // `discrete` one keeps channel 0, input 1, untouched.
-      // oxlint-disable-next-line no-restricted-globals -- Capture's live adapter: the worklet that takes the samples
+      // oxlint-disable-next-line effect/noGlobals -- Capture's live adapter: the worklet that takes the samples
       const node = new AudioWorkletNode(context, PROCESSOR, {
         numberOfInputs: 1,
         numberOfOutputs: 0,
@@ -338,7 +338,7 @@ const makeBrowserCapture = Effect.gen(function* () {
   );
 
   const devices: CaptureOps['devices'] = Effect.tryPromise(() =>
-    // oxlint-disable-next-line no-restricted-properties -- Capture's live adapter: the microphones
+    // oxlint-disable-next-line effect/noGlobals -- Capture's live adapter: the microphones
     navigator.mediaDevices.enumerateDevices(),
   ).pipe(
     Effect.map((all) =>

@@ -123,7 +123,7 @@ import {
   viewOf,
 } from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
-import { type Asks, newestAsked } from './asked.ts';
+import { type Asks, newestAsked } from '../../core/asked.ts';
 import { useIndexOwner } from './index-owner.ts';
 import { hearVersionCommands } from './hear.ts';
 

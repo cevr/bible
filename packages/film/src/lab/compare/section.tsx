@@ -13,7 +13,7 @@ import { For, Show } from '@solidjs/web';
 import { Array as Arr, Effect, Option } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from 'solid-js';
-import { newestAsks } from '../../browser/footage.ts';
+import { newestAsked } from '../../core/asked.ts';
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { Pointer, Surface } from '../../browser/pointer.ts';
@@ -80,7 +80,7 @@ export const Layer = () => {
     readonly ctx: CanvasRenderingContext2D;
   }>();
   /** The frames the layer asks for: one that lands after a later ask paints nothing. */
-  const asks = newestAsks();
+  const asks = newestAsked();
   const paint = () => {
     Option.map(layer, (l) => {
       const shows = state.layer();

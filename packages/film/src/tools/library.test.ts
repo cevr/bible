@@ -19,6 +19,7 @@ import {
   Redacted,
 } from 'effect';
 import { rng } from '../core/random.ts';
+import { Segment } from '../core/segment.ts';
 import { pendingOf, requestKey, soundState } from '../core/sfx.ts';
 import { ContentStore } from './content-store.ts';
 import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
@@ -28,6 +29,8 @@ import { Media } from './media.ts';
 import { PrivateStore } from './private-store.ts';
 import { FetchHttpClient } from 'effect/http';
 import { NO_SCORES, type Scores } from './media-store.ts';
+
+const PAPER_SLIDE = Segment.make('paper.slide');
 
 const LIBRARY = `export const library = {
   'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 0.5, candidates: 4, use: 'one-shot' },
@@ -303,7 +306,7 @@ describe.concurrent('SoundLibrary', () => {
           const unknown = yield* Effect.flip(library.keep('paper.slide', ['f'.repeat(64)]));
           expect(unknown._tag).toBe('TakeUnknown');
           const loaded = yield* library.load;
-          const entry = loaded.library['paper.slide'];
+          const entry = loaded.library[PAPER_SLIDE];
           expect(entry).toBeDefined();
           if (entry)
             expect(soundState(entry, Option.fromUndefinedOr(loaded.lock['paper.slide']))._tag).toBe(
@@ -406,7 +409,7 @@ describe.concurrent('SoundLibrary', () => {
           const none = yield* library.unkeep('paper.slide', [waiting]);
           expect(none.variants).toEqual([]);
           const loaded = yield* library.load;
-          const entry = loaded.library['paper.slide'];
+          const entry = loaded.library[PAPER_SLIDE];
           if (entry)
             expect(soundState(entry, Option.fromUndefinedOr(loaded.lock['paper.slide']))).toEqual({
               _tag: 'Missing',

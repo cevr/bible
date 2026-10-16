@@ -16,6 +16,7 @@
 import { Place } from '@bible/url-state';
 import { Match, Option, Schema } from 'effect';
 import type { Address } from '../core/address.ts';
+import { ActName } from '../core/address-schema.ts';
 import { type CompareView, Places, pageHref, reviewFileUrl } from '../core/api.ts';
 import { PointId, pointIdOf } from '../core/point.ts';
 import type { Interval } from '../core/time.ts';
@@ -25,7 +26,7 @@ export const Selection = Schema.TaggedUnion({
   /** A film as a whole (its project's header, its card on the index). */
   Film: { film: Schema.String },
   /** An act of a film's project. */
-  Act: { film: Schema.String, act: Schema.String },
+  Act: { film: Schema.String, act: ActName },
   /** A scene of a film. */
   Scene: { film: Schema.String, scene: Schema.String },
   /** A cue of a scene, by its name. */

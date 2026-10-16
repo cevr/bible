@@ -13,12 +13,12 @@ import { Cause, Effect, Option, Scope } from 'effect';
 import type { Fiber } from 'effect';
 import { parseHref } from '@bible/url-state';
 import { TIME_EVERY_MS, filmOfPage } from '../core/api.ts';
+import { type Ask, newestAsked } from '../core/asked.ts';
 import { addressOn, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import {
   type FootageFrameMissing,
   type FootageShown,
-  newestAsks,
   paintedIfNewest,
   readsFootage,
 } from '../browser/footage.ts';
@@ -96,15 +96,15 @@ export interface Player {
    * talk's) is drawn once the host has decoded it. It resolves once the frame
    * is painted, so a reader of `ctx`'s canvas after it reads this frame; a
    * frame whose footage will not decode fails, never drawn black. A surface
-   * that asks again before a frame lands (the HEAD layer) passes `newest`
-   * (one of its `newestAsks`): a frame no longer the newest asked for paints
+   * that asks again before a frame lands (the HEAD layer) passes `ask`
+   * (one of its `newestAsked`, `core/asked.ts`): a frame no longer the newest asked for paints
    * nothing and fails nothing.
    */
   renderShown(
     ctx: CanvasRenderingContext2D,
     T: number,
     over?: ReadonlyMap<string, ShownEdit>,
-    newest?: () => boolean,
+    ask?: Ask,
   ): Effect.Effect<void, FootageFrameMissing>;
   /**
    * Draw with `edits` (`RenderOptions.edits`) from now on, starting with the
@@ -407,7 +407,7 @@ export const mountPreview = (
    * preview drops frames rather than showing an old one late, as `<video>`
    * would.
    */
-  const previewAsks = newestAsks();
+  const previewAsks = newestAsked();
   /**
    * Frame `at`'s footage decoded, then `paint` given it, while it is the
    * newest frame asked for. A frame that will not decode is never drawn
@@ -765,7 +765,7 @@ export const mountPreview = (
       loop = range === undefined || range.to <= range.from ? undefined : range;
       draw();
     },
-    renderShown: (into, at, over = new Map(), newest = () => true) =>
+    renderShown: (into, at, over = new Map(), ask = newestAsked().ask()) =>
       Effect.suspend(() => {
         if (!drawable) return Effect.void;
         return paintedIfNewest(
@@ -777,7 +777,7 @@ export const mountPreview = (
               at,
               shownOptions({ edits: new Map([...edits, ...over]), ...footage }),
             ),
-          newest,
+          ask,
         ).pipe(Effect.provideContext(host));
       }),
     drawable: () => drawable,

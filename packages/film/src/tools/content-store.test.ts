@@ -176,10 +176,11 @@ describe('ContentStore', () => {
         const shared = { ...assets, file: `${dir}/assets.json` };
         const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
         const holder = yield* spawner.spawn(
-          ChildProcess.make('bun', [
-            path.join(import.meta.dir, 'fixtures', 'hold-manifest.ts'),
-            shared.file,
-          ]),
+          ChildProcess.make(
+            'bun',
+            [path.join(import.meta.dir, 'fixtures', 'hold-manifest.ts'), shared.file],
+            { forceKillAfter: '5 seconds' },
+          ),
         );
         const said = yield* holder.stdout.pipe(
           Stream.decodeText(),
@@ -220,10 +221,11 @@ describe('ContentStore', () => {
         const file = `${dir}/assets.json`;
         const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
         const holder = yield* spawner.spawn(
-          ChildProcess.make('bun', [
-            path.join(import.meta.dir, 'fixtures', 'hold-manifest.ts'),
-            file,
-          ]),
+          ChildProcess.make(
+            'bun',
+            [path.join(import.meta.dir, 'fixtures', 'hold-manifest.ts'), file],
+            { forceKillAfter: '5 seconds' },
+          ),
         );
         yield* holder.stdout.pipe(
           Stream.decodeText(),

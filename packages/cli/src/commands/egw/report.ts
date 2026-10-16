@@ -47,7 +47,7 @@ const openPage = (report: string) =>
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const url = `${REPORTS}/${encodeURIComponent(report)}`;
     yield* spawner
-      .string(ChildProcess.make('open', [url]))
+      .string(ChildProcess.make('open', [url], { forceKillAfter: '5 seconds' }))
       .pipe(
         Effect.mapError((cause) => ReportError.make({ message: `Could not open ${url}`, cause })),
       );

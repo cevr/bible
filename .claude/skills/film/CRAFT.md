@@ -58,7 +58,7 @@ Craft never outranks the frame ([frame/README.md](frame/README.md)). A paraphras
 
 - The middle can travel anywhere: history, the text, other places.
 - The landing and the coda's pull-back come home to the opening place.
-- A series film with a recurring cast opens and closes in one of the cast's places.
+- A series film may open and close in one of the cast's places (the stair, the landing, the grandmother's gate). The cast stands in the background there; the lead is a plain figure ([character-design.md](reference/character-design.md) 2.3).
 - **Check:** the first scene and the last scene name the same setting, and their stills, side by side, show the same place, changed.
 
 ## 5. Human scale

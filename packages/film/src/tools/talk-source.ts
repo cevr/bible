@@ -868,7 +868,10 @@ export const markMissed = (
       onFailure: (): ReadonlyArray<string> => [],
       onSuccess: (talk) => {
         const marks = talk.sections.find((s) => s.id === id)?.marks ?? {};
-        if (Option.contains(Rec.get(marks, name), word)) return [];
+        const marked = Option.flatMap(Schema.decodeOption(MarkName)(name), (mark) =>
+          Rec.get(marks, mark),
+        );
+        if (Option.contains(marked, word)) return [];
         return [`the talk read back has no mark ${name} on word ${word} of ${id}`];
       },
     });

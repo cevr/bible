@@ -123,9 +123,9 @@ export const compile = (entry: string) =>
     }),
   ).pipe(
     Effect.flatMap((built) => {
-      if (!built.success) return Effect.die(`${entry} did not bundle: ${built.logs.join('\n')}`);
+      if (!built.success) return Effect.die(`${module} did not bundle: ${built.logs.join('\n')}`);
       return Option.match(Option.fromUndefinedOr(built.outputs[0]), {
-        onNone: () => Effect.die(`${entry} did not bundle: ${built.logs.join('\n')}`),
+        onNone: () => Effect.die(`${module} did not bundle: ${built.logs.join('\n')}`),
         onSome: (out) => Effect.promise(() => out.text()),
       });
     }),
@@ -197,7 +197,7 @@ const pure = (render: PageRender, diagnostics: Diagnostics): PageRender => ({
 });
 
 /**
- * The page render a server entry (`entry`, from this folder) exports as
+ * The page render a server entry (`module`, a path) exports as
  * `name`, bundled as the lab bundles it (`solidPluginFor('ssr')`, for Bun)
  * into a folder of its own and loaded from there, and held pure (`pure`):
  * the bundle exports Solid's diagnostics channel beside it, from the copy of
@@ -205,7 +205,7 @@ const pure = (render: PageRender, diagnostics: Diagnostics): PageRender => ({
  * for want of a listener. The folder is gone once the module is loaded (it
  * is one file, read whole).
  */
-export const served = (entry: string, name: string): Effect.Effect<PageRender> =>
+export const servedFile = (module: string, name: string): Effect.Effect<PageRender> =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-test-server-' });
@@ -214,7 +214,7 @@ export const served = (entry: string, name: string): Effect.Effect<PageRender> =
       Bun.build({
         entrypoints: [heard],
         files: {
-          [heard]: `export { ${name} } from '${import.meta.dir}/${entry}';\nexport { OBSERVE } from 'solid-js';\n`,
+          [heard]: `export { ${name} } from '${module}';\nexport { OBSERVE } from 'solid-js';\n`,
         },
         target: 'bun',
         // The head's face (`FACE_HEAD`) named as the fixture's scripts name it, from the pages' root.
@@ -224,10 +224,10 @@ export const served = (entry: string, name: string): Effect.Effect<PageRender> =
       }),
     );
     if (!built.success)
-      return yield* Effect.die(`${entry} did not bundle: ${built.logs.join('\n')}`);
+      return yield* Effect.die(`${module} did not bundle: ${built.logs.join('\n')}`);
     const loaded: unknown = yield* Effect.promise(() => import(`${dir}/server.js`));
     if (!Predicate.hasProperty(loaded, name) || !isPageRender(loaded[name]))
-      return yield* Effect.die(`${entry} exports no page render named ${name}`);
+      return yield* Effect.die(`${module} exports no page render named ${name}`);
     const render = loaded[name];
     if (
       !Predicate.hasProperty(loaded, 'OBSERVE') ||
@@ -235,7 +235,11 @@ export const served = (entry: string, name: string): Effect.Effect<PageRender> =
       !isDiagnostics(loaded.OBSERVE.diagnostics)
     )
       return yield* Effect.die(
-        `${entry}'s bundle has no Solid diagnostics channel to hear a server write on`,
+        `${module}'s bundle has no Solid diagnostics channel to hear a server write on`,
       );
     return pure(render, loaded.OBSERVE.diagnostics);
   }).pipe(Effect.scoped, Effect.orDie, Effect.provide(BunServices.layer));
+
+/** `servedFile` for a server entry of this folder (`entry`). */
+export const served = (entry: string, name: string): Effect.Effect<PageRender> =>
+  servedFile(`${import.meta.dir}/${entry}`, name);

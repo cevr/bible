@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Arbitrary, Effect, Option, Result, Schema } from 'effect';
+import { ActName } from './address-schema.ts';
 import { CatalogueJson } from './catalogue.ts';
 import { PointId, PointRef, onChoicesTab, pointIdOf } from './point.ts';
 
@@ -13,7 +14,7 @@ const written: ReadonlyArray<readonly [PointRef, string]> = [
   [{ _tag: 'Voice', beat: 'cold' }, 'voice:cold'],
   [{ _tag: 'Look', name: 'ground' }, 'look:ground'],
   [{ _tag: 'Render', address: { _tag: 'Film' } }, 'render:film'],
-  [{ _tag: 'Render', address: { _tag: 'Act', act: 'valley' } }, 'render:act:valley'],
+  [{ _tag: 'Render', address: { _tag: 'Act', act: ActName.make('valley') } }, 'render:act:valley'],
   [
     { _tag: 'Render', address: { _tag: 'Scenes', ids: ['cold', 'word'] } },
     'render:scenes:cold,word',

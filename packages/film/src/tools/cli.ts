@@ -44,6 +44,7 @@ import { Argument, Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 import type { ChildProcessSpawner } from 'effect/process';
 import { type AddressFlags, type Scope, addressOf, resolveAddress } from '../core/address.ts';
+import { ActName } from '../core/address-schema.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
 import { sheetBeats, sheetMarkdown } from '../core/sheet.ts';
 import { clock } from '../core/time.ts';
@@ -158,7 +159,7 @@ const scopeOf = (loaded: LoadedFilm, placed: ReadonlyArray<Placed>, flags: Addre
   );
 
 /** `--act <name>`: one of the film's acts (`look.acts`). */
-const act = Flag.String('act').pipe(Flag.optional);
+const act = Flag.String('act').pipe(Flag.withSchema(ActName), Flag.optional);
 
 /**
  * `--accept-mismatch a,b`: the beats that may keep a take whose transcript

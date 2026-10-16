@@ -40,7 +40,7 @@ import {
   TalkWordsPost,
   isRefusal,
 } from '../core/api.ts';
-import type { BoardFile } from '../core/board.ts';
+import type { BoardFile, BoardName } from '../core/board.ts';
 import type { PageRequest } from '../core/page-render.ts';
 import { newerFirst } from '../core/refusals.ts';
 import { uniqueId } from '../core/unique.ts';
@@ -239,7 +239,7 @@ export interface LabCalls {
   /** Approve beat `beat`'s board on the tries it keeps, or withdraw its approval. */
   readonly boardApproval: (
     verb: 'approve' | 'withdraw',
-    beat: string,
+    beat: BoardName,
   ) => Effect.Effect<BoardFile, LabFailure>;
 }
 

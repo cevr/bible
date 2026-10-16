@@ -6,6 +6,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
+import { ActName } from '../../core/address-schema.ts';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import type { CheckLine } from '../../core/schema.ts';
@@ -44,7 +45,7 @@ const VIEW: ProjectView = {
     key: 'k',
     sound: Option.none(),
     comments: [],
-    acts: [{ name: 'open', scenes: ['one', 'two'], key: 'k', comments: [] }],
+    acts: [{ name: ActName.make('open'), scenes: ['one', 'two'], key: 'k', comments: [] }],
     scenes: [scene('one', 'stale'), scene('two', 'current', 'approved'), scene('three', 'missing')],
     gave: Option.none(),
     took: Option.none(),

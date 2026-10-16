@@ -19,10 +19,12 @@ import {
 import type { Result } from 'effect';
 import {
   type BoardFile,
+  type BoardName,
   BoardFileJson,
   type BoardRefusal,
   type BoardTry,
   type Panel,
+  type TryExt,
   emptyBoard,
   nextTry,
   panelById,
@@ -60,14 +62,14 @@ interface BoardFileProblem {
 type NewTry = Omit<BoardTry, 'n' | 'file' | 'sha256'> & {
   readonly bytes: Uint8Array;
   /** The image's extension (`png`). */
-  readonly ext: string;
+  readonly ext: TryExt;
 };
 
 /** The panel tries are added to: made with no tries when the board has none yet. */
 interface PanelAt {
   readonly id: string;
-  readonly beat: string;
-  readonly at: string;
+  readonly beat: BoardName;
+  readonly at: BoardName;
 }
 
 interface BoardStoreService {
