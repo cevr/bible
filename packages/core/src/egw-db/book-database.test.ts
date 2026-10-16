@@ -20,6 +20,7 @@ import {
   Stream,
 } from 'effect';
 
+import { NO_FILTER } from '../writings/corpus-class.js';
 import { Reference as BibleReference } from '../bible/model.js';
 import {
   assetSourceId,
@@ -753,6 +754,20 @@ describe('EGWParagraphDatabase', () => {
           // Omitting the scope means the whole corpus, so every pre-§6.4 caller
           // keeps the behavior it was written against.
           expect(codes(yield* db.searchParagraphs('sanctuary', { limit: 50 }))).toEqual(codes(all));
+        }),
+      ));
+
+    test('drops the study aids by author when apparatus is excluded', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* scopedCorpus();
+          const filter = { ...NO_FILTER, excludeApparatus: true };
+          const codes = (hits: readonly { readonly bookCode: string }[]): string[] =>
+            hits.map((hit) => hit.bookCode).toSorted();
+          const found = yield* db.searchParagraphs('sanctuary', { limit: 50, filter });
+          const scored = yield* db.searchScoredParagraphs('sanctuary', { limit: 50, filter });
+          expect(codes(found)).toEqual(['SCOPEDAR', 'SCOPEGC', 'SCOPEJVH']);
+          expect(codes(scored)).toEqual(['SCOPEDAR', 'SCOPEGC', 'SCOPEJVH']);
         }),
       ));
 

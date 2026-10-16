@@ -161,8 +161,8 @@ const scope = Flag.Literals('scope', ['egw', 'pioneer', 'all']).pipe(
   Flag.withDescription('Corpus scope: egw, pioneer, or all (default: egw)'),
   Flag.optional,
 );
-/** Put the lookup apparatus back in — dictionaries, topical and scripture
- *  indexes, 39% of the corpus (`APPARATUS_TYPES`).
+/** Put the apparatus back in — dictionaries, topical and scripture indexes,
+ *  Bibles, and the White Estate's study aids (`isApparatus`).
  *
  *  **Excluded by default, like the web surface.** `NEVER_APPARATUS` argues that
  *  a search box over the writings has no use for a see-also stub, and adds that

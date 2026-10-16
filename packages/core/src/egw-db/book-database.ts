@@ -32,9 +32,11 @@ import type * as Statement from 'effect/sql/Statement';
 
 import { EGW_SCOPE_AUTHORS, type CorpusScope } from '../writings/corpus-scope.js';
 import {
+  APPARATUS_AUTHORS,
   APPARATUS_TYPES,
   EXCLUDED_SUBTYPES,
   isBookSubtype,
+  isApparatus,
   isBookType,
   isCorpusSection,
   type CorpusFilter,
@@ -322,9 +324,10 @@ const testMatchesQuery = (terms: readonly string[], text: string): boolean => {
  *  One function per side of the seam, deliberately: `searchFilters` builds SQL
  *  and this builds a predicate, and they are close enough that a reader can
  *  check them against each other line by line. The rule both implement is that
- *  a `null` column passes every clause except `excludeApparatus`, which a
- *  `null` also passes — an unclassified book is never excluded by a filter the
- *  reader set about a classification it does not have.
+ *  a `null` column passes every clause, `excludeApparatus` included — an
+ *  unclassified book is never excluded by a filter the reader set about a
+ *  classification it does not have. `excludeApparatus` also reads the author,
+ *  which is never null.
  *
  *  Exported because the vector leg needs the same answer *before* it scans.
  *  The lexical leg gets this for free from its `WHERE`, but a vector scan has
@@ -377,7 +380,7 @@ export const bookMatchesFilter = (book: BookRow, filter?: CorpusFilter): boolean
     allowed(filter.section, classified(book.section, isCorpusSection)) &&
     allowed(filter.type, type) &&
     allowed(filter.subtype, subtype) &&
-    (!filter.excludeApparatus || !Option.exists(type, (value) => APPARATUS_TYPES.has(value)))
+    (!filter.excludeApparatus || !isApparatus({ type, author: book.book_author }))
   );
 };
 
@@ -2221,12 +2224,14 @@ export class EGWParagraphDatabase extends Context.Service<
               );
             }
 
-            // Apparatus is its own toggle rather than three entries in
-            // `type.exclude`, but it is the same blacklist rule: an unclassified
-            // book is not known to be apparatus, so it stays.
+            // Apparatus is its own toggle rather than entries in
+            // `type.exclude`, but it is the same blacklist rule: a book with no
+            // type is not known to be apparatus by its type, so it stays unless
+            // its author makes it one (`isApparatus`).
             if (filter.excludeApparatus) {
               filters.push(
                 sql`(b.book_type IS NULL OR NOT ${sql.in('b.book_type', [...APPARATUS_TYPES])})`,
+                sql`NOT ${sql.in('b.book_author', [...APPARATUS_AUTHORS])}`,
               );
             }
           }
