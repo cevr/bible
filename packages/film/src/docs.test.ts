@@ -897,9 +897,16 @@ const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
     ...(yield* Effect.forEach(workspaces, (dir) => filesIn(dir, true, true))).flat(),
   ];
   const cache = path.join(root, WRITTEN_CACHE);
-  // How names are read: this file's text and the lock (the parser's version).
+  // How names are read: this file's text, the anchors it matches
+  // (fixtures/doc-anchors.ts), the lock (oxc-parser's version) and the Bun
+  // that runs it (its JSONC and TOML parsers).
   const reader = Bun.hash(
-    `${yield* fs.readFileString(import.meta.path)}${yield* fs.readFileString(path.join(root, 'bun.lock'))}`,
+    [
+      yield* fs.readFileString(import.meta.path),
+      yield* fs.readFileString(path.join(import.meta.dir, 'fixtures/doc-anchors.ts')),
+      yield* fs.readFileString(path.join(root, 'bun.lock')),
+      Bun.version,
+    ].join('\u0000'),
   ).toString(36);
   const kept = yield* keptWords(cache, reader);
   const read = yield* Effect.forEach(
