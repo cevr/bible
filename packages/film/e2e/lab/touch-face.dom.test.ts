@@ -1,8 +1,8 @@
-// Every target stands where the UI face puts it, within 1 px, while the
-// face's file has not landed, on both devices: each page is served as the lab
-// renders it with that file held, measured, then measured again once it
-// lands; the fallback (`--font`, `tokens.css`) is matched to its advance and
-// height.
+// Every target stands where the UI faces put it, within 1 px, while their
+// files have not landed, on both devices: each page is served as the lab
+// renders it with those files held, measured, then measured again once they
+// land; each face's fallback (`--font`'s for Geist, `--font-mono`'s for Geist
+// Mono, `tokens.css`) is matched to its advance and height.
 
 import { Deferred, Effect, Exit } from 'effect';
 import { describe, it } from 'effect-bun-test';
@@ -29,23 +29,31 @@ const SHIFT_PX = 0.5;
  */
 const LINE_PX = 1;
 
-/** The UI face's files in the page's fonts: the head's, and those its script registers. */
-const UI_FACES = `[...document.fonts].filter((f) => f.family.replaceAll('"', '') === 'JetBrains Mono')`;
+/** The UI faces' families: Geist, which `--font` names first, and Geist Mono, which `--font-mono` does. */
+const FAMILIES = ['Geist', 'Geist Mono'];
+
+/** Face `family`'s files in the page's fonts: the head's, and those its script registers. */
+const filesOf = (family: string) =>
+  `[...document.fonts].filter((f) => f.family.replaceAll('"', '') === '${family}')`;
+
+/** The UI faces' files in the page's fonts. */
+const UI_FACES = `[${FAMILIES.map((family) => `...${filesOf(family)}`).join(', ')}]`;
 
 /**
  * The page as it is laid out now, as a script reads it: how many of the UI
- * face's files are on the page and how many have loaded, each target's box
- * (`targetBoxes`), the width of a line named in the UI face alone (another
+ * faces' files are on the page and how many have loaded, each target's box
+ * (`targetBoxes`), the width of a line named in each face alone (another
  * face's while its file has not landed), and each of the chrome's sizes and
- * weights' 60-character line in `--font`: a line as long as a page's longest
- * label, so a fallback a hair off the UI face's advance or height shows where
- * a short label hides it.
+ * weights' 60-character line in each face's token: a line as long as a page's
+ * longest label, so a fallback a hair off its face's advance or height shows
+ * where a short label hides it. The mono face is measured at the timecode's
+ * size too.
  */
 const LAID_OUT = `(() => {
   const ui = ${UI_FACES};
   const tokens = getComputedStyle(document.documentElement);
-  const sizes = ['--fs-1', '--fs-2', '--fs-3', '--fs-4', '--fs-5'];
-  const weights = ['--w-1', '--w-2', '--w-3'];
+  const sizes = { '--font': ['--fs-1', '--fs-2', '--fs-3', '--fs-4', '--fs-5'], '--font-mono': ['--fs-1', '--fs-2', '--fs-3', '--fs-4', '--fs-5', '--fs-tc'] };
+  const weights = ['--w-1', '--w-2', '--w-clip', '--w-3'];
   const measured = (font) => {
     const probe = document.createElement('span');
     probe.style.cssText = 'position:absolute;white-space:pre;line-height:normal;font:' + font;
@@ -57,11 +65,13 @@ const LAID_OUT = `(() => {
   };
   const lines = () =>
     Object.fromEntries(
-      sizes.flatMap((size) =>
-        weights.map((weight) => [
-          size + ' ' + weight,
-          measured(tokens.getPropertyValue(weight) + ' ' + tokens.getPropertyValue(size) + ' ' + tokens.getPropertyValue('--font')),
-        ]),
+      Object.entries(sizes).flatMap(([face, faceSizes]) =>
+        faceSizes.flatMap((size) =>
+          weights.map((weight) => [
+            face + ' ' + size + ' ' + weight,
+            measured(tokens.getPropertyValue(weight) + ' ' + tokens.getPropertyValue(size) + ' ' + tokens.getPropertyValue(face)),
+          ]),
+        ),
       ),
     );
   return {
@@ -69,22 +79,24 @@ const LAID_OUT = `(() => {
     loaded: ui.filter((f) => f.status === 'loaded').length,
     boxes: ${targetBoxes('exact')},
     lines: lines(),
-    alone: measured('12px "JetBrains Mono", serif')[0],
+    alone: [${FAMILIES.map((family) => `measured('12px "${family}", serif')[0]`).join(', ')}],
   };
 })()`;
 
-/** The page laid out while the UI face's files are held (`LAID_OUT`), kept on the page; what it says of them. */
+/** The page laid out while the UI faces' files are held (`LAID_OUT`), kept on the page; what it says of them. */
 const HELD = `(() => { window.__held = ${LAID_OUT}; return [window.__held.faces > 0, window.__held.loaded]; })()`;
 
-/** The UI face landed: the page's fonts settled and its latin file (the chrome's) loaded. */
-const LANDED = `document.fonts.status === 'loaded' && ${UI_FACES}.some((f) => f.status === 'loaded')`;
+/** The UI faces landed: the page's fonts settled and a file of each face (its latin, the chrome's) loaded. */
+const LANDED = `document.fonts.status === 'loaded' && ${FAMILIES.map(
+  (family) => `${filesOf(family)}.some((f) => f.status === 'loaded')`,
+).join(' && ')}`;
 
 /**
- * The page laid out once the UI face has landed, against how it stood
- * held (`HELD`): whether the line named in the face alone changed (so the
+ * The page laid out once the UI faces have landed, against how it stood
+ * held (`HELD`): whether each line named in a face alone changed (so the
  * page was laid out without it, then with it), each target whose edge or
  * size moved more than `SHIFT_PX`, as `target: held → landed`, and each
- * line in `--font` more than `LINE_PX` longer or taller. Every box is
+ * line in a face's token more than `LINE_PX` longer or taller. Every box is
  * compared as the layout has it (`targetBoxes('exact')`), rounded only to
  * be read in a failure.
  */
@@ -102,16 +114,16 @@ const SWAPPED = `(() => {
   );
   const box = (r) => (r ?? []).map((v) => v.toFixed(2)).join(',') || 'none';
   return [
-    'laid out without it ' + (held.alone !== landed.alone),
+    ...held.alone.map((width, i) => 'laid out without face ' + i + ' ' + (width !== landed.alone[i])),
     ...moved.map((key) => key + ': ' + box(held.boxes[key]) + ' → ' + box(landed.boxes[key])),
     ...off.map((key) => 'a line at ' + key + ': ' + box(held.lines[key]) + ' → ' + box(landed.lines[key])),
   ];
 })()`;
 
 /**
- * A page as the lab serves it, rendered on the server with the UI face's
- * file in its head, that file held until `faceHeld` is done; once each of
- * `ready` shows.
+ * A page as the lab serves it, rendered on the server with the words face's
+ * file in its head, every UI face file held until `faceHeld` is done; once
+ * each of `ready` shows.
  */
 const servedHeld =
   (
@@ -134,7 +146,7 @@ const servedHeld =
     });
 
 for (const device of DEVICES) {
-  describe(`the UI face's fallback on ${device.name} (G10)`, () => {
+  describe(`the UI faces' fallbacks on ${device.name} (G10)`, () => {
     const PAGES = [
       // At rest once the scene's source is read: its knob fields writable, their titles their own.
       [
@@ -153,16 +165,20 @@ for (const device of DEVICES) {
     ] as const;
     for (const [name, open] of PAGES) {
       it.live(
-        `${name}: every target stands where it does once the face lands, within 1 px, laid out while its file is held`,
+        `${name}: every target stands where it does once the faces land, within 1 px, laid out while their files are held`,
         () =>
           Effect.gen(function* () {
             const faceHeld = yield* Deferred.make<void>();
             const page = yield* open(device.viewport, faceHeld);
-            // Held: the face is on the page, none of its files loaded; every target measured.
+            // Held: the faces are on the page, none of their files loaded; every target measured.
             yield* evaluates(page, HELD, [true, 0]);
             yield* Deferred.done(faceHeld, Exit.void);
             yield* until(page, LANDED);
-            yield* evaluates(page, SWAPPED, ['laid out without it true']);
+            yield* evaluates(
+              page,
+              SWAPPED,
+              FAMILIES.map((_, i) => `laid out without face ${i} true`),
+            );
           }).pipe(Effect.scoped),
         SLOW,
       );

@@ -4,7 +4,7 @@
 // into its root, and a read of the lab's API streamed in once answered; each
 // build renders in a worker of its own, imported afresh; a render of an
 // older build still under way finishes after a newer build renders; a page's
-// head preloads and declares the UI face's latin file at the URL the
+// head preloads and declares the words face's latin file at the URL the
 // browser's build answers; and a server entry that is no page's render fails
 // its render.
 
@@ -314,7 +314,7 @@ describe("a page's server render", () => {
     ['in a subfolder of its build', nestedBundle],
   ] as const)
     it.live(
-      `heads the page with the UI face's latin file, preloaded and declared, at the URL the browser's build answers it: its server entry ${where}`,
+      `heads the page with the words face's latin file, preloaded and declared, at the URL the browser's build answers it: its server entry ${where}`,
       () =>
         Effect.gen(function* () {
           const fs = yield* FileSystem.FileSystem;
@@ -344,7 +344,7 @@ describe("a page's server render", () => {
             ),
             () => '',
           );
-          expect(preloaded).toMatch(/^\/jetbrains-mono-latin-wght-normal-\w+\.woff2$/);
+          expect(preloaded).toMatch(/^\/geist-latin-wght-normal-\w+\.woff2$/);
           expect(page.head).toContain(`src:url(${preloaded}) format('woff2')`);
           expect(page.head).toContain('font-display:swap');
           expect(browser.outputs.map((file) => `/${file.path}`)).toContain(preloaded);

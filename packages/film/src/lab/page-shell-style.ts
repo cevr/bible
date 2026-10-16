@@ -62,6 +62,8 @@ body { --shell-floor: env(safe-area-inset-bottom); }
 .sh-tc { display: none; border: 0; background: none; color: var(--text-1); cursor: pointer; padding: 0 var(--s-2);
   font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-2); white-space: nowrap; border-radius: var(--r-2); }
 .sh-tc:hover { background: var(--surface-3); }
+/* A timecode is a number: the mono face, its zero slashed. */
+.sh-timecode { font-family: var(--font-mono); }
 .sh-timecode i { font-style: normal; color: var(--text-3); }
 .sh-timecode .sh-ff { color: var(--text-2); }
 .sh-goto { display: inline-grid; place-items: center; width: var(--hit); height: var(--hit); flex: none; padding: 0;

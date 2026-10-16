@@ -1,5 +1,7 @@
 # Design language: the studio
 
+> **Superseded by the studio tokens.** The studio's colours, faces, sizes, radii and motion are `packages/film/src/player/tokens.css`, decided by the studio design (unit p6-studio, its §6) on the owner's word of 2026-10-15 ("black and the kind of font choices. lets go with that"): Geist for words and Geist Mono for numbers and code, radii 6/10/12/14/18, pill groups. Where this document disagrees (one monospace face, radii 2/4, no pills), the tokens win; it is rewritten in sub-unit studio-css-docs. §3's block is the token file as it stands.
+
 The studio's tokens, shell, kit and pages. Written in pass 1 of the architecture loop (HEAD `f812e9ca`, a read-only sweep of `righteousness-by-faith` driven with `agent-browser` at 390×844 and 1440×900) and brought up to the code in pass 2, when the kit was built (§5 _The kit as built_), and again in pass 3 (§2, §3, §5, §7, §10 and every mock). §1 is the pass-1 inventory and stays as the record of where the studio started: its paths and lines name the tree at `f812e9ca`; §3 onward is the language the code follows. Its values are decided by the **Studio** principle and the sweep's evidence (the measurements and contrast ratios cited beside them), not by an owner's approval: the owner has not reviewed the mocks (§10, item 8).
 
 Mocks are in `design-language/mocks/`, one HTML page each, at 390 and 1440 by the same file (`.ph` shows below 900 px, `.lap` from 900 px); `index.html` shows every mock at both widths on one page. Each mock links the code's one token file, `packages/film/src/player/tokens.css`, and then the mocks' kit, `design-language/mocks/kit.css` (header, page bar, panels, buttons, chips, transport, fields, toast, the width switch, and the page rules two or more mocks share); the Lab mocks and Play link `design-language/mocks/lab.css` after it (the viewer, strip, cue lanes and dock they draw alike); a page keeps only its own rules, and a selector two pages draw differently stays in each page. Neither a sheet nor a page writes a token value, so a token changed in the code changes every mock. Hit targets are drawn at `--hit`, which resolves as the code's does: 44 px under a coarse pointer, 28 px under a fine one from 900 px. The mocks were redrawn to the code in pass 3 (`righteousness-by-faith` in the lab, driven with `agent-browser` at 390×844 and 1440×900) and show real data from the film. Their stills (one tape still every 5 s, one poster a scene, the Lab's large frame) are frames from the lab, written into the stills folder beside the mocks by `packages/scripts/src/fetch-stills.ts` (`bun run --cwd packages/scripts fetch:stills --lab http://127.0.0.1:<port>`, through the lab's declared API, `LabHttpApi`; the folder ends holding only that run's stills, so a scene with no render shows as missing, never as an old frame); they are the film's media, so git keeps them out (`.gitignore`) and they travel with the published page.
@@ -166,27 +168,61 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
 :root {
   color-scheme: dark;
 
-  /* Surface: dark warm grey, four steps. The picture sits on --surface-0. */
-  --surface-0: #0e0d0c; /* ground: the viewer, the gaps between panels */
-  --surface-1: #161513; /* panel */
-  --surface-2: #1e1c1a; /* header, field, raised row, tab bar */
-  --surface-3: #292724; /* hover, pressed, selected row */
-  --line: #2f2c29; /* hairline */
-  --line-strong: #45413b; /* field edge, focusable outline at rest */
+  /* Surface: black, then three neutral steps, so the frames carry the colour. The picture sits on --surface-0. */
+  --surface-0: #000000; /* ground: the viewer, the page, the gaps between panels */
+  --surface-1: #0b0e11; /* panel */
+  --surface-2: #13181b; /* raised: a pill, a field, a header, a clip */
+  --surface-3: #1d2327; /* hover, pressed, selected row */
+  --line: #1f262c; /* hairline */
+  --line-strong: #2c353c; /* field edge, focusable outline at rest */
+  --rim: rgb(54 116 248 / 0.55); /* a panel's blue edge glow */
   --backdrop: rgb(0 0 0 / 0.5); /* behind a sheet */
   --backdrop-deep: rgb(0 0 0 / 0.9); /* behind a lightbox */
   --hatch: rgb(255 255 255 / 0.05); /* stripes over a band: narration estimated, not recorded */
 
   /* Text: three steps. Never brighter than the picture's paper. */
-  --text-1: #e4dfd6; /* primary */
-  --text-2: #a19b91; /* secondary, labels */
-  --text-3: #6b665f; /* disabled, separators, hints */
+  --text-1: #e6ecf0; /* primary */
+  --text-2: #8f969a; /* secondary, labels */
+  --text-3: #5a6166; /* disabled, separators, hints */
 
-  /* One accent: playhead, selection, focus, the view's one primary verb. */
-  --accent: #e0ad45;
-  --accent-ink: #17120a;
-  --accent-wash: rgb(224 173 69 / 0.14);
-  --accent-wash-strong: rgb(224 173 69 / 0.4); /* a selected handle's fill */
+  /* One accent, blue: playing and focus, the view's one primary verb. The play key's gradient while playing only. */
+  --accent: #3b8df9;
+  --accent-a: #46f2fc;
+  --accent-b: #3674f8;
+  --accent-ink: #020a14; /* text on the accent: 6:1 */
+  --accent-wash: rgb(59 141 249 / 0.14);
+  --accent-wash-strong: rgb(59 141 249 / 0.4); /* a selected handle's fill */
+  --playhead: #f05139;
+  --mark: #fae51f; /* a mark's diamond */
+
+  /* Kinds: one colour a track, in the flow's order, each with its ink for text on it. */
+  --k-script: #fdc974;
+  --k-script-ink: #2b1d05;
+  --k-concept: #f67efd;
+  --k-concept-ink: #2d0631;
+  --k-board: #fa9acc;
+  --k-board-ink: #330f22;
+  --k-voice: #2ad553;
+  --k-voice-ink: #052b10;
+  --k-scene: #d8c7a6; /* the film's paper */
+  --k-scene-ink: #2a2214;
+  --k-sound: #54e2d3;
+  --k-sound-ink: #05302b;
+  --k-render: #b9a3f5;
+  --k-render-ink: #1d1236;
+  --k-ask: #f2f4f5; /* an ask's flag */
+  --k-note: var(--k-voice); /* a note's flag */
+  --voice-bed: #0d3a1c; /* the voice lane's clip ground, under its wave */
+  --card-paper: #f1ebde; /* a Board text card */
+  --card-ink: #2c2620;
+
+  /* Bands: the act bands over the ruler, each with its ink. */
+  --band-1: #0a1f38;
+  --band-1-ink: #7fa8de;
+  --band-2: #042a2b;
+  --band-2-ink: #54e2d3;
+  --band-3: #2b1c41;
+  --band-3-ink: #b9a3f5;
 
   /* Drawn over the picture: must read on any frame (the compare divider, marks' halo). */
   --on-picture: #fff;
@@ -210,26 +246,33 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --scene-sat: 30%;
   --scene-light: 32%;
 
-  /* Type: one monospace family, five sizes and one reading size. */
-  --font:
-    'JetBrains Mono', 'Fallback Menlo', 'Fallback Consolas', 'Fallback Courier', ui-monospace,
-    monospace;
-  --font-features: 'calt' 0;
-  --fs-1: 10px;
-  --lh-1: 14px; /* tape and ruler labels, units, kbd */
-  --fs-2: 11px;
-  --lh-2: 16px; /* meta, panel titles, tab labels */
-  --fs-3: 12px;
+  /*
+   * Type: Geist for words and labels, Geist Mono for every number, timecode,
+   * id and the code (a slashed zero, one advance). Geist keeps its standard
+   * ligatures (fi, ff, tt: each the width of its letters); Geist Mono has
+   * none to turn off.
+   */
+  --font: 'Geist', 'Fallback Arial', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Fallback Menlo', 'Fallback Courier', ui-monospace, monospace;
+  --font-features: normal;
+  --fs-1: 11px;
+  --lh-1: 16px; /* the floor: ruler labels, units, kbd */
+  --fs-2: 12px;
+  --lh-2: 16px; /* meta, panel titles, tab labels, a clip's name */
+  --fs-3: 13px;
   --lh-3: 18px; /* laptop body, fields */
-  --fs-4: 13px;
-  --lh-4: 20px; /* phone body, fields */
-  --fs-5: 16px;
-  --lh-5: 22px; /* timecode, page title */
-  --fs-read: 18px;
-  --lh-read: 28px; /* the prompter and the Script's lines only: text read aloud */
-  --w-1: 400;
+  --fs-4: 15px;
+  --lh-4: 22px; /* phone body, fields */
+  --fs-5: 17px;
+  --lh-5: 24px; /* page title */
+  --fs-read: 17px;
+  --lh-read: 26px; /* the reader, the prompter and the Script's lines: text read aloud */
+  --fs-tc: 22px;
+  --lh-tc: 28px; /* the timecode, in --font-mono */
+  --w-1: 450;
   --w-2: 500;
-  --w-3: 650;
+  --w-clip: 550; /* a clip's name on the timeline */
+  --w-3: 600;
   --track-caps: 0.06em; /* letter-spacing for uppercase panel titles */
 
   /* Space: a 4 px grid. */
@@ -243,21 +286,23 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --hairline: 1px; /* a gap or a margin that draws a line between two things: --border's width */
 
   /* Shape. */
-  --r-1: 2px; /* fields, chips, stills, cue bars */
-  --r-2: 4px; /* buttons, menus, toasts */
-  --r-sheet: 12px; /* a phone sheet's top corners */
+  --r-1: 6px; /* clips, fields, chips, stills */
+  --r-2: 10px; /* keys, buttons, menus, toasts */
+  --r-pill: 12px; /* a pill group: the transport's, the zoom's */
+  --r-panel: 14px; /* a panel: the viewer's box, the timeline's, the inspector */
+  --r-sheet: 18px; /* a sheet's top corners */
   --r-dot: 50%; /* a dot: a state's, a sound tick's, a grip's ring */
   --border: 1px solid var(--line);
   --shadow-pop: 0 8px 28px rgb(0 0 0 / 0.55); /* menus, sheets, toasts only; panels have none */
-  --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--accent);
+  --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 3px var(--accent); /* the one focus ring */
   --focus-ring-inset:
-    inset 0 0 0 1px var(--surface-0), inset 0 0 0 2px var(--accent); /* the same ring inside the edge of a box whose column clips what stands outside it */
+    inset 0 0 0 1px var(--surface-0), inset 0 0 0 3px var(--accent); /* the same ring inside the edge of a box whose column clips what stands outside it */
 
-  /* Motion. */
-  --t-fast: 80ms;
-  --t-base: 140ms;
-  --t-sheet: 220ms;
-  --ease: cubic-bezier(0.2, 0, 0, 1);
+  /* Motion: hover, a section, the inspector and a sheet. */
+  --t-fast: 100ms;
+  --t-base: 180ms;
+  --t-sheet: 260ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* Density: comfortable on the phone (the default). */
   --control-h: 36px;
@@ -271,6 +316,13 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --gutter: 16px;
   --body-fs: var(--fs-4);
   --body-lh: var(--lh-4);
+}
+/* The timecode at the laptop's width: the phone's is the smaller. */
+@media (min-width: 900px) {
+  :root {
+    --fs-tc: 26px;
+    --lh-tc: 32px;
+  }
 }
 /* Compact on the laptop: a fine pointer and room. */
 @media (min-width: 900px) and (pointer: fine) {

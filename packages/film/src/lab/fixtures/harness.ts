@@ -291,9 +291,9 @@ export const changeOf = (target: string, scene = 'one'): string => `${scene}:${t
 /** Where the probe film's face is asked for (`PROBE_FACE`): the review's files route. */
 export const PROBE_FACE_PATH = /^\/api\/review\/files\/probe-face\.woff2$/;
 
-/** The probe film's face's file: a subset of the UI face's own, under another family. */
+/** The probe film's face's file: a subset of the words face's own, under another family. */
 export const PROBE_FACE_FILE = Bun.resolveSync(
-  '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-greek-wght-normal.woff2',
+  '@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2',
   import.meta.dir,
 );
 
@@ -527,31 +527,31 @@ const apiAnswer =
   };
 
 /**
- * A UI face file as a fixture page asks for it: from the pages' root, as the
- * lab's build names it and its asset route answers it (`bundles.ts`).
+ * A UI face file as a fixture page asks for it, and its package: from the
+ * pages' root, as the lab's build names it and its asset route answers it
+ * (`bundles.ts`); a `geist-mono-` file is Geist Mono's, any other `geist-`
+ * file Geist's.
  */
-const FACE_FILE = /^\/(jetbrains-mono-[a-z-]+\.woff2)$/;
+const FACE_FILE = /^\/((geist-mono|geist)-[a-z0-9-]+\.woff2)$/;
 
 /**
- * The UI face's files, as the lab's asset route answers them: fontsource's
+ * The UI faces' files, as the lab's asset route answers them: fontsource's
  * file of the name asked, once `held` (when given) is done, so a test reads
- * the page while the face has not landed.
+ * the page while the faces have not landed.
  */
 const faceFiles =
   (held: Option.Option<Deferred.Deferred<void>>) =>
   (request: Request): Option.Option<Effect.Effect<Response>> =>
-    Option.map(Option.fromNullishOr(FACE_FILE.exec(request.url.pathname)), ([, name]) =>
+    Option.map(Option.fromNullishOr(FACE_FILE.exec(request.url.pathname)), ([, name, face]) =>
       Effect.andThen(
         Option.match(held, { onNone: () => Effect.void, onSome: Deferred.await }),
-        fileAnswer(
-          Bun.resolveSync(`@fontsource-variable/jetbrains-mono/files/${name}`, import.meta.dir),
-        ),
+        fileAnswer(Bun.resolveSync(`@fontsource-variable/${face}/files/${name}`, import.meta.dir)),
       ),
     );
 
 /**
  * A page's fake server: the page a path serves (its HTML and its script),
- * the UI face's files (`faceFiles`, held by `faceHeld` when given), then the
+ * the UI faces' files (`faceFiles`, held by `faceHeld` when given), then the
  * API (`apiAnswer`).
  */
 const fakeServer =
@@ -829,7 +829,7 @@ interface ReviewAt {
    */
   readonly mountedOnly?: boolean;
   /**
-   * The UI face's files held until this is done: the page laid out and read
+   * The UI faces' files held until this is done: the page laid out and read
    * in the face's fallback, then the face landing. None: answered at once.
    */
   readonly faceHeld?: Deferred.Deferred<void>;

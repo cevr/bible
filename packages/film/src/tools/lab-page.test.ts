@@ -235,11 +235,11 @@ describe('lab pages', () => {
   );
 
   it.live(
-    "the UI face's files are a page's own assets: each at an absolute URL, answered as a woff2",
+    "the UI faces' files are a page's own assets: each at an absolute URL, answered as a woff2",
     () =>
       Effect.gen(function* () {
         const { ask, script, write } = yield* app;
-        // The review imports the framework's face, as every page with chrome does.
+        // The review imports the framework's faces, as every page with chrome does.
         yield* write(
           'src/p.ts',
           `import { registerFace } from '${import.meta.dir}/../player/face.ts';\nconsole.log(registerFace);\n`,
@@ -248,9 +248,14 @@ describe('lab pages', () => {
           (yield* script).matchAll(/["'`]([^"'`]*\.woff2)["'`]/g),
           (m) => m[1] ?? '',
         );
-        expect(urls).toHaveLength(3);
+        expect(urls.map((url) => url.replace(/-\w+\.woff2$/, '')).toSorted()).toEqual([
+          '/geist-latin-ext-wght-normal',
+          '/geist-latin-wght-normal',
+          '/geist-mono-latin-ext-wght-normal',
+          '/geist-mono-latin-wght-normal',
+          '/geist-mono-symbols2-wght-normal',
+        ]);
         for (const url of urls) {
-          expect(url).toMatch(/^\/jetbrains-mono-(latin|latin-ext|greek)-wght-normal-\w+\.woff2$/);
           const font = yield* ask(url);
           expect([url, font.status, font.type]).toEqual([url, 200, 'font/woff2']);
           expect(font.text.length).toBeGreaterThan(1000);

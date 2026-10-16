@@ -60,6 +60,7 @@ body.export .stage canvas {
    the narration is not heard: three pieces the row lays out. */
 .time {
   display: contents;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--text-1);
 }
@@ -689,7 +690,7 @@ body.lab .stage {
   top: 0;
   display: flex;
   flex-wrap: wrap;
-  column-gap: 1ch;
+  column-gap: var(--s-1);
   box-sizing: border-box;
   height: var(--labels-h);
   padding-left: var(--s-1);
@@ -851,7 +852,7 @@ body.lab .stage {
 .lab-cue-words {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 1ch;
+  column-gap: var(--s-1);
   height: var(--lh-2);
   padding-inline: 2px;
   overflow: hidden;

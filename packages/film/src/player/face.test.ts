@@ -1,7 +1,7 @@
 // What waits for a film's picture faces (`pictureFacesWait`): nothing once
 // every one asked for has loaded, or none was asked for, so a page whose
 // faces are in draws at once; else each one still loading, failing when one
-// will not load. The UI face (`swap`) is the chrome's, and nothing waits for it.
+// will not load. The UI faces (`swap`) are the chrome's, and nothing waits for them.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Exit, Fiber, Option } from 'effect';
@@ -38,7 +38,7 @@ describe('pictureFacesWait', () => {
     }),
   );
 
-  it.effect("never waits for the UI face (the chrome's, swapped in)", () =>
+  it.effect("never waits for a UI face (the chrome's, swapped in)", () =>
     Effect.sync(() => {
       expect(Option.isNone(pictureFacesWait(fontsOf([face('swap', 'loading')])))).toBe(true);
     }),

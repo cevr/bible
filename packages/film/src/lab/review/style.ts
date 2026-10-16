@@ -139,7 +139,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-big { width: var(--control-h); padding: 0; font-size: var(--fs-4); flex: none; }
 .rv-transport input[type="range"] { flex: 1 1 0; min-width: 0; }
 .rv-transport > .sh-btn { flex: none; }
-.rv-time { color: var(--text-1); font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-2); white-space: nowrap; flex: none; }
+.rv-time { font-family: var(--font-mono); color: var(--text-1); font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-2); white-space: nowrap; flex: none; }
 @media ${PHONE} {
   .rv-transport { gap: var(--s-2); }
   .rv-time-rest { display: none; }
@@ -171,7 +171,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-rest-play .sh-icon { width: 24px; height: 24px; translate: 2px 0; fill: currentColor; }
 .rv-rest-length { position: absolute; right: var(--s-2); bottom: var(--s-2); padding: 0 var(--s-1);
   border-radius: var(--r-1); background: var(--backdrop-deep); color: var(--text-1);
-  font-size: var(--fs-2); line-height: var(--lh-2); font-variant-numeric: tabular-nums; }
+  font-family: var(--font-mono); font-size: var(--fs-2); line-height: var(--lh-2); font-variant-numeric: tabular-nums; }
 /* Play, quiet (\`PlayedAlone\`'s \`quiet\`): the kit's quiet button, at the pointer's size. */
 .rv-big[data-tone="quiet"] { width: var(--hit); min-height: var(--hit); }
 /*
@@ -325,10 +325,10 @@ a.rv-card:hover { background: var(--surface-2); }
   .rv-kinds { top: calc(var(--header-h) + var(--dock-h)); }
 }
 .rv-kinds .sh-btn { flex: none; }
-.rv-kinds .rv-count { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.rv-kinds .rv-count { font-family: var(--font-mono); color: var(--text-3); font-variant-numeric: tabular-nums; }
 .rv-group + .rv-group { margin-top: var(--s-4); }
 .rv-group h3 { display: flex; gap: var(--s-2); align-items: baseline; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-2); }
-.rv-at { font: inherit; font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+.rv-at { font: inherit; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
 .rv-at:disabled { color: var(--text-3); cursor: default; }
 .rv-plays .rv-row { justify-content: space-between; margin-top: var(--s-2); }
 .rv-inline-link { color: var(--text-1); text-decoration: none; }

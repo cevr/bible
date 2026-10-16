@@ -1,19 +1,23 @@
 // The faces a page draws in, each subset a woff2 file of its own: the
-// studio's UI face, JetBrains Mono (`@fontsource-variable/jetbrains-mono`,
-// OFL), which the chrome shows under the family `--font` names first
-// (`tokens.css`), and the faces a film draws in, which only its canvas shows
-// (an app's own, `pictureFaces`). Every file is imported from a script, never
-// linked from a stylesheet: the bundler inlines a stylesheet's `url()` as a
-// `data:` URI, so every face would hold the page's first paint, but emits a
-// script's import as its own file at an absolute URL named by its content's
-// hash (`/…-<hash>.woff2`), which the lab answers by its asset route behind
+// studio's two UI faces, Geist for words and labels and Geist Mono for
+// numbers, timecodes, ids and code (`@fontsource-variable/geist` and
+// `@fontsource-variable/geist-mono`, OFL), which the chrome shows under the
+// families `--font` and `--font-mono` name first (`tokens.css`), and the faces
+// a film draws in, which only its canvas shows (an app's own,
+// `pictureFaces`). Every file is imported from a script, never linked from a
+// stylesheet: the bundler inlines a stylesheet's `url()` as a `data:` URI, so
+// every face would hold the page's first paint, but emits a script's import as
+// its own file at an absolute URL named by its content's hash
+// (`/…-<hash>.woff2`), which the lab answers by its asset route behind
 // `admit`, as any script, and a changed file reaches an open page as any
 // changed source does.
 
 import { Effect, Option } from 'effect';
-import greek from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-greek-wght-normal.woff2';
-import latinExt from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-ext-wght-normal.woff2';
-import latin from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2';
+import wordsLatinExt from '@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2';
+import wordsLatin from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2';
+import monoLatinExt from '@fontsource-variable/geist-mono/files/geist-mono-latin-ext-wght-normal.woff2';
+import monoLatin from '@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2';
+import monoSymbols from '@fontsource-variable/geist-mono/files/geist-mono-symbols2-wght-normal.woff2';
 
 /** The characters each script's subset holds (Google Fonts' and fontsource's ranges). */
 export const SUBSETS = {
@@ -23,6 +27,8 @@ export const SUBSETS = {
     'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF',
   greek: 'U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF',
   hebrew: 'U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F',
+  /** Box drawing, blocks and spaces: a code file's rules and a meter's bars. */
+  symbols2: 'U+2000-2001,U+2004-2008,U+200A,U+23B8-23BD,U+2500-259F',
 } as const;
 
 /** One subset of a face, as its `@font-face` rule declares it. */
@@ -37,26 +43,39 @@ export interface Face {
   readonly style: 'normal' | 'italic';
 }
 
-/** The family the tokens name first. */
-const FACE_FAMILY = 'JetBrains Mono';
+/** The words face's family: the one `--font` names first. */
+const WORDS_FAMILY = 'Geist';
 
-/** One of the UI face's subsets: a variable file spanning every weight. */
-const uiFace = (url: string, range: string): Face => ({
-  family: FACE_FAMILY,
+/** The numbers and code face's family: the one `--font-mono` names first. */
+const MONO_FAMILY = 'Geist Mono';
+
+/** One subset of a UI face: a variable file spanning every weight. */
+const uiFace = (family: string, url: string, range: string): Face => ({
+  family,
   url,
   range,
-  weight: '100 800',
+  weight: '100 900',
   style: 'normal',
 });
 
-/** The subset a page's head declares (`FACE_HEAD`): the chrome's text is latin. */
-const HEAD_FACE = uiFace(latin, SUBSETS.latin);
+/**
+ * The subset a page's head declares (`FACE_HEAD`): the words face's latin,
+ * which the chrome's text is set in. The mono face is not in the head: its
+ * fallbacks share its one advance and its height exactly, so its swap moves
+ * nothing, and the head fetches only the font a target's place depends on.
+ */
+const HEAD_FACE = uiFace(WORDS_FAMILY, wordsLatin, SUBSETS.latin);
 
-/** The UI face's subsets. */
+/**
+ * The UI faces' subsets: each script either package ships that the chrome
+ * writes in (neither ships greek: a Greek word is set in the fallback).
+ */
 const UI_FACES: ReadonlyArray<Face> = [
-  uiFace(greek, SUBSETS.greek),
-  uiFace(latinExt, SUBSETS.latinExt),
+  uiFace(WORDS_FAMILY, wordsLatinExt, SUBSETS.latinExt),
   HEAD_FACE,
+  uiFace(MONO_FAMILY, monoSymbols, SUBSETS.symbols2),
+  uiFace(MONO_FAMILY, monoLatinExt, SUBSETS.latinExt),
+  uiFace(MONO_FAMILY, monoLatin, SUBSETS.latin),
 ];
 
 /** A family as a page's fonts name it: a stylesheet's rule keeps its quotes. */
@@ -80,13 +99,13 @@ const added = (
   });
 
 /**
- * Register the UI face's subsets into `fonts` (a page's `document.fonts`)
+ * Register the UI faces' subsets into `fonts` (a page's `document.fonts`)
  * but the one its head declared (`FACE_HEAD`, on a page the server
  * rendered); each loads when text first needs it, the chrome showing its
  * fallback until then (`swap`).
  */
 export const registerFace = (fonts: FontFaceSet): void => {
-  const inHead = Array.from(fonts).some((font) => unquoted(font.family) === FACE_FAMILY);
+  const inHead = Array.from(fonts).some((font) => unquoted(font.family) === HEAD_FACE.family);
   added(
     fonts,
     UI_FACES.filter((face) => !inHead || face !== HEAD_FACE),
@@ -107,15 +126,15 @@ const fromRoot = (url: string) =>
   url.startsWith('data:') ? url : `/${url.slice(url.lastIndexOf('/') + 1)}`;
 
 /**
- * The UI face's latin subset in a page's head (`page-server.tsx`), for its
+ * The words face's latin subset in a page's head (`page-server.tsx`), for its
  * first paint: fetched with the page, ahead of its scripts, and declared
  * there (`swap`), so the chrome's text the server rendered shows in it once
  * it lands, not once the page's scripts have run. The only font a page
  * fetches before it paints, and no stylesheet holds its bytes.
  */
 export const FACE_HEAD =
-  `<link rel="preload" href="${fromRoot(latin)}" as="font" type="font/woff2" crossorigin>` +
-  `<style>@font-face{font-family:'${FACE_FAMILY}';src:url(${fromRoot(latin)}) format('woff2');` +
+  `<link rel="preload" href="${fromRoot(HEAD_FACE.url)}" as="font" type="font/woff2" crossorigin>` +
+  `<style>@font-face{font-family:'${HEAD_FACE.family}';src:url(${fromRoot(HEAD_FACE.url)}) format('woff2');` +
   `font-weight:${HEAD_FACE.weight};font-style:normal;font-display:swap;unicode-range:${SUBSETS.latin}}</style>`;
 
 /** How a picture face is added to a page's fonts: never the chrome's text, so never swapped in. */

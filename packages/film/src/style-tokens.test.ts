@@ -15,9 +15,10 @@
 // look-book's page around its sheet is chrome and is read). So does paper:
 // the reading sheet is printed for the narrator at the microphone, light and
 // in a book face, never shown in the studio. One family is written outside
-// the tokens, the UI face's own registration (`player/face.ts`: its faces,
-// and the `@font-face` rule a page's head declares), and it is held to the
-// token: it is the family `--font` names first.
+// the tokens, the UI faces' own registration (`player/face.ts`: their faces,
+// and the `@font-face` rule a page's head declares), and each is held to its
+// token: the words face is the family `--font` names first, the mono face the
+// one `--font-mono` does.
 //
 // What a page draws is read back as well (`lab/fixtures/drawn-tokens.ts`, run
 // over every page and disclosed state of `e2e/lab/touch-tokens.dom.test.ts` at 390
@@ -25,7 +26,7 @@
 // `calc`, a style set from data, a weight) is caught by computing it, never
 // by widening these patterns. This guard stays for what only it sees: a
 // canvas painting the chrome (its pixels are no computed style), the `@font-face`
-// registration held to `--font`, and every state no page test opens (a
+// registration held to `--font` and `--font-mono`, and every state no page test opens (a
 // toast, the lab's failed page, a drag under way, a look-book's page,
 // an error a fixture never answers), whose literals it reads from source.
 
@@ -39,7 +40,7 @@ const ROOT = import.meta.dir;
 /** The one file colours and type are written in. */
 const TOKENS = 'player/tokens.css';
 
-/** The UI face's registration, which names the family its files hold. */
+/** The UI faces' registration, which names the families their files hold. */
 const FACE = 'player/face.ts';
 
 /**
@@ -181,7 +182,7 @@ const offences = Effect.gen(function* () {
   return found.flat().toSorted();
 });
 
-/** The first family a CSS family list names, unquoted (`'JetBrains Mono', monospace` → `JetBrains Mono`). */
+/** The first family a CSS family list names, unquoted (`'Geist Mono', monospace` → `Geist Mono`). */
 const firstFamily = (list: string) => (list.split(',')[0] ?? '').trim().replace(/^['"]|['"]$/g, '');
 
 describe('the studio reads its look only through its tokens', () => {
@@ -194,16 +195,24 @@ describe('the studio reads its look only through its tokens', () => {
   );
 
   it.effect.layer(BunServices.layer)(
-    "the UI face registers the family the tokens' --font names first",
+    "each UI face registers the family its token names first: Geist --font's, Geist Mono --font-mono's",
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const tokens = yield* fs.readFileString(`${ROOT}/${TOKENS}`);
         const face = yield* fs.readFileString(`${ROOT}/${FACE}`);
-        const token = /--font:\s*([^;]+);/.exec(tokens)?.[1] ?? '';
-        const registered = /FACE_FAMILY = '([^']+)'/.exec(face)?.[1] ?? '';
-        expect(registered).not.toBe('');
-        expect(registered).toBe(firstFamily(token));
+        const token = (name: string) =>
+          firstFamily(new RegExp(`${name}:\\s*([^;]+);`).exec(tokens)?.[1] ?? '');
+        const registered = (name: string) =>
+          new RegExp(`${name} = '([^']+)'`).exec(face)?.[1] ?? '';
+        expect({
+          words: registered('WORDS_FAMILY'),
+          mono: registered('MONO_FAMILY'),
+        }).toEqual({ words: token('--font'), mono: token('--font-mono') });
+        expect([registered('WORDS_FAMILY'), registered('MONO_FAMILY')]).toEqual([
+          'Geist',
+          'Geist Mono',
+        ]);
       }),
   );
 
@@ -248,7 +257,7 @@ describe('the studio reads its look only through its tokens', () => {
         "el.style['color'] = 'white';",
         'el.style[`backgroundColor`] = `black`;',
         // A family named in a string.
-        "const FACE_FAMILY = 'JetBrains Mono';",
+        "const WORDS_FAMILY = 'Geist';",
         "new FontFace('Inter', url);",
         "{ family: 'Inter' }",
         // A state colour defined outside the tokens.
@@ -280,7 +289,7 @@ describe('the studio reads its look only through its tokens', () => {
         "tip.style.setProperty('--x', '12px');",
         'ctx.fillStyle = ink;',
         "el.animate(frames, { fill: 'forwards' });",
-        'new FontFace(FACE_FAMILY, url);',
+        'new FontFace(WORDS_FAMILY, url);',
         '.lab-cue[data-live] { background: var(--state-live); }',
       ];
       // Every line it names is refused, and every token (and all else a line may hold) let
@@ -289,8 +298,9 @@ describe('the studio reads its look only through its tokens', () => {
         letThrough: refusedLines.filter((line) => !refused(line)),
         refused: allowedLines.filter(refused),
       }).toEqual({ letThrough: [], refused: [] });
-      // The face's own family is spared only in its registration.
-      expect(broken(FACE, "const FACE_FAMILY = 'JetBrains Mono';")).toEqual([]);
+      // The faces' own families are spared only in their registration.
+      expect(broken(FACE, "const WORDS_FAMILY = 'Geist';")).toEqual([]);
+      expect(broken(FACE, "const MONO_FAMILY = 'Geist Mono';")).toEqual([]);
     }),
   );
 });

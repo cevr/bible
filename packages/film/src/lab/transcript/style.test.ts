@@ -2,7 +2,7 @@
 // its focus shows the kit's ring inside that edge (`--focus-ring-inset`,
 // design language §4: "the same ring inside its edge"). The same ring is
 // `--focus-ring` with each of its layers drawn inset: the 1 px gap of the
-// ground at the edge, then the 1 px accent band, inside it as the kit's
+// ground at the edge, then the 2 px accent band, inside it as the kit's
 // stands outside.
 
 import { BunServices } from '@effect/platform-bun';
@@ -24,7 +24,7 @@ describe("the Transcript's focus ring", () => {
     Effect.gen(function* () {
       const css = yield* (yield* FileSystem.FileSystem).readFileString(TOKENS);
       const ring = layers(css, '--focus-ring');
-      expect(ring).toEqual(['0 0 0 1px var(--surface-0)', '0 0 0 2px var(--accent)']);
+      expect(ring).toEqual(['0 0 0 1px var(--surface-0)', '0 0 0 3px var(--accent)']);
       expect(layers(css, '--focus-ring-inset')).toEqual(ring.map((layer) => `inset ${layer}`));
     }).pipe(Effect.provide(BunServices.layer)),
   );

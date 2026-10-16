@@ -138,7 +138,7 @@ interface StudioPage {
 /**
  * Mount `studio` into the page over the browser's host: an old link the
  * server could not see all of (a bare `#<seconds>`) goes on to its place;
- * the UI face is registered first, so the fonts a film waits on include it;
+ * the UI faces are registered first, so the fonts a film waits on include them;
  * then its commands and their one key listener, and the page mounted
  * (`mountPage`), its end settled on it.
  */

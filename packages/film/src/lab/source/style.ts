@@ -1,5 +1,5 @@
 // The Source view's styles (`view.tsx`, design language §5 Source, §7 Lab):
-// the scene's code in the studio's monospace on the panel's surface, the
+// the scene's code in the studio's mono face on the panel's surface, the
 // playing cues lit by `::highlight` and a meter on each playing literal's
 // line, a line a read fires on glowing (`--glow`), the band held over the
 // code (the beat and the cues playing), the held line the accent's wash. On a laptop it is a column between
@@ -32,7 +32,8 @@ export const SOURCE_CSS = `${SOURCE_TOKENS}
   overflow-anchor: none; /* the browser never moves the scroll by itself: the view places it, layout clamps it, a hand moves it */ }
 /* The numbers' column: as many digits as the file's last line has (\`--digits\`, the page's), and the room either side. */
 .lab-source-page { --source-lh: var(--body-lh); --source-gutter: calc(var(--digits) * 1ch + var(--gutter) + var(--s-2));
-  position: relative; font-size: var(--body-fs); line-height: var(--source-lh); tab-size: 2; color: var(--text-1); }
+  position: relative; font-family: var(--font-mono); font-size: var(--body-fs); line-height: var(--source-lh); tab-size: 2;
+  color: var(--text-1); }
 /* The view's one line of now, over the code as it scrolls: a line tall, from the gutter, the beat the frame is on left
    and the cues playing right, each clipped by an ellipsis. */
 .lab-source-beat { position: sticky; top: 0; z-index: 3; display: flex; gap: var(--s-2); height: var(--source-lh);

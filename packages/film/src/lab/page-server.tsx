@@ -2,7 +2,7 @@
 // `core/page-render.ts`): Solid's `renderToStream` of the page's components,
 // the same ones its browser entry hydrates, inside the page's root
 // (`PAGE_ROOT`). The head holds Solid's hydration script (the values the
-// render serializes are read by it), the page's styles and the UI face's
+// render serializes are read by it), the page's styles and the words face's
 // latin subset (`FACE_HEAD`), so the first paint is styled, and set in the
 // studio's face once it lands, before any script runs. A failure that fails
 // the render is the sink's; one a boundary shows is the page's own.

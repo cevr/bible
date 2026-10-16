@@ -177,7 +177,7 @@ export const untokened = (tokensCss: string) => `(() => {
     if (/%$/.test(raw) && /^--r-/.test(name)) scales.radius.add(raw);
     if (/^\\d{3}$/.test(raw)) weights.add(raw);
     probe.style.fontFamily = 'var(' + name + ')';
-    if (name === '--font') families.add(getComputedStyle(probe).fontFamily);
+    if (name === '--font' || name === '--font-mono') families.add(getComputedStyle(probe).fontFamily);
   }
   // Read as a padding is (a width snaps to the layout's 1/64 px; a padding does not).
   for (const composed of ${arrayOf(Object.keys(COMPOSED))}) {

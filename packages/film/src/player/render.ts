@@ -32,7 +32,7 @@ declare global {
 
 /**
  * Mount the render page for `films` (the film its address names): the film
- * staged with no chrome and no UI face, drawing only the film's own faces,
+ * staged with no chrome and no UI faces, drawing only the film's own faces,
  * and, once they have loaded, the handle the renderer drives on
  * `window.__film`.
  */
