@@ -40,7 +40,7 @@ const REASKED = { schedule: Schedule.spaced('2 seconds'), times: 1800 } as const
  * Whether `answer` is newer than `served`: another server's, or a later
  * build (a later mix among them, numbered on the same count).
  */
-export const newer = (served: PageBuild) => (answer: PageBuild) =>
+const newer = (served: PageBuild) => (answer: PageBuild) =>
   answer.server !== served.server || answer.build > served.build;
 
 /**
@@ -100,30 +100,3 @@ export const hearEach = <E, R, H = never>(
       last = answer;
     }
   });
-
-/**
- * A review tab of `film` hears each new mix of it (another tab's write
- * mixed it again: `LabPage` watches the track once a page waits with its
- * film), and each newer build, then `heard` with the build it heard, in
- * place: a half-typed comment stays. A page with no build hears none. The
- * page's build is read as it runs, so a page's render on the server, which
- * makes it and never runs it, reads no document.
- */
-export const hearMixes = <H = never>(
-  film: string,
-  heard: (answer: PageBuild) => Effect.Effect<void, never, H>,
-) =>
-  Effect.suspend(() =>
-    Option.match(servedBuild(), {
-      onNone: () => Effect.void,
-      onSome: (served) =>
-        Effect.flatMap(LabClient, (client) =>
-          hearEach(
-            served,
-            ({ build, server }) =>
-              client.page.wait({ query: { since: build, server, film, timeout: WAIT_S } }),
-            heard,
-          ),
-        ),
-    }),
-  );

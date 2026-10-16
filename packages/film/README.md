@@ -1087,17 +1087,11 @@ by a rename, so the mix has finished) is one more change, with no new build,
 that the film's open lab hears and no other film's (it waits with `&film=`),
 so a score or level written on the review, a take kept, a first mix, or a
 `film mix` run by hand reloads that lab once onto the new track; a take's
-timings, saved before its mix, wake nothing. A film's choices page waits
-with `&film=` too, from its first wait (it never plays the track, so the
-wait itself arms the watch, `filmWaited`), and hears each newer mix once
-(`hearMixes`): it asks every mix again and reads the steps again at once,
-and reads the film's choices again and shows them if they changed (unless a
-newer answer, a comment's, is shown by then), so a pick made in a second tab
-shows in the first. A write that mixed answers the build its film's pages
-hear that very mix by (`mixed`, `LabPage.heardAt`, from the track's mtime
-read under the writer's lock); the page asks every mix again once per build,
-so the wake for its own mix asks nothing more, and one past it (another
-tab's fade remixed in the same settle) does, whatever the choices say. A page links its scripts and styles from the root (`/chunk-….js`,
+timings, saved before its mix, wake nothing. A page that never plays the
+track arms the watch with its first wait on `&film=` (`filmWaited`). A write
+that mixed answers the build its film's pages hear that very mix by
+(`mixed`, `LabPage.heardAt`, from the track's mtime read under the writer's
+lock). A page links its scripts and styles from the root (`/chunk-….js`,
 `publicPath: '/'`), so a page served under a film's path finds them; a
 request is answered as a narration file when it is one
 (`/films/<film>/narration/<file>`), then as a built file, then as the page
@@ -1304,13 +1298,47 @@ The keys: Space plays or pauses, K pauses, L plays, J or ↑ goes to the
 previous beat, ↓ to the next beat, Home to the start and End to the end.
 ← and → step a frame (⇧ a second). Escape closes the inspector.
 
-A click on any clip of a beat selects that beat (`?sel=beat:<id>`). Every
-clip of the beat is outlined, and the inspector opens beside the viewer:
-its head and a row for each section. The sections' bodies come later; until
-then the Words, Board and Notes rows link to the beat on the Script, the
-Board and the Lab (`beatPageHref`, `view-state.ts`), at the playhead in the
-beat's own time when it is in the beat. A short has none of these pages,
-so its rows link nowhere.
+A click on any clip of a beat selects that beat (`?sel=beat:<id>`), and a
+click on a Board clip selects its panel (`?sel=panel:<beat>.<mark>`:
+`panelSelection`, `selectedPanel` in `core/api.ts`). Every clip of the beat
+is outlined, and the inspector (`inspector.tsx`) opens beside the viewer:
+its head (the beat, its span, Approve) and a section for each stage, in the
+flow's order, each a disclosure with its count when shut
+(`inspector-state.ts`: `95 words`, `3 of 3 kept`). The section of the kind
+clicked opens with the selection (Words for a beat, Board for a panel); one
+the owner opens or shuts stays so while the selection stands.
+
+- **Words**: the beat's line as the one words reader reads a script
+  (`lab/words/reader.tsx`, `film-script.tsx`), its delivery marks set by a
+  tap and its staging take playable, following the playhead by the one
+  Follow rule (`follow-rule.ts`).
+- **Board**: each panel at its mark with its tries, the kept one ringed; a
+  try pressed shows large, and Keep keeps it. Approve and Withdraw act on
+  the beat. The writes are one machine (`board-writes.ts`: Idle, Sending,
+  Done, Failed; a write asked while one is on its way is not sent) over the
+  lab's board routes (`POST /board/pick`, `/board/approve`,
+  `/board/withdraw`); a version not the film's shows its board read only.
+- **Voice**: the beat's take (`lab/take.ts` `takeHeard`: the kept attempt,
+  else the staging take its timings name), its facts and Hear; Record opens
+  the record studio (`lab/studio/`) in a Dialog on a laptop and a Sheet on
+  a phone.
+- **Code**: the scene's file read only, only when the beat has a scene,
+  with Edit in the Lab.
+- **Notes and asks**: the beat's open notes, each with its thread and a
+  reply (`lab/notes/thread.tsx`), and the open asks at its time, each a link
+  to its page. Choices' picks are asks: no Choices page remains.
+
+A section with nothing to show is a quiet row with no body: Words and
+Code on a version kept in its own folder (the reader and the scene are the
+film's as it stands), Board on a beat with no panel, Code on a beat with no
+scene, and Concept, whose body is to come.
+
+The pages the inspector holds now are links that land on the studio
+(`Replaced` in `core/api.ts`): `/films/<film>/script` and
+`/films/<film>/board` on the studio, `/films/<film>/script/<beat>` and
+`/films/<film>/board/<beat>` with the beat selected, a Board link's
+`?panel=<mark>` with that panel, and `/films/<film>/choices` on the studio.
+A try, a note and the Script's scene time (`#t=`) are not kept.
 
 The clock is the staged film's preview with its narration (`playerClock`,
 `clock.ts`) when the version shown is the one the film registry holds. A
@@ -1478,21 +1506,7 @@ commands: Inspect (`i`) and Comment on (`m`) open the inspector, Approve
 and an act's or the film's approve of its current scenes is in its menu and
 ⌘K with no key. A tap on a thing's name or its comment dot opens it too. A
 key reads the thing the keyboard's focus is in (`withFocused`, after the
-URL's selection of its kind). On the choices page (`src/lab/review/options/keys.ts`)
-the selected point (a focused variant's, or `?point=`) auditions: ⌥→ and ⌥←
-hear its next or previous variant in place, as its speaker does, skipping one
-that cannot be heard, and move the focus to that row; Enter then picks it
-(only while the selected variant is the one heard, so a focused Pick on
-another row keeps its own Enter). The instants a point plays at are no
-longer chips at rest: each is a `Jump to 00:00:02:00 · hush in open` in its card's
-context menu (and in ⌘K once typed), and `.`/`,` jump to its next or
-previous one. A voice's pick refused as heard as something else
-(`TakeMismatch`) offers **Accept anyway** as its receipt's button, in its
-row's context menu and in ⌘K, while that refusal stands and never at rest:
-it sends the pick again with `acceptMismatch: true`, which `keepVoice` keeps
-(`--accept-mismatch`, as the studio's Accept anyway does). A level's value is a field beside its slider (`Field`, typed
-arithmetic committed on Enter, its arrows the knob's step, Shift ten,
-Alt a tenth). On a stack (`src/lab/review/hear.ts`) `1`…`9` hear
+URL's selection of its kind). On a stack (`src/lab/review/hear.ts`) `1`…`9` hear
 option n, as its speaker does, while the view can play it. A stack's option says over
 `POST /api/review/sets/<folder>/<point>/say`, its answer shown in
 place. Its receipt says what the catalogue answers it gave or took
@@ -1664,7 +1678,7 @@ and the pages' one client (`LabClient`, an `HttpApiClient` of `LabHttpApi`
 in `lab/api.ts`, which `lab/studio/api.ts`, `lab/review/api.ts` and
 `lab/review/options/api.ts` call through) with the URLs a page puts
 in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
-`reviewPhoneUrl`, `reviewFrameUrl`, `choiceAloneUrl`, `choiceMixUrl`, from
+`reviewPhoneUrl`, `reviewFrameUrl`, from
 `urlBuilder`).
 
 | API          | Served by                 | Groups                                                                                                                                                                                                                                                                       |
@@ -2312,59 +2326,20 @@ picture (the Source view's place; opening one shuts the other); on a phone a
 sheet of its own. ⇧T and the command menu show and hide it on a film that
 reads footage, and hide it wherever it is open.
 
-A film's Script page (`/films/<film>/script[/<beat>]`, `lab/script/`,
-reached from the studio's inspector) reads the whole film as its script: each beat
-in play order under its id and where it starts (a press on either shows its
-first frame), a quiet `estimated` badge on a line no take voices as it reads
-now, what its picture does (the script's brief, `GET …/script`), its line as
-the film says it, and its sources. It is the Lab's page with the Lab's
-player and none of its tools: on a laptop the reader is a column beside the
-picture, on a phone it scrolls under the picture and its track. A line's
-words are laid out, painted and pressed as the Transcript's are
-(`lab/transcript/words.ts`, `lineRows` in `lab/transcript/lit.ts`): the word
-playing lit by the clock and the beat under the frame edged, the words
-selected (`?words=a-b`, in the path's beat) painted. A tap on a word seeks
-to where it starts and selects it, shift extends the selection, a text
-selection across words selects them, and a word held or right-clicked opens
-the page's menu, whose Select to here (`lab/script/commands.ts`) extends the
-selection. The reader follows the frame by the lab's one Follow rule until a
-hand scrolls it, or a press opens something under a line while the film
-plays (so the frame moving on never scrolls it away); Follow or Play takes
-it back. The Script selects one thing at a time (a cue, a mark, words or a
-note), and writes nothing of the film's.
-
-How a beat's cues are tied to its words is drawn on its line
-(`lab/script/ties.ts`, `tied.tsx`): each `{mark}` a chip before the word it
-stands before, and each name in backticks in the picture's brief a link to
-the cue of the beat it names (else its mark; a name the beat lacks stays
-text). A mark, a cue or words selected (`?mark=`, `?cue=`, `?words=`) list
-under the line the cues tied to them, each with its start and end in the
-beat (`0.85–1.90 s`, as `film cues` prints them) and what its span says
-(`mark {near} · until {held}`): a cue is tied to a mark when its start or
-its end lands on it, directly or through `after` and `with` chains (`after`
-a cue is where that cue ends, `with` it where it starts), to the words its
-start and end land on (a word pinned after a mark is that word), and to no
-word through a landmark. A mark or a cue picked seeks to where it is and
-washes the words it lands on; each chip, name and row is a link to its own
-place on the Script, so it opens apart in a tab.
-
-Notes are written on the Script too, through the Lab's notes (`lab/notes/`;
-`lab/script/notes.tsx`, `noted.ts`). Note… under the words selected, or Note,
-Correct or Remove these words on their menu and in ⌘K, shows the frame where
-the first is said and opens the composer under the beat (on a phone, in a
-sheet), asking that of them: Correct takes the words to say instead, and ⌘↵
-saves from the composer's fields. Note frame in the reader's head notes the
-frame under the playhead, as the Lab's does. Each note on words not yet
-resolved, and the note selected, is painted on its words (a note's
-underlined, a correction's or a removal's struck, a correction's words
-instead after them) with its marker after its last word: its id in its
-status's colour, a link to it. A note whose words no longer stand where they
-stood marks the run of the line that reads as they did when only one run
-does, else the line's end; a note of a beat's frame has its marker in the
-beat's head. The
-note selected (`?note=`) opens under its beat: what it asks, its thread, a
-reply and Resolve. Nothing on the page writes `script.ts`: the agent reads
-the notes (`film notes`) and edits the script.
+A film's script is read in the one words reader (`lab/words/reader.tsx`,
+the film's in `film-script.tsx`): in the studio's inspector (its Words
+section, the beat selected) and in an ask's script block. Each beat stands
+under its id and label with its staging take (▶ and its pace once ready),
+its line at the reading size with its delivery marks, what its picture does
+(the script's brief, `GET …/script`) and its sources. A tap on a word
+selects it (shift extends; a text selection across words selects them, and
+a word held or right-clicked opens the page's menu, whose Select to here,
+`lab/script/commands.ts`, extends it) and opens the box under its line:
+Hear, Clear and the words' delivery, each written at once into `script.ts`
+(`POST …/script/marks`). A page with a playhead names the beat it is in,
+which the reader marks and keeps in sight by the lab's one Follow rule
+(`lab/follow.ts`) until a hand scrolls it. Nothing else on it writes
+`script.ts`: the agent reads the notes (`film notes`) and edits the script.
 
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet
@@ -3132,29 +3107,16 @@ link opens it, Back closes it, and Escape or a tap closes it by the
 sheets' one rule, the address bar's dismissal (`addressOn(host).dismiss`;
 `useSheetDismissal` tracks the opening). The header is the studio's shell (`PageShell`,
 `lab/page-shell.tsx`): Films, the film switcher, the Studio link, a
-drill-down crumb and Go to… (⌘K: Go to finds a folder, a set, or a film's
-choices by name, `destinationsOf`, and on a film's choices each choice
-point, `pointDestinations`; home lists every folder, with no filter
-field). Choices opens with a kinds strip once it shows two kinds (Score,
-Looks, Sounds, Voice, Levels, each with its count): a tap goes to the kind's
-first point as Go to does. Going to a point is one step Back walks: its
-card in focus (`?point=`, a Show only that hides it cleared), in view, and
-the keyboard on its first control, so the next audition is its own. A card in focus on Choices is its `?point=`, and the sheet open on
-Choices or on a set is its `?inspect=` (`useInspectorPlace`), so a link
+drill-down crumb and Go to… (⌘K: Go to finds a folder or a set by name,
+`destinationsOf`; home lists every folder, with no filter field). The
+sheet open on a set is its `?inspect=` (`useInspectorPlace`), so a link
 opens it and Back closes it.
 Refresh (`review.refresh`) and the copy played (`review.quality`: Play the
 proxies, Play the originals) are the page's commands, in ⌘K and the page's
 long-press menu; a proxy still being made still offers its original in
 place. A Folder's loose video shows its picture and name; its file is its
 long-press menu's (`review.file-open` Open the file, Copy link to the file,
-`review.file-info` Info: its size, age and proxy). On a film's choices and its project, Show only… (`review.only-stale`,
-`review.only-unapproved`, `review.only-comments`, and `review.only-all` to
-show every point again) keeps the points in one state: out of date (a
-stale variant), awaiting approval (its picked variant, or any while none is
-picked, not approved) or with comments. The state is the link's `?only=`,
-each choice replacing the entry, and while it holds a line over the points
-says so with Show every point. A point with a finding is not one of them:
-a finding names an address, not a point. A set's page holds one effect-machine actor, the synced player
+`review.file-info` Info: its size, age and proxy). A set's page holds one effect-machine actor, the synced player
 (`machine.ts`: `Paused`, `Playing`, `Scrubbing`, `Buffering`; one clock, the
 leading version's video (the first shown whose video plays here), whose ←/→
 step is one frame of that video's own (its timecode counts them; Shift ten):

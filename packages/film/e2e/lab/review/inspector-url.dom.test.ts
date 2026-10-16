@@ -1,6 +1,5 @@
-// Every review inspector's open state is the URL's (`useInspectorPlace`), on
-// Choices (`?inspect=<variant>`, beside `?point=`, the card in focus) and a
-// Set (`?inspect=<version>`): a tap on a thing's
+// A Set's inspector's open state is the URL's (`useInspectorPlace`,
+// `?inspect=<version>`): a tap on a thing's
 // name names it, a step of its own, so Back closes its sheet and Forward
 // opens it again; Close, Escape and a swipe (a finger down on a phone, the
 // sheet's own scroll sideways on a laptop) drop it, going Back over the entry
@@ -8,14 +7,13 @@
 // a link naming it opens it, and closing that makes no entry either. A link
 // written before the key keeps landing, the sheet shut. The page owns its
 // sheets, not the cards it shows: a sheet the URL names opens though a
-// filter (`?only=`) or a pair leaves its card out.
+// pair leaves its card out.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { PHONE, openReview } from '../../../src/lab/fixtures/harness.ts';
 import {
-  STUDIO_FILM,
   STUDIO_FOLDER,
   STUDIO_SET,
   studioRoutes,
@@ -48,7 +46,7 @@ interface Page {
   readonly row: string;
   /**
    * Where a Close leaves the page, from where it rested: Back over the tap when that lands
-   * exactly there, else the tap's entry rewritten to it (Choices keeps the card in focus).
+   * exactly there, else the tap's entry rewritten to it.
    */
   readonly closed: (rest: string) => string;
 }
@@ -57,16 +55,6 @@ interface Page {
 const MARKED = `document.querySelectorAll('.rv-main [data-selected="true"]').length`;
 
 const PAGES: ReadonlyArray<Page> = [
-  {
-    name: 'Choices',
-    href: pageHref.choices(STUDIO_FILM),
-    ready: '[data-point="score"] [data-variant="piano"] .lab-inspect',
-    thing: '[data-point="score"] [data-variant="piano"] .lab-inspect',
-    // The card in focus moves to the variant's point with it, in the same step.
-    named: { point: 'score', inspect: 'piano' },
-    row: '[data-point="score"] [data-variant="piano"]',
-    closed: () => pageHref.choices(STUDIO_FILM, 'score'),
-  },
   {
     name: 'a Set',
     href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
@@ -103,9 +91,6 @@ const RING = `(() => {
   ];
 })()`;
 
-/** The URL's query keys a sheet is named by, as a script reads them. */
-const QUERY = `(() => { const q = new URL(location.href).searchParams; return [q.get('point') ?? '', q.get('inspect') ?? '']; })()`;
-
 /** Wait until the URL is `href`, path and query. */
 const at = (page: Tab, href: string) =>
   until(page, `location.pathname + location.search === '${href}'`);
@@ -124,7 +109,7 @@ for (const p of PAGES) {
           const rest = yield* page.evaluate<string>('location.pathname + location.search');
           yield* page.click(p.thing);
           yield* waitFor(page, CLOSE);
-          // The thing is named, by its own key; Choices' point names the card it is on.
+          // The thing is named, by its own key.
           for (const [key, value] of Object.entries(p.named))
             yield* evaluates(page, `new URL(location.href).searchParams.get('${key}')`, value);
           const named = yield* page.evaluate<string>('location.pathname + location.search');
@@ -183,10 +168,7 @@ for (const p of PAGES) {
           yield* page.finger.drag({ x, y }, { x, y: y + 400 });
           yield* countIs(page, INSPECTOR, 0);
           yield* at(page, p.closed(rest));
-          yield* evaluates(page, QUERY, [
-            new URL(`http://x${p.closed(rest)}`).searchParams.get('point') ?? '',
-            '',
-          ]);
+          yield* evaluates(page, `new URL(location.href).searchParams.get('inspect') ?? ''`, '');
           expect(errors).toEqual([]);
         }),
       SLOW,
@@ -215,10 +197,7 @@ for (const p of PAGES) {
           yield* page.mouse.wheel(-LAPTOP.width, 0);
           yield* countIs(page, INSPECTOR, 0);
           yield* at(page, p.closed(rest));
-          yield* evaluates(page, QUERY, [
-            new URL(`http://x${p.closed(rest)}`).searchParams.get('point') ?? '',
-            '',
-          ]);
+          yield* evaluates(page, `new URL(location.href).searchParams.get('inspect') ?? ''`, '');
           // Back over the tap, or the tap's entry rewritten: no entry of the swipe's own.
           yield* evaluates(page, 'history.length === window.__entries', true);
           expect(errors).toEqual([]);
@@ -383,28 +362,8 @@ describe('an open phone sheet as what it stands on moves under it', () => {
   );
 });
 
-describe('a link written before the sheet had a key', () => {
-  it.live("keeps landing: Choices' point focuses its card, the sheet shut", () =>
-    Effect.gen(function* () {
-      const href = pageHref.choices(STUDIO_FILM, 'score');
-      const { page, errors } = yield* openReview(studioRoutes, { href, viewport: LAPTOP });
-      yield* waitFor(page, '[data-point="score"] [data-variant="piano"] .lab-inspect');
-      yield* countIs(page, INSPECTOR, 0);
-      yield* evaluates(page, QUERY, ['score', '']);
-      expect(errors).toEqual([]);
-    }).pipe(Effect.scoped),
-  );
-});
-
 describe('a sheet the URL names opens whatever cards the page shows', () => {
   const CASES = [
-    {
-      name: "Choices, its variant's card left out by Show only (`?only=comments`)",
-      routes: studioRoutes,
-      href: `${pageHref.choices(STUDIO_FILM, 'look:ground', 'now')}&only=comments`,
-      card: '.rv-main [data-point="look:ground"] [data-variant="now"]',
-      title: 'now of',
-    },
     {
       name: "a Set's pair, the version it names not one of the two (`?view=pair&other=warm&inspect=cool`)",
       routes: studioRoutesOfThree,
@@ -438,13 +397,6 @@ describe('a sheet the URL names opens whatever cards the page shows', () => {
 
 describe('a link whose sheet names a thing the page has none of', () => {
   const CASES = [
-    {
-      name: 'Choices',
-      href: pageHref.choices(STUDIO_FILM, 'look:ground', 'removed'),
-      focus: '[data-point="look:ground"] [data-variant="now"] .lab-inspect',
-      title: 'now of',
-      named: 'now',
-    },
     {
       name: 'a Set',
       href: pageHref.set(STUDIO_FOLDER, STUDIO_SET, 'removed'),

@@ -1,9 +1,7 @@
-// A film's own pages in the lab's shell, the Board, the Lab and the Script
-// (`/films/<film>/board…`, `/films/<film>/lab…`, `/films/<film>/script…`),
-// as the browser and the server both render them: the shell
-// (`page-shell.tsx`: the header, the film switcher, the Studio link, Go to…),
-// the context menu, ⌘K, the `?` sheet and the receipts, around the page's
-// body; on the Lab and the Script the film's notes, and on the Lab its
+// A film's Lab in the lab's shell (`/films/<film>/lab…`), as the browser and
+// the server both render it: the shell (`page-shell.tsx`: the header, the
+// film switcher, the Studio link, Go to…), the context menu, ⌘K, the `?`
+// sheet and the receipts, around the page's body; the film's notes, and its
 // panel (`panel.tsx`: the mode tray, each tool's section). The body is the film's and the browser's
 // alone (`clientOnly`): the canvas, the scene code and the stills are drawn
 // from the film's modules, which the server never imports (Fresh reads,
@@ -75,15 +73,11 @@ export const stagedBody =
       ),
     );
 
-/** The pages the lab's entry is: the Board, the Lab and the Script. */
-export type LabPart = Extract<ShellPage, 'board' | 'lab' | 'script'>;
-
 /** What a film's page puts around its body, made in its place when it is asked. */
 type PageAround = (body: () => JSX.Element) => JSX.Element;
 
 /** What a film's page is rendered with. */
 interface FilmPageWith {
-  readonly part: LabPart;
   /** The film its path names: none on a path naming none. */
   readonly name: Option.Option<string>;
   /** The app's films, the switcher's: none on the server (its menu opens only in the browser). */
@@ -93,7 +87,7 @@ interface FilmPageWith {
   /** The receipts' scope in the tab's store: the page's kind and its film. */
   readonly scope: string;
   readonly body: FilmBody;
-  /** What the page puts around its body: the Lab's panel; the Board and the Script, nothing. */
+  /** What the page puts around its body: the Lab's panel. */
   readonly around: PageAround;
 }
 
@@ -128,7 +122,7 @@ const FilmShell = (props: FilmPageWith) => {
   const href = useAtomValue(() => UrlAtom.href);
   return (
     <PageShell
-      page={(): ShellPage => props.part}
+      page={(): ShellPage => 'lab'}
       film={() => props.name}
       films={() => props.films}
       hub={props.hub}
@@ -149,72 +143,51 @@ interface FilmPageSpec {
   readonly style: string;
 }
 
-/**
- * The Lab's page, the Script's too. The Script's own styles are not in its
- * head: its reader puts them there while it is mounted (`script/view.tsx`).
- */
+/** The Lab's page. */
 export const LAB_PAGE: FilmPageSpec = {
   bodyClass: 'lab',
   rootClass: 'lab-root',
   style: `${SHELL_CSS}${COMMAND_CSS}${SOURCE_CSS}${TRANSCRIPT_CSS}`,
 };
 
-/** The Script on a Script link (`/films/<film>/script…`), the Board on a Board link, else the Lab. */
-export const labPartOf = (href: string): LabPart => labPlaceOf(href).root;
-
-/** What a page of film `name` and of `part` puts around its body, given its host and commands. */
-type AroundOf<P extends LabPart> = (name: string, host: Host, hub: Hub, part: P) => PageAround;
+/** What a page of film `name` puts around its body, given its host and commands. */
+type AroundOf = (name: string, host: Host, hub: Hub) => PageAround;
 
 /**
- * A film's page of `part` over `host`, as page `page`'s commands
+ * A film's page over `host`, as page `page`'s commands
  * (`command/hub.ts`, their keys not yet heard), with `body` in it once
  * staged and `around` it: its commands and its app, for the browser to
  * mount or hydrate and the server to render. Its receipts are kept under
  * `scope` and the film.
  */
-const filmPageOn = <P extends LabPart>(
+const filmPageOn = (
   page: PageName,
   scope: string,
-  part: (href: string) => P,
   host: Host,
   films: ReadonlyArray<string>,
   body: FilmBody,
-  around: AroundOf<P>,
+  around: AroundOf,
 ) => {
   const href = addressOn(host).href;
   return studioOn(page, host, (hub) => {
     const name = filmOfPage(href());
     const film = Option.getOrElse(name, () => '');
-    const on = part(href());
     return () => (
       <FilmPage
-        part={on}
         name={name}
         films={films}
         host={host}
         hub={hub}
         scope={`${scope}:${film}`}
         body={body}
-        around={around(film, host, hub, on)}
+        around={around(film, host, hub)}
       />
     );
   });
 };
 
-/** What each of the lab's parts puts beside its body in the page: the Lab its panel; the Board and the Script nothing more. */
-const LAB_PARTS: Readonly<Record<LabPart, PageAround>> = {
-  board: (made) => made(),
-  lab: (made) => (
-    <>
-      <LabPanel />
-      {made()}
-    </>
-  ),
-  script: (made) => made(),
-};
-
 /**
- * The Lab or the Script over `host`, as its link says, its reads through
+ * The Lab over `host`, its reads through
  * `client` (the page's one client of the lab's API), its body `body` once
  * the film is staged.
  */
@@ -224,8 +197,9 @@ export const labOn = (
   client: Layer.Layer<LabClient>,
   body: FilmBody,
 ) =>
-  filmPageOn('lab', 'lab', labPartOf, host, films, body, (name, at, hub, part) => (made) => (
+  filmPageOn('lab', 'lab', host, films, body, (name, at, hub) => (made) => (
     <LabPage name={name} host={at} hub={hub} client={client}>
-      {LAB_PARTS[part](made)}
+      <LabPanel />
+      {made()}
     </LabPage>
   ));

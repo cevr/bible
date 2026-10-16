@@ -8,10 +8,10 @@
 // source routes and a talk's (its words, and its writes: `TalkAsk`, which
 // the editor's machine sends as it sends a scene write) are `LabApi`, the
 // notes routes `NotesApi`, and the studio's,
-// the review's and the choices' build on it (`studio/api.ts`,
+// the review's and its films' build on it (`studio/api.ts`,
 // `review/api.ts`, `review/options/api.ts`). An Undo or Redo carries an id
-// unique to its request (`stepRequest`), so either page whose step had no
-// answer learns from the lab's check whether it landed (`landedStep`).
+// unique to its request (`stepRequest`), so a page whose step had no answer
+// learns from the lab's check whether it landed (`landedStep`).
 
 import {
   Array as Arr,

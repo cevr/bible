@@ -30,7 +30,7 @@ import { targetAttr } from '../../command/target.ts';
 import { Target } from '../command/context-menu.tsx';
 import { useFollow } from '../follow.ts';
 import { pressed } from '../pressed.ts';
-import { useLab } from '../shell.tsx';
+import { useLab, useLabClock } from '../shell.tsx';
 import { Sheet } from '../sheet.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
 import { playsAny, strikesAny } from './commands.ts';
@@ -79,37 +79,40 @@ const Text = () => {
       { onNone: () => '', onSome: keyOf },
     ),
   );
-  useFollow({
-    box,
-    content: () => page,
-    target: looking,
-    span: (key) => {
-      const [section = '', index = ''] = key.split(':');
-      return Option.map(
-        Option.flatMap(page, (root) =>
-          Option.fromNullishOr(
-            root.querySelector<HTMLElement>(
-              `[data-scene="${CSS.escape(section)}"] [data-index="${index}"]`,
+  useFollow(
+    {
+      box,
+      content: () => page,
+      target: looking,
+      span: (key) => {
+        const [section = '', index = ''] = key.split(':');
+        return Option.map(
+          Option.flatMap(page, (root) =>
+            Option.fromNullishOr(
+              root.querySelector<HTMLElement>(
+                `[data-scene="${CSS.escape(section)}"] [data-index="${index}"]`,
+              ),
             ),
           ),
-        ),
-        (word) => ({ first: word, last: word }),
-      );
+          (word) => ({ first: word, last: word }),
+        );
+      },
+      // Two lines clear of each edge.
+      clear: () => {
+        const lh = Option.match(page, {
+          onNone: () => 0,
+          onSome: (root) => Number.parseFloat(getComputedStyle(root).lineHeight) || 0,
+        });
+        return { top: 2 * lh, bottom: 2 * lh };
+      },
+      placing: text.placing,
+      reader: text.suspend,
+      played: () => {
+        if (Option.exists(text.open(), (o) => o._tag === 'Follow')) text.resume();
+      },
     },
-    // Two lines clear of each edge.
-    clear: () => {
-      const lh = Option.match(page, {
-        onNone: () => 0,
-        onSome: (root) => Number.parseFloat(getComputedStyle(root).lineHeight) || 0,
-      });
-      return { top: 2 * lh, bottom: 2 * lh };
-    },
-    placing: text.placing,
-    reader: text.suspend,
-    played: () => {
-      if (Option.exists(text.open(), (o) => o._tag === 'Follow')) text.resume();
-    },
-  });
+    useLabClock(),
+  );
 
   // A press that ends a text selection across words selects them; a tap on one word shows it.
   const released = wordsReleased({

@@ -7,9 +7,8 @@
 // and Fit (⇧Z) fits the film again, the playhead held where it was on
 // screen; another version reads its own timeline;
 // a Board panel whose file does not load is said, never a broken image;
-// the flag strip flags the open ask; the inspector's Words, Board and Notes
-// rows link to the beat on the pages that still hold it, on the version
-// kept in the film's own files alone. A phone keeps three lanes. Its touch
+// the flag strip flags the open ask; the inspector's sections are
+// `studio/inspector.dom.test.ts`'s. A phone keeps three lanes. Its touch
 // targets are measured with every place's (`touch-targets.dom.test.ts`, the
 // studio's states in `studio-states.ts`); the replaced pages' redirects are
 // the lab server's (`servedPlace`, `tools/lab-page.test.ts`).
@@ -166,51 +165,6 @@ for (const size of SIZES) {
           // With no `#t=`, it opens at the beat's start.
           yield* textIs(page, '.st-tc', /^0:08\.2/);
           yield* countIs(page, '.st-clip[data-beat="three"][data-linked="true"]', size.lanes);
-          expect(errors).toEqual([]);
-        }).pipe(Effect.scoped),
-      SLOW,
-    );
-
-    it.live(
-      "links the inspector's Words, Board and Notes rows to the beat on the Script, the Board and the Lab, at the playhead in the beat's time",
-      () =>
-        Effect.gen(function* () {
-          const { page, errors } = yield* studioAt(
-            size.viewport,
-            pageHref.studio(PROBE, { sel: 'beat:two' }, Option.some(6)),
-          );
-          yield* waitFor(page, '.st-pane[data-beat="two"]');
-          const row = (section: string) => `.st-pane a.st-row[data-section="${section}"]`;
-          yield* attributeIs(page, row('Words'), 'href', /^\/films\/probe\/script\/two#t=1\.\d+$/);
-          yield* attributeIs(page, row('Board'), 'href', /^\/films\/probe\/board\/two#t=1\.\d+$/);
-          yield* attributeIs(
-            page,
-            row('Notes and asks'),
-            'href',
-            /^\/films\/probe\/lab\/two#t=1\.\d+$/,
-          );
-          // The rows whose bodies the studio holds link nowhere yet.
-          yield* countIs(page, '.st-pane a.st-row', 3);
-          // At the beat's start, a beat page opens at its own start.
-          yield* page.press('Home');
-          yield* page.click('.st-clip[data-kind="script"][data-beat="two"]');
-          yield* attributeIs(page, row('Words'), 'href', '/films/probe/script/two#t=0');
-          expect(errors).toEqual([]);
-        }).pipe(Effect.scoped),
-      SLOW,
-    );
-
-    it.live(
-      'links no row on a version kept in its own folder, which the Script, the Board and the Lab cannot show',
-      () =>
-        Effect.gen(function* () {
-          const { page, errors } = yield* studioAt(
-            size.viewport,
-            pageHref.studio(PROBE, { v: 1, sel: 'beat:two' }, Option.some(6)),
-          );
-          yield* waitFor(page, '.st-pane[data-beat="two"]');
-          yield* countIs(page, '.st-pane .st-row[data-section="Words"]', 1);
-          yield* countIs(page, '.st-pane a.st-row', 0);
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,

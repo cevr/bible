@@ -1,7 +1,7 @@
 // A series draft in the Script reader (`/series/<series>/<draft>`, the
 // review's): the draft's beats as its Markdown reads now (`core/draft.ts`,
 // read by the server and sent with the page), drawn by the review's Script
-// reader (`reader.tsx`) over the draft's routes: its staging takes, its
+// reader (`words/reader.tsx`) over the draft's routes: its staging takes, its
 // delivery marks written into the draft's Markdown (`POST …/marks`, one cell
 // changed and not another byte), the draft as the write leaves it shown and
 // its takes read again, the beat's new take queued first.
@@ -23,7 +23,7 @@ import { PlaceStyle } from '../place-style.tsx';
 import { SCRIPT_READ_CSS } from '../script/style.ts';
 import { ReviewApi } from './api.ts';
 import { useReview } from './context.tsx';
-import { READER_CSS, STATUS_ROLE, ScriptReader, type Selecting } from './reader.tsx';
+import { READER_CSS, STATUS_ROLE, ScriptReader, type Selecting } from '../words/reader.tsx';
 
 /**
  * A draft's page's own look, over the reader's (`READER_CSS`): one column at
@@ -95,6 +95,7 @@ export const DraftReader = (props: {
       }
     >
       <ScriptReader
+        page={{ host: meta.host, hub: meta.hub, runtime: meta.runtime, playhead: Option.none() }}
         beats={beats}
         selecting={props.selecting}
         cost={props.cost}

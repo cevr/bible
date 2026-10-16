@@ -35,15 +35,11 @@ import { type LabApi, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
 import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
-import {
-  type LabSelection,
-  type MarkSelection,
-  Selection,
-  type WordsSelection,
-} from '../command/selection.ts';
+import { type LabSelection, Selection, type WordsSelection } from '../command/selection.ts';
 import { targetAttr } from '../command/target.ts';
 import { type LabPick, labHrefWith, labPlaceOf } from './place.ts';
 import { useSheetDismissal } from './sheet.tsx';
+import type { FollowClock } from './follow.ts';
 import { Fill, useLabPage } from './panel.tsx';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type CodeOpen, lineOpen } from './source/open.ts';
@@ -75,10 +71,8 @@ interface LabState {
    * both shows the Source view).
    */
   readonly text: Accessor<Option.Option<TextOpen>>;
-  /** Words selected, a talk's or a beat's line's: the URL's (`?words=` in the path's scene). */
+  /** A talk's words selected: the URL's (`?words=` in the path's scene). */
   readonly words: Accessor<Option.Option<WordsSelection>>;
-  /** A mark of a beat's line selected: the URL's (`?mark=` in the Script's path's beat). */
-  readonly mark: Accessor<Option.Option<MarkSelection>>;
 }
 
 interface LabActions {
@@ -124,10 +118,8 @@ interface LabActions {
   readonly showText: (text: Option.Option<TextOpen>) => void;
   /** Close the Transcript view, its words selected with it, by the sheets' one rule. */
   readonly dismissText: () => void;
-  /** Select words (a talk's, a beat's line's), or none: a new history entry, so Back undoes the pick. */
+  /** Select a talk's words, or none: a new history entry, so Back undoes the pick. */
   readonly selectWords: (words: Option.Option<WordsSelection>) => void;
-  /** Select a mark of a beat's line, or none (the Script's): a new history entry, so Back undoes the pick. */
-  readonly selectMark: (mark: Option.Option<MarkSelection>) => void;
 }
 
 interface LabMeta {
@@ -167,6 +159,12 @@ const LabContext = createContext<LabContextValue>();
 
 /** The shell's context: only inside `<Lab.Root>`. */
 export const useLab = (): LabContextValue => useContext(LabContext);
+
+/** The staged film's clock as Follow hears it (`lab/follow.ts`): each frame drawn, and whether the player plays. */
+export const useLabClock = (): FollowClock => {
+  const { state, meta } = useLab();
+  return { drawn: state.drawn, playing: () => meta.player.playing() };
+};
 
 /** Draw-driven signals are written from the player's frame loop, inside or outside a scope. */
 const fromDraw = { ownedWrite: true, equals: false } as const;
@@ -315,7 +313,6 @@ const Root = (props: RootProps) => {
       code: () => here().code,
       text: () => Option.filter(here().text, () => Option.isNone(here().code)),
       words: () => here().words,
-      mark: () => here().mark,
     },
     actions: {
       pin: (layer) => {
@@ -383,7 +380,6 @@ const Root = (props: RootProps) => {
         ),
       dismissText: () => sheets.text.dismiss(() => Option.some(picked(TEXT_SHUT))),
       selectWords: (words) => address.go(picked({ words })),
-      selectMark: (mark) => address.go(picked({ mark })),
     },
     meta: {
       name,

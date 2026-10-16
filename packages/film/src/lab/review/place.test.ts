@@ -28,13 +28,11 @@ const queryAt = (search: string): SetQuery =>
   Option.getOrThrow(Place.decode(Places.set, `/sets/f/s${search}`)).query;
 
 describe('the place in the URL', () => {
-  test("reads home, a folder, a set and a film's choices, and writes them back", () => {
+  test('reads home, a folder and a set, and writes them back', () => {
     for (const place of [
       ReviewPlace.Home(),
       ReviewPlace.Folder({ folder: 'out/art 3' }),
       ReviewPlace.Set({ folder: 'out/art 3', point: 'render:scenes:roof&sky' }),
-      ReviewPlace.Film({ film: 'righteousness-by-faith', point: '' }),
-      ReviewPlace.Film({ film: 'righteousness-by-faith', point: 'take:paper.page' }),
     ])
       expect(placeOf(hrefOf(place))).toEqual(place);
     expect(hrefOf(ReviewPlace.Home())).toBe('/');
@@ -44,6 +42,7 @@ describe('the place in the URL', () => {
     expect(placeOf('/films/f/lab')).toEqual(ReviewPlace.Home());
     // The studio replaced a film's project: the review reads it as no place of its own.
     expect(placeOf('/films/f/project')).toEqual(ReviewPlace.Home());
+    expect(placeOf('/films/f/choices')).toEqual(ReviewPlace.Home());
     expect(placeOf('/sets')).toEqual(ReviewPlace.Home());
   });
 
@@ -217,25 +216,21 @@ describe('Go to on the review (AA-2)', () => {
     ],
   });
 
-  test('every folder, set and film, named as it is typed, going where its link goes', () => {
+  test('every folder and set, named as it is typed, going where its link goes', () => {
     const went: Array<ReviewPlace> = [];
-    const destinations = destinationsOf(Option.some(index), Option.some({ films: ['cold'] }), (p) =>
-      went.push(p),
-    );
+    const destinations = destinationsOf(Option.some(index), (p) => went.push(p));
     expect(destinations.map((d) => [d.kind, d.id, d.name])).toEqual([
       ['folder', 'out/art', 'Roofs at dusk out/art'],
       ['set', 'out/art.render:p6-onset-roof', 'Onset in Roofs at dusk'],
-      ['choices', 'cold', 'of cold'],
     ]);
     for (const d of destinations) d.go('pointer');
     expect(went).toEqual([
       ReviewPlace.Folder({ folder: 'out/art' }),
       ReviewPlace.Set({ folder: 'out/art', point: 'render:p6-onset-roof' }),
-      ReviewPlace.Film({ film: 'cold', point: '' }),
     ]);
   });
 
-  test('nothing to go to before the index and the films are read', () => {
-    expect(destinationsOf(Option.none(), Option.none(), () => {})).toEqual([]);
+  test('nothing to go to before the index is read', () => {
+    expect(destinationsOf(Option.none(), () => {})).toEqual([]);
   });
 });

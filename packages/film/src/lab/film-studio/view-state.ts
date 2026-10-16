@@ -7,9 +7,7 @@
 // these, and its tests check them without a page.
 
 import { Array as Arr, Boolean as Bool, Match, Option, Order } from 'effect';
-import { pageHref } from '../../core/api.ts';
 import { endsSentence } from '../../core/narration.ts';
-import { isShortKey } from '../../core/shorts.ts';
 import { CLOCK_EPSILON, frameAtOrBefore } from '../../core/time.ts';
 import type { PanelText } from '../../core/board.ts';
 import type {
@@ -17,10 +15,18 @@ import type {
   FilmTimeline,
   FilmVersion,
   Lane,
+  Marker,
   ScriptClip,
   Track,
+  VoiceClip,
   Waiting,
 } from '../../core/timeline-schema.ts';
+
+/** An open note's flag. */
+type NoteMarker = Extract<Marker, { readonly kind: 'note' }>;
+
+/** An open ask's flag. */
+type AskMarker = Extract<Marker, { readonly kind: 'ask' }>;
 
 /** A clip as the timeline lays it out: where it starts and how long it lasts, in film seconds. */
 interface Spanned {
@@ -119,6 +125,47 @@ const boardClips = (timeline: FilmTimeline): ReadonlyArray<BoardClip> =>
       Match.orElse(() => []),
     ),
   );
+
+/** The Board panel `id` of `timeline`. */
+export const panelNamed = (timeline: FilmTimeline, id: string): Option.Option<BoardClip> =>
+  Arr.findFirst(boardClips(timeline), (clip) => clip.panel === id);
+
+/** Beat `beat`'s Board panels in `timeline`, in film order. */
+export const panelsOfBeat = (timeline: FilmTimeline, beat: string): ReadonlyArray<BoardClip> =>
+  boardClips(timeline).filter((clip) => clip.beat === beat);
+
+/** Beat `beat`'s take in `timeline`: the staging voice's or the owner's. */
+export const voiceOfBeat = (timeline: FilmTimeline, beat: string): Option.Option<VoiceClip> =>
+  Arr.findFirst(
+    timeline.lanes.flatMap((lane) =>
+      Match.value(lane).pipe(
+        Match.when({ track: 'voice' }, (l) => l.clips),
+        Match.orElse(() => []),
+      ),
+    ),
+    (clip) => clip.beat === beat,
+  );
+
+/** Whether `timeline` has a scene that draws beat `beat`. */
+export const hasScene = (timeline: FilmTimeline, beat: string): boolean =>
+  timeline.lanes.some((lane) =>
+    Match.value(lane).pipe(
+      Match.when({ track: 'scenes' }, (l) => l.clips.some((clip) => clip.beat === beat)),
+      Match.orElse(() => false),
+    ),
+  );
+
+/** What waits on the owner in a beat: his notes on it, and the open asks flagged in its span. */
+interface BeatMarkers {
+  readonly notes: ReadonlyArray<NoteMarker>;
+  readonly asks: ReadonlyArray<AskMarker>;
+}
+
+/** What waits on the owner in beat `beat` (`BeatMarkers`). */
+export const markersOfBeat = (timeline: FilmTimeline, beat: ScriptClip): BeatMarkers => ({
+  notes: timeline.markers.filter((m): m is NoteMarker => m.kind === 'note' && m.beat === beat.beat),
+  asks: timeline.markers.filter((m): m is AskMarker => m.kind === 'ask' && holds(beat, m.at)),
+});
 
 /** Whether beat `beat` has Board panels in `timeline`: its pane head offers Approve then. */
 export const hasBoard = (timeline: FilmTimeline, beat: string): boolean =>
@@ -429,29 +476,6 @@ export const nextText = (
     later: next.later.map((stage) => STAGE_TITLE[stage]).join(' · '),
   }));
 
-/**
- * The pages a beat's material is still worked on until the studio's
- * inspector holds it: its words on the Script, its panels on the Board, and
- * its notes on the Lab.
- */
-export type BeatPage = 'Script' | 'Board' | 'Lab';
-
-/** Film second `T` as a time in `beat`, when `T` is in it: where its page opens (a beat page's `#t=`). */
-const beatTime = (beat: ScriptClip, T: number): Option.Option<number> =>
-  Option.map(
-    Option.liftPredicate(T, (t) => holds(beat, t)),
-    (t) => t - beat.start,
-  );
-
-/** Each beat page's link: the beat on it, at a time in the beat. */
-const BEAT_PAGE: Readonly<
-  Record<BeatPage, (film: string, beat: string, t: Option.Option<number>) => string>
-> = {
-  Script: (film, beat, t) => pageHref.scriptBeat(film, beat, {}, t),
-  Board: (film, beat, t) => pageHref.boardBeat(film, beat, {}, t),
-  Lab: (film, beat, t) => pageHref.labScene(film, beat, {}, t),
-};
-
 /** The version chip: the film's versions as the last timeline read named them, and the one the page is at. */
 export interface VersionChip {
   readonly versions: ReadonlyArray<FilmVersion>;
@@ -488,26 +512,8 @@ export const versionOpens = (version: FilmVersion): boolean => version.files !==
 
 /**
  * Whether `timeline`'s version is the one kept in the film's own files: the
- * registry's film plays it, the film's script holds its words, and the
- * Script, Board and Lab pages show it. A version in its own folder, or with
- * nothing kept, is none of these.
+ * registry's film plays it, the film's script holds its words and board,
+ * and the inspector writes them and the Lab shows them. A version in its own
+ * folder, or with nothing kept, is none of these.
  */
 export const keptInFilm = (timeline: FilmTimeline): boolean => timeline.version.files === 'film';
-
-/**
- * `beat`'s page `page` on `film`, open at the playhead `T` when it is in the
- * beat (`beatTime`), else at the beat's start; none for a short, which has
- * no such page, and none on a version not kept in the film's own files
- * (`keptInFilm`), which those pages cannot show.
- */
-export const beatPageHref = (
-  page: BeatPage,
-  timeline: FilmTimeline,
-  film: string,
-  beat: ScriptClip,
-  T: number,
-): Option.Option<string> =>
-  Option.map(
-    Option.liftPredicate(film, (f) => !isShortKey(f) && keptInFilm(timeline)),
-    (f) => BEAT_PAGE[page](f, beat.beat, beatTime(beat, T)),
-  );

@@ -10,14 +10,17 @@ import { probeTimeline } from '../fixtures/probe-timeline.ts';
 import {
   beatAt,
   beatNamed,
-  beatPageHref,
   beatStep,
   clipFit,
   hasBoard,
+  hasScene,
   keptInFilm,
   lanesShown,
+  markersOfBeat,
   marksFit,
   nextText,
+  panelNamed,
+  panelsOfBeat,
   pictureAt,
   pictureTag,
   pxPerSecond,
@@ -27,6 +30,7 @@ import {
   timecode,
   versionChip,
   versionOpens,
+  voiceOfBeat,
   waitsLine,
   waitsText,
   zoomFor,
@@ -57,31 +61,29 @@ describe('the beat at the playhead', () => {
   });
 });
 
-describe('the page a beat is still worked on', () => {
+describe('what the inspector reads of a beat', () => {
+  const one = Option.getOrThrow(beatNamed(drawn, 'one'));
   const two = Option.getOrThrow(beatNamed(drawn, 'two'));
 
-  test("opens at the playhead in the beat's own time, else at the beat's start", () => {
-    expect(beatPageHref('Script', drawn, 'probe', two, 6.215)).toEqual(
-      Option.some('/films/probe/script/two#t=1.5'),
-    );
-    expect(beatPageHref('Board', drawn, 'probe', two, 6.215)).toEqual(
-      Option.some('/films/probe/board/two#t=1.5'),
-    );
-    expect(beatPageHref('Lab', drawn, 'probe', two, 6.215)).toEqual(
-      Option.some('/films/probe/lab/two#t=1.5'),
-    );
-    expect(beatPageHref('Script', drawn, 'probe', two, 1)).toEqual(
-      Option.some('/films/probe/script/two'),
-    );
+  test('its Board panels in film order, and a panel by its id', () => {
+    expect(panelsOfBeat(drawn, 'one').map((p) => p.panel)).toEqual(['one.start', 'one.fall']);
+    expect(panelsOfBeat(drawn, 'four')).toEqual([]);
+    expect(Option.map(panelNamed(drawn, 'one.fall'), (p) => p.markAt)).toEqual(Option.some(2.6));
+    expect(panelNamed(drawn, 'one.gone')).toEqual(Option.none());
   });
 
-  test('is none for a short, which has no such page', () => {
-    expect(beatPageHref('Lab', drawn, 'probe/shorts/hook', two, 6.215)).toEqual(Option.none());
+  test('its take, and whether a scene draws it', () => {
+    expect(Option.map(voiceOfBeat(drawn, 'two'), (v) => v.source)).toEqual(Option.some('staging'));
+    expect(hasScene(drawn, 'two')).toBe(true);
+    expect(hasScene(firstCut, 'two')).toBe(false);
   });
 
-  test("is none on a version kept in its own folder: the pages show the film's own files", () => {
-    for (const page of ['Script', 'Board', 'Lab'] as const)
-      expect(beatPageHref(page, firstCut, 'probe', two, 6.215)).toEqual(Option.none());
+  test('the asks flagged in its span', () => {
+    expect(markersOfBeat(drawn, two).asks.map((a) => a.id)).toHaveLength(1);
+    expect(markersOfBeat(drawn, one)).toEqual({ notes: [], asks: [] });
+  });
+
+  test("whether the version shown is the film's own files, which the inspector writes", () => {
     expect(keptInFilm(drawn)).toBe(true);
     expect(keptInFilm(firstCut)).toBe(false);
   });

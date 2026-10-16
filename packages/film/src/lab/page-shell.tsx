@@ -194,7 +194,7 @@ export const HeaderTool = (props: {
 );
 
 /** A timecode, `HH:MM:SS:FF`: separators dim, the frames field secondary (the header's, and each beat's on the Script). */
-export const Timecode = (props: {
+const Timecode = (props: {
   readonly seconds: number;
   readonly fps?: number;
   readonly class?: string;

@@ -27,11 +27,10 @@ import {
   untrack,
 } from 'solid-js';
 import { type AskBlock, scriptSource } from '../../core/ask.ts';
-import { type ScriptBeats, attemptUrl, boardFileUrl, reviewFrameUrl } from '../../core/api.ts';
+import { type ScriptBeats, boardFileUrl, reviewFrameUrl } from '../../core/api.ts';
 import { type BoardFile, type Panel, panelsOf, shownTry } from '../../core/board.ts';
 import { docAt, videoAt } from '../../core/review.ts';
-import { PanelFigure, PanelThumb } from '../board/view.tsx';
-import { PANEL_THUMB_CSS } from '../board/style.ts';
+import { PANEL_THUMB_CSS, PanelFigure, PanelThumb } from '../board/figure.tsx';
 import { lineWords, panelWords } from '../board/words.ts';
 import { PlaceStyle } from '../place-style.tsx';
 import { WIDE } from '../viewport.ts';
@@ -41,10 +40,11 @@ import { type LabFailure, reasonOf } from '../api.ts';
 import { ReviewApi } from '../review/api.ts';
 import { useReview } from '../review/context.tsx';
 import { DraftReader, useDraftTitles } from '../review/draft.tsx';
-import { FilmScriptReader } from '../review/film-script.tsx';
+import { FilmScriptReader } from '../words/film-script.tsx';
+import { takeHeard } from '../take.ts';
 import { POSTER_W, videoSource } from '../review/format.ts';
 import { PlayedAlone } from '../review/player.tsx';
-import { READER_CSS, type Selecting, type WordsAt } from '../review/reader.tsx';
+import { READER_CSS, type Selecting, useOwnSelecting } from '../words/reader.tsx';
 import { Markdown, ProxyPending, Zoom } from '../review/section.tsx';
 
 type BlockOf<K extends AskBlock['kind']> = Extract<AskBlock, { readonly kind: K }>;
@@ -236,16 +236,6 @@ export const DocumentPart = (props: { readonly block: BlockOf<'document'> }) => 
   );
 };
 
-/** The words selected in an ask's reader: its own, kept on the page while it is open. */
-const useOwnSelecting = (): Selecting => {
-  const [selected, setSelected] = createSignal(Option.none<WordsAt>());
-  return {
-    selected,
-    select: (beat, w) => setSelected(Option.some({ beat, from: w.from, to: w.to })),
-    clear: () => setSelected(Option.none()),
-  };
-};
-
 /** A series draft in the reader, named as its page names it: its series, then its title. */
 const DraftScript = (props: {
   readonly series: string;
@@ -277,6 +267,7 @@ const DraftScript = (props: {
  * read it untracked in its own effects.
  */
 export const ScriptPart = (props: { readonly block: BlockOf<'script'> }) => {
+  const { meta } = useReview();
   const selecting = useOwnSelecting();
   const only = Option.fromUndefinedOr(props.block.beats);
   const source = untrack(() => scriptSource(props.block));
@@ -295,7 +286,18 @@ export const ScriptPart = (props: { readonly block: BlockOf<'script'> }) => {
               <p class="ak-mat-name" data-role="script-name">
                 The script of {s.film}
               </p>
-              <FilmScriptReader film={s.film} only={only} selecting={selecting} />
+              <FilmScriptReader
+                page={{
+                  host: meta.host,
+                  hub: meta.hub,
+                  runtime: meta.runtime,
+                  playhead: Option.none(),
+                }}
+                script={meta.script(s.film)}
+                film={s.film}
+                only={only}
+                selecting={selecting}
+              />
             </>
           ),
           Draft: (s) => (
@@ -492,7 +494,11 @@ export const VideoPart = (props: { readonly block: BlockOf<'video'> }) => {
   );
 };
 
-/** A take of a film's beat, as the studio plays it: the attempt named, or the one kept, and what was heard. */
+/**
+ * A take of a film's beat, as the studio plays it (`takeHeard`): the attempt
+ * named, else the take its timings name (an attempt kept, or the staging
+ * voice's), and what was heard of an attempt.
+ */
 export const AudioPart = (props: { readonly block: BlockOf<'audio'> }) => {
   const { meta } = useReview();
   const attempts = meta.runtime
@@ -501,12 +507,7 @@ export const AudioPart = (props: { readonly block: BlockOf<'audio'> }) => {
   const read = useAtomValue(() => attempts);
   const take = createMemo(() =>
     Option.flatMap(AsyncResult.value(read()), (a) =>
-      Arr.findFirst(a.attempts, (t) =>
-        Option.match(Option.fromUndefinedOr(props.block.attempt), {
-          onNone: () => t.kept,
-          onSome: (file) => t.file === file,
-        }),
-      ),
+      takeHeard(props.block.film, a, Option.fromUndefinedOr(props.block.attempt)),
     ),
   );
   return (
@@ -520,13 +521,13 @@ export const AudioPart = (props: { readonly block: BlockOf<'audio'> }) => {
       >
         {(t) => (
           <>
-            <audio
-              class="ak-audio"
-              controls
-              preload="none"
-              src={attemptUrl(props.block.film, props.block.beat, t.file)}
-            />
-            <p class="ak-heard">{t.transcript}</p>
+            <audio class="ak-audio" controls preload="none" src={t.url} data-source={t.source} />
+            <Show
+              when={Option.getOrUndefined(t.heard)}
+              fallback={<p class="ak-heard">The staging voice's take</p>}
+            >
+              {(heard) => <p class="ak-heard">{heard()}</p>}
+            </Show>
           </>
         )}
       </Show>

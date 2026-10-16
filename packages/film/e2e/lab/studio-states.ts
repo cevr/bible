@@ -6,10 +6,9 @@ import { Effect, Option, type Scope, Struct } from 'effect';
 import { Place } from '@bible/url-state';
 import { Places, pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
-import { menuEntry, openCommandMenu, rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
+import { rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
 import {
   type FakeRoute,
-  type Json,
   type Viewport,
   changeOf,
   json,
@@ -24,7 +23,6 @@ import { untokened } from '../../src/lab/fixtures/drawn-tokens.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { evaluates, sheetsStand, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
-  STUDIO_FILM,
   STUDIO_FOLDER,
   STUDIO_ASK,
   STUDIO_DRAFT,
@@ -244,7 +242,7 @@ export const menuOn = (selector: string) => (page: Tab) =>
  */
 export const heldOn = (selector: string) => (page: Tab) =>
   Effect.gen(function* () {
-    // A finger holds what is on the screen: below the fold (a laptop's Choices), it is scrolled to first.
+    // A finger holds what is on the screen: below the fold, it is scrolled to first.
     const at = `document.querySelector(${jsonOf(selector)})`;
     yield* page.evaluate(`${at}.scrollIntoView({ block: 'center' }); true`);
     yield* until(
@@ -260,10 +258,7 @@ export const heldOn = (selector: string) => (page: Tab) =>
     yield* page.clock.runFor(500);
   });
 
-export const CHOICES = pageHref.choices(STUDIO_FILM);
-export const STRINGS = '[data-point="score"] [data-variant="strings"]';
 export const INSPECTOR = '[data-role="inspector"]';
-export const FINDINGS = '[data-role="findings"]';
 export const COMMAND_MENU = '[data-role="command-menu"]';
 export const CONTEXT_MENU = '[data-role="context-menu"]';
 export const KEYS = '[data-role="keys-sheet"]';
@@ -312,13 +307,6 @@ export const receipted = (viewport: Viewport) =>
     return page;
   });
 
-/** Choices at rest: its picture's transport, a knob, a comment's count. */
-export const CHOICES_READY = [
-  '.rv-transport',
-  '.rv-knob input[type="range"]',
-  `${STRINGS} .lab-count`,
-];
-
 /** A phone's sheet of the selected cue or knob. */
 export const SELECTION_SHEET = '.lab-selection-sheet';
 
@@ -366,122 +354,6 @@ export const LAB_MOVES: Exempt = {
   why: "a film's Lab moves to the scene under its playhead as it opens",
 };
 
-/** The probe film's Script, as its link opens it (`pageHref.script`): its beats read, its words laid out. */
-export const scriptOpen = (viewport: Viewport) =>
-  Effect.gen(function* () {
-    const { page } = yield* openLab([], { viewport, href: pageHref.script(PROBE) });
-    yield* waitFor(page, '.lab-script-picture');
-    return page;
-  });
-
-/** A note the lab lists on the probe film, made at `T` in `scene`: open, with no replies. */
-const listed = (
-  seq: number,
-  scene: string,
-  T: number,
-  fields: { readonly [key: string]: Json },
-) => ({
-  id: `n${seq}`,
-  film: PROBE,
-  scene,
-  T,
-  frame: Math.round(T * 30),
-  status: 'open',
-  still: `n${seq}.png`,
-  thread: [],
-  createdAt: '2026-10-13T00:00:00.000Z',
-  seq,
-  changed: seq,
-  ...fields,
-});
-
-/**
- * The probe film's notes on its Script: on beat one's words a note, a
- * correction and a removal, and a note on beat two's frame, whose marker is
- * in its head, which the agent replied to.
- */
-const SCRIPT_NOTES: ReadonlyArray<Json> = [
-  listed(1, 'one', 0.1, {
-    words: { beat: 'one', from: 0, to: 1, text: 'The ball' },
-    text: 'a bigger ball',
-  }),
-  listed(2, 'one', 0.4, {
-    words: { beat: 'one', from: 2, to: 3, text: 'rises slowly,' },
-    kind: 'correction',
-    replace: 'climbs slowly,',
-    text: 'say “climbs slowly,” for “rises slowly,”',
-  }),
-  listed(3, 'one', 1.6, {
-    words: { beat: 'one', from: 8, to: 9, text: 'down again.' },
-    kind: 'removal',
-    text: 'remove “down again.”',
-  }),
-  listed(4, 'two', 2.4, {
-    text: 'the second scene sits too still',
-    status: 'replied',
-    thread: [
-      { seq: 1, by: 'agent', text: 'it drifts now, a little', at: '2026-10-13T00:01:00.000Z' },
-    ],
-  }),
-];
-
-/**
- * A film's Board link (`pageHref.board`) moves as its Lab's does: to the beat
- * under the playhead (or the panel picked), where the Board is measured.
- */
-export const BOARD_MOVES: Exempt = {
-  measuredAt: 'boardBeat',
-  why: "a film's Board moves to the beat under its playhead as it opens",
-};
-
-/** The probe film's Board, as its link opens it: its beats read, their panels laid out. */
-export const boardOpen = (viewport: Viewport) =>
-  Effect.gen(function* () {
-    const { page } = yield* openLab([], { viewport, href: pageHref.board(PROBE) });
-    yield* waitFor(page, '.lab-board .lab-board-panel[data-panel="one.start"]');
-    return page;
-  });
-
-/** The probe film's Board with beat one's panel `panel` picked, shown by `view`. */
-export const boardAt =
-  (panel: string, view: 'animatic' | 'compare' | 'draw' = 'animatic') =>
-  (viewport: Viewport) =>
-    Effect.gen(function* () {
-      const { page } = yield* openLab([], {
-        viewport,
-        href: pageHref.boardBeat(PROBE, 'one', { panel, view }),
-      });
-      yield* waitFor(page, '.lab-board-open');
-      return page;
-    });
-
-/** What the Script's link selects in a beat (`pageHref.scriptBeat`'s). */
-type ScriptPicked = NonNullable<Parameters<typeof pageHref.scriptBeat>[2]>;
-
-/** The probe film's Script at beat one with `picked` selected, over its notes (`SCRIPT_NOTES`). */
-export const scriptAt = (picked: ScriptPicked) => (viewport: Viewport) =>
-  Effect.gen(function* () {
-    const notes = route('GET', /^\/notes$/, () =>
-      json({ film: PROBE, seq: SCRIPT_NOTES.length, notes: SCRIPT_NOTES }),
-    );
-    const { page } = yield* openLab([notes], {
-      viewport,
-      href: pageHref.scriptBeat(PROBE, 'one', picked),
-    });
-    yield* waitFor(page, '.lab-script-picture');
-    yield* waitFor(page, '[data-scene="one"] .lab-script-noted[data-note="n3"]');
-    return page;
-  });
-
-/** The Script's composer: in a sheet on a phone, under the beat's line on a laptop. */
-export const SCRIPT_SHEET = '.lab-script-sheet';
-
-/** A film's Script link moves as its Lab's does: to the beat under the playhead, where the Script is measured. */
-export const SCRIPT_MOVES: Exempt = {
-  measuredAt: 'scriptBeat',
-  why: "a film's Script moves to the beat under its playhead as it opens",
-};
-
 /** An ask, read: its page's send, under its sections. */
 export const ASK_READY = '.ak-sections:has(.ak-step) ~ .ak-send [data-act="send"]';
 
@@ -496,29 +368,6 @@ export const PRODUCTION_READY = '.pd-v[data-current="true"] [data-act="move-forw
 
 export const STATES: ByPlace<State, AtRest> = {
   lab: LAB_MOVES,
-  script: SCRIPT_MOVES,
-  board: BOARD_MOVES,
-  boardBeat: [
-    {
-      name: 'Board, the beats and their panels',
-      open: boardOpen,
-      disclose: AT_REST,
-      // Follow; a beat's id and start, its Approve, its brief (its marks as chips) and Brief and
-      // line, and a thumb for each panel (its words, its mark, its time, its tries, its kept try).
-      budget: most(29, 47),
-    },
-    {
-      name: 'Board, a panel picked: its tries, Keep and the composer',
-      open: boardAt('fall'),
-      disclose: AT_REST,
-    },
-    {
-      // The draw view: the sketch's toolbar in the panel's box, its surface over the picture.
-      name: 'Board, a panel drawn on',
-      open: boardAt('fall', 'draw'),
-      disclose: AT_REST,
-    },
-  ],
   home: [
     {
       name: 'Films',
@@ -529,46 +378,6 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(pageHref.home(), '.rv-film-card [data-role="counts"]'),
       disclose: AT_REST,
       budget: most(12, 12),
-    },
-  ],
-  choices: [
-    {
-      name: 'Choices, over a picture, with comment counts',
-      open: review(CHOICES, ...CHOICES_READY),
-      disclose: AT_REST,
-      // The kinds strip's four tabs are its index on a page this long.
-      budget: most(41, 33),
-      // Its levels, kinds and rows below the fold: a state word back on every row lands here.
-      page: most(96, 102),
-    },
-    {
-      name: "Choices, a variant's inspector",
-      open: review(CHOICES, ...CHOICES_READY),
-      disclose: opens(`${STRINGS} .lab-inspect`, `${INSPECTOR} [data-act="close-inspector"]`),
-      layer: INSPECTOR,
-    },
-    {
-      name: 'Choices, the Findings sheet',
-      open: review(CHOICES, ...CHOICES_READY),
-      disclose: (page) =>
-        Effect.gen(function* () {
-          yield* openCommandMenu(page, 'findings');
-          yield* page.click(menuEntry('review.findings'));
-          yield* waitFor(page, `${FINDINGS} .rv-at`);
-        }),
-      layer: FINDINGS,
-    },
-    {
-      name: "Choices, a variant's context menu",
-      open: review(CHOICES, ...CHOICES_READY),
-      disclose: menuOn(`${STRINGS} .rv-name`),
-      layer: CONTEXT_MENU,
-    },
-    {
-      name: 'Choices, the command menu',
-      open: review(CHOICES, ...CHOICES_READY),
-      disclose: pressed('Control+k', `${COMMAND_MENU} [data-command]`),
-      layer: COMMAND_MENU,
     },
   ],
   set: [
@@ -733,46 +542,6 @@ export const STATES: ByPlace<State, AtRest> = {
       layer: RECEIPTS,
     },
   ],
-  scriptBeat: [
-    {
-      name: 'Script, the beats and their words',
-      open: scriptOpen,
-      disclose: AT_REST,
-      // Its words are what it is read for: each its own text leaf, as the Transcript's are, so a tap
-      // shows it (the probe's are 26 of the laptop's things, 17 of the phone's, where two of its
-      // three beats stand on the first screen). A beat's id and start are one press. How its cues
-      // are tied to its words is what the owner reads it for too: a chip for each mark and a link
-      // for each cue or mark its picture names (8 on the laptop, 4 on the phone). Notes are what
-      // the owner leaves on it: Note frame in its head is the one at rest (a note on words comes
-      // from their selection). The day's staging spend is one quiet line atop the beats.
-      budget: most(53, 73),
-    },
-    {
-      // A mark picked: the cues tied to it under its beat's line, each a row that picks it.
-      name: 'Script, a mark and the cues tied to it',
-      open: scriptOpen,
-      disclose: opens('[data-scene="three"] .lab-script-mark[data-mark="near"]', '.lab-script-tie'),
-    },
-    {
-      // Words selected, then Note… and Correct: the composer on them, its field of the words to
-      // say instead. On a phone the sheet is a layer: the Script under it is the case below.
-      name: 'Script, the composer on the words selected, correcting them',
-      open: scriptAt({ words: '4-7' }),
-      disclose: (page) =>
-        Effect.gen(function* () {
-          yield* opens('[data-act="note-words"]', '.lab-compose:not([hidden])')(page);
-          yield* opens('.lab-compose [data-ask="correction"]', '.lab-compose .lab-instead')(page);
-        }),
-      layer: `:is(${SCRIPT_SHEET}, :root:not(:has(${SCRIPT_SHEET})))`,
-    },
-    {
-      // A note, a correction and a removal on beat one's words, each its marker after them, a
-      // frame note's in beat two's head; the correction selected opens under its line.
-      name: 'Script, notes on its words and one selected',
-      open: scriptAt({ note: 'n2' }),
-      disclose: (page) => waitFor(page, '.lab-script-shown[data-note="n2"] .lab-reply-input'),
-    },
-  ],
   studio: [
     {
       name: 'Studio',
@@ -786,9 +555,52 @@ export const STATES: ByPlace<State, AtRest> = {
       budget: most(30, 53),
     },
     {
-      name: 'Studio, a beat selected (the inspector)',
-      open: player(pageHref.studio(PROBE, { sel: 'beat:two' }), '.st-pane'),
+      name: 'Studio, a beat selected: the inspector open on its Words',
+      open: player(
+        pageHref.studio(PROBE, { sel: 'beat:one' }),
+        '.st-sec[data-section="Words"][open] .lab-script-beat[data-beat="one"]',
+      ),
       disclose: AT_REST,
+    },
+    {
+      name: "Studio, a panel selected: the inspector's Board, a try shown large and Keep",
+      open: player(
+        pageHref.studio(PROBE, { sel: 'panel:one.fall' }),
+        '.st-sec[data-section="Board"][open] .st-panel[data-panel="one.fall"] .st-try-btn',
+      ),
+      disclose: opens(
+        '.st-panel[data-panel="one.fall"] .st-try-btn[data-try="2"]',
+        '.st-try-shown [data-act="keep"]',
+      ),
+    },
+    {
+      name: "Studio, the inspector's Voice, Code, and Notes and asks open",
+      open: player(pageHref.studio(PROBE, { sel: 'beat:two' }), '.st-pane[data-beat="two"]'),
+      disclose: (page) =>
+        Effect.gen(function* () {
+          for (const name of ['Voice', 'Code', 'Notes and asks'])
+            yield* opens(
+              `.st-sec[data-section="${name}"] > summary`,
+              `.st-sec[data-section="${name}"][open] .st-sec-body`,
+            )(page);
+          yield* waitFor(page, `.st-sec[data-section="Notes and asks"] a.st-ask`);
+        }),
+    },
+    {
+      name: 'Studio, Record over the studio (a Dialog on a laptop, a Sheet on a phone)',
+      open: player(pageHref.studio(PROBE, { sel: 'beat:two' }), '.st-pane[data-beat="two"]'),
+      disclose: (page) =>
+        Effect.gen(function* () {
+          yield* opens(
+            '.st-sec[data-section="Voice"] > summary',
+            '.st-sec[data-section="Voice"] [data-act="record"]',
+          )(page);
+          yield* opens(
+            '[data-act="record"]',
+            '[data-role="record"] [data-act="close-record"]',
+          )(page);
+        }),
+      layer: '[data-role="record"]',
     },
     {
       name: 'Studio, the version menu',
@@ -845,12 +657,12 @@ export const drawnIn = (place: PlaceName, state: State, device: Device) =>
  * run at once, and asked in a serial case of its own (`film/touches-serial`).
  */
 export const LONG_PRESSED: State = {
-  name: "Choices, a variant's long-press menu",
-  open: review(CHOICES, ...CHOICES_READY),
+  name: "the Lab's long-press menu",
+  open: lab('edit'),
   // Made in its case, not as the table is: a call in an initializer runs where it is declared.
-  disclose: (page) => heldOn(`${STRINGS} .rv-name`)(page),
+  disclose: (page) => heldOn('.lab-panel')(page),
   layer: CONTEXT_MENU,
 };
 
 /** The place `LONG_PRESSED` is at. */
-export const LONG_PRESSED_AT: PlaceName = 'choices';
+export const LONG_PRESSED_AT: PlaceName = 'labScene';

@@ -26,7 +26,7 @@ import { type Words, failedText } from './format.ts';
 import type { OptionsApi } from './options/api.ts';
 
 /** A page's writes, each said as a receipt in the page's slot. */
-export interface WriteStatus<A> {
+interface WriteStatus<A> {
   /**
    * Count a write in, asked now, said in `words`: busy until `answer` lands,
    * then said unless a write asked after it has landed already (`asked.ts`).

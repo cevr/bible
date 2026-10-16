@@ -8,18 +8,9 @@ import { Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { type Tab, WAIT_MS } from '../../src/lab/fixtures/tab.ts';
 import { firstScreenItems } from '../../src/lab/fixtures/touch-targets.ts';
-import {
-  SLOW,
-  PHONE,
-  DEVICES,
-  LAB_EDIT,
-  byPlace,
-  review,
-  lab,
-  CHOICES,
-  CHOICES_READY,
-  STATES,
-} from './studio-states.ts';
+import { pageHref } from '../../src/core/api.ts';
+import { STUDIO_FOLDER } from '../../src/lab/fixtures/studio-film.ts';
+import { SLOW, PHONE, DEVICES, LAB_EDIT, byPlace, review, lab, STATES } from './studio-states.ts';
 
 /**
  * How far the page's clock runs on before a view is counted: what a view
@@ -28,6 +19,10 @@ import {
  * moment it is within its budget.
  */
 const SETTLE_MS = 5_000;
+
+/** A folder, a long view's budget kept over its whole length, and its cards read. */
+const FOLDER = pageHref.folder(STUDIO_FOLDER);
+const FOLDER_READY = '.rv-card.rv-tall .rv-cap .rv-name';
 
 /** What a count's reach is called in a failure. */
 const WHERE = { screen: 'first screen', page: 'page' } as const;
@@ -125,21 +120,25 @@ describe('the at-rest budget (UR2-17)', () => {
     );
   }
   it.live(
-    'fails a long view on a phone with a line of text planted below the first screen',
+    'fails a long view on a phone with lines of text planted below the first screen',
     () =>
       Effect.gen(function* () {
-        const page = yield* review(CHOICES, ...CHOICES_READY)(PHONE.viewport);
-        const choices = byPlace(STATES).filter(([place]) => place === 'choices')[0]?.[1];
-        const ceiling = choices?.page?.phone ?? 0;
-        const screen = choices?.budget?.phone ?? 0;
-        yield* withinBudget(page, screen, 'Choices');
-        yield* withinBudget(page, ceiling, 'Choices', 'page');
-        // A line far below the fold: the first screen counts none of it, the page counts it.
+        const page = yield* review(FOLDER, FOLDER_READY)(PHONE.viewport);
+        const folder = byPlace(STATES).filter(([place]) => place === 'folder')[0]?.[1];
+        const ceiling = folder?.page?.phone ?? 0;
+        const screen = folder?.budget?.phone ?? 0;
+        yield* withinBudget(page, screen, 'a Folder');
+        yield* withinBudget(page, ceiling, 'a Folder', 'page');
+        // Lines far below the fold, one past what the page has left under its ceiling: the
+        // first screen counts none of them, the page counts each.
+        const shown = yield* page.evaluate<number>(`${firstScreenItems('page')}.length`);
         yield* page.evaluate(
-          `(() => { const el = document.createElement('p'); el.textContent = 'planted'; el.style.marginTop = '5000px'; document.body.append(el); return true; })()`,
+          `(() => { const box = document.createElement('div'); box.style.marginTop = '5000px'; for (let i = 0; i <= ${ceiling - shown}; i++) { const el = document.createElement('p'); el.textContent = 'planted ' + i; box.append(el); } document.body.append(box); return true; })()`,
         );
-        yield* withinBudget(page, screen, 'Choices, planted');
-        const exit = yield* Effect.exit(withinBudget(page, ceiling, 'Choices, planted', 'page', 0));
+        yield* withinBudget(page, screen, 'a Folder, planted');
+        const exit = yield* Effect.exit(
+          withinBudget(page, ceiling, 'a Folder, planted', 'page', 0),
+        );
         expect(Exit.isFailure(exit)).toBe(true);
       }).pipe(Effect.scoped),
     SLOW,

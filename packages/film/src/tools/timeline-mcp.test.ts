@@ -139,7 +139,7 @@ const twoVersions = Effect.gen(function* () {
 /** What the open version's Board holds ready: its one beat waits on the owner's approval. */
 const SEED_WAITS = {
   count: 1,
-  items: [{ kind: 'approve', beat: 'seed', href: '/films/f/board/seed' }],
+  items: [{ kind: 'approve', beat: 'seed', href: '/films/f/studio?sel=beat%3Aseed' }],
 };
 
 describe('timeline', () => {

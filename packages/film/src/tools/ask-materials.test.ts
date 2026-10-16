@@ -2,12 +2,13 @@
 // video only when the review lists them (one the review does not list is
 // refused; the ref's own shape is `core/ask.test.ts`'s), a film's script and
 // a draft's by the beats their reader reads, a Board by its panels, a take
-// by the studio's own read of the beat's attempts (the one named, or the
-// one kept; a beat the film does not have is refused before a file is
-// read). Each refusal names what is missing.
+// by the studio's own read of the beat's attempts (the one named, else the
+// take the timings name: one kept, or a staging take; a beat the film does
+// not have is refused before a file is read). Each refusal names what is
+// missing.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Boolean as Bool, Effect, Layer, Option, Path, Schema } from 'effect';
+import { Boolean as Bool, Effect, Layer, Match, Option, Path, Schema } from 'effect';
 import { type Ask, AskBlock, oneQuestion } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { ReviewFileUnknown } from '../core/refusals.ts';
@@ -120,13 +121,25 @@ const reading: StudioReading = {
   sheet: [],
 };
 
+/** The take cold's timings name: an attempt kept, a staging take (none of its attempts), or none. */
+type Timed = 'attempt' | 'staging' | 'none';
+
+/** A staging take of cold's, in `narration/` and none of its attempts. */
+const staging = {
+  hash: 'h',
+  file: 'cold.0cbdb0cac54f.flac',
+  duration: 2,
+  words: [],
+  source: 'elevenlabs',
+} as const;
+
 /**
- * The lab's files: film `f`, its Board, its timings (cold's take kept, when
- * `kept`), cold's attempts, a series draft; and, outside `f`, another
+ * The lab's files: film `f`, its Board, its timings (cold's take as `timed`
+ * says), cold's attempts, a series draft; and, outside `f`, another
  * folder's ledger that holds an attempt of the same name, which a beat that
  * climbs out of `f`'s attempts would read.
  */
-const seeded = (kept: boolean) =>
+const seeded = (timed: Timed) =>
   new Map<string, Uint8Array>([
     ['/films/f/scenes/index.ts', text('export {};\n')],
     ['/films/f/board.json', text(Schema.encodeSync(BoardFileJson)(board))],
@@ -135,7 +148,12 @@ const seeded = (kept: boolean) =>
       text(
         Schema.encodeSync(TimingsJson)({
           voice: 'v',
-          scenes: Bool.match(kept, { onTrue: () => ({ cold: attempt.take }), onFalse: () => ({}) }),
+          scenes: Match.value(timed).pipe(
+            Match.when('attempt', () => ({ cold: attempt.take })),
+            Match.when('staging', () => ({ cold: staging })),
+            Match.when('none', () => ({})),
+            Match.exhaustive,
+          ),
         }),
       ),
     ],
@@ -145,8 +163,8 @@ const seeded = (kept: boolean) =>
   ]);
 
 /** The asks over the lab in memory, their material read through the review above, the studio's real reads and the draft. */
-const run = <A, E>(self: Effect.Effect<A, E, AskStore>, kept = true) => {
-  const files = seeded(kept);
+const run = <A, E>(self: Effect.Effect<A, E, AskStore>, timed: Timed = 'attempt') => {
+  const files = seeded(timed);
   const drafts = SeriesDrafts.layer(Option.some('/series')).pipe(
     Layer.provide([storeLayer(files), memoryFileSystem(files), Path.layer]),
   );
@@ -260,14 +278,23 @@ describe('the material an ask shows', () => {
       ),
   );
 
-  it.effect('refuses a take when none is kept and none is named', () =>
+  it.effect('keeps a take the timings name when it is a staging take, none of the attempts', () =>
+    run(
+      Effect.gen(function* () {
+        expect(yield* refusal({ kind: 'audio', film: 'f', beat: 'cold' })).toBe('');
+      }),
+      'staging',
+    ),
+  );
+
+  it.effect('refuses a take when the timings name none and none is named', () =>
     run(
       Effect.gen(function* () {
         expect(yield* refusal({ kind: 'audio', film: 'f', beat: 'cold' })).toContain(
-          'f cold has no kept take: name an attempt',
+          'f cold has no take: name an attempt',
         );
       }),
-      false,
+      'none',
     ),
   );
 });

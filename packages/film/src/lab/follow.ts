@@ -1,6 +1,9 @@
 // Follow: the one rule by which a view's scroll box keeps what the frame
 // lights in sight, shared by the Source view (the playing literal's line,
-// `source/view.tsx`) and the cue strip (the live lanes, `editor/strip.tsx`).
+// `source/view.tsx`), the cue strip (the live lanes, `editor/strip.tsx`), the
+// Transcript (the word heard, `transcript/context.tsx`) and the words reader
+// (the beat at the studio's playhead, `words/reader.tsx`). The page's clock
+// is the view's to give (`FollowClock`): the Lab's player, the studio's.
 // The view names a target as a key that only changes when the target does
 // (so a frame that moves nothing reads no layout), and a span of rows for it.
 // When the key changes, or the box or its content is resized, and the span is
@@ -23,8 +26,8 @@
 // so the frame moving on never scrolls it away.
 
 import { Option } from 'effect';
+import { placeTo, revealTo } from './follow-rule.ts';
 import { type Accessor, createEffect, createSignal, untrack } from 'solid-js';
-import { useLab } from './shell.tsx';
 
 /** How far a scroll may land from where the view put the box and still be the view's: rounding to the device's pixels. */
 const SLACK = 1;
@@ -60,6 +63,12 @@ interface FollowOptions {
   readonly opened?: Accessor<string>;
 }
 
+/** The page's clock as Follow hears it: a signal that moves with each frame drawn, and whether it plays. */
+export interface FollowClock {
+  readonly drawn: Accessor<unknown>;
+  readonly playing: () => boolean;
+}
+
 /**
  * The span's top and bottom in the box's own scroll coordinates, whatever sits
  * between them: each of its rows asked once, so a one-row span is one read.
@@ -77,12 +86,13 @@ const extentOf = (box: HTMLElement, span: Span) => {
 };
 
 /**
- * Follow `options.target` in `options.box` while `options.placing()`, by the rule above. Mount it with the view.
- * Answers whether a reader has the box now, its scroll event heard or still on its way (`reader` told if so): what
- * anything that would move the view on the page's word (a settle on a line) asks first.
+ * Follow `options.target` in `options.box` while `options.placing()`, by the rule above, on the page's `clock`.
+ * Mount it with the view. Answers whether a reader has the box now, its scroll event heard or still on its way
+ * (`reader` told if so): what anything that would move the view on the page's word (a settle on a line) asks first.
  */
-export const useFollow = (options: FollowOptions): (() => boolean) => {
-  const { state: lab, meta } = useLab();
+export const useFollow = (options: FollowOptions, clock: FollowClock): (() => boolean) => {
+  // Whether the film plays, as the effects below ask it once they run: an answer, never a read they track.
+  const playingNow = () => untrack(clock.playing);
   // Where the view last authored the box: the scroll it wrote, read back (so clamping and rounding are in it), or
   // the clamp layout made of it. A reader's scroll is measured from here, so steps too small to tell one by one add up.
   let anchor = 0;
@@ -103,9 +113,9 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
   // Play takes the view back.
   let wasPlaying = false;
   createEffect(
-    () => lab.drawn(),
+    () => clock.drawn(),
     () => {
-      const playing = meta.player.playing();
+      const playing = playingNow();
       // The view's answer is a reaction to the press, not a read this effect tracks.
       if (playing && !wasPlaying) untrack(options.played);
       wasPlaying = playing;
@@ -166,7 +176,7 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
       if (!on || heldByPress || key === '') return;
       // What a press opened holds the box while the film stands still: neither the press's own seek nor the resize its
       // opening made places the frame's row over it. Play, or the view taken back, places it.
-      if (!takenBack && untrack(opened) !== '' && !meta.player.playing()) return;
+      if (!takenBack && untrack(opened) !== '' && !playingNow()) return;
       Option.map(
         Option.flatMap(options.box(), (box) =>
           Option.map(options.span(key), (span) => ({ box, span })),
@@ -176,20 +186,11 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
           if (span.first.getClientRects().length === 0) return;
           // A reader's scroll not heard yet is the reader's all the same: the view lets go rather than undo it.
           if (readerMoved(box)) return options.reader();
-          const clear = options.clear(box);
-          const { top, bottom } = extentOf(box, span);
-          const inView =
-            top >= box.scrollTop + clear.top &&
-            bottom <= box.scrollTop + box.clientHeight - clear.bottom;
-          if (inView) return;
-          // The first row a third of the way down; the last brought up into sight if the span fits; the first never
-          // pushed above the clear top.
-          const third = top - box.clientHeight / 3;
-          const toLast = bottom - box.clientHeight + clear.bottom;
-          const to = Math.min(Math.max(third, toLast), top - clear.top);
-          // Instant, so the move is one scroll that lands on the anchor, never a smooth run of them.
-          box.scrollTo({ top: Math.max(0, to), behavior: 'instant' });
-          anchor = box.scrollTop;
+          Option.map(placeTo(box, extentOf(box, span), options.clear(box)), (to) => {
+            // Instant, so the move is one scroll that lands on the anchor, never a smooth run of them.
+            box.scrollTo({ top: to, behavior: 'instant' });
+            anchor = box.scrollTop;
+          });
         },
       );
     },
@@ -208,8 +209,8 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
     ([key]) => {
       const fresh = key !== revealed;
       revealed = key;
-      if (key === '' || (!fresh && meta.player.playing())) return;
-      if (fresh && meta.player.playing()) {
+      if (key === '' || (!fresh && playingNow())) return;
+      if (fresh && playingNow()) {
         heldByPress = true;
         options.reader();
       }
@@ -224,19 +225,13 @@ export const useFollow = (options: FollowOptions): (() => boolean) => {
             // Since it opened, the box is the reader's: only a press brings what it opens into sight over that.
             if (!fresh) return;
           }
-          const clear = options.clear(box);
-          const { top, bottom } = extentOf(box, span);
-          const room = box.clientHeight - clear.top - clear.bottom;
-          const kept = Option.getOrElse(
-            Option.liftPredicate(top, () => bottom - top <= room),
+          const to = revealTo(
+            box,
+            extentOf(box, span),
             () => extentOf(box, { first: span.last, last: span.last }).top,
+            options.clear(box),
           );
-          const to = Math.min(
-            Math.max(box.scrollTop, bottom - box.clientHeight + clear.bottom),
-            kept - clear.top,
-          );
-          if (Math.abs(to - box.scrollTop) > SLACK)
-            box.scrollTo({ top: Math.max(0, to), behavior: 'instant' });
+          if (Math.abs(to - box.scrollTop) > SLACK) box.scrollTo({ top: to, behavior: 'instant' });
           // Where it stands now is the view's, scrolled or let be: a resize measures from here.
           anchor = box.scrollTop;
         },

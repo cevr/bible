@@ -70,7 +70,7 @@ import { StateBand } from './state-band.tsx';
 import { filmCounts, filmLength } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
-import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
+import { Approval, CommentBox, Comments, type Sayer } from './comments.tsx';
 import { approvalVerbs } from './things.ts';
 import { setApproveUndo, setSaidText, undoApprove } from './options/receipt.ts';
 import { quiet, refused } from '../../command/command.ts';

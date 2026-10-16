@@ -22,10 +22,10 @@ import type { ApprovalState } from '../../core/catalogue.ts';
 import type { ChoiceVariant } from '../../core/choice.ts';
 
 /** What may be said of a thing beside a comment. */
-export type VerbId = 'approve' | 'approve-part' | 'unapprove' | 'reject' | 'unkeep';
+type VerbId = 'approve' | 'approve-part' | 'unapprove' | 'reject' | 'unkeep';
 
 /** One verb a thing allows now: its words there, and its write, answering whether it landed. */
-export interface ThingVerb {
+interface ThingVerb {
   readonly id: VerbId;
   readonly label: string;
   readonly run: () => Promise<boolean>;

@@ -7,7 +7,7 @@ import { Option, Result } from 'effect';
 import { parse } from '../../core/narration.ts';
 
 /** A word of a beat's line as the Board sets it: the marks said before it, then the word. */
-export interface LineWord {
+interface LineWord {
   readonly marks: ReadonlyArray<string>;
   readonly text: string;
 }

@@ -750,10 +750,11 @@ describe('the review page', () => {
           // The end is read in the video's frames (120: `00:00:05:00` at 24, `00:00:04:00` at 30 and, non-drop-frame, at 29.97).
           const frames = RATED_FRAMES;
           yield* textHas(page, '.rv-transport .rv-time', timecode(frames / fps, fps));
-          // Each video keeps the time of the picture it last showed (`requestVideoFrameCallback`).
+          // Each video keeps the time of the picture it last showed (`requestVideoFrameCallback`),
+          // armed as it mounts: a card's video put in after this (its source settling) is armed too.
           const videos = "Array.from(document.querySelectorAll('.rv-card video'))";
           yield* page.evaluate(
-            `${videos}.forEach((v) => { const shown = (_, frame) => { v.dataset.shown = String(frame.mediaTime); v.requestVideoFrameCallback(shown); }; v.requestVideoFrameCallback(shown); })`,
+            `(() => { const arm = (v) => { if (v.dataset.armed) return; v.dataset.armed = 'true'; const shown = (_, frame) => { v.dataset.shown = String(frame.mediaTime); v.requestVideoFrameCallback(shown); }; v.requestVideoFrameCallback(shown); }; const all = () => ${videos}.forEach(arm); all(); new MutationObserver(all).observe(document.body, { childList: true, subtree: true }); return true; })()`,
           );
           /**
            * The clock reads frame `n`, and every video stands inside it and

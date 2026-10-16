@@ -9,6 +9,7 @@
 
 import { Place } from '@bible/url-state';
 import { Effect, type Layer, Option } from 'effect';
+import type { HttpClient } from 'effect/http';
 import type { Host } from '../../browser/host.ts';
 import { addressOn } from '../../browser/host.ts';
 import { Places } from '../../core/api.ts';
@@ -42,7 +43,7 @@ const studioBody =
   (
     pages: Films,
     host: Host,
-    client: Layer.Layer<LabClient>,
+    client: Layer.Layer<LabClient | HttpClient.HttpClient>,
     fail: (why: string) => Effect.Effect<void>,
   ): FilmBody =>
   (hub) =>

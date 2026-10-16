@@ -179,7 +179,7 @@ export const captionsFor = (
 export const isMarkdown = (doc: ReviewFile): boolean => doc.name.endsWith('.md');
 
 /** What each approval state says, wherever a page says it. */
-export const APPROVAL_TEXT = {
+const APPROVAL_TEXT = {
   none: 'needs review',
   approved: 'approved',
   stale: 'needs review: an earlier version was approved',
@@ -200,7 +200,7 @@ const STATE_TEXT = {
 } as const satisfies Record<VariantState, string>;
 
 /** A variant's state as its badge says it, with why it is stale when that is known. */
-export const stateText = (state: VariantState, staleBy: Option.Option<StaleBy>): string =>
+const stateText = (state: VariantState, staleBy: Option.Option<StaleBy>): string =>
   Option.match(
     Option.filter(staleBy, () => state === 'stale'),
     { onNone: () => STATE_TEXT[state], onSome: (by) => `out of date: ${STALE_BY[by].why}` },

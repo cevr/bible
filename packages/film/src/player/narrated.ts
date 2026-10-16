@@ -40,6 +40,10 @@ export const narrationUrls = (id: string) => ({
   audio: `/films/${id}/narration/full.wav`,
 });
 
+/** A file in film `id`'s `narration/` folder (a staging take a beat's timings name), by its name. */
+export const narrationFileUrl = (id: string, file: string): string =>
+  `/films/${encodeURIComponent(id)}/narration/${encodeURIComponent(file)}`;
+
 /**
  * Whether a film's `file` (named from its folder, `narration/timings.json`)
  * is one its page reads once, at load, beside its code: a change to it

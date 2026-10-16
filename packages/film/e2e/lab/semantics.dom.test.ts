@@ -39,7 +39,6 @@ import {
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { FLOATING, LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
 import { receipted } from './studio-states.ts';
-import { onChoices } from './toy-choices.ts';
 
 const SLOW = 30_000;
 /** A page's every root, its registry run once. */
@@ -565,20 +564,6 @@ const WALKED: ReadonlyArray<Walked> = [
     open: () => openReview([]),
     roots: ['command-menu', 'film-menu', 'keys-sheet', 'receipt', 'view-menu'],
   },
-  {
-    name: 'Choices',
-    open: () => onChoices(),
-    roots: [
-      'chip-menu',
-      'command-menu',
-      'context-menu',
-      'film-menu',
-      'findings',
-      'keys-sheet',
-      'receipt',
-      'view-menu',
-    ],
-  },
   ...(
     [
       ['a desk', DESK],
@@ -612,7 +597,6 @@ const ROOTS = [
   'command-menu',
   'context-menu',
   'film-menu',
-  'findings',
   'inspector',
   'keys-sheet',
   'lightbox',

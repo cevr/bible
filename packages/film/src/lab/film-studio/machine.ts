@@ -9,8 +9,11 @@
 //              Reading ─Unread→ Unreadable ─Retry (a failure that can pass) | Version→ Reading
 //              Reading ─Version (another)→ Reading, its read started again
 //              Shown ─Version (the one shown)→ Shown
+//              Shown ─Refresh→ Refreshing ─Read | Unread→ Shown
 //   A read's answer names its version: Reading hears only its own, so a
-//   read the owner left while it was in flight never shows.
+//   read the owner left while it was in flight never shows. Refreshing
+//   shows the timeline it had while the version is read again (a write
+//   landed: a try kept, a beat approved), and keeps it when the read fails.
 //   Transport: Paused ─Played→ Playing ─Paused→ Paused
 //              Paused | Playing ─Grab→ Scrubbing{resume} ─Release→ Paused
 //              Scrubbing hears no Played or Paused: the scrub holds the clock.
@@ -29,6 +32,8 @@ export const TimelineState = State({
   Shown: { v: Schema.Int, timeline: FilmTimeline },
   /** Version `v` could not be read: `why`; `lasting` when a retry cannot change it (a refusal). */
   Unreadable: { v: Schema.Int, why: Schema.String, lasting: Schema.Boolean },
+  /** Version `v`'s `timeline`, shown while it is read again. */
+  Refreshing: { v: Schema.Int, timeline: FilmTimeline },
 });
 export type TimelineState = typeof TimelineState.Type;
 
@@ -40,6 +45,8 @@ export const TimelineEvent = Event({
   /** The owner opened version `v` (0: the open one). */
   Version: { v: Schema.Int },
   Retry: {},
+  /** Something the version shows was written: read it again, showing what it shows meanwhile. */
+  Refresh: {},
 });
 export type TimelineEvent = typeof TimelineEvent.Type;
 
@@ -117,7 +124,35 @@ const timelineMachine = <R>(
       },
       ({ state }) => TimelineState.Reading({ v: state.v }),
     )
-    .on(TimelineState.Unreadable, TimelineEvent.Retry, ({ state }) => state);
+    .on(TimelineState.Unreadable, TimelineEvent.Retry, ({ state }) => state)
+    .on(TimelineState.Shown, TimelineEvent.Refresh, ({ state }) =>
+      TimelineState.Refreshing({ v: state.v, timeline: state.timeline }),
+    )
+    .task(
+      TimelineState.Refreshing,
+      ({ state }) =>
+        read(state.v).pipe(
+          Effect.map((timeline) => TimelineEvent.Read({ v: state.v, timeline })),
+          Effect.catch((failure) =>
+            Effect.succeed(
+              TimelineEvent.Unread({ v: state.v, why: failure.message, lasting: failure.lasting }),
+            ),
+          ),
+        ),
+      { onSuccess: (event) => event },
+    )
+    .on(TimelineState.Refreshing, TimelineEvent.Read, ({ state, event }) =>
+      TimelineState.Shown({ v: state.v, timeline: event.timeline }),
+    )
+    .on(TimelineState.Refreshing, TimelineEvent.Unread, ({ state }) =>
+      TimelineState.Shown({ v: state.v, timeline: state.timeline }),
+    )
+    .on(TimelineState.Refreshing, TimelineEvent.Version, ({ state, event }) =>
+      Bool.match(event.v === state.v, {
+        onTrue: (): TimelineState => state,
+        onFalse: () => TimelineState.Reading({ v: event.v }),
+      }),
+    );
 
 /** The timeline machine's actor, started, reading version `first` through `read`. */
 export const spawnTimeline = <R>(

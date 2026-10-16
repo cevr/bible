@@ -21,7 +21,6 @@ import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import {
   STUDIO_ASK,
   STUDIO_DRAFT,
-  STUDIO_FILM,
   STUDIO_FOLDER,
   STUDIO_PRODUCTION,
   STUDIO_SERIES,
@@ -38,14 +37,9 @@ const FILM_HREFS = {
   draftBeat: pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '0-0'),
   folder: pageHref.folder(STUDIO_FOLDER),
   set: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
-  choices: pageHref.choices(STUDIO_FILM),
   studio: pageHref.studio(PROBE),
   lab: pageHref.lab(PROBE),
   labScene: pageHref.labScene(PROBE, 'one'),
-  script: pageHref.script(PROBE),
-  scriptBeat: pageHref.scriptBeat(PROBE, 'one'),
-  board: pageHref.board(PROBE),
-  boardBeat: pageHref.boardBeat(PROBE, 'one'),
 } satisfies Record<keyof typeof PLACE_HREFS, string>;
 
 /** Whether a page is one the server renders: the export page is drawn in the browser alone. */

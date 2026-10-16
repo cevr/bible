@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { type BoardFile, BoardName, type Panel, emptyBoard } from './board.ts';
 import { Segment } from './segment.ts';
-import { Shot, type TimedBeat, shotAt, shotsOf } from './animatic.ts';
+import { Shot, type TimedBeat, shotsOf } from './animatic.ts';
 
 const marks = (start: number, at: Record<string, number>) => (name: string) =>
   Option.map(Option.fromUndefinedOr(at[name]), (t) => start + t);
@@ -53,15 +53,6 @@ describe('the animatic', () => {
       'card title@10',
       'word.gone@14',
     ]);
-  });
-  test('shows the shot started last at a moment', () => {
-    const at = (T: number) => Option.map(shotAt(shots, T), named);
-    expect(at(0)).toEqual(Option.some('cold.room@0'));
-    expect(at(4.99)).toEqual(Option.some('cold.room@0'));
-    expect(at(5)).toEqual(Option.some('cold.judge@5'));
-    expect(at(12)).toEqual(Option.some('card title@10'));
-    expect(at(-1)).toEqual(Option.some('cold.room@0'));
-    expect(shotAt([], 3)).toEqual(Option.none());
   });
   test('a panel at a mark its line lacks holds from the beat start', () => {
     const gone = shots.find((s) => s._tag === 'Boarded' && s.panel.id === 'word.gone');

@@ -26,7 +26,6 @@ import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machin
 import { BodyTooLarge, SttUntimed, TakeMismatch } from '../../core/refusals.ts';
 import { STUDIO_IMPORT_WAIT_S, type StudioAttempt, type StudioTake } from '../../core/studio.ts';
 import type { LabFailure } from '../api.ts';
-import { Stage, type StageOps } from '../stage.ts';
 import { StudioApi, type StudioCalls } from './api.ts';
 import { Capture, type CaptureOps, MicDenied, MicLost } from './capture.ts';
 import {
@@ -34,6 +33,7 @@ import {
   ImportUnanswered,
   type RecorderActor,
   RecorderEvent,
+  RecordStage,
   RecorderState,
   limitAt,
   recorderMachine,
@@ -121,25 +121,11 @@ const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, LabFailure>>)
     keep: (beat, file, accept) =>
       say(`keep ${beat} ${file} ${accept}`).pipe(Effect.andThen(next())),
   };
-  const stage: StageOps = {
-    preview: () => Effect.die('not asked'),
-    unpreview: () => Effect.die('not asked'),
-    timelineOf: () => ({}),
-    knobsOf: () => ({}),
-    cuesOf: () => new Map(),
-    holdT: say('holdT'),
-    reload: say('reload'),
-    settle: say('settle'),
-    pause: say('pause'),
-    duration: 10,
-    cueSpan: () => Option.none(),
-    playFrom: () => Effect.void,
-    still: () => Effect.die('not asked'),
-  };
+  const stage = RecordStage.of({ reload: say('reload'), pause: say('pause') });
   const layer = Layer.mergeAll(
     Layer.succeed(Capture, capture),
     Layer.succeed(StudioApi, api),
-    Layer.succeed(Stage, stage),
+    Layer.succeed(RecordStage, stage),
   );
   return { log, layer, lose, listed, capture, api, stage };
 };
@@ -258,7 +244,7 @@ describe('the microphone opening, through an actor', () => {
         }),
       ),
       Layer.succeed(StudioApi, api),
-      Layer.succeed(Stage, stage),
+      Layer.succeed(RecordStage, stage),
     );
     return Effect.gen(function* () {
       const actor = yield* Machine.spawn(machine);

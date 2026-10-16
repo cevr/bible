@@ -43,7 +43,7 @@ interface TranscriptVerbs {
 }
 
 /** Whether `inner` lies within `outer`: one section, and its words among outer's. */
-export const within = (inner: WordsSelection, outer: WordsSelection): boolean =>
+const within = (inner: WordsSelection, outer: WordsSelection): boolean =>
   inner.scene === outer.scene && inner.from >= outer.from && inner.to <= outer.to;
 
 /**

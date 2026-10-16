@@ -3,9 +3,7 @@
 // place: every folder (`/`), a production's timeline
 // (`/productions/<production>`, the version in focus in `?v=`), one folder (`/sets/<folder>`), one comparison
 // set in it (`/sets/<folder>/<point>`, its view in the query:
-// `?view=pair|wipe&other=<id>`, `?view=moments&m=<n>`, `?view=diff&other=<id>&m=<n>`), one film's choices
-// (`/films/<film>/choices`), one film's project by its address tree
-// (`/films/<film>/project`), or a series draft in the Script reader
+// `?view=pair|wipe&other=<id>`, `?view=moments&m=<n>`, `?view=diff&other=<id>&m=<n>`), or a series draft in the Script reader
 // (`/series/<series>/<draft>`, the words selected in a beat
 // `/series/<series>/<draft>/<beat>?words=<a>-<b>`). Each of those is also a place ⌘K goes to by
 // its name (`destinationsOf`). A folder or a set keeps the still open full
@@ -15,7 +13,7 @@ import { Place } from '@bible/url-state';
 import { Data, Match, Option } from 'effect';
 import { Places, pageHref } from '../../core/api.ts';
 import type { Destination } from '../../command/go.ts';
-import type { ReviewFilms, ReviewIndex } from '../../core/review.ts';
+import type { ReviewIndex } from '../../core/review.ts';
 import { onTheMs } from '../../core/time.ts';
 import { folderTitle } from './format.ts';
 import { type ViewEvent, ViewState, otherOf, viewNameOf } from './machine.ts';
@@ -39,8 +37,6 @@ export type ReviewPlace = Data.TaggedEnum<{
   Folder: { readonly folder: string };
   /** A render choice point of the folder, by its id. */
   Set: { readonly folder: string; readonly point: string };
-  /** A film's choices: every choice point it has, by kind; `point` the card in focus ('' for none). */
-  Film: { readonly film: string; readonly point: string };
 }>;
 export const ReviewPlace = Data.taggedEnum<ReviewPlace>();
 
@@ -62,9 +58,6 @@ export const placeOf = (href: string): ReviewPlace =>
     ),
     Option.map(Place.decode(Places.folder, href), (v) => ReviewPlace.Folder(v.path)),
     Option.map(Place.decode(Places.set, href), (v) => ReviewPlace.Set(v.path)),
-    Option.map(Place.decode(Places.choices, href), (v) =>
-      ReviewPlace.Film({ film: v.path.film, point: v.query.point }),
-    ),
   ]).pipe(Option.getOrElse(() => ReviewPlace.Home()));
 
 /** A place that keeps a still open full size: reads its `?still=` from an href, and writes it. */
@@ -116,7 +109,6 @@ export const hrefOf = (place: ReviewPlace): string =>
       },
       Folder: (p) => pageHref.folder(p.folder),
       Set: (p) => pageHref.set(p.folder, p.point),
-      Film: (p) => pageHref.choices(p.film, p.point),
     }),
   );
 
@@ -159,12 +151,11 @@ export const causeOf = (event: ViewEvent): 'go' | 'follow' =>
 
 /**
  * Every place the review can go to by its name, as read so far: each
- * folder (by its title and its ref), each set in it, and each film's choices
- * and project. `go` goes there as a link does.
+ * folder (by its title and its ref) and each set in it. `go` goes there as a
+ * link does.
  */
 export const destinationsOf = (
   index: Option.Option<ReviewIndex>,
-  films: Option.Option<ReviewFilms>,
   go: (place: ReviewPlace) => void,
 ): ReadonlyArray<Destination> => [
   ...Option.match(index, { onNone: () => [], onSome: (i) => i.folders }).flatMap(
@@ -181,16 +172,6 @@ export const destinationsOf = (
         name: `${set.title} in ${folderTitle(folder)}`,
         go: () => go(ReviewPlace.Set({ folder: folder.ref, point: set.id })),
       })),
-    ],
-  ),
-  ...Option.match(films, { onNone: () => [], onSome: (f) => f.films }).flatMap(
-    (film): ReadonlyArray<Destination> => [
-      {
-        kind: 'choices',
-        id: film,
-        name: `of ${film}`,
-        go: () => go(ReviewPlace.Film({ film, point: '' })),
-      },
     ],
   ),
 ];

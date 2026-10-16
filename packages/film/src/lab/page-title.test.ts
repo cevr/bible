@@ -7,8 +7,8 @@ import { pageTitle } from './page-title.ts';
 
 describe("the tab's title", () => {
   test('names the selection first, then the page and the film; a page of no film is its name', () => {
-    expect(pageTitle([Option.some('woman'), Option.none()], 'board', Option.some('rbf'))).toBe(
-      'woman · Board · rbf',
+    expect(pageTitle([Option.some('cold'), Option.none()], 'lab', Option.some('rbf'))).toBe(
+      'cold · Lab · rbf',
     );
     expect(pageTitle([Option.none(), Option.none()], 'lab', Option.some('rbf'))).toBe('Lab · rbf');
     expect(

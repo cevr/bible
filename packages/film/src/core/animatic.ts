@@ -36,7 +36,7 @@ export type Shot = Data.TaggedEnum<{
 export const Shot = Data.taggedEnum<Shot>();
 
 /** Film seconds panel `panel` of `beat` is said at: its beat's start for `start` or for a mark its line lacks. */
-export const panelTime = (beat: TimedBeat, panel: Panel): number =>
+const panelTime = (beat: TimedBeat, panel: Panel): number =>
   Option.getOrElse(
     Option.filter(
       Option.flatMap(
@@ -70,10 +70,3 @@ export const shotsOf = (beats: ReadonlyArray<TimedBeat>, board: BoardFile): Read
         ),
     });
   });
-
-/** The shot the animatic shows at film second `T`: the last to start at or before it (the first before any). */
-export const shotAt = (shots: ReadonlyArray<Shot>, T: number): Option.Option<Shot> =>
-  Option.orElse(
-    Arr.findLast(shots, (s) => s.from <= T),
-    () => Arr.head(shots),
-  );

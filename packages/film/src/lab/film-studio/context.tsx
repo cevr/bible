@@ -6,16 +6,20 @@
 // place that knows how each is kept.
 //
 // The address holds the version (`?v=`), the selection (`?sel=beat:<id>`,
-// a step Back walks) and the playhead (`#t=`, film seconds, written as it
+// or `?sel=panel:<id>` for a Board panel and its beat, a step Back walks) and the playhead (`#t=`, film seconds, written as it
 // settles and every quarter second while it moves). The clock is the staged
 // film's preview when the version shown is the one the film registry holds
 // (its narration heard), else a silent clock over the version's timeline
-// (`clock.ts`). The page's keys are commands on the page's hub.
+// (`clock.ts`). The page's keys are commands on the page's hub. The page's
+// reads and writes run on one runtime (`meta.runtime`): the lab's routes
+// for the film, the review's, and the host; a write that changes what the
+// version shows reads the timeline again (`actions.refresh`).
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Array as Arr, Boolean as Bool, Effect, Layer, Match, Option, Result } from 'effect';
+import type { HttpClient } from 'effect/http';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -29,7 +33,7 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
-import { type Host, addressOn, hostLayer } from '../../browser/host.ts';
+import { type BrowserServices, type Host, addressOn, hostLayer } from '../../browser/host.ts';
 import { quietly } from '../../command/command.ts';
 import { shellCommands } from '../../command/go.ts';
 import { PageLoad } from '../../browser/page-load.ts';
@@ -37,23 +41,34 @@ import type { Hub } from '../../command/hub.ts';
 import {
   Places,
   type ScriptBeat,
+  type ScriptBeats,
   TIME_EVERY_MS,
   beatSelection,
   boardFileUrl,
   isRefusal,
+  panelSelection,
   selectedBeat,
+  selectedPanel,
   statusOf,
 } from '../../core/api.ts';
 import { parse } from '../../core/narration.ts';
 import { Segment } from '../../core/segment.ts';
 import { FILM_FPS, onTheMs } from '../../core/time.ts';
-import type { FilmTimeline, ScriptClip } from '../../core/timeline-schema.ts';
+import type { BoardClip, FilmTimeline, ScriptClip } from '../../core/timeline-schema.ts';
 import type { Film } from '../../canvas/film.ts';
 import type { Player, Staged } from '../../player/main.ts';
 import { tInUrl } from '../../player/t-in-url.ts';
 import { timersOn } from '../../player/throttle.ts';
 import { Actor } from '../actor.tsx';
-import { LabClient, called } from '../api.ts';
+import {
+  type LabApi,
+  LabClient,
+  type LabFailure,
+  type NotesApi,
+  called,
+  labApiLayer,
+} from '../api.ts';
+import { type ReviewApi, reviewApiLayer } from '../review/api.ts';
 import { type StudioClock, playerClock, silentClock } from './clock.ts';
 import {
   type ReadFailure,
@@ -72,10 +87,20 @@ import {
   beatNamed,
   beatStep,
   keptInFilm,
+  panelNamed,
   pictureAt,
   versionChip,
   zoomStep,
 } from './view-state.ts';
+
+/** What the studio's reads and writes run with: the lab's routes for the film, the review's, the host. */
+type StudioServices =
+  | LabClient
+  | HttpClient.HttpClient
+  | LabApi
+  | NotesApi
+  | ReviewApi
+  | BrowserServices;
 
 /** The film staged in the page: its preview's player and the stage its canvas stands in. */
 export interface StagedFilm {
@@ -84,8 +109,8 @@ export interface StagedFilm {
 }
 
 interface StudioState {
-  /** Where the read is: reading, shown, or unreadable. */
-  readonly phase: Accessor<TimelineState['_tag']>;
+  /** Where the read is: reading, shown (read again behind it, too), or unreadable. */
+  readonly phase: Accessor<Exclude<TimelineState['_tag'], 'Refreshing'>>;
   readonly timeline: Accessor<Option.Option<FilmTimeline>>;
   /** Why the timeline could not be read. */
   readonly why: Accessor<string>;
@@ -98,8 +123,10 @@ interface StudioState {
   /** Film seconds at the playhead. */
   readonly T: Accessor<number>;
   readonly playing: Accessor<boolean>;
-  /** The beat selected (`?sel=beat:<id>`), when the version has it. */
+  /** The beat selected (`?sel=beat:<id>`, or a panel's), when the version has it. */
   readonly selected: Accessor<Option.Option<ScriptClip>>;
+  /** The Board panel selected (`?sel=panel:<id>`), when the version has it. */
+  readonly panel: Accessor<Option.Option<BoardClip>>;
   /** The beat at the playhead. */
   readonly current: Accessor<Option.Option<ScriptClip>>;
   /** What the viewer shows at the playhead. */
@@ -128,6 +155,10 @@ interface StudioActions {
   readonly release: () => void;
   /** Select beat `beat` (none: close the inspector). */
   readonly select: (beat: Option.Option<string>) => void;
+  /** Select Board panel `panel`, and its beat. */
+  readonly selectPanel: (panel: string) => void;
+  /** Read the version shown again: a write changed what it shows. */
+  readonly refresh: () => void;
   /** Open version `v` (0: the open one). */
   readonly version: (v: number) => void;
   readonly zoomIn: () => void;
@@ -149,6 +180,14 @@ interface StudioMeta {
   readonly drawn: Accessor<Option.Option<Film>>;
   /** A Board image's URL, from the version shown's own Board. */
   readonly boardUrl: (file: string) => string;
+  /** What the page's reads and writes run on. */
+  readonly runtime: Atom.AtomRuntime<StudioServices>;
+  /** The staged film's player, while it plays the version shown (a recording pauses it). */
+  readonly player: Accessor<Option.Option<StagedFilm>>;
+  /** The film's registered script, as the lab reads its `script.ts` now: the page's one read of it. */
+  readonly script: Atom.Atom<AsyncResult.AsyncResult<ScriptBeats, LabFailure>>;
+  /** The page's one client of the lab's API: what the recorder reads and writes through. */
+  readonly client: Layer.Layer<LabClient>;
 }
 
 interface StudioContextValue {
@@ -170,7 +209,7 @@ type StudioValue = Place.Type<typeof Places.studio>;
 /** The timeline a state holds. */
 const timelineOf = (state: TimelineState): Option.Option<FilmTimeline> =>
   Match.value(state).pipe(
-    Match.tag('Shown', (s) => Option.some(s.timeline)),
+    Match.tag('Shown', 'Refreshing', (s) => Option.some(s.timeline)),
     Match.orElse(() => Option.none<FilmTimeline>()),
   );
 
@@ -195,7 +234,8 @@ const Body = (
     readonly host: Host;
     readonly hub: Hub;
     readonly staged: Option.Option<StagedFilm>;
-    readonly runtime: Atom.AtomRuntime<LabClient>;
+    readonly runtime: Atom.AtomRuntime<StudioServices>;
+    readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
     readonly timelineActor: TimelineActor;
     readonly transportActor: TransportActor;
   }>,
@@ -227,7 +267,8 @@ const Body = (
 
   // The time the address opened on: its `#t=`, else the start of the beat it selects once read.
   const openedT = untrack(() => Option.flatMap(place(), (v) => v.hash.t));
-  const openedBeat = untrack(() => Option.flatMap(place(), (v) => selectedBeat(v.query.sel)));
+  // A panel's beat is known once the timeline is read: the playhead opens on the panel's mark then.
+  const openedSel = untrack(() => Option.map(place(), (v) => v.query.sel));
   const opened = Option.getOrElse(openedT, () => 0);
   let first = true;
   const [T, setT] = createSignal(opened, { ownedWrite: true });
@@ -280,8 +321,20 @@ const Body = (
         const from = Bool.match(first && Option.isNone(openedT), {
           onTrue: () =>
             Option.getOrElse(
-              Option.flatMap(openedBeat, (id) =>
-                Option.flatMap(timeline(), (t) => Option.map(beatNamed(t, id), (b) => b.start)),
+              Option.flatMap(openedSel, (sel) =>
+                Option.flatMap(timeline(), (t) =>
+                  Option.orElse(
+                    Option.map(
+                      Option.flatMap(selectedBeat(sel), (id) => beatNamed(t, id)),
+                      (b) => b.start,
+                    ),
+                    () =>
+                      Option.map(
+                        Option.flatMap(selectedPanel(sel), (id) => panelNamed(t, id)),
+                        (p) => p.markAt,
+                      ),
+                  ),
+                ),
               ),
               () => T(),
             ),
@@ -310,9 +363,18 @@ const Body = (
     },
   );
 
+  const panel = createMemo(() =>
+    Option.flatMap(
+      Option.flatMap(place(), (v) => selectedPanel(v.query.sel)),
+      (id) => Option.flatMap(timeline(), (t) => panelNamed(t, id)),
+    ),
+  );
   const selected = createMemo(() =>
     Option.flatMap(
-      Option.flatMap(place(), (v) => selectedBeat(v.query.sel)),
+      Option.orElse(
+        Option.flatMap(place(), (v) => selectedBeat(v.query.sel)),
+        () => Option.map(panel(), (p) => p.beat),
+      ),
       (id) => Option.flatMap(timeline(), (t) => beatNamed(t, id)),
     ),
   );
@@ -342,6 +404,25 @@ const Body = (
   const [zoom, setZoom] = createSignal(1, { ownedWrite: true });
 
   const playing = () => transport()._tag === 'Playing';
+  // Select `sel`, one entry with the playhead it leaves: moved to `span.at` when it is outside `span`.
+  const selectAt = (
+    sel: string,
+    span: Option.Option<{ readonly from: number; readonly to: number; readonly at: number }>,
+  ) =>
+    Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) => {
+      Option.map(span, ({ from, to, at }) => {
+        const now = clock.now();
+        if (now < from || now >= to) {
+          clock.seek(at);
+          setT(clock.now());
+        }
+      });
+      setPlace({
+        ...value,
+        query: { ...value.query, sel },
+        hash: { t: Option.some(onTheMs(clock.now())) },
+      });
+    });
   const seek = (to: number) => {
     clock.seek(Math.min(Math.max(0, to), duration()));
     setT(clock.now());
@@ -377,28 +458,24 @@ const Body = (
       if (resume) clock.play();
     },
     select: (beat) =>
-      Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) => {
+      selectAt(
+        Option.getOrElse(Option.map(beat, beatSelection), () => ''),
         // The playhead stays when it is in the beat; else it goes to the beat's start.
         Option.map(
           Option.flatMap(beat, (id) => Option.flatMap(timeline(), (t) => beatNamed(t, id))),
-          (clip) => {
-            const now = clock.now();
-            if (now < clip.start || now >= clip.start + clip.dur) {
-              clock.seek(clip.start);
-              setT(clock.now());
-            }
-          },
-        );
-        // One entry: the selection and the playhead it leaves.
-        setPlace({
-          ...value,
-          query: {
-            ...value.query,
-            sel: Option.getOrElse(Option.map(beat, beatSelection), () => ''),
-          },
-          hash: { t: Option.some(onTheMs(clock.now())) },
-        });
-      }),
+          (clip) => ({ from: clip.start, to: clip.start + clip.dur, at: clip.start }),
+        ),
+      ),
+    selectPanel: (id) =>
+      selectAt(
+        panelSelection(id),
+        // The playhead stays when it is in the panel's hold; else it goes to its mark.
+        Option.map(
+          Option.flatMap(timeline(), (t) => panelNamed(t, id)),
+          (clip) => ({ from: clip.start, to: clip.start + clip.dur, at: clip.markAt }),
+        ),
+      ),
+    refresh: () => sendTimeline(TimelineEvent.Refresh),
     version: (v) =>
       Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) =>
         setPlace({ ...value, query: { ...value.query, v } }),
@@ -510,7 +587,11 @@ const Body = (
 
   const value: StudioContextValue = {
     state: {
-      phase: () => read()._tag,
+      phase: () =>
+        Match.value(read()).pipe(
+          Match.tag('Refreshing', () => 'Shown' as const),
+          Match.orElse((r) => r._tag),
+        ),
       timeline,
       why: () =>
         Match.value(read()).pipe(
@@ -527,6 +608,7 @@ const Body = (
       T,
       playing,
       selected,
+      panel,
       current,
       picture,
       zoom,
@@ -555,6 +637,10 @@ const Body = (
             onSome: (t) => boardFileUrl(props.film, file, Segment.make(`v${t.version.n}`)),
           },
         ),
+      runtime: props.runtime,
+      player: () => Option.filter(props.staged, () => drawable()),
+      script: scriptRead,
+      client: props.client,
     },
   };
   return <StudioContext value={value}>{props.children}</StudioContext>;
@@ -571,11 +657,15 @@ export const Root = (
     readonly film: string;
     readonly host: Host;
     readonly hub: Hub;
-    readonly client: Layer.Layer<LabClient>;
+    readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
     readonly staged: Option.Option<StagedFilm>;
   }>,
 ) => {
-  const runtime = Atom.runtime(Layer.merge(props.client, hostLayer(props.host)));
+  const runtime: Atom.AtomRuntime<StudioServices> = Atom.runtime(
+    Layer.mergeAll(labApiLayer(props.film), reviewApiLayer, hostLayer(props.host)).pipe(
+      Layer.provideMerge(props.client),
+    ),
+  );
   const first = Option.getOrElse(
     Option.map(Place.decode(Places.studio, addressOn(props.host).href()), (v) => v.query.v),
     () => 0,
@@ -613,6 +703,7 @@ export const Root = (
               hub={props.hub}
               staged={props.staged}
               runtime={runtime}
+              client={props.client}
               timelineActor={timelineActor}
               transportActor={transportActor}
             >

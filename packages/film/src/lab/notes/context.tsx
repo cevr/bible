@@ -1,5 +1,5 @@
 // The notes' provider in the staged lab: the composer's machine on the
-// shell's runtime, over the page's notes (`list.tsx`: the feed, the page's
+// shell's runtime, over the page's notes (`thread.tsx`: the feed, the page's
 // live connection to the notes on the server, the note selected, the pen,
 // the thread's writes), which it lends what needs the film (each note's
 // time, the seek to it, Note frame). What a note is about beside its frame
@@ -64,7 +64,7 @@ import { useMotion } from '../motion/context.tsx';
 import { useSource } from '../source/context.tsx';
 import { lineOpen } from '../source/open.ts';
 import { feedText } from './feed.ts';
-import { type ThreadWrite, useNotesFeed } from './list.tsx';
+import { type ThreadWrite, useNotesFeed } from './thread.tsx';
 
 /** How much of a note's words its Go to entry carries. */
 const NOTE_NAMED = 48;
@@ -156,7 +156,7 @@ export const useNotes = (): NotesContextValue => useContext(NotesContext);
  * which every page has: the Lab's in and out points (Motion) and the line
  * its Source view holds; the Script's words of a line.
  */
-export interface Lent {
+interface Lent {
   /** The in and out points marked, in film seconds. */
   readonly range: Accessor<Option.Option<{ readonly from: number; readonly to: number }>>;
   /** The line of a scene's file the Source view is held on. */

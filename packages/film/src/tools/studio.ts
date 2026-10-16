@@ -188,7 +188,8 @@ const filmBeat = Effect.fn('studio.filmBeat')(function* (params: {
 
 /**
  * A film's beat's attempts as the studio lists them, newest first, each
- * kept or not and in its line as it stands or not: refused UnknownScene
+ * kept or not and in its line as it stands or not, and the take its timings
+ * name when that is none of them (a staging take): refused UnknownScene
  * unless `beat` is one of the film's beats (`filmBeat`), before a file is
  * read. The one read of a beat's takes: the studio's route answers it, and
  * an ask's take is checked by it when the ask is made (`AskMaterials`).
@@ -213,7 +214,14 @@ export const beatAttempts = Effect.fn('studio.beatAttempts')(function* (params: 
       current: Option.exists(script, (b) => a.take.hash === hashText(b.script)),
     })),
   };
-  return read;
+  // The take the timings name, when no attempt is it: a staging take, heard until the owner records his.
+  return Option.match(
+    Option.filter(timing, (t) => !attempts.some((a) => a.file === t.file)),
+    {
+      onNone: () => read,
+      onSome: (t): StudioAttempts => ({ ...read, staged: { file: t.file, duration: t.duration } }),
+    },
+  );
 });
 
 /** A take refused for what it says, naming its attempt, which "accept anyway" keeps. */

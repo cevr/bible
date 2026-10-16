@@ -7,14 +7,13 @@
 // play is told, and so is its new media after.
 
 import { describe, expect, it, test } from 'effect-bun-test';
-import { Duration, Effect, Layer, Option } from 'effect';
-import { TestClock } from 'effect/testing';
+import { Effect, Layer, Option } from 'effect';
 import { manualFrames } from '../../browser/fixtures/frames.ts';
 import { fakeMedia } from '../../browser/fixtures/media.ts';
 import { hostOf } from '../../browser/host.ts';
 import { Media } from '../../browser/media.ts';
 import { SyncEvent, SyncState, UNKNOWN_END } from './machine.ts';
-import { makeSync, reloadOnError } from './sync.ts';
+import { makeSync } from './sync.ts';
 
 /** Let the forked plays settle: their answers heard, and what came of them told. */
 const settle = Effect.repeat(Effect.yieldNow, { times: 10 });
@@ -305,41 +304,6 @@ describe('the sync driver', () => {
     driver.attach('a', media());
     expect(tags()).toEqual(['MediaReplaced']);
   });
-
-  it.effect(
-    'a media that fails to load is asked for again after the wait, up to its tries, until stopped',
-    () =>
-      Effect.gen(function* () {
-        const host = yield* Effect.context<never>();
-        const { el, media, asked } = fakeMedia();
-        const stop = reloadOnError(media, host, Duration.seconds(5), 2);
-        el.fire('error');
-        expect(asked).toEqual([]);
-        yield* TestClock.adjust('5 seconds');
-        expect(asked).toEqual(['load']);
-        el.fire('error');
-        yield* TestClock.adjust('5 seconds');
-        expect(asked).toEqual(['load', 'load']);
-        // Out of tries: a third failure is left.
-        el.fire('error');
-        yield* TestClock.adjust('5 seconds');
-        expect(asked).toEqual(['load', 'load']);
-        stop();
-        expect(el.listening('error')).toBe(0);
-      }),
-  );
-
-  it.effect('a retry waiting when the media is let go never asks', () =>
-    Effect.gen(function* () {
-      const host = yield* Effect.context<never>();
-      const { el, media, asked } = fakeMedia();
-      const stop = reloadOnError(media, host, Duration.seconds(5), 2);
-      el.fire('error');
-      stop();
-      yield* TestClock.adjust('10 seconds');
-      expect(asked).toEqual([]);
-    }),
-  );
 
   test("a clock that follows another version tells that one's end, failure and ending, and hears only it after", () => {
     const { driver, a, b, told, tags } = rig();

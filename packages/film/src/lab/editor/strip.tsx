@@ -30,7 +30,7 @@ import { selectsCue } from '../place.ts';
 import { pressed } from '../pressed.ts';
 import { useLabPage } from '../panel.tsx';
 import { useFollow } from '../follow.ts';
-import { useLab } from '../shell.tsx';
+import { useLab, useLabClock } from '../shell.tsx';
 import { pointsAt, useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
 import { lanesKey, lanesOf } from './lanes.ts';
@@ -427,30 +427,33 @@ export const Strip = () => {
             stripFollowCommand({ letGo: readerHas, follow: () => setReaderHas(false) }),
           ),
         );
-        useFollow({
-          box: () => scroller,
-          content: () => rows,
-          target: following,
-          span: (key) =>
-            Option.flatMap(lanesOf(key), (lanes) =>
-              Option.all({
-                first: laneRow(lanes.scene, lanes.first),
-                last: laneRow(lanes.scene, lanes.last),
-              }),
-            ),
-          clear: () => ({
-            top: Option.match(
-              Option.flatMap(rows, (r) =>
-                Option.fromNullishOr(r.querySelector<HTMLElement>('.lab-strip-words')),
+        useFollow(
+          {
+            box: () => scroller,
+            content: () => rows,
+            target: following,
+            span: (key) =>
+              Option.flatMap(lanesOf(key), (lanes) =>
+                Option.all({
+                  first: laneRow(lanes.scene, lanes.first),
+                  last: laneRow(lanes.scene, lanes.last),
+                }),
               ),
-              { onNone: () => 0, onSome: (w) => w.offsetHeight },
-            ),
-            bottom: 0,
-          }),
-          placing: () => !readerHas() && !state.holding() && Option.isNone(held()),
-          reader: () => setReaderHas(true),
-          played: () => setReaderHas(false),
-        });
+            clear: () => ({
+              top: Option.match(
+                Option.flatMap(rows, (r) =>
+                  Option.fromNullishOr(r.querySelector<HTMLElement>('.lab-strip-words')),
+                ),
+                { onNone: () => 0, onSome: (w) => w.offsetHeight },
+              ),
+              bottom: 0,
+            }),
+            placing: () => !readerHas() && !state.holding() && Option.isNone(held()),
+            reader: () => setReaderHas(true),
+            played: () => setReaderHas(false),
+          },
+          useLabClock(),
+        );
         // The in and out points over this scene's window: as a lane drag marks them, else as marked.
         const band = () =>
           Option.filter(

@@ -1,15 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Effect, Option } from 'effect';
 import { type Command, labelOf, makeCommands, moved, quiet, refused, said } from './command.ts';
-import {
-  contextAt,
-  focusOf,
-  isField,
-  selected,
-  selectedAll,
-  withFocused,
-  withSelection,
-} from './context.ts';
+import { contextAt, focusOf, isField, selected, withFocused, withSelection } from './context.ts';
 import { cueOf, Selection } from './selection.ts';
 import { ChangeId } from '../core/schema.ts';
 
@@ -119,7 +111,7 @@ describe('receipts', () => {
 });
 
 describe('the context', () => {
-  test('reads the first selected thing of a kind, and every one of a kind for a batch', () => {
+  test('reads the first selected thing of a kind', () => {
     const many = withSelection(lab, [
       Selection.cases.Point.make({ film: 'f', point: 'cold' }),
       Selection.cases.Point.make({ film: 'f', point: 'word' }),
@@ -127,7 +119,6 @@ describe('the context', () => {
     ]);
     expect(Option.map(selected(many, 'Point'), (p) => p.point)).toEqual(Option.some('cold'));
     expect(Option.isNone(selected(many, 'Cue'))).toBe(true);
-    expect(selectedAll(many, 'Point').map((p) => p.point)).toEqual(['cold', 'word']);
   });
 
   test('reads where a press puts the keyboard: a field, the studio, a slider, a control, the page', () => {

@@ -121,13 +121,9 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-strip img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
 /* A set card's count of versions, after its title in the line's flow (rows set their badges apart by their gap). */
 .rv-body > b + .sh-badge { margin-left: var(--s-1); }
-.rv-picked { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--text-1); font-size: var(--fs-2); font-weight: var(--w-2); }
-.rv-picked svg { width: 14px; height: 14px; flex: none; }
-.rv-picked circle { fill: var(--text-1); }
-.rv-picked path { fill: none; stroke: var(--surface-1); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 /*
  * The transport: one row in the page's dock (\`.sh-dock\`, the shell's), on
- * Choices and a Set alike: play, the time, the scrub taking what is
+ * a Set: play, the time, the scrub taking what is
  * left, then the rate. On a phone the time is where the clock is; the scrub
  * shows the end. On a laptop the header's timecode is the time, and the row
  * says only the length.
@@ -224,8 +220,6 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-doc .rv-note { border-top: var(--border); }
 .rv .empty { color: var(--text-2); padding: var(--s-8) 0; text-align: center; }
 :where(.rv) button:disabled { color: var(--text-3); cursor: default; }
-.rv-picture { margin-bottom: var(--s-3); }
-.rv-picture video { max-height: 62vh; }
 .rv-pending .rv-row { padding: var(--s-2) var(--s-3); }
 /* The phone copy on its way, or failed: said across the foot of the still's box, as a failure to play is. */
 .rv-pending-picture { position: relative; }
@@ -234,23 +228,10 @@ a.rv-card:hover { background: var(--surface-2); }
   background: var(--backdrop-deep); color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2);
 }
 .rv-pending-hint[data-copy="failed"] { color: var(--state-warning); }
-.rv-option .rv-body { display: flex; flex-direction: column; gap: var(--s-2); }
-.rv-take { border-top: var(--border); padding-top: var(--s-2); display: flex; flex-direction: column; gap: var(--s-2); }
 /* The row whose inspector is open (design language §5, List row): its left edge in the
-   accent, on Choices' variant rows and a Set's version cards alike;
+   accent, on a Set's version cards;
    one the keyboard focuses shows the shell's ring instead. */
-:is(.rv-take, .rv-card)[data-selected="true"]:not(:focus-visible) { box-shadow: inset 2px 0 var(--accent); }
-.rv-take { padding-left: var(--s-2); }
-/* The choices as a list (design language §6, Choices): each point a group across the column, each variant one row, its name and line at the start and its hear buttons and verbs at the end (wrapping there, the name keeping at least 10rem or half the row). */
-.rv-list { display: flex; flex-direction: column; gap: var(--s-3); }
-.rv-list .rv-take { display: grid; grid-template-columns: minmax(min(10rem, 50%), 1fr) minmax(0, auto); column-gap: var(--s-3); row-gap: var(--s-1); align-items: center; }
-.rv-list .rv-take > .rv-acts { grid-column: 2; grid-row: 1 / span 2; justify-content: flex-end; }
-/* A long name wraps inside its column rather than running under the verbs. */
-.rv-list .rv-take .lab-inspect { max-width: 100%; text-align: start; }
-.rv-list .rv-take .rv-name { white-space: normal; overflow-wrap: anywhere; }
-.rv-knob input[type="range"] { flex: 1; min-width: 0; max-width: 320px; }
-/* The line that says the film has no render, where the transport would be. */
-.rv-no-cut { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-card[data-selected="true"]:not(:focus-visible) { box-shadow: inset 2px 0 var(--accent); }
 /* The film's length and counts on a Films card, over and under its state band. */
 .rv-film-length, .rv-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
 /* A Films card's band sits between the film's name and its counts. */
@@ -262,51 +243,22 @@ a.rv-card:hover { background: var(--surface-2); }
 .pj-band span[data-state="rendered"] { box-shadow: inset 0 -2px 0 var(--state-rendered); }
 .pj-band span[data-state="approved"] { box-shadow: inset 0 -2px 0 var(--state-approved); }
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
-.rv-choices { display: contents; }
-/*
- * The kinds strip: one row of tabs (scrolling sideways on a phone), held
- * under the header as the page scrolls; on a laptop
- * under the dock held there too.
- */
-.rv-kinds {
-  display: flex; gap: var(--s-1); margin-top: var(--s-1); padding: var(--s-1) 0; overflow-x: auto;
-  position: sticky; top: var(--header-h); z-index: 10; background: var(--surface-0);
-}
-@media ${WIDE} {
-  .rv-kinds { top: calc(var(--header-h) + var(--dock-h)); }
-}
-.rv-kinds .sh-btn { flex: none; }
-.rv-kinds .rv-count { font-family: var(--font-mono); color: var(--text-3); font-variant-numeric: tabular-nums; }
-.rv-group + .rv-group { margin-top: var(--s-4); }
-.rv-group h3 { display: flex; gap: var(--s-2); align-items: baseline; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-2); }
-.rv-at { font: inherit; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
-.rv-at:disabled { color: var(--text-3); cursor: default; }
-.rv-plays .rv-row { justify-content: space-between; margin-top: var(--s-2); }
-.rv-inline-link { color: var(--text-1); text-decoration: none; }
-.rv-inline-link:hover { color: var(--accent); }
-.rv-findings { margin: var(--s-2) 0 0; padding-left: var(--s-4); font-size: var(--fs-2); overflow-wrap: anywhere; }
-.rv-findings li[data-level="error"] b { color: var(--state-findings); }
-.rv-findings li[data-level="warning"] b { color: var(--state-warning); }
 .rv-films { margin-bottom: var(--s-1); }
 .rv .lab-count-hit:focus-visible { box-shadow: none; }
 .rv .lab-count-hit:focus-visible > .lab-count { box-shadow: var(--focus-ring); }
 /*
  * Every target is the pointer's size, --hit each way (design language §3: a
  * finger's 44 px on the phone, 28 px on the laptop), grown by padding, never
- * by bigger text. A slider, a segment and a sound button are the kit's
- * (the shell's sheet), --hit already; a loose video's file link --hit square; a
- * row or head that holds a name, a
- * finding's time and a part's choice link full rows --hit tall (a name's own
- * hit-slop, in the commands' sheet, then stays inside its row).
+ * by bigger text. A slider and a segment are the kit's (the shell's
+ * sheet), --hit already; a loose video's file link --hit square; a row that
+ * holds a name full rows --hit tall (a name's own hit-slop, in the commands'
+ * sheet, then stays inside its row).
  */
 .rv-cap > a.rv-hint { display: inline-flex; align-items: center; justify-content: center; min-height: var(--hit); min-width: var(--hit); }
 .rv-row:has(> .lab-named) { min-height: var(--hit); }
-.rv-at, .rv-plays .rv-inline-link { display: inline-flex; align-items: center; min-height: var(--hit); vertical-align: middle; }
 @media ${PHONE} {
   .rv-main { padding: var(--s-3) var(--gutter) var(--s-8); }
   .rv-cap { flex-wrap: wrap; }
   .rv-tag { white-space: normal; overflow-wrap: anywhere; }
-  /* A row's state word moves whole to the next line, never broken in two. */
-  .rv-take .rv-tag { overflow-wrap: normal; }
 }
 `;

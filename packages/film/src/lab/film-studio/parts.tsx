@@ -46,6 +46,7 @@ import { FilmsLink } from './page.tsx';
 import { pressed } from '../pressed.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { useStudio } from './context.tsx';
+import { Inspector } from './inspector.tsx';
 import {
   NEXT_H,
   PHONE_PX_PER_SECOND,
@@ -59,7 +60,6 @@ import {
   STAGE_TITLE,
   TRACK_TITLE,
   clipFit,
-  hasBoard,
   lanesShown,
   marksFit,
   nextText,
@@ -73,10 +73,8 @@ import {
   scrollForZoom,
   sentenceAt,
   zoomFor,
-  type BeatPage,
   type VersionChip,
   type CardPicture,
-  beatPageHref,
   verseParts,
   versionOpens,
 } from './view-state.ts';
@@ -574,6 +572,8 @@ const Clip = (props: {
   readonly state: ClipState;
   /** The picture it shows, for a Board panel with an image. */
   readonly picture: Option.Option<string>;
+  /** The Board panel it is (`<beat>.<mark>`): a press selects the panel, and its beat. */
+  readonly panel?: string;
   readonly children?: JSX.Element;
 }) => {
   const { state, actions } = useStudio();
@@ -610,15 +610,20 @@ const Clip = (props: {
           Option.map(props.picture, (url) => `url("${url}")`),
         ),
       }}
+      data-panel={props.panel}
       onClick={() =>
-        actions.select(
-          Option.orElse(props.beat, () =>
-            Option.map(
-              Option.flatMap(state.timeline(), () => state.current()),
-              (b) => b.beat,
+        Option.match(Option.fromUndefinedOr(props.panel), {
+          onSome: actions.selectPanel,
+          onNone: () =>
+            actions.select(
+              Option.orElse(props.beat, () =>
+                Option.map(
+                  Option.flatMap(state.timeline(), () => state.current()),
+                  (b) => b.beat,
+                ),
+              ),
             ),
-          ),
-        )
+        })
       }
     >
       <Show when={fit() === 'labelled'}>
@@ -702,6 +707,7 @@ const BoardTrack = (props: { readonly clips: ReadonlyArray<BoardClip> }) => {
           estimated={clip.clock === 'estimated'}
           state={clip.state}
           picture={Option.map(Option.fromUndefinedOr(clip.file), meta.boardUrl)}
+          panel={clip.panel}
         />
       )}
     </For>
@@ -1109,125 +1115,6 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
         </ScaleContext>
       </div>
     </section>
-  );
-};
-
-// ---------------------------------------------------------------- Inspector
-
-/**
- * The inspector's sections, in flow order, each with the track its material
- * comes from and the page the beat's material is still worked on
- * (`BeatPage`), which its row links to until the section's body holds it.
- */
-const SECTIONS: ReadonlyArray<{
-  readonly title: string;
-  readonly track: Option.Option<Track>;
-  readonly page: Option.Option<BeatPage>;
-}> = [
-  { title: 'Words', track: Option.some('script'), page: Option.some('Script') },
-  { title: 'Concept', track: Option.some('concept'), page: Option.none() },
-  { title: 'Board', track: Option.some('board'), page: Option.some('Board') },
-  { title: 'Voice', track: Option.some('voice'), page: Option.none() },
-  { title: 'Scene', track: Option.some('scenes'), page: Option.none() },
-  { title: 'Notes and asks', track: Option.none(), page: Option.some('Lab') },
-];
-
-/** A section row's swatch, by the track its material comes from. */
-const RowSwatch = (props: { readonly track: Option.Option<Track> }) => (
-  <i class="st-sw" data-kind={Option.getOrElse(props.track, () => 'note')} aria-hidden="true" />
-);
-
-/** A beat's span as the inspector heads it: `2:27.6 – 3:06.1 · 38.5 s`. */
-const spanText = (beat: ScriptClip) =>
-  `${timecode(beat.start)} – ${timecode(beat.start + beat.dur)} · ${beat.dur.toFixed(1)} s`;
-
-/**
- * The inspector's shell: the selected beat's head (its name, its span,
- * Approve when the beat has Board panels, close) and a row for each section
- * whose stage has material in this version. The sections' bodies come with
- * the inspector's own unit; until then the Words, Board and Notes rows link
- * to the beat on the page that still holds it, at the playhead.
- */
-const Inspector = () => {
-  const { state, actions, meta } = useStudio();
-  const keys = hubKeys(meta.hub);
-  return (
-    <aside class="st-insp" aria-label="Inspector">
-      <Show when={Option.getOrUndefined(state.selected())}>
-        {(beat) => (
-          <div class="st-pane" data-beat={beat().beat}>
-            <div class="st-pane-head">
-              <i class="st-sw" data-kind="script" aria-hidden="true" />
-              <div class="st-ttl">
-                <h2>{beat().beat}</h2>
-                <div class="st-sub">{spanText(beat())}</div>
-              </div>
-              <Show when={Option.exists(state.timeline(), (t) => hasBoard(t, beat().beat))}>
-                <button type="button" class="st-btn primary" data-act="approve" disabled>
-                  Approve
-                </button>
-              </Show>
-              <button
-                type="button"
-                class="st-close"
-                data-act="close"
-                aria-label="Close the inspector"
-                title={keys.titled('Close the inspector', 'studio.close')}
-                onClick={() => actions.select(Option.none())}
-              >
-                <StudioIcon of="close" />
-              </button>
-            </div>
-            <For
-              each={SECTIONS.filter((section) =>
-                Option.match(section.track, {
-                  onNone: () => true,
-                  onSome: (track) =>
-                    Option.exists(state.timeline(), (t) =>
-                      t.lanes.some((lane) => lane.track === track),
-                    ),
-                }),
-              )}
-            >
-              {(section) => (
-                <Show
-                  when={Option.getOrUndefined(
-                    Option.flatMap(section.page, (page) =>
-                      Option.flatMap(state.timeline(), (timeline) =>
-                        Option.map(
-                          beatPageHref(page, timeline, meta.film, beat(), state.T()),
-                          (href) => ({ page, href }),
-                        ),
-                      ),
-                    ),
-                  )}
-                  fallback={
-                    <div class="st-row" data-section={section.title}>
-                      <RowSwatch track={section.track} />
-                      <span>{section.title}</span>
-                      <span class="st-n">–</span>
-                    </div>
-                  }
-                >
-                  {(link) => (
-                    <a
-                      class="st-row"
-                      data-section={section.title}
-                      href={link().href}
-                      title={`Open ${beat().beat} on the ${link().page} page`}
-                    >
-                      <RowSwatch track={section.track} />
-                      <span>{section.title}</span>
-                      <span class="st-n">{link().page} page</span>
-                    </a>
-                  )}
-                </Show>
-              )}
-            </For>
-          </div>
-        )}
-      </Show>
-    </aside>
   );
 };
 

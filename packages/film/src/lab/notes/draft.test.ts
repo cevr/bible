@@ -11,7 +11,6 @@
 import { Option, Schema } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import { NoteDraft } from '../../core/schema.ts';
-import { timecode } from '../../core/time.ts';
 import { probeFilm } from '../fixtures/probe-film.ts';
 import {
   NO_SCOPE,
@@ -23,7 +22,6 @@ import {
   scopeText,
   unsaid,
   whenText,
-  whereOnFilm,
   whereText,
   wordsAt,
 } from './draft.ts';
@@ -50,22 +48,6 @@ describe('where a note sits', () => {
   test("speaks the scene's time beside the scene's name, never the film's", () => {
     const two = film.placed[1]?.start ?? 0;
     expect(whereText(film.placed, film.fps, two + 0.5).startsWith('two · 00:00:00:15')).toBe(true);
-  });
-
-  test("on the Script, speaks the film's time, as its beats' heads do, and names no beat: its head does", () => {
-    const two = film.placed[1]?.start ?? 0;
-    for (const T of [1, two + 0.5]) {
-      const [time, ...near] = whereOnFilm(film.placed, film.fps, T).split(' · ');
-      expect(time).toBe(timecode(T, film.fps));
-      // The cue edge and the mark nearest it, as the Lab says them after the scene's name and time.
-      expect(near).toEqual(whereText(film.placed, film.fps, T).split(' · ').slice(2));
-    }
-    expect(whereOnFilm(film.placed, film.fps, 1)).toMatch(/ · cue .* · \{\w+\}$/);
-  });
-
-  test('says nothing of a film with no scenes', () => {
-    expect(whereText([], film.fps, 1)).toBe('');
-    expect(whereOnFilm([], film.fps, 1)).toBe('');
   });
 
   test("a made note says its time into its scene now, or the film's, named, once its scene is gone", () => {

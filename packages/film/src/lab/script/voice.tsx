@@ -8,8 +8,8 @@
 // makes, a beat's delivery marks, one at a time, the takes read again once
 // it lands and the line read again once those takes do: a line put back
 // elsewhere after the lab answered the page's read-back, before the takes
-// past the write land, shows as put back. A film's Script reader
-// (`VoiceProvider`) reads its film's (`GET …/script/voice`,
+// past the write land, shows as put back. A film's Words reader
+// (`../words/reader.tsx`) reads its film's (`GET …/script/voice`,
 // `POST …/script/marks`: the lab rebuilds and the page reloads with the
 // marks); a series draft's reader its draft's
 // (`review/draft.tsx`). Either way the fill voices the beat again first.
@@ -30,18 +30,11 @@ import {
 } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import type { Host } from '../../browser/host.ts';
-import {
-  type MarksPost,
-  type ScriptVoice,
-  type StagingTake,
-  stagingTakeUrl,
-} from '../../core/api.ts';
+import type { MarksPost, ScriptVoice, StagingTake } from '../../core/api.ts';
 import { type LineRead, type Mark, sameMarks } from '../../core/delivery.ts';
 import type { TakeWord } from '../../core/schema.ts';
-import { LabApi, type LabFailure, reasonOf } from '../api.ts';
-import { useLab } from '../shell.tsx';
+import { type LabFailure, reasonOf } from '../api.ts';
 import type { WordAt } from '../transcript/lit.ts';
-import { useScript } from './context.tsx';
 import { heardAt, retaken, spanOf } from './delivery.ts';
 
 /** How often the takes are asked for again: often while one is still voicing, else now and then (a new day, another film's spend, a take another process made). */
@@ -396,23 +389,4 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
     written: source.written,
   };
   return <VoiceContext value={value}>{props.children}</VoiceContext>;
-};
-
-/** A film's Script reader's staging voice: its film's takes and marks, the lab's player given way to. */
-export const VoiceProvider = (props: ParentProps) => {
-  const { meta } = useLab();
-  const beats = useScript().beats.map((b) => b.id);
-  const source: VoiceSource = {
-    reading: meta.runtime.atom(polled(LabApi.use((api) => api.scriptVoice))),
-    // Its answer is the rebuild, which reloads the page with the marks.
-    write: meta.runtime.fn((post: MarksPost) => LabApi.use((api) => api.writeMarks(post))),
-    takeUrl: (file) => stagingTakeUrl(meta.name, file),
-    beats: () => beats,
-    host: meta.host,
-    player: Option.some(meta.player),
-    written: 'marked; the page reloads with it',
-    // A change to the script rebuilds the film, and the page reloads with it.
-    reread: Option.none(),
-  };
-  return <VoiceOver source={source}>{props.children}</VoiceOver>;
 };

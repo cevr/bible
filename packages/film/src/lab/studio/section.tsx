@@ -1,4 +1,5 @@
-// The studio's section of the panel: the beats with where each take stands,
+// The record studio's section (the Lab's Record panel, the film studio's
+// Record dialog): the beats with where each take stands,
 // the recorder's controls and status, the microphone (named when not the
 // default; picked from ⌘K) and its meter, the teleprompter (the selected
 // beat's lines and quotations, as the reading sheet sets them), the
@@ -20,7 +21,6 @@ import { BY_BUTTON } from '../../command/command.ts';
 import { hubKeys, registerWhile } from '../command/changes.ts';
 import { focusFor } from '../focus.ts';
 import { pressed } from '../pressed.ts';
-import { Lab, useLab } from '../shell.tsx';
 import { micCommands, studioCommands } from './commands.ts';
 import { type AttemptRow, useStudio } from './context.tsx';
 import { type Act, beatBadge } from './view.ts';
@@ -162,8 +162,7 @@ const SAID: ReadonlySet<string> = new Set(['refused', 'kept']);
  * same line said politely (`.sh-sr`) when a take is refused or kept.
  */
 const Controls = () => {
-  const { state } = useStudio();
-  const { meta } = useLab();
+  const { state, meta } = useStudio();
   // Each button is its command, and names its key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(meta.hub);
   return (
@@ -201,8 +200,7 @@ const Controls = () => {
 
 /** One recording's row: kept by its file, so a player in it keeps playing while the recorder moves. */
 const Attempt = (props: { readonly row: Accessor<AttemptRow> }) => {
-  const { state, actions } = useStudio();
-  const { meta } = useLab();
+  const { state, actions, meta } = useStudio();
   const row = props.row;
   return (
     <li class={['studio-attempt', { kept: row().kept }]} data-file={row().file}>
@@ -284,8 +282,7 @@ const onButton = (target: EventTarget) =>
  * in the studio comes back after the reload a take kept causes.
  */
 export const Section = () => {
-  const { state, actions } = useStudio();
-  const { meta } = useLab();
+  const { state, actions, meta } = useStudio();
   const held: Held = { root: Option.none(), last: Option.none() };
   /** Whether the target is in the studio. */
   const within = (target: EventTarget) =>
@@ -334,7 +331,7 @@ export const Section = () => {
     else actions.focused(Option.exists(to, within));
   };
   return (
-    <Lab.Fill at="record">
+    <>
       {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- no action of its own: it holds focus for the studio's commands, and a click on a button leaves focus here */}
       <div
         class="studio"
@@ -356,6 +353,6 @@ export const Section = () => {
         <Prompter />
         <Attempts />
       </div>
-    </Lab.Fill>
+    </>
   );
 };

@@ -277,14 +277,8 @@ describe('lab pages', () => {
           '/': 'review',
           '/sets/root/folder': 'review',
           '/films/f/studio': 'player',
-          '/films/f/choices': 'review',
-          // The Lab, the Script and the Board stay served until the studio's inspector holds them.
           '/films/f/lab': 'lab',
           '/films/f/lab/hand': 'lab',
-          '/films/f/script': 'lab',
-          '/films/f/script/hand': 'lab',
-          '/films/f/board': 'lab',
-          '/films/f/board/hand': 'lab',
           '/films/f/export': 'render',
         };
         for (const [pathname, page] of Object.entries(places))
@@ -319,13 +313,24 @@ describe('lab pages', () => {
         '/player?film=f&lookbook': '/films/f/studio',
         '/player?film=f': '/films/f/studio',
         '/?project=f': '/films/f/studio',
-        '/?film=f': '/films/f/choices',
+        '/?film=f': '/films/f/studio',
         // Each film page the studio replaced lands on the studio, its beat selected (the browser
         // keeps the link's `#t=`, film time on both).
         '/films/f/play': '/films/f/studio',
         '/films/f/scenes': '/films/f/studio',
         '/films/f/scenes/hand': '/films/f/studio?sel=beat%3Ahand',
         '/films/f/project': '/films/f/studio',
+        // The choices, the Script and the Board are the studio's inspector now: a beat's page lands
+        // on the studio with its beat selected, a panel's with its panel; a try, a note and the
+        // Script's scene time are not kept.
+        '/films/f/choices': '/films/f/studio',
+        '/films/f/choices?point=score&variant=piano': '/films/f/studio',
+        '/films/f/script': '/films/f/studio',
+        '/films/f/script/hand': '/films/f/studio?sel=beat%3Ahand',
+        '/films/f/script/hand?note=n2': '/films/f/studio?sel=beat%3Ahand',
+        '/films/f/board': '/films/f/studio',
+        '/films/f/board/hand': '/films/f/studio?sel=beat%3Ahand',
+        '/films/f/board/hand?panel=rise&try=2': '/films/f/studio?sel=panel%3Ahand.rise',
         // A render link lands on the film's export page, the build it pins kept.
         '/films/f/play?export&build=3': '/films/f/export?build=3',
         '/?film=f&export': '/films/f/export',

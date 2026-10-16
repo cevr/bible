@@ -40,13 +40,10 @@ describe('Copy link', () => {
     expect(written).toEqual([`${ORIGIN}${here}`, `${ORIGIN}${here}`]);
   });
 
-  test("copies the page's URL whole for the version or the variant whose sheet the URL opens", () => {
+  test("copies the page's URL whole for the version whose sheet the URL opens", () => {
     const set = '/sets/r/cold?view=wipe&other=b&inspect=b#t=12';
     const version = Selection.cases.Version.make({ folder: 'r', point: 'cold', version: 'b' });
     expect(linkOf({ ...contextAt('review', set), selection: [version] })).toBe(set);
-    const choices = '/films/f/choices?point=score&inspect=piano&heard=score&variant=strings#t=3';
-    const variant = Selection.cases.Variant.make({ film: 'f', point: 'score', variant: 'piano' });
-    expect(linkOf({ ...contextAt('review', choices), selection: [variant] })).toBe(choices);
   });
 
   test('copies the citation of another thing a context menu opened on', () => {

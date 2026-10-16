@@ -51,13 +51,6 @@ export const selected = <T extends SelectionTag>(
     (s): s is Extract<Selection, { readonly _tag: T }> => s._tag === tag,
   );
 
-/** Every selected thing that is a `tag`: what a batch acts on. */
-export const selectedAll = <T extends SelectionTag>(
-  ctx: Context,
-  tag: T,
-): ReadonlyArray<Extract<Selection, { readonly _tag: T }>> =>
-  ctx.selection.filter((s): s is Extract<Selection, { readonly _tag: T }> => s._tag === tag);
-
 /** `ctx` with `selection` selected instead: what a context menu opened on a thing reads. */
 export const withSelection = (ctx: Context, selection: ReadonlyArray<Selection>): Context => ({
   ...ctx,

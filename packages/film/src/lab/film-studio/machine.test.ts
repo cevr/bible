@@ -7,7 +7,7 @@
 // whether he picked another or went Back. The transport machine
 // plays and pauses, and a scrub holds it, remembering whether it cut play off.
 
-import { Deferred, Effect, Exit, Option, SubscriptionRef } from 'effect';
+import { Boolean as Bool, Deferred, Effect, Exit, Option, SubscriptionRef } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { probeTimeline } from '../fixtures/probe-timeline.ts';
 import {
@@ -115,6 +115,48 @@ describe("the studio's timeline machine", () => {
       expect(asked).toEqual([1, 2]);
     }).pipe(Effect.scoped);
   });
+
+  it.effect('reads the version shown again on a Refresh, showing it all the while', () => {
+    const asked: Array<number> = [];
+    return Effect.gen(function* () {
+      const actor = yield* spawnTimeline(probeRead(asked), 1);
+      yield* actor.waitFor(shownAt(1));
+      yield* actor.send(TimelineEvent.Refresh);
+      const refreshing = yield* actor.waitFor((s) => s._tag === 'Refreshing');
+      expect(refreshing).toEqual(TimelineState.Refreshing({ v: 1, timeline: probeTimeline(1) }));
+      yield* actor.waitFor((s) => s._tag === 'Shown' && asked.length === 2);
+      expect(asked).toEqual([1, 1]);
+    }).pipe(Effect.scoped);
+  });
+
+  it.effect(
+    'keeps the timeline shown when a Refresh cannot read, and goes to another version asked',
+    () => {
+      let fail = false;
+      const asked: Array<number> = [];
+      const read = (v: number) =>
+        Effect.suspend(() => {
+          asked.push(v);
+          return Bool.match(fail && v === 1, {
+            onTrue: () => Effect.fail({ message: 'the lab did not answer', lasting: false }),
+            onFalse: () => probeRead([])(v),
+          });
+        });
+      return Effect.gen(function* () {
+        const actor = yield* spawnTimeline(read, 1);
+        yield* actor.waitFor(shownAt(1));
+        fail = true;
+        yield* actor.send(TimelineEvent.Refresh);
+        yield* actor.waitFor((s) => s._tag === 'Shown' && asked.length === 2);
+        expect(yield* SubscriptionRef.get(actor.state)).toEqual(
+          TimelineState.Shown({ v: 1, timeline: probeTimeline(1) }),
+        );
+        yield* actor.send(TimelineEvent.Refresh);
+        yield* actor.send(TimelineEvent.Version({ v: 2 }));
+        yield* actor.waitFor(shownAt(2));
+      }).pipe(Effect.scoped);
+    },
+  );
 
   it.effect(
     'says why a version cannot be read, and reads again on a retry or another version',

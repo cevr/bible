@@ -128,9 +128,19 @@ export const StudioAttempt = Schema.Struct({
 });
 export type StudioAttempt = typeof StudioAttempt.Type;
 
-/** `GET /api/films/<film>/studio/takes/:beat/attempts`: newest first. */
+/** The take a beat's timings name when it is none of its attempts: a staging take, in the film's `narration/`. */
+const StagedTake = Schema.Struct({
+  file: Schema.String,
+  duration: Schema.Finite,
+});
+
+/**
+ * `GET /api/films/<film>/studio/takes/:beat/attempts`: newest first, and
+ * the take the timings name when it is none of them (`staged`).
+ */
 export const StudioAttempts = Schema.Struct({
   beat: Schema.String,
   attempts: Schema.Array(StudioAttempt),
+  staged: Schema.optionalKey(StagedTake),
 });
 export type StudioAttempts = typeof StudioAttempts.Type;

@@ -27,19 +27,28 @@
 // Side work is the machine's: the open and the import are state tasks, the
 // count-in a state timeout, and the recording watches for its microphone
 // going away.
-// Nothing here touches the DOM: the capture, the studio API and the stage
-// are services, faked in tests.
+// Nothing here touches the DOM: the capture, the studio API and the page's
+// film (`RecordStage`) are services, faked in tests.
 
-import { Clock, Duration, Effect, Match, Option, Schema } from 'effect';
+import { Clock, Context, Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { Refusal } from '../../core/api.ts';
 import { TakeMismatch } from '../../core/refusals.ts';
 import { STUDIO_IMPORT_WAIT_S, type StudioAttempt, type StudioTake } from '../../core/studio.ts';
 import { LabUnreachable } from '../api.ts';
-import { Stage } from '../stage.ts';
 import { StudioApi, TakeTooLong, minutes, takeLimit } from './api.ts';
 import { Capture, CaptureFailed, MicDenied, MicLost } from './capture.ts';
 import { encodeWav } from './wav.ts';
+
+/**
+ * What the recorder asks of the page's film: to pause before the microphone
+ * opens, and to load again once a kept take is mixed into the track (the
+ * player reads the timings and the track once, at load).
+ */
+export class RecordStage extends Context.Service<
+  RecordStage,
+  { readonly pause: Effect.Effect<void>; readonly reload: Effect.Effect<void> }
+>()('@bible/film/lab/studio/RecordStage') {}
 
 /** The count-in: this many seconds, one shown each second, before the recording starts. */
 export const COUNT_IN = 3;
@@ -180,7 +189,7 @@ const workWav = (work: Work): Option.Option<typeof Wav.Type> =>
 /** Pause the film, then open the microphone (Opening's task). */
 const arm = (beat: string, device: Option.Option<string>, wav: Option.Option<typeof Wav.Type>) =>
   Effect.gen(function* () {
-    yield* (yield* Stage).pause;
+    yield* (yield* RecordStage).pause;
     return RecorderState.Opening({ beat, device, wav });
   });
 
@@ -405,7 +414,7 @@ export const recorderMachine = (beat: string) =>
           // mixed into the track plays only after a reload, at this same T. A
           // mix that failed, or never answered, reloads nothing, so the status
           // can say why.
-          if (event.kept.mix === 'mixed') yield* (yield* Stage).reload;
+          if (event.kept.mix === 'mixed') yield* (yield* RecordStage).reload;
           return RecorderState.Idle({ beat: state.beat, kept: Option.some(event.kept) });
         }),
     )

@@ -2,7 +2,8 @@
 // size read through the tokens (`player/tokens.css`), the rows' heights from
 // `geometry.ts`, the phone's layout under `PHONE`. The inspector's place is
 // the one grid template of `.st-studio` (layout C: beside the viewer), so
-// moving it is a change to those rules alone.
+// moving it is a change to those rules alone; its sections' own rules
+// (`INSPECTOR_CSS`) ride with the inspector, out of the page's head.
 
 import { PHONE } from '../viewport.ts';
 import {
@@ -36,7 +37,7 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
   --st-gutter: var(--s-4);
 }
 .st-app { height: 100dvh; display: grid; grid-template-rows: var(--st-header-h) minmax(0, 1fr); color: var(--text-1); font-family: var(--font); font-size: var(--fs-3); line-height: var(--lh-3); }
-.st-app button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.st-app button:where(:not(.sh-btn)) { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 .st-app :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .st-icon { width: var(--s-4); height: var(--s-4); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .st-await { margin: 0; padding: var(--s-4); color: var(--text-2); }
@@ -176,7 +177,7 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-playhead::before { content: ''; position: absolute; left: -1px; top: 0; bottom: 0; width: 2px; background: var(--playhead); }
 .st-head { position: absolute; top: 0; left: calc(-1 * var(--s-2)); width: var(--s-4); height: var(--s-4); background: var(--playhead); clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%); pointer-events: auto; cursor: grab; touch-action: none; }
 
-/* Inspector (a shell: its sections' bodies come with the inspector's own unit) */
+/* Inspector (design §5): the pane's head over its sections, each a disclosure row and its body */
 .st-insp { grid-area: insp; min-width: 0; min-height: 0; overflow: hidden; padding: var(--st-gutter) var(--st-gutter) var(--s-2) 0; }
 .st-studio[data-open="false"] .st-insp { padding: 0; }
 .st-pane { height: 100%; overflow-y: auto; border-radius: var(--r-panel); border: var(--border); background: var(--surface-1); min-width: 0; }
@@ -243,5 +244,78 @@ a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
 }
 @media (prefers-reduced-motion: reduce) {
   .st-key[data-look="play"][aria-pressed="true"]::after { animation: none; }
+}
+`;
+
+/**
+ * The inspector's sections (design §5), which the inspector puts in the page's
+ * head while it is mounted: the studio is the browser's alone, so no first
+ * paint waits for them. The rows, the Board's tries, the Voice's facts, the
+ * Code's lines, the notes and asks, and the recorder over the page.
+ */
+export const INSPECTOR_CSS = `
+.st-sec > summary { list-style: none; cursor: pointer; }
+.st-sec > summary::-webkit-details-marker { display: none; }
+.st-sec > summary:hover { background: var(--surface-3); color: var(--text-1); }
+.st-sec[open] > summary { color: var(--text-1); }
+.st-chev { width: 7px; height: 7px; flex: none; border-right: 1.5px solid var(--text-3); border-bottom: 1.5px solid var(--text-3); rotate: -45deg; margin: 0 var(--s-1) 0 var(--s-1); }
+.st-sec[open] > summary .st-chev, .st-note[open] > summary .st-chev { rotate: 45deg; }
+.st-row[data-empty="true"] { color: var(--text-3); }
+.st-sec-body { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-3) var(--s-4) var(--s-4); border-bottom: var(--border); }
+.st-line { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
+.st-line[role="alert"] { color: var(--state-warning); }
+.st-pane > .st-line { padding: var(--s-2) var(--s-4); border-bottom: var(--border); }
+/* Words: the reader in the section, its beats flush with the section's edge. */
+.st-sec[data-section="Words"] .st-sec-body { padding: 0 0 var(--s-3); gap: var(--s-2); --gutter: var(--s-4); }
+.st-sec[data-section="Words"] .st-more { align-self: flex-start; margin: 0 var(--s-4); }
+/* Board: each panel at its mark, its tries a strip of 64px thumbs, the kept one ringed in the Board's ink. */
+.st-panel { display: flex; flex-direction: column; gap: var(--s-2); }
+.st-panel + .st-panel { padding-top: var(--s-3); border-top: var(--border); }
+.st-app .st-panel-head { display: flex; align-items: baseline; gap: var(--s-2); min-height: var(--s-8); text-align: start; border-radius: var(--r-1); font-size: var(--fs-2); line-height: var(--lh-2); }
+.st-panel-head[aria-pressed="true"] .st-panel-mark { color: var(--k-board); }
+.st-panel-mark { font-weight: var(--w-3); }
+.st-panel-at { font-family: var(--font-mono); font-size: var(--fs-1); color: var(--text-2); font-variant-numeric: tabular-nums slashed-zero; }
+.st-panel-state { margin-left: auto; font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-3); }
+.st-tries { display: flex; gap: var(--s-2); overflow-x: auto; padding: 2px; }
+.st-app .st-try-btn { flex: none; border-radius: var(--r-1); line-height: 0; }
+.st-try { height: 64px; width: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); background: var(--surface-2); display: block; }
+.st-try-btn[data-kept="true"] .st-try, .st-panel > .st-try[data-kept="true"] { box-shadow: 0 0 0 2px var(--k-board); }
+.st-try-btn[aria-pressed="true"] .st-try { outline: 2px solid var(--text-1); outline-offset: 2px; }
+.st-why { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.st-try-shown { display: flex; flex-direction: column; gap: var(--s-2); align-items: flex-start; }
+.st-try-shown img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); }
+/* Voice: the take's facts, Hear and Record. */
+.st-facts { display: grid; grid-template-columns: auto 1fr; gap: var(--s-1) var(--s-3); margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); }
+.st-facts dt { color: var(--text-3); }
+.st-facts dd { margin: 0; font-variant-numeric: tabular-nums slashed-zero; }
+.st-sec-body > .st-btn { align-self: flex-start; }
+.st-heard { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
+/* Code: the scene's file, read only, its lines numbered. */
+.st-code { margin: 0; display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.st-code-file { font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
+.st-code pre { margin: 0; max-height: 360px; overflow: auto; padding: var(--s-2) 0; border-radius: var(--r-1); background: var(--surface-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-2); counter-reset: line; }
+.st-app .st-lab { align-self: flex-start; display: inline-flex; align-items: center; color: var(--text-1); text-decoration: none; }
+.st-code-line { display: block; white-space: pre; padding: 0 var(--s-3) 0 0; }
+.st-code-line::before { counter-increment: line; content: counter(line); display: inline-block; width: 4ch; margin-right: var(--s-3); text-align: right; color: var(--text-3); user-select: none; -webkit-user-select: none; }
+/* Notes and asks: each open note a disclosure with its thread, each ask a link to its page. */
+.st-note > summary { list-style: none; display: flex; align-items: center; gap: var(--s-2); min-height: var(--s-8); cursor: pointer; font-size: var(--fs-2); line-height: var(--lh-2); }
+.st-note > summary::-webkit-details-marker { display: none; }
+.st-note-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-note-body { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-1) 0 var(--s-2); }
+.st-sep { height: 1px; background: var(--line); }
+.st-ask { display: flex; align-items: baseline; gap: var(--s-2); min-height: var(--s-8); color: var(--text-1); text-decoration: none; font-size: var(--fs-2); line-height: var(--lh-2); }
+.st-ask:hover { color: var(--k-ask); }
+.st-ask-at { font-family: var(--font-mono); font-size: var(--fs-1); color: var(--k-ask); font-variant-numeric: tabular-nums slashed-zero; }
+/* The recorder over the page: a dialog on a laptop, a sheet from the bottom on a phone. */
+.st-record-backdrop { position: fixed; inset: 0; z-index: 40; background: var(--backdrop); pointer-events: auto; }
+.st-record { position: fixed; z-index: 41; top: 50%; left: 50%; translate: -50% -50%; width: min(560px, calc(100vw - 2 * var(--st-gutter))); max-height: calc(100dvh - 2 * var(--st-gutter)); overflow-y: auto; border-radius: var(--r-panel); border: var(--border); background: var(--surface-1); box-shadow: var(--shadow-pop); color: var(--text-1); }
+.st-record-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4); background: var(--surface-1); border-bottom: var(--border); }
+.st-record-title { flex: 1; margin: 0; font-size: var(--fs-3); line-height: var(--lh-3); font-weight: var(--w-3); }
+.st-record-sheet-backdrop { background: var(--backdrop); pointer-events: auto; }
+.st-record-portal { position: fixed; inset: 0; z-index: 41; pointer-events: none; }
+.st-record-panel { position: relative; align-self: flex-start; width: var(--visual-viewport-width, 100%); height: auto; }
+.st-record.st-record-sheet { position: static; top: auto; left: auto; translate: none; width: 100%; max-height: 85dvh; border-radius: var(--r-panel) var(--r-panel) 0 0; border-width: 1px 0 0; pointer-events: auto; padding-bottom: env(safe-area-inset-bottom); }
+@media ${PHONE} {
+  .st-app .st-panel-head, .st-note > summary, .st-ask { min-height: var(--hit); }
 }
 `;

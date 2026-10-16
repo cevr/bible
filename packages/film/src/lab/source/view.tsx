@@ -49,7 +49,7 @@ import { Target } from '../command/context-menu.tsx';
 import { useLabPage } from '../panel.tsx';
 import { pressed } from '../pressed.ts';
 import { useFollow } from '../follow.ts';
-import { useLab } from '../shell.tsx';
+import { useLab, useLabClock } from '../shell.tsx';
 import { Sheet } from '../sheet.tsx';
 import { PHONE, useMatches } from '../viewport.ts';
 import { useEditor } from '../editor/context.tsx';
@@ -303,34 +303,37 @@ const Text = (props: {
   // The lab's one Follow rule (`lab/follow.ts`): a reader's scroll leaves the view where the hand put it until a
   // line is held, or, while it follows, until Follow or Play takes it back. Play leaves a held view where it is.
   // Its answer, whether a hand has the box, is the context's while this view stands.
-  const handHas = useFollow({
-    box,
-    content: () => page,
-    target: looking,
-    span: (line) =>
-      Option.map(
-        Option.flatMap(page, (root) =>
-          Option.fromNullishOr(
-            root.querySelector<HTMLElement>(`.lab-source-line[data-line="${line}"]`),
+  const handHas = useFollow(
+    {
+      box,
+      content: () => page,
+      target: looking,
+      span: (line) =>
+        Option.map(
+          Option.flatMap(page, (root) =>
+            Option.fromNullishOr(
+              root.querySelector<HTMLElement>(`.lab-source-line[data-line="${line}"]`),
+            ),
           ),
+          (row) => ({ first: row, last: row }),
         ),
-        (row) => ({ first: row, last: row }),
-      ),
-    // Two lines clear of each edge, and of the beat's band, a line tall, at the top. A line's height is read off the
-    // page the rows inherit it from, so the row is the span's one element, asked once for its place.
-    clear: () => {
-      const lh = Option.match(page, {
-        onNone: () => 0,
-        onSome: (root) => Number.parseFloat(getComputedStyle(root).lineHeight) || 0,
-      });
-      return { top: 3 * lh, bottom: 2 * lh };
+      // Two lines clear of each edge, and of the beat's band, a line tall, at the top. A line's height is read off the
+      // page the rows inherit it from, so the row is the span's one element, asked once for its place.
+      clear: () => {
+        const lh = Option.match(page, {
+          onNone: () => 0,
+          onSome: (root) => Number.parseFloat(getComputedStyle(root).lineHeight) || 0,
+        });
+        return { top: 3 * lh, bottom: 2 * lh };
+      },
+      placing: source.placing,
+      reader: source.suspend,
+      played: () => {
+        if (Option.exists(source.open(), followsFrame)) source.resume();
+      },
     },
-    placing: source.placing,
-    reader: source.suspend,
-    played: () => {
-      if (Option.exists(source.open(), followsFrame)) source.resume();
-    },
-  });
+    useLabClock(),
+  );
   onCleanup(source.offerHand(handHas));
 
   /** Seek to where line `n` next fires, when it reads or writes the clock. */

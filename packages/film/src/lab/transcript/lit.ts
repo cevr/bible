@@ -1,7 +1,5 @@
-// What the Transcript view and the Script show and light, pure: a talk's
-// words as the server reads them (`TalkWords`), or a narrated film's lines
-// as its beats say them (`lineRows`), each word with its offset in the
-// one text (the words in play order, a space between, struck ones too, so an
+// What the Transcript view shows and lights, pure: a talk's words as the
+// server reads them (`TalkWords`), each word with its offset in the one text (the words in play order, a space between, struck ones too, so an
 // offset never moves as "Show cuts" turns), and, for a word the film plays,
 // when it starts on the film's clock (its section's start, where the
 // section's voice starts, and when the word is heard in it). The word lit is
@@ -9,10 +7,9 @@
 // the words selected are painted as their ranges of the one text. Mark here
 // names its mark from the word.
 
-import { Array as Arr, Option, Order, Record as Rec, Result } from 'effect';
+import { Array as Arr, Option, Order, Record as Rec } from 'effect';
 import type { TalkWords } from '../../core/api.ts';
 import { type Placed, sceneAt } from '../../core/layout.ts';
-import { parse } from '../../core/narration.ts';
 import type { CodeRange } from '../../core/schema.ts';
 import { CLOCK_EPSILON } from '../../core/time.ts';
 
@@ -37,60 +34,6 @@ export interface SectionRows {
   readonly rows: ReadonlyArray<Row>;
   readonly marks: Readonly<Record<string, number>>;
 }
-
-/**
- * The marks of `p`'s line, each by the index of the word it stands before, as
- * the line parses (`parse`; the voice keeps each mark's time, not its word);
- * none for a line that does not parse, which the film's layout refuses first.
- */
-const lineMarks = (p: Placed): Readonly<Record<string, number>> =>
-  Result.match(
-    parse(
-      p.spec.id,
-      Option.getOrElse(Option.fromUndefinedOr(p.spec.say), () => ''),
-    ),
-    {
-      onFailure: () => ({}),
-      onSuccess: (parsed) => Object.fromEntries(parsed.marks),
-    },
-  );
-
-/**
- * A narrated film's lines as the Script lays them out, against the film laid
- * out as `placed`: each beat that says a line is a section (its take the
- * recording's file, none for an estimate), its words as the line is said
- * (`voice.spoken`), each starting where its beat's voice starts plus where
- * its take, or the estimate, voices it; the offsets run on across the beats,
- * as a talk's do across its sections.
- */
-export const lineRows = (placed: ReadonlyArray<Placed>): ReadonlyArray<SectionRows> => {
-  let at = 0;
-  return placed
-    .filter((p) => p.voice.spoken !== '')
-    .map((p) => {
-      const speech = p.start + p.speechStart;
-      const rows = p.voice.spoken.split(' ').map((text, index): Row => {
-        const from = at;
-        at += text.length + 1;
-        return {
-          index,
-          text,
-          struck: false,
-          from,
-          start: Option.map(
-            Option.fromUndefinedOr(p.voice.words[index]),
-            (w) => speech + w.voiced.start,
-          ),
-        };
-      });
-      return {
-        id: p.spec.id,
-        take: Option.getOrElse(Option.fromUndefinedOr(p.voice.file), () => ''),
-        rows,
-        marks: lineMarks(p),
-      };
-    });
-};
 
 /** `talk`'s sections as the view lays them out, against the film laid out as `placed`. */
 export const rowsOf = (

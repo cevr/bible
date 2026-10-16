@@ -420,7 +420,7 @@ describe("the header waits on the open version's Board", () => {
     expect(t.header.waits?.items[0]).toEqual({
       kind: 'approve',
       beat: 'cold',
-      href: '/films/righteousness-by-faith/board/cold',
+      href: '/films/righteousness-by-faith/studio?sel=beat%3Acold',
     });
   });
 

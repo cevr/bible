@@ -17,6 +17,7 @@ import {
   FileSystem,
   Function,
   Layer,
+  Match,
   Option,
   Path,
   Schedule,
@@ -37,7 +38,7 @@ import {
   subjectOf,
 } from '../core/catalogue.ts';
 import { type SetSayPost, withdrawSay } from '../core/api.ts';
-import { type ChoiceVariant, VariantMedia } from '../core/choice.ts';
+import type { ChoiceVariant } from '../core/choice.ts';
 import { MediaFailed } from '../core/refusals.ts';
 import { type ReviewFolder, type ReviewIndex, ReviewManifestJson } from '../core/review.ts';
 import { RenderCatalogue } from './catalogue.ts';
@@ -61,20 +62,24 @@ import {
 /** A seen variant's video ref: what the review plays for it. */
 const seenRef = (v: Option.Option<ChoiceVariant>): Option.Option<string> =>
   Option.flatMap(v, (variant) =>
-    VariantMedia.match(variant.media, {
-      Seen: ({ video }) => Option.some(video.ref),
-      Heard: () => Option.none(),
-      Unseen: () => Option.none(),
-    }),
+    Match.value(variant.media).pipe(
+      Match.tagsExhaustive({
+        Seen: ({ video }) => Option.some(video.ref),
+        Heard: () => Option.none(),
+        Unseen: () => Option.none(),
+      }),
+    ),
   );
 
 /** A seen variant's video, its ref and phone copy state. */
 const phoneOf = (v: ChoiceVariant): Option.Option<string> =>
-  VariantMedia.match(v.media, {
-    Seen: ({ video }) => Option.some(video.phone),
-    Heard: () => Option.none(),
-    Unseen: () => Option.none(),
-  });
+  Match.value(v.media).pipe(
+    Match.tagsExhaustive({
+      Seen: ({ video }) => Option.some(video.phone),
+      Heard: () => Option.none(),
+      Unseen: () => Option.none(),
+    }),
+  );
 
 const found = (name: string, mtime = 1, size = 10): Found => ({
   path: `/r/art/${name}`,

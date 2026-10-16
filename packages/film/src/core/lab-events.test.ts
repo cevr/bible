@@ -38,7 +38,7 @@ describe('boardChanges', () => {
       panels: [{ id: 'cold.judge', beat: COLD, at: JUDGE, tries: [tried(1), tried(2)] }],
     });
     expect(boardChanges(before, added).map((c) => [c.kind, c.panel, c.try, c.path])).toEqual([
-      ['board.tried', 'cold.judge', 2, '/films/f/board/cold?panel=judge&try=2'],
+      ['board.tried', 'cold.judge', 2, '/films/f/studio?sel=panel%3Acold.judge'],
     ]);
     const kept = board({
       panels: [
@@ -62,7 +62,7 @@ describe('boardChanges', () => {
     };
     const approved = { ...kept, approvals: [approval] };
     expect(boardChanges(kept, approved).map((c) => [c.kind, c.beat, c.path])).toEqual([
-      ['beat.approved', 'cold', '/films/f/board/cold'],
+      ['beat.approved', 'cold', '/films/f/studio?sel=beat%3Acold'],
     ]);
     // Approved again (new tries) is an approval, not a withdrawal.
     const again = { ...kept, approvals: [{ ...approval, at: '2026-10-14T02:00:00.000Z' }] };

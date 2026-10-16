@@ -39,8 +39,8 @@ import { ChangeId, CheckLine, Seconds, maybe, mixedField } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
 /** What a choice point chooses between; each kind has one adapter. */
-export const ChoiceKind = Schema.Literals(['render', 'score', 'take', 'voice', 'look', 'level']);
-export type ChoiceKind = typeof ChoiceKind.Type;
+const ChoiceKind = Schema.Literals(['render', 'score', 'take', 'voice', 'look', 'level']);
+type ChoiceKind = typeof ChoiceKind.Type;
 
 /**
  * What may be done to a variant beside comparing, commenting and approving:
@@ -54,12 +54,12 @@ export type ChoiceVerb = typeof ChoiceVerb.Type;
  * How a variant is met: seen (a video, compared in sync), heard (alone,
  * and in place: the film's whole mix with it playing) or neither.
  */
-export const VariantMedia = Schema.Union([
+const VariantMedia = Schema.Union([
   Schema.TaggedStruct('Seen', { video: ReviewVideo }),
   Schema.TaggedStruct('Heard', { alone: Schema.Boolean, inPlace: Schema.Boolean }),
   Schema.TaggedStruct('Unseen', {}),
 ]).pipe(Schema.toTaggedUnion('_tag'));
-export type VariantMedia = typeof VariantMedia.Type;
+type VariantMedia = typeof VariantMedia.Type;
 
 /** One variant of a choice point. */
 export const ChoiceVariant = Schema.Struct({
@@ -97,7 +97,7 @@ export const ChoiceMark = Schema.Struct({ t: Seconds, label: Schema.String });
 export type ChoiceMark = typeof ChoiceMark.Type;
 
 /** A number the point sets beside its variants: a sound layer's level, in dB against the voice. */
-export const ChoiceKnob = Schema.Struct({
+const ChoiceKnob = Schema.Struct({
   value: Schema.Finite,
   min: Schema.Finite,
   max: Schema.Finite,
@@ -106,7 +106,7 @@ export const ChoiceKnob = Schema.Struct({
   /** Why it cannot be written, when it cannot (its value is computed). */
   fixed: maybe(Schema.String),
 });
-export type ChoiceKnob = typeof ChoiceKnob.Type;
+type ChoiceKnob = typeof ChoiceKnob.Type;
 
 /** A choice point's fields as the wire carries them: everything but its ref, which its id writes. */
 const pointFields = {
@@ -369,45 +369,3 @@ export type ChoiceWrite = typeof ChoiceWrite.Type;
 /** `GET /api/films/<film>/choices/check`: `film check --sound` now (dead air, balance against the mix it makes). */
 export const SoundCheck = Schema.Struct({ findings: Schema.Array(CheckLine) });
 export type SoundCheck = typeof SoundCheck.Type;
-
-/**
- * The states a film's choices and project can be shown only in (`?only=`):
- * the points with a variant out of date, the points whose pick (or,
- * with none picked, every variant) awaits approval, and the points someone
- * commented on.
- */
-export const SHOWN_ONLY = ['stale', 'unapproved', 'comments'] as const;
-export type ShownOnly = (typeof SHOWN_ONLY)[number];
-
-/** What a `?only=` says, none for the empty text or one not known (every point shows). */
-export const onlyOf = (text: string): Option.Option<ShownOnly> =>
-  Option.fromUndefinedOr(SHOWN_ONLY.find((only) => only === text));
-
-/** What each state says in its command's label: `Show only out of date`. */
-export const ONLY_TEXT: Readonly<Record<ShownOnly, string>> = {
-  stale: 'out of date',
-  unapproved: 'awaiting approval',
-  comments: 'with comments',
-};
-
-/** Whether `point` shows while only `only` does. */
-export const pointShows = (point: ChoicePoint, only: ShownOnly): boolean => {
-  const judged = Option.getOrElse(
-    Option.liftPredicate(
-      point.variants.filter((v) => v.picked),
-      (picked) => picked.length > 0,
-    ),
-    () => point.variants,
-  );
-  return {
-    stale: () => point.variants.some((v) => v.state === 'stale'),
-    unapproved: () => judged.some((v) => v.approval !== 'approved'),
-    comments: () => point.variants.some((v) => v.comments.length > 0),
-  }[only]();
-};
-
-/** Whether `point` shows while the page shows only `only` (every point for none). */
-export const shownIn =
-  (only: Option.Option<ShownOnly>) =>
-  (point: ChoicePoint): boolean =>
-    Option.match(only, { onNone: () => true, onSome: (state) => pointShows(point, state) });

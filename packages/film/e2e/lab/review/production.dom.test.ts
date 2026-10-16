@@ -127,7 +127,7 @@ describe("a production's timeline", () => {
         yield* evaluates(
           page,
           `document.querySelector('${CURRENT} [data-stage="board"] a').getAttribute('href')`,
-          pageHref.board(STUDIO_FILM),
+          pageHref.studio(STUDIO_FILM),
         );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

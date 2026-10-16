@@ -336,7 +336,7 @@ describe('the lab as an MCP server', () => {
           text: 'softer eyes',
         });
         expect(tweak.note.panel).toEqual({ id: 'cold.judge', try: 1, ask: 'tweak' });
-        expect(tweak.note.links.local).toBe(`${MCP_BASE}films/f/board/cold?panel=judge&note=n1`);
+        expect(tweak.note.links.local).toBe(`${MCP_BASE}films/f/studio?sel=panel%3Acold.judge`);
         expect(
           (yield* tool('request_tweak', { film: 'f', panel: 'cold.x', text: 'x' })).refused,
         ).toContain('no panel cold.x');

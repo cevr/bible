@@ -1,16 +1,11 @@
-// What a film's write says as its receipt (`Words`, `format.ts`), in the
-// words of the choices shown as it was sent: a pick, an unkeep or a reject
-// says what the point plays, before → after (`Score: piano → ensemble`), a
-// knob its level before → after (the level that landed, as the write left it),
-// a say what was said of which variant, and an Undo or a Redo what it walked. A source write that made a change is undone by Undo, an
-// Undo by Redo, a Redo by Undo, each bound to the change it made on its film
-// (`Bound`); a say, which writes the catalogue and no source, by none, but
-// for a set's approve of a scene's render, whose Undo (`undoApprove`)
-// withdraws just the approvals it gave. The
-// sound check after a pick says it is hearing the mix, then what it found.
+// What a set's approve and its Undo say as their receipts (`Words`,
+// `format.ts`): an approve that named its run says what it gave (nothing,
+// when the version was approved already), and its Undo (`undoApprove`)
+// withdraws just the approvals it gave, saying what the catalogue took
+// (nothing, when they were withdrawn since); any other say says what was
+// asked.
 
 import { Array as Arr, Boolean as Bool, Effect, Match, Option } from 'effect';
-import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type Command,
   type CommandId,
@@ -18,153 +13,11 @@ import {
   type Undoing,
   Unfit,
   boundGave,
-  busy,
   refused,
-  said,
 } from '../../../command/command.ts';
 import { type Say, type SetSaid, type SetSayPost, withdrawSay } from '../../../core/api.ts';
 import type { OpId, Took } from '../../../core/catalogue.ts';
-import type { ChoicePoint, ChoiceVerb, FilmChoices, SoundCheck } from '../../../core/choice.ts';
-import type { LabFailure } from '../../api.ts';
-import { type Words, failedText, sayText } from '../format.ts';
-import type { ChoiceAct, Wrote } from './api.ts';
-
-/** The commands that step the film's source back and on (`section.tsx`). */
-export const REVIEW_UNDO: CommandId = 'review.undo';
-export const REVIEW_REDO: CommandId = 'review.redo';
-
-const VERB_PAST: Readonly<Record<ChoiceVerb, string>> = {
-  pick: 'Picked',
-  unpick: 'Unkept',
-  reject: 'Rejected',
-};
-
-/** What `point` plays: its picked variants' labels, or `nothing`. */
-const playsText = (point: ChoicePoint): string => {
-  const picked = point.variants.filter((v) => v.picked).map((v) => v.label);
-  return Option.getOrElse(
-    Option.liftPredicate(picked.join(', '), (s) => s !== ''),
-    () => 'nothing',
-  );
-};
-
-/** The point `id` among `choices`. */
-const pointIn = (choices: FilmChoices, id: string): Option.Option<ChoicePoint> =>
-  Option.fromUndefinedOr(choices.points.find((p) => p.id === id));
-
-/** The label of variant `id` at point `id` in `choices`, else its id. */
-const labelIn = (choices: FilmChoices, point: string, variant: string): string =>
-  Option.getOrElse(
-    Option.flatMap(pointIn(choices, point), (p) =>
-      Option.map(Option.fromUndefinedOr(p.variants.find((v) => v.id === variant)), (v) => v.label),
-    ),
-    () => variant,
-  );
-
-/** `n` findings as a summary says them: `check: clean`, `sound check: 2 findings`. */
-const findingsText = (name: string, n: number): string =>
-  Match.value(n).pipe(
-    Match.when(0, () => `${name}: clean`),
-    Match.when(1, () => `${name}: 1 finding`),
-    Match.orElse((count) => `${name}: ${count} findings`),
-  );
-
-/**
- * The sound check's receipt in `result`: busy while it hears the
- * mix, its findings counted once it has, or why it could not run; none
- * before it first runs.
- */
-export const soundReceipt = (
-  result: AsyncResult.AsyncResult<SoundCheck, LabFailure>,
-): Option.Option<Receipt> => {
-  if (result.waiting) return Option.some(busy('sound check: hearing the mix…'));
-  return AsyncResult.match(result, {
-    onInitial: () => Option.none(),
-    onSuccess: (s) => Option.some(said(findingsText('sound check', s.value.findings.length))),
-    onFailure: () => Option.some(refused(`sound check: ${failedText(result)}`)),
-  });
-};
-
-/** A step's target without its verb: what it walked. */
-const walked = (wrote: Wrote): string =>
-  `${wrote.target.replace(/^(undo|redo) /, '')} in ${wrote.file}`;
-
-/**
- * The receipt of `act`, as the choices `before` show the film as it is sent;
- * a source write's Undo (or Redo) is bound to the change it made, on that film.
- */
-export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
-  const titleOf = (point: string) =>
-    Option.getOrElse(
-      Option.map(pointIn(before, point), (p) => p.title),
-      () => point,
-    );
-  /** Undone by `command`, bound to the change `w` made; none when it made none. */
-  const undoneBy = (command: CommandId) => (w: Wrote) =>
-    Option.map(w.change, (change) => ({ command, bound: { film: before.film, change } }));
-  return Match.value(act).pipe(
-    Match.tagsExhaustive({
-      Verb: (v): Words<Wrote> => ({
-        doing: `${VERB_PAST[v.verb].toLowerCase()} ${labelIn(before, v.point, v.variant)}…`,
-        done: (w) => {
-          const was = Option.getOrElse(Option.map(pointIn(before, v.point), playsText), () => '?');
-          const now = Option.getOrElse(
-            Option.map(
-              Option.flatMap(w.choices, (c) => pointIn(c, v.point)),
-              playsText,
-            ),
-            () => '?',
-          );
-          return `${VERB_PAST[v.verb]} ${labelIn(before, v.point, v.variant)} · ${titleOf(v.point)}: ${was} → ${now}`;
-        },
-        undo: undoneBy(REVIEW_UNDO),
-      }),
-      Knob: (k): Words<Wrote> => {
-        const knob = Option.flatMap(pointIn(before, k.point), (p) => p.knob);
-        const unit = Option.getOrElse(
-          Option.map(knob, (n) => n.unit),
-          () => '',
-        );
-        const was = Option.getOrElse(
-          Option.map(knob, (n) => String(n.value)),
-          () => '?',
-        );
-        return {
-          doing: `setting ${titleOf(k.point)}…`,
-          // The level that landed, as the choices the write left read it (the server clamps).
-          done: (w) => {
-            const now = Option.getOrElse(
-              Option.map(
-                Option.flatMap(
-                  Option.flatMap(w.choices, (c) => pointIn(c, k.point)),
-                  (p) => p.knob,
-                ),
-                (n) => String(n.value),
-              ),
-              () => String(k.value),
-            );
-            return [`${titleOf(k.point)}: ${was} → ${now}`, unit].filter((s) => s !== '').join(' ');
-          },
-          undo: undoneBy(REVIEW_UNDO),
-        };
-      },
-      Say: (s): Words<Wrote> => ({
-        doing: 'saying…',
-        done: () => sayText(s.say, `${labelIn(before, s.point, s.variant)} · ${titleOf(s.point)}`),
-      }),
-      Undo: (): Words<Wrote> => ({
-        doing: 'undoing…',
-        done: (w) => `Undid ${walked(w)}`,
-        undo: undoneBy(REVIEW_REDO),
-      }),
-      Redo: (): Words<Wrote> => ({
-        doing: 'redoing…',
-        done: (w) => `Redid ${walked(w)}`,
-        undo: undoneBy(REVIEW_UNDO),
-      }),
-    }),
-  );
-};
+import { sayText } from '../format.ts';
 
 /**
  * The command a set's approve's receipt offers as its Undo: a withdraw of

@@ -1,5 +1,6 @@
-// The Script reader as the review's pages draw it (a series draft's page,
-// a film's or a draft's script in an ask): the beats in order, each under
+// The one words reader (a series draft's page, a film's or a draft's script
+// in an ask, a beat's words in the studio's inspector and its whole script
+// there): the beats in order, each under
 // its id and label with its staging take (▶ and its pace once ready), its
 // line at the reading size with its delivery marks (a stressed word heavier,
 // a pause's glyph in its gap), what its picture does and its sources quiet
@@ -14,22 +15,29 @@
 // opens the box under its line: Hear, Clear and the words' delivery, each a
 // tap written at once through the source (`POST …/marks`); its takes are
 // read again, the beat's new take queued first. What it reads and writes is
-// its source's (`ScriptSource`): a draft's routes, a film's.
+// its source's (`ScriptSource`): a draft's routes, a film's. The page it is
+// on (`ReaderPage`) gives its host, its commands and its runtime; a page
+// with a playhead names the beat it is in (`live`), which the reader marks
+// and keeps in sight by the lab's one Follow rule (`lab/follow.ts`).
 
-import { For, Show } from '@solidjs/web';
+import { For, type JSX, Show } from '@solidjs/web';
 import { Array as Arr, Effect, Option, Result } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor } from 'solid-js';
-import { createEffect, createMemo, onCleanup } from 'solid-js';
+import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
+import type { Host } from '../../browser/host.ts';
+import type { Hub } from '../../command/hub.ts';
 import type { DraftBeatRead, MarksPost, ScriptVoice } from '../../core/api.ts';
 import type { Mark } from '../../core/delivery.ts';
 import { parse } from '../../core/narration.ts';
 import type { LabFailure } from '../api.ts';
 import { Target } from '../command/context-menu.tsx';
+import { type FollowClock, useFollow } from '../follow.ts';
+import { pressed } from '../pressed.ts';
 import { BriefBox } from '../script/brief.tsx';
 import { scriptCommands } from '../script/commands.ts';
 import { gapBefore } from '../script/delivery.ts';
@@ -46,13 +54,13 @@ import {
 } from '../script/voiced.tsx';
 import { type Row, type SectionRows, type WordAt, rangesOf, rowOf } from '../transcript/lit.ts';
 import { usePainted, wordsReleased } from '../transcript/words.ts';
-import type { ReviewApi } from './api.ts';
-import { useReview } from './context.tsx';
+import type { ReviewApi } from '../review/api.ts';
 
 /**
  * The reader's own look, over the Script's (`SCRIPT_READ_CSS`): a head that
  * keeps its ▶'s height, a brief's code and its sources in their inks, the
- * word heard lit and the words selected painted as the Script's are.
+ * word heard lit and the words selected painted as the Script's are, the
+ * playhead's beat ruled, a brief behind its disclosure.
  */
 export const READER_CSS = `
 .rd-label { color: var(--text-2); }
@@ -67,6 +75,12 @@ export const READER_CSS = `
 .lab-script-hear-all { min-height: var(--hit); }
 ::highlight(lab-live) { background-color: color-mix(in srgb, var(--state-live) 26%, transparent); color: var(--text-1); }
 ::highlight(lab-picked) { background-color: var(--accent-wash); color: var(--text-1); text-decoration: underline var(--accent); }
+/* The beat at the page's playhead: a rule down its edge, never a fill, so the words keep their ink. */
+.rd .lab-script-beat[data-live="true"] { box-shadow: inset 2px 0 0 var(--state-live); }
+/* A brief behind its disclosure: one quiet line until asked. */
+.rd-brief { margin: 0 0 var(--s-2); color: var(--text-2); }
+.rd-brief > summary { min-height: var(--hit); display: flex; align-items: center; cursor: pointer; }
+.rd-follow { min-height: var(--hit); }
 `;
 
 /** A beat as the reader lays it out: its line's words (none for a beat that says nothing) and its marks. */
@@ -227,14 +241,39 @@ const piece = (text: string) => {
 /** A brief's or a source's text with its inline Markdown drawn, not shown as asterisks. */
 const Inline = (props: { readonly text: string }) => <>{props.text.split(INLINE).map(piece)}</>;
 
+/**
+ * How a reader shows a beat's picture brief: in its box (three lines on a
+ * phone until More), or behind a disclosure, shut until asked (the studio's
+ * inspector, where the words lead).
+ */
+export type BriefShown = 'boxed' | 'disclosed';
+
+/** A beat's picture brief, as the reader shows it (`BriefShown`). */
+const Brief = (props: { readonly shown: BriefShown; readonly children: JSX.Element }) => (
+  <Show when={props.shown === 'disclosed'} fallback={<BriefBox>{props.children}</BriefBox>}>
+    <details class="rd-brief">
+      <summary>Picture</summary>
+      <p class="lab-script-picture">{props.children}</p>
+    </details>
+  </Show>
+);
+
 /** A beat: its id and label with its take, its brief, its line, the box over what is selected in it, and its sources. */
 const Beat = (props: {
   readonly beat: ReadBeat;
   readonly words: Option.Option<Words>;
   readonly released: (event: MouseEvent) => void;
   readonly clear: () => void;
+  /** Whether the page's playhead is in it. */
+  readonly live: boolean;
+  readonly brief: BriefShown;
 }) => (
-  <section class="lab-script-beat" data-beat={props.beat.read.id} aria-label={props.beat.read.id}>
+  <section
+    class="lab-script-beat"
+    data-beat={props.beat.read.id}
+    data-live={pressed(props.live)}
+    aria-label={props.beat.read.id}
+  >
     <header class="lab-script-beat-head">
       <span>{props.beat.read.id}</span>
       <Show when={props.beat.read.label !== ''}>
@@ -244,9 +283,9 @@ const Beat = (props: {
     </header>
     <Show when={props.beat.read.brief}>
       {(brief) => (
-        <BriefBox>
+        <Brief shown={props.brief}>
           <Inline text={brief()} />
-        </BriefBox>
+        </Brief>
       )}
     </Show>
     {Option.toArray(props.beat.line).map((line) => (
@@ -271,7 +310,7 @@ const Beat = (props: {
 export const STATUS_ROLE = { true: 'alert', false: 'status' } as const;
 
 /** Words selected in one beat: its id, the first word and the last. */
-export interface WordsAt extends Words {
+interface WordsAt extends Words {
   readonly beat: string;
 }
 
@@ -285,12 +324,57 @@ export interface Selecting {
   readonly clear: () => void;
 }
 
-/** The beats, the word heard lit and the words selected painted. */
+/** Words selected that the page keeps as its own while it is open (an ask's, the studio's), never in its URL. */
+export const useOwnSelecting = (): Selecting => {
+  const [selected, setSelected] = createSignal(Option.none<WordsAt>());
+  return {
+    selected,
+    select: (beat, w) => setSelected(Option.some({ beat, from: w.from, to: w.to })),
+    clear: () => setSelected(Option.none()),
+  };
+};
+
+/**
+ * A page's playhead, which its reader follows: the beat it is in, marked and
+ * kept in sight in the box the reader scrolls in (`box`, its top `clearTop`
+ * under a sticky head), by the lab's one Follow rule on the page's `clock`;
+ * Hear pauses it (`pause`) and gives way once it plays.
+ */
+interface Playhead {
+  readonly beat: Accessor<Option.Option<string>>;
+  readonly clock: FollowClock;
+  readonly box: () => Option.Option<HTMLElement>;
+  readonly clearTop: () => number;
+  readonly pause: () => void;
+}
+
+/**
+ * The page a reader is on: its host (the frames Hear lights the word heard
+ * on), its commands (Select to here), its runtime (the source's reads and
+ * writes), and its playhead where it has one.
+ */
+export interface ReaderPage {
+  readonly host: Host;
+  readonly hub: Hub;
+  readonly runtime: Atom.AtomRuntime<ReviewApi, never>;
+  readonly playhead: Option.Option<Playhead>;
+}
+
+/** Whether the reader keeps the playhead's beat in sight: until a hand scrolls it, then again on Follow or Play. */
+interface Following {
+  readonly on: Accessor<boolean>;
+  readonly resume: () => void;
+}
+
+/** The beats, the word heard lit, the words selected painted, and the playhead's beat followed. */
 const Beats = (props: {
+  readonly page: ReaderPage;
   readonly beats: Accessor<ReadonlyArray<ReadBeat>>;
   readonly selecting: Selecting;
+  readonly following: Following & { readonly suspend: () => void };
+  readonly brief: BriefShown;
 }) => {
-  const { meta } = useReview();
+  const meta = props.page;
   const voice = useVoice();
   const lines = createMemo(() => props.beats().flatMap((b) => Option.toArray(b.line)));
   const selected = createMemo(() =>
@@ -378,6 +462,37 @@ const Beats = (props: {
       Option.filter(selected(), (w) => w.section === beat),
       (w) => ({ from: w.from, to: w.to }),
     );
+  const live = () =>
+    Option.getOrElse(
+      Option.flatMap(meta.playhead, (p) => p.beat()),
+      () => '',
+    );
+  // The playhead's beat kept in sight in the box the reader scrolls in, by the lab's one Follow rule.
+  Option.map(meta.playhead, (playhead) =>
+    useFollow(
+      {
+        box: playhead.box,
+        content: () => page,
+        target: live,
+        span: (beat) =>
+          Option.map(
+            Option.flatMap(page, (root) =>
+              Option.fromNullishOr(
+                root.querySelector<HTMLElement>(
+                  `.lab-script-beat[data-beat="${CSS.escape(beat)}"]`,
+                ),
+              ),
+            ),
+            (section) => ({ first: section, last: section }),
+          ),
+        clear: () => ({ top: playhead.clearTop(), bottom: 0 }),
+        placing: props.following.on,
+        reader: props.following.suspend,
+        played: props.following.resume,
+      },
+      playhead.clock,
+    ),
+  );
   return (
     <div
       class="rd"
@@ -392,6 +507,8 @@ const Beats = (props: {
             words={wordsOf(beat().read.id)}
             released={released}
             clear={() => props.selecting.clear()}
+            live={beat().read.id === live()}
+            brief={props.brief}
           />
         )}
       </For>
@@ -418,18 +535,29 @@ interface ScriptSource {
 }
 
 /**
- * The beats `beats` read through `source`, laid out under its staging voice,
- * their words selected as `selecting` keeps them; with `cost`, its head says
- * the day's staging spend (an ask's leaves it out).
+ * The beats `beats` read through `source` on `page`, laid out under its
+ * staging voice, their words selected as `selecting` keeps them; with `cost`,
+ * its head says the day's staging spend (an ask's leaves it out); `brief`
+ * says how a beat's picture brief shows (boxed, the default). On a page with
+ * a playhead, the beat it is in is marked and kept in sight until a hand
+ * scrolls the box, and Follow in the head takes it back.
  */
 export const ScriptReader = (props: {
+  readonly page: ReaderPage;
   readonly beats: Accessor<ReadonlyArray<DraftBeatRead>>;
   readonly source: ScriptSource;
   readonly selecting: Selecting;
   readonly cost: boolean;
+  readonly brief?: BriefShown;
 }) => {
-  const { meta } = useReview();
+  const meta = props.page;
   const beats = createMemo(() => laidOut(props.beats()));
+  const [on, setOn] = createSignal(true);
+  const following = {
+    on,
+    resume: () => setOn(true),
+    suspend: () => setOn(false),
+  };
   const voice: VoiceSource = {
     // The page's alone: the server's render never waits on the takes, nor queues one.
     reading: meta.runtime
@@ -439,7 +567,7 @@ export const ScriptReader = (props: {
     takeUrl: (file) => props.source.takeUrl(file),
     beats: () => beats().map((b) => b.read.id),
     host: meta.host,
-    player: Option.none(),
+    player: Option.map(meta.playhead, (p) => ({ pause: p.pause, playing: p.clock.playing })),
     written: props.source.written,
     reread: Option.some(() => props.source.reread()),
   };
@@ -447,9 +575,20 @@ export const ScriptReader = (props: {
     <VoiceOver source={voice}>
       <div class="rd-head">
         <HearIt beats={beats().map((b) => b.read.id)} />
+        <Show when={Option.isSome(meta.playhead) && !on()}>
+          <button type="button" class="sh-btn rd-follow" onClick={following.resume}>
+            Follow
+          </button>
+        </Show>
         <Spend cost={props.cost} />
       </div>
-      <Beats beats={beats} selecting={props.selecting} />
+      <Beats
+        page={meta}
+        beats={beats}
+        selecting={props.selecting}
+        following={following}
+        brief={props.brief ?? 'boxed'}
+      />
     </VoiceOver>
   );
 };

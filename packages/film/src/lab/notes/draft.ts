@@ -61,18 +61,6 @@ export const whereText: WhereSaid = (placed, fps, T) =>
   });
 
 /**
- * Where a note at `T` sits, as the Script's composer says it under its beat:
- * the film's time, the clock its beats' heads keep, and the cue edge and the
- * mark nearest it; the beat is the one it is written under, named in its
- * head, so it is not named again. Nothing for a film with no scenes.
- */
-export const whereOnFilm: WhereSaid = (placed, fps, T) =>
-  Option.match(nearestMoment(placed, T), {
-    onNone: () => '',
-    onSome: (m) => placeText([timecode(T, fps)], m),
-  });
-
-/**
  * When a made note shows, as the list says it beside its scene's name: the
  * time into its scene now (`noteT`); a note whose scene the film no longer
  * has says the film's time, naming the film.

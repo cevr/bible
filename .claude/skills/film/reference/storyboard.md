@@ -23,7 +23,7 @@ The image route letters a sign well enough, yet a word the narration says always
    No code default exists: the house look is those two committed files, and `board style` copies the image into the board folder as `style.9005.png`. A frame the owner already approved, a kept concept among them, comes in by `board import` with `--keep` and `--why`.
 
 2. **Draw.** `bun run board <film> --lanes 3` (or `--beat id,id`): two tries a panel on `okra image`'s Codex route, with the style ref attached. The route is the Codex one only: never pass `--model`, never a paid route, and keep personal data out of every prompt. A try takes about 50 s (37–164 s); RBF's 100 tries took 31 minutes on 3 lanes. `--dry-run` prints the prompts first.
-3. **Pick.** Look at both tries of every panel against its brief, the line at its mark, the style and the frames already kept, and keep one with a concrete why (`board pick … --why`). The owner picks on the Board page too; an agent's picks are the owner's to overrule.
+3. **Pick.** Look at both tries of every panel against its brief, the line at its mark, the style and the frames already kept, and keep one with a concrete why (`board pick … --why`). The owner keeps a try in the studio's inspector too; an agent's picks are the owner's to overrule.
 4. **Text.** Set every card and verse panel (`board card|verse`): where the line's key word or a quotation must be read, the board shows the card at its mark.
 
 ### What the route does
@@ -40,9 +40,9 @@ What it gets wrong, so a pick checks for it and a tweak names it:
 
 ## Notes and tweaks
 
-The **Board page** (`/films/<film>/board`, ⇧2 in the studio) is where the owner works the board: the beats in play order, each leading with its panels and the words each holds for (the brief clamped, the line behind **Brief and line**); the **animatic** on the narration's clock (each panel held from its mark, a storyboard card where a beat has none), the column following the beat under the frame until a reader scrolls it (**Follow** takes it back), and a tag on the picture naming the panel and try it shows; **Draw** on a panel (pen with pressure, arrow, rectangle, ellipse, text, eraser; three inks; undo, redo); **Comment**; **Ask for a tweak**; pick between tries; **Approve** a beat; and **Compare** a panel with the scene: while the frame is in the panel's span the picture splits, the panel's left half beside the scene's own right half, and elsewhere it plays the animatic. A film with no drawn scene yet opens on its Board.
+The owner works the board in the studio (`/films/<film>/studio`): a panel's clip on the timeline's Board lane, or a beat, opens the inspector's **Board** section, each of the beat's panels at its mark with its tries as a strip of thumbs, the kept one ringed and its why under it; a try pressed shows large, and **Keep** keeps it on the version the film plays. **Approve** approves the beat once each of its pictures keeps a try (the button says why not before then), **Withdraw** takes an approval back. The **Notes and asks** section holds the beat's open notes, each with its thread and a reply, and its asks. The old Board page's links (`/films/<film>/board/<beat>?panel=`) land on the studio with that beat or panel selected.
 
-A comment or a tweak is a lab note carrying its `panel` (`id`, `try`, `ask: tweak`) and its `sketch`, with a still of the panel as drawn on. Read them with `bun run notes <film>`; a tweak is made with:
+A comment or a tweak is a lab note carrying its `panel` (`id`, `try`, `ask: tweak`), and a sketch and a still of the panel as drawn on when it has them. An agent asks a tweak with the lab's `request_tweak` tool, the owner's word from chat on it. Read them with `bun run notes <film>`; a tweak is made with:
 
 ```
 bun run board tweak <film> <note>
@@ -54,11 +54,7 @@ It sends the try, the note's still (the sketch on it) and the style ref, with th
 
 The kept panel at a mark is the frame the scene shows at that mark: its staging, its cast and their places, its light. The figures are the engine's K1 rigs, never the panel's drawing; the backgrounds, skies, light and glow follow the kept panel (owner, 2026-10-14: "matched to these panels"). Draw the scene to it ([SKILL.md](../SKILL.md) step 7, **Scenes**), then hold the render against it and against the film's kept concepts:
 
-- On the Board page, **Compare** splits the picture at the panel's mark: the panel's left half, the scene's right half.
+- In the studio, the panel's clip on the Board lane shows the kept try; the scene plays in the viewer at the same mark.
 - From the terminal, `bun run look <film> --scene <id> --at mark:<at>` gives the scene's still at the mark, to view beside `board/<file>`.
 
 Done when every kept panel's staging reads in its scene's frame at its mark, or the owner has accepted the difference on the board.
-
-## The surface
-
-The Board's drawing surface is our own clean-room Solid 2 surface on `perfect-freehand` (MIT): no tldraw code or package, since tldraw's licence is source-available, not open source. Its behaviour (pointer, pen and touch alike; a second finger cancels a stroke; shift constrains; undo, redo, select, erase, text) is one pure machine, `packages/film/src/lab/sketch/gesture.ts`, each behaviour a case in its test.

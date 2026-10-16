@@ -19,10 +19,10 @@ import { PAGE_ROOT } from '../../src/core/page-render.ts';
 import { openServed } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { evaluates, until } from '../../src/lab/fixtures/settled.ts';
-import { studioRoutes } from '../../src/lab/fixtures/studio-film.ts';
+import { STUDIO_FOLDER, STUDIO_SET, studioRoutes } from '../../src/lab/fixtures/studio-film.ts';
 import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
 import { faceHold } from '../../src/player/face.ts';
-import { CHOICES, CHOICES_READY, DEVICES, SLOW } from './studio-states.ts';
+import { DEVICES, SLOW } from './studio-states.ts';
 
 /**
  * How far, in CSS px, a target's edge or size may move after the first
@@ -166,7 +166,13 @@ for (const device of DEVICES) {
     const PAGES = [
       ['Lab', 'lab', [], pageHref.lab(PROBE), ['.lab-panel[data-staged="true"]']],
       ['Studio', 'player', [], pageHref.studio(PROBE), ['.st-timeline .st-clip']],
-      ['Choices', 'review', studioRoutes, CHOICES, CHOICES_READY],
+      [
+        'a Set',
+        'review',
+        studioRoutes,
+        pageHref.set(STUDIO_FOLDER, STUDIO_SET),
+        ['.rv-main video', '[data-comments]'],
+      ],
     ] as const;
     for (const [name, served, routes, href, ready] of PAGES) {
       it.live(

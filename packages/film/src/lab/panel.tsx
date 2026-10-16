@@ -1,6 +1,6 @@
 // The Lab's pages, the Lab and the Script, as the server and the browser
 // both render them (`LabPage`): the place as the URL holds it, the mode the
-// Lab's panel shows, and the film's notes (`notes/list.tsx`); and on the Lab
+// Lab's panel shows, and the film's notes (`notes/thread.tsx`, its list here); and on the Lab
 // its panel (`LabPanel`), with the mode tray, each tool's section, and the
 // notes under the pen and the Note frame button.
 // None of it reads the film's code, which the server never imports: the
@@ -14,7 +14,7 @@ import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import * as UrlAtom from '@bible/url-state/atom';
-import { For, Portal, Show } from '@solidjs/web';
+import { For, Loading, Portal, Show } from '@solidjs/web';
 import { Array as Arr, Equal, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
@@ -35,18 +35,197 @@ import { type LabClient, labApiLayer } from './api.ts';
 import { LAB_MODES, type LabMode, MODE_TITLE, citedMode, modeCommands, modeOf } from './mode.ts';
 import { labPlaceOf } from './place.ts';
 import { pressed } from './pressed.ts';
-import { PanelAside } from './selection-sheet.tsx';
+import { PanelAside, SelectionSheet } from './selection-sheet.tsx';
 import { isLive } from './source/open.ts';
 import { PHONE, useMatches } from './viewport.ts';
-import { Frame, List, NotesFeed, Pen, type PageRuntime } from './notes/list.tsx';
+import {
+  Asks,
+  NOTE_STATE,
+  NotesFeed,
+  type PageRuntime,
+  ReplyForm,
+  Said,
+  Still,
+  Thread,
+  noteLabel,
+  useNotesFeed,
+} from './notes/thread.tsx';
+import { feedText } from './notes/feed.ts';
+import type { Note } from '../core/schema.ts';
+import { BY_BUTTON, quietly } from '../command/command.ts';
+import { Selection } from '../command/selection.ts';
+import { Target, type TargetElementProps } from './command/context-menu.tsx';
+import { hubKeys } from './command/changes.ts';
 
-/** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it, and on which of its pages. */
-const pickOf = (href: string) => {
-  const { root, selection, note, beat, view, code, words, mark, text } = labPlaceOf(href);
-  return { root, selection, note, beat, view, code, words, mark, text };
+// ---------------------------------------------------------------- Notes
+
+/** The pen's command. */
+const PEN = 'notes.pen';
+
+/** Note this frame's command (`n`). */
+const NOTE_FRAME = 'notes.frame';
+
+/** The pen: a drag on the frame draws ink while it is on. */
+const Pen = (props: { readonly hub: Hub }) => {
+  const feed = useNotesFeed();
+  const keys = hubKeys(props.hub);
+  return (
+    <button
+      type="button"
+      data-act="pen"
+      class="sh-btn"
+      aria-pressed={pressed(feed.pen())}
+      title={keys.titled('draw freehand ink on the frame', PEN)}
+      onClick={() => props.hub.invokeId(PEN, BY_BUTTON)}
+    >
+      Pen
+    </button>
+  );
 };
 
-/** The lab's place: its page, the cue or knob picked, the note, the studio's beat a link cites, the compare's view, the Source view, the words and the mark selected, and the Transcript view. */
+/** Note the whole frame shown: the touch path for Note this frame, once the film is staged. */
+const Frame = (props: { readonly hub: Hub }) => {
+  const feed = useNotesFeed();
+  const keys = hubKeys(props.hub);
+  return (
+    <button
+      type="button"
+      class="sh-btn"
+      data-act="note-frame"
+      title={keys.titled('note the whole frame shown', NOTE_FRAME)}
+      disabled={Option.isNone(feed.staged())}
+      onClick={() => props.hub.invokeId(NOTE_FRAME, BY_BUTTON)}
+    >
+      Note frame
+    </button>
+  );
+};
+
+/** The Lab's notes commands, the Pen and Note this frame, registered on its hub while it is shown. */
+const NotesCommands = (props: ParentProps<{ readonly hub: Hub }>) => {
+  const feed = useNotesFeed();
+  const hub = props.hub;
+  // The header's pen and Note frame are commands, registered with the page
+  // (a server render names their keys as the browser does): their buttons,
+  // keys and ⌘K reach them alike. Note this frame waits for the staged film.
+  onCleanup(
+    hub.commands.register(
+      {
+        id: PEN,
+        label: 'Pen on or off',
+        group: 'Notes',
+        touch: 'the Pen button in the header',
+        when: () => true,
+        run: quietly(() => feed.togglePen()),
+      },
+      {
+        id: NOTE_FRAME,
+        label: 'Note this frame',
+        group: 'Notes',
+        keys: ['n'],
+        touch:
+          'the Note frame button in the header; tap the frame to pin a point, drag to draw a box',
+        when: () => Option.isSome(feed.staged()),
+        run: quietly(() => Option.map(feed.staged(), (s) => s.noteFrame())),
+      },
+    ),
+  );
+  return <>{props.children}</>;
+};
+
+interface ItemProps {
+  readonly film: string;
+  readonly host: Host;
+  readonly hub: Hub;
+  readonly note: Note;
+}
+
+/**
+ * One note in the list: its place, words, still and thread, and on the
+ * selected one its reply: in place, or on a phone, once the film is staged,
+ * in the selection's sheet, which peeks the note's label and its status.
+ */
+const Item = (props: ItemProps) => {
+  const feed = useNotesFeed();
+  const selected = () => Option.exists(feed.selected(), (s) => s.id === props.note.id);
+  const at = () => Option.map(feed.staged(), (s) => s.whenOf(props.note));
+  const of = () => Selection.cases.Note.make({ id: props.note.id });
+  return (
+    <Target
+      of={of()}
+      render={(p: TargetElementProps) => <li {...p} />}
+      class={['lab-note-item', props.note.status, { selected: selected() }]}
+      data-id={props.note.id}
+      onClick={(e) => {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLButtonElement) return;
+        // The sheet stands in the item, fixed over the page: a tap in it opens nothing.
+        const inSheet = (el: Element) =>
+          Option.isSome(Option.fromNullishOr(el.closest('.lab-inspector-sheet')));
+        if (e.target instanceof Element && inSheet(e.target)) return;
+        Option.map(feed.staged(), (s) => s.select(props.note));
+      }}
+    >
+      <div class="lab-note-head">
+        <span class="lab-note-label">{noteLabel(props.note, at())}</span>
+        <span class="sh-badge" data-state={NOTE_STATE[props.note.status]}>
+          {props.note.status}
+        </span>
+      </div>
+      <Said note={props.note} />
+      <Asks note={props.note} />
+      <Still film={props.film} name={props.note.still} />
+      <Thread film={props.film} note={props.note} />
+      <Show when={selected()}>
+        <SelectionSheet
+          host={props.host}
+          hub={props.hub}
+          of={Option.as(feed.staged(), of())}
+          peek={`${noteLabel(props.note, at())} · ${props.note.status}`}
+          dismiss={() => Option.map(feed.staged(), (s) => s.dismiss())}
+        >
+          <Show when={props.note.status !== 'resolved'}>
+            <ReplyForm note={props.note} />
+          </Show>
+        </SelectionSheet>
+      </Show>
+    </Target>
+  );
+};
+
+/**
+ * The feed's status, and the notes, newest first (how to make one while
+ * there is none): what the server sends, and the browser follows.
+ */
+const List = (props: { readonly film: string; readonly host: Host; readonly hub: Hub }) => {
+  const feed = useNotesFeed();
+  // Note this frame's key as bound now: a rebound key reads as rebound.
+  const keys = hubKeys(props.hub);
+  const composing = () => Option.exists(feed.staged(), (s) => s.composerOpen());
+  return (
+    <Loading>
+      <span class="lab-feed">{feedText(feed.state())}</span>
+      <ol class="lab-notes">
+        <For each={[...feed.notes()].reverse()} keyed={(n) => n.id}>
+          {(note) => <Item film={props.film} host={props.host} hub={props.hub} note={note()} />}
+        </For>
+      </ol>
+      <Show when={feed.notes().length === 0 && !composing()}>
+        <p class="lab-feed" data-role="notes-empty">
+          No notes yet: tap or click the frame to pin a point, drag for a box, or Note frame (
+          <kbd>{keys.first(NOTE_FRAME)}</kbd>) for the whole frame.
+        </p>
+      </Show>
+    </Loading>
+  );
+};
+
+/** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it. */
+const pickOf = (href: string) => {
+  const { selection, note, beat, view, code, words, text } = labPlaceOf(href);
+  return { selection, note, beat, view, code, words, text };
+};
+
+/** The lab's place: the cue or knob picked, the note, the studio's beat a link cites, the compare's view, the Source view, the words selected, and the Transcript view. */
 type LabPick = ReturnType<typeof pickOf>;
 
 /** What an entry's link cites (`citedMode`): its note, its beat, and the cue or knob it landed on. */
@@ -334,8 +513,8 @@ export const LabPage = (
   return (
     <LabPageContext value={value}>
       <PanelAside value={aside}>
-        <NotesFeed film={props.name} runtime={runtime} hub={props.hub} note={() => here().note}>
-          {props.children}
+        <NotesFeed film={props.name} runtime={runtime} note={() => here().note}>
+          <NotesCommands hub={props.hub}>{props.children}</NotesCommands>
         </NotesFeed>
       </PanelAside>
     </LabPageContext>

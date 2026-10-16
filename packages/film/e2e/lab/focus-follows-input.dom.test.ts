@@ -19,9 +19,8 @@
 //   unit test's source scan fails on a place not named there, and each site's
 //   paths that no command reaches (a kind's tab, Back and Forward, a studio
 //   button or its prompter, a kept take's reload, an ask's index entry and
-//   its Send with a question open), or that a page's walk
-//   reaches only once (the Script's note commands), run below, by the
-//   keyboard and by the pointer, and a key pressed in the middle of a click.
+//   its Send with a question open), run below, by the keyboard and by the
+//   pointer, and a key pressed in the middle of a click.
 // `:focus-visible` matches only in the window that has the focus, so every
 // case runs alone, and a page without it answers so instead of passing.
 
@@ -30,7 +29,6 @@ import { expect, it } from 'effect-bun-test';
 import type { Input } from '../../src/browser/keys.ts';
 import { pageHref } from '../../src/core/api.ts';
 import {
-  DESK,
   type Json,
   json,
   labAt,
@@ -48,8 +46,7 @@ import {
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
-import { ASK_READY, scriptAt } from './studio-states.ts';
-import { onChoices } from './toy-choices.ts';
+import { ASK_READY } from './studio-states.ts';
 
 const SLOW = 30_000;
 /** A page's whole registry, each command run twice. */
@@ -286,17 +283,6 @@ const PAGES: ReadonlyArray<Opened> = [
     runs: ['notes.frame'],
   },
   { name: 'Record', open: inRecord, moves: [], runs: [] },
-  {
-    // A point selected: its auditions are offered.
-    name: 'Choices',
-    open: () => onChoices(),
-    moves: [
-      ['review.audition-next', /\.rv-sound/],
-      ['review.audition-previous', /\.rv-sound/],
-      ['go.choice.', /\.lab-inspect|\.rv-/],
-    ],
-    runs: [],
-  },
 ];
 
 /**
@@ -344,176 +330,9 @@ for (const { command, open, key, field } of BY_THEIR_KEYS)
     }),
   );
 
-/**
- * The Script's note commands, offered once words are selected and while no note is being
- * made (so a page's walk runs only its first), with the field each opens the composer on:
- * a correction's is the words to say instead.
- */
-const SCRIPT_ASKS = [
-  { command: 'script.note', field: '.lab-compose textarea' },
-  { command: 'script.correct', field: '.lab-compose input.lab-instead' },
-] as const;
-
-for (const { command, field } of SCRIPT_ASKS)
-  for (const input of INPUTS)
-    alone(
-      `on the Script, words selected, ${command} ${ASKED[input]} in ⌘K puts the focus in its field, which rings as a text field does`,
-      Effect.gen(function* () {
-        const page = yield* scriptAt({ words: '4-7' })(DESK);
-        const [offered, seen] = yield* watchedThen(
-          page,
-          Effect.gen(function* () {
-            const ran = yield* runFromMenu(page, command, input);
-            if (ran) yield* until(page, `document.activeElement?.matches('${field}') === true`);
-            return ran;
-          }),
-        );
-        expect(offered).toBe(true);
-        yield* holds(`the Script's ${command}`, input, seen);
-        expect(page.errors).toEqual([]);
-      }),
-    );
-
-for (const input of INPUTS)
-  alone(
-    `on the Script, a correction's Save ${ASKED[input]} with its words unchanged puts the focus in the words to say instead, which rings as a text field does`,
-    Effect.gen(function* () {
-      const page = yield* scriptAt({ words: '4-7' })(DESK);
-      const compose = '[data-role="script-compose"]';
-      const save = `${compose} button[type="submit"]`;
-      yield* page.click('[data-act="note-words"]');
-      yield* waitFor(page, `${compose} .lab-compose:not([hidden])`);
-      yield* page.click(`${compose} [data-ask="correction"]`);
-      yield* waitFor(page, `${compose} .lab-instead`);
-      if (input === 'key') yield* page.focus(save);
-      const seen = yield* watched(
-        page,
-        Effect.gen(function* () {
-          if (input === 'key') yield* page.press('Enter');
-          else yield* page.click(save);
-          yield* until(
-            page,
-            `document.activeElement?.matches('${compose} .lab-instead[aria-invalid="true"]') === true`,
-          );
-        }),
-      );
-      yield* holds('a Save that found the words to say instead wanting', input, seen);
-      expect(page.errors).toEqual([]);
-    }),
-  );
-
 /** Fail naming each stop `seen` holds whose ring is not `input`'s. */
 const holds = (path: string, input: Input, seen: Seen) =>
   Effect.sync(() => expect(wrong(path, input, seen)).toEqual([]));
-
-/** A kind's tab on Choices. */
-const SCORE_TAB = '.rv-kinds [data-kind="score"]';
-
-alone(
-  'on Choices opened on a point, nothing asked: the card has the focus, with no ring',
-  Effect.gen(function* () {
-    const { page, errors } = yield* onChoices('take:paper.page');
-    yield* until(
-      page,
-      `document.activeElement?.closest('.rv-option')?.id === 'point-take:paper.page'`,
-    );
-    yield* holds('a page opened on a point', 'pointer', yield* page.evaluate<Seen>(SEEN));
-    expect(errors).toEqual([]);
-  }),
-);
-
-for (const input of INPUTS)
-  alone(
-    `on Choices, a kind's tab ${ASKED[input]}, the card it goes to shows the ring iff the keyboard asked`,
-    Effect.gen(function* () {
-      const { page, errors } = yield* onChoices('take:paper.page');
-      yield* waitFor(page, SCORE_TAB);
-      if (input === 'key') yield* page.focus(SCORE_TAB);
-      const seen = yield* watched(
-        page,
-        Effect.gen(function* () {
-          if (input === 'key') yield* page.press('Enter');
-          else yield* page.click(SCORE_TAB);
-          yield* until(page, `document.activeElement?.closest('.rv-option')?.id === 'point-score'`);
-        }),
-      );
-      yield* holds("a kind's tab", input, seen);
-      expect(errors).toEqual([]);
-    }),
-  );
-
-alone(
-  "on Choices, a kind's tab clicked with a key pressed while the button is down: the card it goes to shows no ring",
-  Effect.gen(function* () {
-    const { page, errors } = yield* onChoices('take:paper.page');
-    yield* waitFor(page, SCORE_TAB);
-    const tab = yield* page.box(SCORE_TAB);
-    const seen = yield* watched(
-      page,
-      Effect.gen(function* () {
-        yield* page.mouse.move(tab.x + tab.width / 2, tab.y + tab.height / 2);
-        yield* page.mouse.down;
-        yield* page.press('Shift');
-        yield* page.mouse.up;
-        yield* until(page, `document.activeElement?.closest('.rv-option')?.id === 'point-score'`);
-      }),
-    );
-    yield* holds("a kind's tab clicked, a key pressed mid-click", 'pointer', seen);
-    expect(errors).toEqual([]);
-  }),
-);
-
-/** Another kind's tab: a second step for Back to walk. */
-const LEVEL_TAB = '.rv-kinds [data-kind="level"]';
-
-/** The card in focus is `point`'s. */
-const onCard = (point: string) =>
-  `document.activeElement?.closest('.rv-option')?.id === 'point-${point}'`;
-
-/** How each input walks Back, as a case's name says it. */
-const BACK = {
-  key: 'by a key the browser walks it by',
-  pointer: 'the page never hears (the toolbar’s), after a key',
-} as const;
-
-/**
- * Back as a key the browser walks the history by: ⌘[ pressed, and, if this browser (a
- * headless one) left the walk to the page, the step it would have taken.
- */
-const backByKey = (page: Tab) =>
-  Effect.gen(function* () {
-    const before = yield* page.url;
-    yield* page.press('Meta+[');
-    yield* page.evaluate(`new Promise((done) => setTimeout(() => done(true), 300))`);
-    if ((yield* page.url) === before) yield* page.back;
-  });
-
-for (const input of INPUTS)
-  alone(
-    `on Choices, Back ${BACK[input]}: the card it lands on shows the ring iff a key walked`,
-    Effect.gen(function* () {
-      const { page, errors } = yield* onChoices('take:paper.page');
-      yield* waitFor(page, SCORE_TAB);
-      yield* page.click(SCORE_TAB);
-      yield* until(page, onCard('score'));
-      yield* page.click(LEVEL_TAB);
-      yield* until(page, onCard('level:const:PAPER'));
-      const seen = yield* watched(
-        page,
-        Effect.gen(function* () {
-          if (input === 'key') yield* backByKey(page);
-          else {
-            // A key the page hears, then a step it does not: the toolbar's Back, a swipe.
-            yield* page.press('Shift');
-            yield* page.back;
-          }
-          yield* until(page, onCard('score'));
-        }),
-      );
-      yield* holds('Back', input, seen);
-      expect(errors).toEqual([]);
-    }),
-  );
 
 /** The studio, a beat in it, its prompter, and an earlier attempt's Keep. */
 const STUDIO = '[data-role="studio"]';

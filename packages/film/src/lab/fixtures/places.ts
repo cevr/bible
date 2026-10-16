@@ -14,12 +14,7 @@ export const PLACE_HREFS = {
   draftBeat: pageHref.draftBeat('s', 'd', '1', '0-0'),
   folder: pageHref.folder('f'),
   set: pageHref.set('f', 'p'),
-  choices: pageHref.choices('f'),
   studio: pageHref.studio('f'),
   lab: pageHref.lab('f'),
   labScene: pageHref.labScene('f', 's'),
-  script: pageHref.script('f'),
-  scriptBeat: pageHref.scriptBeat('f', 's'),
-  board: pageHref.board('f'),
-  boardBeat: pageHref.boardBeat('f', 's'),
 } satisfies Record<Exclude<keyof typeof Places, 'export'>, string>;

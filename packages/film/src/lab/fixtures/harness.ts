@@ -39,7 +39,7 @@ import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled, served } from './bundles.ts';
 import { CLOCK_SCRIPT, CLOCK_STOPPED } from './clock.ts';
 import type { LabSelection } from '../../command/selection.ts';
-import { labHref, labPlaceOf } from '../place.ts';
+import { labHref } from '../place.ts';
 import type { LabMode } from '../mode.ts';
 import { narrationUrls } from '../../player/narrated.ts';
 import { probeTimeline } from './probe-timeline.ts';
@@ -674,21 +674,12 @@ export const DESK: Viewport = { width: 1440, height: 900 };
 /** A phone's window, as the studio is designed for first: 390 × 844, with a finger. */
 export const PHONE: Viewport = { width: 390, height: 844, coarse: true };
 
-/**
- * What each of the lab's pages shows once its film is staged: the Lab its
- * panel with the film's tools in it, the Script its reader (which stands
- * only on a staged film).
- */
-const STAGED: Readonly<Record<ReturnType<typeof labPlaceOf>['root'], string>> = {
-  lab: '.lab-panel[data-staged="true"]',
-  script: '.lab-script',
-  board: '.lab-board',
-};
+/** What the Lab shows once its film is staged: its panel with the film's tools in it. */
+const STAGED = '.lab-panel[data-staged="true"]';
 
 /**
  * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`,
- * `pageHref.script`, `pageHref.scriptBeat`, `core/api.ts`; the probe film's
- * lab when none), served on every lab place as the server
+ * `core/api.ts`; the probe film's lab when none), served on every lab place as the server
  * serves it, with `routes` answering the API before the defaults, and `mic`
  * as its microphone when given, in `mode` when given. The tab goes back to
  * the pool with the scope.
@@ -748,7 +739,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   const href = at.href ?? pageHref.lab(PROBE);
   yield* page.goto(href);
   // The Lab's panel stands before the film is staged, its tools in it once it is; the Script's reader once it is.
-  yield* page.waitFor(at.ready ?? STAGED[labPlaceOf(href).root]);
+  yield* page.waitFor(at.ready ?? STAGED);
   for (const mode of Option.toArray(Option.fromUndefinedOr(at.mode))) {
     yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
     yield* page.waitFor(`.lab-panel[data-mode="${mode}"]`);

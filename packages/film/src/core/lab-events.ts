@@ -18,7 +18,7 @@ import {
   answersLine,
   askedIn,
 } from './ask.ts';
-import { pageHref } from './api.ts';
+import { beatSelection, pageHref, panelSelection } from './api.ts';
 import type { BoardFile, Panel } from './board.ts';
 import type { Catalogue } from './catalogue.ts';
 import { type PointRef, pointIdOf } from './point.ts';
@@ -127,7 +127,7 @@ export type LabChange = typeof LabChange.Type;
 
 /** A change as it is read, before the feed numbers it, dates it and makes its links. */
 export type LabChangeDraft = Omit<LabChange, 'seq' | 'at' | 'links'> & {
-  /** The lab path it is on (`/films/f/board/cold?panel=judge`). */
+  /** The lab path it is on (`/films/f/studio?sel=panel:cold.judge`). */
   readonly path: string;
 };
 
@@ -138,32 +138,20 @@ export const gist = (text: string, max = 120): string => {
   return `${line.slice(0, max - 1)}…`;
 };
 
-/** The Board on `beat` with the panel held from `at` (`start` too), and the note or the try shown there. */
-export const boardPath = (
-  film: string,
-  beat: string,
-  at: Option.Option<string>,
-  more: { readonly note?: string; readonly try?: number } = {},
-) =>
-  pageHref.boardBeat(film, beat, {
-    ...Option.match(at, { onNone: () => ({}), onSome: (panel) => ({ panel }) }),
-    ...Option.match(Option.fromUndefinedOr(more.note), {
-      onNone: () => ({}),
-      onSome: (note) => ({ note }),
-    }),
-    ...Option.match(Option.fromUndefinedOr(more.try), {
-      onNone: () => ({}),
-      onSome: (n) => ({ try: String(n) }),
+/** The studio on `beat`, its Board open on the panel held from `at` (`start` too) when one is named. */
+export const boardPath = (film: string, beat: string, at: Option.Option<string>) =>
+  pageHref.studio(film, {
+    sel: Option.match(at, {
+      onNone: () => beatSelection(beat),
+      onSome: (mark) => panelSelection(`${beat}.${mark}`),
     }),
   });
 
-/** Where a note is read: the Board on its panel, else the Lab on its scene. */
+/** Where a note is read: the studio on its panel, else the Lab on its scene. */
 export const notePath = (note: Note): string =>
   Option.match(Option.fromUndefinedOr(note.panel), {
     onSome: (panel) =>
-      boardPath(note.film, note.scene, Option.fromUndefinedOr(panel.id.split('.').at(1)), {
-        note: note.id,
-      }),
+      boardPath(note.film, note.scene, Option.fromUndefinedOr(panel.id.split('.').at(1))),
     onNone: () => pageHref.labScene(note.film, note.scene, { note: note.id }),
   });
 
@@ -270,7 +258,7 @@ export const boardChanges = (
           onSome: (note) => ({ note }),
         }),
         summary: `${film} ${panel.id}: try ${t.n} added (${t.made}${Option.match(Option.fromUndefinedOr(t.note), { onNone: () => '', onSome: (n) => ` for ${n}` })})`,
-        path: boardPath(film, panel.beat, Option.some(panel.at), { try: t.n }),
+        path: boardPath(film, panel.beat, Option.some(panel.at)),
       }));
     const keptBefore = Option.flatMap(was, (p) => Option.fromUndefinedOr(p.kept));
     const kept = Option.filter(
@@ -287,7 +275,7 @@ export const boardChanges = (
           onSome: (text) => ({ text }),
         }),
         summary: `${film} ${panel.id}: try ${n} kept${Option.match(Option.fromUndefinedOr(panel.why), { onNone: () => '', onSome: (why) => `: ${gist(why)}` })}`,
-        path: boardPath(film, panel.beat, Option.some(panel.at), { try: n }),
+        path: boardPath(film, panel.beat, Option.some(panel.at)),
       })),
     );
     return [...tried, ...keeps];

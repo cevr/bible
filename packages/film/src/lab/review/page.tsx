@@ -17,7 +17,6 @@ import { type AskShown, Root, useReview } from './context.tsx';
 import { Inspecting } from './inspector.tsx';
 import { folderTitle, isFilmsFolder } from './format.ts';
 import { ReviewPlace, placeOf } from './place.ts';
-import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
 import { ProductionPage, useHistories } from './production.tsx';
 import { AskPage } from '../ask/page.tsx';
@@ -30,7 +29,6 @@ import type { Hub } from '../../command/hub.ts';
 import { COMMAND_CSS } from '../command/style.ts';
 import { StudioFrame, studioOn } from '../studio-frame.tsx';
 import { PageShell } from '../page-shell.tsx';
-import type { ShellPage } from '../page-title.ts';
 import { SHELL_CSS } from '../page-shell-style.ts';
 import type { LabClient } from '../api.ts';
 
@@ -96,15 +94,7 @@ const filmOf = (
       Draft: () => Option.none<string>(),
       Folder: (p) => filmOfFolder(p.folder, films),
       Set: (p) => filmOfFolder(p.folder, films),
-      Film: (p) => Option.some(p.film),
     }),
-  );
-
-/** The shell's page a place is: a film's choices are Choices; every other place sits under Films. */
-const shellPageOf = (place: ReviewPlace): ShellPage =>
-  Match.value(place).pipe(
-    Match.tag('Film', (): ShellPage => 'choices'),
-    Match.orElse((): ShellPage => 'films'),
   );
 
 /** A place's depth below its part, for the crumb and the tab's title: a folder, a set's stack. */
@@ -154,7 +144,7 @@ const Shell = (props: { readonly children: JSX.Element }) => {
     depthOf(state.place(), index(), histories(), AsyncResult.value(state.series()), state.ask());
   return (
     <PageShell
-      page={() => shellPageOf(state.place())}
+      page={() => 'films'}
       film={film}
       lastFilm={state.place()._tag !== 'Draft' && state.place()._tag !== 'Ask'}
       crumb={depth}
@@ -173,14 +163,12 @@ const Shell = (props: { readonly children: JSX.Element }) => {
 };
 
 /**
- * The page `place` is on: Choices' card in focus (`?point=`) and a draft's
- * words selected are that page's own state, read from the URL by the page,
+ * The page `place` is on: a draft's words selected are that page's own state, read from the URL by the page,
  * so a tap, a Back or a Forward moving them keeps the page (its player, its
  * open sheet, its take heard) instead of drawing it again.
  */
 const pageOf = (place: ReviewPlace): ReviewPlace =>
   Match.value(place).pipe(
-    Match.tag('Film', (p) => ReviewPlace.Film({ film: p.film, point: '' })),
     Match.tag('Draft', (p) =>
       ReviewPlace.Draft({ series: p.series, draft: p.draft, beat: '', words: '' }),
     ),
@@ -200,7 +188,6 @@ const Page = () => {
           Draft: (p) => <DraftPage series={p.series} draft={p.draft} />,
           Folder: (p) => <FolderPage folder={p.folder} />,
           Set: (p) => <SetPage folder={p.folder} point={p.point} />,
-          Film: (p) => <FilmPage film={p.film} />,
         }),
       )}
     </main>

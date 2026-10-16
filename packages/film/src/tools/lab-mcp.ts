@@ -146,7 +146,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
         const waiting = unresolved(log);
         return {
           film,
-          links: linksOf(pageHref.board(film)),
+          links: linksOf(pageHref.studio(film)),
           notes: {
             open: waiting.filter((n) => n.status === 'open').length,
             replied: waiting.filter((n) => n.status === 'replied').length,

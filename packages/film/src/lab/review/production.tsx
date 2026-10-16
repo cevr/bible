@@ -659,7 +659,7 @@ const BoardLine = (props: { readonly film: string }) => {
       {(board: Accessor<BoardFile>) => (
         <div class="rv-row" data-role="stage" data-stage="board">
           <span class="pd-kind">Board</span>
-          <a href={pageHref.board(props.film)}>{boardText(boardStageOf(board()))} ›</a>
+          <a href={pageHref.studio(props.film)}>{boardText(boardStageOf(board()))} ›</a>
         </div>
       )}
     </Show>

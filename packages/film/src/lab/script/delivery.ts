@@ -6,7 +6,7 @@
 // that says words `from`–`to`, and whether a poll of the takes shows a
 // line changed under the reader. Pure, so the reader and its tests share it.
 
-import { Array as Arr, Option, Result } from 'effect';
+import { Array as Arr, Option } from 'effect';
 import {
   HOLD_DEFAULT,
   type Mark,
@@ -15,7 +15,6 @@ import {
   paceBand,
   wordsAMinute,
 } from '../../core/delivery.ts';
-import { parse } from '../../core/narration.ts';
 import type { StagingTake } from '../../core/api.ts';
 import type { TakeWord } from '../../core/schema.ts';
 
@@ -27,13 +26,6 @@ export type Gap =
   | { readonly _tag: 'None' }
   | { readonly _tag: 'Breath' }
   | { readonly _tag: 'Hold'; readonly seconds: number };
-
-/** The delivery marks of line `say` (of beat `beat`): none for a line that does not parse, which the layout refuses first. */
-export const deliveryOf = (beat: string, say: string): ReadonlyArray<Mark> =>
-  Result.match(parse(beat, say), {
-    onFailure: () => [],
-    onSuccess: (parsed) => parsed.delivery,
-  });
 
 /** Whether word `at` is stressed. */
 export const stressed = (marks: ReadonlyArray<Mark>, at: number): boolean =>

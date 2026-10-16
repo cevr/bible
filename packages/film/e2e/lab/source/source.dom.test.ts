@@ -1439,10 +1439,10 @@ describe('Follow', () => {
       );
       yield* page.click('.bar [data-act="play"]');
       yield* page.clock.runFor(200);
+      // Frames played and the meter moved with them, seen on a frame painted before the pause (a
+      // starved runner paints few in 200 ms); the target (one line) did not move.
+      yield* page.until(`window.__moved && window.__frames >= 10`);
       yield* page.click('.bar [data-act="play"]');
-      // Frames played and the meter moved with them; the target (one line) did not.
-      yield* evaluates(page, `window.__frames >= 10`, true);
-      yield* evaluates(page, `window.__moved`, true);
       yield* evaluates(page, `window.__reads <= 1`, true);
     }).pipe(Effect.scoped),
   );

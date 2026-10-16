@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
+import { Option, Result } from 'effect';
 import type { Mark } from '../../core/delivery.ts';
+import { parse } from '../../core/narration.ts';
 import type { TakeWord } from '../../core/schema.ts';
 import { voicedAt } from '../../core/voiced.ts';
 import {
-  deliveryOf,
   gapBefore,
   gapOpen,
   gapSet,
@@ -22,6 +22,13 @@ const word = (text: string, start: number, end: number): TakeWord => ({
   end,
   voiced: voicedAt(start, end),
 });
+
+/** A line's delivery marks as the reader reads them; none of a line that does not parse. */
+const deliveryOf = (beat: string, say: string): ReadonlyArray<Mark> =>
+  Result.match(parse(beat, say), {
+    onFailure: () => [],
+    onSuccess: (parsed) => parsed.delivery,
+  });
 
 describe('the reader’s delivery marks', () => {
   const marks = deliveryOf('cold', 'Not by works. {//1.5} By {*}faith.');

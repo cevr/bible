@@ -158,10 +158,11 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
                     !read.attempts.some((a) => a.file === attempt),
                     `${where}: ${block.film} ${block.beat} has no take ${attempt}`,
                   ),
+                // The take the timings name: an attempt kept, or a staging take.
                 onNone: () =>
                   problemIf(
-                    !read.attempts.some((a) => a.kept),
-                    `${where}: ${block.film} ${block.beat} has no kept take: name an attempt`,
+                    !read.attempts.some((a) => a.kept) && Predicate.isUndefined(read.staged),
+                    `${where}: ${block.film} ${block.beat} has no take: name an attempt`,
                   ),
               });
             });

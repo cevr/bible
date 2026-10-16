@@ -4,7 +4,7 @@
 // wide as its words; a finger on a note's field under the scope's × writes in
 // the field; a finger on a slider drags it from the top edge of its box.
 
-import { Effect, Schedule } from 'effect';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { openReview } from '../../src/lab/fixtures/harness.ts';
@@ -25,28 +25,21 @@ import type { State, ByPlace } from './studio-states.ts';
 import {
   SLOW,
   PHONE,
-  DEVICES,
   byPlace,
   isAt,
   review,
   lab,
   player,
   opens,
-  CHOICES,
   PRODUCTION_READY,
   ASK_READY,
   DELIVERY_READY,
   DRAFT_READY,
-  CHOICES_READY,
   SELECTION_SHEET,
   labCue,
   cueFieldsShown,
   labNoteOnCue,
   LAB_MOVES,
-  SCRIPT_MOVES,
-  BOARD_MOVES,
-  boardOpen,
-  scriptOpen,
 } from './studio-states.ts';
 
 /**
@@ -71,7 +64,6 @@ const TRANSPORT_ROW = `(() => {
 
 describe('the review transport on a phone (UI-10)', () => {
   const PAGES = [
-    ['Choices', review(CHOICES, ...CHOICES_READY)],
     ['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')],
   ] as const;
   for (const [name, open] of PAGES) {
@@ -95,7 +87,6 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
   /** A page: its name, how it opens, and the layer it opens, which is no chrome. */
   const PAGES: ByPlace<readonly [name: string, open: State['open'], layer?: string]> = {
     home: [['Films', review(pageHref.home(), '.rv-main a[href]')]],
-    choices: [['Choices', review(CHOICES, ...CHOICES_READY)]],
     set: [['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')]],
     folder: [
       ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name')],
@@ -124,12 +115,6 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
         SELECTION_SHEET,
       ],
     ],
-    script: SCRIPT_MOVES,
-    board: BOARD_MOVES,
-    // The picture and its track over the panels, which scroll in a box of their own above the dock.
-    boardBeat: [['Board', boardOpen]],
-    // The picture and its track over the words, which scroll in a box of their own above the dock.
-    scriptBeat: [['Script', scriptOpen]],
     studio: [['Studio', player(pageHref.studio(PROBE), '.st-timeline .st-clip')]],
   };
   for (const [place, [name, open, layer]] of byPlace(PAGES)) {
@@ -145,27 +130,6 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
     );
   }
 });
-
-/** How far `selector`'s box is wider than its words, in px. */
-const slack = (selector: string) =>
-  `(() => { const b = document.querySelector('${selector}'); const words = document.createRange(); words.selectNodeContents(b); return b.getBoundingClientRect().width - words.getBoundingClientRect().width; })()`;
-
-for (const device of DEVICES) {
-  describe(`a short name on ${device.name}`, () => {
-    it.live(
-      'with no comment count beside it, is as wide as its words: its hit-slop is its target, no gap after it',
-      () =>
-        Effect.gen(function* () {
-          const page = yield* review(CHOICES, ...CHOICES_READY)(device.viewport);
-          yield* page.until(`matchMedia('${device.pointer}').matches`);
-          yield* page.until(
-            `${slack('[data-point="look:ground"] [data-variant="now"] .lab-inspect')} < 1`,
-          );
-        }).pipe(Effect.scoped),
-      SLOW,
-    );
-  });
-}
 
 describe("a note's scope × on a phone", () => {
   const SCOPE_X = '[data-role="note-scope"] [data-act="clear-scope"]';
@@ -195,31 +159,28 @@ describe("a note's scope × on a phone", () => {
 describe('a finger on a slider', () => {
   // Serial: a finger's touches (`film/touches-serial`).
   it.scopedLive.serial(
-    "drags a level from the top edge of its box, where a finger meets it, not only on the track's line",
+    "drags a Set's scrub from the top edge of its box, where a finger meets it, not only on the track's line",
     () =>
       Effect.gen(function* () {
-        const { page, asked } = yield* openReview(studioRoutes, {
-          href: CHOICES,
+        const { page } = yield* openReview(studioRoutes, {
+          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
           viewport: PHONE.viewport,
         });
-        const slider = '.rv-knob input[type="range"]';
+        const slider = '.rv-transport input[type="range"]';
         yield* waitFor(page, slider);
         yield* page.until(
-          `(() => { const s = document.querySelector('${slider}'); s.scrollIntoView({ block: 'center', behavior: 'instant' }); return s.value === '-24'; })()`,
+          `(() => { const s = document.querySelector('${slider}'); return Number(s.max) > 1 && Number(s.value) === Number(s.min); })()`,
         );
         const box = yield* page.box(slider);
         // The box is a finger tall; the finger lands 2 px under its top, well off the 4 px track.
         expect(box.height).toBeGreaterThanOrEqual(PHONE_HIT);
-        yield* page.finger.down(box.x + box.width * 0.4, box.y + 2);
-        yield* page.finger.move(box.x + box.width * 0.9, box.y + 2, 20);
-        // Held, the slider shows the value dragged to: up toward 0 dB from -24.
-        yield* page.until(`Number(document.querySelector('${slider}').value) > -10`);
-        yield* page.finger.up;
-        // Let go, the level is written.
-        yield* Effect.sync(() => asked.some((a) => a.method === 'POST')).pipe(
-          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
-          Effect.timeout('10 seconds'),
+        yield* page.finger.down(box.x + box.width * 0.1, box.y + 2);
+        yield* page.finger.move(box.x + box.width * 0.8, box.y + 2, 20);
+        // Held, the scrub shows the time dragged to: past the middle of the clip.
+        yield* page.until(
+          `(() => { const s = document.querySelector('${slider}'); return Number(s.value) > (Number(s.min) + Number(s.max)) / 2; })()`,
         );
+        yield* page.finger.up;
       }),
     SLOW,
   );
