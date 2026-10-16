@@ -145,3 +145,15 @@ round 4 at 3.87 s (1920): one ink line round each head, none at hairline or ear 
 ## 2026-10-16T19:16:20Z · cold
 
 the room's vignette (0.2) dims the judge in the upper-right corner: his face reads lit 181/shade 169 from the same paper the prosecutor reads 192/179 from, so his crease barely shows; cold-34 has no such falloff at the bench (judge face 193/179). The lead in the room reads 221/189 against cold-34's 230/195, the warm room light taking blue out of his lilac.
+
+## 2026-10-16T19:30:04Z · cold
+
+round 5 at 3.87 s (1920): with the room's vignette at 0 and its edge #f9f4ec the judge's face reads lit 189/shade 175 against the prosecutor's 192/179 from the same paper; the lead's crescent turns at 0.80 of his head's width at its middle (cold-34 0.78), lit 229/shade 194/rim 246-250 (cold-34 230/197/245-253), with no bounce light at its far edge where cold-34 lifts to 207-216; the judge's hair bumps measure 0.041 of the head's width deep, one every 34° over the crown (cold-34 0.040, 36°).
+
+## 2026-10-16T19:30:06Z · cold
+
+luma per mark, round 5 against the kept panels (full frame, panels cropped y 63-927): evidence 163.4/160.8, did 167.6/169.8, cover 158.7/156.0 with the two-shot widened to dock, table and bench (at [520,470] ×1.42 it read 169.2), title 194.7/190.6 with the title's own vignette 0.1 (196.1 at 0); seal 13.9 s reads 172.6, 2.8 over the panels' top (169.8), the lead's lighter paper filling a close frame.
+
+## 2026-10-16T19:30:08Z · film
+
+figures.riv at 955 KB (round 3: 415 KB) on this Mac: a look of cold takes 0.96 s cold, 0.50-0.54 s warm (round-3 rig 0.93, 0.46-0.49); a cold+title render takes 13.0 s, draw 32.0 ms a frame, 4.4 s from pages open to the first frames (round-3 rig 12.3 s, 28.3 ms, 4.4 s): single runs.
