@@ -2661,8 +2661,9 @@ own names, and the stored and wire words stay as they are.
   ask made by `film production ask` or the lab's MCP, that no pick in its
   choice, no later decision on it and no close of the ask has answered; an
   open one stays open across a move), and holds the
-  page's one verb, Move forward: the decision in a line and what the next
-  version is for. Only the versions, the owner's words and the questions are
+  page's one verb, Move forward: the decision, one of the owner's filed in the
+  version (the newest pressed) or his own words in a line, and what the next
+  version is for (`v<n>` when left out). Only the versions, the owner's words and the questions are
   kept (`ProductionStore`: a ledger a production,
   `apps/animations/productions/<production>.json`, committed text, every
   image and render it reaches named by path, never copied; `FILMS_PRODUCTIONS`
