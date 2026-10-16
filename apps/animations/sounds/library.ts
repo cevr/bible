@@ -14,10 +14,14 @@
 // film skill's reference/sound.md). A trial is layered from the families
 // `@bible/film/core` exports (a burst, a thump, a knock, a whoosh, …), each a
 // shape with a few settings, so a shape is tuned in one place. A recorded
-// sound is CC0 only, under `public/` (`sfx import`).
+// sound is CC0 or CC BY, under `public/` (`sfx import`), its licence naming
+// its title, author and page: a CC BY one owes a credit line on the roll of
+// every film that places it, which `film check` holds the film to.
 //
-// The library: 22 generated one-shots, 7 generated beds, 12 code one-shots,
-// 4 code beds and 1 recorded one-shot. Prompts are concrete, close and dry: a
+// The library: 19 generated one-shots, 3 generated beds, 12 code one-shots,
+// 4 code beds, 4 recorded one-shots and 4 recorded beds. The recorded ones
+// replaced ElevenLabs sounds; the lock keeps those takes as candidates, the
+// sounds' history. Prompts are concrete, close and dry: a
 // film's cue places them, the mix sets their level against the voice. How to
 // word a prompt and pick its settings, from the trials in sounds/PROMPTING.md.
 //
@@ -86,6 +90,17 @@ const bed = (prompt: string, declared: Declared) =>
     ...declared,
   }) as const;
 
+/** A recorded sound's licence, as `defineLibrary` reads it. */
+type RecordedLicence = Extract<Entries[keyof Entries], { readonly kind: 'recorded' }>['licence'];
+
+/** A recording cut to a bed (`sfx import`): `BED_SECS` at its smallest loop seam, at every bed's level. */
+const recordedBed = (licence: RecordedLicence) =>
+  ({ kind: 'recorded', licence, use: 'bed', secs: BED_SECS, level: BED_LEVEL }) as const;
+
+/** A recording cut to a one-shot of `secs` round its loudest moment (`sfx import`). */
+const recordedOneShot = (secs: number, licence: RecordedLicence) =>
+  ({ kind: 'recorded', licence, use: 'one-shot', secs }) as const;
+
 export const library = defineLibrary({
   // Beds -------------------------------------------------------------------
   // The paper room's air: 8 s a loop.
@@ -116,20 +131,26 @@ export const library = defineLibrary({
       influence: 0.6,
     },
   ),
-  'amb.hall': bed(
-    'a crowded wooden meeting hall in 1888, a low murmuring audience, benches creaking, no clear words',
-    {
-      why: 'An audience murmuring and benches creaking: speech, which code cannot make.',
-      influence: 0.6,
-    },
-  ),
-  'amb.house': bed(
-    'a small packed house, many people close together, soft shuffling and low murmur, no clear words',
-    {
-      why: 'People close together, shuffling and murmuring: speech, which code cannot make.',
-      influence: 0.6,
-    },
-  ),
+  // An audience murmuring in a hall: 132–154 s of the recording's HQ preview.
+  'amb.hall': recordedBed({
+    id: 'CC-BY-4.0',
+    title: 'M Murmer long loop.wav',
+    author: 'Processaurus',
+    authorUrl: 'https://freesound.org/people/Processaurus',
+    source: 'https://freesound.org/people/Processaurus/sounds/440098',
+    openverse: 'f7e999a4-bb3d-4dae-9e77-8a53a9d27e48',
+    changed: true,
+  }),
+  // People murmuring close together indoors: 4–26 s of the recording's HQ preview.
+  'amb.house': recordedBed({
+    id: 'CC0-1.0',
+    title: 'G28-10-Indoor Crowd Murmur - Constant.wav',
+    author: 'craigsmith',
+    authorUrl: 'https://freesound.org/people/craigsmith',
+    source: 'https://freesound.org/people/craigsmith/sounds/438369',
+    openverse: '9783c4b5-b89a-4cc8-ab1f-b8dc4f6259d3',
+    changed: true,
+  }),
   // From the trials: "quiet … far away" gave low rumble. Voices first.
   'amb.town': bed(
     'people talking in a busy village market street heard from across the square, many indistinct voices, footsteps, a donkey cart, daytime, steady',
@@ -152,14 +173,25 @@ export const library = defineLibrary({
     use: 'bed',
     level: BED_LEVEL,
   },
-  'amb.roof': bed('rooftop wind over a sleeping city at night, faint distant town sounds, soft', {
-    why: 'Faint town sounds under the wind: life far off, which code cannot make.',
+  // A city's hum at night: 80–102 s of the recording's HQ preview.
+  'amb.roof': recordedBed({
+    id: 'CC-BY-4.0',
+    title: 'city night hum 04 160927_0989.wav',
+    author: 'klankbeeld',
+    authorUrl: 'https://freesound.org/people/klankbeeld',
+    source: 'https://freesound.org/people/klankbeeld/sounds/440621',
+    openverse: '3bdb3b4b-c840-4fba-8033-48477bf14dee',
+    changed: true,
   }),
-  // From the trials: "first quiet birdsong … still air" came in gaps and failed
-  // the seam; ask for song that never stops.
-  'amb.dawn': bed('early morning birdsong in the distance, soft and continuous, even, calm', {
-    why: 'Birds singing far off: birdsong, which code cannot make.',
-    influence: 0.6,
+  // Birds singing at dawn: 16–38 s of the recording's HQ preview.
+  'amb.dawn': recordedBed({
+    id: 'CC0-1.0',
+    title: 'dawn chorus.wav',
+    author: 'squashy555',
+    authorUrl: 'https://freesound.org/people/squashy555',
+    source: 'https://freesound.org/people/squashy555/sounds/269244',
+    openverse: '1a9c8792-3710-46c8-ae7c-6a0551d7f9a5',
+    changed: true,
   }),
   // Soft rain on the ground, ten taps a second on the roof's tiles.
   'amb.rain': {
@@ -231,8 +263,15 @@ export const library = defineLibrary({
     1.5,
     { why: 'Clay tiles scraped and clinking: a handled texture, which code cannot make.' },
   ),
-  'wings.pass': oneShot('a single bird flying past close, wing flaps, no calls', 1.5, {
-    why: 'A bird’s wings flapping past: a creature, which code cannot make.',
+  // A pigeon's wings flapping once: the whole of the recording's HQ preview.
+  'wings.pass': recordedOneShot(1.5, {
+    id: 'CC0-1.0',
+    title: 'short pigeon wing flap',
+    author: 'zouzmusic',
+    authorUrl: 'https://freesound.org/people/zouzmusic',
+    source: 'https://freesound.org/people/zouzmusic/sounds/414671',
+    openverse: 'cc46e8c4-cdd8-4927-9296-f5454a42b188',
+    changed: true,
   }),
   // From the trials: "unfurling … in the wind" was sub-30 Hz rumble at
   // every influence; a flag's flutter named as crisp fabric has none.
@@ -309,17 +348,17 @@ export const library = defineLibrary({
     variants: 3,
     use: 'one-shot',
   },
-  // From the trials: a count in the prompt is not heard; give each stitch its
-  // sound and room. "needle and thread" alone is a sewing machine; at 0.9 the
-  // described action gives two punches.
-  'needle.thread': oneShot(
-    'hand sewing thick canvas, a needle punches through and the thread is pulled tight, twice, close, dry, quiet room',
-    2,
-    {
-      why: 'A needle through canvas and thread pulled tight: a handled texture, which code cannot make.',
-      influence: 0.9,
-    },
-  ),
+  // A needle through fabric and the thread pulled: 1.95 s to the end of the
+  // recording's HQ preview.
+  'needle.thread': recordedOneShot(2, {
+    id: 'CC0-1.0',
+    title: 'Sewing/stitching up some fabric',
+    author: 'pfranzen',
+    authorUrl: 'https://freesound.org/people/pfranzen',
+    source: 'https://freesound.org/people/pfranzen/sounds/188178',
+    openverse: '4afaf220-c6f2-45ec-8ad0-2e92cce81db2',
+    changed: true,
+  }),
   'leaves.rustle': oneShot('a handful of fig leaves rustling as they are gathered, close', 2, {
     why: 'Fig leaves gathered in a hand: a handled texture, which code cannot make.',
   }),
@@ -336,13 +375,16 @@ export const library = defineLibrary({
     variants: 3,
     use: 'one-shot',
   },
-  // Every take (three prompts, influence 0.5 and 0.7) is a low thud under the
-  // cloth; at 0.5 one came with the least of it.
-  'cloth.lift': oneShot(
-    'a heavy linen robe lifted from a surface, soft cloth movement, close',
-    1.2,
-    { why: 'A linen robe lifted: a handled texture, which code cannot make.', influence: 0.5 },
-  ),
+  // Clothing moved once: 6.41–7.61 s of the recording's HQ preview.
+  'cloth.lift': recordedOneShot(1.2, {
+    id: 'CC0-1.0',
+    title: 'clothing movement',
+    author: 'Kodack',
+    authorUrl: 'https://freesound.org/people/Kodack',
+    source: 'https://freesound.org/people/Kodack/sounds/256310',
+    openverse: '8b10b111-9719-47fe-8cd5-be53fb96db26',
+    changed: true,
+  }),
   'stone.roll': oneShot(
     'a large round stone rolled slowly aside in a stone groove, deep rumble',
     3,

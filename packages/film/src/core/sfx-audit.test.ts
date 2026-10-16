@@ -1,7 +1,7 @@
 // The audit's rules read in order, each word as itself (each prompt read as
 // one generated sound's, as `sfx audit` reads a library), and its verdicts on
-// the app's own library: the 29 generated sounds' (none code can make for
-// sure, 3 worth a try, 26 that need realism), pinned so that a new rule or a
+// the app's own library: the 22 generated sounds' (none code can make for
+// sure, 3 worth a try, 19 that need realism), pinned so that a new rule or a
 // reworded prompt shows which verdict it moved.
 
 import { describe, expect, test } from 'bun:test';
@@ -80,28 +80,21 @@ const VERDICTS = {
   'code-try': ['rope.creak', 'stone.roll', 'pole.creak'],
   realism: [
     'amb.court',
-    'amb.hall',
-    'amb.house',
     'amb.town',
     'amb.garden',
-    'amb.roof',
-    'amb.dawn',
     'paper.stack',
     'paper.slide',
     'paper.flip',
     'crowd.swell',
     'roof.tiles',
-    'wings.pass',
     'cloth.banner',
     'mat.roll',
     'steps.dirt',
     'dust.writing',
     'tape.measure',
-    'needle.thread',
     'leaves.rustle',
     'glass.scrub',
     'paper.tear',
-    'cloth.lift',
     'loom.weave',
     'cloth.settle',
     'coins.clatter',
@@ -114,7 +107,7 @@ describe("the app library's verdicts", () => {
     audited.filter((sound) => sound.audited.verdict === verdict).map((sound) => sound.name);
 
   test('every generated sound is audited, and nothing else', () => {
-    expect(audited.length).toBe(29);
+    expect(audited.length).toBe(22);
     expect(audited.every((sound) => sound.entry.kind === 'generated')).toBe(true);
   });
 
@@ -126,7 +119,7 @@ describe("the app library's verdicts", () => {
     expect(named('code-try').toSorted()).toEqual([...VERDICTS['code-try']].toSorted());
   });
 
-  test('twenty-six need realism and stay generated', () => {
+  test('nineteen need realism and stay generated', () => {
     expect(named('realism').toSorted()).toEqual([...VERDICTS.realism].toSorted());
   });
 });
