@@ -7,8 +7,13 @@
 //
 // The executable: `BUN_CHROME_PATH` when set, else the Chrome or Chromium
 // Bun finds in the usual places, else the newest Chromium a Playwright
-// install left in `~/.cache/ms-playwright`. None of them: `BrowserMissing`,
-// which names `BUN_CHROME_PATH`.
+// install left in its cache. None of them: `BrowserMissing`, which names
+// `BUN_CHROME_PATH`.
+//
+// On macOS a Chrome whose flags ask for the GPU (`GPU_FLAG`) is spawned
+// through the GPU launcher (`chrome-gpu.ts`), written into its profile, which
+// drops the `--disable-gpu` Bun spawns every Chrome with and execs the Chrome
+// found as above (where Bun looks, `MAC_BROWSERS`, when none is named).
 //
 // Every Chrome is silent (`chromeArgs`): no page a tool or test opens is
 // listened to (a render mixes and encodes its sound offline), and a headless
@@ -18,6 +23,7 @@
 // process exits (`chrome-profile.ts`).
 
 import { Config, Effect, FileSystem, Option, Order, Path, Schema, type Scope } from 'effect';
+import { gpuLauncher, throughGpuLauncher } from './chrome-gpu.ts';
 import { PROFILE_ROOT, profileFolder } from './chrome-profile.ts';
 import { BrowserFailed, BrowserMissing } from './errors.ts';
 
@@ -36,6 +42,9 @@ const chromeArgs = (argv: ReadonlyArray<string>): ReadonlyArray<string> => [
   ...argv,
 ];
 
+/** The GPU launcher's file in a Chrome's profile folder. */
+const LAUNCHER = 'film-gpu-launcher';
+
 /** A view's viewport, and where the page's `console.*` calls go (dropped when not given). */
 interface ViewOptions {
   readonly width: number;
@@ -49,30 +58,93 @@ let spawned: Option.Option<string> = Option.none();
 /** Bun's code for a Chrome it could not spawn: no executable where it looked. */
 const SPAWN_FAILED = 'ERR_DLOPEN_FAILED';
 
+/**
+ * The browsers Bun 1.4.3 looks for on macOS (its binary's strings), each in
+ * `/Applications`, then in `~/Applications`: where the GPU launcher finds the
+ * Chrome Bun would have spawned.
+ */
+const MAC_BROWSERS = [
+  'Google Chrome.app/Contents/MacOS/Google Chrome',
+  'Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
+  'Chromium.app/Contents/MacOS/Chromium',
+  'Brave Browser.app/Contents/MacOS/Brave Browser',
+  'Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+];
+
+/** Playwright's browser caches under the home folder: Linux's, then macOS's. */
+const PLAYWRIGHT_CACHES = [
+  ['.cache', 'ms-playwright'],
+  ['Library', 'Caches', 'ms-playwright'],
+];
+
 /** Chromium's executable inside one of Playwright's `chromium-<revision>` folders, per platform. */
 const PLAYWRIGHT_BINARIES = [
   'chrome-linux64/chrome',
   'chrome-linux/chrome',
+  'chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing',
+  'chrome-mac/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing',
   'chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium',
   'chrome-mac/Chromium.app/Contents/MacOS/Chromium',
 ];
 
 const byRevision = Order.mapInput(Order.Number, (name: string) => Number(name.slice(9)));
 
-/** The newest Chromium under `~/.cache/ms-playwright`, when there is one. */
-const playwrightChromium = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const cache = path.join(yield* Config.String('HOME'), '.cache', 'ms-playwright');
-  const revisions = (yield* fs.readDirectory(cache))
-    .filter((name) => /^chromium-\d+$/.test(name))
-    .toSorted(Order.flip(byRevision));
-  return yield* Effect.findFirst(
-    revisions.flatMap((revision) =>
-      PLAYWRIGHT_BINARIES.map((binary) => path.join(cache, revision, binary)),
-    ),
-    (file) => fs.exists(file),
+/** The newest Chromium in Playwright's cache `cache`, when there is one. */
+const cachedChromium = (cache: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const revisions = (yield* fs.readDirectory(cache))
+      .filter((name) => /^chromium-\d+$/.test(name))
+      .toSorted(Order.flip(byRevision));
+    return yield* Effect.findFirst(
+      revisions.flatMap((revision) =>
+        PLAYWRIGHT_BINARIES.map((binary) => path.join(cache, revision, binary)),
+      ),
+      (file) => fs.exists(file),
+    );
+  }).pipe(Effect.orElseSucceed(() => Option.none<string>()));
+
+/** The first of `effects` to find a file. */
+const firstFound = (
+  effects: ReadonlyArray<
+    Effect.Effect<Option.Option<string>, never, FileSystem.FileSystem | Path.Path>
+  >,
+) =>
+  Effect.reduce(
+    effects,
+    () => Option.none<string>(),
+    (found, next) =>
+      Option.match(found, { onSome: () => Effect.succeed(found), onNone: () => next }),
   );
+
+/** The newest Chromium a Playwright install left in its cache, when there is one. */
+const playwrightChromium = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  const home = yield* Config.String('HOME');
+  return yield* firstFound(
+    PLAYWRIGHT_CACHES.map((cache) => cachedChromium(path.join(home, ...cache))),
+  );
+}).pipe(Effect.orElseSucceed(() => Option.none<string>()));
+
+/** The first of `files` that exists, when one does. */
+const existing = (files: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    return yield* Effect.findFirst(files, (file) => fs.exists(file));
+  }).pipe(Effect.orElseSucceed(() => Option.none<string>()));
+
+/** The Chrome Bun would spawn on macOS, found where Bun looks (`MAC_BROWSERS`), else Playwright's. */
+const macChrome = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  const home = yield* Config.String('HOME');
+  const folders = ['/Applications', path.join(home, 'Applications')];
+  return yield* firstFound([
+    existing(
+      MAC_BROWSERS.flatMap((browser) => folders.map((folder) => path.join(folder, browser))),
+    ),
+    playwrightChromium,
+  ]);
 }).pipe(Effect.orElseSucceed(() => Option.none<string>()));
 
 /** A view with `argv` of Chrome at `path` (where Bun looks, when none), its profile in `profile`; `None` when no Chrome was there. */
@@ -108,6 +180,35 @@ const spawnView = (
     }),
   );
 
+/**
+ * The process's first view, of a Chrome that runs its GPU: the Chrome named,
+ * else the one Bun would find, spawned through the GPU launcher, written into
+ * the profile.
+ */
+const gpuView = (
+  named: Option.Option<string>,
+  argv: ReadonlyArray<string>,
+  profile: string,
+  options: ViewOptions,
+) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const chrome = yield* Option.match(named, {
+      onSome: (file) => existing([file]),
+      onNone: () => macChrome,
+    });
+    const file = yield* Effect.fromOption(chrome, () =>
+      BrowserMissing.make({ executable: Option.getOrElse(named, () => 'Chrome or Chromium') }),
+    );
+    const launcher = path.join(profile, LAUNCHER);
+    yield* fs
+      .writeFileString(launcher, gpuLauncher(file), { mode: 0o755 })
+      .pipe(Effect.mapError((cause) => BrowserFailed.make({ reason: String(cause) })));
+    const view = yield* spawnView(Option.some(launcher), argv, profile, options);
+    return yield* Effect.fromOption(view, () => BrowserMissing.make({ executable: file }));
+  });
+
 /** The process's first view: Chrome spawned from the first executable found. */
 const firstView = (argv: ReadonlyArray<string>, options: ViewOptions) =>
   Effect.gen(function* () {
@@ -117,6 +218,8 @@ const firstView = (argv: ReadonlyArray<string>, options: ViewOptions) =>
     );
     const profile = yield* profileFolder(root);
     const named = yield* Config.option(Config.String('BUN_CHROME_PATH')).pipe(Effect.orDie);
+    if (throughGpuLauncher(process.platform, argv))
+      return yield* gpuView(named, argv, profile, options);
     if (Option.isSome(named))
       return yield* Effect.flatMap(spawnView(named, argv, profile, options), (view) =>
         Effect.fromOption(view, () => BrowserMissing.make({ executable: named.value })),

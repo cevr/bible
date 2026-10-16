@@ -1,8 +1,7 @@
 // RBF's figure rigs as a drawing declares them (`drawing({ rigs })`): each
 // artboard of `figures.riv` (`figures.ts`) with the timelines a pose may
 // name, the view model's numbers it may set, and where on it our origin
-// stands. Canvas 2D is the engine: the render's Chrome on this Mac has no
-// WebGL 2 (RIVE.md), and every scene draws them the same way.
+// stands. Canvas 2D is the engine, and every scene draws them the same way.
 
 import type { RivePropSpec } from '@bible/film/rive';
 import { Record as Rec } from 'effect';

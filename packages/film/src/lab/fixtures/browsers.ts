@@ -67,8 +67,8 @@ const flags = Effect.runSync(
       '--disable-accelerated-2d-canvas',
       // WebGL 2 on SwiftShader, Chrome's software GPU, as a render on Linux has it
       // (`tools/browser.ts` `launchArgs`), so a rig the Rive Renderer draws (`src/rive`) is
-      // drawn. On every platform: Bun's Chrome is spawned with `--disable-gpu`, which no later
-      // flag turns back on, so SwiftShader is the only WebGL a test's Chrome can have.
+      // drawn. On every platform: the tests ask for no GPU, so their Chrome keeps the
+      // `--disable-gpu` Bun spawns it with, and SwiftShader is the only WebGL it can have.
       '--enable-unsafe-swiftshader',
       // Plays media without a gesture: the test is the reviewer, and it never clicks first.
       '--autoplay-policy=no-user-gesture-required',

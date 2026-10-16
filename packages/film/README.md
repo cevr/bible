@@ -265,7 +265,9 @@ The words a talk is made in:
 
 Preflights: `film doctor` checks headless Chrome (a page opened and closed
 in Bun.WebView's Chrome: `BUN_CHROME_PATH`, else the Chrome Bun finds, else
-Playwright's cached Chromium; `BrowserMissing` names `BUN_CHROME_PATH`), the `elevenlabs` CLI and its
+Playwright's cached Chromium; `BrowserMissing` names `BUN_CHROME_PATH`; on
+macOS the renderer's Chrome runs its GPU, through the GPU launcher, see
+"Encoders"), the `elevenlabs` CLI and its
 login (`auth status`, free), the H.264 encoder a render would use (a page
 chooses it as a render does; the line says `hardware` or `software`, the
 default pages and the encoder budget), reports each, and fails if any is
@@ -626,13 +628,31 @@ therefore stops loudly instead of rendering a different look in software.
 `film doctor` runs the same choice, and still prints its other lines when the
 player server will not start (the encoder line then says so).
 
-|                  | Hardware (macOS)                    | Software (Linux, any box without a GPU encoder)                    |
-| ---------------- | ----------------------------------- | ------------------------------------------------------------------ |
-| Chromium flags   | `--enable-gpu --use-angle=metal`    | neither (`launchArgs`, `tools/browser.ts`)                         |
-| master           | quantizer 16 (~37 Mbps)             | 37 Mbps variable, 2-frame pre-roll (13.4 Mbps, 765 MB for 7.6 min) |
-| share            | quantizer 26, in the page (~160 MB) | x264 CRF 22 from the joined master (2.2 Mbps, 126 MB)              |
-| encoders at once | 14 (past it the encoder hangs)      | one per core                                                       |
-| default pages    | 6                                   | 8, or half the cores below 16                                      |
+The Mac's hardware encoder lives in Chrome's GPU process, which Bun 1.4.3
+turns off: it spawns every Chrome with `--disable-gpu`, hard-coded, which no
+later flag undoes (the GPU process then runs with `--use-gl=disabled`, which
+holds no hardware encoder). So on macOS a
+Chrome whose flags ask for the GPU (`GPU_FLAG`, `--enable-gpu`) is spawned
+through the GPU launcher (`tools/chrome-gpu.ts`, `gpuLauncher`): a shell script
+written into the process's Chrome profile, which Bun spawns as its Chrome; it
+drops `--disable-gpu`, keeps every other argument in order, and execs the real
+Chrome (`BUN_CHROME_PATH`, else the browsers Bun looks for in
+`/Applications` and `~/Applications`, else Playwright's cached Chromium) in its
+own process, so Bun's DevTools pipe and its kill reach Chrome. The renderer
+asks for it (`launchArgs`), so `render`, `doctor` and the lab's `look` and
+look-book draw in one such Chrome; the browser tests do not, and no other
+platform does. The 2D canvas stays software (`--disable-accelerated-2d-canvas`)
+and WebGL stays on SwiftShader (`--use-angle=swiftshader`), so the GPU changes
+no pixel: RBF's `cold` and `title` stills are byte-identical with and without
+it.
+
+|                  | Hardware (macOS)                                         | Software (Linux, any box without a GPU encoder)                       |
+| ---------------- | -------------------------------------------------------- | --------------------------------------------------------------------- |
+| Chromium flags   | `--enable-gpu --use-angle=swiftshader`, the GPU launcher | `--enable-unsafe-swiftshader` only (`launchArgs`, `tools/browser.ts`) |
+| master           | quantizer 16 (~37 Mbps)                                  | 37 Mbps variable, 2-frame pre-roll (13.4 Mbps, 765 MB for 7.6 min)    |
+| share            | quantizer 26, in the page (~160 MB)                      | x264 CRF 22 from the joined master (2.2 Mbps, 126 MB)                 |
+| encoders at once | 14 (past it the encoder hangs)                           | one per core                                                          |
+| default pages    | 6                                                        | 8, or half the cores below 16                                         |
 
 `SETTINGS` (`player/encode.ts`) holds both columns; the hardware one
 (quantizer 16/26, prefer-hardware, a key frame every 2 s, latency mode
@@ -3875,9 +3895,11 @@ the checks stay ours.
   composites its box in: a 512 px tile where the box fits, else the frame's
   size, each primed with the rig at rest before its first real frame, so no
   buffer is sized by the frames before. A page with no WebGL 2 fails the
-  `webgl2` load, naming why. The browser tests' Chrome has WebGL 2 only
-  through SwiftShader (`--enable-unsafe-swiftshader`, `lab/fixtures/browsers.ts`):
-  Bun spawns Chrome with `--disable-gpu`, which no later flag undoes.
+  `webgl2` load, naming why. Every Chrome draws WebGL 2 on SwiftShader: the
+  browser tests' (`--enable-unsafe-swiftshader`, `lab/fixtures/browsers.ts`),
+  which Bun spawns with `--disable-gpu`, and the renderer's, whose GPU runs on
+  macOS for the encoder while `--use-angle=swiftshader` keeps WebGL off it
+  ("Encoders").
 - **In Bun** nothing is drawn (`paints: false`): the rig is posed for real and
   its face node declared to the probe (`probeFace`), so `check --draw` finds
   ink over a rig's face and a frame that is not pure.

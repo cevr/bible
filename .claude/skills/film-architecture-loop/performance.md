@@ -28,7 +28,7 @@ Record each in the ledger's performance table with the HEAD hash. There is no st
 4. **Text.** `measureText` and font shaping per frame for text that does not change; wrap results can be computed once per text and style.
 5. **Randomness and noise.** `hash2`, `rng` and boil jitter per point: compare with `math/random` (`mulberry32`) and `math/noise`, which are allocation-free and benchmarked.
 6. **Render pipeline.** Pages, chunk size and encoder settings (`packages/film/src/tools/renderer.ts`, `render-plan.ts`): Remotion's concurrency and benchmark command are the prior art.
-7. **Rive rigs.** A rig's frame makes, poses, draws and deletes its own artboard instance (`canvas/rive.ts` `drawRig`): that is its purity, never traded for a kept instance. The accused poses in 89 µs in Bun; a page draws it in 0.60 ms on `canvas` and about 19 ms on `webgl2` under SwiftShader, Chrome's software GPU (`packages/film/README.md` § Rive, this Mac). A `webgl2` rig cannot be timed in a Mac render, whose Chrome has no WebGL ([`RIVE.md`](../film/RIVE.md)): time it in a browser test's page or on Linux, and name the host.
+7. **Rive rigs.** A rig's frame makes, poses, draws and deletes its own artboard instance (`canvas/rive.ts` `drawRig`): that is its purity, never traded for a kept instance. The accused poses in 89 µs in Bun; a page draws it in 0.60 ms on `canvas` and about 19 ms on `webgl2` under SwiftShader, Chrome's software GPU (`packages/film/README.md` § Rive, this Mac). A Mac render, a Linux render and a browser test's page all draw it on SwiftShader ([`RIVE.md`](../film/RIVE.md)); name the host a time was taken on.
 
 ## Measured and rejected
 

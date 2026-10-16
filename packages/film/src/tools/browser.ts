@@ -24,6 +24,7 @@ import {
   Semaphore,
 } from 'effect';
 import { openView, thrownBy } from './chrome.ts';
+import { GPU_FLAG } from './chrome-gpu.ts';
 import {
   type CallAnswers,
   type CallArgs,
@@ -207,19 +208,24 @@ const SETTLE = Duration.seconds(1);
 /**
  * Chrome's flags on `platform` (`process.platform`). On every platform the
  * 2D canvas draws in software, so a frame's pixels are the same wherever it
- * is drawn. On macOS the GPU process runs too, through Metal (a macOS-only
- * ANGLE backend): it holds the hardware H.264 encoder a render encodes with.
- * Elsewhere the page encodes in software when it finds no hardware encoder
- * (`chooseEncoder`, player/encode.ts), and WebGL (a look drawn in 3D,
- * `canvas/gl.ts`) runs on SwiftShader, Chrome's software GPU, asked for by
- * name: Chrome is withdrawing the fallback it takes to it unasked, and
- * without it a 3D look would draw its 2D fallback in a render, silently.
+ * is drawn, and WebGL (a look drawn in 3D, `canvas/gl.ts`, a `webgl2` rig)
+ * runs on SwiftShader, Chrome's software GPU, asked for by name: Chrome is
+ * withdrawing the fallback it takes to it unasked, and without it a 3D look
+ * would draw its 2D fallback in a render, silently. On macOS the GPU process
+ * runs too (`GPU_FLAG`: `tools/chrome.ts` spawns Chrome through the GPU
+ * launcher, `tools/chrome-gpu.ts`, which drops the `--disable-gpu` Bun
+ * spawns every Chrome with): it holds the hardware H.264 encoder a render
+ * encodes with. WebGL stays on
+ * SwiftShader there (`--use-angle=swiftshader`), not the Mac's GPU, so a 3D
+ * look draws as the browser tests and a Linux render draw it. Elsewhere the
+ * page encodes in software when it finds no hardware encoder
+ * (`chooseEncoder`, player/encode.ts).
  */
 export const launchArgs = (platform: string): ReadonlyArray<string> => [
   '--disable-gpu-vsync',
   '--disable-frame-rate-limit',
-  ...Arr.filter(['--enable-gpu', '--use-angle=metal'], () => platform === 'darwin'),
-  ...Arr.filter(['--enable-unsafe-swiftshader'], () => platform !== 'darwin'),
+  ...Arr.filter([GPU_FLAG, '--use-angle=swiftshader'], () => platform === 'darwin'),
+  '--enable-unsafe-swiftshader',
   '--disable-accelerated-2d-canvas',
 ];
 
