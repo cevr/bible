@@ -3452,7 +3452,9 @@ rate limit, an HTTP error or an answer that misses items passes, and prints
 answers the cache cannot keep are asked again next run. The answers are
 cached under the repo's ignored tmp folder, keyed by the rule and its version,
 the model and the text, so a rerun asks only for new text and says what it
-said before. A finding is a warning (at p 0.9 or more) until a labelled corpus
+said before. The key goes only to TypeSafe's own host, and the lint reads no
+`.env` file (`bun --no-env-file`): none in a checkout sets its key, its model
+or a proxy. A finding is a warning (at p 0.9 or more) until a labelled corpus
 with true positives shows the precision a gate needs; `bun run --cwd
 packages/scripts judged:measure` measures the rule on its corpus. The lefthook
 pre-push runs it; CI, which has no key, does not.

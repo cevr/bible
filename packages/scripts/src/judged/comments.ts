@@ -206,8 +206,9 @@ const git = (root: string, args: ReadonlyArray<string>) =>
     }),
   );
 
-/** The repo's root, as git names it from the working directory. */
-export const repoRoot = Effect.map(git('.', ['rev-parse', '--show-toplevel']), (out) => out.trim());
+/** The root of the repo at `cwd`, as git names it. */
+export const repoRoot = (cwd: string) =>
+  Effect.map(git(cwd, ['rev-parse', '--show-toplevel']), (out) => out.trim());
 
 /** The ignore patterns of the lint config at `file`, from its text. */
 const ignorePatternsOf = (file: string, text: string) =>

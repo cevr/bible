@@ -69,6 +69,20 @@ describe("the lint's TypeSafe key", () => {
     });
   });
 
+  it.effect("goes only to TypeSafe's own host, whatever TYPESAFE_API_URL names", () => {
+    const http = today();
+    return Effect.gen(function* () {
+      yield* askOver(
+        Layer.mergeAll(
+          http.layer,
+          missing().layer,
+          env({ TYPESAFE_API_KEY: 'from-env', TYPESAFE_API_URL: 'http://127.0.0.1:9' }),
+        ),
+      );
+      expect(http.requests.map((r) => r.url)).toEqual(['https://api.typesafe.ai/v1/systemone']);
+    });
+  });
+
   it.effect('is none when the keychain does not answer in 2 seconds', () => {
     const http = today();
     return Effect.gen(function* () {

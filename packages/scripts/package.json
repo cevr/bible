@@ -13,7 +13,7 @@
     "build:vectors": "bun src/vector-compiler/main.ts",
     "fetch:stills": "bun src/fetch-stills.ts",
     "dead-exports": "bun src/dead-exports.ts",
-    "judged:measure": "bun src/judged/measure.ts"
+    "judged:measure": "bun --no-env-file src/judged/measure.ts"
   },
   "dependencies": {
     "@bible/core": "workspace:*",
