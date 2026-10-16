@@ -9,7 +9,8 @@
 // origin.
 //
 // The host poses him by the view model `Lead`, every frame:
-// - the face kit's numbers (`FACE`);
+// - the face kit's numbers (`FACE`), and `faceY`, units, the marks slid down
+//   the round as he bows (the face drawn on a flat head turns by its marks);
 // - `lean`, radians about his feet; `tilt`, radians, his head about his
 //   neck; `nod`, units, his head sinking toward his tunic (a bow);
 // - `stain`, the scarlet blot on his tunic, 0..1; `robe`, the white tunic
@@ -38,21 +39,32 @@ export const LEAD = {
   neck: -236,
   hem: -34,
   /** Where the stain's middle sits on his tunic, and its half-width and half-height. */
-  stain: { x: -6, y: -168, rx: 27, ry: 32 },
+  stain: { x: -6, y: -168, rx: 31, ry: 42 },
 } as const;
 
-/** The stain's soaked edge: each ring's size against the blot and its opacity, inner first. */
+/**
+ * The stain's soaked edge: each ring's size against the blot and its
+ * opacity, inner first. Every ring wanders as the blot does (one seed), so
+ * the rings nest into one feathered edge.
+ */
 const SOAK = [
-  [1.05, 0.55],
-  [1.1, 0.32],
-  [1.16, 0.16],
+  [1.03, 0.5],
+  [1.06, 0.3],
+  [1.09, 0.15],
 ] as const;
+
+/** The seed every outline of the stain wanders by. */
+const STAIN_SEED = 11;
 
 /** The artboard, and where his feet stand on it: room for his head's tilt and his outline. */
 export const LEAD_ART = { width: 360, height: 470, feet: [180, 440] } as const;
 
-/** The face kit's scale on his head: his eyes small and close set, low in the round. */
-export const LEAD_FACE = { scale: 1.15, y: 23 } as const;
+/**
+ * The face kit's scale on his head, as his sheet draws it: brows half his
+ * head across, tall oval eyes at its middle, the mouth a quarter of its width
+ * below them.
+ */
+export const LEAD_FACE = { scale: 1.75, y: 12 } as const;
 
 /** The view model's numbers at rest: the face kit's, his eyes on us, upright, stained, in his own tunic. */
 export const LEAD_KNOBS = {
@@ -62,6 +74,7 @@ export const LEAD_KNOBS = {
   lean: 0,
   tilt: 0,
   nod: 0,
+  faceY: 0,
   stain: 1,
   robe: 0,
 } as const;
@@ -106,7 +119,7 @@ export const leadRig = (fig: Figure) => {
   const { stain } = LEAD;
   const stainNode = el('Node', { x: stain.x, y: stain.y, name: 'stain', id: fig.idOf('stain') }, [
     fig.bind('stain', KEY.opacity),
-    piece(fig, 'stainBlot', blotOutline(stain.rx, stain.ry, 0.07, 11), {
+    piece(fig, 'stainBlot', blotOutline(stain.rx, stain.ry, 0.07, STAIN_SEED), {
       color: STAIN,
       light: STAIN,
       ink: 'none',
@@ -119,7 +132,7 @@ export const leadRig = (fig: Figure) => {
         piece(
           fig,
           `stainSoak${i}Paper`,
-          blotOutline(stain.rx * grow, stain.ry * grow, 0.08, 7 + i),
+          blotOutline(stain.rx * grow, stain.ry * grow, 0.07, STAIN_SEED),
           {
             color: STAIN,
             light: STAIN,
@@ -136,7 +149,10 @@ export const leadRig = (fig: Figure) => {
       el('Node', { name: 'nodded', id: fig.idOf('nodded') }, [
         fig.bind('nod', KEY.y),
         el('Node', { y: LEAD.head.y - LEAD.neck, name: 'skull' }, [
-          faceKit(fig, { x: 0, y: LEAD_FACE.y, scale: LEAD_FACE.scale }),
+          el('Node', { name: 'faceSlide', id: fig.idOf('faceSlide') }, [
+            fig.bind('faceY', KEY.y),
+            faceKit(fig, { x: 0, y: LEAD_FACE.y, scale: LEAD_FACE.scale }),
+          ]),
           piece(fig, 'headPaper', ellipse(0, 0, LEAD.head.r, LEAD.head.r - 1, 22), lead),
         ]),
       ]),

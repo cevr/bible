@@ -8,8 +8,10 @@
 // the table. His feet are the artboard's origin.
 //
 // The host poses him by the view model `Prosecutor`, every frame: the face
-// kit's numbers (`FACE`); `lean`, radians about his feet; `tilt`, radians,
-// his head about his neck; `nod`, units, his head down toward his chest.
+// kit's numbers (`FACE`) and `shout`, 0..1, his mouth thrown wide open (the
+// kit's "oh" is a gasp, too small for a shout); `lean`, radians about his
+// feet; `tilt`, radians, his head about his neck; `nod`, units, his head down
+// toward his chest.
 // The rig keeps its `breath` and the paper's `boil`.
 
 import {
@@ -49,6 +51,7 @@ export const PROSECUTOR_KNOBS = {
   browTilt: -0.22,
   browY: 1.5,
   mouth: -1.2,
+  shout: 0,
   lean: 0,
   tilt: 0,
   nod: 0,
@@ -63,7 +66,10 @@ export type ProsecutorTimeline = keyof typeof PROSECUTOR_TIMELINES;
 /** The face `check` reads: its node, and his head's height. */
 export const PROSECUTOR_FACE_CHECK = { node: 'face', height: 2 * PROSECUTOR.head.ry } as const;
 
-const KEY = { y: 14, rotation: 15 } as const;
+const KEY = { y: 14, rotation: 15, scaleY: 17, opacity: 18 } as const;
+
+/** The shout: a wide open mouth, a quarter of his head across, where the kit's mouth sits. */
+const SHOUT = { w: 36, h: 24 } as const;
 
 /** His robe: narrow at the neck, the shoulders rounding off, wide at the hem. */
 export const ROBE = roundedPolygon(
@@ -80,8 +86,16 @@ export const ROBE = roundedPolygon(
   26,
 );
 
-/** Short hair, swept: down the sides to the temples, tufted round the top, the fringe dipping to one side. */
-const HAIR = { sides: 0.2, line: 0.5, loft: 0.07, curls: 5, curl: 0.05, sweep: 12 } as const;
+/** Short black hair laid close: the temples clear, the fringe swept to one side, one point at the back of the crown. */
+const HAIR = {
+  sides: -0.1,
+  line: 0.55,
+  loft: 0.03,
+  curls: 0,
+  curl: 0,
+  sweep: 18,
+  tuft: 0.16,
+} as const;
 
 export const prosecutorRig = (fig: Figure) => {
   const { head } = PROSECUTOR;
@@ -93,6 +107,18 @@ export const prosecutorRig = (fig: Figure) => {
         fig.bind('nod', KEY.y),
         el('Node', { y: head.y - PROSECUTOR.neck, name: 'skull' }, [
           piece(fig, 'hair', hairOutline(head.rx, head.ry, HAIR), looked(PAPERS.darkHair)),
+          el('Node', { y: PROSECUTOR_FACE.y + 15 * PROSECUTOR_FACE.scale, name: 'shout' }, [
+            fig.bind('shout', KEY.opacity),
+            el('Node', { name: 'shoutOpen', id: fig.idOf('shoutOpen') }, [
+              fig.bind('shout', KEY.scaleY),
+              piece(fig, 'shoutPaper', ellipse(0, 0, SHOUT.w / 2, SHOUT.h / 2, 16), {
+                color: '#3a2422',
+                light: '#3a2422',
+                ink: 'none',
+                shadow: 0,
+              }),
+            ]),
+          ]),
           faceKit(fig, { x: 0, y: PROSECUTOR_FACE.y, scale: PROSECUTOR_FACE.scale }),
           piece(fig, 'headPaper', ellipse(0, 0, head.rx, head.ry, 22), skin),
         ]),

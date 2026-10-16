@@ -34,18 +34,18 @@ export const PAPERS = {
   judgeRobe: paperOf('#4b3658'),
   /** The judge's hair, grey, flat in the head. */
   greyHair: paperOf('#aaa6b2'),
-  /** The prosecutor's full-length robe: olive. */
-  olive: paperOf('#706c47'),
-  /** The prosecutor's short dark hair. */
-  darkHair: paperOf('#2f2a2f'),
+  /** The prosecutor's full-length robe: olive, its shade a deeper olive toward violet (the panels' `#5f5340`). */
+  olive: { ...paperOf('#706c47'), shade: '#584a40' },
+  /** The prosecutor's short dark hair: its cut edge's light kept dark, so no grey rim rings it. */
+  darkHair: { ...paperOf('#2f2a2f'), light: '#4a4448' },
   /** Shoes. */
   shoe: paperOf('#4e3b31'),
   /** The judge's bands: white linen. */
   bands: paperOf('#fbf8f2'),
 } as const satisfies Record<string, Paper>;
 
-/** The flat scarlet stain (Isa 1:18): one colour, no crease, no ink. */
-export const STAIN: Hex = '#cc2b2b';
+/** The flat scarlet stain (Isa 1:18): one colour, no crease, no ink; the kept panels' soaked scarlet. */
+export const STAIN: Hex = '#cf4a44';
 
 /** `paper` as a piece's paint (`PieceLook`). */
 export const looked = (paper: Paper, extra: Partial<PieceLook> = {}): PieceLook => ({

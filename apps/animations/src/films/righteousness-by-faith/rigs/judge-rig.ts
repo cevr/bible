@@ -82,8 +82,8 @@ export const JUDGE_ROBE = roundedPolygon(
   34,
 );
 
-/** Grey hair, curled round the top and down the sides to his cheeks. */
-const HAIR = { sides: 0.78, line: 0.52, loft: 0.12, curls: 12, curl: 0.08 } as const;
+/** Grey hair: a curled crown with puffs at the sides, stopping above the ears, the jaw clear. */
+const HAIR = { sides: 0.1, line: 0.45, loft: 0.04, curls: 7, curl: 0.1 } as const;
 
 export const judgeRig = (fig: Figure) => {
   const { head } = JUDGE;

@@ -151,10 +151,15 @@ const GOLD = {
   letter: '#8a5a12',
 } as const;
 
+/** The seal's measures, units: its wax, the ring pressed round the R, the R, and its ribbon's scale. */
+const SEAL = { wax: 23, ring: 16, letter: 22, ribbon: 0.85 } as const;
+
 /**
  * The gold wax seal with its ribbon tail, the R pressed into its wax: at its
- * pose, over his stain. Its lines and its R are the prop's own marks, under
- * any card, so they are drawn `unprobed`.
+ * pose, over his stain, smaller than the stain so its scarlet shows round it.
+ * A glint crosses the wax under the ring and the R, so the R stays clear.
+ * Its lines and its R are the prop's own marks, under any card, so they are
+ * drawn `unprobed`.
  */
 export const seal = (ctx: CanvasRenderingContext2D, s: SealPose) => {
   if (s.shown <= 0) return;
@@ -166,6 +171,8 @@ export const seal = (ctx: CanvasRenderingContext2D, s: SealPose) => {
   ctx.lineJoin = 'round';
   ctx.strokeStyle = C.outline;
   // The ribbon's two tails, forked at their ends, hanging under the wax.
+  ctx.save();
+  ctx.scale(SEAL.ribbon, SEAL.ribbon);
   for (const side of [-1, 1]) {
     ctx.beginPath();
     ctx.moveTo(side * 4, 10);
@@ -176,56 +183,61 @@ export const seal = (ctx: CanvasRenderingContext2D, s: SealPose) => {
     ctx.closePath();
     ctx.fillStyle = GOLD.ribbon;
     ctx.fill();
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.5 / SEAL.ribbon;
     unprobed(ctx, () => ctx.stroke());
   }
+  ctx.restore();
   // The wax: a pressed round with a soft, bumpy edge, creased like every piece.
-  ctx.beginPath();
-  const n = 18;
-  for (let i = 0; i <= n; i++) {
-    const a = (i / n) * 2 * Math.PI;
-    const r = 27 + 1.6 * Math.sin(a * 6 + 0.7);
-    const x = Math.cos(a) * r;
-    const y = Math.sin(a) * r;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  const g = ctx.createLinearGradient(-20, -24, 20, 24);
+  const wax = () => {
+    ctx.beginPath();
+    const n = 18;
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * 2 * Math.PI;
+      const r = SEAL.wax + 1.4 * Math.sin(a * 6 + 0.7);
+      const x = Math.cos(a) * r;
+      const y = Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  };
+  const g = ctx.createLinearGradient(-17, -20, 17, 20);
   g.addColorStop(0, GOLD.wax);
   g.addColorStop(0.62, GOLD.wax);
   g.addColorStop(0.63, GOLD.shade);
   g.addColorStop(1, GOLD.shade);
   ctx.fillStyle = g;
+  wax();
   ctx.fill();
-  ctx.lineWidth = 3.5;
-  unprobed(ctx, () => ctx.stroke());
-  // The ring pressed round the R, and the R.
-  ctx.beginPath();
-  ctx.arc(0, 0, 18.5, 0, 2 * Math.PI);
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = GOLD.rim;
-  unprobed(ctx, () => ctx.stroke());
-  ctx.fillStyle = GOLD.letter;
-  ctx.font = '700 26px Fraunces';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  unprobed(ctx, () => ctx.fillText('R', 0, 1.5));
-  // The glint: a band of light crossing the wax.
+  // The glint: a narrow band of light crossing the wax, inside its outline.
   if (s.glint > 0 && s.glint < 1) {
     ctx.save();
     ctx.beginPath();
-    ctx.arc(0, 0, 27, 0, 2 * Math.PI);
+    ctx.arc(0, 0, SEAL.wax - 3, 0, 2 * Math.PI);
     ctx.clip();
-    const x = -40 + 80 * s.glint;
-    const shine = ctx.createLinearGradient(x - 12, -30, x + 12, 30);
+    const x = -45 + 90 * s.glint;
+    const shine = ctx.createLinearGradient(x - 14, -5, x + 14, 5);
     shine.addColorStop(0, '#fff6d000');
-    shine.addColorStop(0.5, '#fff6d0e0');
+    shine.addColorStop(0.5, '#fff6d080');
     shine.addColorStop(1, '#fff6d000');
     ctx.fillStyle = shine;
-    ctx.fillRect(-30, -30, 60, 60);
+    ctx.fillRect(-SEAL.wax, -SEAL.wax, 2 * SEAL.wax, 2 * SEAL.wax);
     ctx.restore();
   }
+  ctx.lineWidth = 3;
+  wax();
+  unprobed(ctx, () => ctx.stroke());
+  // The ring pressed round the R, and the R.
+  ctx.beginPath();
+  ctx.arc(0, 0, SEAL.ring, 0, 2 * Math.PI);
+  ctx.lineWidth = 1.8;
+  ctx.strokeStyle = GOLD.rim;
+  unprobed(ctx, () => ctx.stroke());
+  ctx.fillStyle = GOLD.letter;
+  ctx.font = `700 ${SEAL.letter}px Fraunces`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  unprobed(ctx, () => ctx.fillText('R', 0, 1.3));
   ctx.restore();
 };
 
@@ -288,16 +300,35 @@ const leadGroup = (f: CourtFrame, p: CourtPose) => {
   for (const h of p.lead.hands) handAt(f, 'leadHand', h, 1.12);
 };
 
+/**
+ * How far each group stands off its panels' place, Board pixels: none in
+ * `cold`; `title`'s wide spreads them over the floor as its panel does.
+ */
+interface CourtSpread {
+  readonly lead: Pt;
+  readonly prosecutor: Pt;
+  readonly judge: Pt;
+}
+const IN_PLACE: CourtSpread = { lead: [0, 0], prosecutor: [0, 0], judge: [0, 0] };
+
+/** `draw`, moved `by`. */
+const moved = (ctx: CanvasRenderingContext2D, by: Pt, draw: () => void) => {
+  ctx.save();
+  ctx.translate(by[0], by[1]);
+  draw();
+  ctx.restore();
+};
+
 /** The furniture's shadows on the floor, under every group. */
-export const courtShadows = (ctx: CanvasRenderingContext2D) => {
-  benchShadow(ctx);
-  tableShadow(ctx);
-  dockShadow(ctx);
+export const courtShadows = (ctx: CanvasRenderingContext2D, spread = IN_PLACE) => {
+  moved(ctx, spread.judge, () => benchShadow(ctx));
+  moved(ctx, spread.prosecutor, () => tableShadow(ctx));
+  moved(ctx, spread.lead, () => dockShadow(ctx));
 };
 
 /** The court's people and furniture at `p`, back to front, over the floor. */
-export const courtFigures = (f: CourtFrame, p: CourtPose) => {
-  judgeGroup(f, p);
-  prosecutorGroup(f, p);
-  leadGroup(f, p);
+export const courtFigures = (f: CourtFrame, p: CourtPose, spread = IN_PLACE) => {
+  moved(f.ctx, spread.judge, () => judgeGroup(f, p));
+  moved(f.ctx, spread.prosecutor, () => prosecutorGroup(f, p));
+  moved(f.ctx, spread.lead, () => leadGroup(f, p));
 };

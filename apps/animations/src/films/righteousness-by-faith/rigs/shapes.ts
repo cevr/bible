@@ -57,7 +57,12 @@ export interface Hair {
   readonly curl: number;
   /** The fringe's sweep: how far the hairline's middle dips toward one side, units (0: level). */
   readonly sweep?: number;
+  /** One swept point at the back of the crown, as a share of the radius it stands out (0: none). */
+  readonly tuft?: number;
 }
+
+/** Where the tuft stands on the crown (radians, y down: the top is −π/2), and its half-width. */
+const TUFT = { at: -Math.PI / 4, half: 0.28 } as const;
 
 /**
  * Hair laid flat over the head of half-width `rx` and half-height `ry`
@@ -75,7 +80,9 @@ export const hairOutline = (rx: number, ry: number, hair: Hair): Pt[] => {
       hair.curls > 0
         ? hair.curl * Math.abs(Math.sin(((a - from) / (to - from)) * Math.PI * hair.curls))
         : 0;
-    const k = 1 + hair.loft + curl;
+    const near = 1 - Math.abs(normalAngle(a - TUFT.at)) / TUFT.half;
+    const tuft = (hair.tuft ?? 0) * Math.max(0, near) ** 1.6;
+    const k = 1 + hair.loft + curl + tuft;
     out.push([Math.cos(a) * rx * k, Math.sin(a) * ry * k]);
   }
   // Back across the brow: from the right side's foot, inside the head, to the left's.
@@ -94,6 +101,9 @@ export const hairOutline = (rx: number, ry: number, hair: Hair): Pt[] => {
   out.push([-edge, foot * 0.6]);
   return out;
 };
+
+/** `a` turned into −π..π. */
+const normalAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
 /** A blot of half-width `rx` and half-height `ry` about the origin, its outline wandering by `wander` of its radius (seeded). */
 export const blotOutline = (rx: number, ry: number, wander: number, seed: number): Pt[] => {
