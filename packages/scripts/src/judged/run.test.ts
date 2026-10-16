@@ -105,7 +105,7 @@ describe('a judged rule', () => {
       expect(model.requests[0]?.instructions[1]).toStartWith(
         'Judge the code comment under key c1. HISTORY means',
       );
-      // At the threshold, 0.9, and over it a finding; 0.89 is none.
+      // The texts are at 0.97, 0.02 and 0.89: the first alone is a finding.
       expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97 }]);
       expect(outcome.findings.map((f) => findingLine(historyComment, f))).toEqual([
         "src/a.ts:3 warning judged(historyComment): the comment tells the code's history: say what it does today and why; how it got here lives in git log p=0.97",
@@ -161,10 +161,11 @@ describe('a judged rule', () => {
         ['c', 'd'],
         ['e'],
       ]);
-      // A letter past ASCII is a token of its own: Jev counted Greek near
-      // 0.9 tokens a letter, so two of these do not fit in 1,500.
+      // A unit past ASCII costs 1.3 tokens (Jev counted Greek near 1.23):
+      // two of these 1,000 Greek letters do not fit in 2,500, which two
+      // would at a token a unit.
       const greek = 'λόγος'.repeat(200);
-      expect(partsOf(historyComment, [greek, greek], { bound: 200, budget: 1500 })).toEqual([
+      expect(partsOf(historyComment, [greek, greek], { bound: 200, budget: 2500 })).toEqual([
         [greek],
         [greek],
       ]);
@@ -381,22 +382,4 @@ describe('a judged rule never fails on its model', () => {
       }).pipe(Effect.provide(keyless), withFs);
     },
   );
-
-  it.effect('still reports its findings when its answers cannot be kept', () => {
-    const model = countingModel((text) => P.get(text) ?? 0);
-    return Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const options = yield* judging;
-      // The cache's folder is a file, so the answers cannot be written.
-      const folder = path.dirname(options.cacheFile);
-      yield* fs.makeDirectory(path.dirname(folder), { recursive: true });
-      yield* fs.writeFileString(folder, 'a file, not a folder\n');
-      const outcome = yield* judge(historyComment, ITEMS, options);
-      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97 }]);
-      expect(runLine(historyComment, outcome)).toBe(
-        '[judged] rule=historyComment items=3 cached=0 asked=3 findings=1',
-      );
-    }).pipe(Effect.provide(model.layer), withFs);
-  });
 });

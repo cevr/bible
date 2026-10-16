@@ -119,13 +119,18 @@ const askPart = <Label extends string>(
   );
 };
 
+/** The tokens a UTF-16 unit past ASCII costs in `tokensOf`. */
+const WIDE = 1.3;
+
 /**
  * A text's share of a request's input tokens, from its characters and its
- * classify's: 3.2 ASCII characters a token, and a token for each UTF-16
- * unit past ASCII. Over what TypeSafe's Jev counted: 55,326 tokens for the
- * corpus' 182 comment blocks (an estimate of 58,800), 38,716 for their lines
- * (39,500), and about 0.9 a letter for Greek, which at 3.2 a token it
- * counted 1.655 times the estimate (24,828 for 15,000).
+ * classify's: 3.2 ASCII characters a token, and `WIDE` tokens for each
+ * UTF-16 unit past ASCII. Over what TypeSafe's Jev counted: 55,326 tokens
+ * for the corpus' 182 comment blocks (an estimate of 58,800), 38,716 for
+ * their lines (39,500), and 24,828 for 50 Greek-dense blocks, which hold
+ * 10,700 units past ASCII: at 1 a unit the estimate was 22,350, so a unit
+ * cost about 1.23. At 1.3 the estimate is 25,550, a little over the count,
+ * so a part stays under the limit.
  */
 const tokensOf = <Label extends string>(rule: JudgedRule<Label>, text: string) => {
   const criteria = Object.entries(rule.decision.criteria).reduce(
@@ -134,7 +139,7 @@ const tokensOf = <Label extends string>(rule: JudgedRule<Label>, text: string) =
   );
   const wide = text.split('').filter((unit) => unit.charCodeAt(0) > 0x7f).length;
   const ascii = instructionsFor(rule, 'c000').length + criteria + text.length - wide;
-  return Math.ceil(ascii / 3.2) + wide + 8;
+  return Math.ceil(ascii / 3.2 + wide * WIDE) + 8;
 };
 
 /** `texts` in order, cut into parts of at most `bound` texts and `budget` estimated tokens. */
