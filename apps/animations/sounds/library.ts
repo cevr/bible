@@ -6,8 +6,13 @@
 // live in the git-ignored `files/` and sync with the store below
 // (`sfx pull`/`push`). ElevenLabs makes only the realism code cannot, and
 // code makes every simpler sound (the owner's rule), so each generated sound
-// says `why` it is generated. Procedural sounds are recipes, played from
-// their seeds whenever they are needed. A recorded sound is CC0 only, under
+// says `why` it is generated. A code sound is a graph of nodes, rendered
+// from its seeds whenever it is needed, so nothing of it is stored; a
+// generated sound's `code` is its code trial, heard beside its takes and
+// placed by no film until the owner chooses it in an ask (`sfx audit`,
+// `sfx render --trial --sheet`, `sfx compare`, `sfx ab`: the loop in the
+// film skill's reference/sound.md). Procedural sounds are recipes, played
+// from their seeds the same way. A recorded sound is CC0 only, under
 // `public/` (`sfx import`).
 //
 // The first library (audio-design §9): 30 generated one-shots, 9 generated

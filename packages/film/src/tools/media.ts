@@ -882,16 +882,17 @@ const i420Of = (image: Raster): I420 => {
   return { width, height, bytes };
 };
 
-/**
- * `image` held over `track` (`seconds` long) as an MP4 held in memory, the
- * index at its head: every frame the one picture, at the films' frame rate,
- * through x264 at the phone copy's settings (a bitrate asks for them:
- * `x264.ts`); the track's packets beside it. The muxer holds every chunk
- * until it finishes, so the track goes in whole before the picture.
- */
 /** A card's frames a second: one, a key frame each at the phone copy's interval. */
 const CARD_FPS = 1;
 
+/**
+ * `image` held over `track` (`seconds` long) as an MP4 held in memory, the
+ * index at its head: every frame the one picture, `CARD_FPS` a second and the
+ * last held for what the sound has left, through x264 at the phone copy's
+ * settings (a bitrate asks for them: `x264.ts`); the track's packets beside
+ * it. The muxer holds every chunk until it finishes, so the track goes in
+ * whole before the picture.
+ */
 const cardFile = (file: string, image: Raster, track: AacTrack, seconds: number) =>
   Effect.gen(function* () {
     const picture = i420Of(image);

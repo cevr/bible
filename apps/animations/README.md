@@ -17,13 +17,16 @@ bun run sfx list [family] [--missing|--stale]  # the sound library (sounds/libra
 bun run sfx plan [name…]                       # what make would generate and its credits (free)
 bun run sfx make [name…] --yes [--cap n --tally f]  # generate candidates (paid; without --yes it prints the plan and stops)
 bun run sfx try <name> [--prompt p --secs s --influence i --count n] --yes  # candidates with other settings (paid); keepable once library.ts says the same
-bun run sfx audition <name> [--candidates]     # one WAV of the variants (or candidates), levelled, 0.5 s apart
+bun run sfx audition <name> [--candidates|--trial]  # one WAV of the variants (or candidates, or the code trial's seeds), levelled, 0.5 s apart
 bun run sfx keep|reject <name> <n…>            # curate candidates; a rejected one is never offered again
 bun run sfx keep <name> <n…> --replace         # keep candidates in place of the kept variants (those wait again)
 bun run sfx unkeep <name> <n…>                 # stop playing kept variants (by audition number); they wait again
 bun run sfx import <file> <name>               # a CC0 recording into a declared recorded sound (public/)
-bun run sfx render <name> [--seed n]           # a procedural sound's seeds as WAVs
-bun run sfx check                              # unmade/stale sounds, missing or corrupt files, licences, loop seams, one-shots that start late or lack their hit
+bun run sfx render <name> [--seed n] [--trial] [--sheet]  # a code or procedural sound's seeds (or its code trial's) as WAVs, each with its sheet as a PNG (free)
+bun run sfx compare <name>                     # a code trial's numbers beside what plays, and how far each film's placement would hear the hit move (free)
+bun run sfx audit                              # which generated sounds code can make, read from their prompts (free)
+bun run sfx ab <name> --out <dir>              # the clips an ask plays, as MP4s beside their sheets: what plays now, the code trial, and both (free)
+bun run sfx check                              # unmade/stale sounds, missing or corrupt files, licences, loop seams (a code trial's too), one-shots that start late or lack their hit
 bun run sfx describe                           # record each take's onset and hit in the lock, measured from its file (free)
 bun run sfx pull|push                          # sync sounds/files (generated, git-ignored) with the store in library.ts; push names each file it sends, read back by hash
 bun run sfx push --from <folder>               # the same, sending files this machine lacks from an older folder store (a move; see The private store)
@@ -124,7 +127,13 @@ library (`sounds/library.ts`, shared by every film) with a level in dB
 relative to the voice; `check` fails on a sound the library lacks
 (`UnknownSound`), one placed for the other use (`SoundUseMismatch`) or one
 not yet made (`SoundUnmade`), and warns on a stale one or an effect within
-3 dB of the voice where it speaks (`EffectHot`). How to word a generated
+3 dB of the voice where it speaks (`EffectHot`). Code makes every simpler
+sound and ElevenLabs only the realism code cannot (the owner's rule): a
+`code` sound is a graph of nodes rendered from its seeds, never stored or
+paid for, and a generated sound says `why` it needs ElevenLabs. How to
+write one, judge it without listening, and put a swap to the owner is the
+film skill's [sound reference](../../.claude/skills/film/reference/sound.md).
+How to word a generated
 sound's prompt and pick its length and influence, per kind (one-shot foley,
 impacts, beds), is `sounds/PROMPTING.md`. The library's generated files sync
 with the private store `library.ts` declares (below), never a folder under
