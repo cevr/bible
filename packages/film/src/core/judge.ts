@@ -1,6 +1,6 @@
 // The judge's words: a second opinion on one choice at one scene, given
 // blind. The versions a choice offers (a look's levels, a render set's
-// variants: what the lab's Choices view picks between) are seen as stills at
+// variants: what an ask's picture choice picks between) are seen as stills at
 // the same moments (the scene's marks and its cues' middles), labelled A, B,
 // C in an order drawn at random; another model ranks them against the rules
 // that bear on the scene, quoted in the packet; the key (which label is

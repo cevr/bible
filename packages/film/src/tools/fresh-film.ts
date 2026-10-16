@@ -108,7 +108,7 @@ export class VoiceRead extends Schema.TaggedClass<VoiceRead>()('VoiceRead', {
   reading: StudioReading,
 }) {}
 
-/** `film read script`'s answer: each beat's picture and sources, as the Script page reads them. */
+/** `film read script`'s answer: each beat's picture and sources, as the words reader reads them. */
 export class ScriptRead extends Schema.TaggedClass<ScriptRead>()('ScriptRead', {
   beats: ScriptBeats.fields.beats,
 }) {}

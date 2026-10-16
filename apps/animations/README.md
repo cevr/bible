@@ -83,7 +83,7 @@ bun run board <film> [--beat id,id] [--tries 2] [--lanes 3] [--dry-run]  # the s
 bun run board style <film> --id <id> --name "…" --block-file f --ref img [--world-file f]  # the board's look: the style block every prompt opens with, its reference image, the film's world
 bun run board import <film> --panel <beat>.<at> <file…> [--keep n --why "…"] [--from "…"] [--prompt-file f]  # images made elsewhere as a panel's tries
 bun run board card|verse <film> --panel <beat>.<at> ...  # a panel the engine sets (card: --payoff word [--to mark]; verse: --ref --text --phrase): never an image
-bun run board pick <film> --panel <beat>.<at> --try n [--why "…"]  # keep one try (the Board page writes the same)
+bun run board pick <film> --panel <beat>.<at> --try n [--why "…"]  # keep one try (the studio's Board section writes the same)
 bun run board approve|withdraw <film> --beat <id>  # a beat's board approved as it stands (a later pick leaves it stale)
 bun run board tweak <film> <note> [--tries 2]      # a panel note asking a tweak: new tries from the try, the note's sketched still and the style ref; the old tries stay
 bun run board list <film>                          # every panel: its tries, the one kept, the beat's approval
@@ -97,13 +97,12 @@ Solid) and, for `lab`, the lab: one server for every film, meant to stay up
 `FILM_LAB_PHONE_URL` gives one). The lab builds its pages
 from this app's source in its own process when they are asked for, and again
 after a file they were built from changes: the review (`review.html`) at `/`,
-`/sets/<folder>[/<point>]` and a film's `/films/<film>/choices`, and the
+`/sets/<folder>[/<point>]` and `/productions/<production>`, and the
 player (`play.html`, whose entry `src/play.ts` mounts `@bible/film/play`) at
 a film's studio, `/films/<film>/studio`. The lab page (`lab.html`, whose
-entry `src/lab.ts` mounts `@bible/film/lab`) serves a film's `/lab`,
-`/script` and `/board` until the studio's inspector holds what they do; the
-studio's inspector links to them. The lab sends a film's `/scenes`,
-`/project` and `/play` paths to its studio. Each page is rendered first on the server by its server
+entry `src/lab.ts` mounts `@bible/film/lab`) serves a film's `/lab`; the
+studio's inspector links to it. The lab sends a film's `/scenes`,
+`/project`, `/play`, `/choices`, `/script` and `/board` paths to its studio. Each page is rendered first on the server by its server
 entry beside it (`src/*.server.tsx`, `LAB_SERVERS` in `server.ts`), in a
 worker of its build's own, and the browser bundle hydrates it. The render page
 (`index.html`) is the lab's too, at a film's `/films/<film>/export`, drawn in
@@ -282,25 +281,15 @@ folder are a comparison set, played on one clock (all of them, the first
 against one other (`?view=pair&other=<id>`), that pair as a wipe or as their
 difference at a moment, every variant's frame at a few moments, or the notes;
 space plays, ←/→ step a frame (Shift ten), 🔊 picks whose sound is heard), titled and
-annotated by an optional `review.json`. A film's choices page (`/films/<film>/choices`) plays
-its newest render with the film's whole mix heard over it and lists its
-choice points: the score's options, each library sound's takes, each beat's
-voice attempts, each look's levels (`looks` in `palette.ts`) and each sound
-layer's level (a knob). **Pick** writes `play` in `sound.ts` (a score) or
-`palette.ts` (a look); **Pick**, **Unpick** and **Reject** on a take curate it
-in `sounds/library.lock.json`, as `sfx keep`, `unkeep` and `reject` do; Pick
-on a voice attempt keeps it as the beat's take; a knob writes the level's one
-number in `sound.ts`. Each write is checked and undoable (Undo, Redo), and a
-pick or a knob runs `check --sound`, its findings shown; review it with `git
-diff`; Undo and Redo name what they would undo. Every current variant can be
-approved, an approval withdrawn, and any variant commented on. The project page
-(`/films/<film>/project`) is the film by acts and scenes: each scene a card,
-its render (this checkout's) or still, its state (current, stale by its
-sources or its sound, missing with the command that renders it), approval
-and comments; a tap opens its sheet (`?point=`), with Approve, Unapprove, a
-comment, Open in Lab and the choices that play in it, each a link to its
-card on Choices. An act's and the film's approvals and comments are in
-their inspectors, context menus and ⌘K, with "Approve all current". The lab answers each of its listeners' own names
+annotated by an optional `review.json`. A film's choices (a score, a look, a take, a level) reach the owner as asks;
+the choices routes (`POST /api/films/<film>/choices/pick`, `…/knob`) write his pick: **Pick**
+writes `play` in `sound.ts` (a score) or `palette.ts` (a look); **Pick**,
+**Unpick** and **Reject** on a take curate it in `sounds/library.lock.json`,
+as `sfx keep`, `unkeep` and `reject` do; Pick on a voice attempt keeps it as
+the beat's take; a knob writes the level's one number in `sound.ts`. Each
+write is checked and undoable, and a pick or a knob runs `check --sound`.
+The old `/films/<film>/choices` and `/films/<film>/project` links land on
+the film's studio. The lab answers each of its listeners' own names
 (loopback, and the phone's address at `FILM_LAB_PHONE_URL`), on every path (the pages too: built
 in process and served behind the check); every request passes one gate
 (`admit`), and writes are JSON, from the lab's own origin or from a tool's
@@ -408,7 +397,7 @@ real names beside the owner's pick, the key, the reasons, and the counsel's
 answer by path. It prints three
 short lines (`verdict <path>`, `ranking <names> (point= pick=)`, `counsel
 <path>`), or one JSON line with `--json`. It writes no choice: a pick is still
-the owner's, in the Choices view.
+the owner's, in an ask.
 
 ### The journal
 

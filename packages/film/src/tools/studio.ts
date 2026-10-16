@@ -4,7 +4,7 @@
 // pipeline as `film takes import` (Takes: load, trim, level, encode,
 // transcribe, time) into an attempt, and the attempt is kept as the beat's
 // take by `keepVoice` (`choices.ts`), the one way an attempt becomes a take,
-// as Keep on an earlier attempt and the Choices view's pick are: in a fresh
+// as Keep on an earlier attempt and a pick through the choices routes are: in a fresh
 // process that reads the script as it stands and remixes the track, so the
 // page plays the new take at once; under the SourceWriter's lock, one keep at
 // a time with every other write; and undoable, the replaced take brought back

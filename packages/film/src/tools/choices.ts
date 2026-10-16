@@ -261,8 +261,8 @@ interface VoiceKept {
 }
 
 /**
- * The one way an attempt becomes its beat's take, from the Choices view's
- * pick and the studio's keep and posted take alike: kept by the film CLI in
+ * The one way an attempt becomes its beat's take, from a voice pick through
+ * the choices routes and the studio's keep and posted take alike: kept by the film CLI in
  * a fresh process (`film options keep-voice`: the script as it stands, the
  * word error checked again, a mismatch kept only when `acceptMismatch`
  * says so, and the track remixed), recorded around the timings' rewrite by

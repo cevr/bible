@@ -6,7 +6,7 @@
 // answer shown, the takes read again); a gap's choice writes a breath; a
 // write the lab refuses says why under the words; a refresh reads the draft
 // again, outranking a write's answer sent over the older read; a phone
-// selects a range as the Script page's does (tap the first word, hold the
+// selects a range as the studio's Words does (tap the first word, hold the
 // last, Select to here) and marks it; and the
 // review's home lists the series, each opening to its drafts' links.
 

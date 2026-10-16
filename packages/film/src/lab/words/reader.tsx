@@ -401,7 +401,7 @@ const Beats = (props: {
         ),
       ),
   });
-  // A phone has no Shift: tap the first word, hold the last, Select to here, as on the Script page.
+  // A phone has no Shift: tap the first word, hold the last, Select to here.
   onCleanup(
     meta.hub.commands.register(
       ...scriptCommands({

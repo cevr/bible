@@ -43,7 +43,7 @@ Terms used below (owner rule: industry names, each explained):
 
 ### 1.1 Two design systems today
 
-|            | Review pages (`/`, `/sets/…`, `/films/<f>/choices`, `/films/<f>/project`)                                                                     | Lab, player, look-book (`/films/<f>/lab`, `/play`, `/scenes`)                                                                                             |
+|            | Review pages (`/`, `/sets/…`, `/productions/<p>`)                                                                                             | Lab, player, look-book (`/films/<f>/lab`, `/play`, `/scenes`)                                                                                             |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Stylesheet | `REVIEW_CSS` string, `packages/film/src/lab/review/style.ts:6-150` at `f812e9ca`                                                              | `packages/film/src/player/player.css:1-956` at `f812e9ca`                                                                                                 |
 | Face       | `ui-sans-serif, system-ui, …` 14px/1.45 (`style.ts:12`)                                                                                       | `Inter, system-ui` 13px/1.4 (`player.css:18-21`), Inter self-hosted in `apps/animations/assets/fonts/fonts.css` at `f812e9ca` (`Inter-normal-*.woff2`)    |

@@ -3,9 +3,8 @@
 // first frame) until the next panel takes over; a beat's first panel opens
 // the beat even when its mark comes later, so a beat never shows the last
 // beat's picture. A beat with no panel shows its storyboard card. Pure, and
-// the one rule for when a panel shows: the Board page's picture draws what
-// `shotAt` names and its column lists the shots, and the studio's Board lane
-// (`core/film-timeline.ts`) lays the same shots on its clock.
+// the one rule for when a panel shows: the studio's Board lane
+// (`core/film-timeline.ts`) lays its shots on its clock.
 
 import { Array as Arr, Boolean as Bool, Data, Option, Order } from 'effect';
 import { type BoardFile, PANEL_START, type Panel, panelsOf } from './board.ts';

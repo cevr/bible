@@ -166,7 +166,7 @@ const setup = (
     }),
   );
   // The lab's handler serves the studio: its notes, scenes and renders only have to exist; its
-  // writes and the Choices view's are real.
+  // writes and the choices routes' are real.
   const layer = Layer.mergeAll(
     NotesStore.layer,
     ProductionStore.layer,

@@ -147,7 +147,7 @@ A trial is heard beside what plays:
 - `bun run sfx audition <name> --trial` writes its seeds in one WAV, levelled as the mix plays them, 0.5 s apart.
 - `bun run sfx compare <name>` prints its numbers beside what plays (below).
 - `bun run sfx check` hears a trial bed's loop seams, named `<name> (trial)` (`LoopSeam`, by seed).
-- A film's Choices page lists a trial's seeds after the sound's takes, as `code trial n`, each heard alone and in place. No verb picks one: a trial is tuned by editing its data, and chosen in an ask.
+- A film's choices (`GET /api/films/<film>/choices`) list a trial's seeds after the sound's takes, as `code trial n`, each heard alone (`…/choices/alone`) and in place (`…/choices/mix`). No verb picks one: a trial is tuned by editing its data, and chosen in an ask.
 - `bun run sfx ab <name> --out <dir>` writes the clips for the ask (see Put it to the owner, below).
 
 ## The loop
@@ -212,7 +212,7 @@ Numbers, no verdict: a distance is a hint for the ear, never a target to make sm
 2. Publish the clips as one set (the lab MCP's `publish_set`, or `bun cli.ts publish <folder> --production <production>`).
 3. Ask once (The flow, "Ask, don't chat" in [SKILL.md](../SKILL.md)): a section for each sound, video A (now) then video B (code), a choose of `code` (play the code sound), `keep` (keep the generated take) or `remake` (remake the code sound), one recommended with a why from the numbers, and an optional free text.
 4. Apply the answers:
-   - `code`: the entry becomes `kind: 'code'` with the trial's `sound` and `variants`, keeping its `use`, `level` and `duck`. Its lock record stays (the Choices page lists those takes as "was"): put the generated entry back and its kept takes play again. `sfx pull` and `sfx push` still carry those takes, and `sfx check` checks them only once they play again.
+   - `code`: the entry becomes `kind: 'code'` with the trial's `sound` and `variants`, keeping its `use`, `level` and `duck`. Its lock record stays (the film's choices list those takes as "was"): put the generated entry back and its kept takes play again. `sfx pull` and `sfx push` still carry those takes, and `sfx check` checks them only once they play again.
    - `keep`: delete the trial. Put the owner's reason in `why` when he gave one.
    - `remake`: edit the trial and ask again.
 5. Close the ask once its answers are in the source.

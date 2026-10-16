@@ -1,4 +1,4 @@
-// The board's routes as the Board page calls them: the record read (an empty
+// The board's routes as the studio's Board section calls them: the record read (an empty
 // board before the first panel), an image it names served and one it does
 // not refused, a try kept with why, a beat's board approved once every
 // picture panel keeps a try, then withdrawn; a refusal answers 422 naming why.

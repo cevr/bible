@@ -1,6 +1,6 @@
 // The judge (`film judge`): a blind second opinion on one picture choice at
-// one scene (`core/judge.ts` holds its words). A version is what the lab's
-// Choices view picks between for the picture:
+// one scene (`core/judge.ts` holds its words). A version is what an ask's
+// picture choice picks between:
 //
 // - a look's levels (`look:<name>`, `palette.ts`'s `looks`): each drawn
 //   through the easel as a wedge (`film look --level`), the level in place of

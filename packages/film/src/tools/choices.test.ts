@@ -258,7 +258,7 @@ describe('Choices: a voice picked', () => {
       expect(secondBytes).not.toEqual(firstBytes);
       expect((yield* timings).scenes['a']?.file).toBe(second);
       const before = files.get(TIMINGS);
-      // The owner goes back to the first reading in the Choices view.
+      // The owner goes back to the first reading through the choices routes.
       const point = pointIdOf({ _tag: 'Voice', beat: 'a' });
       const picked = yield* (yield* Choices).pick(F, { point, variant: first, verb: 'pick' });
       expect(Option.isSome(picked.change)).toBe(true);

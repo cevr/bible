@@ -4,7 +4,7 @@
 // is sent compressed, a streamed one chunk by chunk. A client that leaves
 // mid-build or mid-render, on the real server, leaves the watches whole and
 // stops the render's reads; one that leaves mid-ask of a film's track
-// leaves its next mix heard. The Script page's read of a film's script is
+// leaves its next mix heard. The words reader's read of a film's script is
 // run fresh once a stamp, and refused for a film the app has not. And the lab
 // never imports a film: no module its handler runs reaches a loader.
 
@@ -1586,7 +1586,7 @@ describe('a client that goes away', () => {
   );
 });
 
-describe("the Script page's read", () => {
+describe("the words reader's read", () => {
   const BEATS = [
     { id: 'cold', cite: [], picture: 'a hand on a `door`' },
     { id: 'title', cite: ['Romans 1:17'] },

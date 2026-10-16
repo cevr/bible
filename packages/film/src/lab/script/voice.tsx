@@ -167,8 +167,7 @@ export interface VoiceSource {
   readonly written: string;
   /**
    * Reads the script again, once a poll shows a line changed under the
-   * reader (`retaken`): none where a change to the script reloads the page
-   * (a film's Script page, rebuilt).
+   * reader (`retaken`): none where a change to the script reloads the page.
    */
   readonly reread: Option.Option<() => void>;
 }

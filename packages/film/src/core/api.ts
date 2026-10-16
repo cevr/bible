@@ -405,7 +405,7 @@ export const TalkMarkPost = Schema.Struct({
 });
 
 /**
- * A beat of a film's script as the Script page reads it beside the staged
+ * A beat of a film's script as the words reader reads it beside the staged
  * film: what the film plays leaves it out (`scenesOf`), so it comes from the
  * script as it stands: the picture's brief and the beat's sources.
  */
@@ -719,7 +719,7 @@ class TalkGroup extends HttpApiGroup.make('talk').add(
 ) {}
 
 /**
- * The film's script as the Script page reads it beside the staged film: each
+ * The film's script as the words reader reads it beside the staged film: each
  * beat's picture and sources, each beat's staging take and its audio, and a
  * beat's delivery marks written.
  */

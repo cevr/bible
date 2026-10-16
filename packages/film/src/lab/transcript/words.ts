@@ -1,5 +1,5 @@
-// The words of a narration on a page, as the Transcript view and the Script
-// both show them (`transcript/view.tsx`, `script/view.tsx`): each word an
+// The words of a narration on a page, as the Transcript view and the words
+// reader show them (`transcript/view.tsx`, `words/reader.tsx`): each word an
 // element of its own inside its section's (`data-scene`), holding its index
 // (`data-index`) and its offset in the one text (`data-from`, `lit.ts`), so
 // the page's highlights (`browser/highlights.ts`) paint ranges of the text

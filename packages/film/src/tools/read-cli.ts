@@ -10,7 +10,7 @@
 //       what the studio reads: the voice, how speech-to-text writes the
 //       script's names, each beat's line, and the reading sheet
 //   film read script <film>
-//       what the Script page reads beside the staged film: each beat of
+//       what the words reader reads beside the staged film: each beat of
 //       `script.ts` in order, its picture's brief and its sources (none for a
 //       film that keeps no script)
 //   film read cue <film> <scene> <cue> [--spans <json>] [--patch <json>]
@@ -405,7 +405,7 @@ const voice = Command.make(
   ),
 );
 
-/** Each beat of a film's script as the Script page reads it: its id, its line, its picture's brief, its sources. Pure. */
+/** Each beat of a film's script as the words reader reads it: its id, its line, its picture's brief, its sources. Pure. */
 const scriptBeatsOf = (
   script: Option.Option<ReadonlyArray<ScriptLine & { readonly picture?: string }>>,
 ): ReadonlyArray<ScriptBeat> =>
@@ -431,7 +431,7 @@ const script = Command.make(
   }, answering),
 ).pipe(
   Command.withDescription(
-    "What the lab's Script page reads of the film's script (each beat's picture and sources), as one line of JSON",
+    "What the lab's words reader reads of the film's script (each beat's picture and sources), as one line of JSON",
   ),
 );
 
