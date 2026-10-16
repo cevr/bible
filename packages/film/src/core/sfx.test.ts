@@ -3,6 +3,7 @@ import { Option, Result, Schema } from 'effect';
 import {
   DEFAULT_JITTER,
   type Library,
+  LibraryEntry,
   type Lock,
   LockJson,
   type Variant,
@@ -28,13 +29,21 @@ const library = defineLibrary({
   'paper.slide': {
     kind: 'generated',
     prompt: 'a sheet of paper slides across a desk',
+    why: 'a test sound',
     secs: 1,
     use: 'one-shot',
   },
-  'paper.tear': { kind: 'generated', prompt: 'paper tears', secs: 0.8, use: 'one-shot' },
+  'paper.tear': {
+    kind: 'generated',
+    prompt: 'paper tears',
+    why: 'a test sound',
+    secs: 0.8,
+    use: 'one-shot',
+  },
   'amb.court': {
     kind: 'generated',
     prompt: 'a quiet stone courtroom',
+    why: 'a test sound',
     secs: 20,
     loop: true,
     use: 'bed',
@@ -62,6 +71,8 @@ describe('requestKey', () => {
     const slide = library['paper.slide'];
     expect(requestKey({ ...slide, level: -4 })).toBe(requestKey(slide));
     expect(requestKey({ ...slide, jitter: { pitch: 0, gain: 0 } })).toBe(requestKey(slide));
+    // Why it is generated is not what it sounds like: its takes stay current.
+    expect(requestKey({ ...slide, why: 'another' })).toBe(requestKey(slide));
     expect(requestKey({ ...slide, prompt: 'another' })).not.toBe(requestKey(slide));
     expect(requestKey({ ...slide, secs: 2 })).not.toBe(requestKey(slide));
     expect(requestKey({ ...slide, influence: 0.9 })).not.toBe(requestKey(slide));
@@ -89,6 +100,16 @@ describe('requestKey', () => {
     expect(requestKey({ ...chime, recipe: { ...chime.recipe, root: 'E5' } })).not.toBe(
       requestKey(chime),
     );
+  });
+});
+
+describe('a generated sound', () => {
+  test('says why it needs realism: one with no why, or an empty one, is refused', () => {
+    const decode = Schema.decodeUnknownResult(LibraryEntry);
+    const { why: _why, ...unsaid } = library['paper.slide'];
+    expect(Result.isSuccess(decode(library['paper.slide']))).toBe(true);
+    expect(Result.isFailure(decode(unsaid))).toBe(true);
+    expect(Result.isFailure(decode({ ...unsaid, why: '' }))).toBe(true);
   });
 });
 

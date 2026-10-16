@@ -204,7 +204,13 @@ describe("the owner's say", () => {
 
 describe('a take point when the mix plan does not build', () => {
   const chime = defineLibrary({
-    'tone.chime': { kind: 'generated', prompt: 'a chime', secs: 1, use: 'one-shot' },
+    'tone.chime': {
+      kind: 'generated',
+      prompt: 'a chime',
+      why: 'a test sound',
+      secs: 1,
+      use: 'one-shot',
+    },
   });
   const kept: Variant = {
     request: requestKey(chime['tone.chime']),

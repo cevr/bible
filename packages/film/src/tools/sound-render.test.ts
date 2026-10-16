@@ -29,7 +29,13 @@ const library = defineLibrary({
     variants: 1,
     use: 'one-shot',
   },
-  'paper.tap': { kind: 'generated', prompt: 'a tap', secs: 1, use: 'one-shot' },
+  'paper.tap': {
+    kind: 'generated',
+    prompt: 'a tap',
+    why: 'a test sound',
+    secs: 1,
+    use: 'one-shot',
+  },
 });
 
 const sounds: Sounds = {

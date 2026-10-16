@@ -1209,10 +1209,35 @@ describe('musicFindings', () => {
 
 /** A test library: made and current, stale, unmade with a candidate waiting, a bed, a loud one, and code. */
 const library = defineLibrary({
-  'paper.hit': { kind: 'generated', prompt: 'a hit', secs: 1, use: 'one-shot' },
-  'paper.old': { kind: 'generated', prompt: 'an old hit', secs: 1, use: 'one-shot' },
-  'paper.new': { kind: 'generated', prompt: 'a new hit', secs: 1, use: 'one-shot' },
-  'paper.loud': { kind: 'generated', prompt: 'a loud hit', secs: 1, use: 'one-shot', level: 0 },
+  'paper.hit': {
+    kind: 'generated',
+    prompt: 'a hit',
+    why: 'a test sound',
+    secs: 1,
+    use: 'one-shot',
+  },
+  'paper.old': {
+    kind: 'generated',
+    prompt: 'an old hit',
+    why: 'a test sound',
+    secs: 1,
+    use: 'one-shot',
+  },
+  'paper.new': {
+    kind: 'generated',
+    prompt: 'a new hit',
+    why: 'a test sound',
+    secs: 1,
+    use: 'one-shot',
+  },
+  'paper.loud': {
+    kind: 'generated',
+    prompt: 'a loud hit',
+    why: 'a test sound',
+    secs: 1,
+    use: 'one-shot',
+    level: 0,
+  },
   'room.paper': {
     kind: 'procedural',
     recipe: { recipe: 'room', secs: 4 },

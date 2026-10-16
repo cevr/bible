@@ -23,6 +23,7 @@ const sample = (sound: string): Node => ({ _tag: 'Sample', sound });
 const trialled = (play: Node): LibraryEntry => ({
   kind: 'generated',
   prompt: 'a whoosh',
+  why: 'a test sound',
   secs: 1,
   use: 'one-shot',
   code: { sound: { play }, variants: 2 },
@@ -47,7 +48,13 @@ describe('the walk of the code sounds', () => {
         key: { tonic: 'D', scale: 'minor' },
         play: { _tag: 'Layer', of: [{ node: sample('tone.drop') }, { node: sample('tone.drop') }] },
       }),
-      'amb.court': { kind: 'generated', prompt: 'a court', secs: 10, use: 'bed' },
+      'amb.court': {
+        kind: 'generated',
+        prompt: 'a court',
+        why: 'a test sound',
+        secs: 10,
+        use: 'bed',
+      },
     });
     const sounds = Result.getOrThrow(resolved(library));
     expect([...sounds.keys()]).toEqual(['tone.drop', 'tone.rain']);
@@ -89,7 +96,13 @@ describe('the walk of the code sounds', () => {
     });
     expect(
       walked({
-        'amb.court': { kind: 'generated', prompt: 'a court', secs: 10, use: 'bed' },
+        'amb.court': {
+          kind: 'generated',
+          prompt: 'a court',
+          why: 'a test sound',
+          secs: 10,
+          use: 'bed',
+        },
         'tone.a': code({ play: sample('amb.court') }),
       }),
     ).toMatchObject({
@@ -193,7 +206,13 @@ describe('the walk of the code trials', () => {
     const library = defineLibrary({
       'tone.drop': code({ play: noise(0.1) }),
       'paper.whoosh': trialled(sample('tone.drop')),
-      'amb.court': { kind: 'generated', prompt: 'a court', secs: 10, use: 'bed' },
+      'amb.court': {
+        kind: 'generated',
+        prompt: 'a court',
+        why: 'a test sound',
+        secs: 10,
+        use: 'bed',
+      },
       'tone.chime': { kind: 'procedural', recipe: bell, variants: 5, use: 'one-shot' },
     });
     const walk = Result.getOrThrow(resolveCode(library));

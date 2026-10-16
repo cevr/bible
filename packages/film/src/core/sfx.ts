@@ -90,6 +90,12 @@ type CodeTrial = typeof CodeTrial.Type;
 export const Generated = Schema.Struct({
   kind: Schema.Literal('generated'),
   prompt: Schema.NonEmptyString,
+  /**
+   * Why ElevenLabs makes it: the realism its credits pay for, which code
+   * cannot make. Code makes every simpler sound (the owner's rule), so a
+   * generated sound says what it needs.
+   */
+  why: Schema.NonEmptyString,
   secs: Schema.Finite.check(
     Schema.isBetween({ minimum: GENERATED_SECS.min, maximum: GENERATED_SECS.max }),
   ),

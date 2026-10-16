@@ -357,9 +357,29 @@ describe('mixPlan', () => {
     ];
     const film = Result.getOrThrow(layout(scenes, { voice: '', scenes: {} }));
     const library = defineLibrary({
-      'paper.tap': { kind: 'generated', prompt: 'a tap', secs: 1, use: 'one-shot' },
-      'wood.knock': { kind: 'generated', prompt: 'a knock', secs: 1, use: 'one-shot', level: -4 },
-      'amb.court': { kind: 'generated', prompt: 'a court', secs: 20, loop: true, use: 'bed' },
+      'paper.tap': {
+        kind: 'generated',
+        prompt: 'a tap',
+        why: 'a test sound',
+        secs: 1,
+        use: 'one-shot',
+      },
+      'wood.knock': {
+        kind: 'generated',
+        prompt: 'a knock',
+        why: 'a test sound',
+        secs: 1,
+        use: 'one-shot',
+        level: -4,
+      },
+      'amb.court': {
+        kind: 'generated',
+        prompt: 'a court',
+        why: 'a test sound',
+        secs: 20,
+        loop: true,
+        use: 'bed',
+      },
       'tone.chime': {
         kind: 'procedural',
         recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 1 },

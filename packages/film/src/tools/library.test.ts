@@ -35,10 +35,11 @@ import { NO_SCORES, type Scores } from './media-store.ts';
 const PAPER_SLIDE = Segment.make('paper.slide');
 
 const LIBRARY = `export const library = {
-  'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 0.5, candidates: 4, use: 'one-shot' },
+  'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', why: 'a test sound', secs: 0.5, candidates: 4, use: 'one-shot' },
   'amb.court': {
     kind: 'generated',
     prompt: 'a quiet stone court',
+    why: 'a test sound',
     secs: 1,
     loop: true,
     candidates: 2,
@@ -378,6 +379,7 @@ describe.concurrent('SoundLibrary', () => {
           const declaredAsTried = {
             kind: 'generated',
             prompt: 'paper slides on a desk',
+            why: 'a test sound',
             secs: 0.8,
             influence: 0.9,
             use: 'one-shot',
