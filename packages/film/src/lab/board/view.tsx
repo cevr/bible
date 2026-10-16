@@ -34,7 +34,7 @@ import { Timecode } from '../page-shell.tsx';
 import { pressed } from '../pressed.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { Sketch } from '../sketch/surface.tsx';
-import { panelTime } from './animatic.ts';
+import { panelTime } from '../../core/animatic.ts';
 import { Asked, type BoardBeat, BoardRead, type PickedPanel, useBoard } from './context.tsx';
 import { type PanelAsking, tweakCommand } from './note.ts';
 import { BOARD_CSS } from './style.ts';

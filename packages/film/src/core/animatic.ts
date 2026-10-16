@@ -2,11 +2,13 @@
 // held from the moment its mark is said (a `start` panel from its beat's
 // first frame) until the next panel takes over; a beat's first panel opens
 // the beat even when its mark comes later, so a beat never shows the last
-// beat's picture. A beat with no panel shows its storyboard card. Pure: the
-// Board's picture draws what `shotAt` names, and the column lists the shots.
+// beat's picture. A beat with no panel shows its storyboard card. Pure, and
+// the one rule for when a panel shows: the Board page's picture draws what
+// `shotAt` names and its column lists the shots, and the studio's Board lane
+// (`core/film-timeline.ts`) lays the same shots on its clock.
 
 import { Array as Arr, Boolean as Bool, Data, Option, Order } from 'effect';
-import { type BoardFile, PANEL_START, type Panel, panelsOf } from '../../core/board.ts';
+import { type BoardFile, PANEL_START, type Panel, panelsOf } from './board.ts';
 
 /** A beat as the animatic times it: where it starts and ends on the film's clock, and where its line says each mark. */
 export interface TimedBeat {

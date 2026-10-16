@@ -4,8 +4,8 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
-import { type BoardFile, BoardName, type Panel, emptyBoard } from '../../core/board.ts';
-import { Segment } from '../../core/segment.ts';
+import { type BoardFile, BoardName, type Panel, emptyBoard } from './board.ts';
+import { Segment } from './segment.ts';
 import { Shot, type TimedBeat, shotAt, shotsOf } from './animatic.ts';
 
 const marks = (start: number, at: Record<string, number>) => (name: string) =>
