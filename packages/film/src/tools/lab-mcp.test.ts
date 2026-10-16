@@ -25,6 +25,7 @@ import {
   Effect,
   Exit,
   Fiber,
+  FileSystem,
   Layer,
   Option,
   Path,
@@ -49,6 +50,7 @@ import { TestClock } from 'effect/testing';
 import { labUrls } from '../core/api.ts';
 import { Ask, AskName } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
+import { CatalogueJson, emptyCatalogue } from '../core/catalogue.ts';
 import { Segment } from '../core/segment.ts';
 import { currentOf, moveForward, productionsOf } from '../core/production.ts';
 import { AskStore } from './ask-store.ts';
@@ -354,6 +356,54 @@ describe('the lab as an MCP server', () => {
         ]);
       }),
     ),
+  );
+});
+
+describe('the sets the MCP lists', () => {
+  it.effect(
+    'every folder the review walks, by the kind it reads it as: one nested below the first level, a project folder by its catalogue though a manifest sits beside it, and no record that does not decode; the feed hears a nested one published',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const out = path.resolve('out');
+          const put = (rel: string, body: string) =>
+            Effect.gen(function* () {
+              const file = path.join(out, rel);
+              yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+              yield* fs.writeFileString(file, body);
+            });
+          yield* put(
+            'f/catalogue.json',
+            yield* Schema.encodeEffect(CatalogueJson)(emptyCatalogue('f')),
+          );
+          yield* put('f/review.json', '{"title":"Not a montage"}');
+          yield* put('broken/review.json', '{"title":');
+          const { lab, events } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          const { cursor } = yield* tool('overview');
+          yield* put('stories/rbf/review.json', '{"title":"Deep"}');
+          const listed = yield* tool('sets');
+          const rows = listed.sets.map((s: { set: string; kind: string; title?: string }) => [
+            s.set,
+            s.kind,
+            Option.getOrElse(Option.fromUndefinedOr(s.title), () => ''),
+          ]);
+          expect(rows.toSorted()).toEqual(
+            [
+              ['spare/f', 'project', ''],
+              ['spare/stories/rbf', 'montage', 'Deep'],
+            ].toSorted(),
+          );
+          expect((yield* tool('overview')).sets.length).toBe(2);
+          yield* events.look;
+          const seen = yield* tool('changes', { since: cursor });
+          expect(seen.changes.map((c: { kind: string; set: string }) => [c.kind, c.set])).toEqual([
+            ['set.published', 'spare/stories/rbf'],
+          ]);
+        }),
+      ),
   );
 });
 

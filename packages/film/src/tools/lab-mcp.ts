@@ -73,7 +73,7 @@ import {
   withAskSaid,
 } from '../core/production.ts';
 import { type BoardFile, BoardStyle, PANEL_START, Panel, panelById } from '../core/board.ts';
-import { Catalogue, Render } from '../core/catalogue.ts';
+import { Catalogue, CatalogueJson, Render } from '../core/catalogue.ts';
 import { LabLinks, boardPath, gist, linksAt, notePath } from '../core/lab-events.ts';
 import { unresolved } from '../core/notes.ts';
 import { ReviewManifest, ReviewManifestJson } from '../core/review.ts';
@@ -81,17 +81,17 @@ import { Note, type NoteDraft, NoteStatus, repoJson } from '../core/schema.ts';
 import { Segment } from '../core/segment.ts';
 import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
-import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
+import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts';
 import type { Easel } from './easel.ts';
 import { EASEL_INSTRUCTIONS, easelMcp } from './easel-mcp.ts';
 import { logged } from './mcp-calls.ts';
 import { FilmFolder, type FilmName, filmNamed, filmsOut } from './film-repo.ts';
 import type { FreshFilm } from './fresh-film.ts';
-import { LabChanges, LabEvents, reviewFolders } from './lab-events.ts';
+import { LabChanges, LabEvents } from './lab-events.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
-import { Review, refOf, pathOf } from './review.ts';
+import { Review, pathOf, recordsUnder, refOf } from './review.ts';
 
 /** Where the lab answers MCP. */
 export const MCP_PATH = '/mcp';
@@ -578,41 +578,39 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     stillFile: path.join(notes.paths(film).stills, note.still),
   });
 
-  /** The sets under the roots: a folder with a `review.json` is a montage, else one with a `catalogue.json` a project. */
+  /**
+   * The sets under the roots, as the review walks them (`recordsUnder`: every
+   * level, a folder with a catalogue a project, one with a manifest alone a
+   * montage), each whose record decodes as the review reads it.
+   */
   const sets = Effect.gen(function* () {
-    const listed = yield* reviewFolders(review.roots).pipe(Effect.provideContext(platform));
+    const listed = yield* recordsUnder(review.roots).pipe(Effect.provideContext(platform));
     const found = yield* Effect.forEach(
       listed,
       (f) =>
         Effect.gen(function* () {
-          const manifest = path.join(f.dir, 'review.json');
-          if (yield* fs.exists(manifest).pipe(Effect.orElseSucceed(() => false))) {
-            const title = Option.flatMap(
-              Schema.decodeOption(ReviewManifestJson)(
-                yield* fs.readFileString(manifest).pipe(Effect.orElseSucceed(() => '')),
+          const text = yield* fs.readFileString(f.file).pipe(Effect.option);
+          // The record decoded: some title or none when it does; nothing when it does not.
+          const decoded = Match.value(f.kind).pipe(
+            Match.when('montage', () =>
+              Option.map(
+                Option.flatMap(text, Schema.decodeOption(ReviewManifestJson)),
+                (m) => m.title,
               ),
-              (m) => m.title,
-            );
-            return Option.some<typeof SetRead.Type>({
-              set: f.ref,
-              kind: 'montage',
-              ...Option.match(title, { onNone: () => ({}), onSome: (t) => ({ title: t }) }),
-              links: linksOf(pageHref.folder(f.ref)),
-              dir: f.dir,
-            });
-          }
-          if (
-            yield* fs
-              .exists(path.join(f.dir, CATALOGUE_FILE))
-              .pipe(Effect.orElseSucceed(() => false))
-          )
-            return Option.some<typeof SetRead.Type>({
-              set: f.ref,
-              kind: 'project',
-              links: linksOf(pageHref.folder(f.ref)),
-              dir: f.dir,
-            });
-          return Option.none<typeof SetRead.Type>();
+            ),
+            Match.orElse(() =>
+              Option.map(Option.flatMap(text, Schema.decodeOption(CatalogueJson)), () =>
+                Option.none<string>(),
+              ),
+            ),
+          );
+          return Option.map(decoded, (t): typeof SetRead.Type => ({
+            set: f.ref,
+            kind: f.kind,
+            ...Option.match(t, { onNone: () => ({}), onSome: (named) => ({ title: named }) }),
+            links: linksOf(pageHref.folder(f.ref)),
+            dir: f.dir,
+          }));
         }),
       { concurrency: 8 },
     );

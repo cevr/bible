@@ -27,6 +27,7 @@
 
 import {
   Array as Arr,
+  Boolean as Bool,
   Cache,
   Clock,
   Config,
@@ -531,6 +532,58 @@ const walked = (rel: string): boolean => {
 };
 
 /**
+ * A folder a walk of the roots finds with a record in it: its ref, where it
+ * is, the record the review reads it by, and so its kind: a project (its
+ * `catalogue.json`; a manifest beside it is not a montage) or a montage (a
+ * `review.json` alone).
+ */
+interface ReviewRecord {
+  readonly ref: string;
+  readonly dir: string;
+  readonly file: string;
+  readonly kind: 'project' | 'montage';
+}
+
+/**
+ * Every folder under `roots` with a record, as the review walks them (every
+ * level to `MAX_DEPTH`, past dot-folders and working folders), each folder
+ * once by its ref (the innermost root holding it). The one walk: the index,
+ * the change feed and the MCP's `sets` all read it.
+ */
+export const recordsUnder = Effect.fn('Review.recordsUnder')(function* (
+  roots: ReadonlyArray<ReviewRoot>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const found = yield* Effect.forEach(roots, (root) =>
+    fs.readDirectory(root.path, { recursive: true }).pipe(
+      Effect.orElseSucceed(() => []),
+      Effect.map((names) =>
+        names
+          .map((rel) => rel.split(path.sep).join('/'))
+          .filter((rel) => walked(rel))
+          .filter((rel) => [CATALOGUE_FILE, MANIFEST_FILE].includes(rel.split('/').at(-1) ?? ''))
+          .map((rel) => path.join(root.path, ...rel.split('/'))),
+      ),
+    ),
+  );
+  const byDir = new Map<string, ReviewRecord>();
+  for (const file of found.flat()) {
+    const dir = path.dirname(file);
+    const ref = refOf(roots, dir, path);
+    if (Option.isNone(ref)) continue;
+    const kind = Bool.match(path.basename(file) === CATALOGUE_FILE, {
+      onTrue: () => 'project' as const,
+      onFalse: () => 'montage' as const,
+    });
+    if (Option.exists(Option.fromUndefinedOr(byDir.get(dir)), (had) => had.kind === 'project'))
+      continue;
+    byDir.set(dir, { ref: ref.value, dir, file, kind });
+  }
+  return [...byDir.values()];
+});
+
+/**
  * How an approve reads the film's project as it stands now: the project of
  * the film `film`, whose catalogue is in the folder `out`, read in a fresh
  * process; none for a folder that is not this checkout's own for the film
@@ -884,18 +937,6 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           }
         });
 
-        /** Every record a walk finds under a root: a project's catalogue, a montage's manifest. */
-        const walk = Effect.fn('Review.walk')(function* (root: ReviewRoot) {
-          const names = yield* fs
-            .readDirectory(root.path, { recursive: true })
-            .pipe(Effect.orElseSucceed(() => []));
-          return names
-            .map((rel) => rel.split(path.sep).join('/'))
-            .filter((rel) => walked(rel))
-            .filter((rel) => [CATALOGUE_FILE, MANIFEST_FILE].includes(rel.split('/').at(-1) ?? ''))
-            .map((rel) => path.join(root.path, ...rel.split('/')));
-        });
-
         /** A record decoded, or none (with a warning) when it does not. */
         const decodeRecord = <A>(file: string, codec: Schema.Codec<A, string>) =>
           fs.readFileString(file).pipe(
@@ -974,11 +1015,7 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
               pictures,
             });
           }
-          // A project folder's own manifest is not a montage.
-          const project = yield* fs
-            .exists(path.join(dir, CATALOGUE_FILE))
-            .pipe(Effect.orElseSucceed(() => false));
-          if (project) return Option.none();
+          // A montage's manifest: the walk (`recordsUnder`) names a project folder by its catalogue.
           const manifest = yield* decodeRecord(file, ReviewManifestJson);
           if (Option.isNone(manifest)) return Option.none();
           const record = manifest.value;
@@ -1010,8 +1047,13 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         }
 
         const read = Effect.fn('Review.read')(function* () {
-          const records = (yield* Effect.forEach(roots, walk)).flat();
-          const built = (yield* Effect.forEach(records, folderAt)).flatMap(Option.toArray);
+          const records = yield* recordsUnder(roots).pipe(
+            Effect.provideService(FileSystem.FileSystem, fs),
+            Effect.provideService(Path.Path, path),
+          );
+          const built = (yield* Effect.forEach(records, (r) => folderAt(r.file))).flatMap(
+            Option.toArray,
+          );
           const folders = Arr.sort(
             built.map((b) => b.folder),
             newestFirst,
