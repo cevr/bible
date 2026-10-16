@@ -1561,11 +1561,23 @@ export class EGWParagraphDatabase extends Context.Service<
          *  for this publication is cleared first, so a retry after a crash
          *  starts clean. Nothing a reader sees has changed yet.
          *
-         *  **Swap.** One atomic group (`SqlAtomic`) deletes the publication's
-         *  live rows, copies the staged ones across, writes its `books` and
-         *  `sync_status` rows and clears the stage. The full-text triggers fire
-         *  on the copy, so `paragraphs_fts` moves with it. A reader sees the
-         *  old publication or the new one, never a mix.
+         *  **Swap.** One atomic group (`SqlAtomic`) makes the live rows the
+         *  staged ones, writes the `books` and `sync_status` rows and clears
+         *  the stage. It writes only the difference: a row the stage no
+         *  longer has is deleted, a row whose columns moved is updated in
+         *  place, a new row is inserted, and an unchanged row is left as it
+         *  is, its `created_at`, `updated_at` and rowid with it. The
+         *  full-text triggers fire on those rows alone, so `paragraphs_fts`
+         *  moves with them. A reinstall that changes nothing writes no
+         *  paragraph: rewriting every row of the Topical Index (319,370
+         *  paragraphs) in one group was more than D1 answers in time. A
+         *  reader sees the old publication or the new one, never a mix.
+         *
+         *  The references go first and last because each names its
+         *  paragraph by key (`paragraph_bible_refs` → `paragraphs`): those
+         *  the stage dropped go before the paragraphs, the new ones after. An
+         *  update keeps a paragraph's key, so it leaves its references
+         *  valid.
          *
          *  The swap is a fixed list of statements because D1 runs a group as a
          *  batch, which cannot branch on a result. So the count is checked on
@@ -1689,6 +1701,47 @@ export class EGWParagraphDatabase extends Context.Service<
             FROM json_each(${encodeIncomingBibleRefs(references)})
           `;
 
+        /** A live paragraph differs from its staged row `i` in a column a
+         *  reader sees. `IS NOT` so that a null equals a null. */
+        const paragraphDiffers = sql.literal(
+          [
+            'para_id',
+            'refcode_short',
+            'refcode_long',
+            'nodes_json',
+            'content_text',
+            'puborder',
+            'element_type',
+            'element_subtype',
+            'page_number',
+            'paragraph_number',
+            'is_chapter_heading',
+          ]
+            .map((column) => `paragraphs.${column} IS NOT i.${column}`)
+            .join(' OR '),
+        );
+
+        /** The staged reference equal to a live one, by every column of
+         *  the key; `IS` so that two verseless references match. */
+        const sameStagedReference = sql.literal(`
+          SELECT 1 FROM paragraph_bible_refs_incoming i
+          WHERE i.para_book_id = paragraph_bible_refs.para_book_id
+            AND i.para_ref_code = paragraph_bible_refs.para_ref_code
+            AND i.bible_book = paragraph_bible_refs.bible_book
+            AND i.bible_chapter = paragraph_bible_refs.bible_chapter
+            AND i.bible_verse IS paragraph_bible_refs.bible_verse
+        `);
+
+        /** The live reference equal to a staged one `i`. */
+        const sameLiveReference = sql.literal(`
+          SELECT 1 FROM paragraph_bible_refs p
+          WHERE p.para_book_id = i.para_book_id
+            AND p.para_ref_code = i.para_ref_code
+            AND p.bible_book = i.bible_book
+            AND p.bible_chapter = i.bible_chapter
+            AND p.bible_verse IS i.bible_verse
+        `);
+
         const installPublication = Effect.fn('EGWParagraphDatabase.installPublication')(function* <
           E,
         >(stream: PublicationStream<E>, provenance?: CorpusProvenance) {
@@ -1771,9 +1824,40 @@ export class EGWParagraphDatabase extends Context.Service<
           });
           yield* atomic.run([
             ...changes,
-            sql`DELETE FROM paragraph_bible_refs WHERE para_book_id = ${publicationId}`,
-            sql`DELETE FROM paragraphs WHERE book_id = ${publicationId}`,
+            sql`
+              DELETE FROM paragraph_bible_refs
+              WHERE para_book_id = ${publicationId}
+                AND NOT EXISTS (${sameStagedReference})
+            `,
+            sql`
+              DELETE FROM paragraphs
+              WHERE book_id = ${publicationId}
+                AND NOT EXISTS (
+                  SELECT 1 FROM paragraphs_incoming i
+                  WHERE i.book_id = paragraphs.book_id AND i.ref_code = paragraphs.ref_code
+                )
+            `,
             upsertPublicationBook(publication, staged, now),
+            sql`
+              UPDATE paragraphs SET
+                para_id = i.para_id,
+                refcode_short = i.refcode_short,
+                refcode_long = i.refcode_long,
+                nodes_json = i.nodes_json,
+                content_text = i.content_text,
+                puborder = i.puborder,
+                element_type = i.element_type,
+                element_subtype = i.element_subtype,
+                page_number = i.page_number,
+                paragraph_number = i.paragraph_number,
+                is_chapter_heading = i.is_chapter_heading,
+                updated_at = i.updated_at
+              FROM paragraphs_incoming i
+              WHERE paragraphs.book_id = ${publicationId}
+                AND i.book_id = paragraphs.book_id
+                AND i.ref_code = paragraphs.ref_code
+                AND (${paragraphDiffers})
+            `,
             sql`
               INSERT INTO paragraphs (
                 book_id, ref_code, para_id, refcode_short, refcode_long,
@@ -1786,8 +1870,12 @@ export class EGWParagraphDatabase extends Context.Service<
                 nodes_json, content_text, puborder, element_type, element_subtype,
                 page_number, paragraph_number, is_chapter_heading,
                 created_at, updated_at
-              FROM paragraphs_incoming
+              FROM paragraphs_incoming i
               WHERE book_id = ${publicationId}
+                AND NOT EXISTS (
+                  SELECT 1 FROM paragraphs p
+                  WHERE p.book_id = i.book_id AND p.ref_code = i.ref_code
+                )
               ORDER BY puborder
             `,
             sql`
@@ -1795,8 +1883,9 @@ export class EGWParagraphDatabase extends Context.Service<
                 para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
               )
               SELECT para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
-              FROM paragraph_bible_refs_incoming
+              FROM paragraph_bible_refs_incoming i
               WHERE para_book_id = ${publicationId}
+                AND NOT EXISTS (${sameLiveReference})
             `,
             sql`
               INSERT INTO sync_status (

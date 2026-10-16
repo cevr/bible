@@ -491,6 +491,84 @@ describe('EGWParagraphDatabase', () => {
           expect(staged?.count).toBe(0);
         }),
       ));
+
+    test('a reinstall writes only the rows that changed and keeps the rest as they were', () =>
+      runTestWithPath((dbPath) =>
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* installArchive(db, mockArchive(['TEST 1.1', 'TEST 1.2', 'TEST 1.3']));
+
+          const raw = new Database(dbPath);
+          const rows = () =>
+            raw
+              .query<
+                {
+                  readonly ref_code: string;
+                  readonly rowid: number;
+                  readonly content_text: string;
+                  readonly updated_at: string;
+                },
+                []
+              >(
+                `SELECT ref_code, rowid, content_text, updated_at
+                 FROM paragraphs WHERE book_id = 9001 ORDER BY puborder`,
+              )
+              .all();
+          const before = rows();
+
+          // 1.1 stays, 1.2 is reworded, 1.3 goes, 1.4 comes; 1.4 gains a
+          // reference beside the one 1.1 keeps.
+          const next = mockArchive(['TEST 1.1', 'TEST 1.2', 'TEST 1.4']);
+          yield* installArchive(
+            db,
+            PublicationArchive.make({
+              ...next,
+              paragraphs: next.paragraphs.map((archived) => {
+                if (archived.refcode !== 'TEST 1.2') return archived;
+                return ArchivedParagraph.make({
+                  ...archived,
+                  paragraph: WritingsParagraph.make({
+                    ...archived.paragraph,
+                    nodes: [{ _tag: 'Text', text: 'Revised wording' }],
+                  }),
+                });
+              }),
+              bibleReferences: [
+                ...next.bibleReferences,
+                ArchivedBibleReference.make({
+                  paragraphRefcode: 'TEST 1.4',
+                  scripture: BibleReference.verse(2, 3, 4),
+                }),
+              ],
+            }),
+          );
+          const after = rows();
+          const integrity = Effect.try(() =>
+            raw.run(`INSERT INTO paragraphs_fts(paragraphs_fts) VALUES ('integrity-check')`),
+          );
+          yield* integrity;
+          raw.close();
+
+          expect(after.map((row) => row.ref_code)).toEqual(['TEST 1.1', 'TEST 1.2', 'TEST 1.4']);
+          // The unchanged row is the same row; the reworded one keeps its key and rowid.
+          expect(after[0]).toEqual(before[0]);
+          expect(after[1]?.rowid).toBe(before[1]?.rowid);
+          expect(after[1]?.content_text).toBe('Revised wording');
+
+          const revised = yield* db.searchParagraphs('Revised', { limit: 10, bookCode: 'TEST' });
+          const original = yield* db.searchParagraphs('Content', { limit: 10, bookCode: 'TEST' });
+          expect(revised).toHaveLength(1);
+          expect(original.map((hit) => Option.getOrNull(hit.refcode_short)).sort()).toEqual([
+            'TEST 1.1',
+            'TEST 1.4',
+          ]);
+          const references = yield* db.getBibleRefsByBook(9001);
+          expect(references.map((reference) => reference.para_ref_code).sort()).toEqual([
+            'TEST 1.1',
+            'TEST 1.4',
+          ]);
+        }),
+      ));
   });
 
   describe('chapter heading detection', () => {

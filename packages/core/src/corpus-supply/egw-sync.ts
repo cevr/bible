@@ -23,7 +23,7 @@
  * context, so a caller supplies its own database connection.
  */
 
-import { Cause, Effect, Exit, Option, Predicate, Ref, Schema, Stream } from 'effect';
+import { Array as Arr, Cause, Effect, Exit, Option, Predicate, Ref, Schema, Stream } from 'effect';
 
 import { EGWApiClient } from '../egw/index.js';
 import {
@@ -97,19 +97,37 @@ class EgwSyncInputError extends Schema.TaggedError<EgwSyncInputError>()('EgwSync
 const hasContent = (book: Option.Option<BookRow>): boolean =>
   Option.exists(book, (value) => value.paragraph_count > 0);
 
-const messageFromCause = (cause: unknown): string => {
-  if (Predicate.isString(cause) && cause.length > 0) return cause;
-  if (
-    Predicate.hasProperty(cause, 'message') &&
-    Predicate.isString(cause.message) &&
-    cause.message.length > 0
-  ) {
-    return cause.message;
+/** What one error says of itself: its message, else its tag. */
+const ownMessage = (cause: unknown): readonly string[] => {
+  if (Predicate.isString(cause)) return [cause];
+  if (Predicate.hasProperty(cause, 'message') && Predicate.isString(cause.message)) {
+    if (cause.message.length > 0) return [cause.message];
   }
   if (Predicate.hasProperty(cause, '_tag') && Predicate.isString(cause._tag)) {
-    return cause._tag;
+    return [cause._tag];
   }
-  return 'The download failed without a message.';
+  return [];
+};
+
+/** How deep a chain of causes is read. */
+const CAUSE_DEPTH = 6;
+
+/** Each message down a chain of causes, outermost first. */
+const causeMessages = (cause: unknown, depth: number): readonly string[] => {
+  if (depth === 0) return [];
+  let inner: readonly string[] = [];
+  if (Predicate.hasProperty(cause, 'cause')) inner = causeMessages(cause.cause, depth - 1);
+  return [...ownMessage(cause), ...inner];
+};
+
+/** A failure in words, every cause's included: an installation error says
+ *  only its tag, and what the database said is in its cause. */
+const messageFromCause = (cause: unknown): string => {
+  const messages = Arr.dedupe(
+    causeMessages(cause, CAUSE_DEPTH).filter((message) => message.length > 0),
+  );
+  if (messages.length === 0) return 'The download failed without a message.';
+  return messages.join(': ');
 };
 
 const readBooks = (database: EGWParagraphDatabaseService) =>
