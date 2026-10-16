@@ -50,7 +50,7 @@ import { PartAddress } from './address.ts';
 import { BoardFile, BoardName } from './board.ts';
 import { AskName, AskRecord, StepValues } from './ask.ts';
 import type { Interval } from './time.ts';
-import { onChoicesTab } from './point.ts';
+import { onChoicesTab, sceneOfPoint } from './point.ts';
 import { Gave, OpId, Project, RenderVariantName, Took } from './catalogue.ts';
 import { WaitTimeout } from './wait.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
@@ -1921,8 +1921,9 @@ const withFocus = (href: string, point: string): Option.Option<string> =>
 /**
  * `href`, when it is a project with a choice's card in focus, on Choices at
  * that card: the project holds no choice's card now (design language §7);
- * the Choices tab holds every one. A scene's render (`render:scenes:<id>`)
- * stays on the project, where its scene's sheet opens.
+ * the Choices tab holds every one. A render's card in focus stays a project
+ * link, which the studio replaced: a scene's render (`render:scenes:<id>`)
+ * opens the studio with its scene selected (`studioPlace`).
  */
 const choiceOffProject = (href: string): Option.Option<string> =>
   Option.flatMap(Place.decode(Replaced.project, href), (value) =>
@@ -2023,14 +2024,15 @@ const REPLACED: ReadonlyArray<(href: string) => Option.Option<Replaced>> = [
   (href) =>
     Option.map(Place.decode(Replaced.project, href), (v) => ({
       film: v.path.film,
-      beat: Option.none(),
+      // A scene's render in focus names its scene.
+      beat: sceneOfPoint(v.query.point),
       t: Option.none(),
     })),
 ];
 
 /**
  * The studio's place for a film page it replaced (`/films/<f>/play`,
- * `/scenes[/<scene>]`, `/project`): the same film, its beat selected
+ * `/scenes[/<scene>]`, `/project[?point=render:scenes:<scene>]`): the same film, its beat selected
  * (`?sel=beat:<id>`) and its film time kept. The lab's server sends a
  * browser on with a redirect (`servedPlace`). The Lab, the Script and the
  * Board are still served as asked, each beat's and note's place in its own

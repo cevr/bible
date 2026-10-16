@@ -318,7 +318,9 @@ const REPLACED_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/films/rbf/scenes/roof', '/films/rbf/studio?sel=beat%3Aroof'],
   ['/films/rbf/scenes/roof#t=2', '/films/rbf/studio?sel=beat%3Aroof#t=2'],
   ['/films/rbf/project', '/films/rbf/studio'],
-  ['/films/rbf/project?point=render%3Ascenes%3Aroof', '/films/rbf/studio'],
+  // A scene's render on the project names its scene: the studio selects it.
+  ['/films/rbf/project?point=render%3Ascenes%3Aroof', '/films/rbf/studio?sel=beat%3Aroof'],
+  ['/films/rbf/project?point=render%3Afilm', '/films/rbf/studio'],
   ['/films/rbf%2Fshorts%2Fverdict/play', '/films/rbf%2Fshorts%2Fverdict/studio'],
   // An older link goes through its place to the studio.
   ['/player?film=rbf', '/films/rbf/studio'],

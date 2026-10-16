@@ -161,3 +161,14 @@ export const pointIdOf = (ref: PointRef): string => encode(ref);
 /** Whether `id` names a point the Choices tab holds: every choice but a render set's (the project's). */
 export const onChoicesTab = (id: string): boolean =>
   Option.exists(decode(id), (ref) => !PointRef.isAnyOf(['Render', 'Montage'])(ref));
+
+/** The first scene a scene render's point names (`render:scenes:cold,roof` is `cold`); none for any other point. */
+export const sceneOfPoint = (id: string): Option.Option<string> =>
+  Option.flatMap(decode(id), (ref) =>
+    Match.value(ref).pipe(
+      Match.when({ _tag: 'Render', address: { _tag: 'Scenes' } }, (r) =>
+        Option.some(r.address.ids[0]),
+      ),
+      Match.orElse(() => Option.none<string>()),
+    ),
+  );
