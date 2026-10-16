@@ -63,12 +63,14 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-studio[data-open="true"] { grid-template-columns: minmax(0, 1fr) var(--st-insp-w); }
 
 /* Viewer */
-.st-viewer { grid-area: viewer; min-height: 0; min-width: 0; display: grid; place-items: center; padding: var(--st-gutter) var(--st-gutter) var(--s-2); }
-.st-frame { position: relative; height: 100%; max-width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-2); overflow: hidden; background: var(--surface-1); }
+/* The frame is the film's 16:9 at the largest size the viewer holds: bound by its width or its height, whichever is less. */
+.st-viewer { grid-area: viewer; min-height: 0; min-width: 0; display: grid; place-items: center; padding: var(--st-gutter) var(--st-gutter) var(--s-2); container-type: size; }
+.st-frame { position: relative; width: min(100cqw, 100cqh * 16 / 9); aspect-ratio: 16 / 9; border-radius: var(--r-2); overflow: hidden; background: var(--surface-1); }
 .st-scene, .st-scene .stage { position: absolute; inset: 0; padding: 0; display: grid; place-items: center; }
 .st-scene canvas { width: 100%; height: 100%; display: block; }
 .st-scene[hidden] { display: none; }
-.st-pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+/* A Board panel is shown whole: never cropped to the frame. */
+.st-pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .st-empty { position: absolute; inset: 0; display: grid; place-content: center; gap: var(--s-2); text-align: center; color: var(--text-2); padding: var(--s-8); }
 .st-empty b { color: var(--text-1); font-weight: var(--w-2); font-size: var(--fs-4); line-height: var(--lh-4); }
 .st-empty p { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); }
@@ -188,7 +190,8 @@ a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
   .st-header { gap: var(--s-2); }
   .st-spacer, .st-status { display: none; }
   .st-studio, .st-studio[data-open="true"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto var(--st-transport-h) var(--st-tl-h, 0) minmax(0, 1fr); grid-template-areas: "viewer" "transport" "timeline" "reading"; }
-  .st-viewer { padding: 0; }
+  /* A phone's frame is the window's width, its row as tall as the frame. */
+  .st-viewer { padding: 0; container-type: normal; }
   .st-frame { width: 100%; height: auto; border-radius: 0; }
   .st-transport { gap: var(--s-2); }
   .st-caption, .st-key[data-look="edge"] { display: none; }

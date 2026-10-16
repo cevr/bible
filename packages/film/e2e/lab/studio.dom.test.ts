@@ -17,7 +17,14 @@ import { pageHref } from '../../src/core/api.ts';
 import { DESK, PHONE, type Viewport, openPlayer } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { PROBE_ASK } from '../../src/lab/fixtures/probe-timeline.ts';
-import { attributeIs, countIs, textIs, until, waitFor } from '../../src/lab/fixtures/settled.ts';
+import {
+  attributeIs,
+  countIs,
+  evaluates,
+  textIs,
+  until,
+  waitFor,
+} from '../../src/lab/fixtures/settled.ts';
 
 const SLOW = 30_000;
 
@@ -225,4 +232,55 @@ describe('the studio at a version its address names', () => {
       }).pipe(Effect.scoped),
     SLOW,
   );
+});
+
+/** A 14-inch laptop's window at its default size, where the viewer is clamped by its width with the inspector open. */
+const LAPTOP_14 = { width: 1512, height: 982 } as const;
+
+/**
+ * The viewer's frame against 16:9, within half a percent: `true`, else its
+ * size; how a Board panel in it is fitted (`none` with no panel shown); and
+ * the drawn scene's canvas against 16:9 the same way (`none` with no scene).
+ */
+const FRAME = `(() => {
+  const ratio = (el) => {
+    if (el === null || el.offsetParent === null) return 'none';
+    const r = el.getBoundingClientRect();
+    return Math.abs(r.width / r.height / (16 / 9) - 1) <= 0.005 || r.width.toFixed(1) + '×' + r.height.toFixed(1);
+  };
+  const pic = document.querySelector('.st-frame .st-pic');
+  return [ratio(document.querySelector('.st-frame')), (pic && getComputedStyle(pic).objectFit) || 'none', ratio(document.querySelector('.st-scene canvas'))];
+})()`;
+
+// The picture is the film's 16:9 at any window, the inspector open or shut, with few lanes (v1:
+// a tall viewer, bound by its width) or more (v2): a scene is never squashed, a Board panel never cropped.
+describe("the viewer's frame", () => {
+  const WINDOWS = [
+    ['a laptop', DESK],
+    ['a 14-inch laptop', LAPTOP_14],
+    ['a phone', PHONE],
+  ] as const;
+  const VERSIONS = [
+    [1, 'its Board panel', ['contain', 'none']],
+    [2, 'its drawn scene', ['none', true]],
+  ] as const;
+  for (const [where, viewport] of WINDOWS)
+    for (const [v, shows, [pic, scene]] of VERSIONS)
+      it.live(
+        `is 16:9 on ${where} at v${v}, ${shows} uncropped, the inspector open and shut`,
+        () =>
+          Effect.gen(function* () {
+            const { page, errors } = yield* studioAt(
+              viewport,
+              pageHref.studio(PROBE, { v, sel: 'beat:two' }),
+            );
+            yield* waitFor(page, '.st-pane[data-beat="two"]');
+            yield* evaluates(page, FRAME, [true, pic, scene]);
+            yield* page.press('Escape');
+            yield* countIs(page, '.st-pane', 0);
+            yield* evaluates(page, FRAME, [true, pic, scene]);
+            expect(errors).toEqual([]);
+          }).pipe(Effect.scoped),
+        SLOW,
+      );
 });
