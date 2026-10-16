@@ -21,8 +21,9 @@
  * 2. `install <id>` per book to add or recheck — download and swap it into
  *    D1 (`installEgwBook`). A book the library is known to withhold fails
  *    once, as expected; any other failure is retried, then recorded.
- *    Rechecks are capped (`RECHECK_LIMIT`): the books whose content hash
- *    moved first, then the books installed before revisions were hashes.
+ *    Rechecks are capped (`RECHECK_LIMIT`, or the input's `recheck` up to
+ *    `RECHECK_MAX`): the books whose content hash moved first, then the
+ *    books installed before revisions were hashes.
  * 3. `vectors <id> <row>` per page of an added book, `changed vectors <id>
  *    <row>` per page of what a recheck added or edited — embed paragraphs
  *    with Workers AI under the index's fingerprint and upsert them into
@@ -89,7 +90,7 @@ import {
   reportEgwSync,
 } from '@bible/core/corpus-supply';
 import { EGWApiClient, EGWAuth, EGWTokenStore } from '@bible/core/egw';
-import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import { EGWParagraphDatabase, type ParagraphChangeRow } from '@bible/core/egw-db';
 
 import {
   BOOK_VECTORS_PAGE,
@@ -135,11 +136,15 @@ const SyncMailer = Cloudflare.Email.SendEmail('SyncMailer');
 /** The longest cause a stopped run's mail carries. */
 const MAIL_CAUSE_LIMIT = 4000;
 
-/** Installed books a run downloads again, at most. A recheck is about three
- *  steps (install, changed vectors, unindex), well inside a Workflow's
- *  10,000; the 1,480 books installed before revisions were content hashes
- *  take six runs. */
+/** Installed books a scheduled run downloads again, at most. A recheck is
+ *  about three steps (install, changed vectors, unindex), well inside a
+ *  Workflow's 10,000. */
 const RECHECK_LIMIT = 250;
+
+/** The most rechecks one run takes when asked for more (`recheck`): the
+ *  whole library's worth, about 4,500 steps at three a book, so a run asked
+ *  to check everything at once still fits a Workflow. */
+const RECHECK_MAX = 1500;
 
 /** Where a published report is read: the search's own page for it. */
 const REPORT_PAGE = `https://${DOMAIN}/sync/`;
@@ -154,6 +159,9 @@ const reportName = (at: string) => at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z
 export const CorpusSyncInput = Schema.Struct({
   mode: Schema.optional(Schema.Literals(['plan', 'sync'])),
   reembed: Schema.optional(Schema.Array(Schema.Finite)),
+  /** Installed books to download again in this run, in place of
+   *  `RECHECK_LIMIT`; at most `RECHECK_MAX`. */
+  recheck: Schema.optional(Schema.Finite),
 });
 export type CorpusSyncInput = typeof CorpusSyncInput.Type;
 
@@ -369,12 +377,14 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
             { retries: RETRIES },
           );
 
-        const planned = planEgwSync({
-          lang: 'en',
-          refresh: false,
-          recheckLimit: RECHECK_LIMIT,
-        }).pipe(Effect.provide(planLayer));
-        const planStep = Cloudflare.Workflows.task('plan', planned, { retries: RETRIES });
+        const planStep = (recheckLimit: number) =>
+          Cloudflare.Workflows.task(
+            'plan',
+            planEgwSync({ lang: 'en', refresh: false, recheckLimit }).pipe(
+              Effect.provide(planLayer),
+            ),
+            { retries: RETRIES },
+          );
         const optimized = Effect.flatMap(SqlClient.SqlClient, (sql) => sql`PRAGMA optimize`).pipe(
           Effect.asVoid,
           Effect.provide(readLayer),
@@ -413,14 +423,24 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
           Cloudflare.Workflows.task(
             'publish report',
             Effect.gen(function* () {
-              const rechecked = [...run.updated, ...run.verified].filter(
-                ({ changes }) => changeCount(changes) > 0,
-              );
-              const changes: ChangesByBook = new Map(
-                yield* Effect.forEach(rechecked, ({ book }) =>
-                  Effect.map(latestParagraphChanges(book.id), (rows) => [book.id, rows] as const),
-                ),
-              );
+              const changedIn = (books: readonly RecheckedBook[]) =>
+                books.filter(({ changes }) => changeCount(changes) > 0);
+              // A verified book's added paragraphs are counted, not quoted
+              // (`syncReport`), so only its edits and removals are kept.
+              const read = (
+                books: readonly RecheckedBook[],
+                keep: (row: ParagraphChangeRow) => boolean,
+              ) =>
+                Effect.forEach(changedIn(books), ({ book }) =>
+                  Effect.map(
+                    latestParagraphChanges(book.id),
+                    (rows) => [book.id, rows.filter(keep)] as const,
+                  ),
+                );
+              const changes: ChangesByBook = new Map([
+                ...(yield* read(run.updated, () => true)),
+                ...(yield* read(run.verified, (row) => row.kind !== 'added')),
+              ]);
               const at = DateTime.formatIso(yield* DateTime.now);
               const name = reportName(at);
               yield* reports.put(reportKey(name), syncReport(run, changes, at), {
@@ -456,7 +476,9 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
           const env = yield* Cloudflare.WorkerEnvironment;
           const writes = env['CORPUS_SYNC'] === 'write' && input.mode !== 'plan';
 
-          const plan = yield* planStep;
+          const plan = yield* planStep(
+            Math.min(RECHECK_MAX, Math.max(0, input.recheck ?? RECHECK_LIMIT)),
+          );
           yield* Effect.log(
             'egw_sync_plan',
             `writes=${String(writes)} remote=${String(plan.remote.length)}` +
