@@ -55,9 +55,15 @@ import {
   levelOf,
   report,
 } from './findings.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import type { LoadedFilm, MeasuredFilm } from './film-repo.ts';
 import type { Placed } from '../core/layout.ts';
-import { type Lock, type Sounds, type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
+import {
+  type Lock,
+  type MeasuredSounds,
+  type Variant,
+  defineLibrary,
+  requestKey,
+} from '../core/sfx.ts';
 import { measuredSounds } from '../core/testing.ts';
 import {
   holdScenes,
@@ -77,11 +83,11 @@ const MASTER = 'narration/full.wav';
 const NO_MASTER: MasterAudio = { master: Option.none(), key: Option.none(), file: MASTER };
 /** The static leg's findings, levelled and addressed as `film check` reports them. */
 /** `film` and its placed scenes, as the static check reads them. */
-const placedFilm = (film: LoadedFilm) =>
+const placedFilm = <Film extends LoadedFilm>(film: Film) =>
   [film, Result.getOrThrow(layout(film.scenes, film.timings))] as const;
 
 const checked = (
-  film: LoadedFilm,
+  film: MeasuredFilm,
   placed: ReadonlyArray<Placed>,
   options: CheckOptions,
   audio: MasterAudio,
@@ -1327,7 +1333,7 @@ describe('soundFindings', () => {
   test("a placement that lands a late-starting take's first sample on its cue is heard late; one synced to its onset or hit is not", () => {
     const slow = { ...variant(requestKey(library['paper.hit'])), onset: 0.12, hit: 0.7 };
     const tight = { ...variant(requestKey(library['paper.hit'])), onset: 0.01, hit: 0.05 };
-    const timed: Sounds = {
+    const timed: MeasuredSounds = {
       ...sounds,
       lock: { ...lock, 'paper.hit': { variants: [tight, slow], candidates: [], rejected: [] } },
     };

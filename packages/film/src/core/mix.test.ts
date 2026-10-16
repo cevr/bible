@@ -27,9 +27,9 @@ import { type Music, type Score, Sound, type SoundManifest, type Timed } from '.
 import { musicKey, musicPlan } from './sound.ts';
 import {
   type Lock,
+  type MeasuredSounds,
   NO_SOUNDS,
   type SoundSource,
-  type Sounds,
   VOICE_LEVEL,
   type Variant,
   defineLibrary,
@@ -496,7 +496,7 @@ describe('mixPlan', () => {
     });
 
     /** The plan of `sounds` with `tone.tick` placed at the start of each scene. */
-    const ticked = (given: Sounds) =>
+    const ticked = (given: MeasuredSounds) =>
       Result.getOrThrow(
         mixPlan({
           ...input,

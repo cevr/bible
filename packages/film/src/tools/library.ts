@@ -45,6 +45,7 @@ import {
   type Playable,
   SFX_FORMAT,
   SFX_MODEL,
+  type MeasuredSounds,
   type SoundSource,
   type Sounds,
   type Trial,
@@ -145,7 +146,6 @@ const soundsOf = (loaded: LoadedLibrary): Sounds => ({
   dir: loaded.paths.dir,
   code: loaded.code,
   trials: loaded.trials,
-  measured: new Map(),
 });
 
 /**
@@ -1164,7 +1164,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const seamFindings = (
           name: string,
           entry: LibraryEntry,
-          sounds: Sounds,
+          sounds: MeasuredSounds,
           broken: ReadonlySet<string>,
         ) =>
           Effect.gen(function* () {

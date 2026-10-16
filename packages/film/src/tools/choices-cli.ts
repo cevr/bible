@@ -51,7 +51,7 @@ import { SoundLibrary } from './library.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
 import { beatsOf, voicedOf } from './narrator.ts';
-import { SoundRender } from './sound-render.ts';
+import { SoundRender, measuredFilm } from './sound-render.ts';
 import { Takes } from './takes.ts';
 
 const film = Argument.String('film').pipe(
@@ -80,10 +80,14 @@ const soundSource = Effect.fn('film.options.soundSource')(function* (loaded: Loa
   return Option.some({ file, text: yield* fs.readFileString(file) });
 });
 
-/** The film's choice points as its sources stand, with the catalogue's say on each variant. */
+/**
+ * The film's choice points as its sources stand, with the catalogue's say on
+ * each variant: the derived sounds it places measured here, for each seed's
+ * line and where each effect plays.
+ */
 const pointsOf = Effect.fn('film.options.points')(function* (loaded: LoadedFilm) {
   return filmPoints({
-    loaded,
+    loaded: yield* measuredFilm(loaded),
     placed: yield* placeFilm(loaded),
     soundSource: yield* soundSource(loaded),
     beats: yield* beatAttempts(loaded),

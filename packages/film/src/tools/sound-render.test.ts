@@ -1,12 +1,12 @@
 // The shared renderer of derived sounds: each source rendered once while it is
 // kept and handed to every reader, and each seed of the derived sounds a film
-// places measured once, the kept and generated ones left as the lock has them.
+// places measured once while it is kept, the kept and generated ones left as
+// the lock has them.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Result } from 'effect';
 import {
   type DerivedSource,
-  NO_SOUNDS,
   type Sounds,
   defineLibrary,
   measurePcm,
@@ -38,11 +38,9 @@ const library = defineLibrary({
   },
 });
 
-const sounds: Sounds = {
-  ...NO_SOUNDS,
-  library,
-  code: Result.getOrThrow(resolveCode(library)).code,
-};
+const { code, trials } = Result.getOrThrow(resolveCode(library));
+/** The library as the film loader resolves it: nothing measured. */
+const sounds: Sounds = { library, lock: {}, dir: '', code, trials };
 
 const tick = (seed: number): DerivedSource => ({
   _tag: 'Code',
@@ -69,8 +67,11 @@ describe('SoundRender', () => {
       expect(measured.measured.get(sourceLabel(tick(2)))).toEqual(
         measurePcm(renderSource(tick(2))),
       );
-      // Nothing left to measure: the same sounds come back.
-      expect(yield* render.measured(measured, ['tone.tick', 'tone.chime'])).toBe(measured);
+      // A seed measured again is read from the renderer's cache: the same measure, not a second.
+      const again = yield* render.measured(sounds, ['tone.tick']);
+      expect(again.measured.get(sourceLabel(tick(2)))).toBe(
+        measured.measured.get(sourceLabel(tick(2))),
+      );
     }).pipe(Effect.provide(SoundRender.layer)),
   );
 

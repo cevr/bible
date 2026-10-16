@@ -1,7 +1,8 @@
 // The static leg is the lab's check after every write: it reads the film's
 // files and the master's length and stamp, and never mixes. Its type says so
-// (FileSystem and Media, no Mixer), and the master it reads is judged by the
-// stamp `mix` left beside it.
+// (FileSystem, Media and the sound renderer that measures the code sounds the
+// film places, no Mixer), and the master it reads is judged by the stamp `mix`
+// left beside it.
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
@@ -21,12 +22,15 @@ import { ActName } from '../core/address-schema.ts';
 import { filmEnd, layout } from '../core/layout.ts';
 import { mixKey } from '../core/mix.ts';
 import { voiceKey } from '../core/narration.ts';
+import { defineLibrary } from '../core/sfx.ts';
+import { resolveCode } from '../core/synth/resolve.ts';
 import type { Timed, Timings } from '../core/schema.ts';
 import { laidOut, staticLeg } from './film-check.ts';
 import { type ShortFinding, type StaticFinding, lineOf, report } from './findings.ts';
 import type { Media } from './media.ts';
 import { type LoadedFilm, masterFile } from './film-repo.ts';
 import { MasterStampJson, planOf, stampFile } from './mixer.ts';
+import { SoundRender } from './sound-render.ts';
 import { fakeMedia, memoryFileSystem, spokenTake, testFilm, testVoice, text } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [
@@ -61,9 +65,13 @@ const run = (
   const leg: Effect.Effect<
     ReadonlyArray<StaticFinding | ShortFinding>,
     unknown,
-    FileSystem.FileSystem | Media | Path.Path
+    FileSystem.FileSystem | Media | Path.Path | SoundRender
   > = staticLeg(of, placed);
-  return leg.pipe(Effect.provide(Layer.mergeAll(memoryFileSystem(files), fakeMedia(files), paths)));
+  return leg.pipe(
+    Effect.provide(
+      Layer.mergeAll(memoryFileSystem(files), fakeMedia(files), paths, SoundRender.layer),
+    ),
+  );
 };
 
 /** The master's findings: missing, or stale. */
@@ -114,6 +122,33 @@ describe('the static leg', () => {
       const other = yield* run(yield* stamped('another plan'));
       expect(masterTags(other)).toEqual(['AudioStale']);
       expect(masterTags(current)).toEqual([]);
+    }),
+  );
+
+  // A code sound whose ping starts 0.2 s in, placed from its first sample: the
+  // film comes as its loader gives it, the library resolved and no seed
+  // measured, so the leg measures what it places to hear the late start.
+  it.effect("hears a placed code sound's late start, from the film as its loader gives it", () =>
+    Effect.gen(function* () {
+      const ping = { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } as const;
+      const library = defineLibrary({
+        'tone.late': {
+          kind: 'code',
+          sound: { play: { _tag: 'Layer', of: [{ node: ping, at: 0.2 }] } },
+          variants: 1,
+          use: 'one-shot',
+        },
+      });
+      const { code, trials } = Result.getOrThrow(resolveCode(library));
+      const late: LoadedFilm = {
+        ...film,
+        sound: Option.some({
+          effects: { ping: { sound: 'tone.late', at: [{ scene: 'said', at: 'start' }] } },
+        }),
+        sounds: { library, lock: {}, dir: '/lib', code, trials },
+      };
+      const found = (yield* run(new Map(), late)).filter((f) => f._tag === 'LeadIn');
+      expect(found).toMatchObject([{ effect: 'ping', name: 'tone.late', variant: 1 }]);
     }),
   );
 });

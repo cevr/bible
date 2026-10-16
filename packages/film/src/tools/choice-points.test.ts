@@ -26,7 +26,7 @@ import {
   takePoints,
   voicePoints,
 } from './choice-points.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import type { MeasuredFilm } from './film-repo.ts';
 import { holdScenes, holdTimings, spokenTake, testFilm } from './testing.ts';
 
 const music = (style: string) => ({
@@ -66,7 +66,7 @@ export const sound = {
 };
 `;
 
-const film = (over: Partial<LoadedFilm> = {}): LoadedFilm => ({
+const film = (over: Partial<MeasuredFilm> = {}): MeasuredFilm => ({
   ...testFilm(holdScenes, {
     ...holdTimings,
     scenes: { ...holdTimings.scenes, held: { ...spokenTake('x'), file: 'held-2.flac' } },

@@ -3,20 +3,25 @@
 // source, so a sound measured for a check and then mixed, or placed many
 // times, renders once while it stays among the newest kept. A sound made here
 // is shared by everything that asks for it: its readers never write into it.
+// The film loader resolves a film's sounds and measures none; what reads how
+// they play measures the ones the film places here (`measuredFilm`).
 
 import { Cache, Context, Effect, Layer, Option } from 'effect';
 import type { Pcm } from '../core/audio.ts';
 import {
   type DerivedSource,
   type Measure,
+  type MeasuredSounds,
   type Sounds,
   isDerived,
   measurePcm,
+  placedSounds,
   renderSource,
   seedSources,
   soundEntry,
   sourceLabel,
 } from '../core/sfx.ts';
+import type { LoadedFilm, MeasuredFilm } from './film-repo.ts';
 
 /** The made sounds kept: the newest this many (a 30 s bed is about 5 MB). */
 const SOUNDS_KEPT = 64;
@@ -28,8 +33,8 @@ interface SoundRenderService {
   readonly pcm: (source: DerivedSource) => Effect.Effect<Pcm>;
   /** `source` measured as the lock measures a made variant: its loudness, onset and hit. */
   readonly measure: (source: DerivedSource) => Effect.Effect<Measure>;
-  /** `sounds` with every seed of each derived sound among `names` measured. */
-  readonly measured: (sounds: Sounds, names: Iterable<string>) => Effect.Effect<Sounds>;
+  /** `sounds` with every seed of each derived sound among `names` measured, and no other. */
+  readonly measured: (sounds: Sounds, names: Iterable<string>) => Effect.Effect<MeasuredSounds>;
 }
 
 export class SoundRender extends Context.Service<SoundRender, SoundRenderService>()(
@@ -66,15 +71,29 @@ export class SoundRender extends Context.Service<SoundRender, SoundRenderService
             onSome: (entry) => seedSources(sounds, name, entry),
           }),
         );
-        const fresh = sources.filter((source) => !sounds.measured.has(sourceLabel(source)));
-        yield* Effect.annotateCurrentSpan({ seeds: fresh.length });
-        if (fresh.length === 0) return sounds;
-        const found = yield* Effect.forEach(fresh, (source) =>
+        yield* Effect.annotateCurrentSpan({ seeds: sources.length });
+        const found = yield* Effect.forEach(sources, (source) =>
           Effect.map(measure(source), (m): readonly [string, Measure] => [sourceLabel(source), m]),
         );
-        return { ...sounds, measured: new Map([...sounds.measured, ...found]) };
+        const heard: MeasuredSounds = { ...sounds, measured: new Map(found) };
+        return heard;
       });
       return SoundRender.of({ pcm, measure, measured });
     }),
   );
 }
+
+/**
+ * `film` with each seed of every derived sound its `sound.ts` places
+ * measured, through the process's one renderer: what reads how a film's
+ * sounds play (a mix plan, the check's lead-in, a seed's line) measures
+ * here, where it reads. A seed already measured comes from the cache.
+ */
+export const measuredFilm = Effect.fn('SoundRender.film')(function* (film: LoadedFilm) {
+  const sounds = yield* (yield* SoundRender).measured(
+    film.sounds,
+    Option.match(film.sound, { onNone: () => [], onSome: placedSounds }),
+  );
+  const measured: MeasuredFilm = { ...film, sounds };
+  return measured;
+});

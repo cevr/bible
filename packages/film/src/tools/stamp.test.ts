@@ -11,7 +11,6 @@ import { ContentStore } from './content-store.ts';
 import { FilmRepo } from './film-repo.ts';
 import { scenesLocatedHere } from './read-cli.ts';
 import { type Keyed, Stamps, importsOf, stampOf } from './stamp.ts';
-import { SoundRender } from './sound-render.ts';
 import { sceneFixture } from './testing.ts';
 import { resolveAddress } from '../core/address.ts';
 
@@ -25,7 +24,7 @@ const fixture = Layer.unwrap(
     return Stamps.layer.pipe(
       Layer.provideMerge(scenesLocatedHere),
       Layer.provide(FilmRepo.layer(films)),
-      Layer.provide([ContentStore.layer, SoundRender.layer]),
+      Layer.provide(ContentStore.layer),
       Layer.merge(Layer.succeed(Films, films)),
     );
   }),
@@ -179,7 +178,7 @@ const counting = Layer.unwrap(
       Layer.provide(counted),
       Layer.provideMerge(scenesLocatedHere),
       Layer.provide(FilmRepo.layer(films)),
-      Layer.provide([ContentStore.layer, SoundRender.layer]),
+      Layer.provide(ContentStore.layer),
       Layer.merge(Layer.succeed(Films, films)),
     );
   }),

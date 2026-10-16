@@ -9,13 +9,12 @@ import { BoardStore } from './board-store.ts';
 import { ContentStore } from './content-store.ts';
 import { Segment } from '../core/segment.ts';
 import { FilmFolder, FilmName, FilmRepo, placeFilm } from './film-repo.ts';
-import { SoundRender } from './sound-render.ts';
 import { memoryFileSystem, storeLayer, testFilm, text } from './testing.ts';
 
 const files = new Map<string, Uint8Array>();
 const env = ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_DIR: '/elsewhere' }));
 const repo = FilmRepo.layer('/app/src/films').pipe(
-  Layer.provide([storeLayer(files), memoryFileSystem(files), Path.layer, env, SoundRender.layer]),
+  Layer.provide([storeLayer(files), memoryFileSystem(files), Path.layer, env]),
 );
 
 describe('FilmRepo', () => {
@@ -36,7 +35,7 @@ describe('FilmRepo', () => {
   // A synthetic film on disk (`fixtures/films/sample`): its modules are
   // imported as a real film's are, and no real film's script pins the test.
   const sample = FilmRepo.layer(`${import.meta.dir}/fixtures/films`).pipe(
-    Layer.provide([ContentStore.layer, SoundRender.layer]),
+    Layer.provide(ContentStore.layer),
     Layer.provideMerge(BunServices.layer),
   );
 
@@ -84,6 +83,40 @@ describe('FilmRepo', () => {
       expect(score?.options['piano']?.movements.map((m) => m.from)).toEqual(['seed']);
       expect(Option.getOrThrow(loaded.voice)).toMatchObject({ voiceId: 'sample-voice' });
     }),
+  );
+
+  // The app's library, written beside the sample film for the test: the knock
+  // its sound.ts places is a code sound.
+  const KNOCK = `export const library = {
+  'wood.knock': {
+    kind: 'code',
+    sound: { play: { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } },
+    variants: 2,
+    use: 'one-shot',
+  },
+};
+export const store = { kind: 'folder', folder: 'files' };
+`;
+
+  // The repo is built with no sound renderer: a load that rendered or
+  // measured a sound would not build, so what reads no sound pays for none.
+  const withLibrary = Layer.unwrap(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-repo-sounds-' });
+      yield* fs.writeFileString(`${dir}/library.ts`, KNOCK);
+      return FilmRepo.layer(`${import.meta.dir}/fixtures/films`, Option.some(dir));
+    }),
+  ).pipe(Layer.provide(ContentStore.layer), Layer.provideMerge(BunServices.layer));
+
+  it.effect.layer(withLibrary)(
+    "loads a film's code sound resolved, with no sound renderer: a load measures nothing",
+    () =>
+      Effect.gen(function* () {
+        const loaded = yield* (yield* FilmRepo).load('sample');
+        expect(Option.getOrThrow(loaded.sound).effects['knock']?.sound).toBe('wood.knock');
+        expect([...loaded.sounds.code.keys()]).toEqual(['wood.knock']);
+      }),
   );
 });
 

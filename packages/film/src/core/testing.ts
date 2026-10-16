@@ -1,14 +1,16 @@
 // What a test reads of an HTTP API's declaration: its routes, and whether it
 // declares the one a request reaches; and a library as a film's mix reads it,
 // every derived sound measured. Tests only; the server derives its handlers
-// from the API itself (`core/api.ts`), and the film loader measures over the
-// shared renderer (tools/sound-render.ts).
+// from the API itself (`core/api.ts`), and what reads how a film's sounds
+// play measures them over the shared renderer (`measuredFilm`,
+// tools/sound-render.ts).
 
 import { Option, Result } from 'effect';
 import { HttpApi, type HttpApiGroup } from 'effect/http-api';
 import {
   type Library,
   type Lock,
+  type MeasuredSounds,
   type Sounds,
   isDerived,
   measurePcm,
@@ -60,12 +62,12 @@ export const declares = <Id extends string, Groups extends HttpApiGroup.Constrai
 
 /**
  * `library` and its `lock` as a film's mix reads them: its code sounds
- * resolved and every seed of every derived sound measured, as the film loader
+ * resolved and every seed of every derived sound measured, as `measuredFilm`
  * measures the sounds a film places.
  */
-export const measuredSounds = (library: Library, lock: Lock, dir: string): Sounds => {
+export const measuredSounds = (library: Library, lock: Lock, dir: string): MeasuredSounds => {
   const { code, trials } = Result.getOrThrow(resolveCode(library));
-  const bare: Sounds = { library, lock, dir, code, trials, measured: new Map() };
+  const bare: Sounds = { library, lock, dir, code, trials };
   const sources = Object.keys(library).flatMap((name) =>
     Option.match(Option.filter(soundEntry(library, name), isDerived), {
       onNone: () => [],

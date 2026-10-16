@@ -40,8 +40,8 @@ import {
   type DerivedSource,
   type LibraryEntry,
   type LockEntry,
+  type MeasuredSounds,
   type SoundSource,
-  type Sounds,
   type Variant,
   isDerived,
   levelOf,
@@ -53,7 +53,7 @@ import {
   trialSources,
 } from '../core/sfx.ts';
 import { type ScoreOptionState, cueTime, scoreOptionState, scoreOptions } from '../core/sound.ts';
-import { type LoadedFilm, voicePiecesOf } from './film-repo.ts';
+import { type LoadedFilm, type MeasuredFilm, voicePiecesOf } from './film-repo.ts';
 import type { Attempt } from './takes.ts';
 import { type LevelWritten, readLevel } from './choice-source.ts';
 
@@ -204,7 +204,7 @@ const takesOf = (entry: LibraryEntry, lock: Option.Option<LockEntry>) => [
 
 /** A seed as a variant: its source's label its id, how loud it measured when it is measured. */
 const seedOf = (
-  sounds: Sounds,
+  sounds: MeasuredSounds,
   source: DerivedSource,
   label: string,
   picked: boolean,
@@ -228,7 +228,7 @@ const seedOf = (
 };
 
 /** `name`'s code trial's seeds, never picked: heard beside what plays. */
-const trialSeedsOf = (sounds: Sounds, name: string): ReadonlyArray<VariantDraft> =>
+const trialSeedsOf = (sounds: MeasuredSounds, name: string): ReadonlyArray<VariantDraft> =>
   trialSources(sounds, name).map((source, i) =>
     seedOf(sounds, source, `code trial ${i + 1}`, false, TRIAL_FIXED),
   );
@@ -240,7 +240,7 @@ interface TakeVariants {
 }
 
 /** A sound's seeds or its takes, then its code trial's seeds, each list counted in a line. */
-const variantsOf = (sounds: Sounds, name: string, entry: LibraryEntry): TakeVariants => {
+const variantsOf = (sounds: MeasuredSounds, name: string, entry: LibraryEntry): TakeVariants => {
   const lock = Option.fromUndefinedOr(sounds.lock[name]);
   const trials = trialSeedsOf(sounds, name);
   const trialLines = Arr.filter(
@@ -273,7 +273,7 @@ const variantsOf = (sounds: Sounds, name: string, entry: LibraryEntry): TakeVari
  * re-timing removed.
  */
 const planOf = (
-  loaded: LoadedFilm,
+  loaded: MeasuredFilm,
   placed: ReadonlyArray<Placed>,
 ): Result.Result<Option.Option<MixPlan<SoundSource>>, MixPlanError> =>
   Option.match(loaded.sound, {
@@ -336,7 +336,7 @@ const markOf = (placed: ReadonlyArray<Placed>, p: Placement): ChoiceMark => ({
 
 /** The library sounds the film's effects place, with where, and their takes or seeds and a code trial's seeds. */
 export const takePoints = (
-  loaded: LoadedFilm,
+  loaded: MeasuredFilm,
   placed: ReadonlyArray<Placed>,
 ): ReadonlyArray<PointDraft> =>
   Option.match(loaded.sound, {
@@ -466,7 +466,7 @@ const scenesBetween = (placed: ReadonlyArray<Placed>, from: Cue, to: Cue) => {
 
 /** Each layer whose level `sound.ts` sets: the score's two, then each bed, then each effect. */
 const layersOf = (
-  loaded: LoadedFilm,
+  loaded: MeasuredFilm,
   sound: Sound,
   placed: ReadonlyArray<Placed>,
 ): ReadonlyArray<LayerLevel> => {
@@ -546,7 +546,7 @@ const knobOf = (layer: LayerLevel, written: Result.Result<LevelWritten, unknown>
  * layers that name it. A level left out shows what plays, and a write adds it.
  */
 export const levelPoints = (
-  loaded: LoadedFilm,
+  loaded: MeasuredFilm,
   placed: ReadonlyArray<Placed>,
   file: string,
   source: string,
@@ -587,9 +587,13 @@ export const levelPoints = (
 
 // ---------------------------------------------------------------------------
 
-/** What a film's points are read from beside the film: its sound source, its beats' attempts. */
+/**
+ * What a film's points are read from: the film with the derived sounds it
+ * places measured (a seed's line, where each effect plays), and beside it its
+ * sound source and its beats' attempts.
+ */
 interface PointInputs {
-  readonly loaded: LoadedFilm;
+  readonly loaded: MeasuredFilm;
   readonly placed: ReadonlyArray<Placed>;
   /** `sound.ts`: its path and text, when the film has one. */
   readonly soundSource: Option.Option<{ readonly file: string; readonly text: string }>;

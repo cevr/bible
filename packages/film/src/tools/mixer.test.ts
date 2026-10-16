@@ -5,7 +5,18 @@
 // source's label) plays at every placement of that sound.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Fiber, Layer, Option, Path, Result, Schedule, Schema } from 'effect';
+import {
+  Deferred,
+  Effect,
+  Fiber,
+  type FileSystem,
+  Layer,
+  Option,
+  Path,
+  Result,
+  Schedule,
+  Schema,
+} from 'effect';
 import { silence } from '../core/audio.ts';
 import { filmEnd, layout } from '../core/layout.ts';
 import { MIX_RATE, mixKey } from '../core/mix.ts';
@@ -28,9 +39,9 @@ import { hashText, voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { MediaFailed } from '../core/refusals.ts';
-import { FilmRepo, type LoadedFilm } from './film-repo.ts';
+import { FilmRepo, type LoadedFilm, type MeasuredFilm } from './film-repo.ts';
 import { Media } from './media.ts';
-import { MasterStampJson, Mixer, planOf, stampManifest } from './mixer.ts';
+import { MasterStampJson, Mixer, planKey, planOf, stampManifest } from './mixer.ts';
 import { NO_SCORES } from './media-store.ts';
 import { SoundRender } from './sound-render.ts';
 import {
@@ -88,7 +99,12 @@ const writingMedia = (
     }),
   );
 
-const setup = (finish: Finish, rate = MIX_RATE, loaded: LoadedFilm = film) => {
+const setup = (
+  finish: Finish,
+  rate = MIX_RATE,
+  loaded: LoadedFilm = film,
+  render: Layer.Layer<SoundRender> = SoundRender.layer,
+) => {
   const files = new Map<string, Uint8Array>([[TRACK, text('old')]]);
   const decoded: Array<string> = [];
   const hung = Deferred.makeUnsafe<void>();
@@ -116,11 +132,14 @@ const setup = (finish: Finish, rate = MIX_RATE, loaded: LoadedFilm = film) => {
   const store = ContentStore.layer.pipe(Layer.provide([fs, Path.layer, memoryLocks]));
   const layer = Mixer.layer.pipe(
     Layer.provideMerge(store),
-    Layer.provide([fs, repo, media, SoundRender.layer]),
+    Layer.provide([fs, repo, media, render]),
   );
   /** `effect` with one mixer and one store, sharing their locks. */
   const run = <A, E>(effect: Effect.Effect<A, E, Mixer | ContentStore>) =>
     effect.pipe(Effect.provide(layer));
+  /** `effect` over the same files and renderer as the mixer's. */
+  const beside = <A, E>(effect: Effect.Effect<A, E, FileSystem.FileSystem | SoundRender>) =>
+    effect.pipe(Effect.provide([fs, render]));
   const mixing = (stems = false) =>
     Effect.gen(function* () {
       yield* (yield* Mixer).mix('test', { stems, score: Option.none() });
@@ -128,7 +147,7 @@ const setup = (finish: Finish, rate = MIX_RATE, loaded: LoadedFilm = film) => {
   const mix = (stems = false) => run(mixing(stems));
   const read = (file: string) => new TextDecoder().decode(files.get(file));
   const partials = () => [...files.keys()].filter((f) => f.includes('partial'));
-  return { files, decoded, hung, mix, mixing, run, read, partials };
+  return { files, decoded, hung, mix, mixing, run, beside, read, partials };
 };
 
 /** The film's length in frames: every track is exactly that long. */
@@ -280,7 +299,7 @@ describe('Mixer: one variant in its sound’s place', () => {
     { scene: 'a', at: 'start' },
     { scene: 'a', at: 'start', offset: 2 },
   ] as const;
-  const placing: LoadedFilm = {
+  const placing: MeasuredFilm = {
     ...film,
     sound: Option.some({
       effects: {
@@ -338,6 +357,65 @@ describe('Mixer: one variant in its sound’s place', () => {
       const { key } = yield* rendered('tone.chime', sourceLabel(first!));
       expect(key).toBe(keyWith(Option.some({ sound: 'tone.chime', playable: measured(first!) })));
     }),
+  );
+
+  /** The renderer, counting each seed it is asked to measure by its source's label. */
+  const counting = (counts: Map<string, number>) =>
+    Layer.effect(
+      SoundRender,
+      Effect.gen(function* () {
+        const inner = yield* SoundRender;
+        const count = (label: string) => void counts.set(label, (counts.get(label) ?? 0) + 1);
+        return SoundRender.of({
+          ...inner,
+          measure: (source) =>
+            Effect.tap(inner.measure(source), () => Effect.sync(() => count(sourceLabel(source)))),
+          measured: (given, names) =>
+            Effect.tap(inner.measured(given, names), (heard) =>
+              Effect.sync(() => [...heard.measured.keys()].forEach(count)),
+            ),
+        });
+      }),
+    ).pipe(Layer.provide(SoundRender.layer));
+  /** The film as its loader gives it: the library resolved, no seed measured. */
+  const unmeasured: LoadedFilm = {
+    ...placing,
+    sounds: {
+      library: sounds.library,
+      lock: sounds.lock,
+      dir: sounds.dir,
+      code: sounds.code,
+      trials: sounds.trials,
+    },
+  };
+  /** A mix of the unmeasured film, its takes' files on disk, its renderer counting into `counts`. */
+  const mixedFrom = (counts: Map<string, number>) => {
+    const fixture = setup('done', MIX_RATE, unmeasured, counting(counts));
+    for (const v of [KEPT, WAITING]) fixture.files.set(`/lib/${v.file}`, text(v.sha256));
+    return fixture;
+  };
+
+  it.effect('one mix measures each seed of the code sounds it places once, and plays them', () =>
+    Effect.gen(function* () {
+      const counts = new Map<string, number>();
+      const { mix, read } = mixedFrom(counts);
+      yield* mix();
+      const seeds = seedSources(sounds, 'tone.tick', library['tone.tick']).map(sourceLabel);
+      expect(Object.fromEntries(counts)).toEqual(Object.fromEntries(seeds.map((s) => [s, 1])));
+      const stamp = yield* Schema.decodeEffect(MasterStampJson)(read(STAMP));
+      expect(stamp.key).toBe(keyWith(Option.none()));
+    }),
+  );
+
+  it.effect(
+    "the plan's key the check reads is the one the mix stamps, from the same loaded film",
+    () =>
+      Effect.gen(function* () {
+        const { mix, read, beside } = mixedFrom(new Map());
+        yield* mix();
+        const stamp = yield* Schema.decodeEffect(MasterStampJson)(read(STAMP));
+        expect(yield* beside(planKey(unmeasured, placed))).toEqual(Option.some(stamp.key));
+      }),
   );
 
   it.effect('a variant its sound has not is refused, and nothing is mixed', () =>

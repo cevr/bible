@@ -43,7 +43,14 @@ import {
   talkTranscripts,
 } from '../core/talk.ts';
 import type { CodeError } from '../core/errors.ts';
-import { Library, type Lock, LockJson, NO_SOUNDS, type Sounds, placedSounds } from '../core/sfx.ts';
+import {
+  Library,
+  type Lock,
+  LockJson,
+  type MeasuredSounds,
+  NO_SOUNDS,
+  type Sounds,
+} from '../core/sfx.ts';
 import { resolveCode } from '../core/synth/resolve.ts';
 import { StoreConfig } from '../core/store.ts';
 import {
@@ -64,7 +71,6 @@ import { ContentStore, type Manifest, type StoreError } from './content-store.ts
 import { FilmUnknown } from '../core/refusals.ts';
 import { Segment, isSegment } from '../core/segment.ts';
 import { FilmModuleInvalid, TalkUnvoiced } from './errors.ts';
-import { SoundRender } from './sound-render.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */
@@ -100,10 +106,23 @@ export interface LoadedFilm {
   readonly look: Option.Option<Look>;
   /** The looks it chooses between at named levels (`palette.ts`'s `looks`); empty when it has none. */
   readonly looks: Looks;
-  /** The app's sound library its effects and beds name; none when the app has none. */
+  /**
+   * The app's sound library its effects and beds name, resolved and not
+   * measured; none when the app has none. What reads how they play measures
+   * them (`MeasuredFilm`).
+   */
   readonly sounds: Sounds;
   /** A talk's edit and how it plays (`core/talk.ts`); none for a drawn film. */
   readonly talk: Option.Option<LoadedTalk>;
+}
+
+/**
+ * A film with each seed of every derived sound its `sound.ts` places
+ * measured (`measuredFilm`): what a mix plan, the check's lead-in and a
+ * seed's line in the options read.
+ */
+export interface MeasuredFilm extends LoadedFilm {
+  readonly sounds: MeasuredSounds;
 }
 
 /**
@@ -454,7 +473,6 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
         const path = yield* Path.Path;
         const store = yield* ContentStore;
         const { paths, names, sounds, footage: footageDir } = yield* FilmFolder;
-        const render = yield* SoundRender;
         const outputs = yield* filmsOut;
 
         /** A film not in the folder: `FilmUnknown`, naming the films there are (never a path). */
@@ -551,7 +569,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
               heardAs: {},
               look: Option.none(),
               looks: {},
-              sounds: yield* loadSounds(sound),
+              sounds: yield* loadSounds,
               talk: Option.some(talk),
             };
             return loaded;
@@ -587,7 +605,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
               Option.fromUndefinedOr((yield* loadModule(name, paletteFile, PaletteModule)).looks),
               (): Looks => ({}),
             );
-          const library = yield* loadSounds(sound);
+          const library = yield* loadSounds;
           const loaded: LoadedFilm = {
             paths: at,
             scenes,
@@ -606,24 +624,19 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
         });
 
         /**
-         * The app's library, its lock and its code sounds resolved, each
-         * derived sound the film plays measured; none when the app keeps no
-         * `sounds/library.ts`.
+         * The app's library, its lock and its code sounds resolved, nothing
+         * rendered or measured; none when the app keeps no `sounds/library.ts`.
          */
-        const loadSounds = (sound: Option.Option<Sound>) =>
-          Effect.gen(function* () {
-            const dir = Option.getOrElse(sounds, () => '');
-            const file = path.join(dir, 'library.ts');
-            if (Option.isNone(sounds) || !(yield* fs.exists(file))) return NO_SOUNDS;
-            const { library } = yield* libraryModule(file);
-            const lock = yield* store.read(lockManifest(dir));
-            const { code, trials } = yield* Effect.fromResult(resolveCode(library));
-            const loaded: Sounds = { library, lock, dir, code, trials, measured: new Map() };
-            return yield* render.measured(
-              loaded,
-              Option.match(sound, { onNone: () => [], onSome: placedSounds }),
-            );
-          });
+        const loadSounds = Effect.gen(function* () {
+          const dir = Option.getOrElse(sounds, () => '');
+          const file = path.join(dir, 'library.ts');
+          if (Option.isNone(sounds) || !(yield* fs.exists(file))) return NO_SOUNDS;
+          const { library } = yield* libraryModule(file);
+          const lock = yield* store.read(lockManifest(dir));
+          const { code, trials } = yield* Effect.fromResult(resolveCode(library));
+          const loaded: Sounds = { library, lock, dir, code, trials };
+          return loaded;
+        });
 
         const script = Effect.fn('FilmRepo.script')(function* (name: string, folder?: Segment) {
           if (!(yield* fs.exists(paths(name).dir))) return yield* unknown(name);

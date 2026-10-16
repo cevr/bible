@@ -141,11 +141,11 @@ export const filmServices = (spec: FilmServicesSpec) => {
     }),
   );
   const Store = ContentStore.layer.pipe(Layer.provide(Platform));
-  // Every derived sound's audio and measures, made once a process and shared: the film
-  // loader measures what a film plays, the library and the mixer render it.
+  // Every derived sound's audio and measures, made once a process and shared: the mix, the
+  // check and the options measure what a film places, the library and the mixer render it.
   const Render = SoundRender.layer;
   const Repo = FilmRepo.layer(spec.films, Option.some(spec.sounds), Option.some(spec.footage)).pipe(
-    Layer.provide([Store, Render, Platform]),
+    Layer.provide([Store, Platform]),
   );
   const Tools = spec.elevenLabs.pipe(
     Layer.provideMerge(Media.layer),

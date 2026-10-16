@@ -525,7 +525,7 @@ export const measurePcm = (pcm: Pcm): Measure => ({
   ...lockTiming(describeSound(pcm)),
 });
 
-/** An app's sounds as a film's mix reads them: the declarations, what was made, and where. */
+/** An app's sounds as a film loads them: the declarations, what was made, and where. */
 export interface Sounds {
   readonly library: Library;
   readonly lock: Lock;
@@ -539,12 +539,19 @@ export interface Sounds {
    * where it is asked to play it in its sound's place (`film options mix`).
    */
   readonly trials: ReadonlyMap<string, ResolvedTrial>;
-  /** Each derived variant measured, by its source's label: those of the sounds being played. */
+}
+
+/**
+ * An app's sounds as what plays them reads them (a mix, the check's lead-in,
+ * a seed's line): each derived variant of the sounds being played measured,
+ * by its source's label (`SoundRender.measured`).
+ */
+export interface MeasuredSounds extends Sounds {
   readonly measured: ReadonlyMap<string, Measure>;
 }
 
-/** No library: a film that names no sound. */
-export const NO_SOUNDS: Sounds = {
+/** No library: a film that names no sound, so there is nothing to measure. */
+export const NO_SOUNDS: MeasuredSounds = {
   library: {},
   lock: {},
   dir: '',
@@ -666,7 +673,7 @@ export const derivedPlayable = (source: DerivedSource, measured: Measure): Playa
 });
 
 /** A derived source as it plays, as `sounds` measured it; none until it is measured. */
-const measuredPlayable = (sounds: Sounds, source: DerivedSource): Option.Option<Playable> =>
+const measuredPlayable = (sounds: MeasuredSounds, source: DerivedSource): Option.Option<Playable> =>
   Option.map(Option.fromUndefinedOr(sounds.measured.get(sourceLabel(source))), (measured) =>
     derivedPlayable(source, measured),
   );
@@ -679,7 +686,7 @@ export const placedSounds = (sound: Sound): ReadonlyArray<string> =>
   ]);
 
 /** How many of a derived sound's seeds `sounds` holds no measure of (all, when it is not resolved); 0 for a kept sound. */
-export const unmeasuredOf = (sounds: Sounds, name: string, entry: LibraryEntry): number => {
+export const unmeasuredOf = (sounds: MeasuredSounds, name: string, entry: LibraryEntry): number => {
   if (!isDerived(entry)) return 0;
   const sources = seedSources(sounds, name, entry);
   if (sources.length === 0) return entry.variants;
@@ -692,7 +699,7 @@ export const unmeasuredOf = (sounds: Sounds, name: string, entry: LibraryEntry):
  * in the lock (stale ones included), none when nothing is kept.
  */
 export const playablesOf = (
-  sounds: Sounds,
+  sounds: MeasuredSounds,
   name: string,
   entry: LibraryEntry,
 ): ReadonlyArray<Playable> => {

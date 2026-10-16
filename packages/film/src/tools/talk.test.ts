@@ -56,6 +56,7 @@ import { Looker } from './looker.ts';
 import { planOf } from './mixer.ts';
 import { planNarration } from './narrator.ts';
 import { read } from './read-cli.ts';
+import { measuredFilm } from './sound-render.ts';
 import { talk } from './talk-cli.ts';
 import {
   echoPages,
@@ -267,7 +268,10 @@ describe('a talk through the tools', () => {
 
         // The voice is the take's own file under the copies, known by its source and recipe.
         const mixing = Result.getOrThrow(
-          planOf(loaded, placed, { score: Option.none(), inPlace: Option.none() }),
+          planOf(yield* measuredFilm(loaded), placed, {
+            score: Option.none(),
+            inPlace: Option.none(),
+          }),
         );
         const voice = `${copies}/${sourceFile(SOURCE, 'voice.flac')}`;
         expect(voice).toBe(`${folders.out}/footage/why-the-law/0123456789ab/voice.flac`);
@@ -321,7 +325,10 @@ describe('a talk through the tools', () => {
         const loaded = yield* (yield* FilmRepo).load('why');
         const placed = yield* placeFilm(loaded);
         const mixing = Result.getOrThrow(
-          planOf(loaded, placed, { score: Option.none(), inPlace: Option.none() }),
+          planOf(yield* measuredFilm(loaded), placed, {
+            score: Option.none(),
+            inPlace: Option.none(),
+          }),
         );
         // As the app's films index registers a talk: its module, imported when the page asks.
         const talkModule = () => import(`${folders.films}/why/talk.ts`);

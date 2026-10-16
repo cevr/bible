@@ -66,6 +66,7 @@ import { Media, type MediaService } from './media.ts';
 import { masterFinding, planKey, readMaster } from './mixer.ts';
 import { type ExportPages, Pages } from './pages.ts';
 import { PreviewServer } from './preview-server.ts';
+import { SoundRender } from './sound-render.ts';
 import {
   type AudioCut,
   type Chunk,
@@ -278,7 +279,8 @@ export interface Remuxed {
 /**
  * The film's master checked, before anything is drawn or cut, against the
  * film it must cover (`seconds`, to within `tolerance`) and the plan the film
- * mixes to now: that plan's key (none when it does not build).
+ * mixes to now, its placed code sounds measured through the sound renderer:
+ * that plan's key (none when it does not build).
  */
 const masterChecked = (
   fs: FileSystem.FileSystem,
@@ -354,6 +356,7 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
       const path = yield* Path.Path;
       const media = yield* Media;
       const pages = yield* Pages;
+      const sounds = yield* SoundRender;
 
       // Every file a render leaves is written beside itself and renamed over
       // its place once whole, so a failed or interrupted render never leaves
@@ -368,7 +371,10 @@ export class Renderer extends Context.Service<Renderer, RendererService>()(
         placed: ReadonlyArray<Placed>,
         seconds: number,
         tolerance: number,
-      ) => masterChecked(fs, media, film, placed, seconds, tolerance);
+      ) =>
+        masterChecked(fs, media, film, placed, seconds, tolerance).pipe(
+          Effect.provideService(SoundRender, sounds),
+        );
       const trackOf = (cut: AudioCut) => trackCut(media, cut);
 
       /** The short on a page's clock: the same spans, on the same frames, it draws. */

@@ -30,10 +30,10 @@ import { TAKE_LEVEL, takeLift } from './recording.ts';
 import type { Sound, SoundEffect, SoundManifest } from './schema.ts';
 import type { Piece } from './talk.ts';
 import {
+  type MeasuredSounds,
   type Placing,
   type Playable,
   type SoundSource,
-  type Sounds,
   fileSource,
   gainFor,
   jitterOf,
@@ -185,8 +185,8 @@ interface MixInput {
   readonly placed: ReadonlyArray<Placed>;
   readonly sound: Option.Option<Sound>;
   readonly manifest: SoundManifest;
-  /** The app's sound library and what was made for it. */
-  readonly sounds: Sounds;
+  /** The app's sound library, what was made for it, and the derived sounds placed measured. */
+  readonly sounds: MeasuredSounds;
   /** Directory of the voice takes. */
   readonly narration: string;
   /** Directory of the generated score. */

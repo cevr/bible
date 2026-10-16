@@ -50,6 +50,7 @@ import type { FaceMark, InkMark, Probed, TextBox } from '../core/export-handle.t
 import {
   LEAD_IN,
   type LibraryEntry,
+  type MeasuredSounds,
   type SoundUse,
   type Sounds,
   playablesOf,
@@ -98,7 +99,7 @@ import {
   InkOverFace,
   WordPinFar,
 } from './findings.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import type { LoadedFilm, MeasuredFilm } from './film-repo.ts';
 import { type Master, masterFinding } from './mixer.ts';
 
 // ---------------------------------------------------------------------------
@@ -570,7 +571,7 @@ const leadIn = (
   effect: string,
   placing: Sound['effects'][string],
   entry: LibraryEntry,
-  sounds: Sounds,
+  sounds: MeasuredSounds,
 ): ReadonlyArray<LeadIn> => {
   if ((placing.sync ?? 'start') !== 'start') return [];
   const late = playablesOf(sounds, placing.sound, entry).flatMap((p, i) =>
@@ -601,7 +602,7 @@ const lateOrder = Order.mapInput(Order.Number, (t: { readonly onset: number }) =
 export const soundFindings = (
   sound: Sound,
   placed: ReadonlyArray<Placed>,
-  sounds: Sounds,
+  sounds: MeasuredSounds,
 ): ReadonlyArray<StaticFinding> => {
   const named = new Set<string>();
   const once = (name: string, found: ReadonlyArray<StaticFinding>) => {
@@ -767,12 +768,13 @@ export const deadAir = (
 };
 
 /**
- * Everything the check finds without drawing a frame or mixing: `audio` is
- * the master on disk and the key of the plan the film mixes to now. `report`
- * levels and addresses them.
+ * Everything the check finds without drawing a frame or mixing: `film` with
+ * the derived sounds it places measured (each effect's lead-in reads them);
+ * `audio` is the master on disk and the key of the plan the film mixes to
+ * now. `report` levels and addresses them.
  */
 export const staticFindings = (
-  film: LoadedFilm,
+  film: MeasuredFilm,
   placed: ReadonlyArray<Placed>,
   audio: MasterAudio,
 ): ReadonlyArray<StaticFinding> => {

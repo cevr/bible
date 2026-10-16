@@ -27,7 +27,6 @@ import { FilmName, FilmRepo } from './film-repo.ts';
 import { readSpans } from './scene-source.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
-import { SoundRender } from './sound-render.ts';
 import { FORMAT_LIMIT, SourceWriter } from './source-writer.ts';
 import { freshHere, sceneFixture } from './testing.ts';
 
@@ -74,7 +73,7 @@ const fixtureWith = (
         Layer.provideMerge(SourceWriter.layer),
         Layer.provideMerge(SceneSources.layer),
         Layer.provide(Layer.merge(repo, freshHere({}).pipe(Layer.provide(repo)))),
-        Layer.provide([ContentStore.layer, SoundRender.layer]),
+        Layer.provide(ContentStore.layer),
         Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner)),
         Layer.merge(Layer.succeed(HandFile, file)),
       );

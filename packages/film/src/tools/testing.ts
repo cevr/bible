@@ -95,7 +95,7 @@ import {
   type PageCrashed,
   type PageError,
 } from './errors.ts';
-import { FilmFolder, FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { FilmFolder, FilmRepo, type MeasuredFilm, placeFilm } from './film-repo.ts';
 import { cueOf, locateHere } from './read-cli.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
 import type { FootageCopy, FootageProbe } from '../core/footage.ts';
@@ -1656,12 +1656,12 @@ export const testVoice: Voice = {
   settings: { stability: 0.5 },
 };
 
-/** A small film at `/films/test`, laid out in memory. */
+/** A small film at `/films/test`, laid out in memory, with no library: nothing to measure. */
 export const testFilm = (
   scenes: ReadonlyArray<Timed>,
   timings: Timings,
   voice: Voice = testVoice,
-): LoadedFilm => ({
+): MeasuredFilm => ({
   paths: {
     name: 'test',
     dir: '/films/test',
