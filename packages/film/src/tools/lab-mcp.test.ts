@@ -71,7 +71,6 @@ import {
   mcpBound,
   mcpPost,
   mcpSession,
-  noRenders,
   printingTo,
   reviewMedia,
   text,
@@ -131,19 +130,23 @@ const files = () =>
     ['/elsewhere/judge-faces/calm.png', text('a calm judge')],
   ]);
 
-/** The review rooted at the lab's own out/ (`FILMS_OUT`, here its default under the working folder), then `others`. */
+/**
+ * The review itself rooted at the lab's own out/ (`FILMS_OUT`, here its
+ * default under the working folder), then `others`: its index read and kept,
+ * as the page's is, until a write drops it.
+ */
 const reviewAt = (others: ReadonlyArray<{ readonly label: string; readonly path: string }>) =>
-  Layer.effect(
-    Review,
-    Effect.gen(function* () {
-      const review = yield* Review;
-      const path = yield* Path.Path;
-      return Review.of({
-        ...review,
+  Layer.unwrap(
+    Effect.map(Path.Path, (path) =>
+      Review.layer({
         roots: [{ label: 'spare', path: path.resolve('out') }, ...others],
-      });
-    }),
-  ).pipe(Layer.provide([noRenders, Path.layer]));
+        cache: '/cache',
+        phoneOver: 1_000_000,
+        maxVideo: 10_000_000,
+        phoneCopies: false,
+      }),
+    ),
+  ).pipe(Layer.provide([reviewMedia([]), RenderCatalogue.layer, Path.layer]));
 const reviewAtOut = reviewAt([]);
 
 const providedWith =
@@ -482,18 +485,9 @@ describe('a refused publish', () => {
   );
 });
 
-/** The review itself over the lab's own out/: its index read and kept, as the page's is, until a write drops it. */
-const liveReview = Review.layer({
-  roots: [{ label: 'spare', path: 'out' }],
-  cache: '/cache',
-  phoneOver: 1_000_000,
-  maxVideo: 10_000_000,
-  phoneCopies: false,
-}).pipe(Layer.provide([reviewMedia([]), RenderCatalogue.layer]));
-
 describe('the review after an MCP write', () => {
   it.effect('lists a set published and a render recorded at its next read', () =>
-    providedWith(liveReview)(
+    provided(
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
@@ -536,7 +530,7 @@ describe('the review after an MCP write', () => {
 
 describe('the sets the MCP lists', () => {
   it.effect(
-    'every folder the review walks, by the kind it reads it as: one nested below the first level, a project folder by its catalogue though a manifest sits beside it, and no record that does not decode; the feed hears a nested one published',
+    'the folders the review lists, by the kind it reads them as: one nested below the first level, a project folder by its catalogue though a manifest sits beside it; none with nothing to review, and no record that does not decode; the feed hears a nested one published',
     () =>
       provided(
         Effect.gen(function* () {
@@ -549,27 +543,48 @@ describe('the sets the MCP lists', () => {
               yield* fs.makeDirectory(path.dirname(file), { recursive: true });
               yield* fs.writeFileString(file, body);
             });
-          yield* put(
-            'f/catalogue.json',
-            yield* Schema.encodeEffect(CatalogueJson)(emptyCatalogue('f')),
-          );
           yield* put('f/review.json', '{"title":"Not a montage"}');
+          yield* put('f/cold.png', 'a still');
           yield* put('broken/review.json', '{"title":');
+          // Records with nothing to review: a project's empty catalogue, a manifest with a title alone.
+          yield* put(
+            'g/catalogue.json',
+            yield* Schema.encodeEffect(CatalogueJson)(emptyCatalogue('g')),
+          );
+          yield* put('empty/review.json', '{"title":"Nothing yet"}');
           const { lab, events } = yield* labWithMcp;
           const { tool } = yield* mcpSession(lab);
+          yield* tool('record_render', {
+            film: 'f',
+            render: {
+              address: { _tag: 'Film' },
+              variant: 'base',
+              kind: 'stills',
+              settings: { scale: 1, captions: false },
+              stamp: { key: 'k1' },
+              files: { images: ['cold.png'] },
+            },
+          });
+          // The feed's first look takes what is there as it stands.
+          yield* events.look;
           const { cursor } = yield* tool('overview');
-          yield* put('stories/rbf/review.json', '{"title":"Deep"}');
+          yield* put('stories/rbf/deep.png', 'deep');
+          yield* put('stories/rbf/review.json', '{"title":"Deep","images":["deep.png"]}');
           const listed = yield* tool('sets');
           const rows = listed.sets.map((s: { set: string; kind: string; title?: string }) => [
             s.set,
             s.kind,
-            Option.getOrElse(Option.fromUndefinedOr(s.title), () => ''),
           ]);
           expect(rows.toSorted()).toEqual(
             [
-              ['spare/f', 'project', ''],
-              ['spare/stories/rbf', 'montage', 'Deep'],
+              ['spare/f', 'project'],
+              ['spare/stories/rbf', 'montage'],
             ].toSorted(),
+          );
+          // The same sets as the review's own index.
+          const index = yield* (yield* Review).index(true);
+          expect(index.folders.map((f) => f.ref).toSorted()).toEqual(
+            rows.map(([set]: ReadonlyArray<string>) => set).toSorted(),
           );
           expect((yield* tool('overview')).sets.length).toBe(2);
           yield* events.look;

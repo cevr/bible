@@ -43,7 +43,7 @@ when `FILM_LAB_HOSTS` names one).
 | `notes`         | a film's notes (`unresolved` by default, or `all`/`open`/`replied`/`resolved`), each with its link and its still's file |
 | `board`         | a film's board: panels, tries (image files on disk), kept, why, approvals, each panel's link                            |
 | `catalogue`     | a project folder's renders, approvals and comments (by `film` or `set`)                                                 |
-| `sets`, `set`   | the sets under the review roots (montage or project), and one set's `review.json`                                       |
+| `sets`, `set`   | the sets the review lists (montage or project, each with something to review), and one set's `review.json`              |
 | `reply`         | a reply on a note, by `agent` (`NotesStore.reply`): the page shows it in the thread                                     |
 | `resolve`       | marks a note done (`NotesStore.resolve`)                                                                                |
 | `request_tweak` | a tweak note on a board panel, its still the try shown (as the Board's Tweak writes one)                                |

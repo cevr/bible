@@ -6,22 +6,10 @@
 // render recorded (`record_render`). Each write drops the review's index, so
 // its next read sees what was written.
 
-import {
-  Array as Arr,
-  Clock,
-  Effect,
-  FileSystem,
-  Layer,
-  Match,
-  Option,
-  Path,
-  Result,
-  Schema,
-  Struct,
-} from 'effect';
+import { Clock, Effect, FileSystem, Layer, Option, Path, Result, Schema, Struct } from 'effect';
 import { McpServer, Tool, Toolkit } from 'effect/ai';
 import { pageHref } from '../core/api.ts';
-import { Catalogue, CatalogueJson, Render } from '../core/catalogue.ts';
+import { Catalogue, Render } from '../core/catalogue.ts';
 import { LabLinks, linksAt } from '../core/lab-events.ts';
 import { setNamed } from '../core/production.ts';
 import { ReviewManifest, ReviewManifestJson } from '../core/review.ts';
@@ -121,7 +109,7 @@ const CatalogueTool = Tool.make('catalogue', {
 
 export const Sets = Tool.make('sets', {
   description:
-    'Every set the lab lists, by ref: montages (a `review.json`) and project folders (a `catalogue.json`), each with its title, lab link and folder.',
+    'Every set the lab lists, by ref, as the review lists them (a folder with something to review: a set published with no file in it waits until one lands): montages (a `review.json`) and project folders (a `catalogue.json`), each with its title, lab link and folder.',
   success: Schema.Struct({ sets: Schema.Array(SetRead) }),
   failure: LabRefused,
 }).annotate(Tool.Readonly, true);
@@ -177,42 +165,26 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
   const named = (film: string) => refused(filmNamed(film).pipe(Effect.provideContext(films)));
 
   /**
-   * The sets under the roots, as the review walks them (`recordsUnder`: every
-   * level, a folder with a catalogue a project, one with a manifest alone a
-   * montage), each whose record decodes as the review reads it.
+   * The sets the review lists (its index, read fresh: a folder with
+   * something to review), each by the kind and folder its walk finds it as
+   * (`recordsUnder`: a folder with a catalogue a project, one with a manifest
+   * alone a montage).
    */
   const sets = Effect.gen(function* () {
-    const listed = yield* recordsUnder(review.roots).pipe(Effect.provideContext(platform));
-    const found = yield* Effect.forEach(
-      listed,
-      (f) =>
-        Effect.gen(function* () {
-          const text = yield* fs.readFileString(f.file).pipe(Effect.option);
-          // The record decoded: some title or none when it does; nothing when it does not.
-          const decoded = Match.value(f.kind).pipe(
-            Match.when('montage', () =>
-              Option.map(
-                Option.flatMap(text, Schema.decodeOption(ReviewManifestJson)),
-                (m) => m.title,
-              ),
-            ),
-            Match.orElse(() =>
-              Option.map(Option.flatMap(text, Schema.decodeOption(CatalogueJson)), () =>
-                Option.none<string>(),
-              ),
-            ),
-          );
-          return Option.map(decoded, (t): typeof SetRead.Type => ({
-            set: f.ref,
-            kind: f.kind,
-            ...Option.match(t, { onNone: () => ({}), onSome: (named) => ({ title: named }) }),
-            links: linksOf(pageHref.folder(f.ref)),
-            dir: f.dir,
-          }));
+    const index = yield* review.index(true);
+    const walked = yield* recordsUnder(review.roots).pipe(Effect.provideContext(platform));
+    const byRef = new Map(walked.map((record) => [record.ref, record]));
+    return index.folders.flatMap((listed) =>
+      Option.toArray(Option.fromUndefinedOr(byRef.get(listed.ref))).map(
+        (record): typeof SetRead.Type => ({
+          set: listed.ref,
+          kind: record.kind,
+          ...Option.match(listed.title, { onNone: () => ({}), onSome: (title) => ({ title }) }),
+          links: linksOf(pageHref.folder(listed.ref)),
+          dir: record.dir,
         }),
-      { concurrency: 8 },
+      ),
     );
-    return Arr.getSomes(found);
   });
 
   /** A set's ref and folder: by its ref, or a film's own project folder. */
