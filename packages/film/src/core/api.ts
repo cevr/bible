@@ -47,7 +47,7 @@ import {
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
 import { BoardFile, BoardName } from './board.ts';
-import { AskRecord, StepValues } from './ask.ts';
+import { AskName, AskRecord, StepValues } from './ask.ts';
 import type { Interval } from './time.ts';
 import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
@@ -894,7 +894,7 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
 ) {}
 
 /** One section of an ask's page as sent: the step it answers and each answer's value by its name. */
-const AskSectionPost = Schema.Struct({ step: Schema.String, values: StepValues });
+const AskSectionPost = Schema.Struct({ step: AskName, values: StepValues });
 type AskSectionPost = typeof AskSectionPost.Type;
 
 /**

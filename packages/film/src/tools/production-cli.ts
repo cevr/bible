@@ -50,7 +50,8 @@ import {
   Schema,
 } from 'effect';
 import { FetchHttpClient } from 'effect/http';
-import type { AskBlock } from '../core/ask.ts';
+import { AskBlock } from '../core/ask.ts';
+import { AskInvalid } from '../core/refusals.ts';
 import {
   type OwnerWord,
   type ProductionFile,
@@ -337,6 +338,14 @@ const say = (tag: OwnerWord['_tag']) =>
     ),
   );
 
+/** `blocks` decoded as an ask's page, so each name is checked here: an option left blank is refused. */
+const decodeBlocks = (
+  blocks: ReadonlyArray<typeof AskBlock.Encoded>,
+): Effect.Effect<ReadonlyArray<AskBlock>, AskInvalid> =>
+  Schema.decodeEffect(Schema.Array(AskBlock))(blocks).pipe(
+    Effect.mapError((error) => AskInvalid.make({ problems: [error.message] })),
+  );
+
 /**
  * The page an ask from the terminal shows: two options or more are a choice
  * (the owner taps one, the first given recommended) with words beside it the owner may leave empty; none
@@ -346,15 +355,15 @@ const askBlocks = (options: ReadonlyArray<string>) =>
   Match.value(options).pipe(
     Match.when(
       (o) => o.length === 0,
-      (): Effect.Effect<ReadonlyArray<AskBlock>> =>
-        Effect.succeed([{ kind: 'free_text', id: 'answer', label: 'Your answer', required: true }]),
+      () =>
+        decodeBlocks([{ kind: 'free_text', id: 'answer', label: 'Your answer', required: true }]),
     ),
     Match.when(
       (o) => o.length === 1,
       (o) => Effect.fail(OneOption.make({ option: o[0] ?? '' })),
     ),
-    Match.orElse((o): Effect.Effect<ReadonlyArray<AskBlock>> =>
-      Effect.succeed([
+    Match.orElse((o) =>
+      decodeBlocks([
         {
           kind: 'choose',
           id: 'pick',

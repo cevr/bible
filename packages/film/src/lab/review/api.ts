@@ -22,7 +22,7 @@ import {
 } from '../../core/api.ts';
 import type { BoardFile } from '../../core/board.ts';
 import type { MoveForward, ProductionFile, Productions } from '../../core/production.ts';
-import type { AskRecord, StepValues } from '../../core/ask.ts';
+import type { AskName, AskRecord, StepValues } from '../../core/ask.ts';
 import type { LabWrite } from '../../core/schema.ts';
 import type { StudioAttempts } from '../../core/studio.ts';
 import type { ReviewDuration, ReviewIndex } from '../../core/review.ts';
@@ -62,7 +62,7 @@ interface ReviewCalls {
   /** The owner's answers to ask `id`'s page, each section's in order: the ask as they leave it. */
   readonly answer: (
     id: string,
-    sections: ReadonlyArray<{ readonly step: string; readonly values: StepValues }>,
+    sections: ReadonlyArray<{ readonly step: AskName; readonly values: StepValues }>,
   ) => Effect.Effect<AskRecord, LabFailure>;
   /** A film's script as its `script.ts` reads now: each beat's line, picture and sources. */
   readonly script: (film: string) => Effect.Effect<ScriptBeats, LabFailure>;

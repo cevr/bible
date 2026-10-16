@@ -12,6 +12,7 @@ import { addressKey } from './address.ts';
 import {
   AskAnswer,
   type AskAnswers,
+  type AskName,
   type AskRecord,
   answeredToEnd,
   answersLine,
@@ -422,7 +423,7 @@ export const setChanges = (
   });
 
 /** The answers `record` holds that step `step` asked. */
-const answersOf = (record: AskRecord, step: string): AskAnswers =>
+const answersOf = (record: AskRecord, step: AskName): AskAnswers =>
   Option.match(Record.get(record.ask.steps, step), {
     onNone: () => ({}),
     onSome: (at) =>

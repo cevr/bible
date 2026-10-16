@@ -9,7 +9,14 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Boolean as Bool, Effect, Exit, Schema } from 'effect';
 import { TestClock } from 'effect/testing';
-import { type Ask, AskState, oneQuestion } from '../core/ask.ts';
+import {
+  type Ask,
+  AskBlock,
+  AskName,
+  Ask as AskSchema,
+  AskState,
+  oneQuestion,
+} from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { Segment } from '../core/segment.ts';
 import { AskStore } from './ask-store.ts';
@@ -43,33 +50,42 @@ const files = () =>
     ['/films/f/board.json', text(Schema.encodeSync(BoardFileJson)(board))],
   ]);
 
+/** An ask, a page's blocks and a step's name as an agent writes them, decoded as the lab decodes them. */
+const askOf = Schema.decodeSync(AskSchema);
+const pageOf = Schema.decodeSync(Schema.Array(AskBlock));
+const step = Schema.decodeSync(AskName);
+
 /** The proof: choose a try of the panel; 7 asks why; done. */
-const proof = (tries: ReadonlyArray<number>): Ask => ({
-  start: 'pick',
-  steps: {
-    pick: {
-      blocks: [
-        {
-          kind: 'choose',
-          id: 'try',
-          label: 'Which try do we keep?',
-          options: tries.map((n, i) => ({
-            value: String(n),
-            label: `Try ${n}`,
-            image: { board: { film: 'f', panel: 'word.church', try: n } },
-            ...Bool.match(i === 0, { onFalse: () => ({}), onTrue: () => ({ recommended: true }) }),
-          })),
-        },
-      ],
-      next: [{ to: 'why', when: { answer: 'try', is: ['7'] } }, { to: 'done' }],
+const proof = (tries: ReadonlyArray<number>): Ask =>
+  askOf({
+    start: 'pick',
+    steps: {
+      pick: {
+        blocks: [
+          {
+            kind: 'choose',
+            id: 'try',
+            label: 'Which try do we keep?',
+            options: tries.map((n, i) => ({
+              value: String(n),
+              label: `Try ${n}`,
+              image: { board: { film: 'f', panel: 'word.church', try: n } },
+              ...Bool.match(i === 0, {
+                onFalse: () => ({}),
+                onTrue: () => ({ recommended: true }),
+              }),
+            })),
+          },
+        ],
+        next: [{ to: 'why', when: { answer: 'try', is: ['7'] } }, { to: 'done' }],
+      },
+      why: {
+        blocks: [{ kind: 'free_text', id: 'why', label: 'Why that one?', required: true }],
+        next: [{ to: 'done' }],
+      },
+      done: { end: true, text: 'Thank you.' },
     },
-    why: {
-      blocks: [{ kind: 'free_text', id: 'why', label: 'Why that one?', required: true }],
-      next: [{ to: 'done' }],
-    },
-    done: { end: true, text: 'Thank you.' },
-  },
-});
+  });
 
 const draft = (ask: Ask) => ({ title: 'Keep a try', why: 'the beat waits', by: 'agent', ask });
 
@@ -81,10 +97,10 @@ describe('the asks on disk', () => {
     run(
       Effect.gen(function* () {
         const asks = yield* AskStore;
-        const dangling: Ask = {
+        const dangling = askOf({
           start: 'a',
           steps: { a: { blocks: [{ kind: 'prose', text: 'a' }], next: [{ to: 'nowhere' }] } },
-        };
+        });
         const invalid = yield* Effect.flip(asks.make(draft(dangling)));
         expect(invalid._tag).toBe('AskInvalid');
         expect(invalid.message).toContain('nowhere');
@@ -95,7 +111,7 @@ describe('the asks on disk', () => {
         expect(yield* asks.list).toEqual([]);
         const made = yield* asks.make(draft(proof([1, 7])));
         expect(made.id).toMatch(/^a[0-9a-f]{10}$/);
-        expect(made.ask.steps['pick']).toMatchObject({
+        expect(made.ask.steps[step('pick')]).toMatchObject({
           blocks: [
             {
               options: [
@@ -116,38 +132,38 @@ describe('the asks on disk', () => {
       Effect.gen(function* () {
         const asks = yield* AskStore;
         const { id } = yield* asks.make(draft(proof([1, 7])));
-        const picked = yield* asks.answerPage(id, [{ step: 'pick', values: { try: '7' } }]);
+        const picked = yield* asks.answerPage(id, [{ step: step('pick'), values: { try: '7' } }]);
         expect(picked.state).toMatchObject({ _tag: 'Asking', step: 'why' });
         // The phone sends the same pick again: the ask as it is.
-        expect(yield* asks.answerPage(id, [{ step: 'pick', values: { try: '7' } }])).toEqual(
+        expect(yield* asks.answerPage(id, [{ step: step('pick'), values: { try: '7' } }])).toEqual(
           picked,
         );
         const other = yield* Effect.flip(
-          asks.answerPage(id, [{ step: 'pick', values: { try: '1' } }]),
+          asks.answerPage(id, [{ step: step('pick'), values: { try: '1' } }]),
         );
         expect(other.message).toContain('step pick is answered already');
-        const empty = yield* Effect.flip(asks.answerPage(id, [{ step: 'why', values: {} }]));
+        const empty = yield* Effect.flip(asks.answerPage(id, [{ step: step('why'), values: {} }]));
         expect(empty._tag).toBe('AskRefused');
         const done = yield* asks.answerPage(id, [
-          { step: 'why', values: { why: 'the light falls on the pulpit' } },
+          { step: step('why'), values: { why: 'the light falls on the pulpit' } },
         ]);
         expect(done.state).toEqual(
           AskState.Answered({
-            step: 'done',
+            step: step('done'),
             answers: {
               try: { kind: 'choose', value: '7', label: 'Try 7' },
               why: { kind: 'free_text', text: 'the light falls on the pulpit' },
             },
           }),
         );
-        expect(done.answered.map((a) => a.step)).toEqual(['pick', 'why']);
+        expect(done.answered.map((a): string => a.step)).toEqual(['pick', 'why']);
         const closed = yield* asks.close(id, 'kept try 7');
         expect(closed.state).toMatchObject({ _tag: 'Closed', why: 'kept try 7' });
         expect(closed.state.answers).toEqual(done.state.answers);
         expect(yield* asks.close(id, 'kept try 7')).toEqual(closed);
         expect((yield* Effect.flip(asks.close(id, 'another'))).message).toContain('closed already');
         const after = yield* Effect.flip(
-          asks.answerPage(id, [{ step: 'why', values: { why: 'again' } }]),
+          asks.answerPage(id, [{ step: step('why'), values: { why: 'again' } }]),
         );
         expect(after._tag).toBe('AskRefused');
       }),
@@ -160,26 +176,28 @@ describe('the asks on disk', () => {
         const asks = yield* AskStore;
         const { id } = yield* asks.make(
           draft(
-            oneQuestion([
-              {
-                kind: 'choose',
-                id: 'keep',
-                label: 'Keep it?',
-                options: [
-                  { value: 'yes', label: 'Yes', recommended: true },
-                  { value: 'no', label: 'No' },
-                ],
-              },
-              { kind: 'free_text', id: 'more', label: 'Anything else?' },
-            ]),
+            oneQuestion(
+              pageOf([
+                {
+                  kind: 'choose',
+                  id: 'keep',
+                  label: 'Keep it?',
+                  options: [
+                    { value: 'yes', label: 'Yes', recommended: true },
+                    { value: 'no', label: 'No' },
+                  ],
+                },
+                { kind: 'free_text', id: 'more', label: 'Anything else?' },
+              ]),
+            ),
           ),
         );
         const done = yield* asks.answerPage(id, [
-          { step: 'ask', values: { keep: 'yes', more: '' } },
+          { step: step('ask'), values: { keep: 'yes', more: '' } },
         ]);
         expect(done.state).toEqual(
           AskState.Answered({
-            step: 'done',
+            step: step('done'),
             answers: {
               keep: { kind: 'choose', value: 'yes', label: 'Yes' },
               more: { kind: 'skipped' },
@@ -188,7 +206,7 @@ describe('the asks on disk', () => {
         );
         expect(done.answered.map((a) => a.values)).toEqual([{ keep: 'yes' }]);
         expect(
-          yield* asks.answerPage(id, [{ step: 'ask', values: { keep: 'yes', more: '  ' } }]),
+          yield* asks.answerPage(id, [{ step: step('ask'), values: { keep: 'yes', more: '  ' } }]),
         ).toEqual(done);
       }),
     ),
@@ -205,7 +223,7 @@ describe('the asks on disk', () => {
         });
         expect(deadline).toBe('2026-10-14T11:00:00.000Z');
         const exit = yield* Effect.exit(
-          asks.answerPage(id, [{ step: 'pick', values: { try: '1' } }]),
+          asks.answerPage(id, [{ step: step('pick'), values: { try: '1' } }]),
         );
         expect(Exit.isFailure(exit)).toBe(true);
         expect(String(exit)).toContain('it was due by 2026-10-14T11:00:00.000Z');

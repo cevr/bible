@@ -29,6 +29,7 @@ import {
   type Ask,
   type AskImage,
   type BoardTryRef,
+  AskName,
   type AskRecord,
   AskEvent,
   AskRecordJson,
@@ -82,7 +83,7 @@ interface AskStoreService {
    */
   readonly answerPage: (
     id: string,
-    sections: ReadonlyArray<{ readonly step: string; readonly values: StepValues }>,
+    sections: ReadonlyArray<{ readonly step: AskName; readonly values: StepValues }>,
   ) => Effect.Effect<AskRecord, AskUnknown | AskRefused | StoreError>;
   /** The ask closed, `why` (withdrawn, or filed once answered): what was answered is kept. */
   readonly close: (
@@ -92,21 +93,23 @@ interface AskStoreService {
 }
 
 /** No record: what a manifest read gives for an ask that is not on disk. */
+const MISSING_END = AskName.make('done');
+const MISSING_ASK: Ask = { start: MISSING_END, steps: { [MISSING_END]: { end: true } } };
 const MISSING: AskRecord = {
-  id: '',
+  id: AskName.make('missing'),
   title: '-',
   why: '-',
   by: '-',
   created: '',
-  ask: { start: 'done', steps: { done: { end: true } } },
-  state: askStart({ start: 'done', steps: { done: { end: true } } }),
+  ask: MISSING_ASK,
+  state: askStart(MISSING_ASK),
   answered: [],
 };
 
 /** An ask's id: `a` and ten hex digits. */
 const newId = Effect.map(
   Effect.all([Random.nextIntBetween(0, 0x100000), Random.nextIntBetween(0, 0x100000)]),
-  (halves) => `a${halves.map((h) => h.toString(16).padStart(5, '0')).join('')}`,
+  (halves) => AskName.make(`a${halves.map((h) => h.toString(16).padStart(5, '0')).join('')}`),
 );
 
 const ASK_ID = /^a[0-9a-f]{10}$/;
@@ -290,7 +293,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
        * was; a different one, one past the deadline, or one that does not
        * fit (`answerRefusal`) is refused.
        */
-      const stepped = (current: AskRecord, step: string, values: StepValues, when: string) =>
+      const stepped = (current: AskRecord, step: AskName, values: StepValues, when: string) =>
         Effect.gen(function* () {
           const refuse = (reason: string) => AskRefused.make({ id: current.id, reason });
           const before = Arr.findFirst(current.answered, (a) => a.step === step);
@@ -312,7 +315,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
 
       const answerPage = Effect.fn('AskStore.answerPage')(function* (
         id: string,
-        sections: ReadonlyArray<{ readonly step: string; readonly values: StepValues }>,
+        sections: ReadonlyArray<{ readonly step: AskName; readonly values: StepValues }>,
       ) {
         const at = yield* known(id);
         const when = yield* now;

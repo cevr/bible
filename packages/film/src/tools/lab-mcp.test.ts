@@ -47,6 +47,7 @@ import {
 import { Base64 } from 'effect/encoding';
 import { TestClock } from 'effect/testing';
 import { labUrls } from '../core/api.ts';
+import { Ask, AskName } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { Segment } from '../core/segment.ts';
 import { currentOf, moveForward, productionsOf } from '../core/production.ts';
@@ -74,6 +75,9 @@ import {
 } from './testing.ts';
 
 const STRANGER = 'x.example.net';
+
+/** The page step of a one-page ask, by its name as the lab decodes it. */
+const ONE_PAGE = Schema.decodeSync(AskName)('ask');
 
 const board: BoardFile = {
   film: 'f',
@@ -690,7 +694,7 @@ describe('film production ask', () => {
           ]);
           // The page: a choice, and words beside it the owner may leave out.
           const record = yield* (yield* AskStore).read(made.ask);
-          expect(record.ask.steps['ask']).toEqual({
+          expect((yield* Schema.encodeEffect(Ask)(record.ask)).steps['ask']).toEqual({
             blocks: [
               {
                 kind: 'choose',
@@ -817,7 +821,7 @@ describe('film production ask', () => {
             /^asked a[0-9a-f]{10} on f: filed on its timeline once closed$/,
           );
           const id = words.lines[0]?.split(' ')[1] ?? '';
-          expect((yield* (yield* AskStore).read(id)).ask.steps['ask']).toMatchObject({
+          expect((yield* (yield* AskStore).read(id)).ask.steps[ONE_PAGE]).toMatchObject({
             blocks: [{ kind: 'free_text', id: 'answer', label: 'Your answer', required: true }],
           });
           // Nothing waits on the timeline for an ask that names no set, until it is closed.

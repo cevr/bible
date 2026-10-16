@@ -28,6 +28,7 @@ import {
 } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { repoJson } from './schema.ts';
+import { Segment } from './segment.ts';
 
 /** How large an ask may be: its steps, a step's blocks and ways on, a choice's options. */
 const ASK_LIMITS = { steps: 12, blocks: 12, next: 12, options: 12 } as const;
@@ -39,12 +40,17 @@ const Text = (max: number) =>
     Schema.isMaxLength(max, { message: `at most ${max} characters` }),
   );
 
-/** A step's or an answer's name: lowercase, a letter first (`pick`, `why_7`). */
-const AskName = Schema.String.check(
+/**
+ * A step's or an answer's name: lowercase, a letter first (`pick`, `why_7`).
+ * Steps and answers key records, so it is a `Segment` first: never
+ * `constructor` or `prototype`, which every object answers to.
+ */
+export const AskName = Segment.check(
   Schema.isPattern(/^[a-z][a-z0-9_-]{0,39}$/, {
     message: 'a name of lowercase letters, digits, - and _, a letter first, at most 40',
   }),
 );
+export type AskName = typeof AskName.Type;
 
 /** A path the lab serves, under `/api/` (a board try's image, a set's file): never another host. */
 const LabPath = Schema.String.check(
@@ -304,7 +310,7 @@ const namedProblems = (
 /** Every material block in `ask`, by the step that shows it. */
 export const materialsIn = (
   ask: Ask,
-): ReadonlyArray<{ readonly step: string; readonly block: Material }> =>
+): ReadonlyArray<{ readonly step: AskName; readonly block: Material }> =>
   Record.toEntries(ask.steps).flatMap(([step, s]) =>
     blocksOf(s)
       .filter(isMaterial)
@@ -381,12 +387,16 @@ export const askedIn = (step: AskStep): ReadonlyArray<Asking> =>
     onSome: (page) => page.blocks.filter((b): b is Asking => 'id' in b),
   });
 
+/** The one-page ask's two steps: its page and its end. */
+const ONE_PAGE = AskName.make('ask');
+const ONE_END = AskName.make('done');
+
 /** The one-page ask: `blocks` and then its end, the shape a single question takes. */
 export const oneQuestion = (blocks: ReadonlyArray<AskBlock>, thanks?: string): Ask => ({
-  start: 'ask',
+  start: ONE_PAGE,
   steps: {
-    ask: { blocks, next: [{ to: 'done' }] },
-    done: {
+    [ONE_PAGE]: { blocks, next: [{ to: ONE_END }] },
+    [ONE_END]: {
       end: true,
       ...Option.match(Option.fromUndefinedOr(thanks), {
         onNone: () => ({}),
@@ -437,7 +447,7 @@ export const imagesIn = (ask: Ask): ReadonlyArray<AskImage> => {
 // The check before an ask renders
 
 /** The steps `name` goes on to. */
-const onFrom = (ask: Ask, name: string): ReadonlyArray<string> =>
+const onFrom = (ask: Ask, name: AskName): ReadonlyArray<AskName> =>
   Option.match(Option.flatMap(Record.get(ask.steps, name), pageOf), {
     onNone: () => [],
     onSome: (page) => page.next.map((n) => n.to),
@@ -446,7 +456,7 @@ const onFrom = (ask: Ask, name: string): ReadonlyArray<string> =>
 /** The steps reached from the start. */
 const reached = (ask: Ask): ReadonlySet<string> => {
   const seen = new Set<string>();
-  const walk = (name: string): void => {
+  const walk = (name: AskName): void => {
     if (seen.has(name) || !Record.has(ask.steps, name)) return;
     seen.add(name);
     onFrom(ask, name).forEach(walk);
@@ -459,7 +469,7 @@ const reached = (ask: Ask): ReadonlySet<string> => {
 const loopIn = (ask: Ask): Option.Option<ReadonlyArray<string>> => {
   const done = new Set<string>();
   const visit = (
-    name: string,
+    name: AskName,
     path: ReadonlyArray<string>,
   ): Option.Option<ReadonlyArray<string>> => {
     if (path.includes(name)) return Option.some([...path, name]);
@@ -673,15 +683,15 @@ export const filled = (values: StepValues): StepValues =>
 
 /** Where an ask is: at a step, answered (at its end), or closed by the agent. */
 export const AskState = State({
-  Asking: { step: Schema.String, answers: Answers },
-  Answered: { step: Schema.String, answers: Answers },
+  Asking: { step: AskName, answers: Answers },
+  Answered: { step: AskName, answers: Answers },
   Closed: { answers: Answers, why: Schema.String },
 });
 export type AskState = typeof AskState.Type;
 
 export const AskEvent = Event({
   /** The owner's answers to step `step`. */
-  Answer: { step: Schema.String, values: StepValues },
+  Answer: { step: AskName, values: StepValues },
   /** The agent closes the ask (withdrawn, or filed once answered). */
   Close: { why: Schema.String },
 });
@@ -758,7 +768,7 @@ const typedIn = (
 };
 
 /** Step `name` of `ask`; none when it has no such step. */
-const stepOf = (ask: Ask, name: string): Option.Option<AskStep> => Record.get(ask.steps, name);
+const stepOf = (ask: Ask, name: AskName): Option.Option<AskStep> => Record.get(ask.steps, name);
 
 /**
  * Why the owner's `values` for step `step` cannot move `state` on, or none
@@ -768,7 +778,7 @@ const stepOf = (ask: Ask, name: string): Option.Option<AskStep> => Record.get(as
 export const answerRefusal = (
   ask: Ask,
   state: AskState,
-  step: string,
+  step: AskName,
   values: StepValues,
 ): Option.Option<string> =>
   Match.value(state).pipe(
@@ -789,23 +799,20 @@ export const answerRefusal = (
     }),
   );
 
-/** The way on `page` takes with `answers`: the first whose guard holds. */
-const wayOn = (page: PageStep, answers: AskAnswers): string =>
-  Option.getOrElse(
-    Option.map(
-      Arr.findFirst(page.next, (n) =>
-        Option.match(Option.fromUndefinedOr(n.when), {
-          onNone: () => true,
-          onSome: (when) =>
-            Option.exists(
-              Record.get(answers, when.answer),
-              (a) => a.kind === 'choose' && when.is.includes(a.value),
-            ),
-        }),
-      ),
-      (n) => n.to,
+/** The way on `page` takes with `answers`: the first whose guard holds; none when none holds. */
+const wayOn = (page: PageStep, answers: AskAnswers): Option.Option<AskName> =>
+  Option.map(
+    Arr.findFirst(page.next, (n) =>
+      Option.match(Option.fromUndefinedOr(n.when), {
+        onNone: () => true,
+        onSome: (when) =>
+          Option.exists(
+            Record.get(answers, when.answer),
+            (a) => a.kind === 'choose' && when.is.includes(a.value),
+          ),
+      }),
     ),
-    () => '',
+    (n) => n.to,
   );
 
 /** Where `state` (at step `step`, answered `values`, checked by `answerRefusal`) moves. */
@@ -819,16 +826,20 @@ const answered = (
     Result.getSuccess(typedIn(step, values)),
   );
   const answers = { ...state.answers, ...Option.getOrElse(typed, () => ({})) };
-  const to = Option.match(page, { onNone: () => state.step, onSome: (p) => wayOn(p, answers) });
-  return Option.match(Option.flatMap(stepOf(ask, to), pageOf), {
-    onNone: () => AskState.Answered({ step: to, answers }),
-    onSome: () => AskState.Asking({ step: to, answers }),
-  });
+  const to = Option.flatMap(page, (p) => wayOn(p, answers));
+  return Option.match(
+    Option.filter(to, (t) => Option.isSome(Option.flatMap(stepOf(ask, t), pageOf))),
+    {
+      // An end, or (in a machine never checked) no way on: answered where the run stands.
+      onNone: () => AskState.Answered({ step: Option.getOrElse(to, () => state.step), answers }),
+      onSome: (step) => AskState.Asking({ step, answers }),
+    },
+  );
 };
 
 /** One section of an ask's page: a step the owner's answers reach, and the owner's draft of its answers. */
 export interface Section {
-  readonly name: string;
+  readonly name: AskName;
   readonly step: AskStep;
   readonly values: StepValues;
 }
@@ -869,7 +880,7 @@ export const sectionsOf = (
   const sections: Array<Section> = [];
   let at = Match.value(state).pipe(
     Match.tag('Asking', (s) => Option.some({ step: s.step, answers: s.answers })),
-    Match.orElse(() => Option.none<{ readonly step: string; readonly answers: AskAnswers }>()),
+    Match.orElse(() => Option.none<{ readonly step: AskName; readonly answers: AskAnswers }>()),
   );
   // Bounded by the steps: a checked ask has no loop, a stored one is never trusted to.
   while (Option.isSome(at) && sections.length < Record.size(ask.steps)) {
@@ -879,9 +890,8 @@ export const sectionsOf = (
     const values = Record.filter(draft, (_, id) => askedIn(page.value).some((b) => b.id === id));
     sections.push({ name, step: page.value, values });
     const reached = { ...answers, ...chosenIn(page.value, draft) };
-    const to = wayOn(page.value, reached);
     at = Option.map(
-      Option.filter(Option.some(to), () => !sections.some((s) => s.name === to)),
+      Option.filter(wayOn(page.value, reached), (to) => !sections.some((s) => s.name === to)),
       (step) => ({ step, answers: reached }),
     );
   }
@@ -890,7 +900,7 @@ export const sectionsOf = (
 
 /** A question the page asks the owner to answer, by its section, and whether the draft answers it. */
 export interface Question {
-  readonly step: string;
+  readonly step: AskName;
   readonly block: Asking;
   readonly answered: boolean;
 }
@@ -919,7 +929,7 @@ export const questionsOf = (sections: ReadonlyArray<Section>): ReadonlyArray<Que
 export const pageRefusal = (
   ask: Ask,
   state: AskState,
-  sections: ReadonlyArray<{ readonly step: string; readonly values: StepValues }>,
+  sections: ReadonlyArray<{ readonly step: AskName; readonly values: StepValues }>,
 ): Option.Option<string> => {
   let run = state;
   for (const section of sections) {
@@ -983,7 +993,7 @@ export const askStatus = (state: AskState): 'asking' | 'answered' | 'closed' =>
 
 /** An answered step, as the owner sent it: what the run was moved by, and when. */
 const AskStepAnswer = Schema.Struct({
-  step: Schema.String,
+  step: AskName,
   values: StepValues,
   at: Schema.String,
 });

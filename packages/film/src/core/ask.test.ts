@@ -9,8 +9,9 @@ import { Boolean as Bool, Effect, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { Machine } from 'effect-machine';
 import {
-  type Ask,
+  AskBlock,
   AskEvent,
+  AskName,
   AskRecordJson,
   Ask as AskSchema,
   AskState,
@@ -30,6 +31,17 @@ import {
   unrecommended,
 } from './ask.ts';
 
+/** An ask, a page's blocks and a step's name as an agent writes them, decoded as the lab decodes them. */
+const askOf = Schema.decodeSync(AskSchema);
+const pageOf = Schema.decodeSync(Schema.Array(AskBlock));
+const step = Schema.decodeSync(AskName);
+
+/** A one-page ask as an agent writes it, before any decode. */
+const onePage = (page: ReadonlyArray<unknown>) => ({
+  start: 'ask',
+  steps: { ask: { blocks: page, next: [{ to: 'done' }] }, done: { end: true } },
+});
+
 const tries = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
   value: String(n),
   label: `Try ${n}`,
@@ -37,7 +49,7 @@ const tries = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
 }));
 
 /** The proof: choose a try; 7 or 8 asks why; done. */
-const proof: Ask = {
+const proof = askOf({
   start: 'pick',
   steps: {
     pick: {
@@ -53,25 +65,27 @@ const proof: Ask = {
     },
     done: { end: true, text: 'Thank you.' },
   },
-};
+});
 
 describe('the check before an ask renders', () => {
   test('the proof ask and a one-page question pass', () => {
     expect(askProblems(proof)).toEqual([]);
     expect(
-      askProblems(oneQuestion([{ kind: 'free_text', id: 'name', label: 'A name for it?' }])),
+      askProblems(
+        oneQuestion(pageOf([{ kind: 'free_text', id: 'name', label: 'A name for it?' }])),
+      ),
     ).toEqual([]);
   });
 
   test('a loop, a step never reached, a dangling way on and no end are each named', () => {
-    const looped: Ask = {
+    const looped = askOf({
       start: 'a',
       steps: {
         a: { blocks: [{ kind: 'prose', text: 'a' }], next: [{ to: 'b' }] },
         b: { blocks: [{ kind: 'prose', text: 'b' }], next: [{ to: 'a' }] },
         lost: { blocks: [{ kind: 'prose', text: 'lost' }], next: [{ to: 'nowhere' }] },
       },
-    };
+    });
     expect(askProblems(looped)).toEqual([
       'step lost goes on to nowhere, which is not a step',
       'no step ends the ask: add one with end: true',
@@ -81,7 +95,7 @@ describe('the check before an ask renders', () => {
   });
 
   test('a guard names a choice of its own step and its options; the last way on is unguarded', () => {
-    const guarded: Ask = {
+    const guarded = askOf({
       start: 'pick',
       steps: {
         pick: {
@@ -104,7 +118,7 @@ describe('the check before an ask renders', () => {
         },
         done: { end: true },
       },
-    };
+    });
     expect(askProblems(guarded)).toEqual([
       'step pick: when names colour, which is not a choice in this step',
       'step pick: its last next must have no when, so the step always goes on',
@@ -114,10 +128,29 @@ describe('the check before an ask renders', () => {
     ]);
   });
 
+  test('a step or an answer named for a key every object answers to does not decode', () => {
+    const decode = Schema.decodeUnknownExit(AskSchema);
+    const named = (first: string, answer: string) => ({
+      start: first,
+      steps: {
+        [first]: {
+          blocks: [{ kind: 'free_text', id: answer, label: 'Why?' }],
+          next: [{ to: 'done' }],
+        },
+        done: { end: true },
+      },
+    });
+    expect(decode(named('pick', 'why'))._tag).toBe('Success');
+    for (const name of ['constructor', 'prototype']) {
+      expect(String(decode(named(name, 'why')))).toContain(`every object answers to "${name}"`);
+      expect(String(decode(named('pick', name)))).toContain(`every object answers to "${name}"`);
+    }
+  });
+
   test('a blank option value, label or text does not decode, so no blank answer can be sent', () => {
     const decode = Schema.decodeUnknownExit(AskSchema);
-    const choice = (value: string, label: string): Ask =>
-      oneQuestion([
+    const choice = (value: string, label: string) =>
+      onePage([
         {
           kind: 'choose',
           id: 'try',
@@ -144,19 +177,21 @@ describe('the check before an ask renders', () => {
       ],
     };
     const more = { kind: 'free_text' as const, id: 'more', label: 'Anything else?' };
-    expect(askProblems(oneQuestion([keep, more]))).toEqual([]);
-    expect(askProblems(oneQuestion([keep, { ...more, required: true }]))).toEqual([
+    expect(askProblems(oneQuestion(pageOf([keep, more])))).toEqual([]);
+    expect(askProblems(oneQuestion(pageOf([keep, { ...more, required: true }])))).toEqual([
       'step ask: more is required beside a choice: leave it optional (drop required), or ask it on a step of its own',
     ]);
     expect(
       askProblems(
-        oneQuestion([{ kind: 'free_text', id: 'name', label: 'Its name?', required: true }]),
+        oneQuestion(
+          pageOf([{ kind: 'free_text', id: 'name', label: 'Its name?', required: true }]),
+        ),
       ),
     ).toEqual([]);
   });
 
   test('a guided review passes: one titled step per piece of material, a step that asks nothing goes on', () => {
-    const review: Ask = {
+    const review = askOf({
       start: 'script',
       steps: {
         script: {
@@ -185,7 +220,7 @@ describe('the check before an ask renders', () => {
         },
         done: { end: true },
       },
-    };
+    });
     expect(askProblems(review)).toEqual([]);
     expect(materialsIn(review).map((m) => `${m.step}:${m.block.kind}`)).toEqual([
       'script:script',
@@ -197,7 +232,7 @@ describe('the check before an ask renders', () => {
   });
 
   test("one script per ask: a second is refused, naming both steps (each reader owns the page's word commands)", () => {
-    const two: Ask = {
+    const two = askOf({
       start: 'one',
       steps: {
         one: { blocks: [{ kind: 'script', film: 'f' }], next: [{ to: 'two' }] },
@@ -207,7 +242,7 @@ describe('the check before an ask renders', () => {
         },
         done: { end: true },
       },
-    };
+    });
     expect(askProblems(two)).toEqual([
       'the ask shows 2 scripts (steps one, two): one script per ask; ask about the next in an ask of its own',
     ]);
@@ -215,10 +250,7 @@ describe('the check before an ask renders', () => {
 
   test("a script names a film or a series' draft, never both nor half a draft", () => {
     const decode = Schema.decodeUnknownExit(AskSchema);
-    const script = (block: Readonly<Record<string, string>>) => ({
-      start: 'ask',
-      steps: { ask: { blocks: [block], next: [{ to: 'done' }] }, done: { end: true } },
-    });
+    const script = (block: Readonly<Record<string, string>>) => onePage([block]);
     expect(decode(script({ kind: 'script', film: 'f' }))._tag).toBe('Success');
     expect(decode(script({ kind: 'script', series: 's', draft: 'd' }))._tag).toBe('Success');
     for (const block of <ReadonlyArray<Readonly<Record<string, string>>>>[
@@ -231,29 +263,33 @@ describe('the check before an ask renders', () => {
   });
 
   test('only the recommended option says why', () => {
-    const said = oneQuestion([
-      {
-        kind: 'choose',
-        id: 'keep',
-        label: 'Keep it?',
-        options: [
-          { value: 'yes', label: 'Yes', recommended: true },
-          { value: 'no', label: 'No', why: 'it is late' },
-        ],
-      },
-    ]);
+    const said = oneQuestion(
+      pageOf([
+        {
+          kind: 'choose',
+          id: 'keep',
+          label: 'Keep it?',
+          options: [
+            { value: 'yes', label: 'Yes', recommended: true },
+            { value: 'no', label: 'No', why: 'it is late' },
+          ],
+        },
+      ]),
+    );
     expect(askProblems(said)).toEqual([
       "keep's option no says why but is not recommended: why goes on the recommended option",
     ]);
   });
 
   test('a material block names its material once, by its kind: a document Markdown, a video a video', () => {
-    const bad = oneQuestion([
-      { kind: 'script', film: 'f', beats: [] },
-      { kind: 'board', film: 'f', panels: ['a.b', 'a.b'] },
-      { kind: 'document', ref: 'p5/set/shape.txt' },
-      { kind: 'video', ref: 'p5/set/still.png' },
-    ]);
+    const bad = oneQuestion(
+      pageOf([
+        { kind: 'script', film: 'f', beats: [] },
+        { kind: 'board', film: 'f', panels: ['a.b', 'a.b'] },
+        { kind: 'document', ref: 'p5/set/shape.txt' },
+        { kind: 'video', ref: 'p5/set/still.png' },
+      ]),
+    );
     expect(askProblems(bad)).toEqual([
       'step ask: beats names none: leave it out for all',
       'step ask: panels names one twice',
@@ -264,7 +300,7 @@ describe('the check before an ask renders', () => {
 
   test('a ref names a file under a review root, never a path on the box or another host', () => {
     const decode = Schema.decodeUnknownExit(AskSchema);
-    const doc = (ref: string) => oneQuestion([{ kind: 'document', ref }]);
+    const doc = (ref: string) => onePage([{ kind: 'document', ref }]);
     expect(decode(doc('p5/rbf-script-2026-10-14/script.md'))._tag).toBe('Success');
     for (const ref of [
       '/Users/cvr/notes.md',
@@ -277,7 +313,7 @@ describe('the check before an ask renders', () => {
       'p5\\x.md',
     ])
       expect(decode(doc(ref))._tag).toBe('Failure');
-    const film = (name: string) => oneQuestion([{ kind: 'board', film: name }]);
+    const film = (name: string) => onePage([{ kind: 'board', film: name }]);
     expect(decode(film('righteousness-by-faith'))._tag).toBe('Success');
     expect(decode(film('../f'))._tag).toBe('Failure');
     expect(decode(film('a/b'))._tag).toBe('Failure');
@@ -285,18 +321,20 @@ describe('the check before an ask renders', () => {
 
   test('a choice made now recommends one option, listed first; never two', () => {
     const choice = (marks: ReadonlyArray<boolean>) =>
-      oneQuestion([
-        {
-          kind: 'choose',
-          id: 'keep',
-          label: 'Keep it?',
-          options: marks.map((recommended, i) => ({
-            value: `v${i}`,
-            label: `V${i}`,
-            ...Bool.match(recommended, { onFalse: () => ({}), onTrue: () => ({ recommended }) }),
-          })),
-        },
-      ]);
+      oneQuestion(
+        pageOf([
+          {
+            kind: 'choose',
+            id: 'keep',
+            label: 'Keep it?',
+            options: marks.map((recommended, i) => ({
+              value: `v${i}`,
+              label: `V${i}`,
+              ...Bool.match(recommended, { onFalse: () => ({}), onTrue: () => ({ recommended }) }),
+            })),
+          },
+        ]),
+      );
     expect(unrecommended(choice([false, false]))).toEqual([
       'step ask: keep recommends none of its options: mark one recommended: true',
     ]);
@@ -318,7 +356,7 @@ describe('the check before an ask renders', () => {
   test('one page: every section the answers so far reach, a guarded one once its choice is made', () => {
     const at = askStart(proof);
     const names = (draft: Record<string, string>) =>
-      sectionsOf(proof, at, draft).map((s) => s.name);
+      sectionsOf(proof, at, draft).map((s): string => s.name);
     expect(names({})).toEqual(['pick']);
     expect(names({ try: '7' })).toEqual(['pick', 'why']);
     expect(names({ try: '7', why: 'light' })).toEqual(['pick', 'why']);
@@ -329,23 +367,27 @@ describe('the check before an ask renders', () => {
     ]);
     // A run already on a later step shows from there; an ask at its end shows none.
     expect(
-      sectionsOf(proof, AskState.Asking({ step: 'why', answers: {} }), {}).map((s) => s.name),
+      sectionsOf(proof, AskState.Asking({ step: step('why'), answers: {} }), {}).map(
+        (s): string => s.name,
+      ),
     ).toEqual(['why']);
-    expect(sectionsOf(proof, AskState.Answered({ step: 'done', answers: {} }), {})).toEqual([]);
+    expect(sectionsOf(proof, AskState.Answered({ step: step('done'), answers: {} }), {})).toEqual(
+      [],
+    );
   });
 
   test("a page's answers are checked in order, the run moved by each, the refusal named by its section", () => {
     const at = askStart(proof);
-    expect(Option.getOrUndefined(pageRefusal(proof, at, [{ step: 'pick', values: {} }]))).toBe(
-      'Which try do we keep? needs a choice',
-    );
+    expect(
+      Option.getOrUndefined(pageRefusal(proof, at, [{ step: step('pick'), values: {} }])),
+    ).toBe('Which try do we keep? needs a choice');
     expect(
       pageRefusal(proof, at, [
-        { step: 'pick', values: { try: '7' } },
-        { step: 'why', values: {} },
+        { step: step('pick'), values: { try: '7' } },
+        { step: step('why'), values: {} },
       ]),
     ).toEqual(Option.none());
-    const titled: Ask = {
+    const titled = askOf({
       ...proof,
       steps: {
         ...proof.steps,
@@ -355,19 +397,19 @@ describe('the check before an ask renders', () => {
           next: [{ to: 'done' }],
         },
       },
-    };
+    });
     expect(
       Option.getOrUndefined(
         pageRefusal(titled, at, [
-          { step: 'pick', values: { try: '7' } },
-          { step: 'why', values: {} },
+          { step: step('pick'), values: { try: '7' } },
+          { step: step('why'), values: {} },
         ]),
       ),
     ).toBe('Why: Why? needs your words');
   });
 
   test("a page's questions: every choice and required words, in page order, each answered or not", () => {
-    const titled: Ask = {
+    const titled = askOf({
       ...proof,
       steps: {
         ...proof.steps,
@@ -376,7 +418,7 @@ describe('the check before an ask renders', () => {
           next: [{ to: 'done' }],
         },
       },
-    };
+    });
     const asked = (draft: Record<string, string>) =>
       questionsOf(sectionsOf(titled, askStart(titled), draft)).map(
         (q) => `${q.step}:${q.block.id}:${q.answered}`,
@@ -396,7 +438,7 @@ describe('the check before an ask renders', () => {
         { blocks: [{ kind: 'prose' as const, text: `${i}` }], next: [{ to: `s${i + 1}` }] },
       ]),
     );
-    expect(askProblems({ start: 's0', steps: { ...steps, s13: { end: true } } })).toContain(
+    expect(askProblems(askOf({ start: 's0', steps: { ...steps, s13: { end: true } } }))).toContain(
       '14 steps, at most 12',
     );
   });
@@ -408,20 +450,20 @@ const run = (events: ReadonlyArray<AskEvent>, from = askStart(proof)) =>
 describe('the run', () => {
   it.effect('try 7 asks why, and the end hands back every answer typed', () =>
     Effect.gen(function* () {
-      const asked = yield* run([AskEvent.Answer({ step: 'pick', values: { try: '7' } })]);
+      const asked = yield* run([AskEvent.Answer({ step: step('pick'), values: { try: '7' } })]);
       expect(asked).toEqual(
         AskState.Asking({
-          step: 'why',
+          step: step('why'),
           answers: { try: { kind: 'choose', value: '7', label: 'Try 7' } },
         }),
       );
       const done = yield* run(
-        [AskEvent.Answer({ step: 'why', values: { why: '  the light falls right ' } })],
+        [AskEvent.Answer({ step: step('why'), values: { why: '  the light falls right ' } })],
         asked,
       );
       expect(done).toEqual(
         AskState.Answered({
-          step: 'done',
+          step: step('done'),
           answers: {
             try: { kind: 'choose', value: '7', label: 'Try 7' },
             why: { kind: 'free_text', text: 'the light falls right' },
@@ -433,16 +475,19 @@ describe('the run', () => {
 
   it.effect('words left empty are answered skipped, unless required', () =>
     Effect.gen(function* () {
-      const asked = yield* run([AskEvent.Answer({ step: 'pick', values: { try: '7' } })]);
+      const asked = yield* run([AskEvent.Answer({ step: step('pick'), values: { try: '7' } })]);
       // The proof's why carries no flag, as no ask made before the flag does: optional.
-      const done = yield* run([AskEvent.Answer({ step: 'why', values: { why: ' \n ' } })], asked);
+      const done = yield* run(
+        [AskEvent.Answer({ step: step('why'), values: { why: ' \n ' } })],
+        asked,
+      );
       const answers = {
         try: { kind: 'choose', value: '7', label: 'Try 7' },
         why: { kind: 'skipped' },
       } as const;
-      expect(done).toEqual(AskState.Answered({ step: 'done', answers }));
+      expect(done).toEqual(AskState.Answered({ step: step('done'), answers }));
       expect(answersLine(answers)).toBe('try: Try 7 · why: (skipped)');
-      const wordsRequired: Ask = {
+      const wordsRequired = askOf({
         ...proof,
         steps: {
           ...proof.steps,
@@ -451,11 +496,11 @@ describe('the run', () => {
             next: [{ to: 'done' }],
           },
         },
-      };
-      expect(answerRefusal(wordsRequired, asked, 'why', {})).toEqual(
+      });
+      expect(answerRefusal(wordsRequired, asked, step('why'), {})).toEqual(
         Option.some('Why? needs your words'),
       );
-      expect(answerRefusal(proof, asked, 'why', {})).toEqual(Option.none());
+      expect(answerRefusal(proof, asked, step('why'), {})).toEqual(Option.none());
     }),
   );
 
@@ -473,13 +518,15 @@ describe('the run', () => {
       '"state":{"_tag":"Asking","step":"ask","answers":{}},"answered":[]}';
     const record = Schema.decodeSync(AskRecordJson)(kept);
     expect(askProblems(record.ask)).toEqual([]);
-    expect(Option.isNone(titleOf(record.ask.steps['ask'] ?? { end: true }))).toBe(true);
-    expect(answerRefusal(record.ask, record.state, 'ask', { pick: 'a' })).toEqual(Option.none());
+    expect(Option.isNone(titleOf(record.ask.steps[step('ask')] ?? { end: true }))).toBe(true);
+    expect(answerRefusal(record.ask, record.state, step('ask'), { pick: 'a' })).toEqual(
+      Option.none(),
+    );
   });
 
   it.effect('try 3 ends the ask at once', () =>
     Effect.gen(function* () {
-      const done = yield* run([AskEvent.Answer({ step: 'pick', values: { try: '3' } })]);
+      const done = yield* run([AskEvent.Answer({ step: step('pick'), values: { try: '3' } })]);
       expect(done._tag).toBe('Answered');
     }),
   );
@@ -487,38 +534,43 @@ describe('the run', () => {
   it.effect('an answer that does not fit, or to another step, moves nothing, and says why', () =>
     Effect.gen(function* () {
       const start = askStart(proof);
-      expect(answerRefusal(proof, start, 'pick', { try: '9' })).toEqual(
+      expect(answerRefusal(proof, start, step('pick'), { try: '9' })).toEqual(
         Option.some('9 is not an option of try'),
       );
-      expect(answerRefusal(proof, start, 'pick', {})).toEqual(
+      expect(answerRefusal(proof, start, step('pick'), {})).toEqual(
         Option.some('Which try do we keep? needs a choice'),
       );
-      expect(answerRefusal(proof, start, 'why', { why: 'x' })).toEqual(
+      expect(answerRefusal(proof, start, step('why'), { why: 'x' })).toEqual(
         Option.some('the ask is at step pick, not why'),
       );
-      expect(answerRefusal(proof, start, 'pick', { try: '1', colour: 'red' })).toEqual(
+      expect(answerRefusal(proof, start, step('pick'), { try: '1', colour: 'red' })).toEqual(
         Option.some('this step asks no colour'),
       );
-      expect(yield* run([AskEvent.Answer({ step: 'pick', values: { try: '9' } })])).toEqual(start);
+      expect(yield* run([AskEvent.Answer({ step: step('pick'), values: { try: '9' } })])).toEqual(
+        start,
+      );
     }),
   );
 
   test('answered to its end is read from the answered steps, so a close keeps it', () => {
     const at = '2026-10-14T00:00:00.000Z';
-    const pick = { step: 'pick', values: { try: '7' }, at };
+    const pick = { step: step('pick'), values: { try: '7' }, at };
     expect(answeredToEnd({ ask: proof, answered: [] })).toBe(false);
     expect(answeredToEnd({ ask: proof, answered: [pick] })).toBe(false);
     expect(
-      answeredToEnd({ ask: proof, answered: [pick, { step: 'why', values: { why: 'x' }, at }] }),
+      answeredToEnd({
+        ask: proof,
+        answered: [pick, { step: step('why'), values: { why: 'x' }, at }],
+      }),
     ).toBe(true);
     expect(
-      answeredToEnd({ ask: proof, answered: [{ step: 'pick', values: { try: '3' }, at }] }),
+      answeredToEnd({ ask: proof, answered: [{ step: step('pick'), values: { try: '3' }, at }] }),
     ).toBe(true);
   });
 
   it.effect('closing keeps what was answered, and a closed ask takes no answer', () =>
     Effect.gen(function* () {
-      const asked = yield* run([AskEvent.Answer({ step: 'pick', values: { try: '8' } })]);
+      const asked = yield* run([AskEvent.Answer({ step: step('pick'), values: { try: '8' } })]);
       const closed = yield* run([AskEvent.Close({ why: 'decided in chat' })], asked);
       expect(closed).toEqual(
         AskState.Closed({
@@ -526,7 +578,7 @@ describe('the run', () => {
           why: 'decided in chat',
         }),
       );
-      expect(answerRefusal(proof, closed, 'why', { why: 'x' })).toEqual(
+      expect(answerRefusal(proof, closed, step('why'), { why: 'x' })).toEqual(
         Option.some('the ask is closed: decided in chat'),
       );
     }),
