@@ -14,7 +14,7 @@ import { SYNTH_PEAK, SYNTH_RATE } from './units.ts';
  * moves one sample of one probe moves it, and with it the key of every code
  * sound's render and mix.
  */
-export const RENDER_VERSION = '861fe155';
+export const RENDER_VERSION = 'a45dbac0';
 
 /** Buffers are borrowed in blocks of this many bytes, so lengths that differ a little share one. */
 const BLOCK = 16384;

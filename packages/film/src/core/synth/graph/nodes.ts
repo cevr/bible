@@ -383,10 +383,15 @@ interface Layered {
   readonly db?: Value<number>;
 }
 
-/** Its children mixed, each from its `at`. */
+/**
+ * Its children mixed, each from its `at`: `secs` long when it names one (a
+ * child cut there, as a buffer of that length holds what is added into it),
+ * else to its latest child's end.
+ */
 export interface Layer {
   readonly _tag: 'Layer';
   readonly of: readonly [Layered, ...Array<Layered>];
+  readonly secs?: Value<number>;
   readonly stream?: string;
 }
 
@@ -558,6 +563,7 @@ const Layered: Schema.Codec<Layered> = Schema.Struct({
 
 const Layer: Schema.Codec<Layer> = Schema.TaggedStruct('Layer', {
   of: Schema.NonEmptyArray(Layered),
+  secs: Schema.optionalKey(value(Secs)),
   stream,
 });
 

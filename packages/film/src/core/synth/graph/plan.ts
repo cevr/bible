@@ -173,18 +173,24 @@ interface Part {
   readonly child: Planned;
 }
 
-/** Parts mixed, each from its onset: as long as the latest one's end. */
-const mixOf = (kit: Kit, parts: ReadonlyArray<Part>): Planned => ({
-  frames: parts.reduce((most, part) => Math.max(most, part.at + part.child.frames), 0),
-  fill: (out) => {
-    for (const part of parts) {
-      const x = kit.take(part.child.frames);
-      part.child.fill(x);
-      addInto(out, x, part.child.frames, part.at, part.gain);
-      kit.give(x);
-    }
-  },
-});
+/** Parts mixed, each from its onset: `frames` long, each part cut there, else as long as the latest one's end. */
+const mixOf = (kit: Kit, parts: ReadonlyArray<Part>, frames?: number): Planned => {
+  const length =
+    frames ?? parts.reduce((most, part) => Math.max(most, part.at + part.child.frames), 0);
+  return {
+    frames: length,
+    fill: (out) => {
+      for (const part of parts) {
+        // A part that starts at the end or past it is never heard: it is not made.
+        if (part.at >= length) continue;
+        const x = kit.take(part.child.frames);
+        part.child.fill(x);
+        addInto(out, x, Math.min(part.child.frames, length - part.at), part.at, part.gain);
+        kit.give(x);
+      }
+    },
+  };
+};
 
 // Sources.
 
@@ -422,6 +428,7 @@ const planLayer = (node: Layer, at: At): Planned =>
         child: planNode(layered.node, slot, at.render),
       };
     }),
+    node.secs === undefined ? undefined : framesAt(node.secs, at, 'secs'),
   );
 
 const planSequence = (node: Sequence, at: At): Planned => {

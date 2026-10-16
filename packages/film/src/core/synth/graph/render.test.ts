@@ -126,6 +126,24 @@ describe('the draws', () => {
     expect(unnamed.subarray(framesOf(0.03))).not.toEqual(alone);
   });
 
+  test('a layer of its own length cuts each child there, and makes none that starts past it', () => {
+    const whole = planned({
+      _tag: 'Layer',
+      of: [{ node: sine(0.1) }, { node: white(0.05), at: 0.03, db: -12 }],
+    });
+    const cut = planned({
+      _tag: 'Layer',
+      secs: 0.06,
+      of: [
+        { node: sine(0.1) },
+        { node: white(0.05), at: 0.03, db: -12 },
+        { node: white(0.05), at: 0.08 },
+      ],
+    });
+    expect(cut.length).toBe(framesOf(0.06));
+    expect(cut).toEqual(whole.subarray(0, framesOf(0.06)));
+  });
+
   test('a longer noise keeps its first samples', () => {
     for (const color of ['white', 'pink', 'brown'] as const) {
       const short = planned({ _tag: 'Noise', color, secs: 0.05 });

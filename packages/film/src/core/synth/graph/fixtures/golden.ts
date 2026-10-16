@@ -295,6 +295,18 @@ export const PROBES: ReadonlyArray<Probe> = [
     }),
   },
   {
+    name: 'layer.secs',
+    sound: play({
+      _tag: 'Layer',
+      secs: 0.06,
+      of: [
+        { node: sine('A4', 0.1) },
+        { node: white(0.05), at: 0.03, db: -12 },
+        { node: white(0.05), at: 0.08 },
+      ],
+    }),
+  },
+  {
     name: 'sequence',
     sound: play({
       _tag: 'Sequence',
@@ -405,6 +417,7 @@ export const GOLDEN: ReadonlyMap<string, string> = new Map(
     reverb: '8c289e7711f2f402479d782d6b7ece69455fe7e5eeb611828dc57af5bd095153',
     loop: '913bef79c563c68e6843d3ea1a3965104077bca8e9fdd8a556586d1b8454f65a',
     layer: '8c329984f64cf810495c217cb9dee9a136a7c0ede13b9fc303b2ba223bb0a4e2',
+    'layer.secs': 'ce9654a0f987bb80de523e68cff90278fe249e8cf814cd65bd474f1f2dc235c8',
     sequence: '9f73d7a81d8090a100d20524f30101ed878b52349934ba541d98944e979e58ed',
     'repeat.count': '3ed146d9f02eb4cea914412d694e7b822c3ed376ffecb16f8a27f896223277db',
     'repeat.during': '7139ff9c0689ec6b84171e0b3040b3d418493a9f017bf0a86bd98f53ae106bc7',

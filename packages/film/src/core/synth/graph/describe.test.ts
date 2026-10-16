@@ -67,6 +67,15 @@ describe('describeGraph', () => {
     );
   });
 
+  test('a layer of its own length: its seconds before its children', () => {
+    const cut: Node = {
+      _tag: 'Layer',
+      secs: 1.5,
+      of: [{ node: tap }, { node: { _tag: 'Noise', color: 'brown', secs: 2 }, at: 0.5 }],
+    };
+    expect(describeGraph(cut)).toBe('Layer 1.5 s[Sample paper.tap #2, Noise brown 2 s]');
+  });
+
   test('a sequence of repeats: each timing by its count, its span or its rate', () => {
     const steps: Node = {
       _tag: 'Sequence',

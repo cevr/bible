@@ -66,8 +66,9 @@ const over = (child: Bound, more = 0): Bound => ({
 
 type Of = (node: Node) => Bound;
 
-const layerBound = (node: Layer, of: Of): Bound =>
-  node.of.reduce<Bound>(
+/** A layer's most: its own length when it names one (its children are made whole, then cut), else its latest child's end. */
+const layerBound = (node: Layer, of: Of): Bound => {
+  const mixed = node.of.reduce<Bound>(
     (sum, layered) => {
       const child = of(layered.node);
       const at = layered.at === undefined ? 0 : most(layered.at);
@@ -78,6 +79,9 @@ const layerBound = (node: Layer, of: Of): Bound =>
     },
     { secs: 0, work: 0 },
   );
+  if (node.secs === undefined) return mixed;
+  return { secs: most(node.secs), work: mixed.work };
+};
 
 const sequenceBound = (node: Sequence, of: Of): Bound =>
   node.of.reduce<Bound>(

@@ -91,8 +91,10 @@ export const describeGraph = (node: Node): string => {
     case 'Partials':
     case 'Sample':
       return headOf(node);
-    case 'Layer':
-      return `Layer[${node.of.map((layered) => describeGraph(layered.node)).join(', ')}]`;
+    case 'Layer': {
+      const length = node.secs === undefined ? '' : ` ${secsText(node.secs)}`;
+      return `Layer${length}[${node.of.map((layered) => describeGraph(layered.node)).join(', ')}]`;
+    }
     case 'Sequence':
       return `Sequence[${node.of.map(describeGraph).join(', ')}]`;
     default:
