@@ -34,6 +34,7 @@ import { LONGEST_WAIT } from '../core/wait.ts';
 import { Project } from '../core/catalogue.ts';
 import { ChoicePoint, type ChoiceVerb } from '../core/choice.ts';
 import { UnknownAct, UnknownScene } from '../core/errors.ts';
+import { FilmClock } from '../core/film-timeline.ts';
 import {
   CatalogueInvalid,
   ChoiceUnknown,
@@ -155,6 +156,14 @@ export class CuesRead extends Schema.TaggedClass<CuesRead>()('CuesRead', {
   late: Schema.Int,
 }) {}
 
+/**
+ * `film read clock`'s answer: a version's clock (its beats' spans, speech,
+ * marks and voice, its acts and its score's movements), as its files stand.
+ */
+export class ClockRead extends Schema.TaggedClass<ClockRead>()('ClockRead', {
+  clock: FilmClock,
+}) {}
+
 /** `film read scenes`'s answer: the film's scenes by id, in order, no timeline resolved. */
 export class ScenesRead extends Schema.TaggedClass<ScenesRead>()('ScenesRead', {
   scenes: Schema.Array(Schema.String),
@@ -194,6 +203,7 @@ const FreshLine = Schema.Union([
   SitesRead,
   CuesRead,
   ScenesRead,
+  ClockRead,
   FreshRefusal,
   ServerFailed,
 ]);
@@ -376,6 +386,15 @@ export interface FreshFilmService {
    * scenes does not lay out still names them.
    */
   readonly scenes: (film: FilmName) => Effect.Effect<ReadonlyArray<string>, FreshError>;
+  /**
+   * A version's clock as its files now stand (`film read clock`): the film's
+   * registered scenes and takes, or, with `folder`, the version folder's
+   * script (`<film>/<folder>/script.ts`) on the film's takes.
+   */
+  readonly clock: (
+    film: FilmName,
+    folder: Option.Option<string>,
+  ) => Effect.Effect<FilmClock, FreshError>;
   /** `film mix <film>`: the track rebuilt from the takes and the sources as they stand. */
   readonly remix: (film: FilmName) => Effect.Effect<void, FreshProcessFailed>;
   /** `film project <args>` (its `--json` among them): the project as the run leaves it. */
@@ -560,6 +579,14 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           return (yield* ask(['read', 'scenes', film], READ_LIMIT, ScenesRead)).scenes;
         });
 
+        const clock = Effect.fn('FreshFilm.clock')(function* (
+          film: FilmName,
+          folder: Option.Option<string>,
+        ) {
+          const only = Option.match(folder, { onNone: () => [], onSome: (f) => ['--folder', f] });
+          return (yield* ask(['read', 'clock', film, ...only], READ_LIMIT, ClockRead)).clock;
+        });
+
         const remix = Effect.fn('FreshFilm.remix')(function* (film: FilmName) {
           const done = yield* run('film mix', ['mix', film], MIX_LIMIT);
           if (done.exitCode !== 0)
@@ -621,6 +648,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           sites,
           cues,
           scenes: sceneIds,
+          clock,
           remix,
           project,
           check,

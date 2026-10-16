@@ -1,0 +1,29 @@
+{
+  "beats": [
+    {
+      "id": "court",
+      "start": 0,
+      "dur": 9.16,
+      "speech": { "start": 0.5, "end": 9.06 },
+      "marks": [
+        { "name": "evidence", "at": 2.74 },
+        { "name": "did", "at": 4.82 },
+        { "name": "judge", "at": 6.02 },
+        { "name": "righteous", "at": 7.94 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "job",
+      "start": 9.16,
+      "dur": 5.37,
+      "speech": { "start": 9.66, "end": 13.13 },
+      "marks": [{ "name": "job", "at": 11.06 }],
+      "voice": "staging",
+      "drawn": true
+    }
+  ],
+  "acts": [],
+  "movements": []
+}

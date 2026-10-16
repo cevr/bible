@@ -1,0 +1,403 @@
+{
+  "beats": [
+    {
+      "id": "cold",
+      "start": 0,
+      "dur": 25.19,
+      "speech": { "start": 0.5, "end": 25.09 },
+      "marks": [
+        { "name": "evidence", "at": 2.74 },
+        { "name": "did", "at": 4.82 },
+        { "name": "judge", "at": 6.02 },
+        { "name": "righteous", "at": 7.94 },
+        { "name": "wait", "at": 9.14 },
+        { "name": "cover", "at": 11.46 },
+        { "name": "right", "at": 12.9 },
+        { "name": "bible", "at": 13.58 },
+        { "name": "oldest", "at": 17.22 },
+        { "name": "asked", "at": 21.7 },
+        { "name": "job", "at": 23.02 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    { "id": "title", "start": 25.19, "dur": 3, "marks": [], "voice": "silent", "drawn": true },
+    {
+      "id": "word",
+      "start": 28.19,
+      "dur": 19.150000000000002,
+      "speech": { "start": 28.69, "end": 47.24 },
+      "marks": [
+        { "name": "church", "at": 30.130000000000003 },
+        { "name": "fair", "at": 32.85 },
+        { "name": "right", "at": 34.13 },
+        { "name": "whose", "at": 36.29 },
+        { "name": "psalm", "at": 37.97 },
+        { "name": "all", "at": 39.410000000000004 },
+        { "name": "char", "at": 42.21 },
+        { "name": "circle", "at": 45.09 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "mirror",
+      "start": 47.34,
+      "dur": 22.85,
+      "speech": { "start": 47.74, "end": 70.09 },
+      "marks": [
+        { "name": "short", "at": 47.74 },
+        { "name": "fig", "at": 51.660000000000004 },
+        { "name": "harder", "at": 55.02 },
+        { "name": "promise", "at": 56.22 },
+        { "name": "going", "at": 57.82 },
+        { "name": "rags", "at": 59.18 },
+        { "name": "mirror", "at": 63.900000000000006 },
+        { "name": "stain", "at": 66.14 },
+        { "name": "wash", "at": 67.98 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "message",
+      "start": 70.19,
+      "dur": 35.43,
+      "speech": { "start": 70.59, "end": 105.52000000000001 },
+      "marks": [
+        { "name": "how", "at": 70.59 },
+        { "name": "year", "at": 73.47 },
+        { "name": "two", "at": 76.27000000000001 },
+        { "name": "rep", "at": 77.59 },
+        { "name": "ew", "at": 79.31 },
+        { "name": "precious", "at": 80.71000000000001 },
+        { "name": "what", "at": 82.43 },
+        { "name": "answer", "at": 84.27000000000001 },
+        { "name": "angel", "at": 85.31 },
+        { "name": "banner", "at": 88.45700000000001 },
+        { "name": "hand", "at": 91.83 },
+        { "name": "three", "at": 94.99000000000001 },
+        { "name": "makes", "at": 97.27000000000001 },
+        { "name": "gifts", "at": 98.79 },
+        { "name": "faith", "at": 100.23 },
+        { "name": "forgiveness", "at": 100.75 },
+        { "name": "power", "at": 101.71000000000001 },
+        { "name": "daily", "at": 102.67 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "roof",
+      "start": 105.62,
+      "dur": 41.98,
+      "speech": { "start": 106.02000000000001, "end": 147.5 },
+      "marks": [
+        { "name": "see", "at": 106.02000000000001 },
+        { "name": "roof", "at": 107.94000000000001 },
+        { "name": "saw", "at": 113.86000000000001 },
+        { "name": "son", "at": 115.38000000000001 },
+        { "name": "scribes", "at": 119.30000000000001 },
+        { "name": "easy", "at": 122.18 },
+        { "name": "arise", "at": 125.94000000000001 },
+        { "name": "went", "at": 130.10000000000002 },
+        { "name": "count", "at": 132.66000000000003 },
+        { "name": "one", "at": 134.5 },
+        { "name": "two", "at": 139.14000000000001 },
+        { "name": "three", "at": 142.98000000000002 },
+        { "name": "proof", "at": 145.86 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "woman",
+      "start": 147.6,
+      "dur": 38.47,
+      "speech": { "start": 148, "end": 185.97 },
+      "marks": [
+        { "name": "court", "at": 148 },
+        { "name": "law", "at": 152.16 },
+        { "name": "dust", "at": 154.88 },
+        { "name": "first", "at": 157.52 },
+        { "name": "leave", "at": 160.48 },
+        { "name": "alone", "at": 162.16 },
+        { "name": "none", "at": 164.07999999999998 },
+        { "name": "lord", "at": 165.92000000000002 },
+        { "name": "told", "at": 167.28 },
+        { "name": "again", "at": 172.72 },
+        { "name": "one", "at": 173.84 },
+        { "name": "two", "at": 177.12 },
+        { "name": "three", "at": 180.48 },
+        { "name": "order", "at": 184.07999999999998 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "spoke",
+      "start": 186.07,
+      "dur": 18.25,
+      "speech": { "start": 186.47, "end": 204.22 },
+      "marks": [
+        { "name": "gift", "at": 186.47 },
+        { "name": "where", "at": 188.87 },
+        { "name": "from", "at": 190.23 },
+        { "name": "back", "at": 191.67 },
+        { "name": "dark", "at": 193.10999999999999 },
+        { "name": "then", "at": 195.43 },
+        { "name": "spake", "at": 196.55 },
+        { "name": "only", "at": 198.95 },
+        { "name": "itself", "at": 202.23 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "centurion",
+      "start": 204.32,
+      "dur": 23.49,
+      "speech": { "start": 204.72, "end": 227.21 },
+      "marks": [
+        { "name": "same", "at": 204.72 },
+        { "name": "servant", "at": 207 },
+        { "name": "offer", "at": 208.72 },
+        { "name": "only", "at": 210.48 },
+        { "name": "healed", "at": 214.56 },
+        { "name": "room", "at": 216 },
+        { "name": "def", "at": 218.16 },
+        { "name": "faith", "at": 219.88 },
+        { "name": "gift", "at": 224.96 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "look",
+      "start": 227.81,
+      "dur": 25.41,
+      "speech": { "start": 228.31, "end": 250.42000000000002 },
+      "marks": [
+        { "name": "faith", "at": 228.31 },
+        { "name": "saviour", "at": 230.47 },
+        { "name": "hand", "at": 233.79 },
+        { "name": "desert", "at": 236.95 },
+        { "name": "pole", "at": 239.35 },
+        { "name": "harder", "at": 242.39000000000001 },
+        { "name": "climb", "at": 244.15 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "declared",
+      "start": 253.22,
+      "dur": 24.12,
+      "speech": { "start": 253.72, "end": 277.24 },
+      "marks": [
+        { "name": "now", "at": 253.72 },
+        { "name": "paul", "at": 256.52 },
+        { "name": "justified", "at": 257.64 },
+        { "name": "still", "at": 258.92 },
+        { "name": "cover", "at": 261.64 },
+        { "name": "would", "at": 263.24 },
+        { "name": "subst", "at": 266.12 },
+        { "name": "w", "at": 267.773 },
+        { "name": "voice", "at": 271.52 },
+        { "name": "speaks", "at": 273.88 },
+        { "name": "made", "at": 275.8 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "exchange",
+      "start": 277.34,
+      "dur": 24.58,
+      "speech": { "start": 277.73999999999995, "end": 301.81999999999994 },
+      "marks": [
+        { "name": "fair", "at": 280.13999999999993 },
+        { "name": "notes", "at": 281.9 },
+        { "name": "treated", "at": 283.41999999999996 },
+        { "name": "took", "at": 285.81999999999994 },
+        { "name": "cross", "at": 290.13999999999993 },
+        { "name": "rose", "at": 292.29999999999995 },
+        { "name": "up", "at": 295.36699999999996 },
+        { "name": "now", "at": 297.9 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "accuser",
+      "start": 301.91999999999996,
+      "dur": 26.57,
+      "speech": { "start": 302.31999999999994, "end": 328.38999999999993 },
+      "marks": [
+        { "name": "zech", "at": 302.31999999999994 },
+        { "name": "joshua", "at": 305.5199999999999 },
+        { "name": "filthy", "at": 307.03999999999996 },
+        { "name": "satan", "at": 310.1599999999999 },
+        { "name": "room", "at": 313.31999999999994 },
+        { "name": "points", "at": 315.3999999999999 },
+        { "name": "ew", "at": 317.5199999999999 },
+        { "name": "day", "at": 319.43999999999994 },
+        { "name": "angel", "at": 322.11999999999995 },
+        { "name": "silence", "at": 324.55999999999995 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "robe",
+      "start": 328.48999999999995,
+      "dur": 27.959999999999997,
+      "speech": { "start": 328.88999999999993, "end": 355.04999999999995 },
+      "marks": [
+        { "name": "take", "at": 328.88999999999993 },
+        { "name": "pass", "at": 332.00999999999993 },
+        { "name": "clothe", "at": 333.7699999999999 },
+        { "name": "loom", "at": 335.8499999999999 },
+        { "name": "woven", "at": 338.4099999999999 },
+        { "name": "nicer", "at": 340.56999999999994 },
+        { "name": "just", "at": 341.60999999999996 },
+        { "name": "no", "at": 343.12999999999994 },
+        { "name": "cloak", "at": 343.8499999999999 },
+        { "name": "away", "at": 346.12999999999994 },
+        { "name": "judicial", "at": 347.56999999999994 },
+        { "name": "reclaim", "at": 349.3429999999999 },
+        { "name": "reclaiming", "at": 352.56999999999994 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "within",
+      "start": 356.44999999999993,
+      "dur": 26.19,
+      "speech": { "start": 356.94999999999993, "end": 382.5399999999999 },
+      "marks": [
+        { "name": "power", "at": 356.94999999999993 },
+        { "name": "out", "at": 359.42999999999995 },
+        { "name": "never", "at": 361.8299999999999 },
+        { "name": "write", "at": 363.8299999999999 },
+        { "name": "bed", "at": 365.9099999999999 },
+        { "name": "not", "at": 369.10999999999996 },
+        { "name": "become", "at": 371.54999999999995 },
+        { "name": "plain", "at": 374.54999999999995 },
+        { "name": "first", "at": 376.62999999999994 },
+        { "name": "second", "at": 379.66999999999996 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "daily",
+      "start": 382.63999999999993,
+      "dur": 24.28,
+      "speech": { "start": 383.13999999999993, "end": 406.81999999999994 },
+      "marks": [
+        { "name": "done", "at": 384.5799999999999 },
+        { "name": "joy", "at": 385.7799999999999 },
+        { "name": "keep", "at": 389.4599999999999 },
+        { "name": "will", "at": 391.7799999999999 },
+        { "name": "choose", "at": 393.6599999999999 },
+        { "name": "matter", "at": 396.49999999999994 },
+        { "name": "sab", "at": 401.4599999999999 },
+        { "name": "rest", "at": 404.0999999999999 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "rain",
+      "start": 406.91999999999996,
+      "dur": 13.71,
+      "speech": { "start": 407.31999999999994, "end": 420.12999999999994 },
+      "marks": [
+        { "name": "big", "at": 409.0799999999999 },
+        { "name": "spirit", "at": 410.67999999999995 },
+        { "name": "blot", "at": 413.79999999999995 },
+        { "name": "loud", "at": 417.55999999999995 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "name",
+      "start": 420.62999999999994,
+      "dur": 24.95,
+      "speech": { "start": 421.0299999999999, "end": 443.5799999999999 },
+      "marks": [
+        { "name": "how", "at": 423.3499999999999 },
+        { "name": "not", "at": 425.9099999999999 },
+        { "name": "taking", "at": 427.9899999999999 },
+        { "name": "receive", "at": 430.1099999999999 },
+        { "name": "heart", "at": 431.38999999999993 },
+        { "name": "every", "at": 432.94999999999993 },
+        { "name": "verdict", "at": 434.3099999999999 },
+        { "name": "real", "at": 437.3499999999999 },
+        { "name": "true", "at": 439.50999999999993 },
+        { "name": "jer", "at": 441.0299999999999 }
+      ],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "thesis",
+      "start": 445.5799999999999,
+      "dur": 30,
+      "speech": { "start": 446.0799999999999, "end": 448.0399999999999 },
+      "marks": [],
+      "voice": "staging",
+      "drawn": true
+    },
+    {
+      "id": "end",
+      "start": 475.5799999999999,
+      "dur": 30,
+      "marks": [],
+      "voice": "silent",
+      "drawn": true
+    }
+  ],
+  "acts": [
+    { "name": "cold open", "from": "cold", "start": 0, "end": 70.19 },
+    { "name": "message", "from": "message", "start": 70.19, "end": 186.07 },
+    { "name": "faith", "from": "spoke", "start": 186.07, "end": 253.22 },
+    { "name": "forgiveness", "from": "declared", "start": 253.22, "end": 356.44999999999993 },
+    { "name": "power", "from": "within", "start": 356.44999999999993, "end": 406.91999999999996 },
+    { "name": "landing", "from": "rain", "start": 406.91999999999996, "end": 505.5799999999999 }
+  ],
+  "movements": [
+    { "name": "The courtroom", "from": "cold", "start": 0, "end": 25.19 },
+    { "name": "The theme, then the measure", "from": "title", "start": 25.19, "end": 47.34 },
+    { "name": "Coming up short", "from": "mirror", "start": 47.34, "end": 70.19 },
+    { "name": "The message", "from": "message", "start": 70.19, "end": 105.62 },
+    { "name": "The gifts shown", "from": "roof", "start": 105.62, "end": 186.07 },
+    { "name": "Faith from the word", "from": "spoke", "start": 186.07, "end": 253.22 },
+    { "name": "Forgiveness", "from": "declared", "start": 253.22, "end": 277.34 },
+    { "name": "The exchange", "from": "exchange", "start": 277.34, "end": 301.91999999999996 },
+    {
+      "name": "The accuser silenced",
+      "from": "accuser",
+      "start": 301.91999999999996,
+      "end": 328.48999999999995
+    },
+    { "name": "The robe", "from": "robe", "start": 328.48999999999995, "end": 356.44999999999993 },
+    {
+      "name": "Power within",
+      "from": "within",
+      "start": 356.44999999999993,
+      "end": 420.62999999999994
+    },
+    { "name": "The name", "from": "name", "start": 420.62999999999994, "end": 445.5799999999999 },
+    {
+      "name": "The Lord our righteousness",
+      "from": "thesis",
+      "start": 445.5799999999999,
+      "end": 475.5799999999999
+    },
+    { "name": "Credits", "from": "end", "start": 475.5799999999999, "end": 505.5799999999999 }
+  ]
+}

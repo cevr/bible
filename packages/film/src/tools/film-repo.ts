@@ -21,6 +21,7 @@ import {
   Record as Rec,
   Result,
   Schema,
+  Struct,
 } from 'effect';
 import {
   EMPTY_FOOTAGE_LOCK,
@@ -179,21 +180,29 @@ interface FilmFolderService {
 
 interface FilmRepoService {
   readonly load: (film: string) => Effect.Effect<LoadedFilm, LoadError>;
-  /** The film's screenplay (`script.ts`): each beat's line and sources. None when it keeps none. */
+  /**
+   * The film's screenplay (`script.ts`): each beat's line, sources and hold.
+   * None when it keeps none. `folder` reads a version folder's instead
+   * (`<film>/<folder>/script.ts`, a version written beside the registered
+   * one), a segment of the film's folder.
+   */
   readonly script: (
     film: string,
+    folder?: Segment,
   ) => Effect.Effect<Option.Option<ScriptModule['script']>, LoadError>;
   /** Every film's composed score options, as the private store keeps them. */
   readonly scores: Effect.Effect<Scores, StoreError>;
 }
 
 const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
-/** The part of `script.ts` the tools read: each beat's line, its sources and its picture's brief. */
+/** The part of `script.ts` the tools read: each beat's line, its sources, its picture's brief and its hold. */
 const ScriptModule = Schema.Struct({
   script: Schema.Array(
     Schema.Struct({
       id: Schema.String,
       say: Schema.optionalKey(Schema.String),
+      /** The beat's hold, as a scene's (`Timed`): what lays a version's script out on its clock. */
+      ...Struct.pick(Timed.fields, ['lead', 'tail', 'min', 'enter']),
       cite: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
       /** What the picture does (the judge quotes it, `tools/judge.ts`). */
       picture: Schema.optionalKey(Schema.String),
@@ -567,10 +576,14 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           return loaded;
         });
 
-        const script = Effect.fn('FilmRepo.script')(function* (name: string) {
+        const script = Effect.fn('FilmRepo.script')(function* (name: string, folder?: Segment) {
           const at = paths(name);
           if (!(yield* fs.exists(at.dir))) return yield* unknown(name);
-          const file = path.join(at.dir, 'script.ts');
+          const file = path.join(
+            at.dir,
+            ...Option.toArray(Option.fromUndefinedOr(folder)),
+            'script.ts',
+          );
           if (!(yield* fs.exists(file))) return Option.none<ScriptModule['script']>();
           return Option.some((yield* loadModule(name, file, ScriptModule)).script);
         });

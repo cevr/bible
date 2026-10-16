@@ -267,6 +267,8 @@ describe('the lab as an MCP server', () => {
             'journal',
             'journal_note',
             'look',
+            'timeline',
+            'working',
           ].toSorted(),
         );
         const { cursor } = yield* tool('overview');

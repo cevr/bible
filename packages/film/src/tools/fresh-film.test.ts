@@ -251,3 +251,46 @@ describe('film read script, run fresh', () => {
     SPAWNS_MS,
   );
 });
+
+// `film read clock` run fresh over the same film: the registered scenes on
+// the film's takes (none: every voiced beat is estimated) and its declared
+// acts, and a version
+// folder's script (`sample/v2/script.ts`) with the holds it declares.
+describe('film read clock, run fresh', () => {
+  it.effect.layer(
+    FreshFilm.layer([
+      'bun',
+      `${import.meta.dir}/fixtures/read-cli.ts`,
+      `${import.meta.dir}/fixtures/films`,
+    ]).pipe(Layer.provideMerge(BunServices.layer)),
+  )(
+    "answers the registered film's clock, and a version folder's on its own holds",
+    () =>
+      Effect.gen(function* () {
+        const fresh = yield* FreshFilm;
+        const [film, folder] = yield* Effect.all(
+          [fresh.clock(SAMPLE, Option.none()), fresh.clock(SAMPLE, Option.some('v2'))],
+          { concurrency: 2 },
+        );
+        expect(film.beats.map((b) => [b.id, b.voice, b.drawn])).toEqual([
+          ['open', 'estimated', true],
+          ['title', 'silent', true],
+        ]);
+        expect(film.beats[0]?.marks.map((m) => m.name)).toEqual(['ask']);
+        expect(film.beats[1]).toMatchObject({ start: film.beats[0]?.dur, dur: 3 });
+        expect(film.acts.map((a) => [a.name, a.from, a.start])).toEqual([
+          ['open', 'open', 0],
+          ['title', 'title', film.beats[0]?.dur ?? -1],
+        ]);
+        expect(folder.beats.map((b) => [b.id, b.voice, b.drawn])).toEqual([
+          ['open', 'estimated', false],
+          ['end', 'silent', false],
+        ]);
+        // Its tail of 2 s in place of the default 0.1 s; its end held 4 s by `min`.
+        expect((folder.beats[0]?.dur ?? 0) - (film.beats[0]?.dur ?? 0)).toBeCloseTo(1.9, 6);
+        expect(folder.beats[1]?.dur).toBe(4);
+        expect([folder.acts, folder.movements]).toEqual([[], []]);
+      }),
+    SPAWNS_MS,
+  );
+});

@@ -18,6 +18,9 @@
 //   read (`ask_read`, `asks`) and closed (`close_ask`); his word from chat
 //   filed (`decide`, `note`), and the production moved forward on his filed
 //   decision (`forward`).
+// - The studio's (`timeline-mcp.ts`): a film's timeline at one version, as
+//   the studio page draws it (`timeline`), and an agent's "doing now" line
+//   on its header (`working`).
 // - The easel's tools (`easel-mcp.ts`): a scene looked at as its files
 //   stand, its stills answered as images (`look`), the film's clock
 //   (`cues`), scenes checked as drawn (`check`), and the film's journal read
@@ -63,6 +66,9 @@ import { NotesStore } from './notes-store.ts';
 import type { ProductionStore } from './production-store.ts';
 import type { Review } from './review.ts';
 import { SetRead, setsMcp, setsReads } from './sets-mcp.ts';
+import type { FilmTimelines } from './film-timeline.ts';
+import { timelineMcp } from './timeline-mcp.ts';
+import type { Working } from './working.ts';
 
 /** Where the lab answers MCP. */
 export const MCP_PATH = '/mcp';
@@ -286,12 +292,14 @@ const INSTRUCTIONS = [
   "Hand the owner work to review as a guided review (`ask`): one page, a section per piece of material in the flow's order (script → concept → Board → voice → animatic → Rive scenes → sound → render → shorts), each the material itself in place (a script as a `script` block, never a `document` of its Markdown, and one script per ask; the Board, a video, a take, a set's document), then its questions, each a `choose` with your recommendation marked and its `why`; never a path, a link to elsewhere or prose describing what to open. Publish the files first as a set (`publish_set`) when the material is new, but a new script as a series draft (`series/<series>/scripts/<draft>.md`), named in a `script` block; reply on the note that asked for it.",
   "When a decision is the owner's, ask it (`ask`), each question a `choose` with one option `recommended` (an optional `free_text` beside it for anything else; words are a burden to require); hand the owner its link, hear each answer on `changes` (`ask.step`, `ask.answered`), and `close_ask` once acted on.",
   "When the owner has already decided in chat, file it on his production's timeline with `decide` (feedback that decides nothing, `note`), his own words verbatim as `quote`: never file a decision he did not make. What is still his to choose is an `ask`. Once he has given his word to move on and it is filed (in chat, or an ask he answered), `forward` moves the production to its next version on that decision, named by its `at`; with no decision of his in the version, or one it does not hold, it is refused.",
+  'Read a film as the studio shows it with `timeline` (its lanes, flags, Next row and what waits on the owner). While you work on a film, say what you are doing on its header with `working` (one line, as `by`), and `done: true` when you finish.',
   EASEL_INSTRUCTIONS,
 ].join('\n\n');
 
 /**
  * What the lab's MCP runs over beside its router: the lab's stores, its
- * change feed, its easel and its fresh runs of the film CLI.
+ * change feed, its easel, its fresh runs of the film CLI, the films'
+ * timelines and the agents' "doing now" lines.
  */
 export type LabMcpNeeds =
   | AskStore
@@ -304,6 +312,8 @@ export type LabMcpNeeds =
   | ContentStore
   | Easel
   | FreshFilm
+  | FilmTimelines
+  | Working
   | FileSystem.FileSystem
   | Path.Path;
 
@@ -319,6 +329,7 @@ export const labMcp = (options: LabMcpOptions) =>
     notesMcp(options),
     setsMcp(options),
     asksMcp(options),
+    timelineMcp(options),
     easelMcp,
     resources(options),
     inbox(options),

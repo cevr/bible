@@ -576,3 +576,35 @@ export class AskInvalid extends Schema.TaggedError<AskInvalid>()('AskInvalid', {
     return `the ask may not render: ${this.problems.join('; ')}`;
   }
 }
+
+/** A film version its production's ledger does not have (`timeline`): answered with the versions it has. */
+export class FilmVersionUnknown extends Schema.TaggedError<FilmVersionUnknown>()(
+  'FilmVersionUnknown',
+  {
+    film: Schema.String,
+    version: Schema.Int,
+    versions: Schema.Array(Schema.Int),
+  },
+) {
+  override get message() {
+    return `${this.film} has no v${this.version} (its versions: ${this.versions.map((v) => `v${v}`).join(', ')})`;
+  }
+}
+
+/**
+ * A film version whose files are kept nowhere (`timeline`): a version
+ * superseded in place, its script neither registered nor in a version
+ * folder. Answered with the versions whose files are kept.
+ */
+export class FilmVersionUnkept extends Schema.TaggedError<FilmVersionUnkept>()(
+  'FilmVersionUnkept',
+  {
+    film: Schema.String,
+    version: Schema.Int,
+    kept: Schema.Array(Schema.Int),
+  },
+) {
+  override get message() {
+    return `${this.film} keeps no files of v${this.version}: a later version replaced them in place (versions with files: ${this.kept.map((v) => `v${v}`).join(', ')})`;
+  }
+}
