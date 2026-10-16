@@ -48,6 +48,7 @@ import { LabEvents } from './lab-events.ts';
 import { type LabMcpNeeds, labMcp } from './lab-mcp.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { SoundLibrary } from './library.ts';
+import { SoundRender } from './sound-render.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
 import { Narrator } from './narrator.ts';
@@ -140,6 +141,9 @@ export const filmServices = (spec: FilmServicesSpec) => {
     }),
   );
   const Store = ContentStore.layer.pipe(Layer.provide(Platform));
+  // Every derived sound's audio and measures, made once a process and shared: the mix, the
+  // check and the options measure what a film places, the library and the mixer render it.
+  const Render = SoundRender.layer;
   const Repo = FilmRepo.layer(spec.films, Option.some(spec.sounds), Option.some(spec.footage)).pipe(
     Layer.provide([Store, Platform]),
   );
@@ -173,7 +177,7 @@ export const filmServices = (spec: FilmServicesSpec) => {
     onSome: (given) => given,
   }).pipe(Layer.provide(Platform));
   const Library = SoundLibrary.layer(spec.sounds).pipe(
-    Layer.provide([Store, Tools, Private, Platform]),
+    Layer.provide([Store, Tools, Private, Render, Platform]),
   );
   // The footage library's originals sync with the same private store; its copies are made
   // over the media service's coders.
@@ -221,6 +225,7 @@ export const filmServices = (spec: FilmServicesSpec) => {
             Reviewed,
             Catalogue,
             Fresh,
+            Render,
             Platform,
           ),
         ),

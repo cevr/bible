@@ -22,7 +22,7 @@ interface Loudness {
 const BLOCK = 0.4;
 const HOP = 0.1;
 /** The gates: absolute, and relative to the mean of what passed the absolute one. */
-const ABSOLUTE_GATE = -70;
+export const ABSOLUTE_GATE = -70;
 const RELATIVE_GATE = -10;
 
 /**
@@ -82,6 +82,24 @@ const blockPowers = (pcm: Pcm): ReadonlyArray<number> => {
 
 const meanOf = (xs: ReadonlyArray<number>): number =>
   xs.reduce((sum, x) => sum + x, 0) / Math.max(1, xs.length);
+
+/** One of BS.1770's momentary blocks: its span in seconds and its loudness in LUFS (silence is -Infinity). */
+interface Block {
+  readonly from: number;
+  readonly to: number;
+  readonly lufs: number;
+}
+
+/** `pcm`'s momentary loudness, ungated: each 400 ms block, 100 ms apart from its start, in order. */
+export const momentaryBlocks = (pcm: Pcm): ReadonlyArray<Block> => {
+  const hop = Math.round(HOP * pcm.rate) / pcm.rate;
+  const block = Math.round(BLOCK * pcm.rate) / pcm.rate;
+  return blockPowers(pcm).map((power, k) => ({
+    from: k * hop,
+    to: k * hop + block,
+    lufs: lufsOf(power),
+  }));
+};
 
 /** `pcm`'s loudness. */
 export const loudness = (pcm: Pcm): Loudness => {

@@ -442,6 +442,8 @@ export interface Bindings {
   readonly valueOf: (id: Named) => Option.Option<ESTree.Node>;
   /** A number written out, or named by a top-level const holding one. */
   readonly numberOf: NumberOf;
+  /** What an import's specifier names from this file: a relative one resolved against its folder, any other as written. */
+  readonly moduleOf: (from: string) => string;
 }
 
 /** `Bindings` over the file `code` reads. */
@@ -464,6 +466,7 @@ const bindingsIn = (code: Source): Bindings => {
     isRunner: (node, name) => isRunnerIn(code, node, name),
     valueOf: (id) => topLevelValueIn(code, id),
     numberOf,
+    moduleOf: (from) => resolvedFrom(code.file, from),
   };
 };
 

@@ -29,13 +29,17 @@
  *    with Workers AI under the index's fingerprint and upsert them into
  *    Vectorize (`./book-vectors.ts`); `unindex <id>` deletes the vectors of
  *    paragraphs a recheck removed.
- * 4. `optimize` — `PRAGMA optimize`, so D1's planner sees the new rows.
- * 5. `report` — what the run did (`reportEgwSync`). A run with an
+ * 4. `prune cutoff`, then `prune changes <round>` — delete the change rows
+ *    recorded more than `CHANGES_KEPT` ago, `PRUNE_ROUND` a step. A run reads
+ *    only the rows it wrote; its published report is the lasting record. A
+ *    prune that fails is logged, and the next run prunes what it left.
+ * 5. `optimize` — `PRAGMA optimize`, so D1's planner sees the new rows.
+ * 6. `report` — what the run did (`reportEgwSync`). A run with an
  *    unexpected failure ends errored, after doing all the rest, so the
  *    dashboard shows it.
- * 6. `publish report` — the full report in Markdown, into R2
+ * 7. `publish report` — the full report in Markdown, into R2
  *    (`./sync-report.ts`), served at `egw.cvr.im/sync/<name>`.
- * 7. `mail` — the run's outcome, mailed to its owner (`./sync-mail.ts`):
+ * 8. `mail` — the run's outcome, mailed to its owner (`./sync-mail.ts`):
  *    what was added, what the library updated with its first changes, what
  *    failed, and the report's link; or where a run stopped. Only `prod`
  *    publishes a report and mails.
@@ -64,6 +68,7 @@ import {
   Config,
   ConfigProvider,
   DateTime,
+  Duration,
   Effect,
   Exit,
   Layer,
@@ -146,6 +151,13 @@ const RECHECK_LIMIT = 250;
  *  whole library's worth, about 4,500 steps at three a book, so a run asked
  *  to check everything at once still fits a Workflow. */
 const RECHECK_MAX = 1500;
+
+/** How long a change row is kept: four weekly runs, so a run whose vector
+ *  steps failed can still be repaired by hand from the rows it wrote. */
+const CHANGES_KEPT = Duration.days(30);
+
+/** The most change rows one prune step deletes. */
+const PRUNE_ROUND = 5000;
 
 /** Where a published report is read: the search's own page for it. */
 const REPORT_PAGE = `https://${DOMAIN}/sync/`;
@@ -387,6 +399,39 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
           Effect.orDie,
         );
         const optimizeStep = Cloudflare.Workflows.task('optimize', optimized);
+
+        /** Delete the change rows older than `CHANGES_KEPT`, a round a step.
+         *  The cutoff is a step of its own, so a resumed run keeps it. */
+        const pruneSteps = Effect.fn('CorpusSync.prune')(function* () {
+          const cutoff = yield* Cloudflare.Workflows.task(
+            'prune cutoff',
+            DateTime.now.pipe(
+              Effect.map((now) => DateTime.formatIso(DateTime.subtractDuration(now, CHANGES_KEPT))),
+            ),
+          );
+          let pruned = 0;
+          let round = 0;
+          while (true) {
+            const gone = yield* Cloudflare.Workflows.task(
+              `prune changes ${String(round)}`,
+              Effect.flatMap(EGWParagraphDatabase, (database) =>
+                database.pruneParagraphChanges(cutoff, PRUNE_ROUND),
+              ).pipe(Effect.provide(readLayer)),
+              { retries: RETRIES },
+            );
+            pruned += gone;
+            round += 1;
+            if (gone < PRUNE_ROUND) return pruned;
+          }
+        });
+        const pruneStep = Effect.gen(function* () {
+          const pruned = yield* Effect.exit(pruneSteps());
+          if (Exit.isFailure(pruned)) {
+            yield* Effect.logError('egw_sync_prune_failed', Cause.pretty(pruned.cause));
+            return;
+          }
+          yield* Effect.log('egw_sync_pruned', `rows=${String(pruned.value)}`);
+        });
         const reportStep = (plan: EgwSyncPlan, failures: readonly EgwSyncFailure[]) =>
           Cloudflare.Workflows.task(
             'report',
@@ -548,6 +593,7 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
           const verified = yield* recheck(plan.verify);
           for (const id of input.reembed ?? []) yield* addVectors(id, 'book');
 
+          yield* pruneStep;
           yield* optimizeStep;
           const report = yield* reportStep(plan, failures);
           yield* Effect.log(

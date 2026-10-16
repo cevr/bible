@@ -34,12 +34,24 @@ describe('FilmRepo', () => {
 
   // A synthetic film on disk (`fixtures/films/sample`): its modules are
   // imported as a real film's are, and no real film's script pins the test.
-  it.effect.layer(
-    FilmRepo.layer(`${import.meta.dir}/fixtures/films`).pipe(
-      Layer.provide(ContentStore.layer),
-      Layer.provideMerge(BunServices.layer),
-    ),
-  )("reads a film's script: each beat's line and its sources", () =>
+  const sample = FilmRepo.layer(`${import.meta.dir}/fixtures/films`).pipe(
+    Layer.provide(ContentStore.layer),
+    Layer.provideMerge(BunServices.layer),
+  );
+
+  it.effect.layer(sample)("reads a film's sound alone, and names a film that is not there", () =>
+    Effect.gen(function* () {
+      const repo = yield* FilmRepo;
+      const sound = Option.getOrThrow(yield* repo.sound('sample'));
+      expect(sound.effects).toEqual({
+        knock: { sound: 'wood.knock', sync: 'hit', at: [{ scene: 'open', at: 'speech' }] },
+      });
+      const missing = yield* Effect.flip(repo.sound('nowhere'));
+      expect(missing).toMatchObject({ _tag: 'FilmUnknown', film: 'nowhere', known: ['sample'] });
+    }),
+  );
+
+  it.effect.layer(sample)("reads a film's script: each beat's line and its sources", () =>
     Effect.gen(function* () {
       const script = Option.getOrThrow(yield* (yield* FilmRepo).script('sample'));
       const open = script.find((beat) => beat.id === 'open');
@@ -59,12 +71,7 @@ describe('FilmRepo', () => {
   // A version folder (`sample/v3/`) is read from its own files with the same
   // loader: its scenes, takes, acts and score, and the film's voice where it
   // keeps none of its own.
-  it.effect.layer(
-    FilmRepo.layer(`${import.meta.dir}/fixtures/films`).pipe(
-      Layer.provide(ContentStore.layer),
-      Layer.provideMerge(BunServices.layer),
-    ),
-  )("reads a version folder's own scenes, takes, acts and score", () =>
+  it.effect.layer(sample)("reads a version folder's own scenes, takes, acts and score", () =>
     Effect.gen(function* () {
       const loaded = yield* (yield* FilmRepo).load('sample', Segment.make('v3'));
       expect(loaded.scenes.map((s) => s.id)).toEqual(['seed', 'end']);
@@ -76,6 +83,40 @@ describe('FilmRepo', () => {
       expect(score?.options['piano']?.movements.map((m) => m.from)).toEqual(['seed']);
       expect(Option.getOrThrow(loaded.voice)).toMatchObject({ voiceId: 'sample-voice' });
     }),
+  );
+
+  // The app's library, written beside the sample film for the test: the knock
+  // its sound.ts places is a code sound.
+  const KNOCK = `export const library = {
+  'wood.knock': {
+    kind: 'code',
+    sound: { play: { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } },
+    variants: 2,
+    use: 'one-shot',
+  },
+};
+export const store = { kind: 'folder', folder: 'files' };
+`;
+
+  // The repo is built with no sound renderer: a load that rendered or
+  // measured a sound would not build, so what reads no sound pays for none.
+  const withLibrary = Layer.unwrap(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-repo-sounds-' });
+      yield* fs.writeFileString(`${dir}/library.ts`, KNOCK);
+      return FilmRepo.layer(`${import.meta.dir}/fixtures/films`, Option.some(dir));
+    }),
+  ).pipe(Layer.provide(ContentStore.layer), Layer.provideMerge(BunServices.layer));
+
+  it.effect.layer(withLibrary)(
+    "loads a film's code sound resolved, with no sound renderer: a load measures nothing",
+    () =>
+      Effect.gen(function* () {
+        const loaded = yield* (yield* FilmRepo).load('sample');
+        expect(Option.getOrThrow(loaded.sound).effects['knock']?.sound).toBe('wood.knock');
+        expect([...loaded.sounds.code.keys()]).toEqual(['wood.knock']);
+      }),
   );
 });
 

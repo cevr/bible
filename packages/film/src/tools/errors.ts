@@ -81,15 +81,24 @@ export class LibraryCheckFailed extends Schema.TaggedError<LibraryCheckFailed>()
   }
 }
 
+/** A seam's variant as its message names it, and what mends it: another take or a trim, or the data of a derived sound's seeds. */
+const SEAM_OF = {
+  take: { variant: 'variant', mend: 'pick another take or trim it' },
+  seed: { variant: 'seed', mend: 'edit its data until every seed loops' },
+} as const;
+
 /** A bed whose loop point is heard: a level jump or a click where it wraps. */
 export class LoopSeam extends Schema.TaggedError<LoopSeam>()('LoopSeam', {
   name: Schema.String,
+  /** A kept take, or a seed of a derived sound (a code or procedural sound, or a code trial). */
+  of: Schema.Literals(['take', 'seed']),
   variant: Schema.Int,
   db: Schema.Finite,
   click: Schema.Finite,
 }) {
   override get message() {
-    return `bed "${this.name}" variant ${this.variant}: its loop point jumps ${this.db.toFixed(1)} dB with a ${this.click.toFixed(1)}x step; pick another take or trim it`;
+    const { variant, mend } = SEAM_OF[this.of];
+    return `bed "${this.name}" ${variant} ${this.variant}: its loop point jumps ${this.db.toFixed(1)} dB with a ${this.click.toFixed(1)}x step; ${mend}`;
   }
 }
 
@@ -107,6 +116,19 @@ export class LeadIn extends Schema.TaggedError<LeadIn>()('LeadIn', {
 }) {
   override get message() {
     return `effect "${this.effect}" (${this.name} variant ${this.variant}): its sound starts ${Math.round(this.onset * 1000)} ms in, so it is heard late on its cue; place it with sync: 'onset' for a sustained sound (its hit, ${this.hit.toFixed(2)} s in, would start it that early), sync: 'hit' for an impact, or keep a tighter take`;
+  }
+}
+
+/**
+ * A derived sound (a code or procedural sound) with a seed that renders
+ * silent (`heardNothing`): where the film places it, that seed plays nothing.
+ */
+export class SeedSilent extends Schema.TaggedError<SeedSilent>()('SeedSilent', {
+  name: Schema.String,
+  seed: Schema.Int,
+}) {
+  override get message() {
+    return `sound "${this.name}" seed ${this.seed} renders silent (nothing over BS.1770's -70 LUFS gate), so it plays nothing where it is placed; edit its data until every seed is heard`;
   }
 }
 
@@ -227,6 +249,16 @@ export class SoundKindMismatch extends Schema.TaggedError<SoundKindMismatch>()(
 ) {
   override get message() {
     return `sound "${this.name}" is ${this.kind}; this needs a ${this.wanted} one`;
+  }
+}
+
+/** `sfx render --trial` or `sfx compare` on a sound with no code trial: only a generated sound with `code`, or a recipe, has one. */
+export class CodeTrialMissing extends Schema.TaggedError<CodeTrialMissing>()('CodeTrialMissing', {
+  name: Schema.String,
+  kind: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.name}" is ${this.kind} and has no code trial: a generated sound has one when it declares code: { sound, variants }, and a recipe's is its port`;
   }
 }
 

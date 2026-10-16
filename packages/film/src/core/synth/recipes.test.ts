@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import type { Pcm } from '../audio.ts';
 import { loudness } from './loudness.ts';
-import { type Recipe, SYNTH_PEAK, noteHz, synthesize } from './recipes.ts';
-import { SYNTH_RATE } from './signal.ts';
+import { SYNTH_PEAK, SYNTH_RATE } from './graph/units.ts';
+import { type Recipe, noteHz, synthesize } from './recipes.ts';
 
 const plane = (pcm: Pcm) => pcm.channels[0] ?? new Float32Array();
 const digest = (pcm: Pcm) =>
@@ -43,6 +43,10 @@ describe('noteHz', () => {
     expect(noteHz('C4')).toBeCloseTo(261.63, 2);
     expect(noteHz('F#3')).toBeCloseTo(185.0, 1);
     expect(noteHz('Bb2')).toBeCloseTo(116.54, 2);
+  });
+
+  test("reads a note's whole octave: E10 is ten octaves over E0, never E0", () => {
+    expect(noteHz('E10') / noteHz('E0')).toBeCloseTo(1024, 6);
   });
 });
 

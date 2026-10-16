@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
 import {
   DEFAULT_JITTER,
-  type Library,
+  Library,
+  LibraryEntry,
   type Lock,
   LockJson,
   type Variant,
@@ -13,6 +14,7 @@ import {
   influenceOf,
   defineLibrary,
   gainFor,
+  heardSource,
   jitterOf,
   levelOf,
   lockLoudness,
@@ -21,20 +23,34 @@ import {
   requestKey,
   resolveSound,
   resolveUse,
+  seedSources,
   soundState,
+  sourceLabel,
+  trialSources,
 } from './sfx.ts';
+import type { Recipe } from './synth/recipes.ts';
+import { resolveCode } from './synth/resolve.ts';
+import { measuredSounds } from './testing.ts';
 
 const library = defineLibrary({
   'paper.slide': {
     kind: 'generated',
     prompt: 'a sheet of paper slides across a desk',
+    why: 'a test sound',
     secs: 1,
     use: 'one-shot',
   },
-  'paper.tear': { kind: 'generated', prompt: 'paper tears', secs: 0.8, use: 'one-shot' },
+  'paper.tear': {
+    kind: 'generated',
+    prompt: 'paper tears',
+    why: 'a test sound',
+    secs: 0.8,
+    use: 'one-shot',
+  },
   'amb.court': {
     kind: 'generated',
     prompt: 'a quiet stone courtroom',
+    why: 'a test sound',
     secs: 20,
     loop: true,
     use: 'bed',
@@ -62,6 +78,8 @@ describe('requestKey', () => {
     const slide = library['paper.slide'];
     expect(requestKey({ ...slide, level: -4 })).toBe(requestKey(slide));
     expect(requestKey({ ...slide, jitter: { pitch: 0, gain: 0 } })).toBe(requestKey(slide));
+    // Why it is generated is not what it sounds like: its takes stay current.
+    expect(requestKey({ ...slide, why: 'another' })).toBe(requestKey(slide));
     expect(requestKey({ ...slide, prompt: 'another' })).not.toBe(requestKey(slide));
     expect(requestKey({ ...slide, secs: 2 })).not.toBe(requestKey(slide));
     expect(requestKey({ ...slide, influence: 0.9 })).not.toBe(requestKey(slide));
@@ -89,6 +107,80 @@ describe('requestKey', () => {
     expect(requestKey({ ...chime, recipe: { ...chime.recipe, root: 'E5' } })).not.toBe(
       requestKey(chime),
     );
+  });
+});
+
+describe('a procedural sound', () => {
+  const decode = Schema.decodeResult(Library);
+  /** A recipe as an entry writes it, before its entry checks it. */
+  type Written = typeof Recipe.Encoded;
+  /** A library of one procedural sound, `name`, made by `recipe`. */
+  const procedural = (name: string, recipe: Written): typeof Library.Encoded => ({
+    [name]: { kind: 'procedural', recipe, variants: 3, use: 'one-shot' },
+  });
+  /** Why `library` is refused, or none when it decodes. */
+  const refusal = (library: typeof Library.Encoded) =>
+    Result.match(decode(library), {
+      onFailure: (error) => Option.some(error.message),
+      onSuccess: () => Option.none<string>(),
+    });
+
+  test('is refused at its entry, by name, when its code trial would pass what a render may', () => {
+    // Room tone's port is made a second longer to loop: 119.5 s ports to 120.5 s.
+    const room = Option.getOrThrow(
+      refusal(procedural('room.long', { recipe: 'room', secs: 119.5 })),
+    );
+    expect(room).toContain('room.long');
+    expect(room).toContain('120.5 s');
+    // Twelve notes up `G8`'s scale climb to `E10`, past the graph's top octave, 8.
+    const high: Written = { recipe: 'notes', root: 'G8', count: 12, secs: 1 };
+    const notes = Option.getOrThrow(refusal(procedural('notes.high', high)));
+    expect(notes).toContain('notes.high');
+    expect(notes).toContain('D9');
+    // Twelve plinks of 103 s each write more than an hour of frames.
+    const long: Written = { recipe: 'notes', root: 'C4', count: 12, secs: 103 };
+    const work = Option.getOrThrow(refusal(procedural('notes.long', long)));
+    expect(work).toContain('notes.long');
+    expect(work).toContain('3600 s');
+  });
+
+  test('every recipe its entry takes loads: its code trial never fails the walk', () => {
+    const SECS = [8, 102, 103, 119, 119.5, 120, 120.5];
+    const ROOTS = ['G4', 'D7', 'D#7', 'D8', 'D#8', 'A8', 'A#8'];
+    const recipes = SECS.flatMap((secs): ReadonlyArray<Written> => [
+      { recipe: 'room', secs },
+      { recipe: 'wind', secs },
+      { recipe: 'rain', secs },
+      ...ROOTS.flatMap((root): ReadonlyArray<Written> => [
+        { recipe: 'bell', root, partials: 'glass', secs },
+        { recipe: 'drone', root, secs },
+        { recipe: 'drain', from: root, to: 'C2', secs },
+        { recipe: 'drain', from: 'C2', to: root, secs },
+        { recipe: 'bloom', root, secs },
+        { recipe: 'notes', root, count: 12, secs },
+        { recipe: 'notes', root, count: 1, secs },
+      ]),
+    ]);
+    const taken = recipes.flatMap((recipe) =>
+      Result.match(decode(procedural('tone.made', recipe)), {
+        onFailure: () => [],
+        onSuccess: (library) => [{ recipe, walked: resolveCode(library) }],
+      }),
+    );
+    expect(taken.filter(({ walked }) => Result.isFailure(walked))).toEqual([]);
+    // Both sides are reached: the sweep crosses every limit.
+    expect(taken.length).toBeGreaterThan(0);
+    expect(taken.length).toBeLessThan(recipes.length);
+  });
+});
+
+describe('a generated sound', () => {
+  test('says why it needs realism: one with no why, or an empty one, is refused', () => {
+    const decode = Schema.decodeUnknownResult(LibraryEntry);
+    const { why: _why, ...unsaid } = library['paper.slide'];
+    expect(Result.isSuccess(decode(library['paper.slide']))).toBe(true);
+    expect(Result.isFailure(decode(unsaid))).toBe(true);
+    expect(Result.isFailure(decode({ ...unsaid, why: '' }))).toBe(true);
   });
 });
 
@@ -247,6 +339,41 @@ describe('soundState', () => {
   test('kept variants for this request are current', () => {
     const lock = Option.some({ variants: [made(requestKey(slide))], candidates: [], rejected: [] });
     expect(soundState(slide, lock)).toEqual({ _tag: 'Current', variants: 1, candidates: 0 });
+  });
+});
+
+describe('heardSource', () => {
+  const tick = (pitch: string) =>
+    ({ play: { _tag: 'Partials', pitch, set: 'glass', secs: 0.1 } }) as const;
+  const heard = defineLibrary({
+    'tone.tick': { kind: 'code', sound: tick('E5'), variants: 2, use: 'one-shot' },
+    'tone.chime': {
+      kind: 'generated',
+      prompt: 'a chime',
+      why: 'a test sound',
+      secs: 1,
+      use: 'one-shot',
+      code: { sound: tick('A4'), variants: 3 },
+    },
+  });
+  const sounds = measuredSounds(heard, {}, '');
+  const own = seedSources(sounds, 'tone.tick', heard['tone.tick']);
+  const trial = trialSources(sounds, 'tone.chime');
+
+  test("finds a seed by its source's label: a code sound's own, a code trial's", () => {
+    expect([own.length, trial.length]).toEqual([2, 3]);
+    expect(trialSources(sounds, 'tone.tick')).toEqual([]);
+    expect(heardSource(sounds, 'tone.tick', sourceLabel(own[1]!))).toEqual(Option.some(own[1]!));
+    expect(heardSource(sounds, 'tone.chime', sourceLabel(trial[2]!))).toEqual(
+      Option.some(trial[2]!),
+    );
+  });
+
+  test("never another sound's seed, a seed past its own, or a take's sha256", () => {
+    expect(heardSource(sounds, 'tone.chime', sourceLabel(own[0]!))).toEqual(Option.none());
+    const past = sourceLabel({ ...own[1]!, seed: 3 });
+    expect(heardSource(sounds, 'tone.tick', past)).toEqual(Option.none());
+    expect(heardSource(sounds, 'paper.slide', '7e41c0a9d2f3aa')).toEqual(Option.none());
   });
 });
 

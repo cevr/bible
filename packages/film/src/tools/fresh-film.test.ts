@@ -4,7 +4,8 @@
 // disagreeing about the format, so it fails the run by name instead of being
 // skipped, and a check that fails to run is itself one error finding. A keep
 // is asked of `film options keep-voice`, which refuses a take that says
-// something else unless it is passed `--accept-mismatch`.
+// something else unless it is passed `--accept-mismatch`. A seed heard alone
+// is asked of `film options sound`, which writes it where it is told.
 
 import { test } from 'bun:test';
 import { BunServices } from '@effect/platform-bun';
@@ -12,13 +13,14 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Schema, Sink, Stream } from 'effect';
 import { ChildProcessSpawner } from 'effect/process';
 import { UnknownScene } from '../core/errors.ts';
-import { FreshProcessFailed, TakeMismatch } from '../core/refusals.ts';
+import { FreshProcessFailed, TakeMismatch, VerbRefused } from '../core/refusals.ts';
 import { FilmName } from './film-repo.ts';
 import {
   CheckLineJson,
   CuesRead,
   FreshFilm,
   OptionsKept,
+  OptionsSounded,
   ScenesRead,
   checkLines,
   failedCheck,
@@ -169,6 +171,47 @@ describe('keep-voice', () => {
       expect(answer).toEqual(OptionsKept.make({ mixed: true }));
     }).pipe(Effect.provide(FreshFilm.layer(['bun', 'cli.ts']).pipe(Layer.provide(legacy))));
   });
+});
+
+describe('sound', () => {
+  it.effect(
+    'asks the CLI for the seed by its point and label, written where it is told, or its refusal',
+    () => {
+      const runs: Array<ReadonlyArray<string>> = [];
+      const film = Schema.decodeSync(FilmName)('test');
+      const refusal = VerbRefused.make({
+        point: 'take:coins',
+        variant: 'abc',
+        verb: 'hear alone',
+        reason: 'it is not made from data',
+      });
+      const cli = cliAnswering(runs, (args) => {
+        if (args.includes('abc'))
+          return { line: Schema.encodeSync(Schema.fromJsonString(VerbRefused))(refusal), exit: 1 };
+        return {
+          line: Schema.encodeSync(Schema.fromJsonString(OptionsSounded))(OptionsSounded.make({})),
+        };
+      });
+      return Effect.gen(function* () {
+        const fresh = yield* FreshFilm;
+        yield* fresh.sound(film, 'take:coins', 'code:v:graph/1', '/cache/a.wav.partial');
+        const refused = yield* Effect.flip(fresh.sound(film, 'take:coins', 'abc', '/cache/b'));
+        expect(refused).toEqual(refusal);
+        expect(runs[0]).toEqual([
+          'cli.ts',
+          'options',
+          'sound',
+          'test',
+          '--point',
+          'take:coins',
+          '--variant',
+          'code:v:graph/1',
+          '--to',
+          '/cache/a.wav.partial',
+        ]);
+      }).pipe(Effect.provide(FreshFilm.layer(['bun', 'cli.ts']).pipe(Layer.provide(cli))));
+    },
+  );
 });
 
 describe("the easel tools' runs", () => {

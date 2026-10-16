@@ -33,7 +33,14 @@ import { ActName } from '../core/address-schema.ts';
 import { TakeStaleReason } from '../core/narration.ts';
 import type { CheckLine, FindingAddress } from '../core/schema.ts';
 import { SHORT_RULES } from '../core/shorts.ts';
-import type { AudioMissing, AudioStale, LeadIn, SoundStale, SoundUnmade } from './errors.ts';
+import type {
+  AudioMissing,
+  AudioStale,
+  LeadIn,
+  SeedSilent,
+  SoundStale,
+  SoundUnmade,
+} from './errors.ts';
 
 // ---------------------------------------------------------------------------
 // The mix: what the check hears in the mix the film makes now.
@@ -721,6 +728,7 @@ export type StaticFinding =
   | SoundUseMismatch
   | SoundUnmade
   | SoundStale
+  | SeedSilent
   | LeadIn
   | WordPinFar
   | DurOnWord
@@ -804,6 +812,7 @@ export const levelOf = (finding: Finding, options: CheckOptions): Level => {
       SoundUseMismatch: error,
       SoundUnmade: error,
       SoundStale: warning,
+      SeedSilent: error,
       LeadIn: warning,
       WordPinFar: warning,
       DurOnWord: warning,
@@ -917,6 +926,7 @@ export const addressOf = (finding: Finding): FindingAddress => {
       SoundUseMismatch: none,
       SoundUnmade: none,
       SoundStale: none,
+      SeedSilent: none,
       LeadIn: none,
       WordPinFar: scene,
       DurOnWord: scene,

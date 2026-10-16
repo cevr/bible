@@ -84,6 +84,7 @@ describe('film options', () => {
     ['list', 'f-typo', '--check'],
     ['take', 'f-typo', '--point', 'take:coins', '--variant', 'abc', '--verb', 'pick'],
     ['mix', 'f-typo', '--point', 'score', '--variant', 'piano', '--to', '/out/mix.m4a'],
+    ['sound', 'f-typo', '--point', 'take:coins', '--variant', 'code:v:g/1', '--to', '/out/a.wav'],
     ['keep-voice', 'f-typo', 'a', 'a.0123456789ab.flac'],
   ] as const)
     it.live(`\`options ${args.join(' ')}\` answers FilmUnknown, printed as itself`, () =>

@@ -63,6 +63,7 @@ const brokenRepo = (films: string) =>
             FilmModuleInvalid.make({ film, module: 'voice.ts', reason: 'broken for the test' }),
           ),
         script: repo.script,
+        sound: repo.sound,
         scores: repo.scores,
       }),
     ),

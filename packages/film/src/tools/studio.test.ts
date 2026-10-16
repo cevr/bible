@@ -109,6 +109,7 @@ const setup = (
             timings,
           })),
         script: () => Effect.succeedNone,
+        sound: () => Effect.succeed(film.sound),
         scores: Effect.succeed(NO_SCORES),
       });
     }),

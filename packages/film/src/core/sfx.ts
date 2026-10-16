@@ -2,21 +2,30 @@
 // films (`sounds/library.ts`), and what was made for each (`library.lock.json`,
 // written by the tools). A film names sounds (`paper.slide`, `amb.court`), never
 // prompts. A sound is generated (ElevenLabs, made once as candidates, curated,
-// then frozen: the model has no seed), procedural (a synth recipe, rendered
-// from its seed whenever it is needed, so nothing is stored), or recorded (a
-// CC0 file kept in the repo). Pure: names, schemas, the request hash
-// that says whether a sound is current, which variant each placement plays and
-// its jitter, and the level arithmetic the mix gains a sound by.
+// then frozen: the model has no seed), code (a graph of nodes, rendered from
+// each seed whenever it is needed, so nothing is stored or paid for),
+// procedural (a synth recipe, rendered the same way), or recorded (a CC0 file
+// kept in the repo). Pure: names, schemas, the request hash that says whether
+// a sound is current, which variant each placement plays and its jitter, and
+// the level arithmetic the mix gains a sound by.
 
-import { Array as Arr, Option, Result, Schema } from 'effect';
+import { Array as Arr, Match, Option, Result, Schema } from 'effect';
+import type { Pcm } from './audio.ts';
 import { SoundUseMismatch, UnknownSound } from './errors.ts';
 import { hashText } from './narration.ts';
-import { repoJson } from './schema.ts';
+import { type Sound, repoJson } from './schema.ts';
 import { Segment } from './segment.ts';
 import { fnv1a, rng } from './random.ts';
 import { TAKE_LEVEL } from './recording.ts';
 import { describeSound } from './synth/analyse.ts';
-import { loudness } from './synth/loudness.ts';
+import { ABSOLUTE_GATE, loudness } from './synth/loudness.ts';
+import { boundOf } from './synth/graph/bound.ts';
+import { CodeSound } from './synth/graph/nodes.ts';
+import type { ResolvedSound } from './synth/graph/plan.ts';
+import type { ResolvedTrial } from './synth/resolve.ts';
+import { portOf } from './synth/graph/presets.ts';
+import { RENDER_VERSION, renderCode } from './synth/graph/render.ts';
+import { MAX_CODE_SECS, MAX_CODE_WORK } from './synth/graph/units.ts';
 import { Recipe, synthesize } from './synth/recipes.ts';
 import { toMs } from './time.ts';
 
@@ -70,9 +79,26 @@ const placing = {
 /** The shortest and longest sound ElevenLabs makes, in seconds. */
 const GENERATED_SECS = { min: 0.5, max: 30 } as const;
 
+/** Seeds 1…n: each a variant. */
+const Seeds = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 }));
+
+/**
+ * A code version of a sound, heard beside what plays until the owner
+ * chooses: never placed, so no film plays a code sound the owner did not
+ * choose.
+ */
+const CodeTrial = Schema.Struct({ sound: CodeSound, variants: Seeds });
+type CodeTrial = typeof CodeTrial.Type;
+
 export const Generated = Schema.Struct({
   kind: Schema.Literal('generated'),
   prompt: Schema.NonEmptyString,
+  /**
+   * Why ElevenLabs makes it: the realism its credits pay for, which code
+   * cannot make. Code makes every simpler sound (the owner's rule), so a
+   * generated sound says what it needs.
+   */
+  why: Schema.NonEmptyString,
   secs: Schema.Finite.check(
     Schema.isBetween({ minimum: GENERATED_SECS.min, maximum: GENERATED_SECS.max }),
   ),
@@ -82,18 +108,64 @@ export const Generated = Schema.Struct({
   loop: Schema.optionalKey(Schema.Boolean),
   /** How many candidates `sfx make` asks for; `DEFAULT_CANDIDATES` by use. */
   candidates: Schema.optionalKey(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 8 }))),
+  /** Its code trial: the sound made by code, heard beside its takes (`sfx render --trial`). */
+  code: Schema.optionalKey(CodeTrial),
   ...placing,
 });
 export type Generated = typeof Generated.Type;
 
+/** A length or a work in seconds as a refusal names it: to a tenth. */
+const tenths = (secs: number): number => Math.round(secs * 10) / 10;
+
+/**
+ * Why `recipe`'s port (graph/presets.ts) is no code sound the library's walk
+ * takes, when it is not: at the most its draws allow, longer than a code
+ * sound may run or more work than a render may do (the walk's limits,
+ * synth/resolve.ts), or a field the graph's schema refuses, a note past B8
+ * or a frequency past the mix's Nyquist. A port samples no other sound.
+ */
+const portFault = (recipe: Recipe): Option.Option<string> => {
+  const play = portOf(recipe);
+  const bound = boundOf(play, () => ({ secs: 0, work: 0 }));
+  if (bound.secs > MAX_CODE_SECS)
+    return Option.some(
+      `its code trial runs ${tenths(bound.secs)} s at the most, past the ${MAX_CODE_SECS} s a code sound may run`,
+    );
+  if (bound.work > MAX_CODE_WORK)
+    return Option.some(
+      `its code trial writes ${tenths(bound.work)} s of frames at the most, past the ${MAX_CODE_WORK} s a render may write`,
+    );
+  return Result.match(Schema.encodeResult(CodeSound)({ play }), {
+    onFailure: (error) => Option.some(`its code trial is no code sound: ${error.message}`),
+    onSuccess: () => Option.none(),
+  });
+};
+
 const Procedural = Schema.Struct({
   kind: Schema.Literal('procedural'),
-  recipe: Recipe,
-  /** Seeds 1…n: each a variant. */
-  variants: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
+  /** Its recipe, refused here when its code trial (`codeTrialOf`) would be no code sound the walk takes. */
+  recipe: Recipe.check(
+    Schema.makeFilter((recipe: Recipe) =>
+      Option.match(portFault(recipe), { onNone: () => true, onSome: (why) => why }),
+    ),
+  ),
+  variants: Seeds,
   ...placing,
 });
 type Procedural = typeof Procedural.Type;
+
+/**
+ * A sound made by code: a graph of nodes (core/synth/graph), rendered with
+ * each seed whenever it is needed, the same samples on every host, so
+ * nothing is stored and nothing is paid for.
+ */
+const Code = Schema.Struct({
+  kind: Schema.Literal('code'),
+  sound: CodeSound,
+  variants: Seeds,
+  ...placing,
+});
+type Code = typeof Code.Type;
 
 /**
  * A recording under a licence that may be public: `sfx import` trims and
@@ -107,8 +179,27 @@ const Recorded = Schema.Struct({
 });
 type Recorded = typeof Recorded.Type;
 
-export const LibraryEntry = Schema.Union([Generated, Procedural, Recorded]);
+export const LibraryEntry = Schema.Union([Generated, Procedural, Recorded, Code]);
 export type LibraryEntry = typeof LibraryEntry.Type;
+
+/** A sound rendered from its own data whenever it is needed: a code sound or a recipe. */
+type Derived = Code | Procedural;
+
+/** Whether `entry` is rendered from its data, so nothing of it is made, kept or paid for. */
+export const isDerived = (entry: LibraryEntry): entry is Derived =>
+  entry.kind === 'code' || entry.kind === 'procedural';
+
+/**
+ * A sound's code trial: a generated sound's `code`, or a recipe's port with
+ * the recipe's seeds (graph/presets.ts), derived so it is never written
+ * twice; none for any other kind.
+ */
+export const codeTrialOf = (entry: LibraryEntry): Option.Option<CodeTrial> => {
+  if (entry.kind === 'procedural')
+    return Option.some({ sound: { play: portOf(entry.recipe) }, variants: entry.variants });
+  if (entry.kind !== 'generated') return Option.none();
+  return Option.fromUndefinedOr(entry.code);
+};
 
 /** An app's sounds by name (`sounds/library.ts`). */
 export const Library = Schema.Record(SoundName, LibraryEntry);
@@ -240,6 +331,7 @@ const RequestKey = Schema.fromJsonString(
     }),
     Schema.Struct({ kind: Schema.Literal('procedural'), recipe: Recipe }),
     Schema.Struct({ kind: Schema.Literal('recorded'), source: Schema.String }),
+    Schema.Struct({ kind: Schema.Literal('code'), sound: CodeSound }),
   ]),
 );
 
@@ -277,12 +369,15 @@ export const requestKey = (entry: LibraryEntry): string => {
       return hashText(
         Schema.encodeSync(RequestKey)({ kind: 'recorded', source: entry.licence.source }),
       );
+    // A code sound is never made for a request: this key only tells a take its lock kept from it.
+    case 'code':
+      return hashText(Schema.encodeSync(RequestKey)({ kind: 'code', sound: entry.sound }));
   }
 };
 
 /** Where a sound stands against the lock. */
 type SoundState =
-  /** Procedural: rendered from its recipe, nothing to make. */
+  /** Code or procedural: rendered from its graph or its recipe, nothing to make. */
   | { readonly _tag: 'Derived'; readonly variants: number }
   /** No variant kept for any request: nothing plays. */
   | { readonly _tag: 'Missing'; readonly candidates: number }
@@ -299,7 +394,7 @@ export const pendingOf = (entry: LibraryEntry, lock: Option.Option<LockEntry>) =
 
 /** Where `entry` stands against its lock record. */
 export const soundState = (entry: LibraryEntry, lock: Option.Option<LockEntry>): SoundState => {
-  if (entry.kind === 'procedural') return { _tag: 'Derived', variants: entry.variants };
+  if (isDerived(entry)) return { _tag: 'Derived', variants: entry.variants };
   const candidates = pendingOf(entry, lock).length;
   const kept = Option.match(lock, {
     onNone: (): ReadonlyArray<Variant> => [],
@@ -451,28 +546,89 @@ export const gainFor = (level: number, loudness: VariantLoudness, use: SoundUse)
 // ---------------------------------------------------------------------------
 // What plays
 
-/** An app's sounds as a film's mix reads them: the declarations, what was made, and where. */
+/** A derived variant as measured: its loudness, its onset and its hit. */
+export interface Measure {
+  readonly loudness: VariantLoudness;
+  readonly onset: number;
+  readonly hit: number;
+}
+
+/** A sound's audio measured as the lock measures a made variant. */
+export const measurePcm = (pcm: Pcm): Measure => ({
+  loudness: lockLoudness(loudness(pcm)),
+  ...lockTiming(describeSound(pcm)),
+});
+
+/**
+ * A variant measured as silence: no 400 ms block of it over BS.1770's
+ * absolute gate (-70 LUFS), so it has no integrated loudness to level by.
+ */
+export const heardNothing = (measure: Measure): boolean =>
+  measure.loudness.integrated <= ABSOLUTE_GATE;
+
+/** An app's sounds as a film loads them: the declarations, what was made, and where. */
 export interface Sounds {
   readonly library: Library;
   readonly lock: Lock;
   /** The library's folder: a variant's `file` is relative to it. */
   readonly dir: string;
+  /** Each code sound, resolved: its graph and the sounds it samples (core/synth/resolve.ts). */
+  readonly code: ReadonlyMap<string, ResolvedSound>;
+  /**
+   * Each code trial, resolved, by its sound's name: heard beside what plays
+   * (Choices, `sfx compare`), never placed. A mix plays a trial's seed only
+   * where it is asked to play it in its sound's place (`film options mix`).
+   */
+  readonly trials: ReadonlyMap<string, ResolvedTrial>;
 }
 
-/** No library: a film that names no sound. */
-export const NO_SOUNDS: Sounds = { library: {}, lock: {}, dir: '' };
+/**
+ * An app's sounds as what plays them reads them (a mix, the check's lead-in,
+ * a seed's line): each derived variant of the sounds being played measured,
+ * by its source's label (`SoundRender.measured`).
+ */
+export interface MeasuredSounds extends Sounds {
+  readonly measured: ReadonlyMap<string, Measure>;
+}
 
-/** Where a sound's audio comes from: a file, or a recipe played with a seed. */
+/** No library: a film that names no sound, so there is nothing to measure. */
+export const NO_SOUNDS: MeasuredSounds = {
+  library: {},
+  lock: {},
+  dir: '',
+  code: new Map(),
+  trials: new Map(),
+  measured: new Map(),
+};
+
+/** Where a sound's audio comes from: a file, a recipe played with a seed, or a code sound rendered with one. */
 export type SoundSource =
   | { readonly _tag: 'File'; readonly file: string }
-  | { readonly _tag: 'Synth'; readonly recipe: Recipe; readonly seed: number };
+  | { readonly _tag: 'Synth'; readonly recipe: Recipe; readonly seed: number }
+  | { readonly _tag: 'Code'; readonly sound: ResolvedSound; readonly seed: number };
+
+/** A source rendered from data: the same audio for the same label, whenever it is made. */
+export type DerivedSource = Exclude<SoundSource, { readonly _tag: 'File' }>;
 
 export const fileSource = (file: string): SoundSource => ({ _tag: 'File', file });
 
-/** A source by one line of text: its file, or `synth:<request>/<seed>`. */
-export const sourceLabel = (source: SoundSource): string => {
-  if (source._tag === 'File') return source.file;
-  return `synth:${hashText(Schema.encodeSync(Schema.fromJsonString(Recipe))(source.recipe))}/${source.seed}`;
+/**
+ * A source by one line of text: its file, `synth:<request>/<seed>`, or
+ * `code:<renderer>:<graph>/<seed>`, which names the renderer's version, so an
+ * edit to the data or to the DSP gives a new label, and with it a new mix key.
+ */
+export const sourceLabel = (source: SoundSource): string =>
+  Match.valueTags(source, {
+    File: (file) => file.file,
+    Synth: (synth) =>
+      `synth:${hashText(Schema.encodeSync(Schema.fromJsonString(Recipe))(synth.recipe))}/${synth.seed}`,
+    Code: (code) => `code:${RENDER_VERSION}:${code.sound.hash}/${code.seed}`,
+  });
+
+/** A derived source's audio: the recipe or the graph rendered with its seed. */
+export const renderSource = (source: DerivedSource): Pcm => {
+  if (source._tag === 'Synth') return synthesize(source.recipe, source.seed);
+  return renderCode(source.sound, source.seed);
 };
 
 /** One variant a placement may play: its audio, how loud it measured, and where its sound begins and hits (none unrecorded). */
@@ -483,62 +639,126 @@ export interface Playable {
   readonly hit: Option.Option<number>;
 }
 
-/** A procedural variant as measured: its loudness, its onset and its hit. */
-interface SynthMeasure {
-  readonly loudness: VariantLoudness;
-  readonly onset: number;
-  readonly hit: number;
-}
+/** A derived sound's audio with `seed`; none for a code sound the walk has not resolved. */
+export const seedSource = (
+  sounds: Sounds,
+  name: string,
+  entry: Derived,
+  seed: number,
+): Option.Option<DerivedSource> => {
+  if (entry.kind === 'procedural')
+    return Option.some({ _tag: 'Synth', recipe: entry.recipe, seed });
+  return Option.map(Option.fromUndefinedOr(sounds.code.get(name)), (sound): DerivedSource => ({
+    _tag: 'Code',
+    sound,
+    seed,
+  }));
+};
 
-/** Each procedural variant measured once per process: the recipe and seed decide it. */
-const synthMeasured = new Map<string, SynthMeasure>();
+/** A derived sound's seeds 1…n as sources; none for a code sound the walk has not resolved. */
+export const seedSources = (
+  sounds: Sounds,
+  name: string,
+  entry: Derived,
+): ReadonlyArray<DerivedSource> =>
+  Array.from({ length: entry.variants }, (_, i) => i + 1).flatMap((seed) =>
+    Option.toArray(seedSource(sounds, name, entry, seed)),
+  );
 
-const measureSynth = (recipe: Recipe, seed: number): SynthMeasure => {
-  const key = sourceLabel({ _tag: 'Synth', recipe, seed });
-  return Option.getOrElse(Option.fromUndefinedOr(synthMeasured.get(key)), () => {
-    const pcm = synthesize(recipe, seed);
-    const measured = { loudness: lockLoudness(loudness(pcm)), ...lockTiming(describeSound(pcm)) };
-    synthMeasured.set(key, measured);
-    return measured;
+/** A sound's code trial's seeds 1…n as sources; none when it has no trial. */
+export const trialSources = (sounds: Sounds, name: string): ReadonlyArray<DerivedSource> =>
+  Option.match(Option.fromUndefinedOr(sounds.trials.get(name)), {
+    onNone: () => [],
+    onSome: (trial) =>
+      Arr.range(1, trial.variants).map((seed): DerivedSource => ({
+        _tag: 'Code',
+        sound: trial.sound,
+        seed,
+      })),
   });
+
+/**
+ * What of `name` is heard from its data, each by its source's label: a
+ * derived sound's seeds, then its code trial's.
+ */
+const heardSources = (sounds: Sounds, name: string): ReadonlyArray<DerivedSource> => [
+  ...Option.match(Option.filter(soundEntry(sounds.library, name), isDerived), {
+    onNone: () => [],
+    onSome: (entry) => seedSources(sounds, name, entry),
+  }),
+  ...trialSources(sounds, name),
+];
+
+/** The seed of `name` (its own, or its code trial's) whose source's label is `label`. */
+export const heardSource = (
+  sounds: Sounds,
+  name: string,
+  label: string,
+): Option.Option<DerivedSource> =>
+  Arr.findFirst(heardSources(sounds, name), (source) => sourceLabel(source) === label);
+
+/** A kept or waiting variant as it plays: its file in the library's folder, as the lock measured it. */
+export const variantPlayable = (sounds: Sounds, variant: Variant): Playable => ({
+  source: fileSource(`${sounds.dir}/${variant.file}`),
+  loudness: variant.loudness,
+  onset: Option.fromUndefinedOr(variant.onset),
+  hit: Option.fromUndefinedOr(variant.hit),
+});
+
+/** A derived source as it plays, measured as `measured` says. */
+export const derivedPlayable = (source: DerivedSource, measured: Measure): Playable => ({
+  source,
+  loudness: measured.loudness,
+  onset: Option.some(measured.onset),
+  hit: Option.some(measured.hit),
+});
+
+/** A derived source as it plays, as `sounds` measured it; none until it is measured. */
+const measuredPlayable = (sounds: MeasuredSounds, source: DerivedSource): Option.Option<Playable> =>
+  Option.map(Option.fromUndefinedOr(sounds.measured.get(sourceLabel(source))), (measured) =>
+    derivedPlayable(source, measured),
+  );
+
+/** The library's names a film's sound plays: each bed's and each effect's, once each. */
+export const placedSounds = (sound: Sound): ReadonlyArray<string> =>
+  Arr.dedupe([
+    ...(sound.beds ?? []).map((bed) => bed.sound),
+    ...Object.values(sound.effects).map((effect) => effect.sound),
+  ]);
+
+/** How many of a derived sound's seeds `sounds` holds no measure of (all, when it is not resolved); 0 for a kept sound. */
+export const unmeasuredOf = (sounds: MeasuredSounds, name: string, entry: LibraryEntry): number => {
+  if (!isDerived(entry)) return 0;
+  const sources = seedSources(sounds, name, entry);
+  if (sources.length === 0) return entry.variants;
+  return sources.filter((source) => !sounds.measured.has(sourceLabel(source))).length;
 };
 
 /**
- * The variants of `name` that play, in order: a procedural sound's seeds 1…n,
- * else the kept variants in the lock (stale ones included), none when nothing
- * is kept.
+ * The variants of `name` that play, in order: a derived sound's seeds 1…n,
+ * each as measured (one not measured does not play), else the kept variants
+ * in the lock (stale ones included), none when nothing is kept.
  */
 export const playablesOf = (
-  sounds: Sounds,
+  sounds: MeasuredSounds,
   name: string,
   entry: LibraryEntry,
 ): ReadonlyArray<Playable> => {
-  if (entry.kind === 'procedural')
-    return Array.from({ length: entry.variants }, (_, i) => {
-      const measured = measureSynth(entry.recipe, i + 1);
-      return {
-        source: { _tag: 'Synth', recipe: entry.recipe, seed: i + 1 },
-        loudness: measured.loudness,
-        onset: Option.some(measured.onset),
-        hit: Option.some(measured.hit),
-      };
-    });
+  if (isDerived(entry))
+    return seedSources(sounds, name, entry).flatMap((source) =>
+      Option.toArray(measuredPlayable(sounds, source)),
+    );
   const kept = Option.match(Option.fromUndefinedOr(sounds.lock[name]), {
     onNone: (): ReadonlyArray<Variant> => [],
     onSome: (l) => l.variants,
   });
-  return kept.map((v) => ({
-    source: fileSource(`${sounds.dir}/${v.file}`),
-    loudness: v.loudness,
-    onset: Option.fromUndefinedOr(v.onset),
-    hit: Option.fromUndefinedOr(v.hit),
-  }));
+  return kept.map((v) => variantPlayable(sounds, v));
 };
 
 // ---------------------------------------------------------------------------
 // Variants and jitter
 
-/** A generated or recorded one-shot's spread when it declares none; tonal and bed sounds have none. */
+/** A generated or recorded one-shot's spread when it declares none; derived and bed sounds have none (a derived sound's seeds are its spread). */
 export const DEFAULT_JITTER: Jitter = { pitch: 0.5, gain: 1 };
 /** The most a one-shot's start is nudged late, in seconds. */
 const JITTER_DELAY = 0.015;
@@ -547,7 +767,7 @@ const JITTER_DELAY = 0.015;
 export const jitterOf = (entry: LibraryEntry): Option.Option<Jitter> => {
   if (entry.use === 'bed') return Option.none();
   return Option.orElse(Option.fromUndefinedOr(entry.jitter), () =>
-    Option.liftPredicate(DEFAULT_JITTER, () => entry.kind !== 'procedural'),
+    Option.liftPredicate(DEFAULT_JITTER, () => !isDerived(entry)),
   );
 };
 

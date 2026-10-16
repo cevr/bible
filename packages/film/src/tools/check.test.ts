@@ -55,9 +55,16 @@ import {
   levelOf,
   report,
 } from './findings.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import type { LoadedFilm, MeasuredFilm } from './film-repo.ts';
 import type { Placed } from '../core/layout.ts';
-import { type Lock, type Sounds, type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
+import {
+  type Lock,
+  type MeasuredSounds,
+  type Variant,
+  defineLibrary,
+  requestKey,
+} from '../core/sfx.ts';
+import { measuredSounds } from '../core/testing.ts';
 import {
   holdScenes,
   holdTimings,
@@ -76,11 +83,11 @@ const MASTER = 'narration/full.wav';
 const NO_MASTER: MasterAudio = { master: Option.none(), key: Option.none(), file: MASTER };
 /** The static leg's findings, levelled and addressed as `film check` reports them. */
 /** `film` and its placed scenes, as the static check reads them. */
-const placedFilm = (film: LoadedFilm) =>
+const placedFilm = <Film extends LoadedFilm>(film: Film) =>
   [film, Result.getOrThrow(layout(film.scenes, film.timings))] as const;
 
 const checked = (
-  film: LoadedFilm,
+  film: MeasuredFilm,
   placed: ReadonlyArray<Placed>,
   options: CheckOptions,
   audio: MasterAudio,
@@ -1206,17 +1213,48 @@ describe('musicFindings', () => {
   });
 });
 
-/** A test library: made and current, stale, unmade with a candidate waiting, a bed, and a loud one. */
+/** A test library: made and current, stale, unmade with a candidate waiting, a bed, a loud one, and code. */
 const library = defineLibrary({
-  'paper.hit': { kind: 'generated', prompt: 'a hit', secs: 1, use: 'one-shot' },
-  'paper.old': { kind: 'generated', prompt: 'an old hit', secs: 1, use: 'one-shot' },
-  'paper.new': { kind: 'generated', prompt: 'a new hit', secs: 1, use: 'one-shot' },
-  'paper.loud': { kind: 'generated', prompt: 'a loud hit', secs: 1, use: 'one-shot', level: 0 },
+  'paper.hit': {
+    kind: 'generated',
+    prompt: 'a hit',
+    why: 'a test sound',
+    secs: 1,
+    use: 'one-shot',
+  },
+  'paper.old': {
+    kind: 'generated',
+    prompt: 'an old hit',
+    why: 'a test sound',
+    secs: 1,
+    use: 'one-shot',
+  },
+  'paper.new': {
+    kind: 'generated',
+    prompt: 'a new hit',
+    why: 'a test sound',
+    secs: 1,
+    use: 'one-shot',
+  },
+  'paper.loud': {
+    kind: 'generated',
+    prompt: 'a loud hit',
+    why: 'a test sound',
+    secs: 1,
+    use: 'one-shot',
+    level: 0,
+  },
   'room.paper': {
     kind: 'procedural',
     recipe: { recipe: 'room', secs: 4 },
     variants: 1,
     use: 'bed',
+  },
+  'tone.tick': {
+    kind: 'code',
+    sound: { play: { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } },
+    variants: 2,
+    use: 'one-shot',
   },
 });
 const variant = (request: string): Variant => ({
@@ -1242,7 +1280,7 @@ const lock: Lock = {
   },
   'paper.loud': kept(requestKey(library['paper.loud'])),
 };
-const sounds: Sounds = { library, lock, dir: '/lib' };
+const sounds = measuredSounds(library, lock, '/lib');
 
 describe('soundFindings', () => {
   test('every cue naming an unknown scene, cue or mark; every sound unknown, misused, unmade or stale, once', () => {
@@ -1272,6 +1310,8 @@ describe('soundFindings', () => {
         fresh: { sound: 'paper.new', at: [{ scene: 'close', at: 'start' }] },
         gone: { sound: 'paper.gone', at: [{ scene: 'close', at: 'start' }] },
         room: { sound: 'room.paper', at: [{ scene: 'close', at: 'start' }] },
+        // A code sound is rendered from its graph: never unmade, never stale.
+        tick: { sound: 'tone.tick', at: [{ scene: 'close', at: 'start' }] },
       },
     };
     const found = soundFindings(sound, placedSound, sounds);
@@ -1293,7 +1333,7 @@ describe('soundFindings', () => {
   test("a placement that lands a late-starting take's first sample on its cue is heard late; one synced to its onset or hit is not", () => {
     const slow = { ...variant(requestKey(library['paper.hit'])), onset: 0.12, hit: 0.7 };
     const tight = { ...variant(requestKey(library['paper.hit'])), onset: 0.01, hit: 0.05 };
-    const timed: Sounds = {
+    const timed: MeasuredSounds = {
       ...sounds,
       lock: { ...lock, 'paper.hit': { variants: [tight, slow], candidates: [], rejected: [] } },
     };

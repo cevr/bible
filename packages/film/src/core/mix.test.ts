@@ -27,9 +27,9 @@ import { type Music, type Score, Sound, type SoundManifest, type Timed } from '.
 import { musicKey, musicPlan } from './sound.ts';
 import {
   type Lock,
+  type MeasuredSounds,
   NO_SOUNDS,
   type SoundSource,
-  type Sounds,
   VOICE_LEVEL,
   type Variant,
   defineLibrary,
@@ -37,6 +37,8 @@ import {
   requestKey,
   sourceLabel,
 } from './sfx.ts';
+import { RENDER_VERSION } from './synth/graph/render.ts';
+import { measuredSounds } from './testing.ts';
 
 const RATE = MIX_RATE;
 
@@ -272,6 +274,7 @@ describe('mixPlan', () => {
     narration: 'n',
     soundDir: 's',
     play: Option.none<string>(),
+    inPlace: Option.none(),
     pieces: new Map(),
   };
   const keyOf = (music: Music) => musicKey(music, Result.getOrThrow(musicPlan(music, placed)));
@@ -355,9 +358,29 @@ describe('mixPlan', () => {
     ];
     const film = Result.getOrThrow(layout(scenes, { voice: '', scenes: {} }));
     const library = defineLibrary({
-      'paper.tap': { kind: 'generated', prompt: 'a tap', secs: 1, use: 'one-shot' },
-      'wood.knock': { kind: 'generated', prompt: 'a knock', secs: 1, use: 'one-shot', level: -4 },
-      'amb.court': { kind: 'generated', prompt: 'a court', secs: 20, loop: true, use: 'bed' },
+      'paper.tap': {
+        kind: 'generated',
+        prompt: 'a tap',
+        why: 'a test sound',
+        secs: 1,
+        use: 'one-shot',
+      },
+      'wood.knock': {
+        kind: 'generated',
+        prompt: 'a knock',
+        why: 'a test sound',
+        secs: 1,
+        use: 'one-shot',
+        level: -4,
+      },
+      'amb.court': {
+        kind: 'generated',
+        prompt: 'a court',
+        why: 'a test sound',
+        secs: 20,
+        loop: true,
+        use: 'bed',
+      },
       'tone.chime': {
         kind: 'procedural',
         recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 1 },
@@ -371,6 +394,12 @@ describe('mixPlan', () => {
         use: 'bed',
         level: -36,
         duck: false,
+      },
+      'tone.tick': {
+        kind: 'code',
+        sound: { play: { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } },
+        variants: 2,
+        use: 'one-shot',
       },
     });
     const variant = (
@@ -397,7 +426,7 @@ describe('mixPlan', () => {
       },
       'amb.court': { variants: [variant('amb.court', 1, -30)], candidates: [], rejected: [] },
     };
-    const sounds: Sounds = { library, lock, dir: '/lib' };
+    const sounds = measuredSounds(library, lock, '/lib');
     const sound: Sound = {
       beds: [
         {
@@ -464,6 +493,45 @@ describe('mixPlan', () => {
         [0, 2],
       ]);
       expect(new Set(chimes.map((c) => sourceLabel(c.sound))).size).toBe(2);
+    });
+
+    /** The plan of `sounds` with `tone.tick` placed at the start of each scene. */
+    const ticked = (given: MeasuredSounds) =>
+      Result.getOrThrow(
+        mixPlan({
+          ...input,
+          placed: film,
+          sound: Option.some<Sound>({
+            effects: {
+              tick: {
+                sound: 'tone.tick',
+                at: [
+                  { scene: 'a', at: 'start' },
+                  { scene: 'b', at: 'start' },
+                ],
+              },
+            },
+          }),
+          sounds: given,
+        }),
+      );
+
+    test('a code one-shot plays its seeds, unjittered, each labelled by the renderer and its graph', () => {
+      const ticks = ticked(sounds).effects;
+      expect(ticks.map((t) => [t.pitch, t.at])).toEqual([
+        [0, 0],
+        [0, 8],
+      ]);
+      const labels = ticks.map((t) => sourceLabel(t.sound));
+      expect(new Set(labels).size).toBe(2);
+      for (const label of labels)
+        expect(label).toMatch(new RegExp(`^code:${RENDER_VERSION}:[0-9a-f]{8}/[12]$`));
+    });
+
+    test('a derived sound with a seed unmeasured plays nothing, and says so', () => {
+      const planned = ticked({ ...sounds, measured: new Map() });
+      expect(planned.effects).toEqual([]);
+      expect(planned.warnings).toEqual(['mix.unmeasured sound=tone.tick seeds=2']);
     });
 
     test('beds span their cues, levelled by integrated loudness; room tone does not duck', () => {
@@ -674,6 +742,7 @@ describe('mixKey', () => {
         narration: '/box/narration',
         soundDir: '/box/sound',
         play: Option.none(),
+        inPlace: Option.none(),
         pieces: new Map(),
       }),
     );
@@ -706,6 +775,7 @@ describe("a talk's voice, played in pieces", () => {
         narration: 'n',
         soundDir: 's',
         play: Option.none(),
+        inPlace: Option.none(),
         pieces: new Map([['claim', { file, content, pieces }]]),
       }),
     );

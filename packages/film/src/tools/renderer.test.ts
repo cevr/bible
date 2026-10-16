@@ -7,11 +7,12 @@ import { MAIN_VARIANT, RenderVariantName } from '../core/catalogue.ts';
 import type { ExportInfo } from '../core/export-handle.ts';
 import { MediaFailed } from '../core/refusals.ts';
 import { PageCrashed, PageError } from './errors.ts';
-import { type LoadedFilm, masterFile, placeFilm } from './film-repo.ts';
+import { type LoadedFilm, type MeasuredFilm, masterFile, placeFilm } from './film-repo.ts';
 import { MasterStampJson, planOf, stampFile } from './mixer.ts';
 import { mixKey } from '../core/mix.ts';
 import { Cut, HARDWARE_WORKERS, RenderJob, SOFTWARE_WORKERS } from './render-plan.ts';
 import { Cores, Platform, type Remuxed, Renderer, remuxer } from './renderer.ts';
+import { SoundRender } from './sound-render.ts';
 import {
   type FakeRenderHost,
   type RenderLedger,
@@ -27,10 +28,10 @@ import {
 const film = testFilm([{ id: 'a', min: 20 }], { voice: '', scenes: {} });
 
 /** The film's own plan: no score option or take in place of its own. */
-const NOW = { score: Option.none<string>(), take: Option.none() };
+const NOW = { score: Option.none<string>(), inPlace: Option.none() };
 
 /** The film's track as `mix` leaves it: the WAV, and its stamp for the plan the film plays now. */
-const mixed = (files: Map<string, Uint8Array>, rendered: LoadedFilm = film) =>
+const mixed = (files: Map<string, Uint8Array>, rendered: MeasuredFilm = film) =>
   Effect.gen(function* () {
     files.set(masterFile(rendered.paths), text('pcm'));
     // A test film plays no file that could be missing: its plan is the one `mix` played.
@@ -67,7 +68,12 @@ const setup = (
 ) => {
   const ledger = emptyLedger();
   const layer = Renderer.layer.pipe(
-    Layer.provide([fakeRenderHost(ledger, host), memoryFileSystem(files, folders), Path.layer]),
+    Layer.provide([
+      fakeRenderHost(ledger, host),
+      memoryFileSystem(files, folders),
+      Path.layer,
+      SoundRender.layer,
+    ]),
   );
   /**
    * `job` rendered on `platform` with `cores`: a 16-core Mac unless a test
@@ -90,7 +96,12 @@ const setup = (
       const remux = yield* remuxer(rendered);
       return yield* Effect.forEach(videos, remux);
     }).pipe(
-      Effect.provide([fakeRenderMedia(ledger, host), memoryFileSystem(files, folders), Path.layer]),
+      Effect.provide([
+        fakeRenderMedia(ledger, host),
+        memoryFileSystem(files, folders),
+        Path.layer,
+        SoundRender.layer,
+      ]),
     );
   /** `video`'s sound cut again, alone in its run. */
   const remux = (video: Remuxed) => Effect.map(remuxAll([video]), ([sound]) => sound);

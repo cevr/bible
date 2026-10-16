@@ -46,6 +46,7 @@ const variant = (id: string, approved = false): ChoiceVariant => ({
   staleBy: Option.none(),
   picked: false,
   verbs: [],
+  fixed: Option.none(),
   media: { _tag: 'Unseen' },
   key: id,
   approval: Match.value(approved).pipe(

@@ -928,6 +928,14 @@ export interface EGWParagraphDatabaseService {
     bookId: number,
     revision: string,
   ) => Effect.Effect<readonly ParagraphChangeRow[], ParagraphDatabaseError>;
+  /** Deletes at most `limit` change rows recorded before `recordedBefore`
+   *  (an ISO time), and says how many went. A caller deletes in rounds until
+   *  a round takes fewer than `limit`, so no one statement grows with the
+   *  table. */
+  readonly pruneParagraphChanges: (
+    recordedBefore: string,
+    limit: number,
+  ) => Effect.Effect<number, ParagraphDatabaseError>;
 
   // Maintenance
   readonly rebuildFtsIndex: Effect.Effect<void, ParagraphDatabaseError>;
@@ -1028,8 +1036,9 @@ const ensureIncomingTables = (sql: SqlClient.SqlClient): Effect.Effect<void, Sql
         PRIMARY KEY (para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse)
       )
     `);
-    // The changes each reinstall made, kept: the weekly sync reports them,
-    // and a later look at a passage can ask when its text last moved.
+    // The changes each reinstall made. The sync that wrote them reads them
+    // for its report and its vectors; the report it publishes is the lasting
+    // record, so old rows are pruned (`pruneParagraphChanges`).
     yield* sql.unsafe(`
       CREATE TABLE IF NOT EXISTS paragraph_changes (
         book_id INTEGER NOT NULL,
@@ -1666,6 +1675,22 @@ export class EGWParagraphDatabase extends Context.Service<
                 ),
               ),
             ),
+          );
+
+        const pruneParagraphChanges = (recordedBefore: string, limit: number) =>
+          incomingTables.pipe(
+            Effect.andThen(
+              sql`
+                DELETE FROM paragraph_changes
+                WHERE rowid IN (
+                  SELECT rowid FROM paragraph_changes
+                  WHERE recorded_at < ${recordedBefore}
+                  LIMIT ${limit}
+                )
+                RETURNING book_id
+              `,
+            ),
+            Effect.map((rows) => rows.length),
           );
 
         const stageParagraphs = (publicationId: number, rows: readonly ParagraphRow[]) => sql`
@@ -2822,6 +2847,7 @@ export class EGWParagraphDatabase extends Context.Service<
           getAllSyncStatus,
           needsSync,
           paragraphChanges,
+          pruneParagraphChanges,
           rebuildFtsIndex,
           backfillBibleRefs,
         });
@@ -3238,6 +3264,7 @@ export class EGWParagraphDatabase extends Context.Service<
               (row) => row.book_id === bookId && row.to_revision === revision,
             ) ?? [],
           ),
+        pruneParagraphChanges: () => Effect.succeed(0),
         rebuildFtsIndex: Effect.void,
         backfillBibleRefs: () => Effect.succeed({ scanned: 0, inserted: 0 }),
       }),

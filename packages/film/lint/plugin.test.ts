@@ -126,6 +126,12 @@ const MESSAGES = {
     "an offset over 1 s from its mark or scene landmark: a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.",
   'no-hand-timed-seconds.ts:34 film/no-hand-timed-seconds':
     "an untilOffset over 1 s from its until point: a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.",
+  'synth-own-math.ts:5 film/synth-own-math':
+    "code from outside the sound graph, which may compute with the host's Math: import values from packages/film/src/core/synth/graph/ or core/random.ts, and from effect only Predicate, Schema and Match by name; a type import passes.",
+  'synth-own-math.ts:29 film/synth-own-math':
+    "a host's Math in the sound graph: its sin, exp, log, pow and tanh round apart between hosts. Use the graph's own (packages/film/src/core/synth/graph/math.ts: sinTurn, cosTurn, exp, exp2, log, tanh, dbToGain); of Math, read only abs, ceil, floor, round, trunc, sign, min, max, sqrt, fround, imul, clz32 and the constants, by name.",
+  'synth-own-math.ts:37 film/synth-own-math':
+    "`**` is the host's pow, which rounds apart between hosts: write the product out, or use exp2, or exp and log, from packages/film/src/core/synth/graph/math.ts.",
 } as const satisfies Readonly<Record<string, string>>;
 
 /** oxlint over the fixtures with the fixtures' config: what it reported, and its exit code. */

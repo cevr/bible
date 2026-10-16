@@ -20,6 +20,7 @@ import { filmServices } from '../../src/tools/film-services.ts';
 import { FootageLibrary } from '../../src/tools/footage.ts';
 import { syncClip } from '../../src/tools/fixtures/sync-clip.ts';
 import { Mixer, planOf } from '../../src/tools/mixer.ts';
+import { measuredFilm } from '../../src/tools/sound-render.ts';
 import { emptyCalls, fakeElevenLabs, privateFolder } from '../../src/tools/testing.ts';
 
 /** What the speaker says, one word every half second from zero, as the fake hears it. */
@@ -148,7 +149,10 @@ describe('a talk through the tools, on real media', () => {
         // The voice is the take's own file, in the pieces the cut keeps, each where its section plays it.
         const placed = yield* placeFilm(loaded);
         const mixing = Result.getOrThrow(
-          planOf(loaded, placed, { score: Option.none(), take: Option.none() }),
+          planOf(yield* measuredFilm(loaded), placed, {
+            score: Option.none(),
+            inPlace: Option.none(),
+          }),
         );
         const source = Option.getOrThrow(Option.fromUndefinedOr(takes['a'])).source;
         const voice = path.join(copies, sourceFile(source, 'voice.flac'));

@@ -2,6 +2,8 @@
 
 What the p4-sfx2 trials heard (412 candidates in all, each logged with its settings, measurements and verdict). The trials changed one setting at a time: prompt influence 0.3/0.5/0.7/0.9, a tight or padded length, and the prompt's style (a bare noun phrase, "close, dry, single" tags, or a described action). The framework's defaults come from it: one-shots at influence 0.7 × 6 candidates, beds at 0.3 × 3 (`DEFAULT_INFLUENCE`, `DEFAULT_CANDIDATES` in `@bible/film/core`). A sound names its own influence only where a trial heard better.
 
+Prompt only what code cannot make. Code makes every simpler sound (a knock, a thud, a whoosh, a hiss, a chime, wind, rain) and ElevenLabs the realism (the owner's rule): run `sfx audit` first, and write a simple sound as code by the film skill's [sound reference](../../../.claude/skills/film/reference/sound.md).
+
 Before you declare new settings, run `sfx try <name> --influence … --secs … --prompt …`. It makes candidates without editing `library.ts`. They wait under their own request, and `keep` takes them once the declaration says the same.
 
 ## One-shot foley (cloth, paper, reeds, thread)

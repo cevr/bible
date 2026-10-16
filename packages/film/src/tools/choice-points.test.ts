@@ -4,17 +4,19 @@
 // (FL8: `now` is the level drawn today); a beat's attempts newest first, the
 // one its timings name picked, one for an earlier line stale and offered no
 // pick; each sound layer's level a knob (its own number, the constant several
-// layers share as one knob, a computed level fixed); and the owner's approvals
-// and comments read onto the variant they were given on.
+// layers share as one knob, a computed level fixed); a sound made from data,
+// its seeds picked and fixed, with a code trial's seeds beside what plays; and
+// the owner's approvals and comments read onto the variant they were given on.
 
 import { describe, expect, test } from 'bun:test';
-import { Option, Result } from 'effect';
+import { Array as Arr, Option, Result } from 'effect';
 import { type Catalogue, approve, comment, emptyCatalogue } from '../core/catalogue.ts';
-import { type ChoicePoint, subjectAt } from '../core/choice.ts';
+import { type ChoicePoint, type VariantDraft, subjectAt } from '../core/choice.ts';
 import { layout } from '../core/layout.ts';
 import { pointIdOf } from '../core/point.ts';
 import type { Sound } from '../core/schema.ts';
 import { type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
+import { measuredSounds } from '../core/testing.ts';
 import {
   type BeatAttempts,
   filmPoints,
@@ -24,7 +26,7 @@ import {
   takePoints,
   voicePoints,
 } from './choice-points.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import type { MeasuredFilm } from './film-repo.ts';
 import { holdScenes, holdTimings, spokenTake, testFilm } from './testing.ts';
 
 const music = (style: string) => ({
@@ -64,7 +66,7 @@ export const sound = {
 };
 `;
 
-const film = (over: Partial<LoadedFilm> = {}): LoadedFilm => ({
+const film = (over: Partial<MeasuredFilm> = {}): MeasuredFilm => ({
   ...testFilm(holdScenes, {
     ...holdTimings,
     scenes: { ...holdTimings.scenes, held: { ...spokenTake('x'), file: 'held-2.flac' } },
@@ -203,7 +205,13 @@ describe("the owner's say", () => {
 
 describe('a take point when the mix plan does not build', () => {
   const chime = defineLibrary({
-    'tone.chime': { kind: 'generated', prompt: 'a chime', secs: 1, use: 'one-shot' },
+    'tone.chime': {
+      kind: 'generated',
+      prompt: 'a chime',
+      why: 'a test sound',
+      secs: 1,
+      use: 'one-shot',
+    },
   });
   const kept: Variant = {
     request: requestKey(chime['tone.chime']),
@@ -220,11 +228,11 @@ describe('a take point when the mix plan does not build', () => {
   const withEffect = (at: Sound['effects'][string]['at']) =>
     film({
       sound: Option.some({ ...SOUND, beds: [], effects: { page: { sound: 'tone.chime', at } } }),
-      sounds: {
-        library: chime,
-        lock: { 'tone.chime': { variants: [kept], candidates: [], rejected: [] } },
-        dir: '',
-      },
+      sounds: measuredSounds(
+        chime,
+        { 'tone.chime': { variants: [kept], candidates: [], rejected: [] } },
+        '',
+      ),
     });
 
   test('shows why its placements are missing, not an empty take list', () => {
@@ -240,5 +248,127 @@ describe('a take point when the mix plan does not build', () => {
       SOUND_TS,
     ).find((p) => pointIdOf(p.ref) === 'level:effect:page');
     expect(effect?.lines.some((line) => line.includes('nosuch'))).toBe(true);
+  });
+});
+
+describe('a take point of a sound made from data', () => {
+  const TICK = { play: { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } } as const;
+  const library = defineLibrary({
+    'tone.tick': { kind: 'code', sound: TICK, variants: 2, use: 'one-shot' },
+    'tone.chime': {
+      kind: 'generated',
+      prompt: 'a chime',
+      why: 'a test sound',
+      secs: 1,
+      use: 'one-shot',
+      code: { sound: TICK, variants: 2 },
+    },
+    'tone.bell': {
+      kind: 'procedural',
+      recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 0.3 },
+      variants: 2,
+      use: 'one-shot',
+    },
+  });
+  const take = (request: string, sha256: string): Variant => ({
+    request,
+    file: `files/${sha256}.flac`,
+    sha256,
+    made: '2026-09-30T00:00:00Z',
+    model: 'eleven_text_to_sound_v2',
+    format: 'pcm_44100',
+    secs: 1,
+    loudness: { integrated: -24, momentaryMax: -20, peak: -3 },
+    licence: 'elevenlabs-paid-sfx',
+    credits: 40,
+  });
+  const at = [{ scene: 'brief', at: 'start' }] as const;
+  const loaded = film({
+    sound: Option.some({
+      ...SOUND,
+      beds: [],
+      effects: {
+        tick: { sound: 'tone.tick', at },
+        chime: { sound: 'tone.chime', at },
+        bell: { sound: 'tone.bell', at },
+      },
+    }),
+    sounds: measuredSounds(
+      library,
+      {
+        // A take of tick from when it was generated, for a request it no longer makes.
+        'tone.tick': { variants: [take('generated', 'before')], candidates: [], rejected: [] },
+        'tone.chime': {
+          variants: [take(requestKey(library['tone.chime']), 'kept')],
+          candidates: [],
+          rejected: [],
+        },
+      },
+      '',
+    ),
+  });
+  const pointOf = (name: string) =>
+    Option.getOrThrow(
+      Option.fromUndefinedOr(takePoints(loaded, placed).find((p) => p.title === name)),
+    );
+  const heard = { _tag: 'Heard', alone: true, inPlace: true } as const;
+  /** Why no verb reaches a variant, or `-` when one can. */
+  const fixedOf = (v: VariantDraft) => Option.getOrElse(v.fixed ?? Option.none(), () => '-');
+
+  test("a code sound's seeds, all picked and fixed, and the take its lock holds from before", () => {
+    const tick = pointOf('tone.tick');
+    expect(tick.lines).toEqual(['2 seeds · code']);
+    expect(tick.marks).toHaveLength(1);
+    expect(tick.variants.map((v) => [v.label, v.picked, v.verbs, v.state])).toEqual([
+      ['seed 1', true, [], 'current'],
+      ['seed 2', true, [], 'current'],
+      ['was 1', false, [], 'stale'],
+    ]);
+    // A seed is named by its source's label, which names its data and the renderer.
+    const [one, two, before] = tick.variants;
+    expect(one?.id).toMatch(/^code:[0-9a-f]+:[0-9a-f]+\/1$/);
+    expect(two?.id).toMatch(/\/2$/);
+    expect(tick.variants.map((v) => v.key)).toEqual(tick.variants.map((v) => v.id));
+    expect(before?.id).toBe('before');
+    // Measured as the mix plays it.
+    expect(one?.lines).toEqual([expect.stringMatching(/^-?\d+\.\d LUFS · hit \d\.\d\d s$/)]);
+    expect(tick.variants.map(fixedOf)).toEqual([
+      'a code sound is tuned by editing its data',
+      'a code sound is tuned by editing its data',
+      'a code sound is tuned by editing its data: its seeds play, not its takes',
+    ]);
+    expect(tick.variants.map((v) => v.media)).toEqual([heard, heard, heard]);
+  });
+
+  test("a generated sound's code trial beside its takes, never picked", () => {
+    const chime = pointOf('tone.chime');
+    expect(chime.lines).toEqual(['1 kept · 0 waiting', 'code trial: 2 seeds']);
+    expect(chime.variants.map((v) => [v.label, v.picked, v.verbs])).toEqual([
+      ['kept 1', true, ['unpick']],
+      ['code trial 1', false, []],
+      ['code trial 2', false, []],
+    ]);
+    expect(chime.variants.map(fixedOf)).toEqual([
+      '-',
+      'a code trial is tuned by editing its data, and chosen in an ask',
+      'a code trial is tuned by editing its data, and chosen in an ask',
+    ]);
+    // The trial plays the graph its entry declares, as the code sound does.
+    const tick = pointOf('tone.tick');
+    expect(chime.variants[1]?.id).toBe(tick.variants[0]?.id);
+  });
+
+  test("a recipe's seeds, and its port as its code trial", () => {
+    const bell = pointOf('tone.bell');
+    expect(bell.lines).toEqual(['2 seeds · recipe', 'code trial: 2 seeds']);
+    expect(bell.variants.map((v) => [v.label, v.picked, v.id.split(':')[0]])).toEqual([
+      ['seed 1', true, 'synth'],
+      ['seed 2', true, 'synth'],
+      ['code trial 1', false, 'code'],
+      ['code trial 2', false, 'code'],
+    ]);
+    expect(fixedOf(Option.getOrThrow(Arr.head(bell.variants)))).toBe(
+      'a recipe is tuned by editing its data',
+    );
   });
 });

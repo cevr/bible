@@ -17,6 +17,7 @@ import { FilmRepo, placeFilm } from './film-repo.ts';
 import { planKey } from './mixer.ts';
 import { project } from './project-cli.ts';
 import { Renderer } from './renderer.ts';
+import { SoundRender } from './sound-render.ts';
 import { Stamps, sceneStamps } from './stamp.ts';
 import { memoryFileSystem, memoryLocks, reviewMedia, testFilm } from './testing.ts';
 
@@ -87,6 +88,7 @@ const servicesWith = (catalogue: Layer.Layer<RenderCatalogue, never, ContentStor
       FilmRepo.of({
         load: () => Effect.succeed(FILM),
         script: () => Effect.die('approve reads no script'),
+        sound: () => Effect.die('approve reads no sound'),
         scores: Effect.die('approve reads no scores'),
       }),
     ),
@@ -95,6 +97,7 @@ const servicesWith = (catalogue: Layer.Layer<RenderCatalogue, never, ContentStor
       Stamps.of({ scenes: () => Effect.succeed({ commit: Option.none(), keys: KEYS }) }),
     ),
     catalogue,
+    SoundRender.layer,
   ).pipe(
     Layer.provideMerge(ContentStore.layer),
     Layer.provideMerge(Layer.mergeAll(memoryFileSystem(new Map()), Path.layer, memoryLocks)),

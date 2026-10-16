@@ -30,10 +30,10 @@ import { TAKE_LEVEL, takeLift } from './recording.ts';
 import type { Sound, SoundEffect, SoundManifest } from './schema.ts';
 import type { Piece } from './talk.ts';
 import {
+  type MeasuredSounds,
   type Placing,
   type Playable,
   type SoundSource,
-  type Sounds,
   fileSource,
   gainFor,
   jitterOf,
@@ -44,6 +44,7 @@ import {
   soundEntry,
   sourceLabel,
   soundState,
+  unmeasuredOf,
 } from './sfx.ts';
 import { SCORE, aloneSpans, aloneWeights, applyScore, scoreGains, speechSpans } from './score.ts';
 import { loudness } from './synth/loudness.ts';
@@ -75,6 +76,13 @@ const BED_FADE = 1;
 
 /** A bed crosses into itself over this many seconds where it wraps (at most a quarter of its length). */
 const BED_CROSSFADE = 0.5;
+
+/**
+ * Where a bed `secs` long begins to cross into its own head as the mix loops
+ * it, in seconds into it: `BED_CROSSFADE` before its end, or a quarter of it
+ * when it is shorter than two seconds (as `loopFill` takes it).
+ */
+export const bedWrapAt = (secs: number): number => secs - Math.min(BED_CROSSFADE, secs / 4);
 
 /** One sound on a bus: where it starts (seconds into the film), how loud, and its pitch nudge. */
 export interface Placement<A> {
@@ -177,16 +185,28 @@ interface MixInput {
   readonly placed: ReadonlyArray<Placed>;
   readonly sound: Option.Option<Sound>;
   readonly manifest: SoundManifest;
-  /** The app's sound library and what was made for it. */
-  readonly sounds: Sounds;
+  /** The app's sound library, what was made for it, and the derived sounds placed measured. */
+  readonly sounds: MeasuredSounds;
   /** Directory of the voice takes. */
   readonly narration: string;
   /** Directory of the generated score. */
   readonly soundDir: string;
   /** The score option to play in place of the one the score names (`mix --score`). */
   readonly play: Option.Option<string>;
+  /** One sound's variant to play at its every placement, in place of its own (`film options mix`). */
+  readonly inPlace: Option.Option<InPlace>;
   /** A talk's sections' voices, by scene, played in pieces in place of a take (none for a drawn film). */
   readonly pieces: ReadonlyMap<string, VoicePieces>;
+}
+
+/**
+ * A variant heard in its sound's place: a take kept or waiting, or a seed
+ * (the sound's own, or its code trial's), levelled and nudged as the sound's
+ * placements play it.
+ */
+export interface InPlace {
+  readonly sound: string;
+  readonly playable: Playable;
 }
 
 export type MixPlanError =
@@ -200,19 +220,32 @@ export type MixPlanError =
   | UnknownSound
   | SoundUseMismatch;
 
-/** A sound's variants that play, or a warning when none does (and one when they are stale). */
+/**
+ * A sound's variants that play: the one heard in its place, else its own, or
+ * a warning when none does (and one when they are stale or unmeasured).
+ */
 const variantsFor = (
-  sounds: Sounds,
+  input: MixInput,
   name: string,
   entry: Parameters<typeof playablesOf>[2],
   warnings: Array<string>,
 ): ReadonlyArray<Playable> => {
+  const heard = Option.filter(input.inPlace, (inPlace) => inPlace.sound === name);
+  if (Option.isSome(heard)) return [heard.value.playable];
+  const { sounds } = input;
   const state = soundState(entry, Option.fromUndefinedOr(sounds.lock[name]));
   if (state._tag === 'Missing') {
     warnings.push(`mix.missing sound=${name} hint="run sfx make ${name}, then sfx keep"`);
     return [];
   }
   if (state._tag === 'Stale') warnings.push(`mix.stale sound=${name} hint="run sfx make ${name}"`);
+  // A derived sound plays only as measured, each seed or none, so a seed left
+  // unmeasured never moves which variant a placement plays.
+  const unmeasured = unmeasuredOf(sounds, name, entry);
+  if (unmeasured > 0) {
+    warnings.push(`mix.unmeasured sound=${name} seeds=${unmeasured}`);
+    return [];
+  }
   return playablesOf(sounds, name, entry);
 };
 
@@ -238,7 +271,7 @@ const effectPlacements = (input: MixInput, sound: Sound, warnings: Array<string>
     const pending: Array<Pending> = [];
     for (const [id, fx] of Object.entries(sound.effects)) {
       const entry = yield* resolveUse(input.sounds.library, fx.sound, 'one-shot');
-      const playables = variantsFor(input.sounds, fx.sound, entry, warnings);
+      const playables = variantsFor(input, fx.sound, entry, warnings);
       if (playables.length === 0) continue;
       const level = levelOf(entry, Option.fromUndefinedOr(fx.level));
       const sync = fx.sync ?? 'start';
@@ -285,7 +318,7 @@ const bedSpans = (input: MixInput, sound: Sound, warnings: Array<string>) =>
     const seen = new Map<string, number>();
     for (const bed of sound.beds ?? []) {
       const entry = yield* resolveUse(input.sounds.library, bed.sound, 'bed');
-      const playables = variantsFor(input.sounds, bed.sound, entry, warnings);
+      const playables = variantsFor(input, bed.sound, entry, warnings);
       if (playables.length === 0) continue;
       const from = yield* cueTime(bed.from, input.placed);
       const to = yield* cueTime(bed.to, input.placed);
@@ -400,7 +433,8 @@ export const mixPlan = (input: MixInput): Result.Result<MixPlan<SoundSource>, Mi
  * A sound as the key reads it: a file by its name, which carries its content
  * hash (a take's `<scene>.<hash>`, a score's `<option>-<hash>`, a library
  * variant's sha256), so the key reads the same in every checkout; a recipe by
- * its request and seed.
+ * its request and seed; a code sound by its renderer's version, its graph's
+ * hash and its seed.
  */
 const soundKey = (source: SoundSource): string => {
   if (source._tag === 'File') return source.file.slice(source.file.lastIndexOf('/') + 1);

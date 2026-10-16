@@ -2,12 +2,11 @@
 // swept), envelopes, a slow seeded wobble, and the finishing a loop needs.
 // Every source of randomness is a seeded generator (`rng`, random.ts): the
 // same seed always makes the same samples. One channel of Float32 samples at
-// `SYNTH_RATE`, the mix's rate. Pure sample loops, like dsp.ts.
+// `SYNTH_RATE`, the mix's rate (the sound graph's own, graph/units.ts). Pure
+// sample loops, like dsp.ts.
 
 import { rng } from '../random.ts';
-
-/** Every procedural sound is made at the mix's rate, so it never resamples. */
-export const SYNTH_RATE = 44100;
+import { SYNTH_RATE } from './graph/units.ts';
 
 /** `secs` as a sample count at `SYNTH_RATE`. */
 export const samples = (secs: number): number => Math.max(0, Math.round(secs * SYNTH_RATE));

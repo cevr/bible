@@ -1,7 +1,8 @@
 // The legs of `film check`, each an Effect over the services it needs, so
 // what a leg may cost is in its type. The static leg reads the film's files
-// and the master's length and stamp (FileSystem, Media): the lab runs it after
-// every write. The sound leg renders the mix the film makes now (Mixer). The
+// and the master's length and stamp (FileSystem, Media), and measures the
+// derived sounds the film places (SoundRender): the lab runs it after every
+// write. The sound leg renders the mix the film makes now (Mixer). The
 // layout leg draws frames (Checker, Looker). The draw leg draws every scene
 // in this process, into the stand-in context, at its moments (no browser).
 // The short leg checks one short (Checker). A talk is a vertical film of its
@@ -46,6 +47,7 @@ import { lookFindings } from './look.ts';
 import { Looker } from './looker.ts';
 import { Media } from './media.ts';
 import { Mixer, planKey, readMaster } from './mixer.ts';
+import { measuredFilm } from './sound-render.ts';
 import type { FlagRule } from './render-plan.ts';
 
 /** `film check` flags that would each run a different set of legs. */
@@ -141,7 +143,9 @@ const talkWords = (film: LoadedFilm, placed: ReadonlyArray<Placed>): ReadonlyArr
  * the ending, and the master on disk (its length and the plan it was mixed
  * for, against the plan the film mixes to now), named by its place in the
  * film's folder with `/` whatever the platform's separator; and a talk's
- * words held to its format (`talkWords`).
+ * words held to its format (`talkWords`). The derived sounds the film places
+ * are measured once, for each effect's lead-in; the plan's key measures them
+ * through the same renderer, whose cache answers it.
  */
 export const staticLeg = Effect.fn('check.static')(function* (
   film: LoadedFilm,
@@ -150,10 +154,11 @@ export const staticLeg = Effect.fn('check.static')(function* (
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const master = yield* readMaster(fs, yield* Media, film.paths);
-  const key = yield* planKey(film, placed);
+  const measured = yield* measuredFilm(film);
+  const key = yield* planKey(measured, placed);
   const file = path.relative(film.paths.dir, masterFile(film.paths)).split(path.sep).join('/');
   const found: ReadonlyArray<StaticFinding | ShortFinding> = [
-    ...staticFindings(film, placed, { master, key, file }),
+    ...staticFindings(measured, placed, { master, key, file }),
     ...talkWords(film, placed),
   ];
   return found;

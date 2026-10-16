@@ -50,11 +50,16 @@ import type { FaceMark, InkMark, Probed, TextBox } from '../core/export-handle.t
 import {
   LEAD_IN,
   type LibraryEntry,
+  type MeasuredSounds,
   type SoundUse,
   type Sounds,
+  heardNothing,
+  isDerived,
   playablesOf,
   resolveUse,
+  seedSources,
   soundState,
+  sourceLabel,
 } from '../core/sfx.ts';
 import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import {
@@ -72,7 +77,14 @@ import type {
   UnknownSound,
   UnknownVoice,
 } from '../core/errors.ts';
-import { type AudioMissing, type AudioStale, LeadIn, SoundStale, SoundUnmade } from './errors.ts';
+import {
+  type AudioMissing,
+  type AudioStale,
+  LeadIn,
+  SeedSilent,
+  SoundStale,
+  SoundUnmade,
+} from './errors.ts';
 import {
   AssetMissing,
   AssetStale,
@@ -98,7 +110,7 @@ import {
   InkOverFace,
   WordPinFar,
 } from './findings.ts';
-import type { LoadedFilm } from './film-repo.ts';
+import type { LoadedFilm, MeasuredFilm } from './film-repo.ts';
 import { type Master, masterFinding } from './mixer.ts';
 
 // ---------------------------------------------------------------------------
@@ -570,7 +582,7 @@ const leadIn = (
   effect: string,
   placing: Sound['effects'][string],
   entry: LibraryEntry,
-  sounds: Sounds,
+  sounds: MeasuredSounds,
 ): ReadonlyArray<LeadIn> => {
   if ((placing.sync ?? 'start') !== 'start') return [];
   const late = playablesOf(sounds, placing.sound, entry).flatMap((p, i) =>
@@ -591,17 +603,38 @@ const leadIn = (
 /** Takes by onset, latest last. */
 const lateOrder = Order.mapInput(Order.Number, (t: { readonly onset: number }) => t.onset);
 
+/** Each seed of a derived sound that measured as silence (`heardNothing`), by its seed. */
+const silentSeeds = (
+  name: string,
+  entry: LibraryEntry,
+  sounds: MeasuredSounds,
+): ReadonlyArray<SeedSilent> => {
+  if (!isDerived(entry)) return [];
+  return seedSources(sounds, name, entry).flatMap((source) =>
+    Option.toArray(
+      Option.map(
+        Option.filter(
+          Option.fromUndefinedOr(sounds.measured.get(sourceLabel(source))),
+          heardNothing,
+        ),
+        () => SeedSilent.make({ name, seed: source.seed }),
+      ),
+    ),
+  );
+};
+
 /**
  * Every bed and effect: each cue names a real scene, cue or mark; each sound
- * is in the library, declared for how it is placed, made and current. A
- * sound named twice is reported once. An effect placed from its first sample
- * whose take starts late is heard late on its cue (`LeadIn`). (How loud each
- * plays against the voice is measured on the mix: `balanceFindings`.)
+ * is in the library, declared for how it is placed, made and current, and
+ * each seed of a derived one is heard (`SeedSilent`). A sound named twice is
+ * reported once. An effect placed from its first sample whose take starts
+ * late is heard late on its cue (`LeadIn`). (How loud each plays against the
+ * voice is measured on the mix: `balanceFindings`.)
  */
 export const soundFindings = (
   sound: Sound,
   placed: ReadonlyArray<Placed>,
-  sounds: Sounds,
+  sounds: MeasuredSounds,
 ): ReadonlyArray<StaticFinding> => {
   const named = new Set<string>();
   const once = (name: string, found: ReadonlyArray<StaticFinding>) => {
@@ -616,7 +649,8 @@ export const soundFindings = (
     ...cueFindings(bed.to),
     ...Result.match(libraryFindings(sounds, bed.sound, 'bed'), {
       onFailure: (e) => once(bed.sound, [e]),
-      onSuccess: ({ findings }) => once(bed.sound, findings),
+      onSuccess: ({ entry, findings }) =>
+        once(bed.sound, [...findings, ...silentSeeds(bed.sound, entry, sounds)]),
     }),
   ]);
   const effects = Object.entries(sound.effects).flatMap(([id, effect]) => [
@@ -624,7 +658,7 @@ export const soundFindings = (
     ...Result.match(libraryFindings(sounds, effect.sound, 'one-shot'), {
       onFailure: (e) => once(effect.sound, [e]),
       onSuccess: ({ entry, findings }) => [
-        ...once(effect.sound, findings),
+        ...once(effect.sound, [...findings, ...silentSeeds(effect.sound, entry, sounds)]),
         ...leadIn(id, effect, entry, sounds),
       ],
     }),
@@ -767,12 +801,13 @@ export const deadAir = (
 };
 
 /**
- * Everything the check finds without drawing a frame or mixing: `audio` is
- * the master on disk and the key of the plan the film mixes to now. `report`
- * levels and addresses them.
+ * Everything the check finds without drawing a frame or mixing: `film` with
+ * the derived sounds it places measured (each effect's lead-in reads them);
+ * `audio` is the master on disk and the key of the plan the film mixes to
+ * now. `report` levels and addresses them.
  */
 export const staticFindings = (
-  film: LoadedFilm,
+  film: MeasuredFilm,
   placed: ReadonlyArray<Placed>,
   audio: MasterAudio,
 ): ReadonlyArray<StaticFinding> => {
