@@ -111,10 +111,34 @@ code sound's seeds, or a trial's, as WAVs under
 trial's numbers beside what plays, and how far each film's placement would
 hear the hit move; `audit` reads from each generated sound's prompt whether
 code can make it; `ab <name> --out <dir>` writes the clips an ask plays (what
-plays now, the trial, and both) as MP4s beside their sheets; `check` hears a
+plays now, the trial, and both; only what plays now for a sound with no
+trial) as MP4s beside their sheets; `check` hears a
 trial bed's seams. The loop they serve, and the bar a trial meets before the
 owner hears it, are the film skill's
 [sound reference](../../.claude/skills/film/reference/sound.md).
+
+A `recorded` sound is a recording under a licence that may be public, kept
+under the committed `public/<name>/`: CC0, or CC BY 3.0 or 4.0. Its
+`licence` names the recording's `title`, `author`, `authorUrl` and `source`
+page (and its `openverse` id when Openverse found it); a CC BY one must name
+all four and say whether the file was `changed` (cut, trimmed, levelled).
+`sfx import <file> <name> [--from s --to s]` folds the recording to one
+channel at 44.1 kHz and takes the cut it is given (`CutEmpty` for seconds
+that hold none of it), or, with no cut, the sound's `secs`: a one-shot's
+from a fifth of them before its loudest moment, a bed's at the 2-second
+offset whose loop seam is smallest, past its first 2 seconds when the
+recording can spare them; no `secs`, the whole recording. A one-shot's quiet
+ends are trimmed, a bed's ends kept, and a recording that peaks over
+`TAKE_LEVEL.ceiling` (-1 dBFS) is scaled down to it. It records the cut in
+the variant (`cut`), prints the gain and the share of power under 30 Hz,
+filtered by nothing, and keeps the sound's variants made for another request
+(the ElevenLabs takes a recording replaced) as candidates: its history,
+never offered again. A CC BY recording a film places owes a credit line
+(`soundCredits(library, sound)`, one a source): `creditRoll` gives each
+under a "Sound" head, a whole-film render writes each with its pages linked
+into `<video>.description.txt` after the chapters (`videoDescription`), and
+`film check` fails a film whose `credits.ts` roll does not give a line it
+owes (`SoundCreditMissing`).
 
 `film footage` is the app's camera footage (`FootageLibrary`,
 `tools/footage.ts`, its schema in `core/footage.ts`), shared by its talks.
@@ -533,7 +557,7 @@ under `~/film-media`), one folder per address and one name per variant:
 ```
 out/<film>/
   catalogue.json                  what every file here is (RenderCatalogue)
-  film/main.mp4                   the whole film: .share.mp4, .vtt, .chapters.txt beside it
+  film/main.mp4                   the whole film: .share.mp4, .vtt, .chapters.txt, .description.txt beside it
   film/main/stills/t0003.00.png   its stills; contact.jpg and lookbook.jpg in the same folder
   acts/<act>/main.mp4
   scenes/<id>[+<id>]/<variant>.mp4
@@ -2638,7 +2662,10 @@ narrator's question, in the viewer's words) starts a YouTube chapter at its
 first scene. `film chapters <film>` prints them, `mm:ss title` a line, and a
 whole-film `render` writes them beside the video as `main.chapters.txt`.
 Fewer than three, a first past 00:00, or one under 10 s fail with
-`ChaptersInvalid` (a render logs the reason and writes none).
+`ChaptersInvalid` (a render logs the reason and writes none). The whole film
+also gets `main.description.txt`, the video's description: its chapters, then
+a "Sound:" line for each CC BY recording it places, its pages linked
+(`videoDescription`); none when it has neither.
 
 ### The easel: `film look`
 
@@ -3234,7 +3261,8 @@ draw leg (`drawLeg`, `tools/draw-check.ts`: the film's `film.ts` built from
 its committed timings and each scene drawn in this process into the stand-in
 context at its moments, as every-scene-draws runs it in the gate).
 `--static` runs the static leg alone, with no mix and no browser: it is what
-the lab runs after each write. `--sound` adds the sound leg, still with no
+the lab runs after each write; with `--folder v<n>` it checks that version
+folder's own files (its scenes, takes, sound and credits). `--sound` adds the sound leg, still with no
 browser. `--draw` adds the draw leg instead: `DrawThrew` (a scene that
 throws), `FrameImpure` (a cue start or 60% point that, drawn after the frame
 after it and after the frame before it, leaves different calls), and the

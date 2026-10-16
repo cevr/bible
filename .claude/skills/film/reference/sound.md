@@ -8,7 +8,7 @@ The owner's rule (2026-10-15): ElevenLabs makes a sound effect only when it need
 | ----------- | ---------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | `code`      | a graph of nodes (`core/synth/graph/nodes.ts` `CodeSound`) | nothing: each seed renders on demand | every simple sound: a knock, a thud, a whoosh, a hiss, a chime, a drone, wind, rain                                |
 | `generated` | ElevenLabs, as candidates the owner curates                | the lock and the private store       | the realism code cannot reach: voices and crowds, creatures, life far off, paper and cloth handled, textured foley |
-| `recorded`  | a CC0 recording under `public/`                            | the repo                             | a real sound already in hand                                                                                       |
+| `recorded`  | a CC0 or CC BY recording under `public/`                   | the repo                             | a real sound already in hand                                                                                       |
 
 A generated entry says `why` it needs ElevenLabs: the realism its credits pay for. The schema requires it (`core/sfx.ts` `Generated`).
 
@@ -217,10 +217,18 @@ Numbers, no verdict: a distance is a hint for the ear, never a target to make sm
    - `remake`: edit the trial and ask again.
 5. Close the ask once its answers are in the source.
 
+## A recorded sound
+
+A real recording can replace a generated sound when its licence lets the repo hold it: CC0, or CC BY 3.0 or 4.0 (the owner's rule, 2026-10-16). Openverse finds them (`api.openverse.org`, no account; the Freesound HQ preview at the result's `url`, `-hq.ogg` in place of `-hq.mp3` where it is reachable).
+
+1. Declare it `kind: 'recorded'` with its `licence`: `id`, `title`, `author`, `authorUrl`, `source` (the recording's page) and `openverse` (its id), and `changed: true` once it is cut. A CC BY licence must name every one of them. Give it `secs` (a bed `BED_SECS`) so a recording with no cut is cut to its length.
+2. Run `bun run sfx import <file> <name> [--from s --to s]` (in `apps/animations`). It folds to mono, cuts, trims a one-shot's quiet ends, scales a recording that peaks over -1 dBFS down to it, and prints the cut, the gain and the share under 30 Hz (no filter: judge it by ear and by `sfx compare`). The FLAC lands under the committed `public/<name>/`; the generated takes it replaces wait in the lock as candidates, the sound's history.
+3. Run `bun run sfx check` (a bed's seam is `LoopSeam`), and `bun run check <film> --static` for each film that places a CC BY recording: its `credits.ts` passes `soundCredits(library, sound)` to `creditRoll`, or the check fails `SoundCreditMissing`. A whole-film render writes the line with its pages linked into `<video>.description.txt`.
+
 ## Gotchas
 
 - **A trial plays nowhere until it is chosen.** A film names the sound; the swap is the entry's change to `kind: 'code'`, never a second name.
-- **What plays now must be in hand.** `sfx compare` and `sfx ab` read the kept takes' files: run `bun run sfx pull` first. A sound with no kept take fails `SoundUnmade`; one with no trial, `CodeTrialMissing`.
+- **What plays now must be in hand.** `sfx compare` and `sfx ab` read the kept takes' files: run `bun run sfx pull` first. A sound with no kept take fails `SoundUnmade`. `sfx compare` refuses a sound with no trial (`CodeTrialMissing`); `sfx ab` writes only its `now` clip.
 - **One stream name, one node.** Name a stream for the part it draws (`crack`, `body`), never for its node kind, so two noises never share one.
 - **A low drone draws a comb.** The waveform panel draws each column's least and greatest sample, so a wave whose cycle spans about two columns (a D2 drone over 8 s) draws a comb. That is the data, not a fault.
 - **An ab clip of a bed has no loop line.** It plays 8 s of each render; the seam is `sfx check`'s.
