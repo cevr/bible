@@ -19,11 +19,13 @@ import { fnv1a, rng } from './random.ts';
 import { TAKE_LEVEL } from './recording.ts';
 import { describeSound } from './synth/analyse.ts';
 import { ABSOLUTE_GATE, loudness } from './synth/loudness.ts';
+import { boundOf } from './synth/graph/bound.ts';
 import { CodeSound } from './synth/graph/nodes.ts';
 import type { ResolvedSound } from './synth/graph/plan.ts';
 import type { ResolvedTrial } from './synth/resolve.ts';
 import { portOf } from './synth/graph/presets.ts';
 import { RENDER_VERSION, renderCode } from './synth/graph/render.ts';
+import { MAX_CODE_SECS, MAX_CODE_WORK } from './synth/graph/units.ts';
 import { Recipe, synthesize } from './synth/recipes.ts';
 import { toMs } from './time.ts';
 
@@ -112,9 +114,41 @@ export const Generated = Schema.Struct({
 });
 export type Generated = typeof Generated.Type;
 
+/** A length or a work in seconds as a refusal names it: to a tenth. */
+const tenths = (secs: number): number => Math.round(secs * 10) / 10;
+
+/**
+ * Why `recipe`'s port (graph/presets.ts) is no code sound the library's walk
+ * takes, when it is not: at the most its draws allow, longer than a code
+ * sound may run or more work than a render may do (the walk's limits,
+ * synth/resolve.ts), or a field the graph's schema refuses, a note past B8
+ * or a frequency past the mix's Nyquist. A port samples no other sound.
+ */
+const portFault = (recipe: Recipe): Option.Option<string> => {
+  const play = portOf(recipe);
+  const bound = boundOf(play, () => ({ secs: 0, work: 0 }));
+  if (bound.secs > MAX_CODE_SECS)
+    return Option.some(
+      `its code trial runs ${tenths(bound.secs)} s at the most, past the ${MAX_CODE_SECS} s a code sound may run`,
+    );
+  if (bound.work > MAX_CODE_WORK)
+    return Option.some(
+      `its code trial writes ${tenths(bound.work)} s of frames at the most, past the ${MAX_CODE_WORK} s a render may write`,
+    );
+  return Result.match(Schema.encodeResult(CodeSound)({ play }), {
+    onFailure: (error) => Option.some(`its code trial is no code sound: ${error.message}`),
+    onSuccess: () => Option.none(),
+  });
+};
+
 const Procedural = Schema.Struct({
   kind: Schema.Literal('procedural'),
-  recipe: Recipe,
+  /** Its recipe, refused here when its code trial (`codeTrialOf`) would be no code sound the walk takes. */
+  recipe: Recipe.check(
+    Schema.makeFilter((recipe: Recipe) =>
+      Option.match(portFault(recipe), { onNone: () => true, onSome: (why) => why }),
+    ),
+  ),
   variants: Seeds,
   ...placing,
 });

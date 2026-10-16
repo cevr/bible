@@ -95,7 +95,7 @@ A short band of noise (the crack, its centre drawn per seed) over a falling sine
 | Time    | `Loop`                        | its last seconds crossfaded into its head, so a bed loops                                                       |
 |         | `Layer`, `Sequence`, `Repeat` | children mixed, each from its `at`; one after another; one child again and again (`Count`, `During`, `Poisson`) |
 
-A field fixed for a render takes a value: a number, a range drawn once per seed (`{ _tag: 'Vary', min, max }`, with `curve: 'log'` for a pitch or a time), or a choice (`{ _tag: 'Pick', of, by }`; with `by: 'seed'`, variant n plays the nth). A field that moves takes a signal: a value held, a `Ramp`, `Points`, a `Wobble` (smooth seeded noise) or an `Lfo`. Each field's name says its unit: `secs`, `hz`, `db`, `semitones`. A pitch is Hz, a note name (`D5`) or a degree of the key (`{ degree, octave }`).
+A field fixed for a render takes a value: a number, a range drawn once per seed (`{ _tag: 'Vary', min, max }`, with `curve: 'log'` for a pitch or a time), or a choice (`{ _tag: 'Pick', of, by }`; with `by: 'seed'`, variant n plays the nth). A field that moves takes a signal: a value held, a `Ramp`, `Points`, a `Wobble` (smooth seeded noise) or an `Lfo`. Each field's name says its unit: `secs`, `hz`, `db`, `semitones`. A pitch is Hz, a note name of octaves 0 to 8 (`D5`; `C0` to `B8`, whose octave is read whole) or a degree of the key (`{ degree, octave }`).
 
 ### The families
 
@@ -134,7 +134,7 @@ The renderer computes with its own sine, cosine, exponential, logarithm and tanh
 
 ## A code trial
 
-A generated sound carries its code version as a trial: `code: { sound, variants }` on its entry. No film places a trial, so no film plays a code sound the owner did not choose. A procedural sound's trial is derived from its recipe (`core/synth/graph/presets.ts` `portOf`, through `core/sfx.ts` `codeTrialOf`), so it is never written twice.
+A generated sound carries its code version as a trial: `code: { sound, variants }` on its entry. No film places a trial, so no film plays a code sound the owner did not choose. A procedural sound's trial is derived from its recipe (`core/synth/graph/presets.ts` `portOf`, through `core/sfx.ts` `codeTrialOf`), so it is never written twice. The library's schema refuses, by the entry's name, a recipe whose trial the load would refuse: one that ports longer than `MAX_CODE_SECS` or to more than `MAX_CODE_WORK` seconds of frames at the most its draws allow (room tone at 119.5 s ports to 120.5 s), or to a field the graph's schema refuses (a note past `B8`). So a trial nobody wrote never fails the load.
 
 A trial is heard beside what plays:
 

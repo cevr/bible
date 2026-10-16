@@ -10,6 +10,7 @@
 // time cannot reach it.
 
 import { Predicate, Schema } from 'effect';
+import { NOTE_NAME } from './pitch.ts';
 import { MAX_CODE_SECS } from './units.ts';
 
 // Units, each a field's own.
@@ -35,8 +36,12 @@ const Factor = Schema.Finite.check(
   Schema.isBetween({ minimum: 0, maximum: 100, exclusiveMinimum: true }),
 );
 
-/** A note by name: letter, optional sharp or flat, octave (`D5`, `F#3`, `Bb2`). */
-const NoteName = Schema.String.check(Schema.isPattern(/^[A-G](#|b)?[0-8]$/));
+/** A note by name: letter, optional sharp or flat, octave 0 to 8 (`D5`, `F#3`, `Bb2`). */
+export const NoteName = Schema.String.check(
+  Schema.makeFilter(
+    (note: string) => NOTE_NAME.test(note) || `"${note}" is no note name of octaves 0 to 8`,
+  ),
+);
 
 /** A degree of the sound's key, counted from its tonic in that octave (past the scale's top, the next octave's). */
 export interface Degree {

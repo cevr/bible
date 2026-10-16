@@ -1,9 +1,17 @@
 // Pitches as Hz: a note name, equal-tempered on A4 = 440 Hz, and a degree of a
-// sound's key.
+// sound's key. A note name is read whole, its octave every digit after its
+// pitch class, and the names a sound may play are those of octaves 0 to 8
+// (`NOTE_NAME`), which every schema that takes one checks.
 
 import { Predicate } from 'effect';
 import { exp2 } from './math.ts';
 import type { Degree, Key, Pitch } from './nodes.ts';
+
+/**
+ * A note name a sound may play: a letter, an optional sharp or flat, and an
+ * octave from 0 to 8 (C0 is 16.35 Hz, B8 7.9 kHz).
+ */
+export const NOTE_NAME = /^[A-G](#|b)?[0-8]$/;
 
 /** Each letter's semitones above C. */
 const LETTERS: ReadonlyMap<string, number> = new Map([
@@ -43,9 +51,15 @@ const degreeMidi = (degree: Degree, key: Key): number => {
   return 12 * (degree.octave + 1 + octaves) + classOf(key.tonic) + step;
 };
 
+/**
+ * A note name's MIDI number (`D5` is 74), its octave read whole: `E10` is
+ * 136, ten octaves over `E0`, never `E0`'s 16.
+ */
+export const noteMidi = (note: string): number =>
+  12 * (Number(/\d+$/.exec(note)?.[0] ?? Number.NaN) + 1) + classOf(note);
+
 /** A note name's frequency (`D5`, `F#3`, `Bb2`). */
-const noteHz = (note: string): number =>
-  midiHz(12 * (Number(note.charAt(note.length - 1)) + 1) + classOf(note));
+const noteHz = (note: string): number => midiHz(noteMidi(note));
 
 /** A pitch's frequency: Hz as written, a note by name, a degree in `key`. */
 export const pitchHz = (pitch: Pitch, key: Key): number => {

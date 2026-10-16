@@ -44,6 +44,10 @@ describe('noteHz', () => {
     expect(noteHz('F#3')).toBeCloseTo(185.0, 1);
     expect(noteHz('Bb2')).toBeCloseTo(116.54, 2);
   });
+
+  test("reads a note's whole octave: E10 is ten octaves over E0, never E0", () => {
+    expect(noteHz('E10') / noteHz('E0')).toBeCloseTo(1024, 6);
+  });
 });
 
 describe('synthesize', () => {

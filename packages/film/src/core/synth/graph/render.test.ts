@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-import { Schema } from 'effect';
+import { Result, Schema } from 'effect';
 import { GOLDEN, PROBES, type Probe } from './fixtures/golden.ts';
 import { dbToGain } from './math.ts';
 import { CodeSound, type Key, type Node, type Signal } from './nodes.ts';
@@ -184,6 +184,26 @@ describe('the units', () => {
     expect(pitchHz('F#3', C_MAJOR)).toBeCloseTo(184.9972, 4);
     expect(pitchHz('Bb2', C_MAJOR)).toBeCloseTo(116.5409, 4);
     expect(pitchHz(123.4, C_MAJOR)).toBe(123.4);
+  });
+
+  test("a note's whole octave is read: E10 is ten octaves over E0, never E0", () => {
+    expect(pitchHz('E10', C_MAJOR) / pitchHz('E0', C_MAJOR)).toBeCloseTo(1024, 6);
+    expect(pitchHz('B8', C_MAJOR)).toBeCloseTo(7902.1328, 4);
+  });
+
+  test('the schema takes a note of octaves 0 to 8, and refuses one past them by its name', () => {
+    const decode = Schema.decodeUnknownResult(CodeSound);
+    const note = (pitch: string) => ({
+      play: { _tag: 'Osc', wave: 'sine', pitch, secs: 0.1, phase: 0 },
+    });
+    expect(decode(note('C0'))._tag).toBe('Success');
+    expect(decode(note('B8'))._tag).toBe('Success');
+    for (const name of ['C9', 'D9', 'E10', 'H4']) {
+      const refused = decode(note(name));
+      expect(Result.isFailure(refused) ? refused.failure.message : '').toContain(
+        `"${name}" is no note name of octaves 0 to 8`,
+      );
+    }
   });
 
   test('a degree counts in its key from the tonic, an octave on past the scale', () => {

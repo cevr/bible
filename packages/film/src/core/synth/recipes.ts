@@ -9,6 +9,8 @@
 
 import { Schema } from 'effect';
 import type { Pcm } from '../audio.ts';
+import { NoteName } from './graph/nodes.ts';
+import { noteMidi } from './graph/pitch.ts';
 import { SYNTH_PEAK, SYNTH_RATE } from './graph/units.ts';
 import {
   type Random,
@@ -28,8 +30,8 @@ import {
   wobble,
 } from './signal.ts';
 
-/** A pitch by note name: letter, optional sharp or flat, octave (`D5`, `F#3`, `Bb2`). */
-const Pitch = Schema.String.check(Schema.isPattern(/^[A-G](#|b)?[0-8]$/));
+/** A pitch by note name: letter, optional sharp or flat, octave 0 to 8 (`D5`, `F#3`, `Bb2`). */
+const Pitch = NoteName;
 type Pitch = typeof Pitch.Type;
 
 const Secs = Schema.Finite.check(Schema.isGreaterThan(0));
@@ -64,25 +66,8 @@ export const Recipe = Schema.Union([
 ]);
 export type Recipe = typeof Recipe.Type;
 
-/** Each note letter's semitones above C. */
-const SEMITONES = new Map([
-  ['C', 0],
-  ['D', 2],
-  ['E', 4],
-  ['F', 5],
-  ['G', 7],
-  ['A', 9],
-  ['B', 11],
-]);
-
-/** A note's frequency in Hz, equal-tempered on A4 = 440. */
-export const noteHz = (note: Pitch): number => {
-  const letter = SEMITONES.get(note.charAt(0)) ?? 0;
-  const accidental = note.includes('#') ? 1 : note.includes('b') ? -1 : 0;
-  const octave = Number(note.charAt(note.length - 1));
-  const midi = 12 * (octave + 1) + letter + accidental;
-  return 440 * 2 ** ((midi - 69) / 12);
-};
+/** A note's frequency in Hz, equal-tempered on A4 = 440, its octave read whole. */
+export const noteHz = (note: Pitch): number => 440 * 2 ** ((noteMidi(note) - 69) / 12);
 
 /** The major pentatonic scale's steps above its root, in semitones. */
 const PENTATONIC = [0, 2, 4, 7, 9] as const;

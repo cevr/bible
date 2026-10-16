@@ -6,6 +6,8 @@
 // The eight recipes of core/synth/recipes.ts are here as graphs that take the
 // recipe's own settings: `portOf(recipe)` is a recipe's sound made by code,
 // heard beside the recipe until the owner chooses (core/sfx.ts `codeTrialOf`).
+// A recipe whose port is no code sound the library's walk takes is refused
+// at its entry (core/sfx.ts), so a trial nobody wrote never fails the load.
 // A port draws its numbers from the graph's streams, so its samples are new;
 // its measures are the recipe's (presets.test.ts): the same length, loudness
 // within 1 LU, the band balance within 1.5 dB, the same notes and partials,
@@ -19,7 +21,7 @@
 import type { Recipe } from '../recipes.ts';
 import { dbToGain, exp, exp2, log } from './math.ts';
 import type { Node, Pitch, Ramp, Value } from './nodes.ts';
-import { pitchHz } from './pitch.ts';
+import { noteMidi, pitchHz } from './pitch.ts';
 
 /** A note name names its own pitch: the key it is read in is never used. */
 const ANY_KEY = { tonic: 'C', scale: 'major' } as const;
@@ -33,29 +35,8 @@ const db = (level: number): number => log(level) / DB_LN;
 /** A note name's frequency in Hz. */
 const hz = (note: string): number => pitchHz(note, ANY_KEY);
 
-/** Each letter's semitones above C. */
-const LETTERS: ReadonlyMap<string, number> = new Map([
-  ['C', 0],
-  ['D', 2],
-  ['E', 4],
-  ['F', 5],
-  ['G', 7],
-  ['A', 9],
-  ['B', 11],
-]);
-
 /** The twelve semitones above C, named by sharps. */
 const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
-
-/** A note name's MIDI number (`D5` is 74). */
-const midiOf = (note: string): number => {
-  const accidental = note.charAt(1);
-  let shift = 0;
-  if (accidental === '#') shift = 1;
-  if (accidental === 'b') shift = -1;
-  const octave = Number(note.charAt(note.length - 1));
-  return 12 * (octave + 1) + (LETTERS.get(note.charAt(0)) ?? 0) + shift;
-};
 
 /** A MIDI number's note name, by sharps. */
 const nameOf = (midi: number): string => `${NAMES[midi % 12] ?? 'C'}${Math.floor(midi / 12) - 1}`;
@@ -67,7 +48,7 @@ const PENTATONIC = [0, 2, 4, 7, 9] as const;
 const degreeNote = (root: string, degree: number): string => {
   const octaves = Math.floor(degree / PENTATONIC.length);
   const step = PENTATONIC[degree - octaves * PENTATONIC.length] ?? 0;
-  return nameOf(midiOf(root) + 12 * octaves + step);
+  return nameOf(noteMidi(root) + 12 * octaves + step);
 };
 
 /** Degrees 0 to `count − 1` of `root`'s major pentatonic scale, as note names. */
