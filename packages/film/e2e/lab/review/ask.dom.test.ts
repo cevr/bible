@@ -18,9 +18,12 @@
 // marked, the send counting what is answered, the kit's primary Send, one
 // focus ring on an option, and fits a phone. A film's script under review is
 // its Script reader too: Stress writes `script.ts`, which is read again, and
-// a second mark before the lab's line has caught up stands on the first. A
-// long document is held at its clamp with Read all, which opens it whole; a
-// Board still opens full size (`?still=`), and Escape or a tap closes it.
+// a second mark before the lab's line has caught up stands on the first,
+// while a line put back elsewhere as it was before the page's write shows as
+// put back. On a laptop the dock's words and Send keep to the column. A long
+// document is held at its clamp with Read all, which opens it whole; a Board
+// still opens full size (`?still=`), its caption clear of the tab bar or the
+// laptop's dock, and Escape or a tap closes it.
 
 import { Boolean as Bool, Deferred, Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
