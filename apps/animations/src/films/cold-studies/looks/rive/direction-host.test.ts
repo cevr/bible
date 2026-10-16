@@ -178,21 +178,24 @@ const CONTROLLED = [
 ] as const satisfies ReadonlyArray<readonly [string, Direction]>;
 
 describe('what the host lays round the figures', () => {
-  test('every paint is what laid it may be, in every option and pose: a line a paper, its shade, an ink or the kit’s core; a wash a paper, its shade or the kit’s shading; a shadow a shade or the kit’s warm dark', () => {
-    const wrong = SHADED.flatMap(([name, d]) =>
-      LEANS.flatMap((lean) =>
+  // One test an option: the whole sweep in one test runs past bun's 5 s on a CI runner.
+  test.each(SHADED)(
+    'every paint is what laid it may be under %s, in every pose: a line a paper, its shade, an ink or the kit’s core; a wash a paper, its shade or the kit’s shading; a shadow a shade or the kit’s warm dark',
+    (_, d) => {
+      const wrong = LEANS.flatMap((lean) =>
         SWINGS.flatMap((swing) =>
           hostFaults(
             laidBy((f) => judgeOf(d).over(f, swing, lean, propsOf(d))),
             hostColours(d, swing, lean),
-          ).map((f) => `${name} lean ${lean} swing ${swing}: ${f}`),
+          ).map((f) => `lean ${lean} swing ${swing}: ${f}`),
         ),
-      ),
-    );
-    const accused = hostFaults(accusedHost(), hostColours(K1, GAVEL_REST, 0)).map(
-      (f) => `the accused: ${f}`,
-    );
-    expect([...new Set([...wrong, ...accused])]).toEqual([]);
+      );
+      expect([...new Set(wrong)]).toEqual([]);
+    },
+  );
+
+  test('every paint the accused’s host lays is what laid it may be', () => {
+    expect(hostFaults(accusedHost(), hostColours(K1, GAVEL_REST, 0))).toEqual([]);
   });
 
   test('the kit’s named shading is laid in each role it names, so the exception names nothing stale', () => {
