@@ -36,7 +36,15 @@ const PAPER_SLIDE = Segment.make('paper.slide');
 
 const LIBRARY = `export const library = {
   'paper.slide': { kind: 'generated', prompt: 'paper slides on a desk', secs: 0.5, candidates: 4, use: 'one-shot' },
-  'amb.court': { kind: 'generated', prompt: 'a quiet stone court', secs: 1, loop: true, candidates: 2, use: 'bed' },
+  'amb.court': {
+    kind: 'generated',
+    prompt: 'a quiet stone court',
+    secs: 1,
+    loop: true,
+    candidates: 2,
+    use: 'bed',
+    code: { sound: { play: { _tag: 'Noise', color: 'pink', secs: 0.5 } }, variants: 2 },
+  },
   'tone.chime': {
     kind: 'procedural',
     recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 0.6 },
@@ -655,7 +663,10 @@ describe.concurrent('SoundLibrary', () => {
           const library = yield* SoundLibrary;
           const fs = yield* FileSystem.FileSystem;
           const media = yield* Media;
-          const renders = yield* library.render('tone.chime', Option.none());
+          const renders = yield* library.render('tone.chime', {
+            seed: Option.none(),
+            trial: false,
+          });
           expect(renders).toHaveLength(3);
           const heard = yield* library.audition('tone.chime', false);
           expect(yield* fs.exists(heard)).toBe(true);
@@ -675,20 +686,48 @@ describe.concurrent('SoundLibrary', () => {
         const named = (files: ReadonlyArray<string>) =>
           files.map((file) => file.slice(file.lastIndexOf('/') + 1));
         expect([...(yield* library.load).code.keys()]).toEqual(['tone.tick']);
-        const renders = yield* library.render('tone.tick', Option.none());
+        const renders = yield* library.render('tone.tick', { seed: Option.none(), trial: false });
         expect(named(renders)).toEqual(['tone.tick-1.wav', 'tone.tick-2.wav']);
         const [one, two] = yield* Effect.forEach(renders, (file) => media.decode(file));
         expect(one?.frames).toBe(4410);
         expect(one?.channels[0]).not.toEqual(two?.channels[0]);
         // Any seed renders, past the variants that play.
-        expect(named(yield* library.render('tone.tick', Option.some(7)))).toEqual([
-          'tone.tick-7.wav',
-        ]);
+        expect(
+          named(yield* library.render('tone.tick', { seed: Option.some(7), trial: false })),
+        ).toEqual(['tone.tick-7.wav']);
         // Two 0.1-second ticks, each followed by the half-second gap.
         const heard = yield* library.audition('tone.tick', false);
         expect((yield* media.decode(heard)).frames).toBe(2 * (4410 + 22050));
-        const wrong = yield* Effect.flip(library.render('paper.slide', Option.none()));
+        const wrong = yield* Effect.flip(
+          library.render('paper.slide', { seed: Option.none(), trial: false }),
+        );
         expect(wrong).toMatchObject({ _tag: 'SoundKindMismatch', wanted: 'code or procedural' });
+        expect(calls).toHaveLength(0);
+      }),
+    ),
+  );
+
+  it.effect.layer(fixture)('renders a generated sound’s code trial, each seed its own draw', () =>
+    withLibrary(({ calls }) =>
+      Effect.gen(function* () {
+        const library = yield* SoundLibrary;
+        const media = yield* Media;
+        const named = (files: ReadonlyArray<string>) =>
+          files.map((file) => file.slice(file.lastIndexOf('/') + 1));
+        expect([...(yield* library.load).trials.keys()]).toEqual(['amb.court']);
+        const court = yield* library.render('amb.court', { seed: Option.none(), trial: true });
+        expect(named(court)).toEqual(['amb.court-trial-1.wav', 'amb.court-trial-2.wav']);
+        const [one, two] = yield* Effect.forEach(court, (file) => media.decode(file));
+        expect(one?.frames).toBe(22050);
+        expect(one?.channels[0]).not.toEqual(two?.channels[0]);
+        // Any seed renders, past the trial's own.
+        expect(
+          named(yield* library.render('amb.court', { seed: Option.some(5), trial: true })),
+        ).toEqual(['amb.court-trial-5.wav']);
+        const none = yield* Effect.flip(
+          library.render('tone.tick', { seed: Option.none(), trial: true }),
+        );
+        expect(none).toMatchObject({ _tag: 'CodeTrialMissing', name: 'tone.tick', kind: 'code' });
         expect(calls).toHaveLength(0);
       }),
     ),

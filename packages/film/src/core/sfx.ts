@@ -75,6 +75,17 @@ const placing = {
 /** The shortest and longest sound ElevenLabs makes, in seconds. */
 const GENERATED_SECS = { min: 0.5, max: 30 } as const;
 
+/** Seeds 1…n: each a variant. */
+const Seeds = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 }));
+
+/**
+ * A code version of a sound, heard beside what plays until the owner
+ * chooses: never placed, so no film plays a code sound the owner did not
+ * choose.
+ */
+const CodeTrial = Schema.Struct({ sound: CodeSound, variants: Seeds });
+type CodeTrial = typeof CodeTrial.Type;
+
 export const Generated = Schema.Struct({
   kind: Schema.Literal('generated'),
   prompt: Schema.NonEmptyString,
@@ -87,12 +98,11 @@ export const Generated = Schema.Struct({
   loop: Schema.optionalKey(Schema.Boolean),
   /** How many candidates `sfx make` asks for; `DEFAULT_CANDIDATES` by use. */
   candidates: Schema.optionalKey(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 8 }))),
+  /** Its code trial: the sound made by code, heard beside its takes (`sfx render --trial`). */
+  code: Schema.optionalKey(CodeTrial),
   ...placing,
 });
 export type Generated = typeof Generated.Type;
-
-/** Seeds 1…n: each a variant. */
-const Seeds = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 }));
 
 const Procedural = Schema.Struct({
   kind: Schema.Literal('procedural'),
@@ -136,6 +146,12 @@ type Derived = Code | Procedural;
 /** Whether `entry` is rendered from its data, so nothing of it is made, kept or paid for. */
 export const isDerived = (entry: LibraryEntry): entry is Derived =>
   entry.kind === 'code' || entry.kind === 'procedural';
+
+/** A sound's code trial: a generated sound's `code`; none for any other kind. */
+export const codeTrialOf = (entry: LibraryEntry): Option.Option<CodeTrial> => {
+  if (entry.kind !== 'generated') return Option.none();
+  return Option.fromUndefinedOr(entry.code);
+};
 
 /** An app's sounds by name (`sounds/library.ts`). */
 export const Library = Schema.Record(SoundName, LibraryEntry);

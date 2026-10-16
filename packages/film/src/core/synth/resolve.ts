@@ -8,6 +8,10 @@
 // and when, at the most its draws allow, it is longer or writes more than a
 // render may. A sampled sound renders on its own seed, so its stream names
 // are its own: they are checked with it, never with the sounds that sample it.
+//
+// Each entry's code trial (core/sfx.ts `codeTrialOf`) is walked the same way,
+// under its entry's name and "(trial)", and resolved beside the code sounds.
+// It is no code sound itself, so nothing can sample it.
 
 import { Option, Predicate, Result, Schema } from 'effect';
 import {
@@ -20,7 +24,7 @@ import {
   StreamDuplicate,
 } from '../errors.ts';
 import { hashText } from '../narration.ts';
-import { type Library, soundEntry } from '../sfx.ts';
+import { type Library, codeTrialOf, soundEntry } from '../sfx.ts';
 import { type Bound, boundOf } from './graph/bound.ts';
 import {
   CodeSound,
@@ -175,18 +179,36 @@ const walkSound = (
   });
 };
 
-/** Every code sound of `library` resolved, by name, or the first refusal in the library's order. */
-export const resolveCode = (
-  library: Library,
-): Result.Result<ReadonlyMap<string, ResolvedSound>, CodeError> => {
+/** A code trial resolved: its graph ready to render, and how many seeds it plays. */
+export interface ResolvedTrial {
+  readonly sound: ResolvedSound;
+  readonly variants: number;
+}
+
+/** A library's code resolved: its code sounds, and its entries' code trials, each by its entry's name. */
+interface ResolvedCode {
+  readonly code: ReadonlyMap<string, ResolvedSound>;
+  readonly trials: ReadonlyMap<string, ResolvedTrial>;
+}
+
+/** Every code sound and code trial of `library` resolved, or the first refusal in the library's order. */
+export const resolveCode = (library: Library): Result.Result<ResolvedCode, CodeError> => {
   const walk: Walk = { library, done: new Map() };
-  const resolved = new Map<string, ResolvedSound>();
+  const code = new Map<string, ResolvedSound>();
+  const trials = new Map<string, ResolvedTrial>();
   for (const name of Object.keys(library)) {
     const entry = soundEntry(library, name);
-    if (Option.isNone(entry) || entry.value.kind !== 'code') continue;
-    const walked = sampled(walk, [], name);
+    if (Option.isNone(entry)) continue;
+    if (entry.value.kind === 'code') {
+      const walked = sampled(walk, [], name);
+      if (Result.isFailure(walked)) return Result.fail(walked.failure);
+      code.set(name, walked.success.sound);
+    }
+    const trial = codeTrialOf(entry.value);
+    if (Option.isNone(trial)) continue;
+    const walked = walkSound(walk, [], `${name} (trial)`, trial.value.sound);
     if (Result.isFailure(walked)) return Result.fail(walked.failure);
-    resolved.set(name, walked.success.sound);
+    trials.set(name, { sound: walked.success.sound, variants: trial.value.variants });
   }
-  return Result.succeed(resolved);
+  return Result.succeed({ code, trials });
 };

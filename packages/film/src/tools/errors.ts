@@ -230,6 +230,16 @@ export class SoundKindMismatch extends Schema.TaggedError<SoundKindMismatch>()(
   }
 }
 
+/** `sfx render --trial` on a sound with no code trial: only a generated sound with `code`, or a recipe, has one. */
+export class CodeTrialMissing extends Schema.TaggedError<CodeTrialMissing>()('CodeTrialMissing', {
+  name: Schema.String,
+  kind: Schema.String,
+}) {
+  override get message() {
+    return `sound "${this.name}" is ${this.kind} and has no code trial: a generated sound has one when it declares code: { sound, variants }, and a recipe's is its port`;
+  }
+}
+
 /** A film module (scenes, voice, sound) that fails to import or has the wrong shape. */
 export class FilmModuleInvalid extends Schema.TaggedError<FilmModuleInvalid>()(
   'FilmModuleInvalid',

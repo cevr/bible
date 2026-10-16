@@ -34,6 +34,7 @@ import {
   type LibraryEntry,
   type Lock,
   type LockEntry,
+  type DerivedSource,
   type MakeJob,
   type Playable,
   SFX_FORMAT,
@@ -62,7 +63,7 @@ import {
 import { describeSound } from '../core/synth/analyse.ts';
 import { loudness } from '../core/synth/loudness.ts';
 import type { ResolvedSound } from '../core/synth/graph/plan.ts';
-import { resolveCode } from '../core/synth/resolve.ts';
+import { type ResolvedTrial, resolveCode } from '../core/synth/resolve.ts';
 import { loopSeam, seamHeard } from '../core/synth/seam.ts';
 import { toMs } from '../core/time.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
@@ -73,6 +74,7 @@ import { ElevenLabsFailed, type MediaFailed, TakeUnknown } from '../core/refusal
 import {
   type ApiKeyMissing,
   CandidateMissing,
+  CodeTrialMissing,
   CreditsOverCap,
   type FilmModuleInvalid,
   LibraryMissing,
@@ -116,12 +118,14 @@ interface SoundsPaths {
   readonly out: string;
 }
 
-/** The library as declared, what was made, and its code sounds resolved. */
+/** The library as declared, what was made, and its code sounds and code trials resolved. */
 export interface LoadedLibrary {
   readonly paths: SoundsPaths;
   readonly library: Library;
   readonly lock: Lock;
   readonly code: ReadonlyMap<string, ResolvedSound>;
+  /** Each entry's code trial, by its entry's name: heard beside it, never placed. */
+  readonly trials: ReadonlyMap<string, ResolvedTrial>;
 }
 
 /** What a mix reads of a loaded library, before any derived sound is measured. */
@@ -196,6 +200,12 @@ interface MakeOptions extends SpendOptions {
   readonly names: Option.Option<ReadonlySet<string>>;
   /** A full set of candidates again, even for a current sound. */
   readonly force: boolean;
+}
+
+/** What `render` plays: its seeds or one, of the sound or of its code trial. */
+interface RenderWhich {
+  readonly seed: Option.Option<number>;
+  readonly trial: boolean;
 }
 
 /** How a paid run may spend: confirmed, under a cap, tallied. */
@@ -329,13 +339,16 @@ interface SoundLibraryService {
     name: string,
     candidates: boolean,
   ) => Effect.Effect<string, LibraryError | UnknownSound | MediaFailed | PlatformError>;
-  /** A code or procedural sound's seeds (or one) as WAVs, `<name>-<seed>.wav`. */
+  /**
+   * A code or procedural sound's seeds (or one) as WAVs, `<name>-<seed>.wav`;
+   * with `trial`, its code trial's, `<name>-trial-<seed>.wav`.
+   */
   readonly render: (
     name: string,
-    seed: Option.Option<number>,
+    which: RenderWhich,
   ) => Effect.Effect<
     ReadonlyArray<string>,
-    LibraryError | UnknownSound | SoundKindMismatch | MediaFailed | PlatformError
+    LibraryError | UnknownSound | SoundKindMismatch | CodeTrialMissing | MediaFailed | PlatformError
   >;
   /**
    * Each variant's onset and hit, measured from its file where the lock lacks
@@ -447,8 +460,8 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             return yield* LibraryMissing.make({ file: paths.module });
           const declared = yield* libraryModule(paths.module);
           const lock = yield* store.read(paths.lock);
-          const code = yield* Effect.fromResult(resolveCode(declared.library));
-          const loaded: LoadedLibrary = { paths, library: declared.library, lock, code };
+          const { code, trials } = yield* Effect.fromResult(resolveCode(declared.library));
+          const loaded: LoadedLibrary = { paths, library: declared.library, lock, code, trials };
           return loaded;
         });
         const load = loadLibrary();
@@ -807,30 +820,47 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
 
         const render = Effect.fn('SoundLibrary.render')(function* (
           name: string,
-          seed: Option.Option<number>,
+          which: RenderWhich,
         ) {
           const loaded = yield* load;
           const entry = yield* entryOf(loaded, name);
-          if (!isDerived(entry))
-            return yield* SoundKindMismatch.make({
-              name,
-              kind: entry.kind,
-              wanted: 'code or procedural',
-            });
           // Any seed renders, past the variants that play: each seed is one draw of the sound.
-          const seeds = Option.match(seed, {
-            onNone: () => Array.from({ length: entry.variants }, (_, i) => i + 1),
-            onSome: (s) => [s],
-          });
-          const sounds = soundsOf(loaded);
-          const sources = seeds.flatMap((s) => Option.toArray(seedSource(sounds, name, entry, s)));
+          const seedsOf = (variants: number) =>
+            Option.match(which.seed, {
+              onNone: () => Array.from({ length: variants }, (_, i) => i + 1),
+              onSome: (s) => [s],
+            });
+          let renders: ReadonlyArray<{ readonly out: string; readonly source: DerivedSource }>;
+          if (which.trial) {
+            const trial = Option.fromUndefinedOr(loaded.trials.get(name));
+            if (Option.isNone(trial))
+              return yield* CodeTrialMissing.make({ name, kind: entry.kind });
+            const sound = trial.value.sound;
+            renders = seedsOf(trial.value.variants).map((seed) => ({
+              out: path.join(paths.out, `${name}-trial-${seed}.wav`),
+              source: { _tag: 'Code', sound, seed },
+            }));
+          } else {
+            if (!isDerived(entry))
+              return yield* SoundKindMismatch.make({
+                name,
+                kind: entry.kind,
+                wanted: 'code or procedural',
+              });
+            const sounds = soundsOf(loaded);
+            renders = seedsOf(entry.variants).flatMap((seed) =>
+              Option.toArray(seedSource(sounds, name, entry, seed)).map((source) => ({
+                out: path.join(paths.out, `${name}-${seed}.wav`),
+                source,
+              })),
+            );
+          }
           yield* fs.makeDirectory(paths.out, { recursive: true });
-          return yield* Effect.forEach(sources, (source) =>
-            Effect.gen(function* () {
-              const out = path.join(paths.out, `${name}-${source.seed}.wav`);
-              yield* media.writeWav(out, yield* made.pcm(source));
-              return out;
-            }),
+          return yield* Effect.forEach(renders, ({ out, source }) =>
+            Effect.as(
+              Effect.flatMap(made.pcm(source), (pcm) => media.writeWav(out, pcm)),
+              out,
+            ),
           );
         });
 

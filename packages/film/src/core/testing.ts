@@ -68,7 +68,7 @@ export const measuredSounds = (library: Library, lock: Lock, dir: string): Sound
     library,
     lock,
     dir,
-    code: Result.getOrThrow(resolveCode(library)),
+    code: Result.getOrThrow(resolveCode(library)).code,
     measured: new Map(),
   };
   const sources = Object.keys(library).flatMap((name) =>

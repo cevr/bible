@@ -1,6 +1,8 @@
 // `film sfx`: the app's sound library from the command line. Every command
 // but `make` is free: `list`, `plan` and `check` read the library and
-// its lock; `describe` records each variant's onset and hit from its file; `audition` and `render` write WAVs under `<FILMS_OUT>/sounds`;
+// its lock; `describe` records each variant's onset and hit from its file;
+// `audition` and `render` write WAVs under `<FILMS_OUT>/sounds` (`render
+// --trial`, a sound's code trial: its code version, heard beside its takes);
 // `keep`, `reject` and `import` curate the lock; `pull` and `push` sync the
 // private `files/` (and the films' scores) with the store; `push --from` sends
 // from an older folder store too (the move to R2). `make` is the one paid command: it prints
@@ -15,7 +17,7 @@
 //   film sfx keep <name> <n…> [--replace]
 //   film sfx unkeep <name> <n…>    film sfx reject <name> <n…>
 //   film sfx import <file> <name>
-//   film sfx render <name> [--seed n]
+//   film sfx render <name> [--seed n] [--trial]
 //   film sfx check [--json]      film sfx describe
 //   film sfx pull                  film sfx push [--from folder]
 
@@ -68,11 +70,12 @@ const keptLoudness = (entry: LibraryEntry, lock: Option.Option<LockEntry>): stri
 /**
  * One line per sound: name, kind, use, state (current, stale, missing, or
  * derived for a code or procedural sound), variants kept (and candidates waiting),
- * level in dB relative to the voice, kept loudness and source. `family`
- * narrows to one family (`paper`); `filter` to the missing or stale.
+ * level in dB relative to the voice, kept loudness and source, and `+ code
+ * trial` when it has one. `family` narrows to one family (`paper`); `filter`
+ * to the missing or stale.
  */
 const listLines = (
-  loaded: Pick<LoadedLibrary, 'library' | 'lock'>,
+  loaded: Pick<LoadedLibrary, 'library' | 'lock' | 'trials'>,
   family: Option.Option<string>,
   filter: ListFilter,
 ): ReadonlyArray<string> =>
@@ -90,6 +93,8 @@ const listLines = (
       let waiting = '';
       if (state._tag !== 'Derived' && state.candidates > 0) waiting = ` +${state.candidates}?`;
       const level = levelOf(entry, Option.none()).toFixed(0);
+      let trial = '';
+      if (loaded.trials.has(name)) trial = '  + code trial';
       return [
         [
           name.padEnd(18),
@@ -99,7 +104,7 @@ const listLines = (
           `${kept}${waiting}`.padEnd(7),
           `${level} dB`.padEnd(7),
           keptLoudness(entry, lock).padStart(6),
-          ` ${sourceOf(entry)}`,
+          ` ${sourceOf(entry)}${trial}`,
         ].join(' '),
       ];
     });
@@ -353,12 +358,23 @@ const render = Command.make(
   {
     name,
     seed: Flag.Int('seed').pipe(Flag.optional, Flag.withDescription('just this seed')),
+    trial: Flag.Boolean('trial').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("the sound's code trial: its code version, heard beside what plays"),
+    ),
   },
   Effect.fn('film.sfx.render')(function* (input) {
-    for (const file of yield* (yield* SoundLibrary).render(input.name, input.seed))
-      yield* Console.log(file);
+    const files = yield* (yield* SoundLibrary).render(input.name, {
+      seed: input.seed,
+      trial: input.trial,
+    });
+    for (const file of files) yield* Console.log(file);
   }),
-).pipe(Command.withDescription("A procedural sound's seeds as WAVs, to hear a recipe"));
+).pipe(
+  Command.withDescription(
+    "A code or procedural sound's seeds as WAVs, or with --trial its code trial's, to hear it",
+  ),
+);
 
 const check = Command.make(
   'check',

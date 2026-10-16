@@ -18,13 +18,23 @@ const noise = (secs: number, stream?: string): Node =>
 
 const sample = (sound: string): Node => ({ _tag: 'Sample', sound });
 
-/** `library`'s code sounds resolved: its keys typed as names, as `defineLibrary` types them. */
-const resolved = <const L extends Library>(library: L) => resolveCode(library);
+/** A generated sound whose code trial plays `play` with two seeds. */
+const trialled = (play: Node): LibraryEntry => ({
+  kind: 'generated',
+  prompt: 'a whoosh',
+  secs: 1,
+  use: 'one-shot',
+  code: { sound: { play }, variants: 2 },
+});
 
-/** The refusal's tag and fields, or the names resolved. */
+/** `library`'s code sounds resolved: its keys typed as names, as `defineLibrary` types them. */
+const resolved = <const L extends Library>(library: L) =>
+  Result.map(resolveCode(library), (walk) => walk.code);
+
+/** The refusal's tag and fields, or the code sounds and the trials resolved. */
 const walked = <const L extends Library>(library: L) =>
   Result.match(resolveCode(library), {
-    onSuccess: (sounds) => ({ resolved: [...sounds.keys()] }),
+    onSuccess: (walk) => ({ resolved: [...walk.code.keys()], trials: [...walk.trials.keys()] }),
     onFailure: (error) => ({ ...error }),
   });
 
@@ -38,7 +48,7 @@ describe('the walk of the code sounds', () => {
       }),
       'amb.court': { kind: 'generated', prompt: 'a court', secs: 10, use: 'bed' },
     });
-    const sounds = Result.getOrThrow(resolveCode(library));
+    const sounds = Result.getOrThrow(resolved(library));
     expect([...sounds.keys()]).toEqual(['tone.drop', 'tone.rain']);
     const rain = sounds.get('tone.rain')!;
     expect(rain.key).toEqual({ tonic: 'D', scale: 'minor' });
@@ -120,7 +130,7 @@ describe('the walk of the code sounds', () => {
           play: { _tag: 'Layer', of: [{ node: noise(0.1, 'grain') }, { node: sample('tone.a') }] },
         }),
       }),
-    ).toEqual({ resolved: ['tone.a', 'tone.b'] });
+    ).toEqual({ resolved: ['tone.a', 'tone.b'], trials: [] });
   });
 
   test('a degree with no key is refused', () => {
@@ -141,7 +151,7 @@ describe('the walk of the code sounds', () => {
     });
     expect(
       walked({ 'tone.a': code({ key: { tonic: 'G', scale: 'major' }, play: degree }) }),
-    ).toEqual({ resolved: ['tone.a'] });
+    ).toEqual({ resolved: ['tone.a'], trials: [] });
   });
 
   test('a sound that can run past 120 s, or write past an hour of frames, is refused', () => {
@@ -173,5 +183,46 @@ describe('the walk of the code sounds', () => {
         'tone.b': code({ play: { _tag: 'Sequence', of: [sample('tone.a'), sample('tone.a')] } }),
       }),
     ).toMatchObject({ _tag: 'CodeTooLong', sound: 'tone.b', measure: 'length', secs: 140 });
+  });
+});
+
+describe('the walk of the code trials', () => {
+  test('a generated sound’s trial resolves beside the code sounds, with what it samples', () => {
+    const library = defineLibrary({
+      'tone.drop': code({ play: noise(0.1) }),
+      'paper.whoosh': trialled(sample('tone.drop')),
+      'amb.court': { kind: 'generated', prompt: 'a court', secs: 10, use: 'bed' },
+    });
+    const walk = Result.getOrThrow(resolveCode(library));
+    expect([...walk.code.keys()]).toEqual(['tone.drop']);
+    expect([...walk.trials.keys()]).toEqual(['paper.whoosh']);
+    const whoosh = walk.trials.get('paper.whoosh')!;
+    expect(whoosh.variants).toBe(2);
+    expect(whoosh.sound.samples.get('tone.drop')).toBe(walk.code.get('tone.drop')!);
+  });
+
+  test('a trial is refused as a code sound is, under its name and “(trial)”; nothing samples it', () => {
+    const grains: Node = {
+      _tag: 'Layer',
+      of: [{ node: noise(0.1, 'grain') }, { node: noise(0.2, 'grain') }],
+    };
+    expect(walked({ 'paper.whoosh': trialled(grains) })).toMatchObject({
+      _tag: 'StreamDuplicate',
+      sound: 'paper.whoosh (trial)',
+      stream: 'grain',
+    });
+    // A trial is no code sound: a sound that samples its entry samples a take.
+    expect(
+      walked({
+        'paper.whoosh': trialled(noise(0.1)),
+        'tone.a': code({ play: sample('paper.whoosh') }),
+      }),
+    ).toMatchObject({ _tag: 'SampleNotCode', sound: 'tone.a', sample: 'paper.whoosh' });
+    expect(walked({ 'paper.whoosh': trialled(sample('paper.whoosh')) })).toMatchObject({
+      _tag: 'SampleNotCode',
+      sound: 'paper.whoosh (trial)',
+      sample: 'paper.whoosh',
+      kind: 'generated',
+    });
   });
 });

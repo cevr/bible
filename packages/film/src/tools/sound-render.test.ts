@@ -32,7 +32,11 @@ const library = defineLibrary({
   'paper.tap': { kind: 'generated', prompt: 'a tap', secs: 1, use: 'one-shot' },
 });
 
-const sounds: Sounds = { ...NO_SOUNDS, library, code: Result.getOrThrow(resolveCode(library)) };
+const sounds: Sounds = {
+  ...NO_SOUNDS,
+  library,
+  code: Result.getOrThrow(resolveCode(library)).code,
+};
 
 const tick = (seed: number): DerivedSource => ({
   _tag: 'Code',

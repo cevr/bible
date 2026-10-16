@@ -572,7 +572,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             if (Option.isNone(sounds) || !(yield* fs.exists(file))) return NO_SOUNDS;
             const { library } = yield* libraryModule(file);
             const lock = yield* store.read(lockManifest(dir));
-            const code = yield* Effect.fromResult(resolveCode(library));
+            const { code } = yield* Effect.fromResult(resolveCode(library));
             const loaded: Sounds = { library, lock, dir, code, measured: new Map() };
             return yield* render.measured(
               loaded,
