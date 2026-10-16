@@ -188,8 +188,9 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-app .st-btn { height: var(--s-8); padding: 0 var(--s-3); border-radius: var(--r-1); border: 1px solid var(--line-strong); background: var(--surface-2); font-size: var(--fs-2); line-height: var(--lh-2); white-space: nowrap; }
 .st-app .st-btn.primary { border-color: var(--text-1); background: var(--text-1); color: var(--surface-1); font-weight: var(--w-3); }
 .st-app .st-btn:disabled { cursor: default; border-color: var(--line-strong); background: var(--surface-2); color: var(--text-3); }
-.st-app .st-close { width: var(--s-8); height: var(--s-8); border-radius: var(--r-1); display: grid; place-items: center; color: var(--text-2); flex: none; }
-.st-app .st-close:hover { background: var(--surface-3); color: var(--text-1); }
+.st-record .st-close { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:is(.st-app, .st-record) .st-close { width: var(--s-8); height: var(--s-8); border-radius: var(--r-1); display: grid; place-items: center; color: var(--text-2); flex: none; }
+:is(.st-app, .st-record) .st-close:hover { background: var(--surface-3); color: var(--text-1); }
 .st-row { display: flex; align-items: center; gap: var(--s-3); height: 40px; padding: 0 var(--s-4); border-bottom: var(--border); font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
 a.st-row { color: var(--text-2); text-decoration: none; }
 a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
@@ -238,7 +239,7 @@ a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
   .st-studio[data-open="true"] .st-insp { display: block; }
   .st-pane { border-radius: 0; border-width: 1px 0 0; border-color: var(--line-strong); }
   .st-pane-head { padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4); }
-  .st-app .st-btn, .st-app .st-close { height: var(--hit); min-width: var(--hit); }
+  .st-app .st-btn, :is(.st-app, .st-record) .st-close { height: var(--hit); min-width: var(--hit); }
   .st-row { height: 48px; }
   .st-version { min-height: var(--hit); }
 }
