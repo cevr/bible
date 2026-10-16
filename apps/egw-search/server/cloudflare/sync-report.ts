@@ -162,19 +162,30 @@ const recheckedSection = (
   intro: string,
   books: readonly RecheckedBook[],
   changes: ChangesByBook,
+  /** Whether a paragraph a recheck added is quoted, or only counted. */
+  quoteAdded: boolean,
 ): readonly string[] => {
   const changed = books.filter(({ changes: counts }) => changeCount(counts) > 0);
   const same = books.filter(({ changes: counts }) => changeCount(counts) === 0);
+  const onlyAdded = changed.filter(
+    ({ changes: counts }) => !quoteAdded && counts.edited + counts.removed === 0,
+  );
+  const quoted = changed.filter((book) => !onlyAdded.includes(book));
+  const shown = (change: ParagraphChangeRow) => quoteAdded || change.kind !== 'added';
   return ifAny(books, () => [
     `## ${title} (${String(books.length)})`,
     intro,
     ...ifAny(same, (some) => [
       `Unchanged (${String(some.length)}): ${some.map(({ book }) => escapeMarkdown(book.code)).join(', ')}.`,
     ]),
-    ...changed.flatMap(({ book, changes: counts }) => [
+    ...ifAny(onlyAdded, (some) => [
+      `Only gained paragraphs (${String(some.length)}): ` +
+        `${some.map(({ book, changes: counts }) => `${escapeMarkdown(book.code)} \\+${String(counts.added)}`).join(', ')}.`,
+    ]),
+    ...quoted.flatMap(({ book, changes: counts }) => [
       `### ${bookHeading(book)}`,
       `${changeSummary(counts)}.`,
-      ...(changes.get(book.id) ?? []).map((change) => changeBlock(book, change)),
+      ...(changes.get(book.id) ?? []).filter(shown).map((change) => changeBlock(book, change)),
     ]),
   ]);
 };
@@ -202,14 +213,17 @@ export const syncReport = (run: SyncRun, changes: ChangesByBook, at: string): st
       'Books whose archive changed since they were installed, and every paragraph that changed with them.',
       run.updated,
       changes,
+      true,
     ),
     recheckedSection(
       'Checked against the library',
       'Books installed before the sync kept content hashes, checked once against the library. ' +
         'What differs is what the earlier import missed, now corrected; it is not a change the library made. ' +
+        'Paragraphs it gained are counted, not quoted: they are mostly headings the earlier import dropped. ' +
         `${String(run.recheckLeft)} books are still to check.`,
       run.verified,
       changes,
+      false,
     ),
     ifAny(unexpected, (some) => [
       `## Failed unexpectedly (${String(some.length)})`,

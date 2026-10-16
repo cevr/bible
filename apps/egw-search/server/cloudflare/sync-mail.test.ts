@@ -211,6 +211,8 @@ describe('the sync report', () => {
     expect(report).toContain('> A new \\*line\\*\\.');
     expect(report).toContain('> ~~Gone \\<b\\>now\\</b\\>~~');
     expect(report).toContain('## Checked against the library (2)');
+    expect(report).toContain('Only gained paragraphs (1): AA \\+1.');
+    expect(report).not.toContain('This chapter is based on Acts 2');
     expect(report).toContain('Unchanged (1): ATN.');
     expect(report).toContain('1480 books are still to check.');
     expect(report).toContain('## Withheld by the library (1)');
