@@ -64,7 +64,16 @@ import { startLab } from './film-services.ts';
 import { STUDIO_IMPORT_WAIT_S, STUDIO_MAX_BODY } from '../core/studio.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { PageRenderer } from './page-render.ts';
-import { echoPages, freshFilm, labInMemory, memoryFileSystem, routePath, text } from './testing.ts';
+import {
+  echoPages,
+  freshFilm,
+  labInMemory,
+  labWithMcp,
+  memoryFileSystem,
+  routePath,
+  text,
+} from './testing.ts';
+import { MCP_PATH } from './lab-mcp.ts';
 
 /** The films folder with one film, `f`: a folder with its scenes' index. */
 const files = () =>
@@ -994,11 +1003,11 @@ describe('lab routes', () => {
   );
 
   it.effect(
-    'the gate: every route and every kind of page path, against every request it refuses, and what it lets in, each refusal logged once to stderr',
+    'the gate: every route, the MCP and every kind of page path, against every request it refuses, and what it lets in, each refusal logged once to stderr',
     () => {
       const written: Written = { stderr: [], stdout: [] };
       return Effect.gen(function* () {
-        const lab = yield* labHandler();
+        const { lab } = yield* labWithMcp;
         const answer = (request: Request) =>
           Effect.gen(function* () {
             const res = yield* Effect.promise(() => lab(request, bound));
@@ -1078,6 +1087,37 @@ describe('lab routes', () => {
           expect(yield* row(json(path, route.method, navigation))).toEqual(refused);
           yield* refusedWrites(path);
         }
+        // The MCP, under each method a client sends it: the same refusals as a route.
+        for (const method of ['POST', 'GET', 'DELETE', 'OPTIONS']) {
+          const refused = [`${method} ${MCP_PATH}`, 403, 'RequestRefused'] as const;
+          expect(yield* row(json(MCP_PATH, method, foreign))).toEqual(refused);
+          expect(yield* row(json(MCP_PATH, method, { host: '127.0.0.1' }))).toEqual(refused);
+          expect(yield* row(json(MCP_PATH, method, crossSite))).toEqual(refused);
+          expect(yield* row(json(MCP_PATH, method, { 'sec-fetch-site': 'same-site' }))).toEqual(
+            refused,
+          );
+          expect(yield* row(json(MCP_PATH, method, navigation))).toEqual(refused);
+        }
+        yield* refusedWrites(MCP_PATH);
+        // A DELETE or OPTIONS that carries a body is judged as any write; one with none
+        // (a client ending its session) reaches the MCP: no session named (400), a
+        // method it does not take (405).
+        for (const method of ['DELETE', 'OPTIONS'])
+          expect(
+            yield* row(
+              new Request(at(MCP_PATH), {
+                method,
+                headers: { 'content-type': 'text/plain' },
+                body: 'x',
+              }),
+            ),
+          ).toEqual([`${method} ${MCP_PATH}`, 415, 'WriteNotJson']);
+        const bare = (method: string) =>
+          Effect.promise(() =>
+            lab(new Request(at(MCP_PATH), { method }), bound).then((r) => r.status),
+          );
+        expect(yield* bare('DELETE')).toBe(400);
+        expect(yield* bare('OPTIONS')).toBe(405);
         // The pages: a foreign Host never; a link opened on another site, yes (GET or
         // HEAD), but none of a page's files; a page is read, never written.
         // Every place's path (its film `f`, each other part `x`), and old links
@@ -1174,7 +1214,11 @@ describe('lab routes', () => {
         expect(refusals.length).toBeGreaterThan(600);
         expect(Arr.sort(lines, Order.String)).toEqual(Arr.sort(refusals, Order.String));
         expect(eventLines(written.stdout, 'api.request.refused')).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide([labInMemory(files()), loggingInto(written)]));
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(RenderCatalogue.layer),
+        Effect.provide([labInMemory(files()), loggingInto(written)]),
+      );
     },
   );
 
