@@ -1,7 +1,8 @@
 // The studio's machines, with no page: the timeline machine reads the
 // version the address names, reads again when the owner opens another, keeps
 // what it shows when the same version is asked again, and says why a read
-// failed until a retry or another version reads again. A read answers for
+// failed until a retry (of a failure that can pass) or another version
+// reads again. A read answers for
 // its own version: one the owner left while it was in flight never shows,
 // whether he picked another or went Back. The transport machine
 // plays and pauses, and a scrub holds it, remembering whether it cut play off.
@@ -17,13 +18,18 @@ import {
   spawnTransport,
 } from './machine.ts';
 
-/** A read over the probe film's two versions (0: the open one, v2), each asked told to `asked`; any other fails. */
+/**
+ * A read over the probe film's two versions (0: the open one, v2), each asked
+ * told to `asked`; version 7 fails for good (a refusal), any other for now
+ * (the lab did not answer).
+ */
 const probeRead = (asked: Array<number>) => (v: number) =>
   Effect.suspend(() => {
     asked.push(v);
     if (v === 0 || v === 2) return Effect.succeed(probeTimeline(2));
     if (v === 1) return Effect.succeed(probeTimeline(1));
-    return Effect.fail({ message: `no version ${v}` });
+    if (v === 7) return Effect.fail({ message: 'version 7 kept nothing', lasting: true });
+    return Effect.fail({ message: `no version ${v}`, lasting: false });
   });
 
 /**
@@ -117,7 +123,9 @@ describe("the studio's timeline machine", () => {
       return Effect.gen(function* () {
         const actor = yield* spawnTimeline(probeRead(asked), 9);
         const failed = yield* actor.waitFor(TimelineState.Unreadable);
-        expect(failed).toEqual(TimelineState.Unreadable({ v: 9, why: 'no version 9' }));
+        expect(failed).toEqual(
+          TimelineState.Unreadable({ v: 9, why: 'no version 9', lasting: false }),
+        );
         yield* actor.send(TimelineEvent.Retry);
         yield* actor.waitFor((s) => s._tag === 'Unreadable' && asked.length === 2);
         yield* actor.send(TimelineEvent.Version({ v: 2 }));
@@ -126,6 +134,21 @@ describe("the studio's timeline machine", () => {
       }).pipe(Effect.scoped);
     },
   );
+
+  it.effect('takes no retry of a failure that lasts: only another version reads again', () => {
+    const asked: Array<number> = [];
+    return Effect.gen(function* () {
+      const actor = yield* spawnTimeline(probeRead(asked), 7);
+      const failed = yield* actor.waitFor(TimelineState.Unreadable);
+      yield* actor.send(TimelineEvent.Retry);
+      yield* actor.send(TimelineEvent.Version({ v: 2 }));
+      yield* actor.waitFor(shownAt(2));
+      expect(asked).toEqual([7, 2]);
+      expect(failed).toEqual(
+        TimelineState.Unreadable({ v: 7, why: 'version 7 kept nothing', lasting: true }),
+      );
+    }).pipe(Effect.scoped);
+  });
 });
 
 /** Whether a transport state is a scrub that cut play off: none for any other state. */

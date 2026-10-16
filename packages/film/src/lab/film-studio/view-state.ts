@@ -15,6 +15,7 @@ import type { PanelText } from '../../core/board.ts';
 import type {
   BoardClip,
   FilmTimeline,
+  FilmVersion,
   Lane,
   ScriptClip,
   Track,
@@ -426,6 +427,40 @@ const BEAT_PAGE: Readonly<
   Board: (film, beat, t) => pageHref.boardBeat(film, beat, {}, t),
   Lab: (film, beat, t) => pageHref.labScene(film, beat, {}, t),
 };
+
+/** The version chip: the film's versions as the last timeline read named them, and the one the page is at. */
+export interface VersionChip {
+  readonly versions: ReadonlyArray<FilmVersion>;
+  readonly at: number;
+}
+
+/**
+ * The version chip while the page is at version `v` (0: the open one), its
+ * versions the last timeline read named (`last`): kept while another version
+ * is read or cannot be, so the owner can always pick another. None before
+ * any timeline is read.
+ */
+export const versionChip = (
+  last: Option.Option<FilmTimeline>,
+  v: number,
+): Option.Option<VersionChip> =>
+  Option.map(last, (timeline) => ({
+    versions: timeline.versions,
+    at: Bool.match(v > 0, {
+      onTrue: () => v,
+      onFalse: () =>
+        Option.getOrElse(
+          Option.map(
+            Arr.findFirst(timeline.versions, (version) => version.open),
+            (version) => version.n,
+          ),
+          () => timeline.version.n,
+        ),
+    }),
+  }));
+
+/** Whether version `version` can be opened: one replaced in place kept nothing to show. */
+export const versionOpens = (version: FilmVersion): boolean => version.files !== 'none';
 
 /**
  * Whether `timeline`'s version is the one kept in the film's own files: the

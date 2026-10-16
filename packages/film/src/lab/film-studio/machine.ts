@@ -6,7 +6,7 @@
 // machine's state: it moves every frame.
 //
 //   Timeline:  Reading ─Read→ Shown ─Version→ Reading
-//              Reading ─Unread→ Unreadable ─Retry | Version→ Reading
+//              Reading ─Unread→ Unreadable ─Retry (a failure that can pass) | Version→ Reading
 //              Reading ─Version (another)→ Reading, its read started again
 //              Shown ─Version (the one shown)→ Shown
 //   A read's answer names its version: Reading hears only its own, so a
@@ -27,25 +27,31 @@ export const TimelineState = State({
   Reading: { v: Schema.Int },
   /** The timeline of version `v` as read. */
   Shown: { v: Schema.Int, timeline: FilmTimeline },
-  /** Version `v` could not be read: `why`. */
-  Unreadable: { v: Schema.Int, why: Schema.String },
+  /** Version `v` could not be read: `why`; `lasting` when a retry cannot change it (a refusal). */
+  Unreadable: { v: Schema.Int, why: Schema.String, lasting: Schema.Boolean },
 });
 export type TimelineState = typeof TimelineState.Type;
 
 export const TimelineEvent = Event({
   /** Version `v`'s timeline, read. */
   Read: { v: Schema.Int, timeline: FilmTimeline },
-  /** Version `v` could not be read: `why`. */
-  Unread: { v: Schema.Int, why: Schema.String },
+  /** Version `v` could not be read: `why`; `lasting` when a retry cannot change it. */
+  Unread: { v: Schema.Int, why: Schema.String, lasting: Schema.Boolean },
   /** The owner opened version `v` (0: the open one). */
   Version: { v: Schema.Int },
   Retry: {},
 });
 export type TimelineEvent = typeof TimelineEvent.Type;
 
+/** Why a read failed, and whether reading again can change it. */
+export interface ReadFailure {
+  readonly message: string;
+  readonly lasting: boolean;
+}
+
 /** The timeline machine over `read` (version `v`'s timeline, or why not), opening on version `first`. */
 const timelineMachine = <R>(
-  read: (v: number) => Effect.Effect<FilmTimeline, { readonly message: string }, R>,
+  read: (v: number) => Effect.Effect<FilmTimeline, ReadFailure, R>,
   first: number,
 ) =>
   Machine.make({
@@ -59,7 +65,9 @@ const timelineMachine = <R>(
         read(state.v).pipe(
           Effect.map((timeline) => TimelineEvent.Read({ v: state.v, timeline })),
           Effect.catch((failure) =>
-            Effect.succeed(TimelineEvent.Unread({ v: state.v, why: failure.message })),
+            Effect.succeed(
+              TimelineEvent.Unread({ v: state.v, why: failure.message, lasting: failure.lasting }),
+            ),
           ),
         ),
       { onSuccess: (event) => event },
@@ -79,7 +87,8 @@ const timelineMachine = <R>(
       function unreadOfThisVersion({ state, event }) {
         return event.v === state.v;
       },
-      ({ state, event }) => TimelineState.Unreadable({ v: state.v, why: event.why }),
+      ({ state, event }) =>
+        TimelineState.Unreadable({ v: state.v, why: event.why, lasting: event.lasting }),
     )
     .on(TimelineState.Reading, TimelineEvent.Unread, ({ state }) => state)
     .reenterWhen(
@@ -100,13 +109,19 @@ const timelineMachine = <R>(
     .on(TimelineState.Unreadable, TimelineEvent.Version, ({ event }) =>
       TimelineState.Reading({ v: event.v }),
     )
-    .on(TimelineState.Unreadable, TimelineEvent.Retry, ({ state }) =>
-      TimelineState.Reading({ v: state.v }),
-    );
+    .when(
+      TimelineState.Unreadable,
+      TimelineEvent.Retry,
+      function canPass({ state }) {
+        return !state.lasting;
+      },
+      ({ state }) => TimelineState.Reading({ v: state.v }),
+    )
+    .on(TimelineState.Unreadable, TimelineEvent.Retry, ({ state }) => state);
 
 /** The timeline machine's actor, started, reading version `first` through `read`. */
 export const spawnTimeline = <R>(
-  read: (v: number) => Effect.Effect<FilmTimeline, { readonly message: string }, R>,
+  read: (v: number) => Effect.Effect<FilmTimeline, ReadFailure, R>,
   first: number,
 ) => Machine.spawn(timelineMachine(read, first)).pipe(Effect.tap((actor) => actor.start));
 

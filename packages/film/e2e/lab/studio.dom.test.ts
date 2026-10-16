@@ -13,16 +13,20 @@
 // studio's states in `studio-states.ts`); the replaced pages' redirects are
 // the lab server's (`servedPlace`, `tools/lab-page.test.ts`).
 
-import { Effect, Option } from 'effect';
+import { Boolean as Bool, Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
+import { FilmVersionUnkept } from '../../src/core/refusals.ts';
+import type { FilmTimeline } from '../../src/core/timeline-schema.ts';
 import {
   DESK,
   PHONE,
   type Viewport,
   json,
   openPlayer,
+  refused,
   route,
+  text,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { PROBE_ASK, probeTimeline } from '../../src/lab/fixtures/probe-timeline.ts';
@@ -262,6 +266,98 @@ describe('a zoom step on a laptop', () => {
           yield* until(page, `${WIDTH} !== window.__studioCanvasW`);
           yield* until(page, HELD);
         }
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe('the version menu', () => {
+  const MENU = '[data-role="versions"]';
+  /** The open v2's timeline, v1 replaced in place: nothing kept to show. */
+  const replaced: FilmTimeline = {
+    ...probeTimeline(2),
+    versions: probeTimeline(2).versions.map((version) =>
+      Object.assign({}, version, version.n === 1 && { files: 'none' as const }),
+    ),
+  };
+  /** The studio at `href`, its timeline route answering v1 with `v1` and any other with the open v2, once `ready` shows. */
+  const studioWith = (
+    v1: Parameters<typeof route>[2],
+    href = pageHref.studio(PROBE),
+    ready = READY,
+  ) =>
+    openPlayer({ href, viewport: DESK }, ready, [
+      route('GET', /^\/timeline(\?|$)/, (asked) =>
+        Bool.match(/[?&]v=1(&|$)/.test(asked.path), {
+          onTrue: () => v1(asked),
+          onFalse: () => json(probeTimeline(2)),
+        }),
+      ),
+    ]);
+
+  it.live(
+    'lists a version replaced in place, and does not offer it',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.studio(PROBE), viewport: DESK },
+          READY,
+          [route('GET', /^\/timeline(\?|$)/, () => json(replaced))],
+        );
+        yield* page.click('[data-act="version"]');
+        yield* waitFor(page, `${MENU} [role="menuitemradio"][data-version="2"]`);
+        yield* countIs(page, `${MENU} [role="menuitemradio"][data-version="1"]`, 0);
+        yield* attributeIs(page, `${MENU} [data-version="1"]`, 'aria-disabled', 'true');
+        yield* textIs(
+          page,
+          `${MENU} [data-version="1"] .st-version-note`,
+          'replaced in place: nothing kept to show',
+        );
+        yield* page.click(`${MENU} [data-version="1"]`);
+        yield* textIs(page, '.st-ver', /v2/);
+        expect(yield* page.url).not.toMatch(/[?&]v=1(&|#|$)/);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'keeps the chip while a version cannot be read, offers no retry of a refusal, and opens another',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioWith(() =>
+          refused(FilmVersionUnkept.make({ film: PROBE, version: 1, kept: [2] })),
+        );
+        yield* page.click('[data-act="version"]');
+        yield* page.click(`${MENU} [data-version="1"]`);
+        yield* textIs(page, '.st-status-line p', /could not be read/);
+        yield* textIs(page, '.st-ver', /v1/);
+        yield* countIs(page, '[data-act="retry"]', 0);
+        yield* countIs(page, '[data-act="open-version"]', 1);
+        yield* page.click('[data-act="version"]');
+        yield* page.click(`${MENU} [data-version="2"]`);
+        yield* waitFor(page, READY);
+        yield* textIs(page, '.st-ver', /v2/);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'offers a retry when the lab did not answer, and the open version from an address that cannot be read',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioWith(
+          () => text('the lab is away', 502),
+          pageHref.studio(PROBE, { v: 1 }),
+          '.st-status-line [data-act="retry"]',
+        );
+        yield* textIs(page, '.st-status-line p', /could not be read/);
+        yield* page.click('[data-act="open-version"]');
+        yield* waitFor(page, READY);
+        yield* textIs(page, '.st-ver', /v2/);
+        expect(yield* page.url).not.toMatch(/[?&]v=1(&|#|$)/);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

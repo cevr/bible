@@ -24,6 +24,8 @@ import {
   rulerTicks,
   sentenceAt,
   timecode,
+  versionChip,
+  versionOpens,
   waitsText,
   zoomFor,
   zoomStep,
@@ -178,6 +180,25 @@ describe('the zoom and the ruler', () => {
   test('labels the ruler at the first step that leaves room between labels', () => {
     expect(rulerTicks(12.315, 100)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     expect(rulerTicks(12.315, 20)).toEqual([0, 5, 10]);
+  });
+});
+
+describe('the version chip', () => {
+  test('is the version the page is at, over the versions the last timeline read named', () => {
+    expect(versionChip(Option.some(drawn), 0)).toEqual(
+      Option.some({ versions: drawn.versions, at: 2 }),
+    );
+    expect(versionChip(Option.some(drawn), 1)).toEqual(
+      Option.some({ versions: drawn.versions, at: 1 }),
+    );
+    // A version the last timeline did not name is still the one the page is at.
+    expect(Option.map(versionChip(Option.some(firstCut), 9), (c) => c.at)).toEqual(Option.some(9));
+    expect(versionChip(Option.none(), 1)).toEqual(Option.none());
+  });
+
+  test('offers every version but one replaced in place, which kept nothing to show', () => {
+    expect(drawn.versions.map(versionOpens)).toEqual([true, true]);
+    expect(versionOpens({ n: 1, title: 'Gone', open: false, files: 'none' })).toBe(false);
   });
 });
 

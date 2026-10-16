@@ -69,9 +69,11 @@ import {
   sentenceAt,
   zoomFor,
   type BeatPage,
+  type VersionChip,
   type CardPicture,
   beatPageHref,
   verseParts,
+  versionOpens,
 } from './view-state.ts';
 
 /** Whether the window is a phone's: its lanes, its keys and its reading block. */
@@ -121,17 +123,28 @@ const versionNote = (version: FilmVersion): string =>
     Match.exhaustive,
   );
 
-/** The version chip (`v2 ▾`): a menu of the film's versions, each with its title. */
-const VersionMenu = (props: { readonly timeline: FilmTimeline }) => {
+/** A version's row in the version menu: its number, its title and where its files are. */
+const VersionRow = (props: { readonly version: FilmVersion }) => (
+  <>
+    <span class="st-version-n">v{props.version.n}</span>
+    <span class="st-version-text">
+      <span class="st-version-title">{props.version.title}</span>
+      <span class="st-version-note">{versionNote(props.version)}</span>
+    </span>
+  </>
+);
+
+/**
+ * The version chip (`v2 ▾`): a menu of the film's versions, each with its
+ * title. A version replaced in place is listed, not offered: it kept nothing
+ * to show.
+ */
+const VersionMenu = (props: { readonly chip: VersionChip }) => {
   const { actions } = useStudio();
   return (
     <Menu.Root>
-      <Menu.Trigger
-        class="st-ver"
-        data-act="version"
-        aria-label={`Version ${props.timeline.version.n}`}
-      >
-        <span>v{props.timeline.version.n}</span>
+      <Menu.Trigger class="st-ver" data-act="version" aria-label={`Version ${props.chip.at}`}>
+        <span>v{props.chip.at}</span>
         <StudioIcon of="caret" />
       </Menu.Trigger>
       <Menu.Portal>
@@ -139,25 +152,35 @@ const VersionMenu = (props: { readonly timeline: FilmTimeline }) => {
           <Menu.Popup class="lab-context-menu st-versions" data-role="versions">
             <Menu.RadioGroup
               aria-label="Versions"
-              value={`${props.timeline.version.n}`}
+              value={`${props.chip.at}`}
               onValueChange={(v: string) => actions.version(Number(v))}
             >
-              <For each={props.timeline.versions}>
+              <For each={props.chip.versions}>
                 {(version) => (
-                  <Menu.RadioItem
-                    class="lab-context-item st-version"
-                    data-version={version.n}
-                    value={`${version.n}`}
-                    label={`v${version.n}`}
-                    closeOnClick
+                  <Show
+                    when={versionOpens(version)}
+                    fallback={
+                      <div
+                        class="lab-context-item st-version"
+                        data-version={version.n}
+                        data-disabled=""
+                        aria-disabled="true"
+                      >
+                        <VersionRow version={version} />
+                      </div>
+                    }
                   >
-                    <span class="st-version-n">v{version.n}</span>
-                    <span class="st-version-text">
-                      <span class="st-version-title">{version.title}</span>
-                      <span class="st-version-note">{versionNote(version)}</span>
-                    </span>
-                    <Menu.RadioItemIndicator class="lab-context-check">✓</Menu.RadioItemIndicator>
-                  </Menu.RadioItem>
+                    <Menu.RadioItem
+                      class="lab-context-item st-version"
+                      data-version={version.n}
+                      value={`${version.n}`}
+                      label={`v${version.n}`}
+                      closeOnClick
+                    >
+                      <VersionRow version={version} />
+                      <Menu.RadioItemIndicator class="lab-context-check">✓</Menu.RadioItemIndicator>
+                    </Menu.RadioItem>
+                  </Show>
                 )}
               </For>
             </Menu.RadioGroup>
@@ -209,14 +232,16 @@ const Waits = (props: { readonly timeline: FilmTimeline; readonly words: string 
 
 /** The header (44 px): the film, the version chip, the stage word; right, what waits and what the agents do now. */
 const Header = () => {
-  const { meta } = useStudio();
+  const { state, meta } = useStudio();
   return (
     <header class="st-header">
       <b class="st-film">{meta.film}</b>
+      <Show when={Option.getOrUndefined(state.chip())}>
+        {(chip) => <VersionMenu chip={chip()} />}
+      </Show>
       <Shown>
         {(timeline) => (
           <>
-            <VersionMenu timeline={timeline()} />
             <span class="st-stage" data-stage={timeline().header.stage}>
               {STAGE_TITLE[timeline().header.stage]}
             </span>
@@ -1226,9 +1251,21 @@ const Status = () => {
       <div class="st-status-line" role="status">
         <Show when={state.phase() === 'Unreadable'} fallback={<p>Reading the timeline…</p>}>
           <p>The timeline could not be read: {state.why()}</p>
-          <button type="button" class="st-btn" data-act="retry" onClick={actions.retry}>
-            Try again
-          </button>
+          <Show when={state.retryable()}>
+            <button type="button" class="st-btn" data-act="retry" onClick={actions.retry}>
+              Try again
+            </button>
+          </Show>
+          <Show when={state.asked() > 0}>
+            <button
+              type="button"
+              class="st-btn"
+              data-act="open-version"
+              onClick={() => actions.version(0)}
+            >
+              Open the open version
+            </button>
+          </Show>
         </Show>
       </div>
     </Show>

@@ -15,7 +15,7 @@
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
-import { Array as Arr, Boolean as Bool, Layer, Match, Option, Result } from 'effect';
+import { Array as Arr, Boolean as Bool, Effect, Layer, Match, Option, Result } from 'effect';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -38,7 +38,9 @@ import {
   TIME_EVERY_MS,
   beatSelection,
   boardFileUrl,
+  isRefusal,
   selectedBeat,
+  statusOf,
 } from '../../core/api.ts';
 import { parse } from '../../core/narration.ts';
 import { Segment } from '../../core/segment.ts';
@@ -52,6 +54,7 @@ import { Actor } from '../actor.tsx';
 import { LabClient, called } from '../api.ts';
 import { type StudioClock, playerClock, silentClock } from './clock.ts';
 import {
+  type ReadFailure,
   type TimelineActor,
   TimelineEvent,
   type TimelineState,
@@ -62,11 +65,13 @@ import {
 } from './machine.ts';
 import {
   type Picture,
+  type VersionChip,
   beatAt,
   beatNamed,
   beatStep,
   keptInFilm,
   pictureAt,
+  versionChip,
   zoomStep,
 } from './view-state.ts';
 
@@ -82,6 +87,12 @@ interface StudioState {
   readonly timeline: Accessor<Option.Option<FilmTimeline>>;
   /** Why the timeline could not be read. */
   readonly why: Accessor<string>;
+  /** Whether reading again can change why it could not be read (the lab did not answer, or failed). */
+  readonly retryable: Accessor<boolean>;
+  /** The version the page reads or shows (0: the open one). */
+  readonly asked: Accessor<number>;
+  /** The version chip, kept from the last timeline read while another is read or cannot be. */
+  readonly chip: Accessor<Option.Option<VersionChip>>;
   /** Film seconds at the playhead. */
   readonly T: Accessor<number>;
   readonly playing: Accessor<boolean>;
@@ -198,6 +209,10 @@ const Body = (
   const address = addressOn(props.host);
 
   const timeline = createMemo(() => timelineOf(read()));
+  // The last timeline shown, kept while another version is read or cannot be.
+  const lastShown = createMemo((before): Option.Option<FilmTimeline> =>
+    Option.orElse(timeline(), () => Option.flatten(Option.fromUndefinedOr(before))),
+  );
   // The registry's film plays the version kept in the film's own files.
   const drawable = createMemo(
     () => Option.isSome(props.staged) && Option.exists(timeline(), keptInFilm),
@@ -493,6 +508,13 @@ const Body = (
           Match.tag('Unreadable', (u) => u.why),
           Match.orElse(() => ''),
         ),
+      retryable: () =>
+        Match.value(read()).pipe(
+          Match.tag('Unreadable', (u) => !u.lasting),
+          Match.orElse(() => false),
+        ),
+      asked: () => read().v,
+      chip: () => versionChip(lastShown(), read().v),
       T,
       playing,
       selected,
@@ -549,6 +571,8 @@ export const Root = (
     Option.map(Place.decode(Places.studio, addressOn(props.host).href()), (v) => v.query.v),
     () => 0,
   );
+  // A refusal under 500 lasts (the version kept nothing, or is none of the film's); any other
+  // failure can pass, so the page offers to read again.
   const read = (v: number) =>
     LabClient.use((client) =>
       called(
@@ -562,6 +586,11 @@ export const Root = (
             },
           ),
         }),
+      ).pipe(
+        Effect.mapError((failure): ReadFailure => ({
+          message: failure.message,
+          lasting: isRefusal(failure) && statusOf(failure) < 500,
+        })),
       ),
     );
   return (
