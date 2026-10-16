@@ -336,7 +336,8 @@ a code sound by its renderer's version, its graph's hash and its seed, with
 where, how loud and at what pitch, the score option and its
 levels, and the levels it masters, fades and ducks by). A bed or
 effect names a library sound (`core/sfx.ts`) and a level in dB relative to
-the voice; its gain comes from the level its variant measured when made
+the voice; its gain comes from the level its variant measured, a take's
+when it was made and a code seed's when what plays it renders it
 (one-shots by momentary max, beds by integrated loudness). An effect's
 placements rotate through the sound's variants (never the same one back to
 back while it has another), each nudged late, louder or quieter and up or
@@ -2875,14 +2876,14 @@ variants. One adapter per kind lists them (`tools/choice-points.ts`, render
 sets in `tools/review.ts`), and one dispatch lands each verb
 (`tools/choices.ts`):
 
-| Kind     | Id                                                   | Variants                                                                                                                                                                                     | A pick lands in                                               |
-| -------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `render` | `render:<address>`                                   | an address's renders in the catalogue, or a montage's `review.json`                                                                                                                          | nothing: approved and commented only                          |
-| `score`  | `score`                                              | `sound.ts`'s `score.options`, each heard as the whole mix                                                                                                                                    | `play` in `sound.ts`                                          |
-| `take`   | `take:<sound>`                                       | a library sound's kept takes and candidates, at the scenes it plays; a code or recipe sound's seeds (all play) and a code trial's (none does), which no verb reaches (`ChoiceVariant.fixed`) | the library's keep, unkeep, reject (`library.lock.json`)      |
-| `voice`  | `voice:<beat>`                                       | a beat's recorded attempts, newest first; the timings' take picked                                                                                                                           | the timings, kept by `film options keep-voice` (then remixed) |
-| `look`   | `look:<name>`                                        | `looks.<name>.options` in `palette.ts` (`ground`: now, light, …)                                                                                                                             | `looks.<name>.play` in `palette.ts`                           |
-| `level`  | `level:<bed\|effect\|score>:…`, `level:const:<name>` | none: a knob, in dB, per literal `sound.ts` writes a level with                                                                                                                              | that literal (a constant layers share is one knob for all)    |
+| Kind     | Id                                                   | Variants                                                                                                                                                                           | A pick lands in                                               |
+| -------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `render` | `render:<address>`                                   | an address's renders in the catalogue, or a montage's `review.json`                                                                                                                | nothing: approved and commented only                          |
+| `score`  | `score`                                              | `sound.ts`'s `score.options`, each heard as the whole mix                                                                                                                          | `play` in `sound.ts`                                          |
+| `take`   | `take:<sound>`                                       | a library sound's kept takes and candidates, at the scenes it plays; a code sound's seeds (all play) and a code trial's (none does), which no verb reaches (`ChoiceVariant.fixed`) | the library's keep, unkeep, reject (`library.lock.json`)      |
+| `voice`  | `voice:<beat>`                                       | a beat's recorded attempts, newest first; the timings' take picked                                                                                                                 | the timings, kept by `film options keep-voice` (then remixed) |
+| `look`   | `look:<name>`                                        | `looks.<name>.options` in `palette.ts` (`ground`: now, light, …)                                                                                                                   | `looks.<name>.play` in `palette.ts`                           |
+| `level`  | `level:<bed\|effect\|score>:…`, `level:const:<name>` | none: a knob, in dB, per literal `sound.ts` writes a level with                                                                                                                    | that literal (a constant layers share is one knob for all)    |
 
 A look's options are levels a scene reads (`ground`: the paper's ground, `now`
 at 0 drawing today's film); a render of another level is a render variant
