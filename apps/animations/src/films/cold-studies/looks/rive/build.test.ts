@@ -2,12 +2,18 @@
 // of every art-direction axis (`direction.ts`), one axis at a time with the
 // others at K1, builds with no warnings and no problems, and the committed
 // figures.riv is the build of DIRECTION. The builds have a file of their own,
-// apart from the axis property (`direction.test.ts`), so the runner's workers
+// apart from the axis property (`direction-*.test.ts`), so the runner's workers
 // take the CLI's runs and the property's checks side by side.
+//
+// The compile is deterministic, so each build is kept by what makes it: the
+// CLI's version, `build.ts` (which writes the project) and the project's text.
+// A run compiles only a project no kept build was made from, and reads the
+// riv, the warnings and the problems of the rest from the build the CLI made
+// of that same text (node_modules/.cache/rive-builds).
 
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, test } from 'bun:test';
-import { Console, Effect, FileSystem, Result } from 'effect';
+import { Console, Effect, FileSystem, Option, Result, Schema } from 'effect';
 import { compile, rive } from './build.ts';
 import { DIRECTION, type Direction, K1, OPTIONS } from './direction.ts';
 import { figuresRml } from './figures.ts';
@@ -40,8 +46,16 @@ const REBUILD = {
   cli: Result.isSuccess(cli) ? cli.success.trim() : 'none',
 };
 
+/** Where the builds are kept, each in the folder its key names. */
+const KEPT = `${import.meta.dir}/../../../../../node_modules/.cache/rive-builds`;
+
+/** What a kept build's report holds beside its riv. */
+const Report = Schema.fromJsonString(
+  Schema.Struct({ warnings: Schema.Array(Schema.String), problems: Schema.Array(Schema.Unknown) }),
+);
+
 /** A project built as `build.ts` builds it, in a directory of its own: the riv, its warnings and problems. */
-const builtIn = (rml: string) =>
+const compiled = (rml: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const built = yield* compile(yield* fs.makeTempDirectoryScoped(), rml);
@@ -50,7 +64,39 @@ const builtIn = (rml: string) =>
       warnings: built.warnings,
       problems: built.problems,
     };
-  }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
+  }).pipe(Effect.scoped);
+
+/** `rml`'s build: the one kept for its key, else the CLI's, kept for the next run. */
+const builtIn = (rml: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const maker = yield* fs.readFileString(`${import.meta.dir}/build.ts`);
+    const at = `${KEPT}/${Bun.hash(`${REBUILD.cli}\n${maker}\n${rml}`).toString(36)}`;
+    const kept = yield* Effect.option(
+      Effect.all({
+        riv: fs.readFile(`${at}/figures.riv`),
+        report: Effect.flatMap(
+          fs.readFileString(`${at}/report.json`),
+          Schema.decodeUnknownEffect(Report),
+        ),
+      }),
+    );
+    if (Option.isSome(kept)) return { riv: kept.value.riv, ...kept.value.report };
+    const built = yield* compiled(rml);
+    // Written beside, then renamed into place: a reader sees a whole build or none.
+    const beside = `${at}.${process.pid}`;
+    yield* fs.makeDirectory(beside, { recursive: true });
+    yield* fs.writeFile(`${beside}/figures.riv`, built.riv);
+    yield* fs.writeFileString(
+      `${beside}/report.json`,
+      yield* Schema.encodeEffect(Report)({ warnings: built.warnings, problems: built.problems }),
+    );
+    yield* fs.rename(beside, at).pipe(
+      // Another run kept the same build first: its copy is this one.
+      Effect.catch(() => fs.remove(beside, { recursive: true })),
+    );
+    return built;
+  }).pipe(Effect.provide(BunServices.layer));
 
 /** `rml` built, as an exit: a failed build fails only the cases that read it. */
 const begin = (rml: string) => Effect.runPromiseExit(builtIn(rml));
