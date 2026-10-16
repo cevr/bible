@@ -230,13 +230,13 @@ export class SoundKindMismatch extends Schema.TaggedError<SoundKindMismatch>()(
   }
 }
 
-/** `sfx render --trial` on a sound with no code trial: only a generated sound with `code`, or a recipe, has one. */
+/** `sfx render --trial` or `sfx compare` on a sound with no code trial: only a generated sound with `code` has one. */
 export class CodeTrialMissing extends Schema.TaggedError<CodeTrialMissing>()('CodeTrialMissing', {
   name: Schema.String,
   kind: Schema.String,
 }) {
   override get message() {
-    return `sound "${this.name}" is ${this.kind} and has no code trial: a generated sound has one when it declares code: { sound, variants }, and a recipe's is its port`;
+    return `sound "${this.name}" is ${this.kind} and has no code trial: a generated sound has one when it declares code: { sound, variants }`;
   }
 }
 

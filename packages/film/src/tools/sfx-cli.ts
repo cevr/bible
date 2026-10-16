@@ -3,6 +3,8 @@
 // its lock; `describe` records each variant's onset and hit from its file;
 // `audition` and `render` write WAVs under `<FILMS_OUT>/sounds` (`render
 // --trial`, a sound's code trial: its code version, heard beside its takes);
+// `compare` prints a code trial's numbers beside what plays, each render's
+// and each side's median, and how far apart they stand;
 // `keep`, `reject` and `import` curate the lock; `pull` and `push` sync the
 // private `files/` (and the films' scores) with the store; `push --from` sends
 // from an older folder store too (the move to R2). `make` is the one paid command: it prints
@@ -18,10 +20,11 @@
 //   film sfx unkeep <name> <n…>    film sfx reject <name> <n…>
 //   film sfx import <file> <name>
 //   film sfx render <name> [--seed n] [--trial]
+//   film sfx compare <name>
 //   film sfx check [--json]      film sfx describe
 //   film sfx pull                  film sfx push [--from folder]
 
-import { Console, Effect, Option, Schema } from 'effect';
+import { Array as Arr, Console, Effect, Option, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import {
   type LibraryEntry,
@@ -31,10 +34,11 @@ import {
   levelOf,
   soundState,
 } from '../core/sfx.ts';
+import { type Profile, distance, medianProfile } from '../core/synth/compare.ts';
 import { describeGraph } from '../core/synth/graph/describe.ts';
 import { LibraryCheckFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
-import { type LoadedLibrary, SoundLibrary, libraryLevel } from './library.ts';
+import { type Comparison, type LoadedLibrary, SoundLibrary, libraryLevel } from './library.ts';
 import { CheckLineJson } from './fresh-film.ts';
 
 const encodeCheckLine = Schema.encodeSync(CheckLineJson);
@@ -117,6 +121,82 @@ const planLines = (jobs: ReadonlyArray<MakeJob>): ReadonlyArray<string> => [
   ),
   `total ${jobs.reduce((sum, job) => sum + job.count, 0)} candidates, ${jobs.reduce((sum, job) => sum + job.credits, 0)} credits`,
 ];
+
+/** A number with its sign, to `digits` places: how far a figure moved. */
+const signed = (value: number, digits: number): string => {
+  if (value > 0) return `+${value.toFixed(digits)}`;
+  return value.toFixed(digits);
+};
+
+/** The columns a profile is printed in: each heading's width, the label's first. */
+const PROFILE_COLUMNS: ReadonlyArray<readonly [string, number]> = [
+  ['', 10],
+  ['secs', 6],
+  ['LUFS', 6],
+  ['max', 6],
+  ['peak', 6],
+  ['onset', 6],
+  ['hit', 6],
+  ['tail', 6],
+  ['centroid', 9],
+  ['flat', 5],
+  ['<30 Hz', 7],
+];
+
+/** A row of `PROFILE_COLUMNS`: the label left, each figure right. */
+const profileRow = (cells: ReadonlyArray<string>): string =>
+  cells
+    .map((cell, i) => {
+      const width = PROFILE_COLUMNS[i]?.[1] ?? 0;
+      if (i === 0) return cell.padEnd(width);
+      return cell.padStart(width);
+    })
+    .join(' ');
+
+/** A profile's numbers under `PROFILE_COLUMNS`: seconds, LUFS, dBFS, Hz, a share as a percentage. */
+const profileLine = (label: string, p: Profile): string =>
+  profileRow([
+    label,
+    p.secs.toFixed(2),
+    p.integrated.toFixed(1),
+    p.momentaryMax.toFixed(1),
+    p.peak.toFixed(1),
+    p.onset.toFixed(2),
+    p.hit.toFixed(2),
+    p.tail.toFixed(2),
+    `${p.centroid.toFixed(0)} Hz`,
+    p.flatness.toFixed(2),
+    `${(p.rumble * 100).toFixed(1)} %`,
+  ]);
+
+/**
+ * What `compare` prints: each render of what plays and of the code trial,
+ * each side's median, the bands either median hears (each band's share of
+ * the power in dB, and how far the trial moved it), and the distances.
+ */
+const compareLines = (name: string, compared: Comparison): ReadonlyArray<string> => {
+  const plays = medianProfile(Arr.map(compared.plays, (m) => m.profile));
+  const trial = medianProfile(Arr.map(compared.trial, (m) => m.profile));
+  const apart = distance(plays, trial);
+  let moved = 'none';
+  if (apart.apart.length > 0)
+    moved = apart.apart.map((row) => `${row.band} ${signed(row.moved, 1)}`).join(', ');
+  return [
+    `${name}: its code trial beside what plays`,
+    profileRow(['plays', ...PROFILE_COLUMNS.slice(1).map(([heading]) => heading)]),
+    ...compared.plays.map((m) => profileLine(m.label, m.profile)),
+    profileLine('median', plays),
+    'code trial',
+    ...compared.trial.map((m) => profileLine(m.label, m.profile)),
+    profileLine('median', trial),
+    `${'band'.padEnd(10)} ${'plays'.padStart(6)} ${'trial'.padStart(6)} ${'moved'.padStart(6)}  (share of the power, dB)`,
+    ...apart.bands.map(
+      (row) =>
+        `${row.band.padEnd(10)} ${row.from.toFixed(1).padStart(6)} ${row.to.toFixed(1).padStart(6)} ${signed(row.moved, 1).padStart(6)}`,
+    ),
+    `balance ${apart.balance.toFixed(1)} dB RMS over ${apart.bands.length} bands; moved over 6 dB: ${moved}; hit moved ${signed(apart.hit * 1000, 0)} ms`,
+  ];
+};
 
 const names = Argument.String('name').pipe(
   Argument.variadic(),
@@ -376,6 +456,19 @@ const render = Command.make(
   ),
 );
 
+const compare = Command.make(
+  'compare',
+  { name },
+  Effect.fn('film.sfx.compare')(function* (input) {
+    const compared = yield* (yield* SoundLibrary).compare(input.name);
+    for (const line of compareLines(input.name, compared)) yield* Console.log(line);
+  }),
+).pipe(
+  Command.withDescription(
+    "A sound's code trial beside what plays, in numbers: each render's loudness, timing, brightness and band balance, each side's median, and how far the trial moved them (free; no verdict)",
+  ),
+);
+
 const check = Command.make(
   'check',
   {
@@ -473,6 +566,7 @@ export const sfx = Command.make('sfx').pipe(
     reject,
     importCommand,
     render,
+    compare,
     check,
     describe,
     pull,

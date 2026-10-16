@@ -61,6 +61,7 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { describeSound } from '../core/synth/analyse.ts';
+import { type Profile, profileOf } from '../core/synth/compare.ts';
 import { loudness } from '../core/synth/loudness.ts';
 import type { ResolvedSound } from '../core/synth/graph/plan.ts';
 import { type ResolvedTrial, resolveCode } from '../core/synth/resolve.ts';
@@ -201,6 +202,24 @@ interface MakeOptions extends SpendOptions {
   /** A full set of candidates again, even for a current sound. */
   readonly force: boolean;
 }
+
+/** One render measured: what it is (a kept take by its place, or a seed) and its profile. */
+interface Measured {
+  readonly label: string;
+  readonly profile: Profile;
+}
+
+/** A sound's code trial beside what plays, each render of each side measured. */
+export interface Comparison {
+  readonly plays: Arr.NonEmptyReadonlyArray<Measured>;
+  readonly trial: Arr.NonEmptyReadonlyArray<Measured>;
+}
+
+/** What a playable is, as a comparison names it: a kept take by its place, or a seed. */
+const playableLabel = (p: Playable, index: number): string => {
+  if (p.source._tag === 'File') return `take ${index + 1}`;
+  return `seed ${p.source.seed}`;
+};
 
 /** What `render` plays: its seeds or one, of the sound or of its code trial. */
 interface RenderWhich {
@@ -349,6 +368,17 @@ interface SoundLibraryService {
   ) => Effect.Effect<
     ReadonlyArray<string>,
     LibraryError | UnknownSound | SoundKindMismatch | CodeTrialMissing | MediaFailed | PlatformError
+  >;
+  /**
+   * A sound's code trial beside what plays (free): the profile of each kept
+   * take, or each seed, and of each of the trial's seeds. Refused for a sound
+   * with no trial, and for one with nothing kept to play.
+   */
+  readonly compare: (
+    name: string,
+  ) => Effect.Effect<
+    Comparison,
+    LibraryError | UnknownSound | CodeTrialMissing | SoundUnmade | MediaFailed
   >;
   /**
    * Each variant's onset and hit, measured from its file where the lock lacks
@@ -864,6 +894,35 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           );
         });
 
+        const compare = Effect.fn('SoundLibrary.compare')(function* (name: string) {
+          const loaded = yield* load;
+          const entry = yield* entryOf(loaded, name);
+          const trial = Option.fromUndefinedOr(loaded.trials.get(name));
+          if (Option.isNone(trial)) return yield* CodeTrialMissing.make({ name, kind: entry.kind });
+          const sounds = yield* made.measured(soundsOf(loaded), [name]);
+          const playing = playablesOf(sounds, name, entry);
+          if (!Arr.isReadonlyArrayNonEmpty(playing))
+            return yield* SoundUnmade.make({
+              name,
+              candidates: pendingOf(entry, Option.fromUndefinedOr(loaded.lock[name])).length,
+            });
+          const plays = yield* Effect.forEach(playing, (p, i) =>
+            Effect.map(decoded(p.source), (pcm): Measured => ({
+              label: playableLabel(p, i),
+              profile: profileOf(pcm),
+            })),
+          );
+          const { sound, variants } = trial.value;
+          const tried = yield* Effect.forEach(Arr.range(1, variants), (seed) =>
+            Effect.map(made.pcm({ _tag: 'Code', sound, seed }), (pcm): Measured => ({
+              label: `seed ${seed}`,
+              profile: profileOf(pcm),
+            })),
+          );
+          const compared: Comparison = { plays, trial: tried };
+          return compared;
+        });
+
         /** Whether the file at `file` holds the bytes the lock kept. */
         const fileFinding = (name: string, variant: Variant) =>
           Effect.gen(function* () {
@@ -1117,6 +1176,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           importFile,
           audition,
           render,
+          compare,
           check,
           describe,
           pull: pullFiles,

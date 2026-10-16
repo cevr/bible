@@ -732,4 +732,28 @@ describe.concurrent('SoundLibrary', () => {
       }),
     ),
   );
+
+  it.effect.layer(made)('compares a code trial with the take that plays, free', () =>
+    withLibrary(({ calls }) =>
+      Effect.gen(function* () {
+        const library = yield* SoundLibrary;
+        const unkept = yield* Effect.flip(library.compare('amb.court'));
+        expect(unkept).toMatchObject({ _tag: 'SoundUnmade', name: 'amb.court', candidates: 2 });
+        yield* library.keep('amb.court', yield* library.takesAt('amb.court', [2], 'candidates'));
+        const compared = yield* library.compare('amb.court');
+        expect(compared.plays.map((m) => m.label)).toEqual(['take 1']);
+        expect(compared.trial.map((m) => m.label)).toEqual(['seed 1', 'seed 2']);
+        const [take] = compared.plays;
+        const [one, two] = compared.trial;
+        expect(take.profile.secs).toBeCloseTo(1, 2);
+        expect(one?.profile.secs).toBe(0.5);
+        expect(one?.profile.bands).not.toEqual(two?.profile.bands);
+        // The burst is white noise and the trial pink: the take is the brighter.
+        expect(take.profile.centroid).toBeGreaterThan(one?.profile.centroid ?? 0);
+        const none = yield* Effect.flip(library.compare('tone.tick'));
+        expect(none).toMatchObject({ _tag: 'CodeTrialMissing', name: 'tone.tick' });
+        expect(calls).toHaveLength(0);
+      }),
+    ),
+  );
 });
