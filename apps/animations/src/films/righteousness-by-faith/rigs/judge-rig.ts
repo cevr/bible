@@ -1,8 +1,11 @@
 // The judge as a Rive rig, on the cold-studies generator's parts, in the
-// kept concept's (`cold-34`) proportions: a large, squarish head with a firm
-// jaw, grey hair swept back off a high brow, the house look's peach skin, a
-// dark purple robe broad at the shoulders with white bands; the face kit at
-// his size, its marks large on the head. He sits behind the bench,
+// kept concept's (`cold-34`) proportions and shading: a large, squarish head
+// with a firm jaw turned three-quarters toward screen left (his features and
+// chin carried left, his ear behind them), fluffy grey hair swept back off a
+// high brow in soft lighter and violet lumps, one ink line round head, hair
+// and ear together (`silhouette`), the concept's peach skin, a dark purple
+// robe broad at the shoulders with white bands; the face kit at his size,
+// its marks large on the head. He sits behind the bench,
 // so the rig is the part of him above it. His circle hands are the hand
 // rig's (`hand-rig.ts`), drawn by the host over the bench (resting on it,
 // taking up the gavel). The cold-studies judge (`judge-rig.ts` there) is
@@ -22,14 +25,16 @@ import {
   type Figure,
   artboard,
   boilTimeline,
+  ellipse,
   faceKit,
   gazeTarget,
   piece,
+  silhouette,
   timeline,
 } from '../../cold-studies/looks/rive/parts.ts';
 import { el } from '../../cold-studies/looks/rive/rml.ts';
 import { PAPERS, looked } from './papers.ts';
-import { hairOutline, headOutline, roundedPolygon } from './shapes.ts';
+import { capOutline, headOutline, roundedPolygon, shifted } from './shapes.ts';
 
 /** His measures from his head's centre, units: the head, his neck, where his lean pivots (the robe's foot). */
 export const JUDGE = {
@@ -41,8 +46,18 @@ export const JUDGE = {
 /** The artboard, and where his head's centre sits on it. */
 export const JUDGE_ART = { width: 460, height: 520, head: [230, 140] } as const;
 
-/** His head's squareness: squarer than round, its sides drawing in only a little to a broad jaw. */
-const SQUARE = { power: 2.6, jaw: 0.55, chin: 0.9 } as const;
+/**
+ * His head's squareness and turn: squarer than round, its sides drawing in
+ * only a little to a broad jaw, the chin carried toward screen left and the
+ * jaw rising toward his ear on the far side.
+ */
+const SQUARE = { power: 2.6, jaw: 0.5, chin: 0.9, turn: 0.2, back: 0.3 } as const;
+
+/** His ear, behind his features on the far side, from his head's centre: centre and half-sizes, units. */
+const EAR = { x: 52, y: 22, rx: 10, ry: 17 } as const;
+
+/** How far his features sit toward screen left of his head's centre, units: his head turned three-quarters. */
+const TURNED = -13;
 
 /**
  * The face kit's scale on his head, how far below its middle it sits, and
@@ -51,6 +66,7 @@ const SQUARE = { power: 2.6, jaw: 0.55, chin: 0.9 } as const;
  * angled brows 0.13 above them; the mouth 0.26 below them.
  */
 export const JUDGE_FACE = {
+  x: TURNED,
   scale: 1.3,
   y: 5,
   shape: {
@@ -106,15 +122,38 @@ export const JUDGE_ROBE = roundedPolygon(
   30,
 );
 
-/** Grey hair swept back: a waved crown off a high brow, stopping above the ears, so the head is no wider than its face. */
-const HAIR = {
-  sides: -0.25,
-  line: 0.62,
+/**
+ * Fluffy grey hair swept back off a high brow: a rounder, lumpy crown
+ * standing off his square head, its hairline rising from his brow toward
+ * the back, fuller over the back of his head and down behind his ear.
+ */
+const HAIR = capOutline(JUDGE.head.rx, JUDGE.head.ry, {
+  power: 2.2,
   loft: 0.08,
-  curls: 5,
-  curl: 0.06,
-  power: SQUARE.power,
-} as const;
+  back: 0.14,
+  front: 0.3,
+  rear: 0.15,
+  line: 0.7,
+  brow: 0.42,
+  temple: 0.5,
+  nape: 0.1,
+  lumps: 6,
+  lump: 0.1,
+});
+
+/** The lumps of his hair: lighter toward the window, violet-grey toward the back, each fading into the grey. */
+const LUMPS = [
+  { pts: ellipse(-25, -55, 22, 12, 14), color: '#c9bdbc', soft: true },
+  { pts: ellipse(5, -62, 18, 10, 14), color: '#c4b7b8', soft: true },
+  { pts: ellipse(48, -12, 18, 22, 14), color: '#8b7c96', soft: true },
+  { pts: ellipse(30, -50, 14, 12, 14), color: '#9a8ba2', soft: true },
+] as const;
+
+/** The shade his hair lays on his brow: its own outline a little lower, twice, fading. */
+const UNDER_HAIR = [
+  { pts: shifted(HAIR, 0, 2.5), color: '#ec9a77', alpha: 0.7 },
+  { pts: shifted(HAIR, 0, 5), color: '#ec9a77', alpha: 0.35 },
+] as const;
 
 export const judgeRig = (fig: Figure) => {
   const { head } = JUDGE;
@@ -124,9 +163,25 @@ export const judgeRig = (fig: Figure) => {
       el('Node', { name: 'nodded', id: fig.idOf('nodded') }, [
         fig.bind('nod', KEY.y),
         el('Node', { y: -JUDGE.neck, name: 'skull' }, [
-          piece(fig, 'hair', hairOutline(head.rx, head.ry, HAIR), looked(PAPERS.greyHair)),
-          faceKit(fig, { x: 0, y: JUDGE_FACE.y, scale: JUDGE_FACE.scale }, JUDGE_FACE.shape),
-          piece(fig, 'headPaper', headOutline(head.rx, head.ry, SQUARE), looked(PAPERS.skin)),
+          silhouette(fig, 'headCut', [
+            {
+              key: 'ear',
+              pts: ellipse(EAR.x, EAR.y, EAR.rx, EAR.ry, 12),
+              look: looked(PAPERS.skin),
+              boil: 0.6,
+            },
+            { key: 'hair', pts: HAIR, look: looked(PAPERS.greyHair, { tones: LUMPS }) },
+            faceKit(
+              fig,
+              { x: JUDGE_FACE.x, y: JUDGE_FACE.y, scale: JUDGE_FACE.scale },
+              JUDGE_FACE.shape,
+            ),
+            {
+              key: 'headPaper',
+              pts: headOutline(head.rx, head.ry, SQUARE),
+              look: looked(PAPERS.skin, { tones: UNDER_HAIR }),
+            },
+          ]),
         ]),
       ]),
     ]),

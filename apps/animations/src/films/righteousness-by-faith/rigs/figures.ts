@@ -35,9 +35,9 @@ export const figuresRml = (): string => {
   const d = { ...DIRECTION, weight: WEIGHT };
   return fragment([
     ...leadRig(figure(next, ARTBOARDS.lead, 2301, 0, d)),
-    ...handRig(figure(next, ARTBOARDS.leadHand, 2302, 400, d), PAPERS.lead),
+    ...handRig(figure(next, ARTBOARDS.leadHand, 2302, 400, d), { ...PAPERS.lead, rim: 3.5 }),
     ...judgeRig(figure(next, ARTBOARDS.judge, 2303, 520, d)),
     ...prosecutorRig(figure(next, ARTBOARDS.prosecutor, 2304, 1020, d)),
-    ...handRig(figure(next, ARTBOARDS.skinHand, 2305, 1420, d), PAPERS.skin),
+    ...handRig(figure(next, ARTBOARDS.skinHand, 2305, 1420, d), { ...PAPERS.skinHand, rim: 4 }),
   ]);
 };

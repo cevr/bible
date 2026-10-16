@@ -1,8 +1,8 @@
 // The outlines RBF's figures are cut from, in the figure's units: a polygon
-// with its corners rounded (a tunic, a robe), a head squared off with a jaw,
-// hair laid flat over the top of a head, and a blot. Each is a list of points the generator's `piece` runs
-// a smooth path through, dense enough along a straight edge that the edge
-// stays straight. Pure.
+// with its corners rounded (a tunic, a robe), a head squared off with a jaw
+// and turned three-quarters, hair capping a turned head, and a blot. Each is
+// a list of points the generator's `piece` runs a smooth path through, dense
+// enough along a straight edge that the edge stays straight. Pure.
 
 import { rng } from '@bible/film/core';
 import type { Pt } from '../../cold-studies/looks/rive/parts.ts';
@@ -44,34 +44,20 @@ export const roundedPolygon = (corners: ReadonlyArray<Pt>, r: number): Pt[] => {
   return out;
 };
 
-/** How a head's hair lies: how far down its sides it reaches, where its hairline crosses the brow, and its curl. */
-export interface Hair {
-  /** Radians below the head's equator the hair's sides reach. */
-  readonly sides: number;
-  /** The hairline across the brow, as a share of the head's half-height above its centre. */
-  readonly line: number;
-  /** How far past the head's outline the hair stands, as a share of its radius. */
-  readonly loft: number;
-  /** Curls round the top, and how deep each is, as a share of the radius (0: smooth). */
-  readonly curls: number;
-  readonly curl: number;
-  /** The fringe's sweep: how far the hairline's middle dips toward one side, units (0: level). */
-  readonly sweep?: number;
-  /** One swept point at the back of the crown, as a share of the radius it stands out (0: none). */
-  readonly tuft?: number;
-  /** The head's squareness it follows (`Head.power`; 2, the default, a round head). */
-  readonly power?: number;
-}
-
 /**
  * How a head is squared (all shares of its half-height and half-width): its
  * superellipse's power (2 round, past 2 squarer), where its jaw starts
- * narrowing below its middle, and the chin's width against the head's.
+ * narrowing below its middle, and the chin's width against the head's. A
+ * head turned three-quarters toward screen left (`turn`) carries its chin
+ * that share of its half-width to the left, and its jaw starts narrowing
+ * `back` higher on the far side, toward the ear.
  */
 export interface Head {
   readonly power: number;
   readonly jaw: number;
   readonly chin: number;
+  readonly turn?: number;
+  readonly back?: number;
 }
 
 /** A point at angle `a` on the superellipse of power `n` and half-sizes `rx`, `ry`. */
@@ -91,55 +77,80 @@ export const headOutline = (rx: number, ry: number, head: Head): Pt[] => {
   return Array.from({ length: n }, (_, i): Pt => {
     const [x, y] = onSuper((i / n) * 2 * Math.PI, rx, ry, head.power);
     const down = y / ry;
-    const narrow = down > head.jaw ? (1 - head.chin) * ((down - head.jaw) / (1 - head.jaw)) : 0;
-    return [x * (1 - narrow), y];
+    const jaw = head.jaw - (head.back ?? 0) * Math.max(0, x / rx);
+    const t = down > jaw ? (down - jaw) / (1 - jaw) : 0;
+    return [x * (1 - (1 - head.chin) * t) - (head.turn ?? 0) * rx * t, y];
   });
 };
 
-/** Where the tuft stands on the crown (radians, y down: the top is −π/2), and its half-width. */
-const TUFT = { at: -Math.PI / 4, half: 0.28 } as const;
-
 /**
- * Hair laid flat over the head of half-width `rx` and half-height `ry`
- * centred at the origin: round the top past the head's outline, down its
- * sides, and back across the brow along the hairline.
+ * Hair capping a head turned three-quarters toward screen left, as the
+ * concept draws it: round the crown past the head's outline (`loft`),
+ * standing further out over the back of the head (`back`), from where it
+ * meets the outline on the face's side (`front`, radians above the
+ * equator) to where it meets it behind (`rear`, radians below); then in
+ * along the nape to the top of the ear (`temple`, `nape`), up to the
+ * hairline at the temple (`line`) and across the brow to the front, where
+ * it may sit lower (`brow`, `line` when left out). `lumps` waves its crown
+ * (`lump` deep); `forelock` stands it out at the front.
+ * Shares of the head's half-width and half-height.
  */
-export const hairOutline = (rx: number, ry: number, hair: Hair): Pt[] => {
-  const out: Pt[] = [];
-  const from = Math.PI - hair.sides;
-  const to = 2 * Math.PI + hair.sides;
-  const n = 28;
-  for (let i = 0; i <= n; i++) {
-    const a = from + ((to - from) * i) / n;
-    const curl =
-      hair.curls > 0
-        ? hair.curl * Math.abs(Math.sin(((a - from) / (to - from)) * Math.PI * hair.curls))
-        : 0;
-    const near = 1 - Math.abs(normalAngle(a - TUFT.at)) / TUFT.half;
-    const tuft = (hair.tuft ?? 0) * Math.max(0, near) ** 1.6;
-    const k = 1 + hair.loft + curl + tuft;
-    const [x, y] = onSuper(a, rx * k, ry * k, hair.power ?? 2);
-    out.push([x, y]);
-  }
-  // Back across the brow: from the right side's foot, inside the head, to the left's.
-  const y = -ry * hair.line;
-  const foot = Math.sin(hair.sides) * ry;
-  const edge = rx * 0.86;
-  const sweep = hair.sweep ?? 0;
-  out.push([edge, foot * 0.6]);
-  out.push([edge * 0.9, y + (foot - y) * 0.25]);
-  for (let i = 1; i < 6; i++) {
-    const x = edge * 0.8 * (1 - (2 * i) / 6);
-    const dip = sweep * Math.sin((i / 6) * Math.PI);
-    out.push([x, y + dip + 0.06 * ry * Math.cos((i / 6) * Math.PI) ** 2]);
-  }
-  out.push([-edge * 0.9, y + (foot - y) * 0.25]);
-  out.push([-edge, foot * 0.6]);
-  return out;
+export interface Cap {
+  readonly power: number;
+  readonly loft: number;
+  readonly back: number;
+  readonly front: number;
+  readonly rear: number;
+  readonly line: number;
+  readonly brow?: number;
+  readonly temple: number;
+  readonly nape: number;
+  readonly lumps?: number;
+  readonly lump?: number;
+  readonly forelock?: number;
+}
+
+/** Points every `STEP / 2` units from `a` to `b`, `a` left out and `b` kept. */
+const along = (a: Pt, b: Pt): Pt[] => {
+  const steps = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (STEP / 2)));
+  return Array.from({ length: steps }, (_, i): Pt => {
+    const k = (i + 1) / steps;
+    return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+  });
 };
 
-/** `a` turned into −π..π. */
-const normalAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+/** The hair `cap` over the head of half-width `rx` and half-height `ry` about the origin (`Cap`). */
+export const capOutline = (rx: number, ry: number, cap: Cap): Pt[] => {
+  const from = Math.PI + cap.front;
+  const to = 2 * Math.PI + cap.rear;
+  const n = 30;
+  const out: Pt[] = [];
+  for (let i = 0; i <= n; i++) {
+    const share = i / n;
+    const a = from + (to - from) * share;
+    const wave = (cap.lump ?? 0) * Math.abs(Math.sin(share * Math.PI * (cap.lumps ?? 0)));
+    const lock = (cap.forelock ?? 0) * Math.max(0, 1 - share * 6);
+    const k = 1 + cap.loft + cap.back * Math.max(0, Math.cos(a)) + wave + lock;
+    out.push(onSuper(a, rx * k, ry * k, cap.power));
+  }
+  // In from behind: along the nape to the top of the ear, up to the hairline, across the brow.
+  const foot = onSuper(to, rx * 0.96, ry * 0.96, cap.power);
+  const ear: Pt = [cap.temple * rx, cap.nape * ry];
+  const temple: Pt = [cap.temple * rx, -cap.line * ry];
+  const brow: Pt = [onSuper(from, rx, ry, cap.power)[0] * 0.92, -(cap.brow ?? cap.line) * ry];
+  const start = out[out.length - 1] ?? foot;
+  return [
+    ...out,
+    ...along(start, foot),
+    ...along(foot, ear),
+    ...along(ear, temple),
+    ...along(temple, brow).slice(0, -1),
+  ];
+};
+
+/** `pts` moved by (`dx`, `dy`). */
+export const shifted = (pts: ReadonlyArray<Pt>, dx: number, dy: number): Pt[] =>
+  pts.map(([x, y]): Pt => [x + dx, y + dy]);
 
 /** A blot of half-width `rx` and half-height `ry` about the origin, its outline wandering by `wander` of its radius (seeded). */
 export const blotOutline = (rx: number, ry: number, wander: number, seed: number): Pt[] => {
