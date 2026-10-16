@@ -4,6 +4,8 @@ Owner, 2026-10-13: "try completely different ensembles with different character 
 
 Four whole casts to set beside the current eight in [ensemble.md](ensemble.md). Each has different people, a different household and different temperaments; none is the current family recoloured. This file is for choosing. It is not a cast bible. The ensemble the owner picks gets the full treatment in `ensemble.md`, and its sheets go in character-design §4.
 
+**Superseded in part (owner, 2026-10-15):** "let's make the recurring cast only background characters, and the main characters non descriptive so they can be better related". Whichever cast is kept stands only in the background. The parts, arcs, turns and griefs each ensemble below gives itself in the series no longer apply: a film's main characters are plain leads (the film skill's character-design 2.3), and [ensemble.md](ensemble.md) says where a cast appears.
+
 ## What every ensemble keeps
 
 These are the rules of [ensemble.md](ensemble.md) and the [series README](../series/README.md), unchanged for all four:

@@ -222,7 +222,7 @@ Branches with film-skill or series changes that never reached p5-main, and why e
 
 ## Follow-up units
 
-- **`rbfscript`**: rewrite RBF's script from scratch through the flow (112), its decisions asked in the lab. It folds in `rbfbookend` (`anim/plans/p5-run.md:179`), since the coda is rewritten, and asks three open choices: recast the everyman as Max (`anim/docs/ensemble.md`, open choice 7), whether the film draws the country-living link (61), and the eyes held to the kept concept (101).
+- **`rbfscript`**: rewrite RBF's script from scratch through the flow (112), its decisions asked in the lab. It folds in `rbfbookend` (`anim/plans/p5-run.md:179`), since the coda is rewritten, and asks three open choices: recast the everyman as Max (`anim/docs/ensemble.md`, open choice 7; settled by the owner on 2026-10-15: the accused stays a plain figure, not Max), whether the film draws the country-living link (61), and the eyes held to the kept concept (101).
 - **`concepttool`**: a concept command and record (tries per tent pole on the Codex route, a set on the production, the kept frame and its why), and the Board's compare view against the kept concept, so a render is held to it in the lab.
 - **`animatic`**: export the animatic with the staged voice as an MP4 to watch whole, and an accept of its own on the production.
 - **`judgeopus`**: `bun run judge` asks a fresh Opus at max effort, never `okra counsel` (75).
@@ -269,5 +269,5 @@ Every rule a script writer must hold, with where it lives. Read the paths, not t
 22. RBF's decisions on file. These bind the rewrite: one narrator, no 1888, the court bookend, the credits, K1 from the Board matched to its panels. These shaped the old script, so ask before dropping them: faith, forgiveness and power, each shown in Mark 2 and John 8 and counted one, two, three; the serpent after faith; later callbacks. `anim/productions/righteousness-by-faith.json:17`
 23. Content rules are held by hand: never a lint, test or `check` finding for a content rule. `skill/SKILL.md:190`
 24. Go through the flow and ask, don't chat: lead each ask with a choice, words optional; the script is kept by an ask before concepts are painted; each stage ends on his word, filed on the production. `skill/SKILL.md:58`
-25. Open choices to ask, not assume: punchy subtitles or the clean master (99), the everyman recast as Max, the country-living link (61), the eyes against the kept concept (101). `skill/CRAFT.md:27`
+25. Open choices to ask, not assume: punchy subtitles or the clean master (99), the everyman recast as Max (settled 2026-10-15: plain, not Max), the country-living link (61), the eyes against the kept concept (101). `skill/CRAFT.md:27`
 26. Sound like the owner, who narrates: a question the film answers, the text read as it reads, a likeness, a refrain of three, a choice to land on; his plain words (no amazing, wonderful, journey), the confession in "we", no "I" line he has not confirmed; each church habit's film form. `skill/reference/owner-voice.md:1`

@@ -23,7 +23,7 @@ The owner picked **K1** for the paper-cut look (2026-10-13, [p5-run.md](../../..
 | Detail  | minimal: the head one shape, hair and beard flat inside it; no ornaments; plain garments but for a mark that tells who someone is |
 | Shading | toward the key light's complement, as saturated or more; never black, grey or alpha-black ([CRAFT.md](../CRAFT.md) rule 12)       |
 
-**K1 is drawn minimal** (owner, 2026-10-14: "my main gripe with k1 was hair and ornaments"; "i dont mind clothes not having details either, other than distinguishing ones"; "for k1 at least"). The Board's style, 9005 "K1-minimal, plain", is the reference: one-shape heads with the inner edge, a flat beard, no pockets, buttons or stitching, the crease, the grain and the cast shadows. A garment keeps only the mark that tells who someone is (Rosa's shawl, Max's hood: [ensemble.md](../../../../apps/animations/docs/ensemble.md)). A film built from its board draws its figures as the engine's K1 rigs, and its backgrounds, light and glow as the kept panel has them (owner, 2026-10-14: "matched to these panels").
+**K1 is drawn minimal** (owner, 2026-10-14: "my main gripe with k1 was hair and ornaments"; "i dont mind clothes not having details either, other than distinguishing ones"; "for k1 at least"). The Board's style, 9005 "K1-minimal, plain", is the reference: one-shape heads with the inner edge, a flat beard, no pockets, buttons or stitching, the crease, the grain and the cast shadows. A garment keeps only the mark that tells who someone is (Rosa's shawl, Max's hood: [ensemble.md](../../../../apps/animations/docs/ensemble.md)); a film's plain lead has none (2.3). A film built from its board draws its figures as the engine's K1 rigs, and its backgrounds, light and glow as the kept panel has them (owner, 2026-10-14: "matched to these panels").
 
 Still open in the p5 plan: the robe's shade (navy applied, slate and violet as options). Settled: the one shared figure paper, not several skin papers ([ensemble.md](../../../../apps/animations/docs/ensemble.md), open choice 2).
 
@@ -108,7 +108,7 @@ Every other colour (every garment of the cast, the world's chipboard, the skies)
 
 #### Grey: retired
 
-Grey is no colour of Scripture. A grey or dimmed copy of a colour "reads dead and muddy" (director-vision, Shadow colour). Under K1 grey is no longer a figure's body or a shade. The Canvas kit's grey figures and the first film's grey accuser (`#5f5a55`) take hued ramps when they are next drawn (2.4).
+Grey is no colour of Scripture. A grey or dimmed copy of a colour "reads dead and muddy" (director-vision, Shadow colour). Under K1 grey is no longer a figure's body or a shade. The Canvas kit's grey figures and the first film's grey accuser (`#5f5a55`) take hued ramps when they are next drawn (2.5), and the first film's grey everyman becomes a plain lead in a quiet hue (2.3).
 
 #### Teal: a light, not a sin
 
@@ -197,27 +197,43 @@ Owner rule: typology, a text-authorized reading from literal to literal, is fine
 
 ### 2.2 The budget by role
 
-| Role                | Saturation                  | Value                                        | Size in a wide                                                  | Face                                   |
-| ------------------- | --------------------------- | -------------------------------------------- | --------------------------------------------------------------- | -------------------------------------- |
-| Main                | 0.28–0.35                   | the widest step from its ground in the frame | at least ¼ of frame height; a face at ⅓ once per beat           | full range; the close-up at the answer |
-| Supporting          | 0.22–0.30                   | one step less than the main figure           | 0.8–1 times the main figure's scale, a plane behind             | reactions                              |
-| Antagonist          | 0.20                        | the darkest figure in the frame              | tall in its scene, never above the light; shrinks when answered | narrow range                           |
-| Minor or background | 0.20–0.24                   | near the ground's middle                     | far planes                                                      | small or turned away                   |
-| Crowd               | 0.20                        | grouped into one mass                        | far planes                                                      | dots, or none                          |
-| Allegorical         | by its part in the story    | on its own page (2.8)                        | by meaning: a giant grows                                       | by its part                            |
-| Personification     | not drawn as a person (2.9) |                                              |                                                                 |                                        |
+| Role                | Saturation                      | Value                                        | Size in a wide                                                  | Face                                   |
+| ------------------- | ------------------------------- | -------------------------------------------- | --------------------------------------------------------------- | -------------------------------------- |
+| Main                | 0.22–0.28, a Bible lead to 0.35 | the widest step from its ground in the frame | at least ¼ of frame height; a face at ⅓ once per beat           | full range; the close-up at the answer |
+| Supporting          | 0.22–0.30                       | one step less than the main figure           | 0.8–1 times the main figure's scale, a plane behind             | reactions                              |
+| Antagonist          | 0.20                            | the darkest figure in the frame              | tall in its scene, never above the light; shrinks when answered | narrow range                           |
+| Minor or background | 0.20–0.24                       | near the ground's middle                     | far planes                                                      | small or turned away                   |
+| Crowd               | 0.20                            | grouped into one mass                        | far planes                                                      | dots, or none                          |
+| Allegorical         | by its part in the story        | on its own page (2.8)                        | by meaning: a giant grows                                       | by its part                            |
+| Personification     | not drawn as a person (2.9)     |                                              |                                                                 |                                        |
 
-### 2.3 Main characters
+### 2.3 Main characters: the plain lead
 
-The lead of a film: the Bible figure whose story the STORY scenes carry (Isaiah in theology 05, the Bereans and Paul in 02), or the cast member whose need is the film's question ([ensemble.md](../../../../apps/animations/docs/ensemble.md), How often).
+Owner, 2026-10-15: "i actually liked more the non descriptive character in the room, let's make the recurring cast only background characters, and the main characters non descriptive so they can be better related".
 
-- **Silhouette.** One hook that names them at quarter size with the face hidden: hair, headwear, a garment's shape, a prop in hand.
-- **Size.** At least ¼ of frame height in a wide. Once per beat, a face at ⅓ of the frame ([CRAFT.md](../CRAFT.md) rule 5).
-- **Colour.** The top of the band, and the widest value step against its ground in the frame. The lead may carry the accent the beat is about.
+The lead of a film is one of two:
+
+- **A Bible figure** whose story the STORY scenes carry (Isaiah in theology 05, the Bereans and Paul in 02, the paralytic, Joshua in Zech 3). Section 3 draws them, with the text's own details.
+- **The plain lead:** the parable's "a certain man" (Luke 10:30) or "a woman" (Luke 15:8), whose need is the film's question. "Picture a young man in a courtroom" (theology 08), "picture a grown man at a wedding feast" (theology 01). The recurring cast is never the lead, the accused or the one whose need is the question: its eight stand in the background ([ensemble.md](../../../../apps/animations/docs/ensemble.md)).
+
+**Why plain.** A parable gives its man no name and no face, so every hearer can stand where he stands. A figure with marks of its own is someone else; a plain figure can be the viewer. Comics found the same: the simpler a face, the more people it stands for (Scott McCloud, _Understanding Comics_, 1993, ch. 2).
+
+**The plain lead's sheet.** Every plain lead is built from it; a film fixes its own lead's hue and head at the concept stage and keeps them in its board's world.
+
+- **Build.** The K1 figure at its plainest: middle height and an average build (0.93–0.95 against Hugo), standing straight, the head about ⅓ of the height. Age only as the text says it: a young man, a grandmother (the pale cool paper for her hair, a slight stoop), a child (the larger head).
+- **Head.** One shape. Hair, if any, is one flat shape inside it in the commonest form for the age: short and dark for a man, short or tied back for a woman, pale for the old. No beard, glasses, hat, hood or headcovering, and none of the cast's hooks (a plait, a bun, a tuft, bunches, a curl, a round crown of hair).
+- **Garment.** One plain garment, or a plain top over plain trousers, with no collar, pocket, button, print, logo or lettering. One quiet hue at saturation 0.22–0.28 and a middle value (0.50–0.62), outside 330°–50° (scarlet, the chipboard world and gold live there), and off the hue of any cast member or minor figure in the same frame. The hue only tells him apart; it means nothing (1.5).
+- **No marks.** Nothing that tells who he is: no badge, bag, jewellery, hood, shawl, hat or hair style that names someone; no name in speech or on screen ([ensemble.md](../../../../apps/animations/docs/ensemble.md), open choice 1); no habit gesture of his own, since a habit is a cast member's mark. Script briefs call him by his part: "the accused", "the grandmother".
+- **He reads first anyway.** By staging, not by marks: the near plane, at least ¼ of frame height in a wide, a face at ⅓ of the frame once per beat ([CRAFT.md](../CRAFT.md) rule 5), the widest value step against his ground, and the accent the beat is about (the stain, the seal, the seed).
+- **One design a film.** A film's plain lead is one design from its first frame to its last, so the bookend reads as one person, changed ([CRAFT.md](../CRAFT.md) rule 4).
+- **The garment changes only where the story changes it.** The robe white given at the landing (Zech 3:4; 1.2), a coat for outdoors. Never a hue that changes to show growth (1.5).
+- **Several plain figures.** Where a film has more than one (a father and a son, a mother and a child), each is plain, and they differ by height, age and hue only.
 - **Face.** The full range. Faces stay small in the problem; the close-up goes to the answer (director-vision, Faces, staging and emotion).
-- **Movement.** The most acting in the film: whole-body impulses, the person's habit (each cast member has one), the hand that reaches.
+- **Movement.** The most acting in the film: whole-body impulses, the hand that reaches.
 - **Staging.** One screen side for the whole film; the near plane; the line crossed once, at the turn (director-vision, Camera and staging 1).
-- **At quarter size.** Named from the silhouette alone.
+- **At quarter size.** Read as "a man", "a woman", "a child": by role and staging, never by a mark.
+
+A Bible lead keeps the text's details (Joshua's "fair mitre", John's camel hair): they are the text's, not marks we add (3.1). Its colour sits at the top of the band, with the widest value step against its ground.
 
 ### 2.4 Supporting characters
 
@@ -287,7 +303,7 @@ The people who fill a world: a shopkeeper, a passer-by, a teacher in a doorway. 
 
 The owner's rule: fiction is avoided; allegory is allowed, framed openly as allegory, the way a parable is ([education series.md](../../../../apps/animations/series/education/series.md) §5). Ellen White called _The Pilgrim's Progress_ "his wonderful allegory" (GC 252.2) and used its figures herself (the same section lists them).
 
-- **Its own page.** An allegory lives on a storybook page inside the cast's frame: Nina's bedtime story (education 15, 17), pushed into and pulled back out of. The page is the parchment (IDEA), torn at its edge like a book's. A viewer never mistakes it for the cast's world or for a Bible scene.
+- **Its own page.** An allegory lives on a storybook page inside the parable's frame: a child's bedtime story (education 15, 17), pushed into and pulled back out of. The page is the parchment (IDEA), torn at its edge like a book's. A viewer never mistakes it for the cast's world or for a Bible scene.
 - **The knight** is "the Christian" (the father's reading in Byrum, after A.L.O.E.; [education sources.md](../../../../apps/animations/series/education/sources.md)). His armour is the text's: "the whole armour of God" (Eph 6:11, 13), the loins "girt about with truth", "the breastplate of righteousness", feet shod "with the preparation of the gospel of peace", "the shield of faith", "the helmet of salvation", "the sword of the Spirit, which is the word of God" (Eph 6:14–17).
   - Steel at the band, `#8fa4b2` (shade `#6d7591`, light `#b4cad1`; 205° .20 .70).
   - The sword is the one gold thing: the text calls it the word of God.
@@ -297,7 +313,7 @@ The owner's rule: fiction is avoided; allegory is allowed, framed openly as alle
   - Each giant's shape comes from its fault and the book's props: **Selfishness** round and grasping, at its feast; **Untruth** with a mask, a cloak lined two ways and a magnifying mirror; **Hate** hunched, its edge torn rough; **Pride** the tallest, chin up, a false knight who cannot read "I repent. I am grateful".
   - **Scale is the meaning.** Each begins the size of a child and grows when it is left alone, the book's thesis that faults begin small and grow into giants; and Scripture's own order, "when lust hath conceived, it bringeth forth sin: and sin, when it is finished, bringeth forth death" (Jas 1:15).
   - Drained ramp `#49565c` (shade `#2c313b`, light `#69787a`; 200° .20 .36), plus one prop each. No scarlet on a giant: the giant is the fault; sin's scarlet sits on the child who gives in.
-  - Not frightening. A child watches (education 17 is Nina's). Their weight is size and posture, never teeth or gore.
+  - Not frightening. A child watches (education 17 is a child's). Their weight is size and posture, never teeth or gore.
 - **Pilgrim's Progress-style figures** (Pliable, the man with the muck-rake) are parable figures with one emblem prop that names their trait. The narrator names them. No label on screen ([CRAFT.md](../CRAFT.md) rule 1).
 
 ### 2.9 Personifications: Sin and Death
@@ -323,7 +339,7 @@ Christ, the Father, the Spirit and the angels are in section 3.
 
 ## 3. Bible figures
 
-The people, beings and places of the Bible's own stories. They live in STORY scenes; the cast never enters them ([ensemble.md](../../../../apps/animations/docs/ensemble.md)). The frame files' MUST NOTs bind every picture here: a picture teaches as loudly as a line.
+The people, beings and places of the Bible's own stories. They live in STORY scenes; the cast and the plain lead (2.3) never enter them ([ensemble.md](../../../../apps/animations/docs/ensemble.md)). The frame files' MUST NOTs bind every picture here: a picture teaches as loudly as a line.
 
 ### 3.1 Dress: story cloth
 
@@ -344,7 +360,7 @@ The people, beings and places of the Bible's own stories. They live in STORY sce
 
 - **Hair** is cut chipboard (walnut), darker or lighter by person; old hair is the pale cool paper, never robe white. Beards are allowed in Bible scenes; Hugo's is the only beard among the cast.
 - **Skin** follows [ensemble.md](../../../../apps/animations/docs/ensemble.md) open choice 2, the same decision for the cast and for Bible figures. The Bible's people are of the ancient Near East (Acts 17:26 makes every people one blood); no figure is drawn as a European or as any modern type.
-- **The cast's dress, for contrast.** The cast wear contemporary, timeless, plain clothes: no logos, no lettering, no uniforms, nothing religious. The two in theology 09's baptism go down in their own plain clothes.
+- **The parable's dress, for contrast.** The plain lead (2.3) and the cast wear contemporary, timeless, plain clothes: no logos, no lettering, no uniforms, nothing religious. The two in theology 09's baptism go down in their own plain clothes.
 
 ### 3.2 Christ
 
@@ -454,7 +470,7 @@ A rig's sheet also carries a scale bar (the figure beside Hugo's 1.0) and the fo
 
 ### 4.2 The cast
 
-Who they are, their temperaments and arcs: [ensemble.md](../../../../apps/animations/docs/ensemble.md). These sheets add the design. All eight are main or supporting by film, register IDEA and the cold open and landing, never STORY. Garment colours never change with an arc; props and posture carry it.
+Who they are and where they are seen: [ensemble.md](../../../../apps/animations/docs/ensemble.md). These sheets add the design. All eight are background figures (owner, 2026-10-15): a face in a crowd, the gallery, a passer-by, never a film's lead (2.3). Register IDEA and the cold open and landing, never STORY. Garment colours never change.
 
 #### Hugo, the father
 
@@ -466,7 +482,7 @@ Who they are, their temperaments and arcs: [ensemble.md](../../../../apps/animat
 - **Hands:** big circles for his build; tools, a child lifted high. Habit: a hand to the back of his head and half a step back when he is in the wrong.
 - **Key expressions:** a big laugh; a flare (brows down, chin forward, rising on his toes); owning it (hand to head, eyes down); tender; counting the cost (still, hand to beard).
 - **Motion:** big and quick, whole-body; he bounces when he laughs.
-- **Staging:** the back plane of a family group or its anchor; never the lead's eye line when a child is the lead.
+- **Staging:** the back plane of a family group or its anchor; never the lead's eye line.
 - **Quarter size:** the biggest, darkest shape; the beard's jut.
 - **Never:** a fool or a tyrant; his flare is always owned in the same film or the next.
 
@@ -491,8 +507,8 @@ Who they are, their temperaments and arcs: [ensemble.md](../../../../apps/animat
 - **Why khaki:** plain, utilitarian, unshowy: a teenager who does not want to be looked at. The dullest yellow in the cast, well clear of gold.
 - **Hands:** the phone; tools at his father's bench. Habit: he glances at the phone, then turns it face down.
 - **Key expressions:** dry (one brow, half a smile); sceptical; absorbed; caught; resolved.
-- **Motion:** slow until it matters, then quick; slouch to upright across the arc.
-- **Staging:** the edge of the family group, then nearer as the arc goes on.
+- **Motion:** slow until it matters, then quick; a slouch.
+- **Staging:** the edge of the family group.
 - **Quarter size:** the tallest thin shape; the tuft.
 - **Never:** a screen-addict joke; the phone is never the villain, the choice is his.
 
@@ -505,7 +521,7 @@ Who they are, their temperaments and arcs: [ensemble.md](../../../../apps/animat
 - **Hands:** a slate, a story book. Habit: feet planted, both hand circles on her hips, chin up.
 - **Key expressions:** defiant (hands on hips, chin up); "why?" (head forward, brows up); delight; tender once won; caught in a fib (eyes away).
 - **Motion:** quick, hops, stamps; she never walks when she can run.
-- **Staging:** the near plane in her own films; at a parent's knee.
+- **Staging:** at a parent's knee.
 - **Quarter size:** the widest head on the smallest round body.
 - **Never:** broken. Her will is won, not crushed.
 
@@ -539,15 +555,15 @@ Who they are, their temperaments and arcs: [ensemble.md](../../../../apps/animat
 #### Max, the neighbour
 
 - **Age and height:** 29; 0.95.
-- **Silhouette:** round-shouldered, head forward; the hood down, a bump at the nape. Side: the head forward and the hood bump. Back: the hood. Straighter as the arc goes on.
+- **Silhouette:** round-shouldered, head forward; the hood down, a bump at the nape. Side: the head forward and the hood bump. Back: the hood.
 - **Garments:** hooded jacket, sage `#8ead7f` / `#5f8c61` / `#b7cca1` (identity only).
-- **Why sage:** muted, a little grey-green, city-worn. His arc is carried by props and posture (cup, glass of water, free hand; head forward to upright), never by his colour. He is the first film's accused, so the court figure becomes him (ensemble open choice 7): there he receives the robe white over his sage at the landing, the hood's bump still reading through.
-- **Hands:** a takeaway cup, then a glass of water, then a free hand. Habit: one brow up, head tipped back.
+- **Why sage:** muted, a little grey-green, city-worn.
+- **Hands:** a takeaway cup. Habit: one brow up, head tipped back.
 - **Key expressions:** sceptical (one brow up); wry; tired; curious; caught off guard by kindness; settled.
-- **Motion:** slow, a little heavy; lighter across the arc.
-- **Staging:** across the landing, a doorway apart; the edge of the frame at first, nearer later.
+- **Motion:** slow, a little heavy.
+- **Staging:** across the landing, a doorway apart; the edge of the frame.
 - **Quarter size:** the head forward and the hood bump.
-- **Never:** a strawman unbeliever; his questions are fair and the film answers them.
+- **Never:** a strawman unbeliever.
 
 #### Amara, the nurse
 
@@ -598,7 +614,7 @@ The owner: "for minor characters just pick what makes sense". These are the pick
 
 **Rules for the set.**
 
-- **The cast first.** No new everyday figure when a cast member fits ([ensemble.md](../../../../apps/animations/docs/ensemble.md), How often). These are for the rest: a shop needs a shopkeeper, a school a teacher.
+- **The plain lead in front, the cast behind.** A film's main figures are plain leads (2.3), and the cast stands in the background ([ensemble.md](../../../../apps/animations/docs/ensemble.md)). These are for the parts between: a shop needs a shopkeeper, a school a teacher, a court a judge.
 - **Parable figures.** Like the cast, never real people, never named in speech, never Bible people.
 - **Plain contemporary dress,** no logo, no lettering, no uniform or headcovering that marks a group.
 - **Quieter than the cast.** Saturation 0.20–0.24, against the cast's 0.22–0.33.
