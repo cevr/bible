@@ -97,18 +97,30 @@ const board: BoardFile = {
           refs: [],
           at: '2026-10-14T00:00:00.000Z',
         },
+        {
+          n: 2,
+          file: Segment.make('cold.judge.2.png'),
+          sha256: 's2',
+          made: 'import',
+          refs: [],
+          at: '2026-10-14T01:00:00.000Z',
+        },
       ],
     },
   ],
   approvals: [],
 };
 
-/** Film `f` with a board panel and its try's image, and a still an agent made outside the lab. */
+/**
+ * Film `f` with a board panel and its two tries' images (none kept: the
+ * Board shows the first), and a still an agent made outside the lab.
+ */
 const files = () =>
   new Map<string, Uint8Array>([
     ['/films/f/scenes/index.ts', text('export {};\n')],
     ['/films/f/board.json', text(Schema.encodeSync(BoardFileJson)(board))],
     ['/films/f/board/cold.judge.1.png', text('the judge')],
+    ['/films/f/board/cold.judge.2.png', text('the judge again')],
     ['/work/judge-calmer.png', text('a calmer judge')],
     // A set of the same folder's name in another root (`reviewAt` names it).
     [
@@ -321,6 +333,17 @@ describe('the lab as an MCP server', () => {
         expect(
           (yield* tool('request_tweak', { film: 'f', panel: 'cold.x', text: 'x' })).refused,
         ).toContain('no panel cold.x');
+        expect(
+          (yield* tool('request_tweak', { film: 'f', panel: 'cold.judge', text: 'x', try: 9 }))
+            .refused,
+        ).toContain('panel cold.judge has no try 9; its tries are 1, 2');
+        const asked = yield* tool('request_tweak', {
+          film: 'f',
+          panel: 'cold.judge',
+          text: 'from the second',
+          try: 2,
+        });
+        expect(asked.note.panel).toEqual({ id: 'cold.judge', try: 2, ask: 'tweak' });
         const published = yield* tool('publish_set', {
           name: 'judge-faces',
           files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
@@ -351,6 +374,7 @@ describe('the lab as an MCP server', () => {
         yield* events.look;
         const seen = yield* tool('changes', { since: cursor });
         expect(seen.changes.map((c: { kind: string }) => c.kind)).toEqual([
+          'tweak.requested',
           'tweak.requested',
           'set.published',
         ]);

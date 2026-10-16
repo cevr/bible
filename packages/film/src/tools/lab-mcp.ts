@@ -72,7 +72,15 @@ import {
   versionAt,
   withAskSaid,
 } from '../core/production.ts';
-import { type BoardFile, BoardStyle, PANEL_START, Panel, panelById } from '../core/board.ts';
+import {
+  type BoardFile,
+  BoardStyle,
+  PANEL_START,
+  Panel,
+  panelById,
+  shownTry,
+  tryOf,
+} from '../core/board.ts';
 import { Catalogue, CatalogueJson, Render } from '../core/catalogue.ts';
 import { LabLinks, boardPath, gist, linksAt, notePath } from '../core/lab-events.ts';
 import { unresolved } from '../core/notes.ts';
@@ -359,7 +367,7 @@ const Resolve = Tool.make('resolve', {
 
 const RequestTweak = Tool.make('request_tweak', {
   description:
-    "Ask for a board panel to be made again, as a tweak note on it (what `film board tweak <film> <note>` acts on), its still the try it starts from: `try`, else the kept one, else the newest. Use it to put the owner's word from chat onto the board. The note sits at its beat's start in the Lab and on its panel on the Board.",
+    "Ask for a board panel to be made again, as a tweak note on it (what `film board tweak <film> <note>` acts on), its still the try it starts from: `try`, else the one the Board shows (the kept one, else the first). Use it to put the owner's word from chat onto the board. The note sits at its beat's start in the Lab and on its panel on the Board.",
   parameters: Schema.Struct({
     ...FilmParam.fields,
     panel: Schema.String.annotate({ description: 'The panel (`<beat>.<mark>`).' }),
@@ -779,19 +787,20 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
       return yield* LabRefused.make({
         reason: `panel ${id} is a ${set.value._tag.toLowerCase()} the engine sets: it has no try to tweak`,
       });
-    const n = Option.firstSomeOf([
-      asked,
-      Option.fromUndefinedOr(panel.kept),
-      Option.map(Arr.last(panel.tries), (t) => t.n),
-    ]);
+    // The try asked for, else the one the Board shows (kept, else the first).
     const shown = yield* Effect.fromOption(
-      Option.flatMap(n, (k) => Arr.findFirst(panel.tries, (t) => t.n === k)),
-      () =>
-        LabRefused.make({
-          reason:
-            `panel ${id} has no try ${Option.getOrElse(n, () => 0) || ''}`.trim() +
-            `; its tries are ${panel.tries.map((t) => t.n).join(', ') || 'none'}`,
-        }),
+      Option.match(asked, { onSome: (n) => tryOf(panel, n), onNone: () => shownTry(panel) }),
+      () => {
+        const lacks = Option.match(asked, {
+          onSome: (n) => `no try ${n}`,
+          onNone: () => 'no try yet',
+        });
+        const tries = Arr.match(panel.tries, {
+          onEmpty: () => 'none',
+          onNonEmpty: (all) => all.map((t) => t.n).join(', '),
+        });
+        return LabRefused.make({ reason: `panel ${id} has ${lacks}; its tries are ${tries}` });
+      },
     );
     const image = yield* refused(boards.image(film, shown.file));
     const still = yield* refused(fs.readFile(image));
