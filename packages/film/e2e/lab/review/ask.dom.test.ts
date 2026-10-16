@@ -22,7 +22,7 @@
 // long document is held at its clamp with Read all, which opens it whole; a
 // Board still opens full size (`?still=`), and Escape or a tap closes it.
 
-import { Boolean as Bool, Effect, Option } from 'effect';
+import { Boolean as Bool, Deferred, Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { AskRefused } from '../../../src/core/refusals.ts';
@@ -445,6 +445,64 @@ describe("an agent's ask on a phone", () => {
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
+  );
+
+  it.live(
+    'a line put back elsewhere to the marks the page read before its own write shows as put back',
+    () =>
+      Effect.gen(function* () {
+        const SAY = {
+          M0: 'The first thing God {*}gave was breath.',
+          M1: 'The first thing {*}God {*}gave was breath.',
+        } as const;
+        let line: keyof typeof SAY = 'M0';
+        let back = false;
+        // The script read after the write (the line as it left it), and the one after the put-back.
+        const [readBack, putBack] = [Deferred.makeUnsafe<void>(), Deferred.makeUnsafe<void>()];
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('GET', new RegExp(`^/api/asks/${SCRIPT_ASK}$`), () => json(scriptAsk)),
+          route('GET', /^\/api\/films\/toy\/script$/, () => {
+            if (line === 'M1') Deferred.doneUnsafe(readBack, Effect.void);
+            if (back) Deferred.doneUnsafe(putBack, Effect.void);
+            return json(said(SAY[line]));
+          }),
+          // A take's file is keyed by its words and marks: it changes as the line does.
+          route('GET', /^\/api\/films\/toy\/script\/voice$/, () => {
+            const [first, ...rest] = (draftVoice as { beats: ReadonlyArray<Json> }).beats;
+            const take = (first as { take: Record<string, Json> }).take;
+            return json({
+              ...(draftVoice as Record<string, Json>),
+              beats: [{ id: '1', take: { ...take, file: `k-${line}.mp3` } }, ...rest],
+            });
+          }),
+          route('POST', /^\/api\/films\/toy\/script\/marks$/, () => {
+            line = 'M1';
+            return json({ file: 'script.ts', target: 'marks of 1', findings: [] });
+          }),
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.ask(SCRIPT_ASK),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, ASK_READY);
+        const word = (i: number) =>
+          `.lab-script-beat[data-beat="1"] .lab-script-w[data-index="${i}"]`;
+        yield* waitFor(page, `${word(4)}[data-stress="true"]`);
+        // The page's own write: M0 to M1, word 3 stressed too; the lab reads the line back as M1.
+        yield* page.click(word(3));
+        yield* page.click('.lab-script-delivery [data-act="stress-words"]');
+        yield* waitFor(page, `${word(3)}[data-stress="true"]`);
+        yield* Deferred.await(readBack);
+        // Another hand puts the line back as the page read it before its write: M1 to M0.
+        line = 'M0';
+        back = true;
+        yield* Deferred.await(putBack);
+        yield* countIs(page, `${word(3)}[data-stress="true"]`, 0);
+        yield* waitFor(page, `${word(4)}[data-stress="true"]`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW * 2,
   );
 
   it.live(

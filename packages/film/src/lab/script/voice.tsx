@@ -107,7 +107,8 @@ interface VoiceContextValue {
   readonly mark: (beat: string, marks: ReadonlyArray<Mark>, read: LineRead) => void;
   /**
    * Beat `beat`'s marks as the page has them: `read`, as it read them, or
-   * the marks its own write left there until it reads the line again.
+   * the marks its own write left there until it reads the line again (the
+   * first read past the write ends it, one with the marks put back too).
    */
   readonly marksOf: (beat: string, read: ReadonlyArray<Mark>) => ReadonlyArray<Mark>;
   /** What a beat's head says once its marks are written. */
@@ -304,13 +305,22 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
 
   // The marks this page wrote, by beat: those it had read (`read`) and those its write left
   // (`now`). Until the page reads the line again (its marks still `read`), the line is `now`.
+  // The first read that is not `read` has the lab past the write (`moved`), and the line is
+  // its read from then on, even one that puts the marks back as they were before it.
   const [wrote, setWrote] = createSignal<ReadonlyMap<string, Wrote>>(new Map(), {
     ownedWrite: true,
   });
+  const moved = new WeakSet<Wrote>();
+  const stillAhead = (w: Wrote, read: ReadonlyArray<Mark>): boolean => {
+    if (moved.has(w)) return false;
+    if (sameMarks(w.read, read)) return true;
+    moved.add(w);
+    return false;
+  };
   const marksOf = (beat: string, read: ReadonlyArray<Mark>): ReadonlyArray<Mark> =>
     Option.getOrElse(
       Option.map(
-        Option.filter(Option.fromUndefinedOr(wrote().get(beat)), (w) => sameMarks(w.read, read)),
+        Option.filter(Option.fromUndefinedOr(wrote().get(beat)), (w) => stillAhead(w, read)),
         (w) => w.now,
       ),
       () => read,
