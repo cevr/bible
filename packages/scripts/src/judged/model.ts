@@ -42,7 +42,7 @@ const keychainKey = Effect.flatMap(ChildProcessSpawner, (spawner) =>
 );
 
 /** The TypeSafe key: `TYPESAFE_API_KEY`, else the keychain's, else none. */
-export const typesafeKey = Effect.gen(function* () {
+const typesafeKey = Effect.gen(function* () {
   const fromEnv = yield* Config.option(Config.Redacted('TYPESAFE_API_KEY')).pipe(
     Effect.orElseSucceed(() => Option.none<Redacted.Redacted<string>>()),
   );
@@ -64,7 +64,7 @@ const missingKey = Layer.effect(DecisionModel.DecisionModel)(
 );
 
 /** TypeSafe's DecisionModel for `model`, over the key `key` finds, at `apiUrl` (TypeSafe's own when none). */
-export const typesafeModel = <E, R>(
+const typesafeModel = <E, R>(
   model: string,
   key: Effect.Effect<Option.Option<Redacted.Redacted<string>>, E, R>,
   apiUrl?: string,

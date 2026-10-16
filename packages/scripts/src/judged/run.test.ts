@@ -1,15 +1,15 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Deferred, Effect, Fiber, FileSystem, Layer, Path, Redacted, Schema } from 'effect';
+import { Deferred, Effect, Fiber, FileSystem, Layer, Path } from 'effect';
 import { DecisionModel } from 'effect/ai';
 import { describe, expect, it } from 'effect-bun-test';
-import { HttpClient, HttpClientResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
 
 import { cacheKey, keepAnswers } from './cache.js';
 import type { CommentItem } from './comments.js';
-import { typesafeModel } from './model.js';
+import { judgedModel } from './model.js';
 import { historyComment } from './rule.js';
 import { findingLine, judge, partsOf, runLine } from './run.js';
+import { env, missing, typesafeHttp } from './testing.js';
 
 const labelOf = (p: number) => {
   if (p >= 0.5) return 'history';
@@ -240,35 +240,20 @@ describe('a judged rule', () => {
   );
 });
 
-const Sent = Schema.fromJsonString(
-  Schema.Struct({ questions: Schema.Record(Schema.String, Schema.Unknown) }),
-);
-
 /**
- * TypeSafe's model over a fake HTTP client answering every request with
- * `status` and `body` (of the request's question keys); it counts the
- * requests. `keyless` is the same model with no key.
+ * The lint's model over a fake TypeSafe answering every request with
+ * `status` and `body` (of the request's question keys), its key in the
+ * environment; it records the requests' URLs. `keyless` is the same model
+ * with no key, in the environment or the keychain.
  */
 const typesafeAnswering = (status: number, body: (keys: ReadonlyArray<string>) => unknown) => {
-  const requests: Array<string> = [];
-  const http = HttpClient.make((request) =>
-    Effect.gen(function* () {
-      requests.push(request.url);
-      if (request.body._tag !== 'Uint8Array') return yield* Effect.die('no JSON body');
-      const sent = yield* Schema.decodeEffect(Sent)(new TextDecoder().decode(request.body.body));
-      return HttpClientResponse.fromWeb(
-        request,
-        Response.json(body(Object.keys(sent.questions)), { status }),
-      );
-    }).pipe(Effect.orDie),
-  );
-  const client = Layer.succeed(HttpClient.HttpClient, http);
+  const http = typesafeHttp(status, body);
+  const over = (vars: Record<string, string>) =>
+    judgedModel.pipe(Layer.provide(Layer.mergeAll(http.layer, missing().layer, env(vars))));
   return {
-    layer: typesafeModel('jev-latest', Effect.succeedSome(Redacted.make('test-key'))).pipe(
-      Layer.provide(client),
-    ),
-    keyless: typesafeModel('jev-latest', Effect.succeedNone).pipe(Layer.provide(client)),
-    requests,
+    layer: over({ TYPESAFE_API_KEY: 'test-key' }),
+    keyless: over({}),
+    requests: http.requests,
   };
 };
 
@@ -280,7 +265,7 @@ const choice = (label: string, history: number) => ({
 });
 
 /** Judges ITEMS through `layer`, expects no finding, and answers the run's `[judged]` line. */
-const lineOver = (layer: Layer.Layer<DecisionModel.DecisionModel>) =>
+const lineOver = <E>(layer: Layer.Layer<DecisionModel.DecisionModel, E>) =>
   Effect.gen(function* () {
     const outcome = yield* judge(historyComment, ITEMS, yield* judging);
     expect(outcome.findings).toEqual([]);
@@ -299,7 +284,7 @@ describe('a judged rule never fails on its model', () => {
     }));
     return Effect.gen(function* () {
       const outcome = yield* judge(historyComment, ITEMS, yield* judging);
-      expect(typesafe.requests).toEqual(['https://api.typesafe.ai/v1/systemone']);
+      expect(typesafe.requests.map((r) => r.url)).toEqual(['https://api.typesafe.ai/v1/systemone']);
       expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.96 }]);
     }).pipe(Effect.provide(typesafe.layer), withFs);
   });
