@@ -42,7 +42,7 @@
 //
 // The argument. A judge calls a guilty man righteous (`cold`): a cover-up?
 // The Bible says God will not clear the guilty, and yet that He justifies the
-// ungodly, and we all need the answer. Righteousness is right doing, by God's
+// ungodly. Righteousness is right doing, by God's
 // measure, and we come up short and cover up (`word`). The answer is one
 // picture (`seed`): "The seed is the word of God." A label sits on the
 // outside; a seed carries its life folded inside it. God's word makes what it
@@ -173,7 +173,7 @@ const CARDS =
 export const script = defineScript([
   {
     id: 'cold',
-    say: "Picture a young man in a courtroom. {/} {evidence}Every piece of evidence says one thing: {/} {did}he {*}did it. {/} {judge}And the judge says one word. {//} {righteous}{*}Righteous. {/} {seal}Righteous? {/} {cover}That's not justice, that's a {*}cover-up. {/} {bible}Now, the Bible agrees: God will {*}not clear the guilty. {/} And yet it says He {*}justifies the ungodly. {//} {which}So the question is, how can God call a guilty man righteous? {/} And we all need the answer. {/} {asked}Job asked long ago: {/} {job}“How should man be {*}just with God?”",
+    say: "Picture a young man in a courtroom. {/} {evidence}Every piece of evidence says one thing: {/} {did}he {*}did it. {/} {judge}And the judge says one word. {//} {righteous}{*}Righteous. {/} {seal}Righteous? {/} {cover}That's not justice, that's a {*}cover-up. {/} {bible}Now, the Bible agrees: God will {*}not clear the guilty. {/} And yet it says He {*}justifies the ungodly. {//} {which}So the question is, how can God call a guilty man righteous? {/} {asked}Job asked long ago: {/} {job}“How should man be {*}just with God?”",
     cite: ['Exodus 23:7', 'Exodus 34:7', 'Romans 4:5', 'Job 9:2'],
     picture: `IDEA: the court as a paper diorama on the parchment page, lit by a cool, even teal day from one high window (the act's light). Screen direction holds for the film: the accused screen-left, the bench screen-right. The accused, the film's plain lead (character-design 2.3, as his sheet draws him: one small figure of pale cool grey paper, a round head with no hair, a plain trapezoid tunic, stub legs and circle hands; no name and no mark that tells who he is), stands in the dock with a scarlet stain on the front of his tunic; a thin crack runs across the floor at his feet (paid off in \`court\`). On \`evidence\` sheets stack up on the prosecutor's table, each one scribbled over in scarlet, with no letters or numbers (the record, paid off in \`rain\`). On \`did\` his head drops: his face at a third of the frame, caught. On \`judge\` the judge leans over the bench. On \`righteous\` the gavel falls, and the picture hard-cuts to the full-screen card "Righteous.", the word large in gold, and cuts back on its last word. On \`seal\` a gold seal floats down and pins itself over the stain on his tunic, on the outside, like a label, the stain's edge still showing round it (the seed motif's start). On \`cover\` the prosecutor throws up his hands, and the accused's brow goes up, his head tipped back: he is as surprised as anyone. On \`bible\` the camera eases in on the seal over the stain, the scarlet edge still showing round it. On \`which\` the gavel hangs in the air above its block. On \`asked\` the page turns to Job 9:2 on its page, its phrase highlighted as it is said, and on \`job\` the highlight floods out into the full-screen card (cold-studies' model card), the words landing as they are spoken, "just" large in gold; hard cut out. ${CARDS}`,
   },

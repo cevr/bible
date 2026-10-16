@@ -649,43 +649,43 @@
       "delivered": "82b9bba6"
     },
     "cold": {
-      "hash": "385fe42d",
-      "file": "cold.a5ad29a11b1a.flac",
-      "duration": 36.7,
+      "hash": "3d4eb838",
+      "file": "cold.0cbdb0cac54f.flac",
+      "duration": 34.83,
       "words": [
         {
           "text": "Picture",
           "start": 0,
-          "end": 0.4,
+          "end": 0.32,
           "voiced": {
-            "start": 0.11,
-            "end": 0.4
+            "start": 0.06,
+            "end": 0.32
           }
         },
         {
           "text": "a",
-          "start": 0.48,
-          "end": 0.52,
+          "start": 0.4,
+          "end": 0.48,
           "voiced": {
-            "start": 0.48,
-            "end": 0.52
+            "start": 0.4,
+            "end": 0.48
           }
         },
         {
           "text": "young",
           "start": 0.56,
-          "end": 0.8,
+          "end": 0.72,
           "voiced": {
             "start": 0.56,
-            "end": 0.8
+            "end": 0.72
           }
         },
         {
           "text": "man",
-          "start": 0.88,
+          "start": 0.8,
           "end": 1.12,
           "voiced": {
-            "start": 0.88,
+            "start": 0.8,
             "end": 1.12
           }
         },
@@ -694,7 +694,7 @@
           "start": 1.2,
           "end": 1.28,
           "voiced": {
-            "start": 1.21,
+            "start": 1.2,
             "end": 1.28
           }
         },
@@ -704,659 +704,605 @@
           "end": 1.387,
           "voiced": {
             "start": 1.333,
-            "end": 1.363
+            "end": 1.353
           }
         },
         {
           "text": "courtroom.",
           "start": 1.44,
-          "end": 2,
+          "end": 2.027,
           "voiced": {
             "start": 1.44,
-            "end": 1.95
+            "end": 1.97
           }
         },
         {
           "text": "Every",
-          "start": 3.2,
-          "end": 3.44,
+          "start": 3.36,
+          "end": 3.52,
           "voiced": {
-            "start": 3.2,
-            "end": 3.44
+            "start": 3.36,
+            "end": 3.52
           }
         },
         {
           "text": "piece",
           "start": 3.6,
-          "end": 3.76,
+          "end": 3.84,
           "voiced": {
-            "start": 3.6,
-            "end": 3.76
+            "start": 3.64,
+            "end": 3.84
           }
         },
         {
           "text": "of",
-          "start": 3.84,
-          "end": 3.92,
+          "start": 3.92,
+          "end": 4,
           "voiced": {
-            "start": 3.84,
-            "end": 3.92
+            "start": 3.92,
+            "end": 4
           }
         },
         {
           "text": "evidence",
-          "start": 4,
-          "end": 4.4,
+          "start": 4.08,
+          "end": 4.48,
           "voiced": {
-            "start": 4,
-            "end": 4.4
+            "start": 4.08,
+            "end": 4.48
           }
         },
         {
           "text": "says",
-          "start": 4.48,
-          "end": 4.72,
+          "start": 4.64,
+          "end": 4.88,
           "voiced": {
-            "start": 4.48,
-            "end": 4.72
+            "start": 4.64,
+            "end": 4.88
           }
         },
         {
           "text": "one",
-          "start": 4.88,
-          "end": 5.04,
+          "start": 5.04,
+          "end": 5.2,
           "voiced": {
-            "start": 4.88,
-            "end": 5.04
+            "start": 5.04,
+            "end": 5.2
           }
         },
         {
           "text": "thing:",
-          "start": 5.12,
-          "end": 6.32,
+          "start": 5.28,
+          "end": 5.68,
           "voiced": {
-            "start": 5.12,
-            "end": 5.45
+            "start": 5.28,
+            "end": 5.61
           }
         },
         {
           "text": "he",
-          "start": 6.4,
-          "end": 6.56,
+          "start": 6.68,
+          "end": 6.8,
           "voiced": {
-            "start": 6.4,
-            "end": 6.56
+            "start": 6.68,
+            "end": 6.8
           }
         },
         {
           "text": "did",
-          "start": 6.72,
-          "end": 6.88,
+          "start": 6.96,
+          "end": 7.12,
           "voiced": {
-            "start": 6.75,
-            "end": 6.88
+            "start": 7.01,
+            "end": 7.12
           }
         },
         {
           "text": "it.",
-          "start": 6.96,
-          "end": 7.56,
+          "start": 7.2,
+          "end": 7.44,
           "voiced": {
-            "start": 6.96,
-            "end": 7.13
+            "start": 7.2,
+            "end": 7.4
           }
         },
         {
           "text": "And",
-          "start": 8.064,
-          "end": 8.08,
+          "start": 8.32,
+          "end": 8.4,
           "voiced": {
-            "start": 8.064,
-            "end": 8.08
+            "start": 8.32,
+            "end": 8.4
           }
         },
         {
           "text": "the",
-          "start": 8.16,
-          "end": 8.24,
+          "start": 8.44,
+          "end": 8.48,
           "voiced": {
-            "start": 8.16,
-            "end": 8.24
+            "start": 8.44,
+            "end": 8.48
           }
         },
         {
           "text": "judge",
-          "start": 8.32,
-          "end": 8.64,
-          "voiced": {
-            "start": 8.32,
-            "end": 8.64
-          }
-        },
-        {
-          "text": "says",
-          "start": 8.72,
+          "start": 8.56,
           "end": 8.88,
           "voiced": {
-            "start": 8.72,
+            "start": 8.56,
             "end": 8.88
           }
         },
         {
-          "text": "one",
-          "start": 9.04,
+          "text": "says",
+          "start": 8.96,
           "end": 9.2,
           "voiced": {
-            "start": 9.04,
+            "start": 8.96,
             "end": 9.2
           }
         },
         {
-          "text": "word.",
-          "start": 9.28,
-          "end": 10.08,
+          "text": "one",
+          "start": 9.36,
+          "end": 9.52,
           "voiced": {
-            "start": 9.28,
-            "end": 9.66
+            "start": 9.36,
+            "end": 9.52
+          }
+        },
+        {
+          "text": "word.",
+          "start": 9.6,
+          "end": 9.947,
+          "voiced": {
+            "start": 9.6,
+            "end": 9.92
           }
         },
         {
           "text": "Righteous.",
-          "start": 10.68,
-          "end": 11.76,
+          "start": 10.547,
+          "end": 11.214,
           "voiced": {
-            "start": 10.68,
-            "end": 11.37
+            "start": 10.547,
+            "end": 11.197
           }
         },
         {
           "text": "Righteous?",
-          "start": 12.28,
-          "end": 13.16,
+          "start": 12.147,
+          "end": 12.734,
           "voiced": {
-            "start": 12.28,
-            "end": 12.87
+            "start": 12.157,
+            "end": 12.734
           }
         },
         {
           "text": "That's",
-          "start": 13.608,
-          "end": 13.68,
+          "start": 13.507,
+          "end": 13.627,
           "voiced": {
-            "start": 13.608,
-            "end": 13.68
+            "start": 13.507,
+            "end": 13.627
           }
         },
         {
           "text": "not",
-          "start": 13.72,
-          "end": 13.88,
+          "start": 13.667,
+          "end": 13.827,
           "voiced": {
-            "start": 13.72,
-            "end": 13.88
+            "start": 13.667,
+            "end": 13.827
           }
         },
         {
           "text": "justice,",
-          "start": 14.04,
-          "end": 14.76,
+          "start": 13.987,
+          "end": 14.707,
           "voiced": {
-            "start": 14.04,
-            "end": 14.61
+            "start": 13.987,
+            "end": 14.547
           }
         },
         {
           "text": "that's",
-          "start": 14.8,
-          "end": 14.92,
+          "start": 14.787,
+          "end": 14.907,
           "voiced": {
-            "start": 14.8,
-            "end": 14.92
+            "start": 14.787,
+            "end": 14.907
           }
         },
         {
           "text": "a",
-          "start": 14.96,
-          "end": 15,
+          "start": 14.947,
+          "end": 15.027,
           "voiced": {
-            "start": 14.96,
-            "end": 15
+            "start": 14.947,
+            "end": 14.977
           }
         },
         {
           "text": "cover-up.",
-          "start": 15.08,
-          "end": 15.72,
+          "start": 15.107,
+          "end": 15.667,
           "voiced": {
-            "start": 15.08,
-            "end": 15.72
+            "start": 15.107,
+            "end": 15.667
           }
         },
         {
           "text": "Now,",
-          "start": 16.52,
-          "end": 17,
+          "start": 16.707,
+          "end": 17.027,
           "voiced": {
-            "start": 16.52,
-            "end": 16.81
+            "start": 16.707,
+            "end": 16.967
           }
         },
         {
           "text": "the",
-          "start": 17.04,
-          "end": 17.08,
+          "start": 17.107,
+          "end": 17.187,
           "voiced": {
-            "start": 17.05,
-            "end": 17.08
+            "start": 17.107,
+            "end": 17.187
           }
         },
         {
           "text": "Bible",
-          "start": 17.16,
-          "end": 17.4,
+          "start": 17.227,
+          "end": 17.507,
           "voiced": {
-            "start": 17.16,
-            "end": 17.4
+            "start": 17.227,
+            "end": 17.507
           }
         },
         {
           "text": "agrees:",
-          "start": 17.48,
-          "end": 18.52,
+          "start": 17.587,
+          "end": 18.627,
           "voiced": {
-            "start": 17.48,
-            "end": 18.08
+            "start": 17.587,
+            "end": 18.127
           }
         },
         {
           "text": "God",
-          "start": 18.6,
-          "end": 18.84,
+          "start": 18.707,
+          "end": 18.947,
           "voiced": {
-            "start": 18.6,
-            "end": 18.84
+            "start": 18.707,
+            "end": 18.947
           }
         },
         {
           "text": "will",
-          "start": 18.92,
-          "end": 19.08,
+          "start": 19.027,
+          "end": 19.187,
           "voiced": {
-            "start": 18.92,
-            "end": 19.08
+            "start": 19.027,
+            "end": 19.187
           }
         },
         {
           "text": "not",
-          "start": 19.24,
-          "end": 19.56,
+          "start": 19.347,
+          "end": 19.667,
           "voiced": {
-            "start": 19.24,
-            "end": 19.56
+            "start": 19.347,
+            "end": 19.647
           }
         },
         {
           "text": "clear",
-          "start": 19.72,
-          "end": 19.88,
+          "start": 19.827,
+          "end": 20.067,
           "voiced": {
-            "start": 19.72,
-            "end": 19.88
+            "start": 19.867,
+            "end": 20.067
           }
         },
         {
           "text": "the",
-          "start": 19.96,
-          "end": 20.04,
+          "start": 20.107,
+          "end": 20.147,
           "voiced": {
-            "start": 19.96,
-            "end": 20.04
+            "start": 20.107,
+            "end": 20.147
           }
         },
         {
           "text": "guilty.",
-          "start": 20.08,
-          "end": 20.92,
+          "start": 20.227,
+          "end": 20.707,
           "voiced": {
-            "start": 20.08,
-            "end": 20.51
+            "start": 20.227,
+            "end": 20.657
           }
         },
         {
           "text": "And",
-          "start": 21.448,
-          "end": 21.48,
+          "start": 21.587,
+          "end": 21.667,
           "voiced": {
-            "start": 21.448,
-            "end": 21.48
+            "start": 21.587,
+            "end": 21.667
           }
         },
         {
           "text": "yet",
-          "start": 21.56,
-          "end": 21.64,
+          "start": 21.747,
+          "end": 21.827,
           "voiced": {
-            "start": 21.56,
-            "end": 21.64
+            "start": 21.747,
+            "end": 21.827
           }
         },
         {
           "text": "it",
-          "start": 21.72,
-          "end": 21.8,
+          "start": 21.907,
+          "end": 21.987,
           "voiced": {
-            "start": 21.72,
-            "end": 21.8
+            "start": 21.907,
+            "end": 21.987
           }
         },
         {
           "text": "says",
-          "start": 21.88,
-          "end": 22.12,
+          "start": 22.067,
+          "end": 22.387,
           "voiced": {
-            "start": 21.88,
-            "end": 22.12
+            "start": 22.067,
+            "end": 22.387
           }
         },
         {
           "text": "He",
-          "start": 22.36,
-          "end": 22.52,
+          "start": 22.627,
+          "end": 22.787,
           "voiced": {
-            "start": 22.36,
-            "end": 22.52
+            "start": 22.627,
+            "end": 22.787
           }
         },
         {
           "text": "justifies",
-          "start": 22.76,
-          "end": 23.48,
+          "start": 22.947,
+          "end": 23.667,
           "voiced": {
-            "start": 22.76,
-            "end": 23.48
+            "start": 22.947,
+            "end": 23.667
           }
         },
         {
           "text": "the",
-          "start": 23.56,
-          "end": 23.6,
+          "start": 23.747,
+          "end": 23.787,
           "voiced": {
-            "start": 23.56,
-            "end": 23.6
+            "start": 23.747,
+            "end": 23.787
           }
         },
         {
           "text": "ungodly.",
-          "start": 23.64,
-          "end": 24.36,
+          "start": 23.827,
+          "end": 24.547,
           "voiced": {
-            "start": 23.64,
-            "end": 24.32
+            "start": 23.827,
+            "end": 24.507
           }
         },
         {
           "text": "So",
-          "start": 24.96,
-          "end": 24.976,
+          "start": 25.147,
+          "end": 25.187,
           "voiced": {
-            "start": 24.96,
-            "end": 24.976
+            "start": 25.147,
+            "end": 25.187
           }
         },
         {
           "text": "the",
-          "start": 25.056,
-          "end": 25.136,
+          "start": 25.267,
+          "end": 25.307,
           "voiced": {
-            "start": 25.056,
-            "end": 25.136
+            "start": 25.267,
+            "end": 25.307
           }
         },
         {
           "text": "question",
-          "start": 25.216,
-          "end": 25.536,
+          "start": 25.347,
+          "end": 25.667,
           "voiced": {
-            "start": 25.216,
-            "end": 25.536
+            "start": 25.347,
+            "end": 25.667
           }
         },
         {
           "text": "is,",
-          "start": 25.616,
-          "end": 25.856,
+          "start": 25.827,
+          "end": 26.227,
           "voiced": {
-            "start": 25.616,
-            "end": 25.856
+            "start": 25.827,
+            "end": 26.027
           }
         },
         {
           "text": "how",
-          "start": 26.336,
-          "end": 26.496,
+          "start": 26.467,
+          "end": 26.627,
           "voiced": {
-            "start": 26.336,
-            "end": 26.496
+            "start": 26.467,
+            "end": 26.627
           }
         },
         {
           "text": "can",
-          "start": 26.576,
-          "end": 26.736,
+          "start": 26.707,
+          "end": 26.867,
           "voiced": {
-            "start": 26.576,
-            "end": 26.736
+            "start": 26.707,
+            "end": 26.867
           }
         },
         {
           "text": "God",
-          "start": 26.816,
-          "end": 27.056,
+          "start": 26.947,
+          "end": 27.187,
           "voiced": {
-            "start": 26.816,
-            "end": 27.056
+            "start": 26.947,
+            "end": 27.187
           }
         },
         {
           "text": "call",
-          "start": 27.136,
-          "end": 27.376,
+          "start": 27.267,
+          "end": 27.507,
           "voiced": {
-            "start": 27.136,
-            "end": 27.376
+            "start": 27.267,
+            "end": 27.507
           }
         },
         {
           "text": "a",
-          "start": 27.456,
-          "end": 27.536,
+          "start": 27.587,
+          "end": 27.667,
           "voiced": {
-            "start": 27.456,
-            "end": 27.536
+            "start": 27.587,
+            "end": 27.667
           }
         },
         {
           "text": "guilty",
-          "start": 27.616,
-          "end": 27.936,
+          "start": 27.827,
+          "end": 28.147,
           "voiced": {
-            "start": 27.646,
-            "end": 27.936
+            "start": 27.827,
+            "end": 28.147
           }
         },
         {
           "text": "man",
-          "start": 28.096,
-          "end": 28.256,
+          "start": 28.227,
+          "end": 28.467,
           "voiced": {
-            "start": 28.096,
-            "end": 28.256
+            "start": 28.227,
+            "end": 28.467
           }
         },
         {
           "text": "righteous?",
-          "start": 28.416,
-          "end": 29.376,
+          "start": 28.627,
+          "end": 29.214,
           "voiced": {
-            "start": 28.416,
-            "end": 29.006
-          }
-        },
-        {
-          "text": "And",
-          "start": 29.904,
-          "end": 29.936,
-          "voiced": {
-            "start": 29.904,
-            "end": 29.936
-          }
-        },
-        {
-          "text": "we",
-          "start": 30.056,
-          "end": 30.176,
-          "voiced": {
-            "start": 30.056,
-            "end": 30.106
-          }
-        },
-        {
-          "text": "all",
-          "start": 30.256,
-          "end": 30.496,
-          "voiced": {
-            "start": 30.256,
-            "end": 30.496
-          }
-        },
-        {
-          "text": "need",
-          "start": 30.576,
-          "end": 30.736,
-          "voiced": {
-            "start": 30.576,
-            "end": 30.736
-          }
-        },
-        {
-          "text": "the",
-          "start": 30.816,
-          "end": 30.896,
-          "voiced": {
-            "start": 30.816,
-            "end": 30.896
-          }
-        },
-        {
-          "text": "answer.",
-          "start": 31.136,
-          "end": 31.816,
-          "voiced": {
-            "start": 31.136,
-            "end": 31.386
+            "start": 28.627,
+            "end": 29.214
           }
         },
         {
           "text": "Job",
-          "start": 32.336,
-          "end": 32.576,
+          "start": 30.387,
+          "end": 30.627,
           "voiced": {
-            "start": 32.336,
-            "end": 32.576
+            "start": 30.387,
+            "end": 30.627
           }
         },
         {
           "text": "asked",
-          "start": 32.656,
-          "end": 32.976,
+          "start": 30.707,
+          "end": 31.027,
           "voiced": {
-            "start": 32.656,
-            "end": 32.906
+            "start": 30.707,
+            "end": 30.967
           }
         },
         {
           "text": "long",
-          "start": 33.056,
-          "end": 33.216,
+          "start": 31.107,
+          "end": 31.267,
           "voiced": {
-            "start": 33.056,
-            "end": 33.216
+            "start": 31.107,
+            "end": 31.267
           }
         },
         {
           "text": "ago:",
-          "start": 33.296,
-          "end": 33.696,
+          "start": 31.347,
+          "end": 31.747,
           "voiced": {
-            "start": 33.296,
-            "end": 33.696
+            "start": 31.347,
+            "end": 31.727
           }
         },
         {
           "text": "“How",
-          "start": 34.608,
-          "end": 34.656,
+          "start": 32.627,
+          "end": 32.787,
           "voiced": {
-            "start": 34.608,
-            "end": 34.656
+            "start": 32.627,
+            "end": 32.787
           }
         },
         {
           "text": "should",
-          "start": 34.736,
-          "end": 34.896,
+          "start": 32.867,
+          "end": 33.027,
           "voiced": {
-            "start": 34.736,
-            "end": 34.896
+            "start": 32.867,
+            "end": 33.027
           }
         },
         {
           "text": "man",
-          "start": 34.976,
-          "end": 35.216,
+          "start": 33.107,
+          "end": 33.347,
           "voiced": {
-            "start": 34.976,
-            "end": 35.216
+            "start": 33.107,
+            "end": 33.347
           }
         },
         {
           "text": "be",
-          "start": 35.296,
-          "end": 35.376,
+          "start": 33.427,
+          "end": 33.507,
           "voiced": {
-            "start": 35.296,
-            "end": 35.376
+            "start": 33.427,
+            "end": 33.507
           }
         },
         {
           "text": "just",
-          "start": 35.616,
-          "end": 36.016,
+          "start": 33.747,
+          "end": 34.147,
           "voiced": {
-            "start": 35.616,
-            "end": 36.016
+            "start": 33.747,
+            "end": 34.147
           }
         },
         {
           "text": "with",
-          "start": 36.096,
-          "end": 36.176,
+          "start": 34.227,
+          "end": 34.307,
           "voiced": {
-            "start": 36.096,
-            "end": 36.176
+            "start": 34.227,
+            "end": 34.307
           }
         },
         {
           "text": "God?”",
-          "start": 36.336,
-          "end": 36.7,
+          "start": 34.467,
+          "end": 34.83,
           "voiced": {
-            "start": 36.336,
-            "end": 36.666
+            "start": 34.467,
+            "end": 34.807
           }
         }
       ],
-      "delivered": "5dc7caff"
+      "delivered": "1d223357"
     },
     "seed": {
       "hash": "ff0ab74a",
