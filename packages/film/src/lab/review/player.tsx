@@ -1,5 +1,5 @@
-// The review's players, shared by its pages (a Set, Choices, Project and a
-// sheet's lone render): the synced player's transport row, the one video that
+// The review's players, shared by its pages (a Set, Choices and a sheet's
+// lone render): the synced player's transport row, the one video that
 // plays on a clock of its own, and the ref that joins a media element to a
 // player's driver.
 
@@ -71,8 +71,8 @@ export const HearToggle = (props: {
  * The synced player's controls, one row: play, the clock, a scrub over every
  * track, and the one rate chip, whose rates are the page's commands
  * while the transport is shown (J, K, L; ⌘K). Its keys are in the `?` sheet.
- * A page docks it (`.sh-dock`: over the tab bar on a phone, held under the
- * header on a laptop, design language §4), Choices, a Set and Project alike.
+ * A page docks it (`.sh-dock`: on the shell's floor on a phone, held under the
+ * header on a laptop, design language §4), Choices and a Set alike.
  */
 export const Transport = (props: {
   readonly sync: Accessor<SyncState>;

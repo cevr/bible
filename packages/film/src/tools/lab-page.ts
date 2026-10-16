@@ -61,7 +61,7 @@ import {
 } from 'effect';
 import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { type AppPage, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import { type AppPage, labUrls, pageAt, servedPlace } from '../core/api.ts';
 import { LONGEST_WAIT } from '../core/wait.ts';
 import type { PageBuild } from '../core/schema.ts';
 import { PAGE_CUT_MARK, type PageAsked } from '../core/page-render.ts';
@@ -174,7 +174,7 @@ interface Bundled {
  * The film code among `files` (absolute) a server's build read: a module of
  * a film (under the films folder, `films`), of a scene (in a `scenes/`
  * folder outside the framework's own source, `framework`: the framework's
- * Scenes page is its own), or the drawing of stills (`player/stills.ts`). A
+ * own `scenes/` modules are no film's), or the drawing of stills (`player/stills.ts`). A
  * page's server render draws no film (Fresh reads: the server never imports
  * a film's modules); the browser's copy of the page does.
  */
@@ -193,7 +193,7 @@ const filmCode = (
   );
 };
 
-/** The framework's own source, beside this module: its Scenes page's modules are no film's. */
+/** The framework's own source, beside this module: its `scenes/` modules are no film's. */
 const FRAMEWORK = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 
 /** A build the bundler refused: its words, and the files they name, absolute. */
@@ -1593,7 +1593,7 @@ const make = Effect.fnUntraced(function* (given: LabPageSpec) {
       }),
     );
 
-  /** An old link sent on to its place (`legacyPlace`); the browser keeps its hash across. */
+  /** An old link, or a page the studio replaced, sent on to its place (`servedPlace`); the browser keeps its hash across. */
   const moved = (from: string, to: string) =>
     Effect.as(
       Effect.logInfo(`lab.page.moved from=${from} to=${to}`),
@@ -1601,7 +1601,7 @@ const make = Effect.fnUntraced(function* (given: LabPageSpec) {
     );
 
   // A narration file or a footage copy by its exact URL, then a built file, then an old link
-  // sent on to its place, then the page the path serves (`pageAt`, the
+  // or a page the studio replaced sent on to its place, then the page the path serves (`pageAt`, the
   // places); anything else, a chunk of a build no longer kept among them, is
   // a 404 and never a page's HTML.
   const answer = Effect.gen(function* () {
@@ -1613,7 +1613,7 @@ const make = Effect.fnUntraced(function* (given: LabPageSpec) {
     const built = yield* asset(pathname);
     if (Option.isSome(built)) return built.value;
     const old = `${pathname}${url.search}`;
-    const place = legacyPlace(old);
+    const place = servedPlace(old);
     if (Option.isSome(place)) return yield* moved(old, place.value);
     const wedgeId = Option.fromNullishOr(url.searchParams.get('wedge'));
     const keptId = Option.fromNullishOr(url.searchParams.get('build'));

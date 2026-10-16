@@ -2,8 +2,8 @@
 // pause, a frame back or on, a scene back or on, and the captions. Their
 // keys are the transport's usual ones: Space plays, ← and → step one frame
 // (with Shift, ten: the coarse step, as an editor's nudge; with Alt, one),
-// [ and ] go by scenes, C toggles the captions; the lab's legend, hidden at
-// rest (`legendCommand`); and Play's ticks (`ticksCommand`). The frame and
+// [ and ] go by scenes, C toggles the captions; and the lab's legend, hidden
+// at rest (`legendCommand`). The frame and
 // scene steps are the page's (a
 // long press or a right-click on the film lists them, the frames' also ×10:
 // a finger's Shift, `menu.ts`). Each answers quietly: the
@@ -39,16 +39,16 @@ const always = () => true;
 /** What play says, by whether the film plays. */
 const PLAY_LABEL: Readonly<Record<'true' | 'false', string>> = { true: 'Pause', false: 'Play' };
 
-/** How a phone plays and pauses, by page: on Play a tap while it plays shows the HUD (`hud.ts`). */
+/** How a phone plays and pauses, by page. */
 const TOUCH_PLAY: Readonly<Record<PageName, string>> = {
-  player: 'tap the film; while it plays, the bar’s ❚❚',
+  player: 'tap the film',
   lab: 'tap the film',
   review: 'tap the film',
 };
 
-/** Where a phone turns the captions, by page: the lab's bar has no CC. */
+/** Where a phone turns the captions, by page: the lab's bar and the studio's transport have no CC. */
 const TOUCH_CAPTIONS: Readonly<Record<PageName, string>> = {
-  player: 'the CC button',
+  player: 'the command menu, then Captions on or off',
   lab: 'the view menu (⋯), then Captions on or off',
   review: 'the CC button',
 };
@@ -179,35 +179,6 @@ export const rateCommands = <R extends number>(rates: Rates<R>): ReadonlyArray<C
   ];
 };
 
-/** What the ticks' command says, by whether they show. */
-const TICKS_LABEL: Readonly<Record<'true' | 'false', string>> = {
-  true: 'Hide the ticks',
-  false: 'Show the ticks',
-};
-
-/** Play's ticks: whether they show, the toggle, and whether the page is Play. */
-interface Ticks {
-  readonly shown: () => boolean;
-  readonly toggle: () => void;
-  readonly here: () => boolean;
-}
-
-/**
- * Play's ticks on the track (marks, cues, sounds, music acts), off at rest:
- * the viewer turns them on from the view menu (⋯), and this
- * browser keeps the choice. The Lab and the Scenes always show theirs.
- */
-export const ticksCommand = (ticks: Ticks): Command => ({
-  id: 'view.ticks',
-  label: 'Show or hide the ticks',
-  labelIn: () => TICKS_LABEL[`${ticks.shown()}`],
-  group: 'View',
-  keys: [],
-  touch: 'the view menu (⋯), then Show the ticks',
-  when: () => ticks.here(),
-  run: quietly(() => ticks.toggle()),
-});
-
 /** What the legend's command says, by whether the legend shows. */
 const LEGEND_LABEL: Readonly<Record<'true' | 'false', string>> = {
   true: 'Hide the legend',
@@ -245,8 +216,7 @@ export const legendHtml = (): string =>
  * rest. It has no key: on every page in the studio's shell `?`
  * opens the keys sheet, the one place the keys are listed, and on
  * a film's page the sheet ends on this legend too. ⌘K and the page's
- * long-press menu show it. Play has none: its ticks' legend shows with its
- * ticks (`ticksCommand`).
+ * long-press menu show it.
  */
 export const legendCommand = (legend: Legend): Command => ({
   id: 'view.legend',

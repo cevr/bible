@@ -33,7 +33,7 @@ import {
   STUDIO_SET,
   studioRoutes,
 } from '../../src/lab/fixtures/studio-film.ts';
-import type { Tab } from '../../src/lab/fixtures/tab.ts';
+import { type Tab, jsonOf } from '../../src/lab/fixtures/tab.ts';
 import { DESK_HIT, PHONE_HIT, undersizedTargets } from '../../src/lab/fixtures/touch-targets.ts';
 
 export const SLOW = 30_000;
@@ -83,7 +83,7 @@ export interface Budget {
 /** A view's budget: at most `phone` things on a phone, `laptop` on a laptop. */
 export const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
 /** The Lab's Edit: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
-export const LAB_EDIT = most(52, 56);
+export const LAB_EDIT = most(47, 56);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 export interface State {
@@ -213,9 +213,8 @@ export const recording = (viewport: Viewport) =>
   });
 
 /**
- * The player at `href`, once `ready` shows and every sheet it opened with stands, over `routes`
- * and the harness's own. A sheet still scrolling in (a scene's, at `pageHref.scene`) passes over
- * the page bar on a phone, so the page is not yet as it opens.
+ * The harness's player page (the studio) at `href`, once `ready` shows and every sheet it
+ * opened with stands, over `routes` and the harness's own.
  */
 export const player =
   (href: string, ready: string, routes: ReadonlyArray<FakeRoute> = []) =>
@@ -225,55 +224,6 @@ export const player =
       yield* sheetsStand(page);
       return page;
     });
-
-/**
- * The probe film's project and check as a film in work has them: a scene out
- * of date, one not rendered, one approved, a warning and a finding on scenes
- * and a line of the film's own, so the Scenes' tape bar holds its fullest
- * legend.
- */
-export const WORK_ROUTES: ReadonlyArray<FakeRoute> = [
-  route('GET', /^\/project$/, () =>
-    json({
-      project: {
-        film: PROBE,
-        variant: 'main',
-        key: 'fk',
-        comments: [],
-        acts: [{ name: 'opening', scenes: ['one', 'two', 'three'], key: 'ak', comments: [] }],
-        scenes: [
-          { scene: 'one', key: 'k', state: 'stale', approval: 'none', comments: [] },
-          { scene: 'two', key: 'k', state: 'missing', approval: 'none', comments: [] },
-          { scene: 'three', key: 'k', state: 'current', approval: 'approved', comments: [] },
-        ],
-      },
-      videos: {},
-    }),
-  ),
-  route('GET', /^\/check$/, () =>
-    json({
-      findings: [
-        {
-          level: 'warning',
-          tag: 'cue',
-          message: 'the page turns early',
-          address: { part: { _tag: 'Scenes', ids: ['one'] }, time: 1 },
-        },
-        {
-          level: 'error',
-          tag: 'cue',
-          message: 'a cue past the scene',
-          address: { part: { _tag: 'Scenes', ids: ['two'] }, time: 4 },
-        },
-        {
-          level: 'warning',
-          tag: 'AudioStale',
-          message: "the film's audio is older than its script",
-        },
-      ],
-    }),
-  ),
-];
 
 /** A click on `selector`, then `shows` on the page. */
 export const opens = (selector: string, shows: string) => (page: Tab) =>
@@ -294,6 +244,13 @@ export const menuOn = (selector: string) => (page: Tab) =>
  */
 export const heldOn = (selector: string) => (page: Tab) =>
   Effect.gen(function* () {
+    // A finger holds what is on the screen: below the fold (a laptop's Choices), it is scrolled to first.
+    const at = `document.querySelector(${jsonOf(selector)})`;
+    yield* page.evaluate(`${at}.scrollIntoView({ block: 'center' }); true`);
+    yield* until(
+      page,
+      `(() => { const r = ${at}.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()`,
+    );
     yield* page.clock.hold;
     yield* touch(page, selector, 0);
     yield* page.clock.runFor(700);
@@ -304,20 +261,6 @@ export const heldOn = (selector: string) => (page: Tab) =>
   });
 
 export const CHOICES = pageHref.choices(STUDIO_FILM);
-export const PROJECT = pageHref.project(STUDIO_FILM);
-/**
- * Project at rest: the film's panel and its band, the act's panel, each
- * scene's still drawn, the dock's transport and a comment's count.
- */
-export const PROJECT_READY = [
-  '.pj-film .pj-band',
-  '.pj-act .pj-act-head',
-  '.rv-scene[data-scene="end"] .pj-still[data-drawn="true"] canvas',
-  '.pj-dock .rv-transport',
-  '[data-comments]',
-];
-/** A still on a film's Scenes tape, drawn. */
-export const STILL = '.sc-still[data-drawn="true"] canvas';
 export const STRINGS = '[data-point="score"] [data-variant="strings"]';
 export const INSPECTOR = '[data-role="inspector"]';
 export const FINDINGS = '[data-role="findings"]';
@@ -594,9 +537,9 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(CHOICES, ...CHOICES_READY),
       disclose: AT_REST,
       // The kinds strip's four tabs are its index on a page this long.
-      budget: most(47, 33),
+      budget: most(41, 33),
       // Its levels, kinds and rows below the fold: a state word back on every row lands here.
-      page: most(101, 102),
+      page: most(96, 102),
     },
     {
       name: "Choices, a variant's inspector",
@@ -626,30 +569,6 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(CHOICES, ...CHOICES_READY),
       disclose: pressed('Control+k', `${COMMAND_MENU} [data-command]`),
       layer: COMMAND_MENU,
-    },
-  ],
-  project: [
-    {
-      name: 'Project, its panels, stills and dock, with comment counts',
-      open: review(PROJECT, ...PROJECT_READY),
-      disclose: AT_REST,
-      budget: most(40, 32),
-      page: most(41, 46),
-    },
-    {
-      name: "Project, a scene row's sheet",
-      open: review(PROJECT, ...PROJECT_READY),
-      disclose: opens(
-        '.rv-scene[data-scene="open"] .sc-card-picture',
-        `${INSPECTOR} .rv-comment-input`,
-      ),
-      layer: INSPECTOR,
-    },
-    {
-      name: "Project, the film's inspector",
-      open: review(PROJECT, ...PROJECT_READY),
-      disclose: opens('.pj-film-head .lab-inspect', `${INSPECTOR} .rv-comment-input`),
-      layer: INSPECTOR,
     },
   ],
   set: [
@@ -683,8 +602,8 @@ export const STATES: ByPlace<State, AtRest> = {
       name: "an agent's ask, at its first step: a choice of three",
       open: review(pageHref.ask(STUDIO_ASK), ASK_READY),
       disclose: AT_REST,
-      // An ask that names a film is a film's view: its switcher names the film and its seven
-      // tabs are the way to the Board or the Script the ask is about (taste-1 T2, where am I).
+      // An ask that names a film is a film's view: its switcher names the film and its Studio
+      // link leads into it (taste-1 T2, where am I).
       // A page of one section has no "1 of 1" head, and an ask that waits wears no chip (the
       // dock's count says what is left).
       budget: most(23, 23),
@@ -758,6 +677,13 @@ export const STATES: ByPlace<State, AtRest> = {
       layer: `:is(${SELECTION_SHEET}, :root:not(:has(${SELECTION_SHEET})))`,
     },
     { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
+    {
+      // The shell's view menu (`⋯`), which every page's header holds: the Lab's has the most in it.
+      name: 'Lab, the view menu',
+      open: lab('edit'),
+      disclose: opens('[data-act="view-menu"]', `${VIEW_MENU} [data-command]`),
+      layer: VIEW_MENU,
+    },
     { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(41, 45) },
     {
       name: 'Lab, Note with a scoped composer',
@@ -847,53 +773,25 @@ export const STATES: ByPlace<State, AtRest> = {
       disclose: (page) => waitFor(page, '.lab-script-shown[data-note="n2"] .lab-reply-input'),
     },
   ],
-  scenes: [
+  studio: [
     {
-      name: 'Scenes',
-      open: player(pageHref.scenes(PROBE), STILL),
+      name: 'Studio',
+      open: player(pageHref.studio(PROBE), '.st-timeline .st-clip'),
       disclose: AT_REST,
-      budget: most(22, 23),
+      // On a laptop each of the probe's twelve clips is a control and the ruler labels each of its
+      // 13 seconds: 51 things (measured 2026-10-16).
+      budget: most(30, 51),
     },
-  ],
-  scene: [
     {
-      // The scene's sheet is a layer, as an inspector is: the tape under it is the case above.
-      name: "Scenes, a scene selected (its sheet, the Project's scene inspector's)",
-      open: player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
+      name: 'Studio, a beat selected (the inspector)',
+      open: player(pageHref.studio(PROBE, { sel: 'beat:two' }), '.st-pane'),
       disclose: AT_REST,
-      // The tape under the sheet and the sheet's own fields, counted as the page shows them.
-      budget: most(29, 36),
-      layer: '[data-role="scene"]',
-    },
-  ],
-  play: [
-    {
-      name: 'Play',
-      open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
-      disclose: AT_REST,
-      budget: most(20, 20),
     },
     {
-      name: 'Play, the view menu',
-      open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
-      disclose: opens('[data-act="view-menu"]', `${VIEW_MENU} [data-command]`),
-      layer: VIEW_MENU,
-    },
-    {
-      // Play's ticks, turned on from the view menu: each a target its finger can hold.
-      name: 'Play, its ticks on',
-      open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
-      disclose: (page) =>
-        Effect.andThen(
-          opens(
-            '[data-act="view-menu"]',
-            '[data-role="view-menu"] [data-command="view.ticks"]',
-          )(page),
-          opens(
-            '[data-role="view-menu"] [data-command="view.ticks"]',
-            '.bar[data-ticks="on"]',
-          )(page),
-        ),
+      name: 'Studio, the version menu',
+      open: player(pageHref.studio(PROBE), '.st-timeline .st-clip'),
+      disclose: opens('[data-act="version"]', '[data-role="versions"] [data-version="1"]'),
+      layer: '[data-role="versions"]',
     },
   ],
 };
@@ -944,9 +842,12 @@ export const drawnIn = (place: PlaceName, state: State, device: Device) =>
  * run at once, and asked in a serial case of its own (`film/touches-serial`).
  */
 export const LONG_PRESSED: State = {
-  name: "Project, an act's long-press menu",
-  open: review(PROJECT, ...PROJECT_READY),
+  name: "Choices, a variant's long-press menu",
+  open: review(CHOICES, ...CHOICES_READY),
   // Made in its case, not as the table is: a call in an initializer runs where it is declared.
-  disclose: (page) => heldOn('.pj-act-head .pj-act-meta')(page),
+  disclose: (page) => heldOn(`${STRINGS} .rv-name`)(page),
   layer: CONTEXT_MENU,
 };
+
+/** The place `LONG_PRESSED` is at. */
+export const LONG_PRESSED_AT: PlaceName = 'choices';

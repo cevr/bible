@@ -7,13 +7,12 @@ import {
   type AppPage,
   Places,
   filmOfPage,
-  filmTimeOn,
   labUrls,
   legacyPlace,
   pageAt,
   pageHref,
-  partHref,
   reviewFileUrl,
+  servedPlace,
 } from './api.ts';
 import { declares } from './testing.ts';
 import { LONGEST_WAIT, WaitTimeout } from './wait.ts';
@@ -59,30 +58,23 @@ const LINKS: ReadonlyArray<
     '/films/rbf/choices?heard=score&variant=strings&picture=out%2Frbf%2Fmain.mp4#t=12',
   ],
   ['/films/rbf/choices?heard=own', 'choices', 'review', '/films/rbf/choices?heard=own'],
-  ['/films/rbf/project', 'project', 'review', '/films/rbf/project'],
-  [
-    '/films/rbf/project?point=take%3Awood.gavel',
-    'project',
-    'review',
-    '/films/rbf/project?point=take%3Awood.gavel',
-  ],
-  [
-    '/films/rbf/project?point=score&heard=own#t=3.5',
-    'project',
-    'review',
-    '/films/rbf/project?point=score&heard=own#t=3.5',
-  ],
-  ['/films/rbf/scenes', 'scenes', 'player', '/films/rbf/scenes'],
-  ['/films/rbf/scenes/roof', 'scene', 'player', '/films/rbf/scenes/roof'],
+  ['/films/rbf/studio', 'studio', 'player', '/films/rbf/studio'],
+  ['/films/rbf/studio#t=42', 'studio', 'player', '/films/rbf/studio#t=42'],
   // A blank time is no time, though `Number` reads it as 0.
-  ['/films/rbf/scenes/roof#t=%20', 'scene', 'player', '/films/rbf/scenes/roof'],
-  ['/films/rbf/play', 'play', 'player', '/films/rbf/play'],
-  ['/films/rbf/play#t=42', 'play', 'player', '/films/rbf/play#t=42'],
+  ['/films/rbf/studio#t=%20', 'studio', 'player', '/films/rbf/studio'],
   [
-    '/films/rbf%2Fshorts%2Fverdict/play#t=3.25',
-    'play',
+    '/films/rbf/studio?v=2&sel=beat:roof#t=4.5',
+    'studio',
     'player',
-    '/films/rbf%2Fshorts%2Fverdict/play#t=3.25',
+    '/films/rbf/studio?v=2&sel=beat%3Aroof#t=4.5',
+  ],
+  ['/films/rbf/studio?v=0&sel=&nope=1', 'studio', 'player', '/films/rbf/studio'],
+  ['/films/rbf/studio?v=x', 'studio', 'player', '/films/rbf/studio'],
+  [
+    '/films/rbf%2Fshorts%2Fverdict/studio#t=3.25',
+    'studio',
+    'player',
+    '/films/rbf%2Fshorts%2Fverdict/studio#t=3.25',
   ],
   ['/films/rbf/lab', 'lab', 'lab', '/films/rbf/lab'],
   ['/films/rbf/lab?note=n-1#t=60', 'lab', 'lab', '/films/rbf/lab?note=n-1#t=60'],
@@ -92,7 +84,6 @@ const LINKS: ReadonlyArray<
   ['/films/rbf/lab/roof?knob=sway', 'labScene', 'lab', '/films/rbf/lab/roof?knob=sway'],
   ['/films/rbf/lab/roof?note=n-2#t=-0.5', 'labScene', 'lab', '/films/rbf/lab/roof?note=n-2#t=-0.5'],
   ['/films/rbf/lab/roof#t=nope', 'labScene', 'lab', '/films/rbf/lab/roof'],
-  ['/films/rbf/project#point-score', 'project', 'review', '/films/rbf/project'],
   ['/films/rbf/export', 'export', 'render', '/films/rbf/export'],
   [
     '/films/rbf%2Fshorts%2Fverdict/export',
@@ -127,14 +118,19 @@ describe('page places', () => {
     '/sets',
     '/api/films',
     '/chunk-abc123.js',
-    '/films/%2E%2E/play',
+    '/films/%2E%2E/studio',
+    // The pages the studio replaced: no page is served there (the server sends a browser on, `servedPlace`).
+    '/films/rbf/play',
+    '/films/rbf/scenes',
+    '/films/rbf/scenes/roof',
+    '/films/rbf/project',
   ])('%s serves no page', (path) => {
     expect(pageAt(path)).toEqual(Option.none());
   });
 
-  test("a film's export page is the render page's own place, never Play's", () => {
+  test("a film's export page is the render page's own place, never the studio's", () => {
     expect(pageAt('/films/rbf/export')).toEqual(Option.some('render'));
-    expect(pageAt('/films/rbf/play')).toEqual(Option.some('player'));
+    expect(pageAt('/films/rbf/studio')).toEqual(Option.some('player'));
     expect(filmOfPage('/films/rbf%2Fshorts%2Fverdict/export?build=3')).toEqual(
       Option.some('rbf/shorts/verdict'),
     );
@@ -147,9 +143,10 @@ describe('page places', () => {
       '/sets/bible-tools%2Frbf/render:scenes:roof',
     );
     expect(pageHref.choices('rbf')).toBe('/films/rbf/choices');
-    expect(pageHref.project('rbf', 'score')).toBe('/films/rbf/project?point=score');
-    expect(pageHref.scenes('rbf/shorts/verdict')).toBe('/films/rbf%2Fshorts%2Fverdict/scenes');
-    expect(pageHref.play('rbf', Option.some(4.5))).toBe('/films/rbf/play#t=4.5');
+    expect(pageHref.studio('rbf/shorts/verdict')).toBe('/films/rbf%2Fshorts%2Fverdict/studio');
+    expect(pageHref.studio('rbf', { v: 2, sel: 'beat:roof' }, Option.some(4.5))).toBe(
+      '/films/rbf/studio?v=2&sel=beat%3Aroof#t=4.5',
+    );
     expect(pageHref.lab('rbf')).toBe('/films/rbf/lab');
     expect(pageHref.labScene('rbf', 'roof', { cue: 'lower' }, Option.some(0.25))).toBe(
       '/films/rbf/lab/roof?cue=lower#t=0.25',
@@ -162,15 +159,14 @@ describe('page places', () => {
       throttle: Option.some(Duration.millis(TIME_EVERY_MS)),
     };
     const along = (at: string) => [`${at}#t=1`, `${at}#t=2`] as const;
-    expect(Place.history(Places.play, ...along('/films/f/play'))).toEqual(moving);
-    expect(Place.history(Places.scenes, ...along('/films/f/scenes'))).toEqual(moving);
+    expect(Place.history(Places.studio, ...along('/films/f/studio'))).toEqual(moving);
     expect(Place.history(Places.lab, ...along('/films/f/lab'))).toEqual(moving);
     expect(Place.history(Places.labScene, ...along('/films/f/lab/one'))).toEqual(moving);
     expect(Place.history(Places.set, ...along('/sets/f/p'))).toEqual(moving);
     expect(Place.history(Places.choices, ...along('/films/f/choices'))).toEqual(moving);
   });
 
-  test("a filter shown or cleared is a step Back walks on a film's choices and project, its point unchanged too", () => {
+  test("a filter shown or cleared is a step Back walks on a film's choices, its point unchanged too", () => {
     const step = { history: 'push' as const, throttle: Option.none() };
     expect(
       Place.history(
@@ -179,33 +175,24 @@ describe('page places', () => {
         '/films/f/choices?point=a',
       ),
     ).toEqual(step);
+  });
+
+  test("the studio's version and its selection are steps Back walks", () => {
+    const step = { history: 'push' as const, throttle: Option.none() };
+    expect(Place.history(Places.studio, '/films/f/studio', '/films/f/studio?v=1')).toEqual(step);
     expect(
-      Place.history(Places.project, '/films/f/project', '/films/f/project?only=comments'),
+      Place.history(Places.studio, '/films/f/studio', '/films/f/studio?sel=beat%3Aone'),
     ).toEqual(step);
   });
 
   test("a film's page names its film in its path, a short's whole name too", () => {
     expect(filmOfPage('/films/rbf/lab/roof?cue=lower#t=1')).toEqual(Option.some('rbf'));
-    expect(filmOfPage(pageHref.scenes('rbf/shorts/verdict'))).toEqual(
+    expect(filmOfPage(pageHref.studio('rbf/shorts/verdict'))).toEqual(
       Option.some('rbf/shorts/verdict'),
     );
-    expect(filmOfPage(pageHref.play('rbf'))).toEqual(Option.some('rbf'));
+    expect(filmOfPage(pageHref.studio('rbf'))).toEqual(Option.some('rbf'));
     for (const href of ['/', '/sets/f/p', '/?film=rbf'])
       expect(filmOfPage(href)).toEqual(Option.none());
-  });
-
-  test("the page bar keeps the film's frame between Scenes, the Lab and Play, and only there", () => {
-    const at = filmTimeOn('lab', Option.some(4));
-    expect(partHref('scenes', 'f', at)).toBe(pageHref.scenes('f', Option.some(4)));
-    expect(partHref('play', 'f', at)).toBe(pageHref.play('f', Option.some(4)));
-    expect(partHref('lab', 'f', filmTimeOn('play', Option.some(4)))).toBe(
-      pageHref.lab('f', Option.some(4)),
-    );
-    expect(partHref('choices', 'f', at)).toBe(pageHref.choices('f'));
-    expect(partHref('project', 'f', at)).toBe(pageHref.project('f'));
-    // A page whose time is not the film's (a set's video) hands none on.
-    expect(filmTimeOn('films', Option.some(4))).toEqual(Option.none());
-    expect(filmTimeOn('choices', Option.some(4))).toEqual(Option.none());
   });
 });
 
@@ -237,17 +224,17 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/lab?film=..', '/'],
   ['/?folder=f&set=..', '/sets/f'],
   ['/lab', '/'],
-  ['/player?film=rbf', '/films/rbf/play'],
-  ['/player?film=rbf#42.000', '/films/rbf/play#t=42'],
-  ['/player?film=rbf&lookbook', '/films/rbf/scenes'],
-  ['/player?film=rbf&lookbook#42.5', '/films/rbf/scenes#t=42.5'],
+  ['/player?film=rbf', '/films/rbf/studio'],
+  ['/player?film=rbf#42.000', '/films/rbf/studio#t=42'],
+  ['/player?film=rbf&lookbook', '/films/rbf/studio'],
+  ['/player?film=rbf&lookbook#42.5', '/films/rbf/studio#t=42.5'],
   ['/player?film=rbf&lab#3.5', '/films/rbf/lab#t=3.5'],
-  ['/player?film=rbf%2Fshorts%2Fverdict&lookbook', '/films/rbf%2Fshorts%2Fverdict/scenes'],
+  ['/player?film=rbf%2Fshorts%2Fverdict&lookbook', '/films/rbf%2Fshorts%2Fverdict/studio'],
   ['/player', '/'],
-  ['/?project=rbf', '/films/rbf/project'],
+  ['/?project=rbf', '/films/rbf/studio'],
   ['/?film=rbf', '/films/rbf/choices'],
-  ['/?film=rbf&lookbook', '/films/rbf/scenes'],
-  ['/?film=rbf&lookbook#42.5', '/films/rbf/scenes#t=42.5'],
+  ['/?film=rbf&lookbook', '/films/rbf/studio'],
+  ['/?film=rbf&lookbook#42.5', '/films/rbf/studio#t=42.5'],
   ['/?film=rbf&lab', '/films/rbf/lab'],
   ['/?folder=bible-tools%2Frbf', '/sets/bible-tools%2Frbf'],
   [
@@ -263,7 +250,8 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/films/rbf/lab#12.5', '/films/rbf/lab#t=12.5'],
   ['/films/rbf/scenes#12.5', '/films/rbf/scenes#t=12.5'],
   ['/films/rbf/scenes/roof#12.5', '/films/rbf/scenes/roof#t=12.5'],
-  // A choice's card is on Choices now; a scene's render stays on the project.
+  ['/films/rbf/studio#3.5', '/films/rbf/studio#t=3.5'],
+  // A choice's card is on Choices now; a scene's render stays on the project, which the studio replaced.
   ['/films/rbf/project#point-take%3Awood.gavel', '/films/rbf/choices?point=take%3Awood.gavel'],
   ['/films/rbf/project?point=score', '/films/rbf/choices?point=score'],
   [
@@ -287,8 +275,9 @@ describe('old links', () => {
     '/',
     '/films/rbf/export',
     '/films/rbf/export?build=3',
+    '/films/rbf/studio',
+    '/films/rbf/studio#t=4',
     '/films/rbf/play',
-    '/films/rbf/play#t=4',
     '/films/rbf/lab/roof#42.000',
     '/films/rbf/choices',
     '/films/rbf/project?point=render%3Ascenes%3Aroof',
@@ -307,10 +296,53 @@ describe('old links', () => {
     expect(legacyPlace(href)).toEqual(Option.none());
   });
 
-  test('every old link lands on a page', () => {
-    for (const [, now] of OLD_LINKS)
-      expect(Option.isSome(pageAt(now.split(/[?#]/)[0] ?? ''))).toBe(true);
+  test('every old link lands on a page, through the studio where it replaced the page', () => {
+    for (const [, now] of OLD_LINKS) {
+      const landed = Option.getOrElse(servedPlace(now), () => now);
+      expect(Option.isSome(pageAt(landed.split(/[?#]/)[0] ?? ''))).toBe(true);
+    }
   });
+});
+
+/**
+ * Each film page the studio replaced, with where the lab's server sends it
+ * (`servedPlace`): the film's studio, the beat it was on selected and the
+ * film time it was at kept. A beat page's own time counts from the beat's
+ * start, which only the film's clock knows: it is left behind.
+ */
+const REPLACED_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
+  ['/films/rbf/play', '/films/rbf/studio'],
+  ['/films/rbf/play#t=4', '/films/rbf/studio#t=4'],
+  ['/films/rbf/lab', '/films/rbf/studio'],
+  ['/films/rbf/lab?note=n-1#t=60', '/films/rbf/studio#t=60'],
+  ['/films/rbf/lab/roof?cue=lower#t=1.5', '/films/rbf/studio?sel=beat%3Aroof'],
+  ['/films/rbf/script', '/films/rbf/studio'],
+  ['/films/rbf/script/roof', '/films/rbf/studio?sel=beat%3Aroof'],
+  ['/films/rbf/board', '/films/rbf/studio'],
+  ['/films/rbf/board/roof', '/films/rbf/studio?sel=beat%3Aroof'],
+  ['/films/rbf/scenes', '/films/rbf/studio'],
+  ['/films/rbf/scenes/roof#t=2', '/films/rbf/studio?sel=beat%3Aroof#t=2'],
+  ['/films/rbf/project', '/films/rbf/studio'],
+  ['/films/rbf/project?point=render%3Ascenes%3Aroof', '/films/rbf/studio'],
+  ['/films/rbf%2Fshorts%2Fverdict/play', '/films/rbf%2Fshorts%2Fverdict/studio'],
+  // An older link goes through its place to the studio.
+  ['/player?film=rbf', '/films/rbf/studio'],
+  ['/lab?film=rbf&sel=cue:roof:lower', '/films/rbf/studio?sel=beat%3Aroof'],
+  // A project link to a choice's card goes to Choices, which the studio has not replaced.
+  ['/films/rbf/project?point=score', '/films/rbf/choices?point=score'],
+];
+
+describe('the pages the studio replaced', () => {
+  test.each(REPLACED_LINKS)('%s is sent on to %s', (old, now) => {
+    expect(servedPlace(old)).toEqual(Option.some(now));
+  });
+
+  test.each(['/films/rbf/studio', '/films/rbf/choices', '/films/rbf/export', '/sets/f/p', '/'])(
+    '%s is served as asked',
+    (href) => {
+      expect(servedPlace(href)).toEqual(Option.none());
+    },
+  );
 });
 
 describe('waits', () => {

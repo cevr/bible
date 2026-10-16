@@ -509,11 +509,11 @@ const boardGroup = HttpApiBuilder.group(LabHttpApi, 'board', (handlers) =>
         }),
       ),
     )
-    .handle('file', ({ params, request }) =>
+    .handle('file', ({ params, query, request }) =>
       answered(
         Effect.gen(function* () {
           const film = yield* filmNamed(params.film);
-          const file = yield* (yield* BoardStore).image(film, params.file);
+          const file = yield* (yield* BoardStore).image(film, params.file, query.folder);
           return yield* serveFile(request, file, CACHE.derived);
         }),
       ),

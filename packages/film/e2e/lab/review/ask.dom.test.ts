@@ -7,8 +7,7 @@
 // refuses (the laptop answered first) reads the ask again, where it now is,
 // and says why; a Send with a question open sends nothing, goes to it, marks
 // it and says what it needs (by the field; the dock names it). At the page's
-// end its last section's head holds the top, with a film's tab bar under the
-// page or none. Answers not sent come back after a reload, and a send that
+// end its last section's head holds the top, with a film or none. Answers not sent come back after a reload, and a send that
 // lands leaves none to bring back. A guided review shows each section's material
 // in place (the draft's script, named, with its takes and its marks, Stress
 // written into the draft; the Board's panels; a real 1280×720 cut in the
@@ -22,8 +21,8 @@
 // while a line put back elsewhere as it was before the page's write shows as
 // put back. On a laptop the dock's words and Send keep to the column. A long
 // document is held at its clamp with Read all, which opens it whole; a Board
-// still opens full size (`?still=`), its caption clear of the tab bar or the
-// laptop's dock, and Escape or a tap closes it.
+// still opens full size (`?still=`), its caption inside the phone's screen or
+// clear of the laptop's dock, and Escape or a tap closes it.
 
 import { Boolean as Bool, Deferred, Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -181,7 +180,7 @@ describe("an agent's ask on a phone", () => {
   );
 
   it.live(
-    'an ask that names no film has no tab bar under it: at its end its last section still holds the top',
+    'an ask that names no film: at its end its last section still holds the top',
     () =>
       Effect.gen(function* () {
         const { film: _film, ...noFilm } = askRecordWith() as Record<string, Json>;
@@ -875,14 +874,13 @@ describe("an agent's ask on a phone", () => {
         for (const close of ['key', 'tap'] as const) {
           yield* page.click(thumb);
           yield* textIs(page, '.rv-lightbox .rv-lightbox-caption', 'open · breath');
-          // Its caption sits under the still, clear of the tab bar's labels under the scrim.
+          // Its caption sits under the still, inside the screen.
           yield* until(
             page,
             `(() => {
               const still = document.querySelector('.rv-lightbox img').getBoundingClientRect();
               const caption = document.querySelector('.rv-lightbox-caption').getBoundingClientRect();
-              const bar = document.querySelector('.sh-pagebar').getBoundingClientRect();
-              return caption.top - still.bottom <= 12 && caption.bottom <= bar.top;
+              return caption.top - still.bottom <= 12 && caption.bottom <= innerHeight;
             })()`,
           );
           yield* until(page, "location.search === '?still=board-open.breath'");

@@ -181,9 +181,6 @@ packages/film/src/lab/review/options/keys.ts auditionOf
 packages/film/src/lab/review/options/keys.ts heardSelectedOf
 packages/film/src/lab/review/place.ts SetQuery
 packages/film/src/lab/review/sync.ts drifted
-packages/film/src/lab/scenes/marks.ts checkCount
-packages/film/src/lab/scenes/place.ts scenesHref
-packages/film/src/lab/scenes/tape.ts rowAt
 packages/film/src/lab/stage.ts NotPreviewed
 packages/film/src/lab/studio/api.ts StudioCalls
 packages/film/src/lab/studio/api.ts takeBody
@@ -200,7 +197,6 @@ packages/film/src/player/encode.ts SETTINGS
 packages/film/src/player/encode.ts chooseEncoder
 packages/film/src/player/encode.ts config
 packages/film/src/player/encode.ts qualities
-packages/film/src/player/hud.ts HUD_IDLE_MS
 packages/film/src/player/lookbook-sheet.ts fontFamilyOf
 packages/film/src/player/lookbook-sheet.ts sceneHead
 packages/film/src/player/narrated.ts NO_TAKES

@@ -1,6 +1,6 @@
 // The studio's one sheet (design language §7) and the one rule a sheet a URL
 // keeps open is dismissed by. Every sheet stands in `Sheet`: an inspector, the
-// Scenes' scene sheet, the Lab's selection sheet and Findings.
+// Lab's selection sheet and Findings.
 
 import { useAtomValue } from '@bible/atom-solid';
 import { Sheet as UiSheet } from '@bible/ui/sheet';
@@ -33,8 +33,8 @@ interface SheetDismissal {
 
 /**
  * The one rule a sheet a URL keeps open is dismissed by (Close, Escape, a
- * swipe), for every inspector (`useInspectorPlace`), Scenes' scene sheet and
- * the Lab's selection sheet: a tap that opens it on a shut sheet is a step of
+ * swipe), for every inspector (`useInspectorPlace`) and the Lab's selection
+ * sheet: a tap that opens it on a shut sheet is a step of
  * its own, and dismissing it adds none. The sheet knows which entry that tap
  * pushed (an entry a link, a reload or a tap on a sheet already open made is
  * no opening's); the address bar (`addressOn(host).dismiss`) says whether its
@@ -80,11 +80,10 @@ export const useSheetDismissal = (
 
 /**
  * The sheet of the selected thing (design language §7), the one frame an
- * inspector, Scenes' scene sheet, the Lab's selection sheet and Findings
- * stand in: hosted in @bible/ui's Sheet,
+ * inspector, the Lab's selection sheet and Findings stand in: hosted in @bible/ui's Sheet,
  * not over the page (it stays live, a tap outside keeps it open, and only the
  * panel takes presses); beside the page on a laptop, swiped away to the right;
- * on a phone a bottom sheet standing on the tab bar (and the dock), swiped
+ * on a phone a bottom sheet standing on the shell's floor (and the dock), swiped
  * down, whose grip lowers it to a peek and raises it again. A swipe is the
  * browser's scroll: it scrolls in as it mounts and is gone once scrolled out
  * of view. Its head holds its title and Close. Close, Escape and a swipe each
@@ -93,7 +92,7 @@ export const useSheetDismissal = (
  * the pointer or the focus is in it (`Hint`); a sheet about no one thing
  * (the page's Findings) has none. It opens whole, or lowered on a phone
  * when `peeked`; what a lowered sheet still shows is its page's styles' to
- * say (its head alone, or Scenes' card in brief).
+ * say (its head alone).
  */
 export const Sheet = (props: {
   readonly host: Context.Context<Viewport>;

@@ -35,7 +35,6 @@ import {
   json,
   labAt,
   openLab,
-  openPlayer,
   openReview,
   route,
 } from '../../src/lab/fixtures/harness.ts';
@@ -49,7 +48,7 @@ import {
 import { until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
-import { ASK_READY, WORK_ROUTES, scriptAt } from './studio-states.ts';
+import { ASK_READY, scriptAt } from './studio-states.ts';
 import { onChoices } from './toy-choices.ts';
 
 const SLOW = 30_000;
@@ -278,31 +277,6 @@ const inRecord = () =>
   openLab(STUDIO_ROUTES, { href: labAt(1), mic: { allowed: true }, mode: 'record' });
 
 /** The pages whose registries the property runs, each at a desk. */
-/** Scenes at a desk, its stills drawn. */
-const onScenes = () =>
-  openPlayer(
-    { href: pageHref.scenes(PROBE), viewport: DESK },
-    '.sc-still[data-drawn="true"] canvas',
-  );
-
-/** A still on Scenes: a click on it selects its scene. */
-const STILL = '.sc-still';
-
-/**
- * Scenes, its project read (the film's mark in the legend), a scene selected by a click on its
- * still: the commands about it are offered, a comment among them.
- */
-const sceneChosen = () =>
-  Effect.tap(
-    openPlayer(
-      { href: pageHref.scenes(PROBE), viewport: DESK },
-      '.sc-legend-item[data-mark="film"]',
-      WORK_ROUTES,
-    ),
-    ({ page }) =>
-      Effect.andThen(page.click(STILL), waitFor(page, `${STILL}[data-selected="true"]`)),
-  );
-
 const PAGES: ReadonlyArray<Opened> = [
   { name: 'the Lab', open: () => openLab(), moves: [], runs: [] },
   {
@@ -312,15 +286,6 @@ const PAGES: ReadonlyArray<Opened> = [
     runs: ['notes.frame'],
   },
   { name: 'Record', open: inRecord, moves: [], runs: [] },
-  { name: 'Scenes', open: onScenes, moves: [], runs: [] },
-  { name: 'Scenes, a scene selected', open: sceneChosen, moves: [], runs: ['scenes.comment'] },
-  {
-    name: 'Play',
-    open: () =>
-      openPlayer({ href: pageHref.play(PROBE), viewport: DESK }, '.bar [data-act="play"]'),
-    moves: [],
-    runs: [],
-  },
   {
     // A point selected: its auditions are offered.
     name: 'Choices',
@@ -354,12 +319,6 @@ const ASKED = { key: 'pressed', pointer: 'clicked' } as const;
 
 /** A command whose field ⌘K's closing takes the focus back from, run by its key instead. */
 const BY_THEIR_KEYS = [
-  {
-    command: 'scenes.comment, a scene selected,',
-    open: sceneChosen,
-    key: 'm',
-    field: 'input.rv-comment-input',
-  },
   {
     command: 'notes.frame, in Note,',
     open: () => openLab([], { mode: 'note' }),

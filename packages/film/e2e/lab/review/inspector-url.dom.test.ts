@@ -1,6 +1,6 @@
 // Every review inspector's open state is the URL's (`useInspectorPlace`), on
 // Choices (`?inspect=<variant>`, beside `?point=`, the card in focus) and a
-// Set (`?inspect=<version>`) as on Project (`?point=`): a tap on a thing's
+// Set (`?inspect=<version>`): a tap on a thing's
 // name names it, a step of its own, so Back closes its sheet and Forward
 // opens it again; Close, Escape and a swipe (a finger down on a phone, the
 // sheet's own scroll sideways on a laptop) drop it, going Back over the entry

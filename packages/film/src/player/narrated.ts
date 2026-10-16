@@ -81,8 +81,7 @@ export type FilmUnloadable = NarrationUnreadable | RigUnloadable | RigNameMissin
  * runtimes unless given), built once with the page's first film, into the
  * scope the load runs in: each load of a film loads its own rigs, which
  * whoever runs it frees by closing that scope (a page's staged film keeps
- * them for the page's life, `stageFilm`; a Project's stills while they show,
- * `useSceneStills`). A load runs on its runner's fiber, so stopping the
+ * them for the page's life, `stageFilm`). A load runs on its runner's fiber, so stopping the
  * runner stops the load; a load stopped or failed has released what it
  * acquired.
  */

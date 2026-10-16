@@ -51,7 +51,7 @@ describe("a film's mixes", () => {
         yield* fs.writeFileString(path.join(narration, 'timings.json'), '{}');
         const { page, ask } = yield* served(spec, counted);
         // The lab's page loads, and plays the film's track.
-        yield* ask('/films/f/lab');
+        yield* ask('/films/f/studio');
         expect((yield* ask('/films/f/narration/full.wav')).text).toBe('mix one');
         const f = { server: Option.none(), film: Option.some('f') };
         // The first build may count once a save it read in the last second: the build once that is heard.
@@ -71,7 +71,7 @@ describe("a film's mixes", () => {
         expect(mixed.build).toBeGreaterThan(settled);
         // The page loaded again is stamped past the mix, so its own wait holds, and was not built again.
         const built = yield* Ref.get(bundles);
-        expect(buildOf((yield* ask('/films/f/lab')).text)).toBeGreaterThanOrEqual(mixed.build);
+        expect(buildOf((yield* ask('/films/f/studio')).text)).toBeGreaterThanOrEqual(mixed.build);
         expect(yield* Ref.get(bundles)).toBe(built);
         expect((yield* ask('/films/f/narration/full.wav')).text).toBe('mix two');
       }).pipe(Effect.scoped, Effect.provide(Platform)),
@@ -89,7 +89,7 @@ describe("a film's mixes", () => {
         yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
         yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
         const { page, ask } = yield* served(spec, PageBundler.layerTest);
-        yield* ask('/films/f/lab');
+        yield* ask('/films/f/studio');
         expect((yield* ask('/films/f/narration/full.wav')).status).toBe(404);
         const f = { server: Option.none(), film: Option.some('f') };
         // The first build may count once a save it read in the last second: the build once that is heard.
@@ -117,7 +117,7 @@ describe("a film's mixes", () => {
       const { page, ask, mix, armed } = yield* filmsInMemory;
       // Films `f` and `g`, each played by a page.
       for (const name of ['f', 'g']) {
-        yield* ask(`/films/${name}/lab`);
+        yield* ask(`/films/${name}/studio`);
         expect((yield* ask(`/films/${name}/narration/full.wav`)).text).toBe(`${name} one`);
         yield* armed(name);
       }
@@ -140,7 +140,7 @@ describe("a film's mixes", () => {
         const { page, ask, land, mix } = yield* filmsInMemory;
         // No page has asked for the track: no mix of it is heard.
         expect(yield* page.heardAt('f', MIXED_AT)).toEqual(Option.none());
-        yield* ask('/films/f/lab');
+        yield* ask('/films/f/studio');
         yield* ask('/films/f/narration/full.wav');
         const f = { server: Option.none(), film: Option.some('f') };
         const settled = (yield* page.wait({ since: 0, ...f }, 0)).build;

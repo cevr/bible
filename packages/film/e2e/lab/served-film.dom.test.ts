@@ -1,9 +1,8 @@
-// A film's own pages, the Lab, Scenes and Play, as the lab serves them once
-// it renders them on the server: the server's document is the
-// studio's shell (the header, the film switcher, the tab bar on the page's
-// part) with a quiet line where the film lands, and none of the film (no
-// canvas, no tape: the server never imports a film's modules). The Lab's
-// panel is the server's too: its mode tray, each tool's section and the
+// A film's Lab as the lab serves it once it renders it on the server: the
+// server's document is the studio's shell (the header, the film switcher,
+// the film's Studio link, the page's name) with a quiet line where the film
+// lands, and none of the film (no canvas, no bar: the server never imports a
+// film's modules). The Lab's panel is the server's too: its mode tray, each tool's section and the
 // film's notes as the server read them, which the browser adopts (no second
 // read) and goes on following. The browser hydrates with no mismatch, then
 // stages the film, puts its tools in the panel, and fits a phone as ever;
@@ -13,7 +12,7 @@ import { Effect, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { appleAgent } from '../../src/browser/keys.ts';
 import { chordLabel } from '../../src/command/keymap.ts';
-import { PARTS, pageHref } from '../../src/core/api.ts';
+import { pageHref } from '../../src/core/api.ts';
 import {
   DESK,
   PHONE,
@@ -26,14 +25,7 @@ import {
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import {
-  attributeIs,
-  countIs,
-  evaluates,
-  textHas,
-  until,
-  waitFor,
-} from '../../src/lab/fixtures/settled.ts';
+import { attributeIs, evaluates, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import { LAB_MODES } from '../../src/lab/mode.ts';
 
 /** Long enough to bundle the server entry once, render, open, hydrate and stage the film. */
@@ -50,18 +42,7 @@ const painted = (html: string) => html.replace(/<script\b[^>]*>[\s\S]*?<\/script
 const rooted = (html: string) => html.slice(html.indexOf('data-page-root'));
 
 /** What a film's page never sends from the server: the film itself. */
-const FILM_PARTS = ['<canvas', 'class="stage"', 'class="bar"', 'sc-still'];
-
-const PAGES = [
-  {
-    name: 'Scenes',
-    page: 'player',
-    href: pageHref.scenes(PROBE),
-    part: 'scenes',
-    ready: '.sc-still[data-drawn="true"] canvas',
-  },
-  { name: 'Play', page: 'player', href: pageHref.play(PROBE), part: 'play', ready: '.bar .tc' },
-] as const;
+const FILM_PARTS = ['<canvas', 'class="stage"', 'class="bar"'];
 
 /** The probe film's one note, at change 3 of its log, as the fake lab keeps it. */
 const NOTE = {
@@ -101,7 +82,7 @@ const shownWith = (attributes: ReadonlyArray<string>) =>
   return ${literal(attributes.join(' '))}.split(' ').map((attribute) => keys.filter((key) => key.includes(' ' + attribute + '=')).length);
 })()`;
 
-/** The attributes that name what a Lab's first paint shows: the shell's pages, the panel's modes, the acts. */
+/** The attributes that name what a Lab's first paint shows: the shell's links, the panel's modes, the acts. */
 const NAMING = ['data-page', 'data-mode-pick', 'data-act'];
 
 /** Whether the panel is seen. */
@@ -125,7 +106,8 @@ const literal = Schema.encodeSync(Schema.fromJsonString(Schema.String));
  * The windows the Lab is served to, whether the panel is seen before the
  * film is staged (on a desk, beside where the film lands; on a phone, under
  * it, so unseen until it lands), and the targets its first paint shows, by
- * `NAMING`: the shell's page bar, each of the studio's parts; the panel's
+ * `NAMING`: the shell's links (Films, and on a desk the film's Studio: a
+ * phone's is its film menu's Open the studio); the panel's
  * modes on a desk, none on a phone; and the acts (the film switcher, Go to,
  * View: the pen and note-this-frame are Note mode's, and the panel opens in
  * Edit).
@@ -135,63 +117,31 @@ const LAB_WINDOWS = [
     where: 'a desk',
     viewport: DESK,
     first: 'visible',
-    shows: [PARTS.length, LAB_MODES.length, 3],
+    shows: [2, LAB_MODES.length, 3],
   },
-  { where: 'a phone', viewport: PHONE, first: 'hidden', shows: [PARTS.length, 0, 3] },
+  { where: 'a phone', viewport: PHONE, first: 'hidden', shows: [1, 0, 3] },
 ] as const;
 
 describe("a film's pages served as the lab renders them", () => {
-  for (const { name, page: served, href, part, ready } of PAGES)
-    it.live(
-      `${name}: the server's document is the shell, none of the film; hydrated with no mismatch, the film lands in its body and the page fits a phone`,
-      () =>
-        Effect.gen(function* () {
-          const { page, documents, errors } = yield* openServed(served, [], {
-            href,
-            viewport: PHONE,
-          });
-          const html = rooted(documents[0]?.html ?? '');
-          expect(html).toContain('class="sh-header"');
-          expect(html).toContain(`class="sh" data-part="${part}" data-film="true"`);
-          expect(html).toMatch(new RegExp(`data-page="${part}"[^>]*data-active="true"`));
-          expect(html).toContain(`Opening ${PROBE}…`);
-          for (const film of FILM_PARTS) expect(html).not.toContain(film);
-          // Titled as the shell titles it, before it hydrates.
-          expect(yield* servedTitle(page, documents[0]?.html ?? '')).toBe(`${name} · ${PROBE}`);
-          // The film, staged in the browser, in the hydrated shell's body.
-          yield* waitFor(page, ready);
-          yield* until(page, `document.querySelector('.stage canvas') !== null`);
-          yield* countIs(page, '.sh-await', 0);
-          yield* fitsPhone(page);
-          expect(mismatches(page.logged)).toEqual([]);
-          expect(errors).toEqual([]);
-        }).pipe(Effect.scoped),
-      SLOW,
-    );
-
-  for (const { name, page: served, part } of [
-    { name: 'Scenes', page: 'player', part: 'scenes' },
-    { name: 'Lab', page: 'lab', part: 'lab' },
-  ] as const)
-    it.live(
-      `${name} on a scene's path: the tab's title names the scene first, served and hydrated`,
-      () =>
-        Effect.gen(function* () {
-          const { page, documents } = yield* openServed(
-            served,
-            [
-              route('GET', /^\/notes$/, () => json({ film: PROBE, seq: 0, notes: [] })),
-              route('GET', /^\/api\/review\/build\?/, () => hold),
-            ],
-            { href: `/films/${PROBE}/${part}/two`, viewport: DESK },
-          );
-          const title = `two · ${name} · ${PROBE}`;
-          expect(yield* servedTitle(page, documents[0]?.html ?? '')).toBe(title);
-          yield* until(page, `document.querySelector('.stage canvas') !== null`);
-          yield* evaluates(page, 'document.title', title);
-        }).pipe(Effect.scoped),
-      SLOW,
-    );
+  it.live(
+    "Lab on a scene's path: the tab's title names the scene first, served and hydrated",
+    () =>
+      Effect.gen(function* () {
+        const { page, documents } = yield* openServed(
+          'lab',
+          [
+            route('GET', /^\/notes$/, () => json({ film: PROBE, seq: 0, notes: [] })),
+            route('GET', /^\/api\/review\/build\?/, () => hold),
+          ],
+          { href: pageHref.labScene(PROBE, 'two'), viewport: DESK },
+        );
+        const title = `two · Lab · ${PROBE}`;
+        expect(yield* servedTitle(page, documents[0]?.html ?? '')).toBe(title);
+        yield* until(page, `document.querySelector('.stage canvas') !== null`);
+        yield* evaluates(page, 'document.title', title);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
 
   for (const { where, viewport, first, shows } of LAB_WINDOWS)
     it.live(
@@ -211,6 +161,11 @@ describe("a film's pages served as the lab renders them", () => {
           expect(whole).toContain(`<meta name="lab-build" content="${SERVED_AT.build}">`);
           const html = rooted(painted(whole));
           expect(html).toContain('class="sh" data-part="lab" data-film="true"');
+          // The header leads into the film's studio, and names the page.
+          expect(html).toMatch(
+            new RegExp(`class="sh-studio" data-page="studio" href="${pageHref.studio(PROBE)}"`),
+          );
+          expect(html).toMatch(/class="sh-page"[^>]*>.*?Lab</);
           expect(html).toContain(`Opening ${PROBE}…`);
           // The panel, painted before any script runs: the mode tray, each tool's section, the notes.
           expect(html).toMatch(/class="lab-panel"[^>]*data-mode="edit"/);

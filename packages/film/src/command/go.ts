@@ -2,14 +2,13 @@
 // scene, a cue of the scene shown, a note; on the review a folder, a set, a
 // film's choices or its project), as a command found only by typing in ⌘K
 // (`Command.typed`): `Go to scene cold`. A page lists its destinations as
-// they stand and registers them while they hold. The studio's parts are
-// commands too, each on its key (⇧1 Films … ⇧8 Play, Resolve's page keys):
-// the page bar's tabs, from the keyboard; and a film card's context menu
-// opens each part of its film (`filmCommands`). Pure.
+// they stand and registers them while they hold. The shell's moves are
+// commands too: Films on ⇧1 and the film's studio on ⇧2 (`shellCommands`);
+// and a film card's context menu opens its studio (`filmCommands`). Pure.
 
 import { Option } from 'effect';
 import type { Input } from '../browser/keys.ts';
-import { PARTS, PART_TITLE, type Part, filmTimeOn, hasPart, partHref } from '../core/api.ts';
+import { pageHref } from '../core/api.ts';
 import { type Command, type CommandId, quietly } from './command.ts';
 import { type Context, selected } from './context.ts';
 
@@ -40,61 +39,58 @@ export const goToCommands = (destinations: ReadonlyArray<Destination>): Readonly
     run: quietly((_, how) => d.go(how.input)),
   }));
 
-/** The group the parts' commands sit in. */
+/** The group the shell's moves sit in. */
 const PAGES_GROUP = 'Pages';
 
-/** The command that goes to `part`. */
-export const partCommandId = (part: Part): CommandId => `page.${part}`;
+/** The command that goes to Films. */
+export const FILMS_COMMAND: CommandId = 'page.films';
+
+/** The command that opens the film's studio. */
+export const STUDIO_COMMAND: CommandId = 'page.studio';
 
 /**
- * The command for each of the studio's parts (`page.<part>`, on ⇧1-⇧8 in
- * the page bar's order): it goes to that part of `film` (the film the page
- * bar leads into), through `go`. A film's part waits for a film that has it
- * (a short has no board, lab, script, choices or project); the part the page is on
- * is no move. A page at film time `at` (Scenes, the Lab, the Script, Play)
- * keeps it on the part it goes to that has it (`partHref`).
+ * The shell's moves, through `go`: Films (⇧1), from any page but Films
+ * (`onFilms`), and the studio of `film` (⇧2, the film the shell leads
+ * into), the one way into a film.
  */
-export const partCommands = (
+export const shellCommands = (
   film: () => Option.Option<string>,
-  here: () => Part,
+  onFilms: () => boolean,
   go: (href: string) => void,
-  at: () => Option.Option<number> = () => Option.none(),
-): ReadonlyArray<Command> =>
-  PARTS.map((part, i): Command => ({
-    id: partCommandId(part),
-    label: `Go to ${PART_TITLE[part]}`,
+): ReadonlyArray<Command> => [
+  {
+    id: FILMS_COMMAND,
+    label: 'Go to Films',
     group: PAGES_GROUP,
-    keys: [`shift+${i + 1}`],
-    touch: 'the page bar',
-    when: () =>
-      here() !== part && (part === 'films' || Option.exists(film(), (f) => hasPart(f, part))),
-    run: quietly(() =>
-      go(
-        partHref(
-          part,
-          Option.getOrElse(film(), () => ''),
-          filmTimeOn(here(), at()),
-        ),
-      ),
-    ),
-  }));
+    keys: ['shift+1'],
+    touch: 'Films, in the header',
+    when: () => !onFilms(),
+    run: quietly(() => go(pageHref.home())),
+  },
+  {
+    id: STUDIO_COMMAND,
+    label: 'Open the studio',
+    group: PAGES_GROUP,
+    keys: ['shift+2'],
+    touch: 'Studio, in the header (on a phone, the film menu, then Open the studio)',
+    when: () => Option.isSome(film()),
+    run: quietly(() => Option.map(film(), (f) => go(pageHref.studio(f)))),
+  },
+];
 
 /** The film a context is about: its first selection, when that is a film (a card on Films). */
 const filmAbout = (ctx: Context): Option.Option<string> =>
   Option.map(selected(ctx, 'Film'), (s) => s.film);
 
-/**
- * The film card's moves (`film.<part>`, in its context menu): Open in Scenes,
- * Lab, Script, Choices, Project or Play, each landing on that part's tab of the film
- * the card is, through `go`. A short offers only its parts.
- */
-export const filmCommands = (go: (href: string) => void): ReadonlyArray<Command> =>
-  PARTS.filter((part) => part !== 'films').map((part): Command => ({
-    id: `film.${part}`,
-    label: `Open in ${PART_TITLE[part]}`,
+/** The film card's move (in its context menu): Open in the Studio, through `go`. */
+export const filmCommands = (go: (href: string) => void): ReadonlyArray<Command> => [
+  {
+    id: 'film.studio',
+    label: 'Open in the Studio',
     group: 'Open',
     about: ['Film'],
     touch: 'long-press a film',
-    when: (ctx) => Option.exists(filmAbout(ctx), (f) => hasPart(f, part)),
-    run: quietly((ctx) => Option.map(filmAbout(ctx), (f) => go(partHref(part, f)))),
-  }));
+    when: (ctx) => Option.isSome(filmAbout(ctx)),
+    run: quietly((ctx) => Option.map(filmAbout(ctx), (f) => go(pageHref.studio(f)))),
+  },
+];

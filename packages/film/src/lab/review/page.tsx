@@ -1,5 +1,5 @@
-// The review page (`/`, served by `film lab`): the studio's shell
-// (`PageShell`: the film switcher, the page bar, a drill-down crumb, Go
+// The review page (`/`, served by `film lab`): the lab's shell
+// (`PageShell`: the film switcher, the Studio link, a drill-down crumb, Go
 // to…) and the page itself, in Solid 2 over the review's
 // routes on the page's own origin. The browser mounts it (`mount.tsx`) and
 // the lab renders it on the server first (`server.tsx`), over the same
@@ -17,7 +17,6 @@ import { type AskShown, Root, useReview } from './context.tsx';
 import { Inspecting } from './inspector.tsx';
 import { folderTitle, isFilmsFolder } from './format.ts';
 import { ReviewPlace, placeOf } from './place.ts';
-import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
 import { ProductionPage, useHistories } from './production.tsx';
@@ -25,15 +24,15 @@ import { AskPage } from '../ask/page.tsx';
 import { DraftPage } from './draft.tsx';
 import { COMMENTS_CSS } from './comments-style.ts';
 import { REVIEW_CSS } from './style.ts';
-import { type Part, type SeriesList, pageAt } from '../../core/api.ts';
+import { type SeriesList, pageAt } from '../../core/api.ts';
 import type { Host } from '../../browser/host.ts';
 import type { Hub } from '../../command/hub.ts';
 import { COMMAND_CSS } from '../command/style.ts';
 import { StudioFrame, studioOn } from '../studio-frame.tsx';
 import { PageShell } from '../page-shell.tsx';
+import type { ShellPage } from '../page-title.ts';
 import { SHELL_CSS } from '../page-shell-style.ts';
 import type { LabClient } from '../api.ts';
-import type { DrawStills } from './options/stills.tsx';
 
 /** A folder's title from the index once read, else its ref. */
 const folderName = (index: Option.Option<ReviewIndex>, ref: string): string =>
@@ -82,7 +81,7 @@ const historyNamed = (
 const shownAsk = (shown: Option.Option<AskShown>, id: string): Option.Option<AskShown> =>
   Option.filter(shown, (a) => a.id === id);
 
-/** The film a place is about: a film's choices or project, a set in that film's folder, or the ask shown's. */
+/** The film a place is about: a film's choices, a set in that film's folder, or the ask shown's. */
 const filmOf = (
   place: ReviewPlace,
   films: ReadonlyArray<string>,
@@ -98,33 +97,14 @@ const filmOf = (
       Folder: (p) => filmOfFolder(p.folder, films),
       Set: (p) => filmOfFolder(p.folder, films),
       Film: (p) => Option.some(p.film),
-      Project: (p) => Option.some(p.film),
     }),
   );
 
-/**
- * The part a folder and each set in it sit under: its film's Project when
- * the folder names one (Frame.io's version stack on its asset; the lab says stack), Films otherwise.
- */
-const folderPart = (folder: string, films: ReadonlyArray<string>): Part =>
-  Option.match(filmOfFolder(folder, films), {
-    onNone: (): Part => 'films',
-    onSome: (): Part => 'project',
-  });
-
-/** The part a place sits under: a film's choices and project are theirs; a folder and its sets, their folder's. */
-const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
+/** The shell's page a place is: a film's choices are Choices; every other place sits under Films. */
+const shellPageOf = (place: ReviewPlace): ShellPage =>
   Match.value(place).pipe(
-    Match.tagsExhaustive({
-      Home: (): Part => 'films',
-      Production: (): Part => 'films',
-      Ask: (): Part => 'films',
-      Draft: (): Part => 'films',
-      Folder: (p) => folderPart(p.folder, films),
-      Set: (p) => folderPart(p.folder, films),
-      Film: (): Part => 'choices',
-      Project: (): Part => 'project',
-    }),
+    Match.tag('Film', (): ShellPage => 'choices'),
+    Match.orElse((): ShellPage => 'films'),
   );
 
 /** A place's depth below its part, for the crumb and the tab's title: a folder, a set's stack. */
@@ -156,9 +136,9 @@ const depthOf = (
   );
 
 /**
- * The review in the studio's shell: the part its place sits under, the film
- * it is of, the films the switcher offers; a move to another of the review's
- * places stays on the page (its players play on), any other part loads.
+ * The review in the lab's shell: the page its place is, the film it is of,
+ * the films the switcher offers; a move to another of the review's places
+ * stays on the page (its players play on), any other page loads.
  */
 const Shell = (props: { readonly children: JSX.Element }) => {
   const { state, actions, meta } = useReview();
@@ -174,7 +154,7 @@ const Shell = (props: { readonly children: JSX.Element }) => {
     depthOf(state.place(), index(), histories(), AsyncResult.value(state.series()), state.ask());
   return (
     <PageShell
-      part={() => partOf(state.place(), films())}
+      page={() => shellPageOf(state.place())}
       film={film}
       lastFilm={state.place()._tag !== 'Draft' && state.place()._tag !== 'Ask'}
       crumb={depth}
@@ -221,24 +201,22 @@ const Page = () => {
           Folder: (p) => <FolderPage folder={p.folder} />,
           Set: (p) => <SetPage folder={p.folder} point={p.point} />,
           Film: (p) => <FilmPage film={p.film} />,
-          Project: (p) => <ProjectPage film={p.film} />,
         }),
       )}
     </main>
   );
 };
 
-/** What the review is rendered with: its host, its commands, how it draws a film's stills and its client of the lab. */
+/** What the review is rendered with: its host, its commands and its client of the lab. */
 interface ReviewWith {
   readonly host: Host;
   readonly hub: Hub;
-  readonly draw: DrawStills;
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
 }
 
 /** The review: its shell, the page it is on, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
 const ReviewPage = (props: ReviewWith) => (
-  <Root host={props.host} hub={props.hub} draw={props.draw} client={props.client}>
+  <Root host={props.host} hub={props.hub} client={props.client}>
     <StudioFrame hub={props.hub} scope="review" legend={false}>
       <Inspecting hub={props.hub}>
         <Shell>
@@ -257,16 +235,9 @@ export const REVIEW_PAGE = {
 };
 
 /**
- * The review over `host`, reading the lab through `client` and drawing a
- * film's stills by `draw` (none on the server): its commands
+ * The review over `host`, reading the lab through `client`: its commands
  * (`command/hub.ts`, their keys not yet heard) and its app, for the browser
  * to mount or hydrate and the server to render.
  */
-export const reviewOn = (
-  host: Host,
-  client: Layer.Layer<LabClient | HttpClient.HttpClient>,
-  draw: DrawStills,
-) =>
-  studioOn('review', host, (hub) => () => (
-    <ReviewPage host={host} hub={hub} draw={draw} client={client} />
-  ));
+export const reviewOn = (host: Host, client: Layer.Layer<LabClient | HttpClient.HttpClient>) =>
+  studioOn('review', host, (hub) => () => <ReviewPage host={host} hub={hub} client={client} />);

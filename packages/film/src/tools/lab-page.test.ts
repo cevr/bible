@@ -48,7 +48,7 @@ describe('lab pages', () => {
         const { spec, write } = yield* appFolder;
         const path = yield* Path.Path;
         // A page whose script is a Solid one, so the build holds Solid itself.
-        const solid = path.join(import.meta.dir, '../lab/fixtures/on-screen-page.tsx');
+        const solid = path.join(import.meta.dir, '../lab/fixtures/index-owner-page.ts');
         yield* write(
           'review.html',
           html('review', path.relative(path.dirname(spec.pages.review), solid)),
@@ -78,8 +78,8 @@ describe('lab pages', () => {
     () =>
       Effect.gen(function* () {
         const { ask, write } = yield* app;
-        yield* write('src/lab.ts', `console.log('${'the lab '.repeat(400)}');\n`);
-        const src = /src="\.?(\/[^"]+\.js)"/.exec((yield* ask('/films/f/lab')).text)?.[1] ?? '';
+        yield* write('src/play.ts', `console.log('${'the player '.repeat(400)}');\n`);
+        const src = /src="\.?(\/[^"]+\.js)"/.exec((yield* ask('/films/f/studio')).text)?.[1] ?? '';
         const brotli = yield* ask(src, 'GET', { 'accept-encoding': 'gzip, br' }).pipe(
           Effect.repeat({
             until: (sent) => sent.encoding === 'br',
@@ -89,7 +89,7 @@ describe('lab pages', () => {
         );
         const plain = yield* ask(src, 'GET', { 'accept-encoding': 'gzip;q=1, br;q=0' });
         expect(plain.encoding).toBe('');
-        expect(plain.text).toContain('the lab the lab');
+        expect(plain.text).toContain('the player the player');
         expect(new Uint8Array(brotliDecompressSync(brotli.bytes))).toEqual(plain.bytes);
         const best = brotliCompressSync(plain.bytes, {
           params: { [zlib.BROTLI_PARAM_QUALITY]: 11 },
@@ -103,7 +103,7 @@ describe('lab pages', () => {
     () =>
       Effect.gen(function* () {
         const { ask, page, write } = yield* app;
-        yield* write('src/lab.ts', `console.log('${'the lab '.repeat(400)}');\n`);
+        yield* write('src/play.ts', `console.log('${'the player '.repeat(400)}');\n`);
         const handler = yield* serveApi(LabHttpApi, Layer.empty, {
           page: page.answer,
           beside: Layer.empty,
@@ -124,8 +124,8 @@ describe('lab pages', () => {
           });
         const codingOf = (pathname: string, accept: string) =>
           Effect.map(sent(pathname, accept), (answer) => answer.coding);
-        const lab = (yield* sent('/films/f/lab', 'identity')).body;
-        const src = /src="\.?(\/[^"]+\.js)"/.exec(lab)?.[1] ?? '';
+        const studio = (yield* sent('/films/f/studio', 'identity')).body;
+        const src = /src="\.?(\/[^"]+\.js)"/.exec(studio)?.[1] ?? '';
         const headers = [
           'br',
           'gzip, br',
@@ -175,10 +175,10 @@ describe('lab pages', () => {
         expect(asMac.text).toContain(
           '<main>review at http://127.0.0.1:8229/sets/root/folder?view=all for a Mac</main>',
         );
-        // The lab has no server entry: its page is as built.
-        const lab = yield* ask('/films/f/lab');
-        expect(lab.text).toContain('<body><script type="module" src="./src/lab.ts"></script>');
-        expect(lab.text).not.toContain('rendered');
+        // The player has no server entry here: its page is as built.
+        const studio = yield* ask('/films/f/studio');
+        expect(studio.text).toContain('<body><script type="module" src="../src/play.ts"></script>');
+        expect(studio.text).not.toContain('rendered');
         // A HEAD is the page's headers: nothing is rendered for it.
         const head = yield* ask('/', 'HEAD');
         expect([head.status, head.text.includes('<main>')]).toEqual([200, false]);
@@ -276,42 +276,52 @@ describe('lab pages', () => {
         const places = {
           '/': 'review',
           '/sets/root/folder': 'review',
-          '/films/f/scenes': 'player',
-          '/films/f/scenes/hand': 'player',
+          '/films/f/studio': 'player',
           '/films/f/choices': 'review',
-          '/films/f/project': 'review',
-          '/films/f/lab': 'lab',
-          '/films/f/lab/hand': 'lab',
-          '/films/f/play': 'player',
           '/films/f/export': 'render',
         };
         for (const [pathname, page] of Object.entries(places))
           expect([pathname, ...(yield* titleOf(pathname))]).toEqual([pathname, 200, page]);
-        // A film's export page runs the render page's script (its handle), never Play's.
+        // A film's export page runs the render page's script (its handle), never the studio's.
         expect(yield* scriptOf('/films/f/export')).toContain('the render page');
         expect(yield* scriptOf('/films/f/export')).not.toContain('the player');
-        // A page deep under a film's path finds its script: the HTML links it from the root.
-        const page = (yield* ask('/films/f/lab/hand')).text;
+        // A page under a film's path finds its script: the HTML links it from the root.
+        const page = (yield* ask('/films/f/studio')).text;
         expect(page).toMatch(/src="\/[^"]+\.js"/);
-        expect(yield* scriptOf('/films/f/lab/hand')).toContain('the lab');
-        expect(yield* scriptOf('/films/f/play')).toContain('the player');
+        expect(yield* scriptOf('/films/f/studio')).toContain('the player');
         // No page at a path no place declares, nor a narration file of a film that has none.
-        for (const pathname of ['/films/f', '/films/f/lab/', '/films/f/narration/full.wav', '/p'])
+        for (const pathname of [
+          '/films/f',
+          '/films/f/studio/',
+          '/films/f/narration/full.wav',
+          '/p',
+        ])
           expect([pathname, (yield* ask(pathname)).status]).toEqual([pathname, 404]);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
-  it.live('an old link is sent on to its place', () =>
+  it.live('an old link, and each page the studio replaced, is sent on to its place', () =>
     Effect.gen(function* () {
       const { ask } = yield* app;
       const old = {
-        '/lab?film=f': '/films/f/lab',
-        '/lab?film=f&sel=cue:hand:rise': '/films/f/lab/hand?cue=rise',
+        '/lab?film=f': '/films/f/studio',
+        '/lab?film=f&sel=cue:hand:rise': '/films/f/studio?sel=beat%3Ahand',
         '/lab': '/',
-        '/player?film=f&lookbook': '/films/f/scenes',
-        '/player?film=f': '/films/f/play',
-        '/?project=f': '/films/f/project',
+        '/player?film=f&lookbook': '/films/f/studio',
+        '/player?film=f': '/films/f/studio',
+        '/?project=f': '/films/f/studio',
         '/?film=f': '/films/f/choices',
+        // Each film page the studio replaced lands on the studio, its beat selected.
+        '/films/f/play': '/films/f/studio',
+        '/films/f/scenes': '/films/f/studio',
+        '/films/f/scenes/hand': '/films/f/studio?sel=beat%3Ahand',
+        '/films/f/project': '/films/f/studio',
+        '/films/f/lab': '/films/f/studio',
+        '/films/f/lab/hand': '/films/f/studio?sel=beat%3Ahand',
+        '/films/f/script': '/films/f/studio',
+        '/films/f/script/hand': '/films/f/studio?sel=beat%3Ahand',
+        '/films/f/board': '/films/f/studio',
+        '/films/f/board/hand': '/films/f/studio?sel=beat%3Ahand',
         // A render link lands on the film's export page, the build it pins kept.
         '/films/f/play?export&build=3': '/films/f/export?build=3',
         '/?film=f&export': '/films/f/export',

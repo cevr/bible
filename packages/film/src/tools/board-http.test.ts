@@ -39,6 +39,9 @@ const files = () =>
     ['/films/f/scenes/index.ts', text('export {};\n')],
     ['/films/f/board.json', text(Schema.encodeSync(BoardFileJson)(board))],
     ['/films/f/board/cold.righteous.1.png', text('image one')],
+    ['/films/f/v1/script.ts', text('export const script = [];\n')],
+    ['/films/f/v1/board.json', text(Schema.encodeSync(BoardFileJson)(board))],
+    ['/films/f/v1/board/cold.righteous.2.png', text('v1 image two')],
   ]);
 
 const at = (path: string) => `http://127.0.0.1:4401${path}`;
@@ -70,17 +73,34 @@ describe('the board routes', () => {
       expect(got.panels[0].id).toBe('cold.righteous');
       const image = yield* Effect.promise(() =>
         lab(
-          get(labUrls.board.file({ params: { film: 'f', file: 'cold.righteous.1.png' } })),
+          get(
+            labUrls.board.file({ params: { film: 'f', file: 'cold.righteous.1.png' }, query: {} }),
+          ),
           bound,
         ),
       );
       expect([image.status, yield* Effect.promise(() => image.text())]).toEqual([200, 'image one']);
       for (const file of ['cold.righteous.2.png', 'notes.json']) {
         const missing = yield* Effect.promise(() =>
-          lab(get(labUrls.board.file({ params: { film: 'f', file } })), bound),
+          lab(get(labUrls.board.file({ params: { film: 'f', file }, query: {} })), bound),
         );
         expect([file, missing.status]).toEqual([file, 404]);
       }
+    }).pipe(Effect.scoped, Effect.provide(labInMemory(files()))),
+  );
+
+  it.effect("serve a version folder's image from its own Board, and not the film's", () =>
+    Effect.gen(function* () {
+      const lab = yield* labHandler();
+      const ask = (file: string, query: { readonly folder?: Segment }) =>
+        Effect.promise(() =>
+          lab(get(labUrls.board.file({ params: { film: 'f', file }, query })), bound),
+        );
+      const v1Folder = { folder: Segment.make('v1') };
+      const v1 = yield* ask('cold.righteous.2.png', v1Folder);
+      expect([v1.status, yield* Effect.promise(() => v1.text())]).toEqual([200, 'v1 image two']);
+      expect((yield* ask('cold.righteous.1.png', v1Folder)).status).toBe(404);
+      expect((yield* ask('cold.righteous.2.png', {})).status).toBe(404);
     }).pipe(Effect.scoped, Effect.provide(labInMemory(files()))),
   );
 

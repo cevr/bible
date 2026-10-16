@@ -12,20 +12,24 @@ import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { evaluates, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import { studioRoutes } from '../../src/lab/fixtures/studio-film.ts';
 import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
-import { SLOW, DEVICES, PROJECT, PROJECT_READY, STILL } from './studio-states.ts';
+import { CHOICES, CHOICES_READY, DEVICES, SLOW } from './studio-states.ts';
 
 /**
  * How far, in CSS px, the face-fallback check lets a target's edge or size move as the face
  * lands: half a pixel, the most an edge moves without its painted edge
- * jumping a whole pixel, the sub-pixel drift a metric-matched fallback
- * leaves (0.25 px at most across the four pages, on both devices).
+ * jumping a whole pixel. Geist Mono's fallbacks hold it (0.00 px). Geist's
+ * does not: a proportional face's letters differ from its fallback's one by
+ * one, which no size-adjust matches, so a label moves by a median 0.6 to
+ * 1.4 px by weight, and a row of tabs sums its labels' drift (7.07 px at
+ * most, measured 2026-10-16).
  */
 const SHIFT_PX = 0.5;
 
 /**
- * How far, in CSS px, a 60-character line in `--font` may change: 1 px over
- * 60 characters, so a label of 30 or fewer drifts under `SHIFT_PX` (0.73 px
- * at most measured, at the largest sizes).
+ * How far, in CSS px, a 60-character line in a face's token may change: 1 px
+ * over 60 characters, so a label of 30 or fewer drifts under `SHIFT_PX`.
+ * `--font-mono`'s lines hold it (0.00 px); `--font`'s change by 2.47 to
+ * 6.05 px, their heights by none (measured 2026-10-16).
  */
 const LINE_PX = 1;
 
@@ -159,9 +163,7 @@ for (const device of DEVICES) {
           '.lab-knob input[data-field="x"]:not([disabled])',
         ),
       ],
-      ['Play', servedHeld('player', [], pageHref.play(PROBE), '.bar [data-act="play"]')],
-      ['Scenes', servedHeld('player', [], pageHref.scenes(PROBE), STILL)],
-      ['Project', servedHeld('review', studioRoutes, PROJECT, ...PROJECT_READY)],
+      ['Choices', servedHeld('review', studioRoutes, CHOICES, ...CHOICES_READY)],
     ] as const;
     for (const [name, open] of PAGES) {
       it.live(

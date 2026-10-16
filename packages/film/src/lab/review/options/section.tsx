@@ -57,7 +57,7 @@ const pictureLabel = (p: ReviewVideo): string => {
 };
 
 /**
- * The film's player: its transport, docked as Project's is, over the render
+ * The film's player: its transport, docked (`.sh-dock`), over the render
  * the sound plays over, and the one `<audio>` heard with it (`FilmTransport`,
  * `FilmPicture`); while the film has no render, the dock says so (`NoCut`).
  */
@@ -70,8 +70,8 @@ const Player = () => (
   </>
 );
 
-/** What the dock says where the transport would be while the film has no render: one line, on Choices and Project alike. */
-export const NoCut = () => (
+/** What the dock says where the transport would be while the film has no render: one line. */
+const NoCut = () => (
   <p class="rv-hint rv-no-cut" data-role="no-cut">
     No render of the whole film yet
   </p>
@@ -82,7 +82,7 @@ export const NoCut = () => (
  * clock while the film has a render to play; `fallback` while it has none, so
  * no control stands that would play nothing.
  */
-export const FilmTransport = (props: { readonly fallback?: JSX.Element }) => {
+const FilmTransport = (props: { readonly fallback?: JSX.Element }) => {
   const { picture, sync, send } = useFilm();
   return (
     <Show when={Option.isSome(picture())} fallback={props.fallback}>
@@ -101,7 +101,7 @@ export const FilmTransport = (props: { readonly fallback?: JSX.Element }) => {
  * the page: it lets go when the placeholder returns. None while the film has
  * no render.
  */
-export const FilmPicture = () => {
+const FilmPicture = () => {
   const { state } = useReview();
   const { choices, picture, choosePicture, mix, driver } = useFilm();
   const mixes = () => Option.toArray(mix());
@@ -187,7 +187,7 @@ const Mix = (props: { readonly src: string }) => {
  * stepped only when it is this film's and the one the stack would step
  * (`stepWhyNot`), else said why not, never another change.
  */
-export const StepCommands = () => {
+const StepCommands = () => {
   const { meta } = useReview();
   const { film, steps } = useFilm();
   const stepping = useAct();
@@ -300,7 +300,7 @@ const ChoiceSection = (props: {
  * While the page shows only the points in one state (`?only=`), what
  * it shows and the way back to every point; nothing while it shows them all.
  */
-export const OnlyShown = () => {
+const OnlyShown = () => {
   const { only, showOnly } = useFilm();
   return (
     <Show when={Option.getOrUndefined(only())}>

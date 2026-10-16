@@ -1181,7 +1181,7 @@ describe('the review page', () => {
   );
 
   it.live(
-    "a still opens full size in the kit's dialog, over the phone's tab bar: titled by its caption, focus in it and back on the still, Escape, a tap and Back close it, a link opens it (SH5-1)",
+    "a still opens full size in the kit's dialog, over the phone's dock: titled by its caption, focus in it and back on the still, Escape, a tap and Back close it, a link opens it (SH5-1)",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, {
@@ -1203,11 +1203,11 @@ describe('the review page', () => {
         );
         yield* textHas(page, `${box} .rv-lightbox-caption`, 'Cold at ');
         yield* until(page, `document.querySelector('${box}').contains(document.activeElement)`);
-        // Nothing of the page draws over it: its backdrop and its picture stand over the tab
-        // bar, the page's highest layer (the dock stands under the bar).
+        // Nothing of the page draws over it: its backdrop and its picture stand over the header
+        // and a dock where the page has one, the page's highest layers.
         yield* evaluates(
           page,
-          "(() => { const z = (s) => Number(getComputedStyle(document.querySelector(s)).zIndex); return [z('.rv-lightbox-backdrop'), z('.rv-lightbox')].map((n) => n > z('.sh-pagebar')); })()",
+          "(() => { const z = (s) => [...document.querySelectorAll(s)].reduce((m, el) => Math.max(m, Number(getComputedStyle(el).zIndex) || 0), 0); return [z('.rv-lightbox-backdrop'), z('.rv-lightbox')].map((n) => n > Math.max(z('.sh-dock'), z('.sh-header'))); })()",
           [true, true],
         );
         // Escape closes it, adding no entry; the focus is back on the still.

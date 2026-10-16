@@ -1,7 +1,7 @@
 // A film's pages' server entry (`@bible/film/lab-server`: `labRender` and
-// `playRender`, the default exports of an app's `lab.server.tsx` and
-// `play.server.tsx`): the studio's shell around a film's page
-// (`film-page.tsx`), rendered by the lab for one request over a host of its
+// `studioRender`, the default exports of an app's `lab.server.tsx` and
+// `play.server.tsx`): the lab's shell around a film's page
+// (`film-page.tsx`), and the film's studio (`film-studio/page.tsx`), rendered by the lab for one request over a host of its
 // URL (`ServerHosted`). The page's body is the browser's: the server reads
 // no film's modules and stages nothing (`SERVER_BODY`), so the body's place
 // is a quiet line until the browser has staged the film. The Lab's panel is
@@ -13,7 +13,8 @@
 import { Effect } from 'effect';
 import type { PageRender } from '../core/page-render.ts';
 import { LabClient } from './api.ts';
-import { LAB_PAGE, PLAY_PAGE, SERVER_BODY, labOn, playOn } from './film-page.tsx';
+import { LAB_PAGE, SERVER_BODY, labOn } from './film-page.tsx';
+import { STUDIO_PAGE, studioPageOn } from './film-studio/page.tsx';
 import { ServerHosted, pageRender } from './page-server.tsx';
 
 /** The Lab as the lab renders it on the server. */
@@ -29,13 +30,13 @@ export const labRender: PageRender = pageRender({
   ),
 });
 
-/** The Scenes and Play pages as the lab renders them on the server. */
-export const playRender: PageRender = pageRender({
-  ...PLAY_PAGE,
+/** A film's studio as the lab renders it on the server: its frame, the film's name and a quiet line. */
+export const studioRender: PageRender = pageRender({
+  ...STUDIO_PAGE,
   app: (request) => (
     <ServerHosted
       asked={request}
-      app={(host) => Effect.runSync(playOn(host, [], SERVER_BODY)).app()}
+      app={(host) => Effect.runSync(studioPageOn(host, SERVER_BODY)).app()}
     />
   ),
 });

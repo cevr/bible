@@ -37,6 +37,7 @@ import {
   targetsIn,
   drawnIn,
   LONG_PRESSED,
+  LONG_PRESSED_AT,
 } from './studio-states.ts';
 
 for (const device of DEVICES) {
@@ -51,8 +52,8 @@ for (const device of DEVICES) {
     `${LONG_PRESSED.name} on ${device.name}: its targets are the device's size, and it is drawn in its tokens`,
     () =>
       Effect.andThen(
-        targetsIn('project', LONG_PRESSED, device),
-        drawnIn('project', LONG_PRESSED, device),
+        targetsIn(LONG_PRESSED_AT, LONG_PRESSED, device),
+        drawnIn(LONG_PRESSED_AT, LONG_PRESSED, device),
       ),
     2 * SLOW,
   );

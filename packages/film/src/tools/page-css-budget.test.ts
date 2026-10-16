@@ -15,7 +15,7 @@ import { Context, Effect, FileSystem, Layer, Option, Struct } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { Place } from '@bible/url-state';
 import { LAB_PAGES, LAB_SERVERS } from '../../../../apps/animations/server.ts';
-import { Places } from '../core/api.ts';
+import { Places, servedPlace } from '../core/api.ts';
 import { PLACE_HREFS } from '../lab/fixtures/places.ts';
 import { LabPage, PageBundler } from './lab-page.ts';
 import { PageReads } from './api-server.ts';
@@ -29,11 +29,12 @@ import { PageRenderer } from './page-render.ts';
  * paint shows out of its head. Were the faces the films draw in a linked
  * stylesheet's, the bundler would inline them: 1.19 MB.
  *
- * On 2026-10-15 the heaviest places, Scenes, a scene and Play, held 64,673 B,
- * 863 B under it: Play's own styles with the UI face's rule (39.9 KB) and the
- * tokens and the player's (24.8 KB). The Lab's six places held 63,641 B; the
- * review's 53,726 B, its own styles (49.9 KB) and its tokens (3.8 KB), plus a
- * place's own (`PlaceStyle`: the draft's 5.8 KB, Project's 3.7 KB). Each
+ * On 2026-10-16, with Geist's tokens, the heaviest places, Scenes, a scene
+ * and Play, held 65,491 B, 45 B under it: Play's own styles with the UI
+ * face's rule (40.1 KB) and the tokens and the player's (25.4 KB, the tokens
+ * 4.4 KB of it). The Lab's six places held 64,492 B; the review's 57,169 B,
+ * its own styles (52.8 KB) and its tokens (4.4 KB), plus a place's own
+ * (`PlaceStyle`: the draft's 6.1 KB, Project's 3.7 KB). Each
  * pass prints every place's weight and margin (`page.css.weighed`).
  */
 const BUDGET = 64 * 1024;
@@ -47,7 +48,6 @@ const OWN_STYLES: ReadonlyArray<keyof typeof PLACE_HREFS> = [
   'ask',
   'draft',
   'draftBeat',
-  'project',
 ];
 
 /** A tag's attribute, as the bundler writes it (quoted or not). */
@@ -132,7 +132,16 @@ describe("a page's render-blocking CSS", () => {
             Option.isNone(Place.decode(Places[place], PLACE_HREFS[place])),
           ),
         ).toEqual([]);
-        const weighed = yield* Effect.forEach(Struct.keys(PLACE_HREFS), (place) =>
+        // A place the studio replaced is sent on to the studio, never served: the studio is weighed.
+        const sentOnward = (place: keyof typeof PLACE_HREFS) =>
+          Option.isSome(servedPlace(PLACE_HREFS[place]));
+        const sentOn = Struct.keys(PLACE_HREFS).filter(sentOnward);
+        const kept = Struct.keys(PLACE_HREFS).filter((place) => !sentOnward(place));
+        const answered = yield* Effect.forEach(sentOn, (place) =>
+          Effect.map(ask(PLACE_HREFS[place]), ({ status }) => ({ place, status })),
+        );
+        expect(answered.filter(({ status }) => status !== 302)).toEqual([]);
+        const weighed = yield* Effect.forEach(kept, (place) =>
           Effect.gen(function* () {
             const { status, body } = yield* ask(PLACE_HREFS[place]);
             // The server rendered it: its head holds the page's own styles.

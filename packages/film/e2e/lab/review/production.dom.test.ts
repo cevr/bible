@@ -21,7 +21,13 @@ import {
   refused,
   route,
 } from '../../../src/lab/fixtures/harness.ts';
-import { attached, evaluates, textHas, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import {
+  attached,
+  countIs,
+  evaluates,
+  textHas,
+  waitFor,
+} from '../../../src/lab/fixtures/settled.ts';
 import {
   STUDIO_FILM,
   STUDIO_PRODUCTION,
@@ -84,7 +90,7 @@ describe("a production's timeline", () => {
   );
 
   it.live(
-    'a film a production makes shows once: its production card, with its state and the ways in',
+    'a film a production makes shows once: its production card, with its state and the way into its studio',
     () =>
       Effect.gen(function* () {
         const routes: ReadonlyArray<FakeRoute> = [
@@ -100,13 +106,9 @@ describe("a production's timeline", () => {
         yield* evaluates(
           page,
           `document.querySelector('.pd-card [data-act="studio"]').getAttribute('href')`,
-          pageHref.scenes(STUDIO_FILM),
+          pageHref.studio(STUDIO_FILM),
         );
-        yield* evaluates(
-          page,
-          `document.querySelector('.pd-card [data-act="board"]').getAttribute('href')`,
-          pageHref.board(STUDIO_FILM),
-        );
+        yield* countIs(page, '.pd-card [data-act="board"]', 0);
         // No Films card for it, and no Films heading with nothing under it.
         yield* evaluates(page, `document.querySelectorAll('a.rv-film-card').length`, 0);
         yield* evaluates(

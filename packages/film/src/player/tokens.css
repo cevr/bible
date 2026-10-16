@@ -210,6 +210,7 @@
   --hairline: 1px; /* a gap or a margin that draws a line between two things: --border's width */
 
   /* Shape. */
+  --r-0: 2px; /* the smallest corner: a swatch, a tick, a mark, a label on a picture */
   --r-1: 6px; /* clips, fields, chips, stills */
   --r-2: 10px; /* keys, buttons, menus, toasts */
   --r-pill: 12px; /* a pill group: the transport's, the zoom's */
@@ -233,8 +234,7 @@
   --hit: 44px;
   --row-h: 40px;
   --header-h: 44px;
-  --tabbar-h: 56px;
-  --dock-h: calc(var(--hit) + 2 * var(--s-2) + 1px); /* the transport docked over the tab bar */
+  --dock-h: calc(var(--hit) + 2 * var(--s-2) + 1px); /* the transport docked over the safe area */
   --panel-head-h: 32px;
   --inspector-w: 320px;
   --gutter: 16px;
@@ -269,13 +269,14 @@
   }
 }
 
-/* The ground every page stands on: Geist, its ligatures, tabular figures for every time and value. */
+/* The ground every page stands on: Geist at its regular weight (450, not the user agent's 400), its ligatures, tabular figures for every time and value. */
 html,
 body {
   background: var(--surface-0);
   color: var(--text-1);
   font-family: var(--font);
   font-size: var(--body-fs);
+  font-weight: var(--w-1);
   line-height: var(--body-lh);
   font-feature-settings: var(--font-features);
   font-variant-numeric: tabular-nums;

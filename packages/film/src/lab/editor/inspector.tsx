@@ -249,8 +249,7 @@ const FindingList = (props: { readonly lines: ReadonlyArray<CheckLine> }) => (
  * The inspector's Findings group: the film's check (the last write's,
  * else the page's) as it bears on the scene shown, its own, then the film's
  * placeless ones apart (`Film · n`); the scene's count and the film's are in
- * their most pressing level's colour, as Scenes' legend counts them
- * (`countState`); the other scenes' are a
+ * their most pressing level's colour (`countState`); the other scenes' are a
  * count, and F walks to them.
  */
 const Findings = () => {

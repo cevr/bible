@@ -6,17 +6,15 @@
 // (`<Inspector>`), so the sheet reads the row's own providers; one thing's
 // inspector is open at a time, opened by tapping the thing's name
 // (`<InspectName>`), its comment count beside it, Inspect (`i`) or
-// Comment on (`m`), from its context menu or ⌘K; a Project scene's row opens
-// it on a tap anywhere off its controls (`useInspect`). It stands in the
-// one sheet (`Sheet`, `lab/sheet.tsx`, Scenes' scene sheet's too), not over the page (it
+// Comment on (`m`), from its context menu or ⌘K. It stands in the
+// one sheet (`Sheet`, `lab/sheet.tsx`), not over the page (it
 // stays live, a tap outside keeps it open): beside it on a laptop, swiped
-// away to the right; on a phone a bottom sheet standing on the tab bar and
-// the dock (design language §7), swiped down, whose grip lowers it to a peek
+// away to the right; on a phone a bottom sheet standing on the shell's floor
+// and the dock (design language §7), swiped down, whose grip lowers it to a peek
 // and raises it again. Escape closes it; its footer prints the keys of the
 // commands about the thing while the pointer or the focus is in it (`Hint`).
 // A page keeps which one is open in its URL
-// (`useInspectorPlace`: the Project's `?point=`, Choices' and a Set's
-// `?inspect=`): the URL then owns it, so a link, Back and Forward open and
+// (`useInspectorPlace`: Choices' and a Set's `?inspect=`): the URL then owns it, so a link, Back and Forward open and
 // close it, and its dismissal adds no entry to history.
 
 import { useAtomValue } from '@bible/atom-solid';
@@ -54,12 +52,12 @@ interface Opened {
 }
 
 /**
- * A page whose URL keeps its open inspector (the Project's `?point=`): the
+ * A page whose URL keeps its open inspector (`?inspect=`): the
  * thing its URL names now, and how to name one, or none. While a page binds
  * one (`useInspectorPlace`), its URL is the open inspector's one owner: a tap
  * names the thing (a step of its own, so Back closes it), Close, a swipe and
  * Escape name none, and a pasted link, Back and Forward open what they name.
- * Every page with things binds one (Choices, a Set, the Project); on a page
+ * Every page with things binds one (Choices, a Set); on a page
  * that binds none (Films, a Folder: no things) no inspector opens.
  */
 interface InspectorPlace {
@@ -291,12 +289,6 @@ export const Inspector = (props: {
       )}
     </Show>
   );
-};
-
-/** Open `of`'s inspector, as a tap on its row does (the Project's scene rows). */
-export const useInspect = (of: () => Selection): (() => void) => {
-  const inspecting = useInspecting();
-  return () => inspecting.open(of(), 'info');
 };
 
 /**

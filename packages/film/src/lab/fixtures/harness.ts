@@ -3,13 +3,14 @@
 // tab of the test process's Chrome (`browsers.ts`) at its own origin, with the
 // lab API answered by routes the test gives (then the defaults below). Every
 // request the page makes is kept, so a test can read what the lab wrote.
-// The review page (`openReview`) and the player's (`openPlayer`, the play
-// page and the Scenes) are served the same way, the player's routes too; the
+// The review page (`openReview`) and the player's (`openPlayer`, a film's
+// studio) are served the same way, the player's routes too; the
 // review's videos and mixes are real media (`TONE`) unless a test says not.
 
 import { BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
+  Boolean as Bool,
   Deferred,
   Duration,
   Effect,
@@ -41,6 +42,7 @@ import type { LabSelection } from '../../command/selection.ts';
 import { labHref, labPlaceOf } from '../place.ts';
 import type { LabMode } from '../mode.ts';
 import { narrationUrls } from '../../player/narrated.ts';
+import { probeTimeline } from './probe-timeline.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
 import { tone } from './tone.ts';
 import { type Request, type Response, type Tab, jsonOf } from './tab.ts';
@@ -329,6 +331,15 @@ const defaults: ReadonlyArray<FakeRoute> = [
   // The staging voice: nothing voiced, nothing spent (a case that hears a take serves its own).
   route('GET', /^\/script\/voice$/, () => json({ film: PROBE, spent: 0, cap: 100000, beats: [] })),
   route('GET', /^\/board$/, () => json(probeBoard)),
+  // The studio's timeline: v1 when asked for it, else the open v2.
+  route('GET', /^\/timeline(\?|$)/, (asked) =>
+    json(
+      Bool.match(/[?&]v=1(&|$)/.test(asked.path), {
+        onTrue: () => probeTimeline(1),
+        onFalse: () => probeTimeline(2),
+      }),
+    ),
+  ),
   route('POST', /^\/scenes\/\w+\/cues\//, () => json(wrote('cue'))),
   route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
@@ -736,14 +747,14 @@ const playerPage = (style: string, script: Asset) =>
 
 /** Where the player opens, and how wide its window is. */
 interface PlayerAt {
-  /** The link opened (`pageHref.play`, `pageHref.scenes`, `core/api.ts`). */
+  /** The link opened (`pageHref.studio`, `core/api.ts`). */
   readonly href: string;
   readonly viewport: Viewport;
 }
 
 /**
- * Open the player (`fixtures/player-page.ts`, the real `mountPlay` over the
- * probe film) at `href`, served on every player place as the lab serves it,
+ * Open the player (`fixtures/player-page.ts`, the real `mountFilmStudio` over
+ * the probe film) at `href`, served on every player place as the lab serves it,
  * in a window `viewport` wide, with `routes` answering its API requests
  * (then the defaults), and wait until `ready` is on the page. Its
  * clock is the test's, and the tab goes back to the pool with the scope.
@@ -912,14 +923,14 @@ const SERVED: Readonly<Record<ServedName, ServedPage>> = {
     home: pageHref.lab(PROBE),
   },
   player: {
-    render: Effect.runSync(Effect.cached(served('../film-server.tsx', 'playRender'))),
+    render: Effect.runSync(Effect.cached(served('../film-server.tsx', 'studioRender'))),
     script: Effect.runSync(
       Effect.cached(scriptAsset('player-hydrated-page.ts', 'player-hydrated.js')),
     ),
     html: (script) => playerPage(css, script),
     prefix: API,
     defaults,
-    home: pageHref.play(PROBE),
+    home: pageHref.studio(PROBE),
   },
 };
 
@@ -1095,7 +1106,7 @@ export const servedTitle = (page: Tab, html: string) =>
   );
 
 /**
- * Open page `name` (the review, the lab, or the Scenes and Play pages) at
+ * Open page `name` (the review, the lab, or a film's studio) at
  * `href` as the lab serves it once it renders the page on the server: each
  * document is the page's server entry (`review/server.tsx`,
  * `film-server.tsx`) rendered at the link asked, its reads answered by

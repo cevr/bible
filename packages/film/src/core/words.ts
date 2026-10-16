@@ -4,7 +4,7 @@
 import { Boolean as Bool } from 'effect';
 
 /** `noun` as `n` of them are named: plural but for one (`scene`, `scenes`). */
-export const plural = (n: number, noun: string): string =>
+const plural = (n: number, noun: string): string =>
   Bool.match(n === 1, { onTrue: () => noun, onFalse: () => `${noun}s` });
 
 /** `n` and `noun`, plural but for one: `1 scene`, `3 scenes`. */

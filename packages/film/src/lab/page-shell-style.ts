@@ -1,9 +1,8 @@
 // The shell's styles (`page-shell.tsx`, design language §4), read only
-// through the tokens (`player/tokens.css`): the header on `--surface-1`, the
-// page bar's text tabs with the accent underline on the laptop, the tab bar
-// of line icons along the bottom on the phone (`--tabbar-h` over the safe
-// area; `--shell-floor` is what the chrome holds under the page), and the
-// dock a page's transport takes above it (`.sh-dock`); and
+// through the tokens (`player/tokens.css`): the header on `--surface-1`,
+// its Studio link and the page's name (`--shell-floor` is what the chrome
+// holds under the page: the safe area), and the dock a page's transport
+// takes above it (`.sh-dock`); and
 // the kit (§5), each control styled once: the quiet and primary buttons
 // (`.sh-btn`), the icon button (`.sh-tool`), the segmented control
 // (`.sh-seg`), the field (`.lab-num`, a `select`), the slider, the badge
@@ -22,8 +21,7 @@ import { PHONE, WIDE } from './viewport.ts';
 export const SHELL_CSS = `
 html, body { margin: 0; }
 body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
-/* The shell's chrome under the page (\`--shell-floor\`), what a page's last row and a dock stand on:
-   the safe area alone, and on the phone the tab bar over it whenever a film's tabs show. */
+/* The shell's chrome under the page (\`--shell-floor\`), what a page's last row and a dock stand on: the safe area. */
 body { --shell-floor: env(safe-area-inset-bottom); }
 .sh { min-height: 100dvh; display: flex; flex-direction: column; }
 .sh-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6;
@@ -36,24 +34,19 @@ body { --shell-floor: env(safe-area-inset-bottom); }
 .sh-films > span { display: none; }
 .sh-films[data-active="true"] { color: var(--accent); }
 .sh-vsep { display: none; width: 1px; height: var(--s-4); background: var(--line); flex: none; margin: 0 var(--s-1); }
-.sh-switcher { display: inline-flex; align-items: center; gap: var(--s-1); min-width: 0; height: var(--control-h);
+.sh-switcher { display: inline-flex; align-items: center; gap: var(--s-1); min-width: var(--hit); height: var(--control-h);
   padding: 0 var(--s-2); border: 0; border-radius: var(--r-2); background: none; color: var(--text-1);
   font-size: var(--fs-3); font-weight: var(--w-2); cursor: pointer; }
 .sh-switcher > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sh-switcher .sh-icon { width: 12px; height: 12px; color: var(--text-3); }
 .sh-switcher:hover, .sh-switcher[data-popup-open] { background: var(--surface-3); }
-.sh-pagebar { display: flex; align-items: stretch; align-self: stretch; }
-/* No film chosen (Films): no film tab can act, so the bar is not shown on any device. */
-.sh[data-film="false"] .sh-pagebar { display: none; }
-.sh-tab { position: relative; display: flex; align-items: center; gap: var(--s-1); padding: 0 var(--s-3);
-  color: var(--text-2); text-decoration: none; font-size: var(--fs-2); line-height: var(--lh-2);
-  font-weight: var(--w-2); white-space: nowrap; }
-.sh-tab .sh-icon { display: none; }
-.sh-tab[data-disabled] { color: var(--text-3); }
-.sh-tab[data-active="true"] { color: var(--text-1); }
-.sh-tab[data-active="true"]::after { content: ""; position: absolute; left: var(--s-3); right: var(--s-3);
-  bottom: -1px; height: 2px; background: var(--accent); }
-.sh-tab:hover:not([data-disabled]) { color: var(--text-1); }
+.sh-studio { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 var(--s-3); flex: none;
+  color: var(--accent); text-decoration: none; font-size: var(--fs-2); font-weight: var(--w-2); white-space: nowrap;
+  border-radius: var(--r-2); }
+.sh-studio:hover { background: var(--surface-3); }
+.sh-page { display: inline-flex; align-items: center; gap: var(--s-2); flex: none; color: var(--text-1);
+  font-size: var(--fs-2); font-weight: var(--w-2); white-space: nowrap; }
+.sh-page i { font-style: normal; color: var(--text-3); }
 .sh-crumb { display: inline-flex; align-items: center; gap: var(--s-2); min-width: 0; color: var(--text-2);
   font-size: var(--fs-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sh-crumb i { font-style: normal; color: var(--text-3); }
@@ -85,19 +78,12 @@ body { --shell-floor: env(safe-area-inset-bottom); }
 .sh-await { margin: 0; padding: var(--s-4) var(--gutter); color: var(--text-2); font-size: var(--fs-2); }
 body.lab .sh-await { grid-column: 1; grid-row: 2; }
 
-/* The phone: the six film tabs along the bottom, the transport docked above them. */
+/* The phone: the transport docked above the safe area. */
 @media ${PHONE} {
-  body { --shell-floor: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
-  body:has(.sh[data-film="false"]) { --shell-floor: env(safe-area-inset-bottom); }
   .sh[data-film="true"] { padding-bottom: var(--shell-floor); }
-  .sh-pagebar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-    height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
-    background: var(--surface-2); border-top: var(--border); }
-  .sh-tab { flex: 1; flex-direction: column; justify-content: center; padding: 0;
-    font-size: var(--fs-1); line-height: var(--lh-1); }
-  .sh-tab .sh-icon { display: block; width: 20px; height: 20px; }
-  .sh-tab[data-active="true"] .sh-icon { color: var(--accent); }
-  .sh-tab[data-active="true"]::after { display: none; }
+  .sh-page { font-size: var(--fs-1); }
+  /* The phone's header holds the film and the page: the studio is the film menu's Open the studio. */
+  .sh-studio { display: none; }
   /* The crumb names the subject on a phone too (a Set's scene, a Folder's), shortened first. */
   .sh-crumb { flex: 0 1 auto; font-size: var(--fs-1); }
   /* The phone's dock, the one docked row: a page's (\`.sh-dock\`) and the Lab's transport row (\`player.css\`). */
@@ -113,7 +99,7 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
   .sh-dock { position: sticky; top: var(--header-h); z-index: 15; min-height: var(--dock-h); border-bottom: var(--border); }
 }
 
-/* The laptop: Films as the page bar's first tab, the timecode and Go to… in full. */
+/* The laptop: Films in words, the timecode and Go to… in full. */
 @media ${WIDE} {
   .sh-films { display: flex; width: auto; height: auto; align-self: stretch; padding: 0 var(--s-3);
     font-size: var(--fs-2); font-weight: var(--w-2); position: relative; }

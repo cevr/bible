@@ -131,7 +131,7 @@ export const Comments = (props: { readonly comments: ReadonlyArray<SaidComment> 
  * empties once the say is said (unless it was typed on since), and a say
  * that fails leaves the text for another try.
  */
-export const SayBox = (props: {
+const SayBox = (props: {
   readonly say: (text: string) => Promise<boolean>;
   readonly disabled?: boolean;
   /** The inspector's handle on the box: its field's ref (focused when it opened at the box) and its draft. */
@@ -182,51 +182,31 @@ export const SayBox = (props: {
   );
 };
 
-/**
- * An approve button: approved as it is now, or again once it has changed;
- * while it waits on something first (`first`: a scene's render), disabled,
- * saying what (`Approve · render first`). A `brief` one (a card's, with no
- * room for it) says only `Approve` and keeps what it waits on for its title
- * and its name to a screen reader.
- */
+/** An approve button: approved as it is now, or again once it has changed. */
 const ApproveButton = (props: {
   readonly approval: ApprovalState;
   readonly approve: () => void;
   readonly disabled?: boolean;
-  readonly first?: string;
-  readonly brief?: boolean;
-}) => {
-  const waiting = () =>
-    Option.map(Option.fromUndefinedOr(props.first), (first) => `Approve · ${first}`);
-  const said = () => Option.filter(waiting(), () => props.brief === true);
-  return (
-    <button
-      type="button"
-      class="sh-btn"
-      data-act="approve"
-      data-approval={props.approval}
-      aria-pressed={pressed(props.approval === 'approved')}
-      title={Option.getOrUndefined(said())}
-      aria-label={Option.getOrUndefined(said())}
-      disabled={
-        props.disabled === true || props.approval === 'approved' || Option.isSome(waiting())
-      }
-      onClick={() => props.approve()}
-    >
-      {Option.getOrElse(
-        Option.filter(waiting(), () => props.brief !== true),
-        () => APPROVE_TITLE[props.approval],
-      )}
-    </button>
-  );
-};
+}) => (
+  <button
+    type="button"
+    class="sh-btn"
+    data-act="approve"
+    data-approval={props.approval}
+    aria-pressed={pressed(props.approval === 'approved')}
+    disabled={props.disabled === true || props.approval === 'approved'}
+    onClick={() => props.approve()}
+  >
+    {APPROVE_TITLE[props.approval]}
+  </button>
+);
 
 /**
  * A render's video, kept in place while its file stays the same, showing a
  * still of itself until it plays, on a clock of its own with the review's
  * transport row (`PlayedAlone`); while its proxy is being made, says so.
  */
-export const Seen = (props: { readonly video: ReviewVideo }) => {
+const Seen = (props: { readonly video: ReviewVideo }) => {
   const { state } = useReview();
   const src = createMemo(() => Option.getOrUndefined(videoSource(props.video, state.quality())));
   const poster = createMemo(() => reviewFrameUrl(props.video.ref, Option.none(), POSTER_W));
@@ -284,40 +264,22 @@ const UnapproveButton = (props: { readonly variant: ChoiceVariant; readonly saye
   );
 };
 
-/**
- * A variant's approve: only what is current is approved, as the version seen
- * now. `first` is what one not current waits on, said on it (a scene's
- * render: `render first`).
- */
-export const Approve = (props: {
-  readonly variant: ChoiceVariant;
-  readonly sayer: Sayer;
-  readonly first?: string;
-  /** Said in one word, what it waits on in its title (`ApproveButton`): a card's. */
-  readonly brief?: boolean;
-}) => {
+/** A variant's approve: only what is current is approved, as the version seen now. */
+const Approve = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
   const approving = props.sayer.use();
   return (
     <ApproveButton
       approval={props.variant.approval}
       disabled={props.variant.state !== 'current' || approving.waiting()}
-      first={Option.getOrUndefined(
-        Option.filter(Option.fromUndefinedOr(props.first), () => props.variant.state !== 'current'),
-      )}
-      brief={props.brief}
       approve={() => approving.say(props.variant, { _tag: 'Approve' })}
     />
   );
 };
 
 /** A variant's approve and unapprove, as its inspector offers them. */
-export const Approval = (props: {
-  readonly variant: ChoiceVariant;
-  readonly sayer: Sayer;
-  readonly first?: string;
-}) => (
+export const Approval = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => (
   <>
-    <Approve variant={props.variant} sayer={props.sayer} first={props.first} />
+    <Approve variant={props.variant} sayer={props.sayer} />
     <Show when={props.variant.approval !== 'none'}>
       <UnapproveButton variant={props.variant} sayer={props.sayer} />
     </Show>
@@ -406,10 +368,9 @@ interface VariantThing {
 /**
  * Register a point's variant as a thing of the page for as long as the
  * calling row lives: its inspector's title, whether it takes comments, and
- * the verbs its menu, ⌘K and keys run (`variantVerbs`). A project's scene
- * card is such a row, as a choice's variant row is.
+ * the verbs its menu, ⌘K and keys run (`variantVerbs`).
  */
-export const useVariantThing = (props: {
+const useVariantThing = (props: {
   readonly point: ChoicePoint;
   readonly variant: ChoiceVariant;
   readonly sayer: Sayer;

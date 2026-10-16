@@ -195,14 +195,14 @@ describe('the cue strip', () => {
     }).pipe(Effect.scoped),
   );
 
-  /** Whether the shown mode's first control in the panel ends above the phone's tab bar, unscrolled. */
+  /** Whether the shown mode's first control in the panel ends above the phone's floor, unscrolled. */
   const FIRST_ON_SCREEN = `(() => {
-    const bar = document.querySelector('.sh-pagebar').getBoundingClientRect().top;
+    const floor = innerHeight;
     const first = [...document.querySelectorAll('.lab-panel [data-mode-of] :is(button, input, select, a[href])')]
       .find((el) => el.checkVisibility() && el.getBoundingClientRect().height > 0);
     if (first === undefined) return 'no control in ' + document.querySelector('.lab-panel').dataset.mode;
     const bottom = first.getBoundingClientRect().bottom;
-    return scrollY === 0 && bottom <= bar ? 'on screen' : first.outerHTML.slice(0, 80) + ' ends at ' + Math.round(bottom) + ', the bar at ' + Math.round(bar) + ', scrolled ' + scrollY;
+    return scrollY === 0 && bottom <= floor ? 'on screen' : first.outerHTML.slice(0, 80) + ' ends at ' + Math.round(bottom) + ', the floor at ' + floor + ', scrolled ' + scrollY;
   })()`;
 
   /** Whether the strip shows its cue lanes and its Snap, and its words. */
@@ -234,7 +234,7 @@ describe('the cue strip', () => {
         ] as const) {
           yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
           yield* evaluates(page, strip, [lanes, lanes, true]);
-          // The mode's first control stands over the tab bar, on the first screen. (Record's
+          // The mode's first control stands on the first screen. (Record's
           // recorder needs the studio's routes: `studio/studio.dom.test.ts` checks its R so.)
           yield* evaluates(page, FIRST_ON_SCREEN, 'on screen');
         }
@@ -410,7 +410,7 @@ describe('the cue strip', () => {
   );
 
   it.live(
-    'on a phone a receipt stands first in the bottom stack, over no control: above the inspector’s peek, the transport and the tab bar',
+    'on a phone a receipt stands first in the bottom stack, over no control: above the inspector’s peek and the transport',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openLab([], { href: labAt(1), viewport: PHONE });

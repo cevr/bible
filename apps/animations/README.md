@@ -8,7 +8,7 @@ scrubbable preview and a frame-exact MP4 export.
 ## Commands
 
 ```sh
-bun run lab                                    # the lab at http://localhost:8229/: the review at /, a film's lab at /films/<film>/lab, its Scenes (the whole film as stills) at /films/<film>/scenes (LAB_HOST, LAB_PORT, FILM_LAB_PHONE_URL, FILM_STAGING_FILL)
+bun run lab                                    # the lab at http://localhost:8229/: the review at /, a film's studio (the film on one timeline) at /films/<film>/studio (LAB_HOST, LAB_PORT, FILM_LAB_PHONE_URL, FILM_STAGING_FILL)
 bun run narrate <film>                         # stage stale beats with ElevenLabs, verify, remix full.wav
 bun run script <film> [--sheet]                # the reading sheet; --sheet writes out/<film>/script-sheet.md + .html to print
 bun run takes import <film> <folder|file>      # the owner's recordings as takes (trimmed, levelled, timed), remix full.wav
@@ -93,11 +93,12 @@ Solid) and, for `lab`, the lab: one server for every film, meant to stay up
 `FILM_LAB_PHONE_URL` gives one). The lab builds its pages
 from this app's source in its own process when they are asked for, and again
 after a file they were built from changes: the review (`review.html`) at `/`,
-`/sets/<folder>[/<point>]` and a film's `/films/<film>/choices` and
-`/films/<film>/project`, the lab (`lab.html`, whose entry `src/lab.ts` mounts
-`@bible/film/lab`) at `/films/<film>/lab[/<scene>]`, and the player
-(`play.html`) at a film's Scenes, `/films/<film>/scenes[/<scene>]`, and
-`/films/<film>/play`. Each is rendered first on the server by its server
+`/sets/<folder>[/<point>]` and a film's `/films/<film>/choices`, and the
+player (`play.html`, whose entry `src/play.ts` mounts `@bible/film/play`) at
+a film's studio, `/films/<film>/studio`. The lab page (`lab.html`, whose
+entry `src/lab.ts` mounts `@bible/film/lab`) is built but not served: the
+lab sends a film's `/lab`, `/script`, `/board`, `/scenes`, `/project` and
+`/play` paths to its studio. Each page is rendered first on the server by its server
 entry beside it (`src/*.server.tsx`, `LAB_SERVERS` in `server.ts`), in a
 worker of its build's own, and the browser bundle hydrates it. The render page
 (`index.html`) is the lab's too, at a film's `/films/<film>/export`, drawn in
@@ -230,10 +231,7 @@ knobs: wipe (HEAD left of a divider you drag), blink, or diff (HEAD over now
 in the difference blend: black where nothing moved), the mode in the link
 (`?view=wipe|blink|diff`); when HEAD cannot give the scene, the mode says the server's reason. Speed, loop, onion,
 the wipe's divider and play are kept through the reload a write causes (the tab's
-sessionStorage, per film). A film's Scenes (`/films/<film>/scenes`, the page
-bar's Scenes) is the whole film as stills from the code as it stands; a tap
-on a still selects its scene and moves the playhead there, and its card's
-Open in Lab (E) opens it in the lab. The **Record**
+sessionStorage, per film). The **Record**
 mode records the owner's voiceover beat by beat: pick a beat (its line is
 the teleprompter), click into the mode, then R records after a 3 s
 count-in (the meter warns of clipping at −1 dBFS), Space stops, play it back,
@@ -261,8 +259,9 @@ along the top) and every score movement's start (a line through it), from the fi
 `sound` passed to `createFilm`; hover one for its name and time.
 
 **The review** (the lab's home page, `/`) is where options are compared and
-picked; each film on it is a card that opens its Scenes, and the page bar
-moves between a film's Scenes, Lab, Choices, Project and Play. Its home lists the
+picked; each film on it is a card that opens the film's studio
+(`/films/<film>/studio`), and the shell header's Studio link opens it from
+any page of the film. Its home lists the
 films and every folder of renders under every checkout's `out/` (and any
 `FILM_REVIEW_EXTRA_ROOTS`). Videos named `<clip>.<variant>.mp4` in one
 folder are a comparison set, played on one clock (all of them, the first
@@ -847,7 +846,7 @@ itself is not wired yet.
 
 The engine lives in [`packages/film`](../../packages/film); this app is its
 first user. `src/main.ts` is the render page's entry: it calls `mountRender(pages)`
-with the registry in `src/films/index.ts` (the films and their shorts); `src/play.ts` calls `mountPlay(pages)` for a film's Scenes and Play pages in the studio's shell, `src/lab.ts` calls `mountLab(films)`, and `src/review.ts` calls `mountReview(films)`; beside each, its server entry (`src/<page>.server.tsx`) renders the page on the server with none of the films imported. Scenes import from three entry
+with the registry in `src/films/index.ts` (the films and their shorts); `src/play.ts` calls `mountFilmStudio(pages)` for a film's studio in the studio's shell, `src/lab.ts` calls `mountLab(films)`, and `src/review.ts` calls `mountReview(films)`; beside each, its server entry (`src/<page>.server.tsx`) renders the page on the server with none of the films imported. Scenes import from three entry
 points:
 
 | Entry point          | Module               | What it gives a scene                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |

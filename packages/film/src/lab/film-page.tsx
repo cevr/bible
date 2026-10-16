@@ -1,8 +1,7 @@
-// A film's own pages in the studio's shell, the Lab and the Script
-// (`/films/<film>/lab…`, `/films/<film>/script…`) and the Scenes and Play
-// pages (`/films/<film>/scenes`, `/films/<film>/play`), as the browser and
-// the server both render them: the shell
-// (`page-shell.tsx`: the header, the film switcher, the tab bar, Go to…),
+// A film's own pages in the lab's shell, the Board, the Lab and the Script
+// (`/films/<film>/board…`, `/films/<film>/lab…`, `/films/<film>/script…`),
+// as the browser and the server both render them: the shell
+// (`page-shell.tsx`: the header, the film switcher, the Studio link, Go to…),
 // the context menu, ⌘K, the `?` sheet and the receipts, around the page's
 // body; on the Lab and the Script the film's notes, and on the Lab its
 // panel (`panel.tsx`: the mode tray, each tool's section). The body is the film's and the browser's
@@ -11,26 +10,24 @@
 // `filmCode` in `tools/lab-page.ts`). The server, and the browser while it
 // hydrates, render the body's place as a quiet line; the browser then stages
 // the film and puts the body there, the Lab's tools in its panel
-// (`mount.tsx`, `play-mount.tsx`). Neither side's own adapters are imported
+// (`mount.tsx`). Neither side's own adapters are imported
 // here: the page's reads go through the client it is given.
 
 import { RegistryProvider, useAtomValue } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, clientOnly } from '@solidjs/web';
 import type { Component } from 'solid-js';
-import { Effect, type Layer, Match, Option, Schema } from 'effect';
-import { type PageName, type Part, filmOfPage } from '../core/api.ts';
+import { Effect, type Layer, Option, Schema } from 'effect';
+import { type PageName, filmOfPage } from '../core/api.ts';
 import { type Host, addressOn, hostLayer } from '../browser/host.ts';
 import type { Hub } from '../command/hub.ts';
 import type { LabClient } from './api.ts';
 import { COMMAND_CSS } from './command/style.ts';
 import { PageShell } from './page-shell.tsx';
+import type { ShellPage } from './page-title.ts';
 import { SHELL_CSS } from './page-shell-style.ts';
 import { LabPage, LabPanel } from './panel.tsx';
 import { labPlaceOf } from './place.ts';
-import { scenesPlaceOf } from './scenes/place.ts';
-import { COMMENTS_CSS } from './review/comments-style.ts';
-import { SCENES_CSS } from './scenes/style.ts';
 import { SOURCE_CSS } from './source/style.ts';
 import { StudioFrame, studioOn } from './studio-frame.tsx';
 import { TRANSCRIPT_CSS } from './transcript/style.ts';
@@ -55,8 +52,7 @@ class FilmStartFailed extends Schema.TaggedError<FilmStartFailed>()('FilmStartFa
 const NoBody: Component = () => <></>;
 
 /**
- * A film page's body over `host` (the browser's entries, `mount.tsx`,
- * `play-mount.tsx`): its film staged (`stage`), then `view` of it with the
+ * A film page's body over `host` (the browser's entry, `mount.tsx`): its film staged (`stage`), then `view` of it with the
  * page's commands. A film that does not start fails the page (`fail`: it
  * ends, and says why in its place), and the body is nothing.
  */
@@ -79,18 +75,15 @@ export const stagedBody =
       ),
     );
 
-/** The parts a film's page is: the Board, the Lab or the Script (the lab's), or the Scenes or Play page (the player's). */
-type FilmPart = Extract<Part, 'board' | 'lab' | 'script' | 'scenes' | 'play'>;
-
-/** The parts the lab's page is: the Board, the Lab and the Script. */
-export type LabPart = Extract<FilmPart, 'board' | 'lab' | 'script'>;
+/** The pages the lab's entry is: the Board, the Lab and the Script. */
+export type LabPart = Extract<ShellPage, 'board' | 'lab' | 'script'>;
 
 /** What a film's page puts around its body, made in its place when it is asked. */
 type PageAround = (body: () => JSX.Element) => JSX.Element;
 
 /** What a film's page is rendered with. */
 interface FilmPageWith {
-  readonly part: FilmPart;
+  readonly part: LabPart;
   /** The film its path names: none on a path naming none. */
   readonly name: Option.Option<string>;
   /** The app's films, the switcher's: none on the server (its menu opens only in the browser). */
@@ -100,7 +93,7 @@ interface FilmPageWith {
   /** The receipts' scope in the tab's store: the page's kind and its film. */
   readonly scope: string;
   readonly body: FilmBody;
-  /** What the page's part puts around its body: the Lab's panel; Scenes and Play, nothing. */
+  /** What the page puts around its body: the Lab's panel; the Board and the Script, nothing. */
   readonly around: PageAround;
 }
 
@@ -126,15 +119,8 @@ const FilmPage = (props: FilmPageWith) => (
   </RegistryProvider>
 );
 
-/** The scene a film page's link selects, which its title names first: the Lab's, the Script's and the Scenes'. */
-const sceneOf = (part: FilmPart, href: string): Option.Option<string> =>
-  Match.value(part).pipe(
-    Match.when('lab', () => labPlaceOf(href).scene),
-    Match.when('script', () => labPlaceOf(href).scene),
-    Match.when('board', () => labPlaceOf(href).scene),
-    Match.when('scenes', () => Option.flatMap(scenesPlaceOf(href), (place) => place.scene)),
-    Match.orElse(() => Option.none<string>()),
-  );
+/** The scene a film page's link selects, which its title names first. */
+const sceneOf = (href: string): Option.Option<string> => labPlaceOf(href).scene;
 
 /** A film page's shell around its body, its title naming the scene its link selects. */
 const FilmShell = (props: FilmPageWith) => {
@@ -142,12 +128,12 @@ const FilmShell = (props: FilmPageWith) => {
   const href = useAtomValue(() => UrlAtom.href);
   return (
     <PageShell
-      part={(): Part => props.part}
+      page={(): ShellPage => props.part}
       film={() => props.name}
       films={() => props.films}
       hub={props.hub}
       host={props.host}
-      subject={() => sceneOf(props.part, href())}
+      subject={() => sceneOf(href())}
     >
       {props.around(() => (
         <Body fallback={<Await name={props.name} />} />
@@ -173,25 +159,11 @@ export const LAB_PAGE: FilmPageSpec = {
   style: `${SHELL_CSS}${COMMAND_CSS}${SOURCE_CSS}${TRANSCRIPT_CSS}`,
 };
 
-/** The Scenes and Play pages' page. */
-export const PLAY_PAGE: FilmPageSpec = {
-  bodyClass: 'play',
-  rootClass: 'play-root',
-  style: `${SHELL_CSS}${COMMAND_CSS}${SCENES_CSS}${COMMENTS_CSS}`,
-};
-
-/** The Scenes page on a Scenes link (`/films/<film>/scenes…`), else Play. */
-export const playPartOf = (href: string): FilmPart =>
-  Option.match(scenesPlaceOf(href), {
-    onNone: (): FilmPart => 'play',
-    onSome: (): FilmPart => 'scenes',
-  });
-
 /** The Script on a Script link (`/films/<film>/script…`), the Board on a Board link, else the Lab. */
 export const labPartOf = (href: string): LabPart => labPlaceOf(href).root;
 
 /** What a page of film `name` and of `part` puts around its body, given its host and commands. */
-type AroundOf<P extends FilmPart> = (name: string, host: Host, hub: Hub, part: P) => PageAround;
+type AroundOf<P extends LabPart> = (name: string, host: Host, hub: Hub, part: P) => PageAround;
 
 /**
  * A film's page of `part` over `host`, as page `page`'s commands
@@ -200,7 +172,7 @@ type AroundOf<P extends FilmPart> = (name: string, host: Host, hub: Hub, part: P
  * mount or hydrate and the server to render. Its receipts are kept under
  * `scope` and the film.
  */
-const filmPageOn = <P extends FilmPart>(
+const filmPageOn = <P extends LabPart>(
   page: PageName,
   scope: string,
   part: (href: string) => P,
@@ -257,7 +229,3 @@ export const labOn = (
       {LAB_PARTS[part](made)}
     </LabPage>
   ));
-
-/** The Scenes or Play page over `host`, as its link says, its body `body` once the film is staged. */
-export const playOn = (host: Host, films: ReadonlyArray<string>, body: FilmBody) =>
-  filmPageOn('player', 'player', playPartOf, host, films, body, () => (made) => made());

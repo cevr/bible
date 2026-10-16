@@ -189,6 +189,7 @@ describe('timeline', () => {
               mark: 'judge',
               markAt: 3,
               try: 1,
+              file: 'cold.judge.1.png',
               card: false,
             },
           ]);

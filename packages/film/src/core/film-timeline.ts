@@ -350,7 +350,7 @@ const boardLane = (clock: FilmClock, board: BoardFile): ReadonlyArray<BoardClip>
           Option.filter(shownTry(panel), () => !card),
           {
             onNone: () => ({}),
-            onSome: (t) => ({ try: t.n }),
+            onSome: (t) => ({ try: t.n, file: t.file }),
           },
         ),
         card,

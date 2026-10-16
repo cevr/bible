@@ -21,7 +21,6 @@ import {
   json,
   labAt,
   openLab,
-  openPlayer,
   openReview,
   refused,
   route,
@@ -101,12 +100,12 @@ describe('a read that fails', () => {
 
 describe("the kit's focus ring", () => {
   it.live(
-    'on the Lab, in its ⌘K portal and on Play, a kit control focused from the keyboard shows the studio’s ring',
+    'on the Lab and in its ⌘K portal, a kit control focused from the keyboard shows the studio’s ring',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openLab();
-        // The mode tray's toggle (a segment), the transport's play (an icon button), a page bar's link.
-        for (const control of ['.lab-modes > button', '.bar [data-act="play"]', 'a.sh-tab']) {
+        // The mode tray's toggle (a segment), the transport's play (an icon button), the header's Studio link.
+        for (const control of ['.lab-modes > button', '.bar [data-act="play"]', 'a.sh-studio']) {
           yield* page.focus(control);
           yield* evaluates(page, FOCUS_SHOWN, 'ring');
         }
@@ -115,13 +114,6 @@ describe("the kit's focus ring", () => {
         yield* waitFor(page, '.lab-command-query:focus');
         yield* evaluates(page, FOCUS_SHOWN, 'ring');
         expect(errors).toEqual([]);
-        const play = yield* openPlayer(
-          { href: pageHref.play(PROBE), viewport: DESK },
-          '.bar [data-act="play"]',
-        );
-        yield* play.page.focus('.bar [data-act="play"]');
-        yield* evaluates(play.page, FOCUS_SHOWN, 'ring');
-        expect(play.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );
@@ -219,10 +211,6 @@ const rebind = (page: Tab) =>
 /** Each page the studio's frame (and its keys dialog) is on, opened at a desk. */
 const PAGES = [
   ['the Lab', () => openLab()],
-  [
-    'Play',
-    () => openPlayer({ href: pageHref.play(PROBE), viewport: DESK }, '.bar [data-act="play"]'),
-  ],
   ['the review', () => openReview([])],
 ] as const;
 
@@ -573,43 +561,6 @@ const WALKED: ReadonlyArray<Walked> = [
     ],
   },
   {
-    name: 'Play',
-    open: () =>
-      openPlayer({ href: pageHref.play(PROBE), viewport: DESK }, '.bar [data-act="play"]'),
-    roots: ['command-menu', 'film-menu', 'keys-sheet', 'receipt', 'view-menu'],
-  },
-  {
-    name: 'Scenes',
-    open: () =>
-      openPlayer(
-        { href: pageHref.scenes(PROBE), viewport: DESK },
-        '.sc-still[data-drawn="true"] canvas',
-      ),
-    roots: [
-      'command-menu',
-      'context-menu',
-      'film-menu',
-      'info',
-      'keys-sheet',
-      'receipt',
-      'view-menu',
-    ],
-  },
-  {
-    name: 'Scenes at a phone, a scene open in its sheet',
-    open: () => openPlayer({ href: pageHref.scene(PROBE, 'one'), viewport: PHONE }, '.sc-focus'),
-    roots: [
-      'command-menu',
-      'context-menu',
-      'film-menu',
-      'info',
-      'keys-sheet',
-      'receipt',
-      'scene',
-      'view-menu',
-    ],
-  },
-  {
     name: 'the review',
     open: () => openReview([]),
     roots: ['command-menu', 'film-menu', 'keys-sheet', 'receipt', 'view-menu'],
@@ -655,23 +606,17 @@ const WALKED: ReadonlyArray<Walked> = [
   },
 ];
 
-/**
- * The roots the pages open, by their `data-role`: each page's together. Not walked: Scenes'
- * palette, which only a film with named colours offers (no fixture film has one); it is the
- * keys dialog's sheet (`lab-keys-sheet`), whose ring the walk proves on every page.
- */
+/** The roots the pages open, by their `data-role`: each page's together. */
 const ROOTS = [
   'chip-menu',
   'command-menu',
   'context-menu',
   'film-menu',
   'findings',
-  'info',
   'inspector',
   'keys-sheet',
   'lightbox',
   'receipt',
-  'scene',
   'source',
   'transcript',
   'view-menu',

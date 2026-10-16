@@ -20,7 +20,7 @@
 // `--fs-*`, leading against `--lh-*`, a radius against `--r-*`, and a
 // padding, margin, gap, border or outline width or offset against `--s-*`,
 // `--gutter` and `GEOMETRY`, so a size that equals another scale's token
-// (a 56 px font, which is `--tabbar-h`) is still off its own. Computed
+// (a 44 px font, which is `--hit`) is still off its own. Computed
 // styles do not depend on where the page is scrolled, so no element is
 // skipped for lying below the fold or past the window's side.
 //
@@ -57,8 +57,6 @@ const COMPOSED = {
     "the lab strip's cue-name column (`--cue-names`): each name, then a step of room before its row",
   '75dvh':
     "a phone's open sheet (`--cmd-sheet-height`): the room the page keeps under it, so all of the page scrolls above it",
-  '40dvh':
-    "the room the Scenes' tape keeps under a selected scene's sheet, so its last row scrolls above it",
 } satisfies Readonly<Record<string, string>>;
 
 /**
@@ -78,8 +76,6 @@ const GEOMETRY = {
   '5px': "a cue bar's grip at either end (`--cue-grip`): the edge a drag takes",
   '14px':
     "the scene line's time dropped by one line of its own leading (`--lh-1`), so it sits on the line's first baseline",
-  '56px':
-    "the room the phone's tab bar holds under the page (`--tabbar-h`): the page's last row clears it",
   '73px':
     "a phone's dock and a step under it (`--dock-h` + `--s-3`): the page's room below its last row",
 } satisfies Readonly<Record<string, string>>;
@@ -104,19 +100,11 @@ const OPACITY = {
  * every other part.
  */
 const SITES = {
-  'marginTop 11px: rv-main > p.rv-hint':
-    "a hint paragraph keeps the user agent's margin of 1em (11 px): a reset is a layout change to answer in the review's design",
-  'marginBottom 11px: rv-main > p.rv-hint': 'the same hint, its margin below',
-  'marginTop 11px: rv-group > p.rv-hint': 'the same hint inside an options group',
-  'marginBottom 11px: rv-group > p.rv-hint': 'the same hint inside an options group, below',
-  'marginTop 11px: lab-inspector-body > p.rv-hint': 'the same hint in an inspector',
-  'marginBottom 11px: lab-inspector-body > p.rv-hint': 'the same hint in an inspector, below',
-  'marginTop 11px: lab-keys-group > p.keys':
-    "the keys dialog's group note keeps the user agent's margin of 1em (11 px)",
-  'marginBottom 11px: lab-keys-group > p.keys': 'the same note, below',
-  'marginTop 13px: rv-pending > p.rv-row':
-    "a pending row's paragraph keeps the user agent's margin of 1em (13 px)",
-  'marginBottom 13px: rv-pending > p.rv-row': 'the same row, below',
+  'marginTop 15px: rv-pending > p.rv-row':
+    "a pending row's paragraph keeps the user agent's margin of 1em (15 px on a phone): a reset is a layout change to answer in the review's design",
+  'marginBottom 15px: rv-pending > p.rv-row': 'the same row, below',
+  'marginTop 13px: rv-pending > p.rv-row': 'the same row on a laptop (1em of 13 px)',
+  'marginBottom 13px: rv-pending > p.rv-row': 'the same row on a laptop, below',
 } satisfies Readonly<Record<string, string>>;
 
 /** A `#rrggbb` colour as the browser computes it: `rgb(r, g, b)`. */

@@ -37,7 +37,7 @@ import { Studio } from './studio/index.ts';
 import { Transcript } from './transcript/index.ts';
 import { Lab } from './shell.tsx';
 
-/** The header's timecode: the player's time, as Play's is. */
+/** The header's timecode: the player's time. */
 const LabTime = (props: { readonly player: Player }) => {
   usePlayerTime(props.player);
   return <></>;

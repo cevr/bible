@@ -15,9 +15,9 @@ const PHONE_WIDEST = 899;
 
 /**
  * A phone's width, the studio's one: under it the shell is a phone's
- * (`page-shell-style.ts`), a sheet rises from the bottom, Scenes' tape lays
- * six stills a line and the review plays the 720p copy. Every style written
- * in TypeScript (the shell's, the review's, the Scenes', the commands') says
+ * (`page-shell-style.ts`), a sheet rises from the bottom and the review
+ * plays the 720p copy. Every style written in TypeScript (the shell's, the
+ * review's, the commands') says
  * it through `PHONE` and `WIDE`, and `film/one-breakpoint` refuses a width
  * written out there; the stylesheets that cannot import it (`player.css`,
  * `tokens.css`) are held to its value by `viewport.test.ts`.

@@ -1,0 +1,285 @@
+// What the studio page shows, derived from the film's timeline (the read
+// model, `core/timeline-schema.ts`) and where the owner is in it: the beat
+// at the playhead, the picture the viewer shows there, the lanes a window
+// of a width holds, the ruler's ticks at a zoom, the selection the address
+// names, and the timecode. Pure: the page's parts and its machine read
+// these, and its tests check them without a page.
+
+import { Array as Arr, Boolean as Bool, Match, Option, Order } from 'effect';
+import { CLOCK_EPSILON, frameAtOrBefore } from '../../core/time.ts';
+import type {
+  BoardClip,
+  FilmTimeline,
+  Lane,
+  ScriptClip,
+  Track,
+} from '../../core/timeline-schema.ts';
+
+/** A clip as the timeline lays it out: where it starts and how long it lasts, in film seconds. */
+interface Spanned {
+  readonly start: number;
+  readonly dur: number;
+}
+
+/** Whether film second `T` is in `clip` (its start in, its end out). */
+const holds = (clip: Spanned, T: number) => T >= clip.start && T < clip.start + clip.dur;
+
+/** The script's beats, in film order; none when the version has no script lane. */
+const beatsOf = (timeline: FilmTimeline): ReadonlyArray<ScriptClip> =>
+  timeline.lanes.flatMap((lane) =>
+    Match.value(lane).pipe(
+      Match.when({ track: 'script' }, (l) => l.clips),
+      Match.orElse(() => []),
+    ),
+  );
+
+/** The beat at film second `T`: the one it is in, else the last before it (the end shows the last beat). */
+export const beatAt = (timeline: FilmTimeline, T: number): Option.Option<ScriptClip> =>
+  Option.orElse(
+    Arr.findFirst(beatsOf(timeline), (b) => holds(b, T)),
+    () => Arr.findLast(beatsOf(timeline), (b) => b.start <= T),
+  );
+
+/** The beat named `id`. */
+export const beatNamed = (timeline: FilmTimeline, id: string): Option.Option<ScriptClip> =>
+  Arr.findFirst(beatsOf(timeline), (b) => b.beat === id);
+
+/**
+ * The beat start `step` beats from the one at `T` (−1 the one before, +1
+ * the next): back from inside a beat's first half second goes to the beat
+ * before, else to this beat's start, as an editor's previous-edit does.
+ */
+export const beatStep = (timeline: FilmTimeline, T: number, step: -1 | 1): number => {
+  const beats = beatsOf(timeline);
+  const at = Arr.findLastIndex(beats, (b) => b.start <= T);
+  const here = Option.getOrElse(at, () => -1);
+  const target = Match.value(step).pipe(
+    Match.when(1, () => here + 1),
+    Match.orElse(() => {
+      const start = Option.getOrElse(
+        Option.map(Arr.get(beats, here), (b) => b.start),
+        () => 0,
+      );
+      return Bool.match(T - start > 0.5, { onTrue: () => here, onFalse: () => here - 1 });
+    }),
+  );
+  return Option.getOrElse(
+    Option.map(Arr.get(beats, Math.max(0, Math.min(target, beats.length - 1))), (b) => b.start),
+    () => 0,
+  );
+};
+
+/** What the viewer shows at the playhead: a drawn scene, a Board panel, or the beat's empty frame. */
+export type Picture =
+  | { readonly _tag: 'Scene'; readonly beat: string }
+  | {
+      readonly _tag: 'Board';
+      readonly beat: string;
+      readonly panel: string;
+      readonly mark: string;
+      readonly file: string;
+    }
+  | { readonly _tag: 'Empty'; readonly beat: Option.Option<string> };
+
+/** The scenes drawn, in film order. */
+const sceneClips = (timeline: FilmTimeline) =>
+  timeline.lanes.flatMap((lane) =>
+    Match.value(lane).pipe(
+      Match.when({ track: 'scenes' }, (l) => l.clips),
+      Match.orElse(() => []),
+    ),
+  );
+
+/** The Board's panels, in film order. */
+const boardClips = (timeline: FilmTimeline): ReadonlyArray<BoardClip> =>
+  timeline.lanes.flatMap((lane) =>
+    Match.value(lane).pipe(
+      Match.when({ track: 'board' }, (l) => l.clips),
+      Match.orElse(() => []),
+    ),
+  );
+
+/**
+ * The picture at film second `T`: the scene drawn there when the viewer
+ * can draw it (`drawable`: the film staged is this version), else the Board
+ * panel held there (a picture, not a card the engine sets), else the beat's
+ * empty frame. The newest stage made wins, as design §1 says.
+ */
+export const pictureAt = (timeline: FilmTimeline, T: number, drawable: boolean): Picture => {
+  const beat = Option.map(beatAt(timeline, T), (b) => b.beat);
+  const scene = Option.filter(
+    Arr.findFirst(sceneClips(timeline), (c) => holds(c, T)),
+    () => drawable,
+  );
+  if (Option.isSome(scene)) return { _tag: 'Scene', beat: scene.value.beat };
+  const panel = Arr.findFirst(boardClips(timeline), (c) =>
+    Option.filter(Option.fromUndefinedOr(c.file), () => holds(c, T) && !c.card).pipe(
+      Option.map((file): Picture => ({
+        _tag: 'Board',
+        beat: c.beat,
+        panel: c.panel,
+        mark: c.mark,
+        file,
+      })),
+    ),
+  );
+  return Option.getOrElse(panel, (): Picture => ({ _tag: 'Empty', beat }));
+};
+
+/** The viewer's tag: the stage shown and the beat, in the owner's words (`Board · woman`), never a file. */
+export const pictureTag = (picture: Picture): string =>
+  Match.value(picture).pipe(
+    Match.tag('Scene', (p) => `Scene · ${p.beat}`),
+    Match.tag('Board', (p) => `Board · ${p.beat}`),
+    Match.tag('Empty', (p) =>
+      Option.match(p.beat, { onNone: () => 'No picture yet', onSome: (b) => `Script · ${b}` }),
+    ),
+    Match.exhaustive,
+  );
+
+/** The lanes the newest picture comes from, newest first: a phone shows one of them. */
+const PICTURE_TRACKS: ReadonlyArray<Track> = ['scenes', 'board'];
+
+/** How many lanes a phone shows: the script, the newest picture lane and the voice. */
+const PHONE_LANES = 3;
+
+/**
+ * The lanes a window shows: every lane on a laptop; on a phone (`compact`)
+ * the script, the newest picture lane (the scenes, else the Board) and the
+ * voice, in that order, at most `PHONE_LANES`, the words getting the rest
+ * of the screen.
+ */
+export const lanesShown = (timeline: FilmTimeline, compact: boolean): ReadonlyArray<Lane> => {
+  if (!compact) return timeline.lanes;
+  const picture = Arr.findFirst(PICTURE_TRACKS, (track) =>
+    timeline.lanes.some((lane) => lane.track === track),
+  );
+  const order: ReadonlyArray<Track> = ['script', ...Option.toArray(picture), 'voice'];
+  return Arr.take(
+    order.flatMap((track) => timeline.lanes.filter((lane) => lane.track === track)),
+    PHONE_LANES,
+  );
+};
+
+/** The track a lane is, as its header names it. */
+export const TRACK_TITLE: Readonly<Record<Track, string>> = {
+  script: 'Script',
+  concept: 'Concept',
+  board: 'Board',
+  voice: 'Voice',
+  scenes: 'Scenes',
+  sound: 'Sound',
+  render: 'Render',
+};
+
+/** Zoom steps, as factors over the fit (the whole film in the timeline's width). */
+const ZOOMS: ReadonlyArray<number> = [1, 1.5, 2, 3, 4, 6, 8, 12, 16, 24, 32];
+
+/** The zoom one step in (`+1`) or out (`−1`) from `zoom`, held to the steps. */
+export const zoomStep = (zoom: number, step: -1 | 1): number => {
+  const sorted = Arr.sort(ZOOMS, Order.Number);
+  return Match.value(step).pipe(
+    Match.when(1, () =>
+      Option.getOrElse(
+        Arr.findFirst(sorted, (z) => z - zoom > CLOCK_EPSILON),
+        () => zoom,
+      ),
+    ),
+    Match.orElse(() =>
+      Option.getOrElse(
+        Arr.findLast(sorted, (z) => zoom - z > CLOCK_EPSILON),
+        () => 1,
+      ),
+    ),
+  );
+};
+
+/** Pixels a film second takes in a timeline `width` px wide at `zoom` (1: the whole film fits). */
+export const pxPerSecond = (width: number, duration: number, zoom: number): number =>
+  Bool.match(duration > 0, {
+    onTrue: () => (Math.max(0, width) / duration) * zoom,
+    onFalse: () => 0,
+  });
+
+/** The zoom at which a film second takes `px` pixels: a phone opens so a beat is readable. */
+export const zoomFor = (px: number, width: number, duration: number): number => {
+  const fit = pxPerSecond(width, duration, 1);
+  return Bool.match(fit > 0, { onTrue: () => Math.max(1, px / fit), onFalse: () => 1 });
+};
+
+/** The ruler's steps, in seconds: the first that leaves `RULER_GAP` px between labels wins. */
+const RULER_STEPS: ReadonlyArray<number> = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
+
+/** The least room between two ruler labels, in px. */
+const RULER_GAP = 72;
+
+/** The ruler's ticks over `duration` at `perSecond` px a second: each labelled second. */
+export const rulerTicks = (duration: number, perSecond: number): ReadonlyArray<number> => {
+  const step = Option.getOrElse(
+    Arr.findFirst(RULER_STEPS, (s) => s * perSecond >= RULER_GAP),
+    () => 600,
+  );
+  return Arr.makeBy(Math.floor(duration / step) + 1, (i) => i * step);
+};
+
+/** A film time as the studio prints it: `M:SS.t` (tenths), never negative. */
+export const timecode = (T: number): string => {
+  const tenths = frameAtOrBefore(Math.max(0, T), 10);
+  const minutes = Math.floor(tenths / 600);
+  const seconds = Math.floor((tenths % 600) / 10);
+  return `${minutes}:${String(seconds).padStart(2, '0')}.${tenths % 10}`;
+};
+
+/** How a clip is drawn: a tick, a block, or a block with its label. */
+type ClipFit = 'tick' | 'block' | 'labelled';
+
+/** How a clip is drawn at its width: a tick under 16 px, a block with no label under 40, else labelled. */
+export const clipFit = (width: number): ClipFit =>
+  Match.value(width).pipe(
+    Match.when(
+      (w) => w < 16,
+      (): ClipFit => 'tick',
+    ),
+    Match.when(
+      (w) => w < 40,
+      (): ClipFit => 'block',
+    ),
+    Match.orElse((): ClipFit => 'labelled'),
+  );
+
+/** Room each mark needs, in px: marks show on a clip only when each has this much. */
+const MARK_ROOM = 9;
+
+/** Whether a clip `width` px wide has room for `marks` diamonds. */
+export const marksFit = (width: number, marks: number): boolean =>
+  marks > 0 && width >= marks * MARK_ROOM;
+
+/** The words of the header's wait line: `N wait on you` (`1 waits on you`); none at 0. */
+export const waitsText = (timeline: FilmTimeline): Option.Option<string> =>
+  Option.map(
+    Option.filter(Option.fromUndefinedOr(timeline.header.waits), (w) => w.count > 0),
+    (w) =>
+      `${w.count} ${Bool.match(w.count === 1, { onTrue: () => 'waits', onFalse: () => 'wait' })} on you`,
+  );
+
+/** The stage's word in the header (`Board`). */
+export const STAGE_TITLE: Readonly<Record<FilmTimeline['header']['stage'], string>> = {
+  script: 'Script',
+  concept: 'Concept',
+  board: 'Board',
+  voice: 'Voice',
+  animatic: 'Animatic',
+  scenes: 'Scenes',
+  sound: 'Sound',
+  render: 'Render',
+  shorts: 'Shorts',
+};
+
+/** The Next row's words: the first stage ahead and what starts it (`Board starts from …`), and the later ones. */
+export const nextText = (
+  timeline: FilmTimeline,
+): Option.Option<{ readonly first: string; readonly later: string }> =>
+  Option.map(Option.fromUndefinedOr(timeline.next), (next) => ({
+    first: next.starts,
+    later: next.later.map((stage) => STAGE_TITLE[stage]).join(' · '),
+  }));

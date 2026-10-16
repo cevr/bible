@@ -9,7 +9,7 @@ import { Effect, FileSystem } from 'effect';
 import { COMMAND_CSS } from './command/style.ts';
 import { SHELL_CSS } from './page-shell-style.ts';
 import { REVIEW_CSS } from './review/style.ts';
-import { SCENES_CSS } from './scenes/style.ts';
+import { STUDIO_CSS } from './film-studio/style.ts';
 import { PHONE, WIDE } from './viewport.ts';
 
 /** Every `(max-width: …px)` and `(min-width: …px)` in `css`. */
@@ -36,7 +36,7 @@ describe("the studio's breakpoint", () => {
       const sheets = {
         shell: SHELL_CSS,
         review: REVIEW_CSS,
-        scenes: SCENES_CSS,
+        studio: STUDIO_CSS,
         command: COMMAND_CSS,
         player: yield* sheet('player.css'),
         tokens: yield* sheet('tokens.css'),
@@ -45,7 +45,7 @@ describe("the studio's breakpoint", () => {
         Object.keys(sheets).map((name) => ({ name, off: [] })),
       );
       // The TypeScript styles ask it too, through `PHONE` and `WIDE`.
-      for (const css of [SHELL_CSS, REVIEW_CSS, SCENES_CSS, COMMAND_CSS])
+      for (const css of [SHELL_CSS, REVIEW_CSS, STUDIO_CSS, COMMAND_CSS])
         expect(widthsIn(css).length).toBeGreaterThan(0);
     }),
   );

@@ -117,7 +117,7 @@ const firstPlaying = (choices: FilmChoices): Playing =>
     (): Playing => Playing.Own(),
   );
 
-/** The film player's keys in the URL of its choices or its project. */
+/** The film player's keys in the URL of its choices. */
 interface Heard {
   readonly heard: string;
   readonly variant: string;
@@ -127,7 +127,6 @@ interface Heard {
 const NOTHING_HEARD: Heard = { heard: '', variant: '', picture: '' };
 
 const choicesPlace = UrlAtom.place(Places.choices);
-const projectPlace = UrlAtom.place(Places.project);
 
 /** What `heard` names playing over the picture; `fallback` when it names nothing. */
 const playingOf = (heard: Heard, fallback: Playing): Playing =>
@@ -144,23 +143,21 @@ const heardOf = (playing: Playing): Pick<Heard, 'heard' | 'variant'> =>
     InPlace: (p) => ({ heard: p.point, variant: p.variant }),
   });
 
-/** The value of the choices' or the project's place, as the film's player keeps it. */
+/** The value of the choices' place, as the film's player keeps it. */
 interface PlayerValue {
   readonly query: Heard;
   readonly hash: { readonly t: Option.Option<number> };
 }
 
 /**
- * Change the URL of the page the film's player is on (its choices or its
- * project) by `f`: the sound and the picture replace this entry, and the
- * time follows the playhead at most every quarter second.
+ * Change the URL of the page the film's player is on (its choices) by `f`:
+ * the sound and the picture replace this entry, and the time follows the
+ * playhead at most every quarter second.
  */
 const keepOn =
   (host: Host) =>
   (f: <V extends PlayerValue>(value: V) => V): void =>
-    Effect.runSyncWith(host)(
-      Effect.andThen(UrlState.update(Places.choices, f), UrlState.update(Places.project, f)),
-    );
+    Effect.runSyncWith(host)(UrlState.update(Places.choices, f));
 
 /** Whether two `Playing`s are the same sound. */
 export const samePlaying = (a: Playing, b: Playing): boolean =>
@@ -480,13 +477,9 @@ const FilmBody = (
   // opens the player as it was; none named is the film's first picture and
   // its first score in place.
   const onChoices = useAtomValue(() => choicesPlace);
-  const onProject = useAtomValue(() => projectPlace);
   const heard = createMemo((): Heard =>
     Option.getOrElse(
-      Option.orElse(
-        Option.map(onChoices(), (v) => v.query),
-        () => Option.map(onProject(), (v) => v.query),
-      ),
+      Option.map(onChoices(), (v) => v.query),
       () => NOTHING_HEARD,
     ),
   );
@@ -542,10 +535,7 @@ const FilmBody = (
   const only = createMemo(() =>
     onlyOf(
       Option.getOrElse(
-        Option.orElse(
-          Option.map(onChoices(), (v) => v.query.only),
-          () => Option.map(onProject(), (v) => v.query.only),
-        ),
+        Option.map(onChoices(), (v) => v.query.only),
         () => '',
       ),
     ),
@@ -683,13 +673,10 @@ const focusVariant = (heard: InPlace, input: Input): void => {
   );
 };
 
-/** The time `film`'s choices or project entry at `href` keeps (`#t=`); none off them. */
+/** The time `film`'s choices entry at `href` keeps (`#t=`); none off them. */
 const keptAt = (film: string, href: string): Option.Option<Option.Option<number>> =>
   Option.map(
-    Option.filter(
-      Option.orElse(Place.decode(Places.choices, href), () => Place.decode(Places.project, href)),
-      (v) => v.path.film === film,
-    ),
+    Option.filter(Place.decode(Places.choices, href), (v) => v.path.film === film),
     (v) => v.hash.t,
   );
 

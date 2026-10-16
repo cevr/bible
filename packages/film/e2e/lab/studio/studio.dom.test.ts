@@ -799,7 +799,7 @@ describe('the studio', () => {
   );
 
   it.live(
-    "on a phone, Record (R) stands over the tab bar on the first screen, every beat's dot with it (SU-4, UR2-4)",
+    "on a phone, Record (R) stands on the first screen, every beat's dot with it (SU-4, UR2-4)",
     () =>
       scoped(
         Effect.gen(function* () {
@@ -826,9 +826,8 @@ describe('the studio', () => {
           yield* evaluates(
             page,
             `(() => {
-              const bar = document.querySelector('.sh-pagebar').getBoundingClientRect().top;
               const below = [...document.querySelectorAll('[data-act="arm"], [data-beat]')]
-                .filter((el) => el.getBoundingClientRect().bottom > bar);
+                .filter((el) => el.getBoundingClientRect().bottom > innerHeight);
               return scrollY === 0 ? below.map((el) => el.outerHTML.slice(0, 60)) : 'scrolled ' + scrollY;
             })()`,
             [],

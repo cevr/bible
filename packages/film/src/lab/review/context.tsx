@@ -50,7 +50,6 @@ import { type SeenPoint, seenVariants } from '../../core/choice.ts';
 import type { AskRecord } from '../../core/ask.ts';
 import type { BoardFile } from '../../core/board.ts';
 import { type ProductionFile, Productions } from '../../core/production.ts';
-import type { DrawStills } from './options/stills.tsx';
 import {
   ReviewDuration,
   type ReviewFile,
@@ -132,7 +131,7 @@ type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 /**
  * A film's project (`film project`) as the review shows it, the one owner of
  * it for the page's life, whatever shows it (a Films card, a Set's
- * judgement, Project): the first read, then the newest ask's answer
+ * judgement): the first read, then the newest ask's answer
  * (`asked.ts`): a say's, or a read again's. A move between the review's
  * places never reads it twice. A change the page hears of (a Set's say, a
  * source write, Refresh) reads it again now while a page shows it, else once
@@ -218,9 +217,9 @@ interface ReviewActions {
    */
   readonly refresh: () => void;
   /**
-   * A write the index does not answer (a say on Project) moved what it lists
-   * (a version's approval, a comment): walk the roots again now, an ask of
-   * the index (`asks`), so a Set shows the say.
+   * A change the index does not answer (a video's phone copy made or
+   * failed) moved what it lists: walk the roots again now, an ask of
+   * the index (`asks`), so the page shows what it lists now.
    */
   readonly indexChanged: () => void;
   /**
@@ -296,12 +295,6 @@ interface ReviewMeta {
   readonly hub: Hub;
   /** Now, in ms, on the host's `Clock`: what a card's age is counted from. */
   readonly now: () => number;
-  /**
-   * How a film's Project draws its scenes' stills: from the app's films,
-   * each loaded on demand, in the browser (`draw-stills.ts`); none on the
-   * server, which draws no film.
-   */
-  readonly draw: DrawStills;
 }
 
 interface ReviewContextValue {
@@ -402,7 +395,6 @@ export const Root = (
   props: ParentProps<{
     readonly host: Host;
     readonly hub: Hub;
-    readonly draw: DrawStills;
     /**
      * The page's one client of the lab's API (`LabClient.layer` in the
      * browser, `LabClient.layerRendering` for a render on the server).
@@ -692,7 +684,6 @@ export const Root = (
           if (!isServer && !isHydrating()) return clockNow();
           return Option.getOrElse(AsyncResult.value(untrack(servedAt)), clockNow);
         },
-        draw: props.draw,
       },
     };
     onCleanup(
@@ -724,14 +715,13 @@ export const Root = (
 };
 
 /** Open on Choices: a choice off the Choices tab, opened there at its card. */
-export const OPEN_ON_CHOICES: CommandId = 'review.open-on-choices';
+const OPEN_ON_CHOICES: CommandId = 'review.open-on-choices';
 
 /**
  * The review's ways into a thing from its context menu (and ⌘K, while the
  * page selects it): a folder or a set opens in the page; a film's parts
  * open from its card through the studio shell's `filmCommands`; a choice
- * off the Choices tab (a project's card, a scene's Choices in this scene)
- * opens on Choices at its card.
+ * selected off the Choices tab opens on Choices at its card.
  */
 const openCommands = (
   go: (place: ReviewPlace) => void,

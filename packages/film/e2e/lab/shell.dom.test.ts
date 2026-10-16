@@ -1,13 +1,15 @@
 // The lab's shell in a browser: the real lab page over the probe film. The
-// panel and its header are in place in the studio's shell; the lab's place is
+// panel and its header are in place in the studio's shell, whose Studio link,
+// ⇧2 and film switcher lead into a film's studio; the lab's place is
 // its URL (the scene under the playhead in the path, the time in that scene,
 // a pick Back undoes); every pinned layer sits exactly over the film canvas
 // and follows it as the window resizes; the strip's slot sits right under
-// the player's timeline; a page reloaded onto new code flashes its picture
+// the player's timeline; a second finger on the track is not the track's,
+// and a tick a finger holds says its name a moment; a page reloaded onto new code flashes its picture
 // once and one opened by hand does not; and the page starts without an error.
 
 import { BunServices } from '@effect/platform-bun';
-import { Deferred, Effect, Exit, FileSystem, Option } from 'effect';
+import { Deferred, Effect, Exit, FileSystem } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { FilmUnknown } from '../../src/core/refusals.ts';
@@ -27,7 +29,9 @@ import {
   route,
   text,
 } from '../../src/lab/fixtures/harness.ts';
+import { LONG } from '../../src/lab/fixtures/long-film.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
+import { touch } from '../../src/lab/fixtures/gestures.ts';
 import { tone } from '../../src/lab/fixtures/tone.ts';
 import {
   attached,
@@ -46,6 +50,9 @@ const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
 /** The probe film's first and second scenes' lengths, in seconds. */
 const ONE_LENGTH = probeFilm().placed[0]?.dur ?? Number.NaN;
 const TWO_LENGTH = probeFilm().placed[1]?.dur ?? Number.NaN;
+
+/** The probe film's length, in seconds: the track runs the whole film. */
+const DURATION = probeFilm().duration;
 
 /**
  * Long enough for a case that opens the lab twice (5.6 to 16.9 s in CI's runs,
@@ -88,25 +95,10 @@ const T = URL_T;
 const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentElement.clientWidth';
 
 /**
- * The phone's tab bar as a script reads it: how many tabs it shows, then
- * each whose icon or label does not stand whole inside its tab (nor its tab
- * inside the window), by its part.
- */
-const TABS_WHOLE = `(() => {
-  const tabs = [...document.querySelectorAll('.sh-pagebar .sh-tab')].filter((t) => t.getClientRects().length > 0);
-  const inside = (inner, outer) => inner.left >= outer.left - 0.5 && inner.right <= outer.right + 0.5;
-  const view = { left: 0, right: innerWidth };
-  const cut = tabs.filter((t) => {
-    const r = t.getBoundingClientRect();
-    return !inside(r, view) || [...t.children].some((c) => !inside(c.getBoundingClientRect(), r) || c.scrollWidth > Math.ceil(c.getBoundingClientRect().width));
-  });
-  return [tabs.length, ...cut.map((t) => t.dataset.page)];
-})()`;
-
-/**
  * The Lab's transport as a script reads it: whether its row stands on the
- * tab bar as the page's dock, and whether play, the frame steps and the
- * scene's time lie in that order along one line.
+ * window's floor as the page's dock (the shell's floor is the safe area,
+ * none here), and whether play, the frame steps and the scene's time lie in
+ * that order along one line.
  */
 const LAB_DOCK = `(() => {
   const row = document.querySelector('.bar > .row');
@@ -116,7 +108,7 @@ const LAB_DOCK = `(() => {
   );
   const mid = (b) => b.top + b.height / 2;
   return [
-    'on the tabs ' + (Math.round(r.bottom) === Math.round(document.querySelector('.sh-pagebar').getBoundingClientRect().top)),
+    'on the floor ' + (Math.round(r.bottom) === innerHeight),
     'in order ' + parts.every((b, i) => i === 0 || b.left >= parts[i - 1].right - 0.5),
     'one line ' + parts.every((b) => Math.abs(mid(b) - mid(r)) < 4),
   ];
@@ -181,32 +173,16 @@ const middle = (sel: string) =>
 
 describe('the lab shell', () => {
   it.live(
-    "mounts the panel with its header in the studio's shell, whose page bar leads to the film's other parts",
+    "mounts the panel with its header in the studio's shell, whose Studio link leads into the film and whose page names itself",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openLab();
         yield* textHas(page, '.lab-panel header .lab-modes', 'Edit');
-        yield* attributeIs(page, '.sh-pagebar [data-page="lab"]', 'data-active', 'true');
-        yield* attributeIs(
-          page,
-          '.sh-pagebar [data-page="project"]',
-          'href',
-          pageHref.project(PROBE),
-        );
-        yield* attributeIs(
-          page,
-          '.sh-pagebar [data-page="choices"]',
-          'href',
-          pageHref.choices(PROBE),
-        );
-        // Scenes opens at the lab's playhead: the frame is kept between parts.
-        yield* attributeIs(
-          page,
-          '.sh-pagebar [data-page="scenes"]',
-          'href',
-          pageHref.scenes(PROBE, Option.some(0)),
-        );
-        // No text link to another part: the page bar is the way.
+        yield* attributeIs(page, '.sh', 'data-part', 'lab');
+        yield* attributeIs(page, '.sh-header .sh-films', 'href', pageHref.home());
+        yield* attributeIs(page, '.sh-header .sh-studio', 'href', pageHref.studio(PROBE));
+        yield* textHas(page, '.sh-header .sh-page', 'Lab');
+        // No text link in the panel: the header's Studio link is the way out.
         yield* evaluates(page, "document.querySelectorAll('.lab-panel a[href]').length", 0);
         // The header's timecode is the playhead's.
         yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(0));
@@ -216,29 +192,28 @@ describe('the lab shell', () => {
   );
 
   it.live(
-    "the page bar keeps the film's frame between the Board, Scenes, the Lab and Play (#t=); Choices and Project open at their own",
+    "⇧2 opens the film's studio and ⇧1 Films; the switcher's pick opens the picked film's studio",
     () =>
       Effect.gen(function* () {
-        const at = TWO + 0.25;
-        const { page, errors } = yield* openLab([], { href: labAt(at) });
-        yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(at));
-        const hrefT = (part: string) =>
-          `(() => { const a = document.querySelector('.sh-pagebar [data-page="${part}"]'); return a.hash.startsWith('#t=') && Math.abs(Number(a.hash.slice(3)) - ${at}) < 0.002; })()`;
-        yield* evaluates(page, hrefT('board'), true);
-        yield* evaluates(page, hrefT('scenes'), true);
-        yield* evaluates(page, hrefT('play'), true);
-        yield* attributeIs(
-          page,
-          '.sh-pagebar [data-page="choices"]',
-          'href',
-          pageHref.choices(PROBE),
-        );
-        // ⇧3 goes to Scenes at the lab's frame (⇧2 is the Board's).
-        yield* page.press('Shift+3');
-        yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
-        yield* evaluates(page, `Math.abs(${T} - ${at}) < 0.002`, true);
-        expect(errors).toEqual([]);
+        // Each move leaves the Lab: a lab of its own for each.
+        for (const [move, to] of [
+          ['Shift+2', pageHref.studio(PROBE)],
+          ['Shift+1', pageHref.home()],
+        ] as const)
+          yield* Effect.scoped(
+            Effect.gen(function* () {
+              const { page } = yield* openLab([], { href: labAt(TWO + 0.25) });
+              yield* page.press(move);
+              yield* evaluates(page, 'location.pathname', to);
+            }),
+          );
+        const { page } = yield* openLab();
+        yield* page.click('.sh-switcher');
+        yield* page.waitFor(`[data-role="film-menu"] [data-film="${LONG}"]`);
+        yield* page.click(`[data-role="film-menu"] [data-film="${LONG}"]`);
+        yield* evaluates(page, 'location.pathname', pageHref.studio(LONG));
       }).pipe(Effect.scoped),
+    3 * WAIT_MS,
   );
 
   it.live(
@@ -547,23 +522,6 @@ describe('the lab shell', () => {
       }).pipe(Effect.scoped),
   );
 
-  it.live(
-    "on a phone the tab bar holds the studio's seven parts, each tab's icon and label whole, at 390, 360 and 320 wide",
-    () =>
-      Effect.gen(function* () {
-        // As it opens, 390 wide; then the narrower phones, one resize each.
-        const { page, errors } = yield* openLab([], { viewport: PHONE });
-        yield* evaluates(page, TABS_WHOLE, [7]);
-        yield* evaluates(page, NO_SIDEWAYS, true);
-        for (const width of [360, 320]) {
-          yield* resize(page, { width, height: PHONE.height });
-          yield* evaluates(page, TABS_WHOLE, [7]);
-          yield* evaluates(page, NO_SIDEWAYS, true);
-        }
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-  );
-
   it.live('pins its layers over the film canvas, and keeps them there as the window resizes', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab();
@@ -682,7 +640,10 @@ describe('the lab shell', () => {
       Effect.gen(function* () {
         const { page } = yield* openLab();
         yield* resize(page, { width: 390, height: 844 });
-        yield* page.waitFor('.lab-strip-words .lab-word');
+        // Some word shows: the first may drop, its room too narrow for a letter and the ellipsis.
+        yield* page.until(
+          `[...document.querySelectorAll('.lab-strip-words .lab-word')].some((e) => e.checkVisibility())`,
+        );
         yield* evaluates(page, labelsClash('.lab-word', '.lab-word-room'), []);
         // How many words show, and how many in full: the row is not emptied to pass.
         const reads = `(() => { const ws = [...document.querySelectorAll('.lab-word')].filter((e) => getComputedStyle(e).display !== 'none'); return [ws.length > 0, ws.some((e) => e.scrollWidth <= e.clientWidth)]; })()`;
@@ -745,9 +706,12 @@ describe('the lab shell', () => {
         );
         yield* evaluates(page, "document.querySelector('.bar .tc').getClientRects().length", 1);
         yield* evaluates(page, NO_SIDEWAYS, true);
-        // The row is the page's dock, on the tab bar, as the page stands and scrolled to its end.
-        const docked = ['on the tabs true', 'in order true', 'one line true'];
+        // The row is the page's dock, on the floor, as the page stands and scrolled to its end.
+        const docked = ['on the floor true', 'in order true', 'one line true'];
         yield* evaluates(page, LAB_DOCK, docked);
+        // A shorter phone's window, where the page is longer than the window, scrolled to its end.
+        yield* resize(page, { width: 390, height: 640 });
+        yield* until(page, 'document.documentElement.scrollHeight > innerHeight');
         yield* page.evaluate('window.scrollTo(0, document.documentElement.scrollHeight); true');
         yield* until(page, 'scrollY > 0');
         yield* evaluates(page, LAB_DOCK, docked);
@@ -815,6 +779,97 @@ describe('the lab shell', () => {
           yield* page.mouse.up;
         }).pipe(Effect.scoped),
     );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  it.live.serial(
+    "a second finger on the track while the first drags it is not the track's: it neither scrubs nor jumps, and enters nothing in history",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], { href: labAt(0.5), viewport: PHONE });
+        const track = yield* page.box('.bar .track');
+        const y = track.y + track.height / 2;
+        const before = yield* page.evaluate('history.length');
+        // The first finger drags from a fifth along to a third, and the URL follows it there.
+        const atThird = `Math.abs(${T} - ${DURATION / 3}) < ${DURATION / 40}`;
+        // Every press the track is given, counted, so a second finger refused is one it was
+        // given; and every finger lifted, so the case ends once the page has both lifts.
+        yield* page.evaluate(
+          `(window.pressed = 0, window.lifted = 0, document.querySelector('.bar .track').addEventListener('pointerdown', () => window.pressed++, true), addEventListener('touchend', () => window.lifted++, true), 0)`,
+        );
+        yield* page.finger.down(track.x + track.width / 5, y);
+        yield* page.finger.move(track.x + track.width / 3, y, 15);
+        yield* evaluates(page, atThird, true);
+        // A second finger lands near the end and slides on while the first holds: its own
+        // press would scrub there, and, lifted, jump there.
+        yield* page.finger.second.down(track.x + track.width * 0.8, y);
+        yield* page.finger.second.move(track.x + track.width * 0.95, y, 15);
+        yield* evaluates(page, 'window.pressed', 2);
+        yield* evaluates(page, atThird, true);
+        // Both lift. (Chrome lifts a finger only as the touch ends: the two lift together.)
+        yield* page.finger.second.up;
+        yield* page.finger.up;
+        yield* evaluates(page, 'window.lifted', 2);
+        yield* evaluates(page, atThird, true);
+        yield* evaluates(page, 'String(history.length)', String(before));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  it.scopedLive.serial(
+    'a tick held by a finger says its name, which stays a moment once it lifts (UR-115)',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(0.5), viewport: PHONE });
+        const tick = '.bar .track .tick.cue';
+        const name = String(yield* page.evaluate(`document.querySelector('${tick}').dataset.name`));
+        yield* touch(page, tick, 0);
+        yield* evaluates(page, "document.querySelector('.bar .tip').hidden", false);
+        yield* textHas(page, '.bar .tip', name);
+        yield* page.finger.up;
+        yield* evaluates(page, "document.querySelector('.bar .tip').hidden", false);
+        yield* evaluates(page, "document.querySelector('.bar .tip').hidden", true);
+      }),
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  it.scopedLive.serial(
+    "a name still held stays: the last tick's lingering name never hides the next",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(0.5), viewport: PHONE });
+        // A cue's tick and a mark's: two names, apart along the track.
+        const middle = (box: { x: number; y: number; width: number; height: number }) => ({
+          x: box.x + box.width / 2,
+          y: box.y + box.height / 2,
+        });
+        const a = middle(yield* page.box('.bar .track .tick.cue'));
+        const b = middle(yield* page.box('.bar .track .tick.mark'));
+        const nameAt = (p: { x: number; y: number }) =>
+          `document.elementFromPoint(${p.x}, ${p.y}).dataset.name`;
+        yield* evaluates(page, `${nameAt(a)} !== ${nameAt(b)}`, true);
+        // Whether the tip shows the name under `p`.
+        const tipNames = (p: { x: number; y: number }) =>
+          `!document.querySelector('.bar .tip').hidden && document.querySelector('.bar .tip').textContent === ${nameAt(p)}`;
+        yield* page.clock.hold;
+        // A is held to its name, then lifted: its name lingers 1.5 s, to 2000.
+        yield* page.finger.down(a.x, a.y);
+        yield* page.clock.runFor(500);
+        yield* evaluates(page, tipNames(a), true);
+        yield* page.finger.up;
+        // B is held at 1400: named at 1900, and still held past 2000.
+        yield* page.clock.runFor(900);
+        yield* page.finger.down(b.x, b.y);
+        yield* page.clock.runFor(500);
+        yield* evaluates(page, tipNames(b), true);
+        yield* page.clock.runFor(300);
+        yield* evaluates(page, tipNames(b), true);
+        // Lifted, B's own name lingers its 1.5 s, then goes.
+        yield* page.finger.up;
+        yield* page.clock.runFor(1600);
+        yield* evaluates(page, "document.querySelector('.bar .tip').hidden", true);
+      }),
+  );
 
   it.live(
     'new code landed (PA-11): the page reloaded onto a rebuild flashes the picture once',

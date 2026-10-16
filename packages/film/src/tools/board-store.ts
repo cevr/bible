@@ -110,6 +110,7 @@ interface BoardStoreService {
   readonly image: (
     film: FilmName,
     file: string,
+    version?: Segment,
   ) => Effect.Effect<string, BoardFileUnknown | StoreError>;
   /** The images the record names that are missing or changed. */
   readonly problems: (film: FilmName) => Effect.Effect<ReadonlyArray<BoardFileProblem>, StoreError>;
@@ -198,15 +199,19 @@ export class BoardStore extends Context.Service<BoardStore, BoardStoreService>()
         );
       });
 
-      const image = Effect.fn('BoardStore.image')(function* (film: FilmName, file: string) {
-        const named = Arr.findFirst(boardFiles(yield* read(film)), (f) => f.file === file);
+      const image = Effect.fn('BoardStore.image')(function* (
+        film: FilmName,
+        file: string,
+        version?: Segment,
+      ) {
+        const named = Arr.findFirst(boardFiles(yield* read(film, version)), (f) => f.file === file);
         if (Option.isNone(named))
           return yield* BoardFileUnknown.make({
             film,
             file,
             reason: 'the board names no such image',
           });
-        const at = path.join(paths(film).folder, named.value.file);
+        const at = path.join(paths(film, version).folder, named.value.file);
         if (!(yield* fs.exists(at)))
           return yield* BoardFileUnknown.make({
             film,

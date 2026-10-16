@@ -197,7 +197,7 @@ describe('the mock length check, on planted pages', () => {
     () =>
       planted(
         `.space { padding: 6px var(--s-2) 8px; margin-block-end: 7px; gap: 12px; }
-         .type { font: 15px/19px monospace; } .one { font-size: 1px; line-height: 1px; }
+         .type { font: 14px/19px monospace; } .one { font-size: 1px; line-height: 1px; }
          .corner { border-top-left-radius: 3px; }
          .units { padding: 0.5rem; gap: 0.7em; font-size: 0.93rem; }
          .panel { width: 34px; height: 100px; margin-bottom: -17px; }
@@ -209,7 +209,7 @@ describe('the mock length check, on planted pages', () => {
         [
           'case.html: padding 6px is no space step (.space)',
           'case.html: margin-block-end 7px is no space step (.space)',
-          'case.html: font-size 15px is no type size step (.type)',
+          'case.html: font-size 14px is no type size step (.type)',
           'case.html: line-height 19px is no line height step (.type)',
           'case.html: font-size 1px is no type size step (.one)',
           'case.html: line-height 1px is no line height step (.one)',
@@ -390,7 +390,7 @@ describe('the mock length check, on planted pages', () => {
           'case.html: border-radius var(--dock-h) is 45px, no radius step (.d8)',
           'case.html: font-size var(--dock-h) is 45px, no type size step (.d8)',
           'case.html: padding var(--rule-w) is 1px, no space step (.h2)',
-          'case.html: padding var(--pad) is 10px, no space step (.t3)',
+          'case.html: padding var(--pad) is 11px, no space step (.t3)',
           'case.html: gap var(--dock-h) is 61px, no space step (.d6)',
           'case.html: margin-bottom var(--dock-h) is 61px, no space step (.d7)',
           'case.html: border-radius var(--dock-h) is 61px, no radius step (.d8)',

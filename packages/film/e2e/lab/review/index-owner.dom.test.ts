@@ -1,6 +1,6 @@
 // The review's index owner (`useIndexOwner`, `review/index-owner.ts`) over a
-// first read of folders `a` and `b`: a walk of the roots (a Refresh, a say on
-// Project) and then a Set's say on `b` are asked; the walk's answer (`a`
+// first read of folders `a` and `b`: a walk of the roots (a Refresh) and
+// then a Set's say on `b` are asked; the walk's answer (`a`
 // moved) and the say's (`b` moved) land in one task. The index shows both:
 // the say's folder goes into the walk's answer, not into the index last shown.
 

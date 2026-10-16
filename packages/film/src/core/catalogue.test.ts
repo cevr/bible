@@ -19,7 +19,6 @@ import {
   type SceneKey,
   renderNeed,
   renderState,
-  renderVersion,
   partSubject,
   projectNow,
   projectOf,
@@ -143,13 +142,13 @@ describe('versionState', () => {
       [sceneRender('a', 'k1'), { key: 'k10', sound: Option.none() }, bySources],
     ];
     for (const [render, now, judged] of rows) {
-      expect([renderVersion(render), now, renderState(Option.some(render), now)]).toEqual([
-        renderVersion(render),
+      expect([subjectOf(render).key, now, renderState(Option.some(render), now)]).toEqual([
+        subjectOf(render).key,
         now,
         judged,
       ]);
-      expect([renderVersion(render), now, versionState(renderVersion(render), now)]).toEqual([
-        renderVersion(render),
+      expect([subjectOf(render).key, now, versionState(subjectOf(render).key, now)]).toEqual([
+        subjectOf(render).key,
         now,
         judged,
       ]);
@@ -160,7 +159,7 @@ describe('versionState', () => {
     expect(renderState(Option.some(sceneRender('a', 'k1+m1')), k1)).toEqual(bySources);
     expect(renderState(Option.some(sceneRender('a', 'k1+m1')), k1m1)).toEqual(bySources);
     // Its version alone cannot say where its key ends: read against the key now, the tail is a mix.
-    expect(versionState(renderVersion(sceneRender('a', 'k1+m1')), k1m1)).toEqual(current);
+    expect(versionState(subjectOf(sceneRender('a', 'k1+m1')).key, k1m1)).toEqual(current);
     // A version by its key: other sources, then another mix, then current.
     const now = { key: 'k1', sound: Option.some('m1') };
     expect(versionState('k2+m1', now)).toEqual({ state: 'stale', staleBy: Option.some('sources') });

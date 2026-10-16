@@ -301,12 +301,12 @@ describe('the Script', () => {
   );
 
   it.live(
-    'on a phone, the same words picked where their line says them again, once the reader has scrolled back to them, bring the cues tied to them into sight',
+    'on a short phone, the same words picked where their line says them again, once the reader has scrolled back to them, bring the cues tied to them into sight',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openLab(LONG_SCRIPT, {
           href: pageHref.scriptBeat(LONG, LONG_SCENE),
-          viewport: PHONE,
+          viewport: SHORT_PHONE,
         });
         const head = `[data-scene="${LONG_SCENE}"] .lab-script-ties-head`;
         yield* textsAre(page, `${word(LONG_SCENE, FIRST_THING)}, ${word(LONG_SCENE, LAST_THING)}`, [

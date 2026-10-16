@@ -60,7 +60,6 @@ export const ENTRIES = [
   'player-hydrated-page.ts',
   'render-page.ts',
   'capture-page.ts',
-  'on-screen-page.tsx',
   'index-owner-page.ts',
 ];
 

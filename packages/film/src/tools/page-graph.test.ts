@@ -17,8 +17,8 @@ import { LabPage, PageBundler } from './lab-page.ts';
 import { PageReads } from './api-server.ts';
 import { PageRenderer } from './page-render.ts';
 
-/** A studio page at each of its places' kinds: the review, the player and the lab. */
-const STUDIO = [pageHref.home(), pageHref.play('f'), pageHref.lab('f')];
+/** A studio page at each of its places' kinds the lab serves: the review and a film's studio. */
+const STUDIO = [pageHref.home(), pageHref.studio('f')];
 
 /** Long enough to build the app's pages and render each studio page on the server once. */
 const BUILDING = 60_000;

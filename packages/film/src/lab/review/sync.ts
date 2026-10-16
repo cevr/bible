@@ -399,8 +399,8 @@ const STEPS_BY: Readonly<Record<Invocation['step'], number>> = { normal: 1, coar
 
 /**
  * Where a step is offered by touch: a long-press on a Set's version
- * (its picture is the version's) or on a page's picture (Choices', the
- * Project's dock), with its ×10 row, as Play's picture offers its frames.
+ * (its picture is the version's) or on a page's picture (Choices'), with its
+ * ×10 row.
  */
 const STEP_ABOUT: ReadonlyArray<Target> = ['Version', 'Page'];
 

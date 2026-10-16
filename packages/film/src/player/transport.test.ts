@@ -101,7 +101,7 @@ describe('the legend', () => {
 });
 
 describe('the captions and play, a finger away', () => {
-  test("the lab's captions are the view menu's (its bar has no CC); Play's are its CC button", () => {
+  test("the lab's captions are the view menu's (its bar has no CC); the studio's are its command menu's, and a tap on the film plays", () => {
     const transport = {
       toggle: () => undefined,
       stepFrames: () => undefined,
@@ -112,7 +112,7 @@ describe('the captions and play, a finger away', () => {
     const touchOf = (page: 'lab' | 'player', id: string) =>
       transportCommands(page, transport).find((c) => c.id === id)?.touch;
     expect(touchOf('lab', 'view.captions')).toBe('the view menu (⋯), then Captions on or off');
-    expect(touchOf('player', 'view.captions')).toBe('the CC button');
-    expect(touchOf('player', 'play.toggle')).toContain('❚❚');
+    expect(touchOf('player', 'view.captions')).toBe('the command menu, then Captions on or off');
+    expect(touchOf('player', 'play.toggle')).toBe('tap the film');
   });
 });

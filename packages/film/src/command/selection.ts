@@ -5,11 +5,10 @@
 // core/api.ts): the lab's cue, knob, note and the studio's beat
 // (`?cue=`, `?knob=`, `?note=`, `?beat=` in a scene's path), the Script's
 // cue, mark, words and note (`?cue=`, `?mark=`, `?words=`, `?note=` in a
-// beat's path), a project's card
-// (`?point=`), a scene on a film's Scenes, a folder and a comparison set
-// (their paths), and the thing whose review inspector is open (a variant on
-// Choices and a version of a set, `?inspect=`; a project's part, its
-// `?point=`: `useInspectorPlace`). A multi-select is a list of the same
+// beat's path), a film studio's beat (`?sel=beat:<id>`), a folder and a
+// comparison set (their paths), and the thing whose review inspector is open
+// (a variant on Choices and a version of a set, `?inspect=`:
+// `useInspectorPlace`). A multi-select is a list of the same
 // union; only its first item is citable (a batch is an action, not a place).
 // Pure.
 
@@ -17,8 +16,15 @@ import { Place } from '@bible/url-state';
 import { Match, Option, Schema } from 'effect';
 import type { Address } from '../core/address.ts';
 import { ActName } from '../core/address-schema.ts';
-import { type CompareView, Places, pageHref, reviewFileUrl } from '../core/api.ts';
-import { PointId, pointIdOf } from '../core/point.ts';
+import {
+  type CompareView,
+  Places,
+  beatSelection,
+  pageHref,
+  reviewFileUrl,
+  selectedBeat,
+} from '../core/api.ts';
+import { PointId } from '../core/point.ts';
 import type { Interval } from '../core/time.ts';
 
 /** One selected thing. */
@@ -142,15 +148,10 @@ export const selectionOf = (href: string): Option.Option<Selection> =>
     Option.flatMap(Place.decode(Places.lab, href), ({ query }) =>
       Option.map(named(query.note), (id) => Selection.cases.Note.make({ id })),
     ),
-    Option.map(Place.decode(Places.scene, href), ({ path }) =>
-      Selection.cases.Scene.make({ film: path.film, scene: path.scene }),
-    ),
-    // The project's sheet (`?point=`), as the page reads it (`projectPartOf`); an old link's choice point, as it is.
-    Option.flatMap(Place.decode(Places.project, href), ({ path, query }) =>
-      Option.map(named(query.point), (point) =>
-        Option.getOrElse(projectPartOf(path.film, point), (): Selection =>
-          Selection.cases.Point.make({ film: path.film, point }),
-        ),
+    // The studio's beat (`?sel=beat:<id>`): the scene that beat is.
+    Option.flatMap(Place.decode(Places.studio, href), ({ path, query }) =>
+      Option.map(selectedBeat(query.sel), (scene) =>
+        Selection.cases.Scene.make({ film: path.film, scene }),
       ),
     ),
     // A set's version whose sheet is open (`?inspect=`), else the set.
@@ -182,37 +183,6 @@ const renderedOf = (point: string): Option.Option<Address> =>
       Match.tag('Render', (r) => Option.some<Address>(r.address)),
       Match.orElse(() => Option.none<Address>()),
     ),
-  );
-
-/**
- * The thing whose sheet the project's `?point=` names: an act's, the
- * film's, or one scene's render point (its sheet shows the page's variant of
- * that render, which only the page knows); none for any other point.
- */
-export const projectPartOf = (film: string, point: string): Option.Option<Selection> =>
-  Option.flatMap(renderedOf(point), (address) =>
-    Match.valueTags(address, {
-      Film: () => Option.some(Selection.cases.Film.make({ film })),
-      Act: ({ act }) => Option.some(Selection.cases.Act.make({ film, act })),
-      Scenes: ({ ids }) =>
-        Option.map(
-          Option.liftPredicate(ids, (xs) => xs.length === 1),
-          () => Selection.cases.Point.make({ film, point }),
-        ),
-      Short: () => Option.none<Selection>(),
-    }),
-  );
-
-/** `projectPartOf`'s inverse: the `?point=` naming `selection`'s project sheet; none for a thing the project has no sheet of. */
-export const projectPointOf = (selection: Selection): Option.Option<string> =>
-  Match.value(selection).pipe(
-    Match.tags({
-      Point: (s) => Option.as(renderedOf(s.point), s.point),
-      Variant: (s) => Option.as(renderedOf(s.point), s.point),
-      Act: (s) => Option.some(pointIdOf({ _tag: 'Render', address: { _tag: 'Act', act: s.act } })),
-      Film: () => Option.some(pointIdOf({ _tag: 'Render', address: { _tag: 'Film' } })),
-    }),
-    Match.orElse(() => Option.none<string>()),
   );
 
 /** The film page a selection of the Lab's or the Script's is cited from: which, its film, its path's scene, its compare, its time and loop. */
@@ -321,33 +291,28 @@ export const citeOf = (selection: Selection, href: string): string => {
       ),
       () => pageHref.choices(film, point, inspect),
     );
-  const onProject = (film: string, point: string) =>
+  // A film, an act or a render is cited on the film's studio, as it is shown there.
+  const onStudio = (film: string) =>
     Option.getOrElse(
       Option.map(
-        Option.filter(Place.decode(Places.project, href), (v) => v.path.film === film),
-        (v) => Place.href(Places.project, { ...v, query: { ...v.query, point } }),
+        Option.filter(Place.decode(Places.studio, href), (v) => v.path.film === film),
+        (v) => Place.href(Places.studio, v),
       ),
-      () => pageHref.project(film, point),
+      () => pageHref.studio(film),
     );
-  const sheetOf = (s: Selection & { readonly film: string }) =>
-    onProject(
-      s.film,
-      Option.getOrElse(projectPointOf(s), () => ''),
-    );
+  const studioOf = (s: Selection & { readonly film: string }) => onStudio(s.film);
   return Selection.match(selection, {
-    Film: sheetOf,
-    Act: sheetOf,
-    // On a film's Scenes a scene is cited on the tape, at the playhead; elsewhere, as its lab.
+    Film: studioOf,
+    Act: studioOf,
+    // A scene is cited on the studio, its beat selected, at the studio's playhead when cited from it.
     Scene: (s) =>
-      Option.match(
-        Option.orElse(
-          Option.map(Place.decode(Places.scene, href), (v) => v.hash.t),
-          () => Option.map(Place.decode(Places.scenes, href), (v) => v.hash.t),
+      pageHref.studio(
+        s.film,
+        { sel: beatSelection(s.scene) },
+        Option.flatMap(
+          Option.filter(Place.decode(Places.studio, href), (v) => v.path.film === s.film),
+          (v) => v.hash.t,
         ),
-        {
-          onNone: () => pageHref.labScene(s.film, s.scene),
-          onSome: (t) => pageHref.scene(s.film, s.scene, t),
-        },
       ),
     Cue: (s) => held(s.scene, { cue: s.name }, { cue: s.name }),
     Knob: (s) => inLab(s.scene, { knob: s.name }),
@@ -396,14 +361,14 @@ export const citeOf = (selection: Selection, href: string): string => {
     // A file is cited as itself: its link opens the file.
     File: (s) => reviewFileUrl(s.ref),
     Point: (s) =>
-      Option.match(projectPointOf(s), {
+      Option.match(renderedOf(s.point), {
         onNone: () => onChoices(s.film, s.point, ''),
-        onSome: (point) => onProject(s.film, point),
+        onSome: () => onStudio(s.film),
       }),
     Variant: (s) =>
-      Option.match(projectPointOf(s), {
+      Option.match(renderedOf(s.point), {
         onNone: () => onChoices(s.film, s.point, s.variant),
-        onSome: (point) => onProject(s.film, point),
+        onSome: () => onStudio(s.film),
       }),
     // A beat in the lab's scene it is cited from, else in its own (a beat is a scene's take).
     Beat: (s) =>

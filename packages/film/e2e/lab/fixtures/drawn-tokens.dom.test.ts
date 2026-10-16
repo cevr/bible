@@ -63,8 +63,8 @@ describe('the drawn-token check', () => {
       `<div style="color:var(--text-1);background:linear-gradient(color-mix(in srgb, currentcolor, crimson), transparent)">g</div>
        <div style="color:var(--text-1);box-shadow:0 0 4px color-mix(in srgb, currentcolor, crimson)">s</div>`,
       [
-        'background-image color(srgb 0.878431 0.476471 0.537255): div',
-        'box-shadow color(srgb 0.878431 0.476471 0.537255): div',
+        'background-image color(srgb 0.882353 0.501961 0.588235): div',
+        'box-shadow color(srgb 0.882353 0.501961 0.588235): div',
       ],
     ),
   );
@@ -91,10 +91,11 @@ describe('the drawn-token check', () => {
     ),
   );
 
+  // The heading is the user agent's 2em of 13 px: 26 px, no type step at a phone's width.
   it.live('names a literal colour, a heading, a padding off the scale and a radius', () =>
     drawn(
       `<p style="margin:0;color:#123456">ink</p>
-       <h1 style="margin:0">title</h1>
+       <div style="font-size:var(--fs-3)"><h1 style="margin:0">title</h1></div>
        <div style="padding:9px">off</div>
        <div style="border-radius:3px">round</div>`,
       [
@@ -194,11 +195,11 @@ describe('the drawn-token check reads each scale, every property and the whole p
 
   for (const [name, body, want] of planted) it.live(`names ${name}`, () => drawn(body, want));
 
-  // An allowed site (the review's hint) is no cover for another part with the same value.
+  // An allowed site (the review's pending row) is no cover for another part with the same value.
   it.live('names a rogue site that draws what an allowed site draws', () =>
     drawn(
-      `<div class="rv-main"><p class="rv-hint" style="margin:11px 0 0">allowed</p><p class="rogue" style="margin:11px 0 0">rogue</p></div>`,
-      ['marginTop 11px: rv-main > p.rogue'],
+      `<div class="rv-pending"><p class="rv-row" style="margin:15px 0 0">allowed</p><p class="rogue" style="margin:15px 0 0">rogue</p></div>`,
+      ['marginTop 15px: rv-pending > p.rogue'],
     ),
   );
 

@@ -41,8 +41,6 @@ export type ReviewPlace = Data.TaggedEnum<{
   Set: { readonly folder: string; readonly point: string };
   /** A film's choices: every choice point it has, by kind; `point` the card in focus ('' for none). */
   Film: { readonly film: string; readonly point: string };
-  /** A film's project: its acts and scenes, each scene's render and the owner's say. */
-  Project: { readonly film: string };
 }>;
 export const ReviewPlace = Data.taggedEnum<ReviewPlace>();
 
@@ -67,7 +65,6 @@ export const placeOf = (href: string): ReviewPlace =>
     Option.map(Place.decode(Places.choices, href), (v) =>
       ReviewPlace.Film({ film: v.path.film, point: v.query.point }),
     ),
-    Option.map(Place.decode(Places.project, href), (v) => ReviewPlace.Project(v.path)),
   ]).pipe(Option.getOrElse(() => ReviewPlace.Home()));
 
 /** A place that keeps a still open full size: reads its `?still=` from an href, and writes it. */
@@ -120,7 +117,6 @@ export const hrefOf = (place: ReviewPlace): string =>
       Folder: (p) => pageHref.folder(p.folder),
       Set: (p) => pageHref.set(p.folder, p.point),
       Film: (p) => pageHref.choices(p.film, p.point),
-      Project: (p) => pageHref.project(p.film),
     }),
   );
 
@@ -194,12 +190,6 @@ export const destinationsOf = (
         id: film,
         name: `of ${film}`,
         go: () => go(ReviewPlace.Film({ film, point: '' })),
-      },
-      {
-        kind: 'project',
-        id: film,
-        name: `of ${film}`,
-        go: () => go(ReviewPlace.Project({ film })),
       },
     ],
   ),

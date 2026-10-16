@@ -28,6 +28,7 @@
 import { Codec, Field, Place, decodeComponent, parseHref } from '@bible/url-state';
 import {
   Array as Arr,
+  Boolean as Bool,
   Duration,
   Effect,
   Match,
@@ -49,7 +50,6 @@ import { PartAddress } from './address.ts';
 import { BoardFile, BoardName } from './board.ts';
 import { AskName, AskRecord, StepValues } from './ask.ts';
 import type { Interval } from './time.ts';
-import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
 import { Gave, OpId, Project, RenderVariantName, Took } from './catalogue.ts';
 import { WaitTimeout } from './wait.ts';
@@ -142,6 +142,7 @@ import {
   SceneSource,
   TakeWord,
 } from './schema.ts';
+import { Segment } from './segment.ts';
 import { FilmTimeline } from './timeline-schema.ts';
 import { KeepPost, StudioAttempts, StudioBeats, StudioTake, TakePost } from './studio.ts';
 import { LineRead, Mark } from './delivery.ts';
@@ -798,8 +799,10 @@ class BoardGroup extends HttpApiGroup.make('board').add(
     success: BoardFile,
     error: Refusals,
   }),
+  /** A board image, of version folder `?folder=v<n>`'s Board when given (`<film>/v<n>/board/`). */
   HttpApiEndpoint.get('file', `${FILM}/board/files/:file`, {
     params: { ...film, file: Schema.String },
+    query: { folder: Schema.optionalKey(Segment) },
     success: FileBytes,
     error: Refusals,
   }),
@@ -1397,6 +1400,28 @@ export const OWN_SOUND = 'own';
  * easel opens on the lab (`film look`); no reviewer's view, so it holds no
  * time and no selection.
  */
+/**
+ * The film pages the studio replaced (a film's project, its Scenes, a scene
+ * of them, Play): no page is served at them now. Their places are read only
+ * to send an old link on to the studio (`studioPlace`) and an older one
+ * through them (`legacyPlace`).
+ */
+const Replaced = {
+  project: Place.make({
+    path: '/films/:film/project',
+    params: filmParams,
+    query: Field.struct({ point: cited, ...FILM_PLAYER, ...FILM_SHOWN }),
+    hash: At,
+  }),
+  scenes: Place.make({ path: '/films/:film/scenes', params: filmParams, hash: At }),
+  scene: Place.make({
+    path: '/films/:film/scenes/:scene',
+    params: { film: Codec.Segment, scene: Codec.Segment },
+    hash: At,
+  }),
+  play: Place.make({ path: '/films/:film/play', params: filmParams, hash: At }),
+};
+
 export const Places = {
   home: Place.make({ path: '/' }),
   /** A production's timeline, the version in focus in `?v=` (none: the current one). */
@@ -1431,19 +1456,6 @@ export const Places = {
     query: Field.struct({ point: cited, inspect, ...FILM_PLAYER, ...FILM_SHOWN }),
     hash: At,
   }),
-  project: Place.make({
-    path: '/films/:film/project',
-    params: filmParams,
-    query: Field.struct({ point: cited, ...FILM_PLAYER, ...FILM_SHOWN }),
-    hash: At,
-  }),
-  scenes: Place.make({ path: '/films/:film/scenes', params: filmParams, hash: At }),
-  scene: Place.make({
-    path: '/films/:film/scenes/:scene',
-    params: { film: Codec.Segment, scene: Codec.Segment },
-    hash: At,
-  }),
-  play: Place.make({ path: '/films/:film/play', params: filmParams, hash: At }),
   lab: Place.make({
     path: '/films/:film/lab',
     params: filmParams,
@@ -1481,6 +1493,20 @@ export const Places = {
     hash: LabAt,
   }),
   export: Place.make({ path: '/films/:film/export', params: filmParams }),
+  /**
+   * A film's studio (`lab/film-studio/`): its timeline at version `?v=` (0:
+   * the production's open one), the clip selected (`?sel=beat:<id>`, a step
+   * Back walks), and the playhead on `#t=`, film seconds.
+   */
+  studio: Place.make({
+    path: '/films/:film/studio',
+    params: filmParams,
+    query: Field.struct({
+      v: Field.key(Codec.Int, { default: 0, history: 'push' }),
+      sel: cited,
+    }),
+    hash: At,
+  }),
   /** A series draft in the Script reader. */
   draft: Place.make({
     path: '/series/:series/:draft',
@@ -1507,10 +1533,6 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.folder, 'review'],
   [Places.set, 'review'],
   [Places.choices, 'review'],
-  [Places.project, 'review'],
-  [Places.scenes, 'player'],
-  [Places.scene, 'player'],
-  [Places.play, 'player'],
   [Places.lab, 'lab'],
   [Places.labScene, 'lab'],
   [Places.script, 'lab'],
@@ -1518,6 +1540,7 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.board, 'lab'],
   [Places.boardBeat, 'lab'],
   [Places.export, 'render'],
+  [Places.studio, 'player'],
   [Places.ask, 'review'],
   [Places.draft, 'review'],
   [Places.draftBeat, 'review'],
@@ -1551,10 +1574,6 @@ export const pageMove = (from: string, to: string): 'push' | 'replace' =>
 /** The places that name a film in their path. */
 const FILM_PLACES: ReadonlyArray<Place.Place<{ readonly path: { readonly film: string } }>> = [
   Places.choices,
-  Places.project,
-  Places.scenes,
-  Places.scene,
-  Places.play,
   Places.lab,
   Places.labScene,
   Places.script,
@@ -1562,6 +1581,7 @@ const FILM_PLACES: ReadonlyArray<Place.Place<{ readonly path: { readonly film: s
   Places.board,
   Places.boardBeat,
   Places.export,
+  Places.studio,
 ];
 
 /** The film `href`'s path names (`/films/<film>/…`), if it names one. */
@@ -1662,21 +1682,12 @@ export const pageHref = {
       query: { point, inspect, ...NOTHING_HEARD },
       hash: START,
     }),
-  /** A film's project, with the card of `point` in focus. */
-  project: (film: string, point = ''): string =>
-    Place.href(Places.project, {
-      path: { film },
-      query: { point, ...NOTHING_HEARD },
-      hash: START,
-    }),
-  /** A film's Scenes, at film time `t`. */
-  scenes: (film: string, t: Option.Option<number> = Option.none()): string =>
-    Place.href(Places.scenes, { path: { film }, query: {}, hash: timeOf(t) }),
-  /** A film's Scenes with `scene` selected, at film time `t`. */
-  scene: (film: string, scene: string, t: Option.Option<number> = Option.none()): string =>
-    Place.href(Places.scene, { path: { film, scene }, query: {}, hash: timeOf(t) }),
-  play: (film: string, t: Option.Option<number> = Option.none()): string =>
-    Place.href(Places.play, { path: { film }, query: {}, hash: timeOf(t) }),
+  /** A film's studio at version `v` (0: the open one), with `sel` selected, at film time `t`. */
+  studio: (
+    film: string,
+    { v = 0, sel = '' }: { readonly v?: number; readonly sel?: string } = {},
+    t: Option.Option<number> = Option.none(),
+  ): string => Place.href(Places.studio, { path: { film }, query: { v, sel }, hash: timeOf(t) }),
   /** A film's export page: the render page, staged for the easel's stills. */
   export: (film: string): string =>
     Place.href(Places.export, { path: { film }, query: {}, hash: {} }),
@@ -1747,77 +1758,6 @@ export const pageHref = {
     }),
 };
 
-/**
- * The studio's parts, in the page bar's order: Films (the home, every
- * film's), then a film's Board (where its work starts, as a studio's does),
- * Scenes, Lab, Script, Choices, Project and Play. ⇧1-⇧8 go to them in this
- * order.
- */
-export const PARTS = [
-  'films',
-  'board',
-  'scenes',
-  'lab',
-  'script',
-  'choices',
-  'project',
-  'play',
-] as const;
-export type Part = (typeof PARTS)[number];
-
-/** Each part's name, as the page bar prints it. */
-export const PART_TITLE: Readonly<Record<Part, string>> = {
-  films: 'Films',
-  board: 'Board',
-  scenes: 'Scenes',
-  lab: 'Lab',
-  script: 'Script',
-  choices: 'Choices',
-  project: 'Project',
-  play: 'Play',
-};
-
-/**
- * Whether `film` has `part`: a film has every part; a short (`<film>/shorts/<id>`)
- * is only played and seen as scenes, with no board, lab, script, choices or project of its own.
- */
-export const hasPart = (film: string, part: Part): boolean =>
-  !isShortKey(film) || part === 'films' || part === 'scenes' || part === 'play';
-
-/** The parts whose `#t=` is the film's time: a move between them keeps the frame. */
-const FILM_TIME_PARTS: ReadonlySet<Part> = new Set<Part>([
-  'board',
-  'scenes',
-  'lab',
-  'script',
-  'play',
-]);
-
-/** The film time a page of `part` at `t` hands the page bar to keep: none from a part whose time is not the film's. */
-export const filmTimeOn = (part: Part, t: Option.Option<number>): Option.Option<number> =>
-  Option.filter(t, () => FILM_TIME_PARTS.has(part));
-
-/**
- * The page of `part` on `film`, at its defaults (Films names no film);
- * the Board, Scenes, the Lab, the Script and Play at film time `t`, the frame
- * a move between them keeps.
- */
-export const partHref = (
-  part: Part,
-  film: string,
-  t: Option.Option<number> = Option.none(),
-): string =>
-  ({
-    films: () => pageHref.home(),
-    board: () => pageHref.board(film, t),
-    scenes: () => pageHref.scenes(film, t),
-    lab: () => pageHref.lab(film, t),
-    script: () => pageHref.script(film, t),
-    choices: () => pageHref.choices(film),
-    project: () => pageHref.project(film),
-    play: () => pageHref.play(film, t),
-  })[part]();
-
 /** A hash that is only a number (`#42.000`): the film time an old lab or player link carried. */
 const bareTime = (hash: string): Option.Option<number> =>
   Option.filter(
@@ -1874,7 +1814,7 @@ const exportOfQuery = (
   query: URLSearchParams,
 ): Option.Option<string> => {
   const film = Option.orElse(
-    Option.map(Place.decode(Places.play, pathname), (value) => value.path.film),
+    Option.map(Place.decode(Replaced.play, pathname), (value) => value.path.film),
     () =>
       Option.flatMap(
         Option.liftPredicate(pathname, (p) => p === '/'),
@@ -1914,18 +1854,15 @@ const legacyPath = (pathname: string, query: URLSearchParams): Option.Option<str
     return Option.some(
       Option.match(film, {
         onNone: () => pageHref.home(),
-        onSome: (f) => {
-          if (lookbook) return pageHref.scenes(f);
-          if (lab) return pageHref.lab(f);
-          return pageHref.play(f);
-        },
+        onSome: (f) =>
+          Bool.match(lab, { onTrue: () => pageHref.lab(f), onFalse: () => pageHref.studio(f) }),
       }),
     );
   if (pathname !== '/') return Option.none();
   const project = segmentParam(query, 'project');
-  if (Option.isSome(project)) return Option.some(pageHref.project(project.value));
+  if (Option.isSome(project)) return Option.some(pageHref.studio(project.value));
   if (Option.isSome(film)) {
-    if (lookbook) return Option.some(pageHref.scenes(film.value));
+    if (lookbook) return Option.some(pageHref.studio(film.value));
     if (lab) return Option.some(pageHref.lab(film.value));
     return Option.some(pageHref.choices(film.value));
   }
@@ -1948,11 +1885,18 @@ const withFilmTime = (href: string, t: number): string => {
   const hash = timeOf(Option.some(t));
   return Option.getOrElse(
     Option.firstSomeOf([
-      Option.map(Place.decode(Places.play, href), (v) => Place.href(Places.play, { ...v, hash })),
-      Option.map(Place.decode(Places.scenes, href), (v) =>
-        Place.href(Places.scenes, { ...v, hash }),
+      Option.map(Place.decode(Replaced.play, href), (v) =>
+        Place.href(Replaced.play, { ...v, hash }),
       ),
-      Option.map(Place.decode(Places.scene, href), (v) => Place.href(Places.scene, { ...v, hash })),
+      Option.map(Place.decode(Replaced.scenes, href), (v) =>
+        Place.href(Replaced.scenes, { ...v, hash }),
+      ),
+      Option.map(Place.decode(Replaced.scene, href), (v) =>
+        Place.href(Replaced.scene, { ...v, hash }),
+      ),
+      Option.map(Place.decode(Places.studio, href), (v) =>
+        Place.href(Places.studio, { ...v, hash }),
+      ),
       Option.map(Place.decode(Places.lab, href), (v) =>
         Place.href(Places.lab, { ...v, hash: { ...v.hash, ...hash } }),
       ),
@@ -1970,8 +1914,8 @@ const cardAnchor = (hash: string): Option.Option<string> =>
 
 /** `href`, when it is a project, with the card of `point` in focus. */
 const withFocus = (href: string, point: string): Option.Option<string> =>
-  Option.map(Place.decode(Places.project, href), (value) =>
-    Place.href(Places.project, { ...value, query: { ...value.query, point }, hash: START }),
+  Option.map(Place.decode(Replaced.project, href), (value) =>
+    Place.href(Replaced.project, { ...value, query: { ...value.query, point }, hash: START }),
   );
 
 /**
@@ -1981,7 +1925,7 @@ const withFocus = (href: string, point: string): Option.Option<string> =>
  * stays on the project, where its scene's sheet opens.
  */
 const choiceOffProject = (href: string): Option.Option<string> =>
-  Option.flatMap(Place.decode(Places.project, href), (value) =>
+  Option.flatMap(Place.decode(Replaced.project, href), (value) =>
     Option.map(
       Option.filter(
         Option.liftPredicate(value.query.point, (p) => p !== ''),
@@ -2024,6 +1968,108 @@ export const legacyPlace = (href: string): Option.Option<string> => {
   return Option.orElse(choiceOffProject(Option.getOrElse(old, () => href)), () => old);
 };
 
+/** What a studio selection of a beat starts with. */
+const BEAT_SELECTED = 'beat:';
+
+/** The studio's selection of beat `beat` (`?sel=beat:<id>`). */
+export const beatSelection = (beat: string): string => `${BEAT_SELECTED}${beat}`;
+
+/** The beat a studio selection names (`beat:<id>`), if it names one. */
+export const selectedBeat = (sel: string): Option.Option<string> =>
+  Option.filter(
+    Option.map(
+      Option.liftPredicate(sel, (s) => s.startsWith(BEAT_SELECTED)),
+      (s) => s.slice(BEAT_SELECTED.length),
+    ),
+    (id) => id !== '',
+  );
+
+/** A film page the studio replaced, read as the studio's film, the beat it selects and the film time it is at. */
+interface Replaced {
+  readonly film: string;
+  readonly beat: Option.Option<string>;
+  readonly t: Option.Option<number>;
+}
+
+/** A page whose `#t=` is film time, on its film, no beat selected. */
+const filmTimed =
+  <Q>(
+    place: Place.Place<{
+      readonly path: { readonly film: string };
+      readonly query: Q;
+      readonly hash: { readonly t: Option.Option<number> };
+    }>,
+  ) =>
+  (href: string): Option.Option<Replaced> =>
+    Option.map(Place.decode(place, href), (v) => ({
+      film: v.path.film,
+      beat: Option.none(),
+      t: v.hash.t,
+    }));
+
+/**
+ * A page on one of a film's beats (a scene's lab, a script beat, a board
+ * beat, a scene of the tape): its beat selected. A beat page's `#t=` counts
+ * from the beat's start, which only the film's clock knows, so it is left
+ * behind; the studio opens at the beat's start.
+ */
+const onBeat =
+  (place: Place.Place<{ readonly path: { readonly film: string; readonly scene: string } }>) =>
+  (href: string): Option.Option<Replaced> =>
+    Option.map(Place.decode(place, href), (v) => ({
+      film: v.path.film,
+      beat: Option.some(v.path.scene),
+      t: Option.none(),
+    }));
+
+/** The film pages the studio replaced, each read as what it showed. */
+const REPLACED: ReadonlyArray<(href: string) => Option.Option<Replaced>> = [
+  filmTimed(Replaced.play),
+  filmTimed(Replaced.scenes),
+  filmTimed(Places.lab),
+  filmTimed(Places.script),
+  filmTimed(Places.board),
+  (href) =>
+    Option.map(Place.decode(Replaced.scene, href), (v) => ({
+      film: v.path.film,
+      beat: Option.some(v.path.scene),
+      t: v.hash.t,
+    })),
+  onBeat(Places.labScene),
+  onBeat(Places.scriptBeat),
+  onBeat(Places.boardBeat),
+  (href) =>
+    Option.map(Place.decode(Replaced.project, href), (v) => ({
+      film: v.path.film,
+      beat: Option.none(),
+      t: Option.none(),
+    })),
+];
+
+/**
+ * The studio's place for a film page it replaced (`/films/<f>/play`,
+ * `/scenes[/<scene>]`, `/lab[/<scene>]`, `/script[/<beat>]`,
+ * `/board[/<beat>]`, `/project`): the same film, its beat selected
+ * (`?sel=beat:<id>`) and its film time kept. The lab's server sends a
+ * browser on with a redirect (`servedPlace`); the Board, Script and Lab
+ * pages stay mountable behind it for the studio's later parts.
+ */
+export const studioPlace = (href: string): Option.Option<string> =>
+  Option.map(Option.firstSomeOf(REPLACED.map((read) => read(href))), ({ film, beat, t }) =>
+    pageHref.studio(film, { sel: Option.getOrElse(Option.map(beat, beatSelection), () => '') }, t),
+  );
+
+/**
+ * Where the lab's server sends a link it does not serve as asked: an old
+ * link to its place (`legacyPlace`), and a page the studio replaced to the
+ * studio (`studioPlace`), the old link's place first.
+ */
+export const servedPlace = (href: string): Option.Option<string> =>
+  Option.match(legacyPlace(href), {
+    onNone: () => studioPlace(href),
+    onSome: (to) => Option.orElse(studioPlace(to), () => Option.some(to)),
+  });
+
 // ---------------------------------------------------------------------------
 // The URLs a page puts in an <img>, <audio> or <video>, derived from the routes.
 
@@ -2031,8 +2077,14 @@ export const legacyPlace = (href: string): Option.Option<string> => {
 export const labUrls = HttpApiClient.urlBuilder(LabHttpApi);
 
 /** An image of a film's board (a try, the style's reference), by its file name. */
-export const boardFileUrl = (film: string, file: string): string =>
-  labUrls.board.file({ params: { film, file } });
+export const boardFileUrl = (film: string, file: string, folder?: Segment): string =>
+  labUrls.board.file({
+    params: { film, file },
+    query: Option.match(Option.fromUndefinedOr(folder), {
+      onNone: () => ({}),
+      onSome: (f) => ({ folder: f }),
+    }),
+  });
 
 /** A note's still. */
 export const stillUrl = (film: string, name: string): string =>

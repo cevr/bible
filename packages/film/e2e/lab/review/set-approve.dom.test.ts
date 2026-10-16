@@ -122,47 +122,12 @@ const withSceneApproval = (value: Json, id: string, approval: string): Json =>
     Match.orElse(() => value),
   );
 
-/** The studio's project as `film project` reads it now: open approved while the last say posted approved it. */
-const approvedOnceSaid = (asked: ReadonlyArray<SetSayPost>): FakeRoute => {
+/** The studio's project as the catalogue holds it: open approved once the catalogue holds it so. */
+const projectSays = (catalogue: { approved: boolean }): FakeRoute => {
   const projectRoute = Option.getOrThrow(
     Arr.findFirst(studioRoutes, (r) => r.path.test('/api/films/toy/project')),
   );
   return route('GET', /^\/api\/films\/toy\/project$/, (a) => {
-    const answer = projectRoute.answer(a);
-    return Option.getOrElse(
-      Option.map(
-        Option.filter(
-          Option.liftPredicate(answer, (r) => r._tag === 'Json'),
-          () => Option.exists(Arr.last(asked), (p) => p.say._tag === 'Approve'),
-        ),
-        (r) => json(withSceneApproval(r.json, 'open', 'approved')),
-      ),
-      () => answer,
-    );
-  });
-};
-
-/**
- * The film's choices, answered later than the registry keeps an atom nothing
- * reads (400 ms): Project mounts only once they answer, as on the real film,
- * whose `film options` takes over a second.
- */
-const slowChoices: FakeRoute = (() => {
-  const choicesRoute = Option.getOrThrow(
-    Arr.findFirst(studioRoutes, (r) => r.path.test('/api/films/toy/choices')),
-  );
-  return route('GET', /^\/api\/films\/toy\/choices$/, choicesRoute.answer, '900 millis');
-})();
-
-/**
- * The studio's project as the catalogue holds it: open approved once a say on
- * Project approved it, in that say's answer and in every read after.
- */
-const projectSays = (catalogue: { approved: boolean }): ReadonlyArray<FakeRoute> => {
-  const projectRoute = Option.getOrThrow(
-    Arr.findFirst(studioRoutes, (r) => r.path.test('/api/films/toy/project')),
-  );
-  const now = (a: Parameters<FakeRoute['answer']>[0]) => {
     const answer = projectRoute.answer(a);
     return Option.getOrElse(
       Option.map(
@@ -174,17 +139,10 @@ const projectSays = (catalogue: { approved: boolean }): ReadonlyArray<FakeRoute>
       ),
       () => answer,
     );
-  };
-  return [
-    route('POST', /^\/api\/films\/toy\/project\/say$/, (a) => {
-      catalogue.approved = true;
-      return now(a);
-    }),
-    route('GET', /^\/api\/films\/toy\/project$/, now),
-  ];
+  });
 };
 
-/** The index as the catalogue holds it: the set's `main` approved once a say on Project approved open. */
+/** The index as the catalogue holds it: the set's `main` approved once the catalogue holds open approved. */
 const indexSays = (catalogue: { approved: boolean }): FakeRoute =>
   route('GET', /^\/api\/review\/index/, (a) => {
     const answer = index.answer(a);
@@ -584,111 +542,25 @@ describe('a Set approving a scene render', () => {
   );
 
   it.live(
-    "a Set's approve shows on its Project tab: the approve reads the project again, and Project shows that read",
+    'an approve made elsewhere (the CLI, another tab) shows on a Set after a Refresh, which reads the project again',
     () =>
       Effect.gen(function* () {
-        const asked = new Array<SetSayPost>();
+        const catalogue = { approved: false };
         const {
           page,
           asked: requests,
           errors,
-        } = yield* openReview([slowChoices, approvedOnceSaid(asked), ...approving(asked)], {
+        } = yield* openReview([projectSays(catalogue), indexSays(catalogue), ...studioRoutes], {
           href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
         });
-        // The Set read the project before the approve, open approved in none.
         yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
         yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
         yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
-        yield* page.click(`${INSPECTOR} [data-act="approve"]`);
-        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
-        // Project, from the Set's own tab, mounting once its slow choices answer: open is
-        // approved there, by the one read the approve made.
-        yield* page.click('a.sh-tab[data-page="project"]');
-        yield* waitFor(page, '.rv-scene[data-scene="open"] [data-approval="approved"]');
-        expect(asked.map((p) => p.say._tag)).toEqual(['Approve']);
-        expect(projectReads(requests)).toBe(2);
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
-  it.live(
-    "a Set and then its Project tab read the project once, though Project mounts after the registry's idle time",
-    () =>
-      Effect.gen(function* () {
-        const {
-          page,
-          asked: requests,
-          errors,
-        } = yield* openReview([slowChoices, ...studioRoutes], {
-          href: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
-        });
-        yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
-        yield* page.click('a.sh-tab[data-page="project"]');
-        yield* waitFor(page, '.rv-scene[data-scene="open"]');
-        expect(projectReads(requests)).toBe(1);
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
-  it.live(
-    "Project's approve, then the Set, then Project again: each shows the approve, the project read once and the index again (Back onto the Set warns nothing)",
-    () =>
-      Effect.gen(function* () {
-        const catalogue = { approved: false };
-        const {
-          page,
-          asked: requests,
-          errors,
-        } = yield* openReview(
-          [slowChoices, ...projectSays(catalogue), indexSays(catalogue), ...studioRoutes],
-          { href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
-        );
-        yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
-        yield* page.click('a.sh-tab[data-page="project"]');
-        const approve =
-          '.rv-scene[data-scene="open"] > .sc-card[data-size="tile"] [data-act="approve"]';
-        yield* waitFor(page, approve);
-        yield* page.click(approve);
-        yield* waitFor(page, '.rv-scene[data-scene="open"] [data-approval="approved"]');
-        // Back to the Set, and on to Project again, each in the page: the set mounts as the
-        // entry lands, and reads the set untracked.
-        yield* page.back;
-        yield* waitFor(page, '.rv-set-tools[data-sources="project"]');
-        expect(errors).toEqual([]);
-        yield* page.forward;
-        yield* waitFor(page, '.rv-scene[data-scene="open"] [data-approval="approved"]');
-        // Back to the Set again: the version of open's render shows the approve too.
-        yield* page.back;
-        yield* waitFor(page, '.rv-card[data-id="main"] [data-act="inspect"]');
-        yield* page.click('.rv-card[data-id="main"] [data-act="inspect"]');
-        yield* waitFor(page, `${INSPECTOR} [data-act="approve"][data-approval="approved"]`);
-        expect(catalogue.approved).toBe(true);
-        expect(projectReads(requests)).toBe(1);
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
-  it.live(
-    'an approve made elsewhere (the CLI, another tab) shows on Project after a Refresh, which reads the project again',
-    () =>
-      Effect.gen(function* () {
-        const catalogue = { approved: false };
-        const {
-          page,
-          asked: requests,
-          errors,
-        } = yield* openReview([...projectSays(catalogue), ...studioRoutes], {
-          href: pageHref.project('toy'),
-        });
-        yield* waitFor(page, '.rv-scene[data-scene="open"] [data-act="approve"]');
-        yield* countIs(page, '.rv-scene[data-scene="open"] [data-approval="approved"]', 0);
+        yield* countIs(page, `${INSPECTOR} [data-act="approve"][data-approval="approved"]`, 0);
         catalogue.approved = true;
         yield* page.click('.sh-header [data-act="view-menu"]');
         yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
-        yield* waitFor(page, '.rv-scene[data-scene="open"] [data-approval="approved"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"][data-approval="approved"]`);
         expect(projectReads(requests)).toBe(2);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

@@ -3,7 +3,7 @@ import { Effect, Option } from 'effect';
 import { BY_BUTTON, type Command, quiet } from './command.ts';
 import { contextAt } from './context.ts';
 import { pageHref } from '../core/api.ts';
-import { GO_TO, goToCommands, partCommands } from './go.ts';
+import { GO_TO, goToCommands, shellCommands } from './go.ts';
 import { byGroup, contextRows, menuRows, rowChord, rowKey, sheetRows, viewRows } from './menu.ts';
 
 const command = (id: string, group: string, label: string): Command => ({
@@ -122,41 +122,29 @@ describe('Go to (AA-2)', () => {
     expect(went).toEqual(['out/art']);
   });
 
-  test("the studio's parts are commands on ⇧1-⇧8; a short has only Films, Scenes and Play", () => {
+  test("the shell's moves are commands: Films on ⇧1, the film's studio on ⇧2", () => {
     const went: Array<string> = [];
-    const parts = (film: string) =>
-      partCommands(
-        () => Option.some(film),
-        () => 'films',
+    const moves = (film: Option.Option<string>, onFilms: boolean) =>
+      shellCommands(
+        () => film,
+        () => onFilms,
         (href) => went.push(href),
       );
-    const open = (film: string) =>
-      parts(film)
+    const open = (film: Option.Option<string>, onFilms: boolean) =>
+      moves(film, onFilms)
         .filter((c) => c.when(ctx))
         .map((c) => c.id);
-    expect(parts('roofs').map((c) => [c.id, c.keys])).toEqual([
+    expect(moves(Option.some('roofs'), false).map((c) => [c.id, c.keys])).toEqual([
       ['page.films', ['shift+1']],
-      ['page.board', ['shift+2']],
-      ['page.scenes', ['shift+3']],
-      ['page.lab', ['shift+4']],
-      ['page.script', ['shift+5']],
-      ['page.choices', ['shift+6']],
-      ['page.project', ['shift+7']],
-      ['page.play', ['shift+8']],
+      ['page.studio', ['shift+2']],
     ]);
-    // The part the page is on is no move.
-    expect(open('roofs')).toEqual([
-      'page.board',
-      'page.scenes',
-      'page.lab',
-      'page.script',
-      'page.choices',
-      'page.project',
-      'page.play',
-    ]);
-    expect(open('roofs/shorts/hook')).toEqual(['page.scenes', 'page.play']);
-    const play = parts('roofs/shorts/hook').find((c) => c.id === 'page.play');
-    Effect.runSync(play?.run(ctx, { ...BY_BUTTON, input: 'pointer' }) ?? Effect.succeed(quiet));
-    expect(went).toEqual([pageHref.play('roofs/shorts/hook')]);
+    // Films from Films is no move; a page of no film has no studio to open.
+    expect(open(Option.some('roofs'), true)).toEqual(['page.studio']);
+    expect(open(Option.none(), false)).toEqual(['page.films']);
+    const studio = moves(Option.some('roofs/shorts/hook'), true).find(
+      (c) => c.id === 'page.studio',
+    );
+    Effect.runSync(studio?.run(ctx, { ...BY_BUTTON, input: 'pointer' }) ?? Effect.succeed(quiet));
+    expect(went).toEqual([pageHref.studio('roofs/shorts/hook')]);
   });
 });

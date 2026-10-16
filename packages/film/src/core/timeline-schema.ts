@@ -128,6 +128,8 @@ const BoardClip = Schema.Struct({
   markAt: Schema.Finite,
   /** The try shown (the kept one, else the first); none for a card. */
   try: Schema.optionalKey(Schema.Int),
+  /** The shown try's image, by the name the board record gives it (`board/<file>`); none for a card. */
+  file: Schema.optionalKey(Schema.String),
   /** Whether it is a card or a verse page the engine sets, not a picture. */
   card: Schema.Boolean,
 });

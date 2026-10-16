@@ -1,6 +1,6 @@
 // The kit's comment section's look (`Comments` and `SayBox`,
 // `options/choice.tsx`), carried by every page that shows one: the review's
-// pages and Scenes' sheet. What was said, an earlier version's marked, and the
+// pages. What was said, an earlier version's marked, and the
 // line to say more.
 
 export const COMMENTS_CSS = `

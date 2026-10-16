@@ -57,10 +57,13 @@ body.export .stage canvas {
   color: var(--text-1);
 }
 /* The playhead's timecode, the film's length and state (rate, loop), then why
-   the narration is not heard: three pieces the row lays out. */
+   the narration is not heard: three pieces the row lays out. The clock is in
+   the mono at the dense rows' 13 px, so a phone's row holds it whole beside
+   the scene and CC. */
 .time {
   display: contents;
   font-family: var(--font-mono);
+  font-size: var(--fs-3);
   font-variant-numeric: tabular-nums;
   color: var(--text-1);
 }
@@ -308,7 +311,7 @@ body.lab .stage {
  * The phone: one column that scrolls as a page, the picture full width with
  * its track and strip right under it (no row stretched below the picture),
  * then the inspector. The transport's row is the shell's dock (design
- * language §4, `.sh-dock`): one line over the tab bar, in reach of the thumb
+ * language §4, `.sh-dock`): one line over the safe area, in reach of the thumb
  * wherever the page is scrolled; the page clears both.
  */
 @media (max-width: 899px) {
@@ -321,7 +324,7 @@ body.lab .stage {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto auto auto;
     align-content: start;
-    padding-bottom: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom));
   }
   /* The row is the shell's dock (its place and look, `page-shell-style.ts`), on one line. */
   body.lab .bar > .row {
@@ -1143,63 +1146,6 @@ body.lab .stage {
   paint-order: stroke;
   stroke: var(--on-picture-shade);
   stroke-width: 6px;
-}
-
-/* A film's Play page (`/films/<film>/play`): the shell as tall as the window, the picture filling it over the transport. */
-body.play .sh {
-  height: 100dvh;
-}
-body.play .sh-body {
-  display: grid;
-  min-height: 0;
-}
-.play-body {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  min-height: 0;
-  min-width: 0;
-}
-.play-body .stage {
-  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
-}
-/* On a phone the picture spans the window's width, as the Lab's does. */
-@media (max-width: 899px) {
-  .play-body .stage {
-    padding: 0;
-  }
-}
-/* Play's HUD (`hud.ts`): the bar, the header and the tab bar fade while the
-   film plays with no input, in place, so the picture does not move; the
-   pointer goes with them. Faded, they take no tap (the tap wakes them), yet
-   stay in the accessibility tree and the tab order, as YouTube's and AVKit's
-   controls do: a focus landing on one brings them back. */
-.sh[data-part='play'] :is(.bar, .sh-header, .sh-pagebar) {
-  transition: opacity 0.3s;
-}
-.sh[data-part='play']:has(.bar[data-hud='hidden']) :is(.bar, .sh-header, .sh-pagebar) {
-  opacity: 0;
-  pointer-events: none;
-}
-.sh[data-part='play']:has(.bar[data-hud='hidden']) .stage {
-  cursor: none;
-}
-/* Play's ticks are the viewer's (⋯ → Show the ticks), off until turned on;
-   their legend (the bar's `.keys`, otherwise hidden on Play) shows with them. */
-.sh[data-part='play'] .bar:not([data-ticks='on']) .track .tick {
-  display: none;
-}
-.sh[data-part='play'] .bar[data-ticks='on'] .keys {
-  display: block;
-}
-/* On a laptop the header's timecode is Play's one readout; the bar keeps the length beside it. */
-@media (min-width: 900px) {
-  .sh[data-part='play'] .bar .tc {
-    display: none;
-  }
-}
-/* With the captions on the picture, Play's line is theirs alone. */
-.sh[data-part='play'] .bar[data-captions='on'] .say {
-  display: none;
 }
 
 /* The studio: record the voiceover beat by beat. */

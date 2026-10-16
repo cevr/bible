@@ -111,8 +111,8 @@ interface SceneFindings {
 }
 
 /**
- * `findings` as the inspector shows them in `scene`, each placed as the
- * Scenes' tape places it (`findingScenes`): one whose time is in the scene
+ * `findings` as the inspector shows them in `scene`, each placed by the one
+ * rule (`findingScenes`): one whose time is in the scene
  * (the scene the playhead shows there), or whose address names it, is the
  * scene's; one with no place (no address, or the whole film or an act with
  * no time) is the film's, shown with every scene, having no other; the rest

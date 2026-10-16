@@ -10,7 +10,7 @@
 // - a function that computes with a variable, a percentage or another unit
 //   (`calc(var(--dot) / -2)`, a dot's margin of half its size;
 //   `calc(100% - 7px)`) writes no length of its own: only the px written in
-//   it are read, never the variable's value (a dot's size, a tab bar's
+//   it are read, never the variable's value (a dot's size, a dock's
 //   height, a composition's part, is no length of the scale);
 // - a variable a value names whole (`padding: var(--pad)`) is read on each
 //   element and pseudo-element the declaration applies to, at each viewport
@@ -64,7 +64,7 @@ interface Scale {
 const HAIRLINE = '--hairline';
 
 /**
- * The transport docked over the tab bar, its height a sum the sheet computes
+ * The transport docked on the shell's floor, its height a sum the sheet computes
  * (`calc(var(--hit) + 2 * var(--s-2) + 1px)`): a page's padding clears it
  * (player.css's `padding-bottom`), and nothing else takes it as a length.
  */

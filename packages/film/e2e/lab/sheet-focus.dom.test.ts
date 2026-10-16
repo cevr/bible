@@ -5,13 +5,10 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { openReview } from '../../src/lab/fixtures/harness.ts';
-import {
-  STUDIO_FILM,
-  STUDIO_FOLDER,
-  STUDIO_SET,
-  studioRoutes,
-} from '../../src/lab/fixtures/studio-film.ts';
+import { menuEntry, openCommandMenu } from '../../src/lab/fixtures/gestures.ts';
+import { STUDIO_FOLDER, STUDIO_SET, studioRoutes } from '../../src/lab/fixtures/studio-film.ts';
 import { countIs, evaluates, until, waitFor } from '../../src/lab/fixtures/settled.ts';
+import { onChoices } from './toy-choices.ts';
 
 const SLOW = 30_000;
 const INSIDE = (role: string) =>
@@ -39,15 +36,12 @@ describe('a fresh sheet', () => {
   );
 
   it.live(
-    "Project's Findings holds the focus, not on Close, so Space leaves it open",
+    "Choices' Findings holds the focus, not on Close, so Space leaves it open",
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openReview(studioRoutes, {
-          href: pageHref.project(STUDIO_FILM),
-        });
-        const chip = '.pj-film [data-act="findings"][data-check="check"]';
-        yield* waitFor(page, chip);
-        yield* page.click(chip);
+        const { page, errors } = yield* onChoices();
+        yield* openCommandMenu(page, 'findings');
+        yield* page.click(menuEntry('review.findings'));
         yield* waitFor(page, '[data-role="findings"]');
         yield* until(page, INSIDE('findings'));
         yield* evaluates(page, ON_CLOSE, false);

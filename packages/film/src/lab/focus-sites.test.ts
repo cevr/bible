@@ -67,7 +67,6 @@ const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: 
     'focusFor(field',
     "a Production's Move forward, its form opened: its first field",
   ],
-  ['scenes/view.tsx', 'focusFor(field', "Scenes' scenes.comment, a scene selected, a text field"],
   [
     'sketch/surface.tsx',
     'focusFor(el',
@@ -98,7 +97,7 @@ const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: 
   [
     'review/options/findings.tsx',
     'initialFocus={() => true',
-    "Project's Findings opened from its chip (the sheet: sheet-focus.dom.test.ts)",
+    "Findings opened from ⌘K or the page's menu (the sheet: sheet-focus.dom.test.ts)",
   ],
 ];
 

@@ -85,7 +85,7 @@ const ASK_CSS = `
     margin-inline:calc(-1 * var(--gutter));padding-inline:var(--gutter)}
   /* The held Send is the page's floor: the main column keeps no room under it, nor the dock a margin. */
   .rv-main:has(.ak-send){padding-bottom:0}
-  .rv-main .sh-dock.ak-send:not(.pj-dock){margin-bottom:0}
+  .rv-main .sh-dock.ak-send{margin-bottom:0}
   /* A still opened full size keeps its group above the held Send: the dock's height is the
      lightbox's floor and comes off the still's. Read through the Send (body:has), so it holds only
      while the Send is drawn and outranks the shared .rv-lightbox in whichever order the sheets load. */

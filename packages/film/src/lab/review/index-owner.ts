@@ -1,6 +1,6 @@
 // The review's index, the one owner of it for the page's life: the first read
 // (the server's, sent with the page), then the newest ask's answer
-// (`asked.ts`): a walk of the roots again (Refresh, a say on Project), or a
+// (`asked.ts`): a walk of the roots again (Refresh, a phone copy made), or a
 // say's answer for one folder (a Set's), put in its place. Every write is an
 // updater over the newest answer, shown or not yet: two answers that land in
 // one task (a walk's, then a Set say's) both stand.

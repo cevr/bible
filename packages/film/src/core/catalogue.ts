@@ -204,7 +204,7 @@ const pointOf = (topic: Topic): PointRef =>
  * A render's version, what the owner's say is keyed by: its stamp's key, and
  * the mix it carries (`<stamp>+<mix>`), so a re-mux is a new version.
  */
-export const renderVersion = (render: Render): string =>
+const renderVersion = (render: Render): string =>
   Option.match(
     Option.flatMap(render.sound, (s) => s.mix),
     {
@@ -525,8 +525,8 @@ export const saidOn = (catalogue: Catalogue, subject: Subject): ReadonlyArray<Sa
   commentsOn(catalogue, subject).map((c) => ({ ...c, onThis: c.key === subject.key }));
 
 /** Where a scene sits in the film as it is laid out now, in film seconds: its start and how long it lasts. */
-export const SceneSpan = Schema.Struct({ start: Schema.Finite, dur: Schema.Finite });
-export type SceneSpan = typeof SceneSpan.Type;
+const SceneSpan = Schema.Struct({ start: Schema.Finite, dur: Schema.Finite });
+type SceneSpan = typeof SceneSpan.Type;
 
 /** One scene of the project: its sources' key now, its render, and the owner's say. */
 export const ProjectScene = Schema.Struct({
@@ -550,13 +550,13 @@ export type ProjectScene = typeof ProjectScene.Type;
  * One act of the project: its scenes (in film order), the key its sources
  * have now, and what was said of it. Its approval is its scenes'.
  */
-export const ProjectAct = Schema.Struct({
+const ProjectAct = Schema.Struct({
   name: ActName,
   scenes: Schema.Array(Schema.String),
   key: Schema.String,
   comments: Schema.Array(SaidComment),
 });
-export type ProjectAct = typeof ProjectAct.Type;
+type ProjectAct = typeof ProjectAct.Type;
 
 /**
  * The approvals an approve run gave: its op, the moment, and the scenes

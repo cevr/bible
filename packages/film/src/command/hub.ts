@@ -8,8 +8,8 @@
 // page's writes announce as they land (`announce`: a drag's, a field's, a
 // say's), handed to whoever shows them, each in its slot (the command's id,
 // or the writer's name: a slot's next receipt replaces its last, so
-// `undoing…` becomes what was undone). Built once at each page's root (`mountPlay`,
-// `mountLab`, `mountReview`) and handed to everything on the page, as the
+// `undoing…` becomes what was undone). Built once at each page's root
+// (`mountFilmStudio`, `mountLab`, `mountReview`) and handed to everything on the page, as the
 // host is. A command runs only where its `when` holds, whether its key, a
 // menu, ⌘K or a button asked for it. The hub is the one owner of which input
 // the viewer last used (`input`, heard through `Keys.inputs`): a command runs

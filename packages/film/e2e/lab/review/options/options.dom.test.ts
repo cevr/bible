@@ -1,6 +1,6 @@
 // A film's choices in a browser, its routes faked over a synthetic film with
 // a score of three options, one library sound's takes, a look and a level:
-// home links the film; its page puts the render on the clock and one mix
+// home links the film's studio; its choices put the render on the clock and one mix
 // heard over it (🔊 swaps it: a score option's, a take's in place); Pick
 // writes `play`, the page reads the film again (the pick shown, its receipt
 // saying it before → after with an Undo, the check after it) and runs the
@@ -19,7 +19,7 @@
 
 import { Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { PARTS, pageHref } from '../../../../src/core/api.ts';
+import { pageHref } from '../../../../src/core/api.ts';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import {
   type FakeRoute,
@@ -429,27 +429,27 @@ const holds = (done: () => boolean) =>
 
 describe("a film's choices", () => {
   it.live(
-    "home's film card opens its choices; its page hears the picked option over the render, and 🔊 swaps it",
+    "home's film card opens its studio; the film's choices hear the picked option over the render, and 🔊 swaps it",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm());
-        // No film chosen: no page bar of tabs that cannot act, and no gesture hint on the card.
+        // No film chosen: no Studio link in the header, and no gesture hint on the card.
         yield* page.waitFor('.rv-film-card[data-film="toy"]');
-        yield* evaluates(page, "document.querySelector('.sh-pagebar').checkVisibility()", false);
+        yield* countIs(page, '.sh-studio', 0);
         yield* countIs(page, '.rv-film-card .rv-meta', 0);
-        // A film card opens its choices from its context menu, which offers each of its parts.
+        // A film card links its studio, and its context menu offers that one move.
+        yield* attributeIs(page, '.rv-film-card[data-film="toy"]', 'href', pageHref.studio('toy'));
         yield* rightClick(page, '.rv-film-card[data-film="toy"]');
-        yield* evaluates(
-          page,
-          `${MENU_ITEMS}.filter((id) => id.startsWith('film.'))`,
-          PARTS.filter((part) => part !== 'films').map((part) => `film.${part}`),
-        );
-        yield* click(page, '[data-role="context-menu"] [data-command="film.choices"]');
-        yield* until(page, `location.pathname === '${FILM}'`);
+        yield* evaluates(page, `${MENU_ITEMS}.filter((id) => id.startsWith('film.'))`, [
+          'film.studio',
+        ]);
+        yield* page.goto(FILM);
         yield* waitFor(page, '.rv-transport');
         yield* waitFor(page, '.rv-picture video');
-        yield* evaluates(page, "document.querySelector('.sh-pagebar').checkVisibility()", true);
-        // The tab's title names the part before the film.
+        // The header leads into the film's studio, and names the page.
+        yield* attributeIs(page, '.sh-studio', 'href', pageHref.studio('toy'));
+        yield* textHas(page, '.sh-page', 'Choices');
+        // The tab's title names the page before the film.
         yield* until(page, "document.title === 'Choices · toy'");
         // The picked option is heard first; the picture's own sound is muted.
         yield* until(

@@ -3,13 +3,12 @@
 // `StepsGroup` in `core/api.ts`): the films, a film's choice points, a verb
 // on a variant, a knob, a say on a variant (`Say`: approve, withdraw,
 // comment), the sound check, the film's project (its scenes by the address
-// tree, each with its render's video) and what is said of it, and the film's
-// undo, redo, check and steps. Each write answers what the page then shows:
-// a source write the change it made, the choices it leaves and the static
-// check after it; a say the choices, or the project, it leaves.
+// tree, each with its render's video), and the film's undo, redo, check and
+// steps. Each write answers what the page then shows: a source write the
+// change it made, the choices it leaves and the static check after it; a say
+// the choices it leaves.
 
 import { Context, Data, Effect, Layer, Match, Option, Predicate } from 'effect';
-import type { PartAddress } from '../../../core/address.ts';
 import type { ProjectView, Say, Steps } from '../../../core/api.ts';
 import type { ChoiceVerb, ChoiceWrite, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewFilms } from '../../../core/review.ts';
@@ -84,12 +83,6 @@ export interface Wrote {
   readonly mixed: Option.Option<PageBuild>;
 }
 
-/** What is said of a film's project: a say at an address (a scene's render, an act, the film). */
-export interface ProjectSay {
-  readonly address: PartAddress;
-  readonly say: Say;
-}
-
 interface OptionsCalls {
   /** The app's films. */
   readonly films: Effect.Effect<ReviewFilms, LabFailure>;
@@ -105,8 +98,6 @@ interface OptionsCalls {
   readonly write: (film: string, act: ChoiceAct) => Effect.Effect<Wrote, LabFailure>;
   /** The film's project (its `main` variant's), read fresh. */
   readonly project: (film: string) => Effect.Effect<ProjectView, LabFailure>;
-  /** Say `said` of the film's project; the project as it leaves it. */
-  readonly sayOfProject: (film: string, said: ProjectSay) => Effect.Effect<ProjectView, LabFailure>;
 }
 
 export class OptionsApi extends Context.Service<OptionsApi, OptionsCalls>()(
@@ -235,13 +226,6 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
         ),
       ),
     project: (film) => called(client.project.get({ params: { film }, query: {} })),
-    sayOfProject: (film, said) =>
-      called(
-        client.project.say({
-          params: { film },
-          payload: { address: said.address, say: said.say },
-        }),
-      ),
   };
   return api;
 });

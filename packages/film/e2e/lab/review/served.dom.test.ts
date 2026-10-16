@@ -24,7 +24,6 @@ import {
 } from '../../../src/lab/fixtures/harness.ts';
 import { PAGE_CUT_MARK, PAGE_ROOT } from '../../../src/core/page-render.ts';
 import { timecode } from '../../../src/core/time.ts';
-import { TOY } from '../../../src/lab/fixtures/toy-film.ts';
 import {
   STUDIO_FILM,
   STUDIO_FOLDER,
@@ -53,7 +52,7 @@ const index: Json = {
 
 /** The toy film's choices: one point of two looks, as the server encodes them. */
 const choices: Json = {
-  film: TOY,
+  film: STUDIO_FILM,
   pictures: [],
   points: [
     {
@@ -82,7 +81,7 @@ const choices: Json = {
 
 const routes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/review\/index(\?fresh=1)?$/, () => json(index)),
-  route('GET', /^\/api\/films$/, () => json({ films: [TOY] })),
+  route('GET', /^\/api\/films$/, () => json({ films: [STUDIO_FILM] })),
   route('GET', /^\/api\/films\/toy\/choices$/, () => json(choices)),
 ];
 
@@ -95,7 +94,7 @@ const reads = (asked: ReadonlyArray<Asked>, path: string) =>
 /** The open sheet (`inspector.tsx`). */
 const SHEET = '[data-role="inspector"]';
 
-/** Links that name a sheet open: a Set's version, a Choices variant, a Project scene. */
+/** Links that name a sheet open: a Set's version, a Choices variant. */
 const NAMING_A_SHEET: ReadonlyArray<{
   readonly name: string;
   readonly href: string;
@@ -107,7 +106,6 @@ const NAMING_A_SHEET: ReadonlyArray<{
     href: pageHref.choices(STUDIO_FILM, 'score', 'piano'),
     title: 'piano of score',
   },
-  { name: 'Project', href: pageHref.project(STUDIO_FILM, STUDIO_SET), title: 'open' },
 ];
 
 /** Links written before what they name went: a version and a variant the page no longer has. */
@@ -129,11 +127,10 @@ const NAMING_NOTHING: ReadonlyArray<{
   },
 ];
 
-/** Pages whose player opens where the link's `#t=` says: a Set, Choices and Project. */
+/** Pages whose player opens where the link's `#t=` says: a Set and Choices. */
 const LANDING_AT_A_TIME: ReadonlyArray<{ readonly name: string; readonly href: string }> = [
   { name: 'a Set', href: pageHref.set(STUDIO_FOLDER, STUDIO_SET) },
   { name: 'Choices', href: pageHref.choices(STUDIO_FILM) },
-  { name: 'Project', href: pageHref.project(STUDIO_FILM) },
 ];
 
 /**
@@ -168,7 +165,7 @@ describe('the review served as the lab renders it', () => {
         // The server's document: the film and the folder, before any script ran.
         const home = documents[0]?.html ?? '';
         expect(home).toContain('Roofs at dusk');
-        expect(home).toContain(`data-film="${TOY}"`);
+        expect(home).toContain(`data-film="${STUDIO_FILM}"`);
         expect(reads(read, '/api/review/index')).toBe(1);
         expect(reads(read, '/api/films')).toBe(1);
         // Hydrated: the same cards, and no request for what came with the page.
@@ -196,15 +193,15 @@ describe('the review served as the lab renders it', () => {
         expect(mismatches(folder.page.logged)).toEqual([]);
         expect(folder.errors).toEqual([]);
 
-        const film = yield* openServed('review', routes, { href: pageHref.choices(TOY) });
-        expect(reads(film.read, `/api/films/${TOY}/choices`)).toBe(1);
+        const film = yield* openServed('review', routes, { href: pageHref.choices(STUDIO_FILM) });
+        expect(reads(film.read, `/api/films/${STUDIO_FILM}/choices`)).toBe(1);
         expect(yield* servedTitle(film.page, film.documents[0]?.html ?? '')).toBe(
-          `Choices · ${TOY}`,
+          `Choices · ${STUDIO_FILM}`,
         );
         // Its cards are the server's markup, painted before any script runs.
         expect(painted(film.documents[0]?.html ?? '')).toContain('data-point="look:ground"');
         yield* waitFor(film.page, '[data-point="look:ground"]');
-        expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(0);
+        expect(reads(film.asked, `/api/films/${STUDIO_FILM}/choices`)).toBe(0);
         expect(mismatches(film.page.logged)).toEqual([]);
         expect(film.errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -220,19 +217,19 @@ describe('the review served as the lab renders it', () => {
           route('GET', /^\/api\/films\/toy\/choices$/, () => json(choices), '400 millis'),
           ...routes,
         ];
-        const film = yield* openServed('review', slow, { href: pageHref.choices(TOY) });
+        const film = yield* openServed('review', slow, { href: pageHref.choices(STUDIO_FILM) });
         // The pieces after the page root's opening tag, which the lab writes on its own.
         const [, first = '', ...rest] = film.documents[0]?.pieces ?? [];
         // The shell, its header and the film's place, at once: no wait on the film's read.
         expect(first).toContain('class="sh-header"');
-        expect(first).toContain(`Reading ${TOY}'s choices…`);
+        expect(first).toContain(`Reading ${STUDIO_FILM}'s choices…`);
         expect(first).not.toContain('look:ground');
         // The read's answer, sent later in the same document: its cards rendered, not only its data.
         const later = painted(rest.join(''));
         expect(later).toContain('data-point="look:ground"');
         expect(later).toContain('data-variant="light"');
         yield* waitFor(film.page, '[data-point="look:ground"]');
-        expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(0);
+        expect(reads(film.asked, `/api/films/${STUDIO_FILM}/choices`)).toBe(0);
         expect(mismatches(film.page.logged)).toEqual([]);
         expect(film.errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -284,7 +281,7 @@ describe('the review served as the lab renders it', () => {
         // that the folder's title is a film: the films are not asked again.
         yield* waitFor(set.page, '.rv-set-tools[data-sources="project"]');
         expect(reads(set.asked, '/api/films')).toBe(0);
-        expect(reads(set.asked, `/api/films/${TOY}/project`)).toBe(1);
+        expect(reads(set.asked, `/api/films/${STUDIO_FILM}/project`)).toBe(1);
         expect(mismatches(set.page.logged)).toEqual([]);
         expect(set.errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -306,19 +303,19 @@ describe('the review served as the lab renders it', () => {
           ...routes,
         ];
         const film = yield* openServed('review', stuck, {
-          href: pageHref.choices(TOY),
+          href: pageHref.choices(STUDIO_FILM),
           cut: '1 second',
         });
         const html = film.documents[0]?.html ?? '';
-        expect(html).toContain(`Reading ${TOY}'s choices…`);
+        expect(html).toContain(`Reading ${STUDIO_FILM}'s choices…`);
         expect(html).toContain(PAGE_CUT_MARK);
         yield* waitFor(film.page, '[data-point="look:ground"]');
         yield* countIs(film.page, `[${PAGE_ROOT}]`, 0);
-        expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(1);
+        expect(reads(film.asked, `/api/films/${STUDIO_FILM}/choices`)).toBe(1);
         expect(film.errors).toEqual([]);
         // A render that ends before its cut is sent whole, unmarked, and hydrated.
         const whole = yield* openServed('review', routes, {
-          href: pageHref.choices(TOY),
+          href: pageHref.choices(STUDIO_FILM),
           cut: '30 seconds',
         });
         expect(whole.documents[0]?.html ?? '').not.toContain(PAGE_CUT_MARK);
@@ -329,7 +326,7 @@ describe('the review served as the lab renders it', () => {
   );
 
   it.live(
-    "renders a film's choice cards and its project's scenes on the server, painted before any script runs, and hydrates them with no read again",
+    "renders a film's choice cards on the server, painted before any script runs, and hydrates them with no read again",
     () =>
       Effect.gen(function* () {
         const choicesPage = yield* openServed('review', studioRoutes, {
@@ -351,24 +348,6 @@ describe('the review served as the lab renders it', () => {
         expect(reads(choicesPage.asked, `/api/films/${STUDIO_FILM}/choices`)).toBe(0);
         expect(mismatches(choicesPage.page.logged)).toEqual([]);
         expect(choicesPage.errors).toEqual([]);
-
-        const projectPage = yield* openServed('review', studioRoutes, {
-          href: pageHref.project(STUDIO_FILM),
-          viewport: PHONE,
-        });
-        const scenes = painted(projectPage.documents[0]?.html ?? '');
-        // The film's panel, its act and each scene's card with its state.
-        expect(scenes).toContain('class="pj-film"');
-        expect(scenes).toContain('opening');
-        expect(scenes).toMatch(/data-scene="open"[^>]*data-state="current"/);
-        expect(scenes).toMatch(/data-scene="close"[^>]*data-state="stale"/);
-        expect(scenes).toMatch(/data-scene="end"[^>]*data-state="missing"/);
-        expect(browserOnly(projectPage.read)).toEqual([]);
-        yield* waitFor(projectPage.page, '[data-scene="open"]');
-        expect(reads(projectPage.asked, `/api/films/${STUDIO_FILM}/choices`)).toBe(0);
-        expect(reads(projectPage.asked, `/api/films/${STUDIO_FILM}/project`)).toBe(0);
-        expect(mismatches(projectPage.page.logged)).toEqual([]);
-        expect(projectPage.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );

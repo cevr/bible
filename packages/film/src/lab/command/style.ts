@@ -10,7 +10,7 @@
 // the tokens. Only what no studio token holds is named here
 // (`COMMAND_TOKENS`): the paddings and heights the surfaces compose, and
 // their own geometry (widths, heights, the layer). Put in the page by its
-// root (`mountLab`, `mountPlay`, `mountReview`). Each surface fits a phone:
+// root (`mountLab`, `mountFilmStudio`, `mountReview`). Each surface fits a phone:
 // no wider than the screen less its gutters, scrolling inside itself. An
 // inspector field is the kit's number field (`.lab-num`), styled where the
 // kit is, never here. A phone's width is the studio's one breakpoint
@@ -27,9 +27,8 @@
 // the page, not over it: the page makes room while an inspector is open. On a
 // phone (the shell's width) the sheet rises from the bottom (design language
 // §7): the screen's width, standing on what `--cmd-sheet-floor` says (the
-// shell's floor, `--shell-floor`: a film's tab bar when its tabs show; and
-// the shell's dock or the Lab's transport row docked over it), so both stay
-// in reach; at most three quarters of the screen tall. Its
+// shell's floor, `--shell-floor`: the safe area; and the shell's dock or
+// the Lab's transport row docked on it), so both stay in reach; at most three quarters of the screen tall. Its
 // head is its grip (a bar drawn at its top): a tap lowers it to a peek, its
 // head alone, and raises it again. The head's Close stands over the grip, a
 // whole target of its own: the grip round it leaves it no spacing. While it
@@ -38,8 +37,8 @@
 // its dock, what it is and its values, wrapped onto a second line rather than
 // cut before the last value: its head alone, a target tall with no padding
 // above or below it (`--cmd-peek-h`, the sheet's top line with it; two lines
-// of the language's leading fit), so the phone's stack (header, peek, dock,
-// tab bar) stays within a quarter of the screen. The peek is the subject's
+// of the language's leading fit), so the phone's stack (header, peek, dock)
+// stays within a quarter of the screen. The peek is the subject's
 // line alone; raised, the kind heads it. The page's foot clears the peek, or
 // the whole sheet, as it clears the dock; only a sheet the mode shows keeps
 // its room, the other mode's hidden with its section. Over an open sheet on a
@@ -250,8 +249,8 @@ const COMMAND_RULES = `
 .lab-clamp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /*
  * The receipts (design language §5) cover no control. On a phone they are
- * first in the bottom stack: over what the sheet stands on (the tab bar, the
- * dock) and over a sheet's peek. On the Lab's laptop layout they stand
+ * first in the bottom stack: over what the sheet stands on (the dock) and
+ * over a sheet's peek. On the Lab's laptop layout they stand
  * bottom-left over the viewer (the stage), never over the timeline dock or
  * the inspector. Elsewhere, at the foot, centred.
  */
@@ -290,7 +289,7 @@ const COMMAND_RULES = `
 .lab-receipt[data-type="refused"] .lab-receipt-said { color: var(--state-findings); }
 .lab-receipt[data-type="busy"] .lab-receipt-said { color: var(--text-2); }
 .lab-receipt-content { display: flex; align-items: center; gap: var(--s-2); }
-.lab-receipt-said { flex: 1; min-width: 0; margin: 0; font-size: var(--body-fs); font-weight: normal; overflow-wrap: anywhere; }
+.lab-receipt-said { flex: 1; min-width: 0; margin: 0; font-size: var(--body-fs); font-weight: var(--w-1); overflow-wrap: anywhere; }
 .lab-receipt-undo, .lab-receipt-close {
   font: inherit; font-size: var(--fs-2); cursor: pointer; background: none; color: var(--text-1);
   border-radius: var(--r-2); padding: var(--cmd-button-pad); min-height: var(--hit); min-width: var(--hit);
@@ -300,7 +299,7 @@ const COMMAND_RULES = `
 .lab-scope {
   display: inline-flex; align-items: center; gap: var(--s-1); max-width: 100%; justify-self: start;
   padding: var(--cmd-key-pad); border: 1px solid var(--line-strong); border-radius: var(--r-2);
-  color: var(--text-1); font: var(--fs-2)/var(--body-lh) var(--font);
+  color: var(--text-1); font: var(--w-1) var(--fs-2)/var(--body-lh) var(--font);
 }
 .lab-scope-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /*

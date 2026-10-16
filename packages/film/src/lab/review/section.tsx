@@ -66,8 +66,8 @@ import type { LabFailure } from '../api.ts';
 import { pressed } from '../pressed.ts';
 import { useSheetDismissal } from '../sheet.tsx';
 import { addressOn } from '../../browser/host.ts';
-import { StateBand } from '../scenes/card.tsx';
-import { allBoard, filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
+import { StateBand } from './state-band.tsx';
+import { filmCounts, filmLength } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { Approval, CommentBox, Comments, type Sayer } from './options/choice.tsx';
@@ -207,13 +207,12 @@ const Section = (props: {
 );
 
 /**
- * A film's state on its card, as its Project's head says it: its
- * length and scenes (`8:46 · 20 scenes`, `filmLength`), the state band and
- * `n/N approved · n out of date`, from the film's project as its owner
- * shows it (`useProject`: read by the server, sent with the page, then the
- * newest answer). Its band marks the renders and approvals; the check's
- * findings are Project's. Nothing while the project is read or when the
- * film has none.
+ * A film's state on its card: its length and scenes (`8:46 · 20 scenes`,
+ * `filmLength`), the state band and `n/N approved · n out of date`, from the
+ * film's project as its owner shows it (`useProject`: read by the server,
+ * sent with the page, then the newest answer). Its band marks the renders
+ * and approvals. Nothing while the project is read or when the film has
+ * none.
  */
 const FilmState = (props: { readonly read: ProjectShown }) => {
   const read = props.read;
@@ -224,10 +223,7 @@ const FilmState = (props: { readonly read: ProjectShown }) => {
           <div class="rv-film-length" data-role="length">
             {filmLength(view().project.scenes)}
           </div>
-          <StateBand
-            scenes={view().project.scenes}
-            marks={(scene) => marksOf(Option.some(view()), [], [])(scene)}
-          />
+          <StateBand scenes={view().project.scenes} />
           <div class="rv-film-counts" data-role="counts">
             {filmCounts(view().project.scenes)}
           </div>
@@ -239,11 +235,9 @@ const FilmState = (props: { readonly read: ProjectShown }) => {
 
 /**
  * The app's films (none when the app has no films), each a card that opens
- * its Scenes, with the stills of the folder its renders sit in when the
- * review holds one, and its state (`FilmState`); its context menu opens its other parts (`filmCommands`),
- * which no line on the card spells out (a gesture is the `?` sheet's). The
- * switcher is the other way into a film; the page bar shows once one is
- * chosen.
+ * its studio, with the stills of the folder its renders sit in when the
+ * review holds one, and its state (`FilmState`); its context menu opens its
+ * studio too (`filmCommands`). The switcher is the other way into a film.
  */
 const Films = (props: {
   readonly folders: ReadonlyArray<ReviewFolder>;
@@ -319,7 +313,7 @@ const useAppFilms = (): Accessor<ReadonlyArray<string>> => {
 
 /**
  * What a film's production card carries of its Films card: the film's state
- * (`FilmState`), and the ways into its studio (Scenes) and its Board.
+ * (`FilmState`), and the way into its studio.
  */
 const FilmOnProduction = (props: { readonly film: string }) => {
   // A production makes one film for its card's life: read once.
@@ -329,32 +323,22 @@ const FilmOnProduction = (props: { readonly film: string }) => {
     <div class="rv-body" data-film={film}>
       <FilmState read={read} />
       <div class="rv-row">
-        <a class="sh-btn" data-act="studio" href={pageHref.scenes(film)}>
+        <a class="sh-btn" data-act="studio" href={pageHref.studio(film)}>
           Studio
-        </a>
-        <a class="sh-btn" data-act="board" href={pageHref.board(film)}>
-          Board
         </a>
       </div>
     </div>
   );
 };
 
-/**
- * A film's card: its Scenes, or its Board while every scene is still a
- * storyboard card (`allBoard`: a new film starts on its board).
- */
+/** A film's card: it opens the film's studio. */
 const FilmCard = (props: {
   readonly film: string;
   readonly folder: Option.Option<ReviewFolder>;
 }) => {
   const film = props.film;
   const read = untrack(() => useProject(film));
-  const href = () =>
-    Option.match(
-      Option.filter(AsyncResult.value(read.view()), (view) => allBoard(view.project.scenes)),
-      { onNone: () => pageHref.scenes(film), onSome: () => pageHref.board(film) },
-    );
+  const href = () => pageHref.studio(film);
   return (
     <Target
       of={Selection.cases.Film.make({ film })}
@@ -481,7 +465,7 @@ interface Shown {
  * a button, so a tap, a click, Enter and Space all open it, and its name
  * says what opens. The URL keeps it open (`?still=` its `name`), so a link
  * opens it, and Back closes it as every sheet's opening is. The lightbox is
- * the kit's dialog over every other layer of the page (the tab bar and the
+ * the kit's dialog over every other layer of the page (the header and the
  * dock too), titled by its caption: focus moves into it and back to the
  * still, and Escape or a tap anywhere closes it, by the sheets' one rule
  * (`useSheetDismissal`), adding no entry.

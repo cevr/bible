@@ -13,7 +13,6 @@ import {
   hookAlpha,
   resolveShort,
   roomAcross,
-  isShortKey,
   shortKey,
   shortPage,
   shortPieces,
@@ -186,12 +185,6 @@ describe('shorts', () => {
     expect(shortPage(1920)).toEqual({ width: 1920, height: 3414, scale: 0.5625 });
     expect(shortPage(1080)).toEqual({ width: 1080, height: 1920, scale: 1 });
     expect(shortKey('film', 'cut')).toBe('film/shorts/cut');
-    expect(isShortKey(shortKey('film', 'cut'))).toBe(true);
-    expect([isShortKey('film'), isShortKey('film/shorts'), isShortKey('a/shorts/b/c')]).toEqual([
-      false,
-      false,
-      false,
-    ]);
   });
 
   test("the platforms' zone is each edge's widest of YouTube Shorts', Instagram Reels' and TikTok's", () => {

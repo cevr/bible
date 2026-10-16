@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { ActName } from '../core/address-schema.ts';
-import { Places, pageHref } from '../core/api.ts';
+import { Places, beatSelection, pageHref } from '../core/api.ts';
 import { Place } from '@bible/url-state';
 import {
   Selection,
@@ -49,11 +49,7 @@ describe("a selection in the pages' URLs", () => {
     expect(selectionOf(pageHref.labScene('f', 'one'))).toEqual(Option.none());
   });
 
-  test("reads a project's card, a folder and a comparison set", () => {
-    expect(selectionOf(pageHref.project('f', 'cold'))).toEqual(
-      Option.some(Point.make({ film: 'f', point: 'cold' })),
-    );
-    expect(selectionOf(pageHref.project('f'))).toEqual(Option.none());
+  test('reads a folder and a comparison set', () => {
     expect(selectionOf(pageHref.set('renders', 'cold'))).toEqual(
       Option.some(Set.make({ folder: 'renders', point: 'cold' })),
     );
@@ -63,17 +59,17 @@ describe("a selection in the pages' URLs", () => {
     expect(selectionOf(pageHref.home())).toEqual(Option.none());
   });
 
-  test("reads a film's Scenes path's scene as the scene selected, and cites it there at the playhead", () => {
-    const at = pageHref.scene('f', 'two', Option.some(42));
+  test("reads the studio's beat as the scene selected, and cites a scene on the studio, at its playhead there", () => {
+    const at = pageHref.studio('f', { sel: beatSelection('two') }, Option.some(42));
     expect(selectionOf(at)).toEqual(Option.some(Scene.make({ film: 'f', scene: 'two' })));
-    expect(selectionOf(pageHref.scenes('f'))).toEqual(Option.none());
-    // On the Scenes, another scene is cited on the tape, at the same film time.
+    expect(selectionOf(pageHref.studio('f'))).toEqual(Option.none());
+    // On the studio, another scene is cited with its beat selected, at the same film time.
     expect(citeOf(Scene.make({ film: 'f', scene: 'one' }), at)).toBe(
-      pageHref.scene('f', 'one', Option.some(42)),
+      pageHref.studio('f', { sel: beatSelection('one') }, Option.some(42)),
     );
-    // Elsewhere a scene is cited as its lab.
-    expect(citeOf(Scene.make({ film: 'f', scene: 'one' }), pageHref.project('f'))).toBe(
-      pageHref.labScene('f', 'one'),
+    // Elsewhere a scene is cited on its film's studio, at the studio's own start.
+    expect(citeOf(Scene.make({ film: 'f', scene: 'one' }), pageHref.choices('f'))).toBe(
+      pageHref.studio('f', { sel: beatSelection('one') }),
     );
   });
 
@@ -210,18 +206,6 @@ describe("a selection in the pages' URLs", () => {
     expect(selectionOf('/films/f/choices')).toEqual(Option.none());
   });
 
-  test("reads the project's `?point=` as the page does: an act's sheet, the film's, a scene's render (H-10)", () => {
-    expect(selectionOf('/films/f/project?point=render%3Aact%3Aopening')).toEqual(
-      Option.some(Act.make({ film: 'f', act: OPENING })),
-    );
-    expect(selectionOf('/films/f/project?point=render%3Afilm')).toEqual(
-      Option.some(Film.make({ film: 'f' })),
-    );
-    expect(selectionOf('/films/f/project?point=render%3Ascenes%3Aroof')).toEqual(
-      Option.some(Point.make({ film: 'f', point: 'render:scenes:roof' })),
-    );
-  });
-
   test('cites a version and a variant with their sheets open; one with no key of its own by the place it is on', () => {
     const here = pageHref.home();
     expect(citeOf(Version.make({ folder: 'r', point: 'cold', version: 'b' }), here)).toBe(
@@ -233,28 +217,21 @@ describe("a selection in the pages' URLs", () => {
     expect(citeOf(Beat.make({ beat: 'b1' }), here)).toBe(here);
   });
 
-  test("cites a choice's card on Choices, and a part's render, an act and the film by their project sheets (H-10, US2-2)", () => {
+  test("cites a choice's card on Choices, and a part's render, an act and the film on the film's studio (H-10, US2-2)", () => {
     const here = pageHref.home();
     expect(citeOf(Point.make({ film: 'f', point: 'score' }), here)).toBe(
       '/films/f/choices?point=score',
     );
-    expect(citeOf(Point.make({ film: 'f', point: 'render:scenes:roof' }), here)).toBe(
-      '/films/f/project?point=render%3Ascenes%3Aroof',
+    expect(selectionOf(citeOf(Point.make({ film: 'f', point: 'score' }), here))).toEqual(
+      Option.some(Point.make({ film: 'f', point: 'score' })),
     );
-    expect(
-      citeOf(Variant.make({ film: 'f', point: 'render:scenes:roof', variant: 'main' }), here),
-    ).toBe('/films/f/project?point=render%3Ascenes%3Aroof');
-    expect(citeOf(Act.make({ film: 'f', act: OPENING }), here)).toBe(
-      '/films/f/project?point=render%3Aact%3Aopening',
-    );
-    expect(citeOf(Film.make({ film: 'f' }), here)).toBe('/films/f/project?point=render%3Afilm');
     for (const s of [
+      Point.make({ film: 'f', point: 'render:scenes:roof' }),
+      Variant.make({ film: 'f', point: 'render:scenes:roof', variant: 'main' }),
       Act.make({ film: 'f', act: OPENING }),
       Film.make({ film: 'f' }),
-      Point.make({ film: 'f', point: 'score' }),
-      Point.make({ film: 'f', point: 'render:scenes:roof' }),
     ])
-      expect(selectionOf(citeOf(s, here))).toEqual(Option.some(s));
+      expect(citeOf(s, here)).toBe('/films/f/studio');
   });
 
   test('a version or a variant cited on its own page keeps how the page shows it and when (US2-4)', () => {
@@ -273,10 +250,8 @@ describe("a selection in the pages' URLs", () => {
     expect(citeOf(Point.make({ film: 'f', point: 'score' }), choices)).toBe(
       '/films/f/choices?point=score&heard=score&variant=ensemble#t=3',
     );
-    const project = '/films/f/project?point=render%3Afilm&picture=p2#t=4';
-    expect(citeOf(Act.make({ film: 'f', act: OPENING }), project)).toBe(
-      '/films/f/project?point=render%3Aact%3Aopening&picture=p2#t=4',
-    );
+    const studio = '/films/f/studio?v=2&sel=beat%3Aone#t=4';
+    expect(citeOf(Act.make({ film: 'f', act: OPENING }), studio)).toBe(studio);
   });
 
   test("writes a cue's or a knob's lab keys", () => {

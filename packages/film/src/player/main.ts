@@ -1,8 +1,8 @@
 // The browser player, framework-free. A page with a film on it stages it
 // here (`stageFilm`): the render page (`render.ts`, `mountRender`), and the
 // studio's pages, which mount the scrubbable preview (`mountPreview`) in
-// their Solid shell: the lab (`@bible/film/lab`), and a film's Scenes and
-// Play pages (`mountPlay`, lab/play-mount.tsx). So the render page never
+// their Solid shell: the lab (`@bible/film/lab`), and a film's studio
+// (`mountFilmStudio`, lab/film-studio/mount.tsx). So the render page never
 // loads Solid, and the studio's pages never load the encoder.
 
 import type { ClockReads, Film, KnobRead, RenderOptions, ShownEdit } from '../canvas/film.ts';
@@ -33,20 +33,10 @@ import { pictureFacesWait } from './face.ts';
 import { narration, narrationNote } from './narration.ts';
 import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
-import { legendCommand, legendHtml, ticksCommand, transportCommands } from './transport.ts';
-import { makeHud } from './hud.ts';
-import { keptText } from '../browser/storage.ts';
-import { ViewerStore } from '../browser/storage-browser.ts';
-import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
+import { legendCommand, legendHtml, transportCommands } from './transport.ts';
 
 /** How long a tick's name stays after the finger that held it lifts, in ms. */
 const TIP_READ_MS = 1500;
-
-/** Whether the viewer shows the ticks on Play (`on`; none or `off`: hidden), kept in this browser. */
-const KEPT_TICKS = keptText(ViewerStore, 'film-studio.ticks');
-
-/** Play's HUD: the bar, the shell's header and its tab bar (`player.css` fades them together). */
-const HUD_PARTS = '.bar, .sh-header, .sh-pagebar';
 
 /** A span of film seconds playback repeats: `from` to `to`. */
 export interface LoopRange {
@@ -136,12 +126,6 @@ export interface Player {
    * frame is drawn, yet T moves. Until the returned function is called.
    */
   onMove(listener: (T: number) => void): () => void;
-  /**
-   * The bar is on a film's Play page, in `part` (the shell's Play part):
-   * its HUD fades while the film plays and comes back at the viewer's input,
-   * until the returned function is called.
-   */
-  playOn(part: HTMLElement): () => void;
 }
 
 /**
@@ -212,9 +196,7 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
  * and its transport, registered as commands with the page's `hub` (whose
  * keymap binds their keys, which the `?` sheet lists). Its legend (the
  * stripes and the ticks) is hidden at rest: in the lab ⌘K or the page's menu
- * shows it (`legendCommand`); on a film's Play page it shows with the ticks,
- * once the viewer turns them on (`ticksCommand`), and the HUD fades while the
- * film plays (`hud.ts`). The lab's transport reads in the scene's time (the
+ * shows it (`legendCommand`). The lab's transport reads in the scene's time (the
  * header keeps the film's), and its captions are the view menu's and `c`.
  * Its film's faces failing to load fail the page (`fail`: it ends, and says
  * why).
@@ -383,23 +365,6 @@ export const mountPreview = (
   let drawable = false;
 
   const page = hub.context().page;
-  /** The film's Play page the bar is on (the shell's part, `Player.playOn`), where the HUD fades and the ticks are the viewer's. */
-  let playPage = Option.none<HTMLElement>();
-  const onPlay = () => Option.isSome(playPage);
-  /** Whether the keyboard's focus is on one of the HUD's controls (the bar, the header, the tab bar): they stay while it is. */
-  const focusHeld = () =>
-    Option.match(Option.fromNullishOr(document.activeElement), {
-      onNone: () => false,
-      onSome: (el) => el.matches(':focus-visible') && el.closest(HUD_PARTS) !== null,
-    });
-  const hud = makeHud(
-    (shown) => {
-      bar.dataset['hud'] = shown ? 'shown' : 'hidden';
-    },
-    timersOn(host),
-    focusHeld,
-  );
-  bar.dataset['hud'] = 'shown';
 
   /**
    * The frames of footage the preview asks for: a decode that lands after a
@@ -467,11 +432,8 @@ export const mountPreview = (
       playBtn.ariaLabel = playWord;
       playGlyph.textContent = playing ? '❚❚' : '▶︎';
     }
-    // On Play the line is the captions' alone while they show (`player.css`).
-    bar.dataset['captions'] = captions.on ? 'on' : 'off';
     // The captions' button is a toggle, its state said to a reader and drawn as the kit's pressed look.
     captionsBtn.ariaPressed = String(captions.on);
-    if (onPlay()) hud.playing(playing);
     url.moved();
   };
 
@@ -633,79 +595,8 @@ export const mountPreview = (
       step('play.frame-next', '▶', 'Next frame'),
     );
   }
-  // The picture: a click plays or pauses; on Play a finger's tap while it
-  // plays shows or hides the HUD instead (its ❚❚ pauses), as a phone's
-  // players do. Any other input on Play shows the HUD (`hud.ts`, `playOn`).
-  let pressedBy = 'mouse';
-  canvas.addEventListener('pointerdown', (e) => {
-    pressedBy = e.pointerType;
-  });
-  canvas.addEventListener('click', () => {
-    if (onPlay() && playing && pressedBy !== 'mouse') hud.toggle();
-    else toggle();
-  });
-  /**
-   * The bar on Play, in `part` (the shell's Play part, the whole window):
-   * the HUD hears the viewer there, the page's own elements, and the keys
-   * through the page's one key listener, until the returned stop. A pointer
-   * moved or pressed shows it, but a finger on the picture, whose tap toggles
-   * it; so does any key pressed (bound or not, `Hub.presses`), any command
-   * the page runs (a menu's, ⌘K's), and the keyboard's
-   * focus landing on a control (Tab onto a faded one). The focus leaving a
-   * control restarts a shown HUD's wait and never shows it: a tap moves the
-   * focus before its click, and its meaning never depends on where the
-   * focus was.
-   */
-  const playOn = (part: HTMLElement): (() => void) => {
-    const listening = new AbortController();
-    const options = { capture: true, signal: listening.signal };
-    const pointed = (e: PointerEvent) => {
-      if (e.target === canvas && e.pointerType !== 'mouse') return;
-      hud.wake();
-    };
-    part.addEventListener('pointermove', pointed, options);
-    part.addEventListener('pointerdown', pointed, options);
-    part.addEventListener(
-      'focusin',
-      (e) => {
-        if (e.target instanceof Element && e.target.matches(':focus-visible')) hud.wake();
-      },
-      options,
-    );
-    part.addEventListener('focusout', () => hud.focusLeft(), options);
-    const unpressed = hub.presses(() => hud.wake());
-    const unheard = hub.receipts(() => hud.wake());
-    playPage = Option.some(part);
-    draw();
-    return () => {
-      listening.abort();
-      unpressed();
-      unheard();
-      playPage = Option.none();
-      hud.playing(false);
-    };
-  };
-  if (page === 'player') {
-    // A film's ticks (hundreds of them) are off on Play until the viewer turns
-    // them on (⋯ → Show the ticks), kept in this browser; their legend shows with them.
-    const ticksKept = AtomRegistry.make();
-    ticksKept.mount(KEPT_TICKS);
-    const ticksShown = () => Option.contains(ticksKept.get(KEPT_TICKS), 'on');
-    const showTicks = () => {
-      bar.dataset['ticks'] = ticksShown() ? 'on' : 'off';
-    };
-    showTicks();
-    hub.commands.register(
-      ticksCommand({
-        shown: ticksShown,
-        toggle: () => {
-          ticksKept.set(KEPT_TICKS, ticksShown() ? 'off' : 'on');
-          showTicks();
-        },
-        here: onPlay,
-      }),
-    );
-  }
+  // The picture: a click plays or pauses.
+  canvas.addEventListener('click', () => toggle());
   // The first frame: at once when the film's faces are in, else once they
   // have loaded (the bar stands meanwhile). A face that will not load fails
   // the page, as a film that will not load does: the film stops, and the
@@ -800,7 +691,6 @@ export const mountPreview = (
         },
       };
     },
-    playOn,
     onDraw: drawnTo.add,
     onMove: movedTo.add,
   };

@@ -1,5 +1,5 @@
 // The studio on a phone (390 × 844): the review's transport lies in one row
-// over the tab bar; every page fits (no sideways scroll, each control inside
+// on the floor; every page fits (no sideways scroll, each control inside
 // the width, its chrome at most a quarter of the height); a short name is as
 // wide as its words; a finger on a note's field under the scope's × writes in
 // the field; a finger on a slider drags it from the top edge of its box.
@@ -31,16 +31,12 @@ import {
   review,
   lab,
   player,
-  WORK_ROUTES,
   opens,
   CHOICES,
-  PROJECT,
-  PROJECT_READY,
   PRODUCTION_READY,
   ASK_READY,
   DELIVERY_READY,
   DRAFT_READY,
-  STILL,
   CHOICES_READY,
   SELECTION_SHEET,
   labCue,
@@ -55,7 +51,7 @@ import {
 
 /**
  * The review's transport as a script reads it: whether its dock stands on
- * the tab bar, and whether play, the time, the scrub and the rate lie in that
+ * the floor, and whether play, the time, the scrub and the rate lie in that
  * order along one line. Their size is the touch guard's (a finger's target)
  * and the phone-fit checks' (the chrome's share of the screen).
  */
@@ -67,7 +63,7 @@ const TRANSPORT_ROW = `(() => {
   );
   const mid = (r) => r.top + r.height / 2;
   return [
-    'on the tabs ' + (Math.round(d.bottom) === Math.round(document.querySelector('.sh-pagebar').getBoundingClientRect().top)),
+    'on the floor ' + (Math.round(d.bottom) === innerHeight),
     'in order ' + parts.every((r, i) => i === 0 || r.left >= parts[i - 1].right - 0.5),
     'one line ' + parts.every((r) => Math.abs(mid(r) - mid(d)) < 4),
   ];
@@ -76,17 +72,16 @@ const TRANSPORT_ROW = `(() => {
 describe('the review transport on a phone (UI-10)', () => {
   const PAGES = [
     ['Choices', review(CHOICES, ...CHOICES_READY)],
-    ['Project', review(PROJECT, ...PROJECT_READY)],
     ['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')],
   ] as const;
   for (const [name, open] of PAGES) {
     it.live(
-      `${name}: one row docked over the tab bar: play, the time, the scrub, then the rate`,
+      `${name}: one row docked on the floor: play, the time, the scrub, then the rate`,
       () =>
         Effect.gen(function* () {
           const page = yield* open(PHONE.viewport);
           yield* evaluates(page, TRANSPORT_ROW, [
-            'on the tabs true',
+            'on the floor true',
             'in order true',
             'one line true',
           ]);
@@ -101,7 +96,6 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
   const PAGES: ByPlace<readonly [name: string, open: State['open'], layer?: string]> = {
     home: [['Films', review(pageHref.home(), '.rv-main a[href]')]],
     choices: [['Choices', review(CHOICES, ...CHOICES_READY)]],
-    project: [['Project', review(PROJECT, ...PROJECT_READY)]],
     set: [['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')]],
     folder: [
       ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name')],
@@ -117,26 +111,11 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
         review(pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '4-4'), DELIVERY_READY),
       ],
     ],
-    scenes: [
-      ['Scenes', player(pageHref.scenes(PROBE), STILL)],
-      [
-        "Scenes, its legend full (out of date, not rendered, approved, findings, warnings, the film's)",
-        player(pageHref.scenes(PROBE), '.sc-legend-item[data-mark="film"]', WORK_ROUTES),
-      ],
-    ],
-    scene: [
-      [
-        // Its sheet is a layer over the tape, as an inspector is: shut to go back, so no chrome.
-        "Scenes, a scene selected: its sheet's width and controls the page's, the sheet no chrome",
-        player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
-        '[data-role="scene"]',
-      ],
-    ],
     lab: LAB_MOVES,
     labScene: [
       ['Lab', lab('edit')],
-      // Its sheet peeks one line above the dock, counted as chrome: the header, the peek, the
-      // dock and the tab bar, within the quarter.
+      // Its sheet peeks one line above the dock, counted as chrome: the header, the peek and the
+      // dock, within the quarter.
       ['Lab, a scene with a cue selected', labCue],
       [
         // Opened, the sheet is a layer over the Lab, as an inspector is: shut to go back, so no chrome.
@@ -151,7 +130,7 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
     boardBeat: [['Board', boardOpen]],
     // The picture and its track over the words, which scroll in a box of their own above the dock.
     scriptBeat: [['Script', scriptOpen]],
-    play: [['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')]],
+    studio: [['Studio', player(pageHref.studio(PROBE), '.st-timeline .st-clip')]],
   };
   for (const [place, [name, open, layer]] of byPlace(PAGES)) {
     it.live(

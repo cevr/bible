@@ -4,7 +4,7 @@
 // sheet) placed in them, chips in their state's colour, one accent for the playhead, selection, focus and
 // the one primary verb, and every grid folding to one column on a phone
 // (the transport, one row in the shell's dock, stays in reach while the page
-// scrolls: over the tab bar on a phone, under the header on a laptop). Put
+// scrolls: on the shell's floor on a phone, under the header on a laptop). Put
 // in the page by `mountReview`, so the page needs no
 // stylesheet of its own.
 
@@ -18,6 +18,9 @@ body.rv {
 }
 .rv *, .rv *::before, .rv *::after { box-sizing: border-box; }
 :where(.rv) a { color: inherit; }
+/* A control is reached on its whole box: the browser leaves a rounded corner out of what a pointer meets. */
+:where(.rv) :where(.sh-btn, .sh-tool) { position: relative; }
+:where(.rv) :where(.sh-btn, .sh-tool)::after { content: ''; position: absolute; inset: 0; }
 .rv-main { padding: var(--s-4) var(--gutter) var(--s-8); padding-bottom: max(var(--s-8), env(safe-area-inset-bottom)); max-width: 1900px; margin: 0 auto; }
 .rv-h {
   font-size: var(--fs-2); line-height: var(--lh-2); text-transform: uppercase; letter-spacing: var(--track-caps);
@@ -124,14 +127,14 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-picked path { fill: none; stroke: var(--surface-1); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 /*
  * The transport: one row in the page's dock (\`.sh-dock\`, the shell's), on
- * Choices, a Set and Project alike: play, the time, the scrub taking what is
+ * Choices and a Set alike: play, the time, the scrub taking what is
  * left, then the rate. On a phone the time is where the clock is; the scrub
  * shows the end. On a laptop the header's timecode is the time, and the row
  * says only the length.
  */
 .rv-transport { flex: 1; display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-3); min-width: 0; }
 @media ${WIDE} {
-  .rv-main .sh-dock:not(.pj-dock) { margin-bottom: var(--s-3); }
+  .rv-main .sh-dock { margin-bottom: var(--s-3); }
   /* One timecode on a laptop: the header's; the row keeps the length. */
   .rv-time-at { display: none; }
 }
@@ -174,22 +177,15 @@ a.rv-card:hover { background: var(--surface-2); }
   font-family: var(--font-mono); font-size: var(--fs-2); line-height: var(--lh-2); font-variant-numeric: tabular-nums; }
 /* Play, quiet (\`PlayedAlone\`'s \`quiet\`): the kit's quiet button, at the pointer's size. */
 .rv-big[data-tone="quiet"] { width: var(--hit); min-height: var(--hit); }
-/*
- * In a scene's card (Project's sheet; the card's player picture frames the
- * picture and stands the row under it) the row is a phone's at any width
- * (the card is a sheet's width): the time where the clock is, the scrub
- * showing the end.
- */
-.sc-card-picture > .rv-alone-row { gap: var(--s-2); }
-.sc-card-picture > .rv-alone-row .rv-time-rest { display: none; }
+/* A row alone keeps its own time at any width. */
 @media ${WIDE} {
   .rv-alone-row .rv-time-at { display: inline; }
 }
 /*
- * The lightbox (\`Zoom\`), over the tab bar and dock, fills the viewport: rings inside. The still
+ * The lightbox (\`Zoom\`), over the header and dock, fills the viewport: rings inside. The still
  * and its caption are one group held in the middle, the caption right under the still; the still
- * is at most the view less the padding and the caption's line, so the caption never sits low on
- * the dimmed tab bar's labels.
+ * is at most the view less the padding and the caption's line, so the caption never sits off
+ * the screen.
  */
 .rv-lightbox-backdrop { position: fixed; inset: 0; background: var(--backdrop-deep); z-index: var(--cmd-layer); }
 .rv-lightbox {
@@ -241,7 +237,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-option .rv-body { display: flex; flex-direction: column; gap: var(--s-2); }
 .rv-take { border-top: var(--border); padding-top: var(--s-2); display: flex; flex-direction: column; gap: var(--s-2); }
 /* The row whose inspector is open (design language §5, List row): its left edge in the
-   accent, on Choices' variant rows and a Set's version cards alike (Project's tiles below);
+   accent, on Choices' variant rows and a Set's version cards alike;
    one the keyboard focuses shows the shell's ring instead. */
 :is(.rv-take, .rv-card)[data-selected="true"]:not(:focus-visible) { box-shadow: inset 2px 0 var(--accent); }
 .rv-take { padding-left: var(--s-2); }
@@ -253,68 +249,23 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-list .rv-take .lab-inspect { max-width: 100%; text-align: start; }
 .rv-list .rv-take .rv-name { white-space: normal; overflow-wrap: anywhere; }
 .rv-knob input[type="range"] { flex: 1; min-width: 0; max-width: 320px; }
-/*
- * Project (design language §7): the transport docked (over the tab bar on a
- * phone, under the header across the page on a laptop) or the line that says
- * the film has no render; the film's panel, its state band a segment a scene
- * in its hue, its state's colour at its foot; each act a panel, its name in caps,
- * holding its scenes: one row of cards on a laptop (the act's arrangement,
- * scrolling sideways when it runs long), a row each on a phone, edge to edge.
- */
+/* The line that says the film has no render, where the transport would be. */
 .rv-no-cut { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pj-film { margin-bottom: var(--s-4); }
-/* Its lines stand apart, so the chip's hit-slop never reaches the name's line. */
-.pj-film-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); min-height: var(--hit); }
-.pj-film-head > .lab-named { font-size: var(--fs-4); font-weight: var(--w-3); }
-/*
- * The findings chip is drawn small, as the mock has it; its target is the
- * line's height through a hit-slop (its neighbours are too near for spacing).
- */
-.pj-film-head .sh-btn { position: relative; min-height: var(--control-h); }
-.pj-film-head .sh-btn::before { content: ''; position: absolute; left: 0; right: 0;
-  top: min(0px, calc((var(--control-h) - var(--hit)) / 2)); bottom: min(0px, calc((var(--control-h) - var(--hit)) / 2)); }
-.pj-film-length, .pj-film-counts, .rv-film-length, .rv-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
+/* The film's length and counts on a Films card, over and under its state band. */
+.rv-film-length, .rv-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
 /* A Films card's band sits between the film's name and its counts. */
 .rv-film-card .pj-band { margin: var(--s-2) 0; }
-/* A segment a scene in its hue, its state a foot of the state's colour, a dot when it has findings. */
+/* A segment a scene in its hue, its state a foot of the state's colour. */
 .pj-band { display: flex; gap: 1px; height: calc(var(--s-2) + 2px); margin: var(--s-2) 0 var(--s-3); }
-.pj-band span { position: relative; flex-basis: 0; min-width: 0; background: var(--hue); }
+.pj-band span { flex-basis: 0; min-width: 0; background: var(--hue); }
 .pj-band span[data-state="stale"] { box-shadow: inset 0 -2px 0 var(--state-stale); }
 .pj-band span[data-state="rendered"] { box-shadow: inset 0 -2px 0 var(--state-rendered); }
 .pj-band span[data-state="approved"] { box-shadow: inset 0 -2px 0 var(--state-approved); }
-.pj-band span:is([data-state="findings"], [data-state="warning"])::after { content: ''; position: absolute;
-  right: 2px; top: 2px; width: var(--s-1); height: var(--s-1); border-radius: var(--r-dot); background: var(--state-findings); }
-.pj-band span[data-state="warning"]::after { background: var(--state-warning); }
-.pj-act, .pj-loose { margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter) var(--s-4); border-top: var(--border); }
-.pj-act-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-2); min-height: var(--hit);
-  color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
-.pj-act-head > .lab-named { color: var(--text-1); font-weight: var(--w-2); text-transform: uppercase;
-  letter-spacing: var(--track-caps); }
-/* A button sets its own case: the name's button takes the head's caps. */
-.pj-act-head > .lab-named .lab-inspect { text-transform: inherit; letter-spacing: inherit; }
-.pj-act-meta { font-variant-numeric: tabular-nums; }
-.pj-loose { padding-top: var(--s-3); }
-.pj-scenes { display: grid; gap: var(--s-3); }
-.pj-still { width: 100%; height: 100%; }
-.pj-still canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
-.rv-scene { min-width: 0; cursor: pointer; }
-@media ${WIDE} {
-  .pj-dock { margin: calc(-1 * var(--s-4)) calc(-1 * var(--gutter)) var(--s-4); }
-  .pj-scenes { grid-auto-flow: column; grid-auto-columns: 13.5rem; justify-content: start;
-    overflow-x: auto; padding-bottom: var(--s-1); }
-}
-@media ${PHONE} {
-  .pj-act, .pj-loose { padding-bottom: 0; }
-  .pj-scenes { gap: 0; margin: 0 calc(-1 * var(--gutter)); }
-  .pj-scenes .sc-card[data-size="tile"] { padding: var(--s-2) var(--gutter); border-width: 0 0 1px; border-radius: 0;
-    background: none; }
-  .pj-scenes .sc-card[data-size="tile"][data-selected="true"] { box-shadow: inset 2px 0 var(--accent); }
-}
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
 .rv-choices { display: contents; }
 /*
  * The kinds strip: one row of tabs (scrolling sideways on a phone), held
- * under the header as the page scrolls, as Scenes' tape bar is; on a laptop
+ * under the header as the page scrolls; on a laptop
  * under the dock held there too.
  */
 .rv-kinds {
@@ -344,7 +295,7 @@ a.rv-card:hover { background: var(--surface-2); }
  * finger's 44 px on the phone, 28 px on the laptop), grown by padding, never
  * by bigger text. A slider, a segment and a sound button are the kit's
  * (the shell's sheet), --hit already; a loose video's file link --hit square; a
- * row or head that holds a name (the Project's film and act heads too), a
+ * row or head that holds a name, a
  * finding's time and a part's choice link full rows --hit tall (a name's own
  * hit-slop, in the commands' sheet, then stays inside its row).
  */

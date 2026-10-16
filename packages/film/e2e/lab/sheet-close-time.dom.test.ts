@@ -2,29 +2,19 @@
 // tap that opened the sheet only when that entry is exactly where the Close
 // would write. Time moved while the sheet was open lives in the entry the
 // sheet is on, so Back would rewind it; the Close then follows (a replace) and
-// keeps the time. Checked on Scenes' scene sheet, the phone Lab's cue sheet
-// and a Set's inspector, each by the `#t=` after the Close.
+// keeps the time. Checked on the phone Lab's cue sheet and a Set's
+// inspector, each by the `#t=` after the Close.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
-import {
-  PHONE,
-  URL_T,
-  labAt,
-  openLab,
-  openPlayer,
-  openReview,
-  route,
-} from '../../src/lab/fixtures/harness.ts';
-import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
+import { PHONE, URL_T, labAt, openLab, openReview, route } from '../../src/lab/fixtures/harness.ts';
 import { STUDIO_FOLDER, STUDIO_SET, studioRoutes } from '../../src/lab/fixtures/studio-film.ts';
 import { countIs, evaluates, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import { tone } from '../../src/lab/fixtures/tone.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 
 const SLOW = 30_000;
-const DESK = { width: 1440, height: 900 };
 const HASH = 'location.hash';
 
 /** Wait until the hash is something other than `was`, and give it. */
@@ -35,29 +25,6 @@ const movedFrom = (page: Tab, was: string) =>
   });
 
 describe('a sheet closed after the time moved keeps the time', () => {
-  it.live(
-    "Scenes' scene sheet",
-    () =>
-      Effect.gen(function* () {
-        const { page, errors } = yield* openPlayer(
-          { href: pageHref.scenes(PROBE), viewport: DESK },
-          '.sc-still[data-drawn="true"] canvas',
-        );
-        const cut = yield* page.box('.sc-cut[data-scene="two"]');
-        const stills = yield* page.box('.sc-stills');
-        yield* page.mouse.click(cut.x + 6, stills.y + stills.height / 2);
-        yield* waitFor(page, '.sc-focus');
-        const tapped = yield* page.evaluate<string>(HASH);
-        yield* page.press('ArrowRight');
-        const moved = yield* movedFrom(page, tapped);
-        yield* page.click('.sc-focus [data-act="close-inspector"]');
-        yield* countIs(page, '.sc-focus', 0);
-        yield* evaluates(page, HASH, moved);
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
   it.live(
     "the phone Lab's cue sheet",
     () =>

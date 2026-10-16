@@ -1,7 +1,6 @@
 // A page's unsent comments: one draft per thing, kept while the page lives, so
 // a comment box that closes keeps its text. The Set's and Choices' inspectors
-// (`inspector.tsx`) and the Scenes page's sheets (`scenes/view.tsx`) keep
-// theirs here.
+// (`inspector.tsx`) keep theirs here.
 
 import { Option } from 'effect';
 import { createStore } from 'solid-js';

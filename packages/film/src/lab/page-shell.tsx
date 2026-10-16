@@ -1,20 +1,18 @@
-// The studio's one shell (design language §4), on every page from Films to
-// the Lab: the header (Films, the film switcher, the page bar, the
-// drill-down crumb, the page's own tools, the timecode, Go to… ⌘K, the
-// view menu ⋯) over
-// the page. The page bar is Films · Board · Scenes · Lab · Script · Choices ·
-// Project · Play, each a link printed by its place (`partHref`) and each on
-// its key (⇧1-⇧8, `partCommands`); from the Board, Scenes, the Lab, the Script or Play
-// the others of those five open at the header's playhead (`filmTimeOn`); on a phone its seven film tabs are a tab bar along
-// the bottom (56 px over the safe area) and Films is the header's leading
-// square. Every move between parts is here, the switcher or a command that
-// lands on a part's tab: no page links to another part in its text. The
-// film the tabs lead into is the page's, or on Films the one last opened
-// (a per-viewer convenience kept in this browser, safe to lose). A page
-// with a playhead shows its time in the header as a timecode
-// (`useShellTime`), and a page below a part names its depth in one crumb
-// (`crumb`); a tap on the timecode copies the link to here. The
-// tab's title names what the page has selected (`subject`) before the rest.
+// The lab's one shell (design language §4), around Films and the film
+// pages the studio has not taken in yet (the Board, the Script, the Lab,
+// Choices): the header (Films, the film switcher, the film's Studio, the
+// page's name and its drill-down crumb, the page's own tools, the
+// timecode, Go to… ⌘K, the view menu ⋯) over the page. The studio
+// (`film-studio/`) is the one way into a film: the switcher and the Studio
+// link open it, ⇧1 goes to Films and ⇧2 to the film's studio
+// (`shellCommands`), and a film card's context menu opens its studio
+// (`filmCommands`). The film the Studio link leads into is the page's, or
+// on Films the one last opened (a per-viewer convenience kept in this
+// browser, safe to lose). A page with a playhead shows its time in the
+// header as a timecode (`useShellTime`), and a page below its name names
+// its depth in one crumb (`crumb`); a tap on the timecode copies the link
+// to here. The tab's title names what the page has selected (`subject`)
+// before the rest.
 
 import { Menu } from '@bible/ui/menu';
 import { Separator } from '@bible/ui/separator';
@@ -31,7 +29,7 @@ import {
   type ParentProps,
   useContext,
 } from 'solid-js';
-import { PARTS, PART_TITLE, type Part, filmTimeOn, hasPart, partHref } from '../core/api.ts';
+import { pageHref } from '../core/api.ts';
 import { FILM_FPS, timecodeParts } from '../core/time.ts';
 import type { Host } from '../browser/host.ts';
 import { PageLoad } from '../browser/page-load.ts';
@@ -41,14 +39,14 @@ import { ViewerStore } from '../browser/storage-browser.ts';
 import type { Hub } from '../command/hub.ts';
 import { BY_BUTTON } from '../command/command.ts';
 import type { Player } from '../player/main.ts';
-import { filmCommands, partCommandId, partCommands } from '../command/go.ts';
+import { FILMS_COMMAND, STUDIO_COMMAND, filmCommands, shellCommands } from '../command/go.ts';
 import { hubKeys } from './command/changes.ts';
 import { COMMAND_MENU, GO_TO_COMMAND } from './command/command-menu.tsx';
 import { ViewMenu } from './command/view-menu.tsx';
-import { pageTitle } from './page-title.ts';
+import { PAGE_TITLE, type ShellPage, pageTitle } from './page-title.ts';
 import { pressed } from './pressed.ts';
 
-/** The film last opened in this browser: where the tabs lead from Films. */
+/** The film last opened in this browser: where the Studio link leads from Films. */
 const lastFilm = keptText(ViewerStore, 'film-studio.film');
 
 /** A playhead the header shows: its time, in seconds, and its frame rate. */
@@ -120,7 +118,7 @@ export const ShellTools = (props: ParentProps) => {
 };
 
 /** The shell's icons, by name. */
-type IconName = Part | 'search' | 'chevron' | 'undo' | 'redo' | 'hear' | 'stop';
+type IconName = 'films' | 'play' | 'search' | 'chevron' | 'undo' | 'redo' | 'hear' | 'stop';
 
 /**
  * Each icon's strokes, drawn only for the icon shown: an element made is a
@@ -134,39 +132,6 @@ const ICON_STROKES: Readonly<Record<IconName, () => JSX.Element>> = {
       <rect x="13.5" y="3.5" width="7" height="7" />
       <rect x="3.5" y="13.5" width="7" height="7" />
       <rect x="13.5" y="13.5" width="7" height="7" />
-    </>
-  ),
-  board: () => (
-    <>
-      <rect x="3.5" y="4.5" width="7.5" height="6" />
-      <rect x="13" y="4.5" width="7.5" height="6" />
-      <path d="M3.5 14.5h7.5M13 14.5h7.5M3.5 18h4.5M13 18h4.5" />
-    </>
-  ),
-  scenes: () => (
-    <>
-      <rect x="2.5" y="5.5" width="19" height="13" />
-      <path d="M8.5 5.5v13M15.5 5.5v13" />
-    </>
-  ),
-  lab: () => (
-    <>
-      <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
-      <circle cx="15" cy="7" r="2" />
-      <circle cx="9" cy="17" r="2" />
-    </>
-  ),
-  script: () => (
-    <>
-      <path d="M5.5 3.5h9l4 4v13h-13z" />
-      <path d="M9 11h6M9 14.5h6M9 18h3.5" />
-    </>
-  ),
-  choices: () => <path d="M4 6h16M4 12h16M4 18h8M15 17.5l2 2 3.5-4" />,
-  project: () => (
-    <>
-      <rect x="3.5" y="3.5" width="17" height="17" />
-      <path d="M8 12.5l3 3 5-6" />
     </>
   ),
   play: () => <path d="M7 4.5l12 7.5-12 7.5z" />,
@@ -185,7 +150,7 @@ const ICON_STROKES: Readonly<Record<IconName, () => JSX.Element>> = {
   stop: () => <rect x="6" y="6" width="12" height="12" />,
 };
 
-/** A line icon of the shell's, 20 px in the tab bar and 16 px in the header. */
+/** A line icon of the shell's, 16 px in the header. */
 const Icon = (props: { readonly of: IconName }) => (
   <svg class="sh-icon" viewBox="0 0 24 24" aria-hidden="true">
     {ICON_STROKES[props.of]()}
@@ -250,8 +215,8 @@ export const Timecode = (props: {
 };
 
 interface PageShellProps {
-  /** The part the page is (Films for a folder or a set not of a film). */
-  readonly part: Accessor<Part>;
+  /** The page it is (Films for a folder or a set, a production, an ask, a draft). */
+  readonly page: Accessor<ShellPage>;
   /** The film the page is of, if any. */
   readonly film: Accessor<Option.Option<string>>;
   /** Every film the switcher offers. */
@@ -260,28 +225,21 @@ interface PageShellProps {
   readonly host: Host;
   /** Move to `href` within this page, answering whether it did; otherwise the link loads its page. */
   readonly follow?: (href: string) => boolean;
-  /** The page's depth below its part, after the page bar (`cold · stack`). */
+  /** The page's depth below its name, after it (`cold · stack`). */
   readonly crumb?: Accessor<Option.Option<string>>;
   /** What the page has selected (a scene), first in the tab's title; the page's body shows it, so the header does not. */
   readonly subject?: Accessor<Option.Option<string>>;
   /**
-   * Whether the tabs lead into the film last opened when the page is of none
-   * (the default); a page that is no film's (a series draft) passes false, so
-   * its header names no film and offers no film's tabs.
+   * Whether the Studio link leads into the film last opened when the page is
+   * of none (the default); a page that is no film's (a series draft) passes
+   * false, so its header names no film and offers no film's studio.
    */
   readonly lastFilm?: boolean;
   readonly children: JSX.Element;
 }
 
-/** An ARIA `aria-current` by whether the tab is the page's. */
+/** An ARIA `aria-current` by whether the link is the page's. */
 const CURRENT = { true: 'page', false: 'false' } as const;
-
-/** The part a film switch lands on: the same part of the other film; Scenes from Films. */
-const filmPart = (part: Part): Part =>
-  Option.getOrElse(
-    Option.liftPredicate(part, (p) => p !== 'films'),
-    (): Part => 'scenes',
-  );
 
 /** A name the page may give (its crumb, its subject): none where it gives none. */
 const given = (at: PageShellProps['crumb']): Option.Option<string> =>
@@ -294,7 +252,7 @@ export const PageShell = (props: PageShellProps) => {
   createEffect(props.film, (film) => {
     Option.map(film, keep);
   });
-  /** The film the tabs lead into: the page's, else the one last opened where the page takes it. */
+  /** The film the Studio link leads into: the page's, else the one last opened where the page takes it. */
   const film = () =>
     Option.orElse(props.film(), () => Option.filter(kept(), () => props.lastFilm !== false));
   // The tab's title is the shell's, printed once for the server's head and the browser's
@@ -302,7 +260,7 @@ export const PageShell = (props: PageShellProps) => {
   useHead(() => ({
     tag: 'title',
     props: {
-      children: pageTitle([given(props.subject), given(props.crumb)], props.part(), props.film()),
+      children: pageTitle([given(props.subject), given(props.crumb)], props.page(), props.film()),
     },
   }));
   const [time, setTime] = createSignal(Option.none<ShellTime>(), { ownedWrite: true });
@@ -317,63 +275,33 @@ export const PageShell = (props: PageShellProps) => {
     if (props.follow?.(href) === true) return;
     Effect.runForkWith(props.host)(PageLoad.use((load) => load.open(href)));
   };
-  /** A page bar link's click: within the page when it can, else the link's own load. */
+  /** A header link's click: within the page when it can, else the link's own load. */
   const onLink = (href: string) => (e: MouseEvent) => {
     if (!plainClick(e) || props.follow?.(href) !== true) return;
     e.preventDefault();
   };
-  /** The playhead the header shows, as the time a move to another part keeps. */
-  const at = () => Option.map(time(), (shown) => shown.t);
   onCleanup(
-    props.hub.commands.register(...partCommands(film, props.part, go, at), ...filmCommands(go)),
+    props.hub.commands.register(
+      ...shellCommands(film, () => props.page() === 'films', go),
+      ...filmCommands(go),
+    ),
   );
   // Each names its key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(props.hub);
-  const tab = (part: Part) => (
-    <Show
-      when={Option.getOrUndefined(
-        Option.map(
-          Option.filter(film(), (f) => hasPart(f, part)),
-          (f) => partHref(part, f, filmTimeOn(props.part(), at())),
-        ),
-      )}
-      fallback={
-        <span class="sh-tab" data-page={part} data-disabled="">
-          <Icon of={part} />
-          <span>{PART_TITLE[part]}</span>
-        </span>
-      }
-    >
-      {(href) => (
-        <a
-          class="sh-tab"
-          data-page={part}
-          href={href()}
-          data-active={pressed(props.part() === part)}
-          aria-current={CURRENT[pressed(props.part() === part)]}
-          title={keys.titled(PART_TITLE[part], partCommandId(part))}
-          onClick={(e: MouseEvent) => onLink(href())(e)}
-        >
-          <Icon of={part} />
-          <span>{PART_TITLE[part]}</span>
-        </a>
-      )}
-    </Show>
-  );
   return (
     <ShellContext value={Option.some(setTime)}>
       <ToolsContext value={tools}>
-        <div class="sh" data-part={props.part()} data-film={pressed(Option.isSome(film()))}>
+        <div class="sh" data-part={props.page()} data-film={pressed(Option.isSome(film()))}>
           <header class="sh-header">
             <a
               class="sh-films"
               data-page="films"
-              href={partHref('films', '')}
-              data-active={pressed(props.part() === 'films')}
-              aria-current={CURRENT[pressed(props.part() === 'films')]}
+              href={pageHref.home()}
+              data-active={pressed(props.page() === 'films')}
+              aria-current={CURRENT[pressed(props.page() === 'films')]}
               aria-label="Films"
-              title={keys.titled('Films', partCommandId('films'))}
-              onClick={onLink(partHref('films', ''))}
+              title={keys.titled('Films', FILMS_COMMAND)}
+              onClick={onLink(pageHref.home())}
             >
               <Icon of="films" />
               <span>Films</span>
@@ -387,12 +315,12 @@ export const PageShell = (props: PageShellProps) => {
               <Menu.Portal>
                 <Menu.Positioner class="lab-context-positioner" sideOffset={4} align="start">
                   <Menu.Popup class="lab-context-menu" data-role="film-menu">
-                    {/* The films, the one open checked: a pick goes to it, on the part it is on. */}
+                    {/* The films, the one open checked: a pick opens its studio. */}
                     <Menu.RadioGroup
                       aria-label="Films"
                       value={Option.getOrUndefined(film())}
                       onValueChange={(name: string) => {
-                        go(partHref(filmPart(props.part()), name));
+                        go(pageHref.studio(name));
                       }}
                     >
                       <For each={props.films()}>
@@ -414,6 +342,16 @@ export const PageShell = (props: PageShellProps) => {
                     </Menu.RadioGroup>
                     <Menu.Separator class="lab-context-separator" />
                     <Menu.Group>
+                      {/* The studio of the film open: the phone's way there, its header holding no Studio link. */}
+                      <Show when={Option.isSome(film())}>
+                        <Menu.Item
+                          class="lab-context-item"
+                          label="Open the studio"
+                          onClick={() => props.hub.invokeId(STUDIO_COMMAND, BY_BUTTON)}
+                        >
+                          <span>Open the studio</span>
+                        </Menu.Item>
+                      </Show>
                       <Menu.Item
                         class="lab-context-item"
                         label="Copy link"
@@ -426,9 +364,25 @@ export const PageShell = (props: PageShellProps) => {
                 </Menu.Positioner>
               </Menu.Portal>
             </Menu.Root>
-            <nav class="sh-pagebar" aria-label="Pages">
-              <For each={PARTS.filter((p) => p !== 'films')}>{(part) => tab(part)}</For>
-            </nav>
+            <Show when={Option.getOrUndefined(Option.map(film(), (f) => pageHref.studio(f)))}>
+              {(href) => (
+                <a
+                  class="sh-studio"
+                  data-page="studio"
+                  href={href()}
+                  title={keys.titled('Open the studio', STUDIO_COMMAND)}
+                  onClick={(e: MouseEvent) => onLink(href())(e)}
+                >
+                  Studio
+                </a>
+              )}
+            </Show>
+            <Show when={props.page() !== 'films'}>
+              <span class="sh-page" data-role="page" aria-current="page">
+                <i>›</i>
+                {PAGE_TITLE[props.page()]}
+              </span>
+            </Show>
             <Show when={Option.getOrUndefined(given(props.crumb))}>
               {(text) => (
                 <span class="sh-crumb" data-role="crumb">

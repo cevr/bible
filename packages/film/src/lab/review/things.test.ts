@@ -1,5 +1,5 @@
-// A variant's approve and unapprove as commands, the same on Choices, Project
-// and a Set's version: what each offers, and in whose words.
+// A variant's approve and unapprove as commands, the same on Choices and a
+// Set's version: what each offers, and in whose words.
 
 import { describe, expect, test } from 'bun:test';
 import { Effect, Schema } from 'effect';
