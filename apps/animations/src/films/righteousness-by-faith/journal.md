@@ -89,3 +89,7 @@ Board redraw: with roof.6 attached as the place and Christ cut from robe.5 and c
 ## 2026-10-16T14:07:33Z · film
 
 Board stain/seal redraw: with the dye stain only in words, cold.evidence and title.start drew lumpy cloud-shaped blots in all 4 tries; with cold.did's soft oval as an image reference, both cold.evidence tries and title.start try 1 drew that oval. The wax seal's R came out legible in every seal try (8 of 8 across cold.cover, word.all, word.short, word.fig); 1 try (word.all) still drew small drips under the seal, and 1 (cold.cover) drew a red scalloped rim that read as a prize rosette.
+
+## 2026-10-16T14:27:07Z · garden
+
+Board: with crops of Rosa's 2026-10-13 cast sheet (front and garden hat) as references, both garden.picture tries drew her in the house look with the hat, cool silver hair, plum shawl triangle and skirt; with garden.picture's kept Rosa added as a reference, garden.blade and garden.rest drew the same Rosa in 4 of 4 tries, though one blade try drew her head larger.
