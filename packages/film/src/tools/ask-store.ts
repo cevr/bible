@@ -401,8 +401,8 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
 /**
  * What an ask files on its production's timeline as it stands at `now`: its
  * question, when it names a set (at the time it was made); and once closed,
- * the owner's decision (its answers, answered to its end) or its withdrawal
- * (a note, closed before).
+ * the owner's decision (its answers, answered to its end, at the time of his
+ * last answer) or its withdrawal (a note, closed before, at `now`).
  */
 const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
   const set = Option.map(Option.fromUndefinedOr(record.set), setPathOf);
@@ -414,14 +414,17 @@ const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
     by: Option.some(record.by),
   };
   const named = `${record.title} (ask ${record.id})`;
+  // A time the record keeps (ISO), as the ledger keeps it; `now` when it does not read.
+  const timeOf = (iso: Option.Option<string>) =>
+    Option.getOrElse(
+      Option.map(Option.flatMap(iso, DateTime.make), DateTime.toEpochMillis),
+      () => now,
+    );
   const question = Arr.filter(
     [
       {
         _tag: 'Asked' as const,
-        at: Option.getOrElse(
-          Option.map(DateTime.make(record.created), DateTime.toEpochMillis),
-          () => now,
-        ),
+        at: timeOf(Option.some(record.created)),
         text: named,
         quote: Option.none<string>(),
         ...on,
@@ -462,7 +465,9 @@ const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
       return [
         {
           _tag: 'Decided',
-          at: now,
+          // When he answered (his last step), not when the ask was closed: a decision he
+          // made in between stays the newer one.
+          at: timeOf(Option.map(Arr.last(record.answered), (a) => a.at)),
           text: `${named}: ${line}`,
           quote: Option.liftPredicate(words.join(' / '), (w) => w.length > 0),
           ...on,

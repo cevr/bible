@@ -219,6 +219,48 @@ describe('the asks on disk', () => {
     ),
   );
 
+  it.effect('files its answers at the time they were given, before a later decision', () =>
+    run(
+      Effect.gen(function* () {
+        const asks = yield* AskStore;
+        const productions = yield* ProductionStore;
+        yield* TestClock.setTime(Date.UTC(2026, 9, 14, 12));
+        yield* productions.start('f', {
+          title: 'F',
+          film: Option.none(),
+          blurb: Option.none(),
+          first: 'v1',
+          at: 0,
+        });
+        const { id } = yield* asks.make({ ...draft(proof([1, 7])), production: 'f' });
+        yield* TestClock.adjust('1 minute');
+        yield* asks.answerPage(id, [{ step: step('pick'), values: { try: '1' } }]);
+        const answered = Date.UTC(2026, 9, 14, 12, 1);
+        // The owner decides again in chat, after he answered and before the ask is closed.
+        yield* TestClock.adjust('1 hour');
+        yield* productions.say('f', {
+          _tag: 'Decided',
+          at: Date.UTC(2026, 9, 14, 13, 1),
+          text: 'Try 7 after all',
+          quote: Option.some('no, the seventh'),
+          set: Option.none(),
+          point: Option.none(),
+          variant: Option.none(),
+          ask: Option.none(),
+          by: Option.some('agent'),
+        });
+        yield* TestClock.adjust('1 hour');
+        yield* asks.close(id, 'kept try 1');
+        const said = Option.getOrThrow(yield* productions.read('f')).said;
+        // The newest decision is the one he made last: the ask's answer sorts before it.
+        expect(said.map((s) => [s._tag, s.at, s.text])).toEqual([
+          ['Decided', answered, `Keep a try (ask ${id}): try: Try 1`],
+          ['Decided', Date.UTC(2026, 9, 14, 13, 1), 'Try 7 after all'],
+        ]);
+      }),
+    ),
+  );
+
   it.effect('an optional field left empty is answered skipped; sent blank again, the same', () =>
     run(
       Effect.gen(function* () {
