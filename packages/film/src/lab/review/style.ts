@@ -208,11 +208,20 @@ a.rv-card:hover { background: var(--surface-2); }
 }
 .rv-note h1 { font-size: var(--fs-5); line-height: var(--lh-5); }
 .rv-note h3, .rv-note h4 { font-size: var(--fs-3); line-height: var(--lh-3); }
-.rv-note ul { margin: var(--s-1) 0; padding-left: var(--s-4); }
+.rv-note ul, .rv-note ol { margin: var(--s-1) 0; padding-left: var(--s-4); }
+.rv-note li > ul, .rv-note li > ol { margin: 0; }
 .rv-note p { margin: var(--s-1) 0; }
 .rv-note code { background: var(--surface-2); padding: 0 var(--s-1); border-radius: var(--r-1); font-size: var(--fs-2); }
 .rv-note table { border-collapse: collapse; font-size: var(--fs-2); margin: var(--s-2) 0; display: block; overflow-x: auto; }
 .rv-note td { border: var(--border); padding: var(--s-1) var(--s-2); vertical-align: top; }
+/* Code as it stands: its lines kept, scrolled across inside its box, never wrapped. */
+.rv-note pre {
+  margin: var(--s-2) 0; padding: var(--s-2) var(--s-3); background: var(--surface-2); border-radius: var(--r-1);
+  overflow-x: auto; overflow-wrap: normal; white-space: pre; font-size: var(--fs-2); line-height: var(--lh-2);
+}
+.rv-note pre code { background: none; padding: 0; font-size: inherit; }
+/* A quote: its rule at its left, its words a step quieter. */
+.rv-note blockquote { margin: var(--s-2) 0; padding: 0 0 0 var(--s-3); border-left: 2px solid var(--line-strong); color: var(--text-2); }
 .rv-verdict { border-left: 2px solid var(--line-strong); padding: var(--s-2) var(--s-3); margin: 0 0 var(--s-3); background: var(--surface-2); }
 .rv-doc { background: var(--surface-1); margin-bottom: var(--s-2); }
 .rv-doc summary { padding: var(--s-3) var(--s-4); cursor: pointer; }
