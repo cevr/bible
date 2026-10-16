@@ -13,9 +13,11 @@ import { type SceneSpec, scenesOf } from '@bible/film/canvas';
 import { lightOf } from '../light.ts';
 import { fonts } from '../palette.ts';
 import { script } from '../script.ts';
+import { cold } from './cold.ts';
+import { title } from './title.ts';
 
 export const scenes: SceneSpec[] = scenesOf(script, {
-  drawings: {},
+  drawings: { cold, title },
   light: lightOf,
   card: { brief: fonts.display, label: fonts.body },
 });

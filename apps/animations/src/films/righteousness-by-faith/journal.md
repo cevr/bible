@@ -93,3 +93,23 @@ Board stain/seal redraw: with the dye stain only in words, cold.evidence and tit
 ## 2026-10-16T14:27:07Z · garden
 
 Board: with crops of Rosa's 2026-10-13 cast sheet (front and garden hat) as references, both garden.picture tries drew her in the house look with the hat, cool silver hair, plum shawl triangle and skirt; with garden.picture's kept Rosa added as a reference, garden.blade and garden.rest drew the same Rosa in 4 of 4 tries, though one blade try drew her head larger.
+
+## 2026-10-16T15:19:54Z · cold
+
+v3 pilot, first look: Rive draws a node's children front first; with the head paper listed before the face kit and hair, every face and hair drew hidden behind the head. Listed front first, the three faces read at evidence as the panel's (lead worried, prosecutor and judge stern).
+
+## 2026-10-16T15:19:56Z · cold
+
+The set's crease at the full ramp shade made the tan pilasters read brick red, louder than the figures; at half the ramp's shade the room stands back and the figures read first. The frame under the verdict act's room light reads greyer and darker than the Board's warm panels.
+
+## 2026-10-16T15:19:57Z · cold
+
+The stain as one hard blot with one pink halo read as a target in the did close-up; three fainter rings round a smaller blot read soaked in. The seal over it at cover shows the scarlet edge round the gold as cold.cover does.
+
+## 2026-10-16T15:20:01Z · cold
+
+Hair laid flat with a low hairline (0.3 of the head's half-height) read as a helmet on the prosecutor; at 0.5 with small tufts the forehead opens and his face reads, though the hair is still rounder than cold.evidence's swept fringe.
+
+## 2026-10-16T15:20:59Z · title
+
+v3 pilot: the court pulled back to zoom 0.6 with the pews on a near plane (z 0.72) frames as title.start does, the room small mid-frame; cream letters alone vanish on the cream wall, so the name carries an ink outline under its cream to read there.
