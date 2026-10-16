@@ -23,7 +23,7 @@
 // paper room (`room.paper`); each STORY place has its own air from the
 // library. A bed that hands over to the next place ends where that scene's
 // voice begins (`at: 'speech'`), so the room changes as the new speaker does.
-// The procedural tones carry the film's one grammar:
+// The code tones carry the film's one grammar:
 //   - a chime each time an icon lights on the row (the library's five
 //     variants rotate, so no two lightings in a row ring the same);
 //   - a low drone under `exchange`'s one black moment;

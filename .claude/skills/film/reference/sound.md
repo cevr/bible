@@ -4,12 +4,12 @@ The owner's rule (2026-10-15): ElevenLabs makes a sound effect only when it need
 
 ## Which sounds are code
 
-| Kind         | Made by                                                    | Kept                                 | Use it for                                                                                                                |
-| ------------ | ---------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `code`       | a graph of nodes (`core/synth/graph/nodes.ts` `CodeSound`) | nothing: each seed renders on demand | every simple sound: a knock, a thud, a whoosh, a hiss, a chime, a drone, wind, rain                                       |
-| `generated`  | ElevenLabs, as candidates the owner curates                | the lock and the private store       | the realism code cannot reach: voices and crowds, creatures, life far off, paper and cloth handled, textured foley        |
-| `procedural` | a recipe (`core/synth/recipes.ts`)                         | nothing                              | the six sounds placed before code sounds came; they stay until the owner has heard their code versions (see A code trial) |
-| `recorded`   | a CC0 recording under `public/`                            | the repo                             | a real sound already in hand                                                                                              |
+| Kind         | Made by                                                    | Kept                                 | Use it for                                                                                                          |
+| ------------ | ---------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `code`       | a graph of nodes (`core/synth/graph/nodes.ts` `CodeSound`) | nothing: each seed renders on demand | every simple sound: a knock, a thud, a whoosh, a hiss, a chime, a drone, wind, rain                                 |
+| `generated`  | ElevenLabs, as candidates the owner curates                | the lock and the private store       | the realism code cannot reach: voices and crowds, creatures, life far off, paper and cloth handled, textured foley  |
+| `procedural` | a recipe (`core/synth/recipes.ts`)                         | nothing                              | none: the six recipes the app placed play their ports as code (`room`, `chime`, `drone`, `drain`, `bloom`, `notes`) |
+| `recorded`   | a CC0 recording under `public/`                            | the repo                             | a real sound already in hand                                                                                        |
 
 A generated entry says `why` it needs ElevenLabs: the realism its credits pay for. The schema requires it (`core/sfx.ts` `Generated`).
 
@@ -112,6 +112,12 @@ Most sounds are made of a few shapes. `core/synth/graph/presets.ts` builds each 
 | `sizzle`  | `flash`, `crackle`, `secs`                                  | water on hot metal: a flash of steam, then steam, a low boil and pops, falling evenly by 45 dB          | the steam's edge, and the pops' times and levels   |
 | `breeze`  | `secs`, `hz`                                                | a steady breeze, made to loop: pink air through a band that wanders slowly, its level swaying           | its sway and its band's wander                     |
 | `rain`    | `secs`, `hiss`, `taps`                                      | soft rain, made to loop; with `taps`, that many taps a second on a roof's tiles                         | the drops' and the taps' times, levels and pitches |
+| `room`    | `secs`                                                      | room tone, made to loop: brown body and pink hiss under a slow swell of air                             | its swell                                          |
+| `drone`   | `root`, `secs`                                              | a low held tone, made to loop: the root, its octave, its twelfth and its fifth, breathing slowly        | its breath                                         |
+| `chime`   | `root`, `partials` (`glass` or `bell`), `secs`              | a struck chime on a degree of the root's major pentatonic scale                                         | its degree: variant n rings degree n − 1           |
+| `drain`   | `from`, `to`, `secs`                                        | a hollow tone falling from one note to another, breath following it down a band, fading                 | its breath                                         |
+| `bloom`   | `root`, `secs`                                              | a soft swell: the root's chord entering note by note under a rising shimmer                             | each note's entry, up to 40 ms late                |
+| `notes`   | `root`, `count`, `secs`                                     | `count` bright plinks on two octaves of the root's scale, one after another, each ringing on            | each plink's note, time and level                  |
 
 Each family is pinned by its samples and heard to do what its doc says (`core/synth/graph/presets.test.ts`). A one-second one-shot of each renders inside the 20 ms budget that **Speed is measured, never gated** sets below (`bun run test:perf` logs each). A family is the place to change a shape: an edit to it changes the label of every sound built from it.
 

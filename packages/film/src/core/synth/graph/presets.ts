@@ -4,8 +4,9 @@
 // settings give the same graph, hash and samples on every host.
 //
 // The eight recipes of core/synth/recipes.ts are here as graphs that take the
-// recipe's own settings: `portOf(recipe)` is a recipe's sound made by code,
-// heard beside the recipe until the owner chooses (core/sfx.ts `codeTrialOf`).
+// recipe's own settings: `portOf(recipe)` is a recipe's sound made by code
+// (core/sfx.ts `codeTrialOf`). Six of them are the app's tones, exported as
+// families: `room`, `chime`, `drone`, `drain`, `bloom` and `notes`.
 // A recipe whose port is no code sound the library's walk takes is refused
 // at its entry (core/sfx.ts), so a trial nobody wrote never fails the load.
 // A port draws its numbers from the graph's streams, so its samples are new;
@@ -134,7 +135,7 @@ const levelBetween = (min: number, max: number, of: Node): Node => ({
 const BED_LOOP = 1;
 
 /** Room tone: brown body and pink hiss under a slow swell of air, made to loop. */
-const room = (settings: { readonly secs: number }): Node => {
+export const room = (settings: { readonly secs: number }): Node => {
   const made = settings.secs + BED_LOOP;
   return {
     _tag: 'Loop',
@@ -150,7 +151,7 @@ const room = (settings: { readonly secs: number }): Node => {
 };
 
 /** A struck chime on a degree of the root's major pentatonic scale: variant n rings degree n − 1. */
-const chime = (settings: {
+export const chime = (settings: {
   readonly root: string;
   readonly partials: 'glass' | 'bell';
   readonly secs: number;
@@ -167,7 +168,7 @@ const chime = (settings: {
 });
 
 /** A low held tone: the root, its octave, its twelfth and its fifth, breathing slowly, made to loop. */
-const drone = (settings: { readonly root: string; readonly secs: number }): Node => {
+export const drone = (settings: { readonly root: string; readonly secs: number }): Node => {
   const made = settings.secs + BED_LOOP;
   const root = hz(settings.root);
   return {
@@ -207,7 +208,7 @@ const drainLevels = (
 };
 
 /** A hollow tone falling from one note to another, breath following it down a band, and fading. */
-const drain = (settings: {
+export const drain = (settings: {
   readonly from: string;
   readonly to: string;
   readonly secs: number;
@@ -248,7 +249,7 @@ const drain = (settings: {
 const BLOOM_DEGREES = [0, 2, 3, 5] as const;
 
 /** A soft swell: the root's chord entering note by note under a rising shimmer. */
-const bloom = (settings: { readonly root: string; readonly secs: number }): Node => {
+export const bloom = (settings: { readonly root: string; readonly secs: number }): Node => {
   const secs = settings.secs;
   const shimmer: Node = {
     _tag: 'Envelope',
@@ -296,7 +297,7 @@ const bloom = (settings: { readonly root: string; readonly secs: number }): Node
 };
 
 /** A few bright plinks on two octaves of the root's scale, one after another, each ringing on. */
-const notes = (settings: {
+export const notes = (settings: {
   readonly root: string;
   readonly count: number;
   readonly secs: number;

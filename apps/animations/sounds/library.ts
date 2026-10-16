@@ -13,28 +13,32 @@
 // `sfx render --trial --sheet`, `sfx compare`, `sfx ab`: the loop in the
 // film skill's reference/sound.md). A trial is layered from the families
 // `@bible/film/core` exports (a burst, a thump, a knock, a whoosh, …), each a
-// shape with a few settings, so a shape is tuned in one place. Procedural
-// sounds are recipes, played from their seeds the same way. A recorded sound
-// is CC0 only, under `public/` (`sfx import`).
+// shape with a few settings, so a shape is tuned in one place. A recorded
+// sound is CC0 only, under `public/` (`sfx import`).
 //
-// The library: 24 generated one-shots, 7 generated beds, 6 code one-shots,
-// 2 code beds, 1 recorded one-shot, 6 procedural sounds. Prompts are concrete,
-// close and dry: a film's cue places them, the mix sets their level against
-// the voice. How to word a prompt and pick its settings, from the trials in
-// sounds/PROMPTING.md.
+// The library: 24 generated one-shots, 7 generated beds, 10 code one-shots,
+// 4 code beds and 1 recorded one-shot. Prompts are concrete, close and dry: a
+// film's cue places them, the mix sets their level against the voice. How to
+// word a prompt and pick its settings, from the trials in sounds/PROMPTING.md.
 //
 // Influence and candidate count follow the framework's defaults by use
 // (one-shot 0.7 × 6, bed 0.3 × 3); a sound names its own only where a trial
 // heard better.
 
 import {
+  bloom,
   breeze,
   burst,
+  chime,
   defineLibrary,
   defineStore,
+  drain,
+  drone,
   hiss,
   knock,
+  notes,
   rain,
+  room,
   scatter,
   sizzle,
   thump,
@@ -87,17 +91,19 @@ const bed = (prompt: string, declared: Declared) =>
 
 export const library = defineLibrary({
   // Beds -------------------------------------------------------------------
+  // The paper room's air: 8 s a loop.
   'room.paper': {
-    kind: 'procedural',
-    recipe: { recipe: 'room', secs: 8 },
+    kind: 'code',
+    sound: { play: room({ secs: 8 }) },
     variants: 1,
     use: 'bed',
     level: -36,
     duck: false,
   },
+  // A low D with its octave, twelfth and fifth, breathing slowly: 8 s a loop.
   'tone.low': {
-    kind: 'procedural',
-    recipe: { recipe: 'drone', root: 'D2', secs: 8 },
+    kind: 'code',
+    sound: { play: drone({ root: 'D2', secs: 8 }) },
     variants: 1,
     use: 'bed',
     level: -24,
@@ -410,29 +416,30 @@ export const library = defineLibrary({
     }),
   }),
   'tone.drain': {
-    kind: 'procedural',
-    recipe: { recipe: 'drain', from: 'D4', to: 'A2', secs: 1.5 },
+    kind: 'code',
+    sound: { play: drain({ from: 'D4', to: 'A2', secs: 1.5 }) },
     variants: 1,
     use: 'one-shot',
     level: -16,
   },
+  // Variant n rings degree n − 1 of D's major pentatonic scale.
   'tone.chime': {
-    kind: 'procedural',
-    recipe: { recipe: 'bell', root: 'D5', partials: 'glass', secs: 1.5 },
+    kind: 'code',
+    sound: { play: chime({ root: 'D5', partials: 'glass', secs: 1.5 }) },
     variants: 5,
     use: 'one-shot',
     level: -18,
   },
   'tone.bloom': {
-    kind: 'procedural',
-    recipe: { recipe: 'bloom', root: 'D4', secs: 2.5 },
+    kind: 'code',
+    sound: { play: bloom({ root: 'D4', secs: 2.5 }) },
     variants: 2,
     use: 'one-shot',
     level: -16,
   },
   'tone.notes': {
-    kind: 'procedural',
-    recipe: { recipe: 'notes', root: 'D5', count: 4, secs: 1.5 },
+    kind: 'code',
+    sound: { play: notes({ root: 'D5', count: 4, secs: 1.5 }) },
     variants: 3,
     use: 'one-shot',
     level: -16,

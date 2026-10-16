@@ -12,11 +12,17 @@ export { Look, Looks, Movement, Music, Shorts, Sound, defineScript } from './sch
 export { membersOf } from './acts.ts';
 export { defineLibrary } from './sfx.ts';
 export {
+  bloom,
   breeze,
   burst,
+  chime,
+  drain,
+  drone,
   hiss,
   knock,
+  notes,
   rain,
+  room,
   scatter,
   sizzle,
   thump,
