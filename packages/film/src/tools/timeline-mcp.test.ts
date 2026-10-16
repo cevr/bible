@@ -4,9 +4,10 @@
 // folder, and its own Board on its lane), a version it has not refused by
 // name, and only the lanes asked; the header waits on the open version's
 // Board whichever version is read; a clock is read once per stamp of the
-// film's sources; an agent's "doing now" line on the header, replaced by its
-// next and cleared when it says it is done. The lines themselves clear after
-// half an hour of silence (`Working`, on the test clock).
+// film's sources; an agent's "doing now" line on the header, said by name,
+// replaced by its next and cleared when it says it is done. The lines
+// themselves clear after half an hour of silence (`Working`, on the test
+// clock).
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Duration, Effect, Layer, Option, Result, Schema } from 'effect';
@@ -226,7 +227,7 @@ describe('timeline', () => {
 
 describe('working', () => {
   it.effect(
-    "says an agent's line on the header, replaces it with its next, and clears it on done",
+    "says an agent's line on the header by name, replaces it with its next, and clears it on done",
     () =>
       provided(
         Effect.gen(function* () {
@@ -236,25 +237,37 @@ describe('working', () => {
           expect(said.working.map((l: { by: string; text: string }) => [l.by, l.text])).toEqual([
             ['painter', 'drawing cold'],
           ]);
-          yield* tool('working', { film: 'f', text: 'checking the seams' });
+          yield* tool('working', { film: 'f', text: 'checking the seams', by: 'checker' });
           yield* tool('working', { film: 'f', text: 'drawing title', by: 'painter' });
           const header = (yield* tool('timeline', { film: 'f' })).header.working;
           expect(
             header.map((l: { by: string; text: string }) => [l.by, l.text]).toSorted(),
           ).toEqual([
-            ['agent', 'checking the seams'],
+            ['checker', 'checking the seams'],
             ['painter', 'drawing title'],
           ]);
-          const done = yield* tool('working', {
-            film: 'f',
-            text: 'drew title',
-            by: 'painter',
-            done: true,
-          });
-          expect(done.working.map((l: { by: string }) => l.by)).toEqual(['agent']);
-          expect((yield* tool('working', { film: 'nope', text: 'x' })).refused).toContain('nope');
+          // Done needs no words.
+          const done = yield* tool('working', { film: 'f', by: 'painter', done: true });
+          expect(done.working.map((l: { by: string }) => l.by)).toEqual(['checker']);
+          // A line names who says it, and a line not done says something.
+          expect((yield* tool('working', { film: 'f', text: 'x' })).refused).toContain('by');
+          expect((yield* tool('working', { film: 'f', by: 'painter' })).refused).toBe(
+            'say `text` (what you are doing now), or `done: true` to clear your line',
+          );
+          expect(
+            (yield* tool('working', { film: 'nope', text: 'x', by: 'painter' })).refused,
+          ).toContain('nope');
         }),
       ),
+  );
+
+  it.effect.layer(Working.layer)("a film's lines are its own", () =>
+    Effect.gen(function* () {
+      const working = yield* Working;
+      yield* working.say('f', 'painter', 'drawing cold');
+      expect((yield* working.on('f')).map((l) => l.by)).toEqual(['painter']);
+      expect(yield* working.on('g')).toEqual([]);
+    }),
   );
 
   it.effect.layer(Working.layer)(

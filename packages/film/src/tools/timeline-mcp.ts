@@ -46,11 +46,17 @@ const TimelineTool = Tool.make('timeline', {
 }).annotate(Tool.Readonly, true);
 
 const WorkingTool = Tool.make('working', {
-  description: `Say on the film's studio header what you are doing now, in one line (\`text\`: "drawing cold from its Board"), as \`by\` (who you are): it replaces your last line on that film. Say \`done: true\` when you finish and it clears; a line you leave clears after ${Duration.toMinutes(WORKING_HELD)} minutes of silence. The lab holds it in memory only. Answers the film's lines now.`,
+  description: `Say on the film's studio header what you are doing now, in one line (\`text\`: "drawing cold from its Board"), as \`by\` (who you are): it replaces your last line on that film. Say \`done: true\` (no \`text\` needed) when you finish and your line clears; a line you leave clears after ${Duration.toMinutes(WORKING_HELD)} minutes of silence. The lab holds it in memory only. Answers the film's lines now.`,
   parameters: Schema.Struct({
     ...FilmParam.fields,
-    text: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(200)),
-    by: Schema.optionalKey(Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(80))),
+    text: Schema.optionalKey(
+      Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(200)).annotate({
+        description: 'What you are doing now, in one line: needed unless `done` is true.',
+      }),
+    ),
+    by: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(80)).annotate({
+      description: 'Who you are: your line on the film is the one this names.',
+    }),
     done: Schema.optionalKey(Schema.Boolean),
   }),
   success: WorkingRead,
@@ -59,8 +65,10 @@ const WorkingTool = Tool.make('working', {
 
 const TimelineToolkit = Toolkit.make(TimelineTool, WorkingTool);
 
-/** Who says a line when the call names no one. */
-const AN_AGENT = 'agent';
+/** What a line said with no words is refused with. */
+const NO_TEXT = LabRefused.make({
+  reason: 'say `text` (what you are doing now), or `done: true` to clear your line',
+});
 
 /** The studio's tools, served by the lab's MCP server. */
 export const timelineMcp = (options: LabMcpOptions) =>
@@ -84,9 +92,12 @@ export const timelineMcp = (options: LabMcpOptions) =>
               refused(
                 Effect.gen(function* () {
                   const named = yield* filmNamed(film).pipe(Effect.provideContext(films));
-                  const who = by ?? AN_AGENT;
-                  if (done === true) yield* working.done(named, who);
-                  else yield* working.say(named, who, text);
+                  if (done === true) yield* working.done(named, by);
+                  else
+                    yield* Option.match(Option.fromUndefinedOr(text), {
+                      onNone: () => Effect.fail(NO_TEXT),
+                      onSome: (line) => working.say(named, by, line),
+                    });
                   return { film: named, working: yield* working.on(named) };
                 }),
               ),
