@@ -4,9 +4,10 @@
 // into its root, and a read of the lab's API streamed in once answered; each
 // build renders in a worker of its own, imported afresh; a render of an
 // older build still under way finishes after a newer build renders; a page's
-// head preloads and declares the words face's latin file at the URL the
-// browser's build answers; and a server entry that is no page's render fails
-// its render.
+// head preloads each UI face's latin file (the words face's and the
+// numbers' mono face's) and declares every subset at the URLs the browser's
+// build answers; and a server entry that is no page's render fails its
+// render.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';

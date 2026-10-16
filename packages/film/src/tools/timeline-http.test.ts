@@ -1,7 +1,8 @@
 // A film's timeline over HTTP, as the studio page reads it: the production's
-// open version when none is asked, a version asked by `?v=`, and a version
-// the production has not refused at 404 by name; a film the lab does not
-// have is refused too.
+// open version when none is asked, and a version asked by `?v=`; refused at
+// 404 by name, a version the production does not have (FilmVersionUnknown)
+// and one it has that kept nothing to show (FilmVersionUnkept); a film the
+// lab does not have is refused too.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Option, Result, Schema } from 'effect';
@@ -64,7 +65,7 @@ const twoVersions = Effect.gen(function* () {
 
 describe('the timeline route', () => {
   it.effect(
-    'answers the open version, a version asked, and refuses one the production has not',
+    'answers the open version and a version asked, and refuses one the production has not and one that kept nothing',
     () =>
       provided(
         Effect.gen(function* () {
@@ -79,12 +80,22 @@ describe('the timeline route', () => {
           const read = yield* readTimeline(yield* Effect.promise(() => open.json()));
           expect(read.version).toEqual({ n: 2, title: 'written again', open: true, files: 'film' });
           expect(read.lanes.map((lane) => lane.track)).toEqual(['script']);
+          const asked = yield* ask({ v: 2 });
+          expect(asked.status).toBe(200);
+          const two = yield* readTimeline(yield* Effect.promise(() => asked.json()));
+          expect(two.version).toEqual(read.version);
+          const refusedAs = (answer: Response) =>
+            Effect.flatMap(
+              Effect.promise(() => answer.json()),
+              Schema.decodeUnknownEffect(Refused),
+            );
           const none = yield* ask({ v: 9 });
           expect(none.status).toBe(404);
-          const refused = yield* Schema.decodeUnknownEffect(Refused)(
-            yield* Effect.promise(() => none.json()),
-          );
-          expect(refused._tag).toBe('FilmVersionUnknown');
+          expect((yield* refusedAs(none))._tag).toBe('FilmVersionUnknown');
+          // v1 was replaced in place: no folder of its own, and the film's files are v2's.
+          const unkept = yield* ask({ v: 1 });
+          expect(unkept.status).toBe(404);
+          expect((yield* refusedAs(unkept))._tag).toBe('FilmVersionUnkept');
           const unknown = yield* ask({}, 'nofilm');
           expect(unknown.status).toBe(404);
         }),

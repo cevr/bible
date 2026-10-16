@@ -1362,7 +1362,7 @@ const BoardSelection = Field.struct({
 const FILM_PLAYER = { heard: refined, variant: refined, picture: refined };
 
 /**
- * How a film's choices and its project are shown: only the points in one
+ * How a film's choices are shown (and were on its project, an old link's place): only the points in one
  * state (`?only=stale`, `unapproved`, `comments`: `SHOWN_ONLY`), every
  * point when it is empty. The view filtered is a step Back walks, as a set's
  * view is: a move that only shows or hides points (Go to clearing the filter
@@ -1381,12 +1381,12 @@ export const OWN_SOUND = 'own';
 /**
  * Every place a page is at. Review: home `/`, a folder of renders
  * `/sets/<folder>` (its still open full size), a comparison set
- * `/sets/<folder>/<point>` (its view, pair, moment, time and still open), a
- * film's choices (the sound heard, the picture and its time) and its
- * project (the card in focus). Player: a film's scenes
- * (the tape) `/films/<film>/scenes[/<scene>]#t=`, the path's scene the one
- * selected and `#t=` the playhead in film time on both, and its plain preview
- * `/films/<film>/play#t=`. Lab: a film
+ * `/sets/<folder>/<point>` (its view, pair, moment, time and still open), and a
+ * film's choices (the card in focus, the sound heard, the picture and its
+ * time). Studio: a film's studio `/films/<film>/studio?v=&sel=#t=`, the
+ * version shown, the beat selected and the playhead in film time; it took
+ * the place of the film's project, its scenes and its plain preview
+ * (`Replaced`, whose links are sent on to it). Lab: a film
  * `/films/<film>/lab#t=` (film time) or one of its scenes
  * `/films/<film>/lab/<scene>?cue=#t=` (scene time), with the selection; and
  * its script, the lab's second page on the same staged film,
