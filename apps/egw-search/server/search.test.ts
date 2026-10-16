@@ -38,6 +38,7 @@ const hitFor = (anchor: string, text: string) =>
     author: 'Ellen White',
     snippet: text,
     isHeading: false,
+    isFurniture: false,
     backMatter: false,
     score: 1,
     lexicalRank: Option.some(1),

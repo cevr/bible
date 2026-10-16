@@ -543,6 +543,7 @@ describe('headings and back matter rank after prose', () => {
     readonly text: string;
     readonly ftsRank: number;
     readonly element: 'h2' | 'p';
+    readonly subtype?: string;
   }) => ({
     para_id: Option.some(`GC-outline-${String(input.order)}`),
     refcode_short: Option.some(`GC 9${String(input.order)}.1`),
@@ -550,6 +551,7 @@ describe('headings and back matter rank after prose', () => {
     nodes: [Node.make({ _tag: 'Text', text: input.text })],
     puborder: 90_000 + input.order,
     element_type: input.element,
+    element_subtype: input.subtype,
     bookCode: 'GC',
     ftsRank: input.ftsRank,
   });
@@ -565,6 +567,7 @@ describe('headings and back matter rank after prose', () => {
       ftsRank: -8,
       element: 'p',
     }),
+    row({ order: 7, text: 'Latter Rain, Iowa', ftsRank: -50, element: 'p', subtype: 'ltplace' }),
   ];
   const layer = SearchService.Live.pipe(
     Layer.provide(
@@ -590,16 +593,22 @@ describe('headings and back matter rank after prose', () => {
       layer,
     );
 
-  it.effect('orders prose, then headings, then back matter', () =>
+  it.effect('orders prose, then headings and furniture, then back matter', () =>
     Effect.gen(function* () {
       const result = yield* ask(Option.none());
       expect(
-        result.paragraphs.map((hit) => [hit.paragraphId, hit.isHeading, hit.backMatter]),
+        result.paragraphs.map((hit) => [
+          hit.paragraphId,
+          hit.isHeading,
+          hit.isFurniture,
+          hit.backMatter,
+        ]),
       ).toEqual([
-        ['GC:GC-outline-2', false, false],
-        ['GC:GC-outline-6', false, false],
-        ['GC:GC-outline-1', true, false],
-        ['GC:GC-outline-4', false, true],
+        ['GC:GC-outline-2', false, false, false],
+        ['GC:GC-outline-6', false, false, false],
+        ['GC:GC-outline-7', false, true, false],
+        ['GC:GC-outline-1', true, false, false],
+        ['GC:GC-outline-4', false, false, true],
       ]);
     }),
   );

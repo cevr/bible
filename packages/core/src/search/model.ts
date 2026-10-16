@@ -170,6 +170,10 @@ export class SearchParagraphHit extends Schema.Class<SearchParagraphHit>('Search
    *  a reader wants — so the repair is to say what the row is, not to hide it.
    *  The ranking orders headings after prose, and this says why one is there. */
   isHeading: Schema.Boolean,
+  /** Whether this hit frames the text rather than says anything: a letter's
+   *  date or signature, a picture's caption, the scripture at the head of a
+   *  reading (`isFurniture`). The ranking orders it with the headings. */
+  isFurniture: Schema.Boolean,
   /** Whether this hit sits in its book's back matter: an appendix, a table of
    *  contents, a bibliography or an index (see `back-matter.ts`).
    *

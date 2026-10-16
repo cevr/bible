@@ -20,6 +20,7 @@ import {
   Stream,
 } from 'effect';
 
+import { NO_FILTER } from '../writings/corpus-class.js';
 import { Reference as BibleReference } from '../bible/model.js';
 import {
   assetSourceId,
@@ -753,6 +754,54 @@ describe('EGWParagraphDatabase', () => {
           // Omitting the scope means the whole corpus, so every pre-§6.4 caller
           // keeps the behavior it was written against.
           expect(codes(yield* db.searchParagraphs('sanctuary', { limit: 50 }))).toEqual(codes(all));
+        }),
+      ));
+
+    test('drops the study aids by author when apparatus is excluded', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* scopedCorpus();
+          const filter = { ...NO_FILTER, excludeApparatus: true };
+          const codes = (hits: readonly { readonly bookCode: string }[]): string[] =>
+            hits.map((hit) => hit.bookCode).toSorted();
+          const found = yield* db.searchParagraphs('sanctuary', { limit: 50, filter });
+          const scored = yield* db.searchScoredParagraphs('sanctuary', { limit: 50, filter });
+          expect(codes(found)).toEqual(['SCOPEDAR', 'SCOPEGC', 'SCOPEJVH']);
+          expect(codes(scored)).toEqual(['SCOPEDAR', 'SCOPEGC', 'SCOPEJVH']);
+        }),
+      ));
+
+    test("marks a letter's dateline as furniture on both search statements", () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* db.storeParagraphsBatch(
+            [
+              {
+                ...mockParagraph(1, 'LT 1.1'),
+                element_subtype: 'ltdate',
+                nodes: [{ _tag: 'Text', text: 'Sabbath, March 3, 1888' }],
+              },
+              {
+                ...mockParagraph(2, 'LT 1.2'),
+                nodes: [{ _tag: 'Text', text: 'The Sabbath is a sign' }],
+              },
+            ],
+            mockBook(301, 'LT'),
+          );
+          const furniture = (
+            rows: readonly { readonly para_id: string; readonly isFurniture: boolean }[],
+          ) => rows.map((row) => [row.para_id, row.isFurniture]).toSorted();
+          const expected = [
+            ['LT:para-1', true],
+            ['LT:para-2', false],
+          ];
+          expect(furniture(yield* db.searchScoredParagraphs('sabbath', { limit: 10 }))).toEqual(
+            expected,
+          );
+          expect(furniture(yield* db.findParagraphsByIdentity(['LT:para-1', 'LT:para-2']))).toEqual(
+            expected,
+          );
         }),
       ));
 

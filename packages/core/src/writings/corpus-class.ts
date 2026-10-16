@@ -13,7 +13,7 @@
  *  corpus searches exactly as it did before these columns existed.
  */
 
-import { Schema, SchemaGetter } from 'effect';
+import { Option, Schema, SchemaGetter } from 'effect';
 
 /** The four top-level libraries the corpus is made of.
  *
@@ -139,18 +139,41 @@ export const sectionsByFolder = (
  *  A dictionary entry, a concordance line and a scripture-index stub all rank
  *  well for exactly the topical queries this corpus is searched with, and all
  *  three are answers to "where is this word" rather than to "what does this
- *  say". Together they are 1,175,658 paragraphs — 39% of the corpus — which is
- *  why excluding them is a single toggle rather than three.
+ *  say". A Bible is the same on this corpus: its 13 translations are the text
+ *  the writings quote, looked up by reference rather than searched as
+ *  commentary, and a verse matching the query pushes the writings that discuss
+ *  it off the page.
  *
- *  `main.ts`'s `INDEX_BOOKS` was the hand-maintained ten-code version of this
- *  set; this is the same intent expressed over the classification the library
- *  itself publishes, so a newly added dictionary is covered without anyone
- *  remembering to add its code. */
+ *  This is the intent of a hand-kept list of index book codes, expressed over
+ *  the classification the library itself publishes, so a newly added
+ *  dictionary is covered without anyone remembering to add its code. */
 export const APPARATUS_TYPES: ReadonlySet<BookType> = new Set<BookType>([
   'dictionary',
   'topicalindex',
   'scriptindex',
+  'bible',
 ]);
+
+/** The authors whose every book is apparatus, whatever its type says.
+ *
+ *  The White Estate's own books are study aids around the writings, not the
+ *  writings: reading plans (`365N`, `DAPlan`), study guides (`GC-SG`), Sabbath
+ *  school lessons (`JTL1`), question-and-answer Bible readings, and the
+ *  "Counsels on…" series of short modern devotionals with "Reflect:" prompts.
+ *  The library types them `book`, so the type axis cannot see them; they are
+ *  named by author instead. Where they quote Ellen White, her own book holds
+ *  the paragraph. */
+export const APPARATUS_AUTHORS: ReadonlySet<string> = new Set(['Ellen G. White Estate']);
+
+/** Whether a book is apparatus: an `APPARATUS_TYPES` type, or by an
+ *  `APPARATUS_AUTHORS` author. An unclassified book is not known to be
+ *  apparatus by its type. */
+export const isApparatus = (book: {
+  readonly type: Option.Option<BookType>;
+  readonly author: string;
+}): boolean =>
+  APPARATUS_AUTHORS.has(book.author) ||
+  Option.exists(book.type, (type) => APPARATUS_TYPES.has(type));
 
 /**
  * One axis of the filter, signed.
@@ -271,12 +294,12 @@ export const CorpusFilterSchema = Schema.Struct({
   section: Signed(CorpusSection),
   type: Signed(BookType),
   subtype: Signed(BookSubtype),
-  /** Drop the dictionaries, concordances and indexes (`APPARATUS_TYPES`).
+  /** Drop the apparatus (`isApparatus`): the dictionaries, indexes and
+   *  Bibles by type, and the White Estate's study aids by author.
    *
-   *  Still its own boolean rather than three entries in `type.exclude`: it is
-   *  one intent ("don't search the lookup apparatus") that happens to span
-   *  three types, and collapsing it into the type axis would make the chip
-   *  that sets it impossible to render as one control. */
+   *  Its own boolean rather than entries in `type.exclude`: it is one intent
+   *  ("search only the writings themselves") that spans several types and an
+   *  author, and the type axis cannot express the author half. */
   excludeApparatus: Schema.Boolean,
 });
 
