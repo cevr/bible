@@ -12,18 +12,18 @@ This doc is internal, so it cites Ellen White and the pioneers by name. On scree
 
 The owner picked **K1** for the paper-cut look (2026-10-13, [p5-run.md](../../../../apps/animations/plans/p5-run.md), Owner questions), and kept it after the style trials (2026-10-14: "ok i think my favourite is still k1"). It is no longer provisional.
 
-| Axis    | K1                                                                                                                                |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Outline | thick, with a light inner edge, so the cut still reads as paper                                                                   |
-| Ink     | warm ink `#2b2622`; black is allowed for lines, never for shading                                                                 |
-| Colour  | a hue per garment, every garment at HSV saturation 0.20–0.35; scarlet is the only saturated garment colour                        |
-| Head    | about ⅓ of an adult's height; a child's head is a larger share                                                                    |
-| Hands   | plain circles of the figure's paper, no thumb, no fingers, no arm, ever (owner, 2026-10-12)                                       |
-| Faces   | three marks: two eyes and a mouth, with brows (Kit A, owner, 2026-10-13; [face-study.md](face-study.md))                          |
-| Detail  | minimal: the head one shape, hair and beard flat inside it; no ornaments; plain garments but for a mark that tells who someone is |
-| Shading | toward the key light's complement, as saturated or more; never black, grey or alpha-black ([CRAFT.md](../CRAFT.md) rule 12)       |
+| Axis    | K1                                                                                                                                                                         |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Outline | thick, with a light inner edge, so the cut still reads as paper                                                                                                            |
+| Ink     | warm ink `#2b2622`; black is allowed for lines, never for shading                                                                                                          |
+| Colour  | a hue per garment, every garment at HSV saturation 0.20–0.35; scarlet is the only saturated garment colour; the plain lead's one near-neutral paper is the exception (2.3) |
+| Head    | about ⅓ of an adult's height (the plain lead's 0.375, 2.3); a child's head is a larger share                                                                               |
+| Hands   | plain circles of the figure's paper, no thumb, no fingers, no arm, ever (owner, 2026-10-12)                                                                                |
+| Faces   | three marks: two eyes and a mouth, with brows (Kit A, owner, 2026-10-13; [face-study.md](face-study.md))                                                                   |
+| Detail  | minimal: the head one shape, hair and beard flat inside it; no ornaments; plain garments but for a mark that tells who someone is                                          |
+| Shading | toward the key light's complement, as saturated or more; never black, grey or alpha-black ([CRAFT.md](../CRAFT.md) rule 12)                                                |
 
-**K1 is drawn minimal** (owner, 2026-10-14: "my main gripe with k1 was hair and ornaments"; "i dont mind clothes not having details either, other than distinguishing ones"; "for k1 at least"). The Board's style, 9005 "K1-minimal, plain", is the reference: one-shape heads with the inner edge, a flat beard, no pockets, buttons or stitching, the crease, the grain and the cast shadows. A garment keeps only the mark that tells who someone is (Rosa's shawl, Max's hood: [ensemble.md](../../../../apps/animations/docs/ensemble.md)); a film's plain lead has none (2.3). A film built from its board draws its figures as the engine's K1 rigs, and its backgrounds, light and glow as the kept panel has them (owner, 2026-10-14: "matched to these panels").
+**K1 is drawn minimal** (owner, 2026-10-14: "my main gripe with k1 was hair and ornaments"; "i dont mind clothes not having details either, other than distinguishing ones"; "for k1 at least"). The Board's style 9005 is the reference. Its image is the house look the owner locked on 2026-10-15 ("lets lock in that style"): the RBF Board's `woman.court.1`, kept as [house-look.png](../../../../apps/animations/docs/ref/house-look.png). It has one-shape heads with the inner edge, a flat beard, no pockets, buttons or stitching, the crease, the grain, the cast shadows, a warm hazy light, violet shade and a real place behind the figures. The line-up it replaced, [k1-minimal-lineup.png](../../../../apps/animations/docs/ref/k1-minimal-lineup.png), still shows the recurring cast as K1-minimal drew them. A garment keeps only the mark that tells who someone is (Rosa's shawl, Max's hood: [ensemble.md](../../../../apps/animations/docs/ensemble.md)); a film's plain lead has none (2.3). A film built from its board draws its figures as the engine's K1 rigs, and its backgrounds, light and glow as the kept panel has them (owner, 2026-10-14: "matched to these panels").
 
 Still open in the p5 plan: the robe's shade (navy applied, slate and violet as options). Settled: the one shared figure paper, not several skin papers ([ensemble.md](../../../../apps/animations/docs/ensemble.md), open choice 2).
 
@@ -108,7 +108,7 @@ Every other colour (every garment of the cast, the world's chipboard, the skies)
 
 #### Grey: retired
 
-Grey is no colour of Scripture. A grey or dimmed copy of a colour "reads dead and muddy" (director-vision, Shadow colour). Under K1 grey is no longer a figure's body or a shade. The Canvas kit's grey figures and the first film's grey accuser (`#5f5a55`) take hued ramps when they are next drawn (2.5), and the first film's grey everyman becomes a plain lead in a quiet hue (2.3).
+Grey is no colour of Scripture. A grey or dimmed copy of a colour "reads dead and muddy" (director-vision, Shadow colour). Under K1 grey is no longer a shade, and no figure's body but one: the plain lead's pale cool grey paper with its faint lilac cast, whose shade turns to violet (owner, 2026-10-15: "though this is what i mean by non descript"; 2.3). The first film's grey everyman is that plain lead, kept in his own paper. The Canvas kit's other grey figures and the first film's grey accuser (`#5f5a55`) take hued ramps when they are next drawn (2.5).
 
 #### Teal: a light, not a sin
 
@@ -197,15 +197,15 @@ Owner rule: typology, a text-authorized reading from literal to literal, is fine
 
 ### 2.2 The budget by role
 
-| Role                | Saturation                      | Value                                        | Size in a wide                                                  | Face                                   |
-| ------------------- | ------------------------------- | -------------------------------------------- | --------------------------------------------------------------- | -------------------------------------- |
-| Main                | 0.22–0.28, a Bible lead to 0.35 | the widest step from its ground in the frame | at least ¼ of frame height; a face at ⅓ once per beat           | full range; the close-up at the answer |
-| Supporting          | 0.22–0.30                       | one step less than the main figure           | 0.8–1 times the main figure's scale, a plane behind             | reactions                              |
-| Antagonist          | 0.20                            | the darkest figure in the frame              | tall in its scene, never above the light; shrinks when answered | narrow range                           |
-| Minor or background | 0.20–0.24                       | near the ground's middle                     | far planes                                                      | small or turned away                   |
-| Crowd               | 0.20                            | grouped into one mass                        | far planes                                                      | dots, or none                          |
-| Allegorical         | by its part in the story        | on its own page (2.8)                        | by meaning: a giant grows                                       | by its part                            |
-| Personification     | not drawn as a person (2.9)     |                                              |                                                                 |                                        |
+| Role                | Saturation                                                         | Value                                        | Size in a wide                                                  | Face                                   |
+| ------------------- | ------------------------------------------------------------------ | -------------------------------------------- | --------------------------------------------------------------- | -------------------------------------- |
+| Main                | 0.22–0.28, a Bible lead to 0.35; the plain lead near neutral (2.3) | the widest step from its ground in the frame | at least ¼ of frame height; a face at ⅓ once per beat           | full range; the close-up at the answer |
+| Supporting          | 0.22–0.30                                                          | one step less than the main figure           | 0.8–1 times the main figure's scale, a plane behind             | reactions                              |
+| Antagonist          | 0.20                                                               | the darkest figure in the frame              | tall in its scene, never above the light; shrinks when answered | narrow range                           |
+| Minor or background | 0.20–0.24                                                          | near the ground's middle                     | far planes                                                      | small or turned away                   |
+| Crowd               | 0.20                                                               | grouped into one mass                        | far planes                                                      | dots, or none                          |
+| Allegorical         | by its part in the story                                           | on its own page (2.8)                        | by meaning: a giant grows                                       | by its part                            |
+| Personification     | not drawn as a person (2.9)                                        |                                              |                                                                 |                                        |
 
 ### 2.3 Main characters: the plain lead
 
@@ -218,17 +218,37 @@ The lead of a film is one of two:
 
 **Why plain.** A parable gives its man no name and no face, so every hearer can stand where he stands. A figure with marks of its own is someone else; a plain figure can be the viewer. Comics found the same: the simpler a face, the more people it stands for (Scott McCloud, _Understanding Comics_, 1993, ch. 2).
 
-**The plain lead's sheet.** Every plain lead is built from it; a film fixes its own lead's hue and head at the concept stage and keeps them in its board's world.
+**The plain lead is one figure** (owner, 2026-10-15: "though this is what i mean by non descript", with a picture of him). The picture is the RBF Board's `word.church` try 5, kept as [plain-lead.png](../../../../apps/animations/docs/ref/plain-lead.png). It is v2's everyman as the Board drew him, and every film's plain lead is this figure. His model sheet, [plain-lead-sheet.png](../../../../apps/animations/docs/ref/plain-lead-sheet.png), draws him from the picture in the house look: front, three-quarter, and front beside a doorway for his height. Every concept try and Board try of him takes the sheet as a reference.
 
-- **Build.** The K1 figure at its plainest: middle height and an average build (0.93–0.95 against Hugo), standing straight, the head about ⅓ of the height. Age only as the text says it: a young man, a grandmother (the pale cool paper for her hair, a slight stoop), a child (the larger head).
-- **Head.** One shape. Hair, if any, is one flat shape inside it in the commonest form for the age: short and dark for a man, short or tied back for a woman, pale for the old. No beard, glasses, hat, hood or headcovering, and none of the cast's hooks (a plait, a bun, a tuft, bunches, a curl, a round crown of hair).
-- **Garment.** One plain garment, or a plain top over plain trousers, with no collar, pocket, button, print, logo or lettering. One quiet hue at saturation 0.22–0.28 and a middle value (0.50–0.62), outside 330°–50° (scarlet, the chipboard world and gold live there), and off the hue of any cast member or minor figure in the same frame. The hue only tells him apart; it means nothing (1.5).
-- **No marks.** Nothing that tells who he is: no badge, bag, jewellery, hood, shawl, hat or hair style that names someone; no name in speech or on screen ([ensemble.md](../../../../apps/animations/docs/ensemble.md), open choice 1); no habit gesture of his own, since a habit is a cast member's mark. Script briefs call him by his part: "the accused", "the grandmother".
+- **Build.** A small figure: a round head sitting right on a trapezoid tunic, with no neck. The tunic has rounded shoulders and widens to a straight hem. Two short rounded stub legs stand under the hem, and two hand circles float beside him. He has no hair, ears, nose, neck, arms or shoes, and no clothes detail. Measured on the sheet's front view, the picture in brackets:
+  - head height, crown to where it meets the tunic: 0.375 of his height (0.379), so he is about 2.6 heads tall;
+  - head width: 0.41 of his height (0.425);
+  - tunic width at the hem: 0.43 of his height (0.435), so his head is nearly as wide as his hem;
+  - legs, hem to soles: about 0.17 of his height;
+  - a hand circle: about 0.38 of the head's width.
+- **One paper.** His head, hands, tunic and legs are one pale cool grey paper with a faint lilac cast, the one figure paper K1 keeps near neutral (1.2, Grey). Lit side: `#cccbd1` on the picture, `#dbd6dc` on the sheet (saturation 0.03 or less, value 0.82–0.86). Shade side, past the crease: `#a9a2c6` on the picture, `#b5a9d0` on the sheet (hue 252°–258°, saturation 0.18–0.19, value 0.78–0.82), turned toward violet, never a darker grey. The head reads a touch warmer where the light is nearest (`#e1d6d0`).
+- **Line and light.** The house's thick warm dark-brown outline, about 1/40 of his height, with a thin light inner edge. One straight diagonal crease from the upper left on the head and on the tunic, the far side turned violet. A soft lilac cast shadow.
+- **Face.** Three marks: two short arched brows, two small dark oval dot eyes and a one-line mouth. Expression is in the brows' tilt, the mouth's bend and the head's tilt (Kit A, [face-study.md](face-study.md)).
+- **His height against the set.** He keeps one size against every fixed piece:
+  - the top of his head reaches about 0.62 of a doorway's height (the sheet: 0.616);
+  - in RBF's court, the top of his head is level with the top of the judge's bench, and the dock's front rail crosses his tunic about two thirds of the way down, under the stain and the seal (the kept cold-open frame, `cold.34`);
+  - beside Christ, the top of his head is level with Christ's eyes (he stands about 0.88 of Christ's height, as the v2 Board drew them in `name.how`, `thesis.start` and `exchange.fair`).
+- **Consistency comes first** (owner, 2026-10-15: "whats important is character consistency between scenes, he cant be taller, slimmer, different color, or different clothes (unless the scene calls for it)"). He has the same height, build, paper and clothes in every scene. Each try of him is measured against the sheet before any judge sees it, and a try that drifts is dropped:
+  - the paper: the lit side near neutral (saturation 0.06 or less), the shade side within about 12° of hue 255° and 0.05 of its saturation;
+  - head height and hem width to his height: within 5 % of the sheet;
+  - his height against the set's fixed pieces, as above, the same in every frame of a film;
+  - in a frame, the act's light moves his paper a little, and nothing else: RBF's cool cold open lifts its lit side to `#e7e2f2` (saturation 0.066, value 0.95) and the landing's bright day pales his shade to saturation 0.13 (`cold.34`, `court.12`, measured). Hold the paper against the sheet's hue and against the same act's frames; hold the build and the size against the sheet.
+- **The robe.** Where the story clothes him (Zech 3:4; RBF's landing, `court` from `back`), his tunic turns white and nothing else changes. It keeps the same cut and the same hem, in clean white paper (`#fcfbfc` lit, `#e2ddef` shade), and his head, hands and legs keep his own paper. The robe sheet, [plain-lead-robe-sheet.png](../../../../apps/animations/docs/ref/plain-lead-robe-sheet.png), is the plain sheet with only the tunic recoloured, so every other pixel is the plain sheet's own. (Three drawn robe sheets lightened his head by 0.03–0.10 in value, so none of them is the reference.)
+- **A man or a woman.** The same figure stands for "a man" or "a woman" of a parable; the narration says which. Where a story needs two plain figures told apart, the second keeps the whole figure and changes one thing only, named in the film's world and kept from first frame to last:
+  - **its paper,** a second quiet paper of the same value (a warm oat, `#d9cfc0` lit, its shade turned violet), for a second adult: RBF's grandmother, who must never be taken for the accused;
+  - **its height,** about 0.7 of his, with the head a larger share (about 0.45), for a child beside a parent.
+
+  Never hair, clothes detail or a mark.
+
+- **No marks.** Nothing that tells who he is: no badge, bag, jewellery, hood, shawl, hat or hair style that names someone; no name in speech or on screen ([ensemble.md](../../../../apps/animations/docs/ensemble.md), open choice 1); no habit gesture of his own, since a habit is a cast member's mark. Script briefs call him by his part: "the accused", "the grandmother". Being bald is his plainness, not a mark, and he reads as any age.
 - **He reads first anyway.** By staging, not by marks: the near plane, at least ¼ of frame height in a wide, a face at ⅓ of the frame once per beat ([CRAFT.md](../CRAFT.md) rule 5), the widest value step against his ground, and the accent the beat is about (the stain, the seal, the seed).
-- **One design a film.** A film's plain lead is one design from its first frame to its last, so the bookend reads as one person, changed ([CRAFT.md](../CRAFT.md) rule 4).
+- **One design.** He is one design from a film's first frame to its last, and from film to film, so the bookend reads as one person, changed ([CRAFT.md](../CRAFT.md) rule 4).
 - **The garment changes only where the story changes it.** The robe white given at the landing (Zech 3:4; 1.2), a coat for outdoors. Never a hue that changes to show growth (1.5).
-- **Several plain figures.** Where a film has more than one (a father and a son, a mother and a child), each is plain, and they differ by height, age and hue only.
-- **Face.** The full range. Faces stay small in the problem; the close-up goes to the answer (director-vision, Faces, staging and emotion).
 - **Movement.** The most acting in the film: whole-body impulses, the hand that reaches.
 - **Staging.** One screen side for the whole film; the near plane; the line crossed once, at the turn (director-vision, Camera and staging 1).
 - **At quarter size.** Read as "a man", "a woman", "a child": by role and staging, never by a mark.
