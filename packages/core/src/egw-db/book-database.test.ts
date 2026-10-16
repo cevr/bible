@@ -771,6 +771,40 @@ describe('EGWParagraphDatabase', () => {
         }),
       ));
 
+    test("marks a letter's dateline as furniture on both search statements", () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* db.storeParagraphsBatch(
+            [
+              {
+                ...mockParagraph(1, 'LT 1.1'),
+                element_subtype: 'ltdate',
+                nodes: [{ _tag: 'Text', text: 'Sabbath, March 3, 1888' }],
+              },
+              {
+                ...mockParagraph(2, 'LT 1.2'),
+                nodes: [{ _tag: 'Text', text: 'The Sabbath is a sign' }],
+              },
+            ],
+            mockBook(301, 'LT'),
+          );
+          const furniture = (
+            rows: readonly { readonly para_id: string; readonly isFurniture: boolean }[],
+          ) => rows.map((row) => [row.para_id, row.isFurniture]).toSorted();
+          const expected = [
+            ['LT:para-1', true],
+            ['LT:para-2', false],
+          ];
+          expect(furniture(yield* db.searchScoredParagraphs('sabbath', { limit: 10 }))).toEqual(
+            expected,
+          );
+          expect(furniture(yield* db.findParagraphsByIdentity(['LT:para-1', 'LT:para-2']))).toEqual(
+            expected,
+          );
+        }),
+      ));
+
     test('combines the corpus scope with a book filter', () =>
       runTest(
         Effect.gen(function* () {

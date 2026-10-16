@@ -50,7 +50,7 @@ import {
 } from '../db/schema-version.js';
 import * as EGWSchemas from '../egw/schemas.js';
 import { Node, nodesToText } from '../egw/ast.js';
-import { headingLevel, isChapterHeading } from '../egw/parse.js';
+import { headingLevel, isChapterHeading, isFurniture } from '../egw/parse.js';
 import {
   type ArchiveChapter,
   collectPublication,
@@ -572,6 +572,10 @@ export interface ScoredParagraphRow {
    *  arrive as a refcode and a line of text. This field is what lets a surface
    *  say which one it is. */
   readonly isHeading: boolean;
+  /** Whether this row frames the text rather than says anything: a letter's
+   *  date or signature, a picture's caption, the scripture at the head of a
+   *  reading (`isFurniture`, from `paragraphs.element_subtype`). */
+  readonly isFurniture: boolean;
   /** The corpus's own `para_id`, unqualified — the value
    *  `WritingsReference.paragraph` addresses a paragraph by.
    *
@@ -2360,10 +2364,12 @@ export class EGWParagraphDatabase extends Context.Service<
              *  ingest wrote from `isChapterHeading`. Translated at this boundary
              *  like every other storage-shaped column here. */
             readonly is_chapter_heading: number;
+            // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
+            readonly element_subtype: string | null;
           }>`
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
-                     p.puborder, p.is_chapter_heading, fts.rank
+                     p.puborder, p.is_chapter_heading, p.element_subtype, fts.rank
               FROM paragraphs p
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
               JOIN books b ON p.book_id = b.book_id
@@ -2389,6 +2395,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 nodes: decodeNodes(row.nodes_json),
                 rank: row.rank,
                 isHeading: row.is_chapter_heading === 1,
+                isFurniture: isFurniture(Option.fromNullishOr(row.element_subtype)),
               })),
             ),
           );
@@ -2472,6 +2479,8 @@ export class EGWParagraphDatabase extends Context.Service<
             readonly book_id: number;
             readonly puborder: number;
             readonly is_chapter_heading: number;
+            // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
+            readonly element_subtype: string | null;
           }>`
               WITH wanted AS (
                 SELECT DISTINCT value AS identity,
@@ -2480,7 +2489,7 @@ export class EGWParagraphDatabase extends Context.Service<
               )
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
-                     p.puborder, p.is_chapter_heading
+                     p.puborder, p.is_chapter_heading, p.element_subtype
               FROM wanted w
               CROSS JOIN paragraphs p ON p.para_id = w.para_id
               CROSS JOIN books b ON p.book_id = b.book_id
@@ -2506,6 +2515,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 // No FTS match produced this row, so it carries no BM25 evidence.
                 rank: 0,
                 isHeading: row.is_chapter_heading === 1,
+                isFurniture: isFurniture(Option.fromNullishOr(row.element_subtype)),
               })),
             ),
           );
@@ -3041,6 +3051,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 // so a double that decided headings its own way could disagree
                 // with production about the same fixture.
                 isHeading: isChapterHeading(Option.fromNullishOr(row.element_type)),
+                isFurniture: isFurniture(Option.fromNullishOr(row.element_subtype)),
               })),
           ),
         // Keyed by the same `paragraphIdentity` the live statement composes in
@@ -3083,6 +3094,7 @@ export class EGWParagraphDatabase extends Context.Service<
                   nodes: paragraph.nodes,
                   rank: 0,
                   isHeading: isChapterHeading(Option.fromNullishOr(paragraph.element_type)),
+                  isFurniture: isFurniture(Option.fromNullishOr(paragraph.element_subtype)),
                 },
               ];
             }),
