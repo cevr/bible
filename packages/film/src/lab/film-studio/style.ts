@@ -77,6 +77,7 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-scene[hidden] { display: none; }
 /* A Board panel is shown whole: never cropped to the frame. */
 .st-pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.st-pic[hidden] { display: none; }
 /* A Board card: the engine's set on its canvas, else its words on the card's paper, sized by the frame. */
 .st-frame { container-type: inline-size; }
 .st-card-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }

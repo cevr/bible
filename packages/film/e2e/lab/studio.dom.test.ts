@@ -6,6 +6,7 @@
 // beat, opens the inspector and names it in the address; the zoom steps in
 // and Fit (⇧Z) fits the film again, the playhead held where it was on
 // screen; another version reads its own timeline;
+// a Board panel whose file does not load is said, never a broken image;
 // the flag strip flags the open ask; the inspector's Words, Board and Notes
 // rows link to the beat on the pages that still hold it, on the version
 // kept in the film's own files alone. A phone keeps three lanes. Its touch
@@ -13,7 +14,9 @@
 // studio's states in `studio-states.ts`); the replaced pages' redirects are
 // the lab server's (`servedPlace`, `tools/lab-page.test.ts`).
 
-import { Boolean as Bool, Effect, Match, Option } from 'effect';
+import { BunServices } from '@effect/platform-bun';
+import { Boolean as Bool, Effect, FileSystem, Match, Option, Path } from 'effect';
+import { Base64 } from 'effect/encoding';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { FilmVersionUnkept } from '../../src/core/refusals.ts';
@@ -22,6 +25,7 @@ import {
   DESK,
   PHONE,
   type Viewport,
+  file,
   json,
   openPlayer,
   refused,
@@ -635,6 +639,51 @@ describe('a Board card at the playhead', () => {
         yield* textIs(page, '.st-tag', /^Board · one · card · not set: .*card style/);
         yield* textIs(page, '.st-card', 'falls down again.');
         yield* countIs(page, '.st-empty', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+/** A 1 × 1 PNG: a Board panel's file as the lab serves it. */
+const PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+/** The PNG, on disk for the case: removed with its scope. */
+const pngFile = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'studio-panel-' });
+  const at = path.join(dir, 'panel.png');
+  yield* fs.writeFile(at, yield* Effect.fromResult(Base64.decode(PNG)).pipe(Effect.orDie));
+  return at;
+}).pipe(Effect.provide(BunServices.layer));
+
+// A kept try whose file is gone (pruned, or never copied to this checkout) is said in the viewer,
+// never shown as a broken image; the next panel's file that loads shows.
+describe("a Board panel's file at the playhead", () => {
+  it.live(
+    "that does not load is said in the viewer and on its tag; the next beat's panel, served, shows",
+    () =>
+      Effect.gen(function* () {
+        const png = yield* pngFile;
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.studio(PROBE, { v: 1 }), viewport: DESK },
+          READY,
+          [route('GET', /^\/board\/files\/two\.[\w.]+\.png(\?|$)/, () => file(png))],
+        );
+        yield* attributeIs(page, '.st-frame', 'data-picture', 'Board');
+        yield* textIs(page, '.st-empty b', 'Its panel did not load');
+        yield* countIs(page, '.st-pic[hidden]', 1);
+        yield* textIs(page, '.st-tag', 'Board · one · not loaded');
+        yield* page.press('ArrowDown');
+        yield* textIs(page, '.st-tag', 'Board · two');
+        yield* countIs(page, '.st-empty', 0);
+        yield* evaluates(
+          page,
+          `(() => { const pic = document.querySelector('.st-pic'); return [pic.hidden, pic.naturalWidth]; })()`,
+          [false, 1],
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

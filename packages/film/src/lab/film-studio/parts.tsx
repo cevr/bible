@@ -397,11 +397,20 @@ const Viewer = () => {
   );
   // Why the engine could not set the card shown: said on the tag, never a blank paper.
   const [unset, setUnset] = createSignal(Option.none<string>(), { ownedWrite: true });
+  // The last panel file that did not load: while it is the one shown, the viewer says so in its
+  // place, never a broken image (a kept try's file pruned, or never copied to this checkout).
+  const [failed, setFailed] = createSignal(Option.none<string>(), { ownedWrite: true });
+  const unloaded = () =>
+    Option.exists(board(), (shown) => Option.exists(failed(), (file) => file === shown.file));
   const tag = () =>
     Option.match(
       Option.filter(unset(), () => picture()._tag === 'Card'),
       {
-        onNone: () => pictureTag(picture()),
+        onNone: () =>
+          Bool.match(unloaded(), {
+            onFalse: () => pictureTag(picture()),
+            onTrue: () => `${pictureTag(picture())} · not loaded`,
+          }),
         onSome: (why) => `${pictureTag(picture())} · not set: ${why}`,
       },
     );
@@ -422,8 +431,16 @@ const Viewer = () => {
               class="st-pic"
               src={meta.boardUrl(shown().file)}
               alt={`Board panel ${shown().panel}`}
+              hidden={unloaded()}
+              onError={() => setFailed(Option.some(shown().file))}
             />
           )}
+        </Show>
+        <Show when={unloaded()}>
+          <div class="st-empty">
+            <b>Its panel did not load</b>
+            <p>The lab served no picture for it.</p>
+          </div>
         </Show>
         <Show when={Option.getOrUndefined(card())}>
           {(shown) => <CardFrame card={shown()} why={setUnset} />}
