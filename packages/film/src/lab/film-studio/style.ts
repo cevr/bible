@@ -53,7 +53,11 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-doing::before { content: ''; display: inline-block; width: var(--s-2); height: var(--s-2); border-radius: var(--r-dot); background: var(--k-sound); margin-right: var(--s-2); }
 .st-app .st-waits { color: var(--text-1); white-space: nowrap; padding: 0 var(--s-2); height: var(--s-6); border-radius: var(--r-1); }
 .st-app .st-waits:hover { background: var(--surface-2); }
-.st-version { display: flex; align-items: center; gap: var(--s-3); }
+/* Every row starts at its number; the check, on the version shown, sits at the row's end. */
+.lab-context-item.st-version { display: flex; justify-content: flex-start; align-items: center; gap: var(--s-3); }
+.st-version .lab-context-check { margin-left: auto; }
+/* A version replaced in place is listed, not offered. */
+.st-version[aria-disabled="true"] { cursor: default; color: var(--text-2); }
 .st-version-n { font-family: var(--font-mono); font-weight: var(--w-1); }
 .st-version-text { display: grid; }
 .st-version-note { font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }

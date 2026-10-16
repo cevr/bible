@@ -323,6 +323,29 @@ describe('the version menu', () => {
   );
 
   it.live(
+    "lines every row's number and title up, the check mark at the row's end",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.studio(PROBE), viewport: DESK },
+          READY,
+          [route('GET', /^\/timeline(\?|$)/, () => json(replaced))],
+        );
+        yield* page.click('[data-act="version"]');
+        yield* waitFor(page, `${MENU} [data-version="2"] .lab-context-check`);
+        const lefts = (part: string) =>
+          `new Set([...document.querySelectorAll('${MENU} .st-version ${part}')].map((el) => Math.round(el.getBoundingClientRect().left))).size`;
+        yield* evaluates(page, lefts('.st-version-n'), 1);
+        yield* evaluates(page, lefts('.st-version-text'), 1);
+        const ROW = `document.querySelector('${MENU} [data-version="2"]').getBoundingClientRect()`;
+        const CHECK = `document.querySelector('${MENU} [data-version="2"] .lab-context-check').getBoundingClientRect()`;
+        yield* until(page, `${ROW}.right - ${CHECK}.right < 16`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'keeps the chip while a version cannot be read, offers no retry of a refusal, and opens another',
     () =>
       Effect.gen(function* () {
