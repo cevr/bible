@@ -399,22 +399,39 @@ export const library = defineLibrary({
   }),
   'book.close': oneShot('an old leather-bound book closed firmly, one soft thump, close', 1, {
     why: 'Generated until a code version is heard beside it: a thump and a puff of air are shapes code makes.',
-    // Two thumps, the cover's and the table's, a puff of air and a faint slap of leather.
+    // The cover's thump and the table's low one under it, the air pushed out
+    // in a dark puff, the leather's slap and the pages' breath, in a small
+    // room: the take's balance, without the rumble under 30 Hz it carries.
+    // The room dies away for half a second, to about 65 dB under the peak,
+    // where the take ends.
     code: trial({
-      _tag: 'Layer',
-      of: [
-        { node: thump({ hz: 130, octaves: 1, drop: 0.02, decay: 0.3 }), at: 0.015 },
-        { node: thump({ hz: 60, octaves: 1, drop: 0.03, decay: 0.35 }), at: 0.015, db: -12 },
-        {
-          node: burst({ color: 'pink', low: 150, high: 1500, attack: 0.002, decay: 0.15 }),
-          at: 0.015,
-        },
-        {
-          node: burst({ color: 'white', low: 3000, high: 12000, attack: 0.002, decay: 0.08 }),
-          at: 0.015,
-          db: -14,
-        },
-      ],
+      _tag: 'Reverb',
+      size: 0.5,
+      damp: 3000,
+      wet: 0.2,
+      tail: 0.5,
+      of: {
+        _tag: 'Layer',
+        of: [
+          { node: thump({ hz: 120, octaves: 1, drop: 0.02, decay: 0.25 }), at: 0.015 },
+          { node: thump({ hz: 36, octaves: 1, drop: 0.03, decay: 0.45 }), at: 0.015, db: -15 },
+          {
+            node: burst({ color: 'pink', low: 200, high: 600, attack: 0.002, decay: 0.12 }),
+            at: 0.015,
+            db: -6,
+          },
+          {
+            node: burst({ color: 'pink', low: 1100, high: 2400, attack: 0.001, decay: 0.04 }),
+            at: 0.015,
+            db: -3,
+          },
+          {
+            node: burst({ color: 'white', low: 3000, high: 12000, attack: 0.002, decay: 0.08 }),
+            at: 0.015,
+            db: -14,
+          },
+        ],
+      },
     }),
   }),
   'tone.drain': {
