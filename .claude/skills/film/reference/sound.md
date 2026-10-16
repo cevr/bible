@@ -71,7 +71,7 @@ The order matters: a crowd's room is still a crowd, and "a paper cutout swept â€
 },
 ```
 
-A short band of noise (the crack, its centre drawn per seed) over a falling sine (the body). Each seed renders 0.2 s, onset and hit at 0 s, in under 3 ms on the laptop (measured).
+A short band of noise (the crack, its centre drawn per seed) over a falling sine (the body). Each seed renders 0.2 s, onset and hit at 0 s.
 
 - `sound.play` is the graph. `sound.key` (`{ tonic, scale }`) is the scale a degree pitch counts in.
 - `variants` is how many seeds play, 1 to 12: seed n is variant n. The mix rotates its placements through them as it does through takes.
@@ -113,7 +113,7 @@ Most sounds are made of a few shapes. `core/synth/graph/presets.ts` builds each 
 | `breeze`  | `secs`, `hz`                                                | a steady breeze, made to loop: pink air through a band that wanders slowly, its level swaying           | its sway and its band's wander                     |
 | `rain`    | `secs`, `hiss`, `taps`                                      | soft rain, made to loop; with `taps`, that many taps a second on a roof's tiles                         | the drops' and the taps' times, levels and pitches |
 
-Each family is pinned by its samples and heard to do what its doc says (`core/synth/graph/presets.test.ts`). A one-second one-shot of each renders in under 3 ms on the laptop (measured, `bun run test:perf`). A family is the place to change a shape: an edit to it changes the label of every sound built from it.
+Each family is pinned by its samples and heard to do what its doc says (`core/synth/graph/presets.test.ts`). A one-second one-shot of each renders inside the 20 ms budget that **Speed is measured, never gated** sets below (`bun run test:perf` logs each). A family is the place to change a shape: an edit to it changes the label of every sound built from it.
 
 ### Seeds and streams
 

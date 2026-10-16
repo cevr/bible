@@ -81,13 +81,13 @@ export class LibraryCheckFailed extends Schema.TaggedError<LibraryCheckFailed>()
   }
 }
 
-/** A bed whose loop point is heard: a level jump or a click where it wraps. */
 /** A seam's variant as its message names it, and what mends it: another take or a trim, or the data of a derived sound's seeds. */
 const SEAM_OF = {
   take: { variant: 'variant', mend: 'pick another take or trim it' },
   seed: { variant: 'seed', mend: 'edit its data until every seed loops' },
 } as const;
 
+/** A bed whose loop point is heard: a level jump or a click where it wraps. */
 export class LoopSeam extends Schema.TaggedError<LoopSeam>()('LoopSeam', {
   name: Schema.String,
   /** A kept take, or a seed of a derived sound (a code or procedural sound, or a code trial). */
