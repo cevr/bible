@@ -13,6 +13,7 @@ import {
   beatPageHref,
   beatStep,
   clipFit,
+  hasBoard,
   keptInFilm,
   lanesShown,
   marksFit,
@@ -181,6 +182,16 @@ describe('the zoom and the ruler', () => {
   test('labels the ruler at the first step that leaves room between labels', () => {
     expect(rulerTicks(12.315, 100)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     expect(rulerTicks(12.315, 20)).toEqual([0, 5, 10]);
+  });
+});
+
+describe("a beat's Board", () => {
+  test('is there when the beat has a panel on the Board lane', () => {
+    expect(hasBoard(drawn, 'one')).toBe(true);
+    expect(hasBoard(drawn, 'nowhere')).toBe(false);
+    expect(
+      hasBoard({ ...drawn, lanes: drawn.lanes.filter((l) => l.track !== 'board') }, 'one'),
+    ).toBe(false);
   });
 });
 

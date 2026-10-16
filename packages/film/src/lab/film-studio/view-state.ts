@@ -120,6 +120,10 @@ const boardClips = (timeline: FilmTimeline): ReadonlyArray<BoardClip> =>
     ),
   );
 
+/** Whether beat `beat` has Board panels in `timeline`: its pane head offers Approve then. */
+export const hasBoard = (timeline: FilmTimeline, beat: string): boolean =>
+  boardClips(timeline).some((clip) => clip.beat === beat);
+
 /**
  * The picture at film second `T`: the scene drawn there when the viewer
  * can draw it (`drawable`: the film staged is this version), else the Board

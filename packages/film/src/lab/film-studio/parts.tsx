@@ -30,6 +30,7 @@ import type {
   BoardClip,
   FilmTimeline,
   FilmVersion,
+  ClipState,
   Lane,
   Marker,
   RenderClip,
@@ -58,6 +59,7 @@ import {
   STAGE_TITLE,
   TRACK_TITLE,
   clipFit,
+  hasBoard,
   lanesShown,
   marksFit,
   nextText,
@@ -551,6 +553,8 @@ const Clip = (props: {
   readonly beat: Option.Option<string>;
   readonly label: string;
   readonly estimated: boolean;
+  /** Where it stands: made, kept (the one chosen) or approved; an approved clip is marked. */
+  readonly state: ClipState;
   /** The picture it shows, for a Board panel with an image. */
   readonly picture: Option.Option<string>;
   readonly children?: JSX.Element;
@@ -571,6 +575,7 @@ const Clip = (props: {
       data-fit={fit()}
       data-linked={pressed(linked())}
       data-est={pressed(props.estimated)}
+      data-state={props.state}
       data-picture={pressed(Option.isSome(props.picture))}
       data-beat={Option.getOrUndefined(props.beat)}
       aria-label={props.label}
@@ -580,7 +585,7 @@ const Clip = (props: {
           () => pressed(linked()),
         ),
       )}
-      title={`${props.label} · ${timecode(props.start)}–${timecode(props.start + props.dur)}`}
+      title={`${props.label} · ${props.state} · ${timecode(props.start)}–${timecode(props.start + props.dur)}`}
       style={{
         left: `${scale.x(props.start)}px`,
         width: `${Math.max(Bool.match(fit() === 'tick', { onTrue: () => 4, onFalse: () => 0 }), width())}px`,
@@ -603,6 +608,9 @@ const Clip = (props: {
         <span class="st-lbl">{props.label}</span>
       </Show>
       {props.children}
+      <Show when={props.state === 'approved' && fit() !== 'tick'}>
+        <i class="st-ok" aria-hidden="true" />
+      </Show>
     </button>
   );
 };
@@ -632,6 +640,7 @@ const ScriptTrack = (props: { readonly clips: ReadonlyArray<ScriptClip> }) => {
           beat={Option.some(clip.beat)}
           label={clip.beat}
           estimated={clip.clock === 'estimated'}
+          state={clip.state}
           picture={Option.none()}
         >
           <Show
@@ -674,6 +683,7 @@ const BoardTrack = (props: { readonly clips: ReadonlyArray<BoardClip> }) => {
             onFalse: () => `Board ${clip.panel}`,
           })}
           estimated={clip.clock === 'estimated'}
+          state={clip.state}
           picture={Option.map(Option.fromUndefinedOr(clip.file), meta.boardUrl)}
         />
       )}
@@ -695,6 +705,7 @@ const VoiceTrack = (props: { readonly clips: ReadonlyArray<VoiceClip> }) => (
           Match.orElse(() => 'staging'),
         )}`}
         estimated={clip.clock === 'estimated'}
+        state={clip.state}
         picture={Option.none()}
       />
     )}
@@ -712,6 +723,7 @@ const SceneTrack = (props: { readonly clips: ReadonlyArray<SceneClip> }) => (
         beat={Option.some(clip.beat)}
         label={clip.beat}
         estimated={clip.clock === 'estimated'}
+        state={clip.state}
         picture={Option.none()}
       />
     )}
@@ -729,6 +741,7 @@ const SoundTrack = (props: { readonly clips: ReadonlyArray<SoundClip> }) => (
         beat={Option.none()}
         label={clip.movement}
         estimated={clip.clock === 'estimated'}
+        state={clip.state}
         picture={Option.none()}
       />
     )}
@@ -746,6 +759,7 @@ const RenderTrack = (props: { readonly clips: ReadonlyArray<RenderClip> }) => (
         beat={Option.none()}
         label={`${clip.address} · ${clip.variant}`}
         estimated={clip.clock === 'estimated'}
+        state={clip.state}
         picture={Option.none()}
       />
     )}
@@ -1112,10 +1126,10 @@ const spanText = (beat: ScriptClip) =>
 
 /**
  * The inspector's shell: the selected beat's head (its name, its span,
- * Approve, close) and a row for each section whose stage has material in
- * this version. The sections' bodies come with the inspector's own unit;
- * until then the Words, Board and Notes rows link to the beat on the page
- * that still holds it, at the playhead.
+ * Approve when the beat has Board panels, close) and a row for each section
+ * whose stage has material in this version. The sections' bodies come with
+ * the inspector's own unit; until then the Words, Board and Notes rows link
+ * to the beat on the page that still holds it, at the playhead.
  */
 const Inspector = () => {
   const { state, actions, meta } = useStudio();
@@ -1131,9 +1145,11 @@ const Inspector = () => {
                 <h2>{beat().beat}</h2>
                 <div class="st-sub">{spanText(beat())}</div>
               </div>
-              <button type="button" class="st-btn primary" data-act="approve" disabled>
-                Approve
-              </button>
+              <Show when={Option.exists(state.timeline(), (t) => hasBoard(t, beat().beat))}>
+                <button type="button" class="st-btn primary" data-act="approve" disabled>
+                  Approve
+                </button>
+              </Show>
               <button
                 type="button"
                 class="st-close"

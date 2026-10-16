@@ -13,7 +13,7 @@
 // studio's states in `studio-states.ts`); the replaced pages' redirects are
 // the lab server's (`servedPlace`, `tools/lab-page.test.ts`).
 
-import { Boolean as Bool, Effect, Option } from 'effect';
+import { Boolean as Bool, Effect, Match, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { FilmVersionUnkept } from '../../src/core/refusals.ts';
@@ -266,6 +266,79 @@ describe('a zoom step on a laptop', () => {
           yield* until(page, `${WIDTH} !== window.__studioCanvasW`);
           yield* until(page, HELD);
         }
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe("a clip's state and the beat selected", () => {
+  // v2 with its words on an estimated clock, beat one's first panel approved, and beat two's
+  // panels gone from the Board.
+  const marked: FilmTimeline = {
+    ...probeTimeline(2),
+    lanes: probeTimeline(2).lanes.map((lane) =>
+      Match.value(lane).pipe(
+        Match.when({ track: 'script' }, (l) => ({
+          ...l,
+          clips: l.clips.map((c) => ({ ...c, clock: 'estimated' as const })),
+        })),
+        Match.when({ track: 'board' }, (l) => ({
+          ...l,
+          clips: l.clips
+            .filter((c) => c.beat !== 'two')
+            .map((c) =>
+              Object.assign({}, c, c.panel === 'one.start' && { state: 'approved' as const }),
+            ),
+        })),
+        Match.orElse((l) => l),
+      ),
+    ),
+  };
+  const studioMarked = (sel: string) =>
+    openPlayer({ href: pageHref.studio(PROBE, { sel }), viewport: DESK }, READY, [
+      route('GET', /^\/timeline(\?|$)/, () => json(marked)),
+    ]);
+
+  it.live(
+    'marks an approved clip, and an estimated clip of the beat selected keeps its hatch inside its ring',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioMarked('beat:one');
+        yield* countIs(page, '.st-clip[data-state="approved"] .st-ok', 1);
+        yield* attributeIs(
+          page,
+          '.st-clip[data-kind="board"][data-state="approved"]',
+          'data-beat',
+          'one',
+        );
+        const CLIP = `document.querySelector('.st-clip[data-kind="script"][data-beat="one"]')`;
+        yield* attributeIs(
+          page,
+          '.st-clip[data-kind="script"][data-beat="one"]',
+          'data-linked',
+          'true',
+        );
+        yield* until(
+          page,
+          `getComputedStyle(${CLIP}, '::after').backgroundImage.includes('repeating-linear-gradient')`,
+        );
+        yield* until(page, `getComputedStyle(${CLIP}).boxShadow.includes('inset')`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'offers Approve on a beat with Board panels, and none on a beat without',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioMarked('beat:two');
+        yield* waitFor(page, '.st-pane[data-beat="two"]');
+        yield* countIs(page, '.st-pane [data-act="approve"]', 0);
+        yield* page.click('.st-clip[data-kind="script"][data-beat="one"]');
+        yield* waitFor(page, '.st-pane[data-beat="one"]');
+        yield* countIs(page, '.st-pane [data-act="approve"]', 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

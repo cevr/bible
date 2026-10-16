@@ -163,8 +163,11 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-app .st-clip[data-kind="sound"] { background: var(--k-sound); color: var(--k-sound-ink); }
 .st-app .st-clip[data-kind="render"] { background: var(--k-render); color: var(--k-render-ink); }
 .st-clip[data-est="true"]::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, var(--hatch) 0 5px, transparent 5px 10px); pointer-events: none; }
-/* The selected beat: a white outline on every one of its clips, in every lane. */
-.st-clip[data-linked="true"]::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--on-picture); z-index: 3; pointer-events: none; }
+/* The beat selected: an inset ring on the clip itself, so an estimated clip keeps its hatch. */
+.st-app .st-clip[data-linked="true"] { box-shadow: inset 0 0 0 2px var(--on-picture); }
+.st-app .st-clip[data-linked="true"]:focus-visible { box-shadow: inset 0 0 0 2px var(--on-picture), var(--focus-ring-inset); }
+/* An approved clip: a dot in the approved state's colour at its top right. */
+.st-ok { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--state-approved); box-shadow: 0 0 0 1px var(--backdrop); z-index: 2; pointer-events: none; }
 .st-marks { position: absolute; left: 0; right: 0; bottom: 1px; height: var(--s-2); z-index: 2; pointer-events: none; }
 .st-marks-line { position: absolute; left: 0; right: 0; top: 3.5px; height: 1px; background: var(--k-script-ink); }
 .st-marks i { position: absolute; top: 1px; width: 6px; height: 6px; translate: -50% 0; background: var(--mark); rotate: 45deg; border-radius: var(--r-0); box-shadow: 0 0 0 1px var(--k-script-ink); }
