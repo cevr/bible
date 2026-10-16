@@ -2,6 +2,7 @@ import { EGWApiClient, type Schemas as EGWSchemas } from '@bible/core/egw';
 import { EGWParagraphDatabase, type BookRow } from '@bible/core/egw-db';
 import {
   CorpusActivation,
+  CorpusInstallationError,
   CorpusSourceUnavailableError,
   CorpusSupply,
   CorpusSupplyReceipt,
@@ -260,6 +261,43 @@ describe('EGW corpus sync', () => {
       ]);
       expect(plan.recheckLeft).toBe(1);
     }).pipe(Effect.provide(library));
+  });
+
+  /** An installation error carries no message of its own; the database's
+   *  words are in its cause, and the outcome says them. */
+  it.effect('says what the database said when an install fails', () => {
+    const failing = Layer.succeed(
+      CorpusSupply,
+      CorpusSupply.of({
+        ensure: () =>
+          Effect.fail(
+            CorpusInstallationError.make({
+              publication: publicationId(7),
+              cause: {
+                _tag: 'SqlError',
+                message: 'Failed to execute statement',
+                cause: { message: 'D1_ERROR: too many SQL variables' },
+              },
+            }),
+          ),
+        installed: () => Effect.die('egw sync does not read the installed file corpus'),
+        activeFile: () => Effect.die('egw sync does not read a file corpus path'),
+        installFrom: () => Effect.die('egw sync does not install from a content manifest'),
+      }),
+    );
+    return Effect.gen(function* () {
+      const outcome = yield* installEgwBook(
+        { id: 7, code: 'SEVEN', title: 'Book SEVEN', revision: 'zip:new' },
+        { refresh: false },
+      );
+      expect(outcome).toMatchObject({
+        _tag: 'Failed',
+        failure: {
+          error:
+            'CorpusInstallationError: Failed to execute statement: D1_ERROR: too many SQL variables',
+        },
+      });
+    }).pipe(Effect.provide(Layer.mergeAll(EGWParagraphDatabase.Test({}), failing)));
   });
 
   it.effect("counts the paragraphs an install changed, by the book's recorded revision", () => {
