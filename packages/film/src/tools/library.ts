@@ -498,9 +498,9 @@ interface SoundLibraryService {
    */
   readonly describe: Effect.Effect<number, LibraryError | MediaFailed | PlatformError>;
   /**
-   * Every library finding: unmade, stale, missing or corrupt files,
-   * licences, loop seams (a code trial's too, named `<name> (trial)`),
-   * lead-ins.
+   * Every library finding: unmade, stale, missing or corrupt files of the
+   * takes that play, licences, loop seams (a code trial's too, named
+   * `<name> (trial)`), lead-ins.
    */
   readonly check: Effect.Effect<
     ReadonlyArray<LibraryFinding>,
@@ -1247,10 +1247,12 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             if (state._tag === 'Missing')
               findings.push(SoundUnmade.make({ name, candidates: state.candidates }));
             if (state._tag === 'Stale') findings.push(SoundStale.make({ name }));
-            const kept = Option.match(record, {
-              onNone: (): ReadonlyArray<Variant> => [],
-              onSome: (r) => r.variants,
-            });
+            // A code sound plays its seeds. The takes its record keeps play
+            // again only when it is generated once more, and are checked then.
+            const kept = Option.match(
+              Option.filter(record, () => !isDerived(entry)),
+              { onNone: (): ReadonlyArray<Variant> => [], onSome: (r) => r.variants },
+            );
             const broken = new Set<string>();
             for (const variant of kept)
               for (const finding of Option.toArray(yield* fileFinding(name, variant))) {

@@ -26,7 +26,7 @@ bun run sfx render <name> [--seed n] [--trial] [--sheet]  # a code sound's seeds
 bun run sfx compare <name>                     # a code trial's numbers beside what plays, and how far each film's placement would hear the hit move (free)
 bun run sfx audit                              # which generated sounds code can make, read from their prompts (free)
 bun run sfx ab <name> --out <dir>              # the clips an ask plays, as MP4s beside their sheets: what plays now, the code trial, and both (free)
-bun run sfx check                              # unmade/stale sounds, missing or corrupt files, licences, loop seams (a code trial's too), one-shots that start late or lack their hit
+bun run sfx check                              # unmade/stale sounds, missing or corrupt files of the takes that play, licences, loop seams (a code trial's too), one-shots that start late or lack their hit
 bun run sfx describe                           # record each take's onset and hit in the lock, measured from its file (free)
 bun run sfx pull|push                          # sync sounds/files (generated, git-ignored) with the store in library.ts; push names each file it sends, read back by hash
 bun run sfx push --from <folder>               # the same, sending files this machine lacks from an older folder store (a move; see The private store)

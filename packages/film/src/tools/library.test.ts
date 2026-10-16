@@ -20,12 +20,13 @@ import {
   Path,
   Predicate,
   Redacted,
+  Schema,
 } from 'effect';
 import type { Pcm } from '../core/audio.ts';
 import { rng } from '../core/random.ts';
 import { Segment } from '../core/segment.ts';
 import type { Raster } from '../core/synth/sheet.ts';
-import { pendingOf, requestKey, soundState } from '../core/sfx.ts';
+import { LockJson, pendingOf, requestKey, soundState } from '../core/sfx.ts';
 import { ContentStore } from './content-store.ts';
 import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
 import { ElevenLabsFailed } from '../core/refusals.ts';
@@ -694,6 +695,37 @@ describe.concurrent('SoundLibrary', () => {
             onset: 0,
             hit: 0.01,
           });
+        }),
+      ),
+  );
+
+  it.effect.layer(made)(
+    'checks the takes a generated sound keeps, not those a code sound’s record keeps',
+    () =>
+      withLibrary(({ dir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const fs = yield* FileSystem.FileSystem;
+          yield* library.keep(
+            'paper.slide',
+            yield* library.takesAt('paper.slide', [1], 'candidates'),
+          );
+          // The code chime's record keeps the slide's take, as a sound made
+          // code keeps the takes it played; the take is gone and undescribed.
+          const file = `${dir}/library.lock.json`;
+          const lock = yield* Schema.decodeEffect(LockJson)(yield* fs.readFileString(file));
+          const kept = lock['paper.slide']?.variants ?? [];
+          const both = { ...lock, 'tone.chime': { variants: kept, candidates: [], rejected: [] } };
+          yield* fs.writeFileString(
+            file,
+            (yield* Schema.encodeEffect(LockJson)(both)).replace(/"(onset|hit)": [0-9.]+,?/g, ''),
+          );
+          yield* fs.remove(`${dir}/${kept[0]?.file ?? ''}`);
+          const findings = yield* library.check;
+          const of = (name: string) =>
+            findings.filter((f) => 'name' in f && f.name === name).map((f) => f._tag);
+          expect(of('paper.slide')).toEqual(['SoundFileMissing', 'TimingUnrecorded']);
+          expect(of('tone.chime')).toEqual([]);
         }),
       ),
   );

@@ -212,7 +212,7 @@ Numbers, no verdict: a distance is a hint for the ear, never a target to make sm
 2. Publish the clips as one set (the lab MCP's `publish_set`, or `bun cli.ts publish <folder> --production <production>`).
 3. Ask once (The flow, "Ask, don't chat" in [SKILL.md](../SKILL.md)): a section for each sound, video A (now) then video B (code), a choose of `code` (play the code sound), `keep` (keep the generated take) or `remake` (remake the code sound), one recommended with a why from the numbers, and an optional free text.
 4. Apply the answers:
-   - `code`: the entry becomes `kind: 'code'` with the trial's `sound` and `variants`, keeping its `use`, `level` and `duck`. Its lock record stays (the Choices page lists those takes as "was"): put the generated entry back and its kept takes play again.
+   - `code`: the entry becomes `kind: 'code'` with the trial's `sound` and `variants`, keeping its `use`, `level` and `duck`. Its lock record stays (the Choices page lists those takes as "was"): put the generated entry back and its kept takes play again. `sfx pull` and `sfx push` still carry those takes, and `sfx check` checks them only once they play again.
    - `keep`: delete the trial. Put the owner's reason in `why` when he gave one.
    - `remake`: edit the trial and ask again.
 5. Close the ask once its answers are in the source.
