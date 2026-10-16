@@ -344,8 +344,8 @@ export interface FreshFilmService {
   ) => Effect.Effect<void, FreshError>;
   /**
    * A seed of a sound made from data (`variant`, its source's label: a code
-   * sound's, a recipe's, a code trial's) of the take point `point`, rendered
-   * alone and written to `to` as a WAV.
+   * sound's or a code trial's) of the take point `point`, rendered alone and
+   * written to `to` as a WAV.
    */
   readonly sound: (
     film: FilmName,

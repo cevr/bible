@@ -170,7 +170,7 @@ interface RenderOptions {
 /**
  * A variant of a library sound heard where the film plays that sound, by its
  * id: a take's sha256 (kept or waiting), or a seed's source label (a code
- * sound's, a recipe's, a code trial's).
+ * sound's or a code trial's).
  */
 interface TakeInPlace {
   readonly sound: string;
@@ -238,8 +238,8 @@ const isFile = (source: SoundSource): source is Extract<SoundSource, { readonly 
 
 /**
  * `plan` with every sound it plays decoded (a file) or rendered (`rendered`: a
- * recipe or a code sound), each voice file once however many pieces of it
- * play; the mix never resamples, so a file at another rate fails.
+ * seed of a code sound or of a code trial), each voice file once however many
+ * pieces of it play; the mix never resamples, so a file at another rate fails.
  */
 const decodePlan = (
   media: MediaService,

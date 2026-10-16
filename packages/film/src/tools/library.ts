@@ -416,8 +416,8 @@ interface SoundLibraryService {
    * variants that play: beside the kept ones, or with `replace` in their place
    * (the variants they replace wait again as candidates). Each take is found
    * in the lock under its write lock, so a curation landing first cannot move
-   * another take into its place. A code sound or a recipe has no takes to
-   * curate (`SoundKindMismatch`): its seeds play as its data says.
+   * another take into its place. A code sound has no takes to curate
+   * (`SoundKindMismatch`): its seeds play as its data says.
    */
   readonly keep: (
     name: string,
