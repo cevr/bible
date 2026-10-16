@@ -6,8 +6,9 @@
 // published into it, each with its choices and whether the owner picked; the
 // owner's words given outside the lab; a set the ledger files that no root
 // holds now). The current version is open and says what waits on the owner,
-// and holds the one verb of the page, Move forward: the decision in a line,
-// what the next version is for, and the ledger opens it. A past version is
+// and holds the one verb of the page, Move forward: the decision chosen from
+// the owner's filed in the version (or said in his own words), what the next
+// version is for (optional), and the ledger opens it. A past version is
 // shut to its head until opened (`?v=<n>` opens it from a link).
 
 import { PlaceStyle } from '../place-style.tsx';
@@ -16,6 +17,8 @@ import { Array as Arr, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type Accessor, createEffect, createMemo, createSignal, flush } from 'solid-js';
 import { useAtomValue } from '@bible/atom-solid';
+import { Toggle } from '@bible/ui/toggle';
+import { ToggleGroup } from '@bible/ui/toggle-group';
 import { pageHref, reviewStillUrl } from '../../core/api.ts';
 import type { BoardFile } from '../../core/board.ts';
 import { focusFor } from '../focus.ts';
@@ -426,15 +429,25 @@ const WaitingList = (props: { readonly waiting: ReadonlyArray<Waiting> }) => (
   </div>
 );
 
-/** The owner's newest decision in `v`, to start the move's first field from. */
-const newestDecision = (v: VersionView): string =>
-  Option.getOrElse(
-    Arr.findFirst(v.entries, (e) => e._tag === 'Said' && e.said._tag === 'Decided').pipe(
-      Option.flatMap((e) => Option.liftPredicate(e, Entry.$is('Said'))),
-      Option.map((e) => e.said.text),
+/** A move's decision chosen as the owner's own words, not one filed in the version. */
+const OWN = 'own';
+
+/** The owner's decisions in `v`, newest first, each once: what a move may say it was because of. */
+const decisionsOf = (
+  v: VersionView,
+): ReadonlyArray<{ readonly value: string; readonly text: string }> =>
+  Arr.dedupe(
+    Arr.getSomes(
+      v.entries.map((e) =>
+        Match.value(e).pipe(
+          Match.tag('Said', (s) =>
+            Option.liftPredicate(s.said.text, () => s.said._tag === 'Decided'),
+          ),
+          Match.orElse(() => Option.none<string>()),
+        ),
+      ),
     ),
-    () => '',
-  );
+  ).map((text, i) => ({ value: String(i), text }));
 
 /** The questions a move leaves open: `1 question still waits on you; it stays open after the move.` */
 const openAfterText = (n: number): string =>
@@ -446,20 +459,36 @@ const openAfterText = (n: number): string =>
   );
 
 /**
- * Move forward: closed, the page's one verb; open, the decision in a line
- * (started from the owner's newest one) and what the next version is for,
- * both needed, then the move, which the ledger refuses if the production
- * moved on since the page read it.
+ * Move forward: closed, the page's one verb; open, choices first. The
+ * decision is one of the owner's filed in the version (the newest chosen),
+ * or his own words in a line; what the next version is for is his to name,
+ * `v<n>` when left empty. Then the move, which the ledger refuses if the
+ * production moved on since the page read it.
  */
 const MoveForward = (props: { readonly production: string; readonly current: VersionView }) => {
   const { actions } = useReview();
   const [open, setOpen] = createSignal(false);
   const [title, setTitle] = createSignal('');
-  const [because, setBecause] = createSignal('');
-  const fields = { first: Option.none<HTMLInputElement>() };
+  const [chosen, setChosen] = createSignal(OWN);
+  const [own, setOwn] = createSignal('');
+  const fields = { decided: Option.none<HTMLFieldSetElement>() };
   const moves = newestAsked();
   const next = () => props.current.n + 1;
-  const filled = () => title().trim().length > 0 && because().trim().length > 0;
+  const decisions = createMemo(() => decisionsOf(props.current));
+  const because = () =>
+    Option.getOrElse(
+      Option.map(
+        Arr.findFirst(decisions(), (d) => d.value === chosen()),
+        (d) => d.text,
+      ),
+      () => own().trim(),
+    );
+  const named = () =>
+    Option.getOrElse(
+      Option.liftPredicate(title().trim(), (t) => t.length > 0),
+      () => `v${next()}`,
+    );
+  const filled = () => because().length > 0;
   const move = useWrite(
     (arg: { readonly title: string; readonly because: string }) =>
       ReviewApi.use((api) =>
@@ -477,21 +506,31 @@ const MoveForward = (props: { readonly production: string; readonly current: Ver
     }),
   );
   const start = () => {
-    setBecause(newestDecision(props.current));
+    setChosen(
+      Option.getOrElse(
+        Option.map(Arr.head(decisions()), (d) => d.value),
+        () => OWN,
+      ),
+    );
     setOpen(true);
     flush();
-    Option.map(fields.first, (field) => focusFor(field, 'pointer'));
+    Option.map(
+      Option.flatMap(fields.decided, (set) =>
+        Option.fromNullishOr(set.querySelector<HTMLElement>('[aria-pressed="true"]')),
+      ),
+      (field) => focusFor(field, 'pointer'),
+    );
   };
   const submit = (event: SubmitEvent) => {
     event.preventDefault();
     if (!filled()) return;
-    void move.write({ title: title().trim(), because: because().trim() }).then((landed) =>
+    void move.write({ title: named(), because: because() }).then((landed) =>
       Option.map(landed, (l) => {
         l.show('moved', Option.some, (file) => {
           actions.moved(file);
           setOpen(false);
           setTitle('');
-          setBecause('');
+          setOwn('');
         });
       }),
     );
@@ -512,27 +551,49 @@ const MoveForward = (props: { readonly production: string; readonly current: Ver
       }
     >
       <form class="pd-move" data-act="move-form" onSubmit={submit}>
-        <label>
-          <span>What did we decide?</span>
-          <input
-            class="sh-field"
-            ref={(el: HTMLInputElement) => {
-              fields.first = Option.some(el);
-            }}
-            name="because"
-            required
-            placeholder="The pick or the direction, in a line"
-            value={because()}
-            onInput={(e) => setBecause(e.currentTarget.value)}
-          />
-        </label>
+        <fieldset
+          class="pd-decided"
+          data-answer="because"
+          ref={(el: HTMLFieldSetElement) => {
+            fields.decided = Option.some(el);
+          }}
+        >
+          <legend>What did we decide?</legend>
+          <ToggleGroup<string>
+            class="pd-decisions"
+            aria-label="What did we decide?"
+            value={[chosen()]}
+            onValueChange={(values) => setChosen(Option.getOrElse(Arr.head(values), chosen))}
+          >
+            <For each={decisions()}>
+              {(d) => (
+                <Toggle<string> class="sh-btn pd-decision" value={d.value} data-value={d.value}>
+                  {d.text}
+                </Toggle>
+              )}
+            </For>
+            <Toggle<string> class="sh-btn pd-decision" value={OWN} data-value={OWN}>
+              In my own words
+            </Toggle>
+          </ToggleGroup>
+          <Show when={chosen() === OWN}>
+            <input
+              class="sh-field"
+              name="because"
+              required
+              aria-label="What did we decide, in your words?"
+              placeholder="The pick or the direction, in a line"
+              value={own()}
+              onInput={(e) => setOwn(e.currentTarget.value)}
+            />
+          </Show>
+        </fieldset>
         <label>
           <span>What is v{next()} for?</span>
           <input
             class="sh-field"
             name="title"
-            required
-            placeholder="What the next round tries"
+            placeholder={`v${next()}, unless you name it`}
             value={title()}
             onInput={(e) => setTitle(e.currentTarget.value)}
           />
@@ -756,7 +817,10 @@ const PRODUCTION_CSS = `
 .pd-waiting,.pd-forward,.pd-move{margin-bottom:var(--s-3)}
 .pd-kind{font-size:var(--fs-1);line-height:var(--lh-1);text-transform:uppercase;letter-spacing:var(--track-caps);color:var(--text-2)}
 .pd-move{display:grid;gap:var(--s-2);padding:var(--s-3);background:var(--surface-2)}
-.pd-move label{display:grid}
+.pd-move label,.pd-decided{display:grid;gap:var(--s-1)}
+.pd-decided{margin:0;padding:0;border:0}
+.pd-decisions{display:grid;gap:var(--s-1)}
+.pd-decision{justify-content:flex-start;text-align:left}
 .pd-e{display:grid;gap:var(--s-2);padding:var(--s-2) 0}
 .pd-e+.pd-e{border-top:var(--border)}
 .pd-kind[data-kind=Decided]{color:var(--state-approved)}
