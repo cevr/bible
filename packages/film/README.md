@@ -1710,6 +1710,45 @@ writes over the other. A note on a panel is a lab note (`POST
 | `POST /api/films/<film>/board/approve`     | `{ beat }`: approve the beat's board as it stands; 422 while a picture panel keeps no try           |
 | `POST /api/films/<film>/board/withdraw`    | `{ beat }`: withdraw the beat's approval                                                            |
 
+### Timeline
+
+A film's timeline is one read model (`core/film-timeline.ts`, pure:
+`timelineOf`), the one the studio page draws and the lab's MCP answers
+(`timeline`). It reads one version of the film: the production's open one,
+or one asked by number. A version whose folder holds a script
+(`<film>/v<n>/script.ts`) is read from it; the newest version without one is
+the film's registered files; an older one without a folder is refused
+(`FilmVersionUnkept`), and a number past the ledger too
+(`FilmVersionUnknown`). Its clock is read fresh (`film read clock <film>
+[--folder v<n>]`, `FreshFilm.clock`), kept under the film's source stamp
+(`tools/film-timeline.ts`, `FilmTimelines`), so a script or a take changed
+while the lab is open is read once after the change.
+
+- **Lanes.** Each stage of the flow with material on the clock is a lane of
+  clips: the script's beats, the Board's panels on their marks (each held to
+  the next panel of its beat or the beat's end), the takes, the scenes drawn, the score's
+  movements, the renders. A clip says its state (made, kept, approved) and
+  its clock: `estimated` while its beat has no take (words at the reading
+  pace), `measured` once it has. The Board, the catalogue and the notes are
+  the film's registered files', so a version read from its folder shows its
+  script and its takes alone.
+- **The flow.** The nine stages (script, concept, Board, voice, animatic,
+  Rive scenes, sound, render, shorts), each `reached`, a `gap` or `ahead`.
+  The concept stage keeps no record yet, so it is a gap. The Next row is the
+  first stage ahead and what starts it.
+- **Bands and markers.** The script's acts are `bands` over the clock. A
+  marker (a flag on the page) is something that waits on the owner, at its
+  time: an open ask at the first beat its material names, and a note of his
+  not yet done.
+- **The header.** The stage the version shown has reached; what waits on the
+  owner (asks, notes replied, beats whose every picture is kept but not
+  approved), counted; and the agents' "doing now" lines.
+
+The `working` tool says an agent's line (`tools/working.ts`, `Working`): one
+line per agent per film, replaced by its next, cleared when the agent says
+`done` or after `WORKING_HELD` (half an hour) of silence. The lab holds the
+lines in memory only, so a restart clears them.
+
 ### Studio
 
 **The Studio** (`lab/studio/`, Solid 2 + effect-machine) is the lab's panel
