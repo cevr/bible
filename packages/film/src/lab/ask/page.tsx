@@ -13,13 +13,15 @@ import * as Ask from './parts.tsx';
 /**
  * An ask's look, read only through the studio's tokens: its own place's, so
  * it rides with the page (`PlaceStyle`). Its rules name the ask's own parts,
- * and the material it shows keeps the look it has everywhere: two rules under
+ * and the material it shows keeps the look it has everywhere: the rules under
  * `.ak-mat` set only the layout and size an ask's column asks of it (a
- * pending row's inset, a note's smaller title). One rule reaches past the
- * ask, on the laptop: the main column keeps no bottom room, and the dock no
- * margin, while the ask's Send is held at its floor. What else differs is the
- * parts' own: the reader leaves out the day's spend by its `cost` prop, and
- * a video's quiet play is the player's (`PlayedAlone`'s `quiet`).
+ * pending row's inset, a note's smaller title, and the script's reader run
+ * out over the gutter with its name). The rules that reach past the ask are
+ * the laptop's: the main column keeps no bottom room (`.rv-main:has(.ak-send)`),
+ * and the dock no margin, while the ask's Send is held at its floor. What
+ * else differs is the parts' own: the reader leaves out the day's spend by
+ * its `cost` prop, and a video's quiet play is the player's (`PlayedAlone`'s
+ * `quiet`).
  */
 const ASK_CSS = `
 .ak{max-width:720px;margin:0 auto}
@@ -76,7 +78,10 @@ const ASK_CSS = `
 .ak-mat[data-material=script] .ak-mat-name,.ak-section-h{padding-inline:var(--gutter)}
 @media ${WIDE}{
   .ak-options[data-pictured=true]{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .ak-send{position:sticky;top:auto;bottom:0;border-top:var(--border);border-bottom:0}
+  /* Held at the window's floor and run out over the gutter as the heads are, so its words start
+     on the column's edge and its Send ends on the other. */
+  .ak-send{position:sticky;top:auto;bottom:0;border-top:var(--border);border-bottom:0;
+    margin-inline:calc(-1 * var(--gutter));padding-inline:var(--gutter)}
   /* The held Send is the page's floor: the main column keeps no room under it, nor the dock a margin. */
   .rv-main:has(.ak-send){padding-bottom:0}
   .rv-main .sh-dock.ak-send:not(.pj-dock){margin-bottom:0}

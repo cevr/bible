@@ -65,6 +65,8 @@ import { ASK_READY, SLOW } from '../studio-states.ts';
 
 const ANSWER = new RegExp(`^/api/asks/${STUDIO_ASK}/answer$`);
 const DRAFT_MARKS = new RegExp(`^/api/series/${STUDIO_SERIES}/${STUDIO_DRAFT}/marks$`);
+/** A still at 1920×1080: the size of a Board's. */
+const STILL_1080 = new URL('../../../src/tools/fixtures/still-1080.svg', import.meta.url).pathname;
 /** A real H.264 take at 1280×720: the size of a render's. */
 const HD_720 = new URL('../../../src/tools/fixtures/hd-720.mp4', import.meta.url).pathname;
 /** The section whose head holds the top under the header once the page is scrolled to its end. */
@@ -750,6 +752,14 @@ describe("an agent's ask on a phone", () => {
           `(scrollTo(0, document.documentElement.scrollHeight), Math.round(innerHeight - document.querySelector('.ak-send').getBoundingClientRect().bottom))`,
           0,
         );
+        // The dock's words start on the column's edge too, and its Send ends on the column's other.
+        const right = (selector: string) =>
+          `Math.round(document.querySelector('${selector}').getBoundingClientRect().right)`;
+        yield* evaluates(
+          page,
+          `[${left('.ak-send [data-role="answered"]')} === ${left('.ak-step[data-step="board"] .ak-board')}, ${right('.ak-send [data-act="send"]')} === ${right('.ak-step[data-step="board"] .ak-board')}]`,
+          [true, true],
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -875,6 +885,36 @@ describe("an agent's ask on a phone", () => {
           yield* until(page, "document.querySelector('.rv-lightbox') === null");
           yield* until(page, "location.search === ''");
         }
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "on a laptop a Board still's caption sits clear above the dimmed dock under the scrim",
+    () =>
+      Effect.gen(function* () {
+        // A still at a Board's own size, taller than the window can show whole.
+        const tall = route('GET', /^\/api\/films\/toy\/board\/files\/open\.breath\.1\.png$/, () =>
+          file(STILL_1080),
+        );
+        const { page, errors } = yield* openReview([tall, ...guidedRoutes, ...studioRoutes], {
+          href: pageHref.ask(STUDIO_GUIDED),
+          viewport: DESK,
+        });
+        const thumb = '.ak-step[data-step="board"] [data-panel="open.breath"] .rv-zoom';
+        yield* waitFor(page, thumb);
+        yield* page.click(thumb);
+        yield* textIs(page, '.rv-lightbox .rv-lightbox-caption', 'open · breath');
+        yield* until(
+          page,
+          `(() => {
+            const still = document.querySelector('.rv-lightbox img').getBoundingClientRect();
+            const caption = document.querySelector('.rv-lightbox-caption').getBoundingClientRect();
+            const dock = document.querySelector('.ak-send').getBoundingClientRect();
+            return still.height > 0 && caption.top - still.bottom <= 12 && dock.top - caption.bottom >= 8;
+          })()`,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
