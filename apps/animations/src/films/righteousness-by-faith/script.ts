@@ -203,7 +203,7 @@ export const script = defineScript([
   },
   {
     id: 'spoke',
-    say: "{first}How can a {*}word do that? {//} {dark}On the Bible's first page, the world is dark. {/} {light}God says, Let there be light, and there {*}is light. {/} {itself}No tools, just His {*}word. {/} {calleth}Paul says He “calleth those things which be {*}not as though they were.” {/} When He calls them, they {*}are. {//} {verdict}So is His verdict {cover}a cover-up? {/} {seed}No. {/} It's a {*}seed, and His word makes it {*}true. {/} And His word brings three things. {/} {faith}It brings faith. {/} {forgiveness}It brings forgiveness. {/} {power}It brings power.",
+    say: "{first}How can a {*}word do that? {//} {dark}On the Bible's first page, the world is dark. {/} {light}God says, Let there be light, and there {*}is light. {/} {itself}No tools, just His {*}word. {/} {calleth}Paul says He “calleth those things which be {*}not as though they were.” {/} When He calls them, they {*}are. {//} {verdict}So is His verdict {cover}a cover-up? {/} {seed}No. {/} It's a {*}seed, and His word makes it {*}true. {/} {brings}And His word brings three things. {/} {faith}It brings faith. {/} {forgiveness}It brings forgiveness. {/} {power}It brings power.",
     lead: 0.4,
     cite: [
       'Genesis 1:2–3',

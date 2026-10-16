@@ -45,7 +45,7 @@ _Is God’s verdict a cover-up?_ · peach parchment
 
 ### `spoke` · IDEA · at 1:37 (17 %) · 80 words
 
-**say:** {first}How can a {*}word do that? {//} {dark}On the Bible's first page, the world is dark. {/} {light}God says, Let there be light, and there {*}is light. {/} {itself}No tools, just His {*}word. {/} {calleth}Paul says He “calleth those things which be {*}not as though they were.” {/} When He calls them, they {*}are. {//} {verdict}So is His verdict {cover}a cover-up? {/} {seed}No. {/} It's a {*}seed, and His word makes it {*}true. {/} And His word brings three things. {/} {faith}It brings faith. {/} {forgiveness}It brings forgiveness. {/} {power}It brings power.
+**say:** {first}How can a {*}word do that? {//} {dark}On the Bible's first page, the world is dark. {/} {light}God says, Let there be light, and there {*}is light. {/} {itself}No tools, just His {*}word. {/} {calleth}Paul says He “calleth those things which be {*}not as though they were.” {/} When He calls them, they {*}are. {//} {verdict}So is His verdict {cover}a cover-up? {/} {seed}No. {/} It's a {*}seed, and His word makes it {*}true. {/} {brings}And His word brings three things. {/} {faith}It brings faith. {/} {forgiveness}It brings forgiveness. {/} {power}It brings power.
 
 **picture:** IDEA, then STORY, then IDEA.
 
