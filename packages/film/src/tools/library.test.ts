@@ -296,6 +296,18 @@ const recording = (
     return file;
   });
 
+/** A mono WAV at `file` of ten seconds of seeded noise at `level(t)`. */
+const noise = (file: string, seed: number, level: (t: number) => number) =>
+  Effect.gen(function* () {
+    const media = yield* Media;
+    const frames = 10 * 44100;
+    const r = rng(seed);
+    const plane = new Float32Array(frames);
+    for (let i = 0; i < frames; i++) plane[i] = (r() * 2 - 1) * level(i / 44100);
+    yield* media.writeWav(file, { rate: 44100, frames, channels: [plane] });
+    return file;
+  });
+
 /** A path's last part: a file's name. */
 const named = (files: ReadonlyArray<string>) =>
   files.map((file) => file.slice(file.lastIndexOf('/') + 1));
@@ -805,6 +817,60 @@ describe.concurrent('SoundLibrary', () => {
     ),
   );
 
+  it.effect.layer(fixture)(
+    'clips a cut to the recording and records it clipped; one that holds none of it is refused',
+    () =>
+      withLibrary(({ dir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const source = yield* recording(dir, 'knock.wav', 1, [[0.5, 0.05, 0.5]]);
+          const take = (from: number, to: number) =>
+            library.importFile(source, 'wood.knock', Option.some({ from, to }));
+          for (const [from, to] of [
+            [-5, -1],
+            [0.5, 0.50001],
+            [1, 2],
+            [0.7, 0.4],
+          ] as const)
+            expect((yield* Effect.flip(take(from, to)))._tag).toBe('CutEmpty');
+          expect((yield* take(0.4, 1000)).variant.cut).toEqual({ from: 0.4, to: 1 });
+          expect((yield* take(-1, 0.7)).variant.cut).toEqual({ from: 0, to: 0.7 });
+          expect((yield* library.load).lock['wood.knock']?.variants).toMatchObject([
+            { cut: { from: 0, to: 0.7 } },
+          ]);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
+    'reports a CC BY sound cut or trimmed on import whose licence says it is unchanged',
+    () =>
+      withLibrary(({ dir }) =>
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          // Before the library is first read: its module is read once.
+          const module = `${dir}/library.ts`;
+          const unchanged = (yield* fs.readFileString(module))
+            .replace('changed: true,', 'changed: false,')
+            .replace(
+              "licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/1/' },",
+              "licence: { id: 'CC-BY-3.0', title: 'knock', author: 'someone', authorUrl: 'https://f/p', source: 'https://f/s/1', changed: false },",
+            );
+          yield* fs.writeFileString(module, unchanged);
+          const library = yield* SoundLibrary;
+          const room = yield* recording(dir, 'room.wav', 3, [[0, 3, 0.1]]);
+          yield* library.importFile(room, 'amb.room', Option.some({ from: 0.5, to: 2.5 }));
+          const knock = yield* recording(dir, 'knock.wav', 1, [[0.5, 0.05, 0.5]]);
+          yield* library.importFile(knock, 'wood.knock', Option.none());
+          const unsaid = (yield* library.check).filter((f) => f._tag === 'ChangeUnsaid');
+          expect(unsaid.map((f) => [f.name, f.how])).toEqual([
+            ['amb.room', 'cut'],
+            ['wood.knock', 'trimmed'],
+          ]);
+        }),
+      ),
+  );
+
   it.effect.layer(fixture)('takes the cut it is given, and records it in the lock', () =>
     withLibrary(({ dir }) =>
       Effect.gen(function* () {
@@ -848,7 +914,7 @@ describe.concurrent('SoundLibrary', () => {
   );
 
   it.effect.layer(fixture)(
-    'cuts a bed where its loop seam is smallest, past its first seconds, and keeps its ends',
+    'cuts a bed where its loop seam is smallest, past its first seconds, and keeps it as it was',
     () =>
       withLibrary(({ dir }) =>
         Effect.gen(function* () {
@@ -856,22 +922,52 @@ describe.concurrent('SoundLibrary', () => {
           const media = yield* Media;
           const path = yield* Path.Path;
           // Ten seconds of steady noise, four times louder from 4.5 s to 6.5 s:
-          // a cut at 4 s or 6 s loops across that step.
-          const frames = 10 * 44100;
-          const r = rng(7);
-          const plane = new Float32Array(frames);
-          for (let i = 0; i < frames; i++) {
-            const t = i / 44100;
-            let level = 0.1;
-            if (t >= 4.5 && t < 6.5) level = 0.4;
-            plane[i] = (r() * 2 - 1) * level;
-          }
-          const source = path.join(dir, '..', 'room.wav');
-          yield* media.writeWav(source, { rate: 44100, frames, channels: [plane] });
+          // a cut at 4 s or 6 s loops across that step. It falls to -80 dBFS,
+          // under the trim floor, for a tenth of a second either side of each
+          // 2 s step and at its end, so a bed trimmed as a one-shot is would
+          // come out shorter than its secs.
+          const level = (t: number) => {
+            if (t >= 9.9 || [2, 4, 6, 8].some((k) => Math.abs(t - k) < 0.1)) return 1e-4;
+            if (t >= 4.5 && t < 6.5) return 0.4;
+            return 0.1;
+          };
+          const source = yield* noise(path.join(dir, '..', 'room.wav'), 7, level);
           const { variant, cut } = yield* library.importFile(source, 'amb.room', Option.none());
-          expect([2, 8]).toContain(Option.getOrThrow(cut).from);
+          const taken = Option.getOrThrow(cut);
+          expect([2, 8]).toContain(taken.from);
           expect(variant.secs).toBeCloseTo(2, 2);
           expect(variant.licence).toBe('CC-BY-4.0');
+          // The kept file is the source's cut sample for sample: no filter, no fade.
+          const kept = yield* media.load(path.join(dir, variant.file), 44100);
+          const whole = yield* media.load(source, 44100);
+          const at = Math.round(taken.from * 44100);
+          let worst = 0;
+          for (let i = 0; i < kept.frames; i++)
+            worst = Math.max(
+              worst,
+              Math.abs((kept.channels[0]?.[i] ?? 0) - (whole.channels[0]?.[at + i] ?? 0)),
+            );
+          expect(kept.frames).toBe(2 * 44100);
+          expect(worst).toBeLessThan(1e-6);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
+    'never cuts a bed from its first seconds, even where its seam would be smallest',
+    () =>
+      withLibrary(({ dir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const path = yield* Path.Path;
+          // Steady for its first 2 s; every later 2 s steps from quiet to four times louder.
+          const level = (t: number) => {
+            if (t < 2 || t % 2 < 1) return 0.1;
+            return 0.4;
+          };
+          const source = yield* noise(path.join(dir, '..', 'handled.wav'), 11, level);
+          const { cut } = yield* library.importFile(source, 'amb.room', Option.none());
+          expect(Option.getOrThrow(cut).from).toBeGreaterThanOrEqual(2);
         }),
       ),
   );

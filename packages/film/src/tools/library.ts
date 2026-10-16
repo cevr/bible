@@ -31,7 +31,7 @@ import {
   Result,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
-import { type Pcm, concat, silence, slice } from '../core/audio.ts';
+import { type Pcm, concat, gain, silence, slice } from '../core/audio.ts';
 import { bedWrapAt } from '../core/mix.ts';
 import {
   AUDIO_FILE,
@@ -99,6 +99,7 @@ import {
   SoundKindMismatch,
   CutEmpty,
   SoundLicence,
+  ChangeUnsaid,
   SoundStale,
   SoundUnmade,
   StoreCopyFailed,
@@ -116,6 +117,7 @@ import {
   expandHome,
 } from './media-store.ts';
 import { PrivateStore, type StoreUnavailable } from './private-store.ts';
+import type { FlagRule } from './render-plan.ts';
 import { SoundRender } from './sound-render.ts';
 
 /** Every path the library touches. */
@@ -198,6 +200,12 @@ interface SourceCut {
   readonly to: number;
 }
 
+/** `film sfx import` flags: a cut (`importFile`'s) names both its ends. */
+export const IMPORT_RULES: ReadonlyArray<FlagRule> = [
+  ['from', 'needs', 'to', 'a cut names both its ends'],
+  ['to', 'needs', 'from', 'a cut names both its ends'],
+];
+
 /** How far before its loudest moment a one-shot's automatic cut starts, as a share of its length. */
 const CUT_LEAD = 0.2;
 /** A bed's automatic cut is tried at every this many seconds into the source. */
@@ -237,6 +245,17 @@ const autoCut = (pcm: Pcm, use: SoundUse, secs: number): Option.Option<SourceCut
   );
 };
 
+/**
+ * `cut` clipped to `pcm`'s frames, in seconds on them: what `cutOf` takes of
+ * it. None when it holds no frame of `pcm`.
+ */
+const clipCut = (pcm: Pcm, cut: SourceCut): Option.Option<SourceCut> => {
+  const from = Math.min(pcm.frames, Math.max(0, Math.round(cut.from * pcm.rate)));
+  const to = Math.min(pcm.frames, Math.round(cut.to * pcm.rate));
+  if (to <= from) return Option.none();
+  return Option.some({ from: from / pcm.rate, to: to / pcm.rate });
+};
+
 /** `cut`'s stretch of `pcm`, clipped to it. */
 const cutOf = (pcm: Pcm, cut: SourceCut): Pcm => {
   const from = Math.min(pcm.frames, Math.max(0, Math.round(cut.from * pcm.rate)));
@@ -244,32 +263,23 @@ const cutOf = (pcm: Pcm, cut: SourceCut): Pcm => {
   return slice(pcm, from, to - from);
 };
 
+/** A recording as `sfx import` keeps it, and the gain it was given, in dB. */
+interface Levelled {
+  readonly pcm: Pcm;
+  readonly gain: number;
+}
+
 /**
  * `pcm` scaled down so its peak sits at `TAKE_LEVEL.ceiling` when it peaks
  * over it (an MP3's decode overshoots 0 dBFS between its samples), and the
  * gain in dB; one that peaks under it is left as it is (0 dB). The mix
  * levels every variant by its measure, so the gain costs nothing heard.
  */
-interface Levelled {
-  readonly pcm: Pcm;
-  readonly gain: number;
-}
-
 const levelOvers = (pcm: Pcm): Levelled => {
   const over = loudness(pcm).peak - TAKE_LEVEL.ceiling;
   if (!(over > 0)) return { pcm, gain: 0 };
-  const scale = 10 ** (-over / 20);
-  return {
-    pcm: { ...pcm, channels: pcm.channels.map((plane) => plane.map((x) => x * scale)) },
-    gain: -over,
-  };
+  return { pcm: gain(pcm, -over), gain: -over };
 };
-
-/** The quietest share of a sound's power `shareDb` names, in dB: a share of none reads as it. */
-const SHARE_FLOOR_DB = -120;
-
-/** A share of a sound's power as dB. */
-const shareDb = (share: number): number => Math.max(SHARE_FLOOR_DB, 10 * Math.log10(share));
 
 /** What `sfx import` kept: the variant, its cut, the gain that took its overs off, and its share of power under 30 Hz. */
 interface Imported {
@@ -277,7 +287,7 @@ interface Imported {
   readonly cut: Option.Option<SourceCut>;
   /** dB: 0 when it peaked under `TAKE_LEVEL.ceiling`. */
   readonly gain: number;
-  /** dB (`profileOf`'s rumble): reported only; no filter is applied. */
+  /** Its share of power below 30 Hz (`profileOf`'s rumble, as `sfx compare` gives it): reported only; no filter is applied. */
   readonly rumble: number;
 }
 
@@ -425,6 +435,7 @@ type LibraryFinding =
   | SoundFileMissing
   | SoundCorrupt
   | SoundLicence
+  | ChangeUnsaid
   | LoopSeam
   | TimingUnrecorded;
 
@@ -433,6 +444,7 @@ export const libraryLevel = (finding: LibraryFinding): 'error' | 'warning' => {
     case 'SoundFileMissing':
     case 'SoundCorrupt':
     case 'SoundLicence':
+    case 'ChangeUnsaid':
       return 'error';
     default:
       return 'warning';
@@ -529,9 +541,11 @@ interface SoundLibraryService {
   ) => Effect.Effect<LockEntry, LibraryError | UnknownSound | SoundKindMismatch | TakeUnknown>;
   /**
    * A recording into a declared `recorded` sound, kept as the variant that
-   * plays under `public/`: folded to one channel at 44.1 kHz, cut (`cut`,
-   * else the sound's `secs` cut automatically, else whole), a one-shot's
-   * quiet ends trimmed, its overs levelled to `TAKE_LEVEL.ceiling`. Kept
+   * plays under `public/`: folded to one channel at 44.1 kHz, cut (`cut`
+   * clipped to the recording, else the sound's `secs` cut automatically,
+   * else whole), a one-shot's quiet ends trimmed, its overs levelled to
+   * `TAKE_LEVEL.ceiling`. The lock records the cut as clipped; a `cut` that
+   * holds none of the recording is refused (`CutEmpty`). Kept
    * variants made for another request (a generated sound's takes) wait on
    * as candidates: its history, never offered again.
    */
@@ -1004,15 +1018,28 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           if (entry.kind !== 'recorded')
             return yield* SoundKindMismatch.make({ name, kind: entry.kind, wanted: 'recorded' });
           const source = yield* media.load(file, LIBRARY_RATE);
-          const cut = Option.orElse(given, () =>
-            Option.flatMap(Option.fromUndefinedOr(entry.secs), (secs) =>
-              autoCut(source, entry.use, secs),
-            ),
-          );
-          const length = source.frames / source.rate;
-          for (const c of Option.toArray(given))
-            if (!(c.to > c.from) || c.from >= length)
-              return yield* CutEmpty.make({ name, from: c.from, to: c.to, secs: length });
+          // A given cut is clipped to the source and recorded as clipped: what was taken.
+          const cut = yield* Option.match(given, {
+            onNone: () =>
+              Effect.succeed(
+                Option.flatMap(Option.fromUndefinedOr(entry.secs), (secs) =>
+                  autoCut(source, entry.use, secs),
+                ),
+              ),
+            onSome: (c) =>
+              Option.match(clipCut(source, c), {
+                onNone: () =>
+                  Effect.fail(
+                    CutEmpty.make({
+                      name,
+                      from: c.from,
+                      to: c.to,
+                      secs: source.frames / source.rate,
+                    }),
+                  ),
+                onSome: (clipped) => Effect.succeedSome(clipped),
+              }),
+          });
           const taken = Option.match(cut, {
             onNone: () => source,
             onSome: (c) => cutOf(source, c),
@@ -1020,8 +1047,8 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           // A bed's ends are its loop: only a one-shot loses its quiet ends.
           let trimmed = taken;
           if (entry.use === 'one-shot') trimmed = trimQuiet(taken, TRIM_FLOOR, TRIM_PAD);
-          const { pcm, gain } = levelOvers(trimmed);
-          const kept = yield* keepFile(name, pcm, 'public', {
+          const level = levelOvers(trimmed);
+          const kept = yield* keepFile(name, level.pcm, 'public', {
             request: requestKey(entry),
             model: 'recorded',
             format: 'flac',
@@ -1037,21 +1064,23 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             const current = had.variants.filter(
               (v) => v.request === variant.request && v.sha256 !== variant.sha256,
             );
-            const older = had.variants.filter((v) => v.request !== variant.request);
+            const older = had.variants.filter(
+              (v) => v.request !== variant.request && v.sha256 !== variant.sha256,
+            );
             return {
               ...lock,
               [name]: {
                 variants: [...current, variant],
-                candidates: [...without(had.candidates, older), ...older],
+                candidates: [...without(had.candidates, [...older, variant]), ...older],
                 rejected: had.rejected,
               },
             };
           });
-          const rumble = shareDb(profileOf(pcm, entry.use).rumble);
+          const rumble = profileOf(level.pcm, entry.use).rumble;
           yield* Effect.log(
-            `sfx.imported name=${name} file=${variant.file} licence=${variant.licence} cut=${Option.match(cut, { onNone: () => 'whole', onSome: (c) => `${toMs(c.from)}-${toMs(c.to)}` })} gain=${gain.toFixed(1)} rumble=${rumble.toFixed(1)}`,
+            `sfx.imported name=${name} file=${variant.file} licence=${variant.licence} cut=${Option.match(cut, { onNone: () => 'whole', onSome: (c) => `${toMs(c.from)}-${toMs(c.to)}` })} gain=${level.gain.toFixed(1)} rumble=${rumble.toFixed(4)}`,
           );
-          const imported: Imported = { variant, cut, gain, rumble };
+          const imported: Imported = { variant, cut, gain: level.gain, rumble };
           return imported;
         });
 
@@ -1071,13 +1100,16 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             return { rate: pcm.rate, frames: pcm.frames, channels: [plane] };
           });
 
-        /** A code trial's seeds as they would play, each measured as a derived variant is. */
-        /** A sound's code trial's seeds, measured: none for a sound with no trial. */
+        /**
+         * A sound's code trial's seeds as they would play, each measured as a
+         * derived variant is: none for a sound with no trial.
+         */
         const trialRenders = (loaded: LoadedLibrary, name: string) =>
           Effect.forEach(trialSources(soundsOf(loaded), name), (source) =>
             Effect.map(made.measure(source), (measured) => derivedPlayable(source, measured)),
           );
 
+        /** A sound's code trial's seeds, measured; refused (`CodeTrialMissing`) for a sound with no trial. */
         const trialPlayables = (loaded: LoadedLibrary, name: string, entry: LibraryEntry) =>
           Effect.gen(function* () {
             if (!loaded.trials.has(name))
@@ -1300,6 +1332,24 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           );
         };
 
+        /**
+         * A CC BY recording that says `changed: false` while a kept file was
+         * changed on import: cut, or (a one-shot's, always) trimmed. A bed
+         * taken whole at 0 dB is the recording as it was; the lock does not
+         * record a gain, and an import gains a file only past -1 dBFS.
+         */
+        const changeFindings = (
+          name: string,
+          entry: LibraryEntry,
+          kept: ReadonlyArray<Variant>,
+        ): ReadonlyArray<LibraryFinding> => {
+          if (entry.kind !== 'recorded' || entry.licence.id === 'CC0-1.0') return [];
+          if (entry.licence.changed || kept.length === 0) return [];
+          if (kept.some((v) => 'cut' in v)) return [ChangeUnsaid.make({ name, how: 'cut' })];
+          if (entry.use === 'one-shot') return [ChangeUnsaid.make({ name, how: 'trimmed' })];
+          return [];
+        };
+
         /** A bed's loop seams that are heard, past the files already reported missing or corrupt. */
         const seamFindings = (
           name: string,
@@ -1401,6 +1451,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
                 broken.add(path.join(dir, variant.file));
               }
             findings.push(...timingFindings(name, entry, kept));
+            findings.push(...changeFindings(name, entry, kept));
             findings.push(...(yield* seamFindings(name, entry, sounds, broken)));
             findings.push(...(yield* trialSeamFindings(name, entry, sounds)));
           }

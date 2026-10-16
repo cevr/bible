@@ -52,10 +52,12 @@ import {
 import { describeGraph } from '../core/synth/graph/describe.ts';
 import { FlagsConflict, LibraryCheckFailed } from './errors.ts';
 import { FilmFolder, FilmRepo } from './film-repo.ts';
+import { flagConflicts, givenFlags } from './render-plan.ts';
 import {
   type AuditionOf,
   type Comparison,
   type LoadedLibrary,
+  IMPORT_RULES,
   SoundLibrary,
   libraryLevel,
 } from './library.ts';
@@ -531,17 +533,7 @@ const importCommand = Command.make(
   },
   Effect.fn('film.sfx.import')(function* (input) {
     const ends = { from: input.from, to: input.to };
-    for (const [flag, other] of [
-      ['from', 'to'],
-      ['to', 'from'],
-    ] as const)
-      if (Option.isSome(ends[flag]) && Option.isNone(ends[other]))
-        return yield* FlagsConflict.make({
-          flag,
-          rule: 'needs',
-          other,
-          reason: 'a cut names both its ends',
-        });
+    yield* Effect.fromResult(flagConflicts(givenFlags(ends), IMPORT_RULES));
     const cut = Option.all(ends);
     const imported = yield* (yield* SoundLibrary).importFile(input.file, input.name, cut);
     const { variant } = imported;
@@ -550,7 +542,7 @@ const importCommand = Command.make(
       onSome: (c) => `${c.from.toFixed(2)}-${c.to.toFixed(2)}s`,
     });
     yield* Console.log(
-      `imported  ${variant.file}  ${variant.secs.toFixed(2)}s  ${variant.licence}  cut=${taken}  gain=${imported.gain.toFixed(1)}dB  rumble<30Hz=${imported.rumble.toFixed(1)}dB`,
+      `imported  ${variant.file}  ${variant.secs.toFixed(2)}s  ${variant.licence}  cut=${taken}  gain=${imported.gain.toFixed(1)}dB  <30Hz=${(imported.rumble * 100).toFixed(1)}%`,
     );
   }),
 ).pipe(

@@ -71,6 +71,20 @@ export class SoundLicence extends Schema.TaggedError<SoundLicence>()('SoundLicen
   }
 }
 
+/**
+ * A CC BY recording whose kept file `sfx import` changed (cut it, or trimmed a
+ * one-shot's quiet ends) while its licence says `changed: false`: its credit
+ * line would not say the change CC BY asks to be said.
+ */
+export class ChangeUnsaid extends Schema.TaggedError<ChangeUnsaid>()('ChangeUnsaid', {
+  name: Schema.String,
+  how: Schema.Literals(['cut', 'trimmed']),
+}) {
+  override get message() {
+    return `sound "${this.name}" is CC BY and its kept file was ${this.how} on import, but its licence says changed: false; set changed: true so its credit line says so`;
+  }
+}
+
 /** `sfx check` found errors in the library. */
 export class LibraryCheckFailed extends Schema.TaggedError<LibraryCheckFailed>()(
   'LibraryCheckFailed',

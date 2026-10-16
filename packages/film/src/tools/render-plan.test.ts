@@ -24,6 +24,8 @@ import {
   videoEncoders,
   videoWorkers,
 } from './render-plan.ts';
+import { CHECK_RULES } from './film-check.ts';
+import { IMPORT_RULES } from './library.ts';
 import { testExportInfo } from './testing.ts';
 
 /** A film of three scenes, 4, 5 and 6 s, and one short over its first. */
@@ -195,6 +197,18 @@ describe('jobOf', () => {
     const rule = ['share', 'needs', 'workers', 'r'] as const;
     expect(Result.isFailure(flagConflicts(new Set(['share']), [rule]))).toBe(true);
     expect(Result.isSuccess(flagConflicts(new Set(['share', 'workers']), [rule]))).toBe(true);
+  });
+
+  test('film check --folder needs --static', () => {
+    expect(Result.isFailure(flagConflicts(new Set(['folder']), CHECK_RULES))).toBe(true);
+    expect(Result.isSuccess(flagConflicts(new Set(['folder', 'static']), CHECK_RULES))).toBe(true);
+  });
+
+  test('film sfx import --from needs --to, and --to needs --from', () => {
+    expect(Result.isFailure(flagConflicts(new Set(['from']), IMPORT_RULES))).toBe(true);
+    expect(Result.isFailure(flagConflicts(new Set(['to']), IMPORT_RULES))).toBe(true);
+    expect(Result.isSuccess(flagConflicts(new Set(['from', 'to']), IMPORT_RULES))).toBe(true);
+    expect(Result.isSuccess(flagConflicts(new Set(), IMPORT_RULES))).toBe(true);
   });
 });
 

@@ -25,7 +25,7 @@
 // spends nothing on frames that only repeat it.
 //
 // A person's recording comes in whatever a recorder wrote (WAV, FLAC, AIFF,
-// M4A, MP3) at whatever rate its microphone ran, and loads in-process,
+// M4A, MP3, or an Ogg a library's preview is) at whatever rate its microphone ran, and loads in-process,
 // sample for sample: mediabunny opens the container and decodes PCM; MP3
 // goes through mpg123 as above; FLAC, AAC (and Opus, Vorbis) and H.264
 // through FFmpeg's own decoders in-process (@mediabunny/server, NodeAV: Bun
@@ -102,7 +102,7 @@ interface Timing {
 
 export interface MediaService {
   /**
-   * A recording (WAV, FLAC, AIFF, M4A, MP3), mixed down to one channel and
+   * A recording (WAV, FLAC, AIFF, M4A, MP3, Ogg), mixed down to one channel and
    * resampled to `rate`, as 32-bit float.
    */
   readonly load: (file: string, rate: number) => Effect.Effect<Pcm, MediaFailed>;
@@ -116,7 +116,7 @@ export interface MediaService {
    * video: one read of the file.
    */
   readonly timing: (file: string) => Effect.Effect<Timing, MediaFailed>;
-  /** `file`'s first audio track (MP3, FLAC, WAV, AIFF, M4A) decoded to planar PCM at its own rate, from its first frame. */
+  /** `file`'s first audio track (MP3, FLAC, WAV, AIFF, M4A, Ogg) decoded to planar PCM at its own rate, from its first frame. */
   readonly decode: (file: string) => Effect.Effect<Pcm, MediaFailed>;
   /** `pcm` written to `file` as a 16-bit WAV. */
   readonly writeWav: (file: string, pcm: Pcm) => Effect.Effect<void, MediaFailed>;
