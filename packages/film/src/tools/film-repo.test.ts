@@ -69,20 +69,30 @@ describe('FilmRepo', () => {
   );
 
   // A version folder (`sample/v3/`) is read from its own files with the same
-  // loader: its scenes, takes, acts and score, and the film's voice where it
-  // keeps none of its own.
-  it.effect.layer(sample)("reads a version folder's own scenes, takes, acts and score", () =>
-    Effect.gen(function* () {
-      const loaded = yield* (yield* FilmRepo).load('sample', Segment.make('v3'));
-      expect(loaded.scenes.map((s) => s.id)).toEqual(['seed', 'end']);
-      expect(Object.keys(loaded.timings.scenes)).toEqual(['seed']);
-      expect(Option.getOrThrow(loaded.look).acts.map((act) => String(act.name))).toEqual([
-        'sowing',
-      ]);
-      const score = Option.getOrThrow(loaded.sound).score;
-      expect(score?.options['piano']?.movements.map((m) => m.from)).toEqual(['seed']);
-      expect(Option.getOrThrow(loaded.voice)).toMatchObject({ voiceId: 'sample-voice' });
-    }),
+  // loader: its scenes, takes, acts, score and credits, and the film's voice
+  // where it keeps none of its own.
+  it.effect.layer(sample)(
+    "reads a version folder's own scenes, takes, acts, score and credits",
+    () =>
+      Effect.gen(function* () {
+        const loaded = yield* (yield* FilmRepo).load('sample', Segment.make('v3'));
+        expect(loaded.scenes.map((s) => s.id)).toEqual(['seed', 'end']);
+        expect(Object.keys(loaded.timings.scenes)).toEqual(['seed']);
+        expect(Option.getOrThrow(loaded.look).acts.map((act) => String(act.name))).toEqual([
+          'sowing',
+        ]);
+        const score = Option.getOrThrow(loaded.sound).score;
+        expect(score?.options['piano']?.movements.map((m) => m.from)).toEqual(['seed']);
+        expect(Option.getOrThrow(loaded.voice)).toMatchObject({ voiceId: 'sample-voice' });
+        // Its own credit roll: the film's root keeps none.
+        expect(loaded.credits).toEqual(
+          Option.some([
+            { text: 'A Seed', kind: 'name', gap: 0 },
+            { text: 'Sound', kind: 'head', gap: 46 },
+          ]),
+        );
+        expect((yield* (yield* FilmRepo).load('sample')).credits).toEqual(Option.none());
+      }),
   );
 
   // The app's library, written beside the sample film for the test: the knock

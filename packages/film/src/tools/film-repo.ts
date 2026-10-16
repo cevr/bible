@@ -71,7 +71,7 @@ import { ContentStore, type Manifest, type StoreError } from './content-store.ts
 import { FilmUnknown } from '../core/refusals.ts';
 import { Segment, isSegment } from '../core/segment.ts';
 import { FilmModuleInvalid, TalkUnvoiced } from './errors.ts';
-import type { Credit } from '../canvas/credits.ts';
+import { Credit } from '../canvas/credits.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */
@@ -267,14 +267,8 @@ const ShortsModule = Schema.Struct({ shorts: Shorts });
 const TalkModule = Schema.Struct({ talk: Talk });
 /** The part of `palette.ts` the tools read: the looks it chooses between, when it has any. */
 const PaletteModule = Schema.Struct({ looks: Schema.optionalKey(Looks) });
-/** One line of a credit roll, as canvas/credits.ts `creditRoll` sets it. */
-const CreditLine = Schema.Struct({
-  text: Schema.String,
-  kind: Schema.Literals(['name', 'head', 'item']),
-  gap: Schema.Finite,
-});
 /** The part of `credits.ts` the tools read: the roll its end scene draws. */
-const CreditsModule = Schema.Struct({ CREDITS: Schema.Array(CreditLine) });
+const CreditsModule = Schema.Struct({ CREDITS: Schema.Array(Credit) });
 
 /**
  * The one place a film module is imported by path. The process keeps the

@@ -4,6 +4,8 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Exit, Fiber, Layer, Option, Path, Result, Schema } from 'effect';
 import { MAIN_VARIANT, RenderVariantName } from '../core/catalogue.ts';
+import { type Lock, defineLibrary, requestKey } from '../core/sfx.ts';
+import { measuredSounds } from '../core/testing.ts';
 import type { ExportInfo } from '../core/export-handle.ts';
 import { MediaFailed } from '../core/refusals.ts';
 import { PageCrashed, PageError } from './errors.ts';
@@ -816,5 +818,100 @@ describe.concurrent('Renderer', () => {
         expect(error._tag).toBe('UnknownMark');
       }),
     );
+
+    describe('a film that places a CC BY recording', () => {
+      const library = defineLibrary({
+        'amb.hall': {
+          kind: 'recorded',
+          licence: {
+            id: 'CC-BY-4.0',
+            title: 'M Murmer long loop.wav',
+            author: 'Processaurus',
+            authorUrl: 'https://freesound.org/people/Processaurus',
+            source: 'https://freesound.org/people/Processaurus/sounds/440098',
+            changed: true,
+          },
+          use: 'bed',
+        },
+      });
+      const hall = library['amb.hall'];
+      const lock: Lock = {
+        'amb.hall': {
+          variants: [
+            {
+              request: requestKey(hall),
+              file: 'public/amb.hall/0.flac',
+              sha256: '0',
+              made: '2026-10-16T00:00:00Z',
+              model: 'recorded',
+              format: 'flac',
+              secs: 22,
+              loudness: { integrated: -30, momentaryMax: -28, peak: -16 },
+              licence: 'CC-BY-4.0',
+              credits: 0,
+            },
+          ],
+          candidates: [],
+          rejected: [],
+        },
+      };
+      const credited: MeasuredFilm = {
+        ...three,
+        sound: Option.some({
+          beds: [
+            {
+              sound: 'amb.hall',
+              from: { scene: 'a', at: 'start' },
+              to: { scene: 'c', at: 'end' },
+            },
+          ],
+          effects: {},
+        }),
+        sounds: measuredSounds(library, lock, '/lib'),
+      };
+      const whole: ExportInfo = { ...testExportInfo, duration: 15, frames: 450 };
+      /** The film mixed, its recording on disk, as a render finds them. */
+      const ready = (files: Map<string, Uint8Array>) =>
+        Effect.gen(function* () {
+          files.set('/lib/public/amb.hall/0.flac', text('flac'));
+          yield* mixed(files, credited);
+        });
+      const DESCRIPTION = '/out/test/film/main.description.txt';
+
+      it.live('the whole film writes its description: the credit line, its pages linked', () =>
+        Effect.gen(function* () {
+          const files = new Map<string, Uint8Array>();
+          yield* ready(files);
+          const { render } = setup({ info: whole, master: 15 }, files, credited);
+          const output = yield* render(video);
+          expect(output.description).toEqual(Option.some(DESCRIPTION));
+          expect(new TextDecoder().decode(files.get(DESCRIPTION))).toBe(
+            [
+              'Sound:',
+              '"M Murmer long loop.wav" (https://freesound.org/people/Processaurus/sounds/440098) by Processaurus (https://freesound.org/people/Processaurus), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), changed',
+              '',
+            ].join('\n'),
+          );
+        }),
+      );
+
+      it.live('a stretch of the film and a short write none', () =>
+        Effect.gen(function* () {
+          const files = new Map<string, Uint8Array>();
+          yield* ready(files);
+          const stretch = setup({ info: whole, master: 15 }, files, credited);
+          const part = yield* stretch.render({ ...video, to: Option.some(2) });
+          expect(part.description).toEqual(Option.none());
+          const cut = setup({ info: page, master: 15 }, files, credited);
+          const played = yield* cut.render({
+            ...video,
+            address: { _tag: 'Short', id: 'cut' },
+            cut: short,
+          });
+          expect(played.description).toEqual(Option.none());
+          expect([...files.keys()].filter((f) => f.endsWith('.description.txt'))).toEqual([]);
+        }),
+      );
+    });
   });
 });

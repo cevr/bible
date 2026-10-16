@@ -6,6 +6,7 @@
 // film's authors is scripture. After the sources, a "Sound" head gives each
 // CC BY recording the film places its line (core/sfx.ts `soundCredits`).
 
+import { Schema } from 'effect';
 import { type SoundCredit, creditLine } from '../core/sfx.ts';
 
 /**
@@ -21,12 +22,13 @@ export interface Author {
 /** The widest line on the strip, in characters of the body type. */
 const CREDIT_MEASURE = 38;
 
-/** One line of the roll: its text, its type, and the space above it. */
-export interface Credit {
-  readonly text: string;
-  readonly kind: 'name' | 'head' | 'item';
-  readonly gap: number;
-}
+/** One line of the roll: its text, its type, and the space above it (the tools read a film's roll by it). */
+export const Credit = Schema.Struct({
+  text: Schema.String,
+  kind: Schema.Literals(['name', 'head', 'item']),
+  gap: Schema.Finite,
+});
+export type Credit = typeof Credit.Type;
 
 /** A cite's author (none for scripture) and the work it names. */
 interface Source {
