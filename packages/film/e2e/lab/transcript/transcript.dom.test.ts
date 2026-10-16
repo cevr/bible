@@ -29,6 +29,7 @@ import {
   openLab,
   refused,
   route,
+  told,
 } from '../../../src/lab/fixtures/harness.ts';
 import { fitsPhone, noSidewaysBox } from '../../../src/lab/fixtures/phone-fit.ts';
 import {
@@ -363,10 +364,12 @@ for (const [name, viewport, where] of PLACES)
                 if (waits > 1) return hold;
                 return later(posted, json({ build: 1, server: 'lab' }));
               }),
-              route('POST', at('/talk/cut'), () => {
-                Deferred.doneUnsafe(posted, Effect.void);
-                return later(answer, json(wrote('ask', 'cut words 3–4 of ask')));
-              }),
+              route('POST', at('/talk/cut'), () =>
+                told(
+                  Deferred.done(posted, Exit.void),
+                  later(answer, json(wrote('ask', 'cut words 3–4 of ask'))),
+                ),
+              ),
               ...talkRoutes(),
             ],
             {

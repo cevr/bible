@@ -13,6 +13,7 @@
     "film/framing-is-a-knob": "error",
     "film/no-read-once": "error",
     "film/touches-serial": "error",
+    "film/told-after-answer": "error",
     "film/host-events-through-adapter": "error",
     "film/keys-through-keymap": "error",
     "film/keys-named-as-bound": "error",

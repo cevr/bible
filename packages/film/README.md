@@ -3517,6 +3517,19 @@ A spawn inside a service the test provides is not seen.
 body, since while one tab's touches are under way Chrome drops, or lands as a
 bare click, the touches a file's other cases send their own tabs at the same
 time.
+`film/told-after-answer` (`lint/told-after-answer.ts`) holds the browser
+tests (`e2e/`): a fake route tells the case it was asked only through the
+harness's `told(tell, then)` (`src/lab/fixtures/harness.ts`), which runs the
+tell once `then` is made: a `madeBy` once its effect has run, a `later`
+before its gate. A completed `Deferred` runs the fiber waiting on it at once,
+inside the call, so a case told before the answer is made runs its next step
+(another hand's write, a line put back) first, and the answer made after
+reads what that step changed: the read the case was told of never reaches
+the page. Refused is a call of effect's `Deferred` that completes one
+(`done`, `doneUnsafe`, `succeed`, `fail`, …) anywhere in the answer handed to
+the harness's `route(…)` (a condition, an expression body, an effect it
+makes), but inside `told`'s first argument, or on a `Deferred` the answer
+makes itself; `route`, `told` and `Deferred` are read by their bindings.
 `film/no-history-comment` (`lint/no-history-comment.ts`) holds every comment
 in `packages/film`, `apps/animations`, `packages/ui`, `packages/url-state`
 and `packages/atom-solid`: a comment says what the code does now and why, and
@@ -3613,7 +3626,7 @@ properties `getScope`, `getDeclaredVariables`, `scopeManager`,
 reader.
 `lint/plugin.test.ts` runs oxlint over the marked fixtures: every RED
 location must report its rule, with no extra findings. Each of the plugin's
-twenty-three rules (`lint/plugin.ts`) also has a diagnostic whose corrective
+twenty-four rules (`lint/plugin.ts`) also has a diagnostic whose corrective
 message is asserted, including the distinct anchor-end and cue-part repairs,
 so a rule that fires but gives the wrong advice fails the fixture suite; the
 test holds that list to the plugin's rules.

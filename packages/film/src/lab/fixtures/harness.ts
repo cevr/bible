@@ -144,6 +144,22 @@ export const later = (gate: Deferred.Deferred<void>, then: Answer): Answer => ({
 export const file = (path: string): Answer => ({ _tag: 'File', path });
 /** What `made` answers once it has run: a route the lab's own handler answers, in the test. */
 export const madeBy = (made: Effect.Effect<Answer>): Answer => ({ _tag: 'Made', made });
+/** `found` once made: what its `madeBy` effects make, run in turn; any other answer as it is. */
+const madeOf = (found: Answer): Effect.Effect<Answer> => {
+  if (found._tag === 'Made') return Effect.flatMap(found.made, madeOf);
+  return Effect.succeed(found);
+};
+/**
+ * `then`, with `tell` run once it is made: a route that tells the case it was
+ * asked (`Deferred.done(asked, Exit.void)`). Completing a `Deferred` runs the
+ * case waiting on it at once, inside the call, so a case told before the
+ * answer is made could change what the answer says. `then` is made first: a
+ * `madeBy` once its effect has run, a `later` before its gate (its answer is
+ * made already, and the gate is the case's to open). Every tell in a fake
+ * route goes through here (`film/told-after-answer`).
+ */
+export const told = (tell: Effect.Effect<unknown>, then: Answer): Answer =>
+  madeBy(Effect.flatMap(madeOf(then), (made) => Effect.as(tell, made)));
 /**
  * Ten seconds of tone (`tone.ts`): the real media every fixture player plays
  * (its videos, its mixes), its time moving on the media's own clock.

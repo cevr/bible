@@ -1088,6 +1088,14 @@
       }
     },
     {
+      // A fake route tells the case it was asked only through the harness's
+      // told(tell, then) (packages/film/lint/told-after-answer.ts).
+      "files": ["**/packages/film/e2e/**/*.test.ts"],
+      "rules": {
+        "film/told-after-answer": "error"
+      }
+    },
+    {
       // A browser test that sends touches runs alone, as test.serial
       // (packages/film/lint/touches-serial.ts).
       "files": ["**/packages/film/e2e/**/*.test.ts"],

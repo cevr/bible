@@ -36,6 +36,7 @@ import {
   URL_T,
   route,
   sourceOne,
+  told,
 } from '../../../src/lab/fixtures/harness.ts';
 import {
   attributeIs,
@@ -618,19 +619,21 @@ describe('the cue strip', () => {
               if (waits > 1) return hold;
               return later(posted, json({ build: 1, server: 'lab' }));
             }),
-            route('POST', /^\/scenes\/one\/cues\/rise$/, () => {
-              Deferred.doneUnsafe(posted, Effect.void);
-              return later(
-                answer,
-                json({
-                  scene: 'one',
-                  file: 'scenes/one.ts',
-                  target: undo.target,
-                  change: undo.change,
-                  findings: [],
-                }),
-              );
-            }),
+            route('POST', /^\/scenes\/one\/cues\/rise$/, () =>
+              told(
+                Deferred.done(posted, Exit.void),
+                later(
+                  answer,
+                  json({
+                    scene: 'one',
+                    file: 'scenes/one.ts',
+                    target: undo.target,
+                    change: undo.change,
+                    findings: [],
+                  }),
+                ),
+              ),
+            ),
             route('GET', /^\/check$/, () => json({ findings: [], undo })),
           ],
           { href: labAt(1), build: { build: 0, server: 'lab' } },

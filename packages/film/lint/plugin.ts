@@ -26,6 +26,7 @@ import { oneClockEpsilon } from './one-clock-epsilon.ts';
 import { pagesInCaseScope } from './pages-in-case-scope.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
 import { synthOwnMath } from './synth-own-math.ts';
+import { toldAfterAnswer } from './told-after-answer.ts';
 import { touchesSerial } from './touches-serial.ts';
 
 export default Plugin.define({
@@ -53,6 +54,7 @@ export default Plugin.define({
     'pages-in-case-scope': pagesInCaseScope,
     'span-ends-on-anchor': spanEndsOnAnchor,
     'synth-own-math': synthOwnMath,
+    'told-after-answer': toldAfterAnswer,
     'touches-serial': touchesSerial,
   },
 });

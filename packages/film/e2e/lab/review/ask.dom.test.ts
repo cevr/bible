@@ -24,7 +24,7 @@
 // still opens full size (`?still=`), its caption inside the phone's screen or
 // clear of the laptop's dock, and Escape or a tap closes it.
 
-import { Boolean as Bool, Deferred, Effect, Option } from 'effect';
+import { Boolean as Bool, Deferred, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { AskRefused } from '../../../src/core/refusals.ts';
@@ -39,6 +39,7 @@ import {
   openReview,
   refused,
   route,
+  told,
   text as textAnswer,
 } from '../../../src/lab/fixtures/harness.ts';
 import { fitsPhone } from '../../../src/lab/fixtures/phone-fit.ts';
@@ -353,13 +354,15 @@ describe("an agent's ask on a phone", () => {
           route('GET', new RegExp(`^/api/asks/${SCRIPT_ASK}$`), () => json(scriptAsk)),
           route('GET', /^\/api\/films\/toy\/script$/, () => {
             reads += 1;
-            if (reads > 1) Deferred.doneUnsafe(readAgain, Effect.void);
-            return json(
-              said(
-                Bool.match(reads === 1, {
-                  onTrue: () => 'The first thing God {*}gave was breath.',
-                  onFalse: () => 'The first thing {*}God {*}gave was breath.',
-                }),
+            return told(
+              Effect.when(Deferred.done(readAgain, Exit.void), Effect.succeed(reads > 1)),
+              json(
+                said(
+                  Bool.match(reads === 1, {
+                    onTrue: () => 'The first thing God {*}gave was breath.',
+                    onFalse: () => 'The first thing {*}God {*}gave was breath.',
+                  }),
+                ),
               ),
             );
           }),
@@ -463,16 +466,16 @@ describe("an agent's ask on a phone", () => {
           M1: 'The first thing {*}God {*}gave was breath.',
         } as const;
         let line: keyof typeof SAY = 'M0';
-        let back = false;
-        // The script read after the write (the line as it left it), and the one after the put-back.
-        const [readBack, putBack] = [Deferred.makeUnsafe<void>(), Deferred.makeUnsafe<void>()];
+        // The script read after the write: the line as it left it.
+        const readBack = Deferred.makeUnsafe<void>();
         const routes: ReadonlyArray<FakeRoute> = [
           route('GET', new RegExp(`^/api/asks/${SCRIPT_ASK}$`), () => json(scriptAsk)),
-          route('GET', /^\/api\/films\/toy\/script$/, () => {
-            if (line === 'M1') Deferred.doneUnsafe(readBack, Effect.void);
-            if (back) Deferred.doneUnsafe(putBack, Effect.void);
-            return json(said(SAY[line]));
-          }),
+          route('GET', /^\/api\/films\/toy\/script$/, () =>
+            told(
+              Effect.when(Deferred.done(readBack, Exit.void), Effect.succeed(line === 'M1')),
+              json(said(SAY[line])),
+            ),
+          ),
           // A take's file is keyed by its words and marks: it changes as the line does.
           route('GET', /^\/api\/films\/toy\/script\/voice$/, () => {
             const [first, ...rest] = (draftVoice as { beats: ReadonlyArray<Json> }).beats;
@@ -503,8 +506,6 @@ describe("an agent's ask on a phone", () => {
         yield* Deferred.await(readBack);
         // Another hand puts the line back as the page read it before its write: M1 to M0.
         line = 'M0';
-        back = true;
-        yield* Deferred.await(putBack);
         yield* countIs(page, `${word(3)}[data-stress="true"]`, 0);
         yield* waitFor(page, `${word(4)}[data-stress="true"]`);
         expect(errors).toEqual([]);
