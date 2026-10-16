@@ -16,7 +16,7 @@
 // shape with a few settings, so a shape is tuned in one place. A recorded
 // sound is CC0 only, under `public/` (`sfx import`).
 //
-// The library: 24 generated one-shots, 7 generated beds, 10 code one-shots,
+// The library: 22 generated one-shots, 7 generated beds, 12 code one-shots,
 // 4 code beds and 1 recorded one-shot. Prompts are concrete, close and dry: a
 // film's cue places them, the mix sets their level against the voice. How to
 // word a prompt and pick its settings, from the trials in sounds/PROMPTING.md.
@@ -58,9 +58,6 @@ type Entries = Parameters<typeof defineLibrary>[0];
 type CodeTrial = NonNullable<
   Extract<Entries[keyof Entries], { readonly kind: 'generated' }>['code']
 >;
-
-/** A code trial of `play`, its variants seeds 1–3. */
-const trial = (play: CodeTrial['sound']['play']): CodeTrial => ({ sound: { play }, variants: 3 });
 
 /**
  * What a generated sound declares beside its prompt: why it needs
@@ -387,53 +384,61 @@ export const library = defineLibrary({
     1.5,
     { why: 'Coins sliding and clattering on wood: a handled texture, which code cannot make.' },
   ),
-  'snake.hiss': oneShot('a snake hissing low in the sand, close, dry', 2, {
-    why: 'Generated until a code version is heard beside it: a hiss is a texture code makes.',
-    // Up evenly over 0.4 s, held to 1.3 s, then falling evenly in dB to its
-    // end, as the take swells, holds and dies away: no single hit. A low
-    // breath behind it, as the take has.
-    code: trial(hiss({ hz: 8500, q: 1.2, top: 11000, breath: -24, rise: 0.4, hold: 1.3, secs: 2 })),
-  }),
+  // Up evenly over 0.4 s, held to 1.3 s, then falling evenly in dB to its
+  // end, as the take swells, holds and dies away: no single hit. A low
+  // breath behind it, as the take has.
+  'snake.hiss': {
+    kind: 'code',
+    sound: {
+      play: hiss({ hz: 8500, q: 1.2, top: 11000, breath: -24, rise: 0.4, hold: 1.3, secs: 2 }),
+    },
+    variants: 3,
+    use: 'one-shot',
+  },
   'pole.creak': oneShot('a tall wooden pole raised upright and creaking as it settles', 2, {
     why: 'Generated until a code version is tried: a creak is a stick-slip texture code may make.',
   }),
-  'book.close': oneShot('an old leather-bound book closed firmly, one soft thump, close', 1, {
-    why: 'Generated until a code version is heard beside it: a thump and a puff of air are shapes code makes.',
-    // The cover's thump and the table's low one under it, the air pushed out
-    // in a dark puff, the leather's slap and the pages' breath, in a small
-    // room: the take's balance, without the rumble under 30 Hz it carries.
-    // The room dies away for half a second, to about 65 dB under the peak,
-    // where the take ends.
-    code: trial({
-      _tag: 'Reverb',
-      size: 0.5,
-      damp: 3000,
-      wet: 0.2,
-      tail: 0.5,
-      of: {
-        _tag: 'Layer',
-        of: [
-          { node: thump({ hz: 120, octaves: 1, drop: 0.02, decay: 0.25 }), at: 0.015 },
-          { node: thump({ hz: 36, octaves: 1, drop: 0.03, decay: 0.45 }), at: 0.015, db: -15 },
-          {
-            node: burst({ color: 'pink', low: 200, high: 600, attack: 0.002, decay: 0.12 }),
-            at: 0.015,
-            db: -6,
-          },
-          {
-            node: burst({ color: 'pink', low: 1100, high: 2400, attack: 0.001, decay: 0.04 }),
-            at: 0.015,
-            db: -3,
-          },
-          {
-            node: burst({ color: 'white', low: 3000, high: 12000, attack: 0.002, decay: 0.08 }),
-            at: 0.015,
-            db: -14,
-          },
-        ],
+  // The cover's thump and the table's low one under it, the air pushed out
+  // in a dark puff, the leather's slap and the pages' breath, in a small
+  // room: the take's balance, without the rumble under 30 Hz it carries.
+  // The room dies away for half a second, to about 65 dB under the peak,
+  // where the take ends.
+  'book.close': {
+    kind: 'code',
+    sound: {
+      play: {
+        _tag: 'Reverb',
+        size: 0.5,
+        damp: 3000,
+        wet: 0.2,
+        tail: 0.5,
+        of: {
+          _tag: 'Layer',
+          of: [
+            { node: thump({ hz: 120, octaves: 1, drop: 0.02, decay: 0.25 }), at: 0.015 },
+            { node: thump({ hz: 36, octaves: 1, drop: 0.03, decay: 0.45 }), at: 0.015, db: -15 },
+            {
+              node: burst({ color: 'pink', low: 200, high: 600, attack: 0.002, decay: 0.12 }),
+              at: 0.015,
+              db: -6,
+            },
+            {
+              node: burst({ color: 'pink', low: 1100, high: 2400, attack: 0.001, decay: 0.04 }),
+              at: 0.015,
+              db: -3,
+            },
+            {
+              node: burst({ color: 'white', low: 3000, high: 12000, attack: 0.002, decay: 0.08 }),
+              at: 0.015,
+              db: -14,
+            },
+          ],
+        },
       },
-    }),
-  }),
+    },
+    variants: 3,
+    use: 'one-shot',
+  },
   'tone.drain': {
     kind: 'code',
     sound: { play: drain({ from: 'D4', to: 'A2', secs: 1.5 }) },

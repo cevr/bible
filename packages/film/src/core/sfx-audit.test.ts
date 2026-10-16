@@ -1,6 +1,6 @@
 // The audit's rules read in order, each word as itself (each prompt read as
 // one generated sound's, as `sfx audit` reads a library), and its verdicts on
-// the app's own library: the 31 generated sounds' (2 code can make for
+// the app's own library: the 29 generated sounds' (none code can make for
 // sure, 3 worth a try, 26 that need realism), pinned so that a new rule or a
 // reworded prompt shows which verdict it moved.
 
@@ -76,7 +76,7 @@ describe('a prompt audited', () => {
 
 /** The app library's verdicts, as `sfx audit` reads them (design 6.1). */
 const VERDICTS = {
-  'code-sure': ['snake.hiss', 'book.close'],
+  'code-sure': [],
   'code-try': ['rope.creak', 'stone.roll', 'pole.creak'],
   realism: [
     'amb.court',
@@ -114,11 +114,11 @@ describe("the app library's verdicts", () => {
     audited.filter((sound) => sound.audited.verdict === verdict).map((sound) => sound.name);
 
   test('every generated sound is audited, and nothing else', () => {
-    expect(audited.length).toBe(31);
+    expect(audited.length).toBe(29);
     expect(audited.every((sound) => sound.entry.kind === 'generated')).toBe(true);
   });
 
-  test("two are sounds code can make for sure: the snake's hiss and the closed book", () => {
+  test('none is a sound code can make for sure: those sounds play as code', () => {
     expect(named('code-sure').toSorted()).toEqual([...VERDICTS['code-sure']].toSorted());
   });
 
