@@ -10,7 +10,8 @@
 // prefixes, a dash and a number; two or more capitals ending in a digit, a
 // dash and a number, as a sweep names its findings; a guard's `G` and a
 // number with no dash) and a commit hash (7 to 40 hex digits holding a digit
-// and a letter, not a `#` colour). A code span, a quoted literal ("…", or '…'
+// and a letter, not a `#` colour, nor a name whose letters all come before its
+// digits, as an algorithm's `ed25519` does). A code span, a quoted literal ("…", or '…'
 // standing apart from the words around it) and a URL are values the code
 // reads, not history, and are not read. Only these forms are seen: history
 // told in words (what the code did before, which pass changed it) is the
@@ -43,7 +44,8 @@ const TELLS: ReadonlyArray<Tell> = [
   { what: 'a ledger id', pattern: LEDGER_ID },
   {
     what: 'a commit hash',
-    pattern: /(?<![#\w-])(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}(?![\w-])/gu,
+    pattern:
+      /(?<![#\w-])(?![a-f]+\d+(?![\w-]))(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}(?![\w-])/gu,
   },
 ];
 

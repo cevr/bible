@@ -25,7 +25,8 @@ export const calls = 3;
 export const ledger = 6;
 
 // Names that are not a ledger's pass: an FNV-1a hash, SHA-256, UTF-16, an MP3,
-// an S3 bucket on R2, the F6 key, a scene's beat D2, a still A-01.jpg.
+// an S3 bucket on R2, the F6 key, a scene's beat D2, a still A-01.jpg, an
+// ed25519 key: an algorithm's name has its letters before its digits.
 
 // Today's reason passes: a crossfade is used to hide the seam, and a mark is
 // the time a word lands. Used to rank candidates before a person hears them.
