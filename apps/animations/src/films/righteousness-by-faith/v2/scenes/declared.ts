@@ -47,9 +47,9 @@ import {
   icons,
   person,
   piece,
-} from '../kit.ts';
-import { type Stamp, FIGURE_STAIN_SPOTS, REST as COURT, stamp } from '../court.ts';
-import { DAWN_DONE, SUN, arc, dawn, flight } from '../spoken.ts';
+} from '../../kit.ts';
+import { type Stamp, FIGURE_STAIN_SPOTS, REST as COURT, stamp } from '../../court.ts';
+import { DAWN_DONE, SUN, arc, dawn, flight } from '../../spoken.ts';
 
 const FS = 3.8;
 /** The figure's chest this frame, where the verdict sinks and the word lands (scratch, set from the `fig` knob). */

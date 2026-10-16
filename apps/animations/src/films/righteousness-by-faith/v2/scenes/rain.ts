@@ -23,9 +23,9 @@ import {
   UNMOVED,
 } from '@bible/film/canvas';
 import { type Key, keys, lerp, rng } from '@bible/film/core';
-import { type GestureAt, C, person, piece } from '../kit.ts';
-import { CITY_FRONT, cityBack, cityFront } from '../city.ts';
-import { herald, ministry } from '../heaven.ts';
+import { type GestureAt, C, person, piece } from '../../kit.ts';
+import { CITY_FRONT, cityBack, cityFront } from '../../city.ts';
+import { herald, ministry } from '../../heaven.ts';
 
 /** Where the sanctuary floats, on the far plane. */
 const SANCTUARY: Pt = [960, -110];

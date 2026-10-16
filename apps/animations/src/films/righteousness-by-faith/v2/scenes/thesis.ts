@@ -16,8 +16,8 @@ import {
   knobCamera,
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
-import { C, F, piece } from '../kit.ts';
-import { ROOF, landingSky, rooftop } from '../city.ts';
+import { C, F, piece } from '../../kit.ts';
+import { ROOF, landingSky, rooftop } from '../../city.ts';
 import {
   ADVOCATE_POSE,
   FIGURE_LANDED,
@@ -26,7 +26,7 @@ import {
   WIDE,
   QUESTION_AT,
   landingCourt,
-} from '../court.ts';
+} from '../../court.ts';
 
 /** Where the camera enters the city: close on the rooftop (derived from the roof, so not a knob). */
 const ROOFTOP: Camera = { x: ROOF.x - 20, y: ROOF.top - 70, zoom: 3.4 };

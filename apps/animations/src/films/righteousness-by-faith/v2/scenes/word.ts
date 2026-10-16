@@ -31,8 +31,8 @@ import {
   UNMOVED,
 } from '@bible/film/canvas';
 import { clamp, hash2, lerp } from '@bible/film/core';
-import { C, F, person, piece } from '../kit.ts';
-import { planet, ring, star, tablets } from '../law.ts';
+import { C, F, person, piece } from '../../kit.ts';
+import { planet, ring, star, tablets } from '../../law.ts';
 import { NAME } from './title.ts';
 
 const WORD_CARD = 'Righteousness';

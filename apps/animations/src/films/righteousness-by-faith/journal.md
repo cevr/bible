@@ -53,3 +53,7 @@ v3 concept court.12, drawn over cold.34 with the robe sheet (SAME world): the pl
 ## 2026-10-16T02:27:07Z · film
 
 v3 concept grain tries: a repaint that starts from a try keeps that try's figure on the cross; grain.13's two arms stayed through its three repaints (grain.16 to 18), and grain.15's armless figure held through grain.19 to 21. Smooth earth planes in a fine grain with haze between read as the locked look (grain.20, 21 SAME); thick torn rims, a coarse texture or light bands along the ridges do not (grain.13 to 15, 19 NOT SAME).
+
+## 2026-10-16T05:08:15Z · film
+
+v3 is the film's script from 2026-10-16 (kept, ask a086603ff6a): every beat plays as its storyboard card and has no take. Version 2 sits in v2/ as a folder registered as no film: its script, sources, Canvas scene drawings (20, still typechecked), lights, credits, board record and images (111 files), takes (20 files), score and shorts.

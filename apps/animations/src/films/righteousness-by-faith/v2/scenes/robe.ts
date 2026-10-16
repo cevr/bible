@@ -52,11 +52,11 @@ import {
   person,
   piece,
   turban,
-} from '../kit.ts';
-import { COURT_BENCH, JOSHUA, JS, ZECH_REST, courtWall, gavel, zechCourt } from '../court.ts';
-import { COURT_FORGIVEN, RECALL_RISE, recall, temple } from '../gospel.ts';
+} from '../../kit.ts';
+import { COURT_BENCH, JOSHUA, JS, ZECH_REST, courtWall, gavel, zechCourt } from '../../court.ts';
+import { COURT_FORGIVEN, RECALL_RISE, recall, temple } from '../../gospel.ts';
 import { woman } from './woman.ts';
-import { LIGHT } from '../light.ts';
+import { LIGHT } from '../../light.ts';
 
 const LOOM: Pt = [1045, 560];
 

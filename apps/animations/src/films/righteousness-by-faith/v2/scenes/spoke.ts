@@ -39,8 +39,8 @@ import {
   icons,
   person,
   piece,
-} from '../kit.ts';
-import { SUN, TREE, arc, dawn, flight, toward, wordLight } from '../spoken.ts';
+} from '../../kit.ts';
+import { SUN, TREE, arc, dawn, flight, toward, wordLight } from '../../spoken.ts';
 
 /** The book that comes up out of the gold, at the frame's middle. */
 const BOOK: Pt = [960, 560];

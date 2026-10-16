@@ -51,9 +51,9 @@ import {
   icons,
   person,
   piece,
-} from '../kit.ts';
-import { PATH_AHEAD, PATH_HILL, alongPath } from '../garden.ts';
-import { COURT_FORGIVEN, RECALL_RISE, house, recall, temple, went } from '../gospel.ts';
+} from '../../kit.ts';
+import { PATH_AHEAD, PATH_HILL, alongPath } from '../../garden.ts';
+import { COURT_FORGIVEN, RECALL_RISE, house, recall, temple, went } from '../../gospel.ts';
 import { roof } from './roof.ts';
 import { woman } from './woman.ts';
 

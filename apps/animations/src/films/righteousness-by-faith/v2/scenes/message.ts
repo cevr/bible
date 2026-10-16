@@ -64,12 +64,12 @@ import {
   pushZoom,
   pushedHand,
   piece,
-} from '../kit.ts';
-import { FIGURE_STAINS, FIGURE_STAIN_SPOTS } from '../court.ts';
-import { apron } from '../garden.ts';
-import { herald } from '../heaven.ts';
-import { flight } from '../spoken.ts';
-import { crossShape, tabletShape, tablets } from '../law.ts';
+} from '../../kit.ts';
+import { FIGURE_STAINS, FIGURE_STAIN_SPOTS } from '../../court.ts';
+import { apron } from '../../garden.ts';
+import { herald } from '../../heaven.ts';
+import { flight } from '../../spoken.ts';
+import { crossShape, tabletShape, tablets } from '../../law.ts';
 
 /** The platform's front edge: the empty pulpit stands on it. */
 const STAGE_Y = 700;
