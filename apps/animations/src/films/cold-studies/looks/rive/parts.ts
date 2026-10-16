@@ -108,9 +108,10 @@ export const LIGHT = { toward: 0.42, crease: 0.63 } as const;
  * draws is square to the axis, so it runs from the box's upper right toward
  * its lower left.
  */
-export const creaseOf = (box: Box) => {
-  const dx = Math.cos(LIGHT.toward);
-  const dy = Math.sin(LIGHT.toward);
+export const creaseOf = (box: Box, crease: Crease = {}) => {
+  const toward = crease.toward ?? LIGHT.toward;
+  const dx = Math.cos(toward);
+  const dy = Math.sin(toward);
   const cx = (box.x0 + box.x1) / 2;
   const cy = (box.y0 + box.y1) / 2;
   // Half the box's reach along the light: its corners' furthest projection.
@@ -118,20 +119,36 @@ export const creaseOf = (box: Box) => {
   return {
     start: [cx - dx * reach, cy - dy * reach] as const,
     end: [cx + dx * reach, cy + dy * reach] as const,
-    at: LIGHT.crease,
+    at: crease.at ?? LIGHT.crease,
   };
 };
+
+/**
+ * Where and how a piece's paper turns, when it is not the look's default:
+ * the share of the way along the light it turns (`at`), how wide the turn
+ * is as a share of that way (`soft`, 0 a cut), and the angle the light
+ * crosses this piece at (`toward`, radians, y down). A concept that turns a
+ * face softly and a robe sharply says so piece by piece.
+ */
+export interface Crease {
+  readonly at?: number;
+  readonly soft?: number;
+  readonly toward?: number;
+}
 
 /** A colour as a paint. */
 export const solid = (hex: string, alpha = 1) => el('SolidColor', { colorValue: argb(hex, alpha) });
 
-/** The paper over `box`, `color` on the light's side of the crease and `shade` past it, cut sharp. */
-const creased = (color: string, shade: string, box: Box): Element => {
-  const { start, end, at } = creaseOf(box);
+/** The paper over `box`, `color` on the light's side of the crease and `shade` past it, cut sharp unless `crease.soft`. */
+const creased = (color: string, shade: string, box: Box, crease: Crease = {}): Element => {
+  const { start, end, at } = creaseOf(box, crease);
+  const soft = crease.soft ?? 0;
+  // A cut turns across the least step a gradient keeps apart; a soft turn spans `soft` about the crease.
+  const [from, to] = soft > 0 ? [at - soft / 2, at + soft / 2] : [at, at + 0.002];
   return el('LinearGradient', { startX: start[0], startY: start[1], endX: end[0], endY: end[1] }, [
     el('GradientStop', { colorValue: argb(color), position: 0 }),
-    el('GradientStop', { colorValue: argb(color), position: at }),
-    el('GradientStop', { colorValue: argb(shade), position: at + 0.002 }),
+    el('GradientStop', { colorValue: argb(color), position: Math.max(0, from) }),
+    el('GradientStop', { colorValue: argb(shade), position: Math.min(1, to) }),
     el('GradientStop', { colorValue: argb(shade), position: 1 }),
   ]);
 };
@@ -175,6 +192,29 @@ export interface PieceLook {
    * shadow is the shade of the surface it falls on (CRAFT 12).
    */
   readonly over?: { readonly surfaces: ReadonlyArray<Surface>; readonly behind: string };
+  /** Where its crease falls and how softly, when not the look's (`Crease`). */
+  readonly crease?: Crease;
+  /**
+   * The light edge just inside its outline on the light's side, units wide,
+   * in `light`, fading out toward the crease (`rimOf`); given, it takes the
+   * place of the light core on the cut.
+   */
+  readonly rim?: number;
+  /** Colour laid inside the paper, clipped to it (`Tone`): a lock of hair, the shade under a hairline. */
+  readonly tones?: ReadonlyArray<Tone>;
+}
+
+/**
+ * Colour laid inside a piece and clipped to its paper: an outline of its
+ * own in the piece's units, in `color` at `alpha`; `soft`, it fades from
+ * its middle to nothing at its edge (a radial ramp), so it blends into the
+ * paper with no edge of its own.
+ */
+export interface Tone {
+  readonly pts: ReadonlyArray<Pt>;
+  readonly color: string;
+  readonly alpha?: number;
+  readonly soft?: boolean;
 }
 
 /** The grey paper of a person, its far side and its light: the figure ramp. */
@@ -234,6 +274,12 @@ const edgeWidths = (d: Direction, weight: keyof typeof INK) => {
   const showing =
     d.outline === 'edge' ? 0 : (weight === 'trim' ? INK.trim / 2 : OUTSIDE[weight]) * heavy;
   return { under: showing > 0 ? 2 * (showing + core) : 0, centred: 0, core: 2 * core };
+};
+
+/** The ink a silhouette lays under its parts' papers, units wide (what shows outside, twice). */
+const silhouetteInk = (d: Direction, weight: keyof typeof INK) => {
+  const w = edgeWidths(d, weight);
+  return Math.max(w.under - w.core, w.centred);
 };
 
 /**
@@ -316,8 +362,20 @@ const liftOf = (look: PieceLook) => look.shadow ?? 0.35;
 const castOf = (d: Direction, look: PieceLook) =>
   castShows(liftOf(look), inkCover(d, look.ink ?? 'outer'));
 
-/** The paints of a piece over `box` under `d`, bottom to top as Rive stacks a shape's paints (last on top). */
-const paints = (d: Direction, look: PieceLook, box: Box): Element[] => {
+/**
+ * The paints of a piece over `box` under `d`, bottom to top as Rive stacks a
+ * shape's paints (last on top). A part of a silhouette (`inside`) lays only
+ * its paper: its silhouette lays the one shadow and the one ink line round
+ * all its parts (`silhouette`). A piece with a rim (`look.rim`) lays no light
+ * core: its rim is the light on its edge (`rimOf`).
+ */
+const paints = (d: Direction, look: PieceLook, box: Box, inside = false): Element[] => {
+  const paper = el('Fill', { name: 'Paper' }, [
+    look.shade === undefined
+      ? solid(look.color)
+      : creased(look.color, look.shade, box, look.crease),
+  ]);
+  if (inside) return [paper];
   const out: Element[] = [];
   // A piece that lies over others of its figure lays its shadow on each (`casts`), not here; a
   // piece over the host's scenery leaves its shadow to the host.
@@ -326,13 +384,7 @@ const paints = (d: Direction, look: PieceLook, box: Box): Element[] => {
   const weight = look.ink ?? 'outer';
   const edge: { under: Element[]; over: Element[] } =
     weight === 'none' ? { under: [], over: [] } : edgeOf(d, weight, look.light);
-  out.push(
-    ...edge.under,
-    el('Fill', { name: 'Paper' }, [
-      look.shade === undefined ? solid(look.color) : creased(look.color, look.shade, box),
-    ]),
-    ...edge.over,
-  );
+  out.push(...edge.under, paper, ...(look.rim === undefined ? edge.over : []));
   return out;
 };
 
@@ -361,8 +413,12 @@ export interface Figure {
   readonly bind: (knob: string, key: number) => Element;
   /** Key each of `pts` (the vertices `key.i`) to crawl within `amp` units of where it is cut, on the boil's ticks. */
   readonly boil: (key: string, pts: ReadonlyArray<Pt>, amp: number) => void;
-  /** Key the `n` vertices `key.i` to crawl exactly as `like.i` do (a cast shadow following its piece). */
-  readonly echo: (key: string, like: string, n: number) => void;
+  /**
+   * Key the `n` vertices `key.i` to crawl exactly as `like.i` do (a cast
+   * shadow following its piece), each `shift[i]` units off it when given (a
+   * rim inset into its piece).
+   */
+  readonly echo: (key: string, like: string, n: number, shift?: ReadonlyArray<Pt>) => void;
   readonly boilTracks: () => Tracks;
 }
 
@@ -401,10 +457,18 @@ export const figure = (
           Array.from({ length: BOIL.ticks }, (_, tick) => [tick / BOIL.fps, c + d(tick), 'hold']);
         tracks[`${key}.${i}`] = { x: keys(p[0], dx), y: keys(p[1], dy) };
       }),
-    echo: (key, like, n) => {
+    echo: (key, like, n, shift) => {
       for (let i = 0; i < n; i++) {
         const track = tracks[`${like}.${i}`];
-        if (track !== undefined) tracks[`${key}.${i}`] = track;
+        const [dx, dy] = shift?.[i] ?? [0, 0];
+        if (track !== undefined)
+          tracks[`${key}.${i}`] =
+            dx === 0 && dy === 0
+              ? track
+              : {
+                  x: (track['x'] ?? []).map(([t, v, e]): K => [t, v + dx, e]),
+                  y: (track['y'] ?? []).map(([t, v, e]): K => [t, v + dy, e]),
+                };
       }
     },
     boilTracks: () => tracks,
@@ -626,18 +690,178 @@ export const piece = (
   pts: ReadonlyArray<Pt>,
   look: PieceLook,
   opts: { readonly skin?: SkinSpec; readonly boil?: number } = {},
-): Element => {
-  const boil = opts.boil ?? 0.9;
+): Element => paperOf(fig, { key, pts, look, ...opts }, false);
+
+/**
+ * A piece's paper and what lies on it, front first: its rim (`rimOf`), its
+ * tones (`toneOf`), the paper, then its casts over its figure (`casts`). A
+ * part of a silhouette (`inside`) lays no ink, no shadow and no casts.
+ */
+const paperOf = (fig: Figure, part: Part, inside: boolean): Element => {
+  const { key, pts, look } = part;
+  const boil = part.boil ?? 0.9;
   if (boil > 0) fig.boil(key, pts, boil);
+  const box = boxOf(pts);
   const shape = el('Shape', { name: key, id: fig.idOf(key) }, [
-    smoothPath(fig, key, pts, opts.skin),
-    ...paints(fig.direction, look, boxOf(pts)),
+    smoothPath(fig, key, pts, part.skin),
+    ...paints(fig.direction, look, box, inside),
   ]);
-  if (look.over === undefined || !castOf(fig.direction, look)) return shape;
+  const onTop = [
+    ...(look.rim === undefined ? [] : [rimOf(fig, part, look.rim, box, boil > 0)]),
+    ...(look.tones ?? []).map((t, i) => toneOf(fig, key, t, i)).reverse(),
+  ];
+  const cast = !inside && look.over !== undefined && castOf(fig.direction, look);
+  if (onTop.length === 0 && !cast) return shape;
   return el('Node', { name: `${key}Piece` }, [
+    ...onTop,
     shape,
-    ...casts(fig, key, pts, look, look.over, opts.skin, boil > 0),
+    ...(cast && look.over !== undefined
+      ? casts(fig, key, pts, look, look.over, part.skin, boil > 0)
+      : []),
   ]);
+};
+
+// ─── light on the paper: rims and tones ──────────────────────────────────────
+
+/** Twice the signed area of `pts` (positive clockwise, y down). */
+const turning = (pts: ReadonlyArray<Pt>) =>
+  pts.reduce((sum, p, i) => {
+    const q = pts[(i + 1) % pts.length] ?? p;
+    return sum + p[0] * q[1] - q[0] * p[1];
+  }, 0);
+
+/**
+ * `pts` moved `by` units inward, each along its normal (square to the line
+ * from its neighbour before to its neighbour after): an outline inset into
+ * its own paper. Pure.
+ */
+export const inset = (pts: ReadonlyArray<Pt>, by: number): Pt[] => {
+  const n = pts.length;
+  const side = turning(pts) > 0 ? 1 : -1;
+  return pts.map((p, i) => {
+    const prev = pts[(i - 1 + n) % n] ?? p;
+    const next = pts[(i + 1) % n] ?? p;
+    const tx = next[0] - prev[0];
+    const ty = next[1] - prev[1];
+    const len = Math.hypot(tx, ty) || 1;
+    // Clockwise on screen (y down), the inside lies to the right of the way round: (−ty, tx).
+    return [p[0] - (side * ty * by) / len, p[1] + (side * tx * by) / len];
+  });
+};
+
+/** How far toward the crease a rim keeps its whole light before it fades, a share of the way. */
+const RIM_HOLD = 0.6;
+
+/**
+ * A piece's rim: the light just inside its outline, `width` units, in its
+ * paper's `light`, full on the light's side (`RIM_HOLD` of the way) and gone by its crease, so the
+ * edge facing the light catches it and the far edge does not. A stroke on
+ * the outline inset by half its width, crawling with the piece.
+ */
+const rimOf = (fig: Figure, part: Part, width: number, box: Box, boils: boolean): Element => {
+  const name = `${part.key}Rim`;
+  const pts = inset(part.pts, width / 2);
+  if (boils)
+    fig.echo(
+      name,
+      part.key,
+      pts.length,
+      pts.map((p, i): Pt => [p[0] - (part.pts[i]?.[0] ?? 0), p[1] - (part.pts[i]?.[1] ?? 0)]),
+    );
+  const { start, end, at } = creaseOf(box, part.look.crease);
+  return el('Shape', { name, id: fig.idOf(name) }, [
+    smoothPath(fig, name, pts, part.skin),
+    el('Stroke', { thickness: width, join: 'round', cap: 'round', name: 'Rim' }, [
+      el('LinearGradient', { startX: start[0], startY: start[1], endX: end[0], endY: end[1] }, [
+        el('GradientStop', { colorValue: argb(part.look.light), position: 0 }),
+        el('GradientStop', { colorValue: argb(part.look.light), position: at * RIM_HOLD }),
+        el('GradientStop', { colorValue: argb(part.look.light, 0), position: at }),
+        el('GradientStop', { colorValue: argb(part.look.light, 0), position: 1 }),
+      ]),
+    ]),
+  ]);
+};
+
+/** The tone `i` of the piece `key`, clipped to its paper (`Tone`). */
+const toneOf = (fig: Figure, key: string, tone: Tone, i: number): Element => {
+  const name = `${key}Tone${i}`;
+  const box = boxOf(tone.pts);
+  const cx = (box.x0 + box.x1) / 2;
+  const cy = (box.y0 + box.y1) / 2;
+  const alpha = tone.alpha ?? 1;
+  const paint = tone.soft
+    ? el(
+        'RadialGradient',
+        { startX: cx, startY: cy, endX: cx + Math.max(box.x1 - cx, box.y1 - cy), endY: cy },
+        [
+          el('GradientStop', { colorValue: argb(tone.color, alpha), position: 0 }),
+          el('GradientStop', { colorValue: argb(tone.color, alpha * 0.6), position: 0.55 }),
+          el('GradientStop', { colorValue: argb(tone.color, 0), position: 1 }),
+        ],
+      )
+    : solid(tone.color, alpha);
+  return el('Shape', { name, id: fig.idOf(name) }, [
+    smoothPath(fig, name, tone.pts),
+    el('Fill', { name: 'Tone' }, [paint]),
+    el('ClippingShape', { sourceId: fig.idOf(key), name: 'Clip' }),
+  ]);
+};
+
+// ─── silhouettes ─────────────────────────────────────────────────────────────
+
+/** One part of a silhouette, or a piece: its key, its outline, its paint, its skin and its boil. */
+export interface Part {
+  readonly key: string;
+  readonly pts: ReadonlyArray<Pt>;
+  readonly look: PieceLook;
+  readonly skin?: SkinSpec;
+  readonly boil?: number;
+}
+
+const isPart = (layer: Part | Element): layer is Part => 'pts' in layer;
+
+/**
+ * One cut-out made of several papers: a head with its hair and its ear, as
+ * the concept draws it, with one ink line round the outside of the whole and
+ * none where its papers meet. `layers` are its parts and any other element
+ * laid among them (the face kit), front first. Each part lays its paper, its
+ * rim and its tones, unstroked; behind them all one shape holds every
+ * part's outline, crawling with it, and lays the ink under every paper and
+ * the one cast shadow, so the line shows only where no paper covers it: round
+ * the silhouette. A rig declares the parts and gets one outline.
+ */
+export const silhouette = (
+  fig: Figure,
+  key: string,
+  layers: ReadonlyArray<Part | Element>,
+  opts: { readonly ink?: keyof typeof INK; readonly shadow?: number } = {},
+): Element => {
+  const parts = layers.filter(isPart);
+  const drawn = layers.map((l) => (isPart(l) ? paperOf(fig, l, true) : l));
+  const name = `${key}Ink`;
+  const paths = parts.map((p) => {
+    const at = `${name}${p.key}`;
+    if ((p.boil ?? 0.9) > 0) fig.echo(at, p.key, p.pts.length);
+    return smoothPath(fig, at, p.pts, p.skin);
+  });
+  const d = fig.direction;
+  const weight = opts.ink ?? 'outer';
+  const lift = opts.shadow ?? 0.35;
+  const look = parts[0]?.look;
+  const shadow =
+    look !== undefined && castShows(lift, inkCover(d, weight)) && look.ground !== 'host'
+      ? [shadowFill(look.cast ?? R.paper.shade, lift)]
+      : [];
+  const ink = el('Shape', { name, id: fig.idOf(name) }, [
+    ...paths,
+    ...shadow,
+    el(
+      'Stroke',
+      { thickness: silhouetteInk(d, weight), join: 'round', cap: 'round', name: 'Ink' },
+      [solid(inkOf(d))],
+    ),
+  ]);
+  return el('Node', { name: key, id: fig.idOf(key) }, [...drawn, ink]);
 };
 
 /**
