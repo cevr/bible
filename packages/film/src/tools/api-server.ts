@@ -133,15 +133,19 @@ const isNavigation = (request: HttpServerRequest.HttpServerRequest) =>
  * Whether a write carries a body the JSON rule judges: a POST always (a
  * cross-site form or a no-cors fetch posts one with no preflight), any other
  * method when it declares one (`Content-Length` above 0, or
- * `Transfer-Encoding`). A DELETE, PUT, PATCH or OPTIONS is never a simple
- * request, so another site's page cannot send one without a preflight the
- * gate refuses; with no body it has nothing to forge (an MCP client ends
- * its session with a bare DELETE).
+ * `Transfer-Encoding`) or has one to read. A DELETE, PUT, PATCH or OPTIONS
+ * is never a simple request, so another site's page cannot send one without
+ * a preflight the gate refuses; with no body it has nothing to forge (an MCP
+ * client ends its session with a bare DELETE).
  */
 const carriesBody = (request: HttpServerRequest.HttpServerRequest) =>
   request.method === 'POST' ||
   Option.isSome(header(request, 'transfer-encoding')) ||
-  Option.exists(header(request, 'content-length'), (n) => Number(n) !== 0);
+  Option.exists(header(request, 'content-length'), (n) => Number(n) !== 0) ||
+  Result.match(HttpServerRequest.toWebResult(request), {
+    onFailure: () => true,
+    onSuccess: (web) => Option.isSome(Option.fromNullishOr(web.body)),
+  });
 
 /** A bound name as a Host header carries it: an IPv6 address in brackets. */
 const hostName = (name: string) =>
