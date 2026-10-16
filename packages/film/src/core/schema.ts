@@ -12,8 +12,9 @@ import type { ease } from './time.ts';
 
 /**
  * `schema` as a JSON file the repo keeps: two-space indent and a final
- * newline, which is what the formatter leaves, so a file the tools rewrite
- * never churns.
+ * newline, as the formatter writes it, so a file the tools rewrite churns
+ * only where the formatter differs: it sets a short array of strings on one
+ * line, where this writes one per line.
  */
 export const repoJson = <S extends Parameters<typeof Schema.fromJsonString>[0]>(schema: S) =>
   Schema.String.pipe(

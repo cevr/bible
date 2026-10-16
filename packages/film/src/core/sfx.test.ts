@@ -377,9 +377,9 @@ describe("a recording's licence", () => {
   };
 
   test('takes CC0 as it stood, and CC BY 3.0 and 4.0 with their credit', () => {
-    expect(Result.isSuccess(decode(recorded({ id: 'CC0-1.0', author: 'a', source: 's' })))).toBe(
-      true,
-    );
+    expect(
+      Result.isSuccess(decode(recorded({ id: 'CC0-1.0', author: 'a', source: 'https://f/1' }))),
+    ).toBe(true);
     expect(Result.isSuccess(decode(recorded(by)))).toBe(true);
     expect(Result.isSuccess(decode(recorded({ ...by, id: 'CC-BY-3.0' })))).toBe(true);
   });
@@ -388,8 +388,26 @@ describe("a recording's licence", () => {
     const { title: _title, ...untitled } = by;
     const { changed: _changed, ...unsaid } = by;
     const { authorUrl: _url, ...unlinked } = by;
-    for (const licence of [untitled, unsaid, unlinked, { ...by, title: '' }])
+    for (const licence of [
+      untitled,
+      unsaid,
+      unlinked,
+      { ...by, title: '' },
+      // A line that names nobody, or links to no page.
+      { ...by, author: '' },
+      { ...by, source: '' },
+      { ...by, authorUrl: '' },
+      { ...by, authorUrl: 'klankbeeld' },
+      { ...by, source: 'http://freesound.org/people/klankbeeld/sounds/440621' },
+    ])
       expect(Result.isFailure(decode(recorded(licence)))).toBe(true);
+    // A CC0 record names its author and its page too.
+    const free: ReadonlyArray<Readonly<Record<string, string>>> = [
+      { id: 'CC0-1.0', author: '', source: 'https://f/1' },
+      { id: 'CC0-1.0', author: 'a', source: '' },
+      { id: 'CC0-1.0', author: 'a', source: 'https://f/1', authorUrl: 'a' },
+    ];
+    for (const licence of free) expect(Result.isFailure(decode(recorded(licence)))).toBe(true);
     for (const id of ['CC-BY-NC-4.0', 'CC-BY-ND-4.0', 'CC-BY-SA-4.0', 'Sampling+'])
       expect(Result.isFailure(decode(recorded({ ...by, id })))).toBe(true);
   });
@@ -431,6 +449,19 @@ describe('soundCredits', () => {
     expect(credits.map(creditLink)).toEqual([
       '"city night hum 04" (https://f/1) by klankbeeld (https://freesound.org/people/klankbeeld), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), changed',
     ]);
+  });
+
+  test('a CC BY 3.0 recording names its own deed, and an unchanged one says nothing of change', () => {
+    const kept = { title: 'rain', author: 'a', authorUrl: 'https://a', source: 'https://f/4' };
+    expect(creditLine({ ...kept, licence: 'CC-BY-3.0', changed: false })).toBe(
+      '"rain" by a, CC BY 3.0',
+    );
+    expect(creditLink({ ...kept, licence: 'CC-BY-3.0', changed: false })).toBe(
+      '"rain" (https://f/4) by a (https://a), CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)',
+    );
+    expect(creditLine({ ...kept, licence: 'CC-BY-3.0', changed: true })).toBe(
+      '"rain" by a, CC BY 3.0, changed',
+    );
   });
 
   test('a CC0 recording, and a CC BY one the film does not place, owe none', () => {

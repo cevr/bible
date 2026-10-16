@@ -58,11 +58,14 @@ type CreditedLicence = typeof CreditedLicence.Type;
 const PublicLicence = Schema.Literals(['CC0-1.0', ...CreditedLicence.literals]);
 type PublicLicence = typeof PublicLicence.Type;
 
+/** A page a credit links to: an https URL, never empty. */
+const PageUrl = Schema.NonEmptyString.check(Schema.isPattern(/^https:\/\/\S+$/));
+
 /** Who made a recording and where it came from, whatever its licence. */
 const provenance = {
-  author: Schema.String,
+  author: Schema.NonEmptyString,
   /** Its landing page (Freesound's, as Openverse's `foreign_landing_url` gives it): what a credit links to. */
-  source: Schema.String,
+  source: PageUrl,
   /** Its Openverse id, so its record can be looked up again. */
   openverse: Schema.optionalKey(Schema.String),
 };
@@ -72,7 +75,7 @@ const FreeLicence = Schema.Struct({
   id: Schema.Literal('CC0-1.0'),
   ...provenance,
   title: Schema.optionalKey(Schema.NonEmptyString),
-  authorUrl: Schema.optionalKey(Schema.String),
+  authorUrl: Schema.optionalKey(PageUrl),
   changed: Schema.optionalKey(Schema.Boolean),
 });
 
@@ -86,7 +89,7 @@ const CreditLicence = Schema.Struct({
   id: CreditedLicence,
   ...provenance,
   title: Schema.NonEmptyString,
-  authorUrl: Schema.String,
+  authorUrl: PageUrl,
   changed: Schema.Boolean,
 });
 
@@ -167,7 +170,10 @@ const Recorded = Schema.Struct({
   /**
    * How long `sfx import` cuts a longer recording when it is given no cut: a
    * one-shot's window round its loudest moment, a bed's stretch whose loop
-   * seam is smallest (`importCut`). Absent, the recording is taken whole.
+   * seam is smallest (`autoCut` in tools/library.ts). Absent, the recording is
+   * taken whole. A cut given to `sfx import` wins over it, and the variant's
+   * `cut` says what was taken. It is not part of the request (`requestKey`):
+   * a changed `secs` cuts nothing again until the next import.
    */
   secs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThan(0))),
   ...placing,
@@ -301,7 +307,11 @@ export type LockEntry = typeof LockEntry.Type;
 export const Lock = Schema.Record(Schema.String, LockEntry);
 export type Lock = typeof Lock.Type;
 
-/** `library.lock.json` on disk: two-space JSON and a final newline, as the formatter leaves it. */
+/**
+ * `library.lock.json` on disk: two-space JSON and a final newline (`repoJson`).
+ * The formatter sets a short array of strings on one line where this writes
+ * one per line, so `bun run fmt` follows every `sfx` command that writes it.
+ */
 export const LockJson = repoJson(Lock);
 
 /** The fields that change what a sound's audio is, in a fixed order: never reorder. */
