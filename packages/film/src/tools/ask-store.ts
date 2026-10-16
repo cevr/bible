@@ -58,8 +58,8 @@ import {
 } from '../core/ask.ts';
 import { boardFileUrl } from '../core/api.ts';
 import { panelById, tryOf } from '../core/board.ts';
-import { type Said, setPathOf, withAskSaid } from '../core/production.ts';
-import { AskInvalid, AskRefused, AskUnknown } from '../core/refusals.ts';
+import { type Said, aimedWord, setPathOf, withAskSaid } from '../core/production.ts';
+import { AskInvalid, AskRefused, AskUnknown, type WordUnaimed } from '../core/refusals.ts';
 import { AskMaterials } from './ask-materials.ts';
 import { BoardStore } from './board-store.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
@@ -84,8 +84,13 @@ interface AskStoreService {
   readonly dir: string;
   /** The record file of ask `id`. */
   readonly file: (id: string) => string;
-  /** A new ask, its machine checked and its board tries found, or why it may not render; its question filed. */
-  readonly make: (draft: AskDraft) => Effect.Effect<AskRecord, AskInvalid | StoreError>;
+  /**
+   * A new ask, aimed (`aimedWord`: a `point` names its `set`), its machine
+   * checked and its board tries found, or why it may not render; its question filed.
+   */
+  readonly make: (
+    draft: AskDraft,
+  ) => Effect.Effect<AskRecord, WordUnaimed | AskInvalid | StoreError>;
   readonly read: (id: string) => Effect.Effect<AskRecord, AskUnknown | StoreError>;
   /** Every ask, the newest first. */
   readonly list: Effect.Effect<ReadonlyArray<AskRecord>, StoreError>;
@@ -232,6 +237,13 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         });
 
       const make = Effect.fn('AskStore.make')(function* (draft: AskDraft) {
+        yield* Effect.fromResult(
+          aimedWord({
+            set: Option.fromUndefinedOr(draft.set),
+            point: Option.fromUndefinedOr(draft.point),
+            variant: Option.none(),
+          }),
+        );
         // A deadline kept as UTC ISO, so it compares with the time an answer comes in.
         const deadline = Option.map(Option.fromUndefinedOr(draft.deadline), (d) =>
           Option.map(DateTime.make(d), DateTime.formatIso),

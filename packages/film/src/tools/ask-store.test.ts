@@ -131,6 +131,22 @@ describe('the asks on disk', () => {
     ),
   );
 
+  it.effect('keeps no ask whose choice names no set, by the rule a word is aimed by', () =>
+    run(
+      Effect.gen(function* () {
+        const asks = yield* AskStore;
+        const unaimed = yield* Effect.flip(
+          asks.make({ ...draft(proof([1, 7])), point: 'render:cold' }),
+        );
+        expect([unaimed._tag, unaimed.message]).toEqual([
+          'WordUnaimed',
+          '`point` is a choice in a set: name the `set`',
+        ]);
+        expect(yield* asks.list).toEqual([]);
+      }),
+    ),
+  );
+
   it.effect('runs the proof: try 7, then why, then done; a retry is answered as it was', () =>
     run(
       Effect.gen(function* () {

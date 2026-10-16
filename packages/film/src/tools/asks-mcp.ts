@@ -260,8 +260,6 @@ const asksReads = Effect.fn('LabMcp.asksReads')(function* (options: LabMcpOption
     const set = Option.fromUndefinedOr(given.set);
     if (Option.isSome(set) && Option.isNone(production))
       return yield* LabRefused.make({ reason: '`set` files the ask on a production: name it' });
-    if (Option.isSome(Option.fromUndefinedOr(given.point)) && Option.isNone(set))
-      return yield* LabRefused.make({ reason: '`point` is a choice in a set: name the `set`' });
     if (
       Option.isSome(production) &&
       Option.isNone(yield* refused(productions.read(production.value)))
