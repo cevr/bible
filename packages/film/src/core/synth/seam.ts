@@ -57,3 +57,9 @@ export const loopSeam = (pcm: Pcm): Seam => {
 
 /** Whether the seam is heard. */
 export const seamHeard = (seam: Seam): boolean => seam.db > SEAM_DB || seam.click > SEAM_CLICK;
+
+/**
+ * How far a seam stands from silent, to rank cuts of one recording by: its
+ * level step, and its click past what is heard.
+ */
+export const seamScore = (seam: Seam): number => seam.db + Math.max(0, seam.click - SEAM_CLICK);

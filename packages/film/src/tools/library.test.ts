@@ -1,6 +1,7 @@
 // The sound library over a fixture library on disk (a temporary folder, one
 // generated one-shot with a code trial, one generated bed with a code trial
-// that fades, so its seams are heard, a code chime, a code tick, one recording)
+// that fades, so its seams are heard, a code chime, a code tick, three
+// recordings: a one-shot taken whole, a one-shot and a CC BY bed cut to length)
 // with a fake ElevenLabs that writes a seeded burst as `pcm_44100` bytes and
 // the real Media, but for its sheets and cards, which are kept by file for
 // the cases to read (media.test.ts writes real ones). Never a real call:
@@ -79,6 +80,25 @@ const LIBRARY = `export const library = {
     kind: 'recorded',
     licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/1/' },
     use: 'one-shot',
+  },
+  'wood.tap': {
+    kind: 'recorded',
+    licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/2/' },
+    use: 'one-shot',
+    secs: 0.2,
+  },
+  'amb.room': {
+    kind: 'recorded',
+    licence: {
+      id: 'CC-BY-4.0',
+      title: 'room tone.wav',
+      author: 'someone',
+      authorUrl: 'https://freesound.org/people/someone',
+      source: 'https://freesound.org/s/3/',
+      changed: true,
+    },
+    use: 'bed',
+    secs: 2,
   },
   'tone.tick': {
     kind: 'code',
@@ -251,6 +271,29 @@ const withLibrary = <A, E, R>(
 ): Effect.Effect<A, E, R | Fixture> =>
   Effect.gen(function* () {
     return yield* body(yield* Fixture);
+  });
+
+/**
+ * A mono WAV of `secs` beside the fixture's sounds folder: a tone burst for
+ * each `[at, secs, peak]`, silence between.
+ */
+const recording = (
+  dir: string,
+  name: string,
+  secs: number,
+  bursts: ReadonlyArray<readonly [number, number, number]>,
+) =>
+  Effect.gen(function* () {
+    const media = yield* Media;
+    const path = yield* Path.Path;
+    const frames = Math.round(secs * 44100);
+    const plane = new Float32Array(frames);
+    for (const [at, length, peak] of bursts)
+      for (let i = Math.round(at * 44100); i < Math.round((at + length) * 44100); i++)
+        plane[i] = peak * Math.sin(i / 3);
+    const file = path.join(dir, '..', name);
+    yield* media.writeWav(file, { rate: 44100, frames, channels: [plane] });
+    return file;
   });
 
 /** A path's last part: a file's name. */
@@ -630,7 +673,9 @@ describe.concurrent('SoundLibrary', () => {
         const clean = yield* library.check;
         expect(clean.filter((f) => f._tag !== 'SoundUnmade' && f._tag !== 'LoopSeam')).toEqual([]);
         expect(clean.filter((f) => f._tag === 'SoundUnmade').map((f) => f.name)).toEqual([
+          'amb.room',
           'wood.knock',
+          'wood.tap',
         ]);
 
         expect(yield* library.push(NO_SCORES, Option.none())).toMatchObject({ had: 0, total: 6 });
@@ -734,24 +779,145 @@ describe.concurrent('SoundLibrary', () => {
     withLibrary(({ dir }) =>
       Effect.gen(function* () {
         const library = yield* SoundLibrary;
-        const media = yield* Media;
-        const path = yield* Path.Path;
-        const source = path.join(dir, '..', 'knock.wav');
-        const frames = 44100;
-        const plane = new Float32Array(frames);
-        for (let i = 22050; i < 22050 + 2205; i++) plane[i] = 0.5 * Math.sin(i / 3);
-        yield* media.writeWav(source, { rate: 44100, frames, channels: [plane] });
-        const variant = yield* library.importFile(source, 'wood.knock');
+        const source = yield* recording(dir, 'knock.wav', 1, [[0.5, 0.05, 0.5]]);
+        const { variant, cut, gain } = yield* library.importFile(
+          source,
+          'wood.knock',
+          Option.none(),
+        );
         expect(variant.file).toMatch(/^public\/wood\.knock\/[0-9a-f]{12}\.flac$/);
         expect(variant.licence).toBe('CC0-1.0');
         expect(variant.secs).toBeGreaterThan(0.05);
         expect(variant.secs).toBeLessThan(0.1);
-        const wrong = yield* Effect.flip(library.importFile(source, 'tone.chime'));
+        // No cut asked and no secs declared: taken whole, its peak under the ceiling.
+        expect(cut).toEqual(Option.none());
+        expect(variant.cut).toBeUndefined();
+        expect(gain).toBe(0);
+        const wrong = yield* Effect.flip(library.importFile(source, 'tone.chime', Option.none()));
         expect(wrong._tag).toBe('SoundKindMismatch');
+        const empty = yield* Effect.flip(
+          library.importFile(source, 'wood.knock', Option.some({ from: 2, to: 3 })),
+        );
+        expect(empty._tag).toBe('CutEmpty');
         const check = yield* library.check;
         expect(check.filter((f) => f._tag === 'SoundLicence')).toEqual([]);
       }),
     ),
+  );
+
+  it.effect.layer(fixture)('takes the cut it is given, and records it in the lock', () =>
+    withLibrary(({ dir }) =>
+      Effect.gen(function* () {
+        const library = yield* SoundLibrary;
+        const source = yield* recording(dir, 'two.wav', 3, [
+          [0.5, 0.05, 0.5],
+          [2, 0.05, 0.5],
+        ]);
+        const { variant } = yield* library.importFile(
+          source,
+          'wood.knock',
+          Option.some({ from: 1.5, to: 2.5 }),
+        );
+        expect(variant.cut).toEqual({ from: 1.5, to: 2.5 });
+        // The second knock alone, its quiet ends trimmed.
+        expect(variant.secs).toBeLessThan(0.1);
+        expect((yield* library.load).lock['wood.knock']?.variants).toMatchObject([
+          { cut: { from: 1.5, to: 2.5 } },
+        ]);
+      }),
+    ),
+  );
+
+  it.effect.layer(fixture)(
+    'cuts a one-shot to its secs around its loudest moment when given no cut',
+    () =>
+      withLibrary(({ dir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const source = yield* recording(dir, 'tap.wav', 3, [
+            [0.5, 0.05, 0.2],
+            [2, 0.05, 0.6],
+          ]);
+          const { cut } = yield* library.importFile(source, 'wood.tap', Option.none());
+          const taken = Option.getOrThrow(cut);
+          // A fifth of its 0.2 s before the loud tap at 2 s, 0.2 s long.
+          expect(taken.from).toBeCloseTo(1.96, 1);
+          expect(taken.to - taken.from).toBeCloseTo(0.2, 3);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
+    'cuts a bed where its loop seam is smallest, past its first seconds, and keeps its ends',
+    () =>
+      withLibrary(({ dir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const media = yield* Media;
+          const path = yield* Path.Path;
+          // Ten seconds of steady noise, four times louder from 4.5 s to 6.5 s:
+          // a cut at 4 s or 6 s loops across that step.
+          const frames = 10 * 44100;
+          const r = rng(7);
+          const plane = new Float32Array(frames);
+          for (let i = 0; i < frames; i++) {
+            const t = i / 44100;
+            let level = 0.1;
+            if (t >= 4.5 && t < 6.5) level = 0.4;
+            plane[i] = (r() * 2 - 1) * level;
+          }
+          const source = path.join(dir, '..', 'room.wav');
+          yield* media.writeWav(source, { rate: 44100, frames, channels: [plane] });
+          const { variant, cut } = yield* library.importFile(source, 'amb.room', Option.none());
+          expect([2, 8]).toContain(Option.getOrThrow(cut).from);
+          expect(variant.secs).toBeCloseTo(2, 2);
+          expect(variant.licence).toBe('CC-BY-4.0');
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)('levels a recording that peaks over -1 dBFS to it', () =>
+    withLibrary(({ dir }) =>
+      Effect.gen(function* () {
+        const library = yield* SoundLibrary;
+        const source = yield* recording(dir, 'hot.wav', 1, [[0.2, 0.3, 0.999]]);
+        const { variant, gain } = yield* library.importFile(source, 'wood.knock', Option.none());
+        expect(gain).toBeLessThan(-0.9);
+        expect(variant.loudness.peak).toBeCloseTo(-1, 0);
+        expect(variant.loudness.peak).toBeLessThanOrEqual(-1);
+      }),
+    ),
+  );
+
+  it.effect.layer(fixture)(
+    "keeps the variants made for another request as candidates: the sound's history",
+    () =>
+      withLibrary(({ dir }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const fs = yield* FileSystem.FileSystem;
+          const source = yield* recording(dir, 'knock.wav', 1, [[0.5, 0.05, 0.5]]);
+          const first = (yield* library.importFile(source, 'wood.knock', Option.none())).variant;
+          // As a generated sound's kept take stands once the sound is recorded.
+          const file = `${dir}/library.lock.json`;
+          const lock = yield* Schema.decodeEffect(LockJson)(yield* fs.readFileString(file));
+          const older = { ...first, request: 'an older request' };
+          const moved = {
+            ...lock,
+            'wood.knock': { variants: [older], candidates: [], rejected: [] },
+          };
+          yield* fs.writeFileString(file, yield* Schema.encodeEffect(LockJson)(moved));
+          const louder = yield* recording(dir, 'louder.wav', 1, [[0.5, 0.05, 0.7]]);
+          const { variant } = yield* library.importFile(louder, 'wood.knock', Option.none());
+          const loaded = yield* library.load;
+          expect(loaded.lock['wood.knock']?.variants).toEqual([variant]);
+          expect(loaded.lock['wood.knock']?.candidates).toEqual([older]);
+          const entry = Option.getOrThrow(
+            Option.fromUndefinedOr(loaded.library[Segment.make('wood.knock')]),
+          );
+          expect(pendingOf(entry, Option.fromUndefinedOr(loaded.lock['wood.knock']))).toEqual([]);
+        }),
+      ),
   );
 
   it.effect.layer(fixture)(
@@ -949,8 +1115,11 @@ describe.concurrent('SoundLibrary', () => {
             const hits = marksOn(card?.image ?? NO_SHEET).filter(([, kind]) => kind === 'hit');
             expect(hits).toHaveLength([1, 3, 4][i] ?? 0);
           }
-          const none = yield* Effect.flip(library.ab('tone.tick', out));
-          expect(none).toMatchObject({ _tag: 'CodeTrialMissing', name: 'tone.tick' });
+          // A sound with no code trial has only what plays now.
+          expect(named(yield* library.ab('tone.tick', out))).toEqual([
+            'tone.tick.now.mp4',
+            'tone.tick.now.png',
+          ]);
           expect(calls).toHaveLength(paid);
         }),
       ),

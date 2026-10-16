@@ -520,16 +520,42 @@ const importCommand = Command.make(
   {
     file: Argument.String('file').pipe(Argument.withDescription('a recording, in any format')),
     name,
+    from: Flag.Finite('from').pipe(
+      Flag.optional,
+      Flag.withDescription("the cut's first second in the recording (with --to)"),
+    ),
+    to: Flag.Finite('to').pipe(
+      Flag.optional,
+      Flag.withDescription("the cut's last second in the recording (with --from)"),
+    ),
   },
   Effect.fn('film.sfx.import')(function* (input) {
-    const variant = yield* (yield* SoundLibrary).importFile(input.file, input.name);
+    const ends = { from: input.from, to: input.to };
+    for (const [flag, other] of [
+      ['from', 'to'],
+      ['to', 'from'],
+    ] as const)
+      if (Option.isSome(ends[flag]) && Option.isNone(ends[other]))
+        return yield* FlagsConflict.make({
+          flag,
+          rule: 'needs',
+          other,
+          reason: 'a cut names both its ends',
+        });
+    const cut = Option.all(ends);
+    const imported = yield* (yield* SoundLibrary).importFile(input.file, input.name, cut);
+    const { variant } = imported;
+    const taken = Option.match(imported.cut, {
+      onNone: () => 'whole',
+      onSome: (c) => `${c.from.toFixed(2)}-${c.to.toFixed(2)}s`,
+    });
     yield* Console.log(
-      `imported  ${variant.file}  ${variant.secs.toFixed(2)}s  ${variant.licence}`,
+      `imported  ${variant.file}  ${variant.secs.toFixed(2)}s  ${variant.licence}  cut=${taken}  gain=${imported.gain.toFixed(1)}dB  rumble<30Hz=${imported.rumble.toFixed(1)}dB`,
     );
   }),
 ).pipe(
   Command.withDescription(
-    'A CC0 recording into a declared recorded sound: trimmed, 44.1 kHz 24-bit FLAC under public/, measured',
+    "A CC0 or CC BY recording into a declared recorded sound: folded to mono, cut (--from/--to, else its secs cut automatically), a one-shot's quiet ends trimmed, overs levelled to -1 dBFS, 44.1 kHz 24-bit FLAC under public/, measured",
   ),
 );
 
@@ -604,7 +630,7 @@ const ab = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    "A sound's clips for an ask: what plays now, its code trial, and both in one, each an MP4 of its line-up under its sheet, beside the sheet as a PNG (free)",
+    "A sound's clips for an ask: what plays now, and with a code trial the trial and both in one, each an MP4 of its line-up under its sheet, beside the sheet as a PNG (free)",
   ),
 );
 

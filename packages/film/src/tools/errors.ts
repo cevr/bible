@@ -271,6 +271,18 @@ export class SoundKindMismatch extends Schema.TaggedError<SoundKindMismatch>()(
   }
 }
 
+/** `sfx import --from --to` naming seconds that hold none of the recording: it ends at `secs`. */
+export class CutEmpty extends Schema.TaggedError<CutEmpty>()('CutEmpty', {
+  name: Schema.String,
+  from: Schema.Finite,
+  to: Schema.Finite,
+  secs: Schema.Finite,
+}) {
+  override get message() {
+    return `the cut ${this.from}-${this.to} s of the recording for "${this.name}" holds none of it: it runs ${this.secs.toFixed(2)} s, and a cut ends after it starts`;
+  }
+}
+
 /** `sfx render --trial` or `sfx compare` on a sound with no code trial: only a generated sound with `code` has one. */
 export class CodeTrialMissing extends Schema.TaggedError<CodeTrialMissing>()('CodeTrialMissing', {
   name: Schema.String,
