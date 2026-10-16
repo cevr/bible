@@ -10,6 +10,7 @@ import { probeTimeline } from '../fixtures/probe-timeline.ts';
 import {
   beatAt,
   beatNamed,
+  beatPageHref,
   beatStep,
   clipFit,
   lanesShown,
@@ -46,6 +47,27 @@ describe('the beat at the playhead', () => {
     expect(beatStep(drawn, 4.9, -1)).toBe(0);
     expect(beatStep(drawn, 0, -1)).toBe(0);
     expect(beatStep(drawn, 10, 1)).toBe(8.26);
+  });
+});
+
+describe('the page a beat is still worked on', () => {
+  const two = Option.getOrThrow(beatNamed(drawn, 'two'));
+
+  test("opens at the playhead in the beat's own time, else at the beat's start", () => {
+    expect(beatPageHref('Script', 'probe', two, 6.215)).toEqual(
+      Option.some('/films/probe/script/two#t=1.5'),
+    );
+    expect(beatPageHref('Board', 'probe', two, 6.215)).toEqual(
+      Option.some('/films/probe/board/two#t=1.5'),
+    );
+    expect(beatPageHref('Lab', 'probe', two, 6.215)).toEqual(
+      Option.some('/films/probe/lab/two#t=1.5'),
+    );
+    expect(beatPageHref('Script', 'probe', two, 1)).toEqual(Option.some('/films/probe/script/two'));
+  });
+
+  test('is none for a short, which has no such page', () => {
+    expect(beatPageHref('Lab', 'probe/shorts/hook', two, 6.215)).toEqual(Option.none());
   });
 });
 

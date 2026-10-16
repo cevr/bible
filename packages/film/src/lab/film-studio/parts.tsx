@@ -65,6 +65,8 @@ import {
   timecode,
   waitsText,
   zoomFor,
+  type BeatPage,
+  beatPageHref,
 } from './view-state.ts';
 
 /** Whether the window is a phone's: its lanes, its keys and its reading block. */
@@ -906,15 +908,28 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
 
 // ---------------------------------------------------------------- Inspector
 
-/** The inspector's sections, in flow order, each with the track its material comes from. */
-const SECTIONS: ReadonlyArray<{ readonly title: string; readonly track: Option.Option<Track> }> = [
-  { title: 'Words', track: Option.some('script') },
-  { title: 'Concept', track: Option.some('concept') },
-  { title: 'Board', track: Option.some('board') },
-  { title: 'Voice', track: Option.some('voice') },
-  { title: 'Scene', track: Option.some('scenes') },
-  { title: 'Notes and asks', track: Option.none() },
+/**
+ * The inspector's sections, in flow order, each with the track its material
+ * comes from and the page the beat's material is still worked on
+ * (`BeatPage`), which its row links to until the section's body holds it.
+ */
+const SECTIONS: ReadonlyArray<{
+  readonly title: string;
+  readonly track: Option.Option<Track>;
+  readonly page: Option.Option<BeatPage>;
+}> = [
+  { title: 'Words', track: Option.some('script'), page: Option.some('Script') },
+  { title: 'Concept', track: Option.some('concept'), page: Option.none() },
+  { title: 'Board', track: Option.some('board'), page: Option.some('Board') },
+  { title: 'Voice', track: Option.some('voice'), page: Option.none() },
+  { title: 'Scene', track: Option.some('scenes'), page: Option.none() },
+  { title: 'Notes and asks', track: Option.none(), page: Option.some('Lab') },
 ];
+
+/** A section row's swatch, by the track its material comes from. */
+const RowSwatch = (props: { readonly track: Option.Option<Track> }) => (
+  <i class="st-sw" data-kind={Option.getOrElse(props.track, () => 'note')} aria-hidden="true" />
+);
 
 /** A beat's span as the inspector heads it: `2:27.6 – 3:06.1 · 38.5 s`. */
 const spanText = (beat: ScriptClip) =>
@@ -923,7 +938,9 @@ const spanText = (beat: ScriptClip) =>
 /**
  * The inspector's shell: the selected beat's head (its name, its span,
  * Approve, close) and a row for each section whose stage has material in
- * this version. The sections' bodies come with the inspector's own unit.
+ * this version. The sections' bodies come with the inspector's own unit;
+ * until then the Words, Board and Notes rows link to the beat on the page
+ * that still holds it, at the playhead.
  */
 const Inspector = () => {
   const { state, actions, meta } = useStudio();
@@ -965,15 +982,36 @@ const Inspector = () => {
               )}
             >
               {(section) => (
-                <div class="st-row" data-section={section.title}>
-                  <i
-                    class="st-sw"
-                    data-kind={Option.getOrElse(section.track, () => 'note')}
-                    aria-hidden="true"
-                  />
-                  <span>{section.title}</span>
-                  <span class="st-n">–</span>
-                </div>
+                <Show
+                  when={Option.getOrUndefined(
+                    Option.flatMap(section.page, (page) =>
+                      Option.map(beatPageHref(page, meta.film, beat(), state.T()), (href) => ({
+                        page,
+                        href,
+                      })),
+                    ),
+                  )}
+                  fallback={
+                    <div class="st-row" data-section={section.title}>
+                      <RowSwatch track={section.track} />
+                      <span>{section.title}</span>
+                      <span class="st-n">–</span>
+                    </div>
+                  }
+                >
+                  {(link) => (
+                    <a
+                      class="st-row"
+                      data-section={section.title}
+                      href={link().href}
+                      title={`Open ${beat().beat} on the ${link().page} page`}
+                    >
+                      <RowSwatch track={section.track} />
+                      <span>{section.title}</span>
+                      <span class="st-n">{link().page} page</span>
+                    </a>
+                  )}
+                </Show>
               )}
             </For>
           </div>

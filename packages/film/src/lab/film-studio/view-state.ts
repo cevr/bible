@@ -2,10 +2,13 @@
 // model, `core/timeline-schema.ts`) and where the owner is in it: the beat
 // at the playhead, the picture the viewer shows there, the lanes a window
 // of a width holds, the ruler's ticks at a zoom, the selection the address
-// names, and the timecode. Pure: the page's parts and its machine read
+// names, the timecode, and the page a beat's material is still kept on.
+// Pure: the page's parts and its machine read
 // these, and its tests check them without a page.
 
 import { Array as Arr, Boolean as Bool, Match, Option, Order } from 'effect';
+import { pageHref } from '../../core/api.ts';
+import { isShortKey } from '../../core/shorts.ts';
 import { CLOCK_EPSILON, frameAtOrBefore } from '../../core/time.ts';
 import type {
   BoardClip,
@@ -283,3 +286,42 @@ export const nextText = (
     first: next.starts,
     later: next.later.map((stage) => STAGE_TITLE[stage]).join(' · '),
   }));
+
+/**
+ * The pages a beat's material is still worked on until the studio's
+ * inspector holds it: its words on the Script, its panels on the Board, and
+ * its notes on the Lab.
+ */
+export type BeatPage = 'Script' | 'Board' | 'Lab';
+
+/** Film second `T` as a time in `beat`, when `T` is in it: where its page opens (a beat page's `#t=`). */
+const beatTime = (beat: ScriptClip, T: number): Option.Option<number> =>
+  Option.map(
+    Option.liftPredicate(T, (t) => holds(beat, t)),
+    (t) => t - beat.start,
+  );
+
+/** Each beat page's link: the beat on it, at a time in the beat. */
+const BEAT_PAGE: Readonly<
+  Record<BeatPage, (film: string, beat: string, t: Option.Option<number>) => string>
+> = {
+  Script: (film, beat, t) => pageHref.scriptBeat(film, beat, {}, t),
+  Board: (film, beat, t) => pageHref.boardBeat(film, beat, {}, t),
+  Lab: (film, beat, t) => pageHref.labScene(film, beat, {}, t),
+};
+
+/**
+ * `beat`'s page `page` on `film`, open at the playhead `T` when it is in the
+ * beat (`beatTime`), else at the beat's start; none for a short, which has
+ * no such page.
+ */
+export const beatPageHref = (
+  page: BeatPage,
+  film: string,
+  beat: ScriptClip,
+  T: number,
+): Option.Option<string> =>
+  Option.map(
+    Option.liftPredicate(film, (f) => !isShortKey(f)),
+    (f) => BEAT_PAGE[page](f, beat.beat, beatTime(beat, T)),
+  );

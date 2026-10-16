@@ -169,6 +169,8 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-app .st-close { width: var(--s-8); height: var(--s-8); border-radius: var(--r-1); display: grid; place-items: center; color: var(--text-2); flex: none; }
 .st-app .st-close:hover { background: var(--surface-3); color: var(--text-1); }
 .st-row { display: flex; align-items: center; gap: var(--s-3); height: 40px; padding: 0 var(--s-4); border-bottom: var(--border); font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
+a.st-row { color: var(--text-2); text-decoration: none; }
+a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
 .st-n { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-3); }
 .st-status-line { grid-area: timeline; display: flex; align-items: center; gap: var(--s-3); padding: 0 var(--st-gutter); color: var(--text-2); }
 .st-status-line p { margin: 0; }

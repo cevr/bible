@@ -96,9 +96,10 @@ after a file they were built from changes: the review (`review.html`) at `/`,
 `/sets/<folder>[/<point>]` and a film's `/films/<film>/choices`, and the
 player (`play.html`, whose entry `src/play.ts` mounts `@bible/film/play`) at
 a film's studio, `/films/<film>/studio`. The lab page (`lab.html`, whose
-entry `src/lab.ts` mounts `@bible/film/lab`) is built but not served: the
-lab sends a film's `/lab`, `/script`, `/board`, `/scenes`, `/project` and
-`/play` paths to its studio. Each page is rendered first on the server by its server
+entry `src/lab.ts` mounts `@bible/film/lab`) serves a film's `/lab`,
+`/script` and `/board` until the studio's inspector holds what they do; the
+studio's inspector links to them. The lab sends a film's `/scenes`,
+`/project` and `/play` paths to its studio. Each page is rendered first on the server by its server
 entry beside it (`src/*.server.tsx`, `LAB_SERVERS` in `server.ts`), in a
 worker of its build's own, and the browser bundle hydrates it. The render page
 (`index.html`) is the lab's too, at a film's `/films/<film>/export`, drawn in

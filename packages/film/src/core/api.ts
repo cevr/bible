@@ -2008,36 +2008,18 @@ const filmTimed =
     }));
 
 /**
- * A page on one of a film's beats (a scene's lab, a script beat, a board
- * beat, a scene of the tape): its beat selected. A beat page's `#t=` counts
- * from the beat's start, which only the film's clock knows, so it is left
- * behind; the studio opens at the beat's start.
+ * The film pages the studio replaced, each read as what it showed. A scene
+ * of the tape's `#t=` is film time, as the studio's is: it is kept.
  */
-const onBeat =
-  (place: Place.Place<{ readonly path: { readonly film: string; readonly scene: string } }>) =>
-  (href: string): Option.Option<Replaced> =>
-    Option.map(Place.decode(place, href), (v) => ({
-      film: v.path.film,
-      beat: Option.some(v.path.scene),
-      t: Option.none(),
-    }));
-
-/** The film pages the studio replaced, each read as what it showed. */
 const REPLACED: ReadonlyArray<(href: string) => Option.Option<Replaced>> = [
   filmTimed(Replaced.play),
   filmTimed(Replaced.scenes),
-  filmTimed(Places.lab),
-  filmTimed(Places.script),
-  filmTimed(Places.board),
   (href) =>
     Option.map(Place.decode(Replaced.scene, href), (v) => ({
       film: v.path.film,
       beat: Option.some(v.path.scene),
       t: v.hash.t,
     })),
-  onBeat(Places.labScene),
-  onBeat(Places.scriptBeat),
-  onBeat(Places.boardBeat),
   (href) =>
     Option.map(Place.decode(Replaced.project, href), (v) => ({
       film: v.path.film,
@@ -2048,11 +2030,12 @@ const REPLACED: ReadonlyArray<(href: string) => Option.Option<Replaced>> = [
 
 /**
  * The studio's place for a film page it replaced (`/films/<f>/play`,
- * `/scenes[/<scene>]`, `/lab[/<scene>]`, `/script[/<beat>]`,
- * `/board[/<beat>]`, `/project`): the same film, its beat selected
+ * `/scenes[/<scene>]`, `/project`): the same film, its beat selected
  * (`?sel=beat:<id>`) and its film time kept. The lab's server sends a
- * browser on with a redirect (`servedPlace`); the Board, Script and Lab
- * pages stay mountable behind it for the studio's later parts.
+ * browser on with a redirect (`servedPlace`). The Lab, the Script and the
+ * Board are still served as asked, each beat's and note's place in its own
+ * address, until the studio's inspector holds what they do; the
+ * inspector's rows link to them.
  */
 export const studioPlace = (href: string): Option.Option<string> =>
   Option.map(Option.firstSomeOf(REPLACED.map((read) => read(href))), ({ film, beat, t }) =>

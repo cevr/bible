@@ -5,12 +5,13 @@
 // while it scrubs and plays on once it lets go; a beat chosen on the script outlines every clip of that
 // beat, opens the inspector and names it in the address; the zoom steps in
 // and Fit (⇧Z) fits the film again; another version reads its own timeline;
-// the flag strip flags the open ask. A phone keeps three lanes. Its touch
+// the flag strip flags the open ask; the inspector's Words, Board and Notes
+// rows link to the beat on the pages that still hold it. A phone keeps three lanes. Its touch
 // targets are measured with every place's (`touch-targets.dom.test.ts`, the
-// studio's states in `studio-states.ts`); the old pages' redirects are the
-// lab server's (`servedPlace`, `tools/lab-page.test.ts`).
+// studio's states in `studio-states.ts`); the replaced pages' redirects are
+// the lab server's (`servedPlace`, `tools/lab-page.test.ts`).
 
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { DESK, PHONE, type Viewport, openPlayer } from '../../src/lab/fixtures/harness.ts';
@@ -137,6 +138,35 @@ for (const size of SIZES) {
           // With no `#t=`, it opens at the beat's start.
           yield* textIs(page, '.st-tc', /^0:08\.2/);
           yield* countIs(page, '.st-clip[data-beat="three"][data-linked="true"]', size.lanes);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    it.live(
+      "links the inspector's Words, Board and Notes rows to the beat on the Script, the Board and the Lab, at the playhead in the beat's time",
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* studioAt(
+            size.viewport,
+            pageHref.studio(PROBE, { sel: 'beat:two' }, Option.some(6)),
+          );
+          yield* waitFor(page, '.st-pane[data-beat="two"]');
+          const row = (section: string) => `.st-pane a.st-row[data-section="${section}"]`;
+          yield* attributeIs(page, row('Words'), 'href', /^\/films\/probe\/script\/two#t=1\.\d+$/);
+          yield* attributeIs(page, row('Board'), 'href', /^\/films\/probe\/board\/two#t=1\.\d+$/);
+          yield* attributeIs(
+            page,
+            row('Notes and asks'),
+            'href',
+            /^\/films\/probe\/lab\/two#t=1\.\d+$/,
+          );
+          // The rows whose bodies the studio holds link nowhere yet.
+          yield* countIs(page, '.st-pane a.st-row', 3);
+          // At the beat's start, a beat page opens at its own start.
+          yield* page.press('Home');
+          yield* page.click('.st-clip[data-kind="script"][data-beat="two"]');
+          yield* attributeIs(page, row('Words'), 'href', '/films/probe/script/two#t=0');
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,

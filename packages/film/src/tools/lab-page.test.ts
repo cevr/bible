@@ -278,6 +278,13 @@ describe('lab pages', () => {
           '/sets/root/folder': 'review',
           '/films/f/studio': 'player',
           '/films/f/choices': 'review',
+          // The Lab, the Script and the Board stay served until the studio's inspector holds them.
+          '/films/f/lab': 'lab',
+          '/films/f/lab/hand': 'lab',
+          '/films/f/script': 'lab',
+          '/films/f/script/hand': 'lab',
+          '/films/f/board': 'lab',
+          '/films/f/board/hand': 'lab',
           '/films/f/export': 'render',
         };
         for (const [pathname, page] of Object.entries(places))
@@ -289,6 +296,8 @@ describe('lab pages', () => {
         const page = (yield* ask('/films/f/studio')).text;
         expect(page).toMatch(/src="\/[^"]+\.js"/);
         expect(yield* scriptOf('/films/f/studio')).toContain('the player');
+        expect((yield* ask('/films/f/lab/hand')).text).toMatch(/src="\/[^"]+\.js"/);
+        expect(yield* scriptOf('/films/f/lab/hand')).toContain('the lab');
         // No page at a path no place declares, nor a narration file of a film that has none.
         for (const pathname of [
           '/films/f',
@@ -304,24 +313,19 @@ describe('lab pages', () => {
     Effect.gen(function* () {
       const { ask } = yield* app;
       const old = {
-        '/lab?film=f': '/films/f/studio',
-        '/lab?film=f&sel=cue:hand:rise': '/films/f/studio?sel=beat%3Ahand',
+        '/lab?film=f': '/films/f/lab',
+        '/lab?film=f&sel=cue:hand:rise': '/films/f/lab/hand?cue=rise',
         '/lab': '/',
         '/player?film=f&lookbook': '/films/f/studio',
         '/player?film=f': '/films/f/studio',
         '/?project=f': '/films/f/studio',
         '/?film=f': '/films/f/choices',
-        // Each film page the studio replaced lands on the studio, its beat selected.
+        // Each film page the studio replaced lands on the studio, its beat selected (the browser
+        // keeps the link's `#t=`, film time on both).
         '/films/f/play': '/films/f/studio',
         '/films/f/scenes': '/films/f/studio',
         '/films/f/scenes/hand': '/films/f/studio?sel=beat%3Ahand',
         '/films/f/project': '/films/f/studio',
-        '/films/f/lab': '/films/f/studio',
-        '/films/f/lab/hand': '/films/f/studio?sel=beat%3Ahand',
-        '/films/f/script': '/films/f/studio',
-        '/films/f/script/hand': '/films/f/studio?sel=beat%3Ahand',
-        '/films/f/board': '/films/f/studio',
-        '/films/f/board/hand': '/films/f/studio?sel=beat%3Ahand',
         // A render link lands on the film's export page, the build it pins kept.
         '/films/f/play?export&build=3': '/films/f/export?build=3',
         '/?film=f&export': '/films/f/export',
