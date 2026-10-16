@@ -21,6 +21,7 @@ import {
   pxPerSecond,
   scrollForZoom,
   rulerTicks,
+  sentenceAt,
   timecode,
   waitsText,
   zoomFor,
@@ -167,6 +168,30 @@ describe('the zoom and the ruler', () => {
   test('labels the ruler at the first step that leaves room between labels', () => {
     expect(rulerTicks(12.315, 100)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     expect(rulerTicks(12.315, 20)).toEqual([0, 5, 10]);
+  });
+});
+
+describe('the caption', () => {
+  // Three sentences of 2, 4 and 2 words: shares of a quarter, a half and a quarter.
+  const say = 'He fell. Then he rose, slowly. “Not yet!”';
+  const speech = { start: 10, end: 18 };
+
+  test("is the sentence at its share of the beat's speech span", () => {
+    expect(sentenceAt(say, 10, Option.some(speech))).toBe('He fell.');
+    expect(sentenceAt(say, 11.9, Option.some(speech))).toBe('He fell.');
+    expect(sentenceAt(say, 12.1, Option.some(speech))).toBe('Then he rose, slowly.');
+    expect(sentenceAt(say, 15.9, Option.some(speech))).toBe('Then he rose, slowly.');
+    expect(sentenceAt(say, 16.1, Option.some(speech))).toBe('“Not yet!”');
+  });
+
+  test('before the speech is its first sentence, after it its last, and a silent beat its first', () => {
+    expect(sentenceAt(say, 2, Option.some(speech))).toBe('He fell.');
+    expect(sentenceAt(say, 30, Option.some(speech))).toBe('“Not yet!”');
+    expect(sentenceAt(say, 13, Option.none())).toBe('He fell.');
+    expect(sentenceAt('  a line with no stop  ', 13, Option.some(speech))).toBe(
+      'a line with no stop',
+    );
+    expect(sentenceAt('', 13, Option.some(speech))).toBe('');
   });
 });
 

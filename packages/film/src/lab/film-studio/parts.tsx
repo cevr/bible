@@ -66,6 +66,7 @@ import {
   timecode,
   waitsText,
   scrollForZoom,
+  sentenceAt,
   zoomFor,
   type BeatPage,
   type CardPicture,
@@ -460,9 +461,11 @@ const Transport = () => {
     );
   const spoken = () =>
     Option.getOrElse(
-      Option.flatMap(
-        Option.flatMap(state.current(), (beat) => state.words(beat.beat)),
-        (words) => Option.fromUndefinedOr(words.say),
+      Option.flatMap(state.current(), (beat) =>
+        Option.map(
+          Option.flatMap(state.words(beat.beat), (words) => Option.fromUndefinedOr(words.say)),
+          (say) => sentenceAt(say, state.T(), Option.fromUndefinedOr(beat.speech)),
+        ),
       ),
       () => '',
     );

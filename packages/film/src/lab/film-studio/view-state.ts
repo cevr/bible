@@ -8,6 +8,7 @@
 
 import { Array as Arr, Boolean as Bool, Match, Option, Order } from 'effect';
 import { pageHref } from '../../core/api.ts';
+import { endsSentence } from '../../core/narration.ts';
 import { isShortKey } from '../../core/shorts.ts';
 import { CLOCK_EPSILON, frameAtOrBefore } from '../../core/time.ts';
 import type { PanelText } from '../../core/board.ts';
@@ -245,6 +246,54 @@ export const zoomStep = (zoom: number, step: -1 | 1): number => {
         () => 1,
       ),
     ),
+  );
+};
+
+/** A sentence of a line, and how many of the line's words are said by its end. */
+interface Sentence {
+  readonly words: ReadonlyArray<string>;
+  readonly by: number;
+}
+
+/**
+ * The sentence of a beat's line `say` heard at `T`: the line's sentences take
+ * the beat's speech span by their share of its words, so the sentence is the
+ * one whose share holds `T`'s place in the span; the first before it (and on
+ * a silent beat), the last after it.
+ */
+export const sentenceAt = (
+  say: string,
+  T: number,
+  speech: Option.Option<{ readonly start: number; readonly end: number }>,
+): string => {
+  const words = say.split(/\s+/).filter((w) => w.length > 0);
+  // Each sentence with the count of words said by its end.
+  const none: ReadonlyArray<Sentence> = [];
+  const sentences = Arr.reduce(words, none, (acc, word, i): ReadonlyArray<Sentence> =>
+    Option.match(
+      Option.filter(Arr.last(acc), (open) => !Option.exists(Arr.last(open.words), endsSentence)),
+      {
+        onNone: () => [...acc, { words: [word], by: i + 1 }],
+        onSome: (open) => [...acc.slice(0, -1), { words: [...open.words, word], by: i + 1 }],
+      },
+    ),
+  );
+  const place = Option.getOrElse(
+    Option.map(
+      Option.filter(speech, (span) => span.end > span.start),
+      (span) => Math.min(1, Math.max(0, (T - span.start) / (span.end - span.start))),
+    ),
+    () => 0,
+  );
+  return Option.getOrElse(
+    Option.map(
+      Option.orElse(
+        Arr.findFirst(sentences, (sentence) => place * words.length < sentence.by),
+        () => Arr.last(sentences),
+      ),
+      (sentence) => sentence.words.join(' '),
+    ),
+    () => '',
   );
 };
 
