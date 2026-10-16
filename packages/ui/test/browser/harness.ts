@@ -29,6 +29,18 @@ import type { BunPlugin } from 'bun';
 import type * as ServerEntry from './server.ts';
 
 /**
+ * How many times slower each page's main thread runs (`UI_BROWSER_CPU_THROTTLE`):
+ * 1, full speed, when unset. A value that is not a number of 1 or more stops
+ * the run as it loads, naming it.
+ */
+const THROTTLE = ((written: string): number => {
+  const rate = Number(written);
+  if (!Number.isFinite(rate) || rate < 1)
+    throw new Error(`UI_BROWSER_CPU_THROTTLE is ${JSON.stringify(written)}: a rate of 1 or more`);
+  return rate;
+})(process.env['UI_BROWSER_CPU_THROTTLE'] ?? '1');
+
+/**
  * The flags every Chromium here launches with, as the film's `chromeArgs`:
  * `--mute-audio` mutes its pages and `--disable-audio-output` plays to a fake
  * device, so a test never opens the host's speakers.
@@ -277,6 +289,12 @@ export const harness = (fixtureFile: string, options: HarnessOptions = {}): Harn
       }
       const page = await context.newPage();
       page.setDefaultTimeout(5000);
+      // The page's main thread slowed `UI_BROWSER_CPU_THROTTLE` times: a slow phone or a loaded
+      // runner, on demand, as the film's e2e does (`FILM_E2E_CPU_THROTTLE`).
+      if (THROTTLE > 1) {
+        const cdp = await context.newCDPSession(page);
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
+      }
       page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
       page.on('console', (message) => {
         const type = message.type();
