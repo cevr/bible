@@ -1137,7 +1137,8 @@ const fakeRecording = (said: string, rate: number): Pcm => {
 /**
  * The rest of a fake media that neither loads a recording nor serves a
  * review: loading fails, encoding writes nothing, and the review's stills,
- * phone copies and `.m4a` mixes, and a re-mux, do nothing.
+ * phone copies and `.m4a` mixes, a re-mux and a sound's card and sheet, do
+ * nothing.
  */
 export const noRecording = {
   load: (file: string) =>
@@ -1147,9 +1148,11 @@ export const noRecording = {
   still: () => Effect.void,
   phoneCopy: () => Effect.void,
   remux: () => Effect.void,
+  card: () => Effect.void,
+  writePng: () => Effect.void,
 } satisfies Pick<
   MediaService,
-  'load' | 'encodeFlac' | 'writeAac' | 'still' | 'phoneCopy' | 'remux'
+  'load' | 'encodeFlac' | 'writeAac' | 'still' | 'phoneCopy' | 'remux' | 'card' | 'writePng'
 >;
 
 /**
@@ -1215,7 +1218,9 @@ const fakeDuration = (bytes: Uint8Array) =>
  * joined film as `mp4 <frames>`, a re-muxed one as `remuxed <video>`. A recording loads as `fakeRecording` of its
  * bytes, and a take encodes to `flac <frames>/<rate>`, which measures its own
  * length. A review's mix lands as `aac <frames>`, a still as `still of
- * <video> at <t> (<width>)`, a phone copy as `phone of <video>`.
+ * <video> at <t> (<width>)`, a phone copy as `phone of <video>`, a sound's
+ * card as `card <width>x<height> <frames>` and its sheet as `png
+ * <width>x<height>`.
  */
 export const fakeMedia = (
   files: Map<string, Uint8Array> = new Map(),
@@ -1251,6 +1256,12 @@ export const fakeMedia = (
       still: (video, at, width, out) =>
         Effect.sync(() => void files.set(out, text(`still of ${video} at ${at} (${width})`))),
       phoneCopy: (video, out) => Effect.sync(() => void files.set(out, text(`phone of ${video}`))),
+      card: (image, pcm, out) =>
+        Effect.sync(
+          () => void files.set(out, text(`card ${image.width}x${image.height} ${pcm.frames}`)),
+        ),
+      writePng: (file, image) =>
+        Effect.sync(() => void files.set(file, text(`png ${image.width}x${image.height}`))),
     }),
   );
 

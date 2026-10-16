@@ -7,10 +7,14 @@
 // share below 30 Hz stands apart: rumble spends headroom that the loudness
 // the mix levels by never hears (the app's sounds/PROMPTING.md). Numbers, no
 // verdict: a distance is a hint for the ear, never a target to make small.
+// The sync check reads the hit as a placement hears it: one placed from its
+// start hears the hit move as far as the hit moved, one synced to its onset
+// as far as the hit moved from the onset, and one synced to its hit never.
 // Pure.
 
 import { Array as Arr } from 'effect';
 import type { Pcm } from '../audio.ts';
+import type { SoundEffect } from '../schema.ts';
 import { describeSound, powerSpectrum } from './analyse.ts';
 import { loudness } from './loudness.ts';
 
@@ -190,5 +194,44 @@ export const distance = (from: Profile, to: Profile): Distance => {
     balance: bands.length > 0 ? Math.sqrt(squares / bands.length) : 0,
     apart: bands.filter((row) => Math.abs(row.moved) > APART_DB),
     hit: to.hit - from.hit,
+  };
+};
+
+/** What a placement lands on its cue (`SoundEffect.sync`). */
+type Sync = NonNullable<SoundEffect['sync']>;
+
+/** How far a placement may hear the hit move before the sync check names it, in seconds. */
+export const HIT_MOVE = 0.02;
+
+/** Where a placement synced by `sync` hears a render's hit, in seconds after its cue. */
+const heardHit = (sync: Sync, p: Profile): number => {
+  if (sync === 'start') return p.hit;
+  if (sync === 'onset') return p.hit - p.onset;
+  return 0;
+};
+
+/** How far a placement hears the hit move, in seconds: the medians' move, and the move of the render furthest out. */
+interface HitMove {
+  readonly median: number;
+  readonly worst: number;
+}
+
+/**
+ * How far a placement synced by `sync` hears the hit move when `to`'s
+ * renders play in place of `from`'s: from the median of where it hears
+ * `from`'s, to the median of `to`'s, and to the one of `to`'s furthest from
+ * it (every render is judged, never the best).
+ */
+export const hitMove = (
+  sync: Sync,
+  from: Arr.NonEmptyReadonlyArray<Profile>,
+  to: Arr.NonEmptyReadonlyArray<Profile>,
+): HitMove => {
+  const heard = (p: Profile) => heardHit(sync, p);
+  const base = median(Arr.map(from, heard));
+  const moves = Arr.map(to, (p) => heard(p) - base);
+  return {
+    median: median(Arr.map(to, heard)) - base,
+    worst: moves.reduce((worst, move) => (Math.abs(move) > Math.abs(worst) ? move : worst)),
   };
 };

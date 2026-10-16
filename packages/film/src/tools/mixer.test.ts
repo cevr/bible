@@ -97,6 +97,7 @@ const setup = (finish: Finish, rate = MIX_RATE, loaded: LoadedFilm = film) => {
     FilmRepo.of({
       load: () => Effect.succeed(loaded),
       script: () => Effect.succeedNone,
+      sound: () => Effect.succeed(loaded.sound),
       scores: Effect.succeed(NO_SCORES),
     }),
   );

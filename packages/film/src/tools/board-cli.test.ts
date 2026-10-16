@@ -30,6 +30,7 @@ const over = (files: Map<string, Uint8Array>) => {
       FilmRepo.of({
         load: () => Effect.die('import loads no film'),
         script: () => Effect.succeedSome([{ id: 'cold', say: 'A {room}court.', cite: [] }]),
+        sound: () => Effect.die('import reads no sound'),
         scores: Effect.die('import reads no scores'),
       }),
     ),

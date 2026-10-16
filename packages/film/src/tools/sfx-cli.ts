@@ -1,31 +1,37 @@
 // `film sfx`: the app's sound library from the command line. Every command
 // but `make` is free: `list`, `plan` and `check` read the library and
 // its lock; `describe` records each variant's onset and hit from its file;
-// `audition` and `render` write WAVs under `<FILMS_OUT>/sounds` (`render
-// --trial`, a sound's code trial: its code version, heard beside its takes);
-// `compare` prints a code trial's numbers beside what plays, each render's
-// and each side's median, and how far apart they stand;
-// `keep`, `reject` and `import` curate the lock; `pull` and `push` sync the
-// private `files/` (and the films' scores) with the store; `push --from` sends
-// from an older folder store too (the move to R2). `make` is the one paid command: it prints
-// its plan and cost, and spends only with `--yes`, under `--cap` counting what
-// `--tally` already records.
+// `audition` and `render` write WAVs under `<FILMS_OUT>/sounds` (`--trial`,
+// a sound's code trial: its code version, heard beside its takes; `render
+// --sheet`, each WAV's sheet beside it as a PNG, read in place of
+// listening); `compare` prints a code trial's numbers beside what plays,
+// each render's and each side's median, how far apart they stand, and how
+// far each film's placement would hear the hit move; `audit` reads which
+// generated sounds code can make, from their prompts; `ab` writes a sound's
+// clips for an ask; `keep`, `reject` and `import` curate the lock; `pull`
+// and `push` sync the private `files/` (and the films' scores) with the
+// store; `push --from` sends from an older folder store too (the move to
+// R2). `make` is the one paid command: it prints its plan and cost, and
+// spends only with `--yes`, under `--cap` counting what `--tally` already
+// records.
 //
 //   film sfx list [family] [--missing | --stale]
 //   film sfx plan [name…] [--force]
 //   film sfx make [name…] [--force] [--yes] [--cap n] [--tally file]
 //   film sfx try <name> [--prompt p] [--secs s] [--influence i] [--count n] [--yes] [--cap n] [--tally file]
-//   film sfx audition <name> [--candidates]
+//   film sfx audition <name> [--candidates | --trial]
 //   film sfx keep <name> <n…> [--replace]
 //   film sfx unkeep <name> <n…>    film sfx reject <name> <n…>
 //   film sfx import <file> <name>
-//   film sfx render <name> [--seed n] [--trial]
-//   film sfx compare <name>
+//   film sfx render <name> [--seed n] [--trial] [--sheet]
+//   film sfx compare <name>        film sfx audit
+//   film sfx ab <name> --out <dir>
 //   film sfx check [--json]      film sfx describe
 //   film sfx pull                  film sfx push [--from folder]
 
 import { Array as Arr, Console, Effect, Option, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
+import type { SoundEffect } from '../core/schema.ts';
 import {
   type LibraryEntry,
   type LockEntry,
@@ -34,11 +40,18 @@ import {
   levelOf,
   soundState,
 } from '../core/sfx.ts';
-import { type Profile, distance, medianProfile } from '../core/synth/compare.ts';
+import { VERDICT_LABEL, auditLibrary } from '../core/sfx-audit.ts';
+import { HIT_MOVE, type Profile, distance, hitMove, medianProfile } from '../core/synth/compare.ts';
 import { describeGraph } from '../core/synth/graph/describe.ts';
-import { LibraryCheckFailed } from './errors.ts';
-import { FilmRepo } from './film-repo.ts';
-import { type Comparison, type LoadedLibrary, SoundLibrary, libraryLevel } from './library.ts';
+import { FlagsConflict, LibraryCheckFailed } from './errors.ts';
+import { FilmFolder, FilmRepo } from './film-repo.ts';
+import {
+  type AuditionOf,
+  type Comparison,
+  type LoadedLibrary,
+  SoundLibrary,
+  libraryLevel,
+} from './library.ts';
 import { CheckLineJson } from './fresh-film.ts';
 
 const encodeCheckLine = Schema.encodeSync(CheckLineJson);
@@ -198,6 +211,79 @@ const compareLines = (name: string, compared: Comparison): ReadonlyArray<string>
   ];
 };
 
+/** A film's effect that places a sound: the film, the effect and what it lands on its cue. */
+interface Placing {
+  readonly film: string;
+  readonly effect: string;
+  readonly sync: NonNullable<SoundEffect['sync']>;
+}
+
+/**
+ * The sync check `compare` prints: how far each film's placement of the
+ * sound would hear the hit move if the code trial played in place of what
+ * plays now, the medians' move and the worst seed's, marked where the worst
+ * passes `HIT_MOVE`.
+ */
+const syncLines = (
+  compared: Comparison,
+  placings: ReadonlyArray<Placing>,
+): ReadonlyArray<string> => {
+  if (placings.length === 0) return ['sync: no film places it as an effect'];
+  const plays = Arr.map(compared.plays, (m) => m.profile);
+  const trial = Arr.map(compared.trial, (m) => m.profile);
+  const width = Math.max(...placings.map((p) => `${p.film} ${p.effect}`.length));
+  return [
+    "sync: how far each placement would hear the hit move (the medians', the worst seed's)",
+    ...placings.map(({ film, effect, sync }) => {
+      const moved = hitMove(sync, plays, trial);
+      let over = '';
+      if (Math.abs(moved.worst) > HIT_MOVE) over = `  over ${Math.round(HIT_MOVE * 1000)} ms`;
+      return `${`${film} ${effect}`.padEnd(width)}  ${sync.padEnd(5)}  median ${signed(moved.median * 1000, 0)} ms, worst ${signed(moved.worst * 1000, 0)} ms${over}`;
+    }),
+  ];
+};
+
+/** Every film's effects that place `name`, each read from the film's `sound.ts` alone. */
+const placingsOf = Effect.fn('film.sfx.placings')(function* (name: string) {
+  const repo = yield* FilmRepo;
+  const films = yield* (yield* FilmFolder).names;
+  const sounds = yield* Effect.forEach(films, (film) =>
+    Effect.map(repo.sound(film), (sound) => ({ film, sound })),
+  );
+  return sounds.flatMap(({ film, sound }) =>
+    Option.match(sound, {
+      onNone: (): ReadonlyArray<Placing> => [],
+      onSome: ({ effects }) =>
+        Object.entries(effects).flatMap(([effect, fx]): ReadonlyArray<Placing> => {
+          if (fx.sound !== name) return [];
+          return [{ film, effect, sync: fx.sync ?? 'start' }];
+        }),
+    }),
+  );
+});
+
+/**
+ * What `audit` prints: each generated sound's verdict, the rule's reason and
+ * the prompt's words that decided it, marked when it has a code trial; then
+ * how many have each verdict.
+ */
+const auditLines = (loaded: Pick<LoadedLibrary, 'library' | 'trials'>): ReadonlyArray<string> => {
+  const audited = auditLibrary(loaded.library);
+  const counts = Object.entries(VERDICT_LABEL).map(
+    ([verdict, label]) => `${audited.filter((a) => a.audited.verdict === verdict).length} ${label}`,
+  );
+  return [
+    ...audited.map(({ name, audited: { verdict, reason, words } }) => {
+      let held = '';
+      if (words.length > 0) held = `: ${words.join(', ')}`;
+      let trial = '';
+      if (loaded.trials.has(name)) trial = '  + code trial';
+      return `${name.padEnd(18)} ${VERDICT_LABEL[verdict].padEnd(25)} ${reason}${held}${trial}`;
+    }),
+    `${audited.length} generated: ${counts.join(', ')}`,
+  ];
+};
+
 const names = Argument.String('name').pipe(
   Argument.variadic(),
   Argument.withDescription('just these sounds (every declared one when none)'),
@@ -343,13 +429,27 @@ const audition = Command.make(
       Flag.withDefault(false),
       Flag.withDescription('the candidates waiting, numbered as keep and reject take them'),
     ),
+    trial: Flag.Boolean('trial').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("the sound's code trial's seeds, levelled as the sound plays"),
+    ),
   },
   Effect.fn('film.sfx.audition')(function* (input) {
-    yield* Console.log(yield* (yield* SoundLibrary).audition(input.name, input.candidates));
+    if (input.candidates && input.trial)
+      return yield* FlagsConflict.make({
+        flag: 'trial',
+        rule: 'excludes',
+        other: 'candidates',
+        reason: 'an audition plays one side: the candidates waiting, or the code trial',
+      });
+    let of: AuditionOf = 'plays';
+    if (input.candidates) of = 'candidates';
+    if (input.trial) of = 'trial';
+    yield* Console.log(yield* (yield* SoundLibrary).audition(input.name, of));
   }),
 ).pipe(
   Command.withDescription(
-    "One WAV of a sound's variants (or candidates), each levelled as it would play, half a second apart",
+    "One WAV of a sound's variants (or candidates, or code trial's seeds), each levelled as it would play, half a second apart",
   ),
 );
 
@@ -442,17 +542,24 @@ const render = Command.make(
       Flag.withDefault(false),
       Flag.withDescription("the sound's code trial: its code version, heard beside what plays"),
     ),
+    sheet: Flag.Boolean('sheet').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription(
+        "each WAV's sheet beside it as a PNG: spectrogram, waveform, loudness, onset, hit and loop",
+      ),
+    ),
   },
   Effect.fn('film.sfx.render')(function* (input) {
     const files = yield* (yield* SoundLibrary).render(input.name, {
       seed: input.seed,
       trial: input.trial,
+      sheet: input.sheet,
     });
     for (const file of files) yield* Console.log(file);
   }),
 ).pipe(
   Command.withDescription(
-    "A code or procedural sound's seeds as WAVs, or with --trial its code trial's, to hear it",
+    "A code or procedural sound's seeds as WAVs, or with --trial its code trial's, to hear it (with --sheet, to read it)",
   ),
 );
 
@@ -462,10 +569,42 @@ const compare = Command.make(
   Effect.fn('film.sfx.compare')(function* (input) {
     const compared = yield* (yield* SoundLibrary).compare(input.name);
     for (const line of compareLines(input.name, compared)) yield* Console.log(line);
+    for (const line of syncLines(compared, yield* placingsOf(input.name))) yield* Console.log(line);
   }),
 ).pipe(
   Command.withDescription(
-    "A sound's code trial beside what plays, in numbers: each render's loudness, timing, brightness and band balance, each side's median, and how far the trial moved them (free; no verdict)",
+    "A sound's code trial beside what plays, in numbers: each render's loudness, timing, brightness and band balance, each side's median, how far the trial moved them, and how far each film's placement would hear the hit move (free; no verdict)",
+  ),
+);
+
+const audit = Command.make(
+  'audit',
+  {},
+  Effect.fn('film.sfx.audit')(function* () {
+    const loaded = yield* (yield* SoundLibrary).load;
+    for (const line of auditLines(loaded)) yield* Console.log(line);
+  }),
+).pipe(
+  Command.withDescription(
+    'Which generated sounds code can make, read from their prompts by ordered rules: each verdict with its reason and the words that decided it (free; no model)',
+  ),
+);
+
+const ab = Command.make(
+  'ab',
+  {
+    name,
+    out: Flag.String('out').pipe(
+      Flag.withDescription('the folder the clips and their sheets are written into'),
+    ),
+  },
+  Effect.fn('film.sfx.ab')(function* (input) {
+    for (const file of yield* (yield* SoundLibrary).ab(input.name, input.out))
+      yield* Console.log(file);
+  }),
+).pipe(
+  Command.withDescription(
+    "A sound's clips for an ask: what plays now, its code trial, and both in one, each an MP4 of its line-up under its sheet, beside the sheet as a PNG (free)",
   ),
 );
 
@@ -567,6 +706,8 @@ export const sfx = Command.make('sfx').pipe(
     importCommand,
     render,
     compare,
+    audit,
+    ab,
     check,
     describe,
     pull,

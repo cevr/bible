@@ -18,6 +18,11 @@
 // most (a smaller video keeps its size) through x264 at its own settings
 // (CRF 23 at preset medium, averaging `PHONE_RATE` at most, a key frame
 // every second, on two threads: `x264.ts` `PHONE_ENCODE`), its track copied.
+// A card is a picture held over a sound, at those settings: a sound's sheet
+// over its line-up, the clip an ask plays (`sfx ab`). Its picture never
+// moves, so it runs at a frame a second, each frame a key frame (the phone
+// copy's interval): a player shows it wherever it seeks, and the encoder
+// spends nothing on frames that only repeat it.
 //
 // A person's recording comes in whatever a recorder wrote (WAV, FLAC, AIFF,
 // M4A, MP3) at whatever rate its microphone ran, and loads in-process,
@@ -72,16 +77,20 @@ import {
   NullTarget,
   Output,
   Quality,
+  VideoSample,
   VideoSampleSink,
+  VideoSampleSource,
   WavOutputFormat,
   registerEncoder,
 } from 'mediabunny';
 import { MPEGDecoder } from 'mpg123-decoder';
 import { type Pcm, concat, toInt16 } from '../core/audio.ts';
+import type { Raster } from '../core/synth/sheet.ts';
 import { isAiff, readAiff } from './aiff.ts';
 import { writeWhole } from './content-store.ts';
 import { MediaFailed } from '../core/refusals.ts';
 import { jpegOf } from './jpeg.ts';
+import { encodePng } from './png.ts';
 import { resample } from './resample.ts';
 import { PHONE_ENCODE, X264Encoder } from './x264.ts';
 
@@ -154,6 +163,16 @@ export interface MediaService {
    * `PHONE_COPY`.
    */
   readonly phoneCopy: (video: string, out: string) => Effect.Effect<void, MediaFailed>;
+  /**
+   * `image` held for as long as `pcm` plays, over it, written to `out` as an
+   * MP4 a phone streams (the index at its head): its picture H.264 at the
+   * phone copy's settings (`PHONE_ENCODE`), a key frame each second, its
+   * sound AAC. A sound's clip for an ask (`sfx ab`): an ask plays a set's
+   * video in place.
+   */
+  readonly card: (image: Raster, pcm: Pcm, out: string) => Effect.Effect<void, MediaFailed>;
+  /** `image` written to `file` as a PNG (`png.ts`): a sound's sheet (`sfx render --sheet`, `sfx ab`). */
+  readonly writePng: (file: string, image: Raster) => Effect.Effect<void, MediaFailed>;
 }
 
 /**
@@ -823,6 +842,107 @@ const frameJpeg = (video: string, at: number, width: number) =>
     }),
   );
 
+/** A picture as x264 takes it: its size (even) and its I420 planes. */
+interface I420 {
+  readonly width: number;
+  readonly height: number;
+  readonly bytes: Uint8Array;
+}
+
+/**
+ * `image` as I420 (BT.601, video range), each chroma sample the mean of its
+ * 2 × 2 block; an odd last row or column is left out, as I420 halves both.
+ */
+const i420Of = (image: Raster): I420 => {
+  const width = evenDown(image.width);
+  const height = evenDown(image.height);
+  const luma = width * height;
+  const bytes = new Uint8Array(luma * 1.5);
+  const at = (x: number, y: number, k: number) => image.rgba[(y * image.width + x) * 4 + k] ?? 0;
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++)
+      bytes[y * width + x] = Math.round(
+        16 + (65.481 * at(x, y, 0) + 128.553 * at(x, y, 1) + 24.966 * at(x, y, 2)) / 255,
+      );
+  const half = width / 2;
+  for (let y = 0; y < height / 2; y++)
+    for (let x = 0; x < half; x++) {
+      const mean = (k: number) =>
+        (at(2 * x, 2 * y, k) +
+          at(2 * x + 1, 2 * y, k) +
+          at(2 * x, 2 * y + 1, k) +
+          at(2 * x + 1, 2 * y + 1, k)) /
+        4;
+      const [r, g, b] = [mean(0), mean(1), mean(2)];
+      bytes[luma + y * half + x] = Math.round(128 + (-37.797 * r - 74.203 * g + 112 * b) / 255);
+      bytes[luma * 1.25 + y * half + x] = Math.round(
+        128 + (112 * r - 93.786 * g - 18.214 * b) / 255,
+      );
+    }
+  return { width, height, bytes };
+};
+
+/**
+ * `image` held over `track` (`seconds` long) as an MP4 held in memory, the
+ * index at its head: every frame the one picture, at the films' frame rate,
+ * through x264 at the phone copy's settings (a bitrate asks for them:
+ * `x264.ts`); the track's packets beside it. The muxer holds every chunk
+ * until it finishes, so the track goes in whole before the picture.
+ */
+/** A card's frames a second: one, a key frame each at the phone copy's interval. */
+const CARD_FPS = 1;
+
+const cardFile = (file: string, image: Raster, track: AacTrack, seconds: number) =>
+  Effect.gen(function* () {
+    const picture = i420Of(image);
+    const target = new BufferTarget();
+    const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target });
+    const video = new VideoSampleSource({
+      codec: 'avc',
+      bitrate: phoneRateFor(seconds),
+      keyFrameInterval: PHONE_ENCODE.keyEvery,
+    });
+    // No rate on the track: mediabunny would snap the last frame's length to it.
+    output.addVideoTrack(video);
+    const audio = new EncodedAudioPacketSource('aac');
+    output.addAudioTrack(audio);
+    // The last frame lasts as long as the sound has left, so the picture ends with it.
+    const heldFor = (n: number) => {
+      const left = seconds - n / CARD_FPS;
+      if (left > 0 && left < 1 / CARD_FPS) return left;
+      return 1 / CARD_FPS;
+    };
+    const frame = (n: number) =>
+      Effect.acquireUseRelease(
+        attemptSync(
+          'encode',
+          file,
+          () =>
+            new VideoSample(picture.bytes, {
+              format: 'I420',
+              codedWidth: picture.width,
+              codedHeight: picture.height,
+              timestamp: n / CARD_FPS,
+              duration: heldFor(n),
+            }),
+        ),
+        (sample) => attempt('encode', file, () => video.add(sample)),
+        (sample) => Effect.sync(() => sample.close()),
+      );
+    yield* Effect.gen(function* () {
+      yield* attempt('write', file, () => output.start());
+      for (const [k, packet] of track.packets.entries())
+        yield* attempt('write', file, () =>
+          audio.add(packet, Option.getOrUndefined(Option.liftPredicate(track.meta, () => k === 0))),
+        );
+      for (const n of Arr.range(0, Math.max(1, Math.ceil(seconds * CARD_FPS)) - 1)) yield* frame(n);
+      yield* attempt('write', file, () => output.finalize());
+    }).pipe(Effect.onError(() => Effect.ignore(attempt('write', file, () => output.cancel()))));
+    return yield* Effect.fromOption(Option.fromNullishOr(target.buffer), () =>
+      MediaFailed.make({ op: 'write', file, reason: 'nothing was written' }),
+    );
+  });
+
 /**
  * `pcm` as an AAC track in an MP4 held in memory: the encoder's packets
  * muxed with the index at the head (fast start), so a phone plays it as it
@@ -1109,6 +1229,27 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         );
       });
 
+      const writePng = Effect.fn('Media.writePng')(function* (file: string, image: Raster) {
+        yield* fs
+          .writeFile(file, encodePng(image))
+          .pipe(
+            Effect.mapError((error) =>
+              MediaFailed.make({ op: 'write', file, reason: error.message }),
+            ),
+          );
+      });
+
+      const card = Effect.fn('Media.card')(function* (image: Raster, pcm: Pcm, out: string) {
+        const bytes = yield* cardFile(out, image, yield* encodeTrack(pcm), pcm.frames / pcm.rate);
+        yield* fs
+          .writeFile(out, new Uint8Array(bytes))
+          .pipe(
+            Effect.mapError((error) =>
+              MediaFailed.make({ op: 'write', file: out, reason: error.message }),
+            ),
+          );
+      });
+
       const load = Effect.fn('Media.load')(function* (file: string, rate: number) {
         const recording = yield* decode(file);
         // One channel at the rate already: nothing to convert.
@@ -1159,6 +1300,8 @@ export class Media extends Context.Service<Media, MediaService>()('@bible/film/t
         shareCopy,
         still,
         phoneCopy,
+        card,
+        writePng,
       });
     }),
   );

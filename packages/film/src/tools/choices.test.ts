@@ -166,6 +166,7 @@ const setup = (
       return FilmRepo.of({
         load: () => Effect.map(store.read(film.paths.timings), (timings) => ({ ...film, timings })),
         script: () => Effect.succeedNone,
+        sound: () => Effect.succeed(film.sound),
         scores: Effect.succeed(NO_SCORES),
       });
     }),

@@ -1,8 +1,10 @@
 // The sound library over a fixture library on disk (a temporary folder, one
-// generated one-shot, one generated bed, one procedural chime, one code tick,
-// one recording)
+// generated one-shot, one generated bed with a code trial that fades, so its
+// seams are heard, one procedural chime, one code tick, one recording)
 // with a fake ElevenLabs that writes a seeded burst as `pcm_44100` bytes and
-// the real Media. Never a real call: every paid path is counted by the fake.
+// the real Media, but for its sheets and cards, which are kept by file for
+// the cases to read (media.test.ts writes real ones). Never a real call:
+// every paid path is counted by the fake.
 
 import { createHash } from 'node:crypto';
 import { BunServices } from '@effect/platform-bun';
@@ -19,8 +21,10 @@ import {
   Predicate,
   Redacted,
 } from 'effect';
+import type { Pcm } from '../core/audio.ts';
 import { rng } from '../core/random.ts';
 import { Segment } from '../core/segment.ts';
+import type { Raster } from '../core/synth/sheet.ts';
 import { pendingOf, requestKey, soundState } from '../core/sfx.ts';
 import { ContentStore } from './content-store.ts';
 import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
@@ -44,7 +48,17 @@ const LIBRARY = `export const library = {
     loop: true,
     candidates: 2,
     use: 'bed',
-    code: { sound: { play: { _tag: 'Noise', color: 'pink', secs: 0.5 } }, variants: 2 },
+    code: {
+      sound: {
+        play: {
+          _tag: 'Envelope',
+          points: [[0, 1], [0.5, 0]],
+          curve: 'linear',
+          of: { _tag: 'Noise', color: 'pink', secs: 0.5 },
+        },
+      },
+      variants: 2,
+    },
   },
   'tone.chime': {
     kind: 'procedural',
@@ -129,6 +143,10 @@ class Fixture extends Context.Service<
     readonly storeDir: string;
     readonly tally: string;
     readonly calls: Array<SoundEffectRequest>;
+    /** Every sheet the library wrote, by its file. */
+    readonly sheets: Map<string, Raster>;
+    /** Every card the library wrote, by its file: its picture and its sound. */
+    readonly cards: Map<string, { readonly image: Raster; readonly pcm: Pcm }>;
   }
 >()('test/Fixture') {}
 
@@ -149,10 +167,25 @@ const fixture = Layer.unwrap(
     );
     // The store the fixture's library.ts declares: a folder beside it.
     const store = PrivateStore.layer(dir).pipe(Layer.provide([FetchHttpClient.layer, config]));
+    const sheets = new Map<string, Raster>();
+    const cards = new Map<string, { readonly image: Raster; readonly pcm: Pcm }>();
+    const media = Layer.effect(
+      Media,
+      Effect.gen(function* () {
+        const inner = yield* Media;
+        return Media.of({
+          ...inner,
+          writePng: (file, image) => Effect.sync(() => void sheets.set(file, image)),
+          card: (image, pcm, out) => Effect.sync(() => void cards.set(out, { image, pcm })),
+        });
+      }),
+    ).pipe(Layer.provide(Media.layer));
     return SoundLibrary.layer(dir).pipe(
       Layer.provide([ContentStore.layer, fakeSfx(calls), store, config, SoundRender.layer]),
-      Layer.provideMerge(Media.layer),
-      Layer.merge(Layer.succeed(Fixture, Fixture.of({ dir, storeDir, tally, calls }))),
+      Layer.provideMerge(media),
+      Layer.merge(
+        Layer.succeed(Fixture, Fixture.of({ dir, storeDir, tally, calls, sheets, cards })),
+      ),
     );
   }),
 ).pipe(Layer.provideMerge(BunServices.layer));
@@ -209,6 +242,30 @@ const withLibrary = <A, E, R>(
 ): Effect.Effect<A, E, R | Fixture> =>
   Effect.gen(function* () {
     return yield* body(yield* Fixture);
+  });
+
+/** A path's last part: a file's name. */
+const named = (files: ReadonlyArray<string>) =>
+  files.map((file) => file.slice(file.lastIndexOf('/') + 1));
+
+/** The colours a sheet draws its marks in. */
+const MARKS = { onset: '84,222,120', hit: '255,84,84', loop: '84,206,255' } as const;
+
+/** What a case reads when no sheet was written: a picture with no columns, so no marks. */
+const NO_SHEET: Raster = { width: 0, height: 0, rgba: new Uint8Array() };
+
+/**
+ * A sheet's marks, left to right: each column whose pixel in the black rows
+ * between the spectrogram and the waveform (row 402) is a mark's colour.
+ */
+const marksOn = (sheet: Raster) =>
+  Array.from({ length: sheet.width }, (_, x) => x).flatMap((x) => {
+    const i = (402 * sheet.width + x) * 4;
+    const colour = [...sheet.rgba.subarray(i, i + 3)].join();
+    return Object.entries(MARKS).flatMap(([kind, mark]) => {
+      if (colour !== mark) return [];
+      return [[x, kind] as const];
+    });
   });
 
 /** A file the lock kept that is gone or not its bytes. */
@@ -668,9 +725,10 @@ describe.concurrent('SoundLibrary', () => {
           const renders = yield* library.render('tone.chime', {
             seed: Option.none(),
             trial: false,
+            sheet: false,
           });
           expect(renders).toHaveLength(3);
-          const heard = yield* library.audition('tone.chime', false);
+          const heard = yield* library.audition('tone.chime', 'plays');
           expect(yield* fs.exists(heard)).toBe(true);
           // Three 0.6-second chimes, each followed by the half-second gap.
           expect((yield* media.decode(heard)).frames).toBe(3 * (26460 + 22050));
@@ -709,23 +767,31 @@ describe.concurrent('SoundLibrary', () => {
       Effect.gen(function* () {
         const library = yield* SoundLibrary;
         const media = yield* Media;
-        const named = (files: ReadonlyArray<string>) =>
-          files.map((file) => file.slice(file.lastIndexOf('/') + 1));
         expect([...(yield* library.load).code.keys()]).toEqual(['tone.tick']);
-        const renders = yield* library.render('tone.tick', { seed: Option.none(), trial: false });
+        const renders = yield* library.render('tone.tick', {
+          seed: Option.none(),
+          trial: false,
+          sheet: false,
+        });
         expect(named(renders)).toEqual(['tone.tick-1.wav', 'tone.tick-2.wav']);
         const [one, two] = yield* Effect.forEach(renders, (file) => media.decode(file));
         expect(one?.frames).toBe(4410);
         expect(one?.channels[0]).not.toEqual(two?.channels[0]);
         // Any seed renders, past the variants that play.
         expect(
-          named(yield* library.render('tone.tick', { seed: Option.some(7), trial: false })),
+          named(
+            yield* library.render('tone.tick', {
+              seed: Option.some(7),
+              trial: false,
+              sheet: false,
+            }),
+          ),
         ).toEqual(['tone.tick-7.wav']);
         // Two 0.1-second ticks, each followed by the half-second gap.
-        const heard = yield* library.audition('tone.tick', false);
+        const heard = yield* library.audition('tone.tick', 'plays');
         expect((yield* media.decode(heard)).frames).toBe(2 * (4410 + 22050));
         const wrong = yield* Effect.flip(
-          library.render('paper.slide', { seed: Option.none(), trial: false }),
+          library.render('paper.slide', { seed: Option.none(), trial: false, sheet: false }),
         );
         expect(wrong).toMatchObject({ _tag: 'SoundKindMismatch', wanted: 'code or procedural' });
         expect(calls).toHaveLength(0);
@@ -738,23 +804,154 @@ describe.concurrent('SoundLibrary', () => {
       Effect.gen(function* () {
         const library = yield* SoundLibrary;
         const media = yield* Media;
-        const named = (files: ReadonlyArray<string>) =>
-          files.map((file) => file.slice(file.lastIndexOf('/') + 1));
         expect([...(yield* library.load).trials.keys()]).toEqual(['amb.court', 'tone.chime']);
-        const court = yield* library.render('amb.court', { seed: Option.none(), trial: true });
+        const court = yield* library.render('amb.court', {
+          seed: Option.none(),
+          trial: true,
+          sheet: false,
+        });
         expect(named(court)).toEqual(['amb.court-trial-1.wav', 'amb.court-trial-2.wav']);
         const [one, two] = yield* Effect.forEach(court, (file) => media.decode(file));
         expect(one?.frames).toBe(22050);
         expect(one?.channels[0]).not.toEqual(two?.channels[0]);
         // Any seed renders, past the trial's own.
         expect(
-          named(yield* library.render('amb.court', { seed: Option.some(5), trial: true })),
+          named(
+            yield* library.render('amb.court', { seed: Option.some(5), trial: true, sheet: false }),
+          ),
         ).toEqual(['amb.court-trial-5.wav']);
         const none = yield* Effect.flip(
-          library.render('tone.tick', { seed: Option.none(), trial: true }),
+          library.render('tone.tick', { seed: Option.none(), trial: true, sheet: false }),
         );
         expect(none).toMatchObject({ _tag: 'CodeTrialMissing', name: 'tone.tick', kind: 'code' });
+        // Its seeds heard as the bed plays: two half-second seeds, each followed by the half-second gap.
+        const heard = yield* library.audition('amb.court', 'trial');
+        expect(named([heard])).toEqual(['audition-amb.court-trial.wav']);
+        expect((yield* media.decode(heard)).frames).toBe(2 * (22050 + 22050));
+        const unheard = yield* Effect.flip(library.audition('tone.tick', 'trial'));
+        expect(unheard).toMatchObject({ _tag: 'CodeTrialMissing', name: 'tone.tick' });
         expect(calls).toHaveLength(0);
+      }),
+    ),
+  );
+
+  it.effect.layer(fixture)(
+    'draws each render’s sheet beside its WAV: a bed marked where the mix loops it, a one-shot at its onset and hit',
+    () =>
+      withLibrary(({ calls, sheets }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const bed = yield* library.render('amb.court', {
+            seed: Option.some(1),
+            trial: true,
+            sheet: true,
+          });
+          expect(named(bed)).toEqual(['amb.court-trial-1.wav', 'amb.court-trial-1.png']);
+          // The mix crosses a half-second bed's last eighth into its head: 0.375 s in, column 900 of 1200.
+          expect(marksOn(sheets.get(bed[1] ?? '') ?? NO_SHEET)).toEqual([[900, 'loop']]);
+          const tick = yield* library.render('tone.tick', {
+            seed: Option.none(),
+            trial: false,
+            sheet: true,
+          });
+          expect(named(tick)).toEqual([
+            'tone.tick-1.wav',
+            'tone.tick-1.png',
+            'tone.tick-2.wav',
+            'tone.tick-2.png',
+          ]);
+          for (const png of [tick[1], tick[3]]) {
+            const kinds = marksOn(sheets.get(png ?? '') ?? NO_SHEET).map(([, kind]) => kind);
+            expect(kinds).toContain('hit');
+            expect(kinds).not.toContain('loop');
+          }
+          // Without --sheet, a WAV alone.
+          expect(sheets.size).toBe(3);
+          expect(calls).toHaveLength(0);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
+    'clips a sound for an ask: what plays now, its code trial, and both, each under its sheet',
+    () =>
+      withLibrary(({ dir, calls, sheets, cards }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const out = `${dir}/../ab`;
+          const files = yield* library.ab('tone.chime', out);
+          expect(named(files)).toEqual([
+            'tone.chime.now.mp4',
+            'tone.chime.now.png',
+            'tone.chime.code.mp4',
+            'tone.chime.code.png',
+            'tone.chime.now-then-code.mp4',
+            'tone.chime.now-then-code.png',
+          ]);
+          const [now, code, both] = [files[0], files[2], files[4]].map((file) =>
+            cards.get(file ?? ''),
+          );
+          // The recipe's three 0.6-second seeds and the port's, each followed by the half-second
+          // gap, levelled into one channel; both, a second apart.
+          expect([now, code].map((card) => card?.pcm.frames)).toEqual([
+            3 * (26460 + 22050),
+            3 * (26460 + 22050),
+          ]);
+          expect(both?.pcm.frames).toBe(6 * (26460 + 22050) + 22050);
+          expect(both?.pcm.channels).toHaveLength(1);
+          // Each card's picture is its sheet, written beside it, a hit marked on every block.
+          for (const [i, card] of [now, code, both].entries()) {
+            expect(card?.image).toBe(sheets.get(files[2 * i + 1] ?? ''));
+            const hits = marksOn(card?.image ?? NO_SHEET).filter(([, kind]) => kind === 'hit');
+            expect(hits).toHaveLength([3, 3, 6][i] ?? 0);
+          }
+          const none = yield* Effect.flip(library.ab('tone.tick', out));
+          expect(none).toMatchObject({ _tag: 'CodeTrialMissing', name: 'tone.tick' });
+          expect(calls).toHaveLength(0);
+        }),
+      ),
+  );
+
+  it.effect.layer(made)(
+    'clips a bed for an ask from its kept take, and refuses one with nothing kept',
+    () =>
+      withLibrary(({ dir, calls, cards }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          // The first case on a made library makes it, in its own fixture: count from here.
+          const paid = calls.length;
+          const out = `${dir}/../ab`;
+          const unkept = yield* Effect.flip(library.ab('amb.court', out));
+          expect(unkept).toMatchObject({ _tag: 'SoundUnmade', name: 'amb.court', candidates: 2 });
+          yield* library.keep('amb.court', yield* library.takesAt('amb.court', [2], 'candidates'));
+          const files = yield* library.ab('amb.court', out);
+          const [now, code, both] = [files[0], files[2], files[4]].map((file) =>
+            cards.get(file ?? ''),
+          );
+          // The one-second take, then its gap; the trial's two half-second seeds, each with its gap.
+          expect([now, code].map((card) => card?.pcm.frames)).toEqual([
+            44100 + 22050,
+            2 * (22050 + 22050),
+          ]);
+          expect(both?.pcm.frames).toBe(44100 + 44100 + 2 * (22050 + 22050));
+          // A clip cuts a bed where it ends: no loop is marked.
+          expect(marksOn(both?.image ?? NO_SHEET)).toEqual([]);
+          expect(calls).toHaveLength(paid);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)('hears a code trial bed’s seams, each named as the trial’s', () =>
+    withLibrary(() =>
+      Effect.gen(function* () {
+        const seams = (yield* (yield* SoundLibrary).check).filter((f) => f._tag === 'LoopSeam');
+        // It fades to nothing: each seed's tail is far quieter than its head.
+        expect(seams.map((f) => [f.name, 'variant' in f && f.variant])).toEqual([
+          ['amb.court (trial)', 1],
+          ['amb.court (trial)', 2],
+        ]);
+        expect(seams[0]?.message).toContain('seed 1: its loop point jumps');
+        expect(seams[0]?.message).toContain('edit its data until every seed loops');
       }),
     ),
   );
@@ -766,9 +963,11 @@ describe.concurrent('SoundLibrary', () => {
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
           const media = yield* Media;
-          const named = (files: ReadonlyArray<string>) =>
-            files.map((file) => file.slice(file.lastIndexOf('/') + 1));
-          const ported = yield* library.render('tone.chime', { seed: Option.none(), trial: true });
+          const ported = yield* library.render('tone.chime', {
+            seed: Option.none(),
+            trial: true,
+            sheet: false,
+          });
           expect(named(ported)).toEqual([
             'tone.chime-trial-1.wav',
             'tone.chime-trial-2.wav',
@@ -777,6 +976,7 @@ describe.concurrent('SoundLibrary', () => {
           const recipe = yield* library.render('tone.chime', {
             seed: Option.some(1),
             trial: false,
+            sheet: false,
           });
           const [port, synth] = yield* Effect.forEach([...ported.slice(0, 1), ...recipe], (file) =>
             media.decode(file),

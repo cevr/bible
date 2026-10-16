@@ -77,6 +77,13 @@ const BED_FADE = 1;
 /** A bed crosses into itself over this many seconds where it wraps (at most a quarter of its length). */
 const BED_CROSSFADE = 0.5;
 
+/**
+ * Where a bed `secs` long begins to cross into its own head as the mix loops
+ * it, in seconds into it: `BED_CROSSFADE` before its end, or a quarter of it
+ * when it is shorter than two seconds (as `loopFill` takes it).
+ */
+export const bedWrapAt = (secs: number): number => secs - Math.min(BED_CROSSFADE, secs / 4);
+
 /** One sound on a bus: where it starts (seconds into the film), how loud, and its pitch nudge. */
 export interface Placement<A> {
   /** What the film calls it: the effect's id in `sound.ts`, or the take's scene. */

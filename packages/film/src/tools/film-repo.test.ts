@@ -32,12 +32,24 @@ describe('FilmRepo', () => {
 
   // A synthetic film on disk (`fixtures/films/sample`): its modules are
   // imported as a real film's are, and no real film's script pins the test.
-  it.effect.layer(
-    FilmRepo.layer(`${import.meta.dir}/fixtures/films`).pipe(
-      Layer.provide([ContentStore.layer, SoundRender.layer]),
-      Layer.provideMerge(BunServices.layer),
-    ),
-  )("reads a film's script: each beat's line and its sources", () =>
+  const sample = FilmRepo.layer(`${import.meta.dir}/fixtures/films`).pipe(
+    Layer.provide([ContentStore.layer, SoundRender.layer]),
+    Layer.provideMerge(BunServices.layer),
+  );
+
+  it.effect.layer(sample)("reads a film's sound alone, and names a film that is not there", () =>
+    Effect.gen(function* () {
+      const repo = yield* FilmRepo;
+      const sound = Option.getOrThrow(yield* repo.sound('sample'));
+      expect(sound.effects).toEqual({
+        knock: { sound: 'wood.knock', sync: 'hit', at: [{ scene: 'open', at: 'speech' }] },
+      });
+      const missing = yield* Effect.flip(repo.sound('nowhere'));
+      expect(missing).toMatchObject({ _tag: 'FilmUnknown', film: 'nowhere', known: ['sample'] });
+    }),
+  );
+
+  it.effect.layer(sample)("reads a film's script: each beat's line and its sources", () =>
     Effect.gen(function* () {
       const script = Option.getOrThrow(yield* (yield* FilmRepo).script('sample'));
       const open = script.find((beat) => beat.id === 'open');

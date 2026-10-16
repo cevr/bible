@@ -87,6 +87,7 @@ const servicesWith = (catalogue: Layer.Layer<RenderCatalogue, never, ContentStor
       FilmRepo.of({
         load: () => Effect.succeed(FILM),
         script: () => Effect.die('approve reads no script'),
+        sound: () => Effect.die('approve reads no sound'),
         scores: Effect.die('approve reads no scores'),
       }),
     ),

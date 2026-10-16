@@ -186,6 +186,11 @@ interface FilmRepoService {
   readonly script: (
     film: string,
   ) => Effect.Effect<Option.Option<ScriptModule['script']>, LoadError>;
+  /**
+   * The film's beds and effects (`sound.ts`) alone, nothing else of it
+   * imported: what reads where a sound is placed. None when it keeps none.
+   */
+  readonly sound: (film: string) => Effect.Effect<Option.Option<Sound>, LoadError>;
   /** Every film's composed score options, as the private store keeps them. */
   readonly scores: Effect.Effect<Scores, StoreError>;
 }
@@ -483,18 +488,23 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             return loaded;
           });
 
+        /** `name`'s `sound.ts` read, from its folder `at`; none when it keeps none. */
+        const soundIn = (name: string, at: FilmPaths) =>
+          Effect.gen(function* () {
+            const file = path.join(at.dir, 'sound.ts');
+            if (!(yield* fs.exists(file))) return Option.none<Sound>();
+            return Option.some((yield* loadModule(name, file, SoundModule)).sound);
+          });
+
         const load = Effect.fn('FilmRepo.load')(function* (name: string) {
           const at = paths(name);
           if (!(yield* fs.exists(at.dir))) return yield* unknown(name);
-          const soundAt = path.join(at.dir, 'sound.ts');
           if (
             !(yield* fs.exists(path.join(at.dir, 'scenes', 'index.ts'))) &&
             (yield* fs.exists(path.join(at.dir, 'talk.ts')))
           ) {
             const talk = yield* loadTalk(name, at);
-            let sound = Option.none<Sound>();
-            if (yield* fs.exists(soundAt))
-              sound = Option.some((yield* loadModule(name, soundAt, SoundModule)).sound);
+            const sound = yield* soundIn(name, at);
             const loaded: LoadedFilm = {
               paths: at,
               scenes: talk.cut.scenes,
@@ -517,10 +527,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             ScenesModule,
           );
           const { voice } = yield* loadModule(name, path.join(at.dir, 'voice.ts'), VoiceModule);
-          const soundFile = path.join(at.dir, 'sound.ts');
-          let sound = Option.none<Sound>();
-          if (yield* fs.exists(soundFile))
-            sound = Option.some((yield* loadModule(name, soundFile, SoundModule)).sound);
+          const sound = yield* soundIn(name, at);
           const shortsFile = path.join(at.dir, 'shorts.ts');
           let shorts: Shorts = [];
           if (yield* fs.exists(shortsFile))
@@ -588,6 +595,12 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           return Option.some((yield* loadModule(name, file, ScriptModule)).script);
         });
 
+        const sound = Effect.fn('FilmRepo.sound')(function* (name: string) {
+          const at = paths(name);
+          if (!(yield* fs.exists(at.dir))) return yield* unknown(name);
+          return yield* soundIn(name, at);
+        });
+
         const readScores = Effect.fn('FilmRepo.scores')(function* () {
           const found = yield* names;
           const files: Array<PrivateFile> = [];
@@ -606,7 +619,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
         });
         const scores = readScores();
 
-        return FilmRepo.of({ load, script, scores });
+        return FilmRepo.of({ load, script, sound, scores });
       }),
     ).pipe(Layer.provideMerge(FilmFolder.layer(films, sounds, footage)));
 }

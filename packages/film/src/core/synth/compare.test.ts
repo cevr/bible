@@ -1,10 +1,11 @@
 // A render's profile and two sides' distance, on sounds whose answer is known:
 // a tone's power in its own band, rumble below 30 Hz, a copy at no distance,
-// a low-pass that moves the high bands down, a delay that moves only the hit.
+// a low-pass that moves the high bands down, a delay that moves only the hit;
+// and the hit's move as each sync hears it, on profiles written by hand.
 
 import { describe, expect, test } from 'bun:test';
 import type { Pcm } from '../audio.ts';
-import { distance, medianProfile, profileOf, type Profile } from './compare.ts';
+import { HIT_MOVE, distance, hitMove, medianProfile, profileOf, type Profile } from './compare.ts';
 import { random } from './signal.ts';
 
 const RATE = 44100;
@@ -116,5 +117,28 @@ describe('distance', () => {
     const moved = distance(profileOf(pcmOf(early)), profileOf(pcmOf(late)));
     expect(moved.hit).toBeCloseTo(0.1, 2);
     expect(moved.balance).toBeLessThan(0.5);
+  });
+});
+
+describe('hitMove', () => {
+  const quiet = profileOf(pcmOf(new Float32Array(RATE)));
+  const at = (onset: number, hit: number): Profile => ({ ...quiet, onset, hit });
+  const takes = [at(0.05, 0.1), at(0.05, 0.12), at(0.05, 0.3)] as const;
+
+  test('placed from its start, the hit moves as far as it moved, judged at its worst seed', () => {
+    const moved = hitMove('start', takes, [at(0.1, 0.15), at(0.1, 0.13), at(0.1, 0.1)]);
+    expect(moved.median * 1000).toBeCloseTo(10, 6);
+    expect(moved.worst * 1000).toBeCloseTo(30, 6);
+    expect(Math.abs(moved.worst)).toBeGreaterThan(HIT_MOVE);
+  });
+
+  test('synced to its onset, the hit moves only as far as it moved from the onset', () => {
+    // The takes are heard 50, 70 and 250 ms past their onsets; the seeds 80, 60 and 50 ms.
+    const moved = hitMove('onset', takes, [at(0.2, 0.28), at(0.21, 0.27), at(0.15, 0.2)]);
+    expect([moved.median, moved.worst].map((s) => Math.round(s * 1000))).toEqual([-10, -20]);
+  });
+
+  test('synced to its hit, the hit lands on its cue and never moves', () => {
+    expect(hitMove('hit', takes, [at(0.4, 0.9)])).toEqual({ median: 0, worst: 0 });
   });
 });

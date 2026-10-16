@@ -5,7 +5,7 @@
 // person's recording (WAV, M4A, AIFF, MP3) loads and its take encodes, a film
 // joins from its segments with its track (and a failed join leaves the file
 // that was there), a share copy is made and re-muxes with a new track, a
-// still and a phone copy are made, and a
+// still, a phone copy and a sound's card and sheet are made, and a
 // file that is missing or not media fails as MediaFailed. fixtures/tone.mp3 is half a second of
 // 440 Hz, mono, 44.1 kHz, with a LAME gapless header. fixtures/segment-*.mp4
 // are fifteen frames of H.264 at 30 fps each, encoded in headless Chromium as
@@ -36,6 +36,7 @@ import { type Pcm, toInt16 } from '../core/audio.ts';
 import { ratedVideo } from '../lab/fixtures/rated-video.ts';
 import type { RatedTiming } from '../lab/fixtures/rated-video.ts';
 import { Media, PHONE_RATE } from './media.ts';
+import { encodePng } from './png.ts';
 import { collectWithin } from './process.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
@@ -751,6 +752,57 @@ describe.concurrent('Media', () => {
             );
         }),
       ),
+  );
+
+  it.effect.layer(MediaOnDisk)(
+    'a card holds its picture over its sound: H.264, a key frame each second, for as long as the sound plays, beside it as AAC',
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const out = `${yield* tempDir}/card.mp4`;
+          const clip = { width: 64, height: 48, fps: 1, frames: 3 };
+          // Mid grey: luma 16 + 219 · 128/255, about 126, in every pixel of every frame.
+          const image = { width: 64, height: 48, rgba: new Uint8Array(64 * 48 * 4).fill(128) };
+          const wave = Float32Array.from({ length: 110250 }, (_, i) => Math.sin(i / 7) * 0.5);
+          yield* (yield* Media).card(image, { rate: 44100, frames: 110250, channels: [wave] }, out);
+          const [video, audio] = yield* readBack(out);
+          expect([video?.type, video?.codec, audio?.type, audio?.codec]).toEqual([
+            'video',
+            'avc',
+            'audio',
+            'aac',
+          ]);
+          // Two and a half seconds: a frame each second, the last held for the half left.
+          expect(video?.times).toEqual([0, 1, 2]);
+          expect(video?.duration).toBeCloseTo(2.5, 2);
+          expect(audio?.duration).toBeCloseTo(2.5, 1);
+          const { pictures, keys } = yield* lumas(out, clip);
+          expect(keys).toEqual([0, 1, 2]);
+          for (const picture of pictures) {
+            const mean = (picture ?? new Uint8Array()).reduce((sum, v) => sum + v, 0) / (64 * 48);
+            expect(Math.abs(mean - 126)).toBeLessThan(2);
+          }
+        }),
+      ),
+  );
+
+  it.effect.layer(MediaOnDisk)("a sheet is written as its PNG's bytes", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const out = `${yield* tempDir}/sheet.png`;
+        const image = {
+          width: 3,
+          height: 2,
+          rgba: Uint8Array.from({ length: 24 }, (_, i) => i * 10),
+        };
+        yield* (yield* Media).writePng(out, image);
+        expect(yield* (yield* FileSystem.FileSystem).readFile(out)).toEqual(encodePng(image));
+        const failed = yield* Effect.flip(
+          (yield* Media).writePng('/nonexistent/x/sheet.png', image),
+        );
+        expect(failed).toMatchObject({ _tag: 'MediaFailed', op: 'write' });
+      }),
+    ),
   );
 
   it.effect.layer(MediaOnDisk)('a share copy that fails leaves no file behind', () =>

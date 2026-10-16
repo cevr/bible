@@ -11,6 +11,11 @@
 // measured and hashed into the lock, and curated by `keep` and `reject`. A
 // sound whose request is current is never generated again; a missing file is
 // a `pull`, not a remake.
+//
+// A sound is judged without listening by its renders' numbers (`compare`)
+// and pictures (`render --sheet`: core/synth/sheet.ts), and heard by the
+// owner in an ask's clips (`ab`): what plays now and its code trial, each
+// lined up as the mix levels it, under its sheet.
 
 import {
   Array as Arr,
@@ -27,6 +32,7 @@ import {
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, concat, silence, slice } from '../core/audio.ts';
+import { bedWrapAt } from '../core/mix.ts';
 import {
   AUDIO_FILE,
   type Generated,
@@ -45,7 +51,9 @@ import {
   type Variant,
   type VariantTiming,
   creditsOf,
+  derivedPlayable,
   trialEntry,
+  trialSources,
   influenceOf,
   gainFor,
   isDerived,
@@ -66,6 +74,7 @@ import { loudness } from '../core/synth/loudness.ts';
 import type { ResolvedSound } from '../core/synth/graph/plan.ts';
 import { type ResolvedTrial, resolveCode } from '../core/synth/resolve.ts';
 import { loopSeam, seamHeard } from '../core/synth/seam.ts';
+import { type Mark, sheetOf } from '../core/synth/sheet.ts';
 import { toMs } from '../core/time.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { sha256Hex, sha256OfFile } from './digest.ts';
@@ -183,6 +192,13 @@ const TRIM_PAD = 0.01;
 /** Between two variants in an audition, in seconds. */
 const AUDITION_GAP = 0.5;
 
+/** Between what plays now and its code trial, in a clip that plays both, in seconds. */
+const AB_BETWEEN = 1;
+
+/** How much of each bed an ask's clip plays, in seconds, and the fade where it is cut. */
+const CLIP_BED_SECS = 8;
+const CLIP_BED_FADE = 0.25;
+
 /** The audio rate every library sound is made, kept and played at. */
 const LIBRARY_RATE = 44100;
 
@@ -222,11 +238,83 @@ const playableLabel = (p: Playable, index: number): string => {
   return `seed ${p.source.seed}`;
 };
 
-/** What `render` plays: its seeds or one, of the sound or of its code trial. */
+/** What `render` plays: its seeds or one, of the sound or of its code trial, and whether each gets its sheet. */
 interface RenderWhich {
   readonly seed: Option.Option<number>;
   readonly trial: boolean;
+  readonly sheet: boolean;
 }
+
+/** What an audition lines up: what plays, the candidates waiting, or the code trial's seeds. */
+export type AuditionOf = 'plays' | 'candidates' | 'trial';
+
+/** A render as a line-up places it: its sound, and the lines its sheet draws, in seconds into it. */
+interface Block {
+  readonly pcm: Pcm;
+  readonly marks: ReadonlyArray<Mark>;
+}
+
+/** `blocks` one after another, each followed by its gap in seconds, as one mono sound, each block's marks where it falls. */
+const lineUpOf = (blocks: ReadonlyArray<{ readonly block: Block; readonly gap: number }>) => {
+  const parts: Array<Pcm> = [];
+  const marks: Array<Mark> = [];
+  let frames = 0;
+  for (const { block, gap } of blocks) {
+    const silent = silence(LIBRARY_RATE, Math.round(gap * LIBRARY_RATE), 1);
+    const at = frames / LIBRARY_RATE;
+    marks.push(...block.marks.map((mark) => ({ ...mark, at: at + mark.at })));
+    parts.push(block.pcm, silent);
+    frames += block.pcm.frames + silent.frames;
+  }
+  return { pcm: concat(LIBRARY_RATE, 1, parts), marks };
+};
+
+/** `blocks` each followed by the audition's gap, the last by `last` seconds. */
+const spaced = (blocks: ReadonlyArray<Block>, last: number) =>
+  blocks.map((block, i) => {
+    if (i === blocks.length - 1) return { block, gap: last };
+    return { block, gap: AUDITION_GAP };
+  });
+
+/** A bed's render cut to `CLIP_BED_SECS` for an ask's clip, faded out where it is cut; a one-shot whole. */
+const clipped = (entry: LibraryEntry, pcm: Pcm): Pcm => {
+  const frames = Math.round(CLIP_BED_SECS * pcm.rate);
+  if (entry.use !== 'bed' || pcm.frames <= frames) return pcm;
+  const fade = Math.round(CLIP_BED_FADE * pcm.rate);
+  return {
+    rate: pcm.rate,
+    frames,
+    channels: pcm.channels.map((plane) => {
+      const cut = plane.slice(0, frames);
+      for (let i = 0; i < fade; i++) cut[frames - 1 - i] = (cut[frames - 1 - i] ?? 0) * (i / fade);
+      return cut;
+    }),
+  };
+};
+
+/** A one-shot's marks: where its sound begins and its loudest moment. */
+const momentMarks = (at: { readonly onset: number; readonly hit: number }): ReadonlyArray<Mark> => [
+  { kind: 'onset', at: at.onset },
+  { kind: 'hit', at: at.hit },
+];
+
+/** A whole render's marks: a one-shot's onset and hit, a bed's loop where the mix begins to cross into its head. */
+const renderMarks = (entry: LibraryEntry, pcm: Pcm): ReadonlyArray<Mark> => {
+  if (entry.use === 'bed') return [{ kind: 'loop', at: bedWrapAt(pcm.frames / pcm.rate) }];
+  return momentMarks(describeSound(pcm));
+};
+
+/**
+ * A clip's block's marks: a one-shot's onset and hit where the mix lands
+ * them (the variant's own, else as `pcm` measures); none for a bed, which a
+ * clip cuts before it loops.
+ */
+const clipMarks = (entry: LibraryEntry, p: Playable, pcm: Pcm): ReadonlyArray<Mark> => {
+  if (entry.use === 'bed') return [];
+  return momentMarks(
+    Option.getOrElse(Option.all({ onset: p.onset, hit: p.hit }), () => describeSound(pcm)),
+  );
+};
 
 /** How a paid run may spend: confirmed, under a cap, tallied. */
 interface SpendOptions {
@@ -355,14 +443,21 @@ interface SoundLibraryService {
     Variant,
     LibraryError | UnknownSound | SoundKindMismatch | MediaFailed | PlatformError
   >;
-  /** Every variant (or candidate) of a sound, levelled as it would play, `AUDITION_GAP` apart, as one WAV. */
+  /**
+   * A sound's variants that play (or its candidates, or its code trial's
+   * seeds), levelled as it would play, `AUDITION_GAP` apart, as one WAV.
+   */
   readonly audition: (
     name: string,
-    candidates: boolean,
-  ) => Effect.Effect<string, LibraryError | UnknownSound | MediaFailed | PlatformError>;
+    of: AuditionOf,
+  ) => Effect.Effect<
+    string,
+    LibraryError | UnknownSound | CodeTrialMissing | MediaFailed | PlatformError
+  >;
   /**
    * A code or procedural sound's seeds (or one) as WAVs, `<name>-<seed>.wav`;
-   * with `trial`, its code trial's, `<name>-trial-<seed>.wav`.
+   * with `trial`, its code trial's, `<name>-trial-<seed>.wav`. With `sheet`,
+   * each WAV's sheet beside it as a PNG of the same name.
    */
   readonly render: (
     name: string,
@@ -383,11 +478,31 @@ interface SoundLibraryService {
     LibraryError | UnknownSound | CodeTrialMissing | SoundUnmade | MediaFailed
   >;
   /**
+   * A sound's clips for an ask, written into `out` (free): what plays now
+   * (its kept takes, or its seeds) and its code trial's seeds, each lined up
+   * as the mix levels it under the line-up's sheet (`<name>.now.mp4`,
+   * `<name>.code.mp4`), and both in one, `AB_BETWEEN` apart
+   * (`<name>.now-then-code.mp4`), each beside its sheet as a PNG. A bed
+   * plays `CLIP_BED_SECS` of each render. The files written. Refused for a
+   * sound with no trial, and for one with nothing kept to play.
+   */
+  readonly ab: (
+    name: string,
+    out: string,
+  ) => Effect.Effect<
+    ReadonlyArray<string>,
+    LibraryError | UnknownSound | CodeTrialMissing | SoundUnmade | MediaFailed | PlatformError
+  >;
+  /**
    * Each variant's onset and hit, measured from its file where the lock lacks
    * them and written in (free: no generation). How many it wrote.
    */
   readonly describe: Effect.Effect<number, LibraryError | MediaFailed | PlatformError>;
-  /** Every library finding: unmade, stale, missing or corrupt files, licences, loop seams, lead-ins. */
+  /**
+   * Every library finding: unmade, stale, missing or corrupt files,
+   * licences, loop seams (a code trial's too, named `<name> (trial)`),
+   * lead-ins.
+   */
   readonly check: Effect.Effect<
     ReadonlyArray<LibraryFinding>,
     LibraryError | MediaFailed | PlatformError
@@ -812,51 +927,99 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           return made.pcm(source);
         };
 
-        /** `playables` decoded, each levelled as `entry` plays it, one after another with gaps, mono. */
-        const lineUp = (entry: LibraryEntry, playables: ReadonlyArray<Playable>) =>
+        /** `p` decoded and levelled as `entry` plays it, folded to one channel. */
+        const levelled = (entry: LibraryEntry, p: Playable) =>
+          Effect.map(decoded(p.source), (pcm): Pcm => {
+            const gain = gainFor(levelOf(entry, Option.none()), p.loudness, entry.use);
+            const plane = new Float32Array(pcm.frames);
+            for (const channel of pcm.channels)
+              for (let i = 0; i < pcm.frames; i++)
+                plane[i] = (plane[i] ?? 0) + ((channel[i] ?? 0) * gain) / pcm.channels.length;
+            return { rate: pcm.rate, frames: pcm.frames, channels: [plane] };
+          });
+
+        /** A code trial's seeds as they would play, each measured as a derived variant is. */
+        const trialPlayables = (loaded: LoadedLibrary, name: string, entry: LibraryEntry) =>
           Effect.gen(function* () {
-            const level = levelOf(entry, Option.none());
-            const blocks = yield* Effect.forEach(playables, (p) =>
-              Effect.map(decoded(p.source), (pcm): Pcm => {
-                const gain = gainFor(level, p.loudness, entry.use);
-                const plane = new Float32Array(pcm.frames);
-                for (const channel of pcm.channels)
-                  for (let i = 0; i < pcm.frames; i++)
-                    plane[i] = (plane[i] ?? 0) + ((channel[i] ?? 0) * gain) / pcm.channels.length;
-                return { rate: pcm.rate, frames: pcm.frames, channels: [plane] };
-              }),
-            );
-            const gap = silence(LIBRARY_RATE, Math.round(AUDITION_GAP * LIBRARY_RATE), 1);
-            return concat(
-              LIBRARY_RATE,
-              1,
-              blocks.flatMap((block) => [block, gap]),
+            if (!loaded.trials.has(name))
+              return yield* CodeTrialMissing.make({ name, kind: entry.kind });
+            return yield* Effect.forEach(trialSources(soundsOf(loaded), name), (source) =>
+              Effect.map(made.measure(source), (measured) => derivedPlayable(source, measured)),
             );
           });
 
         const audition = Effect.fn('SoundLibrary.audition')(function* (
           name: string,
-          candidates: boolean,
+          of: AuditionOf,
         ) {
           const loaded = yield* load;
           const entry = yield* entryOf(loaded, name);
           const record = Option.fromUndefinedOr(loaded.lock[name]);
-          const sounds = yield* made.measured(soundsOf(loaded), [name]);
-          let playables = playablesOf(sounds, name, entry);
-          if (candidates)
+          let playables: ReadonlyArray<Playable>;
+          let suffix = '';
+          if (of === 'candidates') {
+            suffix = '-candidates';
             playables = pendingOf(entry, record).map((v) => ({
               source: { _tag: 'File', file: path.join(dir, v.file) },
               loudness: v.loudness,
               onset: Option.fromUndefinedOr(v.onset),
               hit: Option.fromUndefinedOr(v.hit),
             }));
+          } else if (of === 'trial') {
+            suffix = '-trial';
+            playables = yield* trialPlayables(loaded, name, entry);
+          } else
+            playables = playablesOf(yield* made.measured(soundsOf(loaded), [name]), name, entry);
           yield* fs.makeDirectory(paths.out, { recursive: true });
-          let suffix = '';
-          if (candidates) suffix = '-candidates';
           const out = path.join(paths.out, `audition-${name}${suffix}.wav`);
-          yield* media.writeWav(out, yield* lineUp(entry, playables));
+          const blocks = yield* Effect.forEach(playables, (p) =>
+            Effect.map(levelled(entry, p), (pcm): Block => ({ pcm, marks: [] })),
+          );
+          yield* media.writeWav(out, lineUpOf(spaced(blocks, AUDITION_GAP)).pcm);
           yield* Effect.log(`sfx.audition name=${name} sounds=${playables.length} file=${out}`);
           return out;
+        });
+
+        const ab = Effect.fn('SoundLibrary.ab')(function* (name: string, out: string) {
+          const loaded = yield* load;
+          const entry = yield* entryOf(loaded, name);
+          const code = yield* trialPlayables(loaded, name, entry);
+          const now = playablesOf(yield* made.measured(soundsOf(loaded), [name]), name, entry);
+          if (now.length === 0)
+            return yield* SoundUnmade.make({
+              name,
+              candidates: pendingOf(entry, Option.fromUndefinedOr(loaded.lock[name])).length,
+            });
+          const blocksOf = (playables: ReadonlyArray<Playable>) =>
+            Effect.forEach(playables, (p) =>
+              Effect.map(levelled(entry, p), (pcm): Block => ({
+                pcm: clipped(entry, pcm),
+                marks: clipMarks(entry, p, pcm),
+              })),
+            );
+          const [nowBlocks, codeBlocks] = [yield* blocksOf(now), yield* blocksOf(code)];
+          const clips = [
+            { suffix: 'now', blocks: spaced(nowBlocks, AUDITION_GAP) },
+            { suffix: 'code', blocks: spaced(codeBlocks, AUDITION_GAP) },
+            {
+              suffix: 'now-then-code',
+              blocks: [...spaced(nowBlocks, AB_BETWEEN), ...spaced(codeBlocks, AUDITION_GAP)],
+            },
+          ];
+          yield* fs.makeDirectory(out, { recursive: true });
+          const written = yield* Effect.forEach(clips, ({ suffix, blocks }) =>
+            Effect.gen(function* () {
+              const lineUp = lineUpOf(blocks);
+              const sheet = sheetOf(lineUp.pcm, lineUp.marks);
+              const png = path.join(out, `${name}.${suffix}.png`);
+              const mp4 = path.join(out, `${name}.${suffix}.mp4`);
+              yield* media.writePng(png, sheet);
+              yield* media.card(sheet, lineUp.pcm, mp4);
+              return [mp4, png];
+            }),
+          );
+          yield* Effect.log(`sfx.ab name=${name} now=${now.length} code=${code.length} dir=${out}`);
+          return written.flat();
         });
 
         const render = Effect.fn('SoundLibrary.render')(function* (
@@ -897,12 +1060,17 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             );
           }
           yield* fs.makeDirectory(paths.out, { recursive: true });
-          return yield* Effect.forEach(renders, ({ out, source }) =>
-            Effect.as(
-              Effect.flatMap(made.pcm(source), (pcm) => media.writeWav(out, pcm)),
-              out,
-            ),
+          const written = yield* Effect.forEach(renders, ({ out, source }) =>
+            Effect.gen(function* () {
+              const pcm = yield* made.pcm(source);
+              yield* media.writeWav(out, pcm);
+              if (!which.sheet) return [out];
+              const png = out.replace(/\.wav$/, '.png');
+              yield* media.writePng(png, sheetOf(pcm, renderMarks(entry, pcm)));
+              return [out, png];
+            }),
           );
+          return written.flat();
         });
 
         const compare = Effect.fn('SoundLibrary.compare')(function* (name: string) {
@@ -1006,9 +1174,32 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               // A missing or corrupt file is reported above; its seam cannot be heard.
               if (p.source._tag === 'File' && broken.has(p.source.file)) continue;
               const seam = loopSeam(yield* decoded(p.source));
+              let of: LoopSeam['of'] = 'seed';
+              if (p.source._tag === 'File') of = 'take';
               if (seamHeard(seam))
                 findings.push(
-                  LoopSeam.make({ name, variant: i + 1, db: seam.db, click: seam.click }),
+                  LoopSeam.make({ name, of, variant: i + 1, db: seam.db, click: seam.click }),
+                );
+            }
+            return findings;
+          });
+
+        /** A code trial bed's seams that are heard, each named as the trial's: `<name> (trial)`. */
+        const trialSeamFindings = (name: string, entry: LibraryEntry, sounds: Sounds) =>
+          Effect.gen(function* () {
+            const findings: Array<LibraryFinding> = [];
+            if (entry.use !== 'bed') return findings;
+            for (const [i, source] of trialSources(sounds, name).entries()) {
+              const seam = loopSeam(yield* made.pcm(source));
+              if (seamHeard(seam))
+                findings.push(
+                  LoopSeam.make({
+                    name: `${name} (trial)`,
+                    of: 'seed',
+                    variant: i + 1,
+                    db: seam.db,
+                    click: seam.click,
+                  }),
                 );
             }
             return findings;
@@ -1069,6 +1260,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               }
             findings.push(...timingFindings(name, entry, kept));
             findings.push(...(yield* seamFindings(name, entry, sounds, broken)));
+            findings.push(...(yield* trialSeamFindings(name, entry, sounds)));
           }
           findings.push(...(yield* licenceFindings(loaded.lock)));
           return findings;
@@ -1188,6 +1380,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           audition,
           render,
           compare,
+          ab,
           check,
           describe,
           pull: pullFiles,

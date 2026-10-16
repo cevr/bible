@@ -116,21 +116,32 @@ const fft = (re: Float64Array, im: Float64Array, plan: FftPlan): void => {
 };
 
 /**
+ * The power spectrum of one Hann-windowed frame of `plane`: its `size`
+ * samples from `from` (`size` a power of two; silence past its end), in
+ * `size / 2` bins. A full-scale sine's bin reads (size / 4)².
+ */
+export const frameSpectrum = (plane: Float32Array, from: number, size: number): Float64Array => {
+  const plan = planOf(size);
+  const re = new Float64Array(size);
+  const im = new Float64Array(size);
+  for (let i = 0; i < size; i++) re[i] = (plane[from + i] ?? 0) * (plan.hann[i] ?? 0);
+  fft(re, im, plan);
+  const power = new Float64Array(size / 2);
+  for (let k = 0; k < power.length; k++) power[k] = (re[k] ?? 0) ** 2 + (im[k] ?? 0) ** 2;
+  return power;
+};
+
+/**
  * `plane`'s power spectrum in `size / 2` bins (`size` a power of two),
  * averaged over Hann-windowed frames half a frame apart; one frame, padded
  * with silence, when `plane` is shorter.
  */
 export const powerSpectrum = (plane: Float32Array, size: number): Float64Array => {
-  const plan = planOf(size);
   const power = new Float64Array(size / 2);
   let frames = 0;
   for (let from = 0; from + size <= Math.max(size, plane.length); from += size / 2) {
-    const re = new Float64Array(size);
-    const im = new Float64Array(size);
-    for (let i = 0; i < size; i++) re[i] = (plane[from + i] ?? 0) * (plan.hann[i] ?? 0);
-    fft(re, im, plan);
-    for (let k = 0; k < power.length; k++)
-      power[k] = (power[k] ?? 0) + (re[k] ?? 0) ** 2 + (im[k] ?? 0) ** 2;
+    const frame = frameSpectrum(plane, from, size);
+    for (let k = 0; k < power.length; k++) power[k] = (power[k] ?? 0) + (frame[k] ?? 0);
     frames++;
   }
   return power.map((p) => p / Math.max(1, frames));
