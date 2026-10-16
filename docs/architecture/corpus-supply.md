@@ -17,7 +17,7 @@ Browser generations are owned by one durable generation store. It registers a ca
 
 Bible inputs become a `BibleCorpusArchive` by decoding all seven source shapes before the single SQL Installation. A portable database becomes a `BibleArtifact` only when its declared Provenance matches its bytes and semantic verification proves the complete Canon and Study data.
 
-Writings inputs become a canonical `PublicationArchive`. `provenanceForArchive` hashes the schema-encoded archive, and Installation stores its source, revision, and digest atomically with the Publication. The Writings recipe orders `packaged`, `provider`, then `archive` sources. It falls through only on `CorpusSourceUnavailableError`; `CorpusContributionRejectedError` fails closed.
+Writings inputs become a `PublicationStream`: the Publication's record, then its chapters one at a time as `ArchiveChapter`s, so no step between the download and the database holds a whole book (one dictionary of 150,525 paragraphs expands to 89 MB of JSON; a Worker holds 128 MB). `provenanceForBytes` hashes the downloaded archive's bytes before any chapter is read, and `installPublication` stages each chapter as it arrives, then stores the source, revision, and digest atomically with the Publication. A chapter that fails to read fails the install with the source's own error and leaves the Publication as it was. The Writings recipe orders `packaged`, `provider`, then `archive` sources. It falls through only on `CorpusSourceUnavailableError`; `CorpusContributionRejectedError` fails closed.
 
 To add an Asset Source:
 

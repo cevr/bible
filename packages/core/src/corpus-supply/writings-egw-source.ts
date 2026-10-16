@@ -10,11 +10,7 @@ import { EGWApiClient } from '../egw/client.js';
 import { extractScriptureRefs, paragraphRefcode } from '../egw/extract.js';
 import { chapterIdFromTocItem, isChapterHeading } from '../egw/parse.js';
 import * as EGWSchemas from '../egw/schemas.js';
-import {
-  ArchivedBibleReference,
-  ArchivedParagraph,
-  PublicationArchive,
-} from '../writings/archive.js';
+import { ArchiveChapter, ArchivedBibleReference, ArchivedParagraph } from '../writings/archive.js';
 import { sectionsByFolder, type CorpusSection } from '../writings/corpus-class.js';
 import {
   Paragraph,
@@ -29,7 +25,7 @@ import {
 } from '../writings/model.js';
 import { egwBookRevision } from './egw-revision.js';
 import { CorpusContributionRejectedError, CorpusSourceUnavailableError } from './errors.js';
-import { provenanceForArchive, WritingsContribution } from './model.js';
+import { provenanceForBytes, unknownProvenance, type WritingsContribution } from './model.js';
 import { makeWritingsAssetRecipe, WritingsAssetRecipe } from './source.js';
 
 const sourceUnavailable = (operation: string) => (cause: unknown) =>
@@ -46,56 +42,71 @@ const refcodeNumbers = (refcode: string) => {
   };
 };
 
-const uniqueProviderParagraphs = (
-  chapters: readonly (readonly EGWSchemas.Paragraph[])[],
-): readonly EGWSchemas.Paragraph[] => {
-  const seen = new Set<string>();
-  const paragraphs: EGWSchemas.Paragraph[] = [];
-  for (const chapter of chapters) {
-    for (const paragraph of chapter) {
-      const stableId = Option.getOrUndefined(paragraph.para_id);
-      if (Predicate.isNotUndefined(stableId) && seen.has(stableId)) continue;
-      if (Predicate.isNotUndefined(stableId)) seen.add(stableId);
-      paragraphs.push(paragraph);
-    }
-  }
-  return paragraphs;
-};
+/** A chapter's paragraphs less those an earlier chapter already gave: the
+ *  library repeats a paragraph across chapter files, and `seen` holds the
+ *  stable ids of every paragraph kept so far. */
+const unseenParagraphs = (
+  chapter: readonly EGWSchemas.Paragraph[],
+  seen: Set<string>,
+): readonly EGWSchemas.Paragraph[] =>
+  chapter.filter((paragraph) => {
+    const stableId = Option.getOrUndefined(paragraph.para_id);
+    if (Predicate.isUndefined(stableId)) return true;
+    if (seen.has(stableId)) return false;
+    seen.add(stableId);
+    return true;
+  });
 
 const DownloadedParagraphs = Schema.fromJsonString(Schema.Array(EGWSchemas.ParagraphFromHtml));
 
-const downloadedParagraphFiles = (
-  bytes: ArrayBuffer,
+/** The chapter files of a downloaded archive, in reading order. Only the
+ *  zip's directory is read: no file is expanded. */
+const chapterFileNames = (
+  zip: Uint8Array,
   requestedId: PublicationId,
-): Effect.Effect<readonly (readonly EGWSchemas.Paragraph[])[], CorpusContributionRejectedError> =>
+): Effect.Effect<readonly string[], CorpusContributionRejectedError> =>
   Effect.gen(function* () {
-    const files = yield* Effect.try({
-      try: () => unzipSync(new Uint8Array(bytes)),
+    const prefix = `${String(requestedId)}.`;
+    const order = (name: string) => Number.parseFloat(name.slice(prefix.length, -'.json'.length));
+    const names: string[] = [];
+    yield* Effect.try({
+      try: () =>
+        unzipSync(zip, {
+          filter: (file) => {
+            if (file.name.startsWith(prefix) && file.name.endsWith('.json')) names.push(file.name);
+            return false;
+          },
+        }),
       catch: (cause) => CorpusContributionRejectedError.make({ publication: requestedId, cause }),
     });
-    const prefix = `${String(requestedId)}.`;
-    const chapters = Object.entries(files)
-      .filter(([name]) => name.startsWith(prefix) && name.endsWith('.json'))
-      .sort(([left], [right]) => {
-        const leftOrder = Number.parseFloat(left.slice(prefix.length, -'.json'.length));
-        const rightOrder = Number.parseFloat(right.slice(prefix.length, -'.json'.length));
-        return leftOrder - rightOrder;
-      });
-    if (chapters.length === 0) {
+    if (names.length === 0) {
       return yield* CorpusContributionRejectedError.make({
         publication: requestedId,
         cause: 'The publication download archive has no chapter files',
       });
     }
-    return yield* Effect.forEach(chapters, ([name, content]) =>
-      Schema.decodeEffect(DownloadedParagraphs)(new TextDecoder().decode(content)).pipe(
-        Effect.mapError((cause) =>
-          CorpusContributionRejectedError.make({
-            publication: requestedId,
-            cause: { file: name, error: cause },
-          }),
-        ),
-      ),
+    return names.sort((left, right) => order(left) - order(right));
+  });
+
+/** One chapter file of a downloaded archive, expanded and decoded alone. */
+const chapterFile = (
+  zip: Uint8Array,
+  name: string,
+  requestedId: PublicationId,
+): Effect.Effect<readonly EGWSchemas.Paragraph[], CorpusContributionRejectedError> =>
+  Effect.gen(function* () {
+    const rejected = (cause: unknown) =>
+      CorpusContributionRejectedError.make({
+        publication: requestedId,
+        cause: { file: name, error: cause },
+      });
+    const files = yield* Effect.try({
+      try: () => unzipSync(zip, { filter: (file) => file.name === name }),
+      catch: rejected,
+    });
+    const content = files[name] ?? new Uint8Array();
+    return yield* Schema.decodeEffect(DownloadedParagraphs)(new TextDecoder().decode(content)).pipe(
+      Effect.mapError(rejected),
     );
   });
 
@@ -144,22 +155,28 @@ const publicationFromBook = (
     catch: sourceUnavailable('coerce-writings-catalog'),
   });
 
-const archiveFromBook = (
+const publicationOf = (
   book: EGWSchemas.Book,
+  sections: ReadonlyMap<number, CorpusSection>,
+): Effect.Effect<Publication, CorpusContributionRejectedError> =>
+  publicationFromBook(book, classificationOf(book, sections)).pipe(
+    Effect.mapError((cause) =>
+      CorpusContributionRejectedError.make({
+        publication: publicationId(book.book_id),
+        cause,
+      }),
+    ),
+  );
+
+/** One chapter's paragraphs as the archive keeps them, with the Scripture
+ *  they cite. */
+const archiveChapter = (
+  publication: Publication,
   paragraphs: readonly EGWSchemas.Paragraph[],
   requestedId: EGWSchemas.Book['book_id'],
-  sections: ReadonlyMap<number, CorpusSection>,
-): Effect.Effect<PublicationArchive, CorpusContributionRejectedError> =>
+): Effect.Effect<ArchiveChapter, CorpusContributionRejectedError> =>
   Effect.gen(function* () {
     const canonicalRequestedId = publicationId(requestedId);
-    const publication = yield* publicationFromBook(book, classificationOf(book, sections)).pipe(
-      Effect.mapError((cause) =>
-        CorpusContributionRejectedError.make({
-          publication: canonicalRequestedId,
-          cause,
-        }),
-      ),
-    );
     const archived = yield* Effect.forEach(paragraphs, (paragraph) => {
       const stableId = Option.getOrUndefined(paragraph.para_id);
       if (Predicate.isUndefined(stableId)) {
@@ -200,7 +217,7 @@ const archiveFromBook = (
           }),
       });
     });
-    const bibleReferences = extractScriptureRefs(paragraphs, book.book_id, (paragraph, bookId) =>
+    const bibleReferences = extractScriptureRefs(paragraphs, requestedId, (paragraph, bookId) =>
       Option.getOrElse(
         paragraph.para_id,
         () => `book-${String(bookId)}-para-${String(paragraph.puborder)}`,
@@ -222,11 +239,7 @@ const archiveFromBook = (
         scripture,
       });
     });
-    return PublicationArchive.make({
-      publication,
-      paragraphs: archived,
-      bibleReferences,
-    });
+    return ArchiveChapter.make({ paragraphs: archived, bibleReferences });
   });
 
 export const layerEgwWritingsAssetSource: Layer.Layer<
@@ -266,15 +279,26 @@ export const layerEgwWritingsAssetSource: Layer.Layer<
           cause: `Received publication ${String(book.book_id)}`,
         });
       }
+      const publication = yield* publicationOf(book, yield* sections);
       const download = Option.fromNullishOr(book.download).pipe(
         Option.filter((value) => value.length > 0),
       );
-      let chapters: readonly (readonly EGWSchemas.Paragraph[])[];
+      let provenance = unknownProvenance('egw-api', egwBookRevision(book));
+      let chapters: Stream.Stream<
+        readonly EGWSchemas.Paragraph[],
+        CorpusContributionRejectedError | CorpusSourceUnavailableError
+      >;
       if (Option.isSome(download)) {
-        const bytes = yield* api
-          .downloadBook(requestedId)
-          .pipe(Effect.mapError(sourceUnavailable('download-writings-publication')));
-        chapters = yield* downloadedParagraphFiles(bytes, requestedId);
+        const zip = new Uint8Array(
+          yield* api
+            .downloadBook(requestedId)
+            .pipe(Effect.mapError(sourceUnavailable('download-writings-publication'))),
+        );
+        provenance = yield* provenanceForBytes(crypto, 'egw-api', egwBookRevision(book), zip);
+        const names = yield* chapterFileNames(zip, requestedId);
+        chapters = Stream.fromIterable(names).pipe(
+          Stream.mapEffect((name) => chapterFile(zip, name, requestedId)),
+        );
       } else {
         const toc = yield* api
           .getBookToc(requestedId)
@@ -289,30 +313,46 @@ export const layerEgwWritingsAssetSource: Layer.Layer<
             cause: 'Publication has no chapters',
           });
         }
-        chapters = yield* Effect.forEach(
-          chapterIds,
-          (chapterId) =>
-            api
-              .getChapterContent(requestedId, chapterId)
-              .pipe(Effect.mapError(sourceUnavailable(`read-writings-chapter:${chapterId}`))),
-          { concurrency: 5 },
+        chapters = Stream.fromIterable(chapterIds).pipe(
+          Stream.mapEffect(
+            (chapterId) =>
+              api
+                .getChapterContent(requestedId, chapterId)
+                .pipe(Effect.mapError(sourceUnavailable(`read-writings-chapter:${chapterId}`))),
+            { concurrency: 5 },
+          ),
         );
       }
-      const paragraphs = uniqueProviderParagraphs(chapters);
-      if (paragraphs.length === 0) {
-        return yield* CorpusContributionRejectedError.make({
-          publication: requestedId,
-          cause: 'Publication has no paragraphs',
-        });
-      }
-      const archive = yield* archiveFromBook(book, paragraphs, requestedId, yield* sections);
-      const provenance = yield* provenanceForArchive(
-        crypto,
-        'egw-api',
-        egwBookRevision(book),
-        archive,
+      // Built when the stream runs, so a second run starts from nothing.
+      const archived = Stream.unwrap(
+        Effect.sync(() => {
+          const seen = new Set<string>();
+          let kept = 0;
+          const noParagraphs = Effect.suspend(() => {
+            if (kept > 0) return Effect.void;
+            return Effect.fail(
+              CorpusContributionRejectedError.make({
+                publication: requestedId,
+                cause: 'Publication has no paragraphs',
+              }),
+            );
+          });
+          return chapters.pipe(
+            Stream.map((chapter) => unseenParagraphs(chapter, seen)),
+            Stream.filter((paragraphs) => paragraphs.length > 0),
+            Stream.mapEffect((paragraphs) => {
+              kept += paragraphs.length;
+              return archiveChapter(publication, paragraphs, requestedId);
+            }),
+            Stream.concat(Stream.fromEffect(noParagraphs).pipe(Stream.drain)),
+          );
+        }),
       );
-      return WritingsContribution.make({ provenance, archive });
+      const contribution: WritingsContribution = {
+        provenance,
+        publication: { publication, chapters: archived },
+      };
+      return contribution;
     });
     return makeWritingsAssetRecipe([{ kind: 'provider', catalog, acquire }]);
   }),
