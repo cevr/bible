@@ -1,7 +1,7 @@
 // Righteousness by Faith, v3: the screenplay. Its shape is the owner's, filed
 // on the production (version 3): the spine "the word is a seed", the thesis
-// "The just shall live by faith.", a verdict-first open, Max in the dock as a
-// parable figure, about seven minutes of speech and one glance ahead. Its
+// "The just shall live by faith.", a verdict-first open, a plain man in the dock
+// as a parable figure, about seven minutes of speech and one glance ahead. Its
 // refrain is his too, filed there as well: "hmm, lets keep the faith
 // forgiveness power" (the owner, 2026-10-14), the three gifts he counts in the
 // paralytic and the woman when he preaches it, held here inside the seed. It
@@ -78,23 +78,25 @@
 //
 // Motifs (CRAFT rule 4), each introduced and paid off:
 // - The seed (the word). `cold`: the judge's "righteous" comes down as a gold
-//   seal pinned over Max's stain, a label on the outside. `seed`: the seal
-//   lifts, turns over and is a seed, the blade curled inside it. `look`: the
-//   seed laid in the open hand. `grain`: the Seed that falls into the ground.
-//   `garden`: Rosa's seeds, first the blade. `rain`: the rain's gold flecks,
-//   His word coming down. Paid off in `court`: a green blade has come up
-//   through the crack in the court's floor where Max stands.
-// - The garment. `cold`: Max's jacket with its scarlet stain. `word`: the fig
-//   leaves he pins over it, our cover-up. `roof` and `woman`: the scarlet
-//   lifts. `accuser`: Joshua's filthy garments. `robe`: the robe from heaven's
-//   loom, and under it the stain gone, not covered. Paid off in `court`: Max
-//   in white, and the choice said to the viewer with the fig leaves lying dry
-//   on the floor: keep the fig leaves, or take the seed and live.
+//   seal pinned over the accused's stain, a label on the outside. `seed`: the
+//   seal lifts, turns over and is a seed, the blade curled inside it. `look`:
+//   the seed laid in the open hand. `grain`: the Seed that falls into the
+//   ground. `garden`: the grandmother's seeds, first the blade. `rain`: the
+//   rain's gold flecks, His word coming down. Paid off in `court`: a green
+//   blade has come up through the crack in the court's floor where the
+//   accused stands.
+// - The garment. `cold`: the accused's plain top with its scarlet stain.
+//   `word`: the fig leaves he pins over it, our cover-up. `roof` and `woman`:
+//   the scarlet lifts. `accuser`: Joshua's filthy garments. `robe`: the robe
+//   from heaven's loom, and under it the stain gone, not covered. Paid off in
+//   `court`: the accused in white, and the choice said to the viewer with the
+//   fig leaves lying dry on the floor: keep the fig leaves, or take the seed
+//   and live.
 // - The count. Three icons, the answer's shape shown once in `spoke` (CRAFT
 //   rule 8): the open hand holding the gold seed (faith), the white cloth
 //   (forgiveness), the green blade (power). Lit one by one in `roof` and
 //   `woman`; each gift opens on its icon (`look`, `grain`, `within`). Paid off
-//   in `court`: all three in the picture itself, the seed in Max's hand, the
+//   in `court`: all three in the picture itself, the seed in his hand, the
 //   robe on him, the blade at his feet, lit one by one as the refrain is said
 //   once more.
 // - The record. `cold`: the stacked evidence, sheets scribbled over in
@@ -106,15 +108,15 @@
 //   prosecutor's place is simply empty.
 // The setting bookends (CRAFT rule 4): `cold` and `court` are one courtroom
 // in one layout. In `court` it has changed: teal, the film's most saturated
-// light; the prosecutor's place empty; Christ beside Max as his Advocate (a
-// stated text, 1 John 2:1: the ensemble's "Christ in the cast's frame"); Max
-// in white; the blade through the crack.
+// light; the prosecutor's place empty; Christ beside the accused as his
+// Advocate (a stated text, 1 John 2:1: the ensemble's "Christ in the
+// parable's frame"); the accused in white; the blade through the crack.
 //
 // Acts, their light, the question that opens each (its chapter) and the tent
 // poles (CRAFT rules 6 and 11). The five poles are the concept stage's
 // frames:
 // 1. The verdict (`cold`, `title`): teal day, cool and even. "How can God
-//    call a guilty man righteous?" Pole `cold`: Max in the dock, the gold seal
+//    call a guilty man righteous?" Pole `cold`: the accused in the dock, the gold seal
 //    over the stain, the crack at his feet.
 // 2. The seed (`word`, `seed`, `spoke`): peach parchment. "Is God's
 //    verdict a cover-up?"
@@ -132,16 +134,22 @@
 //    saturated. "Where is all this heading?" Pole `court`: the same court,
 //    changed.
 //
-// The cast (docs/ensemble.md). Max, the accused, is a parable figure
-// ("Picture a young man…"), never named in speech; his own choice is
-// theology 09's turn, so the landing shows what the verdict means, not his
-// conversion: the seed "makes a man righteous the moment he takes it" is
-// said as a plain truth, never as Max's decision. Rosa, in her garden in the
-// hills ("Picture a grandmother…"). Christ in the STORY scenes, and as the
-// Advocate at the landing. No cast member stands in a Bible scene.
+// The figures. The owner, 2026-10-15: "let's make the recurring cast only
+// background characters, and the main characters non descriptive so they
+// can be better related". So the accused is no longer Max (the shape's
+// pick): he is a plain man, the parable's "Picture a young man…", drawn as
+// the plain lead (`.claude/skills/film/reference/character-design.md`, 2.3)
+// and never named, in speech or on screen. The briefs call him "the
+// accused". The landing shows what the verdict means, not his conversion:
+// the seed "makes a man righteous the moment he takes it" is said as a plain
+// truth, never as his decision. The garden's grandmother ("Picture a
+// grandmother…") is a plain figure too, in a garden that is no one's. The
+// recurring cast (docs/ensemble.md) may stand in the court's gallery as
+// background, and none is required; no cast member stands in a Bible scene.
+// Christ in the STORY scenes, and as the Advocate at the landing.
 //
-// Registers (CRAFT rule 3): IDEA is the parchment page with Max and one gold
-// prop; STORY is the Bible's own scene in the paper-cut look. Each switch
+// Registers (CRAFT rule 3): IDEA is the parchment page with the accused and
+// one gold prop; STORY is the Bible's own scene in the paper-cut look. Each switch
 // comes at a turn, on a question. The narration's words appear on screen only
 // as full-screen cards the engine sets (CRAFT rule 1): no picture carries
 // lettering, and each card a beat may carry is named in its picture, for the
@@ -161,11 +169,11 @@ export const script = defineScript([
     id: 'cold',
     say: "Picture a young man in a courtroom. {/} {evidence}Every piece of evidence says one thing: {/} {did}he {*}did it. {/} {judge}And the judge says one word. {//} {righteous}{*}Righteous. {/} {seal}Righteous? {/} {cover}That's not justice, that's a {*}cover-up. {/} {bible}Now, the Bible agrees: God will {*}not clear the guilty. {/} And yet it says He {*}justifies the ungodly. {//} {which}So the question is, how can God call a guilty man righteous? {/} And we all need the answer. {/} {asked}Job asked long ago: {/} {job}“How should man be {*}just with God?”",
     cite: ['Exodus 23:7', 'Exodus 34:7', 'Romans 4:5', 'Job 9:2'],
-    picture: `IDEA: the court as a paper diorama on the parchment page, lit by a cool, even teal day from one high window (the act's light). Screen direction holds for the film: the accused screen-left, the bench screen-right. Max, the ensemble's neighbour across the landing (sage hooded jacket, hood down), stands in the dock with a scarlet stain on the jacket's front; a thin crack runs across the floor at his feet (paid off in \`court\`). On \`evidence\` sheets stack up on the prosecutor's table, each one scribbled over in scarlet, with no letters or numbers (the record, paid off in \`rain\`). On \`did\` Max's head drops: his face at a third of the frame, caught. On \`judge\` the judge leans over the bench. On \`righteous\` the gavel falls, and the picture hard-cuts to the full-screen card "Righteous.", the word large in gold, and cuts back on its last word. On \`seal\` a gold seal floats down and pins itself over the stain on Max's jacket, on the outside, like a label, the stain's edge still showing round it (the seed motif's start). On \`cover\` the prosecutor throws up his hands, and Max's brow goes up, his head tipped back (his habit): he is as surprised as anyone. On \`bible\` the camera eases in on the seal over the stain, the scarlet edge still showing round it. On \`which\` the gavel hangs in the air above its block. On \`asked\` the page turns to Job 9:2 on its page, its phrase highlighted as it is said, and on \`job\` the highlight floods out into the full-screen card (cold-studies' model card), the words landing as they are spoken, "just" large in gold; hard cut out. ${CARDS}`,
+    picture: `IDEA: the court as a paper diorama on the parchment page, lit by a cool, even teal day from one high window (the act's light). Screen direction holds for the film: the accused screen-left, the bench screen-right. The accused, a plain man (the plain lead: no name, no mark that tells who he is, one plain top in a quiet hue), stands in the dock with a scarlet stain on the front of his top; a thin crack runs across the floor at his feet (paid off in \`court\`). On \`evidence\` sheets stack up on the prosecutor's table, each one scribbled over in scarlet, with no letters or numbers (the record, paid off in \`rain\`). On \`did\` his head drops: his face at a third of the frame, caught. On \`judge\` the judge leans over the bench. On \`righteous\` the gavel falls, and the picture hard-cuts to the full-screen card "Righteous.", the word large in gold, and cuts back on its last word. On \`seal\` a gold seal floats down and pins itself over the stain on his top, on the outside, like a label, the stain's edge still showing round it (the seed motif's start). On \`cover\` the prosecutor throws up his hands, and the accused's brow goes up, his head tipped back: he is as surprised as anyone. On \`bible\` the camera eases in on the seal over the stain, the scarlet edge still showing round it. On \`which\` the gavel hangs in the air above its block. On \`asked\` the page turns to Job 9:2 on its page, its phrase highlighted as it is said, and on \`job\` the highlight floods out into the full-screen card (cold-studies' model card), the words landing as they are spoken, "just" large in gold; hard cut out. ${CARDS}`,
   },
   {
     id: 'title',
-    picture: `IDEA: the court pulled wide from high in its back wall: Max small in the dock, the crack across the floor at his feet, teal light falling through the high window. The title is the only text: Righteousness by Faith, in the film's display type, cream. ${CARDS}`,
+    picture: `IDEA: the court pulled wide from high in its back wall: the accused small in the dock, the crack across the floor at his feet, teal light falling through the high window. The title is the only text: Righteousness by Faith, in the film's display type, cream. ${CARDS}`,
   },
   {
     id: 'word',
@@ -179,13 +187,13 @@ export const script = defineScript([
       'Genesis 3:7',
       "Ellen G. White, Christ's Object Lessons, 311",
     ],
-    picture: `IDEA: a page turn into the act's peach parchment light. Max alone on the page, the gold seal still pinned over his stain; on the act's question his brow goes up. On \`right\` a straight gold line draws itself along the page under his feet. On \`measure\` it rises and folds into two small stone tablets, standing upright, and on \`all\` their ten lines glow gold; Max leans in, his face at a third of the frame. On \`short\` the tablets stand as tall as a doorway's height mark, and Max beside them comes up short, his head well under their top. On \`cover\` he tugs his jacket closed over the stain; on \`fig\` fig leaves drift down and he pins them over it one by one, a patchwork round the gold seal. On \`going\` the leaves curl and drop off, and he gives the viewer a look (the light line). ${CARDS}`,
+    picture: `IDEA: a page turn into the act's peach parchment light. The accused alone on the page, the gold seal still pinned over his stain; on the act's question his brow goes up. On \`right\` a straight gold line draws itself along the page under his feet. On \`measure\` it rises and folds into two small stone tablets, standing upright, and on \`all\` their ten lines glow gold; he leans in, his face at a third of the frame. On \`short\` the tablets stand as tall as a doorway's height mark, and he, beside them, comes up short, his head well under their top. On \`cover\` he presses a hand circle over the stain; on \`fig\` fig leaves drift down and he pins them over it one by one, a patchwork round the gold seal. On \`going\` the leaves curl and drop off, and he gives the viewer a look (the light line). ${CARDS}`,
   },
   {
     id: 'seed',
     say: "{label}But when God says righteous, it isn't a {*}label on the outside. {/} {seed}Jesus said, “The seed is the {*}word of God.” {//1} A seed looks like {*}nothing. {/} {alive}But it's {*}alive. {/} {folded}The life of the whole plant is folded up inside. {/} {life}In the same way, every word God speaks carries His {*}own life. {/} Take in His word by faith, {/} and you take in His life.",
     cite: ['Luke 8:11', "Ellen G. White, Christ's Object Lessons, 38"],
-    picture: `IDEA: the dropped leaves blow aside and the camera pushes in on the gold seal on Max's jacket, in \`cold\`'s shape and scale (CRAFT rule 8). On \`label\` it lifts off, flat as a sticker, nothing behind it; the stain is still there under where it was. On \`seed\` the verse's full-screen card: "The seed is the word of God.", "seed" large in gold; hard cut back on its last word, and the seal turns over in the air and is a seed, small and plain, its gold unlit: it looks like nothing. On \`alive\` it opens along its seam in cross-section, and on \`folded\` the blade shows curled inside, green, its root and first two leaves folded tight. On \`life\` a warm light wakes in the seed's heart and its gold glows; Max, close, his face at a third of the frame, tips his head: interested, despite himself. ${CARDS}`,
+    picture: `IDEA: the dropped leaves blow aside and the camera pushes in on the gold seal on the accused's top, in \`cold\`'s shape and scale (CRAFT rule 8). On \`label\` it lifts off, flat as a sticker, nothing behind it; the stain is still there under where it was. On \`seed\` the verse's full-screen card: "The seed is the word of God.", "seed" large in gold; hard cut back on its last word, and the seal turns over in the air and is a seed, small and plain, its gold unlit: it looks like nothing. On \`alive\` it opens along its seam in cross-section, and on \`folded\` the blade shows curled inside, green, its root and first two leaves folded tight. On \`life\` a warm light wakes in the seed's heart and its gold glows; the accused, close, his face at a third of the frame, tips his head: interested, despite himself. ${CARDS}`,
   },
   {
     id: 'spoke',
@@ -198,7 +206,7 @@ export const script = defineScript([
       'Ellen G. White, Education, 254',
       'E. J. Waggoner, The Glad Tidings, 77',
     ],
-    picture: `IDEA, then STORY, then IDEA. On \`first\` the camera pushes into the seed's light, and the dip to black on \`dark\` opens Genesis 1 (STORY): an empty, dark paper world, no sky. On \`light\` one gold word of light arcs across the dark and bursts into a sun; the sky floods dawn to teal, and land and water tear in beneath it, flat paper shapes rising into place (\`itself\`). On \`calleth\` stars come out one by one across the new sky, each where nothing was. On \`verdict\` a white flash back to IDEA: the page, Max with the gold seed floating before him (not yet in his hand: \`look\` lays it there), his face at a third of the frame. On \`cover\` (the viewer's question) the seal's old outline traces itself round the seed for a breath and falls away. On \`seed\` the full-screen card "It's a seed.", "seed" large in gold; hard cut back. On \`faith\`, \`forgiveness\` and \`power\` the answer's shape, shown once (CRAFT rule 8): three icons come in left to right along the page, the open hand holding the gold seed (faith), the white cloth (forgiveness), the green blade (power), each lit as it is named; Max reads the row. ${CARDS}`,
+    picture: `IDEA, then STORY, then IDEA. On \`first\` the camera pushes into the seed's light, and the dip to black on \`dark\` opens Genesis 1 (STORY): an empty, dark paper world, no sky. On \`light\` one gold word of light arcs across the dark and bursts into a sun; the sky floods dawn to teal, and land and water tear in beneath it, flat paper shapes rising into place (\`itself\`). On \`calleth\` stars come out one by one across the new sky, each where nothing was. On \`verdict\` a white flash back to IDEA: the page, the accused with the gold seed floating before him (not yet in his hand: \`look\` lays it there), his face at a third of the frame. On \`cover\` (the viewer's question) the seal's old outline traces itself round the seed for a breath and falls away. On \`seed\` the full-screen card "It's a seed.", "seed" large in gold; hard cut back. On \`faith\`, \`forgiveness\` and \`power\` the answer's shape, shown once (CRAFT rule 8): three icons come in left to right along the page, the open hand holding the gold seed (faith), the white cloth (forgiveness), the green blade (power), each lit as it is named; the accused reads the row. ${CARDS}`,
   },
   {
     // Mark 2:1–12 told, then its gifts said back, each sentence ending on the
@@ -236,7 +244,7 @@ export const script = defineScript([
       'Ellen G. White, Letter 85, 1891',
       'John 3:14',
     ],
-    picture: `IDEA, then STORY. The page opens on \`woman\`'s closing row; on \`faith\` the open hand pulses and the other two icons dim (faith opens on its icon). On \`where\` push in to the hand: Max's own hand, palm up, and the gold seed is laid in it. On \`expects\` the seed in his palm puts out its first root, and Max's face, at a third of the frame, watches it. On \`hand\` a stack of coins, medals and certificates is held up toward the light and slides off the page; the plain open hand stays. On \`desert\` the push-through into STORY: a desert camp of paper tents under a peach sky, scarlet paper snakes in the sand. On \`pole\` the bronze serpent rises on its pole. On \`harder\` a man from the camp starts to climb the pole, straining, comic, and on \`climb\` he stops, slides down, turns and simply looks up. On \`look\` close on his face as colour comes back to it; the light line's full-screen card, "look" large in gold, may cut in here. On \`lifted\` the camera tilts up the pole against the sky; after the last word, pull back to the three icons, the open hand glowing. ${CARDS}`,
+    picture: `IDEA, then STORY. The page opens on \`woman\`'s closing row; on \`faith\` the open hand pulses and the other two icons dim (faith opens on its icon). On \`where\` push in to the hand: the accused's own hand, palm up, and the gold seed is laid in it. On \`expects\` the seed in his palm puts out its first root, and his face, at a third of the frame, watches it. On \`hand\` a stack of coins, medals and certificates is held up toward the light and slides off the page; the plain open hand stays. On \`desert\` the push-through into STORY: a desert camp of paper tents under a peach sky, scarlet paper snakes in the sand. On \`pole\` the bronze serpent rises on its pole. On \`harder\` a man from the camp starts to climb the pole, straining, comic, and on \`climb\` he stops, slides down, turns and simply looks up. On \`look\` close on his face as colour comes back to it; the light line's full-screen card, "look" large in gold, may cut in here. On \`lifted\` the camera tilts up the pole against the sky; after the last word, pull back to the three icons, the open hand glowing. ${CARDS}`,
   },
   {
     // Forgiveness opens on its icon, on the film's problem. The cross is His sacrifice, never the
@@ -321,7 +329,7 @@ export const script = defineScript([
       'Ellen G. White, Steps to Christ, 47, 51',
       'Mark 2:11–12',
     ],
-    picture: `IDEA: the page opens on \`robe\`'s closing row; on \`power\` the green blade pulses and the other two icons dim (power opens on its icon). On \`remember\` a breath's callback to \`woman\` in its layout: she walks out of frame screen-left, upright, as she did on \`told\`; then Max on the page beside the two stone tablets from \`word\`. On \`command\` a gold seed drops from the tablets' glow and opens along its seam: a blade folded inside it, the life to keep the command inside the command. On \`write\` the tablets shrink and settle into his chest with the seed, a warm light where his heart is, and the ten gold lines glow through his jacket; the verse's full-screen card may cut in on its phrase, "hearts" large in gold. On \`bed\` the callback to \`roof\` in its layout: the man lies on his bed among the crowd, his hands pressing at it, and he cannot rise. On \`we\` Max on the page in the same pose, straining, his feet held fast to the page. On \`arose\` the man rises with his bed and walks out through the crowd, as he did on \`went\`; then Max's feet come free and he takes a step, his face at a third of the frame, warmed. ${CARDS}`,
+    picture: `IDEA: the page opens on \`robe\`'s closing row; on \`power\` the green blade pulses and the other two icons dim (power opens on its icon). On \`remember\` a breath's callback to \`woman\` in its layout: she walks out of frame screen-left, upright, as she did on \`told\`; then the accused on the page beside the two stone tablets from \`word\`. On \`command\` a gold seed drops from the tablets' glow and opens along its seam: a blade folded inside it, the life to keep the command inside the command. On \`write\` the tablets shrink and settle into his chest with the seed, a warm light where his heart is, and the ten gold lines glow through his top; the verse's full-screen card may cut in on its phrase, "hearts" large in gold. On \`bed\` the callback to \`roof\` in its layout: the man lies on his bed among the crowd, his hands pressing at it, and he cannot rise. On \`we\` the accused on the page in the same pose, straining, his feet held fast to the page. On \`arose\` the man rises with his bed and walks out through the crowd, as he did on \`went\`; then his feet come free and he takes a step, his face at a third of the frame, warmed. ${CARDS}`,
   },
   {
     // The country link (owner: country living is part of righteousness by
@@ -337,7 +345,7 @@ export const script = defineScript([
       'E. J. Waggoner, General Conference Daily Bulletin, March 8, 1897, 303',
       'Hebrews 4:10',
     ],
-    picture: `IDEA: Rosa's garden in the hills, set on the page as the ensemble's set (the gate, the beds, the bench under the fig tree), in morning light, the dawn of \`robe\` gone on to morning. On \`part\` the camera comes in over Rosa's gate. On \`picture\` Rosa, the grandmother (plum skirt, the shawl's triangle, garden hat), kneels at a bed, her face at a third of the frame. On \`sow\` she presses seeds into the soil and waters them. On \`grow\` she sits back on her heels and waits: nothing she does pulls a shoot up. On \`power\` the soil over the seeds breaks and green comes through. On \`blade\` growth in three stages in one held shot: first the blade, then the ear, then the full corn in the ear; the verse's full-screen card may cut in, "blade" large in gold. On \`morning\` the sun rises over the garden two or three times, and each morning she is out at the beds before it. On \`will\` she stands and lifts her open hand, palm up, to the morning light (the hand from \`look\`), and the shoots stretch up toward it. On \`seventh\` the sixth sun sets gold; on \`rest\` her tools lie set down by the gate and she sits on the bench under the fig tree, face calm, the garden growing on round her. ${CARDS}`,
+    picture: `IDEA: a garden in the hills, set on the page (a gate, the beds, a bench under a fig tree), in morning light, the dawn of \`robe\` gone on to morning. On \`part\` the camera comes in over the garden's gate. On \`picture\` the grandmother, a plain old woman (pale hair, one plain dress in a quiet hue, no mark that tells who she is), kneels at a bed, her face at a third of the frame. On \`sow\` she presses seeds into the soil and waters them. On \`grow\` she sits back on her heels and waits: nothing she does pulls a shoot up. On \`power\` the soil over the seeds breaks and green comes through. On \`blade\` growth in three stages in one held shot: first the blade, then the ear, then the full corn in the ear; the verse's full-screen card may cut in, "blade" large in gold. On \`morning\` the sun rises over the garden two or three times, and each morning she is out at the beds before it. On \`will\` she stands and lifts her open hand, palm up, to the morning light (the hand from \`look\`), and the shoots stretch up toward it. On \`seventh\` the sixth sun sets gold; on \`rest\` her tools lie set down by the gate and she sits on the bench under the fig tree, face calm, the garden growing on round her. ${CARDS}`,
   },
   {
     // The one glance ahead (the owner's reach): the latter rain and the
@@ -376,7 +384,7 @@ export const script = defineScript([
       'E. J. Waggoner, The Glad Tidings, 77',
       'Job 9:2',
     ],
-    picture: `STORY: the landing merges the registers: the cold open's courtroom (the same bench, the same positions, the same framing) now stands in the paper world under the landing's teal, the film's most saturated light. On \`back\` Max stands in the dock where he stood, now in white. On \`charge\` the prosecutor's place is empty, and no one comes to read a charge. On \`justifieth\` the verse's full-screen card: "It is God that justifieth.", "justifieth" large in gold; hard cut back. On \`beside\` Christ stands beside Max as his Advocate, at his side in the dock. On \`seed\` push in on the crack in the floor at Max's feet: a green blade has come up through it. On \`takes\` close on Max's face at a third of the frame, open, his head up, the gold seed in his open hand. On \`you\` Christ turns to the camera and holds out His open hand to the viewer, a gold seed in it. On \`faith\`, \`forgiveness\` and \`power\` the three icons light in the picture itself, one by one: the gold seed in Max's hand, the robe on him, the blade at his feet. On \`leaves\` the fig leaves from \`word\` lie dry on the floor by the dock. On \`how\` the bench glows warm, and the court holds in the light through the held breath after the last word. ${CARDS}`,
+    picture: `STORY: the landing merges the registers: the cold open's courtroom (the same bench, the same positions, the same framing) now stands in the paper world under the landing's teal, the film's most saturated light. On \`back\` the accused stands in the dock where he stood, now in white. On \`charge\` the prosecutor's place is empty, and no one comes to read a charge. On \`justifieth\` the verse's full-screen card: "It is God that justifieth.", "justifieth" large in gold; hard cut back. On \`beside\` Christ stands beside him as his Advocate, at his side in the dock. On \`seed\` push in on the crack in the floor at his feet: a green blade has come up through it. On \`takes\` close on his face at a third of the frame, open, his head up, the gold seed in his open hand. On \`you\` Christ turns to the camera and holds out His open hand to the viewer, a gold seed in it. On \`faith\`, \`forgiveness\` and \`power\` the three icons light in the picture itself, one by one: the gold seed in his hand, the robe on him, the blade at his feet. On \`leaves\` the fig leaves from \`word\` lie dry on the floor by the dock. On \`how\` the bench glows warm, and the court holds in the light through the held breath after the last word. ${CARDS}`,
   },
   {
     // The landing's last words; the music rises alone for about 28 s after

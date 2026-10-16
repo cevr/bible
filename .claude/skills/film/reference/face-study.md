@@ -516,6 +516,8 @@ One transform over any kit's marks. The cast spans all five ages.
 | Max    | the skeptic's brow                                   | the screen-right brow up at rest (its own y −2.5, tilt −0.06) and the lid 0.08 heavier: with his head tipped back ([ensemble.md](../../../../apps/animations/docs/ensemble.md)), "prove it"                                               |
 | Amara  | half-moon reading glasses, worn low (OWNER QUESTION) | two ink half rings 1.4 thick under the eye line, with a bridge; she looks over them. The eyes never sit inside the lenses: Florence lost her glasses because her eyes in them "made it look like she was looking in different directions" |
 
+A plain lead takes no feature from this table and none of its own: the kit as drawn, a resting face with no hook, so any viewer can stand in its place (owner, 2026-10-15: "the main characters non descriptive so they can be better related"; [character-design.md](character-design.md) 2.3). The eight above are the background cast ([ensemble.md](../../../../apps/animations/docs/ensemble.md)).
+
 ### Owner questions
 
 1. **Which kit:** A, B, C or D.

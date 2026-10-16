@@ -34,12 +34,13 @@ Generate against the corpus, never against training data. A film's doctrine, its
 
 ## Ensemble
 
-Every film and talk shares a recurring cast besides its main figures (owner, 2026-10-13): a household of five, the grandmother in the hills and two neighbours in the city. Who they are, how they look, their garment slots and their arcs are in [apps/animations/docs/ensemble.md](../../../apps/animations/docs/ensemble.md).
+Every film and talk shares a recurring cast besides its main figures (owner, 2026-10-13): a household of five, the grandmother in the hills and two neighbours in the city. The cast stands only in the background, and a film's main characters are plain (owner, 2026-10-15: "let's make the recurring cast only background characters, and the main characters non descriptive so they can be better related"). Who the cast are, how they look, their garment slots and where they may appear are in [apps/animations/docs/ensemble.md](../../../apps/animations/docs/ensemble.md).
 
-- **Show the cast where the story allows:** the cold open, the IDEA beats, the landing, and a talk's cut-paper inserts. Never inside a scene of Bible history, and never as a Bible person or a figure of Christ's parables.
-- **Never invent an everyday figure when a cast member fits.** A new person is only for a crowd, a judge or a stranger no cast member can be.
+- **The lead is a plain figure,** a Bible scene's lead its Bible figure: no name, no mark that tells who it is, an average build, one plain garment in a quiet hue, one design a film. Its sheet is [reference/character-design.md](reference/character-design.md) 2.3. A cast member is never a film's lead, its accused or the one whose need is its question.
+- **The cast stands behind:** one or two in the background of the cold open, the IDEA beats, the landing and a talk's cut-paper inserts, never featured. Never inside a scene of Bible history, and never as a Bible person or a figure of Christ's parables.
+- **The cast before the crowd kit.** Where a background needs a person a viewer might know, a cast member stands there; a crowd of strangers takes the crowd kit.
 - **Designing any figure** (what its colours say, how a main, supporting, antagonist, minor or allegorical figure is drawn, Bible figures, character sheets): read [reference/character-design.md](reference/character-design.md).
-- **Keep continuity:** fixed ages, the same homes, no names in speech, and each appearance framed as a parable ("Picture a father…"), never as history. The `script.ts` header lists the cast a film uses and the ledger state it assumes.
+- **Keep continuity:** fixed ages, the same homes, no names in speech, and each appearance framed as a parable ("Picture a father…"), never as history. The `script.ts` header describes the film's plain lead, names any cast member in its background and the ledger state it assumes.
 
 ## The flow
 
