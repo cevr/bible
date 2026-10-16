@@ -354,7 +354,9 @@ one is measured from its seed, and the mix starts each variant that much early
 (`mix.unsynced` warns where a take has none recorded). `sfx check` warns
 `TimingUnrecorded`; the film's check warns `LeadIn` on an effect placed from
 its first sample whose kept take's onset is past `LEAD_IN`, 0.05 s (the
-placement's finding, since only it can say `sync`). It logs
+placement's finding, since only it can say `sync`), and refuses a placed code
+or procedural sound with a seed that measures silent (`SeedSilent`, by seed:
+nothing over BS.1770's −70 LUFS gate). It logs
 each bus's mean and peak dBFS (`mix.levels`), and `--stems` writes each bus
 the film's length. A file at another rate fails as `SampleRateMismatch`: the
 mix resamples only to repitch an effect's jitter. The

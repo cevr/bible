@@ -151,6 +151,50 @@ describe('the static leg', () => {
       expect(found).toMatchObject([{ effect: 'ping', name: 'tone.late', variant: 1 }]);
     }),
   );
+
+  // A code sound 0.5 s long whose ping starts somewhere from 0.3 to 0.7 s in:
+  // on seeds 1 and 2 it starts past the end and nothing of it is heard (each
+  // measures under BS.1770's -70 LUFS gate), so where it plays the mix plays
+  // nothing. The leg refuses it, naming each silent seed.
+  it.effect('refuses a placed code sound that renders silent on a seed, naming each one', () =>
+    Effect.gen(function* () {
+      const ping = { _tag: 'Partials', pitch: 'E5', set: 'glass', secs: 0.1 } as const;
+      const library = defineLibrary({
+        'tone.lost': {
+          kind: 'code',
+          sound: {
+            play: {
+              _tag: 'Layer',
+              secs: 0.5,
+              of: [{ node: ping, at: { _tag: 'Vary', min: 0.3, max: 0.7 } }],
+            },
+          },
+          variants: 6,
+          use: 'one-shot',
+        },
+      });
+      const { code, trials } = Result.getOrThrow(resolveCode(library));
+      const lost: LoadedFilm = {
+        ...film,
+        sound: Option.some({
+          effects: {
+            ping: { sound: 'tone.lost', at: [{ scene: 'said', at: 'start' }], sync: 'hit' },
+            again: { sound: 'tone.lost', at: [{ scene: 'quiet', at: 'start' }], sync: 'hit' },
+          },
+        }),
+        sounds: { library, lock: {}, dir: '/lib', code, trials },
+      };
+      const found = (yield* run(new Map(), lost)).filter((f) => f._tag === 'SeedSilent');
+      expect(found).toMatchObject([
+        { name: 'tone.lost', seed: 1 },
+        { name: 'tone.lost', seed: 2 },
+      ]);
+      expect(report(found, { allowStale: true }).findings.map((r) => r.level)).toEqual([
+        'error',
+        'error',
+      ]);
+    }),
+  );
 });
 
 describe('a film that does not lay out', () => {

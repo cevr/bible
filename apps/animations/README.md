@@ -42,7 +42,7 @@ bun run cues <film> [scene]                    # scene times, {mark} times, name
 bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span
 bun run cues <film> --short <id>               # a short's spans: film time, time in the short, and its length
 bun run doctor                                 # headless Chromium and its H.264 encoder, elevenlabs CLI + login: ok or how to fix
-bun run check <film>                           # cues, sound cues, stale takes/sound, text collisions, DeadAir, DrawThrew, FrameImpure (fails on any); warns SeamLong, AssetMissing, SoundStale, LeadIn, WordPinFar, DurOnWord, CueTwin, Storyboard, KnobRepeated, MasterLoudness, EffectHot, InkOverFace, StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
+bun run check <film>                           # cues, sound cues, stale takes/sound, a silent code-sound seed (SeedSilent), text collisions, DeadAir, DrawThrew, FrameImpure (fails on any); warns SeamLong, AssetMissing, SoundStale, LeadIn, WordPinFar, DurOnWord, CueTwin, Storyboard, KnobRepeated, MasterLoudness, EffectHot, InkOverFace, StaticHold, HeldShare, FaceSmall, ColourScript, HandJump, HandFar, HandHidden, EndShort
 bun run check <film> --static --allow-stale    # the files alone: no mix, no browser (the lab runs this after each write)
 bun run check <film> --sound                   # the static leg and the mix the film makes now (DeadAir, MasterLoudness, EffectHot), no browser
 bun run check <film> --draw                    # the static leg and every scene drawn in this process (DrawThrew, FrameImpure, InkOverFace on a face the viewer sees), no browser

@@ -18,7 +18,7 @@ import { Segment } from './segment.ts';
 import { fnv1a, rng } from './random.ts';
 import { TAKE_LEVEL } from './recording.ts';
 import { describeSound } from './synth/analyse.ts';
-import { loudness } from './synth/loudness.ts';
+import { ABSOLUTE_GATE, loudness } from './synth/loudness.ts';
 import { CodeSound } from './synth/graph/nodes.ts';
 import type { ResolvedSound } from './synth/graph/plan.ts';
 import type { ResolvedTrial } from './synth/resolve.ts';
@@ -524,6 +524,13 @@ export const measurePcm = (pcm: Pcm): Measure => ({
   loudness: lockLoudness(loudness(pcm)),
   ...lockTiming(describeSound(pcm)),
 });
+
+/**
+ * A variant measured as silence: no 400 ms block of it over BS.1770's
+ * absolute gate (-70 LUFS), so it has no integrated loudness to level by.
+ */
+export const heardNothing = (measure: Measure): boolean =>
+  measure.loudness.integrated <= ABSOLUTE_GATE;
 
 /** An app's sounds as a film loads them: the declarations, what was made, and where. */
 export interface Sounds {

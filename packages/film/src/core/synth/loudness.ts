@@ -22,7 +22,7 @@ interface Loudness {
 const BLOCK = 0.4;
 const HOP = 0.1;
 /** The gates: absolute, and relative to the mean of what passed the absolute one. */
-const ABSOLUTE_GATE = -70;
+export const ABSOLUTE_GATE = -70;
 const RELATIVE_GATE = -10;
 
 /**

@@ -119,6 +119,19 @@ export class LeadIn extends Schema.TaggedError<LeadIn>()('LeadIn', {
   }
 }
 
+/**
+ * A derived sound (a code or procedural sound) with a seed that renders
+ * silent (`heardNothing`): where the film places it, that seed plays nothing.
+ */
+export class SeedSilent extends Schema.TaggedError<SeedSilent>()('SeedSilent', {
+  name: Schema.String,
+  seed: Schema.Int,
+}) {
+  override get message() {
+    return `sound "${this.name}" seed ${this.seed} renders silent (nothing over BS.1770's -70 LUFS gate), so it plays nothing where it is placed; edit its data until every seed is heard`;
+  }
+}
+
 /** A kept take whose onset and hit the lock does not record: a `sync: 'hit'` placement cannot land it. */
 export class TimingUnrecorded extends Schema.TaggedError<TimingUnrecorded>()('TimingUnrecorded', {
   name: Schema.String,

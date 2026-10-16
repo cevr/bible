@@ -126,6 +126,8 @@ The load (`core/synth/resolve.ts` `resolveCode`) refuses these before anything r
 - a degree pitch with no key (`DegreeWithoutKey`);
 - a sound longer than `MAX_CODE_SECS` (120 s), or one that writes more than `MAX_CODE_WORK` seconds of frames, at the most its draws allow (`CodeTooLong`).
 
+What only a render shows, the film's check hears: a code or procedural sound that the film places, with a seed that renders silent (nothing over BS.1770's −70 LUFS gate), fails `bun run check <film>` (`SeedSilent`, an error that names the sound and the seed).
+
 ### The same samples on every host
 
 The renderer computes with its own sine, cosine, exponential, logarithm and tanh (`core/synth/graph/math.ts` `sinTurn`, `cosTurn`, `exp`, `log`, `tanh`), built from + − × ÷ and the square root, which every host rounds the same way (IEEE 754). In the graph's folder, the lint rule `film/synth-own-math` refuses the host's `Math` transcendentals, `**`, and any helper from outside the folder. `RENDER_VERSION` is the digest of the probes' pins in `core/synth/graph/fixtures/golden.ts`: a change that moves one sample of one probe moves it, and with it every code sound's label.
