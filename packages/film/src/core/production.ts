@@ -27,7 +27,7 @@
 import { Array as Arr, Data, Effect, Match, Option, Order, Result, Schema } from 'effect';
 import { type BoardFile, approvalOf } from './board.ts';
 import type { ChoicePoint } from './choice.ts';
-import { VersionMoved, WordUnaimed } from './refusals.ts';
+import { Undecided, VersionMoved, WordUnaimed } from './refusals.ts';
 import type { ReviewFolder } from './review.ts';
 import { maybe } from './schema.ts';
 
@@ -349,6 +349,36 @@ const implicit = (production: string): ProductionFile => newProduction(productio
 /** The version (1-based) open at `at`: the last opened at or before it, else the first. */
 export const versionAt = (file: ProductionFile, at: number): number =>
   Math.max(1, file.versions.findLastIndex((v) => v.at <= at) + 1);
+
+/** A decision of the owner's, as the ledger keeps it. */
+type Decided = Extract<Said, { readonly _tag: 'Decided' }>;
+
+/** The owner's decisions filed in version `version` (in chat, or an ask's answer), newest first. */
+const decisionsIn = (file: ProductionFile, version: number): ReadonlyArray<Decided> =>
+  file.said
+    .filter((s): s is Decided => s._tag === 'Decided' && versionAt(file, s.at) === version)
+    .toReversed();
+
+/**
+ * Moved forward on the owner's word, as an agent moves it: version
+ * `after + 1` opens at `at`, because of the newest decision filed in the
+ * version open now (`decisionsIn`); refused when that version holds none
+ * (`Undecided`), and as `moveForward` refuses when the production moved on.
+ */
+export const forwardOnDecision = (
+  file: ProductionFile,
+  move: Omit<MoveForward, 'because'>,
+  at: number,
+): Result.Result<ProductionFile, VersionMoved | Undecided> => {
+  const current = currentVersion(file);
+  return Option.match(Arr.head(decisionsIn(file, current)), {
+    onNone: () =>
+      Result.flatMap(moveForward(file, { ...move, because: Option.none() }, at), () =>
+        Result.fail(Undecided.make({ production: file.production, version: current })),
+      ),
+    onSome: (decided) => moveForward(file, { ...move, because: Option.some(decided.text) }, at),
+  });
+};
 
 /** A version number the ledger has, else none. */
 const known = (file: ProductionFile, n: number): Option.Option<number> =>

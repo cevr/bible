@@ -487,6 +487,17 @@ export class VersionMoved extends Schema.TaggedError<VersionMoved>()('VersionMov
   }
 }
 
+/** A move forward an agent asked of a version that holds no decision of the owner's: only his word moves a production. */
+export class Undecided extends Schema.TaggedError<Undecided>()('Undecided', {
+  production: Schema.String,
+  /** The version open now. */
+  version: Schema.Int,
+}) {
+  override get message() {
+    return `${this.production} v${this.version} holds no decision of the owner's: file the word he gave with \`decide\` (his own words, verbatim), or ask him (\`ask\`), then move forward`;
+  }
+}
+
 /** The owner's word aimed at a choice with no set, or a variant with no choice: what it is about does not say where. */
 export class WordUnaimed extends Schema.TaggedError<WordUnaimed>()('WordUnaimed', {
   /** What it names without what holds it: `point` (no `set`) or `variant` (no `point`). */

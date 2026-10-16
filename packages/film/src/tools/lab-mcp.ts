@@ -51,7 +51,16 @@ import {
 import { McpProtocol, McpSchema, McpServer, Tool, Toolkit } from 'effect/ai';
 import { pageHref } from '../core/api.ts';
 import { Ask, AskAnswer, AskBlock, type AskRecord, askStatus, oneQuestion } from '../core/ask.ts';
-import { type OwnerWord, ProductionId, Said, setNamed, versionAt } from '../core/production.ts';
+import {
+  type OwnerWord,
+  ProductionId,
+  Said,
+  VersionNumber,
+  currentVersion,
+  forwardOnDecision,
+  setNamed,
+  versionAt,
+} from '../core/production.ts';
 import {
   type BoardFile,
   BoardStyle,
@@ -503,6 +512,35 @@ const NoteTool = Tool.make('note', {
   failure: LabRefused,
 });
 
+/** What `forward` moves a production by: the version the agent read as current, and what the next is for. */
+const ForwardParams = Schema.Struct({
+  production: OwnerWordParams.fields.production,
+  after: VersionNumber.annotate({
+    description:
+      'The version you read as current (`overview`, or the timeline): refused when the production has moved since',
+  }),
+  title: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(200)).annotate({
+    description: 'What the next version is for, in a line',
+  }),
+});
+
+/** What `forward` answers: the version opened, the decision it opened on, and the timeline's link there. */
+const MovedForward = Schema.Struct({
+  production: Schema.String,
+  version: Schema.Int,
+  title: Schema.String,
+  because: Schema.String,
+  links: LabLinks,
+});
+
+const ForwardTool = Tool.make('forward', {
+  description:
+    "Move a production forward, as `film production forward` does: its next version opens now, after `after` (the one you read as current), for `title`. Only on the owner's word: the version open now must hold his decision, filed with `decide` from chat or by an ask he answered, and the move is because of the newest one; with none it is refused (file or ask it first). Answers the version opened and the timeline's link.",
+  parameters: ForwardParams,
+  success: MovedForward,
+  failure: LabRefused,
+});
+
 const LabToolkit = Toolkit.make(
   Overview,
   Changes,
@@ -522,6 +560,7 @@ const LabToolkit = Toolkit.make(
   CloseAsk,
   DecideTool,
   NoteTool,
+  ForwardTool,
 );
 
 // ---------------------------------------------------------------------------
@@ -1050,12 +1089,45 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     };
   });
 
+  /**
+   * The production moved forward on the owner's word, through the store's
+   * lock as `film production forward` moves it: refused unless the version
+   * open now holds his decision (`forwardOnDecision`), which it opens on.
+   */
+  const forward = Effect.fn('LabMcp.forward')(function* (given: typeof ForwardParams.Type) {
+    const production = given.production;
+    if (Option.isNone(yield* refused(productions.read(production))))
+      return yield* LabRefused.make({
+        reason: `no production ${production}: film production new ${production} --title "<title>"`,
+      });
+    const at = yield* Clock.currentTimeMillis;
+    const file = yield* refused(
+      productions.modify(production, (current) =>
+        forwardOnDecision(current, { after: given.after, title: given.title }, at),
+      ),
+    );
+    const version = currentVersion(file);
+    const opened = file.versions[version - 1];
+    yield* Effect.log(`lab.mcp.forward production=${production} version=${version}`);
+    return {
+      production,
+      version,
+      title: given.title,
+      because: Option.getOrElse(
+        Option.flatMap(Option.fromUndefinedOr(opened), (v) => v.because),
+        () => '',
+      ),
+      links: linksOf(pageHref.production(production, version)),
+    };
+  });
+
   return {
     ask,
     askOf,
     asksOf,
     closeAsk,
     fileWord,
+    forward,
     overview,
     notesOf,
     boardOf,
@@ -1107,6 +1179,7 @@ const handlers = (options: LabMcpOptions) =>
         close_ask: logged('close_ask', ({ ask, why }) => lab.closeAsk(ask, why)),
         decide: logged('decide', (given) => lab.fileWord('Decided', given)),
         note: logged('note', (given) => lab.fileWord('Noted', given)),
+        forward: logged('forward', (given) => lab.forward(given)),
       }),
     ),
   );
@@ -1223,7 +1296,7 @@ const INSTRUCTIONS = [
   'Listen with `changes`: pass the cursor from `overview` as `since` and a `wait` in seconds; it answers as soon as the owner does something (a note, a reply, a kept try, an approval or withdrawal, a comment, a render or set, an answer to an ask), each change with its film, panel or render, its words and its lab link. Call it again with the cursor it answers.',
   "Hand the owner work to review as a guided review (`ask`): one page, a section per piece of material in the flow's order (script → concept → Board → voice → animatic → Rive scenes → sound → render → shorts), each the material itself in place (a script as a `script` block, never a `document` of its Markdown, and one script per ask; the Board, a video, a take, a set's document), then its questions, each a `choose` with your recommendation marked and its `why`; never a path, a link to elsewhere or prose describing what to open. Publish the files first as a set (`publish_set`) when the material is new, but a new script as a series draft (`series/<series>/scripts/<draft>.md`), named in a `script` block; reply on the note that asked for it.",
   "When a decision is the owner's, ask it (`ask`), each question a `choose` with one option `recommended` (an optional `free_text` beside it for anything else; words are a burden to require); hand the owner its link, hear each answer on `changes` (`ask.step`, `ask.answered`), and `close_ask` once acted on.",
-  "When the owner has already decided in chat, file it on his production's timeline with `decide` (feedback that decides nothing, `note`), his own words verbatim as `quote`: never file a decision he did not make. What is still his to choose is an `ask`.",
+  "When the owner has already decided in chat, file it on his production's timeline with `decide` (feedback that decides nothing, `note`), his own words verbatim as `quote`: never file a decision he did not make. What is still his to choose is an `ask`. Once his decision is filed (in chat, or an ask he answered), `forward` moves the production on it to its next version; with no decision of his in the version, it is refused.",
   EASEL_INSTRUCTIONS,
 ].join('\n\n');
 

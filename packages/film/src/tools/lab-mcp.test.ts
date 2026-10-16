@@ -258,6 +258,7 @@ describe('the lab as an MCP server', () => {
             'close_ask',
             'decide',
             'note',
+            'forward',
             'check',
             'cues',
             'journal',
@@ -1282,6 +1283,51 @@ describe("the owner's word through the MCP", () => {
           expect(Option.getOrThrow(yield* (yield* ProductionStore).read('f')).said).toEqual([]);
         }),
       ),
+  );
+
+  it.effect('moves a production forward only on his decision, the newest in the version', () =>
+    provided(
+      Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        yield* productionWithSet(tool);
+        const word = { production: 'f', by: 'painter' };
+        const undecided = (v: number) =>
+          `f v${v} holds no decision of the owner's: file the word he gave with \`decide\` (his own words, verbatim), or ask him (\`ask\`), then move forward`;
+        const move = { production: 'f', after: 1, title: 'The calm judge' };
+        expect((yield* tool('forward', move)).refused).toBe(undecided(1));
+        // A note decides nothing.
+        yield* tool('note', { ...word, text: 'Warmer', quote: 'warm it up' });
+        expect((yield* tool('forward', move)).refused).toBe(undecided(1));
+        yield* TestClock.adjust('1 minute');
+        yield* tool('decide', { ...word, text: 'The cold judge', quote: 'the cold one' });
+        yield* tool('decide', { ...word, text: 'The calmer judge', quote: 'no, the calmer one' });
+        yield* TestClock.adjust('1 minute');
+        expect(yield* tool('forward', move)).toEqual({
+          production: 'f',
+          version: 2,
+          title: 'The calm judge',
+          because: 'The calmer judge',
+          links: {
+            local: `${MCP_BASE}productions/f?v=2`,
+            phone: `${MCP_PHONE}productions/f?v=2`,
+          },
+        });
+        expect((yield* tool('forward', move)).refused).toBe(
+          'f is at v2 now, not v1: read it again before moving forward',
+        );
+        // The decision moved it into v2: v2 holds none of its own yet.
+        expect((yield* tool('forward', { ...move, after: 2 })).refused).toBe(undecided(2));
+        expect((yield* tool('forward', { ...move, production: 'nope' })).refused).toBe(
+          'no production nope: film production new nope --title "<title>"',
+        );
+        const file = Option.getOrThrow(yield* (yield* ProductionStore).read('f'));
+        expect(file.versions.map((v) => [v.title, v.because])).toEqual([
+          ['the board', Option.none()],
+          ['The calm judge', Option.some('The calmer judge')],
+        ]);
+      }),
+    ),
   );
 
   it.effect('refuses a set two roots hold, by its folder or its ref, for an ask too', () =>
