@@ -1,17 +1,24 @@
 // What waits for a film's picture faces (`pictureFacesWait`): nothing once
 // every one asked for has loaded, or none was asked for, so a page whose
 // faces are in draws at once; else each one still loading, failing when one
-// will not load. The UI faces (`swap`) are the chrome's, and nothing waits for them.
+// will not load. The UI faces (Geist and Geist Mono) are the chrome's, and
+// nothing waits for them.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Exit, Fiber, Option } from 'effect';
 import { pictureFacesWait } from './face.ts';
 
 /** A face in a page's fonts: how it is shown, and its load, which the test settles. */
-const face = (display: FontDisplay, status: FontFaceLoadStatus, loaded = Promise.resolve()) => ({
+const face = (
+  display: FontDisplay,
+  status: FontFaceLoadStatus,
+  loaded = Promise.resolve(),
+  family = 'Film Face',
+) => ({
   display,
   status,
   loaded,
+  family,
 });
 
 /** A page's fonts holding `faces`. */
@@ -38,10 +45,23 @@ describe('pictureFacesWait', () => {
     }),
   );
 
-  it.effect("never waits for a UI face (the chrome's, swapped in)", () =>
-    Effect.sync(() => {
-      expect(Option.isNone(pictureFacesWait(fontsOf([face('swap', 'loading')])))).toBe(true);
-    }),
+  it.effect(
+    "never waits for a UI face, the chrome's, though it blocks as a picture face does",
+    () =>
+      Effect.sync(() => {
+        const never = new Promise<void>(() => {});
+        expect(
+          Option.isNone(
+            pictureFacesWait(
+              fontsOf([
+                face('block', 'unloaded', never, 'Geist'),
+                face('block', 'loading', never, '"Geist Mono"'),
+                face('swap', 'loading'),
+              ]),
+            ),
+          ),
+        ).toBe(true);
+      }),
   );
 
   it.live('waits for each picture face still loading, and is done once they have', () =>

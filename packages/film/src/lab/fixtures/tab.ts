@@ -96,6 +96,12 @@ export interface Tab {
   readonly attached: (selector: string) => Effect.Effect<void>;
   /** The box of the element at `selector`, once it is shown. */
   readonly box: (selector: string) => Effect.Effect<Box>;
+  /**
+   * How many pixels of the box of the element at `selector`, shown or not,
+   * differ from the page's background (its body's, else its root element's,
+   * else the view's white) as the page paints them now: 0 where nothing is drawn.
+   */
+  readonly ink: (selector: string) => Effect.Effect<number>;
   /** Click the middle of the element at `selector` once it is shown, enabled, still and on top. */
   readonly click: (selector: string) => Effect.Effect<void>;
   /** Clear the field at `selector` and type `value` into it. */
@@ -380,6 +386,9 @@ export interface View {
    */
   readonly retire: () => void;
 }
+
+/** `Page.captureScreenshot`'s answer: the image, base64. */
+const Shot = Schema.Struct({ data: Schema.String });
 
 /** `Page.addScriptToEvaluateOnNewDocument`'s answer: the script's id, to remove it by. */
 const Added = Schema.Struct({ identifier: Schema.String });
@@ -827,6 +836,35 @@ export const makeTab = (
       forward: run('history.forward()'),
       url: run<string>('location.href'),
       resize: (width, height) => Effect.promise(() => view.resize(width, height)),
+      ink: (selector) =>
+        Effect.gen(function* () {
+          const box = yield* run<Box>(
+            `(() => { const r = document.querySelector(${jsonOf(selector)}).getBoundingClientRect(); return { x: r.left, y: r.top, width: r.width, height: r.height }; })()`,
+          );
+          const shot = yield* Effect.flatMap(
+            Effect.orDie(
+              send('Page.captureScreenshot', { format: 'png', clip: { ...box, scale: 1 } }),
+            ),
+            (answer) => Schema.decodeUnknownEffect(Shot)(answer).pipe(Effect.orDie),
+          );
+          return yield* run<number>(`(async () => {
+            const image = new Image();
+            image.src = ${jsonOf(`data:image/png;base64,${shot.data}`)};
+            await image.decode();
+            const canvas = new OffscreenCanvas(image.width, image.height);
+            const context = canvas.getContext('2d');
+            context.drawImage(image, 0, 0);
+            const pixels = context.getImageData(0, 0, image.width, image.height).data;
+            const ground = [document.body, document.documentElement]
+              .map((el) => getComputedStyle(el).backgroundColor)
+              .find((c) => c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') ?? 'rgb(255, 255, 255)';
+            const [r, g, b] = ground.match(/\\d+/g).map(Number);
+            let off = 0;
+            for (let i = 0; i < pixels.length; i += 4)
+              if (Math.abs(pixels[i] - r) > 2 || Math.abs(pixels[i + 1] - g) > 2 || Math.abs(pixels[i + 2] - b) > 2) off += 1;
+            return off;
+          })()`);
+        }),
       // The page as it stands is marked; the next one, loaded, has no mark.
       nextLoad: Effect.suspend(() => {
         marks += 1;

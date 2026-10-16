@@ -314,7 +314,7 @@ describe("a page's server render", () => {
     ['in a subfolder of its build', nestedBundle],
   ] as const)
     it.live(
-      `heads the page with the words face's latin file, preloaded and declared, at the URL the browser's build answers it: its server entry ${where}`,
+      `heads the page with each UI face's latin file preloaded and every subset declared, blocking, at the URLs the browser's build answers them: its server entry ${where}`,
       () =>
         Effect.gen(function* () {
           const fs = yield* FileSystem.FileSystem;
@@ -336,18 +336,26 @@ describe("a page's server render", () => {
             servers: [],
           });
           const page = yield* renderOf({ id: 1, bundle: yield* bundle }, answering('a'));
-          const preloaded = Option.getOrElse(
-            Option.fromNullishOr(
-              /<link rel="preload" href="([^"]+)" as="font" type="font\/woff2" crossorigin>/.exec(
-                page.head,
-              )?.[1],
+          const preloaded = Array.from(
+            page.head.matchAll(
+              /<link rel="preload" href="([^"]+)" as="font" type="font\/woff2" crossorigin>/g,
             ),
-            () => '',
+            (m) => m[1] ?? '',
           );
-          expect(preloaded).toMatch(/^\/geist-latin-wght-normal-\w+\.woff2$/);
-          expect(page.head).toContain(`src:url(${preloaded}) format('woff2')`);
-          expect(page.head).toContain('font-display:swap');
-          expect(browser.outputs.map((file) => `/${file.path}`)).toContain(preloaded);
+          expect(preloaded.map((url) => url.replace(/-\w+\.woff2$/, ''))).toEqual([
+            '/geist-latin-wght-normal',
+            '/geist-mono-latin-wght-normal',
+          ]);
+          const declared = Array.from(
+            page.head.matchAll(/src:url\(([^)]+)\) format\('woff2'\);[^}]*font-display:(\w+)/g),
+            (m) => [m[1] ?? '', m[2] ?? ''] as const,
+          );
+          // Every subset declared, each blocking until its file lands; the preloaded among them.
+          expect(declared.length).toBe(5);
+          expect(new Set(declared.map(([, display]) => display))).toEqual(new Set(['block']));
+          for (const url of preloaded) expect(declared.map(([u]) => u)).toContain(url);
+          const outputs = browser.outputs.map((file) => `/${file.path}`);
+          for (const [url] of declared) expect(outputs).toContain(url);
         }).pipe(Effect.scoped, Effect.provide(Services)),
     );
 

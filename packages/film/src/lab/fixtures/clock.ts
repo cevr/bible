@@ -20,6 +20,13 @@ export const REAL_TIMERS = 'film.realTimers';
 /** The global the clock's controls are under: `globalThis[Symbol.for(CLOCK)]`. */
 export const CLOCK = 'film.clock';
 
+/**
+ * The clock stopped where it stands, run after `CLOCK_SCRIPT` before the
+ * page's own scripts: nothing is due yet, so the step to a millisecond on
+ * fires nothing. It runs on as the test runs it (`resume()`).
+ */
+export const CLOCK_STOPPED = `globalThis[Symbol.for('${CLOCK}')].pauseAt(Date.now() + 2)`;
+
 export const CLOCK_SCRIPT = `(() => {
   const real = {
     setTimeout: globalThis.setTimeout.bind(globalThis),

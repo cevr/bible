@@ -13,6 +13,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { appleAgent } from '../../src/browser/keys.ts';
 import { chordLabel } from '../../src/command/keymap.ts';
 import { pageHref } from '../../src/core/api.ts';
+import { PAGE_ROOT } from '../../src/core/page-render.ts';
 import {
   DESK,
   PHONE,
@@ -27,6 +28,7 @@ import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { attributeIs, evaluates, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import { LAB_MODES } from '../../src/lab/mode.ts';
+import { faceHold } from '../../src/player/face.ts';
 
 /** Long enough to bundle the server entry once, render, open, hydrate and stage the film. */
 const SLOW = 60_000;
@@ -35,8 +37,21 @@ const SLOW = 60_000;
 const mismatches = (logged: ReadonlyArray<{ readonly type: string; readonly text: string }>) =>
   logged.filter((l) => /hydrat/i.test(l.text) && l.type !== 'log');
 
-/** The markup as a browser paints it before any script runs. */
-const painted = (html: string) => html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+/**
+ * The face hold's script (`faceHold`): the one script the head runs before
+ * the root is painted, which shows the root once the UI faces have loaded.
+ */
+const HOLD = faceHold(`[${PAGE_ROOT}]`).script;
+
+/**
+ * The markup as a browser paints it before the page's scripts run: every
+ * script left out but the face hold's, which a first paint waits on.
+ */
+const painted = (html: string) =>
+  html
+    .split(HOLD)
+    .map((part) => part.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, ''))
+    .join(HOLD);
 
 /** The markup from the page's root on (the head's styles name every class). */
 const rooted = (html: string) => html.slice(html.indexOf('data-page-root'));
@@ -201,7 +216,7 @@ describe("a film's pages served as the lab renders them", () => {
           );
           expect(mismatches(page.logged)).toEqual([]);
           expect(errors).toEqual([]);
-          // What the server painted first, before any script: every target it
+          // What the server painted first, before any script but the face hold: every target it
           // shows stands where the staged page has it. On a desk that is the
           // panel's too; on a phone the panel, under a picture and a bar only
           // the film can size, is not seen until they land. (The staged

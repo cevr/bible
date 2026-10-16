@@ -58,13 +58,11 @@ const uiFace = (family: string, url: string, range: string): Face => ({
   style: 'normal',
 });
 
-/**
- * The subset a page's head declares (`FACE_HEAD`): the words face's latin,
- * which the chrome's text is set in. The mono face is not in the head: its
- * fallbacks share its one advance and its height exactly, so its swap moves
- * nothing, and the head fetches only the font a target's place depends on.
- */
-const HEAD_FACE = uiFace(WORDS_FAMILY, wordsLatin, SUBSETS.latin);
+/** The words face's latin subset: the chrome's words. */
+const WORDS_LATIN = uiFace(WORDS_FAMILY, wordsLatin, SUBSETS.latin);
+
+/** The numbers and code face's latin subset: the chrome's numbers, timecodes and ids. */
+const MONO_LATIN = uiFace(MONO_FAMILY, monoLatin, SUBSETS.latin);
 
 /**
  * The UI faces' subsets: each script either package ships that the chrome
@@ -72,11 +70,28 @@ const HEAD_FACE = uiFace(WORDS_FAMILY, wordsLatin, SUBSETS.latin);
  */
 const UI_FACES: ReadonlyArray<Face> = [
   uiFace(WORDS_FAMILY, wordsLatinExt, SUBSETS.latinExt),
-  HEAD_FACE,
+  WORDS_LATIN,
   uiFace(MONO_FAMILY, monoSymbols, SUBSETS.symbols2),
   uiFace(MONO_FAMILY, monoLatinExt, SUBSETS.latinExt),
-  uiFace(MONO_FAMILY, monoLatin, SUBSETS.latin),
+  MONO_LATIN,
 ];
+
+/**
+ * The subsets a page's first paint sets its text in, preloaded by its head
+ * (`FACE_HEAD`): each face's latin. The other subsets are declared beside
+ * them and fetched only when a page's text holds one of their characters.
+ */
+const FIRST_PAINT: ReadonlyArray<Face> = [WORDS_LATIN, MONO_LATIN];
+
+/**
+ * How the chrome's text waits for its face: `block`, so no text is drawn in
+ * a fallback and nothing moves when a face lands. The lab is served from
+ * this machine or the tailnet and the head preloads the first paint's files
+ * (`FIRST_PAINT`), so the wait is a few milliseconds; past the browser's
+ * block period (3 s) the text shows in its metric-matched fallback
+ * (`tokens.css`).
+ */
+const UI_DISPLAY: FontDisplay = 'block';
 
 /** A family as a page's fonts name it: a stylesheet's rule keeps its quotes. */
 const unquoted = (family: string) => family.replace(/^["']|["']$/g, '');
@@ -100,17 +115,13 @@ const added = (
 
 /**
  * Register the UI faces' subsets into `fonts` (a page's `document.fonts`)
- * but the one its head declared (`FACE_HEAD`, on a page the server
- * rendered); each loads when text first needs it, the chrome showing its
- * fallback until then (`swap`).
+ * unless its head declared them (`FACE_HEAD`, on a page the server
+ * rendered); each loads when text first needs it, the chrome's text unseen
+ * until it lands (`UI_DISPLAY`).
  */
 export const registerFace = (fonts: FontFaceSet): void => {
-  const inHead = Array.from(fonts).some((font) => unquoted(font.family) === HEAD_FACE.family);
-  added(
-    fonts,
-    UI_FACES.filter((face) => !inHead || face !== HEAD_FACE),
-    'swap',
-  );
+  const inHead = Array.from(fonts).some((font) => unquoted(font.family) === WORDS_FAMILY);
+  if (!inHead) added(fonts, UI_FACES, UI_DISPLAY);
 };
 
 /**
@@ -125,24 +136,73 @@ export const registerFace = (fonts: FontFaceSet): void => {
 const fromRoot = (url: string) =>
   url.startsWith('data:') ? url : `/${url.slice(url.lastIndexOf('/') + 1)}`;
 
+/** `face`'s `@font-face` rule, its file named from the pages' root. */
+const faceRule = (face: Face) =>
+  `@font-face{font-family:'${face.family}';src:url(${fromRoot(face.url)}) format('woff2');` +
+  `font-weight:${face.weight};font-style:${face.style};font-display:${UI_DISPLAY};unicode-range:${face.range}}`;
+
 /**
- * The words face's latin subset in a page's head (`page-server.tsx`), for its
- * first paint: fetched with the page, ahead of its scripts, and declared
- * there (`swap`), so the chrome's text the server rendered shows in it once
- * it lands, not once the page's scripts have run. The only font a page
- * fetches before it paints, and no stylesheet holds its bytes.
+ * The UI faces in a page's head (`page-server.tsx`), for its first paint:
+ * the first paint's files (`FIRST_PAINT`) fetched with the page, ahead of
+ * its scripts, and every subset declared there (`UI_DISPLAY`), so the
+ * chrome's text the server rendered is first drawn in its face, not once the
+ * page's scripts have run. No stylesheet holds a face's bytes.
  */
 export const FACE_HEAD =
-  `<link rel="preload" href="${fromRoot(HEAD_FACE.url)}" as="font" type="font/woff2" crossorigin>` +
-  `<style>@font-face{font-family:'${HEAD_FACE.family}';src:url(${fromRoot(HEAD_FACE.url)}) format('woff2');` +
-  `font-weight:${HEAD_FACE.weight};font-style:normal;font-display:swap;unicode-range:${SUBSETS.latin}}</style>`;
+  FIRST_PAINT.map(
+    (face) =>
+      `<link rel="preload" href="${fromRoot(face.url)}" as="font" type="font/woff2" crossorigin>`,
+  ).join('') + `<style>${UI_FACES.map(faceRule).join('')}</style>`;
 
-/** How a picture face is added to a page's fonts: never the chrome's text, so never swapped in. */
+/**
+ * The attribute a page's root element (`<html>`) carries once its root is
+ * shown: `in` once the first paint's faces have loaded, `late` once
+ * `CAP_MS` passed first or a file would not load.
+ */
+const SHOWN = 'data-faces';
+
+/** How long, in ms, a page's root waits for the first paint's faces before it shows in their fallbacks. */
+const CAP_MS = 1000;
+
+/**
+ * The hold on a page's root (`root`, a selector of it) until the first
+ * paint's faces have loaded: its `head`, for a page's head after
+ * `FACE_HEAD`, and its terms (the attribute `shown` it sets on `<html>`,
+ * its cap `capMs`, its `script`). The root is kept out of paint
+ * (`visibility: hidden`, never `display: none`, so it is laid out and its
+ * machines run) and shown once `document.fonts.load` has each preloaded
+ * face (`FIRST_PAINT`), so the first frame it paints is set in them and
+ * nothing the owner sees moves when they land. Under `block` a text-sized
+ * box (the timecode) would still be drawn in the fallback's width and then
+ * move; the hold is what keeps it still. Past `capMs`, or when a file will
+ * not load, the root shows in the fallbacks (`tokens.css`) and the page
+ * logs `[lab] fonts.late` once.
+ */
+export const faceHold = (root: string) => {
+  const loads = FIRST_PAINT.map((face) => `f.load("1em '${face.family}'")`).join(',');
+  const script =
+    `<script>(()=>{const d=document.documentElement,f=document.fonts;` +
+    `const show=(how,why)=>{if(d.hasAttribute('${SHOWN}'))return;d.setAttribute('${SHOWN}',how);` +
+    `if(how==='late')console.info('[lab] fonts.late reason='+why+' cap_ms=${CAP_MS}')};` +
+    `setTimeout(()=>show('late','cap'),${CAP_MS});` +
+    `Promise.all([${loads}]).then(()=>show('in'),()=>show('late','failed'))})()</script>`;
+  return {
+    head: `<style>html:not([${SHOWN}]) ${root}{visibility:hidden}</style>${script}`,
+    script,
+    shown: SHOWN,
+    capMs: CAP_MS,
+  };
+};
+
+/** How a picture face is added to a page's fonts: drawn only once it has loaded. */
 const PICTURE_DISPLAY: FontDisplay = 'block';
+
+/** The UI faces' families: the chrome's, which no frame waits for. */
+const UI_FAMILIES: ReadonlySet<string> = new Set([WORDS_FAMILY, MONO_FAMILY]);
 
 /**
  * The faces a film draws in, asked for: added to the page's fonts the first
- * time (`block`: a picture face is never the chrome's text) and every file
+ * time (`block`, as the chrome's faces are) and every file
  * fetched from then on. Asking waits for none of them, so the page's chrome
  * and the film's bar stand while they load; what draws the film waits for
  * them instead (`pictureFacesWait`): the preview's canvas, the stills, the
@@ -167,11 +227,16 @@ export const pictureFaces = (faces: ReadonlyArray<Face>): Effect.Effect<void> =>
  * was asked for, so a page whose faces are in draws at once; else until each
  * has, so text measures and draws true from the first frame whatever
  * families and scripts the film draws (a frame or a still drawn in a
- * fallback face is a wrong one). A face that will not load fails it.
+ * fallback face is a wrong one). A face that will not load fails it. The UI
+ * faces are the chrome's (`UI_FAMILIES`): a subset no text has needed is
+ * never loaded, and no frame waits for one.
  */
 export const pictureFacesWait = (fonts: FontFaceSet): Option.Option<Effect.Effect<void>> => {
   const loading = Array.from(fonts).filter(
-    (font) => font.display === PICTURE_DISPLAY && font.status !== 'loaded',
+    (font) =>
+      font.display === PICTURE_DISPLAY &&
+      !UI_FAMILIES.has(unquoted(font.family)) &&
+      font.status !== 'loaded',
   );
   return Option.as(
     Option.liftPredicate(loading, (l) => l.length > 0),

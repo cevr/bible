@@ -1070,8 +1070,12 @@ goes on. A build's scripts and styles are also compressed once at brotli's
 best, in the background after the build, and sent so to a request that
 takes br once made (`squeeze`, `tools/lab-page.ts`; the Lab's main chunk
 261 KB, against 313 KB per request). A wedge's files are not: only the
-easel's browser on the box asks for them, so each is compressed per request. A page's head preloads and declares the words face's (Geist's) latin subset
-(`FACE_HEAD`, `player/face.ts`) and holds no other font;
+easel's browser on the box asks for them, so each is compressed per request. A page's head preloads the UI faces' latin subsets (Geist's and Geist
+Mono's) and declares every subset with `font-display: block` (`FACE_HEAD`,
+`player/face.ts`), and keeps the page's root out of paint until the
+preloaded faces have loaded, at most the hold's cap (1 s), past which it shows
+in the fallbacks and logs `[lab] fonts.late` (`faceHold`): nothing on a page
+moves when its faces land (`e2e/lab/touch-face.dom.test.ts`);
 `tools/page-css-budget.test.ts` holds each place's render-blocking CSS, as
 the lab answers it, to 64 KiB. Only the lab's server bundles Solid; the
 render's server (`film render`, `check`) serves the player alone.

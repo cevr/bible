@@ -37,7 +37,7 @@ import { appleAgent } from '../../browser/keys.ts';
 import { splice } from '../../tools/lab-page.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled, served } from './bundles.ts';
-import { CLOCK_SCRIPT } from './clock.ts';
+import { CLOCK_SCRIPT, CLOCK_STOPPED } from './clock.ts';
 import type { LabSelection } from '../../command/selection.ts';
 import { labHref, labPlaceOf } from '../place.ts';
 import type { LabMode } from '../mode.ts';
@@ -844,6 +844,12 @@ interface ReviewAt {
    * in the face's fallback, then the face landing. None: answered at once.
    */
   readonly faceHeld?: Deferred.Deferred<void>;
+  /**
+   * The page's clock stopped before its first script runs: its timers wait
+   * until the test runs the clock on (`clock.release`), so a case reads the
+   * page before a timer the page set at its load (a cap) has fired.
+   */
+  readonly clockStopped?: boolean;
 }
 
 /**
@@ -1165,7 +1171,7 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
   const page = yield* openTab({
     ...(at.viewport ?? DESK),
     microphone: false,
-    init: [CLOCK_SCRIPT],
+    init: [CLOCK_SCRIPT, ...Arr.filter([CLOCK_STOPPED], () => at.clockStopped === true)],
     assets: [script],
     serve: fakeServer(
       servedBy(name, document),

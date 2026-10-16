@@ -144,7 +144,7 @@ describe('makeStills', () => {
           const broken = Promise.reject(new Error('face refused'));
           broken.catch(() => undefined);
           Reflect.set(Reflect.get(globalThis, 'document'), 'fonts', [
-            { display: 'block', status: 'error', loaded: broken },
+            { family: 'Film Face', display: 'block', status: 'error', loaded: broken },
           ]);
           const { film, times } = recording();
           const page = turns();
