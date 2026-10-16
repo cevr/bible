@@ -636,23 +636,31 @@ Chrome whose flags ask for the GPU (`GPU_FLAG`, `--enable-gpu`) is spawned
 through the GPU launcher (`tools/chrome-gpu.ts`, `gpuLauncher`): a shell script
 written into the process's Chrome profile, which Bun spawns as its Chrome; it
 drops `--disable-gpu`, keeps every other argument in order, and execs the real
-Chrome (`BUN_CHROME_PATH`, else the browsers Bun looks for in
-`/Applications` and `~/Applications`, else Playwright's cached Chromium) in its
-own process, so Bun's DevTools pipe and its kill reach Chrome. The renderer
-asks for it (`launchArgs`), so `render`, `doctor` and the lab's `look` and
+Chrome in its own process, so Bun's DevTools pipe and its kill reach Chrome.
+The real Chrome is `BUN_CHROME_PATH`, else the one Bun 1.4.3 would find,
+searched here as Bun searches (`bunSearch`: the browsers it names on `$PATH`,
+then its app bundles in `/Applications` and `~/Applications`, then
+Playwright's headless shell), else Playwright's cached Chromium. Every later
+view names the same launcher and profile, so a Chrome Bun spawns again after
+the first one died runs its GPU too, in the same profile. The renderer asks
+for it (`launchArgs`), so `render`, `doctor` and the lab's `look` and
 look-book draw in one such Chrome; the browser tests do not, and no other
-platform does. The 2D canvas stays software (`--disable-accelerated-2d-canvas`)
-and WebGL stays on SwiftShader (`--use-angle=swiftshader`), so the GPU changes
-no pixel: RBF's `cold` and `title` stills are byte-identical with and without
-it.
+platform does. Both platforms ask for SwiftShader by name
+(`--enable-unsafe-swiftshader`); the 2D canvas stays software
+(`--disable-accelerated-2d-canvas`) and on macOS WebGL stays on SwiftShader
+(`--use-angle=swiftshader`), so the GPU changes no pixel: RBF's `cold` and
+`title` stills are byte-identical with and without it.
+`e2e/tools/renderer-chrome.dom.test.ts` reads the renderer's Chrome from `ps`
+on macOS: no `--disable-gpu`, exec'd by the launcher, and spawned again the
+same way.
 
-|                  | Hardware (macOS)                                         | Software (Linux, any box without a GPU encoder)                       |
-| ---------------- | -------------------------------------------------------- | --------------------------------------------------------------------- |
-| Chromium flags   | `--enable-gpu --use-angle=swiftshader`, the GPU launcher | `--enable-unsafe-swiftshader` only (`launchArgs`, `tools/browser.ts`) |
-| master           | quantizer 16 (~37 Mbps)                                  | 37 Mbps variable, 2-frame pre-roll (13.4 Mbps, 765 MB for 7.6 min)    |
-| share            | quantizer 26, in the page (~160 MB)                      | x264 CRF 22 from the joined master (2.2 Mbps, 126 MB)                 |
-| encoders at once | 14 (past it the encoder hangs)                           | one per core                                                          |
-| default pages    | 6                                                        | 8, or half the cores below 16                                         |
+|                  | Hardware (macOS)                                                 | Software (Linux, any box without a GPU encoder)                         |
+| ---------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Chromium flags   | `--enable-gpu --use-angle=swiftshader`, through the GPU launcher | neither: Bun's `--disable-gpu` stays (`launchArgs`, `tools/browser.ts`) |
+| master           | quantizer 16 (~37 Mbps)                                          | 37 Mbps variable, 2-frame pre-roll (13.4 Mbps, 765 MB for 7.6 min)      |
+| share            | quantizer 26, in the page (~160 MB)                              | x264 CRF 22 from the joined master (2.2 Mbps, 126 MB)                   |
+| encoders at once | 14 (past it the encoder hangs)                                   | one per core                                                            |
+| default pages    | 6                                                                | 8, or half the cores below 16                                           |
 
 `SETTINGS` (`player/encode.ts`) holds both columns; the hardware one
 (quantizer 16/26, prefer-hardware, a key frame every 2 s, latency mode

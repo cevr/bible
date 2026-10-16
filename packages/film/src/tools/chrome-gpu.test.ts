@@ -1,20 +1,23 @@
 // The GPU launcher passes on every argument Bun gives Chrome but
 // `--disable-gpu`, in order, to the Chrome it names, run here as a stand-in
-// that prints them. No Chromium.
+// that prints them, and execs it: the stand-in is the launcher's own process,
+// so Bun's kill reaches Chrome. Only macOS's renderer flags ask for it. No
+// Chromium.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Path } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
-import { gpuLauncher } from './chrome-gpu.ts';
+import { launchArgs } from './browser.ts';
+import { gpuLauncher, throughGpuLauncher } from './chrome-gpu.ts';
 import { collect } from './process.ts';
 
-/** A stand-in Chrome: it prints each argument it was given on a line of its own. */
-const PRINTER = '#!/bin/sh\nfor arg do printf \'%s\\n\' "$arg"; done\n';
+/** A stand-in Chrome: it prints its parent's pid, then each argument it was given, a line each. */
+const PRINTER = '#!/bin/sh\nprintf \'%s\\n\' "$PPID"\nfor arg do printf \'%s\\n\' "$arg"; done\n';
 
 describe('the GPU launcher', () => {
   it.effect.layer(BunServices.layer)(
-    "execs the Chrome it names with Bun's arguments in order, but --disable-gpu",
+    "execs the Chrome it names, in its own process, with Bun's arguments in order but --disable-gpu",
     () =>
       Effect.scoped(
         Effect.gen(function* () {
@@ -41,7 +44,9 @@ describe('the GPU launcher', () => {
             ChildProcess.make(launcher, bun, { forceKillAfter: '5 seconds' }),
           );
           expect(run.exitCode).toBe(0);
+          // Exec'd, the stand-in's parent is this process, which spawned the launcher; else the launcher's shell.
           expect(run.stdout.split('\n').slice(0, -1)).toEqual([
+            String(process.pid),
             '--user-data-dir=/tmp/a profile',
             '--remote-debugging-pipe',
             '--headless',
@@ -52,5 +57,21 @@ describe('the GPU launcher', () => {
         }),
       ),
     20_000,
+  );
+});
+
+describe('which Chrome is spawned through the launcher', () => {
+  it.effect('the renderer on macOS, which asks for the GPU', () =>
+    Effect.sync(() => {
+      expect(throughGpuLauncher('darwin', launchArgs('darwin'))).toBe(true);
+    }),
+  );
+
+  it.effect('no Chrome on Linux, whatever its flags; none that asks for no GPU', () =>
+    Effect.sync(() => {
+      expect(throughGpuLauncher('linux', launchArgs('linux'))).toBe(false);
+      expect(throughGpuLauncher('linux', launchArgs('darwin'))).toBe(false);
+      expect(throughGpuLauncher('darwin', launchArgs('linux'))).toBe(false);
+    }),
   );
 });

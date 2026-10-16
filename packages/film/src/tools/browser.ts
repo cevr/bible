@@ -207,19 +207,21 @@ const SETTLE = Duration.seconds(1);
 
 /**
  * Chrome's flags on `platform` (`process.platform`). On every platform the
- * 2D canvas draws in software, so a frame's pixels are the same wherever it
- * is drawn, and WebGL (a look drawn in 3D, `canvas/gl.ts`, a `webgl2` rig)
- * runs on SwiftShader, Chrome's software GPU, asked for by name: Chrome is
- * withdrawing the fallback it takes to it unasked, and without it a 3D look
- * would draw its 2D fallback in a render, silently. On macOS the GPU process
- * runs too (`GPU_FLAG`: `tools/chrome.ts` spawns Chrome through the GPU
- * launcher, `tools/chrome-gpu.ts`, which drops the `--disable-gpu` Bun
- * spawns every Chrome with): it holds the hardware H.264 encoder a render
- * encodes with. WebGL stays on
- * SwiftShader there (`--use-angle=swiftshader`), not the Mac's GPU, so a 3D
- * look draws as the browser tests and a Linux render draw it. Elsewhere the
- * page encodes in software when it finds no hardware encoder
- * (`chooseEncoder`, player/encode.ts).
+ * 2D canvas draws in software, and WebGL (a look drawn in 3D, `canvas/gl.ts`,
+ * a `webgl2` rig) runs on SwiftShader, Chrome's software GPU, asked for by
+ * name: Chrome is withdrawing the fallback it takes to it unasked, and
+ * without it a 3D look would draw its 2D fallback in a render, silently.
+ * Across hosts (measured, this Mac against the Linux workbox, the same font
+ * file): WebGL draws the same pixels, 2D shapes differ by at most 1 level,
+ * and 2D text differs (each host's font rasterizer: up to 210 levels at
+ * glyph edges, the Mac's glyphs heavier). On macOS the GPU process runs too
+ * (`GPU_FLAG`: `tools/chrome.ts` spawns Chrome through the GPU launcher,
+ * `tools/chrome-gpu.ts`, which drops the `--disable-gpu` Bun spawns every
+ * Chrome with): it holds the hardware H.264 encoder a render encodes with.
+ * WebGL stays on SwiftShader there (`--use-angle=swiftshader`), not the
+ * Mac's GPU, so a 3D look draws as the browser tests and a Linux render draw
+ * it. Elsewhere the page encodes in software when it finds no hardware
+ * encoder (`chooseEncoder`, player/encode.ts).
  */
 export const launchArgs = (platform: string): ReadonlyArray<string> => [
   '--disable-gpu-vsync',

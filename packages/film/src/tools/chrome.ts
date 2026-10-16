@@ -6,14 +6,18 @@
 // without them.
 //
 // The executable: `BUN_CHROME_PATH` when set, else the Chrome or Chromium
-// Bun finds in the usual places, else the newest Chromium a Playwright
-// install left in its cache. None of them: `BrowserMissing`, which names
+// Bun finds where it looks, else the newest Chromium a Playwright install
+// left in its cache. None of them: `BrowserMissing`, which names
 // `BUN_CHROME_PATH`.
 //
 // On macOS a Chrome whose flags ask for the GPU (`GPU_FLAG`) is spawned
 // through the GPU launcher (`chrome-gpu.ts`), written into its profile, which
 // drops the `--disable-gpu` Bun spawns every Chrome with and execs the Chrome
-// found as above (where Bun looks, `MAC_BROWSERS`, when none is named).
+// found as above: Bun's own search is run here for it (`bunSearch`), since
+// Bun is told the launcher's path instead.
+//
+// Every view names the first view's executable and profile, so a Chrome Bun
+// spawns again (the first one died) is spawned as the first one was.
 //
 // Every Chrome is silent (`chromeArgs`): no page a tool or test opens is
 // listened to (a render mixes and encodes its sound offline), and a headless
@@ -22,7 +26,18 @@
 // Every Chrome keeps its profile in a folder of its own, removed when its
 // process exits (`chrome-profile.ts`).
 
-import { Config, Effect, FileSystem, Option, Order, Path, Schema, type Scope } from 'effect';
+import {
+  Config,
+  Effect,
+  FileSystem,
+  Match,
+  Option,
+  Order,
+  Path,
+  Schema,
+  type Scope,
+  Semaphore,
+} from 'effect';
 import { gpuLauncher, throughGpuLauncher } from './chrome-gpu.ts';
 import { PROFILE_ROOT, profileFolder } from './chrome-profile.ts';
 import { BrowserFailed, BrowserMissing } from './errors.ts';
@@ -52,17 +67,40 @@ interface ViewOptions {
   readonly console?: (type: string, ...args: ReadonlyArray<unknown>) => void;
 }
 
-/** The flags this process's Chrome was spawned with, once its first view opened. */
-let spawned: Option.Option<string> = Option.none();
+/**
+ * How this process's Chrome was spawned: its flags, the executable Bun was
+ * told (`None`: Bun's own search) and its profile folder.
+ */
+interface Spawned {
+  readonly flags: string;
+  readonly path: Option.Option<string>;
+  readonly profile: string;
+}
+
+/** This process's Chrome, once its first view opened. */
+let spawned: Option.Option<Spawned> = Option.none();
+
+/** One view opens at a time, so views asked for at once wait for the one that spawns Chrome. */
+const opening = Semaphore.makeUnsafe(1);
 
 /** Bun's code for a Chrome it could not spawn: no executable where it looked. */
 const SPAWN_FAILED = 'ERR_DLOPEN_FAILED';
 
 /**
- * The browsers Bun 1.4.3 looks for on macOS (its binary's strings), each in
- * `/Applications`, then in `~/Applications`: where the GPU launcher finds the
- * Chrome Bun would have spawned.
+ * The names Bun 1.4.3 looks for on `$PATH`, in its order (its
+ * `ChromeProcess.rs`, `find_chrome`).
  */
+const PATH_BROWSERS = [
+  'google-chrome-stable',
+  'google-chrome',
+  'chromium-browser',
+  'chromium',
+  'brave-browser',
+  'microsoft-edge',
+  'chrome',
+];
+
+/** The app bundles Bun 1.4.3 looks for on macOS, each in `/Applications`, then in `~/Applications`. */
 const MAC_BROWSERS = [
   'Google Chrome.app/Contents/MacOS/Google Chrome',
   'Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
@@ -70,6 +108,16 @@ const MAC_BROWSERS = [
   'Brave Browser.app/Contents/MacOS/Brave Browser',
   'Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
 ];
+
+/** The headless shell inside its Playwright revision for CPU `arch`, as Bun 1.4.3 names it on macOS (none for another CPU). */
+const macShell = (arch: string): ReadonlyArray<string> =>
+  Match.value(arch).pipe(
+    Match.when(
+      (cpu) => cpu === 'arm64' || cpu === 'x64',
+      (cpu) => [`chrome-headless-shell-mac-${cpu}/chrome-headless-shell`],
+    ),
+    Match.orElse(() => []),
+  );
 
 /** Playwright's browser caches under the home folder: Linux's, then macOS's. */
 const PLAYWRIGHT_CACHES = [
@@ -87,20 +135,19 @@ const PLAYWRIGHT_BINARIES = [
   'chrome-mac/Chromium.app/Contents/MacOS/Chromium',
 ];
 
-const byRevision = Order.mapInput(Order.Number, (name: string) => Number(name.slice(9)));
-
-/** The newest Chromium in Playwright's cache `cache`, when there is one. */
-const cachedChromium = (cache: string) =>
+/** The newest `<prefix><revision>` folder's binary in Playwright's cache `cache`, the first of `binaries` there. */
+const newestIn = (cache: string, prefix: string, binaries: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
+    const byRevision = Order.mapInput(Order.Number, (name: string) =>
+      Number(name.slice(prefix.length)),
+    );
     const revisions = (yield* fs.readDirectory(cache))
-      .filter((name) => /^chromium-\d+$/.test(name))
+      .filter((name) => name.startsWith(prefix) && /^\d+$/.test(name.slice(prefix.length)))
       .toSorted(Order.flip(byRevision));
     return yield* Effect.findFirst(
-      revisions.flatMap((revision) =>
-        PLAYWRIGHT_BINARIES.map((binary) => path.join(cache, revision, binary)),
-      ),
+      revisions.flatMap((revision) => binaries.map((binary) => path.join(cache, revision, binary))),
       (file) => fs.exists(file),
     );
   }).pipe(Effect.orElseSucceed(() => Option.none<string>()));
@@ -123,7 +170,9 @@ const playwrightChromium = Effect.gen(function* () {
   const path = yield* Path.Path;
   const home = yield* Config.String('HOME');
   return yield* firstFound(
-    PLAYWRIGHT_CACHES.map((cache) => cachedChromium(path.join(home, ...cache))),
+    PLAYWRIGHT_CACHES.map((cache) =>
+      newestIn(path.join(home, ...cache), 'chromium-', PLAYWRIGHT_BINARIES),
+    ),
   );
 }).pipe(Effect.orElseSucceed(() => Option.none<string>()));
 
@@ -134,16 +183,31 @@ const existing = (files: ReadonlyArray<string>) =>
     return yield* Effect.findFirst(files, (file) => fs.exists(file));
   }).pipe(Effect.orElseSucceed(() => Option.none<string>()));
 
-/** The Chrome Bun would spawn on macOS, found where Bun looks (`MAC_BROWSERS`), else Playwright's. */
-const macChrome = Effect.gen(function* () {
+/**
+ * The Chrome Bun 1.4.3 finds on macOS, searched as it searches
+ * (`ChromeProcess.rs`, `find_chrome`): the first of `PATH_BROWSERS` on
+ * `$PATH`, else the first of `MAC_BROWSERS` in `/Applications` or
+ * `~/Applications`, else the newest headless shell in Playwright's cache.
+ */
+const bunSearch = Effect.gen(function* () {
   const path = yield* Path.Path;
   const home = yield* Config.String('HOME');
+  const search = yield* Config.String('PATH').pipe(Config.withDefault(''));
   const folders = ['/Applications', path.join(home, 'Applications')];
   return yield* firstFound([
+    Effect.sync(() =>
+      Option.firstSomeOf(
+        PATH_BROWSERS.map((name) => Option.fromNullishOr(Bun.which(name, { PATH: search }))),
+      ),
+    ),
     existing(
       MAC_BROWSERS.flatMap((browser) => folders.map((folder) => path.join(folder, browser))),
     ),
-    playwrightChromium,
+    newestIn(
+      path.join(home, 'Library', 'Caches', 'ms-playwright'),
+      'chromium_headless_shell-',
+      macShell(process.arch),
+    ),
   ]);
 }).pipe(Effect.orElseSucceed(() => Option.none<string>()));
 
@@ -180,10 +244,17 @@ const spawnView = (
     }),
   );
 
+/** A view, and the executable Bun was told to spawn its Chrome from (`None`: Bun's own search). */
+interface FirstView {
+  readonly view: Bun.WebView;
+  readonly path: Option.Option<string>;
+}
+
 /**
  * The process's first view, of a Chrome that runs its GPU: the Chrome named,
- * else the one Bun would find, spawned through the GPU launcher, written into
- * the profile.
+ * else the one Bun would find (`bunSearch`), else Playwright's Chromium,
+ * spawned through the GPU launcher, written into the profile whole and
+ * renamed into place.
  */
 const gpuView = (
   named: Option.Option<string>,
@@ -196,20 +267,60 @@ const gpuView = (
     const path = yield* Path.Path;
     const chrome = yield* Option.match(named, {
       onSome: (file) => existing([file]),
-      onNone: () => macChrome,
+      onNone: () => firstFound([bunSearch, playwrightChromium]),
     });
     const file = yield* Effect.fromOption(chrome, () =>
       BrowserMissing.make({ executable: Option.getOrElse(named, () => 'Chrome or Chromium') }),
     );
     const launcher = path.join(profile, LAUNCHER);
-    yield* fs
-      .writeFileString(launcher, gpuLauncher(file), { mode: 0o755 })
-      .pipe(Effect.mapError((cause) => BrowserFailed.make({ reason: String(cause) })));
+    const written = `${launcher}.${process.pid}`;
+    yield* fs.writeFileString(written, gpuLauncher(file), { mode: 0o755 }).pipe(
+      Effect.andThen(fs.rename(written, launcher)),
+      Effect.mapError((cause) => BrowserFailed.make({ reason: String(cause) })),
+    );
     const view = yield* spawnView(Option.some(launcher), argv, profile, options);
-    return yield* Effect.fromOption(view, () => BrowserMissing.make({ executable: file }));
+    return yield* Effect.fromOption(view, () =>
+      BrowserFailed.make({
+        reason: `the GPU launcher ${launcher} (for ${file}) could not be spawned: is its folder on a noexec mount?`,
+      }),
+    ).pipe(Effect.map((opened): FirstView => ({ view: opened, path: Option.some(launcher) })));
   });
 
-/** The process's first view: Chrome spawned from the first executable found. */
+/** The first view's Chrome, spawned from the first executable found (`named`, when one is), in `profile`. */
+const chosenView = (
+  named: Option.Option<string>,
+  argv: ReadonlyArray<string>,
+  profile: string,
+  options: ViewOptions,
+) =>
+  Effect.gen(function* () {
+    const opened = (view: Bun.WebView, path: Option.Option<string>): FirstView => ({ view, path });
+    if (throughGpuLauncher(process.platform, argv))
+      return yield* gpuView(named, argv, profile, options);
+    if (Option.isSome(named))
+      return yield* Effect.flatMap(spawnView(named, argv, profile, options), (view) =>
+        Effect.fromOption(
+          Option.map(view, (v) => opened(v, named)),
+          () => BrowserMissing.make({ executable: named.value }),
+        ),
+      );
+    const found = yield* spawnView(Option.none(), argv, profile, options);
+    if (Option.isSome(found)) return opened(found.value, Option.none());
+    const cached = yield* playwrightChromium;
+    const view = yield* Option.match(cached, {
+      onNone: () => Effect.succeed(Option.none<Bun.WebView>()),
+      onSome: (file) => spawnView(Option.some(file), argv, profile, options),
+    });
+    return yield* Effect.fromOption(
+      Option.map(view, (v) => opened(v, cached)),
+      () =>
+        BrowserMissing.make({
+          executable: Option.getOrElse(cached, () => 'Chrome or Chromium'),
+        }),
+    );
+  });
+
+/** The process's first view: Chrome spawned from the first executable found, in a new profile. */
 const firstView = (argv: ReadonlyArray<string>, options: ViewOptions) =>
   Effect.gen(function* () {
     const root = yield* Config.String('FILM_CHROME_PROFILES').pipe(
@@ -218,29 +329,17 @@ const firstView = (argv: ReadonlyArray<string>, options: ViewOptions) =>
     );
     const profile = yield* profileFolder(root);
     const named = yield* Config.option(Config.String('BUN_CHROME_PATH')).pipe(Effect.orDie);
-    if (throughGpuLauncher(process.platform, argv))
-      return yield* gpuView(named, argv, profile, options);
-    if (Option.isSome(named))
-      return yield* Effect.flatMap(spawnView(named, argv, profile, options), (view) =>
-        Effect.fromOption(view, () => BrowserMissing.make({ executable: named.value })),
-      );
-    const found = yield* spawnView(Option.none(), argv, profile, options);
-    if (Option.isSome(found)) return found.value;
-    const cached = yield* playwrightChromium;
-    const view = yield* Option.match(cached, {
-      onNone: () => Effect.succeed(Option.none<Bun.WebView>()),
-      onSome: (file) => spawnView(Option.some(file), argv, profile, options),
-    });
-    return yield* Effect.fromOption(view, () =>
-      BrowserMissing.make({ executable: Option.getOrElse(cached, () => 'Chrome or Chromium') }),
-    );
+    const first = yield* chosenView(named, argv, profile, options);
+    return { ...first, profile };
   });
 
 /**
  * A view (a tab of this process's Chrome) as `options` say, closed with the scope.
  * The first view spawns Chrome with `requested` (`chromeArgs`: muted); a
  * later one asking for other flags fails, since the running Chrome cannot
- * take them.
+ * take them. Every later view names the first one's executable and profile,
+ * so when Bun spawns Chrome again (the first one died) it is the same Chrome,
+ * through the same launcher, in the same profile.
  */
 export const openView = (
   requested: ReadonlyArray<string>,
@@ -253,30 +352,31 @@ export const openView = (
   const argv = chromeArgs(requested);
   const flags = argv.join(' ');
   return Effect.acquireRelease(
-    Effect.suspend(() =>
-      Option.match(spawned, {
-        onNone: () =>
-          Effect.tap(firstView(argv, options), () =>
-            Effect.sync(() => {
-              spawned = Option.some(flags);
+    opening.withPermits(1)(
+      Effect.suspend(() =>
+        Option.match(spawned, {
+          onNone: () =>
+            Effect.map(firstView(argv, options), (first) => {
+              spawned = Option.some({ flags, path: first.path, profile: first.profile });
+              return first.view;
             }),
-          ),
-        onSome: (running) => {
-          if (running !== flags)
-            return Effect.fail(
-              BrowserFailed.make({
-                reason: `this process's Chrome runs with "${running}", not "${flags}": Bun spawns one Chrome per process`,
-              }),
+          onSome: (running) => {
+            if (running.flags !== flags)
+              return Effect.fail(
+                BrowserFailed.make({
+                  reason: `this process's Chrome runs with "${running.flags}", not "${flags}": Bun spawns one Chrome per process`,
+                }),
+              );
+            return Effect.flatMap(spawnView(running.path, argv, running.profile, options), (view) =>
+              Effect.fromOption(view, () =>
+                BrowserMissing.make({
+                  executable: Option.getOrElse(running.path, () => 'Chrome or Chromium'),
+                }),
+              ),
             );
-          return Effect.sync(
-            () =>
-              new Bun.WebView({
-                ...options,
-                backend: { type: 'chrome', url: false, argv: [...argv] },
-              }),
-          );
-        },
-      }),
+          },
+        }),
+      ),
     ),
     (view) => Effect.sync(() => view.close()),
   );

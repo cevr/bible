@@ -3,14 +3,12 @@
 // call's own error. What a page hands back for a frame's luma: one value per
 // cell of the grid asked for. An empty read (no canvas to sample on) or a
 // short one fails, so a loop is never compared on nothing and called clean.
-// And Chromium's flags per platform: the GPU asked for on macOS alone. No
-// Chromium.
+// And Chromium's flags per platform. No Chromium.
 
 import { describe, expect, test } from 'bun:test';
 import { Effect, Result, Schema } from 'effect';
 import type { LumaArea } from '../core/export-handle.ts';
 import { CallRefused, type Invoke, framePage, launchArgs, lumaGrid } from './browser.ts';
-import { throughGpuLauncher } from './chrome-gpu.ts';
 import { EncodeFailed, FrameFailed } from './errors.ts';
 import { testExportInfo } from './testing.ts';
 
@@ -44,9 +42,8 @@ describe('framePage', () => {
 });
 
 describe('launchArgs', () => {
-  test('macOS asks for the GPU (the hardware encoder), WebGL on SwiftShader; the canvas draws in software', () => {
-    const flags = launchArgs('darwin');
-    expect(flags).toEqual([
+  test('macOS asks for the GPU (the hardware encoder) and keeps WebGL on SwiftShader; the canvas draws in software', () => {
+    expect(launchArgs('darwin')).toEqual([
       '--disable-gpu-vsync',
       '--disable-frame-rate-limit',
       '--enable-gpu',
@@ -54,19 +51,15 @@ describe('launchArgs', () => {
       '--enable-unsafe-swiftshader',
       '--disable-accelerated-2d-canvas',
     ]);
-    expect(throughGpuLauncher('darwin', flags)).toBe(true);
   });
 
-  test('Linux asks for no GPU, so Chrome keeps the --disable-gpu Bun spawns it with: WebGL on SwiftShader by name', () => {
-    const flags = launchArgs('linux');
-    expect(flags).toEqual([
+  test('Linux gets no macOS-only backend, and WebGL on SwiftShader by name; the canvas draws in software everywhere', () => {
+    expect(launchArgs('linux')).toEqual([
       '--disable-gpu-vsync',
       '--disable-frame-rate-limit',
       '--enable-unsafe-swiftshader',
       '--disable-accelerated-2d-canvas',
     ]);
-    expect(throughGpuLauncher('linux', flags)).toBe(false);
-    expect(throughGpuLauncher('linux', launchArgs('darwin'))).toBe(false);
   });
 });
 

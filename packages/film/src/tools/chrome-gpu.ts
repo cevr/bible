@@ -5,8 +5,10 @@
 // video encoder. A Chrome whose flags ask for the GPU (`GPU_FLAG`) on macOS
 // is spawned through a launcher (`gpuLauncher`, written by `tools/chrome.ts`
 // into the process's Chrome profile and named to Bun as its Chrome), which
-// drops that one flag and execs the real Chrome. Never on another platform:
-// Linux renders and the browser tests draw WebGL on SwiftShader on purpose.
+// drops that one flag and execs the real Chrome. Only there: on Linux Chrome
+// has no hardware encoder to reach, so `--disable-gpu` costs a render
+// nothing, and the browser tests ask for no GPU, so on every platform they
+// keep Bun's own spawn.
 
 /**
  * The flag a caller asks for Chrome's GPU with (`launchArgs`,
