@@ -504,9 +504,9 @@ export class DecisionUnknown extends Schema.TaggedError<DecisionUnknown>()('Deci
   /** The version open now. */
   version: Schema.Int,
   /** The time the agent named. */
-  at: Schema.Number,
+  at: Schema.Finite,
   /** The decisions the version holds, newest first. */
-  held: Schema.Array(Schema.Struct({ at: Schema.Number, text: Schema.String })),
+  held: Schema.Array(Schema.Struct({ at: Schema.Finite, text: Schema.String })),
 }) {
   override get message() {
     return `${this.production} v${this.version} holds no decision of the owner's at ${this.at}: name one it holds by its \`at\`: ${this.held.map((d) => `${d.at} "${d.text}"`).join(', ')}`;
