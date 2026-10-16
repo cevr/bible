@@ -47,7 +47,7 @@ const TURN = {
   robe: { at: 0.55, soft: 0.01, toward: 0.23 },
   wideRobe: { at: 0.55, soft: 0.5, toward: 0.2 },
   hand: { at: 0.75, soft: 0.06 },
-  sheet: { at: 0.64 },
+  sheet: { at: 0.64, crescent: 0.45 },
 } as const satisfies Record<string, Crease>;
 
 /** The figures' papers, by what each is. */

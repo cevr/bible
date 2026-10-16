@@ -137,8 +137,8 @@ const HAIR = capOutline(JUDGE.head.rx, JUDGE.head.ry, {
   brow: 0.42,
   temple: 0.5,
   nape: 0.1,
-  lumps: 6,
-  lump: 0.1,
+  lumps: 5,
+  lump: 0.11,
 });
 
 /** The lumps of his hair: lighter toward the window, violet-grey toward the back, each fading into the grey. */

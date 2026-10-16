@@ -148,6 +148,29 @@ export const capOutline = (rx: number, ry: number, cap: Cap): Pt[] => {
   ];
 };
 
+/**
+ * A streak of light along a lock of hair: a band `width` units across at its
+ * middle, tapering to points at its ends, along the curve from `from` to `to`
+ * bowed toward `via` (a quadratic). Clockwise, `n` points a side.
+ */
+export const streak = (from: Pt, via: Pt, to: Pt, width: number, n = 12): Pt[] => {
+  const at = (t: number): Pt => [
+    (1 - t) ** 2 * from[0] + 2 * (1 - t) * t * via[0] + t * t * to[0],
+    (1 - t) ** 2 * from[1] + 2 * (1 - t) * t * via[1] + t * t * to[1],
+  ];
+  const side = (sign: number) =>
+    Array.from({ length: n + 1 }, (_, i): Pt => {
+      const t = i / n;
+      const [x, y] = at(t);
+      const [ax, ay] = at(Math.max(0, t - 0.01));
+      const [bx, by] = at(Math.min(1, t + 0.01));
+      const len = Math.hypot(bx - ax, by - ay) || 1;
+      const half = (sign * width * Math.sin(Math.PI * t) ** 0.7) / 2;
+      return [x - ((by - ay) / len) * half, y + ((bx - ax) / len) * half];
+    });
+  return [...side(1), ...side(-1).reverse().slice(1, -1)];
+};
+
 /** `pts` moved by (`dx`, `dy`). */
 export const shifted = (pts: ReadonlyArray<Pt>, dx: number, dy: number): Pt[] =>
   pts.map(([x, y]): Pt => [x + dx, y + dy]);

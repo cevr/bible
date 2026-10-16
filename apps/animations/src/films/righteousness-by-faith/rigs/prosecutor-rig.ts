@@ -32,7 +32,7 @@ import {
 } from '../../cold-studies/looks/rive/parts.ts';
 import { el } from '../../cold-studies/looks/rive/rml.ts';
 import { PAPERS, looked } from './papers.ts';
-import { capOutline, headOutline, roundedPolygon, shifted } from './shapes.ts';
+import { capOutline, headOutline, roundedPolygon, shifted, streak } from './shapes.ts';
 
 /**
  * His measures, units, as the concept measures them against his head's
@@ -142,8 +142,15 @@ const HAIR = capOutline(PROSECUTOR.head.rx, PROSECUTOR.head.ry, {
   forelock: 0.08,
 });
 
-/** The light the part lifts: a soft lighter sweep across the top of his hair, toward the window. */
-const SHEEN = { pts: ellipse(-20, -51, 26, 11, 14), color: '#6a5150', soft: true } as const;
+/**
+ * The light the part lifts, as cold-34 draws it: a lighter band along the
+ * lock swept up from his forelock over the crown, and a crisp streak at its
+ * edge.
+ */
+const SHEEN = [
+  { pts: streak([-52, -42], [-28, -64], [8, -62], 12), color: '#5a4644', alpha: 0.6 },
+  { pts: streak([-50, -45], [-26, -62], [6, -60], 3.5), color: '#6c5352' },
+] as const;
 
 /** The shade his hair lays on his brow: its own outline a little lower, twice, fading. */
 const UNDER_HAIR = [
@@ -162,7 +169,7 @@ export const prosecutorRig = (fig: Figure) => {
         el('Node', { y: head.y - PROSECUTOR.neck, name: 'skull' }, [
           silhouette(fig, 'headCut', [
             { key: 'ear', pts: ellipse(EAR.x, EAR.y, EAR.rx, EAR.ry, 12), look: skin, boil: 0.6 },
-            { key: 'hair', pts: HAIR, look: looked(PAPERS.darkHair, { tones: [SHEEN] }) },
+            { key: 'hair', pts: HAIR, look: looked(PAPERS.darkHair, { tones: SHEEN }) },
             el(
               'Node',
               {
