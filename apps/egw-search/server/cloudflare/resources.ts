@@ -1,6 +1,6 @@
 /**
- * The search's data on Cloudflare: the corpus in D1 and the vectors in
- * Vectorize.
+ * The search's data on Cloudflare: the corpus in D1, the vectors in
+ * Vectorize, and the weekly sync's reports in R2.
  *
  * Both were created and loaded once, outside the stack, from the same
  * `egw-paragraphs.db` and `vectors.bvi` the Bun server reads: a 3 GB import
@@ -44,4 +44,12 @@ export const VectorFilters = Effect.forEach(FILTERED_PROPERTIES, (property) =>
     propertyName: property,
     indexType: 'string',
   }).pipe(shared),
+);
+
+/** The weekly sync's reports, a Markdown file a run (`./sync-report.ts`).
+ *  Written by the sync's Worker on `prod`, read by the search's page for them
+ *  (`./sync-pages.ts`), and shared by every stage like the corpus, so a
+ *  preview shows the reports `prod` wrote and a `destroy` keeps them. */
+export const SyncReports = Cloudflare.R2.Bucket('SyncReports', { name: 'egw-sync-reports' }).pipe(
+  shared,
 );

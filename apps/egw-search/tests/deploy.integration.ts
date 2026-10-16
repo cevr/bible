@@ -117,6 +117,10 @@ test(
     );
     expect(exact.hits.length).toBeGreaterThan(0);
 
+    // The sync's reports are read from R2 on the Worker, ahead of the assets.
+    const reports = yield* get('/sync/').pipe(Effect.flatMap((response) => response.text));
+    expect(reports).toContain('<h1>EGW sync reports</h1>');
+
     // The sync reaches the library with the deployed credentials and reads
     // the corpus from a Workflow step; on this stage it stops there.
     const syncWorker = yield* Effect.fromOption(Option.fromNullishOr(outputs.syncWorker));

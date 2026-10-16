@@ -406,7 +406,8 @@ export class ScriptVoices extends Context.Service<ScriptVoices, ScriptVoicesServ
           { concurrency: VOICING_AT_ONCE },
         );
         // The sweep and the voicers end together: a sweep that dies ends the
-        // fill (`fillBeside` logs it), never leaving voicers on a queue nothing feeds.
+        // whole fill, readers' voicing included (`fillBeside` logs it), so a
+        // beat a reader asks for stays Unvoiced until the lab restarts.
         return yield* Effect.all([Effect.repeat(sweep, Schedule.spaced(SWEEP_EVERY)), voicers], {
           concurrency: 'unbounded',
           discard: true,
