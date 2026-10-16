@@ -157,21 +157,35 @@ const bookLine = (book: EgwSyncBook) =>
 const ifAny = <A>(items: readonly A[], lines: (some: readonly A[]) => readonly string[]) =>
   Arr.match(items, { onEmpty: (): readonly string[] => [], onNonEmpty: lines });
 
+/** The changes a book's section quotes, and how many more it only counts. */
+interface Quoted {
+  readonly rows: readonly ParagraphChangeRow[];
+  readonly rest: number;
+}
+
+/** Whether a recheck's added paragraphs are quoted: a library update's are;
+ *  a verified book's are counted only. */
+const quotesAdded = (kind: 'updated' | 'verified') => kind === 'updated';
+
+/** The books a section quotes: those that changed, less, for a verified
+ *  book, those that only gained paragraphs. */
+const quotedBooks = (books: readonly RecheckedBook[], kind: 'updated' | 'verified') =>
+  books.filter(
+    ({ changes: counts }) =>
+      changeCount(counts) > 0 && (quotesAdded(kind) || counts.edited + counts.removed > 0),
+  );
+
 const recheckedSection = (
   title: string,
   intro: string,
   books: readonly RecheckedBook[],
-  changes: ChangesByBook,
-  /** Whether a paragraph a recheck added is quoted, or only counted. */
-  quoteAdded: boolean,
+  kind: 'updated' | 'verified',
+  quotes: ReadonlyMap<number, Quoted>,
+  markdownHref: string,
 ): readonly string[] => {
-  const changed = books.filter(({ changes: counts }) => changeCount(counts) > 0);
   const same = books.filter(({ changes: counts }) => changeCount(counts) === 0);
-  const onlyAdded = changed.filter(
-    ({ changes: counts }) => !quoteAdded && counts.edited + counts.removed === 0,
-  );
-  const quoted = changed.filter((book) => !onlyAdded.includes(book));
-  const shown = (change: ParagraphChangeRow) => quoteAdded || change.kind !== 'added';
+  const quoted = quotedBooks(books, kind);
+  const onlyAdded = books.filter((book) => changeCount(book.changes) > 0 && !quoted.includes(book));
   return ifAny(books, () => [
     `## ${title} (${String(books.length)})`,
     intro,
@@ -182,20 +196,61 @@ const recheckedSection = (
       `Only gained paragraphs (${String(some.length)}): ` +
         `${some.map(({ book, changes: counts }) => `${escapeMarkdown(book.code)} \\+${String(counts.added)}`).join(', ')}.`,
     ]),
-    ...quoted.flatMap(({ book, changes: counts }) => [
-      `### ${bookHeading(book)}`,
-      `${changeSummary(counts)}.`,
-      ...(changes.get(book.id) ?? []).filter(shown).map((change) => changeBlock(book, change)),
-    ]),
+    ...quoted.flatMap(({ book, changes: counts }) => {
+      const { rows, rest } = quotes.get(book.id) ?? { rows: [], rest: 0 };
+      const more: string[] = [];
+      if (rest > 0) more.push(`${String(rest)} more in [the full report](${markdownHref}).`);
+      return [
+        `### ${bookHeading(book)}`,
+        `${changeSummary(counts)}.`,
+        ...rows.map((change) => changeBlock(book, change)),
+        ...more,
+      ];
+    }),
   ]);
+};
+
+/** How a report is written: whole, or as a page that quotes at most
+ *  `quoteLimit` changes and links the whole for the rest. */
+export interface ReportForm {
+  readonly quoteLimit: Option.Option<number>;
+  readonly markdownHref: string;
+}
+
+/** The whole report: every change quoted. */
+export const WHOLE: ReportForm = { quoteLimit: Option.none(), markdownHref: '' };
+
+/** Each quoted book's changes, in report order, within the form's limit. */
+const quotesOf = (run: SyncRun, changes: ChangesByBook, form: ReportForm) => {
+  const books = [
+    ...quotedBooks(run.updated, 'updated').map((book) => [book, 'updated'] as const),
+    ...quotedBooks(run.verified, 'verified').map((book) => [book, 'verified'] as const),
+  ];
+  const quotes = new Map<number, Quoted>();
+  let left = Option.getOrElse(form.quoteLimit, () => Number.POSITIVE_INFINITY);
+  for (const [{ book }, kind] of books) {
+    const rows = (changes.get(book.id) ?? []).filter(
+      (change) => quotesAdded(kind) || change.kind !== 'added',
+    );
+    const taken = rows.slice(0, Math.max(0, left));
+    left -= taken.length;
+    quotes.set(book.id, { rows: taken, rest: rows.length - taken.length });
+  }
+  return quotes;
 };
 
 const failureLine = (failure: EgwSyncFailure) =>
   `- **${escapeMarkdown(failure.code)}** ${escapeMarkdown(failure.title)}: ${escapeMarkdown(failure.error)}`;
 
-/** The whole report, for one run. */
-export const syncReport = (run: SyncRun, changes: ChangesByBook, at: string): string => {
+/** The report of one run, in the form asked. */
+export const syncReport = (
+  run: SyncRun,
+  changes: ChangesByBook,
+  at: string,
+  form: ReportForm = WHOLE,
+): string => {
   const { counts } = run;
+  const quotes = quotesOf(run, changes, form);
   const unexpected = counts.failures.filter((failure) => !failure.expected);
   const expected = counts.failures.filter((failure) => failure.expected);
   const sections: readonly (readonly string[])[] = [
@@ -212,8 +267,9 @@ export const syncReport = (run: SyncRun, changes: ChangesByBook, at: string): st
       'Updated by the library',
       'Books whose archive changed since they were installed, and every paragraph that changed with them.',
       run.updated,
-      changes,
-      true,
+      'updated',
+      quotes,
+      form.markdownHref,
     ),
     recheckedSection(
       'Checked against the library',
@@ -222,8 +278,9 @@ export const syncReport = (run: SyncRun, changes: ChangesByBook, at: string): st
         'Paragraphs it gained are counted, not quoted: they are mostly headings the earlier import dropped. ' +
         `${String(run.recheckLeft)} books are still to check.`,
       run.verified,
-      changes,
-      false,
+      'verified',
+      quotes,
+      form.markdownHref,
     ),
     ifAny(unexpected, (some) => [
       `## Failed unexpectedly (${String(some.length)})`,
