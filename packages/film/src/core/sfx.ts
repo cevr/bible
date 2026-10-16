@@ -21,6 +21,7 @@ import { describeSound } from './synth/analyse.ts';
 import { loudness } from './synth/loudness.ts';
 import { CodeSound } from './synth/graph/nodes.ts';
 import type { ResolvedSound } from './synth/graph/plan.ts';
+import { portOf } from './synth/graph/presets.ts';
 import { RENDER_VERSION, renderCode } from './synth/graph/render.ts';
 import { Recipe, synthesize } from './synth/recipes.ts';
 import { toMs } from './time.ts';
@@ -147,8 +148,14 @@ type Derived = Code | Procedural;
 export const isDerived = (entry: LibraryEntry): entry is Derived =>
   entry.kind === 'code' || entry.kind === 'procedural';
 
-/** A sound's code trial: a generated sound's `code`; none for any other kind. */
+/**
+ * A sound's code trial: a generated sound's `code`, or a recipe's port with
+ * the recipe's seeds (graph/presets.ts), derived so it is never written
+ * twice; none for any other kind.
+ */
 export const codeTrialOf = (entry: LibraryEntry): Option.Option<CodeTrial> => {
+  if (entry.kind === 'procedural')
+    return Option.some({ sound: { play: portOf(entry.recipe) }, variants: entry.variants });
   if (entry.kind !== 'generated') return Option.none();
   return Option.fromUndefinedOr(entry.code);
 };

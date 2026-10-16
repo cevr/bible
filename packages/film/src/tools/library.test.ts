@@ -714,7 +714,7 @@ describe.concurrent('SoundLibrary', () => {
         const media = yield* Media;
         const named = (files: ReadonlyArray<string>) =>
           files.map((file) => file.slice(file.lastIndexOf('/') + 1));
-        expect([...(yield* library.load).trials.keys()]).toEqual(['amb.court']);
+        expect([...(yield* library.load).trials.keys()]).toEqual(['amb.court', 'tone.chime']);
         const court = yield* library.render('amb.court', { seed: Option.none(), trial: true });
         expect(named(court)).toEqual(['amb.court-trial-1.wav', 'amb.court-trial-2.wav']);
         const [one, two] = yield* Effect.forEach(court, (file) => media.decode(file));
@@ -731,6 +731,36 @@ describe.concurrent('SoundLibrary', () => {
         expect(calls).toHaveLength(0);
       }),
     ),
+  );
+
+  it.effect.layer(fixture)(
+    'renders a recipe’s port as its code trial, with the recipe’s seeds',
+    () =>
+      withLibrary(({ calls }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const media = yield* Media;
+          const named = (files: ReadonlyArray<string>) =>
+            files.map((file) => file.slice(file.lastIndexOf('/') + 1));
+          const ported = yield* library.render('tone.chime', { seed: Option.none(), trial: true });
+          expect(named(ported)).toEqual([
+            'tone.chime-trial-1.wav',
+            'tone.chime-trial-2.wav',
+            'tone.chime-trial-3.wav',
+          ]);
+          const recipe = yield* library.render('tone.chime', {
+            seed: Option.some(1),
+            trial: false,
+          });
+          const [port, synth] = yield* Effect.forEach([...ported.slice(0, 1), ...recipe], (file) =>
+            media.decode(file),
+          );
+          // As long as its recipe, and its own numbers.
+          expect(port?.frames).toBe(synth?.frames);
+          expect(port?.channels[0]).not.toEqual(synth?.channels[0]);
+          expect(calls).toHaveLength(0);
+        }),
+      ),
   );
 
   it.effect.layer(made)('compares a code trial with the take that plays, free', () =>
@@ -750,6 +780,11 @@ describe.concurrent('SoundLibrary', () => {
         expect(one?.profile.bands).not.toEqual(two?.profile.bands);
         // The burst is white noise and the trial pink: the take is the brighter.
         expect(take.profile.centroid).toBeGreaterThan(one?.profile.centroid ?? 0);
+        // A recipe's port beside the recipe's own seeds.
+        const chime = yield* library.compare('tone.chime');
+        expect(chime.plays.map((m) => m.label)).toEqual(['seed 1', 'seed 2', 'seed 3']);
+        expect(chime.trial.map((m) => m.label)).toEqual(['seed 1', 'seed 2', 'seed 3']);
+        expect(chime.trial[0].profile.secs).toBe(chime.plays[0].profile.secs);
         const none = yield* Effect.flip(library.compare('tone.tick'));
         expect(none).toMatchObject({ _tag: 'CodeTrialMissing', name: 'tone.tick' });
         expect(calls).toHaveLength(0);
