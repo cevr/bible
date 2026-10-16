@@ -18,7 +18,8 @@
 // pastes the output onto the batch's ledger row, each lost line with why.
 // Exits non-zero only when the commit is not a merge or git fails; a commit
 // that is not a merge prints its refusal alone. `--each` exits non-zero on a
-// red commit, and on a checkout or an install that fails.
+// red commit, on a checkout or an install that fails, and when git cannot
+// list the commits.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
@@ -44,7 +45,11 @@ class NotAMerge extends Schema.TaggedError<NotAMerge>()('NotAMerge', {
   override readonly [Runtime.errorReported] = false;
 }
 
-/** A git command's stdout, whatever its exit code (merge-tree exits 1 on a conflict). */
+/**
+ * A git command's stdout, whatever its exit code: `merge-tree` exits 1 on a
+ * conflict, and its tree is still the answer. `--each`'s enumeration reads git
+ * through `gitChecked`, which fails on a non-zero exit.
+ */
 const git = (args: ReadonlyArray<string>) =>
   Effect.flatMap(ChildProcessSpawner, (spawner) =>
     spawner.string(ChildProcess.make('git', args, { forceKillAfter: '5 seconds' })),
@@ -149,6 +154,39 @@ class StepFailed extends Schema.TaggedError<StepFailed>()('StepFailed', {
   override readonly [Runtime.errorReported] = false;
 }
 
+/** A git step `--each` reads before any commit (the root, the commits): it exited non-zero. */
+class GitFailed extends Schema.TaggedError<GitFailed>()('GitFailed', {
+  command: Schema.String,
+  output: Schema.String,
+}) {
+  override get message() {
+    return `merge-audit \`${this.command}\` failed: ${this.output.trim()}`;
+  }
+  override readonly [Runtime.errorReported] = false;
+}
+
+/** A git command's stdout, or GitFailed with what it printed when it exits non-zero. */
+const gitChecked = (args: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner;
+    const child = yield* spawner.spawn(
+      ChildProcess.make('git', args, { forceKillAfter: '5 seconds' }),
+    );
+    const [stdout, stderr, code] = yield* Effect.all(
+      [
+        Stream.mkString(Stream.decodeText(child.stdout)),
+        Stream.mkString(Stream.decodeText(child.stderr)),
+        child.exitCode,
+      ],
+      { concurrency: 3 },
+    );
+    if (code === 0) return stdout;
+    return yield* GitFailed.make({
+      command: ['git', ...args].join(' '),
+      output: `${stdout}${stderr}`,
+    });
+  }).pipe(Effect.scoped);
+
 /** A setup step at `commit`, or StepFailed when it exits non-zero. */
 const step = (commit: string, command: string, args: ReadonlyArray<string>, cwd: string) =>
   Effect.flatMap(outcome(command, args, cwd), ({ ok, output }) => {
@@ -166,8 +204,9 @@ const step = (commit: string, command: string, args: ReadonlyArray<string>, cwd:
 const each = Effect.fn('mergeAudit.each')(function* (base: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const root = (yield* git(['rev-parse', '--show-toplevel'])).trim();
-  const commits = lines(yield* git(['rev-list', '--reverse', `${base}..HEAD`]));
+  // Checked: a list git could not make is no list (an unborn HEAD lists nothing).
+  const root = (yield* gitChecked(['rev-parse', '--show-toplevel'])).trim();
+  const commits = lines(yield* gitChecked(['rev-list', '--reverse', `${base}..HEAD`]));
   const dir = path.join(yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-each-' }), 'tree');
   yield* Effect.acquireRelease(
     Effect.flatMap(
@@ -213,6 +252,7 @@ const command = Command.make(
         Effect.scoped(each(from)).pipe(
           Effect.tapErrorTag('GuardRed', (error) => Console.error(error.message)),
           Effect.tapErrorTag('StepFailed', (error) => Console.error(error.message)),
+          Effect.tapErrorTag('GitFailed', (error) => Console.error(error.message)),
         ),
       onNone: () =>
         audit(Option.getOrElse(merge, () => 'HEAD')).pipe(

@@ -133,6 +133,34 @@ const runEachCheckoutFails = Effect.gen(function* () {
   return { blocked, out, code: Number(code) };
 }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
+// `--each` where git cannot list the commits: HEAD is a branch with no commit
+// yet (`checkout --orphan`), so `rev-list <base>..HEAD` fails, though the base
+// is a commit the worktree can be made at.
+const runEachListFails = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-each-' });
+  const { git } = fixture(dir);
+  yield* git('init', '-q', '-b', 'main');
+  yield* fs.writeFileString(path.join(dir, 'package.json'), '{ "scripts": { "guard": "true" } }\n');
+  yield* git('add', '-A');
+  yield* git('commit', '-q', '-m', 'base');
+  const base = yield* git('rev-parse', 'HEAD');
+  yield* git('checkout', '-q', '--orphan', 'unborn');
+  const spawner = yield* ChildProcessSpawner;
+  const child = yield* spawner.spawn(
+    ChildProcess.make('bun', [path.join(import.meta.dir, 'merge-audit.ts'), '--each', base], {
+      cwd: dir,
+      forceKillAfter: '5 seconds',
+    }),
+  );
+  const [out, code] = yield* Effect.all(
+    [Stream.mkString(Stream.decodeText(child.all)), child.exitCode],
+    { concurrency: 2 },
+  );
+  return { out, code: Number(code) };
+}).pipe(Effect.scoped, Effect.provide(BunServices.layer));
+
 describe('merge audit, each commit', () => {
   test(
     'names the commit red on its own though the tip is green',
@@ -157,6 +185,19 @@ describe('merge audit, each commit', () => {
           expect(code).not.toBe(0);
           expect(out).not.toContain(`merge-audit ${blocked.slice(0, 8)} guard ok`);
           expect(out).toContain(blocked.slice(0, 8));
+        }),
+      ),
+    30_000,
+  );
+
+  test(
+    'fails when git cannot list the commits, and never reports an empty run as green',
+    () =>
+      Effect.runPromise(
+        Effect.map(runEachListFails, ({ out, code }) => {
+          expect(code).not.toBe(0);
+          expect(out).not.toContain('guard ok');
+          expect(out).toContain('git rev-list');
         }),
       ),
     30_000,
