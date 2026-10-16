@@ -157,8 +157,23 @@ export const CorpusSyncInput = Schema.Struct({
 });
 export type CorpusSyncInput = typeof CorpusSyncInput.Type;
 
-const decodeInput = Schema.decodeUnknownOption(CorpusSyncInput);
 const NOTHING_ASKED: CorpusSyncInput = {};
+
+/** An instance's payload as it arrives: the input, or its JSON as a string
+ *  (the API and `cf workflows instances create` pass `params` that way). */
+const CorpusSyncPayload = Schema.Union([CorpusSyncInput, Schema.fromJsonString(CorpusSyncInput)]);
+export type CorpusSyncPayload = typeof CorpusSyncPayload.Encoded;
+
+const decodeInput = Schema.decodeUnknownEffect(CorpusSyncPayload);
+
+/** What an instance was asked. A scheduled instance carries no payload, so
+ *  it asks nothing. A payload that reads as neither form fails, so a request
+ *  to plan is never taken for a sync. */
+export const corpusSyncInput = (payload: Option.Option<CorpusSyncPayload>) =>
+  Option.match(payload, {
+    onNone: () => Effect.succeed(NOTHING_ASKED),
+    onSome: decodeInput,
+  });
 
 /** An install that failed for a reason other than the library withholding
  *  the book: the step's failure, so the step is retried. */
@@ -526,14 +541,10 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
           return SyncOutcome.Synced({ run, ...(yield* reportOf(run)) });
         });
 
-        // A scheduled instance carries no payload at all, so the input is
-        // read as nothing until it decodes.
         return Effect.fn('CorpusSync.run')(function* (payload: CorpusSyncInput) {
-          const input = Option.getOrElse(
-            Option.flatMap(Option.fromNullishOr(payload), decodeInput),
-            () => NOTHING_ASKED,
+          const exit = yield* Effect.exit(
+            Effect.flatMap(corpusSyncInput(Option.fromNullishOr(payload)), runOnce),
           );
-          const exit = yield* Effect.exit(runOnce(input));
           if (Exit.isFailure(exit)) {
             // Mailed, then failed with the same cause, so the dashboard and
             // the engine see the run exactly as it stopped.
