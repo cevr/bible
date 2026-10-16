@@ -432,7 +432,13 @@ const WaitingList = (props: { readonly waiting: ReadonlyArray<Waiting> }) => (
 /** A move's decision chosen as the owner's own words, not one filed in the version. */
 const OWN = 'own';
 
-/** The owner's decisions in `v`, newest first, each once: what a move may say it was because of. */
+/** A filed decision's choice, keyed by its text (never `OWN`, whatever the text says). */
+const decidedChoice = (text: string) => `decided:${text}`;
+
+/**
+ * The owner's decisions in `v`, newest first, each once, each keyed by its
+ * text: what a move may say it was because of.
+ */
 const decisionsOf = (
   v: VersionView,
 ): ReadonlyArray<{ readonly value: string; readonly text: string }> =>
@@ -447,7 +453,7 @@ const decisionsOf = (
         ),
       ),
     ),
-  ).map((text, i) => ({ value: String(i), text }));
+  ).map((text) => ({ value: decidedChoice(text), text }));
 
 /** The questions a move leaves open: `1 question still waits on you; it stays open after the move.` */
 const openAfterText = (n: number): string =>
@@ -475,13 +481,19 @@ const MoveForward = (props: { readonly production: string; readonly current: Ver
   const moves = newestAsked();
   const next = () => props.current.n + 1;
   const decisions = createMemo(() => decisionsOf(props.current));
+  /** The decision pressed, by its text; his own words when that is the choice. */
   const because = () =>
-    Option.getOrElse(
-      Option.map(
-        Arr.findFirst(decisions(), (d) => d.value === chosen()),
-        (d) => d.text,
+    Match.value(chosen()).pipe(
+      Match.when(OWN, () => own().trim()),
+      Match.orElse((value) =>
+        Option.getOrElse(
+          Option.map(
+            Arr.findFirst(decisions(), (d) => d.value === value),
+            (d) => d.text,
+          ),
+          () => '',
+        ),
       ),
-      () => own().trim(),
     );
   const named = () =>
     Option.getOrElse(
