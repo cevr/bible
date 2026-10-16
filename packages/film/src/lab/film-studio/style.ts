@@ -271,14 +271,15 @@ export const INSPECTOR_CSS = `
 /* Board: each panel at its mark, its tries a strip of 64px thumbs, the kept one ringed in the Board's ink. */
 .st-panel { display: flex; flex-direction: column; gap: var(--s-2); }
 .st-panel + .st-panel { padding-top: var(--s-3); border-top: var(--border); }
-.st-app .st-panel-head { display: flex; align-items: baseline; gap: var(--s-2); min-height: var(--s-8); text-align: start; border-radius: var(--r-1); font-size: var(--fs-2); line-height: var(--lh-2); }
+.st-app .st-panel-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--s-8); text-align: start; border-radius: var(--r-1); font-size: var(--fs-2); line-height: var(--lh-2); }
 .st-panel-head[aria-pressed="true"] .st-panel-mark { color: var(--k-board); }
 .st-panel-mark { font-weight: var(--w-3); }
 .st-panel-at { font-family: var(--font-mono); font-size: var(--fs-1); color: var(--text-2); font-variant-numeric: tabular-nums slashed-zero; }
 .st-panel-state { margin-left: auto; font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-3); }
-.st-tries { display: flex; gap: var(--s-2); overflow-x: auto; padding: 2px; }
-.st-app .st-try-btn { flex: none; border-radius: var(--r-1); line-height: 0; }
-.st-try { height: 64px; width: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); background: var(--surface-2); display: block; }
+.st-tries { display: flex; flex-wrap: wrap; gap: var(--s-2); padding: 2px; }
+.st-app .st-try-btn { position: relative; flex: none; border-radius: var(--r-1); line-height: 0; }
+.st-try-n { position: absolute; right: 3px; bottom: 3px; min-width: 16px; padding: 0 3px; border-radius: var(--r-1); background: var(--surface-1); color: var(--text-1); font-family: var(--font-mono); font-size: var(--fs-1); line-height: 16px; text-align: center; }
+.st-try { height: 48px; width: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); background: var(--surface-2); display: block; }
 .st-try-btn[data-kept="true"] .st-try, .st-panel > .st-try[data-kept="true"] { box-shadow: 0 0 0 2px var(--k-board); }
 .st-try-btn[aria-pressed="true"] .st-try { outline: 2px solid var(--text-1); outline-offset: 2px; }
 .st-why { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }

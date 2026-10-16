@@ -373,8 +373,8 @@ const PanelRow = (props: {
                 data-kept="true"
                 src={meta.boardUrl(file())}
                 alt={`${props.clip.panel}, ${panelState(props.clip)}`}
-                width="114"
-                height="64"
+                width="85"
+                height="48"
                 loading="lazy"
               />
             )}
@@ -406,10 +406,13 @@ const PanelRow = (props: {
                       class="st-try"
                       src={meta.boardUrl(t.file)}
                       alt=""
-                      width="114"
-                      height="64"
+                      width="85"
+                      height="48"
                       loading="lazy"
                     />
+                    <span class="st-try-n" aria-hidden="true">
+                      {t.n}
+                    </span>
                   </button>
                 )}
               </For>

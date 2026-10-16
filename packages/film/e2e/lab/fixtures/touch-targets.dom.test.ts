@@ -103,6 +103,24 @@ describe('the touch-target measure', () => {
     ),
   );
 
+  it.live(
+    'keeps a hit-slop over a control scrolled out of its pane: no tap lands on it there',
+    () =>
+      offenders(
+        // The pane's last button, scrolled to its middle, leaves the field 300 px up, above the
+        // pane's top (31–75), under the slop (29–73) the pane's edge clips it from.
+        `${CENTRED}
+       <div style="position:absolute;left:16px;top:331px;width:358px;height:200px;overflow:auto">
+         <button style="display:block;width:300px;height:44px">field</button>
+         <div style="height:334px"></div>
+         <button style="display:block;width:44px;height:44px">end</button>
+         <div style="height:400px"></div>
+       </div>
+       <button class="slop" style="left:200px;top:40px;width:18px;height:22px">x</button>`,
+        [],
+      ),
+  );
+
   it.live('keeps a hit-slop that grows away from its neighbour', () =>
     offenders(
       `<style>.up { position: absolute; } .up::before { content: ''; position: absolute; left: -13px; bottom: 0; width: 44px; height: 44px; }</style>

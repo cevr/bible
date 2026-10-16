@@ -28,7 +28,9 @@
 // control's box, one that neither holds nor is held by it, a tap on that
 // control's edge is the target's, though both still hold a square. The
 // slop's rectangle is worked out exactly from its own offsets and size,
-// and every whole pixel where it meets the neighbour's box is asked who a
+// and every whole pixel where it meets the neighbour's box (the part its
+// scrolling ancestors leave shown: a control scrolled out of its pane is
+// none there) is asked who a
 // tap there reaches; the target fails, as `… reaches over …`, on any one
 // that is its. A slop that cannot be placed exactly (its target is not its
 // containing block, or it, its target or an ancestor beyond a move is
@@ -303,8 +305,24 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
     }
     return slops;
   };
-  // Where a hit-slop lies over another control's box (one that neither holds nor is held by the
-  // target): each whole pixel of that overlap, outside the target's own box, asked
+  // The part of a control's box its scrolling and clipping ancestors leave shown: a box scrolled
+  // out of its pane is under whatever the pane's edge borders, where no tap lands on it.
+  const keptBox = (el) => {
+    const b = boxOf(el);
+    let left = b.left, top = b.top, right = b.right, bottom = b.bottom;
+    for (let a = el.parentElement; a !== null && a !== document.documentElement; a = a.parentElement) {
+      const cs = getComputedStyle(a);
+      if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+      const r = a.getBoundingClientRect();
+      left = Math.max(left, r.left + a.clientLeft);
+      top = Math.max(top, r.top + a.clientTop);
+      right = Math.min(right, r.left + a.clientLeft + a.clientWidth);
+      bottom = Math.min(bottom, r.top + a.clientTop + a.clientHeight);
+    }
+    return { left, top, right: Math.max(left, right), bottom: Math.max(top, bottom) };
+  };
+  // Where a hit-slop lies over the shown part of another control's box (one that neither holds
+  // nor is held by the target): each whole pixel of that overlap, outside the target's own box, asked
   // \`elementFromPoint\` at its corner (the browser hit-tests a point as the pixel from it), so the
   // slop counts only where it is on top. \`loose\`: a slop that cannot be placed exactly.
   const over = (el, set) => {
@@ -318,7 +336,7 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
     };
     return targets.filter((other) => {
       if (other === el || other.contains(el) || el.contains(other) || inSet(set, other)) return false;
-      const o = boxOf(other);
+      const o = keptBox(other);
       return slops.some((s) => {
         const l = Math.max(o.left, s.left), r = Math.min(o.right, s.right);
         const t = Math.max(o.top, s.top), bt = Math.min(o.bottom, s.bottom);
