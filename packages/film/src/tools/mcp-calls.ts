@@ -20,6 +20,7 @@ const LOGGED_ARGS = [
   'since',
   'wait',
   'try',
+  'version',
 ] as const;
 
 /** A tool call's arguments as far as its line reads them: the logged ones, each a name, an id or a count. */

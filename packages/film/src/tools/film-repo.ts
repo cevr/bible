@@ -8,6 +8,7 @@
 
 import {
   Array as Arr,
+  Boolean as Bool,
   Config,
   Context,
   Data,
@@ -21,6 +22,7 @@ import {
   Record as Rec,
   Result,
   Schema,
+  Struct,
 } from 'effect';
 import {
   EMPTY_FOOTAGE_LOCK,
@@ -163,7 +165,13 @@ export type FilmName = typeof FilmName.Type;
  * through a fresh process (`FreshFilm`).
  */
 interface FilmFolderService {
-  readonly paths: (film: string) => FilmPaths;
+  /**
+   * Every path a tool touches for `film`; with `folder`, for its version
+   * folder (`<film>/<folder>/`, an earlier version kept beside the film):
+   * its scenes, takes, timings and score under it. Its outputs stay the
+   * film's.
+   */
+  readonly paths: (film: string, folder?: Segment) => FilmPaths;
   /** The films in the folder, by name (each a folder with `scenes/index.ts`), sorted. */
   readonly names: Effect.Effect<ReadonlyArray<string>>;
   /** The app's sound library folder (`library.ts`, its lock, `files/`), when it has one. */
@@ -181,10 +189,21 @@ interface FilmFolderService {
 }
 
 interface FilmRepoService {
-  readonly load: (film: string) => Effect.Effect<LoadedFilm, LoadError>;
-  /** The film's screenplay (`script.ts`): each beat's line and sources. None when it keeps none. */
+  /**
+   * The film as its registered files stand; with `folder`, its version
+   * folder (`<film>/<folder>/`): that folder's scenes, takes, score, shorts,
+   * script and acts, and the film's own voice and palette where the folder
+   * keeps none.
+   */
+  readonly load: (film: string, folder?: Segment) => Effect.Effect<LoadedFilm, LoadError>;
+  /**
+   * The film's screenplay (`script.ts`): each beat's line, sources and hold.
+   * None when it keeps none. `folder` reads a version folder's instead
+   * (`<film>/<folder>/script.ts`).
+   */
   readonly script: (
     film: string,
+    folder?: Segment,
   ) => Effect.Effect<Option.Option<ScriptModule['script']>, LoadError>;
   /**
    * The film's beds and effects (`sound.ts`) alone, nothing else of it
@@ -196,12 +215,14 @@ interface FilmRepoService {
 }
 
 const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
-/** The part of `script.ts` the tools read: each beat's line, its sources and its picture's brief. */
+/** The part of `script.ts` the tools read: each beat's line, its sources, its picture's brief and its hold. */
 const ScriptModule = Schema.Struct({
   script: Schema.Array(
     Schema.Struct({
       id: Schema.String,
       say: Schema.optionalKey(Schema.String),
+      /** The beat's hold, as a scene's (`Timed`): what lays a version's script out on its clock. */
+      ...Struct.pick(Timed.fields, ['lead', 'tail', 'min', 'enter']),
       cite: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
       /** What the picture does (the judge quotes it, `tools/judge.ts`). */
       picture: Schema.optionalKey(Schema.String),
@@ -212,7 +233,12 @@ const ScriptModule = Schema.Struct({
 type ScriptModule = typeof ScriptModule.Type;
 const VoiceModule = Schema.Struct({ voice: Voice });
 const SoundModule = Schema.Struct({ sound: Sound });
-/** The part of `film.ts` the tools read: its declared look, when it declares one. */
+/**
+ * The part of `film.ts` the tools read: its declared look, when it declares
+ * one. A version folder keeps no `film.ts` (it is no film the player
+ * registers): its `acts.ts` declares the look, as the film's `film.ts`
+ * re-exports its own.
+ */
 const FilmModule = Schema.Struct({ look: Schema.optionalKey(Look) });
 const ShortsModule = Schema.Struct({ shorts: Shorts });
 /** A talk's `talk.ts`: its edit. */
@@ -329,8 +355,8 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
         const path = yield* Path.Path;
         const outputs = yield* filmsOut;
 
-        const paths = (name: string): FilmPaths => {
-          const dir = path.join(films, name);
+        const paths = (name: string, folder?: Segment): FilmPaths => {
+          const dir = path.join(films, name, ...Option.toArray(Option.fromUndefinedOr(folder)));
           const narration = path.join(dir, 'narration');
           const sound = path.join(dir, 'sound');
           return {
@@ -496,10 +522,19 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             return Option.some((yield* loadModule(name, file, SoundModule)).sound);
           });
 
-        const load = Effect.fn('FilmRepo.load')(function* (name: string) {
-          const at = paths(name);
-          if (!(yield* fs.exists(at.dir))) return yield* unknown(name);
+        const load = Effect.fn('FilmRepo.load')(function* (name: string, folder?: Segment) {
+          if (!(yield* fs.exists(paths(name).dir))) return yield* unknown(name);
+          const at = paths(name, folder);
+          /** A module the version folder keeps, else the film's own (its voice, its palette). */
+          const ownOrFilm = (file: string) =>
+            Effect.map(fs.exists(path.join(at.dir, file)), (own) =>
+              path.join(
+                Bool.match(own, { onTrue: () => at.dir, onFalse: () => paths(name).dir }),
+                file,
+              ),
+            );
           if (
+            Option.isNone(Option.fromUndefinedOr(folder)) &&
             !(yield* fs.exists(path.join(at.dir, 'scenes', 'index.ts'))) &&
             (yield* fs.exists(path.join(at.dir, 'talk.ts')))
           ) {
@@ -526,7 +561,7 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             path.join(at.dir, 'scenes', 'index.ts'),
             ScenesModule,
           );
-          const { voice } = yield* loadModule(name, path.join(at.dir, 'voice.ts'), VoiceModule);
+          const { voice } = yield* loadModule(name, yield* ownOrFilm('voice.ts'), VoiceModule);
           const sound = yield* soundIn(name, at);
           const shortsFile = path.join(at.dir, 'shorts.ts');
           let shorts: Shorts = [];
@@ -539,10 +574,13 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           if (yield* fs.exists(scriptFile))
             heardAs = (yield* loadModule(name, scriptFile, ScriptModule)).heardAs;
           const filmFile = path.join(at.dir, 'film.ts');
+          const actsFile = path.join(at.dir, 'acts.ts');
           let look = Option.none<Look>();
           if (yield* fs.exists(filmFile))
             look = Option.fromNullishOr((yield* loadModule(name, filmFile, FilmModule)).look);
-          const paletteFile = path.join(at.dir, 'palette.ts');
+          else if (yield* fs.exists(actsFile))
+            look = Option.fromNullishOr((yield* loadModule(name, actsFile, FilmModule)).look);
+          const paletteFile = yield* ownOrFilm('palette.ts');
           let looks: Looks = {};
           if (yield* fs.exists(paletteFile))
             looks = Option.getOrElse(
@@ -587,10 +625,9 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
             );
           });
 
-        const script = Effect.fn('FilmRepo.script')(function* (name: string) {
-          const at = paths(name);
-          if (!(yield* fs.exists(at.dir))) return yield* unknown(name);
-          const file = path.join(at.dir, 'script.ts');
+        const script = Effect.fn('FilmRepo.script')(function* (name: string, folder?: Segment) {
+          if (!(yield* fs.exists(paths(name).dir))) return yield* unknown(name);
+          const file = path.join(paths(name, folder).dir, 'script.ts');
           if (!(yield* fs.exists(file))) return Option.none<ScriptModule['script']>();
           return Option.some((yield* loadModule(name, file, ScriptModule)).script);
         });

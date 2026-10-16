@@ -294,3 +294,60 @@ describe('film read script, run fresh', () => {
     SPAWNS_MS,
   );
 });
+
+// `film read clock` run fresh over the same film: the registered scenes on
+// the film's takes (none: every voiced beat is estimated) and its declared
+// acts; a version folder with its own scenes (`sample/v3/`), read wholly from
+// that folder (its take, drawn scenes, acts and score); and a version folder
+// with a script alone (`sample/v2/script.ts`), on the holds it declares.
+describe('film read clock, run fresh', () => {
+  it.effect.layer(
+    FreshFilm.layer([
+      'bun',
+      `${import.meta.dir}/fixtures/read-cli.ts`,
+      `${import.meta.dir}/fixtures/films`,
+    ]).pipe(Layer.provideMerge(BunServices.layer)),
+  )(
+    "answers the registered film's clock, and each version folder's from its own files",
+    () =>
+      Effect.gen(function* () {
+        const fresh = yield* FreshFilm;
+        const [film, folder, own] = yield* Effect.all(
+          [
+            fresh.clock(SAMPLE, Option.none()),
+            fresh.clock(SAMPLE, Option.some('v2')),
+            fresh.clock(SAMPLE, Option.some('v3')),
+          ],
+          { concurrency: 3 },
+        );
+        expect(film.beats.map((b) => [b.id, b.voice, b.drawn])).toEqual([
+          ['open', 'estimated', true],
+          ['title', 'silent', true],
+        ]);
+        expect(film.beats[0]?.marks.map((m) => m.name)).toEqual(['ask']);
+        expect(film.beats[1]).toMatchObject({ start: film.beats[0]?.dur, dur: 3 });
+        expect(film.acts.map((a) => [a.name, a.from, a.start])).toEqual([
+          ['open', 'open', 0],
+          ['title', 'title', film.beats[0]?.dur ?? -1],
+        ]);
+        expect(folder.beats.map((b) => [b.id, b.voice, b.drawn])).toEqual([
+          ['open', 'estimated', false],
+          ['end', 'silent', false],
+        ]);
+        // Its tail of 2 s in place of the default 0.1 s; its end held 4 s by `min`.
+        expect((folder.beats[0]?.dur ?? 0) - (film.beats[0]?.dur ?? 0)).toBeCloseTo(1.9, 6);
+        expect(folder.beats[1]?.dur).toBe(4);
+        expect([folder.acts, folder.movements]).toEqual([[], []]);
+        // v3's own take (staging, its mark on its own words), its own drawn
+        // scenes, its own act and its own score's movement.
+        expect(own.beats.map((b) => [b.id, b.voice, b.drawn])).toEqual([
+          ['seed', 'staging', true],
+          ['end', 'silent', false],
+        ]);
+        expect(own.beats[0]?.marks).toEqual([{ name: 'sown', at: 1.5 }]);
+        expect(own.acts.map((a) => [a.name, a.from])).toEqual([['sowing', 'seed']]);
+        expect(own.movements.map((m) => [m.name, m.from])).toEqual([['sowing', 'seed']]);
+      }),
+    SPAWNS_MS,
+  );
+});

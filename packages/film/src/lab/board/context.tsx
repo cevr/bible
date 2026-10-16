@@ -1,6 +1,6 @@
 // The Board's provider: the film's storyboard as its record stands (`GET
 // …/board`, read as the page stands, again after each write), laid on the
-// staged film's narration clock (`animatic.ts`: each panel held from its
+// staged film's narration clock (`core/animatic.ts`: each panel held from its
 // mark); the panel the URL picks (`?panel=&try=&view=` in the path's beat,
 // `lab/place.ts`) with the try shown in it; the sketch being drawn over it
 // (`sketch/gesture.ts`, one machine); the images, loaded once each; and the
@@ -45,7 +45,7 @@ import { useNotesFeed } from '../notes/list.tsx';
 import { type BoardPick, NO_BOARD_PICK, labHrefWith, labPlaceOf } from '../place.ts';
 import { useLab } from '../shell.tsx';
 import { type SketchEvent, type SketchState, sketchOf, step } from '../sketch/gesture.ts';
-import { type Shot, type TimedBeat, panelTime, shotAt, shotsOf } from './animatic.ts';
+import { type Shot, type TimedBeat, panelTime, shotAt, shotsOf } from '../../core/animatic.ts';
 import { type PanelAsking, panelNoteOf } from './note.ts';
 import { StillUnmade, stillOf } from './still.ts';
 import { Sketch } from '../sketch/surface.tsx';

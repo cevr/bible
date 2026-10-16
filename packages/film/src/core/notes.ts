@@ -80,7 +80,7 @@ export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.
  * one that starts before its end on the film's one frame grid (`framesOf`:
  * an end within a millionth of a frame past a frame start is not a frame).
  */
-const inScene = (p: Placed, fps: number, local: number) => {
+const inScene = (p: Pick<Placed, 'start' | 'dur'>, fps: number, local: number) => {
   if (local < p.dur) return p.start + local;
   return Math.max(p.start, framesOf({ from: p.start, to: p.start + p.dur }, fps).last / fps);
 };
@@ -92,7 +92,7 @@ const inScene = (p: Placed, fps: number, local: number) => {
  * else, and for a note made before `local`, its `T`.
  */
 export const noteT = (
-  placed: ReadonlyArray<Placed>,
+  placed: ReadonlyArray<Pick<Placed, 'start' | 'dur'> & { readonly spec: { readonly id: string } }>,
   fps: number,
   note: Pick<NoteDraft, 'scene' | 'T' | 'local'>,
 ): number =>

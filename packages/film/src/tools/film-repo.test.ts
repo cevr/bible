@@ -3,11 +3,14 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
-import { ConfigProvider, Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { ConfigProvider, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import { BoardFileJson, BoardName } from '../core/board.ts';
+import { BoardStore } from './board-store.ts';
 import { ContentStore } from './content-store.ts';
-import { FilmFolder, FilmRepo, placeFilm } from './film-repo.ts';
+import { Segment } from '../core/segment.ts';
+import { FilmFolder, FilmName, FilmRepo, placeFilm } from './film-repo.ts';
 import { SoundRender } from './sound-render.ts';
-import { memoryFileSystem, storeLayer, testFilm } from './testing.ts';
+import { memoryFileSystem, storeLayer, testFilm, text } from './testing.ts';
 
 const files = new Map<string, Uint8Array>();
 const env = ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_DIR: '/elsewhere' }));
@@ -65,6 +68,62 @@ describe('FilmRepo', () => {
       expect(look.acts.map((act) => act.from)).toEqual(['open', 'title']);
     }),
   );
+
+  // A version folder (`sample/v3/`) is read from its own files with the same
+  // loader: its scenes, takes, acts and score, and the film's voice where it
+  // keeps none of its own.
+  it.effect.layer(sample)("reads a version folder's own scenes, takes, acts and score", () =>
+    Effect.gen(function* () {
+      const loaded = yield* (yield* FilmRepo).load('sample', Segment.make('v3'));
+      expect(loaded.scenes.map((s) => s.id)).toEqual(['seed', 'end']);
+      expect(Object.keys(loaded.timings.scenes)).toEqual(['seed']);
+      expect(Option.getOrThrow(loaded.look).acts.map((act) => String(act.name))).toEqual([
+        'sowing',
+      ]);
+      const score = Option.getOrThrow(loaded.sound).score;
+      expect(score?.options['piano']?.movements.map((m) => m.from)).toEqual(['seed']);
+      expect(Option.getOrThrow(loaded.voice)).toMatchObject({ voiceId: 'sample-voice' });
+    }),
+  );
+});
+
+describe('BoardStore', () => {
+  it.effect("reads a version folder's own board.json beside the film's", () => {
+    const disk = new Map<string, Uint8Array>();
+    const board = (beat: string) =>
+      text(
+        Schema.encodeSync(BoardFileJson)({
+          film: 'f',
+          panels: [
+            {
+              id: `${beat}.start`,
+              beat: BoardName.make(beat),
+              at: BoardName.make('start'),
+              tries: [],
+            },
+          ],
+          approvals: [],
+        }),
+      );
+    disk.set('/app/src/films/f/board.json', board('a'));
+    disk.set('/app/src/films/f/v2/board.json', board('b'));
+    return Effect.gen(function* () {
+      const boards = yield* BoardStore;
+      const ids = (file: { readonly panels: ReadonlyArray<{ readonly id: string }> }) =>
+        file.panels.map((p) => p.id);
+      const f = FilmName.make('f');
+      expect(ids(yield* boards.read(f))).toEqual(['a.start']);
+      expect(ids(yield* boards.read(f, Segment.make('v2')))).toEqual(['b.start']);
+      expect(ids(yield* boards.read(f, Segment.make('v3')))).toEqual([]);
+    }).pipe(
+      Effect.provide(
+        BoardStore.layer.pipe(
+          Layer.provide(FilmFolder.layer('/app/src/films')),
+          Layer.provide([storeLayer(disk), memoryFileSystem(disk), Path.layer]),
+        ),
+      ),
+    );
+  });
 });
 
 describe('FilmFolder.stamp', () => {

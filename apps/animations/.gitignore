@@ -39,6 +39,15 @@ src/films/*/sound/*
 # only at a cost. Only the record, `board.json` (each image's sha256), is
 # committed; copy the folder between checkouts.
 src/films/*/board/
+# A version folder (`<film>/v<n>/`, an earlier version kept beside the film)
+# keeps the same files out: its board images, its mix and its takes' attempts.
+src/films/*/v*/board/
+src/films/*/v*/narration/full.wav
+src/films/*/v*/narration/full.json
+src/films/*/v*/narration/*.take.mp3
+src/films/*/v*/narration/attempts/
+src/films/*/v*/sound/*
+!src/films/*/v*/sound/manifest.json
 # The productions' ledgers (`productions/<production>.json`) are committed: small
 # text, the owner's decisions. Only a write in flight and the lock file stay out.
 productions/*.partial

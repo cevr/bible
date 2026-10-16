@@ -53,3 +53,31 @@ v3 concept court.12, drawn over cold.34 with the robe sheet (SAME world): the pl
 ## 2026-10-16T02:27:07Z · film
 
 v3 concept grain tries: a repaint that starts from a try keeps that try's figure on the cross; grain.13's two arms stayed through its three repaints (grain.16 to 18), and grain.15's armless figure held through grain.19 to 21. Smooth earth planes in a fine grain with haze between read as the locked look (grain.20, 21 SAME); thick torn rims, a coarse texture or light bands along the ridges do not (grain.13 to 15, 19 NOT SAME).
+
+## 2026-10-16T05:08:15Z · film
+
+v3 is the film's script from 2026-10-16 (kept, ask a086603ff6a): every beat plays as its storyboard card and has no take. Version 2 sits in v2/ as a folder registered as no film: its script, sources, Canvas scene drawings (20, still typechecked), lights, credits, board record and images (111 files), takes (20 files), score and shorts.
+
+## 2026-10-16T05:48:05Z · accuser
+
+Board: named only in words, the accuser came out as a faceless angular shadow figure in both tries; with robe.5 attached as his reference he came out as robe.5's stern bearded man in dark violet, the same man robe.take and robe.walk show.
+
+## 2026-10-16T05:48:06Z · accuser
+
+Board: on accuser.silence both first tries gave Christ's raised hand a sleeved arm; the brief naming "a floating circle hand with no arm and no sleeve" gave two tries with circle hands only.
+
+## 2026-10-16T05:48:07Z · film
+
+Board: the kept concepts draw Christ two ways: dark curly hair and a short beard in Capernaum (roof.6, and the woman and roof panels drawn from it), long brown hair in heaven's court and the closing court (robe.5, court.12, and grain.treated, priest.up and court.you drawn near them).
+
+## 2026-10-16T05:48:09Z · court
+
+Board: a card panel holds until the next panel, so with court.justifieth set to beside and the next picture at you, "Christ, who died for him, stands beside him" played over the card and his arrival was never on screen; roof.son and look.look held their cards about 10 s past their last word the same way.
+
+## 2026-10-16T05:48:11Z · court
+
+Board: with court.12 attached, the first court.you pair copied its wide framing, and Christ's offer of the seed to the viewer was too small to read; asked for a closer shot at His eye level, both tries put His face at a third of the frame, the seed held toward the camera.
+
+## 2026-10-16T05:48:12Z · film
+
+Board: with the plain lead's sheet attached, standing tries kept his head at 0.32 to 0.40 of his height (sheet 0.375), his paper lilac grey and no clothes added; leaning poses measured near 0.43, and one try (within.command.1) drew the head at 0.45. The grandmother drawn from the sheet in oat paper came out near white in one try and warm oat in the other.

@@ -3,8 +3,9 @@
 // across processes), and the images beside it in `src/films/<film>/board/`
 // (git-ignored, like the sounds: big, and made again only at a cost), each
 // recorded with its sha256 so a copy brought from another checkout is known
-// to be the same. The CLI (`film board`) and the lab's board routes both go
-// through this store, so either works without the other.
+// to be the same. A version folder (`<film>/v<n>/`) keeps its own board the
+// same way, read with its folder. The CLI (`film board`) and the lab's board
+// routes both go through this store, so either works without the other.
 
 import {
   Array as Arr,
@@ -33,6 +34,7 @@ import {
   withTries,
 } from '../core/board.ts';
 import { BoardFileUnknown, BoardRefused } from '../core/refusals.ts';
+import type { Segment } from '../core/segment.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { sha256Hex } from './digest.ts';
 import { FilmFolder, type FilmName } from './film-repo.ts';
@@ -73,9 +75,10 @@ interface PanelAt {
 }
 
 interface BoardStoreService {
-  readonly paths: (film: FilmName) => BoardPaths;
-  /** The film's board; an empty one before its first panel. */
-  readonly read: (film: FilmName) => Effect.Effect<BoardFile, StoreError>;
+  /** Where `film`'s board lives; with `folder`, its version folder's (`<film>/<folder>/board.json`). */
+  readonly paths: (film: FilmName, folder?: Segment) => BoardPaths;
+  /** The film's board, or its version folder's; an empty one before its first panel. */
+  readonly read: (film: FilmName, folder?: Segment) => Effect.Effect<BoardFile, StoreError>;
   /** One change to the board, decided on the board as read under its lock. */
   readonly transact: <A, E, R>(
     film: FilmName,
@@ -123,8 +126,8 @@ export class BoardStore extends Context.Service<BoardStore, BoardStoreService>()
       const store = yield* ContentStore;
       const folder = yield* FilmFolder;
 
-      const paths = (film: FilmName): BoardPaths => {
-        const dir = folder.paths(film).dir;
+      const paths = (film: FilmName, version?: Segment): BoardPaths => {
+        const dir = folder.paths(film, version).dir;
         return {
           record: {
             file: path.join(dir, 'board.json'),
@@ -135,7 +138,7 @@ export class BoardStore extends Context.Service<BoardStore, BoardStoreService>()
         };
       };
 
-      const read = (film: FilmName) => store.read(paths(film).record);
+      const read = (film: FilmName, version?: Segment) => store.read(paths(film, version).record);
 
       const transact = <A, E, R>(
         film: FilmName,

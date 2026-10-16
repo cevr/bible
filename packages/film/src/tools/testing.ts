@@ -111,7 +111,9 @@ import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
+import { FilmTimelines } from './film-timeline.ts';
 import { FreshFilm, type FreshFilmService, OptionsKept, SitesRead } from './fresh-film.ts';
+import { Working } from './working.ts';
 import { beatsOf, voicedOf } from './narrator.ts';
 import { voicePoints } from './choice-points.ts';
 import { Takes } from './takes.ts';
@@ -608,6 +610,7 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
       sites: unused('read sites'),
       cues: unused('read cues'),
       scenes: unused('read scenes'),
+      clock: unused('read clock'),
       remix: unused('mix'),
       project: unused('project'),
       check: unused('check'),
@@ -1823,6 +1826,18 @@ export const labInMemory = (
     mtimes = new Map(),
     asking = Layer.mergeAll(noStudio, noRenders),
   }: LabInMemory = {},
+) =>
+  FilmTimelines.layer.pipe(
+    Layer.provide(RenderCatalogue.layer),
+    Layer.provideMerge(Working.layer),
+    Layer.provideMerge(labStores(files, pages, { film, mtimes, asking })),
+  );
+
+/** The lab's stores in memory under `labInMemory`'s timelines. */
+const labStores = (
+  files: Map<string, Uint8Array>,
+  pages: typeof echoPages,
+  { film, mtimes, asking }: Required<LabInMemory>,
 ) =>
   Layer.mergeAll(
     NotesStore.layer,

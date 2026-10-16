@@ -1,5 +1,5 @@
 // The Board's picture: a canvas pinned over the film (`Lab.Layer`), painting
-// the animatic on the narration's clock (`animatic.ts`): the shot under the
+// the animatic on the narration's clock (`core/animatic.ts`): the shot under the
 // frame, its panel's try (the one the link previews on the panel it picks,
 // else the kept one), its card or verse set by the engine, or a beat's
 // storyboard card. In the draw view it holds the picked panel still under the
@@ -11,7 +11,7 @@
 
 import { Option, Result } from 'effect';
 import { createEffect } from 'solid-js';
-import type { Shot } from './animatic.ts';
+import type { Shot } from '../../core/animatic.ts';
 import { type BoardBeat, type PickedPanel, useBoard } from './context.tsx';
 import {
   BOARD_PAPER,

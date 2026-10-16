@@ -26,6 +26,16 @@
 //       each scene's placement, marks and named cues, one line each as
 //       `film cues` prints them (`sceneReport`), or the one scene's, and how
 //       many cues end after their scene (the lab's `cues` tool)
+//   film read clock <film> [--folder <v>]
+//       a version's clock (`core/film-timeline.ts`): each beat's span,
+//       speech, marks and voice, its acts and its score's movements, laid
+//       out by `layout()` with no cue resolved (a beat's length never
+//       reads its cues), so a scene whose timeline does not resolve still
+//       has its place; with `--folder`, the version folder's
+//       (`<film>/<folder>/`: its scenes, takes, acts and score, loaded as the
+//       film's are), or, for a folder that holds a script alone, its
+//       `script.ts` on the folder's own takes (no acts, no score, no scene
+//       draws it). The lab's `timeline` tool and the studio read it
 //   film read scenes <film>
 //       the film's scenes by id, in order, as `film journal` knows them: no
 //       timeline is resolved, so a scene that does not lay out still names
@@ -36,6 +46,7 @@
 
 import {
   Array as Arr,
+  Boolean as Bool,
   Effect,
   FileSystem,
   Layer,
@@ -48,12 +59,15 @@ import {
 import { Argument, Command, Flag } from 'effect/cli';
 import type { ScriptBeat } from '../core/api.ts';
 import type { LineError, UnknownVoice } from '../core/errors.ts';
-import { type Placed, sceneClock, sceneOf } from '../core/layout.ts';
+import { filmClock } from '../core/film-timeline.ts';
+import { type Placed, layout, sceneClock, sceneOf } from '../core/layout.ts';
 import { FilmUnknown, SceneNotLocated, SourceShared } from '../core/refusals.ts';
-import type { CuePatch, Span } from '../core/schema.ts';
+import type { CuePatch, Span, Timed } from '../core/schema.ts';
+import { Segment } from '../core/segment.ts';
 import { type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
 import type { StudioReading } from '../core/studio.ts';
 import { patchSpan, resolveTimeline, writtenPatch } from '../core/timeline.ts';
+import { ContentStore } from './content-store.ts';
 import { sceneReport } from './cues.ts';
 import { FilmModuleInvalid, type TalkUnvoiced } from './errors.ts';
 import {
@@ -67,6 +81,7 @@ import {
 import {
   CuePatchJson,
   CueRead,
+  ClockRead,
   CuesRead,
   type SceneSite,
   ScenesRead,
@@ -498,10 +513,79 @@ const scenes = Command.make(
   ),
 );
 
+/** `scenes` as the clock lays them out: their lengths, with no cue to resolve (a beat's length never reads one). */
+const untimed = <S extends Timed>(scenes: ReadonlyArray<S>): ReadonlyArray<Omit<S, 'timeline'>> =>
+  scenes.map(({ timeline: _timeline, ...scene }) => scene);
+
+const clock = Command.make(
+  'clock',
+  {
+    film,
+    folder: Flag.String('folder').pipe(
+      Flag.withSchema(Segment),
+      Flag.optional,
+      Flag.withDescription('a version folder (`v2`): its scenes, takes, acts and score'),
+    ),
+  },
+  Effect.fn('film.read.clock')(function* (input) {
+    const repo = yield* FilmRepo;
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const at = (yield* FilmFolder).paths(input.film, Option.getOrUndefined(input.folder));
+    const scriptAlone =
+      Option.isSome(input.folder) && !(yield* fs.exists(path.join(at.dir, 'scenes', 'index.ts')));
+    const read = yield* Bool.match(scriptAlone, {
+      // A script written alone in its folder: its beats on the folder's own takes.
+      onTrue: () =>
+        Effect.gen(function* () {
+          const script = yield* repo.script(input.film, Option.getOrUndefined(input.folder));
+          const timings = yield* (yield* ContentStore).read(at.timings);
+          return yield* Effect.fromResult(
+            Result.flatMap(
+              layout(
+                Option.getOrElse(script, () => []),
+                timings,
+              ),
+              (placed) => filmClock(placed, { acts: [], movements: [], drawn: () => false }),
+            ),
+          );
+        }),
+      onFalse: () =>
+        Effect.gen(function* () {
+          const loaded = yield* repo.load(input.film, Option.getOrUndefined(input.folder));
+          return yield* Effect.fromResult(
+            Result.flatMap(layout(untimed(loaded.scenes), loaded.timings), (placed) =>
+              filmClock(placed, {
+                acts: Option.match(loaded.look, { onNone: () => [], onSome: (look) => look.acts }),
+                movements: Option.getOrElse(
+                  Option.flatMap(
+                    Option.flatMap(loaded.sound, (sound) => Option.fromUndefinedOr(sound.score)),
+                    (score) =>
+                      Option.map(
+                        Option.fromUndefinedOr(score.options[score.play]),
+                        (m) => m.movements,
+                      ),
+                  ),
+                  () => [],
+                ),
+                drawn: (p) => p.spec.storyboard !== true,
+              }),
+            ),
+          );
+        }),
+    });
+    yield* printLine(ClockRead.make({ clock: read }));
+  }, answering),
+).pipe(
+  Command.withDescription(
+    "A version's clock (each beat's span, speech, marks and voice, its acts and its score's movements), as one line of JSON",
+  ),
+);
+
 /** `film read`, run fresh by the lab. */
 export const read = Command.make('read').pipe(
   Command.withDescription(
     'What the lab reads of a film, fresh from disk, as one line of JSON (the lab runs these)',
   ),
-  Command.withSubcommands([voice, script, cue, sites, cues, scenes]),
+  Command.withSubcommands([voice, script, cue, sites, cues, scenes, clock]),
 );
