@@ -312,6 +312,28 @@
       "set": "rbf-v3-concepts-2026-10-15",
       "ask": "a45a6246afe",
       "by": "rbfconcepts (p5)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792129984662,
+      "text": "RBF v3: the Board (ask ac2ebcca66d) withdrawn: Withdrawn: it recommended approving a Board that draws Christ two ways, against the rule that a character stays the same across scenes. Replaced by an ask with a choice on Christ's look.",
+      "ask": "ac2ebcca66d",
+      "by": "RBF board agent"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792153137817,
+      "text": "RBF v3: the Board (ask a4899924c35): christ: Long brown hair, as in robe.5 and court.12; redraw the Capernaum panels · board: Approve it, once Christ is one look · notes: lets make satan that angular figure from the old boards",
+      "quote": "lets make satan that angular figure from the old boards",
+      "ask": "a4899924c35",
+      "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792154195705,
+      "text": "Satan is to be the angular figure from the old boards (v2's accuser), not the bearded man in violet of concept robe.5.",
+      "quote": "lets make satan that angular figure from the old boards",
+      "by": "RBF board agent"
     }
   ],
   "filed": [

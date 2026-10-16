@@ -81,3 +81,7 @@ Board: with court.12 attached, the first court.you pair copied its wide framing,
 ## 2026-10-16T05:48:12Z · film
 
 Board: with the plain lead's sheet attached, standing tries kept his head at 0.32 to 0.40 of his height (sheet 0.375), his paper lilac grey and no clothes added; leaning poses measured near 0.43, and one try (within.command.1) drew the head at 0.45. The grandmother drawn from the sheet in oat paper came out near white in one try and warm oat in the other.
+
+## 2026-10-16T12:35:49Z · film
+
+Board redraw: with roof.6 attached as the place and Christ cut from robe.5 and court.12 attached as His own references, all 16 new Capernaum and temple-court tries drew Jesus with long straight brown hair and the gold sash; the paralytic kept roof.6's dark curly hair. The accuser cut from v2 accuser.day try 2 came back as the same angular slate-violet figure in all 12 tries; in both first accuser.satan tries he reached with a sleeved arm, as the v2 reference does, and once the brief named a floating circle hand with no arm, both tries drew the circle hand alone.
