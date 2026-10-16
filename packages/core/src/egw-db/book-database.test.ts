@@ -30,6 +30,7 @@ import {
 import { nodesToText } from '../egw/ast.js';
 import type { Book, Paragraph } from '../egw/schemas.js';
 import {
+  ArchiveChapter,
   ArchivedBibleReference,
   ArchivedParagraph,
   PublicationArchive,
@@ -44,8 +45,24 @@ import {
   publicationOrder,
 } from '../writings/model.js';
 import { SqlAtomic } from '../db/atomic.js';
-import { EGWParagraphDatabase, ftsTermQuery, paragraphIdentity } from './book-database.js';
+import {
+  EGWParagraphDatabase,
+  type EGWParagraphDatabaseService,
+  ftsTermQuery,
+  paragraphIdentity,
+} from './book-database.js';
 import * as EGWDbBun from './book-database-bun.js';
+
+/** A whole archive as a publication streamed in one chapter. */
+const publicationStream = (archive: PublicationArchive) => ({
+  publication: archive.publication,
+  chapters: Stream.make(
+    ArchiveChapter.make({
+      paragraphs: archive.paragraphs,
+      bibleReferences: archive.bibleReferences,
+    }),
+  ),
+});
 
 // Wire-shape fields the schema encodes as `null` when absent.
 const wireNull = Option.getOrNull(Option.none<never>());
@@ -206,6 +223,13 @@ const collidingArchive = (
   });
 };
 
+/** Installs a whole archive, streamed as one chapter. */
+const installArchive = (
+  db: EGWParagraphDatabaseService,
+  archive: PublicationArchive,
+  provenance?: CorpusProvenance,
+) => db.installPublication(publicationStream(archive), provenance);
+
 describe('EGWParagraphDatabase', () => {
   const test = it.scopedLive.layer(BunServices.layer);
   describe('canonical publication installation', () => {
@@ -218,7 +242,7 @@ describe('EGWParagraphDatabase', () => {
             revision: corpusRevision('2'),
             digest: Option.some(corpusDigest(`sha256:${'a'.repeat(64)}`)),
           });
-          yield* db.installPublicationArchive(mockArchive(['TEST 1.1']), provenance);
+          yield* installArchive(db, mockArchive(['TEST 1.1']), provenance);
 
           const status = Option.getOrThrow(yield* db.getSyncStatus(9001));
           expect(status).toMatchObject({
@@ -244,8 +268,8 @@ describe('EGWParagraphDatabase', () => {
       runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
-          yield* db.installPublicationArchive(mockArchive(['TEST 1.1', 'TEST 1.2']));
-          yield* db.installPublicationArchive(mockArchive(['TEST 2.1']));
+          yield* installArchive(db, mockArchive(['TEST 1.1', 'TEST 1.2']));
+          yield* installArchive(db, mockArchive(['TEST 2.1']));
 
           const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
           const references = yield* db.getBibleRefsByBook(9001);
@@ -263,10 +287,11 @@ describe('EGWParagraphDatabase', () => {
       runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
-          yield* db.installPublicationArchive(mockArchive(['TEST 1.1']));
+          yield* installArchive(db, mockArchive(['TEST 1.1']));
           const invalid = mockArchive(['TEST 2.1']);
           const result = yield* Effect.result(
-            db.installPublicationArchive(
+            installArchive(
+              db,
               PublicationArchive.make({
                 publication: invalid.publication,
                 paragraphs: invalid.paragraphs,
@@ -287,12 +312,97 @@ describe('EGWParagraphDatabase', () => {
         }),
       ));
 
+    test('installs a publication chapter by chapter, a reference naming an earlier one', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          const whole = mockArchive(['TEST 1.1', 'TEST 1.2', 'TEST 2.1']);
+          const installed = yield* db.installPublication({
+            publication: whole.publication,
+            chapters: Stream.make(
+              ArchiveChapter.make({
+                paragraphs: whole.paragraphs.slice(0, 2),
+                bibleReferences: [],
+              }),
+              ArchiveChapter.make({
+                paragraphs: whole.paragraphs.slice(2),
+                bibleReferences: [
+                  ArchivedBibleReference.make({
+                    paragraphRefcode: 'TEST 1.1',
+                    scripture: BibleReference.chapter(1, 1),
+                  }),
+                ],
+              }),
+            ),
+          });
+
+          expect(installed).toBe(3);
+          const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
+          expect(paragraphs.map((row) => Option.getOrThrow(row.refcode_short))).toEqual([
+            'TEST 1.1',
+            'TEST 1.2',
+            'TEST 2.1',
+          ]);
+          expect(yield* db.getBibleRefsByBook(9001)).toHaveLength(1);
+          expect(Option.getOrThrow(yield* db.getSyncStatus(9001)).paragraph_count).toBe(3);
+        }),
+      ));
+
+    test('a paragraph repeated in a later chapter fails the install and keeps the publication', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* installArchive(db, mockArchive(['TEST 1.1']));
+          const next = mockArchive(['TEST 2.1']);
+          const chapter = ArchiveChapter.make({ paragraphs: next.paragraphs, bibleReferences: [] });
+          const failure = yield* Effect.flip(
+            db.installPublication({
+              publication: next.publication,
+              chapters: Stream.make(chapter, chapter),
+            }),
+          );
+
+          expect(failure._tag).toBe('ParagraphDataIntegrityError');
+          const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
+          expect(paragraphs.map((row) => Option.getOrThrow(row.refcode_short))).toEqual([
+            'TEST 1.1',
+          ]);
+        }),
+      ));
+
+    test('a chapter that fails to read fails the install as itself and keeps the publication', () =>
+      runTest(
+        Effect.gen(function* () {
+          const db = yield* EGWParagraphDatabase;
+          yield* installArchive(db, mockArchive(['TEST 1.1']));
+          const next = mockArchive(['TEST 2.1']);
+          const failure = yield* Effect.flip(
+            db.installPublication({
+              publication: next.publication,
+              chapters: Stream.concat(
+                Stream.make(
+                  ArchiveChapter.make({ paragraphs: next.paragraphs, bibleReferences: [] }),
+                ),
+                Stream.fail('chapter unreadable' as const),
+              ),
+            }),
+          );
+
+          expect(failure).toBe('chapter unreadable');
+          const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
+          expect(paragraphs.map((row) => Option.getOrThrow(row.refcode_short))).toEqual([
+            'TEST 1.1',
+          ]);
+        }),
+      ));
+
     test('writes a carried classification and keeps it when an archive carries none', () =>
       runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
           const plain = mockArchive(['TEST 1.1']);
-          yield* db.installPublicationArchive(
+          yield* installArchive(
+            db,
             PublicationArchive.make({
               ...plain,
               publication: Publication.make({
@@ -315,7 +425,7 @@ describe('EGWParagraphDatabase', () => {
           });
 
           // A packaged archive says nothing about the library's folders.
-          yield* db.installPublicationArchive(plain);
+          yield* installArchive(db, plain);
           const kept = Option.getOrThrow(yield* db.getBookByCode('TEST'));
           expect(kept).toMatchObject({ section: 'egw-writings', book_type: 'book' });
         }),
@@ -328,7 +438,8 @@ describe('EGWParagraphDatabase', () => {
           // Three paragraphs whose JSON is over 600 KB each: no two fit one chunk.
           const long = 'x'.repeat(300_000);
           const plain = mockArchive(['TEST 1.1', 'TEST 1.2', 'TEST 1.3']);
-          const installed = yield* db.installPublicationArchive(
+          const installed = yield* installArchive(
+            db,
             PublicationArchive.make({
               ...plain,
               paragraphs: plain.paragraphs.map((archived) =>
@@ -355,7 +466,7 @@ describe('EGWParagraphDatabase', () => {
       runTestWithPath((dbPath) =>
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
-          yield* db.installPublicationArchive(mockArchive(['TEST 1.1']));
+          yield* installArchive(db, mockArchive(['TEST 1.1']));
 
           // A crash between the stage and the swap leaves rows behind.
           const raw = new Database(dbPath);
@@ -365,7 +476,7 @@ describe('EGWParagraphDatabase', () => {
             ) VALUES (9001, 'stale', '[]', 'stale', 99, 'then', 'then')`,
           );
 
-          yield* db.installPublicationArchive(mockArchive(['TEST 2.1']));
+          yield* installArchive(db, mockArchive(['TEST 2.1']));
 
           const paragraphs = yield* Stream.runCollect(db.getParagraphsByBook(9001));
           expect(paragraphs.map((paragraph) => Option.getOrNull(paragraph.refcode_short))).toEqual([
@@ -707,7 +818,8 @@ describe('EGWParagraphDatabase', () => {
           // gives two distinct paragraphs the same `refcode_short` "2ChS 321"
           // and distinct `ref_code`/`para_id` (14879.1475, 14879.1476). Keying
           // on the refcode maps both onto one id; keying on `para_id` does not.
-          yield* db.installPublicationArchive(
+          yield* installArchive(
+            db,
             collidingArchive([
               { paragraphId: '14879.1475', refcode: '2ChS 321', text: 'the sanctuary first' },
               { paragraphId: '14879.1476', refcode: '2ChS 321', text: 'the sanctuary second' },
@@ -743,7 +855,8 @@ describe('EGWParagraphDatabase', () => {
             { element: 'h4', text: 'L' },
             { element: 'p', text: 'Latter rain, 178, 300' },
           ];
-          yield* db.installPublicationArchive(
+          yield* installArchive(
+            db,
             PublicationArchive.make({
               publication: Publication.make({
                 id,
@@ -807,7 +920,8 @@ describe('EGWParagraphDatabase', () => {
       runTest(
         Effect.gen(function* () {
           const db = yield* EGWParagraphDatabase;
-          yield* db.installPublicationArchive(
+          yield* installArchive(
+            db,
             collidingArchive([
               { paragraphId: 'vonly-1', refcode: '2ChS 1', text: 'about celestial mechanics' },
               { paragraphId: 'vonly-2', refcode: '2ChS 2', text: 'about husbandry' },

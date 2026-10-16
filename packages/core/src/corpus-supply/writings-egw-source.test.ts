@@ -6,14 +6,9 @@ import { strToU8, zipSync } from 'fflate';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import { EGWApiClient } from '../egw/client.js';
 import type { Book, Folder, Paragraph, TocItem } from '../egw/schemas.js';
-import { PublicationArchive } from '../writings/archive.js';
-import {
-  Publication,
-  PublicationClassification,
-  publicationCode,
-  publicationId,
-} from '../writings/model.js';
-import { provenanceForArchive, Target } from './model.js';
+import type { PublicationArchive } from '../writings/archive.js';
+import { PublicationClassification, publicationId } from '../writings/model.js';
+import { type CorpusProvenance, provenanceForBytes, Target } from './model.js';
 import { CorpusSupply } from './service.js';
 import { layerEgwWritingsAssetSource } from './writings-egw-source.js';
 
@@ -110,7 +105,7 @@ describe('direct EGW Writings asset source', () => {
       });
       const database = EGWParagraphDatabase.Test({
         needsSync: () => true,
-        installPublicationArchive: (archive) => {
+        installPublication: (archive: PublicationArchive) => {
           installed.push(archive);
           return archive.paragraphs.length;
         },
@@ -139,12 +134,92 @@ describe('direct EGW Writings asset source', () => {
     }),
   );
 
+  it.effect('reads a download one chapter file at a time, in order, named by its bytes', () =>
+    Effect.gen(function* () {
+      const installed: { archive: PublicationArchive; provenance?: CorpusProvenance }[] = [];
+      const row = (id: string, order: number) =>
+        `{"para_id":"${id}","id_prev":null,"id_next":null,"refcode_1":"PP","refcode_2":"1","refcode_3":"1","refcode_4":"","refcode_short":"PP ${String(order)}","refcode_long":"","element_type":"p","element_subtype":"","content":"Paragraph ${id}","puborder":${String(order)}}`;
+      const zipped = zipSync({
+        '127.10.json': strToU8(`[${row('pp-3', 3)}]`),
+        '127.2.json': strToU8(`[${row('pp-1', 1)},${row('pp-2', 2)}]`),
+        // A paragraph repeated in a later file is kept once.
+        '127.11.json': strToU8(`[${row('pp-2', 2)},${row('pp-4', 4)}]`),
+      });
+      const database = EGWParagraphDatabase.Test({
+        needsSync: () => true,
+        installPublication: (archive: PublicationArchive, provenance?: CorpusProvenance) => {
+          installed.push({ archive, provenance });
+          return archive.paragraphs.length;
+        },
+      });
+      const source = layerEgwWritingsAssetSource.pipe(
+        Layer.provide(
+          Layer.succeed(
+            EGWApiClient,
+            EGWApiClient.of({
+              ...api,
+              getBook: () => Effect.succeed({ ...book, download: '/content/books/127/download' }),
+              downloadBook: () => Effect.succeed(Uint8Array.from(zipped).buffer),
+            }),
+          ),
+        ),
+      );
+      const layer = CorpusSupply.layer.pipe(Layer.provide(source), Layer.provide(database));
+
+      yield* ensureWritings(layer);
+
+      expect(installed[0]?.archive.paragraphs.map((item) => item.refcode)).toEqual([
+        'pp-1',
+        'pp-2',
+        'pp-3',
+        'pp-4',
+      ]);
+      const digest = yield* (yield* Crypto.Crypto).digest('SHA-256', zipped);
+      const hex = [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+      expect(
+        Option.getOrElse(
+          Option.flatMap(Option.fromNullishOr(installed[0]?.provenance), (p) => p.digest),
+          () => 'none',
+        ),
+      ).toBe(`sha256:${hex}`);
+    }).pipe(Effect.provide(BunCrypto.layer)),
+  );
+
+  it.effect('a chapter file that does not decode fails as a rejected contribution', () =>
+    Effect.gen(function* () {
+      const zipped = zipSync({
+        '127.1.json': strToU8('[]'),
+        '127.2.json': strToU8('not json'),
+      });
+      const source = layerEgwWritingsAssetSource.pipe(
+        Layer.provide(
+          Layer.succeed(
+            EGWApiClient,
+            EGWApiClient.of({
+              ...api,
+              getBook: () => Effect.succeed({ ...book, download: '/content/books/127/download' }),
+              downloadBook: () => Effect.succeed(Uint8Array.from(zipped).buffer),
+            }),
+          ),
+        ),
+      );
+      const layer = CorpusSupply.layer.pipe(
+        Layer.provide(source),
+        Layer.provide(EGWParagraphDatabase.Test({ needsSync: () => true })),
+      );
+
+      const failure = yield* Effect.flip(ensureWritings(layer));
+
+      expect(failure._tag).toBe('CorpusContributionRejectedError');
+    }),
+  );
+
   it.effect('coerces a complete provider publication before installation', () =>
     Effect.gen(function* () {
       const installed: PublicationArchive[] = [];
       const database = EGWParagraphDatabase.Test({
         needsSync: () => true,
-        installPublicationArchive: (archive) => {
+        installPublication: (archive: PublicationArchive) => {
           installed.push(archive);
           return archive.paragraphs.length;
         },
@@ -179,7 +254,7 @@ describe('direct EGW Writings asset source', () => {
       const installed: PublicationArchive[] = [];
       const database = EGWParagraphDatabase.Test({
         needsSync: () => true,
-        installPublicationArchive: (archive) => {
+        installPublication: (archive: PublicationArchive) => {
           installed.push(archive);
           return archive.paragraphs.length;
         },
@@ -230,7 +305,7 @@ describe('direct EGW Writings asset source', () => {
       };
       const database = EGWParagraphDatabase.Test({
         needsSync: () => true,
-        installPublicationArchive: (archive) => {
+        installPublication: (archive: PublicationArchive) => {
           installed.push(archive);
           return archive.paragraphs.length;
         },
@@ -263,7 +338,7 @@ describe('direct EGW Writings asset source', () => {
       const installed: PublicationArchive[] = [];
       const database = EGWParagraphDatabase.Test({
         needsSync: () => true,
-        installPublicationArchive: (archive) => {
+        installPublication: (archive: PublicationArchive) => {
           installed.push(archive);
           return archive.paragraphs.length;
         },
@@ -299,7 +374,7 @@ describe('direct EGW Writings asset source', () => {
       };
       const database = EGWParagraphDatabase.Test({
         needsSync: () => true,
-        installPublicationArchive: (archive) => {
+        installPublication: (archive: PublicationArchive) => {
           installed.push(archive);
           return archive.paragraphs.length;
         },
@@ -323,28 +398,16 @@ describe('direct EGW Writings asset source', () => {
     }),
   );
 
-  it.effect("names a contribution by the SHA-256 of its archive's JSON", () =>
+  it.effect('names a contribution by the SHA-256 of the bytes it downloaded', () =>
     Effect.gen(function* () {
-      const archive = PublicationArchive.make({
-        publication: Publication.make({
-          id: publicationId(127),
-          code: publicationCode('PP'),
-          title: 'Patriarchs and Prophets',
-          author: 'Ellen G. White',
-          paragraphCount: Option.some(0),
-        }),
-        paragraphs: [],
-        bibleReferences: [],
-      });
-      const provenance = yield* provenanceForArchive(
+      const provenance = yield* provenanceForBytes(
         yield* Crypto.Crypto,
         'egw-api',
-        '1890',
-        archive,
+        'zip:abc',
+        strToU8('abc'),
       );
-      // The digest the stored provenance has always carried for this archive.
       expect(Option.getOrElse(provenance.digest, () => 'none')).toBe(
-        'sha256:f13f93a6bd222d91e597b0e9490940ff7262812822d4a097baed48e474a31f9f',
+        'sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
       );
     }).pipe(Effect.provide(BunCrypto.layer)),
   );
