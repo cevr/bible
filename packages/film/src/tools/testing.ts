@@ -872,7 +872,8 @@ export const noRenders = Layer.succeed(
   Review.of({
     roots: [],
     index: () => unreviewed('index'),
-    written: unreviewed('written'),
+    // A write tells the review it wrote: with no review there is nothing to drop.
+    written: Effect.void,
     pictures: () => unreviewed('pictures'),
     renderVideo: () => unreviewed('renderVideo'),
     resolve: () => unreviewed('resolve'),

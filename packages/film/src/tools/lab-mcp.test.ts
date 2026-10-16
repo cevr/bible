@@ -73,6 +73,7 @@ import {
   mcpSession,
   noRenders,
   printingTo,
+  reviewMedia,
   text,
 } from './testing.ts';
 
@@ -146,7 +147,7 @@ const reviewAt = (others: ReadonlyArray<{ readonly label: string; readonly path:
 const reviewAtOut = reviewAt([]);
 
 const providedWith =
-  (review: typeof reviewAtOut) =>
+  <RR>(review: Layer.Layer<Review, never, RR>) =>
   <A, E, R>(self: Effect.Effect<A, E, R>) =>
     self.pipe(
       Effect.scoped,
@@ -425,6 +426,58 @@ describe('a set published through the MCP', () => {
           expect(published.set).toBe('spare/cuts');
         }),
       ),
+  );
+});
+
+/** The review itself over the lab's own out/: its index read and kept, as the page's is, until a write drops it. */
+const liveReview = Review.layer({
+  roots: [{ label: 'spare', path: 'out' }],
+  cache: '/cache',
+  phoneOver: 1_000_000,
+  maxVideo: 10_000_000,
+  phoneCopies: false,
+}).pipe(Layer.provide([reviewMedia([]), RenderCatalogue.layer]));
+
+describe('the review after an MCP write', () => {
+  it.effect('lists a set published and a render recorded at its next read', () =>
+    providedWith(liveReview)(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        const review = yield* Review;
+        // The read a page makes: kept for a while, so a write must drop it.
+        const listed = Effect.map(review.index(false), (index) =>
+          index.folders.map((f) => [f.ref, f.images.length]),
+        );
+        expect(yield* listed).toEqual([]);
+        yield* tool('publish_set', {
+          name: 'judge-faces',
+          files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
+          manifest: { title: 'Judge faces', images: ['calmer.png'] },
+        });
+        expect(yield* listed).toEqual([['spare/judge-faces', 1]]);
+        yield* fs.makeDirectory(path.resolve('out', 'f'), { recursive: true });
+        yield* fs.writeFileString(path.resolve('out', 'f', 'cold.png'), 'a still');
+        const recorded = yield* tool('record_render', {
+          film: 'f',
+          render: {
+            address: { _tag: 'Film' },
+            variant: 'base',
+            kind: 'stills',
+            settings: { scale: 1, captions: false },
+            stamp: { key: 'k1' },
+            files: { images: ['cold.png'] },
+          },
+        });
+        expect(recorded.set).toBe('spare/f');
+        expect((yield* listed).map(([ref]) => ref).toSorted()).toEqual([
+          'spare/f',
+          'spare/judge-faces',
+        ]);
+      }),
+    ),
   );
 });
 

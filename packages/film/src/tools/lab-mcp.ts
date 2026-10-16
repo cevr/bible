@@ -801,6 +801,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     return { note: noteRead(film, note) };
   });
 
+  // A write drops the review's index (`written`), refused or not, so its next read sees the folder as it is.
   const publishSet = Effect.fn('LabMcp.publishSet')(function* (
     name: string,
     files: ReadonlyArray<typeof SetFile.Type>,
@@ -878,8 +879,9 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     );
     yield* Effect.log(`lab.mcp.publish set=${ref} files=${copies.length}`);
     return { set: ref, links: linksOf(pageHref.folder(ref)), dir, manifest: written };
-  });
+  }, Effect.ensuring(review.written));
 
+  // As for a set: the catalogue written, the review's index is dropped.
   const recordRender = Effect.fn('LabMcp.recordRender')(function* (
     name: string,
     given: Omit<Render, 'at'>,
@@ -906,7 +908,7 @@ const labReads = Effect.fn('LabMcp.reads')(function* (options: LabMcpOptions) {
     const render: Render = { ...given, at: yield* Clock.currentTimeMillis };
     yield* refused(catalogues.record({ name: at.name, out: at.dir }, render));
     return { set: at.ref, links: linksOf(pageHref.folder(at.ref)) };
-  });
+  }, Effect.ensuring(review.written));
 
   const askRead = (record: AskRecord): typeof AskRead.Type => ({
     ask: record.id,
