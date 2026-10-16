@@ -227,10 +227,12 @@ export const CORE = 1;
  * light core straddling the cut; 0 for a stroke the outline does not lay.
  */
 const edgeWidths = (d: Direction, weight: keyof typeof INK) => {
+  const heavy = d.weight ?? 1;
   if (d.outline === 'line' || (d.outline === 'thick' && weight === 'trim'))
-    return { under: 0, centred: INK[weight], core: 0 };
+    return { under: 0, centred: INK[weight] * heavy, core: 0 };
   const core = d.outline === 'thick' ? 0 : CORE;
-  const showing = d.outline === 'edge' ? 0 : weight === 'trim' ? INK.trim / 2 : OUTSIDE[weight];
+  const showing =
+    d.outline === 'edge' ? 0 : (weight === 'trim' ? INK.trim / 2 : OUTSIDE[weight]) * heavy;
   return { under: showing > 0 ? 2 * (showing + core) : 0, centred: 0, core: 2 * core };
 };
 
@@ -757,7 +759,7 @@ export const FACE = {
 export type FaceKnob = keyof typeof FACE;
 
 /** The face's parts, in the kit's units about the face's centre. */
-const KIT = {
+const KIT: FaceShape = {
   eyes: [-12, 13],
   eyeY: -7,
   eye: [6.8, 8.8],
@@ -776,7 +778,30 @@ const KIT = {
   mouth: [1, 15],
   mouthHalf: 6.5,
   mouthLine: 3,
-} as const;
+};
+
+/**
+ * Where and how big the face's marks are, in the kit's units about the
+ * face's centre: the eyes' x, their height (`eyeY`) and size (width,
+ * height), how far an eye roams and the features turn; the brows' x, height,
+ * half-length and stroke; the mouth's place, half-width and stroke. A figure
+ * drawn to its own sheet gives the parts it draws otherwise (`faceKit`).
+ */
+export interface FaceShape {
+  readonly eyes: readonly [number, number];
+  readonly eyeY: number;
+  readonly eye: readonly [number, number];
+  readonly roam: number;
+  readonly turn: number;
+  readonly turnPull: number;
+  readonly brows: readonly [number, number];
+  readonly browY: number;
+  readonly browHalf: number;
+  readonly brow: number;
+  readonly mouth: readonly [number, number];
+  readonly mouthHalf: number;
+  readonly mouthLine: number;
+}
 
 /** The view model's property keys the kit binds (`rive schema`). */
 const KEY = {
@@ -790,23 +815,21 @@ const KEY = {
 } as const;
 
 /** One brow: a short arched stroke turned by `browTilt`; the left one mirrored, so both inner ends rise together. */
-const brow = (fig: Figure, side: 'L' | 'R', x: number) =>
-  el('Node', { x, y: KIT.browY, scaleX: side === 'L' ? -1 : 1, name: `brow${side}Side` }, [
+const brow = (fig: Figure, k: FaceShape, side: 'L' | 'R', x: number) =>
+  el('Node', { x, y: k.browY, scaleX: side === 'L' ? -1 : 1, name: `brow${side}Side` }, [
     el('Shape', { name: `brow${side}`, id: fig.idOf(`brow${side}`) }, [
       smoothPath(
         fig,
         `brow${side}`,
         [
-          [-KIT.browHalf, 1],
+          [-k.browHalf, 1],
           [0, -0.8],
-          [KIT.browHalf, 1],
+          [k.browHalf, 1],
         ],
         undefined,
         false,
       ),
-      el('Stroke', { thickness: KIT.brow, cap: 'round', name: 'Ink' }, [
-        solid(inkOf(fig.direction)),
-      ]),
+      el('Stroke', { thickness: k.brow, cap: 'round', name: 'Ink' }, [solid(inkOf(fig.direction))]),
       fig.bind('browTilt', KEY.rotation),
     ]),
   ]);
@@ -816,14 +839,14 @@ const ellipsePath = (w: number, h: number) =>
   el('Ellipse', { width: w, height: h, originX: 0.5, originY: 0.5, name: 'Path' });
 
 /** One eye: pulled toward the gaze, held inside its socket, its height and width the view model's. */
-const eye = (fig: Figure, side: 'L' | 'R', x: number, scale: number) =>
-  el('Shape', { x, y: KIT.eyeY, name: `eye${side}`, id: fig.idOf(`eye${side}`) }, [
-    ellipsePath(KIT.eye[0], KIT.eye[1]),
+const eye = (fig: Figure, k: FaceShape, side: 'L' | 'R', x: number, scale: number) =>
+  el('Shape', { x, y: k.eyeY, name: `eye${side}`, id: fig.idOf(`eye${side}`) }, [
+    ellipsePath(k.eye[0], k.eye[1]),
     el('Fill', { name: 'Ink' }, [solid(inkOf(fig.direction))]),
     el('TranslationConstraint', { targetId: fig.idOf('gaze'), strength: 0.03, name: 'Look' }),
     el('DistanceConstraint', {
       targetId: fig.idOf(`socket${side}`),
-      distance: KIT.roam * scale,
+      distance: k.roam * scale,
       modeValue: 'closer',
       name: 'Socket',
     }),
@@ -832,8 +855,8 @@ const eye = (fig: Figure, side: 'L' | 'R', x: number, scale: number) =>
   ]);
 
 /** The mouth: a line whose middle bends (smile, frown), and an "oh" that opens over it. */
-const mouth = (fig: Figure) =>
-  el('Node', { x: KIT.mouth[0], y: KIT.mouth[1], name: 'mouth', id: fig.idOf('mouth') }, [
+const mouth = (fig: Figure, k: FaceShape) =>
+  el('Node', { x: k.mouth[0], y: k.mouth[1], name: 'mouth', id: fig.idOf('mouth') }, [
     el('Shape', { scaleX: 0, scaleY: 0, name: 'mouthOh', id: fig.idOf('mouthOh') }, [
       ellipsePath(8, 10.5),
       el('Fill', { name: 'Ink' }, [solid(inkOf(fig.direction))]),
@@ -842,15 +865,15 @@ const mouth = (fig: Figure) =>
     ]),
     el('Shape', { name: 'mouthLine', id: fig.idOf('mouthLine') }, [
       el('PointsPath', { isClosed: false, isClockwise: true, name: 'Path' }, [
-        el('StraightVertex', { x: -KIT.mouthHalf, y: 0, name: 'mouthL' }),
+        el('StraightVertex', { x: -k.mouthHalf, y: 0, name: 'mouthL' }),
         el(
           'CubicMirroredVertex',
-          { x: 0, y: 0, rotation: 0, distance: KIT.mouthHalf * 0.55, name: 'mouthMid' },
+          { x: 0, y: 0, rotation: 0, distance: k.mouthHalf * 0.55, name: 'mouthMid' },
           [fig.bind('mouth', KEY.vertexY)],
         ),
-        el('StraightVertex', { x: KIT.mouthHalf, y: 0, name: 'mouthR' }),
+        el('StraightVertex', { x: k.mouthHalf, y: 0, name: 'mouthR' }),
       ]),
-      el('Stroke', { thickness: KIT.mouthLine, cap: 'round', join: 'round', name: 'Ink' }, [
+      el('Stroke', { thickness: k.mouthLine, cap: 'round', join: 'round', name: 'Ink' }, [
         solid(inkOf(fig.direction)),
       ]),
       fig.bind('mouthLine', KEY.opacity),
@@ -861,11 +884,17 @@ const mouth = (fig: Figure) =>
  * The face, centred at (x, y) in its parent's frame and `scale` times the
  * kit's size: brows, eyes and mouth, each moved by the figure's view-model
  * numbers (`FACE`), and the eyes' sockets; the features together slide a
- * little toward the gaze (`KIT.turn`). Named `face`, the node `check`'s face
- * probe reads.
+ * little toward the gaze (`turn`). `shape` gives the marks a figure's
+ * sheet draws otherwise than the kit (`FaceShape`). Named `face`, the node
+ * `check`'s face probe reads.
  */
-export const faceKit = (fig: Figure, at: { x: number; y: number; scale?: number }) => {
+export const faceKit = (
+  fig: Figure,
+  at: { x: number; y: number; scale?: number },
+  shape: Partial<FaceShape> = {},
+) => {
   const scale = at.scale ?? 1;
+  const k: FaceShape = { ...KIT, ...shape };
   return el(
     'Node',
     { x: at.x, y: at.y, scaleX: at.scale, scaleY: at.scale, name: 'face', id: fig.idOf('face') },
@@ -873,25 +902,25 @@ export const faceKit = (fig: Figure, at: { x: number; y: number; scale?: number 
       el('Node', { name: 'features', id: fig.idOf('features') }, [
         el('TranslationConstraint', {
           targetId: fig.idOf('gaze'),
-          strength: KIT.turnPull,
+          strength: k.turnPull,
           name: 'Turn',
         }),
         el('DistanceConstraint', {
           targetId: fig.idOf('faceRest'),
-          distance: KIT.turn * scale,
+          distance: k.turn * scale,
           modeValue: 'closer',
           name: 'Within',
         }),
         el('Node', { name: 'brows', id: fig.idOf('brows') }, [
           fig.bind('browY', KEY.y),
-          brow(fig, 'L', KIT.brows[0]),
-          brow(fig, 'R', KIT.brows[1]),
+          brow(fig, k, 'L', k.brows[0]),
+          brow(fig, k, 'R', k.brows[1]),
         ]),
-        eye(fig, 'L', KIT.eyes[0], scale),
-        eye(fig, 'R', KIT.eyes[1], scale),
-        mouth(fig),
-        el('Node', { x: KIT.eyes[0], y: KIT.eyeY, name: 'socketL', id: fig.idOf('socketL') }),
-        el('Node', { x: KIT.eyes[1], y: KIT.eyeY, name: 'socketR', id: fig.idOf('socketR') }),
+        eye(fig, k, 'L', k.eyes[0], scale),
+        eye(fig, k, 'R', k.eyes[1], scale),
+        mouth(fig, k),
+        el('Node', { x: k.eyes[0], y: k.eyeY, name: 'socketL', id: fig.idOf('socketL') }),
+        el('Node', { x: k.eyes[1], y: k.eyeY, name: 'socketR', id: fig.idOf('socketR') }),
       ]),
       el('Node', { name: 'faceRest', id: fig.idOf('faceRest') }),
     ],

@@ -1,6 +1,9 @@
-// The prosecutor as a Rive rig, on the cold-studies generator's parts: short
-// dark hair laid flat in the head, the house look's peach skin, an olive robe
-// to the floor and dark shoes under its hem; the face kit at his size. His
+// The prosecutor as a Rive rig, on the cold-studies generator's parts, in
+// the kept concept's (`cold-34`) proportions: tall and narrow, a large
+// rounded-rectangle head with an angular jaw, short dark hair with a side
+// part laid flat in it, the house look's peach skin, a long narrow olive
+// robe a little wider at the hem, dark shoes under it; the face kit at his
+// size. His
 // circle hands are the hand rig's (`hand-rig.ts`), drawn by the host where
 // they work (laying a sheet on the stack, thrown up on `cover`).
 //
@@ -27,21 +30,46 @@ import {
 } from '../../cold-studies/looks/rive/parts.ts';
 import { el } from '../../cold-studies/looks/rive/rml.ts';
 import { PAPERS, looked } from './papers.ts';
-import { hairOutline, roundedPolygon } from './shapes.ts';
+import { hairOutline, headOutline, roundedPolygon } from './shapes.ts';
 
-/** His measures, units. */
+/**
+ * His measures, units, as the concept measures them against his head's
+ * width (139 px there): the head 1.24 of its width tall with its hair, the
+ * robe 0.8 of it across under the chin, 1.25 one head's width below and 1.5 at the hem, 3.35 heads
+ * tall to his shoes.
+ */
 export const PROSECUTOR = {
   height: 555,
-  head: { y: -488, rx: 56, ry: 66 },
-  neck: -424,
-  hem: -22,
+  head: { y: -478, rx: 59, ry: 76 },
+  neck: -410,
+  hem: -34,
 } as const;
+
+/** His head's squareness: a rounded rectangle whose sides draw in to an angular jaw. */
+const SQUARE = { power: 3, jaw: 0.4, chin: 0.62 } as const;
 
 /** The artboard, and where his feet stand on it. */
 export const PROSECUTOR_ART = { width: 360, height: 640, feet: [180, 610] } as const;
 
-/** The face kit's scale on his head, and how far below its middle it sits. */
-export const PROSECUTOR_FACE = { scale: 1.22, y: 20 } as const;
+/**
+ * The face kit's scale on his head, how far below its middle it sits, and
+ * its marks as the concept draws them (against his head's width): eyes 0.07
+ * across and 0.12 high at the head's middle, 0.22 apart; heavy brows 0.17
+ * above them; the mouth 0.37 below.
+ */
+export const PROSECUTOR_FACE = {
+  scale: 1.35,
+  y: 10,
+  shape: {
+    eye: [7.9, 12.8],
+    eyes: [-11.6, 11.6],
+    brows: [-12, 12],
+    browY: -24,
+    browHalf: 7.2,
+    brow: 3.8,
+    mouth: [0, 30],
+  },
+} as const;
 
 /** The view model's numbers at rest: the face kit's, stern, his eyes on the dock (screen left), upright. */
 export const PROSECUTOR_KNOBS = {
@@ -71,30 +99,29 @@ const KEY = { y: 14, rotation: 15, scaleY: 17, opacity: 18 } as const;
 /** The shout: a wide open mouth, a quarter of his head across, where the kit's mouth sits. */
 const SHOUT = { w: 36, h: 24 } as const;
 
-/** His robe: narrow at the neck, the shoulders rounding off, wide at the hem. */
+/** His robe: long and narrow, widening fast below the chin and slower to the hem. */
 export const ROBE = roundedPolygon(
   [
-    [-32, PROSECUTOR.neck],
-    [32, PROSECUTOR.neck],
-    [74, PROSECUTOR.neck + 26],
-    [88, PROSECUTOR.neck + 94],
-    [108, PROSECUTOR.hem],
-    [-108, PROSECUTOR.hem],
-    [-88, PROSECUTOR.neck + 94],
-    [-74, PROSECUTOR.neck + 26],
+    [-40, PROSECUTOR.neck],
+    [40, PROSECUTOR.neck],
+    [73, PROSECUTOR.neck + 162],
+    [98, PROSECUTOR.hem],
+    [-98, PROSECUTOR.hem],
+    [-73, PROSECUTOR.neck + 162],
   ],
-  26,
+  22,
 );
 
-/** Short black hair laid close: the temples clear, the fringe swept to one side, one point at the back of the crown. */
+/** Short black hair laid close on his square head: the temples clear, parted and swept to one side, one point at the back of the crown. */
 const HAIR = {
-  sides: -0.1,
-  line: 0.55,
-  loft: 0.03,
+  sides: -0.35,
+  line: 0.6,
+  loft: 0.02,
   curls: 0,
   curl: 0,
-  sweep: 18,
+  sweep: 8,
   tuft: 0.16,
+  power: SQUARE.power,
 } as const;
 
 export const prosecutorRig = (fig: Figure) => {
@@ -107,20 +134,31 @@ export const prosecutorRig = (fig: Figure) => {
         fig.bind('nod', KEY.y),
         el('Node', { y: head.y - PROSECUTOR.neck, name: 'skull' }, [
           piece(fig, 'hair', hairOutline(head.rx, head.ry, HAIR), looked(PAPERS.darkHair)),
-          el('Node', { y: PROSECUTOR_FACE.y + 15 * PROSECUTOR_FACE.scale, name: 'shout' }, [
-            fig.bind('shout', KEY.opacity),
-            el('Node', { name: 'shoutOpen', id: fig.idOf('shoutOpen') }, [
-              fig.bind('shout', KEY.scaleY),
-              piece(fig, 'shoutPaper', ellipse(0, 0, SHOUT.w / 2, SHOUT.h / 2, 16), {
-                color: '#3a2422',
-                light: '#3a2422',
-                ink: 'none',
-                shadow: 0,
-              }),
-            ]),
-          ]),
-          faceKit(fig, { x: 0, y: PROSECUTOR_FACE.y, scale: PROSECUTOR_FACE.scale }),
-          piece(fig, 'headPaper', ellipse(0, 0, head.rx, head.ry, 22), skin),
+          el(
+            'Node',
+            {
+              y: PROSECUTOR_FACE.y + PROSECUTOR_FACE.shape.mouth[1] * PROSECUTOR_FACE.scale,
+              name: 'shout',
+            },
+            [
+              fig.bind('shout', KEY.opacity),
+              el('Node', { name: 'shoutOpen', id: fig.idOf('shoutOpen') }, [
+                fig.bind('shout', KEY.scaleY),
+                piece(fig, 'shoutPaper', ellipse(0, 0, SHOUT.w / 2, SHOUT.h / 2, 16), {
+                  color: '#3a2422',
+                  light: '#3a2422',
+                  ink: 'none',
+                  shadow: 0,
+                }),
+              ]),
+            ],
+          ),
+          faceKit(
+            fig,
+            { x: 0, y: PROSECUTOR_FACE.y, scale: PROSECUTOR_FACE.scale },
+            PROSECUTOR_FACE.shape,
+          ),
+          piece(fig, 'headPaper', headOutline(head.rx, head.ry, SQUARE), skin),
         ]),
       ]),
     ]),
@@ -134,8 +172,8 @@ export const prosecutorRig = (fig: Figure) => {
         piece(fig, 'robe', ROBE, looked(PAPERS.olive)),
       ]),
     ]),
-    ...[-36, 36].map((x) =>
-      piece(fig, `shoe${x < 0 ? 'L' : 'R'}`, ellipse(x, -8, 30, 14, 14), looked(PAPERS.shoe), {
+    ...[-52, 52].map((x) =>
+      piece(fig, `shoe${x < 0 ? 'L' : 'R'}`, ellipse(x, -11, 34, 13, 14), looked(PAPERS.shoe), {
         boil: 0.6,
       }),
     ),

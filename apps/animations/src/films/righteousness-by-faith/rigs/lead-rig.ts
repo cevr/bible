@@ -60,11 +60,23 @@ const STAIN_SEED = 11;
 export const LEAD_ART = { width: 360, height: 470, feet: [180, 440] } as const;
 
 /**
- * The face kit's scale on his head, as his sheet draws it: brows half his
- * head across, tall oval eyes at its middle, the mouth a quarter of its width
- * below them.
+ * The face kit's scale on his head, and its marks as his sheet draws them
+ * (`1-the-lead-sheet`, by its head's width): tall oval eyes 0.07 across and
+ * 0.14 high, 0.30 apart, at the head's middle; short thin brows 0.13 long,
+ * 0.25 above it; the mouth a quarter of its width below it.
  */
-export const LEAD_FACE = { scale: 1.75, y: 12 } as const;
+export const LEAD_FACE = {
+  scale: 1.75,
+  y: 12,
+  shape: {
+    eye: [7.3, 13.2],
+    eyes: [-14.2, 15.2],
+    brows: [-15.2, 16.2],
+    browY: -29.9,
+    browHalf: 5.3,
+    brow: 2.3,
+  },
+} as const;
 
 /** The view model's numbers at rest: the face kit's, his eyes on us, upright, stained, in his own tunic. */
 export const LEAD_KNOBS = {
@@ -91,11 +103,11 @@ export const LEAD_FACE_CHECK = { node: 'face', height: 2 * LEAD.head.r } as cons
 /** The view model's property keys (`rive schema`). */
 const KEY = { y: 14, rotation: 15, opacity: 18 } as const;
 
-/** The tunic: narrow at the neck, wide at the hem, its corners rounded. */
+/** The tunic: narrow at the neck (0.62 of his head across), wide at the hem, its corners rounded. */
 export const TUNIC = roundedPolygon(
   [
-    [-36, LEAD.neck],
-    [36, LEAD.neck],
+    [-41, LEAD.neck],
+    [41, LEAD.neck],
     [80, LEAD.hem],
     [-80, LEAD.hem],
   ],
@@ -151,7 +163,7 @@ export const leadRig = (fig: Figure) => {
         el('Node', { y: LEAD.head.y - LEAD.neck, name: 'skull' }, [
           el('Node', { name: 'faceSlide', id: fig.idOf('faceSlide') }, [
             fig.bind('faceY', KEY.y),
-            faceKit(fig, { x: 0, y: LEAD_FACE.y, scale: LEAD_FACE.scale }),
+            faceKit(fig, { x: 0, y: LEAD_FACE.y, scale: LEAD_FACE.scale }, LEAD_FACE.shape),
           ]),
           piece(fig, 'headPaper', ellipse(0, 0, LEAD.head.r, LEAD.head.r - 1, 22), lead),
         ]),

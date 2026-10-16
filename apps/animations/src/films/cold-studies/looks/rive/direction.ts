@@ -50,6 +50,11 @@ export interface Direction {
   readonly ink: keyof typeof INKS;
   readonly colour: Colour;
   readonly head: keyof typeof HEADS;
+  /**
+   * The silhouette and trim ink's weight against the study's (1, the
+   * default): a film whose concept draws its people's line heavier sets it.
+   */
+  readonly weight?: number;
 }
 
 /** Every option of every axis, by the study's names: what each sets. */

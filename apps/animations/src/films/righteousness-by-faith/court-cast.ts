@@ -97,8 +97,8 @@ export const HANDS = {
     [392, 606],
   ],
   prosecutor: [
-    [662, 548],
-    [836, 552],
+    [632, 548],
+    [866, 552],
   ],
   judge: [
     [1192, BENCH_TOP - 6],
@@ -254,6 +254,13 @@ const living = (f: CourtFrame, period: number, offset: number) =>
     ['boil', boilTime(f.boil)],
   ] as const;
 
+/**
+ * Each figure's hands' size against the hand rig's, so each is the share of
+ * its head's width the concept draws: the judge's 0.45, the prosecutor's
+ * 0.44, the lead's 0.34.
+ */
+const HAND = { judge: 1.23, prosecutor: 1.14, lead: 1.08 } as const;
+
 /** The bench and the judge behind it: his chair, the block and the gavel, his hands on the bench. */
 const judgeGroup = (f: CourtFrame, p: CourtPose) => {
   const { ctx } = f;
@@ -264,7 +271,7 @@ const judgeGroup = (f: CourtFrame, p: CourtPose) => {
   bench(ctx);
   block(ctx);
   gavel(ctx, p.judge.grip, p.judge.rot);
-  for (const h of p.judge.hands) handAt(f, 'skinHand', h, 1.15);
+  for (const h of p.judge.hands) handAt(f, 'skinHand', h, HAND.judge);
 };
 
 /** The table and the prosecutor behind it: the evidence on it, the sheet in his hand, his hands. */
@@ -285,7 +292,7 @@ const prosecutorGroup = (f: CourtFrame, p: CourtPose) => {
   }
   const c = p.prosecutor.carried;
   if (c.shown > 0) sheet(ctx, c, 97, 0.55);
-  for (const h of p.prosecutor.hands) handAt(f, 'skinHand', h, 1.1);
+  for (const h of p.prosecutor.hands) handAt(f, 'skinHand', h, HAND.prosecutor);
 };
 
 /** The dock and the lead behind it: the seal over his stain, his hands on the rail. */
@@ -297,7 +304,7 @@ const leadGroup = (f: CourtFrame, p: CourtPose) => {
   );
   seal(ctx, p.lead.seal);
   dock(ctx);
-  for (const h of p.lead.hands) handAt(f, 'leadHand', h, 1.12);
+  for (const h of p.lead.hands) handAt(f, 'leadHand', h, HAND.lead);
 };
 
 /**
