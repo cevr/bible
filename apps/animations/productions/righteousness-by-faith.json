@@ -255,6 +255,55 @@
       "set": "rbf-v3-concepts-2026-10-15",
       "ask": "a3c3c0406ea",
       "by": "rbfconcepts (p5)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792113369238,
+      "text": "The owner's picture defines a plain lead. It has a round head with no hair, and one paper colour for the head, hands, body and legs. The face is the brows, two dot eyes and a mouth. The body is a simple trapezoid with stub legs and circle hands, shaded with colour. The slate-blue man with dark hair in ask a3c3c0406ea is too descriptive.",
+      "quote": "though this is what i mean by non descript",
+      "set": "rbf-v3-concepts-2026-10-15",
+      "by": "Claude (orchestrator, p5)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792113462389,
+      "text": "The general art style of the RBF Board's kept panel woman.court.1 is the target for the concept frames: its warm, hazy light, paper texture, colour in the shadows, and a real place behind the figures. The lead is still the plain figure from the owner's picture.",
+      "quote": "i like the general art style of the board here http://100.92.183.50:8230/films/righteousness-by-faith/board/woman?panel=court&view=draw#t=0.4",
+      "set": "rbf-v3-concepts-2026-10-15",
+      "by": "Claude (orchestrator, p5)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792113579660,
+      "text": "The art style of the Board's kept panel woman.court.1 (style 9005) is locked as the film's look. The concept frames, the rest of the Board and the render are all held to it. The leads stay plain figures.",
+      "quote": "lets lock in that style",
+      "set": "rbf-v3-concepts-2026-10-15",
+      "by": "Claude (orchestrator, p5)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792113645200,
+      "text": "Character consistency between scenes comes first. A figure keeps the same height, build, colour and clothes in every scene, unless the scene calls for a change (for example, the lead's robe turning white).",
+      "quote": "whats important is character consistency between scenes, he cant be taller, slimmer, different color, or different clothes (unless the scene calls for it)",
+      "set": "rbf-v3-concepts-2026-10-15",
+      "by": "Claude (orchestrator, p5)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792117564723,
+      "text": "RBF v3: the concept frames in the locked look, with the plain lead (ask a45a6246afe)",
+      "set": "rbf-v3-concepts-2026-10-15",
+      "ask": "a45a6246afe",
+      "by": "rbfconcepts (p5)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792117573192,
+      "text": "RBF v3: the plain man and the concept frames (ask a3c3c0406ea): lead: A: short dark hair, a plain slate-blue top · cold: cold.21 (lead A): no sun; the prosecutor a head taller, jet-black hair · cold_note: i like judge of cold.13 · roof: roof.6: violet beams, tan walls, mats in the light · grain: grain.7: flat furrows, a muted red band · robe: robe.1: the accuser apart in violet shadow · court: court.9: a teal wall, the bench aglow",
+      "quote": "i like judge of cold.13",
+      "set": "rbf-v3-concepts-2026-10-15",
+      "ask": "a3c3c0406ea",
+      "by": "rbfconcepts (p5)"
     }
   ],
   "filed": [
