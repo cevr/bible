@@ -24,21 +24,21 @@ The order:
 
 Motifs:
 
-- **The seedling.** On the sill in `cold`, a sickly potted plant, the one green thing; Mila reaches for it. In `home`, a seed goes into a pot. In the landing, Rosa's seedling, wrapped in newspaper, is pressed into Nina's hands. It is the series motif and grows through all 19 films.
+- **The seedling.** On the sill in `cold`, a sickly potted plant, the one green thing; the baby reaches for it. In `home`, a seed goes into a pot. In the landing, the grandmother's seedling, wrapped in newspaper, is pressed into the girl's hands. It is the series motif and grows through all 19 films.
 - **The window.** In `cold` it shows only walls and other lit windows. In the landing, far past the walls, the faint line of hills shows at dusk.
 - **Two trees.** In `trees` they stand in the middle of the garden. In `lost` one is lifted out of reach, and its branches still hang over a wall of light.
 - **The open book.** In `school` the garden is drawn as a book whose pages are fields and leaves. In `book` its page turns to the animals.
 
 Tent poles, act light, chapter question:
 
-- `cold`: Nina at the table, chin up, pencil down, in lamp-yellow against a blue city dusk. "Why do we have to learn this?"
+- `cold`: the girl at the table, chin up, pencil down, in lamp-yellow against a blue city dusk. "Why do we have to learn this?"
 - `garden`: Eden at morning, peach light, deep cardboard planes. "What did God build first?"
 - `trees`: the two trees at noon, gold and shadow. "What was the deepest lesson?"
-- `seedling` (landing): the same kitchen, lamp-yellow and teal; the seedling in Nina's hands. "So who is the teacher?"
+- `seedling` (landing): the same kitchen, lamp-yellow and teal; the seedling in the girl's hands. "So who is the teacher?"
 
-Registers: STORY for `garden`, `book`, `work`, `teacher`, `trees`, `lost`. IDEA for `school` (it opens STORY and turns to IDEA). The cast's own frame for `cold`, `home` and the landing.
+Registers: STORY for `garden`, `book`, `work`, `teacher`, `trees`, `lost`. IDEA for `school` (it opens STORY and turns to IDEA). The parable's own frame for `cold`, `home` and the landing.
 
-Cast (ensemble, ledger: the household in the city flat, Rosa's cottage visited): Clara and Nina lead; Leo at the window; Mila reaching; Rosa at the landing. No cast member enters Eden (ensemble: never inside a Bible scene). The narration never names them: "a mother", "a little girl", "her grandmother".
+Figures (plain: character-design 2.3; owner, 2026-10-15): the mother and the girl lead; the son at the window; the baby reaching; the grandmother at the landing. They are the series' plain family and its plain grandmother, one design through the series, with no name and no mark that tells who they are. No cast member is required; one may pass in the background, for example a neighbour on the stair, seen through the open door as the grandmother comes in. No one from the parable's world enters Eden (ensemble: never inside a Bible scene). The narration never names them: "a mother", "a little girl", "her grandmother".
 
 Frame (god-christ): the Father is never pictured with a face or body. In `teacher` His presence is a warm light coming along the garden path at evening, and it never becomes a figure. Adam and Eve are grey paper figures with faces at a third of the frame.
 
@@ -49,8 +49,8 @@ Quoted Scripture: 7 passages, 97 of 589 spoken words (16%; the girl's question i
 ### `cold` · the household · ~32 s
 
 **say:** {flat}Picture a city flat at evening. {/} {table}A mother sits at the kitchen table, {girl}and her little girl has homework. {/} {asks}She asks the oldest question in school. {/} {why}"Why do we have to learn this?" {/} {window}Her brother stands at the window. {/} {walls}Out there are only walls and other windows. {/} {green}The one green thing is a tired plant on the sill. {/} {baby}The baby is reaching for it. {/} {first}So what did God build first, a house or a {*}school?
-**cite:** none (the cast's frame).
-**picture:** The cast's own frame. A third-floor city flat at dusk in cool blue, the kitchen lamp in yellow. Clara (teal) sits at the table beside Nina (7), who plants her hands on her hips at `why` and lifts her chin (her habit). Leo (15) at the window glances at the phone in his hand on `window` and does not turn it over (his arc's early state). Through the window, on `walls`, only brick and lit windows, each with its own small figure inside. On `green`, push in to a pale potted plant on the sill. On `baby`, Mila (18 months), on the floor, reaches both hand circles up toward it with a little bounce. On `first`, hold on the plant.
+**cite:** none (the parable's frame).
+**picture:** The parable's own frame. A third-floor city flat at dusk in cool blue, the kitchen lamp in yellow. The mother (one plain dress in a quiet blue-grey) sits at the table beside the girl, who sets her pencil down at `why` and lifts her chin. On `window`, the son stands at the window, the phone in his hand lit. Through the window, on `walls`, only brick and lit windows, each with its own small figure inside. On `green`, push in to a pale potted plant on the sill. On `baby`, the baby, on the floor, reaches up toward it. On `first`, hold on the plant.
 **paraphrase sources (not spoken):** none.
 
 ### `title` · ~6 s
@@ -126,7 +126,7 @@ Quoted Scripture: 7 passages, 97 of 589 spoken words (16%; the girl's question i
 
 **say:** {back}Back to the kitchen table. {/} {cant}You can't plant Eden in a city flat. {/} {can}But you can start where Adam {*}started. {/} {seed}A seed in a pot. {/} {look}A child who looks closely. {/} {work}A little work that is really hers. {/} {parent}A parent who learns first. {/} {walk}A walk with God's works in view. {/} {taste}A little taste of Eden. {//} {where}And this series will follow where that can {*}lead.
 **cite:** Ellen G. White, Selected Messages, book 2, 356; The Ministry of Healing, 363
-**picture:** The cast's frame, the same kitchen as `cold`. On `seed`, Clara and Nina press a seed into a pot of soil, Nina's tongue out in concentration. On `look`, Nina with her nose to a leaf on the tired plant. On `work`, Nina carries a small watering can in both hand circles. On `parent`, Clara at the table with an open Bible before the children wake (a quick dawn cut, lamp-yellow). On `walk`, the family in a city park on a Sabbath afternoon, Mila on Clara's hip pointing at a duck. On `where`, back to the sill: the seed pot beside the tired plant.
+**picture:** The parable's frame, the same kitchen as `cold`. On `seed`, the mother and the girl press a seed into a pot of soil, the girl's tongue out in concentration. On `look`, the girl with her nose to a leaf on the tired plant. On `work`, the girl carries a small watering can in both hand circles. On `parent`, the mother at the table with an open Bible before the children wake (a quick dawn cut, lamp-yellow). On `walk`, the family in a city park on a Sabbath afternoon, the baby in the mother's arms pointing at a duck. On `where`, back to the sill: the seed pot beside the tired plant.
 **paraphrase sources (not spoken):**
 
 - 2SM 356.2 (Ellen G. White) — "Thus He gives us in this world a little taste of Eden. He wants us to delight in the beautiful things of His creation." → `taste`
@@ -135,8 +135,8 @@ Quoted Scripture: 7 passages, 97 of 589 spoken words (16%; the girl's question i
 ### `seedling` · the household (landing) · ~30 s
 
 **say:** {knock}A knock at the door. {/} {grandmother}Her grandmother is in from the hills, {wrapped}with a {*}seedling wrapped in newspaper. {/} {press}She presses it into the girl's hands. {//} {why}"Why do we have to learn this?" {/} {because}Because the One who made the world {teach}still wants to teach it to you {//3} {*}Himself.
-**cite:** none (the cast's frame).
-**picture:** Landing: the same kitchen, same framing as `cold`, now under the teal-to-yellow landing light. Rosa (71, plum shawl) comes in on `knock`, merry, unhurried. On `press`, her habit: she presses the seedling, its roots in a twist of newspaper, into Nina's hand circles. Nina looks down at it, then up. On `why`, Nina's own pose from `cold`, but her chin drops and she smiles. On `because`, Leo at the window turns, and the phone lowers (not yet face down). On `teach`, slow push past them to the window: beyond the walls, faint at dusk, a line of hills.
+**cite:** none (the parable's frame).
+**picture:** Landing: the same kitchen, same framing as `cold`, now under the teal-to-yellow landing light. The grandmother (pale hair, a slight stoop, one plain dress in a quiet grey-green) comes in on `knock`, smiling. On `press`, she presses the seedling, its roots in a twist of newspaper, into the girl's hand circles. The girl looks down at it, then up. On `why`, the girl's own pose from `cold`, but her chin drops and she smiles. On `because`, the son at the window turns, and the phone lowers. On `teach`, slow push past them to the window: beyond the walls, faint at dusk, a line of hills.
 **paraphrase sources (not spoken):** none.
 
 ### `thesis` · ~30 s (music alone after the line)

@@ -902,7 +902,7 @@ for every film:
 | `film/span-ends-on-anchor`   | a span that lands on its anchor written as `offset: -d, dur: d` (its length twice, so a `dur` edit moves the landing): write `{ mark, dur, ends: true }`; and a `{ with: P, offset, dur }` whose offset and dur add up to its sibling `P`'s `dur` (it ends on P's end only by arithmetic, so a drag of P leaves it): write `{ after: P, dur, ends: true }` or `{ with: P, until: { cue: P } }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 One rule holds the tools as well as the films, over all of `packages/film` and
-this app: `film/no-point-free-log` refuses a variadic logger (`Console.log`,
+this app: `effect/noPointFreeLog` (from `oxlint-plugin-effect`) refuses a variadic logger (`Console.log`,
 `console.*`, `Effect.log*`) handed point-free to a callback that is passed an
 index, `Effect.forEach(lines, Console.log)`, which prints the index after
 each line; write `(line) => Console.log(line)`.

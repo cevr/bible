@@ -176,9 +176,13 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
     Option.map(loop, (f) => Effect.runFork(Fiber.interrupt(f)));
     loop = Option.none();
   };
-  const stop = () => {
+  /** The take silenced and its loop ended: what the voice owns outside its state, let go as the voice goes. */
+  const halt = () => {
     stopLoop();
     Option.map(audio, (el) => el.pause());
+  };
+  const stop = () => {
+    halt();
     setHeard(Heard.Quiet());
   };
 
@@ -247,7 +251,9 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
       setHeard(Heard.Hearing({ ...now, index }));
     return Option.none();
   };
-  onCleanup(stop);
+  // Gone, the voice lets go of its take and its loop; its state goes with it, so no write is left to make (a
+  // server's render, which disposes it as its stream ends, writes nothing).
+  onCleanup(halt);
 
   const hear: VoiceContextValue['hear'] = (id, words, on) =>
     Option.map(readyOf(id), (t) => {

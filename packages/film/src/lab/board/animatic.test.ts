@@ -4,7 +4,8 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
-import { type BoardFile, type Panel, emptyBoard } from '../../core/board.ts';
+import { type BoardFile, BoardName, type Panel, emptyBoard } from '../../core/board.ts';
+import { Segment } from '../../core/segment.ts';
 import { Shot, type TimedBeat, shotAt, shotsOf } from './animatic.ts';
 
 const marks = (start: number, at: Record<string, number>) => (name: string) =>
@@ -18,9 +19,18 @@ const beats: ReadonlyArray<TimedBeat> = [
 
 const panel = (beat: string, at: string): Panel => ({
   id: `${beat}.${at}`,
-  beat,
-  at,
-  tries: [{ n: 1, file: `${beat}.${at}.1.png`, sha256: 's', made: 'generate', refs: [], at: 'x' }],
+  beat: BoardName.make(beat),
+  at: BoardName.make(at),
+  tries: [
+    {
+      n: 1,
+      file: Segment.make(`${beat}.${at}.1.png`),
+      sha256: 's',
+      made: 'generate',
+      refs: [],
+      at: 'x',
+    },
+  ],
 });
 
 const board: BoardFile = {

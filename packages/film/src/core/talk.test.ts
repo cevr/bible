@@ -17,6 +17,7 @@ import {
   TALK_FORMATS,
   TALK_FPS,
   TALK_LAYOUT,
+  MarkName,
   type Talk,
   Talk as TalkSchema,
   type TalkCut,
@@ -26,6 +27,8 @@ import {
   talkTakes,
   talkTranscripts,
 } from './talk.ts';
+
+const CHARGE = MarkName.make('charge');
 
 const WORDS = ['Is', 'the', 'um', 'verdict', 'a', 'cover', 'up', 'No', 'it', 'is', 'not'];
 
@@ -244,7 +247,7 @@ describe('a talk cut on its transcript', () => {
             from: 0,
             to: 6,
             cut: [[2, 2]],
-            marks: { charge: 5 },
+            marks: { [CHARGE]: 5 },
             timeline: { tablets: { mark: 'charge', dur: 1 } },
           },
         ],
@@ -265,7 +268,7 @@ describe('a talk cut on its transcript', () => {
           take: 'a',
           from: 0,
           to: 6,
-          marks: { charge: 5, verdict: 5 },
+          marks: { [CHARGE]: 5, [MarkName.make('verdict')]: 5 },
           timeline: { tablets: { mark: 'charge', dur: 1 }, seal: { mark: 'verdict', dur: 1 } },
         },
       ]),
@@ -300,7 +303,7 @@ describe('a talk cut on its transcript', () => {
   it('cuts equal edits over equal transcripts to equal plays', () => {
     const talk = talkOf([
       { id: 'hook', take: 'a', from: 7, to: 10 },
-      { id: 'claim', take: 'a', from: 0, to: 6, cut: [[2, 2]], marks: { charge: 5 } },
+      { id: 'claim', take: 'a', from: 0, to: 6, cut: [[2, 2]], marks: { [CHARGE]: 5 } },
     ]);
     const take = syntheticTake(WORDS, [0.1, 0.1, 0.1, 0.1, 1.5]);
     expect(cutOf(structuredClone(talk), structuredClone(take))).toEqual(cutOf(talk, take));
@@ -326,7 +329,18 @@ describe('a talk cut on its transcript', () => {
       'not inside 2–5',
     );
     expect(
-      reasons(talkOf([{ id: 'claim', take: 'a', from: 0, to: 5, cut: [[2, 2]], marks: { m: 2 } }])),
+      reasons(
+        talkOf([
+          {
+            id: 'claim',
+            take: 'a',
+            from: 0,
+            to: 5,
+            cut: [[2, 2]],
+            marks: { [MarkName.make('m')]: 2 },
+          },
+        ]),
+      ),
     ).toContain('does not play');
     expect(reasons(talkOf([{ id: 'claim', take: 'a', from: 0, to: 5 }]))).toBe('');
   });

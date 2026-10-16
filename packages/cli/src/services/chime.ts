@@ -26,7 +26,9 @@ export const ChimeLive = Layer.effect(
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const assetPath = path.join(getCliRoot(), 'assets', 'notification.mp3');
     const play = spawner
-      .exitCode(ChildProcess.make('afplay', [assetPath, '-v', '0.15']))
+      .exitCode(
+        ChildProcess.make('afplay', [assetPath, '-v', '0.15'], { forceKillAfter: '5 seconds' }),
+      )
       .pipe(Effect.asVoid);
     return Chime.of({ play });
   }),

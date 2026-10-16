@@ -182,11 +182,11 @@ const treeOn = (files: Map<string, Uint8Array>, folders: Set<string>) => {
     path: string,
   ): Effect.Effect<string, PlatformError.PlatformError> => {
     if (!path.startsWith('/')) return Effect.fail(notFound(method, path));
-    const segments = path.split('/').reduce<ReadonlyArray<string>>((kept, segment) => {
-      if (segment === '..') return kept.slice(0, -1);
-      if (segment === '' || segment === '.') return kept;
-      return [...kept, segment];
-    }, []);
+    const segments: Array<string> = [];
+    for (const segment of path.split('/')) {
+      if (segment === '..') segments.pop();
+      else if (segment !== '' && segment !== '.') segments.push(segment);
+    }
     const steps = segments.map((_, i) => `/${segments.slice(0, i + 1).join('/')}`);
     const through = Arr.findFirst(steps.slice(0, -1), (step) => holds(step) !== 'folder');
     if (Option.isSome(through) && holds(through.value) === 'file')
@@ -1570,8 +1570,10 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
             Effect.acquireRelease(
               Effect.sync(() => {
                 ledger.urls.push(url);
-                ledger.pages.opened += 1;
-                return ledger.pages.opened;
+                // The page is its number, made here: the open it counts.
+                const page = ledger.pages.opened + 1;
+                ledger.pages.opened = page;
+                return page;
               }),
               () => Effect.sync(() => void (ledger.pages.closed += 1)),
             ).pipe(

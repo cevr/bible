@@ -21,7 +21,7 @@ _How can God call a guilty man righteous?_ · teal day
 
 ### `title` · IDEA · at 0:35 (6 %)
 
-**picture:** IDEA: the court pulled wide from high in its back wall: Max small in the dock, the crack across the floor at his feet, teal light falling through the high window.
+**picture:** IDEA: the court pulled wide from high in its back wall: the accused small in the dock, the crack across the floor at his feet, teal light falling through the high window.
 
 ## 2. The seed
 
@@ -39,7 +39,7 @@ _Is God’s verdict a cover-up?_ · peach parchment
 
 **say:** {label}But when God says righteous, it isn't a {*}label on the outside. {/} {seed}Jesus said, “The seed is the {*}word of God.” {//1} A seed looks like {*}nothing. {/} {alive}But it's {*}alive. {/} {folded}The life of the whole plant is folded up inside. {/} {life}In the same way, every word God speaks carries His {*}own life. {/} Take in His word by faith, {/} and you take in His life.
 
-**picture:** IDEA: the dropped leaves blow aside and the camera pushes in on the gold seal on Max's jacket, in cold's shape and scale (CRAFT rule 8).
+**picture:** IDEA: the dropped leaves blow aside and the camera pushes in on the gold seal on the accused's top, in cold's shape and scale (CRAFT rule 8).
 
 **cite:** Luke 8:11; Ellen G. White, Christ's Object Lessons, 38
 
@@ -131,7 +131,7 @@ _Does Jesus’s work end at the cross?_ · dawn to morning
 
 **say:** {part}So what's our part? {//} {picture}Picture a grandmother in her garden. {/} {sow}She digs, she sows, she waters. {/} {grow}But can she make {*}one seed grow? {/} No. {/} {power}Every seed grows by the power of {*}God. {/} {blade}And it grows the way Jesus said: {/} “First the blade, then the ear, after that the full corn in the ear.” {//} {morning}It's the same with us. {/} Each morning, {will}we give God our {*}will, {/} and He does the {*}growing. {//} {seventh}And on the seventh day {rest}she puts down her tools and rests. {/} Even that rest is {*}faith.
 
-**picture:** IDEA: Rosa's garden in the hills, set on the page as the ensemble's set (the gate, the beds, the bench under the fig tree), in morning light, the dawn of robe gone on to morning.
+**picture:** IDEA: a garden in the hills, set on the page (a gate, the beds, a bench under a fig tree), in morning light, the dawn of robe gone on to morning.
 
 **cite:** Ellen G. White, Christ's Object Lessons, 63, 65; 1 Corinthians 3:6; Mark 4:28; Ellen G. White, Steps to Christ, 47, 70; E. J. Waggoner, General Conference Daily Bulletin, March 8, 1897, 303; Hebrews 4:10
 

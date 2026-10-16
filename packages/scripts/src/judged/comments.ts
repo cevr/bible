@@ -191,7 +191,11 @@ const git = (root: string, args: ReadonlyArray<string>) =>
     Effect.gen(function* () {
       const spawner = yield* ChildProcessSpawner;
       const handle = yield* spawner.spawn(
-        ChildProcess.make('git', args, { cwd: root, stderr: 'ignore' }),
+        ChildProcess.make('git', args, {
+          cwd: root,
+          stderr: 'ignore',
+          forceKillAfter: '5 seconds',
+        }),
       );
       const [out, code] = yield* Effect.all(
         [Stream.mkString(Stream.decodeText(handle.stdout)), handle.exitCode],

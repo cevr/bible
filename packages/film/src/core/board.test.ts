@@ -3,6 +3,8 @@ import { Array as Arr, Option, Result, Schema } from 'effect';
 import {
   type BoardFile,
   BoardFileJson,
+  BoardName,
+  PANEL_START,
   type BoardTry,
   type Panel,
   approvalOf,
@@ -17,10 +19,15 @@ import {
   withTries,
   withdrawBeat,
 } from './board.ts';
+import { Segment } from './segment.ts';
+
+const COLD = BoardName.make('cold');
+const JOB = BoardName.make('job');
+const RIGHTEOUS = BoardName.make('righteous');
 
 const tried = (n: number): BoardTry => ({
   n,
-  file: `cold.righteous.${n}.png`,
+  file: Segment.make(`cold.righteous.${n}.png`),
   sha256: `sha${n}`,
   made: 'generate',
   prompt: 'p',
@@ -30,8 +37,8 @@ const tried = (n: number): BoardTry => ({
 
 const panel = (at: string, tries: number, kept?: number): Panel => ({
   id: `cold.${at}`,
-  beat: 'cold',
-  at,
+  beat: COLD,
+  at: BoardName.make(at),
   tries: Arr.makeBy(tries, (i) => tried(i + 1)),
   ...Option.match(Option.fromUndefinedOr(kept), {
     onNone: () => ({}),
@@ -49,22 +56,19 @@ describe('plannedAts', () => {
     'In a {room}court. {judge}The judge {righteous}says righteous. {wait}Wait. {job}Job asked.';
   test('the marks the picture names, in the order the line says them', () => {
     const picture = 'On `job` the question. On `righteous` the gavel. A `drain` cue.';
-    expect(plannedAts('cold', Option.some(say), Option.some(picture))).toEqual([
-      'righteous',
-      'job',
-    ]);
+    expect(plannedAts('cold', Option.some(say), Option.some(picture))).toEqual([RIGHTEOUS, JOB]);
   });
   test('at most three: the first, the last and one between', () => {
     const picture = '`room` `judge` `righteous` `wait` `job`';
     expect(plannedAts('cold', Option.some(say), Option.some(picture))).toEqual([
-      'room',
-      'righteous',
-      'job',
+      BoardName.make('room'),
+      RIGHTEOUS,
+      JOB,
     ]);
   });
   test('a beat whose picture names no mark, or that says nothing, is one panel at its start', () => {
-    expect(plannedAts('cold', Option.some(say), Option.some('a courtroom'))).toEqual(['start']);
-    expect(plannedAts('title', Option.none(), Option.some('`judge`'))).toEqual(['start']);
+    expect(plannedAts('cold', Option.some(say), Option.some('a courtroom'))).toEqual([PANEL_START]);
+    expect(plannedAts('title', Option.none(), Option.some('`judge`'))).toEqual([PANEL_START]);
   });
 });
 
@@ -76,7 +80,10 @@ describe('the board record', () => {
     expect(Schema.decodeSync(BoardFileJson)(text)).toEqual(file);
   });
   test('refuses a try file that is a path', () => {
-    const file = board({ ...panel('job', 0), tries: [{ ...tried(1), file: '../x.png' }] });
+    const file = {
+      ...board(),
+      panels: [{ ...panel('job', 0), tries: [{ ...tried(1), file: '../x.png' }] }],
+    };
     const text = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown))(file);
     expect(() => Schema.decodeSync(BoardFileJson)(text)).toThrow();
   });
@@ -121,25 +128,25 @@ describe("approving a beat's board", () => {
   const at = '2026-10-14T00:00:00.000Z';
   test('refuses while a panel keeps no try', () => {
     const b = board(panel('righteous', 2, 1), panel('job', 2));
-    expect(Result.getFailure(approveBeat(b, 'cold', at))).toEqual(
+    expect(Result.getFailure(approveBeat(b, COLD, at))).toEqual(
       Option.some({ reason: 'pick a try of cold.job first' }),
     );
   });
   test('is approved, then stale when a panel keeps another try', () => {
-    const b = Result.getOrThrow(approveBeat(board(panel('righteous', 2, 1)), 'cold', at));
+    const b = Result.getOrThrow(approveBeat(board(panel('righteous', 2, 1)), COLD, at));
     expect(approvalOf(b, 'cold')).toBe('approved');
     const repicked = Result.getOrThrow(pickTry(b, 'cold.righteous', 2, Option.none()));
     expect(approvalOf(repicked, 'cold')).toBe('stale');
     expect(approvalOf(repicked, 'title')).toBe('none');
   });
   test('is stale once a panel is added to the beat, picked or not', () => {
-    const b = Result.getOrThrow(approveBeat(board(panel('righteous', 2, 1)), 'cold', at));
+    const b = Result.getOrThrow(approveBeat(board(panel('righteous', 2, 1)), COLD, at));
     const added = { ...b, panels: [...b.panels, panel('job', 1)] };
     expect(approvalOf(added, 'cold')).toBe('stale');
     expect(approvalOf({ ...b, panels: [...b.panels, panel('job', 1, 1)] }, 'cold')).toBe('stale');
   });
   test('withdraws, and refuses a withdrawal of nothing', () => {
-    const b = Result.getOrThrow(approveBeat(board(panel('righteous', 1, 1)), 'cold', at));
+    const b = Result.getOrThrow(approveBeat(board(panel('righteous', 1, 1)), COLD, at));
     const w = Result.getOrThrow(withdrawBeat(b, 'cold'));
     expect(approvalOf(w, 'cold')).toBe('none');
     expect(Result.isFailure(withdrawBeat(w, 'cold'))).toBe(true);
@@ -149,8 +156,8 @@ describe("approving a beat's board", () => {
 describe('a text panel', () => {
   const card: Panel = {
     id: 'cold.job',
-    beat: 'cold',
-    at: 'job',
+    beat: COLD,
+    at: JOB,
     tries: [],
     text: { _tag: 'Card', payoff: 'just' },
   };
@@ -174,7 +181,7 @@ describe('a text panel', () => {
   test('has no tries to pick, and does not hold a beat from approval', () => {
     const b = board(panel('righteous', 2, 1), card);
     expect(Result.isFailure(pickTry(b, 'cold.job', 1, Option.none()))).toBe(true);
-    expect(Result.isSuccess(approveBeat(b, 'cold', '2026-10-14T00:00:00.000Z'))).toBe(true);
+    expect(Result.isSuccess(approveBeat(b, COLD, '2026-10-14T00:00:00.000Z'))).toBe(true);
     const text = Schema.encodeSync(BoardFileJson)(b);
     expect(Schema.decodeSync(BoardFileJson)(text)).toEqual(b);
   });

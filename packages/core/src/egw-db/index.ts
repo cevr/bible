@@ -5,6 +5,6 @@
  * in a local SQLite database, avoiding repeated HTTP calls to the EGW API.
  */
 
-export { EGWParagraphDatabase, paragraphIdentity } from './book-database.js';
+export { EGWParagraphDatabase, ParagraphChangeRow, paragraphIdentity } from './book-database.js';
 export { SqlAtomic } from '../db/atomic.js';
 export type { BookRow, EGWParagraphDatabaseService } from './book-database.js';

@@ -15,37 +15,11 @@ import { Context, Effect, FileSystem, Layer, Option, Struct } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { Place } from '@bible/url-state';
 import { LAB_PAGES, LAB_SERVERS } from '../../../../apps/animations/server.ts';
-import { Places, pageHref } from '../core/api.ts';
+import { Places } from '../core/api.ts';
+import { PLACE_HREFS } from '../lab/fixtures/places.ts';
 import { LabPage, PageBundler } from './lab-page.ts';
 import { PageReads } from './api-server.ts';
 import { PageRenderer } from './page-render.ts';
-
-/**
- * Every place a studio page is at (`Places`, `core/api.ts`), by a link the
- * lab serves it at: a place added there is weighed here, or this fails to
- * typecheck. A film's export page is no phone's: the renderer's and the
- * easel's, drawn in the browser alone.
- */
-const PLACES = {
-  home: pageHref.home(),
-  production: pageHref.production('p'),
-  ask: pageHref.ask('a0123456789'),
-  draft: pageHref.draft('s', 'd'),
-  draftBeat: pageHref.draftBeat('s', 'd', '1', '0-0'),
-  folder: pageHref.folder('f'),
-  set: pageHref.set('f', 'p'),
-  choices: pageHref.choices('f'),
-  project: pageHref.project('f'),
-  scenes: pageHref.scenes('f'),
-  scene: pageHref.scene('f', 's'),
-  play: pageHref.play('f'),
-  lab: pageHref.lab('f'),
-  labScene: pageHref.labScene('f', 's'),
-  script: pageHref.script('f'),
-  scriptBeat: pageHref.scriptBeat('f', 's'),
-  board: pageHref.board('f'),
-  boardBeat: pageHref.boardBeat('f', 's'),
-} satisfies Record<Exclude<keyof typeof Places, 'export'>, string>;
 
 /**
  * The most a page's render-blocking CSS may weigh, in bytes, as built
@@ -68,7 +42,7 @@ const BUDGET = 64 * 1024;
  * The places that carry their own styles (`PlaceStyle`): each holds them
  * ahead of its reads, so they are weighed with none answered.
  */
-const OWN_STYLES: ReadonlyArray<keyof typeof PLACES> = [
+const OWN_STYLES: ReadonlyArray<keyof typeof PLACE_HREFS> = [
   'production',
   'ask',
   'draft',
@@ -154,13 +128,13 @@ describe("a page's render-blocking CSS", () => {
           });
         // Each link is at the place it is keyed by.
         expect(
-          Struct.keys(PLACES).filter((place) =>
-            Option.isNone(Place.decode(Places[place], PLACES[place])),
+          Struct.keys(PLACE_HREFS).filter((place) =>
+            Option.isNone(Place.decode(Places[place], PLACE_HREFS[place])),
           ),
         ).toEqual([]);
-        const weighed = yield* Effect.forEach(Struct.keys(PLACES), (place) =>
+        const weighed = yield* Effect.forEach(Struct.keys(PLACE_HREFS), (place) =>
           Effect.gen(function* () {
-            const { status, body } = yield* ask(PLACES[place]);
+            const { status, body } = yield* ask(PLACE_HREFS[place]);
             // The server rendered it: its head holds the page's own styles.
             const rendered = status === 200 && body.includes('<style data-page-style');
             const bytes = yield* blockingCss(body, size);

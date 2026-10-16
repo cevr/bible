@@ -16,6 +16,7 @@
 import { Context, Data, Effect, Layer, Option } from 'effect';
 import type { Scope } from 'effect';
 import type { Film, FootageFrames, FootageRead, RenderOptions } from '../canvas/film.ts';
+import type { Ask } from '../core/asked.ts';
 
 /** A footage frame the host could not decode for a frame: named, so the frame is never drawn black. */
 export class FootageFrameMissing extends Data.TaggedError('FootageFrameMissing')<{
@@ -137,41 +138,27 @@ const paintedAt = (
   Effect.flatMap(footageAt(film, T), (shown) => Effect.sync(() => paint(shown)));
 
 /**
- * The frames asked of one surface, of which only the newest lands, as
- * `<video>` drops frames rather than show an old one late: `ask` gives each
- * ask whether it is still the newest.
- */
-export const newestAsks = () => {
-  let asked = 0;
-  return {
-    ask: (): (() => boolean) => {
-      asked += 1;
-      const mine = asked;
-      return () => mine === asked;
-    },
-  };
-};
-
-/**
- * `paintedAt` for one ask of a surface's (`newestAsks`): its frame painted,
- * and its failure said, only while it is the newest ask. An older ask whose
- * footage lands after a newer one's paints nothing and fails nothing, so a
- * decode that lands late never paints over a newer frame, and a frame no
- * longer asked for never says it failed.
+ * `paintedAt` for one ask of a surface's frames (an `Ask` of the surface's
+ * `newestAsked`, `core/asked.ts`): its frame painted through `answer`, and
+ * its failure said, only while nothing was asked after it, as `<video>`
+ * drops frames rather than show an old one late. An older ask whose footage
+ * lands after a newer one's paints nothing and fails nothing, so a decode
+ * that lands late never paints over a newer frame, and a frame no longer
+ * asked for never says it failed.
  */
 export const paintedIfNewest = (
   film: Pick<Film, 'footageAt'>,
   T: number,
   paint: (shown: FootageShown) => void,
-  isNewest: () => boolean,
+  ask: Ask,
 ): Effect.Effect<void, FootageFrameMissing, Footage> =>
   paintedAt(film, T, (shown) => {
-    if (isNewest()) paint(shown);
+    if (!ask.overtaken()) ask.answer(() => paint(shown));
   }).pipe(
     Effect.catchTag('FootageFrameMissing', (missing) =>
       Effect.suspend(() => {
-        if (isNewest()) return Effect.fail(missing);
-        return Effect.void;
+        if (ask.overtaken()) return Effect.void;
+        return Effect.fail(missing);
       }),
     ),
   );

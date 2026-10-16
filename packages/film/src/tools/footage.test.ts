@@ -497,24 +497,26 @@ describe('the footage library', () => {
   );
 
   it.effect(
-    "knows a name only as the lock's own: `constructor`, a footage name every object answers to, is unknown until imported",
+    "knows a name only as the lock's own: `constructor`, a name every object answers to, is unknown, and never imported (a Segment never is one)",
     () => {
-      const files = new Map([['/in/take.mov', text('a phone take')]]);
+      const files = new Map([
+        ['/in/take.mov', text('a phone take')],
+        ['/in/other.mov', text('another phone take')],
+      ]);
       return Effect.gen(function* () {
         const library = yield* FootageLibrary;
         yield* library.importFile('/in/take.mov', asTake('why'));
-        const unknown = (exit: Exit.Exit<unknown, { readonly _tag: string }>) =>
+        const tagOf = (exit: Exit.Exit<unknown, { readonly _tag: string }>) =>
           Option.map(failureOf(exit), (e) => e._tag);
-        expect(unknown(yield* Effect.exit(library.entry('constructor')))).toEqual(
+        expect(tagOf(yield* Effect.exit(library.entry('constructor')))).toEqual(
           Option.some('FootageUnknown'),
         );
         expect(
-          unknown(yield* Effect.exit(library.make('constructor', { hearAgain: false }))),
+          tagOf(yield* Effect.exit(library.make('constructor', { hearAgain: false }))),
         ).toEqual(Option.some('FootageUnknown'));
-        // Once imported, it is a name like any other.
-        files.set('/in/other.mov', text('another phone take'));
-        yield* library.importFile('/in/other.mov', asTake('constructor'));
-        expect((yield* library.entry('constructor')).kind).toBe('take');
+        expect(
+          tagOf(yield* Effect.exit(library.importFile('/in/other.mov', asTake('constructor')))),
+        ).toEqual(Option.some('FootageNameInvalid'));
       }).pipe(Effect.provide(world(files, emptyCalls(), [])));
     },
   );

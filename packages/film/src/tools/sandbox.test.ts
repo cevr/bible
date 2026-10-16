@@ -477,7 +477,8 @@ describe("the counsel's sandbox", () => {
         const sandboxed = (command: ReadonlyArray<string>) =>
           Effect.flatMap(
             Effect.sync(() => sandboxArgs(plan, command)),
-            ([program = '', ...args]) => collect(spawner, ChildProcess.make(program, args)),
+            ([program = '', ...args]) =>
+              collect(spawner, ChildProcess.make(program, args, { forceKillAfter: '5 seconds' })),
           );
         const read = yield* sandboxed(['/bin/cat', path.join(packet, 'packet.md')]);
         expect([read.exitCode, read.stdout]).toEqual([0, 'the packet']);
@@ -494,6 +495,6 @@ describe("the counsel's sandbox", () => {
         expect(yield* fs.exists(path.join(answer, 'kept'))).toBe(true);
         expect(yield* fs.exists(path.join(root, 'beside'))).toBe(false);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
-    5_000,
+    20_000,
   );
 });

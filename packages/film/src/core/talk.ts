@@ -37,6 +37,7 @@
 
 import { Array as Arr, Option, Order, Record as Rec, Result, Schema } from 'effect';
 import { PartId } from './address-schema.ts';
+import { Segment } from './segment.ts';
 import { DuplicateScene } from './errors.ts';
 import {
   FOOTAGE_RECIPES,
@@ -137,17 +138,12 @@ const CaptionWord = Schema.String.check(
 
 /**
  * A mark's name, as a line writes it (`{law}`): the lab's Mark here writes
- * only a name this decodes. Never `__proto__`, which an object literal's
- * key does not make an own key of (it sets the prototype), so the talk
- * imported would have no such mark.
+ * only a name this decodes. A `Segment`, so never `__proto__`, which an
+ * object literal's key does not make an own key of (it sets the prototype),
+ * so the talk imported would have no such mark.
  */
-export const MarkName = Schema.String.check(
+export const MarkName = Segment.check(
   Schema.isPattern(/^[a-zA-Z0-9_-]+$/, { message: 'a mark is letters, digits, _ and -' }),
-  Schema.makeFilter(
-    (name: string) =>
-      name !== '__proto__' ||
-      'a mark is never named __proto__: in an object literal that name sets its prototype, so the talk would have no such mark',
-  ),
 );
 
 /** `index` is inside `[from, to]` and struck by none of `cut`. */

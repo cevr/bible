@@ -9,6 +9,7 @@ import { Option, Schema } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { busy, refused, said } from '../../../command/command.ts';
 import type { PartAddress } from '../../../core/address.ts';
+import { ActName } from '../../../core/address-schema.ts';
 import { ProjectView } from '../../../core/api.ts';
 import { FilmChoices, type SoundCheck } from '../../../core/choice.ts';
 import { ChangeId } from '../../../core/schema.ts';
@@ -186,7 +187,9 @@ describe('partSaid', () => {
     partSaid({ address, say: { _tag: 'Comment', text: 'warmer' } }, Option.none())(view);
   test('names the part of the project it was said of', () => {
     expect(commented({ _tag: 'Film' })).toBe('Commented on the film');
-    expect(commented({ _tag: 'Act', act: 'opening' })).toBe('Commented on act opening');
+    expect(commented({ _tag: 'Act', act: ActName.make('opening') })).toBe(
+      'Commented on act opening',
+    );
     expect(commented({ _tag: 'Scenes', ids: ['cold'] })).toBe('Commented on scene cold');
   });
 });

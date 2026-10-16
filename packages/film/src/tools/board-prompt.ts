@@ -6,7 +6,7 @@
 
 import { Array as Arr, Boolean as Bool, Option, Result } from 'effect';
 import type { Act } from '../core/schema.ts';
-import { type BoardStyle, PANEL_START } from '../core/board.ts';
+import { type BoardName, type BoardStyle, PANEL_START } from '../core/board.ts';
 import { parse } from '../core/narration.ts';
 
 /** What the style's reference image is for: its look, none of its content. */
@@ -30,7 +30,7 @@ const RULES =
 
 /** A beat as the board reads it from the script. */
 export interface BoardBeat {
-  readonly id: string;
+  readonly id: BoardName;
   readonly say: Option.Option<string>;
   readonly picture: Option.Option<string>;
 }

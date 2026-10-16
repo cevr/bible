@@ -57,7 +57,9 @@ export const rive = (step: string, args: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const bin = yield* Config.String('RIVE').pipe(Config.withDefault('rive'));
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-    const handle = yield* spawner.spawn(ChildProcess.make(bin, args));
+    const handle = yield* spawner.spawn(
+      ChildProcess.make(bin, args, { forceKillAfter: '5 seconds' }),
+    );
     const [stdout, stderr, code] = yield* Effect.all(
       [
         Stream.mkString(Stream.decodeText(handle.stdout)),
@@ -146,7 +148,7 @@ const command = Command.make(
   build,
 ).pipe(Command.withDescription("Build the court's figure rigs into figures.riv beside the looks"));
 
-// Run as a script; imported (the axis test, `direction.test.ts`), it only lends `compile`.
+// Run as a script; imported (the build test, `build.test.ts`), it only lends `compile`.
 if (import.meta.main)
   Command.run(command, { version: '1.0.0' }).pipe(
     Effect.provide(BunServices.layer),

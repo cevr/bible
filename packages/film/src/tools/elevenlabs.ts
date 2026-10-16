@@ -237,12 +237,13 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
         if (Option.isSome(fromEnv)) return fromEnv.value;
         const keychain = yield* collect(
           spawner,
-          ChildProcess.make('security', [
-            'find-generic-password',
-            '-s',
-            'ELEVENLABS_API_KEY',
-            '-w',
-          ]),
+          ChildProcess.make(
+            'security',
+            ['find-generic-password', '-s', 'ELEVENLABS_API_KEY', '-w'],
+            {
+              forceKillAfter: '5 seconds',
+            },
+          ),
         ).pipe(Effect.orElseSucceed((): Finished => ({ exitCode: 1, stdout: '', stderr: '' })));
         const key = keychain.stdout.trim();
         if (keychain.exitCode === 0 && key.length > 0) return Redacted.make(key);
@@ -263,13 +264,19 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
           const key = yield* Effect.option(apiKey);
           return yield* Option.match(key, {
             onNone: () =>
-              oauth.withPermits(1)(exec(op, ChildProcess.make('elevenlabs', [...args]))),
+              oauth.withPermits(1)(
+                exec(
+                  op,
+                  ChildProcess.make('elevenlabs', [...args], { forceKillAfter: '5 seconds' }),
+                ),
+              ),
             onSome: (k) =>
               exec(
                 op,
                 ChildProcess.make('elevenlabs', [...args], {
                   env: { ELEVENLABS_API_KEY: Redacted.value(k) },
                   extendEnv: true,
+                  forceKillAfter: '5 seconds',
                 }),
               ),
           });
@@ -370,7 +377,9 @@ export class ElevenLabs extends Context.Service<ElevenLabs, ElevenLabsService>()
         if (Option.isSome(yield* Effect.option(apiKey))) return;
         const done = yield* collect(
           spawner,
-          ChildProcess.make('elevenlabs', ['auth', 'status', '--format', 'json']),
+          ChildProcess.make('elevenlabs', ['auth', 'status', '--format', 'json'], {
+            forceKillAfter: '5 seconds',
+          }),
         ).pipe(
           Effect.mapError((error) => {
             if (isNotFound(error))

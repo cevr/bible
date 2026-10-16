@@ -14,7 +14,7 @@ import { Talk } from '../core/talk.ts';
 import { collect } from './process.ts';
 import { commentsMoved, editMark, editStrikes, markMissed } from './talk-source.ts';
 
-/** The timeout of a test here that spawns (bunx oxfmt): a cold start's time is the machine's (film/spawn-budget). */
+/** The timeout of a test here that spawns (bunx oxfmt): a cold start's time is the machine's (effect/requireSpawnBudget). */
 const SPAWNS_MS = 30_000;
 
 /** The repo's root: oxfmt run from it formats with the repo's config, as a film's file is formatted. */
@@ -250,17 +250,19 @@ describe('talk source', () => {
   );
 
   it.effect(
-    "a mark named as an object's inherited key (`constructor`, `toString`) is a mark like any other: written, already so, or on another word",
+    'a mark named as a method every object inherits (`toString`) is a mark like any other; `constructor` and `prototype`, which every lookup finds, are refused (a Segment never is one)',
     () =>
       Effect.sync(() => {
-        for (const name of ['constructor', 'toString']) {
-          const marked = Result.getOrThrow(editMark(at, SOURCE, 'law', name, 3));
-          expect(marked).toBe(SOURCE.replace('to: 5 }', `to: 5, marks: { ${name}: 3 } }`));
-          expect(Result.getOrThrow(editMark(at, marked, 'law', name, 3))).toBe(marked);
-          expect(reason(editMark(at, marked, 'law', name, 4))).toBe(
-            `mark "${name}" is on word 3 of "law" already: name this one another way`,
+        const marked = Result.getOrThrow(editMark(at, SOURCE, 'law', 'toString', 3));
+        expect(marked).toBe(SOURCE.replace('to: 5 }', 'to: 5, marks: { toString: 3 } }'));
+        expect(Result.getOrThrow(editMark(at, marked, 'law', 'toString', 3))).toBe(marked);
+        expect(reason(editMark(at, marked, 'law', 'toString', 4))).toBe(
+          'mark "toString" is on word 3 of "law" already: name this one another way',
+        );
+        for (const name of ['constructor', 'prototype'])
+          expect(reason(editMark(at, SOURCE, 'law', name, 3))).toBe(
+            `"${name}" is not a mark's name (every object answers to "${name}" from its prototype, so a record keyed by it finds what it never held): the talk would drop it`,
           );
-        }
       }),
   );
 
@@ -325,7 +327,7 @@ describe('talk source', () => {
         expect(Result.isSuccess(readAt(read, 1))).toBe(true);
         expect(readAt(read, 0)).toEqual(readAt(read, 1));
         expect(reason(editMark(at, SOURCE, 'law', '__proto__', 3))).toBe(
-          '"__proto__" is not a mark\'s name (a mark is never named __proto__: in an object literal that name sets its prototype, so the talk would have no such mark): the talk would drop it',
+          '"__proto__" is not a mark\'s name ("__proto__" sets an object\'s prototype in a literal, so a record never holds it): the talk would drop it',
         );
         // Read back as the import reads it, a literal `__proto__` marks nothing.
         expect(Result.getOrThrow(markMissed(at, written, 'law', '__proto__', 3))).toEqual([
@@ -884,6 +886,7 @@ const formatted = (texts: ReadonlyArray<string>) =>
       ChildProcess.make('bunx', ['oxfmt', `--stdin-filepath=${REPO}/packages/film/talk.ts`], {
         cwd: REPO,
         stdin: Stream.make(new TextEncoder().encode(joined)),
+        forceKillAfter: '5 seconds',
       }),
     );
     expect([done.exitCode, done.stderr]).toEqual([0, '']);

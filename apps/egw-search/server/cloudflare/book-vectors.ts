@@ -13,6 +13,11 @@
  * A page is one durable step of the sync's Workflow: one read, a few model
  * calls, one upsert. Upserting is idempotent by id, so a retried page writes
  * the same vectors again rather than duplicates.
+ *
+ * A book installed again (a recheck) keeps the vectors of the paragraphs it
+ * did not change: its pages read only the paragraphs the install added or
+ * edited (`scope: 'changed'`), and the vectors of the ones it removed are
+ * deleted (`removedVectorIds`).
  */
 import { Array as Arr, Effect, Option, Schema } from 'effect';
 import * as SqlClient from 'effect/sql/SqlClient';
@@ -37,6 +42,10 @@ export interface VectorizeUpsert {
     }[],
   ) => Promise<unknown>;
 }
+
+/** Which of a book's paragraphs a page embeds: all of them (a first
+ *  install), or those its latest install added or edited (a recheck). */
+export type BookVectorsScope = 'book' | 'changed';
 
 /** What one page did, as plain data: a Workflow step's result. */
 export interface BookVectorsPage {
@@ -78,7 +87,7 @@ const encodeAuthors = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schem
  *  wrote them in. A book outside the vector scope (`EGW_SCOPE_AUTHORS`)
  *  reads no rows, so its first page is its last. */
 export const bookVectorsPage = Effect.fn('BookVectors.page')(function* (
-  page: { readonly bookId: number; readonly after: number },
+  page: { readonly bookId: number; readonly after: number; readonly scope: BookVectorsScope },
   embed: (
     texts: readonly string[],
   ) => Effect.Effect<readonly Int8Array[], QueryEmbedderUnavailable>,
@@ -86,18 +95,43 @@ export const bookVectorsPage = Effect.fn('BookVectors.page')(function* (
 ) {
   const sql = yield* SqlClient.SqlClient;
   const failed = (reason: string) => BookVectorsFailed.make({ bookId: page.bookId, reason });
-  const rows = yield* sql`
-    SELECT
-      p.rowid AS row_id, b.book_code, p.ref_code, p.para_id, p.refcode_short, p.content_text,
-      b.section, b.book_type, b.book_subtype
-    FROM paragraphs p
-    JOIN books b ON b.book_id = p.book_id
-    WHERE p.book_id = ${page.bookId}
-      AND p.rowid > ${page.after}
-      AND b.book_author IN (SELECT value FROM json_each(${encodeAuthors(EGW_SCOPE_AUTHORS)}))
-    ORDER BY p.rowid
-    LIMIT ${BOOK_VECTORS_PAGE}
-  `.pipe(
+  const authors = encodeAuthors(EGW_SCOPE_AUTHORS);
+  // Two statements rather than one with the scope as a condition: SQLite
+  // resolves every table a statement names when it prepares it, and a
+  // corpus no recheck has written to has no `paragraph_changes`.
+  // A statement runs only when it is yielded, so building both costs nothing.
+  let read = sql`
+          SELECT
+            p.rowid AS row_id, b.book_code, p.ref_code, p.para_id, p.refcode_short,
+            p.content_text, b.section, b.book_type, b.book_subtype
+          FROM paragraphs p
+          JOIN books b ON b.book_id = p.book_id
+          WHERE p.book_id = ${page.bookId}
+            AND p.rowid > ${page.after}
+            AND b.book_author IN (SELECT value FROM json_each(${authors}))
+          ORDER BY p.rowid
+          LIMIT ${BOOK_VECTORS_PAGE}
+        `;
+  if (page.scope === 'changed')
+    read = sql`
+          SELECT
+            p.rowid AS row_id, b.book_code, p.ref_code, p.para_id, p.refcode_short,
+            p.content_text, b.section, b.book_type, b.book_subtype
+          FROM paragraphs p
+          JOIN books b ON b.book_id = p.book_id
+          WHERE p.book_id = ${page.bookId}
+            AND p.rowid > ${page.after}
+            AND b.book_author IN (SELECT value FROM json_each(${authors}))
+            AND COALESCE(p.para_id, p.ref_code) IN (
+              SELECT COALESCE(c.para_id, c.ref_code) FROM paragraph_changes c
+              WHERE c.book_id = p.book_id
+                AND c.kind IN ('added', 'edited')
+                AND c.to_revision = (SELECT revision FROM sync_status WHERE book_id = p.book_id)
+            )
+          ORDER BY p.rowid
+          LIMIT ${BOOK_VECTORS_PAGE}
+        `;
+  const rows = yield* read.pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(Rows)),
     Effect.mapError((cause) => failed(`read: ${String(cause)}`)),
   );
@@ -151,4 +185,36 @@ export const bookVectorsPage = Effect.fn('BookVectors.page')(function* (
     () => page.after,
   );
   return { read: rows.length, upserted: documents.length, after: last } satisfies BookVectorsPage;
+});
+
+const RemovedRows = Schema.Array(
+  Schema.Struct({
+    book_code: Schema.String,
+    ref_code: Schema.String,
+    para_id: Schema.NullOr(Schema.String),
+  }),
+);
+
+/** The vector ids of the paragraphs a book's latest install removed: the
+ *  identities `bookVectorsPage` gave them, for the index to forget. A
+ *  paragraph that never had a vector yields an id the index does not hold,
+ *  which a delete ignores. */
+export const removedVectorIds = Effect.fn('BookVectors.removedIds')(function* (bookId: number) {
+  const sql = yield* SqlClient.SqlClient;
+  const rows = yield* sql`
+    SELECT b.book_code, c.ref_code, c.para_id
+    FROM paragraph_changes c
+    JOIN books b ON b.book_id = c.book_id
+    WHERE c.book_id = ${bookId}
+      AND c.kind = 'removed'
+      AND c.to_revision = (SELECT revision FROM sync_status WHERE book_id = ${bookId})
+  `.pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(RemovedRows)),
+    Effect.mapError((cause) =>
+      BookVectorsFailed.make({ bookId, reason: `read: ${String(cause)}` }),
+    ),
+  );
+  return rows.map((row) =>
+    paragraphIdentity(row.book_code, Option.fromNullishOr(row.para_id), row.ref_code),
+  );
 });

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Cause, Effect, Exit, Layer, Option, Path, Schema } from 'effect';
 import { Command } from 'effect/cli';
 import { sceneAddress } from '../core/address.ts';
-import { type Render, approvalState, subjectOf } from '../core/catalogue.ts';
+import { MAIN_VARIANT, type Render, approvalState, subjectOf } from '../core/catalogue.ts';
 import { VerbRefused } from '../core/refusals.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
@@ -38,7 +38,7 @@ const KEYS = new Map([
 /** A render of scene `id`, drawn from sources with `key`, carrying the film's mix `mix`. */
 const sceneRender = (id: string, key: string, mix = Option.none<string>()): Render => ({
   address: sceneAddress(id),
-  variant: 'main',
+  variant: MAIN_VARIANT,
   kind: 'video',
   settings: { scale: 0.5, captions: true },
   stamp: { commit: Option.none(), key },

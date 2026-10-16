@@ -54,7 +54,7 @@ import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport, PageBuild } from '../../../core/schema.ts';
 import { type LabFailure, served } from '../../api.ts';
 import { hearMixes, newer } from '../../rebuilt.ts';
-import { type Asks, type Landed, newestAsked } from '../asked.ts';
+import { type Asks, type Landed, newestAsked } from '../../../core/asked.ts';
 import { useReview } from '../context.tsx';
 import { videoSource } from '../format.ts';
 import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';

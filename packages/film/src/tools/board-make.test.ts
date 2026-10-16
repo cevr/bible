@@ -21,8 +21,10 @@ import {
   Stream,
 } from 'effect';
 import { ChildProcessSpawner } from 'effect/process';
-import type { BoardFile } from '../core/board.ts';
+import { type BoardFile, BoardName } from '../core/board.ts';
+import { ActName } from '../core/address-schema.ts';
 import type { Act, Note } from '../core/schema.ts';
+import { Segment } from '../core/segment.ts';
 import { makeBoard, type makeLine, tweakPanel } from './board-make.ts';
 import { type BoardBeat, actOf, panelPrompt } from './board-prompt.ts';
 import { BoardStore } from './board-store.ts';
@@ -37,24 +39,28 @@ type ImageRequest = Parameters<(typeof ImageRoute)['Service']['draw']>[0];
 type MakeLine = Parameters<typeof makeLine>[0];
 
 const film = FilmName.make('f');
+const COLD = BoardName.make('cold');
+const TITLE = BoardName.make('title');
+const ROOM = BoardName.make('room');
+const RIGHTEOUS = BoardName.make('righteous');
 
 const beats: ReadonlyArray<BoardBeat> = [
   {
-    id: 'cold',
+    id: COLD,
     say: Option.some('A {room}court. The {judge}judge says {righteous}righteous.'),
     picture: Option.some('A court (`room`); the gavel falls on `righteous`.'),
   },
-  { id: 'title', say: Option.none(), picture: Option.some('A sky over a city.') },
+  { id: TITLE, say: Option.none(), picture: Option.some('A sky over a city.') },
 ];
 const acts: ReadonlyArray<Act> = [
-  { from: 'cold', name: 'cold open', luma: [140, 165], saturation: [0.15, 0.25] },
+  { from: 'cold', name: ActName.make('cold open'), luma: [140, 165], saturation: [0.15, 0.25] },
 ];
 
 const style = {
-  id: '9005',
+  id: BoardName.make('9005'),
   name: 'K1',
   block: 'A paper-cut frame.',
-  ref: 'style.9005.png',
+  ref: Segment.make('style.9005.png'),
   sha256: 'x',
   world: 'A parchment world.',
 };
@@ -247,9 +253,11 @@ describe("a beat's panels to draw", () => {
       const drawn = yield* drawnOver([
         {
           id: 'cold.judge',
-          beat: 'cold',
-          at: 'judge',
-          tries: [{ n: 1, file: 'a.png', sha256: 's', made: 'import', refs: [], at: 'x' }],
+          beat: COLD,
+          at: BoardName.make('judge'),
+          tries: [
+            { n: 1, file: Segment.make('a.png'), sha256: 's', made: 'import', refs: [], at: 'x' },
+          ],
         },
       ]);
       expect(drawn).toEqual([]);
@@ -260,13 +268,13 @@ describe("a beat's panels to draw", () => {
       const drawn = yield* drawnOver([
         {
           id: 'cold.righteous',
-          beat: 'cold',
-          at: 'righteous',
+          beat: COLD,
+          at: RIGHTEOUS,
           tries: [],
           text: { _tag: 'Card', payoff: 'righteous' },
         },
       ]);
-      expect(drawn).toEqual(['cold.room.1.png']);
+      expect(drawn).toEqual([Segment.make('cold.room.1.png')]);
     }),
   );
   it.effect(
@@ -275,21 +283,25 @@ describe("a beat's panels to draw", () => {
       Effect.gen(function* () {
         const tried = (n: number, made: 'generate' | 'import' | 'tweak') => ({
           n,
-          file: `t${n}.png`,
+          file: Segment.make(`t${n}.png`),
           sha256: 's',
           made,
           refs: [],
           at: 'x',
         });
         const begun = yield* drawnOver(
-          [{ id: 'cold.room', beat: 'cold', at: 'room', tries: [tried(1, 'generate')] }],
+          [{ id: 'cold.room', beat: COLD, at: ROOM, tries: [tried(1, 'generate')] }],
           2,
         );
-        expect(begun).toEqual(['cold.room.2.png', 'cold.righteous.1.png', 'cold.righteous.2.png']);
+        expect(begun).toEqual([
+          Segment.make('cold.room.2.png'),
+          Segment.make('cold.righteous.1.png'),
+          Segment.make('cold.righteous.2.png'),
+        ]);
         const settled = yield* drawnOver(
           [
-            { id: 'cold.room', beat: 'cold', at: 'room', tries: [tried(1, 'generate')], kept: 1 },
-            { id: 'cold.righteous', beat: 'cold', at: 'righteous', tries: [tried(1, 'tweak')] },
+            { id: 'cold.room', beat: COLD, at: ROOM, tries: [tried(1, 'generate')], kept: 1 },
+            { id: 'cold.righteous', beat: COLD, at: RIGHTEOUS, tries: [tried(1, 'tweak')] },
           ],
           2,
         );
@@ -327,8 +339,8 @@ describe('two runs at once', () => {
       expect(
         (yield* store.read(film)).panels.flatMap((p) => p.tries.map((t) => [t.n, t.file])),
       ).toEqual([
-        [1, 'title.start.1.png'],
-        [2, 'title.start.2.png'],
+        [1, Segment.make('title.start.1.png')],
+        [2, Segment.make('title.start.2.png')],
       ]);
       expect(yield* store.problems(film)).toEqual([]);
     }).pipe(Effect.provide(boardOver(files, [])));
@@ -369,16 +381,21 @@ describe('the scene prompt', () => {
   test('reads a mark as at most six words, up to the next mark, and a mark the line lacks as its name', () => {
     expect(prompt).toContain('A court («court. The»)');
     const lacking = {
-      id: 'x',
+      id: BoardName.make('x'),
       say: Option.some('Nothing marked.'),
       picture: Option.some('on `nope`'),
     };
-    expect(promptOf(lacking, { from: 'x', name: 'x' })).toContain('on nope');
+    expect(promptOf(lacking, { from: 'x', name: ActName.make('x') })).toContain('on nope');
   });
   test("says an act's light from its measures", () => {
-    const lit = { id: 'a', say: Option.none(), picture: Option.some('A field.') };
+    const lit = { id: BoardName.make('a'), say: Option.none(), picture: Option.some('A field.') };
     expect(
-      promptOf(lit, { from: 'a', name: 'b', luma: [160, 170], saturation: [0.3, 0.4] }),
+      promptOf(lit, {
+        from: 'a',
+        name: ActName.make('b'),
+        luma: [160, 170],
+        saturation: [0.3, 0.4],
+      }),
     ).toContain('a bright, high-key frame, with rich, warm colour');
   });
 });

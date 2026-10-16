@@ -19,9 +19,11 @@
 
 import { Array as Arr, Match, Option, Schema } from 'effect';
 import { Address, addressKey, sceneAddress } from './address.ts';
+import { ActName } from './address-schema.ts';
 import type { Say } from './api.ts';
 import { PointId, type PointRef, pointIdOf } from './point.ts';
 import { maybe } from './schema.ts';
+import { Segment } from './segment.ts';
 import { FilmPiece } from './shorts.ts';
 
 /**
@@ -39,7 +41,8 @@ export type Stamp = typeof Stamp.Type;
  * A variant's name: it names the render's files, so lower case, digits, `.`,
  * `_` and `-`, starting with a letter or digit (`main`, `ink-2`, `lab-7`).
  */
-export const RenderVariantName = Schema.String.check(Schema.isPattern(/^[a-z0-9][a-z0-9._-]*$/));
+export const RenderVariantName = Segment.check(Schema.isPattern(/^[a-z0-9][a-z0-9._-]*$/));
+export type RenderVariantName = typeof RenderVariantName.Type;
 
 /** What a render made: a video (with its captions), stills, a contact sheet or a look-book. */
 export const RenderKind = Schema.Literals(['video', 'stills', 'contact', 'lookbook']);
@@ -157,7 +160,7 @@ export const emptyCatalogue = (film: string): Catalogue => ({
 });
 
 /** The render a variant plays when none is named. */
-export const MAIN_VARIANT = 'main';
+export const MAIN_VARIANT = RenderVariantName.make('main');
 
 /** The address, variant and kind that name one render's place in the catalogue. */
 interface Slot {
@@ -548,7 +551,7 @@ export type ProjectScene = typeof ProjectScene.Type;
  * have now, and what was said of it. Its approval is its scenes'.
  */
 export const ProjectAct = Schema.Struct({
-  name: Schema.String,
+  name: ActName,
   scenes: Schema.Array(Schema.String),
   key: Schema.String,
   comments: Schema.Array(SaidComment),
@@ -640,7 +643,7 @@ export interface SceneKey {
 
 /** An act of the film: its scenes, with the key its sources have now. */
 export interface ActKey {
-  readonly act: string;
+  readonly act: ActName;
   readonly scenes: ReadonlyArray<string>;
   readonly key: string;
 }

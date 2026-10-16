@@ -427,7 +427,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           return yield* collectWithin(
             spawner,
             name,
-            ChildProcess.make(program, [...prefix, ...args]),
+            ChildProcess.make(program, [...prefix, ...args], { forceKillAfter: '5 seconds' }),
             limit,
           ).pipe(
             Effect.mapError((error) =>

@@ -70,14 +70,31 @@
 //
 // What a sentence claims about the code stays with the sweep's reading.
 
-import { BunServices } from '@effect/platform-bun';
+import { BunFileSystem, BunPath, BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
+import { Effect, FileSystem, Layer, Option, Path, Predicate, Schema } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { JSONC, TOML } from 'bun';
 import { type Node, type Program, Visitor, parseSync } from 'oxc-parser';
 import { LabHttpApi } from './core/api.ts';
 import { declares as declaresRoute, routesOf } from './core/testing.ts';
+import {
+  ANOTHER_REPO,
+  type Anchor,
+  DESIGN_LANGUAGE,
+  type Doc,
+  type DocPlace,
+  FILM_SRC,
+  type Line,
+  type Markdown,
+  anchorsIn,
+  docPlaces,
+  firstGroup,
+  group,
+  markdownOf,
+  matches,
+  readDoc,
+} from './fixtures/doc-anchors.ts';
 
 /** What the docs are read against. */
 interface Code {
@@ -119,33 +136,12 @@ interface Code {
   readonly written: ReadonlySet<string>;
 }
 
-interface Doc {
-  readonly path: string;
-  readonly text: string;
-  /** Where a relative path in it is read from, first match wins; `''` is the repo's root. */
-  readonly bases: ReadonlyArray<string>;
-  /**
-   * Every path it writes is under its bases, so a first directory under none
-   * of them is a mistyped path; a doc that writes a film's own paths
-   * (`narration/full.wav`, `scenes/index.ts`) is not whole.
-   */
-  readonly whole: boolean;
-}
-
-const matches = (text: string, pattern: RegExp): ReadonlyArray<RegExpExecArray> =>
-  Array.from(text.matchAll(pattern));
-
-const firstGroup = (m: RegExpExecArray) => Option.getOrElse(Option.fromUndefinedOr(m[1]), () => '');
-
 /** `/api/films/<film>/choices/mix?point=&variant=` as declared: `/api/films/:film/choices/mix`; a `<ref>` is the rest of the path. */
 const declaredPath = (written: string) =>
   written
     .replace(/\[?\?.*$/, '')
     .replaceAll('<ref>', '*')
     .replace(/<(\w+)>/g, ':$1');
-
-const group = (m: RegExpExecArray, n: number) =>
-  Option.getOrElse(Option.fromUndefinedOr(m[n]), () => '');
 
 /** The path a span writes, read against the path before it: `…/say` below it, `/redo` beside it. */
 const pathAfter = (before: string, written: string) => {
@@ -283,109 +279,6 @@ const scriptDrift = (markdown: Markdown, code: Code) =>
     )
     .map((run) => `bun run ${run.script}: no such script`);
 
-/**
- * A path a doc writes in backticks, read from one of the doc's bases, and the
- * symbols written after it (`lab/page-shell.tsx` `partHref`, `Review.read`).
- */
-interface Anchor {
-  readonly written: string;
-  /** The path without a `:line`, a trailing `/` or a call's `(…)`. */
-  readonly path: string;
-  /** Written as `path:line`, which a moved line breaks without a sound. */
-  readonly line: boolean;
-  /** A receipt that names the tree as it was: `… at \`<commit>\`` or `… deleted`. */
-  readonly receipt: boolean;
-  readonly symbols: ReadonlyArray<string>;
-  /** A markdown link's target (`[CRAFT](../CRAFT.md#5)`), read from the doc's own directory as a reader's viewer reads it. */
-  readonly link: boolean;
-}
-
-/**
- * A table row about another repo, its first cell the repo's slug
- * (`cgwire/kitsu`; a `film/<rule>` is a rule): its paths are that repo's.
- */
-const ANOTHER_REPO = /^\| `(?!film\/)[\w-]+\/[\w.-]+` +\|/;
-
-/** A line of a doc as its viewer shows it: prose (a paragraph's, a heading's, a list item's, a table row's), or a code block's. */
-interface Line {
-  readonly text: string;
-  readonly code: boolean;
-}
-
-/** A doc as the Markdown parser reads it: its lines, and the target of each link and image in its prose. */
-interface Markdown {
-  readonly lines: ReadonlyArray<Line>;
-  readonly links: ReadonlyArray<string>;
-}
-
-/** What starts a code block's line in the parser's output. */
-const CODE = '\u0000';
-
-/** A code span as the parser's output writes it: in a run of backticks longer than any it holds (`` `xs[0](y)` ``, ``` `` a`b `` ```). */
-const spanOf = (text: string) => {
-  const fence = '`'.repeat(Math.max(0, ...matches(text, /`+/g).map((m) => m[0].length)) + 1);
-  // A span that starts or ends with a backtick is written with a space inside its run.
-  const pad = ' '.repeat(Number(text.startsWith('`') || text.endsWith('`')));
-  return `${fence}${pad}${text}${pad}${fence}`;
-};
-
-/** A block of the parser's output: on lines of its own. */
-const block = (children: string) => `\n${children}\n`;
-
-/**
- * A doc as GitHub reads it, through Bun's CommonMark and GFM parser
- * (`Bun.markdown`): each block on lines of its own, the marks of its
- * containers (a quote's `>`, a list item's `-` or `1)`) left out, so a code
- * block in a list or a quote is code too; a code block's lines marked as
- * code (a fence's length, its character and its info string are the
- * parser's); a code span written in backticks; a table's row as
- * `| cell | cell |`; a link's or an image's text in its line (left out of
- * a link to a URL when `linkText` is `'local'`), and its target kept. An
- * HTML block (a comment, `<details>`) is a line of prose, as written.
- */
-const markdownOf = (text: string, linkText: 'all' | 'local' = 'all'): Markdown => {
-  const links: Array<string> = [];
-  const shown = (children: string, target: string) => {
-    if (linkText === 'local' && URL_TARGET.test(target)) return '';
-    return children;
-  };
-  const out = Bun.markdown.render(text, {
-    heading: block,
-    paragraph: block,
-    listItem: block,
-    table: block,
-    html: block,
-    hr: block,
-    tr: (cells) => `\n|${cells}\n`,
-    th: (cell) => ` ${cell} |`,
-    td: (cell) => ` ${cell} |`,
-    code: (lines) =>
-      block(
-        lines
-          .replace(/\n$/, '')
-          .split('\n')
-          .map((line) => `${CODE}${line}`)
-          .join('\n'),
-      ),
-    codespan: spanOf,
-    link: (children, { href }) => {
-      links.push(href);
-      return shown(children, href);
-    },
-    image: (children, { src }) => {
-      links.push(src);
-      return shown(children, src);
-    },
-  });
-  return {
-    lines: out
-      .split('\n')
-      .filter((line) => line.trim() !== '')
-      .map((line) => ({ text: line.replace(CODE, ''), code: line.startsWith(CODE) })),
-    links,
-  };
-};
-
 /** A doc's prose: the lines of its paragraphs, headings, list items and table rows, each code span in backticks. */
 const proseOf = (markdown: Markdown) =>
   markdown.lines
@@ -395,68 +288,6 @@ const proseOf = (markdown: Markdown) =>
 
 /** A code span in a line of prose (`spanOf`): its text. */
 const SPAN = /(`+) ?(.*?) ?\1/g;
-
-/** A link's target that is a URL (`https://…`, `mailto:…`): another site's, never a file of this tree. */
-const URL_TARGET = /^[a-z][\w+.-]*:/i;
-
-/**
- * Each relative link a doc writes (`[x](reference/vision.md#part)`, an
- * image's source, a reference's target), its target without the part: a
- * link the parser reads in its prose, never code that looks like one
- * (`handlers[i](event)`) in a span or a code block. A URL, a link within the
- * doc (`#part`) and a site's path (`/…`) name no file of this tree.
- */
-const linksIn = (doc: Doc): ReadonlyArray<Anchor> =>
-  markdownOf(doc.text)
-    .links.map((target) => target.replace(/[#?].*$/, ''))
-    .filter((target) => target !== '' && !URL_TARGET.test(target) && !target.startsWith('/'))
-    .map((target) => ({
-      written: target,
-      path: target.replace(/\/$/, ''),
-      line: false,
-      receipt: false,
-      symbols: [],
-      link: true,
-    }));
-
-/**
- * Each path a doc writes in backticks, with the symbols after it: `path`
- * `A`, `B`; in its prose's code spans and in its code blocks' lines alike (a
- * fenced template an agent pastes names the tree as surely as a sentence).
- */
-const spannedIn = (doc: Doc): ReadonlyArray<Anchor> =>
-  markdownOf(doc.text)
-    .lines.map((line) => line.text)
-    .filter((line) => !ANOTHER_REPO.test(line))
-    .flatMap((line) =>
-      matches(
-        line,
-        /`([\w@-][\w.@-]*\/[^`\s]*)`((?:\s+`[^`\n]+`(?:,\s+`[^`\n]+`)*)?)(\s+(?:at\s+`[0-9a-f]{7,40}`|deleted\b))?/g,
-      ).flatMap((m) => {
-        const written = firstGroup(m);
-        if (/[<*{…]/.test(written)) return [];
-        const path = written.replace(/:[\d,-]+$/, '').replace(/\/$/, '');
-        return [
-          {
-            written,
-            path,
-            line: path !== written.replace(/\/$/, ''),
-            receipt: group(m, 3) !== '',
-            // A directory's list (`tools/` `lab*.ts`, `api-server.ts`) names files, not symbols.
-            symbols: matches(group(m, 2), /`([^`]+)`/g)
-              .map(firstGroup)
-              .filter(
-                (symbol) =>
-                  /\.\w+$/.test(path) && /^(?:'[\w-]+'|[A-Za-z_$][\w$.]*(?:\(.*\))?)$/.test(symbol),
-              ),
-            link: false,
-          },
-        ];
-      }),
-    );
-
-/** Each path a doc writes, in backticks with the symbols after it, or as a link's target. */
-const anchorsIn = (doc: Doc): ReadonlyArray<Anchor> => [...spannedIn(doc), ...linksIn(doc)];
 
 /** An anchor as the tree has it: the file it names under the doc's bases, and that file's text. */
 interface Found {
@@ -962,10 +793,65 @@ const wordsOf = (file: string, text: string): ReadonlyArray<string> => {
 };
 
 /**
+ * Where `writtenIn` keeps the names each file writes between runs, from the
+ * repo's root: under the film package's installed packages, never in the tree.
+ */
+const WRITTEN_CACHE = 'packages/film/node_modules/.cache/film-docs/written.json';
+
+/** How many of the tree's entries `writtenIn` stats or reads at once: the file system's waits overlap. */
+const WALK = 32;
+
+/**
+ * The names each file wrote when last read, by its path and the hash of its
+ * text, and the hash of what read them (`reader`): this file's text and the
+ * lock, so a change to how names are read reads every file anew.
+ */
+const WrittenCache = Schema.fromJsonString(
+  Schema.Struct({
+    reader: Schema.String,
+    files: Schema.Record(
+      Schema.String,
+      Schema.Struct({ hash: Schema.String, words: Schema.Array(Schema.String) }),
+    ),
+  }),
+);
+
+/** The names kept at `cache` by the same `reader`; none when there are none, they do not decode, or another reader kept them. */
+const keptWords = (cache: string, reader: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const held = yield* Effect.option(
+      Effect.flatMap(fs.readFileString(cache), Schema.decodeUnknownEffect(WrittenCache)),
+    );
+    return new Map(
+      Option.match(
+        Option.filter(held, (h) => h.reader === reader),
+        {
+          onNone: () => [],
+          onSome: (h) => Object.entries(h.files),
+        },
+      ),
+    );
+  });
+
+/** Keep `written` at `cache`, whole or not at all: written beside it, then moved over it. */
+const keepWords = (cache: string, written: typeof WrittenCache.Type) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    yield* fs.makeDirectory(path.dirname(cache), { recursive: true });
+    const beside = `${cache}.${process.pid}`;
+    yield* fs.writeFileString(beside, yield* Schema.encodeEffect(WrittenCache)(written));
+    yield* fs.rename(beside, cache);
+  });
+
+/**
  * The names the repo's code writes (`Code.written`, `wordsOf`): the root's
  * own code and config, and each workspace's config and the code of its
  * tree, past installed packages and the directories the root's
- * `.gitignore` names.
+ * `.gitignore` names. Each file's names are kept between runs
+ * (`WRITTEN_CACHE`) by the hash of its text, so a file read before and
+ * unchanged since is not parsed again.
  */
 const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
   root: string,
@@ -1001,6 +887,7 @@ const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
                 () => Effect.succeed([]),
               ),
             ),
+          { concurrency: WALK },
         ),
         (each) => each.flat(),
       ),
@@ -1009,10 +896,38 @@ const writtenIn = Effect.fn('test.docs.writtenIn')(function* (
     ...(yield* filesIn('', true, false)),
     ...(yield* Effect.forEach(workspaces, (dir) => filesIn(dir, true, true))).flat(),
   ];
-  const words = yield* Effect.forEach(files, (file) =>
-    Effect.map(fs.readFileString(path.join(root, file)), (text) => wordsOf(file, text)),
+  const cache = path.join(root, WRITTEN_CACHE);
+  // How names are read: this file's text, the anchors it matches
+  // (fixtures/doc-anchors.ts), the lock (oxc-parser's version) and the Bun
+  // that runs it (its JSONC and TOML parsers).
+  const reader = Bun.hash(
+    [
+      yield* fs.readFileString(import.meta.path),
+      yield* fs.readFileString(path.join(import.meta.dir, 'fixtures/doc-anchors.ts')),
+      yield* fs.readFileString(path.join(root, 'bun.lock')),
+      Bun.version,
+    ].join('\u0000'),
+  ).toString(36);
+  const kept = yield* keptWords(cache, reader);
+  const read = yield* Effect.forEach(
+    files,
+    (file) =>
+      Effect.map(fs.readFileString(path.join(root, file)), (text) => {
+        const hash = Bun.hash(text).toString(36);
+        return Option.getOrElse(
+          Option.filter(Option.fromUndefinedOr(kept.get(file)), (held) => held.hash === hash),
+          () => ({ hash, words: [...new Set(wordsOf(file, text))] }),
+        );
+      }),
+    { concurrency: WALK },
   );
-  return new Set(words.flat());
+  const fresh = read.some((each, i) => kept.get(files[i] ?? '') !== each);
+  if (fresh || kept.size !== files.length)
+    yield* keepWords(cache, {
+      reader,
+      files: Object.fromEntries(files.map((file, i) => [file, read[i] ?? { hash: '', words: [] }])),
+    });
+  return new Set(read.flatMap((each) => each.words));
 });
 
 /** The repo's code as the docs name it. */
@@ -1090,73 +1005,26 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
   } satisfies Code;
 });
 
-const FILM_SRC = 'packages/film/src';
-const DESIGN_LANGUAGE = 'design-language/design-language.md';
-
-/** The docs that teach the framework, read in full against the code. */
-const readDocs = Effect.fn('test.docs.readDocs')(function* (root: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const skills = yield* Effect.forEach(
-    ['.claude/skills/film', '.claude/skills/film-architecture-loop'],
-    (dir) =>
-      Effect.map(fs.readDirectory(path.join(root, dir), { recursive: true }), (files) =>
-        files.filter((f) => f.endsWith('.md')).map((f) => [`${dir}/${f}`, ['', FILM_SRC]] as const),
-      ),
-  );
-  return yield* readEach(
-    root,
-    [['packages/film/README.md', ['', 'packages/film', FILM_SRC]], ...skills.flat()],
-    false,
-  );
-});
-
-/** The docs that name the code in passing: their routes and anchors are read. */
-const SPANNED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
-  ['NORTH_STAR.md', ['', FILM_SRC]],
-  ['PRIOR_ARTS.md', ['', FILM_SRC]],
-  ['apps/animations/README.md', ['', 'apps/animations', 'apps/animations/src', FILM_SRC]],
-];
-
 /**
- * The docs read for their anchors alone: they teach another package, or the
- * studio's look. Each is whole: every path it writes is under its bases.
+ * Each file a doc's anchors name, parsed once for every doc's test: the text
+ * it was parsed from beside it, so a file read again with other text is
+ * parsed again.
  */
-const ANCHORED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
-  ['CLAUDE.md', ['', 'packages/core']],
-  ['packages/ui/README.md', ['', 'packages/ui']],
-  ['packages/url-state/README.md', ['', 'packages/url-state']],
-  ['packages/atom-solid/README.md', ['', 'packages/atom-solid']],
-  ['apps/egw-search/README.md', ['', 'apps/egw-search']],
-  [DESIGN_LANGUAGE, ['', FILM_SRC]],
-];
+const parsed = new Map<string, { readonly text: string; readonly source: Source }>();
 
-const readEach = Effect.fn('test.docs.readEach')(function* (
-  root: string,
-  docs: ReadonlyArray<readonly [string, ReadonlyArray<string>]>,
-  whole: boolean,
-) {
-  const fs = yield* FileSystem.FileSystem;
-  return yield* Effect.forEach(docs, ([file, bases]) =>
-    Effect.map(fs.readFileString(`${root}/${file}`), (text): Doc => ({
-      path: file,
-      text,
-      bases,
-      whole,
-    })),
-  );
-});
+const sourceAt = (file: string, text: string) =>
+  Option.getOrElse(
+    Option.filter(Option.fromUndefinedOr(parsed.get(file)), (held) => held.text === text),
+    () => {
+      const held = { text, source: sourceOf(text, file) };
+      parsed.set(file, held);
+      return held;
+    },
+  ).source;
 
-/** What each doc's anchors name that the tree lacks, one line each: each file they name parsed once. */
-const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) => {
-  const sources = new Map<string, Source>();
-  const sourceAt = (file: string, text: string) =>
-    Option.getOrElse(Option.fromUndefinedOr(sources.get(file)), () => {
-      const source = sourceOf(text, file);
-      sources.set(file, source);
-      return source;
-    });
-  return Effect.map(
+/** What each doc's anchors name that the tree lacks, one line each: each file they name parsed once (`parsed`). */
+const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) =>
+  Effect.map(
     Effect.forEach(docs, (doc) =>
       Effect.map(findAnchors(root, doc), (found) =>
         anchorDrift(found, sourceAt).map((what) => `${doc.path}: ${what}`),
@@ -1164,9 +1032,11 @@ const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) => {
     ),
     (each) => each.flat(),
   );
-};
 
 const ROOT = Effect.map(Path.Path, (path) => path.join(import.meta.dir, '..', '..', '..'));
+
+/** Every doc the test reads, listed as the file loads: a test each. */
+const PLACES = docPlaces(`${import.meta.dir}/../../..`);
 
 // The repo's code is read once, begun as the file loads: two tests check docs
 // against it, and a read walks every workspace's tree.
@@ -1431,25 +1301,25 @@ describe('the docs', () => {
       }),
   );
 
+  it.effect('read every doc the framework, the runbook and the packages keep', () =>
+    Effect.sync(() => {
+      expect(PLACES.filter((place) => place.role === 'framework').length).toBeGreaterThan(10);
+      expect(PLACES.filter((place) => place.role !== 'framework').length).toBe(9);
+    }),
+  );
+
   it.effect.layer(BunServices.layer)(
-    'name only routes, rules, scripts, paths, symbols, flags and findings the code has',
+    'document every declared route, and turn every registered rule on',
     () =>
       Effect.gen(function* () {
         const root = yield* ROOT;
-        const [code, docs, spanned, anchored] = yield* Effect.all([
+        const [code, docs] = yield* Effect.all([
           repoCode,
-          readDocs(root),
-          readEach(root, SPANNED, false),
-          readEach(root, ANCHORED, true),
-        ]);
-        expect(docs.flatMap((doc) => drift(doc, code))).toEqual([]);
-        // The owner's runbook, the prior arts and the app's README name routes too.
-        expect(
-          spanned.flatMap((doc) =>
-            spanDrift(markdownOf(doc.text), code).map((what) => `${doc.path}: ${what}`),
+          Effect.forEach(
+            PLACES.filter((place) => place.role === 'framework'),
+            (place) => readDoc(root, place),
           ),
-        ).toEqual([]);
-        expect(yield* anchorsDrift(root, [...docs, ...spanned, ...anchored])).toEqual([]);
+        ]);
         expect(undocumented(docs, code)).toEqual([]);
         // Each registered rule is on for the paths it guards.
         expect(Array.from(code.registered).filter((rule) => !code.enabled.has(rule))).toEqual([]);
@@ -1805,6 +1675,41 @@ describe('the docs', () => {
   );
 
   it.effect.layer(BunServices.layer)(
+    'keep the names of a file read before and unchanged since, and read a changed file anew',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: 'docs-written-' });
+        const write = (file: string, text: string) =>
+          fs.writeFileString(path.join(root, file), text);
+        yield* write('.gitignore', '');
+        yield* write('bun.lock', '{}');
+        yield* write('kept.ts', 'export const keptName = 1;\n');
+        yield* write('changed.ts', 'export const nameBefore = 1;\n');
+        expect([...(yield* writtenIn(root, []))]).toEqual(
+          expect.arrayContaining(['keptName', 'nameBefore']),
+        );
+        // A name kept for kept.ts, its text unchanged: read from what was kept, never parsed.
+        const cache = path.join(root, WRITTEN_CACHE);
+        const held = yield* Effect.flatMap(
+          fs.readFileString(cache),
+          Schema.decodeUnknownEffect(WrittenCache),
+        );
+        const kept = held.files['kept.ts'] ?? { hash: '', words: [] };
+        yield* keepWords(cache, {
+          ...held,
+          files: { ...held.files, 'kept.ts': { ...kept, words: ['plantedName'] } },
+        });
+        yield* write('changed.ts', 'export const nameAfter = 1;\n');
+        const again = [...(yield* writtenIn(root, []))];
+        expect(again).toEqual(expect.arrayContaining(['plantedName', 'nameAfter']));
+        expect(again).not.toContain('nameBefore');
+        expect(again).not.toContain('keptName');
+      }).pipe(Effect.scoped),
+  );
+
+  it.effect.layer(BunServices.layer)(
     "show the design language's tokens as the player's sheet declares them",
     () =>
       Effect.gen(function* () {
@@ -1818,4 +1723,40 @@ describe('the docs', () => {
         expect(tokenBlock(doc).length).toBeGreaterThan(0);
       }),
   );
+});
+
+/**
+ * What a doc names that the code lacks, beyond its anchors, by its role: a
+ * framework doc's every name (`drift`), a passing doc's routes and spans
+ * (the owner's runbook, the prior arts and the app's README name routes
+ * too), an anchored doc's none.
+ */
+const NAMES_DRIFT: Record<DocPlace['role'], (doc: Doc, code: Code) => ReadonlyArray<string>> = {
+  framework: drift,
+  spanned: (doc, code) =>
+    spanDrift(markdownOf(doc.text), code).map((what) => `${doc.path}: ${what}`),
+  anchored: () => [],
+};
+
+// A test each doc, run together: the code is read once (`repoCode`) and each
+// file an anchor names is parsed once (`parsed`), whichever doc reads it first.
+// A doc's test reads files alone: the whole platform (its stdio's listeners on
+// stdin) built for each of the docs at once would be built and held for each.
+const DOC_SERVICES = Layer.merge(BunFileSystem.layer, BunPath.layer);
+
+describe.concurrent('each doc', () => {
+  for (const place of PLACES) {
+    it.effect.layer(DOC_SERVICES)(
+      `${place.path}: name only routes, rules, scripts, paths, symbols, flags and findings the code has`,
+      () =>
+        Effect.gen(function* () {
+          const root = yield* ROOT;
+          const [code, doc] = yield* Effect.all([repoCode, readDoc(root, place)]);
+          expect([
+            ...NAMES_DRIFT[place.role](doc, code),
+            ...(yield* anchorsDrift(root, [doc])),
+          ]).toEqual([]);
+        }),
+    );
+  }
 });

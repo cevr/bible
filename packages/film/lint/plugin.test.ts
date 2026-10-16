@@ -12,7 +12,7 @@ import { Effect, FileSystem, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import plugin from './plugin.ts';
 
-/** The timeout of a test here that spawns (oxlint): a cold start's time is the machine's (film/spawn-budget). */
+/** The timeout of a test here that spawns (oxlint): a cold start's time is the machine's (effect/requireSpawnBudget). */
 const SPAWNS_MS = 30_000;
 
 const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
@@ -50,14 +50,16 @@ const marked = (file: string, source: string): ReadonlyArray<string> =>
 
 /** Corrective advice users receive for each rule, including the two timing repairs. */
 const MESSAGES = {
+  'no-history-comment.ts:4 film/no-history-comment':
+    'a pass number in a comment tells history: say what the code does today and why; how it got here lives in the ledger and git log.',
+  'no-history-comment.ts:21 film/no-history-comment':
+    'a ledger id in a comment tells history: say what the code does today and why; how it got here lives in the ledger and git log.',
   'no-unprobed-ink.ts:11 film/no-unprobed-ink':
     "ctx.stroke bypasses the probe, so film check cannot see it cross text. Draw it with the kit's stroke/write, or wrap it in the kit's unprobed(ctx, () => …) to say it is texture.",
   'span-ends-on-anchor.ts:10 film/span-ends-on-anchor':
     'a span that ends on its anchor writes its length twice (offset: -d, dur: d): drop the offset and add `ends: true`, so a dur edit keeps the landing.',
   'span-ends-on-anchor.ts:19 film/span-ends-on-anchor':
     "a part that ends on its parent's end only because its offset and dur add up to the parent's dur: write `{ after: parent, dur, ends: true }` (keeps its length) or `{ with: parent, until: { cue: parent } }` (keeps its start), so a drag of the parent carries it.",
-  'no-point-free-log.ts:10 film/no-point-free-log':
-    'Console.log passed point-free: it is variadic, and this call passes the index too, which it prints after each line. Write (line) => Console.log(line).',
   'no-ease-on-cue.ts:15 film/no-ease-on-cue':
     "a cue's progress eased a second time: f.at(cue) is already eased by the span's `ease`, which the lab sets. A camera push is a shotPath stop with pushInto; another curve is its own cue or f.keys.",
   'no-ease-on-cue.ts:20 film/no-cue-remap':
@@ -70,8 +72,6 @@ const MESSAGES = {
     "a scope made by hand in a browser test: a step that fails before it is closed keeps its page open, and the process's next touching case dies. Open the page in the case's scope, or in Scope.fork(yield* Effect.scope) to close it early.",
   'touches-serial.ts:17 film/touches-serial':
     "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case alone: test.serial, or a runner's .serial form (it.live.serial).",
-  'spawn-budget.ts:15 film/spawn-budget':
-    "this test spawns a process and has no timeout: a cold start's time is the machine's, so give it its budget in milliseconds as the last argument.",
   'no-test-seam.ts:3 film/no-test-seam':
     "a test seam imported by product code: a testing.ts module holds a package's test-only doubles and fixtures, so a shipped import never reaches one. Move what this file needs out of the seam, into the module it belongs to.",
   'no-read-once.ts:23 film/no-read-once':
@@ -106,8 +106,6 @@ const MESSAGES = {
     'a JSX handler hears keydown on its own: declare a command with its keys (packages/film/src/command/command.ts), registered with the page hub.',
   'keys-through-keymap.tsx:18 film/keys-through-keymap':
     'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
-  'no-host-alias.ts:6 film/no-host-alias':
-    'a host global held under a name of the page\'s own: the host bans read it only under its name, so reach it as itself, or through its adapter (packages/film/README.md, "The purity rule": The host).',
   'focus-through-focus-for.ts:10 film/focus-through-focus-for':
     'a focus moved from script past focusFor: call focusFor(el, input) (packages/film/src/lab/focus.ts) with the input that asked, so the ring shows iff a key did.',
   'booleans-through-pressed.tsx:28 film/booleans-through-pressed':
@@ -118,12 +116,12 @@ const MESSAGES = {
     'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, offTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.',
   'lock-through-sqlite.ts:11 film/lock-through-sqlite':
     "a manifest's lock file named outside its lock: SQLite alone opens it (packages/film/src/tools/manifest-lock-bun.ts), since closing any other handle on it lets go of the process's lock.",
+  'media-through-player.tsx:7 film/media-through-player':
+    "a media element made by hand: play sound and pictures through the player's media module (packages/film/src/browser/media.ts), which owns what an element does a page cannot see.",
   'one-breakpoint.ts:8 film/one-breakpoint':
     "a breakpoint written out: ask the studio's one breakpoint through PHONE or WIDE (packages/film/src/lab/viewport.ts), so the width is declared once.",
   'framing-is-a-knob.ts:10 film/framing-is-a-knob':
     'a framing written in the scene: make it knobs (a point and a zoom, read with knobCamera), a move between framings a shotPath of them, and a push that keeps going pushOn with a number knob, so the lab can reach it.',
-  'no-history-comment.ts:4 film/no-history-comment':
-    'a pass number in a comment tells history: say what the code does today and why; how it got here lives in the ledger and git log.',
   'no-hand-timed-seconds.ts:23 film/no-hand-timed-seconds':
     "an offset over 1 s from its mark or scene landmark: a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.",
   'no-hand-timed-seconds.ts:34 film/no-hand-timed-seconds':
@@ -139,7 +137,10 @@ const lintFixtures = Effect.fn('test.lintFixtures')(function* () {
   return yield* Effect.scoped(
     Effect.gen(function* () {
       const handle = yield* spawner.spawn(
-        ChildProcess.make(oxlint, ['-c', 'oxlint.json', '--format', 'unix', '.'], { cwd }),
+        ChildProcess.make(oxlint, ['-c', 'oxlint.json', '--format', 'unix', '.'], {
+          cwd,
+          forceKillAfter: '5 seconds',
+        }),
       );
       const [stdout, stderr, exitCode] = yield* Effect.all(
         [text(handle.stdout), text(handle.stderr), handle.exitCode],

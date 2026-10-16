@@ -55,6 +55,7 @@ const run = Effect.gen(function* () {
       stdin: 'inherit',
       stdout: 'inherit',
       stderr: 'inherit',
+      forceKillAfter: '5 seconds',
     }),
   );
   const exitCode = yield* child.exitCode;

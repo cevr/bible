@@ -36,7 +36,11 @@ const run = (
     Effect.gen(function* () {
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
       const handle = yield* spawner.spawn(
-        ChildProcess.make(command, args, { cwd, ...(env && { env, extendEnv: false }) }),
+        ChildProcess.make(command, args, {
+          cwd,
+          forceKillAfter: '5 seconds',
+          ...(env && { env, extendEnv: false }),
+        }),
       );
       const [stdout, stderr, code] = yield* Effect.all(
         [

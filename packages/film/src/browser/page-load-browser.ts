@@ -9,11 +9,11 @@ import { PageLoad } from './page-load.ts';
 export const pageLoadLayer: Layer.Layer<PageLoad> = Layer.succeed(
   PageLoad,
   PageLoad.of({
-    // oxlint-disable-next-line no-restricted-globals -- PageLoad's live adapter: a load of the page anew
+    // oxlint-disable-next-line effect/noGlobals -- PageLoad's live adapter: a load of the page anew
     reload: Effect.sync(() => location.reload()),
     open: (href) =>
       Effect.sync(() => {
-        // oxlint-disable-next-line no-restricted-globals -- PageLoad's live adapter: a load of another page
+        // oxlint-disable-next-line effect/noGlobals -- PageLoad's live adapter: a load of another page
         location.assign(href);
       }),
   }),

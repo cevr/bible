@@ -66,6 +66,7 @@ export class SceneHead extends Context.Service<SceneHead, SceneHeadService>()(
           'git show',
           ChildProcess.make('git', ['show', `HEAD:./${path.basename(site.file)}`], {
             cwd: path.dirname(site.file),
+            forceKillAfter: '5 seconds',
           }),
           GIT_LIMIT,
         ).pipe(

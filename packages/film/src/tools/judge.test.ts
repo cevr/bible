@@ -23,7 +23,7 @@ import {
   Schema,
 } from 'effect';
 import { sceneAddress } from '../core/address.ts';
-import type { Render } from '../core/catalogue.ts';
+import { type Render, RenderVariantName } from '../core/catalogue.ts';
 import type { LookPost, LookTaken } from '../core/easel.ts';
 import { JudgeKeyJson, type JudgeRule } from '../core/judge.ts';
 import { RenderCatalogue } from './catalogue.ts';
@@ -329,7 +329,7 @@ describe('film judge', () => {
         yield* fs.makeDirectory(path.join(project, 'scenes', 'open'), { recursive: true });
         const render = (variant: string): Render => ({
           address: sceneAddress('open'),
-          variant,
+          variant: RenderVariantName.make(variant),
           kind: 'video',
           settings: { scale: 1, captions: false },
           stamp: { commit: Option.none(), key: `k-${variant}` },

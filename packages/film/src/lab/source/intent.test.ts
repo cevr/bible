@@ -5,10 +5,11 @@
 import { describe, expect, test } from 'bun:test';
 import { Equal, Option } from 'effect';
 import { cueOf } from '../../command/selection.ts';
+import { newestAsked } from '../../core/asked.ts';
 import { FaceIntent, intentOf } from './intent.ts';
 
 const fall = cueOf('one', 'fall');
-const asked = (seen: boolean) => Option.some({ selection: fall, seen });
+const asked = (seen: boolean) => Option.some({ selection: fall, seen, ask: newestAsked().ask() });
 const now = (o: { following: boolean; line?: number; selected?: boolean }) => ({
   selection: Option.filter(Option.some(fall), () => o.selected ?? true),
   following: o.following,
@@ -52,5 +53,27 @@ describe('the Source face’s intent', () => {
         intentOf(asked(true), now({ following: true, line: 6 })),
       ),
     ).toBe(true);
+  });
+});
+
+describe('the settle, ordered against a hand', () => {
+  test('a line landing after a hand scrolled settles nothing: the hand asked after the open, and showed first', () => {
+    const place = newestAsked();
+    const settled: Array<number> = [];
+    // The face opens before its line is known: it asks where the view stands.
+    const open = place.ask();
+    // A hand scrolls the view before the read names the line: asked and shown at once.
+    expect(place.ask().answer(() => {})).toBe(true);
+    // The read lands: the open's answer is older than the hand's, and shows nothing.
+    expect(open.answer(() => settled.push(6))).toBe(false);
+    expect(settled).toEqual([]);
+  });
+
+  test('with no hand between, the line landing settles the view', () => {
+    const place = newestAsked();
+    const settled: Array<number> = [];
+    const open = place.ask();
+    expect(open.answer(() => settled.push(6))).toBe(true);
+    expect(settled).toEqual([6]);
   });
 });

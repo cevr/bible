@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Schema } from 'effect';
 import { sceneAddress } from './address.ts';
+import { ActName } from './address-schema.ts';
 import {
   type Catalogue,
   CatalogueJson,
+  MAIN_VARIANT,
   OpId,
   type Render,
+  RenderVariantName,
   approvalState,
   approve,
   approveCurrent,
@@ -42,7 +45,7 @@ const OP_C = OpId.make('op-c');
 /** A render of scene `id`'s main variant, drawn from sources with `key`. */
 const sceneRender = (id: string, key: string, at = 1): Render => ({
   address: sceneAddress(id),
-  variant: 'main',
+  variant: MAIN_VARIANT,
   kind: 'video',
   settings: SETTINGS,
   stamp: { commit: Option.some('abc123'), key },
@@ -388,7 +391,7 @@ describe('approvals', () => {
 
   test("an approval is one variant's: another variant of the scene is not approved", () => {
     const main = sceneRender('a', 'k1');
-    const other: Render = { ...main, variant: 'ink' };
+    const other: Render = { ...main, variant: RenderVariantName.make('ink') };
     const catalogue = approve(withRenders(main, other), of(main), 1);
     expect(approvalState(catalogue, of(other))).toBe('none');
     expect(Option.isSome(renderIn(catalogue, sceneSlot('a', 'ink')))).toBe(true);
@@ -410,12 +413,13 @@ describe('comments', () => {
 
 describe("the owner's say beside a scene's render", () => {
   test("an act's comment is on the act as it is now, and earlier once its scenes change", () => {
-    const act = { _tag: 'Act', act: 'opening' } as const;
+    const OPENING = ActName.make('opening');
+    const act = { _tag: 'Act', act: OPENING } as const;
     const said = comment(emptyCatalogue('f'), partSubject(act, 'main', 'a1'), 'too slow', 4);
     const tree = (key: string): Keyed => ({
       key: 'film-k',
       sound: Option.none(),
-      acts: [{ act: 'opening', scenes: ['a'], key }],
+      acts: [{ act: OPENING, scenes: ['a'], key }],
       scenes: [{ scene: 'a', key: 'k1' }],
     });
     const now = projectOf(said, tree('a1'), 'main');
@@ -475,12 +479,13 @@ test('catalogue.json round-trips through its schema', () => {
 });
 
 describe("what a part is measured against in the project's read", () => {
+  const ONE = ActName.make('one');
   const project = projectOf(
     emptyCatalogue('f'),
     {
       key: 'film-k',
       sound: Option.some('mix-1'),
-      acts: [{ act: 'one', scenes: ['a'], key: 'act-k' }],
+      acts: [{ act: ONE, scenes: ['a'], key: 'act-k' }],
       scenes: [{ scene: 'a', key: 'k-a' }],
     },
     'main',
@@ -490,7 +495,7 @@ describe("what a part is measured against in the project's read", () => {
     expect(projectNow(project, { _tag: 'Film' })).toEqual(
       Option.some({ key: 'film-k', sound: Option.some('mix-1') }),
     );
-    expect(projectNow(project, { _tag: 'Act', act: 'one' })).toEqual(
+    expect(projectNow(project, { _tag: 'Act', act: ONE })).toEqual(
       Option.some({ key: 'act-k', sound: Option.some('mix-1') }),
     );
     expect(projectNow(project, sceneAddress('a'))).toEqual(
@@ -500,7 +505,7 @@ describe("what a part is measured against in the project's read", () => {
 
   test('a part the project does not list, or several scenes at once, is judged by none', () => {
     expect(projectNow(project, sceneAddress('zzz'))).toEqual(Option.none());
-    expect(projectNow(project, { _tag: 'Act', act: 'nope' })).toEqual(Option.none());
+    expect(projectNow(project, { _tag: 'Act', act: ActName.make('nope') })).toEqual(Option.none());
     expect(projectNow(project, { _tag: 'Scenes', ids: ['a', 'b'] })).toEqual(Option.none());
   });
 });

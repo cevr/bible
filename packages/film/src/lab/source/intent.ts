@@ -8,11 +8,16 @@
 
 import { Boolean as Bool, Data, Option } from 'effect';
 import type { LabSelection } from '../../command/selection.ts';
+import type { Ask } from '../../core/asked.ts';
 
-/** The selection a face was opened for, and whether the view has been seen following for it since. */
+/**
+ * The selection a face was opened for, whether the view has been seen following for it since, and its ask of where
+ * the view stands (`SourceContextValue.askPlace`): the settle shows only through its `answer`.
+ */
 export interface Asked {
   readonly selection: LabSelection;
   readonly seen: boolean;
+  readonly ask: Ask;
 }
 
 /** Where a face's intent stands. */

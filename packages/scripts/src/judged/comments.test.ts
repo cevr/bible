@@ -15,7 +15,7 @@ const git = (cwd: string, ...args: ReadonlyArray<string>) =>
           ChildProcess.make(
             'git',
             ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args],
-            { cwd },
+            { cwd, forceKillAfter: '5 seconds' },
           ),
         );
         const out = yield* Stream.decodeText(handle.stdout).pipe(Stream.mkString);

@@ -5,7 +5,8 @@
 // `build.ts` writes `figures.riv` from `DIRECTION`; the papercut looks
 // (`looks/papercut/`) draw the court's props from the same one. Picking
 // another option is one edit to `DIRECTION` and a rebuild, and
-// `direction.test.ts` builds and checks every option of every axis.
+// `build.test.ts` builds every option of every axis and the direction tests
+// (`direction-*.test.ts`) check each.
 //
 // `DIRECTION` is K1 (A3 + B1 + C2 + D2), the owner's pick (2026-10-13,
 // `.claude/skills/film/reference/character-design.md`).

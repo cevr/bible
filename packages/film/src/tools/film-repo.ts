@@ -58,6 +58,7 @@ import {
 import type { PlatformError } from 'effect/PlatformError';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { FilmUnknown } from '../core/refusals.ts';
+import { Segment, isSegment } from '../core/segment.ts';
 import { FilmModuleInvalid, TalkUnvoiced } from './errors.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
@@ -148,7 +149,7 @@ type LoadError = FilmUnknown | FilmModuleInvalid | StoreError;
  * of its films (`FilmRepo.named`), never a path. A route that takes a film
  * takes this, so `../` or an absolute path reaches no module.
  */
-export const FilmName = Schema.String.pipe(Schema.brand('FilmName'));
+export const FilmName = Segment.pipe(Schema.brand('FilmName'));
 export type FilmName = typeof FilmName.Type;
 
 /**
@@ -283,7 +284,7 @@ const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];
  * (`narration-route.ts`) both ask it.
  */
 export const filmMarks = (films: string, name: string): ReadonlyArray<string> => {
-  if (name === '' || name === '.' || name === '..' || name.includes('/')) return [];
+  if (!isSegment(name)) return [];
   return [`${films}/${name}/scenes/index.ts`, `${films}/${name}/talk.ts`];
 };
 

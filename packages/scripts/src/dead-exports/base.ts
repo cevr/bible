@@ -47,7 +47,9 @@ const git = (root: string, args: ReadonlyArray<string>) =>
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     return yield* Effect.scoped(
       Effect.gen(function* () {
-        const handle = yield* spawner.spawn(ChildProcess.make('git', args, { cwd: root }));
+        const handle = yield* spawner.spawn(
+          ChildProcess.make('git', args, { cwd: root, forceKillAfter: '5 seconds' }),
+        );
         const [out, code] = yield* Effect.all(
           [Stream.decodeText(handle.stdout).pipe(Stream.mkString), handle.exitCode],
           { concurrency: 'unbounded' },

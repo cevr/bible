@@ -7,14 +7,11 @@
     "film/drawing-literal": "error",
     "film/no-unprobed-ink": "error",
     "film/no-hand-timed-seconds": "error",
-    "film/no-history-comment": "error",
     "film/span-ends-on-anchor": "error",
     "film/no-ease-on-cue": "error",
     "film/no-cue-remap": "error",
     "film/framing-is-a-knob": "error",
-    "film/no-point-free-log": "error",
     "film/no-read-once": "error",
-    "film/spawn-budget": "error",
     "film/touches-serial": "error",
     "film/host-events-through-adapter": "error",
     "film/keys-through-keymap": "error",
@@ -23,18 +20,14 @@
     "film/history-through-host": "error",
     "film/one-clock-epsilon": "error",
     "film/lock-through-sqlite": "error",
+    "film/media-through-player": "error",
     "film/booleans-through-pressed": "error",
     "film/no-test-seam": "error",
     "film/focus-through-focus-for": "error",
-    "film/pages-in-case-scope": "error"
+    "film/pages-in-case-scope": "error",
+    "film/no-history-comment": "error"
   },
   "overrides": [
-    {
-      "files": ["no-host-alias.ts"],
-      "rules": {
-        "film/no-host-alias": "error"
-      }
-    },
     {
       "files": ["host-events-allowed.ts"],
       "rules": {

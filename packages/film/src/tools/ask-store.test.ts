@@ -10,13 +10,14 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Boolean as Bool, Effect, Exit, Schema } from 'effect';
 import { TestClock } from 'effect/testing';
 import { type Ask, AskState, oneQuestion } from '../core/ask.ts';
-import { type BoardFile, BoardFileJson } from '../core/board.ts';
+import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
+import { Segment } from '../core/segment.ts';
 import { AskStore } from './ask-store.ts';
 import { labInMemory, text } from './testing.ts';
 
 const tried = (n: number) => ({
   n,
-  file: `word.church.${n}.png`,
+  file: Segment.make(`word.church.${n}.png`),
   sha256: `s${n}`,
   made: 'import' as const,
   refs: [],
@@ -25,7 +26,14 @@ const tried = (n: number) => ({
 
 const board: BoardFile = {
   film: 'f',
-  panels: [{ id: 'word.church', beat: 'word', at: 'church', tries: [tried(1), tried(7)] }],
+  panels: [
+    {
+      id: 'word.church',
+      beat: BoardName.make('word'),
+      at: BoardName.make('church'),
+      tries: [tried(1), tried(7)],
+    },
+  ],
   approvals: [],
 };
 

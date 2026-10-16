@@ -368,7 +368,9 @@ describe.concurrent('Media', () => {
         const done = yield* collectWithin(
           yield* ChildProcessSpawner.ChildProcessSpawner,
           'encode-and-exit',
-          ChildProcess.make('bun', [fixture('encode-and-exit.ts')]),
+          ChildProcess.make('bun', [fixture('encode-and-exit.ts')], {
+            forceKillAfter: '5 seconds',
+          }),
           Duration.seconds(30),
         );
         expect([done.exitCode, done.stderr]).toEqual([0, '']);

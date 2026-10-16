@@ -5,5 +5,6 @@ export * from './service.js';
 export * from './storage-identity.js';
 export * from './topics-verifier.js';
 export * from './unavailable.js';
+export * from './egw-revision.js';
 export * from './egw-sync.js';
 export { layerEgwWritingsAssetSource } from './writings-egw-source.js';

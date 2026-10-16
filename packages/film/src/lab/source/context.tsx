@@ -22,6 +22,7 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
+import { type Ask, newestAsked } from '../../core/asked.ts';
 import type { NoteSource, SceneCode } from '../../core/schema.ts';
 import { LabApi, reasonOf } from '../api.ts';
 import { useEditor } from '../editor/context.tsx';
@@ -70,8 +71,16 @@ interface SourceContextValue {
   readonly following: Accessor<boolean>;
   /** Whether the view is open in Code mode (`?code=live`): the code beside the picture, the panel set aside. */
   readonly live: Accessor<boolean>;
-  /** A hand scrolled the view: it stops placing until `resume`, or until a line is held. */
+  /**
+   * A hand scrolled the view: it stops placing until `resume`, or until a line is held. The scroll is an ask of
+   * where the view stands, answered at once (`askPlace`), so a settle asked before it shows nothing.
+   */
   readonly suspend: () => void;
+  /**
+   * An ask of where the view stands (`core/asked.ts`), for what moves it once an answer lands (the face's settle
+   * on a line once a read names it): its `answer` shows nothing once a hand's scroll, asked after it, has shown.
+   */
+  readonly askPlace: () => Ask;
   /** Place the view again: follow the frame, or show the held line. */
   readonly resume: () => void;
   /**
@@ -154,6 +163,9 @@ export const Provider = (props: ParentProps) => {
 
   // A hand's scroll holds until the view is opened, shut or held anew (`?code=` changes), or taken back.
   const [suspended, setSuspended] = createSignal(false, { ownedWrite: true });
+  // Where the view stands, asked by a hand's scroll (shown at once) and by a face waiting on its line (shown when
+  // the line lands): the newest asked wins.
+  const place = newestAsked();
   createEffect(
     () => codeText(lab.code()),
     () => {
@@ -245,7 +257,8 @@ export const Provider = (props: ParentProps) => {
     placing,
     following,
     live,
-    suspend: () => setSuspended(true),
+    suspend: () => void place.ask().answer(() => setSuspended(true)),
+    askPlace: () => place.ask(),
     resume: () => setSuspended(false),
     handHas: () => askHand(),
     offerHand: (ask) => {

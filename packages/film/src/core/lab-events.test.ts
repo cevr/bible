@@ -7,13 +7,17 @@
 import { describe, expect, it } from 'bun:test';
 import { Option, Schema } from 'effect';
 import { type AskRecord, AskState } from './ask.ts';
-import type { BoardFile } from './board.ts';
+import { type BoardFile, BoardName } from './board.ts';
 import { Catalogue, emptyCatalogue } from './catalogue.ts';
 import { askChanges, boardChanges, catalogueChanges, gist, setChanges } from './lab-events.ts';
+import { Segment } from './segment.ts';
+
+const COLD = BoardName.make('cold');
+const JUDGE = BoardName.make('judge');
 
 const tried = (n: number) => ({
   n,
-  file: `cold.judge.${n}.png`,
+  file: Segment.make(`cold.judge.${n}.png`),
   sha256: `s${n}`,
   made: 'import' as const,
   refs: [],
@@ -22,7 +26,7 @@ const tried = (n: number) => ({
 
 const board = (more: Partial<BoardFile> = {}): BoardFile => ({
   film: 'f',
-  panels: [{ id: 'cold.judge', beat: 'cold', at: 'judge', tries: [tried(1)] }],
+  panels: [{ id: 'cold.judge', beat: COLD, at: JUDGE, tries: [tried(1)] }],
   approvals: [],
   ...more,
 });
@@ -31,7 +35,7 @@ describe('boardChanges', () => {
   it('says a try added, then kept with why, then the beat approved and withdrawn', () => {
     const before = board();
     const added = board({
-      panels: [{ id: 'cold.judge', beat: 'cold', at: 'judge', tries: [tried(1), tried(2)] }],
+      panels: [{ id: 'cold.judge', beat: COLD, at: JUDGE, tries: [tried(1), tried(2)] }],
     });
     expect(boardChanges(before, added).map((c) => [c.kind, c.panel, c.try, c.path])).toEqual([
       ['board.tried', 'cold.judge', 2, '/films/f/board/cold?panel=judge&try=2'],
@@ -40,8 +44,8 @@ describe('boardChanges', () => {
       panels: [
         {
           id: 'cold.judge',
-          beat: 'cold',
-          at: 'judge',
+          beat: COLD,
+          at: JUDGE,
           tries: [tried(1), tried(2)],
           kept: 2,
           why: 'calmer',
@@ -52,7 +56,7 @@ describe('boardChanges', () => {
     expect(keep).toMatchObject({ kind: 'board.kept', try: 2, text: 'calmer', beat: 'cold' });
     expect(keep?.summary).toBe('f cold.judge: try 2 kept: calmer');
     const approval = {
-      beat: 'cold',
+      beat: COLD,
       kept: [{ panel: 'cold.judge', try: 2 }],
       at: '2026-10-14T01:00:00.000Z',
     };

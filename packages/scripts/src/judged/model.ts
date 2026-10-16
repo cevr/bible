@@ -22,18 +22,16 @@ const KEYCHAIN_DEADLINE = '2 seconds';
 
 /**
  * The keychain's TypeSafe key: `security` prints it, or nothing when the item
- * or the tool is missing; none past `KEYCHAIN_DEADLINE`.
+ * or the tool is missing; none past `KEYCHAIN_DEADLINE` (a `security` that
+ * ignores the SIGTERM then is killed a second later).
  */
 const keychainKey = Effect.flatMap(ChildProcessSpawner, (spawner) =>
   spawner.string(
-    ChildProcess.make('security', [
-      'find-generic-password',
-      '-s',
-      'typesafe-api-key',
-      '-a',
-      'bible-tools',
-      '-w',
-    ]),
+    ChildProcess.make(
+      'security',
+      ['find-generic-password', '-s', 'typesafe-api-key', '-a', 'bible-tools', '-w'],
+      { forceKillAfter: '1 second' },
+    ),
   ),
 ).pipe(
   Effect.timeoutOption(KEYCHAIN_DEADLINE),

@@ -8,8 +8,12 @@
 # every case in a file shares the cores with all its siblings and takes the
 # whole file's time: on a loaded 4-core runner a case that takes 0.5 s alone
 # took 13-15 s. A case waiting for its turn has not started, so its timeout
-# counts its own work only.
-concurrentTestGlob = ["**/*.dom.test.ts", "**/*.pixel.test.ts"]
+# counts its own work only. The lab-page tests run their cases at once too:
+# each serves an app in a temp folder of its own and spends its time waiting
+# on that folder's watch (a second that must stay quiet, a save that must be
+# heard), about 0.5 s of work in 3-4.5 s a file run one case after another,
+# a worker's slot held idle the rest.
+concurrentTestGlob = ["**/*.dom.test.ts", "**/*.pixel.test.ts", "**/lab-page-*.test.ts"]
 # The tests' time limit for effect-bun-test's runners, which interrupt a
 # concurrent case at it (src/lab/fixtures/test-timeout.ts). Bun keeps the
 # preload's default for a process's first file only, so the scripts pass the

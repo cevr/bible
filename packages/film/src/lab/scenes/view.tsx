@@ -53,7 +53,7 @@ import { approveUndo, partSaid, undoApprove } from '../review/options/receipt.ts
 import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../pressed.ts';
 import { Sheet, useSheetDismissal } from '../sheet.tsx';
-import { type Ask, newestAsked } from '../review/asked.ts';
+import { type Ask, newestAsked } from '../../core/asked.ts';
 import { draftBook } from '../review/draft-book.ts';
 import type { InspectorBox } from '../review/inspector.tsx';
 import { Comments, SayBox } from '../review/options/choice.tsx';
