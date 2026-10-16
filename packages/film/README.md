@@ -3645,6 +3645,10 @@ Run `bun run test:e2e` from the repository root or this package to exercise
 the real browser workflows and canvas pixel checks. The E2E script uses
 `src/lab/fixtures/run-suite.ts` to compile fresh browser bundles and run
 `bun test --parallel --no-isolate --max-concurrency=3 --timeout 20000 e2e`.
+Its folder (the bundles, the workers' Chrome profiles) is removed once every
+process whose command line names a path in it has ended
+(`src/lab/fixtures/run-folder.ts`): Bun's recursive remove fails when an
+entry goes from under it.
 A film test that sets no timeout of its own has 20 s
 (`TEST_TIMEOUT_MS`, `src/lab/fixtures/test-timeout.ts`), set in two places
 that `test-timeout.test.ts` keeps equal. The preload `bunfig.toml` names

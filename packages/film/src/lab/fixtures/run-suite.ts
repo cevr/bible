@@ -1,8 +1,9 @@
 // One invocation owns the fixture bundles and the child test process. Its
 // temporary files, the workers' Chrome profiles among them (`bun test` runs
 // no exit handler to remove its own), are released only after the workers
-// have exited. A
-// `--parallel` run takes as many workers as `workersFor` gives the host.
+// have exited and every process that names the folder has ended
+// (`run-folder.ts`). A `--parallel` run takes as many workers as
+// `workersFor` gives the host.
 
 import { availableParallelism, loadavg } from 'node:os';
 import { BunRuntime, BunServices } from '@effect/platform-bun';
@@ -10,11 +11,12 @@ import { Config, Console, Effect, FileSystem, Stdio } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 import { ENTRIES, compile } from './bundles.ts';
+import { runFolder } from './run-folder.ts';
 import { workersFor } from './workers.ts';
 
 const run = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-test-bundles-' });
+  const dir = yield* runFolder('film-test-bundles-');
   yield* Effect.forEach(
     ENTRIES,
     (entry) =>
