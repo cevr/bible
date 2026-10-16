@@ -171,7 +171,7 @@ const setup = (
     BoardStore.layer,
     AskStore.layer.pipe(
       Layer.provide(AskMaterials.layer),
-      Layer.provide([BoardStore.layer, noStaging]),
+      Layer.provide([BoardStore.layer, ProductionStore.layer, noStaging]),
     ),
     noScenes,
     noStaging,

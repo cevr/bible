@@ -8,16 +8,19 @@
 // the page, an ask gone from the lab still shows the draft, and an edit the
 // landed send did not carry is named.
 
-import { Deferred, Effect, Layer, Match, Predicate, SubscriptionRef } from 'effect';
+import { Deferred, Effect, Layer, Match, Predicate, Schema, SubscriptionRef } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { type AskRecord, AskState, type StepValues } from '../../core/ask.ts';
+import { AskName, AskRecord, AskState, type StepValues } from '../../core/ask.ts';
 import { ServerFailed } from '../../core/api.ts';
 import { AskRefused, AskUnknown } from '../../core/refusals.ts';
 import { type LabFailure, LabUnreachable } from '../api.ts';
 import { ReviewApi } from '../review/api.ts';
 import { AskPageEvent, AskPageState, spawnAskPage } from './machine.ts';
 
-const asking: AskRecord = {
+/** A step's name, decoded as the lab decodes it. */
+const step = Schema.decodeSync(AskName);
+
+const asking = Schema.decodeSync(AskRecord)({
   id: 'a0123456789',
   title: 'Keep a try',
   why: 'the beat waits on it',
@@ -44,27 +47,27 @@ const asking: AskRecord = {
       done: { end: true },
     },
   },
-  state: AskState.Asking({ step: 'pick', answers: {} }),
+  state: AskState.Asking({ step: step('pick'), answers: {} }),
   answered: [],
-};
+});
 
 const picked: AskRecord = {
   ...asking,
   state: AskState.Asking({
-    step: 'why',
+    step: step('why'),
     answers: { try: { kind: 'choose', value: '7', label: 'Try 7' } },
   }),
-  answered: [{ step: 'pick', values: { try: '7' }, at: '2026-10-14T00:01:00.000Z' }],
+  answered: [{ step: step('pick'), values: { try: '7' }, at: '2026-10-14T00:01:00.000Z' }],
 };
 
 /** The ask once try 7 and its why, left empty, are answered: at its end. */
 const ended: AskRecord = {
   ...picked,
   state: AskState.Answered({
-    step: 'done',
+    step: step('done'),
     answers: { ...picked.state.answers, why: { kind: 'skipped' } },
   }),
-  answered: [...picked.answered, { step: 'why', values: {}, at: '2026-10-14T00:02:00.000Z' }],
+  answered: [...picked.answered, { step: step('why'), values: {}, at: '2026-10-14T00:02:00.000Z' }],
 };
 
 const unused = () => Effect.die('not called by an ask page');

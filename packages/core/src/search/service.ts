@@ -187,6 +187,8 @@ interface SearchParagraphRow {
    *  `ScoredParagraphRow.isHeading` for why BM25 floods a result page with
    *  these and why the surface has to be able to say so. */
   readonly isHeading: boolean;
+  /** A line that frames the text — see `ScoredParagraphRow.isFurniture`. */
+  readonly isFurniture: boolean;
   /** FTS5's `-rank`, positive and larger-is-better. Absent for a row the vector
    *  leg found and the lexical leg did not. */
   readonly score: number;
@@ -281,6 +283,7 @@ const toRow = (row: ScoredParagraphRow): SearchParagraphRow => ({
   author: row.bookAuthor,
   snippet: nodesToText(row.nodes),
   isHeading: row.isHeading,
+  isFurniture: row.isFurniture,
   // FTS5 rank is negative and better-is-lower; the whole pipeline below wants
   // larger-is-better, and flipping it once here is what keeps the threshold
   // constants readable.
@@ -855,17 +858,19 @@ const backMatterOf = (
     ),
   );
 
-/** A hit's place on the page: prose first, then headings, then back matter.
+/** A hit's place on the page: prose first, then headings and furniture,
+ *  then back matter.
  *
  *  BM25 normalizes by length, so a two-word title or a one-line index entry
  *  holding the query outranks the prose that discusses it: 32 of the top 40
  *  results for `latter rain` were headings, and `1EGWLM 962.55` ("Latter rain,
- *  178, 300, 306, …") sat among them. Both still answer the query — a heading
- *  names the chapter that treats the subject — so they are ordered last, not
- *  dropped. Within a tier the fused order holds. */
+ *  178, 300, 306, …") sat among them. A letter's dateline ("Sabbath") or a
+ *  picture's caption is short in the same way. Each still answers the query —
+ *  a heading names the chapter that treats the subject — so they are ordered
+ *  last, not dropped. Within a tier the fused order holds. */
 const tierOf = (hit: SearchParagraphHit): number => {
   if (hit.backMatter) return 2;
-  if (hit.isHeading) return 1;
+  if (hit.isHeading || hit.isFurniture) return 1;
   return 0;
 };
 
@@ -905,6 +910,7 @@ const fuseResults = (
         author: body.author,
         snippet: body.snippet,
         isHeading: body.isHeading,
+        isFurniture: body.isFurniture,
         backMatter: backMatter(body),
         score: fused.score,
         lexicalRank: Option.flatten(Arr.get(fused.ranks, 0)),

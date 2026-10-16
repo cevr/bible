@@ -32,9 +32,11 @@ import type * as Statement from 'effect/sql/Statement';
 
 import { EGW_SCOPE_AUTHORS, type CorpusScope } from '../writings/corpus-scope.js';
 import {
+  APPARATUS_AUTHORS,
   APPARATUS_TYPES,
   EXCLUDED_SUBTYPES,
   isBookSubtype,
+  isApparatus,
   isBookType,
   isCorpusSection,
   type CorpusFilter,
@@ -48,8 +50,13 @@ import {
 } from '../db/schema-version.js';
 import * as EGWSchemas from '../egw/schemas.js';
 import { Node, nodesToText } from '../egw/ast.js';
-import { headingLevel, isChapterHeading } from '../egw/parse.js';
-import type { PublicationArchive } from '../writings/archive.js';
+import { headingLevel, isChapterHeading, isFurniture } from '../egw/parse.js';
+import {
+  type ArchiveChapter,
+  collectPublication,
+  type PublicationArchive,
+  type PublicationStream,
+} from '../writings/archive.js';
 import type { CorpusProvenance } from '../corpus-supply/model.js';
 
 // Bump when the on-disk paragraphs schema changes shape (column rename, type
@@ -317,9 +324,10 @@ const testMatchesQuery = (terms: readonly string[], text: string): boolean => {
  *  One function per side of the seam, deliberately: `searchFilters` builds SQL
  *  and this builds a predicate, and they are close enough that a reader can
  *  check them against each other line by line. The rule both implement is that
- *  a `null` column passes every clause except `excludeApparatus`, which a
- *  `null` also passes — an unclassified book is never excluded by a filter the
- *  reader set about a classification it does not have.
+ *  a `null` column passes every clause, `excludeApparatus` included — an
+ *  unclassified book is never excluded by a filter the reader set about a
+ *  classification it does not have. `excludeApparatus` also reads the author,
+ *  which is never null.
  *
  *  Exported because the vector leg needs the same answer *before* it scans.
  *  The lexical leg gets this for free from its `WHERE`, but a vector scan has
@@ -372,7 +380,7 @@ export const bookMatchesFilter = (book: BookRow, filter?: CorpusFilter): boolean
     allowed(filter.section, classified(book.section, isCorpusSection)) &&
     allowed(filter.type, type) &&
     allowed(filter.subtype, subtype) &&
-    (!filter.excludeApparatus || !Option.exists(type, (value) => APPARATUS_TYPES.has(value)))
+    (!filter.excludeApparatus || !isApparatus({ type, author: book.book_author }))
   );
 };
 
@@ -564,6 +572,10 @@ export interface ScoredParagraphRow {
    *  arrive as a refcode and a line of text. This field is what lets a surface
    *  say which one it is. */
   readonly isHeading: boolean;
+  /** Whether this row frames the text rather than says anything: a letter's
+   *  date or signature, a picture's caption, the scripture at the head of a
+   *  reading (`isFurniture`, from `paragraphs.element_subtype`). */
+  readonly isFurniture: boolean;
   /** The corpus's own `para_id`, unqualified — the value
    *  `WritingsReference.paragraph` addresses a paragraph by.
    *
@@ -590,11 +602,14 @@ export interface ScoredParagraphRow {
 }
 
 export interface EGWParagraphDatabaseService {
-  /** Atomically replaces one publication from its canonical portable archive. */
-  readonly installPublicationArchive: (
-    archive: PublicationArchive,
+  /** Atomically replaces one publication with its chapters as they are read:
+   *  each is staged as it arrives, so the publication is never held whole.
+   *  A chapter that fails to read fails the install with its own error, and
+   *  leaves the publication as it was. */
+  readonly installPublication: <E>(
+    publication: PublicationStream<E>,
     provenance?: CorpusProvenance,
-  ) => Effect.Effect<number, ParagraphDatabaseError>;
+  ) => Effect.Effect<number, E | ParagraphDatabaseError>;
 
   // Book operations
   readonly storeBook: (book: EGWSchemas.Book) => Effect.Effect<void, ParagraphDatabaseError>;
@@ -967,28 +982,6 @@ const INCOMING_CHUNK_BYTES = 1_000_000;
 
 /** `items` in order, cut into runs whose summed `size` stays within `budget`
  *  (a single item larger than the budget is a run of its own). */
-const chunkBySize = <A>(
-  items: readonly A[],
-  size: (item: A) => number,
-  budget: number,
-): readonly (readonly A[])[] => {
-  const chunks: A[][] = [];
-  let current: A[] = [];
-  let used = 0;
-  for (const item of items) {
-    const cost = size(item);
-    if (current.length > 0 && used + cost > budget) {
-      chunks.push(current);
-      current = [];
-      used = 0;
-    }
-    current.push(item);
-    used += cost;
-  }
-  if (current.length > 0) chunks.push(current);
-  return chunks;
-};
-
 const utf8 = new TextEncoder();
 
 /** A row's size in its chunk: its JSON, escapes and all, in UTF-8 bytes,
@@ -1119,20 +1112,24 @@ const archivedParagraphToRow = (
   };
 };
 
-const validatePublicationArchive = (archive: PublicationArchive) =>
+/** Checks one chapter against its publication and the chapters before it:
+ *  every paragraph is the publication's and new, and every reference names a
+ *  paragraph seen so far. `refcodes` gains the chapter's paragraphs. */
+const validateChapter = (
+  publication: PublicationArchive['publication'],
+  chapter: ArchiveChapter,
+  refcodes: Set<string>,
+) =>
   Effect.gen(function* () {
-    const publicationId = archive.publication.id;
-    const publicationCode = archive.publication.code;
-    const refcodes = new Set<string>();
-
-    for (const archived of archive.paragraphs) {
+    const publicationId = publication.id;
+    for (const archived of chapter.paragraphs) {
       if (archived.paragraph.reference.publicationId !== publicationId) {
         return yield* ParagraphDataIntegrityError.make({
           cause: archived.paragraph.reference,
           location: `publication(${String(publicationId)}).paragraph-publication`,
         });
       }
-      if (archived.paragraph.publicationCode !== publicationCode) {
+      if (archived.paragraph.publicationCode !== publication.code) {
         return yield* ParagraphDataIntegrityError.make({
           cause: archived.paragraph.publicationCode,
           location: `publication(${String(publicationId)}).paragraph-code`,
@@ -1147,7 +1144,7 @@ const validatePublicationArchive = (archive: PublicationArchive) =>
       refcodes.add(archived.refcode);
     }
 
-    for (const reference of archive.bibleReferences) {
+    for (const reference of chapter.bibleReferences) {
       if (!refcodes.has(reference.paragraphRefcode)) {
         return yield* ParagraphDataIntegrityError.make({
           cause: reference.paragraphRefcode,
@@ -1571,11 +1568,23 @@ export class EGWParagraphDatabase extends Context.Service<
          *  for this publication is cleared first, so a retry after a crash
          *  starts clean. Nothing a reader sees has changed yet.
          *
-         *  **Swap.** One atomic group (`SqlAtomic`) deletes the publication's
-         *  live rows, copies the staged ones across, writes its `books` and
-         *  `sync_status` rows and clears the stage. The full-text triggers fire
-         *  on the copy, so `paragraphs_fts` moves with it. A reader sees the
-         *  old publication or the new one, never a mix.
+         *  **Swap.** One atomic group (`SqlAtomic`) makes the live rows the
+         *  staged ones, writes the `books` and `sync_status` rows and clears
+         *  the stage. It writes only the difference: a row the stage no
+         *  longer has is deleted, a row whose columns moved is updated in
+         *  place, a new row is inserted, and an unchanged row is left as it
+         *  is, its `created_at`, `updated_at` and rowid with it. The
+         *  full-text triggers fire on those rows alone, so `paragraphs_fts`
+         *  moves with them. A reinstall that changes nothing writes no
+         *  paragraph: rewriting every row of the Topical Index (319,370
+         *  paragraphs) in one group was more than D1 answers in time. A
+         *  reader sees the old publication or the new one, never a mix.
+         *
+         *  The references go first and last because each names its
+         *  paragraph by key (`paragraph_bible_refs` → `paragraphs`): those
+         *  the stage dropped go before the paragraphs, the new ones after. An
+         *  update keeps a paragraph's key, so it leaves its references
+         *  valid.
          *
          *  The swap is a fixed list of statements because D1 runs a group as a
          *  batch, which cannot branch on a result. So the count is checked on
@@ -1659,83 +1668,155 @@ export class EGWParagraphDatabase extends Context.Service<
             ),
           );
 
-        const installPublicationArchive = Effect.fn(
-          'EGWParagraphDatabase.installPublicationArchive',
-        )(function* (archive: PublicationArchive, provenance?: CorpusProvenance) {
-          yield* validatePublicationArchive(archive);
+        const stageParagraphs = (publicationId: number, rows: readonly ParagraphRow[]) => sql`
+          INSERT INTO paragraphs_incoming (
+            book_id, ref_code, para_id, refcode_short, refcode_long,
+            nodes_json, content_text, puborder, element_type, element_subtype,
+            page_number, paragraph_number, is_chapter_heading,
+            created_at, updated_at
+          )
+          SELECT
+            ${publicationId},
+            json_extract(value, '$.ref_code'),
+            json_extract(value, '$.para_id'),
+            json_extract(value, '$.refcode_short'),
+            json_extract(value, '$.refcode_long'),
+            json_extract(value, '$.nodes_json'),
+            json_extract(value, '$.content_text'),
+            json_extract(value, '$.puborder'),
+            json_extract(value, '$.element_type'),
+            json_extract(value, '$.element_subtype'),
+            json_extract(value, '$.page_number'),
+            json_extract(value, '$.paragraph_number'),
+            json_extract(value, '$.is_chapter_heading'),
+            json_extract(value, '$.created_at'),
+            json_extract(value, '$.updated_at')
+          FROM json_each(${encodeIncomingParagraphs(rows)})
+        `;
+
+        const stageReferences = (publicationId: number, references: readonly IncomingBibleRef[]) =>
+          sql`
+            INSERT INTO paragraph_bible_refs_incoming (
+              para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
+            )
+            SELECT
+              ${publicationId},
+              json_extract(value, '$.para_ref_code'),
+              json_extract(value, '$.bible_book'),
+              json_extract(value, '$.bible_chapter'),
+              json_extract(value, '$.bible_verse')
+            FROM json_each(${encodeIncomingBibleRefs(references)})
+          `;
+
+        /** A live paragraph differs from its staged row `i` in a column a
+         *  reader sees. `IS NOT` so that a null equals a null. */
+        const paragraphDiffers = sql.literal(
+          [
+            'para_id',
+            'refcode_short',
+            'refcode_long',
+            'nodes_json',
+            'content_text',
+            'puborder',
+            'element_type',
+            'element_subtype',
+            'page_number',
+            'paragraph_number',
+            'is_chapter_heading',
+          ]
+            .map((column) => `paragraphs.${column} IS NOT i.${column}`)
+            .join(' OR '),
+        );
+
+        /** The staged reference equal to a live one, by every column of
+         *  the key; `IS` so that two verseless references match. */
+        const sameStagedReference = sql.literal(`
+          SELECT 1 FROM paragraph_bible_refs_incoming i
+          WHERE i.para_book_id = paragraph_bible_refs.para_book_id
+            AND i.para_ref_code = paragraph_bible_refs.para_ref_code
+            AND i.bible_book = paragraph_bible_refs.bible_book
+            AND i.bible_chapter = paragraph_bible_refs.bible_chapter
+            AND i.bible_verse IS paragraph_bible_refs.bible_verse
+        `);
+
+        /** The live reference equal to a staged one `i`. */
+        const sameLiveReference = sql.literal(`
+          SELECT 1 FROM paragraph_bible_refs p
+          WHERE p.para_book_id = i.para_book_id
+            AND p.para_ref_code = i.para_ref_code
+            AND p.bible_book = i.bible_book
+            AND p.bible_chapter = i.bible_chapter
+            AND p.bible_verse IS i.bible_verse
+        `);
+
+        const installPublication = Effect.fn('EGWParagraphDatabase.installPublication')(function* <
+          E,
+        >(stream: PublicationStream<E>, provenance?: CorpusProvenance) {
           yield* incomingTables;
 
-          const publication = archive.publication;
+          const publication = stream.publication;
           const publicationId = publication.id;
           const now = DateTime.formatIso(yield* DateTime.now);
-          const rows = archive.paragraphs.map((paragraph) =>
-            archivedParagraphToRow(paragraph, publicationId, now),
-          );
-          const references = archive.bibleReferences.map((reference): IncomingBibleRef => {
-            let verse = Option.none<number>();
-            if (reference.scripture._tag === 'verse')
-              verse = Option.some(reference.scripture.verse);
-            return {
-              para_ref_code: reference.paragraphRefcode,
-              bible_book: reference.scripture.book,
-              bible_chapter: reference.scripture.chapter,
-              bible_verse: Option.getOrNull(verse),
-            };
-          });
 
           yield* sql`DELETE FROM paragraphs_incoming WHERE book_id = ${publicationId}`;
           yield* sql`DELETE FROM paragraph_bible_refs_incoming WHERE para_book_id = ${publicationId}`;
-          for (const chunk of chunkBySize(rows, incomingRowBytes, INCOMING_CHUNK_BYTES)) {
-            yield* sql`
-              INSERT INTO paragraphs_incoming (
-                book_id, ref_code, para_id, refcode_short, refcode_long,
-                nodes_json, content_text, puborder, element_type, element_subtype,
-                page_number, paragraph_number, is_chapter_heading,
-                created_at, updated_at
-              )
-              SELECT
-                ${publicationId},
-                json_extract(value, '$.ref_code'),
-                json_extract(value, '$.para_id'),
-                json_extract(value, '$.refcode_short'),
-                json_extract(value, '$.refcode_long'),
-                json_extract(value, '$.nodes_json'),
-                json_extract(value, '$.content_text'),
-                json_extract(value, '$.puborder'),
-                json_extract(value, '$.element_type'),
-                json_extract(value, '$.element_subtype'),
-                json_extract(value, '$.page_number'),
-                json_extract(value, '$.paragraph_number'),
-                json_extract(value, '$.is_chapter_heading'),
-                json_extract(value, '$.created_at'),
-                json_extract(value, '$.updated_at')
-              FROM json_each(${encodeIncomingParagraphs(chunk)})
-            `;
-          }
-          // A reference is under a hundred bytes of JSON: five thousand of
-          // them stay far inside the paragraphs' budget.
-          for (const chunk of Arr.chunksOf(references, 5_000)) {
-            yield* sql`
-              INSERT INTO paragraph_bible_refs_incoming (
-                para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
-              )
-              SELECT
-                ${publicationId},
-                json_extract(value, '$.para_ref_code'),
-                json_extract(value, '$.bible_book'),
-                json_extract(value, '$.bible_chapter'),
-                json_extract(value, '$.bible_verse')
-              FROM json_each(${encodeIncomingBibleRefs(chunk)})
-            `;
-          }
 
-          const staged = yield* sql<{ readonly count: number }>`
+          // Rows wait here until they fill a statement's budget; references
+          // until there are five thousand, each under a hundred bytes of
+          // JSON, far inside it.
+          const refcodes = new Set<string>();
+          let rows: ParagraphRow[] = [];
+          let rowBytes = 0;
+          let references: IncomingBibleRef[] = [];
+          let staged = 0;
+          const flushRows = Effect.suspend(() => {
+            if (rows.length === 0) return Effect.void;
+            const chunk = rows;
+            rows = [];
+            rowBytes = 0;
+            return Effect.asVoid(stageParagraphs(publicationId, chunk));
+          });
+          const flushReferences = Effect.suspend(() => {
+            if (references.length === 0) return Effect.void;
+            const chunk = references;
+            references = [];
+            return Effect.asVoid(stageReferences(publicationId, chunk));
+          });
+          yield* Stream.runForEach(stream.chapters, (chapter) =>
+            Effect.gen(function* () {
+              yield* validateChapter(publication, chapter, refcodes);
+              for (const archived of chapter.paragraphs) {
+                const row = archivedParagraphToRow(archived, publicationId, now);
+                const cost = incomingRowBytes(row);
+                if (rowBytes + cost > INCOMING_CHUNK_BYTES) yield* flushRows;
+                rows.push(row);
+                rowBytes += cost;
+                staged += 1;
+              }
+              for (const reference of chapter.bibleReferences) {
+                let verse = Option.none<number>();
+                if (reference.scripture._tag === 'verse')
+                  verse = Option.some(reference.scripture.verse);
+                references.push({
+                  para_ref_code: reference.paragraphRefcode,
+                  bible_book: reference.scripture.book,
+                  bible_chapter: reference.scripture.chapter,
+                  bible_verse: Option.getOrNull(verse),
+                });
+                if (references.length >= 5_000) yield* flushReferences;
+              }
+            }),
+          );
+          yield* flushRows;
+          yield* flushReferences;
+
+          const counted = yield* sql<{ readonly count: number }>`
             SELECT COUNT(*) AS count FROM paragraphs_incoming WHERE book_id = ${publicationId}
           `;
-          const stagedCount = staged[0]?.count ?? -1;
-          if (stagedCount !== rows.length) {
+          const stagedCount = counted[0]?.count ?? -1;
+          if (stagedCount !== staged) {
             return yield* ParagraphDataIntegrityError.make({
-              cause: { expected: rows.length, actual: stagedCount },
+              cause: { expected: staged, actual: stagedCount },
               location: `publication(${String(publicationId)}).staged-count`,
             });
           }
@@ -1750,9 +1831,40 @@ export class EGWParagraphDatabase extends Context.Service<
           });
           yield* atomic.run([
             ...changes,
-            sql`DELETE FROM paragraph_bible_refs WHERE para_book_id = ${publicationId}`,
-            sql`DELETE FROM paragraphs WHERE book_id = ${publicationId}`,
-            upsertPublicationBook(publication, rows.length, now),
+            sql`
+              DELETE FROM paragraph_bible_refs
+              WHERE para_book_id = ${publicationId}
+                AND NOT EXISTS (${sameStagedReference})
+            `,
+            sql`
+              DELETE FROM paragraphs
+              WHERE book_id = ${publicationId}
+                AND NOT EXISTS (
+                  SELECT 1 FROM paragraphs_incoming i
+                  WHERE i.book_id = paragraphs.book_id AND i.ref_code = paragraphs.ref_code
+                )
+            `,
+            upsertPublicationBook(publication, staged, now),
+            sql`
+              UPDATE paragraphs SET
+                para_id = i.para_id,
+                refcode_short = i.refcode_short,
+                refcode_long = i.refcode_long,
+                nodes_json = i.nodes_json,
+                content_text = i.content_text,
+                puborder = i.puborder,
+                element_type = i.element_type,
+                element_subtype = i.element_subtype,
+                page_number = i.page_number,
+                paragraph_number = i.paragraph_number,
+                is_chapter_heading = i.is_chapter_heading,
+                updated_at = i.updated_at
+              FROM paragraphs_incoming i
+              WHERE paragraphs.book_id = ${publicationId}
+                AND i.book_id = paragraphs.book_id
+                AND i.ref_code = paragraphs.ref_code
+                AND (${paragraphDiffers})
+            `,
             sql`
               INSERT INTO paragraphs (
                 book_id, ref_code, para_id, refcode_short, refcode_long,
@@ -1765,8 +1877,12 @@ export class EGWParagraphDatabase extends Context.Service<
                 nodes_json, content_text, puborder, element_type, element_subtype,
                 page_number, paragraph_number, is_chapter_heading,
                 created_at, updated_at
-              FROM paragraphs_incoming
+              FROM paragraphs_incoming i
               WHERE book_id = ${publicationId}
+                AND NOT EXISTS (
+                  SELECT 1 FROM paragraphs p
+                  WHERE p.book_id = i.book_id AND p.ref_code = i.ref_code
+                )
               ORDER BY puborder
             `,
             sql`
@@ -1774,15 +1890,16 @@ export class EGWParagraphDatabase extends Context.Service<
                 para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
               )
               SELECT para_book_id, para_ref_code, bible_book, bible_chapter, bible_verse
-              FROM paragraph_bible_refs_incoming
+              FROM paragraph_bible_refs_incoming i
               WHERE para_book_id = ${publicationId}
+                AND NOT EXISTS (${sameLiveReference})
             `,
             sql`
               INSERT INTO sync_status (
                 book_id, book_code, status, error_message, last_attempt, paragraph_count,
                 source, revision, digest
               ) VALUES (
-                ${publicationId}, ${publication.code}, 'success', NULL, ${now}, ${rows.length},
+                ${publicationId}, ${publication.code}, 'success', NULL, ${now}, ${staged},
                 ${Option.getOrNull(Option.map(provenanceOption, (value) => value.source))},
                 ${Option.getOrNull(Option.map(provenanceOption, (value) => value.revision))},
                 ${Option.getOrNull(Option.flatMap(provenanceOption, (value) => value.digest))}
@@ -1800,7 +1917,7 @@ export class EGWParagraphDatabase extends Context.Service<
             sql`DELETE FROM paragraphs_incoming WHERE book_id = ${publicationId}`,
             sql`DELETE FROM paragraph_bible_refs_incoming WHERE para_book_id = ${publicationId}`,
           ]);
-          return rows.length;
+          return staged;
         });
 
         const storeParagraph = (paragraph: EGWSchemas.Paragraph, book: EGWSchemas.Book) =>
@@ -2111,12 +2228,14 @@ export class EGWParagraphDatabase extends Context.Service<
               );
             }
 
-            // Apparatus is its own toggle rather than three entries in
-            // `type.exclude`, but it is the same blacklist rule: an unclassified
-            // book is not known to be apparatus, so it stays.
+            // Apparatus is its own toggle rather than entries in
+            // `type.exclude`, but it is the same blacklist rule: a book with no
+            // type is not known to be apparatus by its type, so it stays unless
+            // its author makes it one (`isApparatus`).
             if (filter.excludeApparatus) {
               filters.push(
                 sql`(b.book_type IS NULL OR NOT ${sql.in('b.book_type', [...APPARATUS_TYPES])})`,
+                sql`NOT ${sql.in('b.book_author', [...APPARATUS_AUTHORS])}`,
               );
             }
           }
@@ -2245,10 +2364,12 @@ export class EGWParagraphDatabase extends Context.Service<
              *  ingest wrote from `isChapterHeading`. Translated at this boundary
              *  like every other storage-shaped column here. */
             readonly is_chapter_heading: number;
+            // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
+            readonly element_subtype: string | null;
           }>`
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
-                     p.puborder, p.is_chapter_heading, fts.rank
+                     p.puborder, p.is_chapter_heading, p.element_subtype, fts.rank
               FROM paragraphs p
               JOIN paragraphs_fts fts ON p.rowid = fts.rowid
               JOIN books b ON p.book_id = b.book_id
@@ -2274,6 +2395,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 nodes: decodeNodes(row.nodes_json),
                 rank: row.rank,
                 isHeading: row.is_chapter_heading === 1,
+                isFurniture: isFurniture(Option.fromNullishOr(row.element_subtype)),
               })),
             ),
           );
@@ -2357,6 +2479,8 @@ export class EGWParagraphDatabase extends Context.Service<
             readonly book_id: number;
             readonly puborder: number;
             readonly is_chapter_heading: number;
+            // oxlint-disable-next-line effect/noNullish -- the storage boundary, see above
+            readonly element_subtype: string | null;
           }>`
               WITH wanted AS (
                 SELECT DISTINCT value AS identity,
@@ -2365,7 +2489,7 @@ export class EGWParagraphDatabase extends Context.Service<
               )
               SELECT b.book_id, b.book_code, b.book_title, b.book_author,
                      p.ref_code, p.refcode_short, p.para_id, p.nodes_json,
-                     p.puborder, p.is_chapter_heading
+                     p.puborder, p.is_chapter_heading, p.element_subtype
               FROM wanted w
               CROSS JOIN paragraphs p ON p.para_id = w.para_id
               CROSS JOIN books b ON p.book_id = b.book_id
@@ -2391,6 +2515,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 // No FTS match produced this row, so it carries no BM25 evidence.
                 rank: 0,
                 isHeading: row.is_chapter_heading === 1,
+                isFurniture: isFurniture(Option.fromNullishOr(row.element_subtype)),
               })),
             ),
           );
@@ -2659,7 +2784,7 @@ export class EGWParagraphDatabase extends Context.Service<
           });
 
         return EGWParagraphDatabase.of({
-          installPublicationArchive,
+          installPublication,
           storeBook,
           setBookSection,
           getBookById,
@@ -2722,10 +2847,8 @@ export class EGWParagraphDatabase extends Context.Service<
       paragraphs?: readonly TestParagraph[];
       bibleRefs?: readonly BibleRefRow[];
       syncStatuses?: readonly SyncStatusRow[];
-      installPublicationArchive?: (
-        archive: PublicationArchive,
-        provenance?: CorpusProvenance,
-      ) => number;
+      /** Sees each install's publication, collected whole. */
+      installPublication?: (archive: PublicationArchive, provenance?: CorpusProvenance) => number;
       needsSync?: (bookId: number, expected?: CorpusProvenance) => boolean;
       paragraphChanges?: readonly ParagraphChangeRow[];
     } = {},
@@ -2733,9 +2856,11 @@ export class EGWParagraphDatabase extends Context.Service<
     Layer.succeed(
       EGWParagraphDatabase,
       EGWParagraphDatabase.of({
-        installPublicationArchive: (archive, provenance) =>
-          Effect.succeed(
-            config.installPublicationArchive?.(archive, provenance) ?? archive.paragraphs.length,
+        installPublication: (stream, provenance) =>
+          Effect.map(
+            collectPublication(stream),
+            (archive) =>
+              config.installPublication?.(archive, provenance) ?? archive.paragraphs.length,
           ),
         storeBook: () => Effect.void,
         setBookSection: () => Effect.void,
@@ -2926,6 +3051,7 @@ export class EGWParagraphDatabase extends Context.Service<
                 // so a double that decided headings its own way could disagree
                 // with production about the same fixture.
                 isHeading: isChapterHeading(Option.fromNullishOr(row.element_type)),
+                isFurniture: isFurniture(Option.fromNullishOr(row.element_subtype)),
               })),
           ),
         // Keyed by the same `paragraphIdentity` the live statement composes in
@@ -2968,6 +3094,7 @@ export class EGWParagraphDatabase extends Context.Service<
                   nodes: paragraph.nodes,
                   rank: 0,
                   isHeading: isChapterHeading(Option.fromNullishOr(paragraph.element_type)),
+                  isFurniture: isFurniture(Option.fromNullishOr(paragraph.element_subtype)),
                 },
               ];
             }),

@@ -349,10 +349,12 @@ describe("an agent's ask on a phone", () => {
       Effect.gen(function* () {
         const marked: Array<Asked> = [];
         let reads = 0;
+        const readAgain = Deferred.makeUnsafe<void>();
         const routes: ReadonlyArray<FakeRoute> = [
           route('GET', new RegExp(`^/api/asks/${SCRIPT_ASK}$`), () => json(scriptAsk)),
           route('GET', /^\/api\/films\/toy\/script$/, () => {
             reads += 1;
+            if (reads > 1) Deferred.doneUnsafe(readAgain, Effect.void);
             return json(
               said(
                 Bool.match(reads === 1, {
@@ -381,6 +383,8 @@ describe("an agent's ask on a phone", () => {
         yield* page.click('.lab-script-beat[data-beat="1"] .lab-script-w[data-index="3"]');
         yield* page.click('.lab-script-delivery [data-act="stress-words"]');
         // Landed: the script is read again, its words and marks as script.ts has them now.
+        // The page shows its own mark before the read lands, so the test waits for the read.
+        yield* Deferred.await(readAgain);
         yield* evaluates(
           page,
           `document.querySelector('.lab-script-beat[data-beat="1"] .lab-script-w[data-index="3"]').dataset.stress`,
@@ -399,7 +403,6 @@ describe("an agent's ask on a phone", () => {
             ],
           },
         ]);
-        expect(reads).toBeGreaterThan(1);
         yield* fitsPhone(page);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

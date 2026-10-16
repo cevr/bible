@@ -56,7 +56,7 @@ import { ContentStore } from './content-store.ts';
 import { sha256Hex } from './digest.ts';
 import { FilmFolder, filmNamed } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
-import { Review, type ReviewRoot } from './review.ts';
+import { Review, recordsUnder } from './review.ts';
 
 /** What a reader is answered: the changes past its cursor, in order, and the cursor to ask past next. */
 export const LabChanges = Schema.Struct({
@@ -117,37 +117,6 @@ const cursorOf = (cursor: string): Option.Option<{ epoch: string; seq: number }>
     epoch,
     seq: Number(seq),
   }));
-
-/** A folder one level under a review root: its ref (`<root label>/<name>`) and where it is. */
-interface ReviewFolderAt {
-  readonly ref: string;
-  readonly dir: string;
-}
-
-/**
- * Every folder one level under `roots`, by its ref: where a set (a
- * `review.json`) or a project folder (a `catalogue.json`) is published.
- */
-export const reviewFolders = Effect.fn('LabEvents.reviewFolders')(function* (
-  roots: ReadonlyArray<ReviewRoot>,
-) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const listed = yield* Effect.forEach(roots, (root) =>
-    fs.readDirectory(root.path).pipe(
-      Effect.orElseSucceed(() => []),
-      Effect.map((names) =>
-        names
-          .filter((name) => !name.startsWith('.'))
-          .map((name): ReviewFolderAt => ({
-            ref: `${root.label}/${name}`,
-            dir: path.join(root.path, name),
-          })),
-      ),
-    ),
-  );
-  return Arr.flatten(listed);
-});
 
 export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
   '@bible/film/tools/LabEvents',
@@ -310,9 +279,10 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
           ),
         { concurrency: 4 },
       );
-      const listed = yield* reviewFolders(review.roots).pipe(Effect.provideContext(platform));
+      // The folders the review walks, every level: a project's catalogue, a montage's manifest.
+      const listed = yield* recordsUnder(review.roots).pipe(Effect.provideContext(platform));
       const catalogued = yield* Effect.forEach(
-        listed,
+        listed.filter((f) => f.kind === 'project'),
         (f) => lookCatalogue(f.ref, f.dir, baseline),
         {
           concurrency: 8,
@@ -320,7 +290,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
       );
       const sets = new Map<string, SetSeen>();
       yield* Effect.forEach(
-        listed,
+        listed.filter((f) => f.kind === 'montage'),
         (f) =>
           Effect.map(setAt(f.dir), (set) => {
             if (Option.isSome(set)) sets.set(f.ref, set.value);

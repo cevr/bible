@@ -74,15 +74,16 @@ jobs:
 
       - run: bun run gate
 
-  # The browser tests: the film's (`bun run test:e2e`: the lab, review and
-  # player pages over Chrome through Bun.WebView), then, in Playwright's
+  # The browser tests, in two jobs beside the gate, so each runs well inside
+  # its time limit. `e2e` is the film's (`bun run test:e2e`: the lab, review
+  # and player pages over Chrome through Bun.WebView); the runner image
+  # carries Google Chrome, named to Bun by BUN_CHROME_PATH
+  # (packages/film/src/tools/chrome.ts). `browser` is, in Playwright's
   # Chromium, @bible/ui's parts (`test:browser`), @bible/atom-solid's
   # server-rendered page hydrating (`test:ssr`) and egw-search's page over its
-  # fixture server (`test:browser`, which builds the page first). They need a
-  # browser, so they run in a job of their own beside the gate; the runner
-  # image carries Google Chrome, named to Bun by BUN_CHROME_PATH
-  # (packages/film/src/tools/chrome.ts), and Playwright installs its Chromium
-  # once for the three packages, which pin one Playwright version.
+  # fixture server (`test:browser`, which builds the page first); Playwright
+  # installs its Chromium once for the three packages, which pin one
+  # Playwright version.
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -100,6 +101,23 @@ jobs:
       - name: Point Bun at the runner's Chrome
         run: echo "BUN_CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - run: bun run test:e2e
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - name: Point Bun at the runner's Chrome
+        run: echo "BUN_CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - name: Install Playwright's Chromium
         working-directory: packages/ui
         run: bunx playwright install --with-deps chromium

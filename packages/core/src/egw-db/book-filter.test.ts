@@ -17,6 +17,7 @@ const book = (
     readonly book_type?: string | null;
     readonly book_subtype?: string | null;
     readonly section?: string | null;
+    readonly book_author?: string;
   } = {},
 ): BookRow => ({
   book_id: 1,
@@ -53,10 +54,19 @@ describe('bookMatchesFilter', () => {
   test('refuses the lookup apparatus when the toggle is set', () =>
     Effect.sync(() => {
       const filter = { ...NO_FILTER, excludeApparatus: true };
-      for (const type of ['dictionary', 'topicalindex', 'scriptindex']) {
+      for (const type of ['dictionary', 'topicalindex', 'scriptindex', 'bible']) {
         expect(bookMatchesFilter(book('X', { book_type: type }), filter)).toBe(false);
       }
       expect(bookMatchesFilter(book('DA', { book_type: 'book' }), filter)).toBe(true);
+    }));
+
+  /** The White Estate's reading plans and study guides are typed `book`, so
+   *  only their author marks them. */
+  test('refuses a study aid by its author when the toggle is set', () =>
+    Effect.sync(() => {
+      const plan = book('365N', { book_type: 'book', book_author: 'Ellen G. White Estate' });
+      expect(bookMatchesFilter(plan, { ...NO_FILTER, excludeApparatus: true })).toBe(false);
+      expect(bookMatchesFilter(plan, NO_FILTER)).toBe(true);
     }));
 
   /** An unclassified book is not *known* to be the thing the reader removed, so

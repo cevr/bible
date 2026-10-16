@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'bun:test';
 import { Option, Schema } from 'effect';
-import { type AskRecord, AskState } from './ask.ts';
+import { AskName, AskRecord, AskState } from './ask.ts';
 import { type BoardFile, BoardName } from './board.ts';
 import { Catalogue, emptyCatalogue } from './catalogue.ts';
 import { askChanges, boardChanges, catalogueChanges, gist, setChanges } from './lab-events.ts';
@@ -135,7 +135,9 @@ describe('gist', () => {
 });
 
 describe('askChanges', () => {
-  const asking: AskRecord = {
+  /** A step's name, decoded as the lab decodes it. */
+  const step = Schema.decodeSync(AskName);
+  const asking = Schema.decodeSync(AskRecord)({
     id: 'a0123456789',
     title: 'Keep a try',
     why: 'the beat waits on it',
@@ -166,16 +168,16 @@ describe('askChanges', () => {
         done: { end: true },
       },
     },
-    state: AskState.Asking({ step: 'pick', answers: {} }),
+    state: AskState.Asking({ step: step('pick'), answers: {} }),
     answered: [],
-  };
+  });
   const picked: AskRecord = {
     ...asking,
     state: AskState.Asking({
-      step: 'why',
+      step: step('why'),
       answers: { try: { kind: 'choose', value: '7', label: 'Try 7' } },
     }),
-    answered: [{ step: 'pick', values: { try: '7' }, at: '2026-10-14T00:01:00.000Z' }],
+    answered: [{ step: step('pick'), values: { try: '7' }, at: '2026-10-14T00:01:00.000Z' }],
   };
   const answers = {
     try: { kind: 'choose', value: '7', label: 'Try 7' },
@@ -183,10 +185,10 @@ describe('askChanges', () => {
   } as const;
   const done: AskRecord = {
     ...picked,
-    state: AskState.Answered({ step: 'done', answers }),
+    state: AskState.Answered({ step: step('done'), answers }),
     answered: [
       ...picked.answered,
-      { step: 'why', values: { why: 'the light' }, at: '2026-10-14T00:02:00.000Z' },
+      { step: step('why'), values: { why: 'the light' }, at: '2026-10-14T00:02:00.000Z' },
     ],
   };
 
@@ -218,10 +220,13 @@ describe('askChanges', () => {
     const skipped: AskRecord = {
       ...picked,
       state: AskState.Answered({
-        step: 'done',
+        step: step('done'),
         answers: { ...picked.state.answers, why: { kind: 'skipped' } },
       }),
-      answered: [...picked.answered, { step: 'why', values: {}, at: '2026-10-14T00:02:00.000Z' }],
+      answered: [
+        ...picked.answered,
+        { step: step('why'), values: {}, at: '2026-10-14T00:02:00.000Z' },
+      ],
     };
     expect(
       askChanges(Option.some(picked), skipped).map((c) => [c.kind, c.answers, c.summary]),

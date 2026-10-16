@@ -25,6 +25,7 @@ import {
   Effect,
   Exit,
   Fiber,
+  FileSystem,
   Layer,
   Option,
   Path,
@@ -47,7 +48,9 @@ import {
 import { Base64 } from 'effect/encoding';
 import { TestClock } from 'effect/testing';
 import { labUrls } from '../core/api.ts';
+import { Ask, AskName } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
+import { CatalogueJson, emptyCatalogue } from '../core/catalogue.ts';
 import { Segment } from '../core/segment.ts';
 import { currentOf, moveForward, productionsOf } from '../core/production.ts';
 import { AskStore } from './ask-store.ts';
@@ -68,12 +71,15 @@ import {
   mcpBound,
   mcpPost,
   mcpSession,
-  noRenders,
   printingTo,
+  reviewMedia,
   text,
 } from './testing.ts';
 
 const STRANGER = 'x.example.net';
+
+/** The page step of a one-page ask, by its name as the lab decodes it. */
+const ONE_PAGE = Schema.decodeSync(AskName)('ask');
 
 const board: BoardFile = {
   film: 'f',
@@ -91,18 +97,30 @@ const board: BoardFile = {
           refs: [],
           at: '2026-10-14T00:00:00.000Z',
         },
+        {
+          n: 2,
+          file: Segment.make('cold.judge.2.png'),
+          sha256: 's2',
+          made: 'import',
+          refs: [],
+          at: '2026-10-14T01:00:00.000Z',
+        },
       ],
     },
   ],
   approvals: [],
 };
 
-/** Film `f` with a board panel and its try's image, and a still an agent made outside the lab. */
+/**
+ * Film `f` with a board panel and its two tries' images (none kept: the
+ * Board shows the first), and a still an agent made outside the lab.
+ */
 const files = () =>
   new Map<string, Uint8Array>([
     ['/films/f/scenes/index.ts', text('export {};\n')],
     ['/films/f/board.json', text(Schema.encodeSync(BoardFileJson)(board))],
     ['/films/f/board/cold.judge.1.png', text('the judge')],
+    ['/films/f/board/cold.judge.2.png', text('the judge again')],
     ['/work/judge-calmer.png', text('a calmer judge')],
     // A set of the same folder's name in another root (`reviewAt` names it).
     [
@@ -112,23 +130,27 @@ const files = () =>
     ['/elsewhere/judge-faces/calm.png', text('a calm judge')],
   ]);
 
-/** The review rooted at the lab's own out/ (`FILMS_OUT`, here its default under the working folder), then `others`. */
+/**
+ * The review itself rooted at the lab's own out/ (`FILMS_OUT`, here its
+ * default under the working folder), then `others`: its index read and kept,
+ * as the page's is, until a write drops it.
+ */
 const reviewAt = (others: ReadonlyArray<{ readonly label: string; readonly path: string }>) =>
-  Layer.effect(
-    Review,
-    Effect.gen(function* () {
-      const review = yield* Review;
-      const path = yield* Path.Path;
-      return Review.of({
-        ...review,
+  Layer.unwrap(
+    Effect.map(Path.Path, (path) =>
+      Review.layer({
         roots: [{ label: 'spare', path: path.resolve('out') }, ...others],
-      });
-    }),
-  ).pipe(Layer.provide([noRenders, Path.layer]));
+        cache: '/cache',
+        phoneOver: 1_000_000,
+        maxVideo: 10_000_000,
+        phoneCopies: false,
+      }),
+    ),
+  ).pipe(Layer.provide([reviewMedia([]), RenderCatalogue.layer, Path.layer]));
 const reviewAtOut = reviewAt([]);
 
 const providedWith =
-  (review: typeof reviewAtOut) =>
+  <RR>(review: Layer.Layer<Review, never, RR>) =>
   <A, E, R>(self: Effect.Effect<A, E, R>) =>
     self.pipe(
       Effect.scoped,
@@ -183,6 +205,33 @@ describe('who may use the MCP', () => {
         }),
       ),
   );
+
+  it.effect(
+    'a client ends its session as the MCP spec says: a DELETE with no body and no type, then the lab forgets it',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab } = yield* labWithMcp;
+          const { session } = yield* mcpSession(lab);
+          // As the MCP SDK's `terminateSession` sends it: the session's headers, nothing else.
+          const end = () =>
+            Effect.promise(() =>
+              lab(
+                new Request(`${MCP_BASE.slice(0, -1)}/mcp`, {
+                  method: 'DELETE',
+                  headers: {
+                    'mcp-session-id': session,
+                    'mcp-protocol-version': '2025-06-18',
+                  },
+                }),
+                mcpBound,
+              ).then((r) => r.status),
+            );
+          expect(yield* end()).toBe(204);
+          expect(yield* end()).toBe(404);
+        }),
+      ),
+  );
 });
 
 describe('the lab as an MCP server', () => {
@@ -212,6 +261,7 @@ describe('the lab as an MCP server', () => {
             'close_ask',
             'decide',
             'note',
+            'forward',
             'check',
             'cues',
             'journal',
@@ -288,6 +338,17 @@ describe('the lab as an MCP server', () => {
         expect(
           (yield* tool('request_tweak', { film: 'f', panel: 'cold.x', text: 'x' })).refused,
         ).toContain('no panel cold.x');
+        expect(
+          (yield* tool('request_tweak', { film: 'f', panel: 'cold.judge', text: 'x', try: 9 }))
+            .refused,
+        ).toContain('panel cold.judge has no try 9; its tries are 1, 2');
+        const asked = yield* tool('request_tweak', {
+          film: 'f',
+          panel: 'cold.judge',
+          text: 'from the second',
+          try: 2,
+        });
+        expect(asked.note.panel).toEqual({ id: 'cold.judge', try: 2, ask: 'tweak' });
         const published = yield* tool('publish_set', {
           name: 'judge-faces',
           files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
@@ -319,10 +380,220 @@ describe('the lab as an MCP server', () => {
         const seen = yield* tool('changes', { since: cursor });
         expect(seen.changes.map((c: { kind: string }) => c.kind)).toEqual([
           'tweak.requested',
+          'tweak.requested',
           'set.published',
         ]);
       }),
     ),
+  );
+});
+
+describe('a set published through the MCP', () => {
+  it.effect(
+    "is refused into a film's project folder, and when a variant or its notes is a file the folder lacks",
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const out = path.resolve('out');
+          yield* fs.makeDirectory(path.join(out, 'old-render'), { recursive: true });
+          yield* fs.writeFileString(
+            path.join(out, 'old-render', 'catalogue.json'),
+            yield* Schema.encodeEffect(CatalogueJson)(emptyCatalogue('old-render')),
+          );
+          const { lab } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          const publish = (name: string, manifest: Schema.Json, files: Schema.Json = []) =>
+            tool('publish_set', { name, files, manifest });
+          // Film f's own folder, and a folder a catalogue keeps: the review shows them as projects.
+          expect((yield* publish('f', { title: 'x' })).refused).toContain(
+            "film f's project folder",
+          );
+          expect((yield* publish('old-render', { title: 'x' })).refused).toContain(
+            'project folder',
+          );
+          const clip = (variants: Schema.Json) => ({ sets: { cold: { variants } } });
+          const video = { from: '/work/judge-calmer.png', to: 'cold.b.mp4' };
+          // A variant's own file, its notes, and one with neither copy beside it.
+          expect((yield* publish('cuts', clip({ a: { file: 'a.mp4' } }))).refused).toContain(
+            'a.mp4',
+          );
+          expect(
+            (yield* publish('cuts', clip({ b: { notes: 'b.md' } }), [video])).refused,
+          ).toContain('b.md');
+          const implicit = (yield* publish('cuts', clip({ c: {} }))).refused;
+          expect(implicit).toContain('cold.c.share.mp4');
+          expect(implicit).toContain('cold.c.mp4');
+          // A variant with no file is its share copy or its master: either is enough.
+          const published = yield* publish('cuts', clip({ b: {} }), [video]);
+          expect(published.set).toBe('spare/cuts');
+        }),
+      ),
+  );
+});
+
+describe('a refused publish', () => {
+  it.effect("writes nothing: the set's files and its review.json stay as they were", () =>
+    provided(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        yield* fs.writeFileString('/work/one.png', 'one');
+        yield* fs.writeFileString('/work/two.png', 'two');
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        const dir = path.join(path.resolve('out'), 'faces');
+        const first = yield* tool('publish_set', {
+          name: 'faces',
+          files: [{ from: '/work/one.png', to: 'a.png' }],
+          manifest: { title: 'Faces', images: ['a.png'] },
+        });
+        expect(first.set).toBe('spare/faces');
+        const manifest = yield* fs.readFileString(path.join(dir, 'review.json'));
+        // Each publish copies two.png over a.png and into a new b.png, and names a file the folder lacks.
+        const over = [
+          { from: '/work/two.png', to: 'a.png' },
+          { from: '/work/two.png', to: 'b.png' },
+        ];
+        const clip = (variants: Schema.Json) => ({ sets: { cold: { variants } } });
+        for (const [manifestPatch, lacking] of [
+          [{ images: ['a.png', 'b.png', 'missing.png'] }, 'missing.png'],
+          [{ docs: ['missing.md'] }, 'missing.md'],
+          [clip({ a: { file: 'a.mp4' } }), 'a.mp4'],
+          [clip({ b: { file: 'b.png', notes: 'b.md' } }), 'b.md'],
+        ] as const) {
+          expect(
+            (yield* tool('publish_set', { name: 'faces', files: over, manifest: manifestPatch }))
+              .refused,
+          ).toContain(lacking);
+          expect(yield* fs.readFileString(path.join(dir, 'a.png'))).toBe('one');
+          expect(yield* fs.exists(path.join(dir, 'b.png'))).toBe(false);
+          expect(yield* fs.readFileString(path.join(dir, 'review.json'))).toBe(manifest);
+        }
+        // A name a copy brings is there: the same publish with no missing name lands whole.
+        const landed = yield* tool('publish_set', {
+          name: 'faces',
+          files: over,
+          manifest: { images: ['a.png', 'b.png'] },
+        });
+        expect(landed.set).toBe('spare/faces');
+        expect(yield* fs.readFileString(path.join(dir, 'a.png'))).toBe('two');
+        expect(yield* fs.readFileString(path.join(dir, 'b.png'))).toBe('two');
+      }),
+    ),
+  );
+});
+
+describe('the review after an MCP write', () => {
+  it.effect('lists a set published and a render recorded at its next read', () =>
+    provided(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        const review = yield* Review;
+        // The read a page makes: kept for a while, so a write must drop it.
+        const listed = Effect.map(review.index(false), (index) =>
+          index.folders.map((f) => [f.ref, f.images.length]),
+        );
+        expect(yield* listed).toEqual([]);
+        yield* tool('publish_set', {
+          name: 'judge-faces',
+          files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
+          manifest: { title: 'Judge faces', images: ['calmer.png'] },
+        });
+        expect(yield* listed).toEqual([['spare/judge-faces', 1]]);
+        yield* fs.makeDirectory(path.resolve('out', 'f'), { recursive: true });
+        yield* fs.writeFileString(path.resolve('out', 'f', 'cold.png'), 'a still');
+        const recorded = yield* tool('record_render', {
+          film: 'f',
+          render: {
+            address: { _tag: 'Film' },
+            variant: 'base',
+            kind: 'stills',
+            settings: { scale: 1, captions: false },
+            stamp: { key: 'k1' },
+            files: { images: ['cold.png'] },
+          },
+        });
+        expect(recorded.set).toBe('spare/f');
+        expect((yield* listed).map(([ref]) => ref).toSorted()).toEqual([
+          'spare/f',
+          'spare/judge-faces',
+        ]);
+      }),
+    ),
+  );
+});
+
+describe('the sets the MCP lists', () => {
+  it.effect(
+    'the folders the review lists, by the kind it reads them as: one nested below the first level, a project folder by its catalogue though a manifest sits beside it; none with nothing to review, and no record that does not decode; the feed hears a nested one published',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const out = path.resolve('out');
+          const put = (rel: string, body: string) =>
+            Effect.gen(function* () {
+              const file = path.join(out, rel);
+              yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+              yield* fs.writeFileString(file, body);
+            });
+          yield* put('f/review.json', '{"title":"Not a montage"}');
+          yield* put('f/cold.png', 'a still');
+          yield* put('broken/review.json', '{"title":');
+          // Records with nothing to review: a project's empty catalogue, a manifest with a title alone.
+          yield* put(
+            'g/catalogue.json',
+            yield* Schema.encodeEffect(CatalogueJson)(emptyCatalogue('g')),
+          );
+          yield* put('empty/review.json', '{"title":"Nothing yet"}');
+          const { lab, events } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          yield* tool('record_render', {
+            film: 'f',
+            render: {
+              address: { _tag: 'Film' },
+              variant: 'base',
+              kind: 'stills',
+              settings: { scale: 1, captions: false },
+              stamp: { key: 'k1' },
+              files: { images: ['cold.png'] },
+            },
+          });
+          // The feed's first look takes what is there as it stands.
+          yield* events.look;
+          const { cursor } = yield* tool('overview');
+          yield* put('stories/rbf/deep.png', 'deep');
+          yield* put('stories/rbf/review.json', '{"title":"Deep","images":["deep.png"]}');
+          const listed = yield* tool('sets');
+          const rows = listed.sets.map((s: { set: string; kind: string; title?: string }) => [
+            s.set,
+            s.kind,
+          ]);
+          expect(rows.toSorted()).toEqual(
+            [
+              ['spare/f', 'project'],
+              ['spare/stories/rbf', 'montage'],
+            ].toSorted(),
+          );
+          // The same sets as the review's own index.
+          const index = yield* (yield* Review).index(true);
+          expect(index.folders.map((f) => f.ref).toSorted()).toEqual(
+            rows.map(([set]: ReadonlyArray<string>) => set).toSorted(),
+          );
+          expect((yield* tool('overview')).sets.length).toBe(2);
+          yield* events.look;
+          const seen = yield* tool('changes', { since: cursor });
+          expect(seen.changes.map((c: { kind: string; set: string }) => [c.kind, c.set])).toEqual([
+            ['set.published', 'spare/stories/rbf'],
+          ]);
+        }),
+      ),
   );
 });
 
@@ -364,6 +635,23 @@ describe('asks through the MCP', () => {
         });
         expect(looped.refused).toContain('the ask may not render');
         expect(looped.refused).toContain('step a goes on to itself');
+        const keyOnly = yield* tool('ask', {
+          ...who,
+          machine: {
+            start: 'a',
+            steps: {
+              a: { blocks: [{ kind: 'prose', text: 'a' }], next: [{ to: 'done' }] },
+              constructor: { end: true },
+              done: { end: true },
+            },
+          },
+        });
+        const { message: keyRefused } = yield* Schema.decodeUnknownEffect(
+          Schema.fromJsonString(Schema.Struct({ message: Schema.String })),
+        )(keyOnly.refused);
+        expect(keyRefused).toContain("Invalid parameters for tool 'ask'");
+        expect(keyRefused).toContain('every object answers to "constructor"');
+        expect(keyRefused).toContain('at ["machine"]["steps"]["constructor"]');
         expect((yield* tool('ask', who)).refused).toContain('give `blocks`');
         const wordsBesideChoice = yield* tool('ask', {
           ...who,
@@ -690,7 +978,7 @@ describe('film production ask', () => {
           ]);
           // The page: a choice, and words beside it the owner may leave out.
           const record = yield* (yield* AskStore).read(made.ask);
-          expect(record.ask.steps['ask']).toEqual({
+          expect((yield* Schema.encodeEffect(Ask)(record.ask)).steps['ask']).toEqual({
             blocks: [
               {
                 kind: 'choose',
@@ -817,7 +1105,7 @@ describe('film production ask', () => {
             /^asked a[0-9a-f]{10} on f: filed on its timeline once closed$/,
           );
           const id = words.lines[0]?.split(' ')[1] ?? '';
-          expect((yield* (yield* AskStore).read(id)).ask.steps['ask']).toMatchObject({
+          expect((yield* (yield* AskStore).read(id)).ask.steps[ONE_PAGE]).toMatchObject({
             blocks: [{ kind: 'free_text', id: 'answer', label: 'Your answer', required: true }],
           });
           // Nothing waits on the timeline for an ask that names no set, until it is closed.
@@ -1050,9 +1338,105 @@ describe("the owner's word through the MCP", () => {
           expect(
             (yield* tool('decide', { ...quoted, set: 'judge-faces', variant: 'calm' })).refused,
           ).toBe("`variant` is one of a choice's: name the `point`");
+          // `film production decide` files through the same store, so it refuses the same word.
+          const cli = (args: ReadonlyArray<string>) =>
+            productionCli((request) => lab(request, mcpBound), args);
+          expect((yield* cli(['decide', 'f', 'x', '--point', 'render:cold'])).failed).toBe(
+            'WordUnaimed: `point` is a choice in a set: name the `set`',
+          );
+          expect(
+            (yield* cli(['note', 'f', 'x', '--set', 'judge-faces', '--variant', 'calm'])).failed,
+          ).toBe("WordUnaimed: `variant` is one of a choice's: name the `point`");
           expect(Option.getOrThrow(yield* (yield* ProductionStore).read('f')).said).toEqual([]);
         }),
       ),
+  );
+
+  it.effect('moves a production forward only on the decision of his it names', () =>
+    provided(
+      Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        yield* productionWithSet(tool);
+        const productions = yield* ProductionStore;
+        yield* productions.start('g', {
+          title: 'G',
+          film: Option.none(),
+          blurb: Option.none(),
+          first: 'v1',
+          at: 0,
+        });
+        const word = { production: 'f', by: 'painter' };
+        const undecided = (v: number) =>
+          `f v${v} holds no decision of the owner's: file the word he gave with \`decide\` (his own words, verbatim), or ask him (\`ask\`), then move forward`;
+        const unknown = (v: number, at: number, held: ReadonlyArray<readonly [number, string]>) =>
+          `f v${v} holds no decision of the owner's at ${at}: name one it holds by its \`at\`: ${held.map(([a, t]) => `${a} "${t}"`).join(', ')}`;
+        const filedAt = (answer: { readonly said: { readonly at: number } }) => answer.said.at;
+        const move = (decision: number, after = 1) => ({
+          production: 'f',
+          after,
+          title: 'The calm judge',
+          decision,
+        });
+        expect((yield* tool('forward', move(0))).refused).toBe(undecided(1));
+        // A note decides nothing.
+        const noted = filedAt(
+          yield* tool('note', { ...word, text: 'Warmer', quote: 'warm it up' }),
+        );
+        expect((yield* tool('forward', move(noted))).refused).toBe(undecided(1));
+        yield* TestClock.adjust('1 minute');
+        const cold = filedAt(
+          yield* tool('decide', { ...word, text: 'The cold judge', quote: 'the cold one' }),
+        );
+        yield* TestClock.adjust('1 minute');
+        const calmer = filedAt(
+          yield* tool('decide', { ...word, text: 'Warmer title card', quote: 'and warm the card' }),
+        );
+        const held = [
+          [calmer, 'Warmer title card'],
+          [cold, 'The cold judge'],
+        ] as const;
+        // A time that is no decision of his (the note's), and another production's decision.
+        expect((yield* tool('forward', move(noted))).refused).toBe(unknown(1, noted, held));
+        yield* TestClock.adjust('1 minute');
+        const elsewhere = filedAt(
+          yield* tool('decide', { ...word, production: 'g', text: 'G moves', quote: 'move g' }),
+        );
+        expect((yield* tool('forward', move(elsewhere))).refused).toBe(unknown(1, elsewhere, held));
+        yield* TestClock.adjust('1 minute');
+        // The decision named, not the newest: the move is on the cold judge.
+        expect(yield* tool('forward', move(cold))).toEqual({
+          production: 'f',
+          version: 2,
+          title: 'The calm judge',
+          because: 'The cold judge',
+          links: {
+            local: `${MCP_BASE}productions/f?v=2`,
+            phone: `${MCP_PHONE}productions/f?v=2`,
+          },
+        });
+        expect((yield* tool('forward', move(cold))).refused).toBe(
+          'f is at v2 now, not v1: read it again before moving forward',
+        );
+        // The decision moved it into v2: v2 holds none of its own yet, and v1's is not v2's.
+        expect((yield* tool('forward', move(cold, 2))).refused).toBe(undecided(2));
+        yield* TestClock.adjust('1 minute');
+        const next = filedAt(
+          yield* tool('decide', { ...word, text: 'The animatic', quote: 'on to the animatic' }),
+        );
+        expect((yield* tool('forward', move(cold, 2))).refused).toBe(
+          unknown(2, cold, [[next, 'The animatic']]),
+        );
+        expect((yield* tool('forward', { ...move(cold), production: 'nope' })).refused).toBe(
+          'no production nope: film production new nope --title "<title>"',
+        );
+        const file = Option.getOrThrow(yield* productions.read('f'));
+        expect(file.versions.map((v) => [v.title, v.because])).toEqual([
+          ['the board', Option.none()],
+          ['The calm judge', Option.some('The cold judge')],
+        ]);
+      }),
+    ),
   );
 
   it.effect('refuses a set two roots hold, by its folder or its ref, for an ask too', () =>

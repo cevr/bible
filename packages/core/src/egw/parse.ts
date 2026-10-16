@@ -223,6 +223,50 @@ export function isChapterHeading(elementType: Option.Option<string>): boolean {
   return ['chapter', 'heading', 'title'].includes(type);
 }
 
+/** The element subtypes that frame a text rather than say anything: a
+ *  letter's or manuscript's date, place, addressee, salutation and signature,
+ *  a periodical's byline and publication line, a picture's caption, a section
+ *  break, and the scripture or quotation set at the head of a reading. Each is
+ *  short and often made of the query's own words, so BM25 ranks it above the
+ *  prose it frames. */
+const FURNITURE_SUBTYPES: ReadonlySet<string> = new Set([
+  'addressee',
+  'bibletext',
+  'center',
+  'date',
+  'devotionaltext',
+  'egwsignatureline',
+  'introquote',
+  'letterhead',
+  'ltaddress',
+  'ltaddressee',
+  'ltdate',
+  'ltplace',
+  'ltpubinfo',
+  'ltsalutation',
+  'msdate',
+  'msplace',
+  'mspubinfo',
+  'mssalutation',
+  'mstitle',
+  'periodicalauthor',
+  'picture',
+  'place',
+  'right',
+  'salutation',
+  'signaturedate',
+  'signatureline',
+  'signatureplace',
+  'signaturesource',
+  'thoughtbreak',
+]);
+
+/** Whether a paragraph is furniture (`FURNITURE_SUBTYPES`) by its element
+ *  subtype. */
+export function isFurniture(elementSubtype: Option.Option<string>): boolean {
+  return Option.exists(elementSubtype, (subtype) => FURNITURE_SUBTYPES.has(subtype.toLowerCase()));
+}
+
 /**
  * Extract heading level (1–6) from element type, or 0 if not a heading.
  */

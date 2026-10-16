@@ -18,7 +18,8 @@ import * as Ask from './parts.tsx';
  * pending row's inset, a note's smaller title, and the script's reader run
  * out over the gutter with its name). The rules that reach past the ask are
  * the laptop's: the main column keeps no bottom room (`.rv-main:has(.ak-send)`),
- * and the dock no margin, while the ask's Send is held at its floor. What
+ * the dock no margin, and a still opened full size (`.rv-lightbox`) sits above
+ * the dock, while the ask's Send is held at its floor. What
  * else differs is the parts' own: the reader leaves out the day's spend by
  * its `cost` prop, and a video's quiet play is the player's (`PlayedAlone`'s
  * `quiet`).
@@ -85,6 +86,11 @@ const ASK_CSS = `
   /* The held Send is the page's floor: the main column keeps no room under it, nor the dock a margin. */
   .rv-main:has(.ak-send){padding-bottom:0}
   .rv-main .sh-dock.ak-send:not(.pj-dock){margin-bottom:0}
+  /* A still opened full size keeps its group above the held Send: the dock's height is the
+     lightbox's floor and comes off the still's. Read through the Send (body:has), so it holds only
+     while the Send is drawn and outranks the shared .rv-lightbox in whichever order the sheets load. */
+  body:has(.ak-send) .rv-lightbox{padding-bottom:calc(var(--s-4) + var(--dock-h))}
+  body:has(.ak-send) .rv-lightbox img{max-height:calc(100dvh - 2 * var(--s-4) - var(--dock-h) - var(--s-2) - var(--lh-2))}
 }
 `;
 

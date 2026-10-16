@@ -487,6 +487,47 @@ export class VersionMoved extends Schema.TaggedError<VersionMoved>()('VersionMov
   }
 }
 
+/** A move forward an agent asked of a version that holds no decision of the owner's: only his word moves a production. */
+export class Undecided extends Schema.TaggedError<Undecided>()('Undecided', {
+  production: Schema.String,
+  /** The version open now. */
+  version: Schema.Int,
+}) {
+  override get message() {
+    return `${this.production} v${this.version} holds no decision of the owner's: file the word he gave with \`decide\` (his own words, verbatim), or ask him (\`ask\`), then move forward`;
+  }
+}
+
+/** A move forward an agent asked on a decision the version open now does not hold: the move names the decision of his it is on. */
+export class DecisionUnknown extends Schema.TaggedError<DecisionUnknown>()('DecisionUnknown', {
+  production: Schema.String,
+  /** The version open now. */
+  version: Schema.Int,
+  /** The time the agent named. */
+  at: Schema.Finite,
+  /** The decisions the version holds, newest first. */
+  held: Schema.Array(Schema.Struct({ at: Schema.Finite, text: Schema.String })),
+}) {
+  override get message() {
+    return `${this.production} v${this.version} holds no decision of the owner's at ${this.at}: name one it holds by its \`at\`: ${this.held.map((d) => `${d.at} "${d.text}"`).join(', ')}`;
+  }
+}
+
+/** The owner's word aimed at a choice with no set, or a variant with no choice: what it is about does not say where. */
+export class WordUnaimed extends Schema.TaggedError<WordUnaimed>()('WordUnaimed', {
+  /** What it names without what holds it: `point` (no `set`) or `variant` (no `point`). */
+  names: Schema.Literals(['point', 'variant']),
+}) {
+  override get message() {
+    return (
+      {
+        point: '`point` is a choice in a set: name the `set`',
+        variant: "`variant` is one of a choice's: name the `point`",
+      } as const
+    )[this.names];
+  }
+}
+
 /** A change to a film's storyboard it cannot make: a panel or try it lacks, a pick before approval, a card its line does not say. */
 export class BoardRefused extends Schema.TaggedError<BoardRefused>()('BoardRefused', {
   film: Schema.String,

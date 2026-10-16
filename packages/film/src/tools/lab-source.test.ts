@@ -87,7 +87,13 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
         BoardStore.layer.pipe(Layer.provide(FilmFolder.layer(films))),
         AskStore.layer.pipe(
           Layer.provide(AskMaterials.layer),
-          Layer.provide([BoardStore.layer, noStudio, noRenders, freshFilm({})]),
+          Layer.provide([
+            BoardStore.layer,
+            ProductionStore.layer,
+            noStudio,
+            noRenders,
+            freshFilm({}),
+          ]),
           Layer.provide(FilmFolder.layer(films)),
         ),
         noStudio,

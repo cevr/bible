@@ -28,11 +28,12 @@ import { RuntimeContext } from 'alchemy';
 import * as Cloudflare from 'alchemy/Cloudflare';
 import { Stage } from 'alchemy/Stage';
 import * as D1Client from '@effect/sql-d1/D1Client';
-import { Effect, Layer, Option, Scope } from 'effect';
+import { Effect, Exit, Layer, Option, Scope, Stream } from 'effect';
 import { Etag, HttpPlatform, HttpRouter } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
+import { APPARATUS_AUTHORS } from '@bible/core/writings';
 import {
   MODEL_FINGERPRINT,
   QueryEmbedder,
@@ -47,7 +48,7 @@ import { VectorIndexLoad } from '../vector-index.js';
 import { D1Atomic } from './d1-atomic.ts';
 import { Corpus, SyncReports, Vectors } from './resources.ts';
 import { DOMAIN, SERVED_FROM, type ServedFrom, WORKER_NAME } from './site.ts';
-import { nameOfKey, reportKey, type ReportStore, syncRoutes } from './sync-pages.ts';
+import { nameOfKey, type ReportStore, type StoredFile, syncRoutes } from './sync-pages.ts';
 import { vectorizeNeighbors, type VectorizeQuery } from './vectorize.ts';
 import { EMBEDDING_MODEL, workersAiEmbedder } from './workers-ai.ts';
 
@@ -78,6 +79,21 @@ interface Bindings {
   readonly ai: Cloudflare.Workers.AIClient;
 }
 
+/** An R2 object as the report pages send it: its own stream when the
+ *  platform offers one, so the bytes go to the response untouched; else its
+ *  text, read once. */
+const storedFile = (object: Cloudflare.R2.ObjectBody) =>
+  Option.match(Option.fromNullishOr(object.readable), {
+    onSome: (readable) =>
+      Effect.succeedSome<StoredFile>({ body: readable, text: object.text().pipe(Effect.orDie) }),
+    onNone: () =>
+      object
+        .text()
+        .pipe(
+          Effect.map((text) => Option.some<StoredFile>({ body: text, text: Effect.succeed(text) })),
+        ),
+  });
+
 /** The search's services over the Worker's bindings. */
 const searchLayer = (bindings: Bindings) => {
   const sql = D1Client.layer({ db: bindings.corpus });
@@ -88,10 +104,37 @@ const searchLayer = (bindings: Bindings) => {
       return SearchCorpusSources.of({ _tag: 'wired', sources: { paragraphs } });
     }),
   ).pipe(Layer.provide(EGWParagraphDatabase.layerExisting), Layer.provide(D1Atomic));
-  const neighbors = Layer.succeed(
+  const neighbors = Layer.effect(
     VectorNeighbors,
-    VectorNeighbors.of(vectorizeNeighbors(bindings.vectors, MODEL_FINGERPRINT)),
-  );
+    Effect.gen(function* () {
+      const paragraphs = yield* EGWParagraphDatabase;
+      // The books apparatus by author, which the vectors' metadata cannot name
+      // (`vectorizeFilter`). Read once an hour per isolate; a failed read is
+      // read again on the next search, which meanwhile filters only by the
+      // bodies it joins.
+      const read = yield* Effect.cachedWithTTL(
+        Stream.fromIterable(APPARATUS_AUTHORS).pipe(
+          Stream.flatMap((author) => paragraphs.getBooksByAuthor(author)),
+          Stream.map((book) => book.book_code),
+          Stream.runCollect,
+        ),
+        (exit) => {
+          if (Exit.isSuccess(exit)) return '1 hour';
+          return 0;
+        },
+      );
+      const apparatusBooks = read.pipe(
+        Effect.catch((error) =>
+          Effect.logWarning('search.apparatusBooks.unavailable', error).pipe(
+            Effect.as<readonly string[]>([]),
+          ),
+        ),
+      );
+      return VectorNeighbors.of(
+        vectorizeNeighbors(bindings.vectors, MODEL_FINGERPRINT, apparatusBooks),
+      );
+    }),
+  ).pipe(Layer.provide(EGWParagraphDatabase.layerExisting), Layer.provide(D1Atomic));
   const embedder = Layer.succeed(
     QueryEmbedder,
     QueryEmbedder.of(
@@ -136,12 +179,12 @@ export default class Search extends Cloudflare.Worker<Search>()(
           cursor = Option.some(page.cursor);
         }
       }),
-      read: (name) =>
-        reports.get(reportKey(name)).pipe(
+      open: (key) =>
+        reports.get(key).pipe(
           Effect.flatMap((object) =>
             Option.match(Option.fromNullishOr(object), {
-              onNone: () => Effect.succeed(Option.none<string>()),
-              onSome: (body) => Effect.asSome(body.text()),
+              onNone: () => Effect.succeed(Option.none<StoredFile>()),
+              onSome: (body) => storedFile(body),
             }),
           ),
           Effect.provide(RuntimeContext.phantom),

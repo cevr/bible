@@ -94,15 +94,16 @@ import { EGWParagraphDatabase, type ParagraphChangeRow } from '@bible/core/egw-d
 
 import {
   BOOK_VECTORS_PAGE,
-  BookVectorsFailed,
+  type BookVectorsFailed,
   bookVectorsPage,
   type BookVectorsScope,
+  deleteVectorIds,
   removedVectorIds,
 } from './book-vectors.ts';
 import { D1Atomic } from './d1-atomic.ts';
 import { Corpus, SyncReports, Vectors } from './resources.ts';
 import { DOMAIN } from './site.ts';
-import { reportKey } from './sync-pages.ts';
+import { reportKey, reportPage, reportPageKey } from './sync-pages.ts';
 import { MAIL_LIMIT, SyncOutcome, syncMail } from './sync-mail.ts';
 import {
   type ChangesByBook,
@@ -148,6 +149,11 @@ const RECHECK_MAX = 1500;
 
 /** Where a published report is read: the search's own page for it. */
 const REPORT_PAGE = `https://${DOMAIN}/sync/`;
+
+/** The most changes a report's page quotes. The rest are in its whole
+ *  Markdown, which the page links: a page stays small enough to load in well
+ *  under a second however many paragraphs a run changed. */
+const PAGE_QUOTES = 300;
 
 /** A report's name: its run's time, sortable, so the newest lists last. */
 const reportName = (at: string) => at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
@@ -362,17 +368,7 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
             `unindex ${String(bookId)}`,
             Effect.gen(function* () {
               const ids = yield* removedVectorIds(bookId);
-              const index = yield* vectors.raw;
-              // Vectorize deletes at most a thousand ids a call.
-              for (let at = 0; at < ids.length; at += 1000) {
-                const chunk = ids.slice(at, at + 1000);
-                yield* Effect.tryPromise({
-                  try: () => index.deleteByIds(chunk),
-                  catch: (cause) =>
-                    BookVectorsFailed.make({ bookId, reason: `delete: ${String(cause)}` }),
-                });
-              }
-              return ids.length;
+              return yield* deleteVectorIds(bookId, ids, yield* vectors.raw);
             }).pipe(Effect.provide(readLayer)),
             { retries: RETRIES },
           );
@@ -446,6 +442,15 @@ export default class Sync extends Cloudflare.Worker<Sync>()(
               yield* reports.put(reportKey(name), syncReport(run, changes, at), {
                 httpMetadata: { contentType: 'text/markdown; charset=utf-8' },
               });
+              const pageForm = {
+                quoteLimit: Option.some(PAGE_QUOTES),
+                markdownHref: `${name}.md`,
+              };
+              yield* reports.put(
+                reportPageKey(name),
+                reportPage(name, syncReport(run, changes, at, pageForm)),
+                { httpMetadata: { contentType: 'text/html; charset=utf-8' } },
+              );
               const all = updateChanges(run, changes);
               return {
                 url: `${REPORT_PAGE}${name}`,

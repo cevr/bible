@@ -189,8 +189,7 @@ a.rv-card:hover { background: var(--surface-2); }
  * The lightbox (\`Zoom\`), over the tab bar and dock, fills the viewport: rings inside. The still
  * and its caption are one group held in the middle, the caption right under the still; the still
  * is at most the view less the padding and the caption's line, so the caption never sits low on
- * the dimmed tab bar's labels. On a laptop the dock is held at the window's floor, so the group
- * is held above it too: the dock's height is the lightbox's floor and taken from the still's.
+ * the dimmed tab bar's labels.
  */
 .rv-lightbox-backdrop { position: fixed; inset: 0; background: var(--backdrop-deep); z-index: var(--cmd-layer); }
 .rv-lightbox {
@@ -200,10 +199,6 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-lightbox[role]:focus-visible{box-shadow:var(--focus-ring-inset)}
 .rv-lightbox img { max-width: 100%; max-height: calc(100dvh - 2 * var(--s-4) - var(--s-2) - var(--lh-2)); }
 .rv-lightbox-caption { margin: 0; color: var(--text-2); font-size: var(--fs-2); font-weight: inherit; }
-@media ${WIDE} {
-  .rv-lightbox { padding-bottom: calc(var(--s-4) + var(--dock-h)); }
-  .rv-lightbox img { max-height: calc(100dvh - 2 * var(--s-4) - var(--dock-h) - var(--s-2) - var(--lh-2)); }
-}
 .rv-note {
   background: var(--surface-1); padding: var(--s-3) var(--s-4); font-size: var(--fs-3); line-height: var(--lh-3);
   min-width: 0; overflow-wrap: anywhere;

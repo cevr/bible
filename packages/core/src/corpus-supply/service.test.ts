@@ -2,7 +2,7 @@ import { Effect, Layer, Option, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
-import { ArchivedParagraph, PublicationArchive } from '../writings/archive.js';
+import { ArchiveChapter, ArchivedParagraph, PublicationArchive } from '../writings/archive.js';
 import {
   Paragraph,
   Publication,
@@ -13,9 +13,25 @@ import {
 } from '../writings/model.js';
 import { CorpusSourceUnavailableError } from './errors.js';
 import { CorpusSupply } from './service.js';
-import { Target, WritingsContribution, unknownProvenance, type CorpusProvenance } from './model.js';
+import {
+  Target,
+  type WritingsContribution,
+  unknownProvenance,
+  type CorpusProvenance,
+} from './model.js';
 import { WritingsAssetRecipe } from './source.js';
 import { BibleArtifact } from './file-artifact.js';
+
+/** A whole archive as a publication streamed in one chapter. */
+const publicationStream = (archive: PublicationArchive) => ({
+  publication: archive.publication,
+  chapters: Stream.make(
+    ArchiveChapter.make({
+      paragraphs: archive.paragraphs,
+      bibleReferences: archive.bibleReferences,
+    }),
+  ),
+});
 
 const id = publicationId(127);
 const code = publicationCode('PP');
@@ -47,10 +63,10 @@ const archive = PublicationArchive.make({
   ],
   bibleReferences: [],
 });
-const contribution = WritingsContribution.make({
+const contribution: WritingsContribution = {
   provenance: unknownProvenance('egw-api', '2026-07-20'),
-  archive,
-});
+  publication: publicationStream(archive),
+};
 
 const makeLayer = (options: {
   readonly needsSync: boolean;

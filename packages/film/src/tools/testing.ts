@@ -872,7 +872,8 @@ export const noRenders = Layer.succeed(
   Review.of({
     roots: [],
     index: () => unreviewed('index'),
-    written: unreviewed('written'),
+    // A write tells the review it wrote: with no review there is nothing to drop.
+    written: Effect.void,
     pictures: () => unreviewed('pictures'),
     renderVideo: () => unreviewed('renderVideo'),
     resolve: () => unreviewed('resolve'),
@@ -1817,7 +1818,7 @@ export const labInMemory = (
     BoardStore.layer.pipe(Layer.provide(FilmFolder.layer('/films'))),
     AskStore.layer.pipe(
       Layer.provide(AskMaterials.layer),
-      Layer.provide([BoardStore.layer, asking, film]),
+      Layer.provide([BoardStore.layer, ProductionStore.layer, asking, film]),
       Layer.provide(FilmFolder.layer('/films')),
     ),
     FilmFolder.layer('/films'),
@@ -1959,7 +1960,7 @@ export const mcpSession = Effect.fn('mcpSession')(function* (lab: LabFetch) {
         onFalse: () => result.structuredContent,
       }),
     );
-  return { call, tool };
+  return { call, tool, session: id.value };
 });
 
 /** The console a run prints to: each line it logs, offered to `lines`. */
@@ -2353,7 +2354,13 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
               BoardStore.layer.pipe(Layer.provide(FilmFolder.layer(films))),
               AskStore.layer.pipe(
                 Layer.provide(AskMaterials.layer),
-                Layer.provide([BoardStore.layer, noStudio, noRenders, freshFilm({})]),
+                Layer.provide([
+                  BoardStore.layer,
+                  ProductionStore.layer,
+                  noStudio,
+                  noRenders,
+                  freshFilm({}),
+                ]),
                 Layer.provide(FilmFolder.layer(films)),
               ),
             ).pipe(

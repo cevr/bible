@@ -30,14 +30,14 @@ const MAX_LIMIT = 100;
 const DEFAULT_CONTEXT = 1;
 const MAX_CONTEXT = 3;
 
-/** This surface never returns lookup apparatus.
+/** This surface never returns apparatus (`isApparatus`).
  *
- * A row like `TopIndex .Trouble, Troubles.61` is a see-also stub. It matches
- * a topical query on almost every term in it, so the indexes rank *well* for
- * exactly the queries this app is for and push the prose a reader came to
- * read off the page. Forced on rather than defaulted, because it is a
- * property of this surface; a reader who wants them can still select
- * `type=dictionary` explicitly, which names them positively. */
+ * A row like `TopIndex .Trouble, Troubles.61` is a see-also stub, and a
+ * reading plan's day or a study guide's question is the same: short, made of
+ * the query's own words, and about the writings rather than of them. They
+ * rank *well* for exactly the queries this app is for and push the prose a
+ * reader came to read off the page. Forced on rather than defaulted, because
+ * it is a property of this surface. */
 const NEVER_APPARATUS = true;
 
 const clamp = (raw: number, fallback: number, max: number): number => {

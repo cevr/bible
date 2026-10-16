@@ -43,7 +43,7 @@ when `FILM_LAB_HOSTS` names one).
 | `notes`         | a film's notes (`unresolved` by default, or `all`/`open`/`replied`/`resolved`), each with its link and its still's file |
 | `board`         | a film's board: panels, tries (image files on disk), kept, why, approvals, each panel's link                            |
 | `catalogue`     | a project folder's renders, approvals and comments (by `film` or `set`)                                                 |
-| `sets`, `set`   | the sets under the review roots (montage or project), and one set's `review.json`                                       |
+| `sets`, `set`   | the sets the review lists (montage or project, each with something to review), and one set's `review.json`              |
 | `reply`         | a reply on a note, by `agent` (`NotesStore.reply`): the page shows it in the thread                                     |
 | `resolve`       | marks a note done (`NotesStore.resolve`)                                                                                |
 | `request_tweak` | a tweak note on a board panel, its still the try shown (as the Board's Tweak writes one)                                |
@@ -55,6 +55,7 @@ when `FILM_LAB_HOSTS` names one).
 | `close_ask`     | closes an ask with `why`; with a production, files `Decided` (answered) or `Noted` (withdrawn), once, by ask id         |
 | `decide`        | files on a production's timeline a decision the owner made in chat, his words verbatim as `quote`                       |
 | `note`          | files the owner's feedback from chat on a production's timeline the same way: it decides nothing                        |
+| `forward`       | moves a production to its next version on the owner's decision it names, filed in the version open now; refused else    |
 | `look`          | stills of a scene as its files stand, each an image after its line (see [The easel's tools](#the-easels-tools))         |
 | `cues`          | each scene's placement, marks and named cues, as `film cues` prints them; one scene's when named                        |
 | `check`         | the scenes named (or the film) checked as drawn, `film check --draw`, the findings a page at a time                     |
@@ -441,8 +442,15 @@ record of versions and of what waits on the owner; asks file onto it rather than
   asker), `film production show` prints it (`by=…`) and the timeline shows "filed by". The `set` is its ref as
   `sets` lists it or its folder under its root, kept as the folder (`setNamed`, the CLI's `ask --set` reads
   folders the same way); a folder two roots hold is refused here and for `ask` alike. A `point` needs its `set`,
-  a `variant` its `point`; the production must keep a ledger (`film production new`). Each call files once: a
-  word filed twice is two words. Moving a production forward has no tool: it stays the owner's, through an ask.
+  a `variant` its `point` (`aimedWord`, in the store's `say`, so the CLI refuses the same); the production must
+  keep a ledger (`film production new`). Each call files once: a word filed twice is two words.
+- `forward {production, after, title, decision}` moves a production as `film production forward` does,
+  through the store's `forward`, only on the owner's word to move on: `decision` names one decision of his in
+  the version open now (filed by `decide`, or by an ask he answered) by its `at`, and the timeline records that
+  one as the reason (`forwardOnDecision`). A stale `after` is refused first, as the CLI refuses it
+  (`VersionMoved`); a version with no decision of his is refused (`Undecided`), and a `decision` it does not
+  hold, naming those it holds (`DecisionUnknown`). The decision stays his; the tool only carries it out
+  (HARNESS6-7).
 - Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the
   ledgers, and `production.*` feed kinds.
 

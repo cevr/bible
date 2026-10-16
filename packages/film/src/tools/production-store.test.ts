@@ -19,7 +19,7 @@ import {
   Result,
   Schema,
 } from 'effect';
-import { type ProductionFile, moveForward, withSaid } from '../core/production.ts';
+import { type OwnerWord, type ProductionFile, moveForward, withSaid } from '../core/production.ts';
 import { VersionMoved } from '../core/refusals.ts';
 import { ContentStore } from './content-store.ts';
 import { ManifestLock } from './manifest-lock.ts';
@@ -120,6 +120,32 @@ describe('the verbs', () => {
       expect(file.versions.map((v) => v.title)).toEqual(['Paper-cut knobs']);
       const again = yield* Effect.exit(store.start('look', start));
       expect(Exit.isFailure(again)).toBe(true);
+    }).pipe(Effect.provide(storeOver(new Map()))),
+  );
+
+  it.effect('say refuses a choice with no set, and a variant with no choice', () =>
+    Effect.gen(function* () {
+      const store = yield* ProductionStore;
+      const word: OwnerWord = {
+        _tag: 'Decided',
+        at: HOUR,
+        text: 'K1',
+        quote: Option.none(),
+        set: Option.none(),
+        point: Option.none(),
+        variant: Option.none(),
+        ask: Option.none(),
+        by: Option.none(),
+      };
+      const refusal = (said: OwnerWord) =>
+        Effect.flip(store.say('look', said)).pipe(Effect.map((e) => e.message));
+      expect(yield* refusal({ ...word, point: Option.some('render:cold') })).toBe(
+        '`point` is a choice in a set: name the `set`',
+      );
+      expect(yield* refusal({ ...word, variant: Option.some('k1') })).toBe(
+        "`variant` is one of a choice's: name the `point`",
+      );
+      expect(yield* store.read('look')).toEqual(Option.none());
     }).pipe(Effect.provide(storeOver(new Map()))),
   );
 

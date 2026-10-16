@@ -218,3 +218,26 @@ export const removedVectorIds = Effect.fn('BookVectors.removedIds')(function* (b
     paragraphIdentity(row.book_code, Option.fromNullishOr(row.para_id), row.ref_code),
   );
 });
+
+/** Ids per delete: Vectorize refuses more than a hundred in one call. */
+export const VECTOR_DELETE_LIMIT = 100;
+
+/** The part of the Vectorize binding a delete goes through. */
+export interface VectorizeDelete {
+  readonly deleteByIds: (ids: string[]) => Promise<unknown>;
+}
+
+/** Forget a book's vectors by id, a call per hundred. */
+export const deleteVectorIds = Effect.fn('BookVectors.delete')(function* (
+  bookId: number,
+  ids: readonly string[],
+  index: VectorizeDelete,
+) {
+  for (const chunk of Arr.chunksOf(ids, VECTOR_DELETE_LIMIT)) {
+    yield* Effect.tryPromise({
+      try: () => index.deleteByIds([...chunk]),
+      catch: (cause) => BookVectorsFailed.make({ bookId, reason: `delete: ${String(cause)}` }),
+    });
+  }
+  return ids.length;
+});

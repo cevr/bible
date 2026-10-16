@@ -1234,6 +1234,30 @@ describe('the review page', () => {
   );
 
   it.live(
+    "on a laptop a Set's still and its caption sit in the middle: no dock at the window's floor to clear",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, {
+          href: `${SET}?view=moments&still=B`,
+          viewport: { width: 1440, height: 900 },
+        });
+        yield* textHas(page, '.rv-lightbox[role="dialog"] .rv-lightbox-caption', 'Cold at ');
+        yield* until(
+          page,
+          `(() => {
+            const box = getComputedStyle(document.querySelector('.rv-lightbox'));
+            const still = document.querySelector('.rv-lightbox img').getBoundingClientRect();
+            const caption = document.querySelector('.rv-lightbox-caption').getBoundingClientRect();
+            return still.height > 0 && box.paddingBottom === box.paddingTop &&
+              Math.abs(still.top - (innerHeight - caption.bottom)) <= 2;
+          })()`,
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'Back lands the player on the time its entry keeps, and nothing writes the later time over it',
     () =>
       Effect.gen(function* () {

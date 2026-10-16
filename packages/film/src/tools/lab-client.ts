@@ -169,16 +169,15 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
   });
 
   /**
-   * `session` ended in the lab. The lab's gate takes a write only as JSON, a
-   * body-less one too. A lab that already forgot it (it restarted) or has
-   * gone is left as it is: the session went with it.
+   * `session` ended in the lab, as the MCP spec ends one: a DELETE with no
+   * body. A lab that already forgot it (it restarted) or has gone is left
+   * as it is: the session went with it.
    */
   const end = (session: string) =>
     http
       .execute(
         HttpClientRequest.delete(endpoint).pipe(
           HttpClientRequest.setHeaders({
-            'content-type': 'application/json',
             'mcp-session-id': session,
             'mcp-protocol-version': PROTOCOL,
           }),

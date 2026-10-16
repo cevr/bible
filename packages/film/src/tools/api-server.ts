@@ -7,10 +7,12 @@
 // it came on, at that listener's own name or a loopback name; a browser's
 // `Sec-Fetch-Site` must be same-origin or none, except a link opened on
 // another site to one of the pages (`isNavigation`); a write must come from
-// no Origin (a tool, like curl) or one of those hosts' `http://`, with a JSON body (a
-// cross-site form can post text/plain without a preflight; JSON cannot) of
-// at most `STUDIO_MAX_BODY` bytes, counted as it streams. A new route is
-// behind the gate by being a route.
+// no Origin (a tool, like curl) or one of those hosts' `http://`, and a POST,
+// or any write that declares a body, must carry JSON (a cross-site form can
+// post text/plain without a preflight; JSON cannot) of at most
+// `STUDIO_MAX_BODY` bytes, counted as it streams; a body-less DELETE (an MCP
+// client ending its session) has no body to judge (`carriesBody`). A new
+// route is behind the gate by being a route.
 //
 // Every film route names its film (`filmNamed`): one of the app's films, and
 // any other name is a 404 FilmUnknown before anything reads it.
@@ -127,6 +129,24 @@ const isNavigation = (request: HttpServerRequest.HttpServerRequest) =>
   Option.contains(header(request, 'sec-fetch-dest'), 'document') &&
   (Option.isSome(pageAt(urlPath(request.url))) || Option.isSome(legacyPlace(request.url)));
 
+/**
+ * Whether a write carries a body the JSON rule judges: a POST always (a
+ * cross-site form or a no-cors fetch posts one with no preflight), any other
+ * method when it declares one (`Content-Length` above 0, or
+ * `Transfer-Encoding`) or has one to read. A DELETE, PUT, PATCH or OPTIONS
+ * is never a simple request, so another site's page cannot send one without
+ * a preflight the gate refuses; with no body it has nothing to forge (an MCP
+ * client ends its session with a bare DELETE).
+ */
+const carriesBody = (request: HttpServerRequest.HttpServerRequest) =>
+  request.method === 'POST' ||
+  Option.isSome(header(request, 'transfer-encoding')) ||
+  Option.exists(header(request, 'content-length'), (n) => Number(n) !== 0) ||
+  Result.match(HttpServerRequest.toWebResult(request), {
+    onFailure: () => true,
+    onSuccess: (web) => Option.isSome(Option.fromNullishOr(web.body)),
+  });
+
 /** A bound name as a Host header carries it: an IPv6 address in brackets. */
 const hostName = (name: string) =>
   Option.match(Option.liftPredicate(name, Str.includes(':')), {
@@ -160,6 +180,7 @@ const admit = (
       const origin = header(request, 'origin');
       if (Option.exists(origin, (o) => !origins.includes(o)))
         return refused(`Origin ${Option.getOrElse(origin, () => '')} is not the server's`);
+      if (!carriesBody(request)) return Option.none();
       const type = Option.getOrElse(
         Option.map(header(request, 'content-type'), (t) =>
           Arr.headNonEmpty(Str.split(t, ';')).trim().toLowerCase(),

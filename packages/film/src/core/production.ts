@@ -27,7 +27,7 @@
 import { Array as Arr, Data, Effect, Match, Option, Order, Result, Schema } from 'effect';
 import { type BoardFile, approvalOf } from './board.ts';
 import type { ChoicePoint } from './choice.ts';
-import { VersionMoved } from './refusals.ts';
+import { DecisionUnknown, Undecided, VersionMoved, WordUnaimed } from './refusals.ts';
 import type { ReviewFolder } from './review.ts';
 import { maybe } from './schema.ts';
 
@@ -203,6 +203,22 @@ export const withSaid = (file: ProductionFile, said: Said): ProductionFile => ({
   ),
 });
 
+/**
+ * A word aimed where it says: a choice (`point`) is one in a set, so it
+ * names the `set`; a variant is one of a choice's, so it names the `point`.
+ * The rule every caller of the store's `say` gets (the MCP's `decide|note`,
+ * `film production decide|note`), and every ask the asks' store makes.
+ */
+export const aimedWord = <W extends Pick<OwnerWord, 'set' | 'point' | 'variant'>>(
+  word: W,
+): Result.Result<W, WordUnaimed> => {
+  if (Option.isSome(word.point) && Option.isNone(word.set))
+    return Result.fail(WordUnaimed.make({ names: 'point' }));
+  if (Option.isSome(word.variant) && Option.isNone(word.point))
+    return Result.fail(WordUnaimed.make({ names: 'variant' }));
+  return Result.succeed(word);
+};
+
 /** An ask's id as the lab writes it into a word's text: `(ask <its id>)`. */
 const ASK_NAMED = /\(ask (a[0-9a-f]{10})\)/;
 
@@ -335,6 +351,56 @@ const implicit = (production: string): ProductionFile => newProduction(productio
 /** The version (1-based) open at `at`: the last opened at or before it, else the first. */
 export const versionAt = (file: ProductionFile, at: number): number =>
   Math.max(1, file.versions.findLastIndex((v) => v.at <= at) + 1);
+
+/** A decision of the owner's, as the ledger keeps it. */
+type Decided = Extract<Said, { readonly _tag: 'Decided' }>;
+
+/** The owner's decisions filed in version `version` (in chat, or an ask's answer), newest first. */
+const decisionsIn = (file: ProductionFile, version: number): ReadonlyArray<Decided> =>
+  file.said
+    .filter((s): s is Decided => s._tag === 'Decided' && versionAt(file, s.at) === version)
+    .toReversed();
+
+/**
+ * The move an agent makes on the owner's word: from version `after`, because
+ * of the decision filed at `decision` in the version open now. Refused as
+ * `moveForward` refuses when the production moved on (`VersionMoved`), when
+ * that version holds no decision of his (`Undecided`), and when none of its
+ * decisions was filed at `decision` (`DecisionUnknown`, naming those it holds).
+ */
+export const forwardOnDecision = (
+  file: ProductionFile,
+  move: { readonly after: number; readonly title: string; readonly decision: number },
+): Result.Result<MoveForward, VersionMoved | Undecided | DecisionUnknown> => {
+  const current = currentVersion(file);
+  if (move.after !== current)
+    return Result.fail(
+      VersionMoved.make({ production: file.production, after: move.after, current }),
+    );
+  const decisions = decisionsIn(file, current);
+  if (!Arr.isReadonlyArrayNonEmpty(decisions))
+    return Result.fail(Undecided.make({ production: file.production, version: current }));
+  return Option.match(
+    Arr.findFirst(decisions, (d) => d.at === move.decision),
+    {
+      onNone: () =>
+        Result.fail(
+          DecisionUnknown.make({
+            production: file.production,
+            version: current,
+            at: move.decision,
+            held: decisions.map((d) => ({ at: d.at, text: d.text })),
+          }),
+        ),
+      onSome: (decided) =>
+        Result.succeed({
+          after: move.after,
+          title: move.title,
+          because: Option.some(decided.text),
+        }),
+    },
+  );
+};
 
 /** A version number the ledger has, else none. */
 const known = (file: ProductionFile, n: number): Option.Option<number> =>

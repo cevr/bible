@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Boolean as Bool, Effect, Layer, Option, Path, Schema } from 'effect';
-import { type Ask, type AskBlock, oneQuestion } from '../core/ask.ts';
+import { type Ask, AskBlock, oneQuestion } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { ReviewFileUnknown } from '../core/refusals.ts';
 import type { ReviewIndex } from '../core/review.ts';
@@ -170,18 +170,20 @@ const run = <A, E>(self: Effect.Effect<A, E, AskStore>, kept = true) => {
 
 /** One step showing `material`, then a choice about it. */
 const about = (material: AskBlock): Ask =>
-  oneQuestion([
-    material,
-    {
-      kind: 'choose',
-      id: 'keep',
-      label: 'Keep it?',
-      options: [
-        { value: 'yes', label: 'Yes', recommended: true },
-        { value: 'no', label: 'No' },
-      ],
-    },
-  ]);
+  oneQuestion(
+    Schema.decodeSync(Schema.Array(AskBlock))([
+      material,
+      {
+        kind: 'choose',
+        id: 'keep',
+        label: 'Keep it?',
+        options: [
+          { value: 'yes', label: 'Yes', recommended: true },
+          { value: 'no', label: 'No' },
+        ],
+      },
+    ]),
+  );
 
 const asked = (ask: Ask) => ({ title: 'Read it', why: 'the cut waits', by: 'agent', ask });
 

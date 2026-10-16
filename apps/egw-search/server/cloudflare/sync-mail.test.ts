@@ -218,4 +218,34 @@ describe('the sync report', () => {
     expect(report).toContain('## Withheld by the library (1)');
     expect(report).toContain('(1 is a translation licensed for reading only): NIV.');
   });
+
+  test('a page quotes changes up to its limit, across books, and links the rest', () => {
+    const outcome = run({
+      updated: [{ book: da, changes: { ...none, edited: 2 } }],
+      verified: [{ book: aa, changes: { ...none, removed: 1 } }],
+    });
+    const changes = new Map([
+      [
+        130,
+        [
+          change(130, 'DA 1.1', 'edited', 'he went to the mount', 'he went into the mount'),
+          change(130, 'DA 1.2', 'edited', 'and sat', 'and sat down'),
+        ],
+      ],
+      [127, [change(127, 'AA 9.1', 'removed', 'An old line.', '')]],
+    ]);
+    const at = '2026-10-18T09:00:12.000Z';
+    const page = syncReport(outcome, changes, at, {
+      quoteLimit: Option.some(1),
+      markdownHref: '20261018T090012Z.md',
+    });
+    expect(page).toContain('**DA 1\\.1** · edited');
+    expect(page).not.toContain('DA 1\\.2');
+    expect(page).toContain('1 more in [the full report](20261018T090012Z.md).');
+    expect(page).toContain('### AA — The Acts of the Apostles\n\n1 removed.\n\n1 more in');
+    const whole = syncReport(outcome, changes, at);
+    expect(whole).toContain('DA 1\\.2');
+    expect(whole).toContain('~~An old line\\.~~');
+    expect(whole).not.toContain('more in');
+  });
 });

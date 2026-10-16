@@ -5,8 +5,8 @@
 // head, a set filed there that no root holds said Missing; a link's `?v=`
 // opens a past version; a production that makes a film is that film's only
 // card on the front door, and its current version leads with the film's
-// board; Move forward starts from the newest decision, posts
-// the version the page saw, and the answer's new version is current in
+// board; Move forward chooses the newest decision (his own words one more
+// choice, the title his to leave out: `v<n>`), posts the version the page saw, and the answer's new version is current in
 // place, or the ledger's refusal is said in the receipt.
 
 import { Effect, Option, type Schema } from 'effect';
@@ -163,6 +163,9 @@ describe("a production's timeline", () => {
         yield* waitFor(page, PRODUCTION_READY);
         yield* page.click(PRODUCTION_READY);
         yield* waitFor(page, '[data-act="move-form"] input[name="title"]');
+        // The decision is a choice first; his own words are one of them.
+        yield* page.click('[data-act="move-form"] [data-value="own"]');
+        yield* waitFor(page, '[data-act="move-form"] input[name="because"]');
         yield* page.fill('[data-act="move-form"] input[name="because"]', 'The second cut holds');
         yield* page.fill('[data-act="move-form"] input[name="title"]', 'Third cut');
         yield* page.click('[data-act="move-form"] button[type="submit"]');
@@ -171,6 +174,33 @@ describe("a production's timeline", () => {
         yield* attached(page, '.pd-v[data-v="2"]');
         expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
           { after: 2, title: 'Third cut', because: 'The second cut holds' },
+        ]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'Move forward on the decision as chosen, the title left out, posts the newest as v3',
+    () =>
+      Effect.gen(function* () {
+        const posted: Array<Asked> = [];
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('POST', FORWARD, (asked) => {
+            posted.push(asked);
+            return json(third);
+          }),
+          ...studioRoutes,
+        ];
+        const { page } = yield* openReview(routes, {
+          href: pageHref.production(STUDIO_PRODUCTION),
+        });
+        yield* waitFor(page, PRODUCTION_READY);
+        yield* page.click(PRODUCTION_READY);
+        yield* waitFor(page, '[data-act="move-form"] input[name="title"]');
+        yield* page.click('[data-act="move-form"] button[type="submit"]');
+        yield* textHas(page, RECEIPT, 'v3');
+        expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
+          { after: 2, title: 'v3', because: 'The first cut holds' },
         ]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -194,7 +224,7 @@ describe("a production's timeline", () => {
         // The decision starts from the owner's newest, and the open question is said to stay open.
         yield* evaluates(
           page,
-          `document.querySelector('[data-act="move-form"] input[name="because"]').value`,
+          `document.querySelector('[data-act="move-form"] [aria-pressed="true"]').textContent.trim()`,
           'The first cut holds',
         );
         yield* textHas(page, '[data-act="move-form"]', 'it stays open after the move');

@@ -1,7 +1,8 @@
 // The markdown the review page shows: escaped first, so a doc can put no
-// HTML of its own in the page. The fences, quotes and numbered lists are the
-// owner's own docs' (the sets' docs he reads: lab-timeline.md, rbf-concepts.md,
-// brand.md, bible-cast.md), the long lines cut short.
+// HTML of its own in the page. The fences, quotes, numbered lists and items'
+// paragraphs are the owner's own docs' (the sets' docs he reads:
+// lab-timeline.md, rbf-concepts.md, brand.md, bible-cast.md, illustration.md,
+// seedanim.md), the long lines cut short.
 
 import { describe, expect, test } from 'bun:test';
 import { escapeHtml, markdownHtml } from './markdown.ts';
@@ -122,7 +123,64 @@ describe('markdown', () => {
     ).toBe('<p>Paragraph.</p><pre><code>const a = 1;\n\nconst b = 2;</code></pre><p>After.</p>');
     expect(markdownHtml(['words', '    more'].join('\n'))).toBe('<p>words more</p>');
     expect(markdownHtml(['- item', '', '    more'].join('\n'))).toBe(
-      '<ul><li>item</li></ul><p>more</p>',
+      '<ul><li>item<p>more</p></li></ul>',
+    );
+  });
+
+  test("a paragraph after a rest, indented to its item's words, stays in the item (illustration.md)", () => {
+    expect(
+      markdownHtml(
+        [
+          '3. **Split into 3-5 layers.** Apple Vision finds the figures.',
+          "   - The lamp's stool is one traced polygon.",
+          "   - The flame's glow is split off the painting into its own layer.",
+          '',
+          '   This is the one hand step, and it takes most of the time.',
+          '4. **Paint the clean plates.** One masked image edit per layer.',
+          '   - Behind each layer the plate replaces the painting completely.',
+        ].join('\n'),
+      ),
+    ).toBe(
+      '<ol start="3"><li><b>Split into 3-5 layers.</b> Apple Vision finds the figures.<ul>' +
+        '<li>The lamp&#39;s stool is one traced polygon.</li>' +
+        '<li>The flame&#39;s glow is split off the painting into its own layer.</li></ul>' +
+        '<p>This is the one hand step, and it takes most of the time.</p></li>' +
+        '<li><b>Paint the clean plates.</b> One masked image edit per layer.<ul>' +
+        '<li>Behind each layer the plate replaces the painting completely.</li></ul></li></ol>',
+    );
+  });
+
+  test('a paragraph under a nested list goes in the item its indent reaches; less indent ends the list (seedanim.md)', () => {
+    expect(
+      markdownHtml(
+        [
+          '- **The walk (P2 if walks stay).** The legs never cross. But:',
+          '  - the planted feet skate, 18-28 px;',
+          '  - the bob lands each contact as a thump.',
+          '',
+          '  The glide, the house travel (rule 8), is in for Hugo and Christ.',
+          '- **For a film, not a rig:**',
+          '  - Six of the nine reach glad within 7 frames of each other.',
+          '',
+          '',
+          '      Wrapped deeper: still the inner item.',
+          '',
+          ' One space in: after the list.',
+        ].join('\n'),
+      ),
+    ).toBe(
+      '<ul><li><b>The walk (P2 if walks stay).</b> The legs never cross. But:<ul>' +
+        '<li>the planted feet skate, 18-28 px;</li>' +
+        '<li>the bob lands each contact as a thump.</li></ul>' +
+        '<p>The glide, the house travel (rule 8), is in for Hugo and Christ.</p></li>' +
+        '<li><b>For a film, not a rig:</b><ul>' +
+        '<li>Six of the nine reach glad within 7 frames of each other.' +
+        '<p>Wrapped deeper: still the inner item.</p></li></ul></li></ul>' +
+        '<p>One space in: after the list.</p>',
+    );
+    // Items a rest apart are one list, its numbers its own.
+    expect(markdownHtml(['1. one', '', '2. two'].join('\n'))).toBe(
+      '<ol><li>one</li><li>two</li></ol>',
     );
   });
 
