@@ -148,6 +148,36 @@ describe("a production's timeline", () => {
   );
 
   it.live(
+    "a past version's head writes ?v= as it opens it, a step Back walks; its close adds no step of its own",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(studioRoutes, {
+          href: pageHref.production(STUDIO_PRODUCTION),
+        });
+        yield* waitFor(page, PRODUCTION_READY);
+        const steps = yield* page.evaluate<number>('history.length');
+        const past = '.pd-v[data-v="1"] details';
+        yield* page.click('.pd-v[data-v="1"] summary');
+        yield* evaluates(page, `document.querySelector('${past}').open`, true);
+        yield* evaluates(page, `new URLSearchParams(location.search).get('v')`, '1');
+        yield* evaluates(page, 'history.length', steps + 1);
+        // Back shuts it.
+        yield* page.evaluate('history.back()');
+        yield* evaluates(page, `document.querySelector('${past}').open`, false);
+        yield* evaluates(page, `new URLSearchParams(location.search).has('v')`, false);
+        // Opened again and shut from its head: Back over the opening, or its entry rewritten.
+        yield* page.click('.pd-v[data-v="1"] summary');
+        yield* evaluates(page, `new URLSearchParams(location.search).get('v')`, '1');
+        yield* page.click('.pd-v[data-v="1"] summary');
+        yield* evaluates(page, `document.querySelector('${past}').open`, false);
+        yield* evaluates(page, `new URLSearchParams(location.search).has('v')`, false);
+        yield* evaluates(page, 'history.length', steps + 1);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'Move forward posts the version the page saw; the new version is current in place',
     () =>
       Effect.gen(function* () {

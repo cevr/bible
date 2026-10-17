@@ -156,6 +156,29 @@ describe('a series draft in the Script reader, on a phone', () => {
   );
 
   it.live(
+    'Clear adds no step of its own: after a pick and its Clear the history is as long as after the pick',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(
+          [...draftWrites('The first thing {*}God {*}gave was breath.', []), ...studioRoutes],
+          { href: pageHref.draft(STUDIO_SERIES, STUDIO_DRAFT), viewport: PHONE },
+        );
+        yield* waitFor(page, DRAFT_READY);
+        const steps = yield* page.evaluate<number>('history.length');
+        yield* page.click(word(3));
+        yield* waitFor(page, DELIVERY_READY);
+        yield* page.click('[data-act="clear-draft"]');
+        yield* evaluates(page, `document.querySelectorAll('.lab-script-delivery').length`, 0);
+        yield* evaluates(page, placed, pageHref.draft(STUDIO_SERIES, STUDIO_DRAFT));
+        // Clear went Back over the pick, or rewrote its entry: no entry of its own.
+        yield* evaluates(page, 'history.length', steps + 1);
+        yield* evaluates(page, `new URLSearchParams(location.search).has('words')`, false);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a write the lab refuses says why under the words, and the marks stand as they were',
     () =>
       Effect.gen(function* () {

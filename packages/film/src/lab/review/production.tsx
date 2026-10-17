@@ -9,7 +9,8 @@
 // and holds the one verb of the page, Move forward: the decision chosen from
 // the owner's filed in the version (or said in his own words), what the next
 // version is for (optional), and the ledger opens it. A past version is
-// shut to its head until opened (`?v=<n>` opens it from a link).
+// shut to its head until opened: the address holds it (`?v=<n>`), so a tap
+// on its head writes it, a link opens it, and Back shuts it.
 
 import { PlaceStyle } from '../place-style.tsx';
 import { For, type JSX, Show } from '@solidjs/web';
@@ -19,9 +20,12 @@ import { type Accessor, createEffect, createMemo, createSignal, flush } from 'so
 import { useAtomValue } from '@bible/atom-solid';
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
-import { pageHref, reviewStillUrl } from '../../core/api.ts';
+import { Place } from '@bible/url-state';
+import { addressOn } from '../../browser/host.ts';
+import { Places, pageHref, reviewStillUrl } from '../../core/api.ts';
 import type { BoardFile } from '../../core/board.ts';
 import { focusFor } from '../focus.ts';
+import { useSheetDismissal } from '../sheet.tsx';
 import { pressed } from '../pressed.ts';
 import { WIDE } from '../viewport.ts';
 import { type ChoicePoint, seenVariants } from '../../core/choice.ts';
@@ -691,14 +695,35 @@ const VersionBlock = (props: {
   readonly waiting: ReadonlyArray<Waiting>;
 }) => {
   const v = () => props.version;
-  const held = { el: Option.none<HTMLLIElement>() };
-  // A link to `?v=<n>` opens that version and brings it into view.
+  const { meta } = useReview();
+  const address = addressOn(meta.host);
+  const dismissal = useSheetDismissal(meta.host, (href, n) =>
+    Option.exists(Place.decode(Places.production, href), (at) => `${at.query.v}` === n),
+  );
+  const held = { el: Option.none<HTMLLIElement>(), tapped: false };
+  // A link to `?v=<n>` opens that version and brings it into view; a tap on its head opens it where it is.
   createEffect(
     () => props.focused && !v().current,
     (bring) => {
-      if (bring) Option.map(held.el, (el) => el.scrollIntoView({ block: 'start' }));
+      if (bring && !held.tapped) Option.map(held.el, (el) => el.scrollIntoView({ block: 'start' }));
+      held.tapped = false;
     },
   );
+  // A past version is open while the address names it (`?v=<n>`): its head's tap writes the
+  // address, a step Back walks, and its close goes by the sheets' one rule. The current version is
+  // open by default, and its toggle is the viewer's own.
+  const toggle = (event: MouseEvent) => {
+    if (v().current) return;
+    event.preventDefault();
+    held.tapped = true;
+    const production = props.history.production;
+    if (props.focused) {
+      dismissal.dismiss(() => Option.some(pageHref.production(production)));
+      return;
+    }
+    dismissal.opening(`${v().n}`);
+    address.go(pageHref.production(production, v().n));
+  };
   return (
     <li
       ref={(el: HTMLLIElement) => {
@@ -710,7 +735,7 @@ const VersionBlock = (props: {
       data-current={pressed(v().current)}
     >
       <details open={v().current || props.focused}>
-        <summary class="pd-v-head">
+        <summary class="pd-v-head" onClick={toggle}>
           <span class="pd-v-n">v{v().n}</span>
           <span class="pd-v-title">{Option.getOrElse(ownTitle(v()), () => '')}</span>
           <span class="rv-meta pd-v-span">

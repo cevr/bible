@@ -7,19 +7,22 @@
 // its takes read again, the beat's new take queued first.
 //
 // The words selected are kept in the URL on the draft's page
-// (`/series/<series>/<draft>/<beat>?words=<a>-<b>`); an ask that shows the
-// draft keeps its own (`DraftReader`, whose `selecting` the page gives).
+// (`/series/<series>/<draft>/<beat>?words=<a>-<b>`), and Clear adds no entry
+// (`useUrlSelecting`); an ask that shows the draft keeps its own
+// (`DraftReader`, whose `selecting` the page gives).
 
 import { useAtomRefresh, useAtomValue } from '@bible/atom-solid';
+import { Place } from '@bible/url-state';
 import { Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createMemo, createSignal, untrack } from 'solid-js';
 import { addressOn } from '../../browser/host.ts';
 import { wordsIn, wordsText } from '../../command/selection.ts';
-import { type DraftRead, draftTakeUrl, pageHref } from '../../core/api.ts';
+import { type DraftRead, Places, draftTakeUrl, pageHref } from '../../core/api.ts';
 import { reasonOf } from '../api.ts';
 import { PlaceStyle } from '../place-style.tsx';
+import { useSheetDismissal } from '../sheet.tsx';
 import { SCRIPT_READ_CSS } from '../script/style.ts';
 import { ReviewApi } from './api.ts';
 import { useReview } from './context.tsx';
@@ -121,22 +124,42 @@ export const DraftReader = (props: {
   );
 };
 
-/** The words selected on a draft's page, as its URL holds them: in one beat, the first not after the last. */
+/** Words picked in a beat, as one name: what the dismissal is told was opened. */
+const pickedName = (beat: string, words: string): string => `${beat}:${words}`;
+
+/**
+ * The words selected on a draft's page, as its URL holds them: in one beat,
+ * the first not after the last. A pick made from nothing picked is a step
+ * Back walks; Clear adds none, by the sheets' one rule (`useSheetDismissal`):
+ * it goes Back over the pick's entry when Back lands on the draft as Clear
+ * writes it, else it rewrites the entry on screen.
+ */
 const useUrlSelecting = (series: string, draft: string): Selecting => {
   const { state, meta } = useReview();
   const address = addressOn(meta.host);
+  const dismissal = useSheetDismissal(meta.host, (href, picked) =>
+    Option.exists(
+      Place.decode(Places.draftBeat, href),
+      (v) => pickedName(v.path.beat, v.query.words) === picked,
+    ),
+  );
+  const selected = () => {
+    const place = state.place();
+    if (place._tag !== 'Draft') return Option.none();
+    return Option.map(wordsIn(place.beat, place.words), (w) => ({
+      beat: w.scene,
+      from: w.from,
+      to: w.to,
+    }));
+  };
   return {
-    selected: () => {
-      const place = state.place();
-      if (place._tag !== 'Draft') return Option.none();
-      return Option.map(wordsIn(place.beat, place.words), (w) => ({
-        beat: w.scene,
-        from: w.from,
-        to: w.to,
-      }));
+    selected,
+    select: (beat, w) => {
+      const words = wordsText(w);
+      if (Option.isNone(untrack(selected))) dismissal.opening(pickedName(beat, words));
+      address.go(pageHref.draftBeat(series, draft, beat, words));
     },
-    select: (beat, w) => address.go(pageHref.draftBeat(series, draft, beat, wordsText(w))),
-    clear: () => address.go(pageHref.draft(series, draft)),
+    clear: () => dismissal.dismiss(() => Option.some(pageHref.draft(series, draft))),
   };
 };
 
