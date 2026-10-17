@@ -42,6 +42,11 @@ export const leadProp: RivePropSpec<LeadTimeline, keyof typeof LEAD_KNOBS> = {
   key: 'righteousness-by-faith/lead',
   origin: LEAD_ART.feet,
   face: LEAD_FACE_CHECK,
+  // `film match`'s concept: the plain lead's model sheet, his front view.
+  concept: {
+    image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/0-plain-lead-sheet.png' },
+    box: [165, 370, 455, 785],
+  },
 };
 
 /** The judge: his head's centre at our origin. */
@@ -56,6 +61,11 @@ export const judgeProp: RivePropSpec<JudgeTimeline, keyof typeof JUDGE_KNOBS> = 
   key: 'righteousness-by-faith/judge',
   origin: JUDGE_ART.head,
   face: JUDGE_FACE_CHECK,
+  // `film match`'s concept: the judge at his bench in cold.34, the kept concept.
+  concept: {
+    image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },
+    box: [1110, 95, 1510, 410],
+  },
 };
 
 /** The prosecutor: his feet at our origin. */
@@ -70,6 +80,11 @@ export const prosecutorProp: RivePropSpec<ProsecutorTimeline, keyof typeof PROSE
   key: 'righteousness-by-faith/prosecutor',
   origin: PROSECUTOR_ART.feet,
   face: PROSECUTOR_FACE_CHECK,
+  // `film match`'s concept: the prosecutor pointing in cold.34, the kept concept.
+  concept: {
+    image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },
+    box: [560, 200, 900, 830],
+  },
 };
 
 /** A circle hand of `artboard`, its centre at our origin: no view model, only its paper's crawl. */
