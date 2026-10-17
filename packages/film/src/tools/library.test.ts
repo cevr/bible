@@ -26,7 +26,7 @@ import {
 import type { Pcm } from '../core/audio.ts';
 import { rng } from '../core/random.ts';
 import { Segment } from '../core/segment.ts';
-import type { Raster } from '../core/synth/sheet.ts';
+import type { Raster } from '../core/raster.ts';
 import { LockJson, pendingOf, requestKey, soundState } from '../core/sfx.ts';
 import { ContentStore } from './content-store.ts';
 import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';

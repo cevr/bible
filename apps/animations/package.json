@@ -17,6 +17,7 @@
     "project": "bun cli.ts project",
     "lookbook": "bun cli.ts lookbook",
     "look": "bun cli.ts look",
+    "match": "bun cli.ts match",
     "journal": "bun cli.ts journal",
     "board": "bun cli.ts board",
     "judge": "bun cli.ts judge",

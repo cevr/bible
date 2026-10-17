@@ -10,6 +10,12 @@
 // it when the build moved, so the page always runs the code on disk. Each still is written once, under the film's
 // `out/<film>/look/<scene>/`, named by its time, view and build.
 //
+// A match (`film match`) draws one frame twice on the same page: once with
+// the figure probe on, for each rig's box on screen and its concept, and once
+// as a plain PNG, which it crops each figure from; it measures the crop and
+// the concept's (`core/figure.ts`), writes the table and the side-by-side
+// under `out/<film>/match/<scene>/`, and answers both.
+//
 // A wedge (`tools/wedge.ts`) draws a look at another level than the one it
 // plays: the film's `palette.ts` is read as a pick of that level would write
 // it, only in the build (`LabPage.wedge`), and never written. Its page is
@@ -24,8 +30,10 @@ import {
   Exit,
   FileSystem,
   Layer,
+  Match,
   Option,
   Path,
+  Result,
   Scope,
   Semaphore,
 } from 'effect';
@@ -46,10 +54,30 @@ import {
 } from '../core/easel.ts';
 import { pageHref } from '../core/api.ts';
 import { UnknownScene } from '../core/errors.ts';
+import { measureFigure } from '../core/figure.ts';
+import {
+  type ConceptImage,
+  type FigureMark,
+  type FigureMatched,
+  MatchFigureUnknown,
+  type MatchPost,
+  type MatchTaken,
+  type Unmatched,
+  compareFigures,
+  conceptImageName,
+  figureName,
+  matchStem,
+  matchTable,
+  onFrame,
+  sceneBoxOf,
+  sideBySide,
+} from '../core/match.ts';
+import { cropRaster } from '../core/raster.ts';
 import type { SourceRefused } from '../core/refusals.ts';
 import { Browser, type FramePage } from './browser.ts';
-import { FilmFolder, type FilmName } from './film-repo.ts';
+import { FilmFolder, type FilmName, type FilmPaths } from './film-repo.ts';
 import { LabPage, type PagesNow } from './lab-page.ts';
+import { decodePng, encodePng } from './png.ts';
 import { PALETTE_FILE, paletteSwaps } from './wedge.ts';
 
 /** Why a look drew nothing, each its own tag. */
@@ -62,11 +90,39 @@ type LookError =
   | LookLevelUnknown
   | SourceRefused;
 
+/** Why a match drew nothing, each its own tag. */
+type MatchError =
+  | PlaceError
+  | UnknownScene
+  | PagesBroken
+  | LookFailed
+  | LabElsewhere
+  | MatchFigureUnknown;
+
+/** A match's still: the whole frame, plain, as a PNG, captions off. */
+const MATCH_VIEW = { mode: 'plain', captions: false, format: 'image/png' } as const;
+
+/** Where a concept image is: a set's file in the out folder beside the film's, a Board try in the film's `board/`. */
+const conceptPath = (path: Path.Path, paths: FilmPaths, image: ConceptImage): string =>
+  Match.value(image).pipe(
+    Match.when({ set: Match.string }, (set) =>
+      path.join(path.dirname(paths.out), set.set, set.file),
+    ),
+    Match.when({ board: Match.string }, (board) => path.join(paths.dir, 'board', board.board)),
+    Match.exhaustive,
+  );
+
 interface EaselService {
   /** The lab's own address, once it is bound: the pages a look opens are served there. */
   readonly serve: (origin: string) => Effect.Effect<void>;
   /** `post`'s stills of `film`, drawn from the pages' build as it stands (or its wedge), and written. */
   readonly look: (film: FilmName, post: LookPost) => Effect.Effect<LookTaken, LookError>;
+  /**
+   * `post`'s figures at its place, each measured against its concept:
+   * drawn from the pages' build as it stands, its table and side-by-side
+   * written.
+   */
+  readonly match: (film: FilmName, post: MatchPost) => Effect.Effect<MatchTaken, MatchError>;
 }
 
 /** A page held warm: the build it loaded, its scenes' clocks, and the scope it closes with. */
@@ -288,9 +344,141 @@ export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/t
         return { build, looks } satisfies LookTaken;
       });
 
+      /** The pages' build as the sources stand, or why the look must not draw: another checkout, a failed build. */
+      const freshBuild = Effect.fn('Easel.fresh')(function* (
+        film: FilmName,
+        from: Option.Option<string>,
+      ) {
+        const paths = folder.paths(film);
+        const elsewhere = yield* Option.match(from, {
+          onNone: () => Effect.succeedNone,
+          onSome: (asked) => elsewhereOf(fs, path, paths.dir, asked, film),
+        });
+        if (Option.isSome(elsewhere)) return yield* elsewhere.value;
+        const now: PagesNow = yield* pages.built;
+        if (Option.isSome(now.failed)) return yield* PagesBroken.make({ reason: now.failed.value });
+        return now;
+      });
+
+      const match = Effect.fn('Easel.match')(function* (film: FilmName, post: MatchPost) {
+        const started = yield* Clock.currentTimeMillis;
+        const paths = folder.paths(film);
+        const now = yield* freshBuild(film, Option.fromUndefinedOr(post.from));
+        const build = [now.build.server, now.kept].join('.');
+        const page = yield* pageOn(
+          film,
+          build,
+          easelUrl(yield* Deferred.await(origin), film, now.kept, ''),
+        );
+        const scene = yield* Effect.fromOption(
+          Option.fromUndefinedOr(page.scenes.find((s) => s.id === post.scene)),
+        ).pipe(
+          Effect.mapError(() =>
+            UnknownScene.make({ scene: post.scene, known: page.scenes.map((s) => s.id) }),
+          ),
+        );
+        const { info } = page.page;
+        const moment = yield* Effect.fromResult(momentOf(scene, info.fps, post.at));
+        // A page that failed a frame is not trusted with the next: the next look opens a fresh one.
+        const drawn = <A, E>(call: Effect.Effect<A, E>) =>
+          call.pipe(Effect.tapError(() => drop(film)));
+        const marks = (yield* drawn(page.page.call('figures', moment.frame)).pipe(
+          Effect.mapError(failedLook),
+        )).filter((m) => m.scene === scene.id);
+        const asked = Option.fromUndefinedOr(post.figure);
+        const named = (m: FigureMark) =>
+          Option.match(asked, {
+            onNone: () => true,
+            onSome: (figure) => figureName(m.key) === figure || m.key === figure,
+          });
+        const figures = marks.filter((m) => m.face && named(m));
+        if (Option.isSome(asked) && figures.length === 0)
+          return yield* MatchFigureUnknown.make({
+            scene: scene.id,
+            figure: asked.value,
+            known: marks.filter((m) => m.face).map((m) => figureName(m.key)),
+          });
+        const png = yield* drawn(page.page.call('still', moment.frame, MATCH_VIEW)).pipe(
+          Effect.mapError(failedLook),
+        );
+        const still = yield* Effect.fromResult(decodePng(png)).pipe(Effect.mapError(failedLook));
+        const dir = path.join(paths.out, 'match', scene.id);
+        yield* fs.makeDirectory(dir, { recursive: true }).pipe(Effect.mapError(failedLook));
+        const place = `${scene.id} ${post.at}, t=${moment.time.toFixed(2)} frame ${moment.frame}, build ${build}`;
+
+        /** One figure held against its concept, or why it cannot be. */
+        const matchOne = (mark: FigureMark) =>
+          Effect.gen(function* () {
+            const name = figureName(mark.key);
+            const unmatched = (reason: string) => Result.fail<Unmatched>({ figure: name, reason });
+            if (!onFrame(mark, still.width, still.height))
+              return unmatched("the frame does not show it: its box lies past the frame's edge");
+            const declared = Option.fromUndefinedOr(mark.concept);
+            if (Option.isNone(declared)) return unmatched('its rig declares no concept');
+            const concept = declared.value;
+            const file = conceptPath(path, paths, concept.image);
+            const bytes = yield* Effect.result(fs.readFile(file));
+            if (Result.isFailure(bytes))
+              return unmatched(`its concept ${conceptImageName(concept.image)} is not at ${file}`);
+            const image = decodePng(bytes.success);
+            if (Result.isFailure(image))
+              return unmatched(`its concept ${file}: ${image.failure.message}`);
+            const conceptCrop = cropRaster(image.success, concept.box);
+            const conceptMeasure = measureFigure(conceptCrop);
+            if (Result.isFailure(conceptMeasure))
+              return unmatched(`in its concept, ${conceptMeasure.failure.message}`);
+            const sceneBox = sceneBoxOf(mark, marks, still.width, still.height);
+            const sceneCrop = cropRaster(still, sceneBox);
+            const sceneMeasure = measureFigure(sceneCrop);
+            if (Result.isFailure(sceneMeasure))
+              return unmatched(
+                `in the scene (box ${sceneBox.map(Math.round).join(',')}), ${sceneMeasure.failure.message}`,
+              );
+            const rows = compareFigures(conceptMeasure.success, sceneMeasure.success);
+            const stem = path.join(dir, matchStem(name, moment.time, build));
+            const side = `${stem}.png`;
+            const table = `${stem}.md`;
+            yield* fs.writeFile(
+              side,
+              encodePng(
+                sideBySide(
+                  { crop: conceptCrop, measure: conceptMeasure.success },
+                  { crop: sceneCrop, measure: sceneMeasure.success },
+                ),
+              ),
+            );
+            yield* fs.writeFileString(table, matchTable(name, concept, rows, place));
+            return Result.succeed<FigureMatched>({
+              figure: name,
+              key: mark.key,
+              concept,
+              rows,
+              side,
+              table,
+            });
+          }).pipe(Effect.mapError(failedLook));
+        const results = yield* Effect.forEach(figures, matchOne);
+        const matched = Arr.getSuccesses(results);
+        const unmatched = Arr.getFailures(results);
+        const doneAt = yield* Clock.currentTimeMillis;
+        yield* Effect.log(
+          `easel.match film=${film} scene=${scene.id} at=${post.at} figures=${matched.length} unmatched=${unmatched.length} build=${build} ms=${doneAt - started}`,
+        );
+        return {
+          build,
+          scene: scene.id,
+          at: post.at,
+          frame: moment.frame,
+          time: moment.time,
+          figures: matched,
+          unmatched,
+        } satisfies MatchTaken;
+      });
+
       return Easel.of({
         serve: (at) => Effect.asVoid(Deferred.succeed(origin, at)),
         look: (film, post) => one.withPermits(1)(look(film, post)),
+        match: (film, post) => one.withPermits(1)(match(film, post)),
       });
     }),
   );

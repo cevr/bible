@@ -386,6 +386,23 @@
       }
     },
     {
+      // The figure measure's pixel loops (`film match`): a crop's RGBA, its
+      // labels and its distance fields read pixel by pixel. Typed arrays and
+      // label tables are indexed inside their bounds (`!`, `?? 0`) and each
+      // pixel branches with a ternary, as the mix's sample loops do; the
+      // measure stays pure, RGBA in, numbers out.
+      "files": [
+        "**/packages/film/src/core/figure.ts",
+        "**/packages/film/src/core/raster.ts",
+        "**/packages/film/src/core/fixtures/figure.ts"
+      ],
+      "rules": {
+        "effect/noNullish": "off",
+        "effect/noTernary": "off",
+        "typescript/no-non-null-assertion": "off"
+      }
+    },
+    {
       // The `film` plugin's guardrails (packages/film/lint/), on every film.
       "files": ["**/apps/animations/src/films/**/*.ts"],
       "rules": {

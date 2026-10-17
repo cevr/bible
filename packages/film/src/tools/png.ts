@@ -1,11 +1,15 @@
-// A raster as a PNG file's bytes: 8-bit RGBA, not interlaced, each row
-// filtered by whichever of PNG's five filters leaves it smallest by the
-// standard's heuristic (the least sum of absolute bytes), then deflated as
-// one zlib stream. Bun's `node:zlib` holds both the deflate and the chunk
-// CRC, so a sound's sheet needs no image library (`sfx render --sheet`).
+// A raster as a PNG file's bytes, and back: written 8-bit RGBA, not
+// interlaced, each row filtered by whichever of PNG's five filters leaves it
+// smallest by the standard's heuristic (the least sum of absolute bytes),
+// then deflated as one zlib stream; read from any 8-bit PNG that is not
+// interlaced and holds no palette (grey, grey and alpha, RGB, RGBA), as an
+// image model, a page or this writer saves one. Bun's `node:zlib` holds the
+// deflate, the inflate and the chunk CRC, so a sound's sheet and a figure's
+// concept need no image library (`sfx render --sheet`, `film match`).
 
-import { crc32, deflateSync } from 'node:zlib';
-import type { Raster } from '../core/synth/sheet.ts';
+import { crc32, deflateSync, inflateSync } from 'node:zlib';
+import { Option, Result, Schema } from 'effect';
+import type { Raster } from '../core/raster.ts';
 
 const SIGNATURE = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10);
 /** IHDR's bit depth and colour type: 8 bits a channel, RGBA. */
@@ -119,4 +123,115 @@ export const encodePng = (raster: Raster): Uint8Array => {
     at += part.length;
   }
   return out;
+};
+
+/** A PNG this reader does not read, and why. */
+class PngUnreadable extends Schema.TaggedError<PngUnreadable>()('PngUnreadable', {
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the PNG does not read: ${this.reason}`;
+  }
+}
+
+/**
+ * How a colour type lays out a pixel: its channels, where its red, green and
+ * blue are (grey's one channel stands for all three), and where its alpha is
+ * (past the pixel's last channel when it has none, so it reads opaque).
+ * Type 3, a palette, is not read.
+ */
+interface Layout {
+  readonly channels: number;
+  readonly rgb: readonly [number, number, number];
+  readonly alpha: number;
+}
+
+const LAYOUTS = new Map<number, Layout>([
+  [0, { channels: 1, rgb: [0, 0, 0], alpha: 1 }],
+  [2, { channels: 3, rgb: [0, 1, 2], alpha: 3 }],
+  [4, { channels: 2, rgb: [0, 0, 0], alpha: 1 }],
+  [6, { channels: 4, rgb: [0, 1, 2], alpha: 3 }],
+]);
+
+const refused = (reason: string) => Result.fail(PngUnreadable.make({ reason }));
+
+/** The PNG's header chunk and its pixel data's chunks joined, in order up to IEND. */
+const chunksOf = (bytes: Uint8Array) => {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const idat: Array<Uint8Array> = [];
+  let head = Option.none<Uint8Array>();
+  for (let at = 8; at + 12 <= bytes.length;) {
+    const length = view.getUint32(at);
+    const type = String.fromCharCode(...bytes.subarray(at + 4, at + 8));
+    const data = bytes.subarray(at + 8, at + 8 + length);
+    if (type === 'IHDR') head = Option.some(data);
+    if (type === 'IDAT') idat.push(data);
+    if (type === 'IEND') break;
+    at += 12 + length;
+  }
+  const joined = new Uint8Array(idat.reduce((sum, part) => sum + part.length, 0));
+  let put = 0;
+  for (const part of idat) {
+    joined.set(part, put);
+    put += part.length;
+  }
+  return { head, joined };
+};
+
+/** The header's size and layout, or why this reader does not read it. */
+const headerOf = (head: Option.Option<Uint8Array>) => {
+  if (Option.isNone(head) || head.value.length < 13) return refused('no IHDR');
+  const bytes = head.value;
+  const header = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const [width, height] = [header.getUint32(0), header.getUint32(4)];
+  const [depth, colour, interlace] = [bytes[8] ?? 0, bytes[9] ?? 0, bytes[12] ?? 0];
+  const layout = Option.fromUndefinedOr(LAYOUTS.get(colour));
+  if (depth !== DEPTH) return refused(`a bit depth of ${depth}, not 8`);
+  if (Option.isNone(layout)) return refused(`colour type ${colour} (a palette, or unknown)`);
+  if (interlace !== 0) return refused('it is interlaced');
+  return Result.succeed({ width, height, layout: layout.value });
+};
+
+/**
+ * The rows unfiltered, `channels` bytes a pixel. Each row is unfiltered
+ * behind `channels` zero bytes, so the pixel left of a row's first reads 0
+ * as the standard says.
+ */
+const unfilter = (raw: Uint8Array, width: number, height: number, channels: number) => {
+  const stride = width * channels;
+  const rows = new Uint8Array(height * stride);
+  let above = new Uint8Array(stride + channels);
+  for (let y = 0; y < height; y++) {
+    const kind = raw[y * (stride + 1)] ?? 0;
+    const row = new Uint8Array(stride + channels);
+    for (let i = 0; i < stride; i++) {
+      const byte = raw[y * (stride + 1) + 1 + i] ?? 0;
+      const [left, up, upLeft] = [row[i] ?? 0, above[channels + i] ?? 0, above[i] ?? 0];
+      row[channels + i] = (byte + predicted(kind, left, up, upLeft)) & 0xff;
+    }
+    rows.set(row.subarray(channels), y * stride);
+    above = row;
+  }
+  return rows;
+};
+
+/** `bytes` read as a PNG: its pixels as RGBA, or why they cannot be. */
+export const decodePng = (bytes: Uint8Array): Result.Result<Raster, PngUnreadable> => {
+  if (bytes.length < 8 || SIGNATURE.some((byte, i) => bytes[i] !== byte))
+    return refused('no PNG signature');
+  const { head, joined } = chunksOf(bytes);
+  return Result.flatMap(headerOf(head), ({ width, height, layout }) => {
+    const { channels, rgb, alpha } = layout;
+    const raw = Result.try(() => new Uint8Array(inflateSync(joined)));
+    if (Result.isFailure(raw)) return refused('its pixel data does not inflate');
+    if (raw.success.length < height * (width * channels + 1))
+      return refused('its pixel data is short');
+    const rows = unfilter(raw.success, width, height, channels);
+    const rgba = new Uint8Array(width * height * CHANNELS);
+    for (let k = 0; k < width * height; k++) {
+      const p = rows.subarray(k * channels, (k + 1) * channels);
+      rgba.set([p[rgb[0]] ?? 0, p[rgb[1]] ?? 0, p[rgb[2]] ?? 0, p[alpha] ?? 255], k * CHANNELS);
+    }
+    return Result.succeed({ width, height, rgba });
+  });
 };

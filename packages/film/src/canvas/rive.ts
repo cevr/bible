@@ -38,7 +38,8 @@
 //
 // Where nothing is drawn (Bun, which has no canvas: `check --draw`) the rig is
 // still posed and its face still declared. Probes cannot see inside an
-// artboard: `face` names a node whose place is declared (`probeFace`).
+// artboard: `face` names a node whose place is declared (`probeFace`), and the
+// artboard's bounds are declared as the figure's box (`probeFigure`).
 
 import type {
   Artboard,
@@ -50,8 +51,9 @@ import type {
   ViewModelInstance,
   WrappedRenderer,
 } from '@rive-app/webgl2-advanced';
+import type { ConceptRef } from '../core/match.ts';
 import { dropGl, holdGl } from './gl.ts';
-import { probeFace, probesFaces } from './probe.ts';
+import { probeFace, probeFigure, probesFaces, probesFigures } from './probe.ts';
 
 /** Which of Rive's renderers draws a rig. */
 export type RiveEngine = 'canvas' | 'webgl2';
@@ -81,6 +83,12 @@ export interface RivePropSpec<Tl extends string = string, N extends string = str
   readonly origin: readonly [number, number];
   /** A node whose place is the face, and the face's height in artboard units, for `check`'s face probe. */
   readonly face?: { readonly node: string; readonly height: number };
+  /**
+   * The figure's concept: the image it was painted in and its box there
+   * (`film match` holds the rig as drawn against it). A rig with a face and
+   * a concept is a figure `match` reads; a hand has neither.
+   */
+  readonly concept?: ConceptRef;
 }
 
 /**
@@ -425,6 +433,25 @@ const declareFace = (
 };
 
 /**
+ * Declare the rig's box (the posed `artboard`'s bounds, in the space it was
+ * drawn in, our origin at the spec's `origin`) for the match's probe.
+ */
+const declareFigure = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, artboard: Artboard) => {
+  if (!probesFigures(ctx)) return;
+  const [ox, oy] = spec.origin;
+  const b = artboard.bounds;
+  probeFigure(ctx, {
+    key: spec.key,
+    left: b.minX - ox,
+    top: b.minY - oy,
+    right: b.maxX - ox,
+    bottom: b.maxY - oy,
+    face: spec.face !== undefined,
+    concept: spec.concept,
+  });
+};
+
+/**
  * Pose a new instance of `rig` (as `spec` declares it) to `pose` and draw it
  * at our origin under the context's transform, declaring its face, then
  * delete it: nothing once drawn, else why it cannot be (the pose names what
@@ -452,6 +479,7 @@ export const drawRig = (
   const painted =
     rig.paints && spec.engine === 'webgl2' ? paintGl(ctx, spec, rig, artboard) : undefined;
   declareFace(ctx, spec, rig, artboard);
+  declareFigure(ctx, spec, artboard);
   rig.frame.free();
   return painted;
 };

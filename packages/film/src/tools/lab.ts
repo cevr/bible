@@ -587,6 +587,18 @@ const looksGroup = HttpApiBuilder.group(LabHttpApi, 'looks', (handlers) =>
   ),
 );
 
+/** A match: a scene's figures held against their concepts, from the page the lab holds warm (`Easel`). */
+const matchesGroup = HttpApiBuilder.group(LabHttpApi, 'matches', (handlers) =>
+  handlers.handle('take', ({ params, payload }) =>
+    answered(
+      Effect.gen(function* () {
+        const film = yield* filmNamed(params.film);
+        return yield* (yield* Easel).match(film, payload);
+      }),
+    ),
+  ),
+);
+
 /**
  * Where the owner's phone opens the lab (`FILM_LAB_PHONE_URL`, this
  * machine's tailnet address by its IP: `http://100.92.183.50:8230/`), when it
@@ -663,6 +675,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         projectGroup,
         pageGroup,
         looksGroup,
+        matchesGroup,
         productionsGroup,
         asksGroup,
         timelineGroup,

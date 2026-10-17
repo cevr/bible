@@ -9,6 +9,7 @@ import type { Film, RenderOptions } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import { Footage, type FootageShown, footageAt, footageReads } from '../browser/footage.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
+import type { FigureMark } from '../core/match.ts';
 import { sceneTimesOf } from '../core/easel.ts';
 import { frameAtOrAfter } from '../core/time.ts';
 import { Effect, Option } from 'effect';
@@ -189,6 +190,12 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
     still: async (i, view) => {
       drawWith(i, await footageOf(i), { captions: view.captions });
       return canvasBase64(composeStill(canvas, view), view.format);
+    },
+    figures: async (i) => {
+      const figures: Array<FigureMark> = [];
+      const sink: ProbeSink = { texts: [], inks: [], figures };
+      drawWith(i, await footageOf(i), { captions: false, probe: sink });
+      return figures;
     },
   };
 };

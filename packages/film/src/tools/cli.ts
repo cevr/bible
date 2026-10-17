@@ -93,7 +93,7 @@ import { levelsOf, wedgeVariant } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
 import { fillBeside, ScriptVoices, stagingFill } from './script-voice.ts';
 import { SeriesDrafts, draftKey } from './series-drafts.ts';
-import { look } from './easel-cli.ts';
+import { look, match } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
 import { production, publish } from './production-cli.ts';
 import { board } from './board-cli.ts';
@@ -1075,6 +1075,7 @@ export const runFilmCli = <E>({
       lab(labApp, films, footageAt),
       channel.pipe(Command.provide(FetchHttpClient.layer)),
       look(films),
+      match(films),
       journal,
       production,
       publish,

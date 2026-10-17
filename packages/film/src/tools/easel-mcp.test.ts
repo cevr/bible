@@ -17,6 +17,7 @@ import { Effect, Layer, Logger, Option, type Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
 import { PagesBroken, type LookPost, type LookTaken } from '../core/easel.ts';
 import { UnknownScene } from '../core/errors.ts';
+import { MatchFigureUnknown, type MatchPost } from '../core/match.ts';
 import type { CheckLine } from '../core/schema.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { Easel } from './easel.ts';
@@ -51,12 +52,22 @@ interface Asked {
   readonly post: LookPost;
 }
 
+/** A match the easel was asked: the film, and what was posted. */
+interface MatchAsked {
+  readonly film: string;
+  readonly post: MatchPost;
+}
+
 /**
  * An easel that draws each place of a look as a still of its scene's bytes,
  * written where the lab's own writes them, and keeps each look it was asked;
  * a scene `broken` is the pages' build failing.
  */
-const easelDrawing = (files: Map<string, Uint8Array>, asked: Array<Asked>) =>
+const easelDrawing = (
+  files: Map<string, Uint8Array>,
+  asked: Array<Asked>,
+  matched: Array<MatchAsked> = [],
+) =>
   Layer.succeed(
     Easel,
     Easel.of({
@@ -83,6 +94,38 @@ const easelDrawing = (files: Map<string, Uint8Array>, asked: Array<Asked>) =>
           const taken: LookTaken = { build: 's.7', looks };
           return Effect.succeed(taken);
         }),
+      match: (film, post) =>
+        Effect.suspend(() => {
+          matched.push({ film, post });
+          if (post.figure === 'nobody')
+            return Effect.fail(
+              MatchFigureUnknown.make({ scene: post.scene, figure: 'nobody', known: ['lead'] }),
+            );
+          const stem = `/out/${film}/match/${post.scene}/lead.t0003.00.bs.7`;
+          files.set(`${stem}.png`, new Uint8Array([7, 7]));
+          files.set(`${stem}.md`, text('### lead\n\n| Measure | Concept | Scene |\n'));
+          return Effect.succeed({
+            build: 's.7',
+            scene: post.scene,
+            at: post.at,
+            frame: 90,
+            time: 3,
+            figures: [
+              {
+                figure: 'lead',
+                key: 'f/lead',
+                concept: {
+                  image: { set: 'concepts', file: 'images/lead.png' },
+                  box: [0, 0, 10, 10],
+                },
+                rows: [],
+                side: `${stem}.png`,
+                table: `${stem}.md`,
+              },
+            ],
+            unmatched: [{ figure: 'judge', reason: 'its rig declares no concept' }],
+          });
+        }),
     }),
   );
 
@@ -91,10 +134,11 @@ const labOver = (
   files: Map<string, Uint8Array>,
   asked: Array<Asked>,
   fresh: Partial<FreshFilmService> = {},
+  matched: Array<MatchAsked> = [],
 ) => {
   const pages = Layer.merge(
     Layer.effect(LabPage, Effect.service(LabPage)).pipe(Layer.provide(echoPages)),
-    easelDrawing(files, asked),
+    easelDrawing(files, asked, matched),
   );
   return RenderCatalogue.layer.pipe(
     Layer.provideMerge(labInMemory(files, pages, { film: freshFilm(fresh) })),
@@ -159,11 +203,14 @@ describe("the easel's tools on the MCP", () => {
       expect(Object.keys(named('look').inputSchema.properties).toSorted()).toEqual(
         ['at', 'crop', 'film', 'films', 'mode', 'scene', 'size'].toSorted(),
       );
+      expect(Object.keys(named('match').inputSchema.properties).toSorted()).toEqual(
+        ['at', 'figure', 'film', 'films', 'scene'].toSorted(),
+      );
       expect(
-        ['look', 'check', 'cues', 'journal', 'journal_note'].map(
+        ['look', 'match', 'check', 'cues', 'journal', 'journal_note'].map(
           (name) => named(name).annotations?.readOnlyHint === true,
         ),
-      ).toEqual([true, true, true, true, false]);
+      ).toEqual([true, true, true, true, true, false]);
     }).pipe(Effect.scoped, Effect.provide(labOver(files, [])));
   });
 
@@ -276,6 +323,60 @@ describe("the easel's tools on the MCP", () => {
       expect(asked).toHaveLength(before);
     }).pipe(Effect.scoped, Effect.provide(Layer.merge(labOver(files, asked), mcpLinesIn(lines))));
   });
+
+  it.effect(
+    "a match answers each figure's table and its side-by-side; refused in the film's words",
+    () => {
+      const files = filmFiles();
+      const matched: Array<MatchAsked> = [];
+      const lines: Array<string> = [];
+      return Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const { call } = yield* mcpSession(lab);
+        const match = (args: Args) =>
+          call('tools/call', { name: 'match', arguments: { films: FILMS, film: 'f', ...args } });
+        const answer = yield* match({ scene: 'roof', at: 'mark:see', figure: 'lead' });
+        expect(answer.isError).toBeUndefined();
+        expect(answer.content.map((block: { type: string }) => block.type)).toEqual([
+          'text',
+          'text',
+          'image',
+          'text',
+        ]);
+        expect(answer.content[0].text).toBe(
+          'match scene=roof at=mark:see t=3.00 frame=90 build=s.7',
+        );
+        expect(answer.content[1].text).toBe(
+          '/out/f/match/roof/lead.t0003.00.bs.7.png\n### lead\n\n| Measure | Concept | Scene |\n',
+        );
+        expect(answer.content[2]).toEqual({
+          type: 'image',
+          data: Base64.encode(new Uint8Array([7, 7])),
+          mimeType: 'image/png',
+        });
+        expect(answer.content[3].text).toBe('judge: unmatched (its rig declares no concept)');
+        expect(matched).toEqual([
+          { film: 'f', post: { scene: 'roof', at: 'mark:see', figure: 'lead', from: FILMS } },
+        ]);
+        const refused = yield* match({ scene: 'roof', at: '1', figure: 'nobody' });
+        expect(refused.isError).toBe(true);
+        expect(refused.content[0].text).toBe(
+          'MatchFigureUnknown: scene roof draws no figure "nobody" there (it draws: lead)',
+        );
+        const elsewhere = yield* match({ films: '/rift/films', scene: 'roof', at: '1' });
+        expect(elsewhere.content[0].text).toMatch(/^LabElsewhere: /);
+        expect(matched).toHaveLength(2);
+        expect(lines).toEqual([
+          '[mcp] tool=match film=f scene=roof figure=lead outcome=ok',
+          '[mcp] tool=match film=f scene=roof figure=nobody outcome=failed',
+          '[mcp] tool=match film=f scene=roof outcome=failed',
+        ]);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(Layer.merge(labOver(files, [], {}, matched), mcpLinesIn(lines))),
+      );
+    },
+  );
 
   it.effect('a check draws the scenes named, its findings a page at a time', () => {
     const files = filmFiles();

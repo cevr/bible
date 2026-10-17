@@ -44,7 +44,7 @@ argument. A short's id and an act's name are each declared once (`Shorts`,
 
 ## Tools
 
-`film narrate|takes import|script|score|mix|cues|check|render|lookbook|look|judge|journal|project|chapters|notes|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, `film sfx …` over the app's sound library, `tools/sfx-cli.ts`, and `film footage …` over its footage library, `tools/footage-cli.ts`, and `film talk words <talk>` over a talk's edit, `tools/talk-cli.ts`) runs from the app that holds the
+`film narrate|takes import|script|score|mix|cues|check|render|lookbook|look|match|judge|journal|project|chapters|notes|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, `film sfx …` over the app's sound library, `tools/sfx-cli.ts`, and `film footage …` over its footage library, `tools/footage-cli.ts`, and `film talk words <talk>` over a talk's edit, `tools/talk-cli.ts`) runs from the app that holds the
 films. The app owns the entry: it calls `runFilmCli({ films, sounds, footage, folders, previewServer, lab, self, judge })`
 with its films folder, its sound library folder, its footage library folder, its own `out` and `lab` folders
 (where a run writes renders and notes, whatever directory it starts in; `FILMS_OUT` and
@@ -342,7 +342,8 @@ encoder (`tools/jpeg.ts`, through NodeAV). A card (`card`) is a picture held ove
 sound, the clip an ask plays (`sfx ab`): the picture a frame a second, each
 a key frame, through x264 at the phone copy's settings, the last frame held
 for what the sound has left, and the sound as AAC. `writePng` writes a
-picture as a PNG (`tools/png.ts`).
+picture as a PNG (`tools/png.ts`), and `decodePng` reads one back (any
+8-bit PNG with no palette, not interlaced: a concept a match reads).
 
 `mix` plays `mixPlan` out through `renderMix` (the voice bus, a staging take
 lifted to the speech level `takes import` sets and a person's take as
@@ -2751,6 +2752,69 @@ under `/wedge/<id>/`. Its page is held beside the film's own (four at
 most), and its stills carry the levels in their names
 (`….wground-light.b<server>.<build>.<wedge>.jpg`).
 
+### The match: `film match`
+
+`film match <film> --scene <id> --at <place> [--figure <name>] [--json]`
+holds each figure a frame draws against the concept it was painted from.
+A rig declares its concept beside itself (`RivePropSpec.concept`, a
+`ConceptRef` in `core/match.ts`: a set's image, `{set, file}` under
+`out/<set>/`, or a Board try of the film's own, `{board}` under its
+`board/`, and the figure's box in it, in the image's pixels); drawing the
+rig declares its figure on the frame (`probeFigure`, `canvas/probe.ts`: its
+key, its box on screen, its concept), and the export handle's `figures`
+answers a frame's (`ExportHandle`, drawn under a probe like `probe`).
+The easel draws the place as a look does (its never-stale build, its held
+page), takes the frame plain, uncaptioned and as a PNG, crops each figure
+with its own hands (`sceneBoxOf`) and its concept by its box, and measures
+both (`measureFigure`, `core/figure.ts`, pure: RGBA in, numbers out).
+
+| Route                            | What it does                                                                                                                                                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/films/<film>/matches` | `MatchPost` `{scene, at, figure?, from?}` → `MatchTaken` `{build, scene, at, frame, time, figures: [{figure, key, concept, rows, side, table}], unmatched}` |
+
+**The measure.** Every length is a share of the head's outer width, so a
+concept and a scene compare whatever their sizes: the head's height, the
+outline, the jaw, the body's width under the chin, at 0.35 and 0.7 of a
+head under it and at the hem, the height in heads, the hand, the eyes, the
+brows and the mouth, the feet's width and height; the interior ink (a line
+of the hair's own between it and the skin: the owner's rule is none); the
+inner rim (a light band just inside the edge of an inner part of the head,
+an ear or the hair, where that edge is not the silhouette; the owner's
+rule is the concept's); the head's and the body's shading (each lit and
+shaded half's hue, saturation and value, the edge between them, colour or
+grey); and the outline (`FigureSilhouette`): the head's outer radius at 72
+angles from its centre, the body's sides row by row, the feet's box. A
+ratio the crop does not show is left out with why (`missing`: a hem behind
+a rail, whose line runs on past the body; feet a rail hides; feet that would
+lie past the crop's edge). The line is the longest run of dark ink that
+holds half the ink of the most-inked run, and no longer than a twelfth of
+the crop, so a wall's thin lines or a long dark band behind the figure do
+not stand for it.
+
+**The table** (`compareFigures`, `matchTable`). A row per measure, the
+concept's and the scene's numbers and their difference: a ratio is flagged
+past 5% of the concept's; interior ink past 0.02 of a head; an inner rim
+0.1 of a head longer than the concept's; the head's outline past a mean
+gap of 0.03 of a head from the concept's (the widest gap named by its
+side), the body's past 0.05; feet the concept shows and the scene does not
+(or the other way); a shade's drop, turn, kept saturation and edge past
+their tolerances, and a grey shade. It guides; it is never a gate: a
+concept is painted.
+
+**Files.** Under `out/<film>/match/<scene>/`, each figure's side-by-side
+(`<figure>.t<time>.b<build>.png`: the concept, the scene at one head
+height, and the scene again under the concept's outline in magenta, laid
+by the head's centre and width) and its table (`….md`), written once, so
+a path handed on keeps its pixels. A figure with no concept declared, one whose
+box lies past the frame's edge, a concept not on disk or unreadable, or a
+crop where no figure reads is
+`unmatched` with why; a `--figure` the frame does not draw is a 404
+`MatchFigureUnknown` naming those it does. The CLI prints a head line, then
+per figure its files and its flagged rows. The match is the scene
+painter's step after a passage that touches a figure
+(`.claude/skills/film/reference/scene-painter.md`). Each match logs
+`easel.match … figures= unmatched= ms=`.
+
 ### The judge: `film judge`
 
 `film judge <film> --scene <id> [--point <id>]` (`tools/judge.ts`, its
@@ -3362,7 +3426,9 @@ the film second it starts at; a finding about the whole film has neither).
 
 The probe lives in `canvas/probe.ts`. `write`, `block`, right-to-left text
 and the captions record their text through it; `stroke` records its drawn
-centre line and `cutout` its outline. A drawing declares the plate its text
+centre line and `cutout` its outline. A Rive rig declares its figure
+(`probeFigure`: its key, its box on screen and its concept), which a
+match crops by. A drawing declares the plate its text
 sits on (a torn tag, a word card) with `probePlate(ctx, shape, () => write(…))`:
 the shape it drew the plate with, and the lines on it drawn inside. A plate
 hides what is under it as the text does, so it is measured as text too; the

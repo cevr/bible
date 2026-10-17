@@ -17,6 +17,7 @@ import type {
   InkMark,
   TextBox,
 } from '../core/export-handle.ts';
+import type { ConceptRef, FigureMark } from '../core/match.ts';
 
 /** What one probed frame collects: text and ink, in the order drawn, and faces and hands when asked. */
 export interface ProbeSink {
@@ -28,6 +29,8 @@ export interface ProbeSink {
   readonly hands?: HandMark[];
   /** Given (a film that reads footage), every footage frame the frame draws lands here (`heldStill`). */
   readonly footage?: FootageMark[];
+  /** Given, every figure a rig declares lands here (`probeFigure`: the match's `figures` call). */
+  readonly figures?: FigureMark[];
 }
 
 /** Where text and ink drawn into a context land on screen, and whose they are. */
@@ -304,6 +307,55 @@ export const probeHand = (ctx: CanvasRenderingContext2D, hand: HandSeen) => {
     inside: hand.body().some((shape) => insidePolygon(shape, hand.at)),
     over: hand.over,
     alpha: ctx.globalAlpha * probe.alpha,
+  });
+};
+
+/**
+ * Whether a probe that collects figures is attached to `ctx`: a rig asks
+ * before working out its box, so a frame nobody probes pays one lookup.
+ */
+export const probesFigures = (ctx: CanvasRenderingContext2D): boolean =>
+  probes.get(ctx)?.sink.figures !== undefined;
+
+/**
+ * Declare a figure drawn in the current transform's space: `key` (its rig),
+ * the rectangle `[left, right] × [top, bottom]` it was drawn in (its box on
+ * screen is the box around that rectangle mapped through the transform, the
+ * layer's offset added), whether it has a face, and its concept reference,
+ * so `match` crops it from a still and holds it against its concept.
+ * Records only when a probe that collects figures is attached; draws
+ * nothing.
+ */
+export const probeFigure = (
+  ctx: CanvasRenderingContext2D,
+  figure: {
+    readonly key: string;
+    readonly left: number;
+    readonly top: number;
+    readonly right: number;
+    readonly bottom: number;
+    readonly face: boolean;
+    readonly concept?: ConceptRef;
+  },
+) => {
+  const probe = probes.get(ctx);
+  const figures = probe?.sink.figures;
+  if (probe === undefined || figures === undefined) return;
+  const map = screen(ctx, probe);
+  const corners = [
+    map(figure.left, figure.top),
+    map(figure.right, figure.top),
+    map(figure.right, figure.bottom),
+    map(figure.left, figure.bottom),
+  ];
+  const xs = corners.map((c) => c[0]);
+  const ys = corners.map((c) => c[1]);
+  figures.push({
+    scene: probe.scene,
+    key: figure.key,
+    box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)],
+    face: figure.face,
+    concept: figure.concept,
   });
 };
 

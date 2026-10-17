@@ -10,6 +10,7 @@
 import { Schema } from 'effect';
 import { SceneTimes, type StillView } from './easel.ts';
 import { type Encoder, EncoderChoice } from './encoder.ts';
+import { FigureMark } from './match.ts';
 import { Point } from './schema.ts';
 
 /** What the render page's handle reports about the film it loaded. */
@@ -275,6 +276,8 @@ export interface CallArgs {
   readonly scenes: readonly [];
   /** Frame `i` drawn and shown as `view` asks (a crop, a size, a mode, its captions), encoded: a look. */
   readonly still: readonly [i: number, view: StillView];
+  /** Frame `i` drawn with the figure probe on: each rig it draws, its box on screen and its concept (`match`). */
+  readonly figures: readonly [i: number];
 }
 
 /** A call's name. */
@@ -293,6 +296,7 @@ const Answers = {
   drawTimes: Schema.Array(Schema.Finite),
   scenes: Schema.Array(SceneTimes),
   still: Schema.Uint8ArrayFromBase64,
+  figures: Schema.Array(FigureMark),
 } satisfies { readonly [K in ExportCall]: Schema.Top };
 
 /** Each call's answer as the page hands it back (bytes as base64). */

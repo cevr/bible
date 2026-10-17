@@ -6,7 +6,8 @@
 
 import { describe, expect, test } from 'bun:test';
 import type { Pcm } from '../audio.ts';
-import { type Raster, sheetOf } from './sheet.ts';
+import type { Raster } from '../raster.ts';
+import { sheetOf } from './sheet.ts';
 
 const RATE = 44100;
 const pcmOf = (plane: Float32Array): Pcm => ({

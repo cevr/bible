@@ -13,6 +13,14 @@
 //
 // `--level` draws a wedge: the look at that level in place of the one the
 // film plays, its pick unwritten (`tools/easel.ts`).
+//
+// `film match`: a scene's figures at one place held against their concepts,
+// through the lab's match route (`POST /api/films/<film>/matches`,
+// `MatchesGroup`) with a look's guarantees: per figure its table and its
+// side-by-side, written under `out/<film>/match/<scene>/`, printed as their
+// files and the rows past tolerance (`matchLines`), or as one JSON line.
+//
+//   film match <film> --scene <id> --at <place> [--figure <name>] [--json]
 
 import { Argument, Command, Flag } from 'effect/cli';
 import { Array as Arr, Console, Effect, Option, Path, Result, Schema } from 'effect';
@@ -33,6 +41,7 @@ import {
   levelsOf,
   lookLine,
 } from '../core/easel.ts';
+import { MatchPost, MatchTaken, matchLines } from '../core/match.ts';
 import { labUrl } from './lab-client.ts';
 
 const FORMATS = { png: 'image/png', jpeg: 'image/jpeg' } as const;
@@ -175,5 +184,90 @@ export const look = (films: string) =>
     Command.provide(FetchHttpClient.layer),
     Command.withDescription(
       "Look at a scene as its sources stand: stills from the lab's warm page (FILM_LAB_URL, else the always-on lab), in about a second, with no render; one line per still, its file first",
+    ),
+  );
+
+/** A match's answer as one JSON line (`--json`). */
+const matchedJson = Schema.encodeSync(Schema.fromJsonString(MatchTaken));
+
+/**
+ * The match `post` of `film` asked of the lab at `url` (`MatchesGroup`):
+ * each figure's table and side-by-side, its refusal as itself, `LookInvalid`
+ * when the request cannot be sent, or `LabDown` when no lab answered, or one
+ * answered with no match (a lab older than the asker).
+ */
+const takeMatch = (url: string, film: string, post: MatchPost) =>
+  Schema.encodeEffect(MatchPost)(post).pipe(
+    Effect.mapError((error) => LookInvalid.make({ reason: error.message })),
+    Effect.andThen(HttpApiClient.make(LabHttpApi, { baseUrl: url })),
+    Effect.flatMap((client) => client.matches.take({ params: { film }, payload: post })),
+    Effect.catchTags({
+      HttpClientError: (error) => Effect.fail(LabDown.make({ url, reason: error.message })),
+      SchemaError: (error) =>
+        Effect.fail(
+          LabDown.make({
+            url,
+            reason: `it answered no match (${error.message}); a lab older than this checkout needs a restart`,
+          }),
+        ),
+    }),
+  );
+
+/** `film match`, its films folder `films` sent so a lab serving another checkout refuses. */
+export const match = (films: string) =>
+  Command.make(
+    'match',
+    {
+      film: Argument.String('film').pipe(
+        Argument.withDescription('the film, a folder under src/films'),
+      ),
+      scene: Flag.String('scene').pipe(Flag.withDescription('the scene, by its id')),
+      at: Flag.String('at').pipe(
+        Flag.withDescription(
+          "where in the scene: seconds into it (2.5), mark:<name> (the mark's word), or cue:<name>[@<0..1>]",
+        ),
+      ),
+      figure: Flag.String('figure').pipe(
+        Flag.optional,
+        Flag.withDescription(
+          "one figure, by its rig's name (lead) or key; every figure with a concept when left out",
+        ),
+      ),
+      json: Flag.Boolean('json').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription(
+          "print the lab's answer as one JSON line (a failure as the route answers it: ToolFailure in core/api.ts)",
+        ),
+      ),
+    },
+    Effect.fn('film.match')(
+      function* (input) {
+        const url = yield* labUrl;
+        const path = yield* Path.Path;
+        const post: MatchPost = {
+          scene: input.scene,
+          at: input.at,
+          ...Option.match(input.figure, { onNone: () => ({}), onSome: (figure) => ({ figure }) }),
+          from: path.resolve(films),
+        };
+        const taken = yield* takeMatch(url, input.film, post);
+        if (input.json) return yield* Console.log(matchedJson(taken));
+        yield* Console.log(
+          `match scene=${taken.scene} at=${taken.at} t=${taken.time.toFixed(2)} frame=${taken.frame} build=${taken.build}`,
+        );
+        for (const one of taken.figures)
+          for (const line of matchLines(one)) yield* Console.log(line);
+        for (const one of taken.unmatched)
+          yield* Console.log(`${one.figure}: unmatched (${one.reason})`);
+      },
+      (effect, input) =>
+        Effect.tapError(effect, (error) =>
+          Effect.when(Console.log(failureJson(error)), Effect.succeed(input.json)),
+        ),
+    ),
+  ).pipe(
+    Command.provide(FetchHttpClient.layer),
+    Command.withDescription(
+      "Hold a scene's figures against their concepts at one place: per figure a table of ratios and shading (flagged past 5%) and a side-by-side at one head height, from the lab's warm page; not a gate",
     ),
   );

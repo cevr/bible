@@ -5,6 +5,9 @@
 //   export page in this process (`Easel`, which `film look` asks over HTTP),
 //   each answered as an image after its line (`lookLine`), so the model
 //   reads the picture itself.
+// - `match`: a scene's figures at one place held against their concepts
+//   (`Easel.match`, which `film match` asks over HTTP): per figure its table
+//   as text and its side-by-side as an image.
 // - `cues`: each scene's placement, marks and named cues (`film read cues`).
 // - `check`: scenes checked as drawn (`film check --draw`).
 // - `journal`, `journal_note`: the film's journal read, and an observation
@@ -31,6 +34,7 @@ import { McpSchema, McpServer, Tool, Toolkit } from 'effect/ai';
 import { PartId } from '../core/address-schema.ts';
 import { ServerFailed } from '../core/api.ts';
 import { type Look, LookMode, type LookPost, formatFor, lookLine } from '../core/easel.ts';
+import type { MatchTaken } from '../core/match.ts';
 import {
   CHECK_MAX_SCENES,
   CheckPage,
@@ -48,7 +52,7 @@ import { CuesLate } from './errors.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { JOURNAL_LAST, note, read } from './journal.ts';
-import { logged } from './mcp-calls.ts';
+import { type CallParams, logged } from './mcp-calls.ts';
 
 /** The most stills one look takes: each is an image the model reads, and a request keeps 20 at full size. */
 const LOOK_MAX_PLACES = 8;
@@ -167,7 +171,23 @@ const LookParams = Schema.Struct({
   ),
 });
 type LookParams = typeof LookParams.Type;
-const decodeLookParams = Schema.decodeUnknownEffect(LookParams);
+
+const MatchParams = Schema.Struct({
+  films: Films,
+  film: FilmParam,
+  scene: SceneParam,
+  at: Schema.String.annotate({
+    description:
+      "Where in the scene, one place: seconds into it (2.5), mark:<name> (the mark's word), or cue:<name>[@<0..1>]",
+  }),
+  figure: Schema.optionalKey(
+    Schema.String.annotate({
+      description:
+        "One figure, by its rig's name (lead) or key; every figure the frame draws with a concept when left out",
+    }),
+  ),
+});
+type MatchParams = typeof MatchParams.Type;
 
 const JournalNoted = Schema.Struct({
   file: Schema.String,
@@ -263,6 +283,9 @@ const EaselToolkit = Toolkit.make(CheckTool, CuesTool, JournalTool, JournalNoteT
 
 /** The `look` tool as the lab lists it: its answer is images, which a toolkit's JSON answer cannot carry. */
 const LOOK_DESCRIPTION = `Look at a scene as its files stand now: stills drawn on the lab's warm export page in about a second (no render), each answered as an image after its line (its file, scene, place, time in the scene, frame, size and the lab's build). Look at the moments the beat is about: its marks and the middle of each cue that moves something (mark:<m>, cue:<c>@0.5). \`mode\` value checks the light and dark, squint where the eye lands first; \`crop\` reads a face, a hand or lettering at 1:1 (a PNG; a whole frame is a JPEG). The stills stay under out/<film>/look/<scene>/. A look never shows stale code: a page that does not build is PagesBroken, with the bundler's words.`;
+
+/** The `match` tool as the lab lists it: its answer is tables and images. */
+const MATCH_DESCRIPTION = `Hold a scene's figures against their concepts at one place, as the files stand now (the look's warm page, its build and stale-code guarantees): each rig with a concept (its RivePropSpec's \`concept\`: an image and the figure's box in it) is cropped from the frame by the box the engine draws it in and measured as its concept is: head height, jaw, the body under the chin, at 0.35 and 0.7 and at the hem, height in heads, hand, eyes, brows, mouth, outline width, feet width and height (each a share of the head's width), ink on the hair/skin edge (the rule is none), a light rim inside an inner part such as an ear (flagged where the concept paints none), the head's and the body's shading (value drop, hue turn, saturation kept, the edge's angle, colour not grey), and the outline: the head's shape, the body's sides and the feet shown or not, against the concept's. Answers per figure its table (concept, scene, difference; a ratio flagged past 5%, the head's outline past a mean gap of 0.03 of a head, the body's past 0.05) and one side-by-side image at one head height: the concept, the scene, and the scene under the concept's outline in magenta; both stay under out/<film>/match/<scene>/. Guidance, not a gate: a concept is painted. After a passage that touches a figure, match it.`;
 
 // ---------------------------------------------------------------------------
 // The work, over the lab's easel, its fresh runs and its films
@@ -383,7 +406,39 @@ const easelWork = Effect.gen(function* () {
     ]);
   });
 
-  return { check, cues, journal, journalNote, look };
+  const match = Effect.fn('EaselMcp.match')(function* (params: MatchParams) {
+    const film = yield* served(params.films, params.film);
+    const taken: MatchTaken = yield* easel.match(film, {
+      scene: params.scene,
+      at: params.at,
+      figure: params.figure,
+      from: params.films,
+    });
+    const read = yield* Effect.forEach(taken.figures, (one) =>
+      Effect.all({
+        table: fs.readFileString(one.table),
+        side: fs.readFile(one.side),
+      }).pipe(Effect.map((files) => ({ one, ...files }))),
+    );
+    const sized = read.map(({ one, side }) => ({ file: one.side, bytes: side.length }));
+    const large = sized.filter((still) => still.bytes > STILL_MAX_BYTES);
+    if (Arr.isReadonlyArrayNonEmpty(large))
+      return yield* LookTooLarge.make({ stills: large, limit: STILL_MAX_BYTES });
+    const head = `match scene=${taken.scene} at=${taken.at} t=${taken.time.toFixed(2)} frame=${taken.frame} build=${taken.build}`;
+    return [
+      { type: 'text', text: head },
+      ...read.flatMap(({ one, table, side }): ReadonlyArray<McpSchema.ContentBlock> => [
+        { type: 'text', text: `${one.side}\n${table}` },
+        { type: 'image', data: side, mimeType: 'image/png' },
+      ]),
+      ...taken.unmatched.map((one): McpSchema.ContentBlock => ({
+        type: 'text',
+        text: `${one.figure}: unmatched (${one.reason})`,
+      })),
+    ] satisfies ReadonlyArray<McpSchema.ContentBlock>;
+  });
+
+  return { check, cues, journal, journalNote, look, match };
 });
 
 /** The toolkit's handlers: each tool's work, its failure said as the film's refusal. */
@@ -401,28 +456,33 @@ const handlers = EaselToolkit.toLayer(
 );
 
 /**
- * `look`, registered by hand: a toolkit answers its result as JSON text, and
- * a look answers images. Its arguments are decoded as a toolkit's are (bad
- * ones are the call's `InvalidParams`); a refusal is the tool's error, in the
- * same words `FilmRefused` says.
+ * A tool registered by hand: a toolkit answers its result as JSON text, and
+ * `look` and `match` answer images. Its arguments are decoded as a toolkit's
+ * are (bad ones are the call's `InvalidParams`); a refusal is the tool's
+ * error, in the same words `FilmRefused` says. It writes under out/ and
+ * nothing else, and reaches nothing past the lab.
  */
-const lookTool = Layer.effectDiscard(
+const imageTool = <P extends CallParams, I, E extends Named>(
+  name: string,
+  description: string,
+  params: Schema.Codec<P, I>,
+  work: (params: P) => Effect.Effect<ReadonlyArray<McpSchema.ContentBlock>, E>,
+) =>
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;
-    const work = yield* easelWork;
     // Logged before its refusal is answered, so a refusal logs as failed.
-    const look = logged('look', (params: LookParams) => work.look(params));
-    const document = Schema.toJsonSchemaDocument(LookParams, { onExcessProperty: 'ignore' });
+    const run = logged(name, work);
+    const decode = Schema.decodeUnknownEffect(params);
+    const document = Schema.toJsonSchemaDocument(params, { onExcessProperty: 'ignore' });
     const inputSchema = yield* Schema.decodeUnknownEffect(McpSchema.ToolJson)({
       ...document.schema,
       $defs: document.definitions,
     }).pipe(Effect.orDie);
     yield* server.addTool({
       tool: McpSchema.Tool.make({
-        name: 'look',
-        description: LOOK_DESCRIPTION,
+        name,
+        description,
         inputSchema,
-        // It writes its stills under out/ and nothing else, and reaches nothing past the lab.
         annotations: {
           readOnlyHint: true,
           destructiveHint: false,
@@ -432,11 +492,11 @@ const lookTool = Layer.effectDiscard(
       }),
       annotations: Context.empty(),
       handle: (payload) =>
-        decodeLookParams(payload).pipe(
+        decode(payload).pipe(
           Effect.mapError((error) => McpSchema.InvalidParams.make({ message: error.message })),
-          Effect.flatMap((params) =>
-            look(params, {}).pipe(
-              Effect.map((content) => McpSchema.CallToolResult.make({ content })),
+          Effect.flatMap((decoded) =>
+            run(decoded, {}).pipe(
+              Effect.map((content) => McpSchema.CallToolResult.make({ content: [...content] })),
               Effect.catch((error) =>
                 Effect.succeed(
                   McpSchema.CallToolResult.make({
@@ -449,15 +509,23 @@ const lookTool = Layer.effectDiscard(
           ),
         ),
     });
+  });
+
+/** `look` and `match`, registered by hand: each answers images. */
+const imageTools = Layer.effectDiscard(
+  Effect.gen(function* () {
+    const work = yield* easelWork;
+    yield* imageTool('look', LOOK_DESCRIPTION, LookParams, work.look);
+    yield* imageTool('match', MATCH_DESCRIPTION, MatchParams, work.match);
   }),
 ).pipe(Layer.provide(McpServer.McpServer.layer));
 
 /** What the lab's MCP says of the easel's tools, beside its own instructions. */
 export const EASEL_INSTRUCTIONS =
-  "Paint and review a film's scenes with the easel's tools: `look` (stills of a scene as its files stand, as images), `cues` (each scene's marks and named cues), `check` (scenes checked as drawn), `journal` and `journal_note` (the film's observations, read and noted). Each takes `films`, your checkout's films folder: a lab that serves another checkout's refuses (`LabElsewhere`). How a scene is painted with them, a passage at a time: .claude/skills/film/reference/scene-painter.md in the repository.";
+  "Paint and review a film's scenes with the easel's tools: `look` (stills of a scene as its files stand, as images), `match` (a scene's figures held against their concepts: a table and a side-by-side each), `cues` (each scene's marks and named cues), `check` (scenes checked as drawn), `journal` and `journal_note` (the film's observations, read and noted). Each takes `films`, your checkout's films folder: a lab that serves another checkout's refuses (`LabElsewhere`). How a scene is painted with them, a passage at a time: .claude/skills/film/reference/scene-painter.md in the repository.";
 
 /** The easel's tools on the lab's MCP, over the lab's easel, its fresh runs and its films. */
 export const easelMcp = Layer.mergeAll(
   McpServer.toolkit(EaselToolkit).pipe(Layer.provideMerge(handlers)),
-  lookTool,
+  imageTools,
 );

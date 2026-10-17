@@ -1,12 +1,14 @@
 // A PNG read back by the standard's own rules, written here apart from the
 // encoder: its signature, its chunks in order with their CRCs (a bitwise
 // CRC-32, not zlib's), its header, and its rows unfiltered back to the
-// raster's bytes, whichever filter each row was given.
+// raster's bytes, whichever filter each row was given. The decoder reads
+// the encoder's back, and a PNG built here by hand in another colour type.
 
 import { describe, expect, test } from 'bun:test';
-import { inflateSync } from 'node:zlib';
-import type { Raster } from '../core/synth/sheet.ts';
-import { encodePng } from './png.ts';
+import { deflateSync, inflateSync } from 'node:zlib';
+import type { Raster } from '../core/raster.ts';
+import { Result } from 'effect';
+import { decodePng, encodePng } from './png.ts';
 
 /** CRC-32 (the PNG polynomial, reflected), a bit at a time. */
 const crc32Bitwise = (bytes: Uint8Array): number => {
@@ -111,5 +113,57 @@ describe('encodePng', () => {
     expect(unfiltered(inflated, 37, 23)).toEqual(RASTER.rgba);
     const kinds = new Set(Array.from({ length: 23 }, (_, y) => inflated[y * (37 * 4 + 1)]));
     expect(kinds.size).toBeGreaterThan(1);
+  });
+});
+
+/** A PNG built by hand: its header for `colour` type at 8 bits, its rows each under filter 0. */
+const pngOf = (
+  width: number,
+  height: number,
+  colour: number,
+  rows: ReadonlyArray<ReadonlyArray<number>>,
+): Uint8Array => {
+  const chunk = (type: string, data: Uint8Array) => {
+    const typed = new Uint8Array([...new TextEncoder().encode(type), ...data]);
+    const out = new Uint8Array(12 + data.length);
+    const view = new DataView(out.buffer);
+    view.setUint32(0, data.length);
+    out.set(typed, 4);
+    view.setUint32(8 + data.length, crc32Bitwise(typed));
+    return out;
+  };
+  const head = new Uint8Array(13);
+  new DataView(head.buffer).setUint32(0, width);
+  new DataView(head.buffer).setUint32(4, height);
+  head.set([8, colour, 0, 0, 0], 8);
+  const raw = new Uint8Array(rows.flatMap((row) => [0, ...row]));
+  return new Uint8Array([
+    ...[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+    ...chunk('IHDR', head),
+    ...chunk('IDAT', new Uint8Array(deflateSync(raw))),
+    ...chunk('IEND', new Uint8Array()),
+  ]);
+};
+
+describe('decodePng', () => {
+  test("reads the encoder's PNG back to its raster, byte for byte", () => {
+    expect(Result.getOrThrow(decodePng(encodePng(RASTER)))).toEqual(RASTER);
+  });
+
+  test('reads RGB and grey PNGs as opaque RGBA', () => {
+    const rgb = Result.getOrThrow(decodePng(pngOf(2, 1, 2, [[10, 20, 30, 40, 50, 60]])));
+    expect([...rgb.rgba]).toEqual([10, 20, 30, 255, 40, 50, 60, 255]);
+    const grey = Result.getOrThrow(decodePng(pngOf(2, 1, 0, [[7, 9]])));
+    expect([...grey.rgba]).toEqual([7, 7, 7, 255, 9, 9, 9, 255]);
+  });
+
+  test('refuses what it cannot read, saying why', () => {
+    const reason = (bytes: Uint8Array) =>
+      Result.match(decodePng(bytes), {
+        onFailure: (refusal) => refusal.reason,
+        onSuccess: () => 'read',
+      });
+    expect(reason(new TextEncoder().encode('not a picture'))).toBe('no PNG signature');
+    expect(reason(pngOf(1, 1, 3, [[0]]))).toBe('colour type 3 (a palette, or unknown)');
   });
 });

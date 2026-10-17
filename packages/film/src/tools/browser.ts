@@ -68,6 +68,7 @@ export interface CallErrors {
   readonly drawTimes: FrameFailed;
   readonly scenes: FrameFailed;
   readonly still: FrameFailed;
+  readonly figures: FrameFailed;
 }
 
 /** How long a call may take, and the error its failure is, from its arguments and the reason. */
@@ -107,6 +108,10 @@ const CALLS: CallPolicies = {
   drawTimes: { timeout: SHEET_TIMEOUT, fail: batchFailed },
   scenes: { timeout: FRAME_TIMEOUT, fail: (_, reason) => FrameFailed.make({ frame: 0, reason }) },
   still: { timeout: FRAME_TIMEOUT, fail: ([frame], reason) => FrameFailed.make({ frame, reason }) },
+  figures: {
+    timeout: FRAME_TIMEOUT,
+    fail: ([frame], reason) => FrameFailed.make({ frame, reason }),
+  },
 };
 
 /**

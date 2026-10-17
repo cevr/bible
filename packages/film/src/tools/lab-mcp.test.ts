@@ -267,6 +267,7 @@ describe('the lab as an MCP server', () => {
             'journal',
             'journal_note',
             'look',
+            'match',
             'timeline',
             'working',
           ].toSorted(),

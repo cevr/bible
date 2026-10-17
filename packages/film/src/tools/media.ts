@@ -85,7 +85,7 @@ import {
 } from 'mediabunny';
 import { MPEGDecoder } from 'mpg123-decoder';
 import { type Pcm, concat, toInt16 } from '../core/audio.ts';
-import type { Raster } from '../core/synth/sheet.ts';
+import type { Raster } from '../core/raster.ts';
 import { isAiff, readAiff } from './aiff.ts';
 import { writeWhole } from './content-store.ts';
 import { MediaFailed } from '../core/refusals.ts';

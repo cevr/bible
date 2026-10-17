@@ -21,10 +21,11 @@ const LOGGED_ARGS = [
   'wait',
   'try',
   'version',
+  'figure',
 ] as const;
 
 /** A tool call's arguments as far as its line reads them: the logged ones, each a name, an id or a count. */
-type CallParams = { readonly [Arg in (typeof LOGGED_ARGS)[number]]?: string | number };
+export type CallParams = { readonly [Arg in (typeof LOGGED_ARGS)[number]]?: string | number };
 
 /** `params`' logged arguments, as ` key=value` each (`LOGGED_ARGS`). Pure. */
 const callArgs = (params: CallParams): string =>

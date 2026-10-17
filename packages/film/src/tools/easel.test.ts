@@ -5,8 +5,10 @@
 // that failed a frame is not trusted with the next, and a lab serving
 // another checkout's films refuses, the folders compared as the disk
 // resolves them (a link to the lab's folder is it; a link then `..`, a
-// relative folder or one not there never are). Live clock: the fake page
-// sleeps a millisecond a frame.
+// relative folder or one not there never are). A match measures each
+// figure the frame declares against its concept, writes its side-by-side
+// and its table, and names the figures it cannot match and why. Live clock:
+// the fake page sleeps a millisecond a frame.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -22,11 +24,14 @@ import {
   Schedule,
 } from 'effect';
 import { filmOfPage, pageAt } from '../core/api.ts';
+import { drawFigure, PLAIN } from '../core/fixtures/figure.ts';
+import type { FigureMark } from '../core/match.ts';
 import type { SceneTimes, StillView } from '../core/easel.ts';
 import { FrameFailed } from './errors.ts';
 import { Easel, elsewhereOf } from './easel.ts';
 import { FilmFolder, type FilmName } from './film-repo.ts';
 import { LabPage, type PagesNow } from './lab-page.ts';
+import { encodePng } from './png.ts';
 import { echoPages, emptyLedger, fakeRenderHost, memoryFileSystem } from './testing.ts';
 
 const roof: SceneTimes = {
@@ -361,4 +366,106 @@ describe('the easel', () => {
       }).pipe(Effect.provide(layer));
     },
   );
+
+  describe('a match', () => {
+    const lead: FigureMark = {
+      scene: 'roof',
+      key: 'f/lead',
+      box: [70, 50, 330, 620],
+      face: true,
+      concept: { image: { set: 'concepts', file: 'images/lead.png' }, box: [0, 0, 400, 640] },
+    };
+    const judge: FigureMark = { scene: 'roof', key: 'f/judge', box: [0, 0, 20, 20], face: true };
+    const elsewhere: FigureMark = { ...lead, scene: 'yard', key: 'f/other' };
+    const matchLayer = (files: Map<string, Uint8Array>, ledger = emptyLedger()) =>
+      Easel.layer.pipe(
+        Layer.provide([
+          fakeRenderHost(ledger, {
+            scenes: [roof],
+            figures: () => [lead, judge, elsewhere],
+            // The scene draws the lead with ink on its hair line, which the concept has not.
+            still: () => encodePng(drawFigure({ ...PLAIN, hairInk: true })),
+          }),
+          pagesAt(Ref.makeUnsafe(built(1))),
+          FilmFolder.layer('/films'),
+        ]),
+        Layer.provideMerge([
+          memoryFileSystem(files),
+          Path.layer,
+          ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_OUT: '/out' })),
+        ]),
+      );
+
+    it.live(
+      'measures each figure of the scene against its concept, writes its side-by-side and its table, and names those it cannot match',
+      () => {
+        const files = new Map([['/out/concepts/images/lead.png', encodePng(drawFigure(PLAIN))]]);
+        const ledger = emptyLedger();
+        return Effect.gen(function* () {
+          const easel = yield* Easel;
+          yield* easel.serve('http://0.0.0.0:4401/');
+          const taken = yield* easel.match(film, { scene: 'roof', at: 'mark:see' });
+          expect([taken.build, taken.scene, taken.frame, taken.time]).toEqual([
+            's.1',
+            'roof',
+            150,
+            3,
+          ]);
+          expect(taken.figures.map((f) => [f.figure, f.side, f.table])).toEqual([
+            [
+              'lead',
+              '/out/f/match/roof/lead.t0003.00.bs.1.png',
+              '/out/f/match/roof/lead.t0003.00.bs.1.md',
+            ],
+          ]);
+          expect(
+            taken.figures[0]?.rows.find((r) => r.name.startsWith('ink on the hair'))?.flagged,
+          ).toBe(true);
+          expect(taken.unmatched).toEqual([
+            { figure: 'judge', reason: 'its rig declares no concept' },
+          ]);
+          // The still drawn plain, with no captions, as a PNG.
+          expect(ledger.stills).toEqual([
+            { frame: 150, view: { mode: 'plain', captions: false, format: 'image/png' } },
+          ]);
+          expect(files.get('/out/f/match/roof/lead.t0003.00.bs.1.png')?.subarray(1, 4)).toEqual(
+            new TextEncoder().encode('PNG'),
+          );
+          expect(
+            new TextDecoder().decode(files.get('/out/f/match/roof/lead.t0003.00.bs.1.md')),
+          ).toContain('### lead (roof mark:see, t=3.00 frame 150, build s.1)');
+        }).pipe(Effect.provide(matchLayer(files, ledger)));
+      },
+    );
+
+    it.live(
+      'one figure asked is matched alone; a figure the frame does not draw is refused with those it does',
+      () => {
+        const files = new Map<string, Uint8Array>();
+        return Effect.gen(function* () {
+          const easel = yield* Easel;
+          yield* easel.serve('http://0.0.0.0:4401/');
+          // Its concept is not on disk: unmatched, saying where it looked.
+          const one = yield* easel.match(film, { scene: 'roof', at: '3', figure: 'lead' });
+          expect(one.figures).toEqual([]);
+          expect(one.unmatched).toEqual([
+            {
+              figure: 'lead',
+              reason:
+                'its concept concepts/images/lead.png is not at /out/concepts/images/lead.png',
+            },
+          ]);
+          const error = yield* Effect.flip(
+            easel.match(film, { scene: 'roof', at: '3', figure: 'other' }),
+          );
+          expect(error).toMatchObject({
+            _tag: 'MatchFigureUnknown',
+            scene: 'roof',
+            figure: 'other',
+            known: ['lead', 'judge'],
+          });
+        }).pipe(Effect.provide(matchLayer(files)));
+      },
+    );
+  });
 });

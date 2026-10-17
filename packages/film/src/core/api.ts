@@ -68,6 +68,7 @@ import {
   PagesBroken,
   ToolFailed,
 } from './easel.ts';
+import { MatchFigureUnknown, MatchPost, MatchTaken } from './match.ts';
 import {
   CounselFailed,
   CounselUnreadable,
@@ -241,6 +242,7 @@ const Refusals = [
   RouteUnknown.pipe(status(404)),
   LookPlaceUnknown.pipe(status(404)),
   LookLevelUnknown.pipe(status(404)),
+  MatchFigureUnknown.pipe(status(404)),
   StagingTakeUnknown.pipe(status(404)),
   DraftUnknown.pipe(status(404)),
   AudioInvalid.pipe(status(400)),
@@ -1061,6 +1063,23 @@ class LooksGroup extends HttpApiGroup.make('looks').add(
 ) {}
 
 /**
+ * A match (`core/match.ts`): a scene's figures at one place, each drawn by
+ * the look's warm page, cropped by the box its rig declares and measured
+ * against its concept (`core/figure.ts`), the tables and side-by-sides
+ * written under the film's `out/<film>/match/` and answered with their
+ * paths. A tool's call, as a look is, with a look's guarantees: the pages'
+ * build of every save made before it, a failed one `PagesBroken`.
+ */
+class MatchesGroup extends HttpApiGroup.make('matches').add(
+  HttpApiEndpoint.post('take', `${FILM}/matches`, {
+    params: film,
+    payload: MatchPost,
+    success: MatchTaken,
+    error: Refusals,
+  }),
+) {}
+
+/**
  * The lab's own pages: a wait, held open up to `timeout` s (`WaitTimeout`),
  * that answers once a file the pages were built from changed past the build
  * the page was served (`since`), so an open lab reloads onto the new code,
@@ -1131,6 +1150,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(ChoicesGroup)
   .add(ProjectGroup)
   .add(LooksGroup)
+  .add(MatchesGroup)
   .add(ProductionsGroup)
   .add(TimelineGroup)
   .add(PageGroup)

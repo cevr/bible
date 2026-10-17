@@ -23,15 +23,9 @@
 // as a PNG.
 
 import type { Pcm } from '../audio.ts';
+import type { Raster } from '../raster.ts';
 import { frameSpectrum } from './analyse.ts';
 import { momentaryBlocks } from './loudness.ts';
-
-/** A picture: `width` × `height` pixels of four bytes (red, green, blue, alpha), row by row from the top. */
-export interface Raster {
-  readonly width: number;
-  readonly height: number;
-  readonly rgba: Uint8Array;
-}
 
 /** What a mark is: a one-shot's onset or hit, or where a bed's loop crosses into its head. */
 type MarkKind = 'onset' | 'hit' | 'loop';

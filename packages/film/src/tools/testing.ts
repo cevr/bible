@@ -64,6 +64,7 @@ import {
   type LumaArea,
 } from '../core/export-handle.ts';
 import { LookFailed, type SceneTimes, type StillView } from '../core/easel.ts';
+import type { FigureMark } from '../core/match.ts';
 import { Easel } from './easel.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
@@ -943,6 +944,7 @@ export const echoPages = Layer.mergeAll(
     Easel.of({
       serve: () => Effect.void,
       look: () => Effect.fail(LookFailed.make({ reason: 'no easel in this test' })),
+      match: () => Effect.fail(LookFailed.make({ reason: 'no easel in this test' })),
     }),
   ),
 );
@@ -1440,6 +1442,10 @@ export interface FakeRenderHost {
   readonly scenes?: ReadonlyArray<SceneTimes>;
   /** What page `page`'s `scenes` waits on before it answers (nothing by default): a page still opening. */
   readonly opening?: (page: number) => Effect.Effect<void>;
+  /** The figures frame `i` declares (`figures`, a match's boxes; none by default). */
+  readonly figures?: (i: number) => ReadonlyArray<FigureMark>;
+  /** The bytes a still of frame `i` encodes to (`still`; the frame's one byte by default): a real PNG for a match. */
+  readonly still?: (i: number, view: StillView) => Uint8Array;
 }
 
 /**
@@ -1572,8 +1578,19 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
       still: (i, view) =>
         Effect.map(frame(i), (bytes) => {
           ledger.stills.push({ frame: i, view });
-          return bytes;
+          return Option.match(Option.fromUndefinedOr(host.still), {
+            onNone: () => bytes,
+            onSome: (still) => still(i, view),
+          });
         }),
+      figures: (i) =>
+        Effect.as(
+          frame(i),
+          Option.match(Option.fromUndefinedOr(host.figures), {
+            onNone: (): ReadonlyArray<FigureMark> => [],
+            onSome: (figures) => figures(i),
+          }),
+        ),
     };
   };
   const browser = Layer.effect(
