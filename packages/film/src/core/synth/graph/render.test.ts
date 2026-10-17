@@ -177,6 +177,42 @@ describe('the draws', () => {
   });
 });
 
+describe('struck modes', () => {
+  const partials = (set: ReadonlyArray<Record<string, number>>): Node =>
+    Schema.decodeUnknownSync(CodeSound)({
+      play: { _tag: 'Partials', pitch: 440, set, attack: 0, secs: 0.05 },
+    }).play;
+  const peak = (plane: Float32Array) => plane.reduce((m, x) => Math.max(m, Math.abs(x)), 0);
+
+  test('a mode that names its phase starts there: a quarter turn is its level at frame 0', () => {
+    const out = planned(partials([{ ratio: 1, level: 0.5, decay: 1, phase: 0.25 }]));
+    expect(out[0]).toBeCloseTo(0.5, 6);
+    expect(planned(partials([{ ratio: 1, level: 0.5, decay: 1, phase: 0 }]))[0]).toBe(0);
+  });
+
+  test('two equal modes half a turn apart cancel, as a fit leans on them to', () => {
+    const out = planned(
+      partials([
+        { ratio: 1, level: 0.5, decay: 0.2, phase: 0.1 },
+        { ratio: 1, level: 0.5, decay: 0.2, phase: 0.6 },
+      ]),
+    );
+    expect(peak(out)).toBeLessThan(1e-6);
+  });
+
+  test('a mode with its own phase leaves the drawn phases of the others as they were', () => {
+    const drawn = { ratio: 2.7, level: 0.4, decay: 0.3 };
+    const alone = planned(partials([{ ratio: 1, level: 0.5, decay: 0.2 }, drawn]), 3);
+    const fixed = planned(partials([{ ratio: 1, level: 0.5, decay: 0.2, phase: 0 }, drawn]), 3);
+    const without = (out: Float32Array, of: Float32Array) => out.map((x, i) => x - (of[i] ?? 0));
+    const first = planned(partials([{ ratio: 1, level: 0.5, decay: 0.2, phase: 0 }]), 3);
+    const firstDrawn = planned(partials([{ ratio: 1, level: 0.5, decay: 0.2 }]), 3);
+    const apart = without(without(fixed, first), without(alone, firstDrawn));
+    expect(peak(without(alone, firstDrawn))).toBeGreaterThan(0.1);
+    expect(peak(apart)).toBeLessThan(1e-6);
+  });
+});
+
 describe('the kernels, by what they make of a click', () => {
   // One frame at the top of a sine: what a node makes of it is its impulse response.
   const impulse: Node = {

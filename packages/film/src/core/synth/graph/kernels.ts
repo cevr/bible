@@ -99,6 +99,7 @@ interface Mode {
   readonly ratio: number;
   readonly level: number;
   readonly decay: number;
+  readonly phase?: number;
 }
 
 /** The named sets of struck modes. */
@@ -124,8 +125,9 @@ export const MODES: Readonly<Record<(typeof PARTIAL_SETS)[number], ReadonlyArray
 const DECAYED = 1e-9;
 
 /**
- * Struck modes at `hz`: each a sine from a phase drawn in order from `seed`
- * (a mode above the Nyquist is skipped after its draw), a linear attack over
+ * Struck modes at `hz`: each a sine from its own phase, or one drawn in order
+ * from `seed` (every mode draws, so a phase named leaves the others' draws as
+ * they were; a mode above the Nyquist is skipped after its draw), a linear attack over
  * `attack` frames and an exponential decay from frame 0.
  */
 export const strike = (
@@ -138,7 +140,8 @@ export const strike = (
 ): void => {
   const r = rng(seed);
   for (const mode of modes) {
-    const phase = r();
+    const drawn = r();
+    const phase = mode.phase ?? drawn;
     const step = (hz * mode.ratio) / SYNTH_RATE;
     if (step >= 0.5) continue;
     const fall = exp(-1 / (mode.decay * struck.decayScale * SYNTH_RATE));

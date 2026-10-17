@@ -84,7 +84,7 @@ A short band of noise (the crack, its centre drawn per seed) over a falling sine
 | ------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Sources | `Osc`                         | a band-limited sine, triangle, saw or square at a pitch                                                         |
 |         | `Noise`                       | white, pink or brown noise                                                                                      |
-|         | `Partials`                    | struck modes: `glass`, `bell`, or a list of ratios, levels and decays                                           |
+|         | `Partials`                    | struck modes: `glass`, `bell`, or a list of ratios, levels, decays and phases (each drawn when it names none)   |
 |         | `Sample`                      | another code sound of the library, rendered alone on its own seed                                               |
 | Shapers | `Gain`, `Envelope`, `Fade`    | a level in dB; a level through points; faded in and out                                                         |
 |         | `Drive`                       | driven into a `transfer` curve: `tanh`, `soft`, `hard` or `fold`                                                |

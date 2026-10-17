@@ -215,16 +215,23 @@ const signal = <U>(unit: Schema.Codec<U>): Schema.Codec<Signal<U>> => {
 /** A name that keeps a node's draws when nodes are put before it: unique in its sound. */
 const StreamName = Schema.String.check(Schema.isPattern(/^[a-z][a-z0-9.-]*$/));
 
-/** A struck mode: its ratio to the pitch, its level, its decay's time constant in seconds. */
+/**
+ * A struck mode: its ratio to the pitch, its level, its decay's time constant
+ * in seconds, and where its cycle starts, in turns (drawn when absent). A
+ * fitted sound names each phase: close modes of opposite phase cancel as the
+ * recording did, where drawn phases would add them up.
+ */
 interface Partial {
   readonly ratio: number;
   readonly level: number;
   readonly decay: number;
+  readonly phase?: number;
 }
 const Partial: Schema.Codec<Partial> = Schema.Struct({
   ratio: Factor,
   level: Level,
   decay: Schema.Finite.check(Schema.isBetween({ minimum: 0.0001, maximum: MAX_CODE_SECS })),
+  phase: Schema.optionalKey(Level),
 });
 
 /** The named sets of struck modes: a wine glass, a small bell. */
@@ -251,7 +258,7 @@ export interface Noise {
   readonly stream?: string;
 }
 
-/** Struck modes: a sine per partial, a linear attack, an exponential decay, a drawn phase. */
+/** Struck modes: a sine per partial, a linear attack, an exponential decay, a phase its own or drawn. */
 export interface Partials {
   readonly _tag: 'Partials';
   readonly pitch: Value<Pitch>;
