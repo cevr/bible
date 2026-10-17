@@ -976,7 +976,11 @@ Place; the app gives each page's HTML entry, `LabPageSpec.pages`, and its
 server entry, `LabPageSpec.servers`), as
 **Pages and links** (below) lists them. A link the lab does not serve as
 asked answers a 302 (`servedPlace`, logged `lab.page.moved`), and the
-browser keeps its `#…` across. An old link answers with its place
+browser keeps its `#…` across, unless the Location names a fragment of its
+own (a beat's Script or Board names an empty one, below). A path with a
+trailing slash answers with the path without it, and a parent path with
+its nearest page: `/films/<film>` the film's studio, any other (`/films`,
+`/series[/<series>]`, `/sets`, `/asks`, `/productions`) home. An old link answers with its place
 (`legacyPlace`): `/?film=<film>` lands on the film's studio, `/?folder=…[&set=…]` on
 the folder or the set, a render link (`/films/<film>/play?export` or
 `/?film=<film>&export`, its build or wedge kept) on the export place, and
@@ -987,8 +991,13 @@ A film page the studio stands for answers with the film's studio
 `/films/<film>/project`, `/films/<film>/choices`, `/films/<film>/script[/<beat>]`
 and `/films/<film>/board[/<beat>]` go to `/films/<film>/studio`, with
 `?sel=beat:<id>` when the path names a beat or a scene (`?sel=panel:<beat>.<mark>`
-for a Board link's `?panel=`), and the film time kept (a scene of the tape's
-`#t=` is film time, as the studio's is). The Lab
+for a Board link's `?panel=`, with its `?try=<n>`), or a scene render's
+card (`?point=render:scenes:<scene>` on the project or the choices) names
+one, the note open (`?note=<id>`) kept, and the film time kept (a scene of
+the tape's `#t=` is film time, as the studio's is). A beat's Script or
+Board held time in the beat on its hash: its Location ends in an empty
+fragment (`…#`), so the browser drops that hash and the studio opens at
+the beat's start, or at the panel's mark. The Lab
 (`/films/<film>/lab[/<scene>]`) is served as asked, each note (`?note=`)
 kept in its address. A path no place declares is a 404, never a page.
 `LAB_HOST` (loopback by default) and `LAB_PORT` (8229) say where it
@@ -1307,34 +1316,55 @@ the owner opens or shuts stays so while the selection stands.
 - **Words**: the beat's line as the one words reader reads a script
   (`lab/words/reader.tsx`, `film-script.tsx`), its delivery marks set by a
   tap and its staging take playable, following the playhead by the one
-  Follow rule (`follow-rule.ts`).
+  Follow rule (`follow-rule.ts`). The words selected are the address's
+  (`?words=<a>-<b>`), and under them stands the note on them
+  (`words-note.tsx`): Note, Correct (the words to say instead) or Remove,
+  saved through the inspector's note machine (`note-save.ts`) with the
+  frame at the playhead while it is in the beat (else the beat's first) and
+  its still. Only the film's own version takes one.
 - **Board**: each panel at its mark with its tries, the kept one ringed; a
-  try pressed shows large, and Keep keeps it. Approve and Withdraw act on
-  the beat. The writes are one machine (`board-writes.ts`: Idle, Sending,
-  Done, Failed; a write asked while one is on its way is not sent) over the
-  lab's board routes (`POST /board/pick`, `/board/approve`,
-  `/board/withdraw`); a version not the film's shows its board read only.
-- **Voice**: the beat's take (`lab/take.ts` `takeHeard`: the kept attempt,
-  else the staging take its timings name), its facts and Hear; Record opens
-  the record studio (`lab/studio/`) in a Dialog on a laptop and a Sheet on
-  a phone.
-- **Code**: the scene's file read only, only when the beat has a scene,
-  with Edit in the Lab.
+  try pressed shows in the viewer (`?try=<n>`, its tag `try n`), a second
+  press shows the kept one again, and Keep keeps it. Mark up
+  (`panel-markup.tsx`, on a picture panel of the film's own version) draws
+  a pen over the try (`lab/sketch/surface.tsx`) and takes words, saved as a
+  Tweak (what `film board tweak` acts on) or a Note, its still the try with
+  the marks over it (`panel-still.ts`); the panel then lists its notes, each
+  a link that opens it in Notes and asks. Approve and Withdraw act on the
+  beat. The writes are one machine (`board-writes.ts`: Idle, Sending, Done,
+  Failed; a write asked while one is on its way is not sent) over the lab's
+  board routes (`POST /board/pick`, `/board/approve`, `/board/withdraw`); a
+  version not the film's shows its board read only.
+- **Voice**: the beat's take (`lab/take.ts` `takeHeard`: the take the
+  beat's timings name, its kept attempt or its staging take), its facts and Hear, the page's one
+  voice (`Media.hear`: the film's Play hushes it). Record shows the record
+  studio (`lab/studio/`) over the page, a Dialog on a laptop and a Sheet on
+  a phone; the recorder is the inspector's, so a beat selected or the
+  recorder hidden never ends a take. Close, Escape or a swipe while it holds
+  a take only this page has first asks to discard it (Discard, Keep).
+- **Code**: the scene's file read only, as a plain `<pre>`, only when the
+  beat has a scene, with Edit in the Lab. It marks no line the frame draws,
+  and a note cannot cite one of its lines.
 - **Notes and asks**: the beat's open notes, each with its thread and a
   reply (`lab/notes/thread.tsx`), and the open asks at its time, each a link
-  to its page. Choices' picks are asks: no Choices page remains.
+  to its page. The note open is the address's (`?note=<id>`): a note's link
+  selects its panel or beat and opens it here. Choices' picks are asks: no
+  Choices page remains.
 
-A section with nothing to show is a quiet row with no body: Words and
-Code on a version kept in its own folder (the reader and the scene are the
-film's as it stands), Board on a beat with no panel, Code on a beat with no
-scene, and Concept, whose body is to come.
+A section with nothing to show is a quiet row with no body: Board on a
+beat with no panel and Code on a beat with no scene (`–`), Words and Code
+on a version kept in its own folder (`not read for past versions`: the
+reader and the scene are the film's as it stands), and Concept (`to
+come`).
 
 The pages the inspector holds now are links that land on the studio
 (`Replaced` in `core/api.ts`): `/films/<film>/script` and
 `/films/<film>/board` on the studio, `/films/<film>/script/<beat>` and
 `/films/<film>/board/<beat>` with the beat selected, a Board link's
-`?panel=<mark>` with that panel, and `/films/<film>/choices` on the studio.
-A try, a note and the Script's scene time (`#t=`) are not kept.
+`?panel=<mark>` with that panel and its `?try=<n>` as the studio's `?try=`,
+and `/films/<film>/choices` on the studio, its `?point=` a beat when it
+names a scene render. A note open (`?note=<id>`) is kept as the studio's
+`?note=`. A beat's scene time (`#t=`) is dropped (an empty fragment on the
+Location): the studio opens at the beat's start.
 
 The clock is the staged film's preview with its narration (`playerClock`,
 `clock.ts`) when the version shown is the one the film registry holds. A
@@ -2035,7 +2065,7 @@ layout it draws, so a note carries the cue the viewer saw.
 (`lab/shell.tsx`) is compound components. `<Lab.Root>` holds what every panel
 shares (the film, its player, the lab API's base, the view kept through a
 reload, `T`, the frame drawn last, as a signal, and `scene`, the scene under
-it, the selection and the note (the URL's, `lab/place.ts`), and a runtime for
+it, the selection, the note and Show cuts (the URL's, `lab/place.ts`), and a runtime for
 the panels' machines: `Stage`, the preview as they drive it (`lab/stage.ts`:
 edits shown in memory, the lab's place held for a write), and
 `LabApi` and `NotesApi`, the scene-source and notes routes over the page's
@@ -2276,8 +2306,8 @@ lab. `?text=follow` opens it following the frame and `?text=<word>` held on
 that word; closed at rest, it reads nothing until opened, then the talk's
 words as the server reads `talk.ts` and cuts it (`GET …/talk`, every word of
 each section in play order, struck or played, with when each played one is
-heard). The words the cut strikes are hidden until Show cuts (the viewer's,
-kept in the browser), then shown struck through. The word playing at the
+heard). The words the cut strikes are hidden until Show cuts (the address's
+`?cuts=1`, so a link keeps it and Back undoes it), then shown struck through. The word playing at the
 frame is lit by the clock (a link's `#t=` lights what its sender saw), the
 words selected (`?words=a-b`, in the path's section; a word's link cites it)
 painted, and the word held washed, all through the page's highlights, so the
@@ -2332,7 +2362,8 @@ selects it (shift extends; a text selection across words selects them, and
 a word held or right-clicked opens the page's menu, whose Select to here,
 `lab/script/commands.ts`, extends it) and opens the box under its line:
 Hear, Clear and the words' delivery, each written at once into `script.ts`
-(`POST …/script/marks`). A page with a playhead names the beat it is in,
+(`POST …/script/marks`); in the studio the box also holds the note on the
+words (`words-note.tsx`: Note, Correct or Remove). A page with a playhead names the beat it is in,
 which the reader marks and keeps in sight by the lab's one Follow rule
 (`lab/follow.ts`) until a hand scrolls it. Nothing else on it writes
 `script.ts`: the agent reads the notes (`film notes`) and edits the script.
@@ -3915,7 +3946,9 @@ reaches it. Every media element is driven through a `Playable` (`browser/media.t
 `<audio>`): time is read from it, a seek is done once its frame is shown,
 play and pause are effects. `Media` says what a refused play means
 (`Blocked`, `Aborted`, `Failed`), plays muted when the browser refuses
-sound (`playOrMute`, the review's players), makes the narration's audio,
+sound (`playOrMute`, the review's players), keeps the page's one voice
+heard (`hear`: a take or a reader's Hear pauses the one before it; `hush`:
+the film's Play pauses it), makes the narration's audio,
 and says which engine a compare plays on (`compare`: WebCodecs panes, or
 `<video>` and why), its clock the host's `monotonicMs`.
 Every copy goes through `Clipboard` (`browser/clipboard.ts`; the browser's in
