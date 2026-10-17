@@ -1,0 +1,20 @@
+{
+  "name": "@bible/hymnal",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "chart": "bun scripts/chart.ts"
+  },
+  "dependencies": {
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "effect-bun-test": "catalog:"
+  }
+}

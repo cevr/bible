@@ -189,6 +189,15 @@
         "effect-bun-test": "catalog:",
       },
     },
+    "packages/hymnal": {
+      "name": "@bible/hymnal",
+      "dependencies": {
+        "effect": "catalog:",
+      },
+      "devDependencies": {
+        "effect-bun-test": "catalog:",
+      },
+    },
     "packages/scripts": {
       "name": "@bible/scripts",
       "version": "1.0.0",
@@ -313,6 +322,8 @@
     "@bible/film": ["@bible/film@workspace:packages/film"],
 
     "@bible/firsttheblade": ["@bible/firsttheblade@workspace:apps/firsttheblade"],
+
+    "@bible/hymnal": ["@bible/hymnal@workspace:packages/hymnal"],
 
     "@bible/scripts": ["@bible/scripts@workspace:packages/scripts"],
 

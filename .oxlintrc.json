@@ -254,7 +254,11 @@
       // Holding them to the Effect rules would mean wrapping a shell pipeline
       // or a one-shot migration in a runtime and a layer stack that buys
       // nothing — the host boundary *is* the whole program here.
-      "files": ["**/skills/bible/scripts/**/*.ts", "**/packages/cli/scripts/**/*.ts"],
+      "files": [
+        "**/skills/bible/scripts/**/*.ts",
+        "**/packages/cli/scripts/**/*.ts",
+        "**/packages/hymnal/scripts/**/*.ts"
+      ],
       "rules": {
         "no-await-in-loop": "off",
         "effect/noAs": "off",
@@ -360,6 +364,25 @@
       "rules": {
         "effect/noNullish": "off",
         "effect/noTernary": "off"
+      }
+    },
+    {
+      // The hymnal's music arithmetic (packages/hymnal): a MIDI file read byte
+      // by byte, notes indexed by tick, degrees taken mod 12. Arrays index
+      // with `?? default` and branch with ternaries, as the mix's sample
+      // loops do. The byte reader throws its Malformed failure inside one
+      // synchronous read, and `parse` turns it into MidiParseError at its
+      // single Effect.try.
+      "files": ["**/packages/hymnal/src/**/*.ts"],
+      "rules": {
+        "effect/noNullish": "off",
+        "effect/noTernary": "off"
+      }
+    },
+    {
+      "files": ["**/packages/hymnal/src/midi.ts"],
+      "rules": {
+        "effect/noThrowStatement": "off"
       }
     },
     {
