@@ -8,7 +8,7 @@
 // size. His circle hands are the hand rig's (`hand-rig.ts`), drawn by the host where
 // they work (laying a sheet on the stack, thrown up on `cover`).
 //
-// Units are the Board's pixels: in `cold.evidence` he stands 555 tall behind
+// Units are the Board's pixels: in `cold.evidence` he stands 540 tall behind
 // the table. His feet are the artboard's origin.
 //
 // The host poses him by the view model `Prosecutor`, every frame: the face
@@ -32,18 +32,19 @@ import {
 } from '../../cold-studies/looks/rive/parts.ts';
 import { el } from '../../cold-studies/looks/rive/rml.ts';
 import { PAPERS, looked } from './papers.ts';
-import { capOutline, headOutline, roundedPolygon, shifted, streak } from './shapes.ts';
+import { capOutline, headOutline, roundedPolygon, shifted, shoeOutline, streak } from './shapes.ts';
 
 /**
  * His measures, units, as the concept measures them against his head's
  * width (139 px there): the head 1.24 of its width tall with its hair, the
- * robe 0.8 of it across under the chin, 1.25 one head's width below and 1.5 at the hem, 3.35 heads
- * tall to his shoes.
+ * robe 0.8 of it across under the chin, 1.25 one head's width below and
+ * 1.5 at the hem; from his hair to his soles, 3.3 times his head's height
+ * (hair to chin).
  */
 export const PROSECUTOR = {
-  height: 555,
-  head: { y: -478, rx: 59, ry: 76 },
-  neck: -410,
+  height: 540,
+  head: { y: -463, rx: 59, ry: 76 },
+  neck: -395,
   hem: -34,
 } as const;
 
@@ -52,10 +53,17 @@ export const PROSECUTOR = {
  * an angular jaw, the chin carried toward screen left and the jaw rising
  * toward his ear on the far side.
  */
-const SQUARE = { power: 3, jaw: 0.4, chin: 0.6, turn: 0.22, back: 0.35 } as const;
+const SQUARE = { power: 3, jaw: 0.4, chin: 0.6, turn: 0.22, back: 0.2 } as const;
+
+/**
+ * His head as cold-34 sets it on his robe: canted, radians, its crown toward
+ * screen right and its chin toward the dock, and carried right of the robe's
+ * middle, units, so the chin sits over the robe's top.
+ */
+const SET = { cant: 0.12, x: 8 } as const;
 
 /** His ear, behind his features on the far side, from his head's centre: centre and half-sizes, units. */
-const EAR = { x: 53, y: 30, rx: 12.5, ry: 18 } as const;
+const EAR = { x: 57, y: 23, rx: 13, ry: 15.5 } as const;
 
 /** How far his features sit toward screen left of his head's centre, units: his head turned three-quarters. */
 const TURNED = -14;
@@ -112,18 +120,26 @@ const KEY = { y: 14, rotation: 15, scaleY: 17, opacity: 18 } as const;
 /** The shout: a wide open mouth, a quarter of his head across, where the kit's mouth sits. */
 const SHOUT = { w: 36, h: 24 } as const;
 
-/** His robe: long and narrow, widening fast below the chin and slower to the hem. */
+/**
+ * His robe: long and narrow, widening fast below the chin and slower to the
+ * hem; the hem's corners tight and its edge sagging a little in the middle,
+ * as cold-34 cuts it.
+ */
 export const ROBE = roundedPolygon(
   [
     [-40, PROSECUTOR.neck],
     [40, PROSECUTOR.neck],
     [73, PROSECUTOR.neck + 162],
     [98, PROSECUTOR.hem],
+    [0, PROSECUTOR.hem + 5],
     [-98, PROSECUTOR.hem],
     [-73, PROSECUTOR.neck + 162],
   ],
-  22,
+  [22, 22, 30, 6, 90, 6, 30],
 );
+
+/** His shoes, as cold-34 cuts them: 0.49 of his head's width across under their ink, set under the hem's corners, the toes out. */
+const SHOE = { x: 60, w: 58, h: 28 } as const;
 
 /**
  * Short black hair capping his turned head: close over the crown, fuller
@@ -166,7 +182,7 @@ export const prosecutorRig = (fig: Figure) => {
       fig.bind('tilt', KEY.rotation),
       el('Node', { name: 'nodded', id: fig.idOf('nodded') }, [
         fig.bind('nod', KEY.y),
-        el('Node', { y: head.y - PROSECUTOR.neck, name: 'skull' }, [
+        el('Node', { x: SET.x, y: head.y - PROSECUTOR.neck, rotation: SET.cant, name: 'skull' }, [
           silhouette(fig, 'headCut', [
             {
               key: 'ear',
@@ -219,10 +235,16 @@ export const prosecutorRig = (fig: Figure) => {
         piece(fig, 'robe', ROBE, looked(PAPERS.olive)),
       ]),
     ]),
-    ...[-52, 52].map((x) =>
-      piece(fig, `shoe${x < 0 ? 'L' : 'R'}`, ellipse(x, -11, 34, 13, 14), looked(PAPERS.shoe), {
-        boil: 0.6,
-      }),
+    ...[-SHOE.x, SHOE.x].map((x) =>
+      piece(
+        fig,
+        `shoe${x < 0 ? 'L' : 'R'}`,
+        shifted(shoeOutline(SHOE.w, SHOE.h, x < 0 ? -1 : 1), x, 0),
+        looked(PAPERS.shoe),
+        {
+          boil: 0.6,
+        },
+      ),
     ),
   ]);
   const figure = el(

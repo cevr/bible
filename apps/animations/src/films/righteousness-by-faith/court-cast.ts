@@ -102,7 +102,7 @@ export const HANDS = {
   ],
   judge: [
     [1192, BENCH_TOP - 6],
-    [1428, BENCH_TOP - 6],
+    [1360, BENCH_TOP - 6],
   ],
 } as const satisfies Record<string, readonly [Pt, Pt]>;
 

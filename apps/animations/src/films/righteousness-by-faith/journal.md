@@ -161,3 +161,7 @@ figures.riv at 955 KB (round 3: 415 KB) on this Mac: a look of cold takes 0.96 s
 ## 2026-10-17T22:14:56Z · cold
 
 round 6: ears drew a light rim inside the outline (owner: "an inner border"); cold-34's ears are flat skin #f4a880-#f7b386 with no rim; with the rim on the silhouette's backmost part only and the ear flat #f4aa80, the prosecutor's ear measures #f4a87b (luma 185), no border; cold-studies riv byte-identical.
+
+## 2026-10-17T23:04:58Z · cold
+
+round 7 at 3.87 s against cold-34, in head heights: prosecutor hair-to-sole 3.29 (concept 3.31), robe widths within 3% from 1.1h to 3.05h, shoes now a dome whose visible top is 0.8 of the sole (concept 0.77), 0.455h across (0.444-0.451), 0.70h apart (0.69); judge robe edge within 0.03h out to 0.8h, the far shoulder drops 0.1-0.19h later at its steep end; bands 0.30h long (0.31), widths within 4%; lead tunic 0.98h at 2.0h (0.98), 0.76h at 1.3h (0.79).

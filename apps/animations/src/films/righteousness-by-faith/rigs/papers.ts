@@ -96,10 +96,10 @@ export const PAPERS = {
   },
   /** Sandals: a leather brown. */
   sandal: { color: '#955b3a', shade: '#7c4a30', light: '#a86c48' },
-  /** Shoes. */
-  shoe: paperOf('#4e3b31'),
-  /** The judge's bands: white linen. */
-  bands: paperOf('#fbf8f2'),
+  /** Shoes, as cold-34 paints the prosecutor's: a warm brown leather, its far edge a deeper brown, no rim. */
+  shoe: { color: '#604940', shade: '#4d3a37', light: '#604940', crease: TURN.hand },
+  /** The judge's bands: a warm white linen, flat (cold-34 samples #fcf4ec), no rim. */
+  bands: { color: '#fcf4ec', light: '#fcf4ec' },
 } as const satisfies Record<string, Paper>;
 
 /** The flat scarlet stain (Isa 1:18): one colour, no crease, no ink; the kept panels' soaked scarlet. */

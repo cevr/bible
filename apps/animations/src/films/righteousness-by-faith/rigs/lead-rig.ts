@@ -27,6 +27,7 @@ import {
   gazeTarget,
   piece,
   timeline,
+  type Pt,
 } from '../../cold-studies/looks/rive/parts.ts';
 import { el } from '../../cold-studies/looks/rive/rml.ts';
 import { PAPERS, STAIN, looked } from './papers.ts';
@@ -37,7 +38,7 @@ export const LEAD = {
   height: 373,
   head: { y: -300, r: 73 },
   neck: -236,
-  hem: -34,
+  hem: -42,
   /** Where the stain's middle sits on his tunic, and its half-width and half-height. */
   stain: { x: -6, y: -168, rx: 31, ry: 42 },
 } as const;
@@ -108,23 +109,25 @@ export const TUNIC = roundedPolygon(
   [
     [-41, LEAD.neck],
     [41, LEAD.neck],
-    [80, LEAD.hem],
-    [-80, LEAD.hem],
+    [75, LEAD.hem],
+    [-75, LEAD.hem],
   ],
   22,
 );
 
-/** One stub leg about `x`: from under the hem to the feet, rounded at the foot. */
-const leg = (x: number) =>
-  roundedPolygon(
-    [
-      [x - 14, LEAD.hem - 16],
-      [x + 14, LEAD.hem - 16],
-      [x + 14, 0],
-      [x - 14, 0],
-    ],
-    10,
-  );
+/** His legs, as cold-34 stands them under the hem: each 28 units across, their inner edges all but touching, their feet round. */
+const LEGS = { x: 23.5, r: 14 } as const;
+
+/** One stub leg about `x`: straight down from under the hem, its foot a half circle. */
+const leg = (x: number): Pt[] => {
+  const top = LEAD.hem - 16;
+  const side = (top - LEGS.r) / 2;
+  const foot = Array.from({ length: 9 }, (_, i): Pt => {
+    const a = (i / 8) * Math.PI;
+    return [x + LEGS.r * Math.cos(a), -LEGS.r + LEGS.r * Math.sin(a)];
+  });
+  return [[x - LEGS.r, top], [x + LEGS.r, top], [x + LEGS.r, side], ...foot, [x - LEGS.r, side]];
+};
 
 export const leadRig = (fig: Figure) => {
   const lead = looked(PAPERS.lead);
@@ -185,8 +188,8 @@ export const leadRig = (fig: Figure) => {
         piece(fig, 'tunic', TUNIC, lead),
       ]),
     ]),
-    piece(fig, 'legL', leg(-26), lead, { boil: 0.6 }),
-    piece(fig, 'legR', leg(26), lead, { boil: 0.6 }),
+    piece(fig, 'legL', leg(-LEGS.x), lead, { boil: 0.6 }),
+    piece(fig, 'legR', leg(LEGS.x), lead, { boil: 0.6 }),
   ]);
   const figure = el('Node', { x: LEAD_ART.feet[0], y: LEAD_ART.feet[1], name: 'figure' }, [
     gazeTarget(fig, LEAD_KNOBS),

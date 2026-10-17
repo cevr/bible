@@ -31,6 +31,7 @@ import {
   piece,
   silhouette,
   timeline,
+  type Pt,
 } from '../../cold-studies/looks/rive/parts.ts';
 import { el } from '../../cold-studies/looks/rive/rml.ts';
 import { PAPERS, looked } from './papers.ts';
@@ -38,7 +39,7 @@ import { capOutline, headOutline, roundedPolygon, shifted } from './shapes.ts';
 
 /** His measures from his head's centre, units: the head, his neck, where his lean pivots (the robe's foot). */
 export const JUDGE = {
-  head: { rx: 62, ry: 70 },
+  head: { rx: 58.5, ry: 70 },
   neck: 52,
   pivot: 300,
 } as const;
@@ -51,13 +52,16 @@ export const JUDGE_ART = { width: 460, height: 520, head: [230, 140] } as const;
  * only a little to a broad jaw, the chin carried toward screen left and the
  * jaw rising toward his ear on the far side.
  */
-const SQUARE = { power: 2.6, jaw: 0.5, chin: 0.9, turn: 0.2, back: 0.3 } as const;
+const SQUARE = { power: 2.6, jaw: 0.5, chin: 0.8, turn: 0.1, back: 0.3 } as const;
+
+/** How far right of the robe's middle his head sits, units: cold-34 sets his face's near side in over his robe. */
+const HEAD_X = 3.5;
 
 /** His ear, behind his features on the far side, from his head's centre: centre and half-sizes, units. */
-const EAR = { x: 52, y: 22, rx: 10, ry: 17 } as const;
+const EAR = { x: 55, y: 22, rx: 10, ry: 17 } as const;
 
 /** How far his features sit toward screen left of his head's centre, units: his head turned three-quarters. */
-const TURNED = -13;
+const TURNED = -11;
 
 /**
  * The face kit's scale on his head, how far below its middle it sits, and
@@ -105,21 +109,34 @@ export const JUDGE_FACE_CHECK = { node: 'face', height: 2 * JUDGE.head.ry } as c
 
 const KEY = { y: 14, rotation: 15 } as const;
 
-/** His robe, from his head's centre: shoulders risen to his jaw, sloping out to 2.4 heads across, down behind the bench. */
+/**
+ * His robe, from his head's centre, traced from cold-34 (the concept's
+ * robe's edge, at his head's height there): the
+ * shoulders risen to his jaw and sloping out to 2.2 head-heights across at
+ * the bench, down behind it.
+ */
 export const JUDGE_ROBE = roundedPolygon(
   [
     [-40, 28],
     [40, 28],
-    [105, 48],
-    [148, 100],
-    [172, 150],
-    [184, JUDGE.pivot],
-    [-184, JUDGE.pivot],
-    [-172, 150],
-    [-148, 100],
-    [-105, 48],
+    [72, 31],
+    [95, 38],
+    [117, 48],
+    [140, 69],
+    [161, 106],
+    [183, 156],
+    [203, 206],
+    [212, JUDGE.pivot],
+    [-202, JUDGE.pivot],
+    [-192, 206],
+    [-174, 158],
+    [-153, 113],
+    [-132, 76],
+    [-110, 49],
+    [-88, 39],
+    [-68, 34],
   ],
-  30,
+  10,
 );
 
 /**
@@ -155,6 +172,41 @@ const UNDER_HAIR = [
   { pts: shifted(HAIR, 0, 5), color: '#ec9a77', alpha: 0.35 },
 ] as const;
 
+/**
+ * His bands as cold-34 draws them, from under his chin: two white tabs a
+ * narrow gap apart, each wider at its end and splaying a little outward;
+ * units, from his head's centre.
+ */
+const BAND = {
+  gap: 3.25,
+  top: 17,
+  bottom: 25,
+  splay: 4,
+  from: JUDGE.neck + 10,
+  to: JUDGE.neck + 74,
+} as const;
+
+/** The band on `side` of his middle (-1 screen left), clockwise. */
+const bandOutline = (side: -1 | 1): Pt[] => {
+  const x = (share: number) => HEAD_X + side * share;
+  const top: Pt[] = [
+    [x(BAND.gap), BAND.from],
+    [x(BAND.gap + BAND.top), BAND.from],
+  ];
+  const bottom: Pt[] = [
+    [x(BAND.gap + BAND.splay + BAND.bottom), BAND.to],
+    [x(BAND.gap + BAND.splay), BAND.to],
+  ];
+  const corners = [...top, ...bottom];
+  return roundedPolygon(side < 0 ? [...corners].reverse() : corners, 2);
+};
+
+/** The bands' paper, no ink, the chin's lilac shade across their tops (cold-34 #dbd0d5). */
+const BAND_LOOK = looked(PAPERS.bands, {
+  ink: 'none',
+  tones: [{ pts: ellipse(0, BAND.from, 40, 22, 16), color: '#dbd0d5', soft: true }],
+});
+
 export const judgeRig = (fig: Figure) => {
   const { head } = JUDGE;
   const headNode = el('Node', { y: JUDGE.neck, name: 'neck', id: fig.idOf('neck') }, [
@@ -162,7 +214,7 @@ export const judgeRig = (fig: Figure) => {
       fig.bind('tilt', KEY.rotation),
       el('Node', { name: 'nodded', id: fig.idOf('nodded') }, [
         fig.bind('nod', KEY.y),
-        el('Node', { y: -JUDGE.neck, name: 'skull' }, [
+        el('Node', { x: HEAD_X, y: -JUDGE.neck, name: 'skull' }, [
           silhouette(fig, 'headCut', [
             {
               key: 'ear',
@@ -186,22 +238,8 @@ export const judgeRig = (fig: Figure) => {
       ]),
     ]),
   ]);
-  const bands = [-9, 9].map((x) =>
-    piece(
-      fig,
-      `band${x < 0 ? 'L' : 'R'}`,
-      roundedPolygon(
-        [
-          [x - 8, JUDGE.neck + 8],
-          [x + 8, JUDGE.neck + 8],
-          [x + 8, JUDGE.neck + 70],
-          [x - 8, JUDGE.neck + 70],
-        ],
-        3,
-      ),
-      looked(PAPERS.bands, { ink: 'trim' }),
-      { boil: 0.5 },
-    ),
+  const bands = ([-1, 1] as const).map((side) =>
+    piece(fig, `band${side < 0 ? 'L' : 'R'}`, bandOutline(side), BAND_LOOK, { boil: 0.5 }),
   );
   const body = el('Node', { y: JUDGE.pivot, name: 'leanPivot', id: fig.idOf('leanPivot') }, [
     fig.bind('lean', KEY.rotation),
