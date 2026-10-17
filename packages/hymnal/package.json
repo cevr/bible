@@ -9,10 +9,13 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "chart": "bun scripts/chart.ts"
+    "chart": "bun scripts/chart.ts",
+    "split": "bun scripts/split.ts"
   },
   "dependencies": {
-    "effect": "catalog:"
+    "cmu-pronouncing-dictionary": "3.0.0",
+    "effect": "catalog:",
+    "syllable": "5.0.1"
   },
   "devDependencies": {
     "effect-bun-test": "catalog:"
