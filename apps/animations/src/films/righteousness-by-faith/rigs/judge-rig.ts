@@ -167,7 +167,7 @@ export const judgeRig = (fig: Figure) => {
             {
               key: 'ear',
               pts: ellipse(EAR.x, EAR.y, EAR.rx, EAR.ry, 12),
-              look: looked(PAPERS.skin),
+              look: looked(PAPERS.ear),
               boil: 0.6,
             },
             { key: 'hair', pts: HAIR, look: looked(PAPERS.greyHair, { tones: LUMPS }) },

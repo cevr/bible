@@ -867,7 +867,11 @@ const isPart = (layer: Part | Element): layer is Part => 'pts' in layer;
  * rim and its tones, unstroked; behind them all one shape holds every
  * part's outline, crawling with it, and lays the ink under every paper and
  * the one cast shadow, so the line shows only where no paper covers it: round
- * the silhouette. A rig declares the parts and gets one outline.
+ * the silhouette. The light rim inside the line is the backmost part's
+ * alone (the head), so it runs only where nothing lies over that part's
+ * edge, round the silhouette; a part laid over it (an ear, hair, a beard)
+ * keeps no rim of its own, which would draw a light border inside the
+ * outline. A rig declares the parts and gets one outline.
  */
 export const silhouette = (
   fig: Figure,
@@ -876,7 +880,13 @@ export const silhouette = (
   opts: { readonly ink?: keyof typeof INK; readonly shadow?: number } = {},
 ): Element => {
   const parts = layers.filter(isPart);
-  const drawn = layers.map((l) => (isPart(l) ? paperOf(fig, l, true) : l));
+  const base = parts.at(-1);
+  const drawn = layers.map((l) => {
+    if (!isPart(l)) return l;
+    if (l === base) return paperOf(fig, l, true);
+    const { rim: _rim, ...look } = l.look;
+    return paperOf(fig, { ...l, look }, true);
+  });
   const name = `${key}Ink`;
   const paths = parts.map((p) => {
     const at = `${name}${p.key}`;

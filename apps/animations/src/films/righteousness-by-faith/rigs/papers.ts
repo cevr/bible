@@ -17,7 +17,8 @@ import type { Crease, PieceLook } from '../../cold-studies/looks/rive/parts.ts';
  */
 export interface Paper {
   readonly color: Hex;
-  readonly shade: Hex;
+  /** Its far side past the crease; none for a flat paper (an ear). */
+  readonly shade?: Hex;
   readonly light: Hex;
   readonly crease?: Crease;
   readonly rim?: number;
@@ -48,6 +49,7 @@ const TURN = {
   wideRobe: { at: 0.55, soft: 0.5, toward: 0.2 },
   hand: { at: 0.75, soft: 0.06 },
   sheet: { at: 0.64, crescent: 0.45 },
+  whiteRobe: { at: 0.72, soft: 0.02, toward: 0.2 },
 } as const satisfies Record<string, Crease>;
 
 /** The figures' papers, by what each is. */
@@ -58,6 +60,10 @@ export const PAPERS = {
   robe: { ...paperOf('#fcfbfc'), crease: TURN.sheet, rim: RIM },
   /** Skin, as cold-34 paints the prosecutor's and the judge's faces: warm peach, its shade rosier and barely darker. */
   skin: { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6', crease: TURN.face, rim: RIM },
+  /** An ear: flat skin, a touch deeper than the lit face, no crease and no rim (cold-34 samples it #f4a880 to #f7b386). */
+  ear: { color: '#f4aa80', light: '#f4aa80' },
+  /** Christ's ear, on his head's far side: flat, in the shade's warmth (court-12). */
+  christEar: { color: '#e9976f', light: '#e9976f' },
   /** Skin on a hand: the same peach, shaded only at its far edge. */
   skinHand: { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6', crease: TURN.hand, rim: RIM },
   /** The judge's robe: a plum that darkens toward violet across its width. */
@@ -74,6 +80,22 @@ export const PAPERS = {
   olive: { color: '#847456', shade: '#645b46', light: '#9a8763', crease: TURN.robe, rim: RIM },
   /** The prosecutor's short black hair: a warm black, its back darker. */
   darkHair: { color: '#433736', shade: '#2e2a2c', light: '#5a4846', crease: TURN.face },
+  /** Christ's skin, as court-12 paints it: a warmer peach than the court's, its shade toward rose. */
+  christSkin: { color: '#f8a874', shade: '#ea9470', light: '#fbc49a', crease: TURN.face, rim: RIM },
+  /** Christ's long brown hair: a warm brown, its back darker. */
+  brownHair: { color: '#5f3d2c', shade: '#4a3027', light: '#7f5237', crease: TURN.face },
+  /** His beard: the hair's brown, a little deeper. */
+  beard: { color: '#583828', shade: '#4c3024', light: '#6e4632', crease: TURN.face },
+  /** Christ's white robe: a warm white, its far side a lilac (court-12). */
+  whiteRobe: {
+    color: '#f7e9d9',
+    shade: '#d3c2cd',
+    light: '#fef7e5',
+    crease: TURN.whiteRobe,
+    rim: RIM,
+  },
+  /** Sandals: a leather brown. */
+  sandal: { color: '#955b3a', shade: '#7c4a30', light: '#a86c48' },
   /** Shoes. */
   shoe: paperOf('#4e3b31'),
   /** The judge's bands: white linen. */

@@ -102,6 +102,19 @@ describe('silhouette', () => {
     expect(papers).toHaveLength(3);
     for (const paper of papers) expect(named(paper, 'Fill').length).toBeGreaterThan(0);
   });
+  test('rims only the backmost part: a part laid inside the outline gets no light border', () => {
+    const rimmed = { ...look, rim: 5 };
+    const cut = silhouette(figure(ids(), 'Test', 7, 0, K1), 'headCut', [
+      { key: 'ear', pts: ellipse(50, 20, 10, 16, 12), look: rimmed },
+      { key: 'hair', pts: ellipse(0, -30, 60, 40, 24), look: rimmed },
+      { key: 'face', pts: ellipse(0, 0, 55, 70, 24), look: rimmed },
+    ]);
+    const called = (name: string) =>
+      all(cut).filter((e) => e.attrs.some(([k, v]) => k === 'name' && v === name));
+    expect(called('earRim')).toHaveLength(0);
+    expect(called('hairRim')).toHaveLength(0);
+    expect(called('faceRim')).toHaveLength(1);
+  });
 });
 
 describe('a crescent turn', () => {

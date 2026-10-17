@@ -168,7 +168,12 @@ export const prosecutorRig = (fig: Figure) => {
         fig.bind('nod', KEY.y),
         el('Node', { y: head.y - PROSECUTOR.neck, name: 'skull' }, [
           silhouette(fig, 'headCut', [
-            { key: 'ear', pts: ellipse(EAR.x, EAR.y, EAR.rx, EAR.ry, 12), look: skin, boil: 0.6 },
+            {
+              key: 'ear',
+              pts: ellipse(EAR.x, EAR.y, EAR.rx, EAR.ry, 12),
+              look: looked(PAPERS.ear),
+              boil: 0.6,
+            },
             { key: 'hair', pts: HAIR, look: looked(PAPERS.darkHair, { tones: SHEEN }) },
             el(
               'Node',
