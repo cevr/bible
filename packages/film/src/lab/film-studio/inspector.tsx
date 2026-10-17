@@ -31,18 +31,21 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type Accessor,
   type ParentProps,
+  createEffect,
   createMemo,
   createSignal,
   onCleanup,
   untrack,
 } from 'solid-js';
+import { Frames } from '../../browser/frames.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { reloadHere } from '../stage.ts';
 import { pageHref } from '../../core/api.ts';
-import { boardNamed } from '../../core/board.ts';
+import { boardNamed, shownTry, tryOf } from '../../core/board.ts';
 import type { BoardClip, FilmTimeline, ScriptClip, Track } from '../../core/timeline-schema.ts';
 import { Actor } from '../actor.tsx';
 import { LabApi } from '../api.ts';
+import { quietly } from '../../command/command.ts';
 import { hubKeys } from '../command/changes.ts';
 import {
   Asks,
@@ -50,6 +53,7 @@ import {
   NotesFeed,
   ReplyForm,
   Said,
+  Still,
   Thread,
   noteLabel,
   useNotesFeed,
@@ -58,11 +62,12 @@ import { pressed } from '../pressed.ts';
 import { ReviewApi } from '../review/api.ts';
 import { RecordStage } from '../studio/machine.ts';
 import { Studio as Recorder } from '../studio/index.ts';
-import type { RecordFocus, RecordPage } from '../studio/context.tsx';
+import { type RecordFocus, type RecordPage, useHeld } from '../studio/context.tsx';
 import { type TakeHeard, takeHeard } from '../take.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { FilmScriptReader } from '../words/film-script.tsx';
-import { READER_CSS, type ReaderPage, useOwnSelecting } from '../words/reader.tsx';
+import { READER_CSS, type ReaderPage, type Selecting } from '../words/reader.tsx';
+import { WordsNote } from './words-note.tsx';
 import { PlaceStyle } from '../place-style.tsx';
 import { SHELL_CSS } from '../page-shell-style.ts';
 import { SCRIPT_READ_CSS } from '../script/style.ts';
@@ -78,6 +83,7 @@ import {
 } from './board-writes.ts';
 import { useStudio } from './context.tsx';
 import { StudioIcon } from './icons.tsx';
+import { PanelMarkup } from './panel-markup.tsx';
 import { INSPECTOR_CSS } from './style.ts';
 import {
   type SectionName,
@@ -88,6 +94,7 @@ import {
   wordsText,
 } from './inspector-state.ts';
 import {
+  beatNamed,
   hasBoard,
   hasScene,
   keptInFilm,
@@ -160,23 +167,44 @@ const Section = (
   </details>
 );
 
-/** A section with no material in the version shown: its row and `–`. */
-const Empty = (props: { readonly name: string; readonly kind: Track | 'note' }) => (
+/**
+ * A section with nothing to open in the version shown: its row and why,
+ * `–` where it has no material.
+ */
+const Empty = (props: {
+  readonly name: string;
+  readonly kind: Track | 'note';
+  readonly says?: string;
+}) => (
   <div class="st-row" data-section={props.name} data-empty="true">
     <i class="st-sw" data-kind={props.kind} aria-hidden="true" />
     <span>{props.name}</span>
-    <span class="st-n">–</span>
+    <span class="st-n">{props.says ?? '–'}</span>
   </div>
 );
 
+/** What a section the studio reads only for the film's own version says on a past one. */
+const PAST = 'not read for past versions';
+
 /** A quiet line in a section: why it has nothing to press, or where a read stands. */
-const Line = (props: { readonly children: JSX.Element; readonly alert?: boolean }) => (
-  <p
-    class="st-line"
-    role={Bool.match(props.alert === true, { onTrue: () => 'alert', onFalse: () => 'status' })}
-  >
+const Line = (props: { readonly children: JSX.Element }) => (
+  <p class="st-line" role="status">
     {props.children}
   </p>
+);
+
+/** A line in a section that says a read or a write failed, at once. */
+const AlertLine = (props: { readonly children: JSX.Element }) => (
+  <p class="st-line" role="alert">
+    {props.children}
+  </p>
+);
+
+/** A read's or a write's line: where it stands, said at once when it failed. */
+const ReadLine = (props: { readonly failed: boolean; readonly children: JSX.Element }) => (
+  <Show when={props.failed} fallback={<Line>{props.children}</Line>}>
+    <AlertLine>{props.children}</AlertLine>
+  </Show>
 );
 
 // ---------------------------------------------------------------- Head
@@ -269,14 +297,23 @@ const Head = (props: {
 
 // ---------------------------------------------------------------- Words
 
-/** The beat's words in the reader, following the playhead; the whole script once asked. */
+/**
+ * The beat's words in the reader, following the playhead; the whole script
+ * once asked. Words selected are the address's (`?words=`, a beat's words
+ * selecting the beat), and a note on them is written under them.
+ */
 const WordsBody = (props: {
   readonly beat: string;
+  readonly span: { readonly start: number; readonly end: number };
   readonly box: () => Option.Option<HTMLElement>;
   readonly clearTop: () => number;
 }) => {
   const { state, actions, meta } = useStudio();
-  const selecting = useOwnSelecting();
+  const selecting: Selecting = {
+    selected: state.picked,
+    select: (beat, w) => actions.pick(Option.some({ beat, from: w.from, to: w.to })),
+    clear: () => actions.pick(Option.none()),
+  };
   const [whole, setWhole] = createSignal(false, { ownedWrite: true });
   const page: ReaderPage = {
     host: meta.host,
@@ -289,6 +326,18 @@ const WordsBody = (props: {
       clearTop: props.clearTop,
       pause: actions.pause,
     }),
+    noting: Option.some((words) => (
+      <WordsNote
+        words={words}
+        span={Option.getOrElse(
+          Option.map(
+            Option.flatMap(state.timeline(), (t) => beatNamed(t, words.beat)),
+            (clip) => ({ start: clip.start, end: clip.start + clip.dur }),
+          ),
+          () => props.span,
+        )}
+      />
+    )),
   };
   return (
     <>
@@ -335,24 +384,53 @@ const panelState = (clip: BoardClip): string =>
 /**
  * One panel of the beat: its mark and time (a press selects it), its tries
  * as a strip (the kept one ringed) and why it was kept, in two lines. A
- * try pressed shows large under the strip; while the version shown is the
- * film's own, it can be kept.
+ * try pressed shows in the viewer (`?try=`), a second press returns it to
+ * the kept one; while the version shown is the film's own, the try shown
+ * can be kept.
  */
 const PanelRow = (props: {
   readonly clip: BoardClip;
   readonly board: Accessor<Option.Option<BeatBoard>>;
   readonly writes: Writes;
-  /** Whether the version shown is the film's own, whose Board a Keep writes. */
+  /** Whether the version shown is the film's own, whose Board a Keep writes and a markup notes. */
   readonly kept: boolean;
+  /** Film seconds its beat starts at. */
+  readonly beatStart: number;
 }) => {
   const { state, actions, meta } = useStudio();
   const panel = () =>
     Option.flatMap(props.board(), (b) => Arr.findFirst(b.panels, (p) => p.id === props.clip.panel));
-  const [shown, setShown] = createSignal(Option.none<number>(), { ownedWrite: true });
   const selected = () => Option.exists(state.panel(), (p) => p.panel === props.clip.panel);
+  const shown = () => Option.filter(state.tried(), selected);
+  const feed = useNotesFeed();
+  // The panel's notes still open: each opens in Notes and asks.
+  const noted = () =>
+    feed.notes().filter((n) => n.panel?.id === props.clip.panel && n.status !== 'resolved');
   const sending = () => props.writes.state()._tag === 'Sending';
+  let row = Option.none<HTMLElement>();
+  // A panel selected is brought into sight in the pane once its section is laid out, under the pane's head.
+  createEffect(selected, (on) => {
+    if (!on) return;
+    const stop = Option.map(row, (el) =>
+      Effect.runCallbackWith(meta.host)(
+        Frames.use((f) => f.next).pipe(
+          Effect.andThen(Effect.sync(() => el.scrollIntoView({ block: 'nearest' }))),
+        ),
+      ),
+    );
+    return () => {
+      Option.map(stop, (interrupt) => interrupt());
+    };
+  });
   return (
-    <div class="st-panel" data-panel={props.clip.panel} data-selected={pressed(selected())}>
+    <div
+      class="st-panel"
+      data-panel={props.clip.panel}
+      data-selected={pressed(selected())}
+      ref={(el: HTMLElement) => {
+        row = Option.some(el);
+      }}
+    >
       <button
         type="button"
         class="st-panel-head"
@@ -393,14 +471,7 @@ const PanelRow = (props: {
                     data-kept={pressed(p().kept === t.n)}
                     aria-pressed={pressed(Option.contains(shown(), t.n))}
                     aria-label={`Try ${t.n}${Bool.match(p().kept === t.n, { onTrue: () => ', kept', onFalse: () => '' })}`}
-                    onClick={() =>
-                      setShown(
-                        Bool.match(Option.contains(shown(), t.n), {
-                          onTrue: () => Option.none<number>(),
-                          onFalse: () => Option.some(t.n),
-                        }),
-                      )
-                    }
+                    onClick={() => actions.showTry(props.clip.panel, t.n)}
                   >
                     <img
                       class="st-try"
@@ -418,6 +489,32 @@ const PanelRow = (props: {
               </For>
             </div>
             <Show when={p().why}>{(why) => <p class="st-why">{`Kept: ${why()}`}</p>}</Show>
+            <Show when={noted().length > 0}>
+              <ul class="st-panel-notes" aria-label={`Notes on ${props.clip.panel}`}>
+                <For each={noted()} keyed={(n) => n.id}>
+                  {(n) => (
+                    <li>
+                      <button
+                        type="button"
+                        class="st-panel-note"
+                        data-note={n().id}
+                        onClick={() =>
+                          actions.openNote(Option.some({ id: n().id, beat: n().scene }))
+                        }
+                      >
+                        <span class="sh-badge">
+                          {Bool.match(n().panel?.ask === 'tweak', {
+                            onTrue: () => `${n().id} · tweak`,
+                            onFalse: () => n().id,
+                          })}
+                        </span>
+                        <span class="st-panel-note-text">{n().text}</span>
+                      </button>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Show>
             <Show
               when={Option.getOrUndefined(
                 Option.flatMap(shown(), (n) => Arr.findFirst(p().tries, (t) => t.n === n)),
@@ -425,11 +522,7 @@ const PanelRow = (props: {
             >
               {(t) => (
                 <div class="st-try-shown" data-try={t().n}>
-                  <img
-                    src={meta.boardUrl(t().file)}
-                    alt={`Try ${t().n} of ${props.clip.panel}`}
-                    loading="lazy"
-                  />
+                  <span class="st-try-said">{`Try ${t().n} is in the viewer`}</span>
                   <Show when={props.kept}>
                     <button
                       type="button"
@@ -449,6 +542,21 @@ const PanelRow = (props: {
                 </div>
               )}
             </Show>
+            <Show
+              when={Option.getOrUndefined(
+                Option.filter(
+                  Option.orElse(
+                    Option.flatMap(shown(), (n) => tryOf(p(), n)),
+                    () => shownTry(p()),
+                  ),
+                  () => props.kept,
+                ),
+              )}
+            >
+              {(t) => (
+                <PanelMarkup clip={props.clip} panel={p} tried={t} beatStart={props.beatStart} />
+              )}
+            </Show>
           </>
         )}
       </Show>
@@ -458,9 +566,14 @@ const PanelRow = (props: {
 
 // ---------------------------------------------------------------- Voice
 
-/** The recorder on the studio's film, at the beat selected: what its page is here, once the film is staged. */
-const useRecordPage = (beat: string): Accessor<Option.Option<RecordPage>> => {
-  const { actions, meta } = useStudio();
+/**
+ * The recorder's page here, while the film staged plays the version shown:
+ * its beat follows the beat selected while it rests (a take only this page
+ * has keeps it on its beat), and a beat it picks selects that beat; its
+ * parts stand in the recorder over the page (`RecordOver`).
+ */
+const useRecordPage = (): Accessor<Option.Option<RecordPage>> => {
+  const { state, actions, meta } = useStudio();
   // Focus is kept for the page's life: the studio reloads the page only for a new take, whose recorder opens shut.
   let focus = Option.none<RecordFocus>();
   return createMemo(() =>
@@ -476,7 +589,11 @@ const useRecordPage = (beat: string): Accessor<Option.Option<RecordPage>> => {
           reload: reloadHere(staged.player, meta.host),
         }),
       ),
-      linked: (beats) => Option.liftPredicate(beat, (b) => beats.includes(b)),
+      linked: (beats) =>
+        Option.filter(
+          Option.map(state.selected(), (b) => b.beat),
+          (b) => beats.includes(b),
+        ),
       go: (to) => actions.select(Option.some(to)),
       focus: {
         get: () => focus,
@@ -484,49 +601,120 @@ const useRecordPage = (beat: string): Accessor<Option.Option<RecordPage>> => {
           focus = Option.some(f);
         },
       },
+      // The studio reloads only for a take kept, so no reload waits on a take.
       hold: () => Effect.void,
       listed: () => {},
-      place: (children) => children,
+      place: (children) => <RecordOver>{children}</RecordOver>,
     })),
   );
 };
 
-/** The recorder over the page: a Dialog on a laptop, a Sheet from the bottom on a phone. */
-const RecordOver = (props: {
-  readonly beat: string;
-  readonly page: RecordPage;
-  readonly onClose: () => void;
-}) => {
+/**
+ * Escape while the recorder is over the page: it asks before it drops a
+ * take only this page has, else hides the recorder. Mounted after the
+ * recorder's parts, so its Escape is the one that runs.
+ */
+const CloseKey = (props: { readonly close: () => void }) => {
+  const { state, meta } = useStudio();
+  onCleanup(
+    meta.hub.commands.register({
+      id: 'studio.record-close',
+      label: 'Close the recorder',
+      group: 'Studio',
+      keys: ['escape'],
+      keysIn: ['studio', 'control', 'field', 'page'],
+      touch: "the recorder's ×",
+      when: () => state.recording(),
+      run: quietly(() => props.close()),
+    }),
+  );
+  return <></>;
+};
+
+/**
+ * The recorder over the page: a Dialog on a laptop, a Sheet from the bottom
+ * on a phone, shown while the studio says so. Close, Escape and a swipe hide
+ * it; while it holds a take only this page has, they first ask whether to
+ * discard it (Discard, Keep). A press beside it does nothing. Hidden, the
+ * recorder goes on behind the page: it is the inspector's, not the view's.
+ */
+const RecordOver = (props: ParentProps) => {
+  const { state, actions } = useStudio();
+  // While the recorder waits on its beats it holds no take, and a close only hides it.
+  const held = useHeld();
+  const discardable = () => Option.flatMap(held, (h) => h.discardable());
   const phone = usePhone();
-  // The recorder is the beat's page as it opened: its page is read once.
-  const page = untrack(() => props.page);
+  const [asking, setAsking] = createSignal(false, { ownedWrite: true });
+  const close = () =>
+    Bool.match(Option.isSome(untrack(discardable)), {
+      onTrue: () => setAsking(true),
+      onFalse: () => {
+        setAsking(false);
+        actions.record(false);
+      },
+    });
+  const discard = () => {
+    Option.map(held, (h) => h.discard());
+    setAsking(false);
+    actions.record(false);
+  };
+  // The question goes once the take it asked about went another way (submitted, kept, stopped).
+  createEffect(
+    () => Option.isSome(discardable()),
+    (holds) => {
+      if (!holds) setAsking(false);
+    },
+  );
+  const onOpenChange = (next: boolean) => {
+    if (!next) close();
+  };
+  const title = () =>
+    Option.match(held, { onNone: () => 'Record', onSome: (h) => `Record ${h.beat()}` });
   const body = () => (
-    <Recorder.Provider page={page}>
-      <Recorder.Section />
-    </Recorder.Provider>
+    <>
+      <Show when={asking()}>
+        <div class="st-discard" role="alert" data-role="discard-ask">
+          <p class="st-discard-q">{Option.getOrElse(discardable(), () => 'Discard this take?')}</p>
+          <p class="st-discard-why">It is only on this page.</p>
+          <div class="st-discard-acts">
+            <button type="button" class="sh-btn" data-act="discard-take" onClick={discard}>
+              Discard
+            </button>
+            <button
+              type="button"
+              class="sh-btn"
+              data-primary
+              data-act="keep-take"
+              onClick={() => setAsking(false)}
+            >
+              Keep
+            </button>
+          </div>
+        </div>
+      </Show>
+      {props.children}
+      <CloseKey close={close} />
+    </>
   );
   return (
     <Show
       when={phone()}
       fallback={
-        <Dialog.Root
-          open
-          onOpenChange={(next) => {
-            if (!next) props.onClose();
-          }}
-        >
+        <Dialog.Root open={state.recording()} onOpenChange={onOpenChange} disablePointerDismissal>
           <Dialog.Portal>
             <Dialog.Backdrop class="st-record-backdrop" />
             <Dialog.Popup class="st-record" data-role="record">
               <div class="st-record-head">
-                <Dialog.Title class="st-record-title">{`Record ${props.beat}`}</Dialog.Title>
-                <Dialog.Close
+                <Dialog.Title class="st-record-title">{title()}</Dialog.Title>
+                <button
+                  type="button"
                   class="st-close"
                   data-act="close-record"
                   aria-label="Close the recorder"
+                  onClick={close}
                 >
                   <StudioIcon of="close" />
-                </Dialog.Close>
+                </button>
               </div>
               {body()}
             </Dialog.Popup>
@@ -535,11 +723,10 @@ const RecordOver = (props: {
       }
     >
       <UiSheet.Root
-        open
+        open={state.recording()}
         position="bottom"
-        onOpenChange={(next) => {
-          if (!next) props.onClose();
-        }}
+        onOpenChange={onOpenChange}
+        disablePointerDismissal
       >
         <UiSheet.Portal class="st-record-portal">
           <UiSheet.Overlay>
@@ -547,14 +734,16 @@ const RecordOver = (props: {
             <UiSheet.Popup class="st-record-panel">
               <UiSheet.Content class="st-record st-record-sheet" data-role="record">
                 <div class="st-record-head">
-                  <UiSheet.Title class="st-record-title">{`Record ${props.beat}`}</UiSheet.Title>
-                  <UiSheet.Close
+                  <UiSheet.Title class="st-record-title">{title()}</UiSheet.Title>
+                  <button
+                    type="button"
                     class="st-close"
                     data-act="close-record"
                     aria-label="Close the recorder"
+                    onClick={close}
                   >
                     <StudioIcon of="close" />
-                  </UiSheet.Close>
+                  </button>
                 </div>
                 {body()}
               </UiSheet.Content>
@@ -567,9 +756,35 @@ const RecordOver = (props: {
 };
 
 /**
- * The take, heard through the page's media (`Media`): Hear plays it from
- * where it stopped and pauses the studio; Stop pauses it. It is made at the
- * first Hear and paused as the section closes.
+ * The film's recorder, one for the page while the film staged plays the
+ * version shown: above the beat's pane, so a beat selected, the inspector
+ * shut or the recorder hidden never ends a take. Its parts show over the
+ * page while the studio says so (`state.recording`).
+ */
+const RecordRoom = () => {
+  const { state } = useStudio();
+  const page = useRecordPage();
+  return (
+    <Show
+      when={Option.getOrUndefined(
+        Option.filter(page(), () => Option.exists(state.timeline(), keptInFilm)),
+      )}
+      keyed
+    >
+      {(p: RecordPage) => (
+        <Recorder.Provider page={p}>
+          <Recorder.Section />
+        </Recorder.Provider>
+      )}
+    </Show>
+  );
+};
+
+/**
+ * The take, heard as the page's one voice (`Media.hear`): Hear plays it
+ * from where it stopped, pauses the studio and the reader's Hear; Stop
+ * pauses it, and so does another voice heard or the studio's Play. It is
+ * made at the first Hear and paused as the section closes.
  */
 const HearTake = (props: { readonly take: TakeHeard }) => {
   const { actions, meta } = useStudio();
@@ -603,9 +818,16 @@ const HearTake = (props: { readonly take: TakeHeard }) => {
           },
           onFalse: () => {
             actions.pause();
+            const take = media();
             run(
-              Media.use((m) => m.play(media())).pipe(
-                Effect.map((played) => setPlaying(played._tag === 'Playing')),
+              Media.use((m) =>
+                m.hear(
+                  take,
+                  Effect.sync(() => setPlaying(false)),
+                ),
+              ).pipe(
+                // A hush that came while the play was on its way leaves it paused.
+                Effect.map((played) => setPlaying(played._tag === 'Playing' && take.playing())),
               ),
             );
           },
@@ -620,17 +842,30 @@ const HearTake = (props: { readonly take: TakeHeard }) => {
   );
 };
 
-/** The beat's take, its speech and marks, played here (the studio pauses); Record opens the recorder on it. */
+/**
+ * The beat's take, its speech and marks, played here (the studio pauses);
+ * Record shows the recorder over the page. Its takes are read again, and
+ * the timeline with them, each time the recorder is hidden: a take kept
+ * there is the one heard here.
+ */
 const VoiceBody = (props: { readonly beat: ScriptClip; readonly timeline: FilmTimeline }) => {
-  const { meta } = useStudio();
+  const { state, actions, meta } = useStudio();
   // The pane is the beat's alone (a new beat is a new pane), so its takes are read for the beat it opened on.
   const beat = untrack(() => props.beat.beat);
   const read = meta.runtime.atom(ReviewApi.use((api) => api.attempts(meta.film, beat)));
   const attempts = useAtomValue(() => read);
+  const again = useAtomRefresh(() => read);
+  let shown = untrack(state.recording);
+  createEffect(state.recording, (now) => {
+    if (shown && !now) {
+      again();
+      actions.refresh();
+    }
+    shown = now;
+  });
   const take = () =>
     Option.flatMap(AsyncResult.value(attempts()), (a) => takeHeard(meta.film, a, Option.none()));
-  const record = useRecordPage(beat);
-  const [recording, setRecording] = createSignal(false, { ownedWrite: true });
+  const recordable = () => Option.isSome(meta.player()) && keptInFilm(props.timeline);
   return (
     <>
       <dl class="st-facts">
@@ -661,13 +896,13 @@ const VoiceBody = (props: { readonly beat: ScriptClip; readonly timeline: FilmTi
       <Show
         when={Option.getOrUndefined(take())}
         fallback={
-          <Line alert={AsyncResult.isFailure(attempts())}>
+          <ReadLine failed={AsyncResult.isFailure(attempts())}>
             {AsyncResult.match(attempts(), {
               onInitial: () => 'Reading the takes…',
               onFailure: () => 'The takes could not be read.',
               onSuccess: () => 'No take to hear yet.',
             })}
-          </Line>
+          </ReadLine>
         }
       >
         {(t) => (
@@ -680,28 +915,12 @@ const VoiceBody = (props: { readonly beat: ScriptClip; readonly timeline: FilmTi
         )}
       </Show>
       <Show
-        when={Option.getOrUndefined(Option.filter(record(), () => keptInFilm(props.timeline)))}
+        when={recordable()}
         fallback={<Line>Recording opens on the version the film plays.</Line>}
       >
-        {(page) => (
-          <>
-            <button
-              type="button"
-              class="st-btn"
-              data-act="record"
-              onClick={() => setRecording(true)}
-            >
-              Record this beat
-            </button>
-            <Show when={recording()}>
-              <RecordOver
-                beat={props.beat.beat}
-                page={page()}
-                onClose={() => setRecording(false)}
-              />
-            </Show>
-          </>
-        )}
+        <button type="button" class="st-btn" data-act="record" onClick={() => actions.record(true)}>
+          Record this beat
+        </button>
       </Show>
     </>
   );
@@ -720,13 +939,13 @@ const CodeBody = (props: { readonly scene: string }) => {
     <Show
       when={Option.getOrUndefined(AsyncResult.value(code()))}
       fallback={
-        <Line alert={AsyncResult.isFailure(code())}>
+        <ReadLine failed={AsyncResult.isFailure(code())}>
           {AsyncResult.match(code(), {
             onInitial: () => 'Reading the scene…',
             onFailure: () => 'The scene could not be read.',
             onSuccess: () => '',
           })}
-        </Line>
+        </ReadLine>
       }
     >
       {(c) => (
@@ -756,32 +975,76 @@ const CodeBody = (props: { readonly scene: string }) => {
 
 /** The owner's open notes on the beat, each with its thread and a reply, and the open asks in its span. */
 const NotesBody = (props: { readonly beat: ScriptClip; readonly timeline: FilmTimeline }) => {
-  const { meta } = useStudio();
+  const { state, actions, meta } = useStudio();
   const feed = useNotesFeed();
+  // The beat's open notes, and the note the address opens whatever its status.
   const notes = () =>
-    feed.notes().filter((n) => n.scene === props.beat.beat && n.status !== 'resolved');
+    feed
+      .notes()
+      .filter(
+        (n) =>
+          n.scene === props.beat.beat &&
+          (n.status !== 'resolved' || Option.contains(state.note(), n.id)),
+      );
   const asks = () => markersOfBeat(props.timeline, props.beat).asks;
   return (
     <>
       {/* Keyed by the note's id: a read again (a reply landed) keeps its disclosure as the owner left it. */}
       <For each={notes()} keyed={(n) => n.id}>
-        {(note) => (
-          <details class="st-note" data-note={note().id}>
-            <summary class="st-note-head">
-              <span class="st-note-label">{noteLabel(note(), Option.none())}</span>
-              <span class="sh-badge" data-state={NOTE_STATE[note().status]}>
-                {note().status}
-              </span>
-              <i class="st-chev" aria-hidden="true" />
-            </summary>
-            <div class="st-note-body">
-              <Asks note={note()} />
-              <Said note={note()} />
-              <Thread film={meta.film} note={note()} />
-              <ReplyForm note={note()} />
-            </div>
-          </details>
-        )}
+        {(note) => {
+          const addressed = () => Option.contains(state.note(), note().id);
+          let box = Option.none<HTMLDetailsElement>();
+          // The note the address opens is open and in view; opening one puts it in the address.
+          createEffect(addressed, (open) => {
+            if (!open) return;
+            Option.map(box, (el) => {
+              el.open = true;
+              el.scrollIntoView({ block: 'nearest' });
+            });
+          });
+          return (
+            <details
+              class="st-note"
+              data-note={note().id}
+              ref={(el: HTMLDetailsElement) => {
+                box = Option.some(el);
+              }}
+              onToggle={(e) => {
+                const open = e.currentTarget.open;
+                if (open && !untrack(addressed))
+                  actions.openNote(Option.some({ id: note().id, beat: note().scene }));
+                if (!open && untrack(addressed)) actions.openNote(Option.none());
+              }}
+            >
+              <summary class="st-note-head">
+                <span class="st-note-label">{noteLabel(note(), Option.none())}</span>
+                <Show when={note().panel}>
+                  {(panel) => (
+                    <span class="sh-badge" data-role="panel-note">
+                      {Bool.match(panel().ask === 'tweak', {
+                        onTrue: () => `tweak · ${panel().id}`,
+                        onFalse: () => panel().id,
+                      })}
+                    </span>
+                  )}
+                </Show>
+                <span class="sh-badge" data-state={NOTE_STATE[note().status]}>
+                  {note().status}
+                </span>
+                <i class="st-chev" aria-hidden="true" />
+              </summary>
+              <div class="st-note-body">
+                <Asks note={note()} />
+                <Said note={note()} />
+                <Show when={note().panel}>
+                  <Still film={meta.film} name={note().still} />
+                </Show>
+                <Thread film={meta.film} note={note()} />
+                <ReplyForm note={note()} />
+              </div>
+            </details>
+          );
+        }}
       </For>
       <Show when={notes().length > 0 && asks().length > 0}>
         <Separator class="st-sep" />
@@ -822,6 +1085,14 @@ const Pane = (props: {
   const open = createMemo(() => openSections(selected(), toggled()));
   const onToggle = (name: SectionName) => (now: boolean) =>
     setToggled(Option.some(toggle(selected(), toggled(), name, now)));
+  // A note the address opens opens Notes and asks, the sections open beside it kept.
+  createEffect(
+    () => Option.isSome(state.note()),
+    (noted) => {
+      if (noted && !untrack(open).has('Notes and asks'))
+        untrack(() => onToggle('Notes and asks')(true));
+    },
+  );
   const section = (name: SectionName) => ({
     name,
     open: open().has(name),
@@ -850,12 +1121,12 @@ const Pane = (props: {
       />
       <Show when={Option.getOrUndefined(writesLine(props.writes.state()))}>
         {(line) => (
-          <Line alert={props.writes.state()._tag === 'Failed'}>
+          <ReadLine failed={props.writes.state()._tag === 'Failed'}>
             <span data-role="board-write">{line()}</span>
-          </Line>
+          </ReadLine>
         )}
       </Show>
-      <Show when={kept()} fallback={<Empty name="Words" kind="script" />}>
+      <Show when={kept()} fallback={<Empty name="Words" kind="script" says={PAST} />}>
         <Section
           {...section('Words')}
           kind="script"
@@ -868,6 +1139,7 @@ const Pane = (props: {
         >
           <WordsBody
             beat={props.beat.beat}
+            span={{ start: props.beat.start, end: props.beat.start + props.beat.dur }}
             box={() => box}
             clearTop={() =>
               Option.getOrElse(
@@ -879,7 +1151,7 @@ const Pane = (props: {
         </Section>
       </Show>
       <Show when={lane('concept')}>
-        <Empty name="Concept" kind="concept" />
+        <Empty name="Concept" kind="concept" says="to come" />
       </Show>
       <Show when={panels().length > 0} fallback={<Empty name="Board" kind="board" />}>
         <Section {...section('Board')} kind="board" count={boardText(panels())}>
@@ -888,7 +1160,13 @@ const Pane = (props: {
           </Show>
           <For each={panels()}>
             {(clip) => (
-              <PanelRow clip={clip} board={props.board} writes={props.writes} kept={kept()} />
+              <PanelRow
+                clip={clip}
+                board={props.board}
+                writes={props.writes}
+                kept={kept()}
+                beatStart={props.beat.start}
+              />
             )}
           </For>
         </Section>
@@ -914,7 +1192,16 @@ const Pane = (props: {
       </Show>
       <Show
         when={kept() && hasScene(props.timeline, props.beat.beat)}
-        fallback={<Empty name="Code" kind="scenes" />}
+        fallback={
+          <Empty
+            name="Code"
+            kind="scenes"
+            says={Bool.match(hasScene(props.timeline, props.beat.beat), {
+              onTrue: () => PAST,
+              onFalse: () => '–',
+            })}
+          />
+        }
       >
         <Section {...section('Code')} kind="scenes" count="read only">
           <CodeBody scene={props.beat.beat} />
@@ -955,37 +1242,39 @@ const WithWrites = (props: {
   readonly children: (writes: Writes, board: Accessor<Option.Option<BeatBoard>>) => JSX.Element;
 }) => {
   const { state, actions, meta } = useStudio();
-  const boardRead = meta.runtime.atom(LabApi.use((api) => api.board));
-  const board = useAtomValue(() => boardRead);
-  const again = useAtomRefresh(() => boardRead);
-  const send = (write: BoardWrite) =>
+  // An approval asked of a beat whose id is no Board name is refused here, in the section's words.
+  const approval = (verb: 'approve' | 'withdraw', beat: string) =>
     LabApi.use((api) =>
-      Match.value(write).pipe(
-        Match.tagsExhaustive({
-          Keep: (w) => api.boardPick(w.panel, w.n, Option.none()),
-          Approve: (w) =>
-            Option.match(boardNamed(w.beat), {
-              onNone: () => Effect.die(`${w.beat} is not a board beat name`),
-              onSome: (name) => api.boardApproval('approve', name),
-            }),
-          Withdraw: (w) =>
-            Option.match(boardNamed(w.beat), {
-              onNone: () => Effect.die(`${w.beat} is not a board beat name`),
-              onSome: (name) => api.boardApproval('withdraw', name),
-            }),
-        }),
-      ),
-    ).pipe(
-      Effect.mapError((failure) => failure.message),
-      Effect.tap(() =>
-        Effect.sync(() => {
-          again();
-          actions.refresh();
-        }),
-      ),
+      Option.match(boardNamed(beat), {
+        onNone: () => Effect.fail(`${beat} is not a name the Board can approve`),
+        onSome: (name) =>
+          api.boardApproval(verb, name).pipe(Effect.mapError((failure) => failure.message)),
+      }),
     );
+  const send = (write: BoardWrite) =>
+    Match.value(write)
+      .pipe(
+        Match.tagsExhaustive({
+          Keep: (w) =>
+            LabApi.use((api) =>
+              api
+                .boardPick(w.panel, w.n, Option.none())
+                .pipe(Effect.mapError((failure) => failure.message)),
+            ),
+          Approve: (w) => approval('approve', w.beat),
+          Withdraw: (w) => approval('withdraw', w.beat),
+        }),
+      )
+      .pipe(
+        Effect.tap(() =>
+          Effect.sync(() => {
+            actions.boardAgain();
+            actions.refresh();
+          }),
+        ),
+      );
   const beatOf = createMemo(() =>
-    Option.flatMap(AsyncResult.value(board()), (b) =>
+    Option.flatMap(state.board(), (b) =>
       Option.map(state.selected(), (beat) => beatBoard(b, beat.beat)),
     ),
   );
@@ -997,11 +1286,6 @@ const WithWrites = (props: {
 };
 
 /**
- * The inspector: the selected beat's pane, beside the viewer on a laptop
- * and in the reading block's place on a phone; nothing while no beat is
- * selected. The film's notes are read once for it, followed by their feed.
- */
-/**
  * What the inspector's parts are styled by: the shell's kit (a button, a
  * badge, a segmented row), a script read aloud, the reader's own and the
  * sections'. They ride with the inspector, never in the page's head: the
@@ -1009,13 +1293,19 @@ const WithWrites = (props: {
  */
 const INSPECTOR_STYLES = `${SHELL_CSS}${SCRIPT_READ_CSS}${READER_CSS}${INSPECTOR_CSS}`;
 
+/**
+ * The inspector: the selected beat's pane, beside the viewer on a laptop
+ * and in the reading block's place on a phone; nothing while no beat is
+ * selected. The film's notes are read once for it, followed by their feed.
+ */
 export const Inspector = () => {
   const { state, meta } = useStudio();
   return (
     <aside class="st-insp" aria-label="Inspector">
       <PlaceStyle css={INSPECTOR_STYLES} />
+      <RecordRoom />
       <Show when={Option.isSome(state.selected())}>
-        <NotesFeed film={meta.film} runtime={meta.runtime} note={() => Option.none()}>
+        <NotesFeed film={meta.film} runtime={meta.runtime} note={state.note}>
           <WithWrites>
             {(writes, board) => (
               <Show when={Option.getOrUndefined(state.timeline())}>

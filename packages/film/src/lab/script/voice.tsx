@@ -3,8 +3,9 @@
 // not voiced, or refused with why), asked again every few seconds while any
 // is voicing (`polled`), and the day's staging spend; Hear, which plays a
 // beat's take, the words selected in it, or the script from a beat on,
-// through the reader's own audio (never a film's: its track and timings
-// stay as they are), with the word heard lit; and the one write a reader
+// as the page's one voice (`Media.hear`: a take heard elsewhere on the page
+// is paused, and the film's Play hushes it; never a film's track, whose
+// timings stay as they are), with the word heard lit; and the one write a reader
 // makes, a beat's delivery marks, one at a time, the takes read again once
 // it lands and the line read again once those takes do: a line put back
 // elsewhere after the lab answered the page's read-back, before the takes
@@ -15,8 +16,10 @@
 // (`review/draft.tsx`). Either way the fill voices the beat again first.
 
 import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { Array as Arr, Data, Effect, Exit, Fiber, Option, Schedule, Stream } from 'effect';
-import type * as Atom from 'effect/reactivity/Atom';
+import { Array as Arr, Data, Effect, Exit, Fiber, Match, Option, Schedule, Stream } from 'effect';
+import { Machine } from 'effect-machine';
+import * as ActorAtom from 'effect-machine/atom';
+import * as Atom from 'effect/reactivity/Atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
@@ -29,6 +32,7 @@ import {
   useContext,
 } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
+import { Media, type Playable, Played } from '../../browser/media.ts';
 import type { Host } from '../../browser/host.ts';
 import type { MarksPost, ScriptVoice, StagingTake } from '../../core/api.ts';
 import { type LineRead, type Mark, sameMarks } from '../../core/delivery.ts';
@@ -36,6 +40,7 @@ import type { TakeWord } from '../../core/schema.ts';
 import { type LabFailure, reasonOf } from '../api.ts';
 import type { WordAt } from '../transcript/lit.ts';
 import { heardAt, retaken, spanOf } from './delivery.ts';
+import { type MarkWrite, MarkingEvent, type MarkingState, spawnMarking } from './marking.ts';
 
 /** How often the takes are asked for again: often while one is still voicing, else now and then (a new day, another film's spend, a take another process made). */
 const ASKED_AGAIN = { voicing: '4 seconds', resting: '1 minute' } as const;
@@ -208,16 +213,19 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
   const readyOf = (id: string): Option.Option<Ready> =>
     Option.filter(take(id), (t): t is Ready => t._tag === 'Ready');
 
-  // The reader's own audio, made at the first Hear.
-  let audio = Option.none<HTMLAudioElement>();
-  const audioEl = (): HTMLAudioElement =>
-    Option.getOrElse(audio, () => {
-      const el = document.createElement('audio');
-      el.preload = 'auto';
-      audio = Option.some(el);
-      return el;
+  // The takes' audio, through the page's media, one per take file, each made at its first Hear.
+  const audios = new Map<string, Playable>();
+  const audioOf = (file: string): Playable =>
+    Option.getOrElse(Option.fromUndefinedOr(audios.get(file)), () => {
+      const made = Effect.runSyncWith(source.host)(
+        Media.useSync((m) => m.audio(source.takeUrl(file))),
+      );
+      audios.set(file, made);
+      return made;
     });
   const [heard, setHeard] = createSignal<Heard>(Heard.Quiet(), { ownedWrite: true });
+  /** The take being heard: what the voice pauses as it stops. */
+  let current = Option.none<Playable>();
   let loop = Option.none<Fiber.Fiber<void>>();
   const stopLoop = () => {
     Option.map(loop, (f) => Effect.runFork(Fiber.interrupt(f)));
@@ -226,16 +234,20 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
   /** The take silenced and its loop ended: what the voice owns outside its state, let go as the voice goes. */
   const halt = () => {
     stopLoop();
-    Option.map(audio, (el) => el.pause());
+    Option.map(current, (media) => Effect.runFork(media.pause));
   };
   const stop = () => {
     halt();
     setHeard(Heard.Quiet());
   };
 
-  // Each play counts: a play the next one cut short (its promise refused as the source changed) stops nothing.
+  // Each play counts: a play the next one took the place of stops nothing when it is hushed or refused.
   let plays = 0;
-  /** Play `take` of beat `beat` from `start` to `end`, the beats `next` after it. */
+  /**
+   * Play `take` of beat `beat` from `start` to `end`, the beats `next` after
+   * it: heard as the page's one voice (`Media.hear`), so the take another
+   * hearer plays is paused and the film's Play hushes this one.
+   */
   const play = (
     beat: string,
     take: Ready,
@@ -244,30 +256,44 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
     next: ReadonlyArray<string>,
   ) => {
     stopLoop();
-    const el = audioEl();
+    const media = audioOf(take.file);
+    current = Option.some(media);
     const n = ++plays;
-    el.src = source.takeUrl(take.file);
-    el.currentTime = start;
+    const mine = () => n === plays;
     setHeard(Heard.Hearing({ beat, words: take.words, end, next, index: Option.none() }));
     Option.map(source.player, (p) => p.pause());
-    el.play().catch(() => {
-      if (n === plays) stop();
+    /** Quiet, unless a later play took this one's place. */
+    const hushed = Effect.sync(() => {
+      if (mine()) stop();
     });
     // The frames run until the stretch ends (on to the next beat) or Play takes over (quiet); then what follows.
     let then = stop;
+    const heardThrough = Frames.use((f) =>
+      f.loop(() =>
+        Option.match(step(media), {
+          onNone: () => true,
+          onSome: (after) => {
+            then = after;
+            return false;
+          },
+        }),
+      ),
+    ).pipe(Effect.andThen(Effect.sync(() => then())));
     loop = Option.some(
       Effect.runForkWith(source.host)(
-        Frames.use((f) =>
-          f.loop(() =>
-            Option.match(step(el), {
-              onNone: () => true,
-              onSome: (after) => {
-                then = after;
-                return false;
-              },
+        media.seek(start).pipe(
+          Effect.andThen(Media.use((m) => m.hear(media, hushed))),
+          Effect.flatMap((played) =>
+            Played.$match(played, {
+              Playing: () => heardThrough,
+              Muted: () => heardThrough,
+              // A pause cut it short: whoever paused it says what follows.
+              Aborted: () => Effect.void,
+              Blocked: () => hushed,
+              Failed: () => hushed,
             }),
           ),
-        ).pipe(Effect.andThen(Effect.sync(() => then()))),
+        ),
       ),
     );
   };
@@ -287,12 +313,12 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
    * One frame of hearing: the word heard lit; at the stretch's end, on to the
    * next beat; once the film plays, quiet. Some names what follows the frames.
    */
-  const step = (el: HTMLAudioElement): Option.Option<() => void> => {
+  const step = (media: Playable): Option.Option<() => void> => {
     const now = untrack(heard);
     if (now._tag !== 'Hearing' || Option.exists(source.player, (p) => p.playing()))
       return Option.some(stop);
-    const t = el.currentTime;
-    if (el.ended || t >= now.end) return Option.some(() => playNext(now.next));
+    const t = media.time();
+    if (media.ended() || t >= now.end) return Option.some(() => playNext(now.next));
     const index = heardAt(now.words, t);
     if (Option.getOrElse(index, () => -1) !== Option.getOrElse(now.index, () => -1))
       setHeard(Heard.Hearing({ ...now, index }));
@@ -341,23 +367,49 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
       () => read,
     );
 
-  // One write out at a time; once it lands the takes are read again, the beat's new key queued first.
-  const [marking, setMarking] = createSignal<Marking>(Marking.Idle(), { ownedWrite: true });
-  const send = useAtomSet(() => source.write, { mode: 'promiseExit' });
-  const mark = (beat: string, marks: ReadonlyArray<Mark>, read: LineRead) => {
-    if (untrack(marking)._tag === 'Writing') return;
-    setMarking(Marking.Writing({ beat }));
-    const on: LineRead = { spoken: read.spoken, marks: untrack(() => marksOf(beat, read.marks)) };
-    void send({ beat, marks, read: on }).then((exit) => {
-      if (Exit.isSuccess(exit)) {
-        setWrote((was) => new Map(was).set(beat, { read: read.marks, now: marks }));
-        setMarking(Marking.Written({ beat }));
-        pastWrite = Option.some(untrack(voice));
-        readAgain();
-        return;
-      }
-      setMarking(Marking.Failed({ beat, reason: reasonOf(exit.cause) }));
+  // One write out at a time (`marking.ts`); once it lands the takes are read again, the beat's new key
+  // queued first. The machine runs in the browser alone: the server's render writes nothing.
+  const post = useAtomSet(() => source.write, { mode: 'promiseExit' });
+  const write = (w: MarkWrite): Effect.Effect<void, string> =>
+    Effect.flatMap(
+      Effect.promise(() => post(w.post)),
+      (exit) => {
+        if (Exit.isFailure(exit)) return Effect.fail(reasonOf(exit.cause));
+        return Effect.sync(() => {
+          setWrote((was) => new Map(was).set(w.post.beat, { read: w.read, now: w.post.marks }));
+          pastWrite = Option.some(untrack(voice));
+          readAgain();
+        });
+      },
+    );
+  const spawned = Atom.make(Machine.scoped(spawnMarking(write)));
+  const live = Atom.map(spawned, (made) => Option.map(AsyncResult.value(made), ActorAtom.make));
+  const markingAtom = Atom.writable(
+    (get) => Option.map(get(live), (actor) => get(actor)),
+    (ctx, event: MarkingEvent) => {
+      Option.map(ctx.get(live), (actor) => ctx.set(actor, event));
+    },
+  ).pipe(Atom.withServerValue(() => Option.none<MarkingState>()));
+  const machine = useAtomValue(() => markingAtom);
+  const sendMarking = useAtomSet(() => markingAtom);
+  const marking = (): Marking =>
+    Option.match(machine(), {
+      onNone: () => Marking.Idle(),
+      onSome: (state) =>
+        Match.value(state).pipe(
+          Match.tagsExhaustive({
+            Idle: () => Marking.Idle(),
+            Writing: (s) => Marking.Writing({ beat: s.beat }),
+            Written: (s) => Marking.Written({ beat: s.beat }),
+            Failed: (s) => Marking.Failed({ beat: s.beat, reason: s.reason }),
+          }),
+        ),
     });
+  const mark = (beat: string, marks: ReadonlyArray<Mark>, read: LineRead) => {
+    const on: LineRead = { spoken: read.spoken, marks: untrack(() => marksOf(beat, read.marks)) };
+    sendMarking(
+      MarkingEvent.Mark({ write: { post: { beat, marks, read: on }, read: read.marks } }),
+    );
   };
 
   const value: VoiceContextValue = {

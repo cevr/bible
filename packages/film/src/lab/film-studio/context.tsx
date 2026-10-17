@@ -6,7 +6,10 @@
 // place that knows how each is kept.
 //
 // The address holds the version (`?v=`), the selection (`?sel=beat:<id>`,
-// or `?sel=panel:<id>` for a Board panel and its beat, a step Back walks) and the playhead (`#t=`, film seconds, written as it
+// or `?sel=panel:<id>` for a Board panel and its beat, a step Back walks),
+// the try of that panel the viewer shows (`?try=`), the note the inspector
+// has open (`?note=`), the words of the selected beat's line selected
+// (`?words=<a>-<b>`) and the playhead (`#t=`, film seconds, written as it
 // settles and every quarter second while it moves). The clock is the staged
 // film's preview when the version shown is the one the film registry holds
 // (its narration heard), else a silent clock over the version's timeline
@@ -15,7 +18,7 @@
 // for the film, the review's, and the host; a write that changes what the
 // version shows reads the timeline again (`actions.refresh`).
 
-import { useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Array as Arr, Boolean as Bool, Effect, Layer, Match, Option, Result } from 'effect';
@@ -37,6 +40,7 @@ import { type BrowserServices, type Host, addressOn, hostLayer } from '../../bro
 import { quietly } from '../../command/command.ts';
 import { shellCommands } from '../../command/go.ts';
 import { PageLoad } from '../../browser/page-load.ts';
+import { Media } from '../../browser/media.ts';
 import type { Hub } from '../../command/hub.ts';
 import {
   Places,
@@ -51,6 +55,7 @@ import {
   selectedPanel,
   statusOf,
 } from '../../core/api.ts';
+import { type BoardFile, panelsOf, tryOf } from '../../core/board.ts';
 import { parse } from '../../core/narration.ts';
 import { Segment } from '../../core/segment.ts';
 import { FILM_FPS, onTheMs } from '../../core/time.ts';
@@ -59,15 +64,9 @@ import type { Film } from '../../canvas/film.ts';
 import type { Player, Staged } from '../../player/main.ts';
 import { tInUrl } from '../../player/t-in-url.ts';
 import { timersOn } from '../../player/throttle.ts';
+import { wordsIn, wordsText } from '../../command/selection.ts';
 import { Actor } from '../actor.tsx';
-import {
-  type LabApi,
-  LabClient,
-  type LabFailure,
-  type NotesApi,
-  called,
-  labApiLayer,
-} from '../api.ts';
+import { LabApi, LabClient, type LabFailure, NotesApi, called, labApiLayer } from '../api.ts';
 import { type ReviewApi, reviewApiLayer } from '../review/api.ts';
 import { type StudioClock, playerClock, silentClock } from './clock.ts';
 import {
@@ -90,6 +89,7 @@ import {
   panelNamed,
   pictureAt,
   versionChip,
+  withTry,
   zoomStep,
 } from './view-state.ts';
 
@@ -106,6 +106,13 @@ type StudioServices =
 export interface StagedFilm {
   readonly staged: Staged;
   readonly player: Player;
+}
+
+/** Words of a beat's line selected: the beat, the first word and the last. */
+interface PickedWords {
+  readonly beat: string;
+  readonly from: number;
+  readonly to: number;
 }
 
 interface StudioState {
@@ -129,8 +136,18 @@ interface StudioState {
   readonly panel: Accessor<Option.Option<BoardClip>>;
   /** The beat at the playhead. */
   readonly current: Accessor<Option.Option<ScriptClip>>;
-  /** What the viewer shows at the playhead. */
+  /** What the viewer shows at the playhead: the film's picture, or the try shown over it. */
   readonly picture: Accessor<Picture>;
+  /** The try of the selected panel the viewer shows (`?try=`), none for its kept one. */
+  readonly tried: Accessor<Option.Option<number>>;
+  /** The note the inspector has open (`?note=`). */
+  readonly note: Accessor<Option.Option<string>>;
+  /** The words of the selected beat's line selected (`?words=<a>-<b>`). */
+  readonly picked: Accessor<Option.Option<PickedWords>>;
+  /** The film's Board as `board.json` holds it now, once read. */
+  readonly board: Accessor<Option.Option<BoardFile>>;
+  /** Whether the recorder is over the page (its dialog, a phone's sheet). */
+  readonly recording: Accessor<boolean>;
   /** The zoom, a factor over the fit (1: the whole film in the timeline's width). */
   readonly zoom: Accessor<number>;
   /** The beat's words at the playhead (the film's registered script only); none where none are read. */
@@ -157,6 +174,19 @@ interface StudioActions {
   readonly select: (beat: Option.Option<string>) => void;
   /** Select Board panel `panel`, and its beat. */
   readonly selectPanel: (panel: string) => void;
+  /**
+   * Show try `n` of panel `panel` in the viewer, the panel selected; the
+   * try shown already returns the viewer to the kept one.
+   */
+  readonly showTry: (panel: string, n: number) => void;
+  /** Select words of a beat's line, the beat selected (none: select no words). */
+  readonly pick: (words: Option.Option<PickedWords>) => void;
+  /** Open note `note` in the inspector, its beat selected (none: close it). */
+  readonly openNote: (note: Option.Option<{ readonly id: string; readonly beat: string }>) => void;
+  /** Read the Board again: a write changed it. */
+  readonly boardAgain: () => void;
+  /** Show the recorder over the page, or hide it: hidden, it records on behind the page. */
+  readonly record: (open: boolean) => void;
   /** Read the version shown again: a write changed what it shows. */
   readonly refresh: () => void;
   /** Open version `v` (0: the open one). */
@@ -305,6 +335,8 @@ const Body = (
         }),
       );
       if (!on) inUrl.settled();
+      // The film heard takes over from the voice heard (a take, a reader's Hear).
+      else Effect.runForkWith(props.host)(Media.use((m) => m.hush));
     });
     setT(clock.now());
   };
@@ -379,10 +411,47 @@ const Body = (
     ),
   );
   const current = createMemo(() => Option.flatMap(timeline(), (t) => beatAt(t, T())));
+
+  // The film's Board, read once for the page: the viewer draws a try of it, the inspector keeps one.
+  const boardRead = props.runtime.atom(LabApi.use((api) => api.board));
+  const boardFile = useAtomValue(() => boardRead);
+  const boardAgain = useAtomRefresh(() => boardRead);
+  const board = createMemo(() => AsyncResult.value(boardFile()));
+  const tried = createMemo(() =>
+    Option.flatMap(place(), (v) =>
+      Option.liftPredicate(v.query.try, (n) => n > 0 && Option.isSome(panel())),
+    ),
+  );
+  const note = createMemo(() =>
+    Option.flatMap(place(), (v) => Option.liftPredicate(v.query.note, (id) => id !== '')),
+  );
+  const picked = createMemo(() =>
+    Option.flatMap(place(), (v) =>
+      Option.flatMap(selected(), (beat): Option.Option<PickedWords> =>
+        Option.map(wordsIn(beat.beat, v.query.words), (w) => ({
+          beat: beat.beat,
+          from: w.from,
+          to: w.to,
+        })),
+      ),
+    ),
+  );
+  const shown = createMemo(() =>
+    Option.flatMap(panel(), (clip) =>
+      Option.flatMap(tried(), (n) =>
+        Option.flatMap(board(), (b) =>
+          Option.flatMap(
+            Arr.findFirst(panelsOf(b, clip.beat), (p) => p.id === clip.panel),
+            (p) => Option.map(tryOf(p, n), (t) => ({ clip, n, file: t.file })),
+          ),
+        ),
+      ),
+    ),
+  );
   const picture = createMemo((): Picture =>
     Option.match(timeline(), {
       onNone: () => ({ _tag: 'Empty', beat: Option.none() }),
-      onSome: (t) => pictureAt(t, T(), drawable()),
+      onSome: (t) => withTry(pictureAt(t, T(), drawable()), shown(), T()),
     }),
   );
 
@@ -402,12 +471,15 @@ const Body = (
     );
 
   const [zoom, setZoom] = createSignal(1, { ownedWrite: true });
+  const [recording, setRecording] = createSignal(false, { ownedWrite: true });
 
   const playing = () => transport()._tag === 'Playing';
   // Select `sel`, one entry with the playhead it leaves: moved to `span.at` when it is outside `span`.
+  // A new selection shows its panel's kept try and closes the note open, unless `also` says otherwise.
   const selectAt = (
     sel: string,
     span: Option.Option<{ readonly from: number; readonly to: number; readonly at: number }>,
+    also: { readonly try?: number; readonly note?: string; readonly words?: string } = {},
   ) =>
     Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) => {
       Option.map(span, ({ from, to, at }) => {
@@ -419,10 +491,26 @@ const Body = (
       });
       setPlace({
         ...value,
-        query: { ...value.query, sel },
+        query: {
+          ...value.query,
+          sel,
+          try: also.try ?? 0,
+          note: also.note ?? '',
+          words: also.words ?? '',
+        },
         hash: { t: Option.some(onTheMs(clock.now())) },
       });
     });
+  const beatSpan = (id: string) =>
+    Option.map(
+      Option.flatMap(timeline(), (t) => beatNamed(t, id)),
+      (clip) => ({ from: clip.start, to: clip.start + clip.dur, at: clip.start }),
+    );
+  const panelSpan = (id: string) =>
+    Option.map(
+      Option.flatMap(timeline(), (t) => panelNamed(t, id)),
+      (clip) => ({ from: clip.start, to: clip.start + clip.dur, at: clip.markAt }),
+    );
   const seek = (to: number) => {
     clock.seek(Math.min(Math.max(0, to), duration()));
     setT(clock.now());
@@ -457,24 +545,64 @@ const Body = (
       inUrl.settled();
       if (resume) clock.play();
     },
+    // The playhead stays when it is in the beat; else it goes to the beat's start.
     select: (beat) =>
       selectAt(
         Option.getOrElse(Option.map(beat, beatSelection), () => ''),
-        // The playhead stays when it is in the beat; else it goes to the beat's start.
-        Option.map(
-          Option.flatMap(beat, (id) => Option.flatMap(timeline(), (t) => beatNamed(t, id))),
-          (clip) => ({ from: clip.start, to: clip.start + clip.dur, at: clip.start }),
-        ),
+        Option.flatMap(beat, beatSpan),
       ),
-    selectPanel: (id) =>
-      selectAt(
-        panelSelection(id),
-        // The playhead stays when it is in the panel's hold; else it goes to its mark.
-        Option.map(
-          Option.flatMap(timeline(), (t) => panelNamed(t, id)),
-          (clip) => ({ from: clip.start, to: clip.start + clip.dur, at: clip.markAt }),
+    // The playhead stays when it is in the panel's hold; else it goes to its mark.
+    selectPanel: (id) => selectAt(panelSelection(id), panelSpan(id)),
+    showTry: (id, n) =>
+      selectAt(panelSelection(id), panelSpan(id), {
+        try: Bool.match(
+          Option.exists(panel(), (p) => p.panel === id) && Option.contains(tried(), n),
+          { onTrue: () => 0, onFalse: () => n },
         ),
-      ),
+        note: Option.getOrElse(note(), () => ''),
+      }),
+    pick: (words) =>
+      Option.match(words, {
+        onNone: () =>
+          Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) =>
+            setPlace({ ...value, query: { ...value.query, words: '' } }),
+          ),
+        onSome: (w) =>
+          Bool.match(
+            Option.exists(selected(), (b) => b.beat === w.beat),
+            {
+              onTrue: () =>
+                Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) =>
+                  setPlace({ ...value, query: { ...value.query, words: wordsText(w) } }),
+                ),
+              onFalse: () =>
+                selectAt(beatSelection(w.beat), beatSpan(w.beat), {
+                  note: Option.getOrElse(note(), () => ''),
+                  words: wordsText(w),
+                }),
+            },
+          ),
+      }),
+    openNote: (open) =>
+      Option.match(open, {
+        onNone: () =>
+          Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) =>
+            setPlace({ ...value, query: { ...value.query, note: '' } }),
+          ),
+        onSome: ({ id, beat }) =>
+          Bool.match(
+            Option.exists(selected(), (b) => b.beat === beat),
+            {
+              onTrue: () =>
+                Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) =>
+                  setPlace({ ...value, query: { ...value.query, note: id } }),
+                ),
+              onFalse: () => selectAt(beatSelection(beat), beatSpan(beat), { note: id }),
+            },
+          ),
+      }),
+    boardAgain,
+    record: setRecording,
     refresh: () => sendTimeline(TimelineEvent.Refresh),
     version: (v) =>
       Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) =>
@@ -486,6 +614,37 @@ const Body = (
     zoomTo: (z) => setZoom(Math.max(1, z)),
     retry: () => sendTimeline(TimelineEvent.Retry),
   };
+
+  // An address that opens a note and selects nothing (an old Script link's) selects the note's
+  // panel, else its beat, once the notes and the timeline are read: read only for such an address.
+  Option.map(
+    untrack(() => Option.filter(note(), () => Option.exists(openedSel, (sel) => sel === ''))),
+    (id) => {
+      const notes = useAtomValue(() => props.runtime.atom(NotesApi.use((api) => api.notes)));
+      createEffect(
+        () =>
+          Option.flatMap(
+            Option.filter(timeline(), () => Option.isNone(selected())),
+            () =>
+              Option.flatMap(AsyncResult.value(notes()), (read) =>
+                Option.fromUndefinedOr(read.notes.find((n) => n.id === id)),
+              ),
+          ),
+        (found) => {
+          // The spans read the timeline: the selection is written once, never followed.
+          untrack(() =>
+            Option.map(found, (n) =>
+              Option.match(Option.fromUndefinedOr(n.panel), {
+                onSome: (panel) =>
+                  selectAt(panelSelection(panel.id), panelSpan(panel.id), { note: id }),
+                onNone: () => selectAt(beatSelection(n.scene), beatSpan(n.scene), { note: id }),
+              }),
+            ),
+          );
+        },
+      );
+    },
+  );
 
   // The keys: the editors' transport (Space, K L, ← →, ↑ ↓, Home End; J, the editors' reverse
   // play, is left unbound), ⇧Z, and the way home, ⇧1 to Films, as the shell's (on the film's
@@ -548,19 +707,22 @@ const Body = (
           touch: 'Fit, in the timeline corner',
           act: actions.fit,
         },
-        {
-          id: 'studio.close',
-          label: 'Close the inspector',
-          keys: ['escape'],
-          touch: 'the inspector’s ×',
-          act: () => actions.select(Option.none()),
-        },
       ].map(({ act, ...command }) => ({
         ...command,
         group: 'Studio',
         when: () => true,
         run: quietly(() => act()),
       })),
+      // Escape is the recorder's while it is over the page: it never closes the inspector behind it.
+      {
+        id: 'studio.close',
+        label: 'Close the inspector',
+        group: 'Studio',
+        keys: ['escape'],
+        touch: 'the inspector’s ×',
+        when: () => !recording(),
+        run: quietly(() => actions.select(Option.none())),
+      },
       {
         id: 'play.frame-next',
         label: 'A frame on',
@@ -611,6 +773,11 @@ const Body = (
       panel,
       current,
       picture,
+      tried,
+      note,
+      picked,
+      board,
+      recording,
       zoom,
       words,
     },

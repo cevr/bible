@@ -1,6 +1,6 @@
-// A beat's take as a page plays it: the attempt named, else the one kept,
-// else the staging take the timings name, each with its audio's URL; none
-// when the beat has none of these.
+// A beat's take as a page plays it: the attempt named, else the take the
+// beat's timings name (the attempt they name, kept, else the staging take),
+// each with its audio's URL; none when the beat has none of these.
 
 import { describe, expect, it } from 'bun:test';
 import { Option } from 'effect';
@@ -45,14 +45,19 @@ describe("a beat's take as a page plays it", () => {
     );
   });
 
-  it('plays the attempt kept when none is named, before a staging take', () => {
+  it('plays the attempt the timings name (kept) when none is named, with what was heard', () => {
     const take = takeHeard(
       'rbf',
-      read([attempt('a.flac', true)], { file: 'cold.0cbdb0cac54f.flac', duration: 2 }),
+      read([attempt('b.flac', false), attempt('a.flac', true)]),
       Option.none(),
     );
-    expect(Option.map(take, (t) => t.url)).toEqual(
-      Option.some(attemptUrl('rbf', 'cold', 'a.flac')),
+    expect(take).toEqual(
+      Option.some({
+        url: attemptUrl('rbf', 'cold', 'a.flac'),
+        source: 'recorded',
+        heard: Option.some('heard a.flac'),
+        duration: 3,
+      }),
     );
   });
 

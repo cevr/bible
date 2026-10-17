@@ -128,7 +128,7 @@ const Resolve = Tool.make('resolve', {
 
 const RequestTweak = Tool.make('request_tweak', {
   description:
-    "Ask for a board panel to be made again, as a tweak note on it (what `film board tweak <film> <note>` acts on), its still the try it starts from: `try`, else the one the Board shows (the kept one, else the first). Use it to put the owner's word from chat onto the board. The note sits at its beat's start in the Lab and on its panel on the Board.",
+    "Ask for a board panel to be made again, as a tweak note on it (what `film board tweak <film> <note>` acts on), its still the try it starts from: `try`, else the kept one, else the first. Use it to put the owner's word from chat onto the board. The note sits on its panel in the studio's inspector (its Board section), and its link opens the studio there.",
   parameters: Schema.Struct({
     ...FilmParam.fields,
     panel: Schema.String.annotate({ description: 'The panel (`<beat>.<mark>`).' }),
@@ -240,7 +240,7 @@ export const notesReads = Effect.fn('LabMcp.notesReads')(function* (options: Lab
       return yield* LabRefused.make({
         reason: `panel ${id} is a ${set.value._tag.toLowerCase()} the engine sets: it has no try to tweak`,
       });
-    // The try asked for, else the one the Board shows (kept, else the first).
+    // The try asked for, else the kept one, else the first.
     const shown = yield* Effect.fromOption(
       Option.match(asked, { onSome: (n) => tryOf(panel, n), onNone: () => shownTry(panel) }),
       () => {

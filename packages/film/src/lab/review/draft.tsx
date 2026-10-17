@@ -98,7 +98,13 @@ export const DraftReader = (props: {
       }
     >
       <ScriptReader
-        page={{ host: meta.host, hub: meta.hub, runtime: meta.runtime, playhead: Option.none() }}
+        page={{
+          host: meta.host,
+          hub: meta.hub,
+          runtime: meta.runtime,
+          playhead: Option.none(),
+          noting: Option.none(),
+        }}
         beats={beats}
         selecting={props.selecting}
         cost={props.cost}

@@ -431,9 +431,7 @@ body.lab .stage {
   font-size: var(--fs-3);
 }
 .lab-panel textarea,
-.lab-compose textarea,
-.lab-instead,
-.lab-reply-input {
+.lab-compose textarea {
   width: 100%;
   background: var(--surface-2);
   color: var(--text-1);
@@ -442,22 +440,6 @@ body.lab .stage {
   padding: var(--s-1) var(--s-2);
   font: inherit;
   resize: vertical;
-}
-/* What a note on words asks of them: the kit's segmented control, one pressed. */
-.lab-asks {
-  justify-self: start;
-}
-/* A correction's words to say instead: its label over its field, one line, the pointer's target tall. */
-.lab-instead-field {
-  display: grid;
-  gap: var(--s-1);
-}
-.lab-field-label {
-  color: var(--text-2);
-  font-size: var(--fs-2);
-}
-.lab-instead {
-  min-height: var(--hit);
 }
 /* A field a Save found saying too little: edged in the refused ink, the status line saying why. */
 .lab-compose [aria-invalid='true'] {
@@ -468,6 +450,11 @@ body.lab .stage {
   display: flex;
   gap: var(--s-2);
   align-items: center;
+}
+/* The reply's field (the kit's `.sh-field`) takes the row beside Resolve. */
+.lab-reply-form > .sh-field {
+  flex: 1;
+  min-width: 0;
 }
 .lab-status {
   margin: 0;

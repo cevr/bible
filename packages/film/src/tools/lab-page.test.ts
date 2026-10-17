@@ -293,12 +293,7 @@ describe('lab pages', () => {
         expect((yield* ask('/films/f/lab/hand')).text).toMatch(/src="\/[^"]+\.js"/);
         expect(yield* scriptOf('/films/f/lab/hand')).toContain('the lab');
         // No page at a path no place declares, nor a narration file of a film that has none.
-        for (const pathname of [
-          '/films/f',
-          '/films/f/studio/',
-          '/films/f/narration/full.wav',
-          '/p',
-        ])
+        for (const pathname of ['/films/f/narration/full.wav', '/films/f/narration', '/p', '/p/'])
           expect([pathname, (yield* ask(pathname)).status]).toEqual([pathname, 404]);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
@@ -320,17 +315,30 @@ describe('lab pages', () => {
         '/films/f/scenes': '/films/f/studio',
         '/films/f/scenes/hand': '/films/f/studio?sel=beat%3Ahand',
         '/films/f/project': '/films/f/studio',
-        // The choices, the Script and the Board are the studio's inspector now: a beat's page lands
-        // on the studio with its beat selected, a panel's with its panel; a try, a note and the
-        // Script's scene time are not kept.
+        // The choices, the Script and the Board are the studio's inspector now: a scene render's
+        // card lands on its beat; a beat's page on the studio with its beat selected, a panel's
+        // with its panel and the try shown; the note open is kept.
         '/films/f/choices': '/films/f/studio',
         '/films/f/choices?point=score&variant=piano': '/films/f/studio',
+        '/films/f/choices?point=render%3Ascenes%3Ahand': '/films/f/studio?sel=beat%3Ahand',
         '/films/f/script': '/films/f/studio',
-        '/films/f/script/hand': '/films/f/studio?sel=beat%3Ahand',
-        '/films/f/script/hand?note=n2': '/films/f/studio?sel=beat%3Ahand',
+        '/films/f/script?note=n2': '/films/f/studio?note=n2',
         '/films/f/board': '/films/f/studio',
-        '/films/f/board/hand': '/films/f/studio?sel=beat%3Ahand',
-        '/films/f/board/hand?panel=rise&try=2': '/films/f/studio?sel=panel%3Ahand.rise',
+        // A beat's page held time in the beat on its hash, which the studio would read as film
+        // time: the Location's empty fragment keeps the browser from carrying it across, and the
+        // studio opens at the beat's start (the panel's mark).
+        '/films/f/script/hand': '/films/f/studio?sel=beat%3Ahand#',
+        '/films/f/script/hand?note=n2': '/films/f/studio?sel=beat%3Ahand&note=n2#',
+        '/films/f/board/hand': '/films/f/studio?sel=beat%3Ahand#',
+        '/films/f/board/hand?panel=rise&try=2&note=n1':
+          '/films/f/studio?sel=panel%3Ahand.rise&note=n1&try=2#',
+        // A trailing slash is dropped; a parent path opens its nearest page.
+        '/films/f/studio/': '/films/f/studio',
+        '/films/f/lab/?note=n1': '/films/f/lab?note=n1',
+        '/films/f/board/': '/films/f/studio',
+        '/films/f': '/films/f/studio',
+        '/films': '/',
+        '/series/education': '/',
         // A render link lands on the film's export page, the build it pins kept.
         '/films/f/play?export&build=3': '/films/f/export?build=3',
         '/?film=f&export': '/films/f/export',

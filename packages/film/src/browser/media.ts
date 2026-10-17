@@ -8,13 +8,25 @@
 // effects. `Media` owns what is the host's rule: what a refused play means
 // (`play`: the browser's refusal of sound nobody asked for is `Blocked`, a
 // play a pause cut short is `Aborted`), the fallback to muted play
-// (`playOrMute`), the audio a page makes (`audio(src)`), and the engine a
+// (`playOrMute`), the one voice a page hears at a time (`hear`, `hush`: a
+// take heard, a reader's Hear, each pausing the one heard before, and the
+// film's Play hushing it), the audio a page makes (`audio(src)`), and the engine a
 // compare plays on (`compare`: the WebCodecs panes where the browser and
 // the files allow, `webcodecs-browser.ts`, else `<video>`). The panes'
 // sound context is that live adapter's own (`media-browser.ts`
 // `pageSound`).
 
-import { type Cause, Context, Data, Effect, Layer, Option, type Scope } from 'effect';
+import {
+  type Cause,
+  Context,
+  Data,
+  Effect,
+  Layer,
+  Option,
+  Predicate,
+  Ref,
+  type Scope,
+} from 'effect';
 import type { Engine } from './media-choice.ts';
 
 /** A refused play, as the media said it: its error's name (`NotAllowedError`, `AbortError`, …). */
@@ -182,12 +194,55 @@ interface MediaOps {
   /** Play `media`; if the browser refuses its sound, play it muted. */
   readonly playOrMute: (media: Playable) => Effect.Effect<Played>;
   /**
+   * Hear `media`, the page's one voice: the one heard before it, if it is
+   * another, is paused and its `hushed` run; then `media` plays. A play
+   * refused leaves nothing heard.
+   */
+  readonly hear: (media: Playable, hushed: Effect.Effect<void>) => Effect.Effect<Played>;
+  /** Pause the one heard, if any, and run its `hushed`: the film's Play takes over. */
+  readonly hush: Effect.Effect<void>;
+  /**
    * The engine a compare of the renders at `urls` plays on, chosen by what
    * the browser and the files allow; whatever it opens is the scope's from
    * the moment it is made.
    */
   readonly compare: (urls: ReadonlyArray<string>) => Effect.Effect<Compare, never, Scope.Scope>;
 }
+
+/** The playable heard now, and what its hearer runs once another hushes it. */
+interface Heard {
+  readonly media: Playable;
+  readonly hushed: Effect.Effect<void>;
+}
+
+/** Whether a play came to sound, or to the media playing muted. */
+const plays: (played: Played) => boolean = Predicate.or(
+  Predicate.isTagged('Playing'),
+  Predicate.isTagged('Muted'),
+);
+
+/** `hear` and `hush` over the page's one slot for the playable heard. */
+const hearing = Effect.map(Ref.make(Option.none<Heard>()), (slot) => {
+  /** Pause `heard` and tell its hearer. */
+  const silence = (heard: Heard) => Effect.andThen(heard.media.pause, heard.hushed);
+  const hear = (media: Playable, hushed: Effect.Effect<void>) =>
+    Effect.gen(function* () {
+      const mine: Heard = { media, hushed };
+      const before = yield* Ref.getAndSet(slot, Option.some(mine));
+      yield* Option.match(
+        Option.filter(before, (b) => b.media !== media),
+        { onNone: () => Effect.void, onSome: silence },
+      );
+      const played = yield* play(media);
+      // A refused play is heard by no one: the slot is let go unless a later hear took it.
+      if (!plays(played)) yield* Ref.update(slot, (now) => Option.filter(now, (h) => h !== mine));
+      return played;
+    });
+  const hush = Effect.flatMap(Ref.getAndSet(slot, Option.none()), (before) =>
+    Option.match(before, { onNone: () => Effect.void, onSome: silence }),
+  );
+  return { hear, hush };
+});
 
 /** A host whose compares play on `<video>`: a server render's, a test's, a page with no panes. */
 const NO_PANES = () => Effect.succeed(onVideo('this page has no WebCodecs panes'));
@@ -202,26 +257,30 @@ export class Media extends Context.Service<Media, MediaOps>()('@bible/film/brows
     audio: (src: string) => Playable,
     compare: MediaOps['compare'] = NO_PANES,
   ): Layer.Layer<Media> =>
-    Layer.succeed(
+    Layer.effect(
       Media,
-      Media.of({
-        audio,
-        play,
-        compare,
-        playOrMute: (media) =>
-          Effect.flatMap(play(media), (played) => {
-            if (played._tag !== 'Blocked') return Effect.succeed(played);
-            media.mute(true);
-            return Effect.map(play(media), (again) =>
-              Played.$match(again, {
-                Playing: () => Played.Muted(),
-                Muted: () => again,
-                Blocked: () => again,
-                Aborted: () => again,
-                Failed: () => again,
-              }),
-            );
-          }),
-      }),
+      Effect.map(hearing, ({ hear, hush }) =>
+        Media.of({
+          audio,
+          play,
+          hear,
+          hush,
+          compare,
+          playOrMute: (media) =>
+            Effect.flatMap(play(media), (played) => {
+              if (played._tag !== 'Blocked') return Effect.succeed(played);
+              media.mute(true);
+              return Effect.map(play(media), (again) =>
+                Played.$match(again, {
+                  Playing: () => Played.Muted(),
+                  Muted: () => again,
+                  Blocked: () => again,
+                  Aborted: () => again,
+                  Failed: () => again,
+                }),
+              );
+            }),
+        }),
+      ),
     );
 }

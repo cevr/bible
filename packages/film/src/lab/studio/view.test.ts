@@ -21,6 +21,7 @@ import {
   neighbour,
   reviewWav,
   unsubmitted,
+  discardOf,
   type Keyed,
   statusOf as statusWith,
 } from './view.ts';
@@ -55,6 +56,35 @@ describe('atRest', () => {
     expect(atRest(failed(mismatch))).toBe(false);
     expect(atRest(RecorderState.CountIn({ beat: 'a', n: 2 }))).toBe(false);
     expect(atRest(RecorderState.Review({ beat: 'a', wav }))).toBe(false);
+  });
+});
+
+describe('discardOf', () => {
+  test('asks before a close drops a take only this page has, and names the event that drops it', () => {
+    const question = (state: RecorderState) => Option.map(discardOf(state), (d) => d.question);
+    const event = (state: RecorderState) => Option.map(discardOf(state), (d) => d.event._tag);
+    expect(discardOf(idle)).toEqual(Option.none());
+    expect(question(RecorderState.CountIn({ beat: 'a', n: 2 }))).toEqual(
+      Option.some('Stop and discard this take?'),
+    );
+    expect(event(RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 60 }))).toEqual(
+      Option.some('Cancel'),
+    );
+    expect(question(RecorderState.Review({ beat: 'a', wav }))).toEqual(
+      Option.some('Discard this take?'),
+    );
+    expect(event(RecorderState.Review({ beat: 'a', wav }))).toEqual(Option.some('Discard'));
+    expect(event(failed(mismatch))).toEqual(Option.some('SelectBeat'));
+    expect(
+      discardOf(RecorderState.Failed({ beat: 'a', refusal: mismatch, wav: Option.none() })),
+    ).toEqual(Option.none());
+    // A take opening or landing loses nothing to a close: the recorder goes on behind it.
+    expect(
+      discardOf(RecorderState.Opening({ beat: 'a', device: Option.none(), wav: Option.none() })),
+    ).toEqual(Option.none());
+    expect(
+      discardOf(RecorderState.Importing({ beat: 'a', work: { _tag: 'Upload', wav } })),
+    ).toEqual(Option.none());
   });
 });
 

@@ -289,8 +289,8 @@ describe('the lab as an MCP server', () => {
           ),
         ).toEqual([['note.added', 'f', 'n1', 'owner', 'the judge looks away too soon']]);
         expect(heard.changes[0].links).toEqual({
-          local: `${MCP_BASE}films/f/lab/cold?note=n1`,
-          phone: `${MCP_PHONE}films/f/lab/cold?note=n1`,
+          local: `${MCP_BASE}films/f/studio?sel=beat%3Acold&note=n1`,
+          phone: `${MCP_PHONE}films/f/studio?sel=beat%3Acold&note=n1`,
         });
         const replied = yield* tool('reply', {
           film: 'f',
@@ -336,7 +336,9 @@ describe('the lab as an MCP server', () => {
           text: 'softer eyes',
         });
         expect(tweak.note.panel).toEqual({ id: 'cold.judge', try: 1, ask: 'tweak' });
-        expect(tweak.note.links.local).toBe(`${MCP_BASE}films/f/studio?sel=panel%3Acold.judge`);
+        expect(tweak.note.links.local).toBe(
+          `${MCP_BASE}films/f/studio?sel=panel%3Acold.judge&note=${tweak.note.id}`,
+        );
         expect(
           (yield* tool('request_tweak', { film: 'f', panel: 'cold.x', text: 'x' })).refused,
         ).toContain('no panel cold.x');
@@ -1603,7 +1605,7 @@ describe('film channel', () => {
         expect(yield* heard).toMatchObject({
           method: 'notifications/claude/channel',
           params: {
-            content: `f n1: note on scene cold: the light comes up too fast\n${MCP_BASE}films/f/lab/cold?note=n1\n${MCP_PHONE}films/f/lab/cold?note=n1`,
+            content: `f n1: note on scene cold: the light comes up too fast\n${MCP_BASE}films/f/studio?sel=beat%3Acold&note=n1\n${MCP_PHONE}films/f/studio?sel=beat%3Acold&note=n1`,
             meta: { kind: 'note.added', film: 'f', note: 'n1', by: 'owner', seq: '1' },
           },
         });

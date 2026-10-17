@@ -221,11 +221,11 @@ const List = (props: { readonly film: string; readonly host: Host; readonly hub:
 
 /** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it. */
 const pickOf = (href: string) => {
-  const { selection, note, beat, view, code, words, text } = labPlaceOf(href);
-  return { selection, note, beat, view, code, words, text };
+  const { selection, note, beat, view, code, words, text, cuts } = labPlaceOf(href);
+  return { selection, note, beat, view, code, words, text, cuts };
 };
 
-/** The lab's place: the cue or knob picked, the note, the studio's beat a link cites, the compare's view, the Source view, the words selected, and the Transcript view. */
+/** The lab's place: the cue or knob picked, the note, the studio's beat a link cites, the compare's view, the Source view, the words selected, and the Transcript view with its struck words shown or not. */
 type LabPick = ReturnType<typeof pickOf>;
 
 /** What an entry's link cites (`citedMode`): its note, its beat, and the cue or knob it landed on. */

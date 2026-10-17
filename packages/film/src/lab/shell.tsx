@@ -73,6 +73,8 @@ interface LabState {
   readonly text: Accessor<Option.Option<TextOpen>>;
   /** A talk's words selected: the URL's (`?words=` in the path's scene). */
   readonly words: Accessor<Option.Option<WordsSelection>>;
+  /** Whether the Transcript view shows the words its cut strikes: the URL's (`?cuts=1`). */
+  readonly cuts: Accessor<boolean>;
 }
 
 interface LabActions {
@@ -120,6 +122,8 @@ interface LabActions {
   readonly dismissText: () => void;
   /** Select a talk's words, or none: a new history entry, so Back undoes the pick. */
   readonly selectWords: (words: Option.Option<WordsSelection>) => void;
+  /** Show the words the Transcript view's cut strikes, or hide them: a new history entry, so Back undoes it. */
+  readonly showCuts: (on: boolean) => void;
 }
 
 interface LabMeta {
@@ -313,6 +317,7 @@ const Root = (props: RootProps) => {
       code: () => here().code,
       text: () => Option.filter(here().text, () => Option.isNone(here().code)),
       words: () => here().words,
+      cuts: () => here().cuts,
     },
     actions: {
       pin: (layer) => {
@@ -380,6 +385,9 @@ const Root = (props: RootProps) => {
         ),
       dismissText: () => sheets.text.dismiss(() => Option.some(picked(TEXT_SHUT))),
       selectWords: (words) => address.go(picked({ words })),
+      showCuts: (cuts) => {
+        if (cuts !== untrack(() => here().cuts)) address.go(picked({ cuts }));
+      },
     },
     meta: {
       name,
@@ -408,8 +416,8 @@ const SOURCE_THING = 'source';
 /** The thing the Transcript view's sheet is open for, likewise. */
 const TEXT_THING = 'transcript';
 
-/** The Transcript view shut, and the words it selected with it. */
-const TEXT_SHUT: Partial<LabPick> = { text: Option.none(), words: Option.none() };
+/** The Transcript view shut, and the words it selected and its struck words shown with it. */
+const TEXT_SHUT: Partial<LabPick> = { text: Option.none(), words: Option.none(), cuts: false };
 
 /** What a pick keeps a sheet open for (its cue or knob, its note, the Source view, the Transcript view), as a target names it. */
 const sheetThings = (pick: Partial<Pick<LabPick, SheetPart>>): ReadonlyArray<string> => [

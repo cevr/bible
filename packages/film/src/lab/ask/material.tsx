@@ -292,6 +292,7 @@ export const ScriptPart = (props: { readonly block: BlockOf<'script'> }) => {
                   hub: meta.hub,
                   runtime: meta.runtime,
                   playhead: Option.none(),
+                  noting: Option.none(),
                 }}
                 script={meta.script(s.film)}
                 film={s.film}

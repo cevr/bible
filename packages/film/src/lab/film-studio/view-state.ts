@@ -84,9 +84,9 @@ export const beatStep = (timeline: FilmTimeline, T: number, step: -1 | 1): numbe
 
 /**
  * What the viewer shows at the playhead: a drawn scene, a Board panel's
- * picture, a Board card the engine sets (its text, held from its mark said
- * at `markAt`, and its words as the line says them), or the beat's empty
- * frame.
+ * picture (its kept try, or the try `tried` the inspector shows), a Board
+ * card the engine sets (its text, held from its mark said at `markAt`, and
+ * its words as the line says them), or the beat's empty frame.
  */
 export type Picture =
   | { readonly _tag: 'Scene'; readonly beat: string }
@@ -96,6 +96,7 @@ export type Picture =
       readonly panel: string;
       readonly mark: string;
       readonly file: string;
+      readonly tried: Option.Option<number>;
     }
   | {
       readonly _tag: 'Card';
@@ -204,11 +205,41 @@ export const pictureAt = (timeline: FilmTimeline, T: number, drawable: boolean):
             panel: c.panel,
             mark: c.mark,
             file,
+            tried: Option.none(),
           })),
       ),
   );
   return Option.getOrElse(panel, (): Picture => ({ _tag: 'Empty', beat }));
 };
+
+/** A try the inspector shows of a panel: the panel's clip, the try's number and its picture's file. */
+interface ShownTry {
+  readonly clip: BoardClip;
+  readonly n: number;
+  readonly file: string;
+}
+
+/**
+ * The picture at film second `T` with try `shown` over it: while the
+ * playhead is in its panel's hold, the viewer shows that try, whatever the
+ * newest stage there is, so the owner holds it against the scene; outside
+ * the hold, the film's own picture.
+ */
+export const withTry = (picture: Picture, shown: Option.Option<ShownTry>, T: number): Picture =>
+  Option.match(
+    Option.filter(shown, (s) => holds(s.clip, T)),
+    {
+      onNone: () => picture,
+      onSome: (s): Picture => ({
+        _tag: 'Board',
+        beat: s.clip.beat,
+        panel: s.clip.panel,
+        mark: s.clip.mark,
+        file: s.file,
+        tried: Option.some(s.n),
+      }),
+    },
+  );
 
 /** A Board card at the playhead (`Picture`'s `Card`). */
 export type CardPicture = Extract<Picture, { readonly _tag: 'Card' }>;
@@ -237,7 +268,12 @@ export const verseParts = (
 export const pictureTag = (picture: Picture): string =>
   Match.value(picture).pipe(
     Match.tag('Scene', (p) => `Scene · ${p.beat}`),
-    Match.tag('Board', (p) => `Board · ${p.beat}`),
+    Match.tag('Board', (p) =>
+      Option.match(p.tried, {
+        onNone: () => `Board · ${p.beat}`,
+        onSome: (n) => `Board · ${p.beat} · try ${n}`,
+      }),
+    ),
     Match.tag('Card', (p) => `Board · ${p.beat} · ${p.text._tag.toLowerCase()}`),
     Match.tag('Empty', (p) =>
       Option.match(p.beat, { onNone: () => 'No picture yet', onSome: (b) => `Script · ${b}` }),

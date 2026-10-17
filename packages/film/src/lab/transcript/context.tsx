@@ -2,7 +2,7 @@
 // `talk.ts` and cuts it now (`GET …/talk`, read while the view is open and
 // not before: a lab at rest reads none of it), laid out for the film on the
 // stage (`lit.ts`); the word playing at the frame shown; the words selected
-// (`?words=`); the viewer's "Show cuts"; Follow (the lab's one rule,
+// (`?words=`); "Show cuts" (`?cuts=1`); Follow (the lab's one rule,
 // `lab/follow.ts`, suspended by a hand's scroll); and the view's writes, Cut,
 // Restore and Mark here. A write of `talk.ts` is a write of the film's
 // source, so the editor's one machine sends it (`useEditor().actions.talk`):
@@ -14,7 +14,7 @@
 // the server's refusal in its words, with nothing written. The view and the
 // commands (`commands.ts`) read this context; none holds the talk of its own.
 
-import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { useAtomRefresh, useAtomValue } from '@bible/atom-solid';
 import { Boolean as Bool, Data, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -28,8 +28,6 @@ import {
   useContext,
 } from 'solid-js';
 import { readsFootage } from '../../browser/footage.ts';
-import { keptText } from '../../browser/storage.ts';
-import { ViewerStore } from '../../browser/storage-browser.ts';
 import { Selection, type WordsSelection } from '../../command/selection.ts';
 import type { TalkWords } from '../../core/api.ts';
 import { LabApi, type LabFailure, reasonOf } from '../api.ts';
@@ -56,9 +54,6 @@ export type TalkState = Data.TaggedEnum<{
   Refused: { readonly reason: string };
 }>;
 export const TalkState = Data.taggedEnum<TalkState>();
-
-/** The viewer's "Show cuts", kept in the browser: a convenience, safe to lose (off with nothing kept). */
-const keptCuts = keptText(ViewerStore, 'film-studio.transcript-cuts');
 
 /** What the view reads while it is shut: nothing, so the talk is not read. */
 const unread = Atom.make(AsyncResult.initial<TalkWords, LabFailure>());
@@ -178,10 +173,6 @@ export const Provider = (props: ParentProps) => {
     Option.match(lab.words(), { onNone: (): ReadonlyArray<Row> => [], onSome: rows }),
   );
 
-  const keptShow = useAtomValue(() => keptCuts);
-  const keepShow = useAtomSet(() => keptCuts);
-  const cuts = () => Option.contains(keptShow(), 'on');
-
   const select = (words: WordsSelection) => actions.selectWords(Option.some(words));
   const words = (w: WordsSelection) => ({ section: w.scene, from: w.from, to: w.to });
   onCleanup(
@@ -234,8 +225,8 @@ export const Provider = (props: ParentProps) => {
     following,
     suspend: () => setSuspended(true),
     resume: () => setSuspended(false),
-    cuts,
-    showCuts: (on) => keepShow(Bool.match(on, { onTrue: () => 'on', onFalse: () => 'off' })),
+    cuts: lab.cuts,
+    showCuts: actions.showCuts,
     writing: editor.state.writing,
     tap: (section, row, extend) => {
       // A word the cut plays is shown where it starts; a struck one is only selected.

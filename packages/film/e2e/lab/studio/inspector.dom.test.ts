@@ -2,11 +2,15 @@
 // phone (390 × 844): a beat selected opens its Words, a panel selected its
 // Board, and each section opens in place with its material (the beat's line
 // in the reader, its panels and their tries, its take, its scene's code, its
-// notes and the asks at its time). Its writes are the lab's: a try kept, the
-// beat's Board approved and its approval withdrawn, a reply on a note; its
-// take plays; Record opens over the studio (a Dialog on a laptop, a Sheet
-// on a phone); an ask opens its own page. Every wait is on what the page
-// shows, never on time.
+// notes and the asks at its time). A try pressed shows in the viewer, and a
+// second press shows the kept one again. Its writes are the lab's: a try
+// kept, the beat's Board approved and its approval withdrawn, a panel marked
+// up and saved as a tweak, a note, a correction and a removal on a line's
+// words, a reply on a note; its take plays; Record opens over the studio (a
+// Dialog on a laptop, a Sheet on a phone), and a take under way is never
+// dropped by a Close or Escape without the owner's word; a note's link opens
+// it; an ask opens its own page. Every wait is on what the page shows, never
+// on time.
 
 import { Boolean as Bool, Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -16,6 +20,7 @@ import {
   DESK,
   type FakeRoute,
   type Json,
+  PANEL_PNG,
   PHONE,
   TONE,
   type Viewport,
@@ -155,17 +160,67 @@ const INSPECTED: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/studio\/takes\/one\/attempts$/, () => json(KEPT_TAKE)),
   route('GET', /^\/studio\/takes\/one\/attempts\/one\.kept\.flac$/, () => TONE),
   route('GET', /^\/scenes\/one\/code$/, () => json(SCENE_ONE)),
+  route('GET', /^\/board\/files\/[\w.]+\.png$/, () => PANEL_PNG),
 ];
 
-/** The studio at `href` on `viewport`, its timeline drawn, over `routes` before the inspector's. */
-const studioAt = (viewport: Viewport, href: string, routes: ReadonlyArray<FakeRoute> = []) =>
-  openPlayer({ href, viewport }, READY, [...routes, ...INSPECTED]);
+/**
+ * The studio at `href` on `viewport`, its timeline drawn, over `routes`
+ * before the inspector's; the fake microphone allowed when `microphone`.
+ */
+const studioAt = (
+  viewport: Viewport,
+  href: string,
+  routes: ReadonlyArray<FakeRoute> = [],
+  microphone = false,
+) => openPlayer({ href, viewport, microphone }, READY, [...routes, ...INSPECTED]);
+
+type Page = Effect.Success<ReturnType<typeof studioAt>>['page'];
+
+/**
+ * The notes routes over a list the case's posts grow: a post answers the
+ * note it makes (`id`, its draft's fields as sent), listed from then on.
+ */
+const notesKept = (ids: ReadonlyArray<string>) => {
+  let made: ReadonlyArray<Json> = [];
+  let next = 0;
+  return [
+    route('GET', /^\/notes$/, () => json({ film: PROBE, seq: made.length, notes: made })),
+    route('POST', /^\/notes$/, (asked) => {
+      const sent = Option.getOrElse(asked.body, (): Json => ({})) as { readonly [k: string]: Json };
+      const { still: _still, ...draft } = sent;
+      const id = ids[next] ?? `n-${next}`;
+      next += 1;
+      const note: Json = { ...(noteOf(id, 'one', 0, '', []) as object), ...draft, id };
+      made = [...made, note];
+      return json(note);
+    }),
+  ];
+};
+
+/** A stroke across the box `selector` draws, a mouse's on a laptop and a finger's on a phone. */
+const strokeOver = (page: Page, viewport: Viewport, selector: string) =>
+  Effect.gen(function* () {
+    const box = yield* page.box(selector);
+    const from = { x: box.x + box.width * 0.2, y: box.y + box.height * 0.3 };
+    const to = { x: box.x + box.width * 0.6, y: box.y + box.height * 0.5 };
+    if (viewport === PHONE) {
+      yield* page.finger.drag(from, to, 8);
+      return;
+    }
+    yield* page.mouse.move(from.x, from.y);
+    yield* page.mouse.down;
+    yield* page.mouse.move(to.x, to.y, 8);
+    yield* page.mouse.up;
+  });
+
+/** The status line of the recorder over the page. */
+const RECORD_STATUS = `(document.querySelector('[data-role="record"] [data-role="status"]')?.textContent ?? '')`;
 
 /** The section `name` of the pane. */
 const section = (name: string) => `.st-pane .st-sec[data-section="${name}"]`;
 
 /** Open section `name` by its row, as a press does, and wait until it stands open. */
-const openSection = (page: Effect.Success<ReturnType<typeof studioAt>>['page'], name: string) =>
+const openSection = (page: Page, name: string) =>
   Effect.gen(function* () {
     yield* page.click(`${section(name)} > summary`);
     yield* waitFor(page, `${section(name)}[open] .st-sec-body`);
@@ -208,7 +263,7 @@ for (const size of SIZES)
     );
 
     it.live(
-      'opens a panel on its Board; a try pressed shows large, and Keep keeps it through the lab',
+      'opens a panel on its Board; a try pressed shows in the viewer, a second press the kept one, and Keep keeps it through the lab',
       () =>
         Effect.gen(function* () {
           let fall = Option.none<number>();
@@ -225,6 +280,20 @@ for (const size of SIZES)
           );
           const panel = `${section('Board')}[open] .st-panel[data-panel="one.fall"]`;
           yield* attributeIs(page, panel, 'data-selected', 'true');
+          yield* page.click(`${panel} .st-try-btn[data-try="2"]`);
+          yield* waitFor(page, `${panel} .st-try-shown[data-try="2"] [data-act="keep"]`);
+          // The try is the viewer's picture, named on its tag, and the link's.
+          yield* evaluates(
+            page,
+            `document.querySelector('.st-viewer img.st-pic')?.getAttribute('src')?.endsWith('one.fall.2.png') ?? false`,
+            true,
+          );
+          yield* textHas(page, '.st-viewer .st-tag', 'one · try 2');
+          yield* evaluates(page, `new URLSearchParams(location.search).get('try')`, '2');
+          // A second press shows the panel as the film holds it again.
+          yield* page.click(`${panel} .st-try-btn[data-try="2"]`);
+          yield* countIs(page, `${panel} .st-try-shown`, 0);
+          yield* evaluates(page, `new URLSearchParams(location.search).has('try')`, false);
           yield* page.click(`${panel} .st-try-btn[data-try="2"]`);
           yield* waitFor(page, `${panel} .st-try-shown[data-try="2"] [data-act="keep"]`);
           yield* page.click(`${panel} .st-try-shown [data-act="keep"]`);
@@ -314,6 +383,208 @@ for (const size of SIZES)
     );
 
     it.live(
+      'a take under way is never dropped by Close or Escape unasked: Keep goes on, Discard drops it',
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* studioAt(
+            size.viewport,
+            pageHref.studio(PROBE, { sel: 'beat:one' }),
+            [
+              route('GET', /^\/studio\/beats$/, () =>
+                json({ film: PROBE, beats: [beat('one', 'staging', 'The ball climbs.')] }),
+              ),
+            ],
+            true,
+          );
+          yield* openSection(page, 'Voice');
+          yield* page.click(`${section('Voice')} [data-act="record"]`);
+          const record = '[data-role="record"]';
+          yield* waitFor(page, `${record} [data-act="arm"]`);
+          // The count-in held on its first number: the take is under way, and no second passes.
+          yield* page.clock.hold;
+          yield* page.click(`${record} [data-act="arm"]`);
+          yield* until(page, `/^recording in /.test(${RECORD_STATUS})`);
+          const ask = `${record} [data-role="discard-ask"]`;
+          yield* page.click(`${record} [data-act="close-record"]`);
+          yield* textHas(page, ask, 'Stop and discard this take?');
+          // Keep: the recorder stays over the page, counting in.
+          yield* page.click(`${ask} [data-act="keep-take"]`);
+          yield* countIs(page, ask, 0);
+          yield* countIs(page, record, 1);
+          yield* until(page, `/^recording in /.test(${RECORD_STATUS})`);
+          // Escape asks the same.
+          yield* page.press('Escape');
+          yield* textHas(page, ask, 'Stop and discard this take?');
+          yield* countIs(page, record, 1);
+          // Discard: the take is dropped and the recorder shuts (the clock let go, its close
+          // plays out); opened again, it is at rest.
+          yield* page.click(`${ask} [data-act="discard-take"]`);
+          yield* page.clock.release;
+          yield* countIs(page, record, 0);
+          yield* page.click(`${section('Voice')} [data-act="record"]`);
+          yield* waitFor(page, `${record} [data-act="arm"]`);
+          // At rest, Close shuts it at once.
+          yield* page.click(`${record} [data-act="close-record"]`);
+          yield* countIs(page, record, 0);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    // Serial: a phone's stroke is touches, which another tab's at the same time would drop.
+    it.live.serial(
+      'marks up a panel: a stroke and words saved as a tweak, filed on the panel and opened in Notes and asks',
+      () =>
+        Effect.gen(function* () {
+          const { page, asked, errors } = yield* studioAt(
+            size.viewport,
+            pageHref.studio(PROBE, { sel: 'panel:one.fall' }),
+            [
+              route('GET', /^\/board$/, () => json(boardWith(Option.some(1), false))),
+              ...notesKept(['n9']),
+            ],
+          );
+          const panel = `${section('Board')}[open] .st-panel[data-panel="one.fall"]`;
+          yield* page.click(`${panel} [data-act="markup"]`);
+          const markup = `${panel} .st-markup[data-try="1"]`;
+          yield* waitFor(page, `${markup} .st-markup-over`);
+          yield* page.click(`${markup} [aria-label="Pen"]`);
+          yield* strokeOver(page, size.viewport, `${markup} .st-markup-over`);
+          yield* countIs(page, `${markup} .lab-sketch-items > *`, 1);
+          yield* page.fill(`${markup} .st-markup-text`, 'her hand lower');
+          yield* attributeIs(page, `${markup} [data-asking="tweak"]`, 'aria-pressed', 'true');
+          yield* page.click(`${markup} [data-act="save-markup"]`);
+          yield* textHas(page, `${markup} [data-role="markup-said"]`, 'Saved n9');
+          const sent = posted(asked, '/notes').map((b) =>
+            Option.getOrUndefined(b),
+          ) as ReadonlyArray<{
+            readonly panel?: Json;
+            readonly sketch?: ReadonlyArray<Json>;
+            readonly text?: string;
+            readonly still?: string;
+          }>;
+          expect(sent.map((b) => [b.panel, b.sketch?.length, b.text])).toEqual([
+            [{ id: 'one.fall', try: 1, ask: 'tweak' }, 1, 'her hand lower'],
+          ]);
+          // Its still is the try with the marks over it, a PNG.
+          expect(sent[0]?.still?.startsWith('iVBORw0KGgo')).toBe(true);
+          // Filed: the panel lists it as a tweak, and a press opens it in Notes and asks.
+          const listed = `${panel} .st-panel-note[data-note="n9"]`;
+          yield* textHas(page, `${listed} .sh-badge`, 'n9 · tweak');
+          yield* page.click(listed);
+          yield* waitFor(page, `${section('Notes and asks')}[open] .st-note[data-note="n9"][open]`);
+          yield* evaluates(page, `new URLSearchParams(location.search).get('note')`, 'n9');
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    it.live(
+      "notes a line's words: Note says something, Correct says the words instead, Remove cuts them",
+      () =>
+        Effect.gen(function* () {
+          const { page, asked, errors } = yield* studioAt(
+            size.viewport,
+            pageHref.studio(PROBE, { sel: 'beat:one' }),
+            [
+              // The script with the first beat's line, which the reader lays out a word at a time.
+              route('GET', /^\/script$/, () =>
+                json({
+                  film: PROBE,
+                  beats: [
+                    {
+                      id: 'one',
+                      say: 'The ball {rise}rises slowly, and then it {fall}falls down again.',
+                      cite: [],
+                    },
+                  ],
+                }),
+              ),
+              ...notesKept(['n10', 'n11', 'n12']),
+            ],
+          );
+          const words = `${section('Words')}[open]`;
+          yield* page.click(
+            `${words} .lab-script-beat[data-beat="one"] .lab-script-w[data-index="2"]`,
+          );
+          const note = `${words} [data-role="words-note"]`;
+          yield* waitFor(page, note);
+          // The words selected are the link's.
+          yield* evaluates(page, `new URLSearchParams(location.search).get('words')`, '2-2');
+          // A note that says nothing is not saved, and says why.
+          yield* page.click(`${note} [data-act="save-words-note"]`);
+          yield* textIs(page, `${note} [data-role="words-note-said"]`, 'Write the note first.');
+          yield* page.fill(`${note} .st-words-text`, 'too quick');
+          yield* page.click(`${note} [data-act="save-words-note"]`);
+          yield* textIs(
+            page,
+            `${note} [data-role="words-note-said"]`,
+            'Saved n10: it waits in Notes and asks.',
+          );
+          yield* page.click(`${note} [data-ask="correction"]`);
+          yield* page.fill(`${note} [data-role="say-instead"]`, 'climbs');
+          yield* page.click(`${note} [data-act="save-words-note"]`);
+          yield* textIs(
+            page,
+            `${note} [data-role="words-note-said"]`,
+            'Saved n11: an agent says the words you wrote instead.',
+          );
+          yield* page.click(`${note} [data-ask="removal"]`);
+          yield* page.click(`${note} [data-act="save-words-note"]`);
+          yield* textIs(
+            page,
+            `${note} [data-role="words-note-said"]`,
+            'Saved n12: an agent cuts the words.',
+          );
+          const sent = posted(asked, '/notes').map((b) =>
+            Option.getOrUndefined(b),
+          ) as ReadonlyArray<{
+            readonly words?: Json;
+            readonly kind?: string;
+            readonly replace?: string;
+            readonly text?: string;
+          }>;
+          const rises = { beat: 'one', from: 2, to: 2, text: 'rises' };
+          expect(
+            sent.map((b) => [b.words, b.kind, Option.fromUndefinedOr(b.replace), b.text]),
+          ).toEqual([
+            [rises, 'note', Option.none(), 'too quick'],
+            [rises, 'correction', Option.some('climbs'), 'say “climbs” for “rises”'],
+            [rises, 'removal', Option.none(), 'remove “rises”'],
+          ]);
+          // Each lists in Notes and asks.
+          yield* openSection(page, 'Notes and asks');
+          yield* countIs(page, `${section('Notes and asks')} .st-note`, 3);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    it.live(
+      "a note's link selects its beat and opens it in Notes and asks",
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* studioAt(
+            size.viewport,
+            pageHref.studio(PROBE, { note: 'n4' }),
+            [
+              route('GET', /^\/notes$/, () =>
+                json({
+                  film: PROBE,
+                  seq: 1,
+                  notes: [noteOf('n4', 'two', 5.2, 'the ball sits too still', [])],
+                }),
+              ),
+            ],
+          );
+          yield* waitFor(page, '.st-pane[data-beat="two"]');
+          yield* waitFor(page, `${section('Notes and asks')}[open] .st-note[data-note="n4"][open]`);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    it.live(
       "replies to a note on the beat, and opens an ask at its time on the ask's own page",
       () =>
         Effect.gen(function* () {
@@ -353,7 +624,7 @@ for (const size of SIZES)
     );
 
     it.live(
-      "shows a version kept in its own folder read only: no words or code to read, its Board's tries not kept",
+      "shows a version kept in its own folder read only: its words and code not read, its Board's tries not kept",
       () =>
         Effect.gen(function* () {
           const { page, errors } = yield* studioAt(
@@ -361,15 +632,22 @@ for (const size of SIZES)
             pageHref.studio(PROBE, { v: 1, sel: 'beat:one' }),
           );
           yield* waitFor(page, '.st-pane[data-beat="one"]');
-          yield* countIs(page, '.st-pane .st-row[data-section="Words"][data-empty="true"]', 1);
+          yield* textIs(
+            page,
+            '.st-pane .st-row[data-section="Words"][data-empty="true"] .st-n',
+            'not read for past versions',
+          );
           yield* countIs(page, '.st-pane .st-row[data-section="Code"][data-empty="true"]', 1);
           yield* openSection(page, 'Board');
           yield* textHas(page, `${section('Board')} .st-line`, 'read only');
-          // A try pressed shows large, with no Keep: the film's own Board is not this version's.
+          // A try pressed shows in the viewer, with no Keep and no markup: the film's own Board is
+          // not this version's.
           const fall = `${section('Board')} .st-panel[data-panel="one.fall"]`;
           yield* page.click(`${fall} .st-try-btn[data-try="2"]`);
-          yield* waitFor(page, `${fall} .st-try-shown[data-try="2"] img`);
+          yield* waitFor(page, `${fall} .st-try-shown[data-try="2"]`);
+          yield* textHas(page, '.st-viewer .st-tag', 'one · try 2');
           yield* countIs(page, `${section('Board')} [data-act="keep"]`, 0);
+          yield* countIs(page, `${section('Board')} [data-act="markup"]`, 0);
           yield* evaluates(
             page,
             `document.querySelector('.st-pane-head [data-act="approve"]')?.disabled ?? true`,

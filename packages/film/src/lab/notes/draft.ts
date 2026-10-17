@@ -210,13 +210,6 @@ const scopedAt = (placed: ReadonlyArray<Placed>, scope: Scope, T: number): Optio
     };
   });
 
-/** The words of a beat's line in scope of a note at `T`: none in another scene, or past the film. */
-export const wordsAt = (
-  placed: ReadonlyArray<Placed>,
-  scope: Scope,
-  T: number,
-): Option.Option<NoteWords> => Option.flatMap(scopedAt(placed, scope, T), (s) => s.words);
-
 /**
  * The scope chip a note at `T` shows (`scene · cue · 00:00:03:06–00:00:04:00`, timecode at `fps`), in the
  * place the lab's link to it names (its scene, its cue, its scene-local

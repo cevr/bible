@@ -18,8 +18,10 @@ import {
   Match,
   Option,
   Predicate,
+  Result,
   Schema,
 } from 'effect';
+import { Base64 } from 'effect/encoding';
 import {
   type CompareView,
   LabHttpApi,
@@ -116,6 +118,7 @@ type Answer =
   | { readonly _tag: 'Text'; readonly status: number; readonly text: string }
   | { readonly _tag: 'File'; readonly path: string }
   | { readonly _tag: 'Wav'; readonly bytes: Uint8Array }
+  | { readonly _tag: 'Png'; readonly bytes: Uint8Array }
   | { readonly _tag: 'Hold' }
   | { readonly _tag: 'Later'; readonly gate: Deferred.Deferred<void>; readonly then: Answer }
   | { readonly _tag: 'Made'; readonly made: Effect.Effect<Answer> };
@@ -165,6 +168,15 @@ export const told = (tell: Effect.Effect<unknown>, then: Answer): Answer =>
  * (its videos, its mixes), its time moving on the media's own clock.
  */
 export const TONE: Answer = { _tag: 'Wav', bytes: tone(10, 0.1) };
+/** A 16 × 9 paper-coloured PNG: the picture a fake Board try answers with. */
+export const PANEL_PNG: Answer = {
+  _tag: 'Png',
+  bytes: Result.getOrThrow(
+    Base64.decode(
+      'iVBORw0KGgoAAAANSUhEUgAAABAAAAAJCAIAAAC0SDtlAAAAFElEQVR4nGN49+wGSYhhVMOg0AAAht6A0Nd4W2UAAAAASUVORK5CYII=',
+    ),
+  ),
+};
 
 /**
  * A fake lab route: the method, the path under `/api/films/probe` it
@@ -494,6 +506,7 @@ const answer = (found: Answer): Effect.Effect<Option.Option<Response>> => {
   if (found._tag === 'Made') return Effect.flatMap(found.made, answer);
   if (found._tag === 'File') return Effect.asSome(fileAnswer(found.path));
   if (found._tag === 'Wav') return Effect.succeedSome(respond(found.bytes, 'audio/wav'));
+  if (found._tag === 'Png') return Effect.succeedSome(respond(found.bytes, 'image/png'));
   if (found._tag === 'Text')
     return Effect.succeedSome(respond(found.text, 'text/plain', found.status));
   if (found._tag === 'Refused')
@@ -757,12 +770,15 @@ interface PlayerAt {
   /** The link opened (`pageHref.studio`, `core/api.ts`). */
   readonly href: string;
   readonly viewport: Viewport;
+  /** Whether the page is allowed the fake microphone (`browsers.ts`); none: refused. */
+  readonly microphone?: boolean;
 }
 
 /**
  * Open the player (`fixtures/player-page.ts`, the real `mountFilmStudio` over
  * the probe film) at `href`, served on every player place as the lab serves it,
- * in a window `viewport` wide, with `routes` answering its API requests
+ * in a window `viewport` wide, the fake microphone allowed when `microphone`
+ * says so, with `routes` answering its API requests
  * (then the defaults), and wait until `ready` is on the page. Its
  * clock is the test's, and the tab goes back to the pool with the scope.
  */
@@ -774,7 +790,7 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (
   const asked: Array<Asked> = [];
   const page = yield* openTab({
     ...at.viewport,
-    microphone: false,
+    microphone: at.microphone ?? false,
     init: [CLOCK_SCRIPT],
     assets: [playerScript],
     serve: fakeServer(

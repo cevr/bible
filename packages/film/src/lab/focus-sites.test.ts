@@ -4,8 +4,9 @@
 // below its command walk, each by the keyboard and by the pointer. A source
 // scan fails on a place not named here, so a new focus move is never missed
 // by the e2e's property over the ring; it reads the sources only, so the gate
-// runs it. A place is a call (`.focus(`, or the lab's `focusFor`), or a kit popup's `initialFocus` or `finalFocus`, which the
-// kit focuses when the popup opens or closes. A popup's `() => false` moves
+// runs it. A place is a call (`.focus(`, or the lab's `focusFor`), or a kit
+// popup's `initialFocus` or `finalFocus`, which the kit focuses when the
+// popup opens or closes. A popup's `() => false` moves
 // nothing (the kit leaves the focus where it is) and is no site. A popup with
 // neither prop takes the kit's default, which focuses it on open; the scan
 // cannot see that default, so those popups are the e2e walk's alone.
@@ -30,17 +31,17 @@ const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: 
   [
     'notes/section.tsx',
     'focusFor(el',
-    'a correction opened on words, on the words to say instead, a text field (no page lends the composer words since the Script went: unreached)',
-  ],
-  [
-    'notes/section.tsx',
-    'focusFor(field',
-    'a Save that found the words to say instead wanting, pressed and clicked below, a text field',
+    'a Save that found the note saying nothing, pressed and clicked below, a text field',
   ],
   [
     'review/production.tsx',
     'focusFor(field',
     "a Production's Move forward, its form opened: its first field",
+  ],
+  [
+    'sketch/surface.tsx',
+    'focusFor(el',
+    "a Board panel's markup, its text tool: a text placed on the try, its field",
   ],
   ['studio/section.tsx', 'focusFor(r', 'a studio control the keyboard pressed away'],
   [

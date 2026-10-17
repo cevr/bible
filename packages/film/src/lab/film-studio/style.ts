@@ -270,7 +270,7 @@ export const INSPECTOR_CSS = `
 .st-sec[data-section="Words"] .st-sec-body { padding: 0 0 var(--s-3); gap: var(--s-2); --gutter: var(--s-4); }
 .st-sec[data-section="Words"] .st-more { align-self: flex-start; margin: 0 var(--s-4); }
 /* Board: each panel at its mark, its tries a strip of 64px thumbs, the kept one ringed in the Board's ink. */
-.st-panel { display: flex; flex-direction: column; gap: var(--s-2); }
+.st-panel { display: flex; flex-direction: column; gap: var(--s-2); scroll-margin-top: calc(var(--hit) + 2 * var(--s-3)); }
 .st-panel + .st-panel { padding-top: var(--s-3); border-top: var(--border); }
 .st-app .st-panel-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--s-8); text-align: start; border-radius: var(--r-1); font-size: var(--fs-2); line-height: var(--lh-2); }
 .st-panel-head[aria-pressed="true"] .st-panel-mark { color: var(--k-board); }
@@ -284,8 +284,47 @@ export const INSPECTOR_CSS = `
 .st-try-btn[data-kept="true"] .st-try, .st-panel > .st-try[data-kept="true"] { box-shadow: 0 0 0 2px var(--k-board); }
 .st-try-btn[aria-pressed="true"] .st-try { outline: 2px solid var(--text-1); outline-offset: 2px; }
 .st-why { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-.st-try-shown { display: flex; flex-direction: column; gap: var(--s-2); align-items: flex-start; }
-.st-try-shown img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); }
+.st-try-shown { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; }
+.st-try-said { font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
+/* A panel's notes still open, each a press that opens it in Notes and asks. */
+.st-panel-notes { display: flex; flex-direction: column; gap: var(--s-1); margin: 0; padding: 0; list-style: none; }
+.st-app .st-panel-note { display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: var(--s-8); text-align: start; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
+.st-app .st-panel-note:hover { color: var(--text-1); }
+.st-panel-note-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Mark up: the try shown with the sketch surface over it, the tools under it, the words, Tweak or Note, Save. */
+.st-markup-open { align-self: flex-start; }
+.st-markup { display: flex; flex-direction: column; gap: var(--s-2); }
+.st-markup-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-1); overflow: hidden; background: var(--surface-2); }
+.st-markup-pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.st-markup-over { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.st-markup-text { min-height: calc(3 * var(--hit)); padding: var(--s-1) var(--s-2); resize: vertical; line-height: var(--lh-2); }
+.st-markup-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.st-markup-said { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
+.st-words-note { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
+.st-words-instead { display: flex; flex-direction: column; gap: var(--s-1); font-size: var(--fs-2); color: var(--text-2); }
+.st-words-text { min-height: calc(2 * var(--hit)); padding: var(--s-1) var(--s-2); resize: vertical; line-height: var(--lh-2); }
+.st-words-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.st-words-said { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
+/* The sketch's toolbar: its groups in a row that wraps; each press the size of a finger. */
+.lab-sketch-bar { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.lab-sketch-group { display: flex; gap: var(--s-1); }
+.lab-sketch-group > .sh-btn { min-height: var(--hit); min-width: var(--hit); }
+.lab-sketch-tool, .lab-sketch-ink { display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.lab-sketch-glyph { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.lab-sketch-swatch { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--text-2); }
+/* The surface over the try: its catch takes every pointer, a finger draws and never scrolls or zooms. */
+.lab-overlay .lab-sketch-catch { fill: transparent; stroke: none; pointer-events: all; touch-action: none; cursor: crosshair; }
+.lab-sketch[data-tool='select'] .lab-sketch-catch { cursor: default; }
+.lab-sketch[data-tool='text'] .lab-sketch-catch { cursor: text; }
+.lab-overlay .lab-sketch-items { pointer-events: none; filter: drop-shadow(0 0 1px var(--on-picture-shade)); }
+.lab-overlay .lab-sketch-item { stroke-linecap: round; stroke-linejoin: round; vector-effect: none; }
+.lab-overlay .lab-sketch-item[data-selected='true'], .lab-overlay .lab-sketch-text[data-selected='true'] { filter: drop-shadow(0 0 3px var(--accent)); }
+.lab-overlay .lab-sketch-item[data-marked='true'], .lab-overlay .lab-sketch-text[data-marked='true'] { opacity: 0.35; }
+/* Set from its top (the font's ascent at the shape's y), as canvas/sketch.ts paints it and core/sketch.ts boxes it. */
+.lab-overlay .lab-sketch-text { font-family: var(--font); font-weight: var(--w-2); stroke: none; dominant-baseline: text-before-edge; }
+.lab-overlay .lab-sketch-brush { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+.lab-sketch-typing { margin: 0; }
+.lab-sketch-input { width: 100%; padding: 0 var(--s-1); border: 1px dashed var(--accent); background: transparent; font-family: var(--font); font-size: var(--sketch-size); color: var(--sketch-ink); font-weight: var(--w-2); }
 /* Voice: the take's facts, Hear and Record. */
 .st-facts { display: grid; grid-template-columns: auto 1fr; gap: var(--s-1) var(--s-3); margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); }
 .st-facts dt { color: var(--text-3); }
@@ -313,11 +352,18 @@ export const INSPECTOR_CSS = `
 .st-record { position: fixed; z-index: 41; top: 50%; left: 50%; translate: -50% -50%; width: min(560px, calc(100vw - 2 * var(--st-gutter))); max-height: calc(100dvh - 2 * var(--st-gutter)); overflow-y: auto; border-radius: var(--r-panel); border: var(--border); background: var(--surface-1); box-shadow: var(--shadow-pop); color: var(--text-1); }
 .st-record-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4); background: var(--surface-1); border-bottom: var(--border); }
 .st-record-title { flex: 1; margin: 0; font-size: var(--fs-3); line-height: var(--lh-3); font-weight: var(--w-3); }
+/* The question a close asks before it drops a take only this page has: Discard, or Keep. */
+.st-discard { display: flex; flex-direction: column; gap: var(--s-2); margin: var(--s-3) var(--s-4) 0; padding: var(--s-3); border: 1px solid var(--state-warning); border-radius: var(--r-1); background: var(--surface-2); }
+.st-discard-q { margin: 0; font-size: var(--fs-3); line-height: var(--lh-3); font-weight: var(--w-3); color: var(--text-1); }
+.st-discard-why { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
+.st-discard-acts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.st-discard-acts > .sh-btn { min-height: var(--hit); }
 .st-record-sheet-backdrop { background: var(--backdrop); pointer-events: auto; }
 .st-record-portal { position: fixed; inset: 0; z-index: 41; pointer-events: none; }
 .st-record-panel { position: relative; align-self: flex-start; width: var(--visual-viewport-width, 100%); height: auto; }
 .st-record.st-record-sheet { position: static; top: auto; left: auto; translate: none; width: 100%; max-height: 85dvh; border-radius: var(--r-panel) var(--r-panel) 0 0; border-width: 1px 0 0; pointer-events: auto; padding-bottom: env(safe-area-inset-bottom); }
 @media ${PHONE} {
-  .st-app .st-panel-head, .st-note > summary, .st-ask { min-height: var(--hit); }
+  .st-app .st-panel-head, .st-app .st-panel-note, .st-note > summary, .st-ask { min-height: var(--hit); }
+  .st-markup-text, .st-words-text, .lab-sketch-input { font-size: var(--fs-5); line-height: var(--lh-5); }
 }
 `;

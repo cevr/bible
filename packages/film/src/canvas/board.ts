@@ -1,10 +1,10 @@
-// What the Board's picture paints for a shot of the animatic, on a canvas the
-// film's size: a picture panel's try (the image, covering the frame as the
-// film's 16:9 picture crops it), a card or a verse panel set by the engine's
-// own card code (`fullCard`, `verse`, in the film's card style: the words
-// exactly as spoken, CRAFT rule 1; never lettering an image route drew),
-// and a beat with no panel as a quiet storyboard card naming it. The
-// sketch's still (`stillOf`) is painted the same way, the sketch over it.
+// What a Board panel paints on a canvas the film's size: a picture panel's
+// try (`paintImage`: the image, covering the frame as the film's 16:9
+// picture crops it), and a card or a verse panel set by the engine's own
+// card code (`fullCard`, `verse`, in the film's card style: the words
+// exactly as spoken, CRAFT rule 1; never lettering an image route drew).
+// The studio's viewer sets its cards with it, and a panel note's still
+// (`film-studio/panel-still.ts`) paints its try with it, the marks over it.
 
 import { Boolean as Bool, Option, Predicate, Result } from 'effect';
 import { type CardWord, cardWords, fullCard, verse } from './card.ts';
@@ -18,6 +18,19 @@ const STILL_HAND = (key: string | number): Hand => ({
   boil: 0,
   seed: Predicate.isNumber(key) ? key : [...key].reduce((n, c) => n * 31 + c.charCodeAt(0), 7),
 });
+
+/** `image` over the whole `w` × `h` frame, cropped to it from its middle (the film's own crop of a 3:2 panel). */
+export const paintImage = (
+  ctx: CanvasRenderingContext2D,
+  image: CanvasImageSource & { readonly width: number; readonly height: number },
+  w: number,
+  h: number,
+) => {
+  const scale = Math.max(w / image.width, h / image.height);
+  const sw = w / scale;
+  const sh = h / scale;
+  ctx.drawImage(image, (image.width - sw) / 2, (image.height - sh) / 2, sw, sh, 0, 0, w, h);
+};
 
 /** How long a verse panel's highlight takes to sweep its phrase, from its mark. */
 const SWEEP_S = 1.2;

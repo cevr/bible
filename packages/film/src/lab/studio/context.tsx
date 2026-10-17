@@ -6,8 +6,11 @@
 // the meter, and the recording under review as a URL to play. The page it is
 // on (`RecordPage`: the Lab's panel, the film studio's Record dialog) gives
 // its client, its keys, its film, the beat its address names, how a beat
-// picked is written there and where the recorder's parts stand. The section's components read this context and
-// act through it; none reads the recorder's states. An import that settles
+// picked is written there and where the recorder's parts stand. The
+// section's components read this context and act through it; the page
+// around them reads the take it holds (`useHeld`: what a close asks before
+// it drops a take, and the drop), none while the recorder waits on its
+// beats. None reads the recorder's states. An import that settles
 // (a take kept, or refused with an attempt saved) reads the beats and the
 // attempts again.
 
@@ -53,6 +56,7 @@ import {
   beatCounts,
   controlFor,
   controlsOf,
+  discardOf,
   eventOf,
   meterOf,
   micOptions,
@@ -173,6 +177,17 @@ interface StudioActions {
   readonly focused: (inside: boolean) => void;
 }
 
+/**
+ * The recorder's take as the page around it sees it (`useHeld`): the beat it
+ * records, what a close asks before it drops a take only this page has
+ * (`discardOf`; none while it holds none), and the drop.
+ */
+interface RecordHeld {
+  readonly beat: Accessor<string>;
+  readonly discardable: Accessor<Option.Option<string>>;
+  readonly discard: () => void;
+}
+
 interface StudioContextValue {
   readonly state: StudioStateValue;
   readonly actions: StudioActions;
@@ -181,9 +196,12 @@ interface StudioContextValue {
 }
 
 const StudioContext = createContext<StudioContextValue>();
+const HeldContext = createContext<Option.Option<RecordHeld>>(Option.none());
 
 /** The studio's context: only inside `<Studio.Provider>`. */
 export const useStudio = (): StudioContextValue => useContext(StudioContext);
+/** The recorder's take, for the page around it: none while the recorder waits on its beats. */
+export const useHeld = (): Option.Option<RecordHeld> => useContext(HeldContext);
 
 type StudioRuntime = Atom.AtomRuntime<StudioApi | Capture | RecordStage | BrowserServices>;
 
@@ -415,6 +433,13 @@ const Body = (
     },
     focused: setFocused,
   };
+  const held: RecordHeld = {
+    beat,
+    discardable: () => Option.map(discardOf(recorder()), (d) => d.question),
+    discard: () => {
+      Option.map(discardOf(untrack(recorder)), (d) => send(d.event));
+    },
+  };
 
   const value: StudioContextValue = {
     state: {
@@ -455,7 +480,11 @@ const Body = (
     actions,
     meta: { hub: page.hub },
   };
-  return <StudioContext value={value}>{props.children}</StudioContext>;
+  return (
+    <StudioContext value={value}>
+      <HeldContext value={Option.some(held)}>{props.children}</HeldContext>
+    </StudioContext>
+  );
 };
 
 /** The ids of the beats the server lists. */

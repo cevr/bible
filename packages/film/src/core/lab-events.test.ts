@@ -1,15 +1,24 @@
 // What the lab's change feed says of two reads of a file: a board's tries
 // added and kept, a beat approved and withdrawn; a catalogue's comment,
 // approval and render; a set published, then written again; an ask's steps
-// answered, its end reached, and its close. Each with the film, panel, render
-// or ask it is about and the lab path it opens on.
+// answered, its end reached, and its close; a note's own changes. Each with
+// the film, panel, render, note or ask it is about and the lab path it opens on.
 
 import { describe, expect, it } from 'bun:test';
 import { Option, Schema } from 'effect';
 import { AskName, AskRecord, AskState } from './ask.ts';
 import { type BoardFile, BoardName } from './board.ts';
 import { Catalogue, emptyCatalogue } from './catalogue.ts';
-import { askChanges, boardChanges, catalogueChanges, gist, setChanges } from './lab-events.ts';
+import {
+  askChanges,
+  boardChanges,
+  catalogueChanges,
+  gist,
+  noteChanges,
+  notePath,
+  setChanges,
+} from './lab-events.ts';
+import type { Note } from './schema.ts';
 import { Segment } from './segment.ts';
 
 const COLD = BoardName.make('cold');
@@ -38,7 +47,7 @@ describe('boardChanges', () => {
       panels: [{ id: 'cold.judge', beat: COLD, at: JUDGE, tries: [tried(1), tried(2)] }],
     });
     expect(boardChanges(before, added).map((c) => [c.kind, c.panel, c.try, c.path])).toEqual([
-      ['board.tried', 'cold.judge', 2, '/films/f/studio?sel=panel%3Acold.judge'],
+      ['board.tried', 'cold.judge', 2, '/films/f/studio?sel=panel%3Acold.judge&try=2'],
     ]);
     const kept = board({
       panels: [
@@ -53,7 +62,13 @@ describe('boardChanges', () => {
       ],
     });
     const [keep] = boardChanges(added, kept);
-    expect(keep).toMatchObject({ kind: 'board.kept', try: 2, text: 'calmer', beat: 'cold' });
+    expect(keep).toMatchObject({
+      kind: 'board.kept',
+      try: 2,
+      text: 'calmer',
+      beat: 'cold',
+      path: '/films/f/studio?sel=panel%3Acold.judge&try=2',
+    });
     expect(keep?.summary).toBe('f cold.judge: try 2 kept: calmer');
     const approval = {
       beat: COLD,
@@ -70,6 +85,56 @@ describe('boardChanges', () => {
     expect(boardChanges(again, kept).map((c) => c.kind)).toEqual(['beat.withdrawn']);
     // Nothing changed, nothing said.
     expect(boardChanges(kept, kept)).toEqual([]);
+  });
+});
+
+/** A note of film `f` on scene `cold`, open, with `more` of its own. */
+const note = (more: Partial<Note> = {}): Note => ({
+  scene: 'cold',
+  T: 1,
+  frame: 30,
+  text: 'hand lower',
+  id: 'n7',
+  film: 'f',
+  seq: 1,
+  changed: 1,
+  status: 'open',
+  still: 'n7.png',
+  thread: [],
+  createdAt: '2026-10-16T00:00:00.000Z',
+  ...more,
+});
+
+describe('notePath', () => {
+  it('opens the studio on the note, its beat selected, for a note on a frame or on words', () => {
+    expect(notePath(note())).toBe('/films/f/studio?sel=beat%3Acold&note=n7');
+    expect(
+      notePath(note({ words: { beat: 'cold', from: 0, to: 1, text: 'the law' }, kind: 'note' })),
+    ).toBe('/films/f/studio?sel=beat%3Acold&note=n7');
+  });
+
+  it('opens the studio on the note, its panel selected, for a note on a panel', () => {
+    expect(notePath(note({ panel: { id: 'cold.judge', try: 2, ask: 'tweak' } }))).toBe(
+      '/films/f/studio?sel=panel%3Acold.judge&note=n7',
+    );
+  });
+
+  it('is the link of every change on the note', () => {
+    const n = note({ panel: { id: 'cold.judge' } });
+    const reply = {
+      seq: 2,
+      by: 'agent' as const,
+      text: 'made try 3',
+      at: '2026-10-16T01:00:00.000Z',
+    };
+    const changes = noteChanges([
+      { _tag: 'NoteAdded', seq: 1, note: n },
+      { _tag: 'NoteReplied', seq: 2, note: n, reply },
+      { _tag: 'NoteResolved', seq: 3, note: n },
+    ]);
+    expect(changes.map((c) => c.path)).toEqual(
+      Array.from({ length: 3 }, () => '/films/f/studio?sel=panel%3Acold.judge&note=n7'),
+    );
   });
 });
 

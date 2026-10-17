@@ -60,9 +60,11 @@ describe('the change feed', () => {
         [1, 'note.added', 'after it'],
         [2, 'board.tried', 1],
       ]);
-      expect(seen.changes[0]?.links).toEqual({
-        local: 'http://localhost:8229/films/f/lab/cold?note=n2',
-      });
+      // A note opens in the studio's inspector on its beat, a try in its viewer on its panel.
+      expect(seen.changes.map((c) => c.links)).toEqual([
+        { local: 'http://localhost:8229/films/f/studio?sel=beat%3Acold&note=n2' },
+        { local: 'http://localhost:8229/films/f/studio?sel=panel%3Acold.judge&try=1' },
+      ]);
       expect(seen.reset).toBe(false);
       // Read again with nothing new: nothing said twice.
       yield* events.look;

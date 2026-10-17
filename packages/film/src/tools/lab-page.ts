@@ -1593,7 +1593,12 @@ const make = Effect.fnUntraced(function* (given: LabPageSpec) {
       }),
     );
 
-  /** An old link, or a page the studio replaced, sent on to its place (`servedPlace`); the browser keeps its hash across. */
+  /**
+   * An old link, or a page the studio replaced, sent on to its place
+   * (`servedPlace`). The browser carries its hash across to a Location that
+   * names none; a beat's Script or Board, whose hash is time in the beat,
+   * names an empty one, so that hash is dropped.
+   */
   const moved = (from: string, to: string) =>
     Effect.as(
       Effect.logInfo(`lab.page.moved from=${from} to=${to}`),

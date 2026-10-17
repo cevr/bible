@@ -23,7 +23,6 @@ import {
   unsaid,
   whenText,
   whereText,
-  wordsAt,
 } from './draft.ts';
 
 /** What a note asks of its words, as the composer asks it (`unsaid`'s). */
@@ -204,7 +203,6 @@ describe('a note on words of a line', () => {
     expect(scopeText(film.placed, onWords, film.fps, 1.5)).toEqual(
       Option.some('one · “ball rises”'),
     );
-    expect(wordsAt(film.placed, onWords, 1.5)).toEqual(Option.some(words));
   });
 
   test('a note carries its words and says what it says; one that says nothing is no draft', () => {
@@ -292,7 +290,6 @@ describe('a note on words of a line', () => {
 
   test("words of another scene are no scope of a note in this one: it is the frame's, and asks nothing", () => {
     const two = (film.placed[1]?.start ?? 0) + 0.4;
-    expect(wordsAt(film.placed, onWords, two)).toEqual(Option.none());
     const draft = Option.getOrThrow(
       draftOf(film.placed, film.fps, at('later', two), onWords, { kind: 'removal', replace: '' }),
     );

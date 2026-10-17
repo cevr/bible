@@ -33,6 +33,7 @@ import {
   voiceOfBeat,
   waitsLine,
   waitsText,
+  withTry,
   zoomFor,
   zoomStep,
 } from './view-state.ts';
@@ -98,8 +99,27 @@ describe("the viewer's picture", () => {
       panel: 'two.start',
       mark: 'start',
       file: 'two.start.1.png',
+      tried: Option.none(),
     });
     expect(pictureAt(firstCut, 5, true)._tag).toBe('Board');
+  });
+
+  test('is the try the inspector shows while the playhead is in its panel, over the scene drawn', () => {
+    const clip = Option.getOrThrow(panelNamed(drawn, 'two.start'));
+    const shown = Option.some({ clip, n: 2, file: 'two.start.2.png' });
+    const tried = withTry(pictureAt(drawn, 5, true), shown, 5);
+    expect(tried).toEqual({
+      _tag: 'Board',
+      beat: 'two',
+      panel: 'two.start',
+      mark: 'start',
+      file: 'two.start.2.png',
+      tried: Option.some(2),
+    });
+    expect(pictureTag(tried)).toBe('Board · two · try 2');
+    // Outside the panel's hold the film's own picture shows again.
+    expect(withTry(pictureAt(drawn, 0, true), shown, 0)).toEqual(pictureAt(drawn, 0, true));
+    expect(withTry(pictureAt(drawn, 5, true), Option.none(), 5)).toEqual(pictureAt(drawn, 5, true));
   });
 
   test('is the card the engine sets on a Board card panel, with its words: never an empty frame', () => {

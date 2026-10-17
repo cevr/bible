@@ -220,6 +220,40 @@ export const unsubmitted = (state: RecorderState): Option.Option<string> =>
     }),
   );
 
+/** What closing the recorder would drop, asked before it does: the question, and the event that drops it. */
+interface Discard {
+  readonly question: string;
+  readonly event: RecorderEvent;
+}
+
+/**
+ * What a close of the recorder's view would lose, while it holds a take
+ * only this page has: one being made (Cancel stops it and drops it), one
+ * under review (Discard), or one refused and kept to retry (the recorder
+ * rests on its beat). None while it is at rest or while a take opens or
+ * lands: a close then hides the view and loses nothing, the recorder going
+ * on behind it.
+ */
+export const discardOf = (state: RecorderState): Option.Option<Discard> =>
+  Match.value(state).pipe(
+    Match.tagsExhaustive({
+      Idle: () => Option.none<Discard>(),
+      Opening: () => Option.none<Discard>(),
+      CountIn: () =>
+        Option.some({ question: 'Stop and discard this take?', event: RecorderEvent.Cancel }),
+      Recording: () =>
+        Option.some({ question: 'Stop and discard this take?', event: RecorderEvent.Cancel }),
+      Review: () => Option.some({ question: 'Discard this take?', event: RecorderEvent.Discard }),
+      Importing: () => Option.none<Discard>(),
+      Checking: () => Option.none<Discard>(),
+      Failed: (s) =>
+        Option.map(s.wav, (): Discard => ({
+          question: 'Discard the refused take?',
+          event: RecorderEvent.SelectBeat({ beat: s.beat }),
+        })),
+    }),
+  );
+
 /**
  * Whether the recorder is at rest with nothing to lose: idle, or refused
  * with no recording kept. Only then may the link move it to another beat.

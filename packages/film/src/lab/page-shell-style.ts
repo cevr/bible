@@ -151,6 +151,9 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 :where(.lab-num, select, .sh-field) { min-height: var(--hit); padding: 0 var(--s-1); background: var(--surface-2); color: var(--text-1);
   border: 1px solid var(--line-strong); border-radius: var(--r-1); font: inherit; }
 :where(.lab-num) { width: 80px; }
+/* A phone's field keeps its text at 16 px or more (the type scale's 17 px): iOS zooms the page into a field whose text
+   is smaller when it takes focus. */
+@media ${PHONE} { :where(.sh-field) { font-size: var(--fs-5); line-height: var(--lh-5); } }
 /* Slider: the platform's range, its track and thumb the scrubber's (the track's surface, the playhead's accent). */
 :where(input[type="range"]) { appearance: none; min-height: var(--hit); margin: 0; background: none; cursor: pointer; }
 :where(input[type="range"])::-webkit-slider-runnable-track { height: var(--s-1); border-radius: var(--r-1);

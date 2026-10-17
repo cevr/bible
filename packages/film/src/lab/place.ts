@@ -1,6 +1,6 @@
 // The place in the URL of the Lab (`Places.lab`, `Places.labScene`,
 // core/api.ts):
-// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>&code=follow|live|<line>&words=<a>-<b>&text=follow|<word>#t=<seconds>&loop=<a>,<b>`.
+// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&beat=<id>&view=<compare>&code=follow|live|<line>&words=<a>-<b>&text=follow|<word>&cuts=1#t=<seconds>&loop=<a>,<b>`.
 // The path's scene is the selection's scene when something is selected (a
 // cue or knob, else a talk's words), else the scene under the playhead, so
 // the path never names a scene the frame has left; `#t=` is the frame's time
@@ -45,6 +45,8 @@ interface LabPlace {
   readonly words: Option.Option<WordsSelection>;
   /** The Transcript view (`?text=`): shut unless the link opens it, following the frame or held on a word. */
   readonly text: Option.Option<TextOpen>;
+  /** Whether the Transcript view shows the words its cut strikes (`?cuts=1`, "Show cuts"). */
+  readonly cuts: boolean;
   /** `#t=`: seconds into the path's scene, or film seconds on a film's lab. */
   readonly t: Option.Option<number>;
   /** `#loop=`: the A–B loop, film seconds on both. */
@@ -60,6 +62,7 @@ const NOWHERE: LabPlace = {
   code: Option.none(),
   words: Option.none(),
   text: Option.none(),
+  cuts: false,
   t: Option.none(),
   loop: Option.none(),
 };
@@ -91,6 +94,7 @@ export const labPlaceOf = (href: string): LabPlace =>
         code: codeOpenOf(query.code),
         words: wordsIn(path.scene, query.words),
         text: textOpenOf(query.text),
+        cuts: query.cuts,
         t: hash.t,
         loop: hash.loop,
       })),
@@ -168,6 +172,8 @@ export interface LabPick {
   readonly words?: Option.Option<WordsSelection>;
   /** The Transcript view; a pick that says nothing of it leaves it shut. */
   readonly text?: Option.Option<TextOpen>;
+  /** Whether the Transcript view shows its struck words; a pick that says nothing of it hides them. */
+  readonly cuts?: boolean;
   readonly loop: Option.Option<Interval>;
 }
 
@@ -225,6 +231,7 @@ export const labHref = (
           // Words are a section's: kept only on the path that names it.
           words: keyIn(words, id, wordsText),
           text: textText(Option.flatten(Option.fromUndefinedOr(pick.text))),
+          cuts: pick.cuts ?? false,
         },
         tIn(placed, id, T),
         pick.loop,
@@ -248,7 +255,7 @@ export const labHrefWith = (
   change: Partial<LabPick>,
   T: number,
 ): string => {
-  const { selection, note, beat, view, code, words, text, loop } = labPlaceOf(href);
+  const { selection, note, beat, view, code, words, text, cuts, loop } = labPlaceOf(href);
   const picked = Option.flatten(Option.fromUndefinedOr(change.words));
   const kept = Option.filter(selection, (s) => !Option.exists(picked, (w) => w.scene !== s.scene));
   return labHref(
@@ -262,6 +269,7 @@ export const labHrefWith = (
       code,
       words,
       text,
+      cuts,
       loop,
       ...change,
     },

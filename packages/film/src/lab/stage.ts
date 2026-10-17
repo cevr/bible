@@ -101,6 +101,29 @@ export const reloadHere = (player: Player, host: Host): Effect.Effect<void> =>
     Effect.provideContext(host),
   );
 
+/** The frame at film second `T` as `player` paints it, as PNG bytes: once it is painted, a talk's after its footage decodes. */
+export const playerStill = (player: Player, T: number): Effect.Effect<Uint8Array, NoStill> =>
+  drawable(player).pipe(
+    Effect.andThen(
+      Effect.mapError(player.renderShown(player.ctx, T), (missing) =>
+        NoStill.make({ T, why: missing.message }),
+      ),
+    ),
+    Effect.flatMap(() =>
+      Effect.callback<Blob, NoStill>((resume) =>
+        player.canvas.toBlob((blob) =>
+          resume(
+            Effect.fromOption(Option.fromNullishOr(blob), () =>
+              NoStill.make({ T, why: 'the canvas gave no image' }),
+            ),
+          ),
+        ),
+      ),
+    ),
+    Effect.flatMap((blob) => Effect.promise(() => blob.arrayBuffer())),
+    Effect.map((buffer) => new Uint8Array(buffer)),
+  );
+
 /**
  * The stage over `player`'s film. `changed` is told after each preview, so
  * the panels that draw the edited timeline read it again; `reload` is the
@@ -179,28 +202,7 @@ export const makeStage = (
         player.seek(T);
         player.play();
       }),
-    still: (T) =>
-      drawable(player).pipe(
-        // The canvas is read once the frame is painted: a talk's after its footage decodes.
-        Effect.andThen(
-          Effect.mapError(player.renderShown(player.ctx, T), (missing) =>
-            NoStill.make({ T, why: missing.message }),
-          ),
-        ),
-        Effect.flatMap(() =>
-          Effect.callback<Blob, NoStill>((resume) =>
-            player.canvas.toBlob((blob) =>
-              resume(
-                Effect.fromOption(Option.fromNullishOr(blob), () =>
-                  NoStill.make({ T, why: 'the canvas gave no image' }),
-                ),
-              ),
-            ),
-          ),
-        ),
-        Effect.flatMap((blob) => Effect.promise(() => blob.arrayBuffer())),
-        Effect.map((buffer) => new Uint8Array(buffer)),
-      ),
+    still: (T) => playerStill(player, T),
   };
 };
 

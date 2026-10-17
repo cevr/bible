@@ -224,7 +224,7 @@ describe('the Transcript view at rest', () => {
 for (const [name, viewport, where] of PLACES)
   describe(`the Transcript view ${name}`, () => {
     it.live(
-      '?text=follow opens it: its words in play order, a struck one hidden until Show cuts',
+      '?text=follow opens it: its words in play order, a struck one hidden until Show cuts, which the link keeps (?cuts=1) and Back undoes',
       () =>
         Effect.gen(function* () {
           const { page } = yield* openLab(talkRoutes(), {
@@ -246,6 +246,10 @@ for (const [name, viewport, where] of PLACES)
             'data-struck',
             'true',
           );
+          yield* evaluates(page, `new URLSearchParams(location.search).get('cuts')`, '1');
+          yield* page.evaluate('history.back()');
+          yield* attributeIs(page, `${where} [data-act="show-cuts"]`, 'aria-pressed', 'false');
+          yield* evaluates(page, `new URLSearchParams(location.search).has('cuts')`, false);
         }).pipe(Effect.scoped),
     );
 

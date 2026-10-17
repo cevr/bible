@@ -147,12 +147,22 @@ export const boardPath = (film: string, beat: string, at: Option.Option<string>)
     }),
   });
 
-/** Where a note is read: the studio on its panel, else the Lab on its scene. */
+/** The studio on a panel, try `n` of it shown in the viewer. */
+const tryPath = (film: string, panel: Panel, n: number) =>
+  pageHref.studio(film, { sel: panelSelection(panel.id), try: n });
+
+/**
+ * Where a note is read: the studio with the note open in its inspector
+ * (`?note=`), its panel selected when it is on one, else its beat (a note on
+ * a frame or on words is on its scene, the beat of that id).
+ */
 export const notePath = (note: Note): string =>
-  Option.match(Option.fromUndefinedOr(note.panel), {
-    onSome: (panel) =>
-      boardPath(note.film, note.scene, Option.fromUndefinedOr(panel.id.split('.').at(1))),
-    onNone: () => pageHref.labScene(note.film, note.scene, { note: note.id }),
+  pageHref.studio(note.film, {
+    sel: Option.match(Option.fromUndefinedOr(note.panel), {
+      onSome: (panel) => panelSelection(panel.id),
+      onNone: () => beatSelection(note.scene),
+    }),
+    note: note.id,
   });
 
 /** What a note is about, said briefly: its panel, its words, or its scene. */
@@ -258,7 +268,7 @@ export const boardChanges = (
           onSome: (note) => ({ note }),
         }),
         summary: `${film} ${panel.id}: try ${t.n} added (${t.made}${Option.match(Option.fromUndefinedOr(t.note), { onNone: () => '', onSome: (n) => ` for ${n}` })})`,
-        path: boardPath(film, panel.beat, Option.some(panel.at)),
+        path: tryPath(film, panel, t.n),
       }));
     const keptBefore = Option.flatMap(was, (p) => Option.fromUndefinedOr(p.kept));
     const kept = Option.filter(
@@ -275,7 +285,7 @@ export const boardChanges = (
           onSome: (text) => ({ text }),
         }),
         summary: `${film} ${panel.id}: try ${n} kept${Option.match(Option.fromUndefinedOr(panel.why), { onNone: () => '', onSome: (why) => `: ${gist(why)}` })}`,
-        path: boardPath(film, panel.beat, Option.some(panel.at)),
+        path: tryPath(film, panel, n),
       })),
     );
     return [...tried, ...keeps];

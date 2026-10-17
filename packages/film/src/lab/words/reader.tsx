@@ -11,10 +11,13 @@
 // At rest it is the words, their marks, a ready take and its pace: no
 // control of its own. A tap on a word selects it (shift extends; a text
 // selection across words selects them), where its page keeps a selection
-// (`Selecting`: the URL on a draft's page, the ask's own on an ask), and
+// (`Selecting`: the URL on a draft's page and in the studio, the ask's own
+// on an ask), and
 // opens the box under its line: Hear, Clear and the words' delivery, each a
 // tap written at once through the source (`POST …/marks`); its takes are
-// read again, the beat's new take queued first. What it reads and writes is
+// read again, the beat's new take queued first. A page that notes words
+// (`ReaderPage.noting`: the studio's) adds its note on them under their
+// delivery. What it reads and writes is
 // its source's (`ScriptSource`): a draft's routes, a film's. The page it is
 // on (`ReaderPage`) gives its host, its commands and its runtime; a page
 // with a playhead names the beat it is in (`live`), which the reader marks
@@ -32,6 +35,7 @@ import { targetAttr } from '../../command/target.ts';
 import type { Host } from '../../browser/host.ts';
 import type { Hub } from '../../command/hub.ts';
 import type { DraftBeatRead, MarksPost, ScriptVoice } from '../../core/api.ts';
+import type { NoteWords } from '../../core/schema.ts';
 import type { Mark } from '../../core/delivery.ts';
 import { parse } from '../../core/narration.ts';
 import type { LabFailure } from '../api.ts';
@@ -125,12 +129,15 @@ const laidOut = (beats: ReadonlyArray<DraftBeatRead>): ReadonlyArray<ReadBeat> =
   });
 };
 
-/** The words of `rows` from `from` to `to`, as the box's head quotes them. */
-const quoted = (rows: ReadonlyArray<Row>, w: Words): string =>
-  `“${rows
+/** The words of `rows` from `from` to `to`, as they read. */
+const wordsText = (rows: ReadonlyArray<Row>, w: Words): string =>
+  rows
     .filter((r) => r.index >= w.from && r.index <= w.to)
     .map((r) => r.text)
-    .join(' ')}”`;
+    .join(' ');
+
+/** The words of `rows` from `from` to `to`, as the box's head quotes them. */
+const quoted = (rows: ReadonlyArray<Row>, w: Words): string => `“${wordsText(rows, w)}”`;
 
 /** A beat's line: each word an element the page paints, a stressed one heavier, a pause's glyph in its gap. */
 const Line = (props: {
@@ -190,6 +197,7 @@ const Selected = (props: {
   readonly beat: ReadBeat;
   readonly words: Option.Option<Words>;
   readonly clear: () => void;
+  readonly noting: Noting;
 }) => (
   <Show
     when={Option.getOrUndefined(
@@ -219,6 +227,26 @@ const Selected = (props: {
             .join(' ')}
           selected={props.words}
         />
+        {/* Keyed by the words: other words selected take a note of their own. */}
+        <Show
+          when={Option.getOrUndefined(
+            Option.map(props.noting, (note) => ({
+              note,
+              words: {
+                beat: props.beat.read.id,
+                from: s().w.from,
+                to: s().w.to,
+                text: wordsText(s().line.rows, s().w),
+              },
+            })),
+          )}
+          keyed
+        >
+          {(noted: {
+            readonly note: (words: NoteWords) => JSX.Element;
+            readonly words: NoteWords;
+          }) => noted.note(noted.words)}
+        </Show>
       </section>
     )}
   </Show>
@@ -267,6 +295,7 @@ const Beat = (props: {
   /** Whether the page's playhead is in it. */
   readonly live: boolean;
   readonly brief: BriefShown;
+  readonly noting: Noting;
 }) => (
   <section
     class="lab-script-beat"
@@ -291,7 +320,7 @@ const Beat = (props: {
     {Option.toArray(props.beat.line).map((line) => (
       <Line line={line} marks={props.beat.marks} released={props.released} />
     ))}
-    <Selected beat={props.beat} words={props.words} clear={props.clear} />
+    <Selected beat={props.beat} words={props.words} clear={props.clear} noting={props.noting} />
     <Show when={props.beat.read.cite.length > 0}>
       <ul class="lab-script-cite" aria-label="Sources">
         <For each={props.beat.read.cite}>
@@ -316,7 +345,8 @@ interface WordsAt extends Words {
 
 /**
  * Where a reader's words selected are kept, and how a tap moves them: its
- * page's to own (the URL on a draft's page, the ask's own on an ask).
+ * page's to own (the URL on a draft's page and in the studio, the ask's own
+ * on an ask).
  */
 export interface Selecting {
   readonly selected: Accessor<Option.Option<WordsAt>>;
@@ -324,7 +354,7 @@ export interface Selecting {
   readonly clear: () => void;
 }
 
-/** Words selected that the page keeps as its own while it is open (an ask's, the studio's), never in its URL. */
+/** Words selected that the page keeps as its own while it is open (an ask's), never in its URL. */
 export const useOwnSelecting = (): Selecting => {
   const [selected, setSelected] = createSignal(Option.none<WordsAt>());
   return {
@@ -348,16 +378,21 @@ interface Playhead {
   readonly pause: () => void;
 }
 
+/** A page's note on words selected, drawn under their delivery: the words as a note carries them. */
+type Noting = Option.Option<(words: NoteWords) => JSX.Element>;
+
 /**
  * The page a reader is on: its host (the frames Hear lights the word heard
  * on), its commands (Select to here), its runtime (the source's reads and
- * writes), and its playhead where it has one.
+ * writes), its playhead where it has one, and its note on words selected
+ * where it notes them.
  */
 export interface ReaderPage {
   readonly host: Host;
   readonly hub: Hub;
   readonly runtime: Atom.AtomRuntime<ReviewApi, never>;
   readonly playhead: Option.Option<Playhead>;
+  readonly noting: Noting;
 }
 
 /** Whether the reader keeps the playhead's beat in sight: until a hand scrolls it, then again on Follow or Play. */
@@ -509,6 +544,7 @@ const Beats = (props: {
             clear={() => props.selecting.clear()}
             live={beat().read.id === live()}
             brief={props.brief}
+            noting={meta.noting}
           />
         )}
       </For>

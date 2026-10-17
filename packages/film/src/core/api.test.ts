@@ -235,6 +235,26 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/films/rbf/scenes#12.5', '/films/rbf/scenes#t=12.5'],
   ['/films/rbf/scenes/roof#12.5', '/films/rbf/scenes/roof#t=12.5'],
   ['/films/rbf/studio#3.5', '/films/rbf/studio#t=3.5'],
+  // A trailing slash is dropped, the query and the hash kept; a parent path opens its nearest page:
+  // a film's, its studio; any other, home.
+  ['/films/rbf/studio/', '/films/rbf/studio'],
+  ['/films/rbf/studio/?sel=beat%3Aroof#t=2', '/films/rbf/studio?sel=beat%3Aroof#t=2'],
+  ['/films/rbf/lab/', '/films/rbf/lab'],
+  ['/films/rbf/lab/roof/?cue=lower', '/films/rbf/lab/roof?cue=lower'],
+  ['/films/rbf/board/', '/films/rbf/board'],
+  ['/sets/f/', '/sets/f'],
+  ['/films/rbf', '/films/rbf/studio'],
+  ['/films/rbf/', '/films/rbf/studio'],
+  ['/films/rbf%2Fshorts%2Fverdict', '/films/rbf%2Fshorts%2Fverdict/studio'],
+  ['/films', '/'],
+  ['/films/', '/'],
+  ['/series', '/'],
+  ['/series/education', '/'],
+  ['/series/education/', '/'],
+  ['/asks', '/'],
+  ['/sets', '/'],
+  ['/sets/', '/'],
+  ['/productions', '/'],
   // A card's anchor is the project's `?point=`: the studio, which replaced the project, takes it on.
   ['/films/rbf/project#point-take%3Awood.gavel', '/films/rbf/project?point=take%3Awood.gavel'],
   [
@@ -266,6 +286,14 @@ describe('old links', () => {
     '/films/rbf/project?point=render%3Ascenes%3Aroof',
     '/sets/f/p?view=pair',
     '/nowhere?film=rbf',
+    // A path no place holds, with or without a slash, is no page's parent.
+    '/nowhere/',
+    '/films/rbf/lab/roof/extra',
+    '/films/rbf/lab/roof/extra/',
+    '/films/rbf/narration',
+    '/films/rbf/narration/full.wav',
+    '/api/films',
+    '/chunk-abc123.js',
     // A film no path can hold (a URL resolves `.` and `..` away) names no film.
     '/?film=..',
     '/?film=..&export',
@@ -312,18 +340,38 @@ const REPLACED_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/films/rbf/project?point=score', '/films/rbf/studio'],
   ['/films/rbf/choices', '/films/rbf/studio'],
   ['/films/rbf/choices?point=score&inspect=piano#t=3', '/films/rbf/studio#t=3'],
-  // The Script and the Board: the beat (or the panel) they were on selected, their film time kept.
+  // A choice's scene render names its scene: the studio selects it, its film time kept.
+  ['/films/rbf/choices?point=render%3Ascenes%3Aroof', '/films/rbf/studio?sel=beat%3Aroof'],
+  ['/films/rbf/choices?point=render%3Ascenes%3Aroof#t=3', '/films/rbf/studio?sel=beat%3Aroof#t=3'],
+  // The Script and the Board of the whole film: the note open kept, their film time kept.
   ['/films/rbf/script', '/films/rbf/studio'],
-  ['/films/rbf/script?note=n-2#t=4', '/films/rbf/studio#t=4'],
-  ['/films/rbf/script/roof', '/films/rbf/studio?sel=beat%3Aroof'],
+  ['/films/rbf/script?note=n-2#t=4', '/films/rbf/studio?note=n-2#t=4'],
+  ['/films/rbf/board', '/films/rbf/studio'],
+  ['/films/rbf/board?note=n-3', '/films/rbf/studio?note=n-3'],
+  // A beat's page: its beat (or its panel and the try shown) selected, the note open kept. Its time
+  // is in the beat, which the studio cannot place: the empty fragment drops it, and the studio
+  // opens at the beat's start (the panel's mark).
+  ['/films/rbf/script/roof', '/films/rbf/studio?sel=beat%3Aroof#'],
+  ['/films/rbf/script/roof?note=n-2#t=3', '/films/rbf/studio?sel=beat%3Aroof&note=n-2#'],
+  // Its words selected stay selected in the studio's Words.
+  ['/films/rbf/script/roof?words=1-3', '/films/rbf/studio?sel=beat%3Aroof&words=1-3#'],
   [
     '/films/rbf%2Fshorts%2Fverdict/script/roof',
-    '/films/rbf%2Fshorts%2Fverdict/studio?sel=beat%3Aroof',
+    '/films/rbf%2Fshorts%2Fverdict/studio?sel=beat%3Aroof#',
   ],
-  ['/films/rbf/board', '/films/rbf/studio'],
-  ['/films/rbf/board?note=n-3', '/films/rbf/studio'],
-  ['/films/rbf/board/roof', '/films/rbf/studio?sel=beat%3Aroof'],
-  ['/films/rbf/board/roof?panel=start&try=2#t=0.5', '/films/rbf/studio?sel=panel%3Aroof.start'],
+  ['/films/rbf/board/roof', '/films/rbf/studio?sel=beat%3Aroof#'],
+  ['/films/rbf/board/roof?note=n-1', '/films/rbf/studio?sel=beat%3Aroof&note=n-1#'],
+  [
+    '/films/rbf/board/roof?panel=start&try=2#t=0.5',
+    '/films/rbf/studio?sel=panel%3Aroof.start&try=2#',
+  ],
+  [
+    '/films/rbf/board/roof?panel=start&try=2&note=n-1',
+    '/films/rbf/studio?sel=panel%3Aroof.start&note=n-1&try=2#',
+  ],
+  // A try names a try of a panel: with no panel it names nothing.
+  ['/films/rbf/board/roof?try=2', '/films/rbf/studio?sel=beat%3Aroof#'],
+  ['/films/rbf/board/roof?panel=start&try=x', '/films/rbf/studio?sel=panel%3Aroof.start#'],
 ];
 
 /**

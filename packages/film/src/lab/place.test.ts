@@ -43,6 +43,7 @@ describe("the lab's place", () => {
       code: Option.none(),
       words: Option.none(),
       text: Option.none(),
+      cuts: false,
       t: Option.some(1.5),
       loop: Option.none(),
     });
@@ -141,6 +142,17 @@ describe("the lab's place", () => {
       '/films/f/lab/a#t=1',
     );
     expect(labHref('f', placed, none, 1)).not.toMatch(/words=|text=/);
+  });
+
+  test("the Transcript view's struck words shown ride in ?cuts=1: read back, kept by every write, hidden once dropped", () => {
+    expect(labPlaceOf('/films/f/lab/b?text=follow&cuts=1#t=1').cuts).toBe(true);
+    expect(labPlaceOf('/films/f/lab/b?text=follow#t=1').cuts).toBe(false);
+    const at = '/films/f/lab/b?text=follow&cuts=1#t=1';
+    expect(labHrefWith('f', placed, at, {}, b + 2)).toBe('/films/f/lab/b?text=follow&cuts=1#t=2');
+    expect(labHrefWith('f', placed, at, { cuts: false }, b + 2)).toBe(
+      '/films/f/lab/b?text=follow#t=2',
+    );
+    expect(labHref('f', placed, none, 1)).not.toContain('cuts=');
   });
 
   test("words selected in another scene than the cue's or knob's take the path, the cue or knob let go; a cue picked in another scene lets the words go", () => {
