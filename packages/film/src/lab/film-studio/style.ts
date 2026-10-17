@@ -37,7 +37,8 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
   --st-gutter: var(--s-4);
 }
 .st-app { height: 100dvh; display: grid; grid-template-rows: var(--st-header-h) minmax(0, 1fr); color: var(--text-1); font-family: var(--font); font-size: var(--fs-3); line-height: var(--lh-3); }
-.st-app button:where(:not(.sh-btn)) { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+/* A bare button draws nothing of its own; the kit's button and segmented control keep their own look. */
+.st-app button:where(:not(.sh-btn, .sh-seg > button)) { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 .st-app :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .st-icon { width: var(--s-4); height: var(--s-4); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .st-await { margin: 0; padding: var(--s-4); color: var(--text-2); }
@@ -293,14 +294,16 @@ export const INSPECTOR_CSS = `
 .st-panel-note-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Mark up: the try shown with the sketch surface over it, the tools under it, the words, Tweak or Note, Save. */
 .st-markup-open { align-self: flex-start; }
-.st-markup { display: flex; flex-direction: column; gap: var(--s-2); }
+/* Brought into view as it opens: its top clears the pane's sticky head, as a selected panel's does. */
+.st-markup { display: flex; flex-direction: column; gap: var(--s-2); scroll-margin-top: calc(var(--hit) + 2 * var(--s-3)); }
 .st-markup-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-1); overflow: hidden; background: var(--surface-2); }
 .st-markup-pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .st-markup-over { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
 .st-markup-text { min-height: calc(3 * var(--hit)); padding: var(--s-1) var(--s-2); resize: vertical; line-height: var(--lh-2); }
 .st-markup-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
 .st-markup-said { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
-.st-words-note { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
+/* Inside the words' box, under their delivery: inset as the delivery is, a rule between them. */
+.st-words-note { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-2) var(--s-3) var(--s-3); border-top: var(--border); }
 .st-words-instead { display: flex; flex-direction: column; gap: var(--s-1); font-size: var(--fs-2); color: var(--text-2); }
 .st-words-text { min-height: calc(2 * var(--hit)); padding: var(--s-1) var(--s-2); resize: vertical; line-height: var(--lh-2); }
 .st-words-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }

@@ -13,6 +13,7 @@ import * as ActorAtom from 'effect-machine/atom';
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import type { Accessor } from 'solid-js';
 import { createEffect, createSignal, untrack } from 'solid-js';
+import { Frames } from '../../browser/frames.ts';
 import type { BoardTry, Panel } from '../../core/board.ts';
 import { FILM_FPS } from '../../core/time.ts';
 import type { BoardClip } from '../../core/timeline-schema.ts';
@@ -87,7 +88,18 @@ const Composer = (props: {
   return (
     <Sketch.Provider host={meta.host} state={sketch} send={onSketch}>
       <Show when={props.open()}>
-        <div class="st-markup" data-try={props.tried().n}>
+        <div
+          class="st-markup"
+          data-try={props.tried().n}
+          // Opened under the panel's tries, it comes into the pane's view once laid out.
+          ref={(el: HTMLDivElement) => {
+            Effect.runCallbackWith(meta.host)(
+              Frames.use((f) => f.next).pipe(
+                Effect.andThen(Effect.sync(() => el.scrollIntoView({ block: 'nearest' }))),
+              ),
+            );
+          }}
+        >
           <div class="st-markup-frame">
             <img
               class="st-markup-pic"
