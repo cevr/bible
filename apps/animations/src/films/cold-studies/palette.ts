@@ -81,66 +81,34 @@ const shaded = (base: Hex): Ramp => ramp(base, keyLight, shading);
  * from (CRAFT 12, "Shade with colour, never with black"), each on a colour of
  * the court the control draws (Righteousness by Faith's) and derived from it
  * under the court's key (`ramp`): every shade darker and turned toward the
- * key's complement (sin's scarlet toward crimson), at least as saturated as
- * its base; every light, the colour a cut edge catches (its light core),
- * lighter and leaning to the key, never grey. A crease's far side is its
- * paper's shade; a cast shadow is the shade of the surface it falls on.
- * `looks/rive/direction-colours.test.ts` holds every colour a rig paints to them.
+ * key's complement, at least as saturated as its base; every light, the
+ * colour a cut edge catches (its light core), lighter and leaning to the
+ * key, never grey. A crease's far side is its paper's shade; a cast shadow
+ * is the shade of the surface it falls on.
  */
 export const ramps = {
   /** The people's grey paper. */
   figure: shaded(court.figure),
-  /** The people's deeper grey, their legs under the court's grey (C1). */
-  figureDeep: shaded('#9a92ab'),
-  /** The judge's robe under C1: ink-dark paper. */
-  robe: shaded(court.ink),
   /** The ink of a figure's outline and face. */
   ink: shaded(court.outline),
-  /** Sin's scarlet, on the cloth that carries it; its light a warm coral. */
-  scarlet: shaded(court.scarlet),
   /** The parchment sheet: the court's wall and floor. */
   paper: shaded(court.paper),
-  /** The toned paper of the bench under C1. */
-  paperTone: shaded(court.paperTone),
 } as const satisfies Record<string, Ramp>;
 
 /**
- * The judge's robe under C2: three dark papers, each a base its ramp shades.
- * Indigo is drawn (K1); slate and violet are the owner's other options, one
- * edit to `hues.robe` and a rebuild (`direction-colours.test.ts` checks each).
- */
-export const robes = {
-  /** Indigo, hsv(247, .30, .32): its shade navy, its light a dusk mauve. */
-  indigo: shaded('#3c3952'),
-  /** Slate, hsv(219, .33, .37): cooler and a touch lighter; its shade barely turns, being blue already. */
-  slate: shaded('#3f4a5e'),
-  /** Violet, hsv(278, .34, .31): the warmest; its shade turns furthest, to blue-violet. */
-  violet: shaded('#45344f'),
-} as const satisfies Record<string, Ramp>;
-
-/**
- * The paper-cut look's garment and prop hues, for the colour axis's second
- * option (C2, `looks/rive/direction.ts`): a person is told by the hue of what
- * they wear, not by a new accent. Every base sits inside the film's
- * saturation band (HSV 0.20–0.35) and scarlet stays the figure's one accent;
- * the band holds bases, not their shades, which turn and deepen past it
- * (CRAFT 12 raises a shade's saturation as its value drops). Each garment is
- * a ramp like `ramps`'. Heads and hands stay the people's one figure paper
- * (`ramps.figure`): a garment tells a person, not a skin.
+ * The paper-cut look's prop hues, the bench and the evidence sheets laid
+ * round the court's figures (`looks/papercut/index.ts`). Every base sits
+ * inside the film's saturation band (HSV 0.20–0.35); the band holds bases,
+ * not their shades, which turn and deepen past it (CRAFT 12 raises a shade's
+ * saturation as its value drops).
  */
 export const hues = {
-  /** The accused's sage tunic, hsv(93, .27, .68). */
-  tunic: shaded('#94ad7f'),
-  /** The accused's slate legs, hsv(215, .28, .48); their shade is where the tunic's shadow falls. */
-  legs: shaded('#58667a'),
-  /** The judge's robe: indigo (`robes`). */
-  robe: robes.indigo,
   /**
    * The walnut bench, hsv(24, .25, .54): toned to the band's low end, since
    * it is the frame's largest mass and must not outshout the people before
-   * it. Its shade is where the judge's hand's shadow falls on it.
+   * it.
    */
-  bench: shaded('#8a7567'),
+  bench: '#8a7567',
   /** The bench's rim, panels and gavel block, walnuts darker. */
   rim: '#614940',
   panel: '#664b47',

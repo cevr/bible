@@ -1,8 +1,8 @@
-// The paper-cut figure's parts, as Rive markup: one generator every rig of
-// the court is built from (`accused-rig.ts`, `judge-rig.ts`), so the
-// accused and the judge share their paper, their hands and their face rather
-// than each drawing its own. The language they follow is the film skill's
-// director vision → "Paper-cut figures (Rive)":
+// The paper-cut figure's parts, as Rive markup: one generator a film's rigs
+// are built from (`righteousness-by-faith/rigs/`), so its people share their
+// paper, their hands and their face rather than each drawing its own. The
+// language they follow is the film skill's director vision → "Paper-cut
+// figures (Rive)":
 //
 // - paper: a flat piece with an ink edge (`INK`, laid as its figure's
 //   direction's outline says, `direction.ts`) and its ramp's light on the
@@ -26,26 +26,6 @@ export type Pt = readonly [number, number];
 
 // ─── geometry ────────────────────────────────────────────────────────────────
 
-/** An affine matrix, canvas order: x' = a·x + c·y + tx, y' = b·x + d·y + ty. */
-export type Mat = readonly [number, number, number, number, number, number];
-const mul = (m: Mat, n: Mat): Mat => [
-  m[0] * n[0] + m[2] * n[1],
-  m[1] * n[0] + m[3] * n[1],
-  m[0] * n[2] + m[2] * n[3],
-  m[1] * n[2] + m[3] * n[3],
-  m[0] * n[4] + m[2] * n[5] + m[4],
-  m[1] * n[4] + m[3] * n[5] + m[5],
-];
-const local = (x: number, y: number, r: number): Mat => [
-  Math.cos(r),
-  Math.sin(r),
-  -Math.sin(r),
-  Math.cos(r),
-  x,
-  y,
-];
-const IDENTITY: Mat = [1, 0, 0, 1, 0, 0];
-
 /** 0 below `e0`, 1 past `e1`, smooth between. */
 export const smooth = (e0: number, e1: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
@@ -58,23 +38,6 @@ export const ellipse = (cx: number, cy: number, rx: number, ry: number, n: numbe
     const a = (2 * Math.PI * i) / n;
     return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)] as const;
   });
-
-/** Points round a rounded rectangle centred on (cx, cy), clockwise, `k` to each corner's arc. */
-export const roundRect = (cx: number, cy: number, w: number, h: number, r: number, k = 3): Pt[] => {
-  const out: Pt[] = [];
-  const corners: ReadonlyArray<readonly [number, number, number]> = [
-    [cx + w / 2 - r, cy - h / 2 + r, -Math.PI / 2],
-    [cx + w / 2 - r, cy + h / 2 - r, 0],
-    [cx - w / 2 + r, cy + h / 2 - r, Math.PI / 2],
-    [cx - w / 2 + r, cy - h / 2 + r, Math.PI],
-  ];
-  for (const [x, y, a0] of corners)
-    for (let i = 0; i <= k; i++) {
-      const a = a0 + ((Math.PI / 2) * i) / k;
-      out.push([x + r * Math.cos(a), y + r * Math.sin(a)]);
-    }
-  return out;
-};
 
 /** The box round `pts`. */
 export const boxOf = (pts: ReadonlyArray<Pt>): Box => ({
@@ -514,127 +477,28 @@ const crawl = (r: () => number, amp: number) => {
 /** Where the boil timeline stands on the film's boil tick `tick` (`f.boil`). */
 export const boilTime = (tick: number) => (tick % BOIL.ticks) / BOIL.fps + 1e-4;
 
-// ─── bones and skins ─────────────────────────────────────────────────────────
-
-/** A bone: its parent, place (a root's, in its parent's frame), turn and length. */
-export interface BoneSpec {
-  readonly name: string;
-  readonly parent?: string;
-  readonly x?: number;
-  readonly y?: number;
-  readonly rotation: number;
-  readonly length: number;
-}
-
-export const UP = -Math.PI / 2;
-export const DOWN = Math.PI / 2;
-
-/** A figure's skeleton: each bone's bind transform in the figure's frame, its root and tip there, and its element. */
-export const skeleton = (fig: Figure, bones: ReadonlyArray<BoneSpec>) => {
-  const specs = new Map(bones.map((b) => [b.name, b]));
-  const binds = new Map<string, Mat>();
-  for (const b of bones) {
-    const parent = b.parent === undefined ? undefined : specs.get(b.parent);
-    const base =
-      parent === undefined
-        ? local(b.x ?? 0, b.y ?? 0, 0)
-        : mul(binds.get(parent.name) ?? IDENTITY, local(parent.length, 0, 0));
-    binds.set(b.name, mul(base, local(0, 0, b.rotation)));
-  }
-  const bind = (name: string) => binds.get(name) ?? IDENTITY;
-  return {
-    bind,
-    root: (name: string): Pt => [bind(name)[4], bind(name)[5]],
-    tip: (name: string): Pt => {
-      const m = bind(name);
-      const len = specs.get(name)?.length ?? 0;
-      return [m[0] * len + m[4], m[1] * len + m[5]];
-    },
-    length: (name: string) => specs.get(name)?.length ?? 0,
-    rest: (name: string) => specs.get(name)?.rotation ?? 0,
-    /** The bone `name` as an element, holding `children`. */
-    element: (name: string, children: ReadonlyArray<Element>): Element => {
-      const spec = specs.get(name);
-      const root = spec?.parent === undefined;
-      return el(
-        root ? 'RootBone' : 'Bone',
-        {
-          x: root ? spec?.x : undefined,
-          y: root ? spec?.y : undefined,
-          rotation: spec?.rotation ?? 0,
-          length: spec?.length ?? 0,
-          name,
-          id: fig.idOf(`bone:${name}`),
-        },
-        children,
-      );
-    },
-  };
-};
-export type Skeleton = ReturnType<typeof skeleton>;
-
-/** A skinned vertex's weights: up to four (tendon index, share) pairs. */
-export type Influence = ReadonlyArray<readonly [number, number]>;
-
-/** `inf` packed as `Weight` wants it: indices and bytes, the bytes totalling 255. */
-export const packed = (inf: Influence) => {
-  const kept = inf.filter(([, w]) => w > 1e-3).slice(0, 4);
-  const total = kept.reduce((s, [, w]) => s + w, 0);
-  const bytes = kept.map(([, w]) => Math.round((255 * w) / total));
-  // The largest takes the rounding.
-  const drift = 255 - bytes.reduce((s, b) => s + b, 0);
-  const big = bytes.indexOf(Math.max(...bytes));
-  bytes[big] = (bytes[big] ?? 0) + drift;
-  let indices = 0;
-  let values = 0;
-  kept.forEach(([t], i) => {
-    indices += (t + 1) * 2 ** (8 * i);
-    values += (bytes[i] ?? 0) * 2 ** (8 * i);
-  });
-  return { indices, values };
-};
-
-/** A path's skin: the bones it bends with, and each vertex's weights to them. */
-export interface SkinSpec {
-  readonly skeleton: Skeleton;
-  readonly bones: ReadonlyArray<string>;
-  readonly weigh: (p: Pt) => Influence;
-}
-
 /** The vertex `key.i` at `p`, its handles along the line from `prev` to `next` (`tension` 0 for a corner). */
-const vertex = (
-  fig: Figure,
-  name: string,
-  p: Pt,
-  around: readonly [Pt, Pt],
-  tension: number,
-  children: ReadonlyArray<Element>,
-) => {
+const vertex = (fig: Figure, name: string, p: Pt, around: readonly [Pt, Pt], tension: number) => {
   const dx = around[1][0] - around[0][0];
   const dy = around[1][1] - around[0][1];
-  return el(
-    'CubicMirroredVertex',
-    {
-      x: p[0],
-      y: p[1],
-      rotation: Math.atan2(dy, dx),
-      distance: (tension * Math.hypot(dx, dy)) / 6,
-      name,
-      id: fig.idOf(name),
-    },
-    children,
-  );
+  return el('CubicMirroredVertex', {
+    x: p[0],
+    y: p[1],
+    rotation: Math.atan2(dy, dx),
+    distance: (tension * Math.hypot(dx, dy)) / 6,
+    name,
+    id: fig.idOf(name),
+  });
 };
 
 /**
  * A smooth path through `pts` (Catmull-Rom as mirrored cubics), each vertex
- * weighted to `skin`'s bones when given, and named `key.i` so the boil keys it.
+ * named `key.i` so the boil keys it.
  */
 export const smoothPath = (
   fig: Figure,
   key: string,
   pts: ReadonlyArray<Pt>,
-  skin?: SkinSpec,
   closed = true,
 ): Element => {
   const n = pts.length;
@@ -642,54 +506,15 @@ export const smoothPath = (
     const prev = pts[closed ? (i - 1 + n) % n : Math.max(0, i - 1)] ?? p;
     const next = pts[closed ? (i + 1) % n : Math.min(n - 1, i + 1)] ?? p;
     const tension = closed || (i > 0 && i < n - 1) ? 1 : 0;
-    const weight =
-      skin === undefined
-        ? []
-        : [
-            ((w) =>
-              el('CubicWeight', {
-                indices: w.indices,
-                values: w.values,
-                inIndices: w.indices,
-                inValues: w.values,
-                outIndices: w.indices,
-                outValues: w.values,
-              }))(packed(skin.weigh(p))),
-          ];
-    return vertex(fig, `${key}.${i}`, p, [prev, next], tension, weight);
+    return vertex(fig, `${key}.${i}`, p, [prev, next], tension);
   });
-  const skinEl =
-    skin === undefined
-      ? []
-      : [
-          el(
-            'Skin',
-            { name: 'Skin' },
-            skin.bones.map((bone) => {
-              const m = skin.skeleton.bind(bone);
-              return el('Tendon', {
-                boneId: fig.idOf(`bone:${bone}`),
-                xx: m[0],
-                xy: m[1],
-                yx: m[2],
-                yy: m[3],
-                tx: m[4],
-                ty: m[5],
-                name: bone,
-              });
-            }),
-          ),
-        ];
-  return el('PointsPath', { isClosed: closed, isClockwise: true, name: 'Path' }, [
-    ...vertices,
-    ...skinEl,
-  ]);
+  return el('PointsPath', { isClosed: closed, isClockwise: true, name: 'Path' }, vertices);
 };
 
 /**
- * A piece of the figure: a closed smooth outline through `pts`, skinned when
- * given, painted `look` with its crease across its own box, and its outline
- * on the boil (`boil` units; 0 holds it still). A piece that lies over others
+ * A piece of the figure: a closed smooth outline through `pts`, painted
+ * `look` with its crease across its own box, and its outline on the boil
+ * (`boil` units; 0 holds it still). A piece that lies over others
  * of its figure (`look.over`) comes as a node: the piece, then its cast
  * shadows (`casts`), when they show past its edge (`castShows`).
  */
@@ -698,7 +523,7 @@ export const piece = (
   key: string,
   pts: ReadonlyArray<Pt>,
   look: PieceLook,
-  opts: { readonly skin?: SkinSpec; readonly boil?: number } = {},
+  opts: { readonly boil?: number } = {},
 ): Element => paperOf(fig, { key, pts, look, ...opts }, false);
 
 /**
@@ -712,7 +537,7 @@ const paperOf = (fig: Figure, part: Part, inside: boolean): Element => {
   if (boil > 0) fig.boil(key, pts, boil);
   const box = boxOf(pts);
   const shape = el('Shape', { name: key, id: fig.idOf(key) }, [
-    smoothPath(fig, key, pts, part.skin),
+    smoothPath(fig, key, pts),
     ...paints(fig.direction, look, box, inside),
   ]);
   const crescent = look.shade === undefined ? undefined : look.crease?.crescent;
@@ -726,9 +551,7 @@ const paperOf = (fig: Figure, part: Part, inside: boolean): Element => {
   return el('Node', { name: `${key}Piece` }, [
     ...onTop,
     shape,
-    ...(cast && look.over !== undefined
-      ? casts(fig, key, pts, look, look.over, part.skin, boil > 0)
-      : []),
+    ...(cast && look.over !== undefined ? casts(fig, key, pts, look, look.over, boil > 0) : []),
   ]);
 };
 
@@ -781,7 +604,7 @@ const rimOf = (fig: Figure, part: Part, width: number, box: Box, boils: boolean)
     );
   const { start, end, at } = creaseOf(box, part.look.crease);
   return el('Shape', { name, id: fig.idOf(name) }, [
-    smoothPath(fig, name, pts, part.skin),
+    smoothPath(fig, name, pts),
     el('Stroke', { thickness: width, join: 'round', cap: 'round', name: 'Rim' }, [
       el('LinearGradient', { startX: start[0], startY: start[1], endX: end[0], endY: end[1] }, [
         el('GradientStop', { colorValue: argb(part.look.light), position: 0 }),
@@ -815,7 +638,7 @@ const litOf = (fig: Figure, part: Part, share: number, box: Box, boils: boolean)
       pts.map(() => by),
     );
   return el('Shape', { name, id: fig.idOf(name) }, [
-    smoothPath(fig, name, pts, part.skin),
+    smoothPath(fig, name, pts),
     el('Fill', { name: 'Lit' }, [solid(part.look.color)]),
     el('ClippingShape', { sourceId: fig.idOf(part.key), name: 'Clip' }),
   ]);
@@ -848,12 +671,11 @@ const toneOf = (fig: Figure, key: string, tone: Tone, i: number): Element => {
 
 // ─── silhouettes ─────────────────────────────────────────────────────────────
 
-/** One part of a silhouette, or a piece: its key, its outline, its paint, its skin and its boil. */
+/** One part of a silhouette, or a piece: its key, its outline, its paint and its boil. */
 export interface Part {
   readonly key: string;
   readonly pts: ReadonlyArray<Pt>;
   readonly look: PieceLook;
-  readonly skin?: SkinSpec;
   readonly boil?: number;
 }
 
@@ -891,7 +713,7 @@ export const silhouette = (
   const paths = parts.map((p) => {
     const at = `${name}${p.key}`;
     if ((p.boil ?? 0.9) > 0) fig.echo(at, p.key, p.pts.length);
-    return smoothPath(fig, at, p.pts, p.skin);
+    return smoothPath(fig, at, p.pts);
   });
   const d = fig.direction;
   const weight = opts.ink ?? 'outer';
@@ -918,8 +740,8 @@ export const silhouette = (
  * per surface, in its shade, clipped to it and drawn just over it, so a piece
  * between them covers it as it covers that surface; and one in the ground's
  * shade (`look.cast`) drawn behind the figure's backmost piece, so only the
- * sheet past the figure shows it. Each is the piece's outline again, on its
- * skin and crawling with it.
+ * sheet past the figure shows it. Each is the piece's outline again,
+ * crawling with it.
  */
 const casts = (
   fig: Figure,
@@ -927,7 +749,6 @@ const casts = (
   pts: ReadonlyArray<Pt>,
   look: PieceLook,
   over: NonNullable<PieceLook['over']>,
-  skin: SkinSpec | undefined,
   boils: boolean,
 ): Element[] => {
   const lift = look.shadow ?? 0.35;
@@ -939,7 +760,7 @@ const casts = (
   ) => {
     if (boils) fig.echo(name, key, pts.length);
     return el('Shape', { name, id: fig.idOf(name) }, [
-      smoothPath(fig, name, pts, skin),
+      smoothPath(fig, name, pts),
       shadowFill(shade, lift),
       ...(clip === undefined
         ? []
@@ -1013,7 +834,7 @@ export const FACE = {
   /** Where the eyes look, in the figure's units from its origin. */
   gazeX: 0,
   gazeY: 0,
-  /** How far the head turns after the gaze (its look-at's strength), 0..1. */
+  /** How far a head turns after the gaze, 0..1: kept in the view model, though no part the kit draws binds it. */
   follow: 0,
   /** The eyes' height (1 at rest, 0 shut, past 1 wide open) and width. */
   eyes: 1,
@@ -1099,7 +920,6 @@ const brow = (fig: Figure, k: FaceShape, side: 'L' | 'R', x: number) =>
           [0, -0.8],
           [k.browHalf, 1],
         ],
-        undefined,
         false,
       ),
       el('Stroke', { thickness: k.brow, cap: 'round', name: 'Ink' }, [solid(inkOf(fig.direction))]),
@@ -1200,21 +1020,12 @@ export const faceKit = (
   );
 };
 
-/** The gaze target the eyes and the head's look-at follow, at rest at `knobs`' gaze. */
+/** The gaze target the eyes and the features follow, at rest at `knobs`' gaze. */
 export const gazeTarget = (fig: Figure, knobs: Numbers) =>
   el('Node', { x: knobs['gazeX'], y: knobs['gazeY'], name: 'gaze', id: fig.idOf('gaze') }, [
     fig.bind('gazeX', KEY.x),
     fig.bind('gazeY', KEY.y),
   ]);
-
-/** The head's look-at: the head bone turns `follow` of the way toward the gaze. */
-export const lookAt = (fig: Figure) =>
-  el(
-    'IKConstraint',
-    { targetId: fig.idOf('gaze'), parentBoneCount: 0, strength: 0, name: 'Follow' },
-    [fig.bind('follow', IK_STRENGTH)],
-  );
-const IK_STRENGTH = 172;
 
 // ─── timelines ───────────────────────────────────────────────────────────────
 

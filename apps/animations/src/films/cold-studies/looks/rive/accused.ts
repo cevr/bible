@@ -1,4 +1,4 @@
-// The accused as a Rive rig (`accused-rig.ts`, in `figures.riv`), posed from
+// The accused as a Rive rig (in `figures.riv`, `figures.ts`), posed from
 // the court's cues and drawn by `f.rive` where the control draws its paper
 // person: same place, same camera, same plane. The look declares the rig
 // (`Look.rigs.accused`, `rigs.ts`); the film loads it before its first frame.
@@ -14,9 +14,9 @@ import { lerp } from '@bible/film/core';
 import type { PoseOf } from '@bible/film/rive';
 import { ACCUSED, JUDGE } from '../../../righteousness-by-faith/court.ts';
 import type { CourtFrame } from '../../scenes/court.ts';
-import { ACCUSED_KNOBS, ACCUSED_TIMELINES, type AccusedTimeline } from './accused-rig.ts';
 import { EASE, type Expression, acted } from './face.ts';
-import { boilTime, smooth } from './parts.ts';
+import { ACCUSED_KNOBS, ACCUSED_TIMELINES, type AccusedTimeline, boilTime } from './figures.ts';
+import { smooth } from './parts.ts';
 import type { accusedProp } from './rigs.ts';
 
 /** The court's cues the rig's timelines play on. */

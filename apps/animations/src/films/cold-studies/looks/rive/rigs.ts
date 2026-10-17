@@ -8,22 +8,19 @@ import type { RiveEngine, RivePropSpec } from '@bible/film/rive';
 import { Record as Rec } from 'effect';
 import {
   ACCUSED_ART,
+  ACCUSED_FACE,
   ACCUSED_KNOBS,
   ACCUSED_TIMELINES,
+  ARTBOARDS,
   type AccusedTimeline,
-  accusedFace,
-} from './accused-rig.ts';
-import { DIRECTION } from './direction.ts';
-import { ARTBOARDS } from './figures.ts';
-import figuresRiv from './figures.riv' with { type: 'file' };
-import {
   HAND_ART,
   JUDGE_ART,
+  JUDGE_FACE,
   JUDGE_KNOBS,
   JUDGE_TIMELINES,
   type JudgeTimeline,
-  judgeFace,
-} from './judge-rig.ts';
+} from './figures.ts';
+import figuresRiv from './figures.riv' with { type: 'file' };
 
 /** The accused for `engine`: feet at our origin, its face for `check`; posed by its own names. */
 export const accusedProp = (
@@ -38,10 +35,10 @@ export const accusedProp = (
   engine,
   key: `cold-studies/accused/${engine}`,
   origin: ACCUSED_ART.feet,
-  face: accusedFace(DIRECTION),
+  face: ACCUSED_FACE,
 });
 
-/** The judge for `engine`: his head's centre as drawn at D2 at our origin (a larger or smaller head grows from the neck), his face for `check`. */
+/** The judge for `engine`: his head's centre at our origin, his face for `check`. */
 export const judgeProp = (
   engine: RiveEngine,
 ): RivePropSpec<JudgeTimeline, keyof typeof JUDGE_KNOBS> => ({
@@ -54,7 +51,7 @@ export const judgeProp = (
   engine,
   key: `cold-studies/judge/${engine}`,
   origin: JUDGE_ART.head,
-  face: judgeFace(DIRECTION),
+  face: JUDGE_FACE,
 });
 
 /** The judge's hand for `engine`, its centre at our origin: no view model, only its paper's crawl. */

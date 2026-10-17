@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { K1 } from './direction.ts';
+import { DIRECTION } from './direction.ts';
 import {
   type K,
   LIGHT,
@@ -19,7 +19,7 @@ import { type Element, argb, ids } from './rml.ts';
 
 describe('the figure parts', () => {
   test('an outline crawls: no point moves more than a fifth of its wander a tick, round the loop too', () => {
-    const fig = figure(ids(), 'Test', 7, 0, K1);
+    const fig = figure(ids(), 'Test', 7, 0, DIRECTION);
     fig.boil('piece', [[3, 4]], 1);
     const { x = [], y = [] } = fig.boilTracks()['piece.0'] ?? {};
     expect(x).toHaveLength(48);
@@ -80,7 +80,7 @@ describe('inset', () => {
 describe('silhouette', () => {
   const all = (e: Element): Element[] => [e, ...e.children.flatMap(all)];
   const named = (e: Element, name: string) => all(e).filter((c) => c.name === name);
-  const fig = figure(ids(), 'Test', 7, 0, K1);
+  const fig = figure(ids(), 'Test', 7, 0, DIRECTION);
   const look = { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6' };
   const node = silhouette(fig, 'headCut', [
     { key: 'ear', pts: ellipse(50, 20, 10, 16, 12), look },
@@ -104,7 +104,7 @@ describe('silhouette', () => {
   });
   test('rims only the backmost part: a part laid inside the outline gets no light border', () => {
     const rimmed = { ...look, rim: 5 };
-    const cut = silhouette(figure(ids(), 'Test', 7, 0, K1), 'headCut', [
+    const cut = silhouette(figure(ids(), 'Test', 7, 0, DIRECTION), 'headCut', [
       { key: 'ear', pts: ellipse(50, 20, 10, 16, 12), look: rimmed },
       { key: 'hair', pts: ellipse(0, -30, 60, 40, 24), look: rimmed },
       { key: 'face', pts: ellipse(0, 0, 55, 70, 24), look: rimmed },
@@ -118,7 +118,7 @@ describe('silhouette', () => {
 });
 
 describe('a crescent turn', () => {
-  const fig = figure(ids(), 'Test', 7, 0, K1);
+  const fig = figure(ids(), 'Test', 7, 0, DIRECTION);
   const look = {
     color: '#ece7fa',
     shade: '#c9bcf2',
