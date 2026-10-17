@@ -31,8 +31,6 @@ import * as Cloudflare from 'alchemy/Cloudflare';
 import { Stage } from 'alchemy/Stage';
 import * as D1Client from '@effect/sql-d1/D1Client';
 import { Effect, Exit, Layer, Option, Scope, Stream } from 'effect';
-import { Etag, HttpPlatform, HttpRouter } from 'effect/http';
-import { HttpApiBuilder } from 'effect/http-api';
 
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
 import { APPARATUS_AUTHORS } from '@bible/core/writings';
@@ -44,13 +42,12 @@ import {
   VectorNeighbors,
 } from '@bible/core/search';
 
-import { SearchApi } from '../api.js';
-import { SearchGroupLive } from '../search-api.js';
 import { VectorIndexLoad } from '../vector-index.js';
 import { D1Atomic } from './d1-atomic.ts';
 import { Corpus, SyncReports, Vectors } from './resources.ts';
+import { isolated, searchRouter } from './router.ts';
 import { DOMAIN, SERVED_FROM, type ServedFrom, WORKER_NAME } from './site.ts';
-import { nameOfKey, type ReportStore, type StoredFile, syncRoutes } from './sync-pages.ts';
+import { nameOfKey, type ReportStore, type StoredFile } from './sync-pages.ts';
 import { vectorizeNeighbors, type VectorizeQuery } from './vectorize.ts';
 import { WARM_SCHEDULE, warmSearch } from './warm.ts';
 import { EMBEDDING_MODEL, workersAiEmbedder } from './workers-ai.ts';
@@ -197,7 +194,8 @@ export default class Search extends Cloudflare.Worker<Search>()(
     // The constructor also runs at deploy time, to collect the bindings, and
     // the handles are empty then. So the search is built on the first request
     // or warm-up, once per isolate, in a scope that lives as long as the
-    // isolate does; the requests and the warm-ups share it.
+    // isolate does; the requests and the warm-ups share it. The handles are
+    // read in that first fiber; the layers are built `isolated` from it.
     const scope = yield* Scope.make();
     const services = yield* Effect.cached(
       Effect.gen(function* () {
@@ -206,20 +204,11 @@ export default class Search extends Cloudflare.Worker<Search>()(
           vectors: yield* vectors.raw,
           ai,
         };
-        return yield* Layer.buildWithScope(searchLayer(bindings), scope);
+        return yield* isolated(Layer.buildWithScope(searchLayer(bindings), scope));
       }),
     );
     const app = yield* Effect.cached(
-      Effect.gen(function* () {
-        const search = Layer.succeedContext(yield* services);
-        const api = HttpApiBuilder.layer(SearchApi).pipe(
-          Layer.provide(SearchGroupLive.pipe(Layer.provide(search))),
-          Layer.provide(Layer.mergeAll(Etag.layer, HttpPlatform.layer)),
-        );
-        return yield* HttpRouter.toHttpEffect(Layer.mergeAll(api, syncRoutes(store))).pipe(
-          Scope.provide(scope),
-        );
-      }),
+      Effect.flatMap(services, (context) => searchRouter(context, store, scope)),
     );
     yield* Cloudflare.Workers.cron(WARM_SCHEDULE, (controller) =>
       services.pipe(
