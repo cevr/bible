@@ -10,9 +10,10 @@
 // `inherit` (quoted or not, the value read whole from where it begins), a
 // `font` shorthand with a size in it, and any string named a
 // family (`FACE_FAMILY = '…'`). Canvas code draws film pixels, not the
-// studio's chrome, and keeps its own colours: `canvas/`, the look-book's
-// sheet and the contact sheet drawn on a canvas, and the fixture films (the
-// look-book's page around its sheet is chrome and is read). So does paper:
+// studio's chrome, and keeps its own colours: `canvas/`, the house look's
+// figures (`style/`), the look-book's sheet and the contact sheet drawn on a
+// canvas, and the fixture films (the look-book's page around its sheet is
+// chrome and is read). So does paper:
 // the reading sheet is printed for the narrator at the microphone, light and
 // in a book face, never shown in the studio. Sound code (`core/synth/`) is no
 // look at all: a noise's colour (`color: 'pink'`) names how its spectrum
@@ -46,12 +47,13 @@ const TOKENS = 'player/tokens.css';
 const FACE = 'player/face.ts';
 
 /**
- * Not the studio's chrome: canvas code draws the film's pixels in the film's
- * own colours, the reading sheet is a page printed on paper, and sound code
- * names a noise's colour, which is heard.
+ * Not the studio's chrome: canvas code and the house look's figures draw the
+ * film's pixels in the film's own colours, the reading sheet is a page
+ * printed on paper, and sound code names a noise's colour, which is heard.
  */
 const OUTSIDE = [
   'canvas/',
+  'style/',
   'lab/fixtures/',
   'player/lookbook-sheet.ts',
   'player/contact.ts',

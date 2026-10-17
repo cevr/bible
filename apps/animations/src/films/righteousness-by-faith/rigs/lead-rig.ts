@@ -1,4 +1,4 @@
-// The plain lead as a Rive rig (character-design 2.3), on the cold-studies
+// The plain lead as a Rive rig (character-design 2.3), on the house
 // generator's parts: a round head on a trapezoid tunic, stub legs, one
 // lilac-grey paper, no hair, no neck; the face kit at his size. His hands are
 // the hand rig's (`hand-rig.ts`), drawn by the host where they work (on the
@@ -17,19 +17,19 @@
 //   laid over his own, 0..1.
 // The rig keeps its `breath` and the paper's `boil`.
 
+import type { Pt } from '@bible/film/style';
 import {
   FACE,
   type Figure,
   artboard,
   boilTimeline,
+  el,
   ellipse,
   faceKit,
   gazeTarget,
   piece,
   timeline,
-  type Pt,
-} from '../../cold-studies/looks/rive/parts.ts';
-import { el } from '../../cold-studies/looks/rive/rml.ts';
+} from '@bible/film/style/rig';
 import { PAPERS, STAIN, looked } from './papers.ts';
 import { blotOutline, roundedPolygon } from './shapes.ts';
 

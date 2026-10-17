@@ -7,7 +7,7 @@
 // His acting, on the court's cues: reading the paper before him, eyes down,
 // until he leans in on "the judge looks at you", his eyes coming up to the
 // accused's face, his head held still (`follow` 0: the eyes do the looking);
-// on the verdict his face softens (`face.ts`).
+// on the verdict his face softens (`acted`).
 
 import { at, rectShape, rounded } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
@@ -17,9 +17,8 @@ import { C, piece } from '../../../righteousness-by-faith/kit.ts';
 import { ramps } from '../../palette.ts';
 import type { CourtFrame } from '../../scenes/court.ts';
 import type { Bench, Props } from '../cutpaper/court.ts';
-import { EASE, type Expression, acted } from './face.ts';
+import { EASE, type Expression, type Pt, acted, reachAbout } from '@bible/film/style';
 import { ACCUSED_HEAD, JUDGE_KNOBS, JUDGE_TIMELINES, boilTime } from './figures.ts';
-import { type Pt, reachAbout } from './parts.ts';
 import type { judgeProp } from './rigs.ts';
 
 /** Reading: lids lowered on the page, the brows level and a little low. */

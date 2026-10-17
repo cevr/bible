@@ -1,4 +1,4 @@
-// The prosecutor as a Rive rig, on the cold-studies generator's parts, in
+// The prosecutor as a Rive rig, on the house generator's parts, in
 // the kept concept's (`cold-34`) proportions and shading: tall and narrow,
 // a large rounded block of a head turned three-quarters toward screen left
 // and canted, its jaw one curve into a broad chin, short black hair peaked in
@@ -24,14 +24,14 @@ import {
   type Figure,
   artboard,
   boilTimeline,
+  el,
   ellipse,
   faceKit,
   gazeTarget,
   piece,
   silhouette,
   timeline,
-} from '../../cold-studies/looks/rive/parts.ts';
-import { el } from '../../cold-studies/looks/rive/rml.ts';
+} from '@bible/film/style/rig';
 import { PAPERS, looked } from './papers.ts';
 import { roundedPolygon, shifted, shoeLight, shoeOutline } from './shapes.ts';
 import { PROSECUTOR_HEAD, PROSECUTOR_HAIR } from './traced.ts';

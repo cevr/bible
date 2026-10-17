@@ -1,13 +1,11 @@
 // RBF's Rive project: every figure rig of the film in one file
 // (`figures.riv`, built by `build.ts`), each an artboard with its own view
-// model, all made from the cold-studies generator's parts in the house
-// look's direction (K1, `DIRECTION`), their ink as heavy against a head as
+// model, all made from the house generator's parts (`@bible/film/style/rig`)
+// in the house look's direction (K1, `DIRECTION`), their ink as heavy against a head as
 // the kept concept draws it (`WEIGHT`). Pure: `figuresRml()` is the whole
 // project file, the same text for the same code.
 
-import { DIRECTION } from '../../cold-studies/looks/rive/direction.ts';
-import { figure } from '../../cold-studies/looks/rive/parts.ts';
-import { fragment, ids } from '../../cold-studies/looks/rive/rml.ts';
+import { DIRECTION, figure, fragment, ids } from '@bible/film/style/rig';
 import { handRig } from './hand-rig.ts';
 import { judgeRig } from './judge-rig.ts';
 import { leadRig } from './lead-rig.ts';

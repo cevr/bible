@@ -18,8 +18,8 @@
 
 import { type Camera, type Hex, mix, ramp, unprobed } from '@bible/film/canvas';
 import { lerp, rng } from '@bible/film/core';
-import { keyLight, shading } from '../cold-studies/palette.ts';
-import { type Pt, boxOf, creaseOf } from '../cold-studies/looks/rive/parts.ts';
+import { type Pt, keyLight, shading } from '@bible/film/style';
+import { boxOf, creaseOf } from '@bible/film/style/rig';
 import { C } from './kit.ts';
 
 /** The evidence panel's framing: the Board's 1536 wide at the film's 1920, its top trimmed. */

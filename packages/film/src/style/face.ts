@@ -1,11 +1,11 @@
 // A face's acting, host side: an expression is the face kit's numbers
-// (`FACE`, `parts.ts`) without the gaze, and a beat moves the face from the
+// (`FACE`, `rig/parts.ts`) without the gaze, and a beat moves the face from the
 // one it wears toward the next by the beat's cue. Every figure built on the
 // kit acts with the same numbers, so one expression reads the same on every
 // face. Pure.
 
-import { lerp } from '@bible/film/core';
-import { type FaceKnob, smooth } from './parts.ts';
+import { lerp } from '../core/time.ts';
+import { type FaceKnob, smooth } from './rig/parts.ts';
 
 /** What a face shows: brow, eyes and mouth (the kit's numbers less the gaze and the head's follow). */
 export type Expression = Readonly<Record<Exclude<FaceKnob, 'gazeX' | 'gazeY' | 'follow'>, number>>;
@@ -37,7 +37,7 @@ const toward = (out: Record<keyof Expression, number>, to: Expression, k: number
 };
 
 /** A beat of acting: the expression it ends on, and how far into it the frame is. */
-export type Beat = readonly [Expression, number];
+type Beat = readonly [Expression, number];
 
 /**
  * The face after `beats`, in order, each moving it from where the last left

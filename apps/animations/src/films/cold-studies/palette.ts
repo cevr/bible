@@ -49,7 +49,7 @@ export const palette = {
  * (a warm paper's through violet), and every light leans to it (CRAFT 12,
  * `ramp`).
  */
-export const keyLight: Hex = '#f3e9c8';
+const keyLight: Hex = '#f3e9c8';
 
 /**
  * How the paper-cut look shades (`ramp`'s knobs, held above CRAFT 12's
@@ -61,7 +61,7 @@ export const keyLight: Hex = '#f3e9c8';
  * slate blue. `neutral: 1` gives a slate blue, `#7e889f` at these knobs
  * (P1's `#858c9d` also had `dark: 0.2`, `deep: 10`).
  */
-export const shading: Shading = {
+const shading: Shading = {
   turn: 20,
   dark: 0.22,
   lift: 0.4,
@@ -77,18 +77,17 @@ export type { Ramp };
 const shaded = (base: Hex): Ramp => ramp(base, keyLight, shading);
 
 /**
- * The ramps the paper-cut figures (`papercut`, `looks/rive/parts.ts`) shade
- * from (CRAFT 12, "Shade with colour, never with black"), each on a colour of
- * the court the control draws (Righteousness by Faith's) and derived from it
- * under the court's key (`ramp`): every shade darker and turned toward the
- * key's complement, at least as saturated as its base; every light, the
- * colour a cut edge catches (its light core), lighter and leaning to the
- * key, never grey. A crease's far side is its paper's shade; a cast shadow
- * is the shade of the surface it falls on.
+ * The ramps the paper-cut look (`papercut`) and the rive judge's sheet
+ * (`looks/rive/judge.ts`) draw from (CRAFT 12, "Shade with colour, never
+ * with black"), each on a colour of the court the control draws
+ * (Righteousness by Faith's) and derived from it under the court's key
+ * (`ramp`): every shade darker and turned toward the key's complement, at
+ * least as saturated as its base; every light, the colour a cut edge catches
+ * (its light core), lighter and leaning to the key, never grey. A crease's
+ * far side is its paper's shade; a cast shadow is the shade of the surface it
+ * falls on.
  */
 export const ramps = {
-  /** The people's grey paper. */
-  figure: shaded(court.figure),
   /** The ink of a figure's outline and face. */
   ink: shaded(court.outline),
   /** The parchment sheet: the court's wall and floor. */

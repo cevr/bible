@@ -21,6 +21,12 @@
 //             (tools/draw-check.ts), which draws every scene into it
 //   core      films, their kits, the app's sound library and the framework's
 //             tests: the clock, the script and sound schemas, the mix plan
+//   style     films' scenes and rigs: the house look's acting, boil and key
+//             light
+//   style/rig a film's hand-written rigs, and its set's creases: the
+//             generator's parts
+//   style/build
+//             a film's rig build (`compile`)
 // `tools`, `lab`, `review` and `solid-plugin` are not guarded here: the
 // tooling entries are read by the CLI, the app's build and the tests, and the
 // framework reads each core module by its path.
@@ -51,6 +57,7 @@ const SWEPT = [
   'packages/film/src/player/',
   'packages/film/src/browser/',
   'packages/film/src/command/',
+  'packages/film/src/style/',
   'packages/film/lint/',
 ] as const;
 
@@ -83,6 +90,9 @@ const ENTRIES = [
   { entry: 'render', file: 'src/player/render.ts' },
   { entry: 'stand-in', file: 'src/canvas/fixtures/stand-in.ts' },
   { entry: 'core', file: 'src/core/index.ts' },
+  { entry: 'style', file: 'src/style/index.ts' },
+  { entry: 'style/rig', file: 'src/style/rig/index.ts' },
+  { entry: 'style/build', file: 'src/style/build.ts' },
 ] as const;
 
 /** What one import or re-export takes from `from`: some of its names, or (None) the module whole. */

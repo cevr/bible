@@ -144,7 +144,7 @@ const hexOf = (L: number, C: number, h: number): Hex => {
   return `#${byte(3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z)}${byte(-0.969266 * X + 1.8760108 * Y + 0.041556 * Z)}${byte(0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z)}`;
 };
 
-/** The paper-cut look's knobs (`cold-studies/palette.ts`, fitted to K1). */
+/** The house look's knobs (`style/house.ts` `shading`, fitted to K1). */
 const FILM: Shading = {
   turn: 20,
   dark: 0.22,

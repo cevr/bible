@@ -273,15 +273,18 @@
       }
     },
     {
-      // The film draw path: the Canvas 2D kit and each film's scenes and props.
-      // A frame is a pure function of time drawn thousands of times per render,
-      // so it keeps plain arithmetic: ternaries and `?? default` for optional
-      // geometry, and short shape names (`pts`, `rim`). Every other rule
-      // applies, `throw` included: a film never throws. The tools and the
-      // Schema/data modules of packages/film are not listed here and get the
-      // full rule set.
+      // The film draw path: the Canvas 2D kit, the house look's figure
+      // generator (src/style: its parts, faces and RML), and each film's
+      // scenes, props and rigs. A frame is a pure function of time drawn
+      // thousands of times per render, and a rig is geometry, so both keep
+      // plain arithmetic: ternaries and `?? default` for optional geometry,
+      // and short shape names (`pts`, `rim`). Every other rule applies,
+      // `throw` included: a film never throws. The tools and the Schema/data
+      // modules of packages/film are not listed here and get the full rule
+      // set.
       "files": [
         "**/packages/film/src/canvas/**/*.ts",
+        "**/packages/film/src/style/**/*.ts",
         "**/packages/film/e2e/canvas/**/*.pixel.test.ts",
         "**/apps/animations/src/films/**/*.ts"
       ],
@@ -479,9 +482,11 @@
                   "**/lab",
                   "**/browser/**",
                   "**/browser",
+                  "**/style/**",
+                  "**/style",
                   "@bible/film/*"
                 ],
-                "message": "core never imports canvas, rive, player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
+                "message": "core never imports canvas, rive, the house look (style), player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -522,6 +527,16 @@
               {
                 "group": ["**/rive/**", "**/rive"],
                 "message": "the engine declares a rig and draws it (canvas/rive.ts); it never imports the Rive loader or its runtimes (src/rive/), which load a film's rigs for the player and the tools (packages/film/README.md, the purity rule)."
+              },
+              {
+                "group": [
+                  "**/style/**",
+                  "**/style",
+                  "@bible/film/style",
+                  "@bible/film/style/rig",
+                  "@bible/film/style/build"
+                ],
+                "message": "the engine never imports the house look (src/style/): the look draws with the engine (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -563,6 +578,16 @@
                   "@bible/film/lab-server"
                 ],
                 "message": "the engine never imports the player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
+              },
+              {
+                "group": [
+                  "**/style/**",
+                  "**/style",
+                  "@bible/film/style",
+                  "@bible/film/style/rig",
+                  "@bible/film/style/build"
+                ],
+                "message": "the engine never imports the house look (src/style/): the look draws with the engine (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -605,6 +630,58 @@
                   "@bible/film/lab-server"
                 ],
                 "message": "the Rive loader and its runtimes never import the player, tools, lab, the pages' commands or the host's adapters (browser): the player and the tools import them (packages/film/README.md, the purity rule)."
+              },
+              {
+                "group": [
+                  "**/style/**",
+                  "**/style",
+                  "@bible/film/style",
+                  "@bible/film/style/rig",
+                  "@bible/film/style/build"
+                ],
+                "message": "the Rive loader and its runtimes never import the house look (src/style/): a film's rigs are built from it ahead of time, and the loader loads the built file (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // The house look (src/style/) draws with the engine over core; the
+      // player, the tools and the lab may import it, never the reverse.
+      "files": ["**/packages/film/src/style/**/*.ts", "**/packages/film/src/style/**/*.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/player/**",
+                  "**/player",
+                  "**/tools/**",
+                  "**/tools",
+                  "**/lab/**",
+                  "**/lab",
+                  "**/browser/**",
+                  "**/browser",
+                  "**/command/**",
+                  "**/command",
+                  "**/rive/**",
+                  "**/rive",
+                  "@bible/film/player",
+                  "@bible/film/render",
+                  "@bible/film/player.css",
+                  "@bible/film/tokens.css",
+                  "@bible/film/tools",
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/play",
+                  "@bible/film/review",
+                  "@bible/film/review-server",
+                  "@bible/film/lab-server"
+                ],
+                "message": "the house look never imports the player, tools, lab, the pages' commands, the Rive loader (src/rive/) or the host's adapters (browser): they may import it (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -963,13 +1040,15 @@
       }
     },
     {
-      // Where a tiny number is no time: the owner itself; the draw path's
-      // geometry; the mix's and the synth's sample arithmetic and the affine
-      // maths (float floors and pivots); the test doubles' tones; and the
-      // tests and fixtures.
+      // Where a tiny number is no film time: the owner itself; the draw
+      // path's geometry; a rig's own timeline, which the boil steps into
+      // its held key (style/rig/parts.ts `boilTime`); the mix's and the
+      // synth's sample arithmetic and the affine maths (float floors and
+      // pivots); the test doubles' tones; and the tests and fixtures.
       "files": [
         "**/packages/film/src/core/time.ts",
         "**/packages/film/src/canvas/**",
+        "**/packages/film/src/style/rig/parts.ts",
         "**/packages/film/src/core/audio.ts",
         "**/packages/film/src/core/dsp.ts",
         "**/packages/film/src/core/synth/**",

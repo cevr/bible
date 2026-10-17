@@ -8,7 +8,7 @@
 // dock and the lead, so each group stands in front of the one behind it.
 
 import { at, unprobed } from '@bible/film/canvas';
-import { type Pt, boilTime } from '../cold-studies/looks/rive/parts.ts';
+import { type Pt, boilTime } from '@bible/film/style';
 import {
   BENCH_TOP,
   LAID_SHEETS,

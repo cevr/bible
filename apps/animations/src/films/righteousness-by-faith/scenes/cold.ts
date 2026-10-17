@@ -32,8 +32,7 @@ import {
   write,
 } from '@bible/film/canvas';
 import { lerp } from '@bible/film/core';
-import { EASE, type Expression, acted } from '../../cold-studies/looks/rive/face.ts';
-import { type Pt, reachAbout } from '../../cold-studies/looks/rive/parts.ts';
+import { EASE, type Expression, type Pt, acted, reachAbout } from '@bible/film/style';
 import { CARD_STYLE, VERSE_STYLE } from '../card.ts';
 import { LIGHT } from '../light.ts';
 import {

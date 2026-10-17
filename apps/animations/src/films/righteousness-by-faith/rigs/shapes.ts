@@ -5,7 +5,7 @@
 // enough along a straight edge that the edge stays straight. Pure.
 
 import { rng } from '@bible/film/core';
-import type { Pt } from '../../cold-studies/looks/rive/parts.ts';
+import type { Pt } from '@bible/film/style';
 
 /** How far apart points lie along a straight edge, units, so a smooth path keeps it straight. */
 const STEP = 40;

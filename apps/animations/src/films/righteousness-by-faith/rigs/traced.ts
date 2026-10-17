@@ -14,7 +14,7 @@
 // the head's height and laid by its top and middle, the frame turned back by
 // the skull's cant. Pure.
 
-import type { Pt } from '../../cold-studies/looks/rive/parts.ts';
+import type { Pt } from '@bible/film/style';
 
 /** The prosecutor's head: a tall rounded block turned three-quarters to screen left, its jaw one curve into a broad chin, the tuft over his brow, his ear behind. */
 export const PROSECUTOR_HEAD: ReadonlyArray<Pt> = [

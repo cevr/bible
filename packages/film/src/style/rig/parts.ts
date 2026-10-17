@@ -5,7 +5,7 @@
 // figures (Rive)":
 //
 // - paper: a flat piece with an ink edge (`INK`, laid as its figure's
-//   direction's outline says, `direction.ts`) and its ramp's light on the
+//   direction's outline says, `house.ts`) and its ramp's light on the
 //   cut, lifted off the sheet by a small cast shadow in the shade of each
 //   surface it falls on, its outline crawling on the boil;
 // - the crease (the look's signature): every piece is split once by a
@@ -17,9 +17,8 @@
 //
 // Pure: the same code writes the same markup.
 
-import { rng } from '@bible/film/core';
-import { ramps as R } from '../../palette.ts';
-import { type Direction, inkOf } from './direction.ts';
+import { rng } from '../../core/random.ts';
+import { type Direction, LIGHT, inkOf, ramps as R } from '../house.ts';
 import { type Element, argb, el } from './rml.ts';
 
 export type Pt = readonly [number, number];
@@ -50,20 +49,12 @@ export const boxOf = (pts: ReadonlyArray<Pt>): Box => ({
 // ─── the light and the crease ────────────────────────────────────────────────
 
 /** A box in a piece's own units. */
-export interface Box {
+interface Box {
   readonly x0: number;
   readonly y0: number;
   readonly x1: number;
   readonly y1: number;
 }
-
-/**
- * The court's one light, from the upper left: the direction a piece's paper
- * darkens toward (radians, y down), and how far across a piece, along it,
- * the crease falls. One angle for the whole cast, so a crease reads as light,
- * never as a drawn line.
- */
-export const LIGHT = { toward: 0.42, crease: 0.63 } as const;
 
 /**
  * Where the crease cuts `box`: a gradient's axis across the box along the
@@ -107,7 +98,7 @@ export interface Crease {
 }
 
 /** A colour as a paint. */
-export const solid = (hex: string, alpha = 1) => el('SolidColor', { colorValue: argb(hex, alpha) });
+const solid = (hex: string, alpha = 1) => el('SolidColor', { colorValue: argb(hex, alpha) });
 
 /** The paper over `box`, `color` on the light's side of the crease and `shade` past it, cut sharp unless `crease.soft`. */
 const creased = (color: string, shade: string, box: Box, crease: Crease = {}): Element => {
@@ -127,7 +118,7 @@ const creased = (color: string, shade: string, box: Box, crease: Crease = {}): E
  * A piece of the figure a cast shadow falls on: its key (`piece`) and its
  * paper's shade, which the shadow lays there.
  */
-export interface Surface {
+interface Surface {
   readonly key: string;
   readonly shade: string;
 }
@@ -180,7 +171,7 @@ export interface PieceLook {
  * its middle to nothing at its edge (a radial ramp), so it blends into the
  * paper with no edge of its own.
  */
-export interface Tone {
+interface Tone {
   readonly pts: ReadonlyArray<Pt>;
   readonly color: string;
   readonly alpha?: number;
@@ -188,7 +179,7 @@ export interface Tone {
 }
 
 /** The grey paper of a person, its far side and its light: the figure ramp. */
-export const FIGURE: PieceLook = {
+const FIGURE: PieceLook = {
   color: R.figure.base,
   shade: R.figure.shade,
   light: R.figure.light,
@@ -202,7 +193,7 @@ export const FIGURE: PieceLook = {
 const CAST = 1.4;
 
 /** How opaque a cast shadow lifted `lift` lays its surface's shade (`CAST`). */
-export const castAlpha = (lift: number) => Math.min(1, CAST * lift);
+const castAlpha = (lift: number) => Math.min(1, CAST * lift);
 
 /**
  * The ink's weights, in units at the court's scale, by what a line carries,
@@ -212,7 +203,7 @@ export const castAlpha = (lift: number) => Math.min(1, CAST * lift);
  * (`trim`: a sash, a band, a tail) lighter; the face's marks are the kit's
  * own and lighter still (`KIT.brow`, `KIT.mouthLine`).
  */
-export const INK = { outer: 5, small: 3.5, trim: 2.5 } as const;
+const INK = { outer: 5, small: 3.5, trim: 2.5 } as const;
 
 /**
  * What a silhouette's line shows outside its paper under the thick outline
@@ -220,7 +211,7 @@ export const INK = { outer: 5, small: 3.5, trim: 2.5 } as const;
  * (`.claude/skills/film/reference/rimworld-study.md`), about 3 % of the accused's
  * height on the head and body, a little less on a hand or a leg.
  */
-export const OUTSIDE = { outer: 6, small: 5 } as const;
+const OUTSIDE = { outer: 6, small: 5 } as const;
 
 /**
  * The light core's half-width on a cut edge (outline `edge` or `both`),
@@ -228,7 +219,7 @@ export const OUTSIDE = { outer: 6, small: 5 } as const;
  * paper's ramp light (`PieceLook.light`): the edge of a cut catching the
  * room, leaning to the key's warm hue.
  */
-export const CORE = 1;
+const CORE = 1;
 
 /**
  * The widths of a piece's edge strokes under `d`'s outline, units: the ink
@@ -256,7 +247,7 @@ const silhouetteInk = (d: Direction, weight: keyof typeof INK) => {
  * How far a piece's edge under `d` covers what lies just outside its cut,
  * units: half its widest stroke (ink or light core), 0 for a piece with none.
  */
-export const inkCover = (d: Direction, weight: keyof typeof INK | 'none') => {
+const inkCover = (d: Direction, weight: keyof typeof INK | 'none') => {
   if (weight === 'none') return 0;
   const w = edgeWidths(d, weight);
   return Math.max(w.under, w.centred, w.core) / 2;
@@ -290,14 +281,14 @@ const edgeOf = (d: Direction, weight: keyof typeof INK, light: string) => {
  * piece along the light (`x`, `y`, to the light's far side) and its
  * feather's strength.
  */
-export const LIFT = { x: 3, y: 5, feather: 6 } as const;
+const LIFT = { x: 3, y: 5, feather: 6 } as const;
 
 /**
  * How far the Rive Renderer paints a feather past its shape, per unit of
  * its strength (`paint_outset.hpp`: a feather's outset is 1.5 times it), and
  * the antialiasing pixel past that, units.
  */
-export const FEATHER_REACH = 1.5;
+const FEATHER_REACH = 1.5;
 const AA = 1;
 
 /**
@@ -306,7 +297,7 @@ const AA = 1;
  * of antialiasing past the ink. A cast the ink hides is not laid: no shadow,
  * no casts on the figure's surfaces, no boil echo (R3-M2).
  */
-export const castShows = (lift: number, cover: number) =>
+const castShows = (lift: number, cover: number) =>
   lift > 0 && Math.hypot(LIFT.x, LIFT.y) * lift + FEATHER_REACH * LIFT.feather * lift + AA > cover;
 
 /**
@@ -363,11 +354,11 @@ const paints = (d: Direction, look: PieceLook, box: Box, inside = false): Elemen
 // ─── a figure in the project ─────────────────────────────────────────────────
 
 /** One timeline's keys: object name → property → keys. */
-export type K = readonly [number, number, ('io' | 'out' | 'in' | 'linear' | 'hold')?];
-export type Tracks = Readonly<Record<string, Readonly<Record<string, ReadonlyArray<K>>>>>;
+type K = readonly [number, number, ('io' | 'out' | 'in' | 'linear' | 'hold')?];
+type Tracks = Readonly<Record<string, Readonly<Record<string, ReadonlyArray<K>>>>>;
 
 /** A figure's numbers, by name, at rest. */
-export type Numbers = Readonly<Record<string, number>>;
+type Numbers = Readonly<Record<string, number>>;
 
 /**
  * One figure (an artboard) of the project: the art direction it is drawn
@@ -495,12 +486,7 @@ const vertex = (fig: Figure, name: string, p: Pt, around: readonly [Pt, Pt], ten
  * A smooth path through `pts` (Catmull-Rom as mirrored cubics), each vertex
  * named `key.i` so the boil keys it.
  */
-export const smoothPath = (
-  fig: Figure,
-  key: string,
-  pts: ReadonlyArray<Pt>,
-  closed = true,
-): Element => {
+const smoothPath = (fig: Figure, key: string, pts: ReadonlyArray<Pt>, closed = true): Element => {
   const n = pts.length;
   const vertices = pts.map((p, i) => {
     const prev = pts[closed ? (i - 1 + n) % n : Math.max(0, i - 1)] ?? p;
@@ -569,7 +555,7 @@ const turning = (pts: ReadonlyArray<Pt>) =>
  * from its neighbour before to its neighbour after): an outline inset into
  * its own paper. Pure.
  */
-export const inset = (pts: ReadonlyArray<Pt>, by: number): Pt[] => {
+const inset = (pts: ReadonlyArray<Pt>, by: number): Pt[] => {
   const n = pts.length;
   const side = turning(pts) > 0 ? 1 : -1;
   return pts.map((p, i) => {
@@ -672,7 +658,7 @@ const toneOf = (fig: Figure, key: string, tone: Tone, i: number): Element => {
 // ─── silhouettes ─────────────────────────────────────────────────────────────
 
 /** One part of a silhouette, or a piece: its key, its outline, its paint and its boil. */
-export interface Part {
+interface Part {
   readonly key: string;
   readonly pts: ReadonlyArray<Pt>;
   readonly look: PieceLook;
@@ -790,10 +776,10 @@ const casts = (
 // ─── the hand ────────────────────────────────────────────────────────────────
 
 /** The outline points of a hand of radius `r`: a circle, twelve points round so it boils like the rest of the paper. */
-export const handOutline = (r: number): Pt[] => ellipse(0, 0, r, r, 12);
+const handOutline = (r: number): Pt[] => ellipse(0, 0, r, r, 12);
 
 /** A hand's lift off the sheet: a little less than a body piece's. */
-export const HAND_LIFT = 0.3;
+const HAND_LIFT = 0.3;
 
 /**
  * The hand: a plain circle of paper of radius `r` at the origin, creased like
@@ -881,7 +867,7 @@ const KIT: FaceShape = {
  * half-length and stroke; the mouth's place, half-width and stroke. A figure
  * drawn to its own sheet gives the parts it draws otherwise (`faceKit`).
  */
-export interface FaceShape {
+interface FaceShape {
   readonly eyes: readonly [number, number];
   readonly eyeY: number;
   readonly eye: readonly [number, number];
@@ -1029,7 +1015,7 @@ export const gazeTarget = (fig: Figure, knobs: Numbers) =>
 
 // ─── timelines ───────────────────────────────────────────────────────────────
 
-export const FPS = 60;
+const FPS = 60;
 
 const CURVES = {
   io: [0.42, 0, 0.58, 1],

@@ -77,7 +77,7 @@ The faces, the style's name and the face mods are studied further in [face-study
 ## 2. Transferable rules for the paper-cut figures
 
 1. **Outline by story weight.** The figures carry the heaviest line in the frame. Props that act in the beat (the ledger, the gavel, the stamp) carry a lighter one. Scenery carries none, or its own paper's shade, like RimWorld's green plant outline.
-   - _Map:_ the stroke width per piece in `parts.ts`, ranked figure > acting prop > scenery.
+   - _Map:_ the stroke width per piece in `packages/film/src/style/rig/parts.ts`, ranked figure > acting prop > scenery.
    - _Fit:_ this sharpens CRAFT 12's "scenery has no outline". It exposes the bench's inked panel lines in the current stills: the bench is scenery, yet it is lined like a figure.
 2. **Outer line heavy, inner lines thin and few.**
    - The silhouette's outline is about 2–3× the weight of the face's marks. Nothing else inside is drawn as a line; form is the crease, not ink.
@@ -148,7 +148,7 @@ The faces, the style's name and the face mods are studied further in [face-study
 ## 5. A five-step trial (one figure pass in Rive)
 
 1. **Baseline.** Copy `stills/papercut/` to `stills/papercut-prerim/`. Use the same six timestamps (4.00, 5.40, 6.60, 8.00, 8.27, 9.00) for every variant.
-2. **Line hierarchy (rules 1, 2, 11).** In `parts.ts`, raise the accused's and the judge's outer stroke to about 2.5× today's (to about 2.5 % of figure height), keep the face marks and hand circles' inner weight as they are, and keep the light core inside the edge.
+2. **Line hierarchy (rules 1, 2, 11).** In `packages/film/src/style/rig/parts.ts`, raise the accused's and the judge's outer stroke to about 2.5× today's (to about 2.5 % of figure height), keep the face marks and hand circles' inner weight as they are, and keep the light core inside the edge.
    - Variant A: ink `#2b2622`. Variant B: pure black.
    - Strip the bench's panel ink, or drop it to the bench's own shade hue.
 3. **Whole-body acting (rule 7).** Add a root-bone `jolt` driven by the host:

@@ -7,8 +7,8 @@
 // (character-design 2.3). Pure.
 
 import { type Hex, ramp } from '@bible/film/canvas';
-import { keyLight, shading } from '../../cold-studies/palette.ts';
-import type { Crease, PieceLook } from '../../cold-studies/looks/rive/parts.ts';
+import { keyLight, shading } from '@bible/film/style';
+import type { Crease, PieceLook } from '@bible/film/style/rig';
 
 /**
  * A paper as a piece takes it: its colour, its crease's far side, the light

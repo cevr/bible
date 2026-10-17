@@ -1,6 +1,6 @@
 // Build RBF's figure rigs (`figures.ts`) into `figures.riv` beside this file,
 // where `rigs.ts` imports it: the generated project (`project/`) compiled by
-// the cold-studies build's `compile` (the Rive CLI, offline and unsigned).
+// the house's `compile` (`@bible/film/style/build`: the Rive CLI, offline and unsigned).
 // Fails when the CLI reports a problem.
 // `bun src/films/righteousness-by-faith/rigs/build.ts`, from the app's
 // folder or anywhere: paths are this file's. The CLI is `rive` on the PATH,
@@ -9,7 +9,7 @@
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Console, Effect, FileSystem, Schema } from 'effect';
-import { compile } from '../../cold-studies/looks/rive/build.ts';
+import { compile } from '@bible/film/style/build';
 import { ARTBOARDS, figuresRml } from './figures.ts';
 
 const here = import.meta.dir;

@@ -19,7 +19,10 @@
     "./lab-server": "./src/lab/film-server.tsx",
     "./solid-plugin": "./src/tools/solid-plugin.ts",
     "./stand-in": "./src/canvas/fixtures/stand-in.ts",
-    "./rive": "./src/canvas/rive.ts"
+    "./rive": "./src/canvas/rive.ts",
+    "./style": "./src/style/index.ts",
+    "./style/rig": "./src/style/rig/index.ts",
+    "./style/build": "./src/style/build.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

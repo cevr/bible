@@ -4,8 +4,7 @@
 // the table, the bench) or over the figure itself. One artboard a paper: the
 // lead's lilac grey, and the house look's peach skin.
 
-import { type Figure, artboard, boilTimeline, hand } from '../../cold-studies/looks/rive/parts.ts';
-import { el } from '../../cold-studies/looks/rive/rml.ts';
+import { type Figure, artboard, boilTimeline, el, hand } from '@bible/film/style/rig';
 import { type Paper, looked } from './papers.ts';
 
 /** The artboard: the hand's centre at its centre, room round it for its outline. */

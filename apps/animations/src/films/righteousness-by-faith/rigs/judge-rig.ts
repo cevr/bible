@@ -1,4 +1,4 @@
-// The judge as a Rive rig, on the cold-studies generator's parts, in the
+// The judge as a Rive rig, on the house generator's parts, in the
 // kept concept's (`cold-34`) proportions and shading: a large egg-shaped
 // head narrowing to the chin, turned three-quarters toward screen left and
 // canted (his features and chin carried left, his ear behind them), curly
@@ -10,9 +10,9 @@
 // its marks large on the head. He sits behind the bench,
 // so the rig is the part of him above it. His circle hands are the hand
 // rig's (`hand-rig.ts`), drawn by the host over the bench (resting on it,
-// taking up the gavel). The cold-studies judge (`judge-rig.ts` there) is
-// another figure (bald, indigo, the cold-studies court's geometry): this one
-// is drawn to RBF's Board.
+// taking up the gavel). The cold-studies judge (frozen in its
+// `figures.riv`) is another figure (bald, indigo, the cold-studies court's
+// geometry): this one is drawn to RBF's Board.
 //
 // Units are the Board's pixels: in `cold.evidence` his head is 150 tall with
 // its hair. His head's centre is the artboard's origin.
@@ -22,20 +22,20 @@
 // bench), negative toward the dock; `tilt`, radians, his head about his neck;
 // `nod`, units, his head down. The rig keeps its `breath` and `boil`.
 
+import type { Pt } from '@bible/film/style';
 import {
   FACE,
   type Figure,
   artboard,
   boilTimeline,
+  el,
   ellipse,
   faceKit,
   gazeTarget,
   piece,
   silhouette,
   timeline,
-  type Pt,
-} from '../../cold-studies/looks/rive/parts.ts';
-import { el } from '../../cold-studies/looks/rive/rml.ts';
+} from '@bible/film/style/rig';
 import { PAPERS, looked } from './papers.ts';
 import { roundedPolygon, shifted } from './shapes.ts';
 import { JUDGE_HAIR, JUDGE_HEAD } from './traced.ts';

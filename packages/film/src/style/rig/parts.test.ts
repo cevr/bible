@@ -1,21 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import { DIRECTION } from './direction.ts';
-import {
-  type K,
-  LIGHT,
-  type Pt,
-  creaseOf,
-  ellipse,
-  figure,
-  inset,
-  piece,
-  reachAbout,
-  silhouette,
-} from './parts.ts';
+import { DIRECTION, LIGHT } from '../house.ts';
+import { type Pt, creaseOf, ellipse, figure, piece, reachAbout, silhouette } from './parts.ts';
 import { type Element, argb, ids } from './rml.ts';
 
-// The parts every figure is built from, whatever the art direction. What a
-// direction changes is checked for every option in `direction-*.test.ts`.
+// The parts every figure is built from, in the house's line (`DIRECTION`).
+
+const all = (e: Element): Element[] => [e, ...e.children.flatMap(all)];
+const called = (e: Element, name: string) =>
+  all(e).filter((c) => c.attrs.some(([k, v]) => k === 'name' && v === name));
 
 describe('the figure parts', () => {
   test('an outline crawls: no point moves more than a fifth of its wander a tick, round the loop too', () => {
@@ -23,7 +15,7 @@ describe('the figure parts', () => {
     fig.boil('piece', [[3, 4]], 1);
     const { x = [], y = [] } = fig.boilTracks()['piece.0'] ?? {};
     expect(x).toHaveLength(48);
-    const step = (keys: ReadonlyArray<K>) =>
+    const step = (keys: typeof x) =>
       Math.max(...keys.map(([, v], i) => Math.abs((keys[(i + 1) % keys.length]?.[1] ?? v) - v)));
     expect(step(x)).toBeLessThanOrEqual(0.21);
     expect(step(y)).toBeLessThanOrEqual(0.21);
@@ -68,17 +60,24 @@ describe('reachAbout', () => {
   });
 });
 
-describe('inset', () => {
-  test('moves every point of an outline the same way in, whichever way round it is drawn', () => {
+describe('a rim', () => {
+  test('lies inside its outline by half its width, whichever way round the outline is drawn', () => {
     const circle = ellipse(0, 0, 20, 20, 24);
+    const look = { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6', rim: 6 };
     for (const pts of [circle, [...circle].reverse()]) {
-      for (const [x, y] of inset(pts, 3)) expect(Math.hypot(x, y)).toBeCloseTo(17, 1);
+      const fig = figure(ids(), 'Test', 7, 0, DIRECTION);
+      const [rim] = called(piece(fig, 'disc', pts, look), 'discRim');
+      const vertices = all(rim as Element).filter((e) => e.name === 'CubicMirroredVertex');
+      expect(vertices).toHaveLength(24);
+      for (const v of vertices) {
+        const at = (key: string) => Number(v.attrs.find(([k]) => k === key)?.[1]);
+        expect(Math.hypot(at('x'), at('y'))).toBeCloseTo(17, 1);
+      }
     }
   });
 });
 
 describe('silhouette', () => {
-  const all = (e: Element): Element[] => [e, ...e.children.flatMap(all)];
   const named = (e: Element, name: string) => all(e).filter((c) => c.name === name);
   const fig = figure(ids(), 'Test', 7, 0, DIRECTION);
   const look = { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6' };
@@ -109,11 +108,9 @@ describe('silhouette', () => {
       { key: 'hair', pts: ellipse(0, -30, 60, 40, 24), look: rimmed },
       { key: 'face', pts: ellipse(0, 0, 55, 70, 24), look: rimmed },
     ]);
-    const called = (name: string) =>
-      all(cut).filter((e) => e.attrs.some(([k, v]) => k === 'name' && v === name));
-    expect(called('earRim')).toHaveLength(0);
-    expect(called('hairRim')).toHaveLength(0);
-    expect(called('faceRim')).toHaveLength(1);
+    expect(called(cut, 'earRim')).toHaveLength(0);
+    expect(called(cut, 'hairRim')).toHaveLength(0);
+    expect(called(cut, 'faceRim')).toHaveLength(1);
   });
 });
 

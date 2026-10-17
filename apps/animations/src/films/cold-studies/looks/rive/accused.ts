@@ -5,7 +5,7 @@
 //
 // The acting is the host's: the rig's timelines carry the body (the bow, the
 // stamp's flinch, the lift), and the face moves through its beats here, each
-// on the cue it reads (`face.ts`): worry as the evidence falls, shame on
+// on the cue it reads (`acted`): worry as the evidence falls, shame on
 // "you did it", fear as the judge leans in, astonishment on "righteous" (the
 // verdict's stamp), then relief as the lift settles.
 
@@ -14,9 +14,8 @@ import { lerp } from '@bible/film/core';
 import type { PoseOf } from '@bible/film/rive';
 import { ACCUSED, JUDGE } from '../../../righteousness-by-faith/court.ts';
 import type { CourtFrame } from '../../scenes/court.ts';
-import { EASE, type Expression, acted } from './face.ts';
+import { EASE, type Expression, acted, smooth } from '@bible/film/style';
 import { ACCUSED_KNOBS, ACCUSED_TIMELINES, type AccusedTimeline, boilTime } from './figures.ts';
-import { smooth } from './parts.ts';
 import type { accusedProp } from './rigs.ts';
 
 /** The court's cues the rig's timelines play on. */
@@ -44,7 +43,7 @@ const settled = (f: CourtFrame) => {
   return Math.max(0, cueTime(f, 'lift', 'lift') - move) / (seconds - move);
 };
 
-// The face's beats, each a whole expression (`face.ts`; the kit's numbers, `parts.ts`).
+// The face's beats, each a whole expression (`Expression`: the face kit's numbers).
 
 /** The evidence falling: the inner brows up, the mouth's corners a little down. */
 const WORRY: Expression = { ...EASE, browTilt: 0.26, browY: -1, mouth: -0.8 };
