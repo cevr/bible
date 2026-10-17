@@ -38,7 +38,7 @@ const praise = (layout: 'voices' | 'pairs') =>
   });
 
 const written = (score: Score.Score, level: Harmony.Level) =>
-  Harmony.onNotes(score, score.verses.start, score.verses.start + score.verses.length, level)
+  Harmony.onNotes(score, score.verses.spans[0]?.start ?? 0, score.verses.spans[0]?.end ?? 0, level)
     .map(({ changes }) =>
       changes.map((c) => `${c.offset > 0 ? '~' : ''}${Chord.format(c.chord, score.key)}`).join(' '),
     )
@@ -52,14 +52,49 @@ describe('Score.fromMidi', () => {
         expect(score.key).toEqual({ tonic: 'F', minor: false });
         expect(score.beatsPerBar).toBe(3);
         expect(score.verses).toEqual({
-          start: 2 * 3 * 384,
-          length: 6 * 3 * 384,
-          count: 2,
+          spans: [
+            { start: 2 * 3 * 384, end: 8 * 3 * 384 },
+            { start: 8 * 3 * 384, end: 14 * 3 * 384 },
+          ],
           exact: true,
         });
         expect(score.melody.length).toBe(6 + 2 * 14);
       }
     }),
+  );
+});
+
+describe('Score.findVerses', () => {
+  it.effect(
+    'finds verses played each in its own rhythm, each after the pause that ends the last',
+    () =>
+      Effect.sync(() => {
+        const tune = [60, 62, 64, 65, 67, 65, 64, 62, 60];
+        // A verse's last note is long; verse 2 splits its third note for an extra syllable.
+        const verse = (split: boolean): Fixture.Voice =>
+          tune.flatMap((key, i): Fixture.Voice => {
+            if (split && i === 2)
+              return [
+                [key, 0.5],
+                [key, 0.5],
+              ];
+            return [[key, i === 8 ? 3 : 1]];
+          });
+        const intro: Fixture.Voice = [
+          [64, 1],
+          [62, 1],
+          [60, 3],
+        ];
+        let beat = 0;
+        const melody = [...intro, ...verse(false), ...verse(true)].map(([key, beats]) => {
+          const note = { key, start: beat * 384, end: (beat + beats) * 384, channel: 0 };
+          beat += beats;
+          return note;
+        });
+        const found = Score.findVerses(melody, 2);
+        expect(found.exact).toBe(false);
+        expect(found.spans.map((span) => span.start / 384)).toEqual([5, 16]);
+      }),
   );
 });
 

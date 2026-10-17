@@ -21,15 +21,16 @@ if (file === undefined || (level !== 'full' && level !== 'guitar')) {
 const program = Effect.gen(function* () {
   const bytes = yield* Effect.promise(() => Bun.file(file).bytes());
   const score = Score.fromMidi(yield* Midi.parse(bytes), Number(verses));
-  const { start, length, count, exact } = score.verses;
+  const { spans, exact } = score.verses;
+  const { start, end } = spans[0] ?? { start: 0, end: 0 };
   const bar = score.ticksPerBeat * score.beatsPerBar;
   yield* Effect.log(
     `key=${Chord.format({ root: 0, quality: score.key.minor ? 'm' : '' }, score.key)}`,
     `meter=${score.meter.numerator}/${score.meter.denominator}`,
     `intro=${start / bar} bars`,
-    `verses=${count}${exact ? '' : ' (inexact)'}`,
+    `verses=${spans.length}${exact ? '' : ' (inexact)'}`,
   );
-  const notes = Harmony.onNotes(score, start, start + length, level).map(({ note, changes }) => {
+  const notes = Harmony.onNotes(score, start, end, level).map(({ note, changes }) => {
     const chords = changes.map(
       (c) => `${c.offset > 0 ? '~' : ''}[${Chord.format(c.chord, score.key)}]`,
     );
