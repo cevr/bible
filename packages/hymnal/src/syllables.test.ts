@@ -102,3 +102,20 @@ describe('Syllables.split', () => {
       }),
   );
 });
+
+describe('Syllables.stresses', () => {
+  it.effect('marks stressed syllables from the dictionary, a stem, or a weak word', () =>
+    Effect.sync(() => {
+      expect(Syllables.stresses('afar,', 2)).toEqual([false, true]);
+      expect(Syllables.stresses('Alleluia!', 4)).toEqual([true, false, true, false]);
+      expect(Syllables.stresses('reigneth', 2)).toEqual([true, false]);
+      expect(Syllables.stresses('glorious', 3)).toEqual([true, false, false]);
+      expect([Syllables.stresses('the', 1), Syllables.stresses('Lord', 1)]).toEqual([
+        [false],
+        [true],
+      ]);
+      // Sung shorter than the dictionary has it: unknown.
+      expect(Syllables.stresses('glorious', 2)).toBeUndefined();
+    }),
+  );
+});

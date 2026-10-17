@@ -9,6 +9,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
+    "align": "bun scripts/align.ts",
     "chart": "bun scripts/chart.ts",
     "split": "bun scripts/split.ts"
   },

@@ -1,3 +1,4 @@
+export * as Align from './align.js';
 export * as Chord from './chord.js';
 export * as Harmony from './harmony.js';
 export * as Midi from './midi.js';

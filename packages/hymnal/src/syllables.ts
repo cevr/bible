@@ -122,6 +122,68 @@ export const counts = (token: string): readonly number[] => {
 };
 
 // ----------------------------------------------------------------------------
+// Stress
+// ----------------------------------------------------------------------------
+
+/** Words of one syllable spoken without stress: articles, prepositions, conjunctions, possessives. */
+const WEAK = new Set([
+  'a',
+  'an',
+  'the',
+  'of',
+  'to',
+  'in',
+  'on',
+  'at',
+  'by',
+  'for',
+  'with',
+  'from',
+  'as',
+  'and',
+  'but',
+  'or',
+  'nor',
+  'my',
+  'thy',
+  'his',
+  'her',
+  'its',
+  'our',
+  'your',
+  'their',
+]);
+
+/** Endings that add an unstressed syllable to a stem (reign-eth, glo-ri-fied). */
+const WEAK_ENDINGS = /(?:eth|est|ing|ness|less|ful|ly|er|ed)$/;
+
+/** Each syllable's stress as the dictionary marks it, when one of its entries has `count` vowels. */
+const marked = (word: string, count: number): readonly boolean[] | undefined => {
+  for (const key of [word, `${word}(2)`, `${word}(3)`, `${word}(4)`]) {
+    const digits = DICTIONARY[key]?.match(/\d/g);
+    if (digits?.length === count) return digits.map((digit) => digit !== '0');
+  }
+  return undefined;
+};
+
+/**
+ * Which of a token's syllables are stressed, sung in `count` syllables: from
+ * the dictionary, or a stem's and an unstressed ending's; undefined when
+ * neither knows the word in that many.
+ */
+export const stresses = (token: string, count: number): readonly boolean[] | undefined => {
+  const word = normal(token);
+  if (word === '' || count < 1) return undefined;
+  if (count === 1) return [!WEAK.has(word)];
+  const own = marked(word, count);
+  if (own !== undefined || !WEAK_ENDINGS.test(word)) return own;
+  const stem = word.replace(WEAK_ENDINGS, '');
+  const stems = [stem, `${stem}e`, stem.replace(/(.)\1$/, '$1'), stem.replace(/i$/, 'y')];
+  const found = stems.map((candidate) => marked(candidate, count - 1)).find((s) => s !== undefined);
+  return found === undefined ? undefined : [...found, false];
+};
+
+// ----------------------------------------------------------------------------
 // Cutting a word for print
 // ----------------------------------------------------------------------------
 
