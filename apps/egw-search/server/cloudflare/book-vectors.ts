@@ -8,7 +8,9 @@
  * under what identity, is the compiler's rule (`vectorDocument`,
  * `paragraphIdentity`), and the metadata is the filter's
  * (`vectorMetadata`): a book embedded here is indexed exactly as the
- * compiler would have indexed it.
+ * compiler would have indexed it, except for the apparatus (`isApparatus`):
+ * the web search never returns it, so this index leaves it out rather than
+ * store and bill for vectors no query reads.
  *
  * A page is one durable step of the sync's Workflow: one read, a few model
  * calls, one upsert. Upserting is idempotent by id, so a retried page writes
@@ -24,7 +26,7 @@ import * as SqlClient from 'effect/sql/SqlClient';
 
 import { paragraphIdentity } from '@bible/core/egw-db';
 import { type QueryEmbedderUnavailable, vectorDocument } from '@bible/core/search';
-import { EGW_SCOPE_AUTHORS } from '@bible/core/writings';
+import { APPARATUS_AUTHORS, APPARATUS_TYPES, EGW_SCOPE_AUTHORS } from '@bible/core/writings';
 
 import { vectorMetadata } from './vectorize.ts';
 
@@ -79,13 +81,14 @@ const Rows = Schema.Array(
   }),
 );
 
-const encodeAuthors = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.String)));
+const encodeNames = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.String)));
 
 /** One page of a book's vectors, from the row after `after`.
  *
  *  Rows come in `rowid` order, which is unique and is the order the install
- *  wrote them in. A book outside the vector scope (`EGW_SCOPE_AUTHORS`)
- *  reads no rows, so its first page is its last. */
+ *  wrote them in. A book outside the vector scope (`EGW_SCOPE_AUTHORS`), or
+ *  apparatus by its author or type (`isApparatus`), reads no rows, so its
+ *  first page is its last. */
 export const bookVectorsPage = Effect.fn('BookVectors.page')(function* (
   page: { readonly bookId: number; readonly after: number; readonly scope: BookVectorsScope },
   embed: (
@@ -95,7 +98,9 @@ export const bookVectorsPage = Effect.fn('BookVectors.page')(function* (
 ) {
   const sql = yield* SqlClient.SqlClient;
   const failed = (reason: string) => BookVectorsFailed.make({ bookId: page.bookId, reason });
-  const authors = encodeAuthors(EGW_SCOPE_AUTHORS);
+  const authors = encodeNames(EGW_SCOPE_AUTHORS);
+  const apparatusAuthors = encodeNames([...APPARATUS_AUTHORS]);
+  const apparatusTypes = encodeNames([...APPARATUS_TYPES]);
   // Two statements rather than one with the scope as a condition: SQLite
   // resolves every table a statement names when it prepares it, and a
   // corpus no recheck has written to has no `paragraph_changes`.
@@ -109,6 +114,8 @@ export const bookVectorsPage = Effect.fn('BookVectors.page')(function* (
           WHERE p.book_id = ${page.bookId}
             AND p.rowid > ${page.after}
             AND b.book_author IN (SELECT value FROM json_each(${authors}))
+            AND b.book_author NOT IN (SELECT value FROM json_each(${apparatusAuthors}))
+            AND (b.book_type IS NULL OR b.book_type NOT IN (SELECT value FROM json_each(${apparatusTypes})))
           ORDER BY p.rowid
           LIMIT ${BOOK_VECTORS_PAGE}
         `;
@@ -122,6 +129,8 @@ export const bookVectorsPage = Effect.fn('BookVectors.page')(function* (
           WHERE p.book_id = ${page.bookId}
             AND p.rowid > ${page.after}
             AND b.book_author IN (SELECT value FROM json_each(${authors}))
+            AND b.book_author NOT IN (SELECT value FROM json_each(${apparatusAuthors}))
+            AND (b.book_type IS NULL OR b.book_type NOT IN (SELECT value FROM json_each(${apparatusTypes})))
             AND COALESCE(p.para_id, p.ref_code) IN (
               SELECT COALESCE(c.para_id, c.ref_code) FROM paragraph_changes c
               WHERE c.book_id = p.book_id

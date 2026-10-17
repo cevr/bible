@@ -5,8 +5,6 @@ import type { NeighborScope } from '@bible/core/search';
 import { NO_FILTER, NO_SELECTION } from '@bible/core/writings';
 
 import {
-  encodeFilter,
-  FILTER_BUDGET,
   MAX_TOP_K,
   UNCLASSIFIED,
   vectorMetadata,
@@ -47,31 +45,9 @@ describe('vectorizeFilter', () => {
     expect(vectorizeFilter(scope({ filter }))['section']).toEqual({ $eq: '(none of these)' });
   });
 
-  test('excluding apparatus adds the apparatus types to the type excludes', () => {
-    const filter = {
-      ...NO_FILTER,
-      type: { include: [], exclude: ['periodical'] },
-      excludeApparatus: true,
-    } as const;
-    expect(vectorizeFilter(scope({ filter }))['type']).toEqual({
-      $nin: ['periodical', 'dictionary', 'topicalindex', 'scriptindex', 'bible'],
-    });
-  });
-
-  test('excluding apparatus excludes the books apparatus by author', () => {
+  test('excluding apparatus narrows nothing more: the index holds none', () => {
     const filter = { ...NO_FILTER, excludeApparatus: true } as const;
-    expect(vectorizeFilter(scope({ filter }), ['365N', 'GC-SG'])['book']).toEqual({
-      $nin: ['365N', 'GC-SG'],
-    });
-    expect(vectorizeFilter(scope(), ['365N'])['book']).toBeUndefined();
-  });
-
-  test('a book clause over the budget is left to the body join', () => {
-    const filter = { ...NO_FILTER, excludeApparatus: true } as const;
-    const many = Array.from({ length: 400 }, (_, index) => `BOOK${String(index)}`);
-    const narrowed = vectorizeFilter(scope({ filter }), many);
-    expect(narrowed['book']).toBeUndefined();
-    expect(encodeFilter(narrowed).length).toBeLessThanOrEqual(FILTER_BUDGET);
+    expect(vectorizeFilter(scope({ filter }))).toEqual(vectorizeFilter(scope()));
   });
 
   test('a subtype include keeps the corpus-level exclusion', () => {
@@ -112,28 +88,6 @@ describe('vectorizeNeighbors', () => {
         expect(found).toEqual({ ids: ['DA:1', 'DA:2'], scanned: 2, engine: 'vectorize' });
         expect(asked).toEqual([{ vector: [1, -2, 127], topK: MAX_TOP_K }]);
         expect(neighbors.state).toEqual({ _tag: 'ready', fingerprint: 'fp' });
-      }),
-    ));
-
-  test('filters by the apparatus books it is handed', () =>
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const filters: unknown[] = [];
-        const index: VectorizeQuery = {
-          query: (_vector, options) =>
-            Effect.runPromise(
-              Effect.sync(() => {
-                filters.push(options.filter);
-                return { matches: [] };
-              }),
-            ),
-        };
-        const filter = { ...NO_FILTER, excludeApparatus: true } as const;
-        yield* vectorizeNeighbors(index, 'fp', Effect.succeed(['DAPlan'])).nearest(
-          Int8Array.from([1]),
-          scope({ filter }),
-        );
-        expect(filters).toEqual([expect.objectContaining({ book: { $nin: ['DAPlan'] } })]);
       }),
     ));
 

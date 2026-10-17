@@ -30,10 +30,9 @@ import { RuntimeContext } from 'alchemy';
 import * as Cloudflare from 'alchemy/Cloudflare';
 import { Stage } from 'alchemy/Stage';
 import * as D1Client from '@effect/sql-d1/D1Client';
-import { Effect, Exit, Layer, Option, Scope, Stream } from 'effect';
+import { Effect, Layer, Option, Scope } from 'effect';
 
 import { EGWParagraphDatabase } from '@bible/core/egw-db';
-import { APPARATUS_AUTHORS } from '@bible/core/writings';
 import {
   MODEL_FINGERPRINT,
   QueryEmbedder,
@@ -104,37 +103,10 @@ const searchLayer = (bindings: Bindings) => {
       return SearchCorpusSources.of({ _tag: 'wired', sources: { paragraphs } });
     }),
   ).pipe(Layer.provide(EGWParagraphDatabase.layerExisting), Layer.provide(D1Atomic));
-  const neighbors = Layer.effect(
+  const neighbors = Layer.succeed(
     VectorNeighbors,
-    Effect.gen(function* () {
-      const paragraphs = yield* EGWParagraphDatabase;
-      // The books apparatus by author, which the vectors' metadata cannot name
-      // (`vectorizeFilter`). Read once an hour per isolate; a failed read is
-      // read again on the next search, which meanwhile filters only by the
-      // bodies it joins.
-      const read = yield* Effect.cachedWithTTL(
-        Stream.fromIterable(APPARATUS_AUTHORS).pipe(
-          Stream.flatMap((author) => paragraphs.getBooksByAuthor(author)),
-          Stream.map((book) => book.book_code),
-          Stream.runCollect,
-        ),
-        (exit) => {
-          if (Exit.isSuccess(exit)) return '1 hour';
-          return 0;
-        },
-      );
-      const apparatusBooks = read.pipe(
-        Effect.catch((error) =>
-          Effect.logWarning('search.apparatusBooks.unavailable', error).pipe(
-            Effect.as<readonly string[]>([]),
-          ),
-        ),
-      );
-      return VectorNeighbors.of(
-        vectorizeNeighbors(bindings.vectors, MODEL_FINGERPRINT, apparatusBooks),
-      );
-    }),
-  ).pipe(Layer.provide(EGWParagraphDatabase.layerExisting), Layer.provide(D1Atomic));
+    VectorNeighbors.of(vectorizeNeighbors(bindings.vectors, MODEL_FINGERPRINT)),
+  );
   const embedder = Layer.succeed(
     QueryEmbedder,
     QueryEmbedder.of(

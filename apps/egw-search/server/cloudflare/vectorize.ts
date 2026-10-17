@@ -8,15 +8,19 @@
  *
  * **The filter is pushed into the query.** The flat scan narrows by skipping
  * whole books; Vectorize narrows by metadata, so the search's filter becomes a
- * metadata filter over the four indexed properties. The metadata carries no
- * author, so the apparatus books named by author (`APPARATUS_AUTHORS`) are
- * excluded by code, read from the corpus. The two must admit the same books, because the vector leg returns at most `MAX_TOP_K` neighbors and
- * a filter applied afterwards would leave a narrowed search with none. The
- * search still filters the bodies it joins (`vectorOnlyBodies`), so a filter
- * this module gets wrong costs recall, never correctness.
+ * metadata filter over the four indexed properties. The two must admit the
+ * same books, because the vector leg returns at most `MAX_TOP_K` neighbors
+ * and a filter applied afterwards would leave a narrowed search with none.
+ * The search still filters the bodies it joins (`vectorOnlyBodies`), so a
+ * filter this module gets wrong costs recall, never correctness.
+ *
+ * **The index holds no apparatus** (`isApparatus`): the web search never
+ * returns it, so its vectors would only add to what the index stores and
+ * every query is billed for (`./book-vectors.ts` leaves it out). So the
+ * filter has nothing to say about `excludeApparatus`.
  */
 
-import { Array as Arr, Effect, Option, Record as Rec, Schema } from 'effect';
+import { Array as Arr, Effect, Option, Record as Rec } from 'effect';
 
 import {
   type NeighborScope,
@@ -24,7 +28,6 @@ import {
   VectorNeighborsUnavailable,
 } from '@bible/core/search';
 import {
-  APPARATUS_TYPES,
   EXCLUDED_SUBTYPES,
   isBookSubtype,
   isBookType,
@@ -87,51 +90,26 @@ const axis = (include: readonly string[], exclude: ReadonlySet<string>): Option.
 const union = (left: readonly string[], right: Iterable<string>): ReadonlySet<string> =>
   new Set([...left, ...right]);
 
-/** The most bytes a filter's compact JSON may take: Vectorize refuses a
- *  query whose filter is longer. */
-export const FILTER_BUDGET = 2048;
-
-/** A filter as the compact JSON Vectorize measures. */
-export const encodeFilter = Schema.encodeSync(
-  Schema.fromJsonString(
-    Schema.Record(
-      Schema.String,
-      Schema.Record(Schema.String, Schema.Union([Schema.String, Schema.Array(Schema.String)])),
-    ),
-  ),
-);
-
 /** The search's scope as the metadata filter that admits the same books.
  *
  *  A book wins outright, as it does for the flat scan. Otherwise each axis
- *  applies its signed selection; the corpus-level subtype exclusion always
- *  holds, and `excludeApparatus` adds the apparatus types to the type axis and
- *  `apparatusBooks`, the books apparatus by author, to the book axis. A book
- *  clause that would take the filter over `FILTER_BUDGET` is left out: the
- *  bodies the search joins still drop those books. */
-export const vectorizeFilter = (
-  scope: NeighborScope,
-  apparatusBooks: readonly string[] = [],
-): MetadataFilter => {
+ *  applies its signed selection, and the corpus-level subtype exclusion
+ *  always holds. */
+export const vectorizeFilter = (scope: NeighborScope): MetadataFilter => {
   if (Option.isSome(scope.bookCode)) {
     return Rec.singleton('book', { $eq: scope.bookCode.value });
   }
   const filter = scope.filter;
-  const apparatus = [...APPARATUS_TYPES].filter(() => filter.excludeApparatus);
   const clauses: ReadonlyArray<readonly [string, Option.Option<Clause>]> = [
     ['section', axis(filter.section.include, new Set(filter.section.exclude))],
-    ['type', axis(filter.type.include, union(filter.type.exclude, apparatus))],
+    ['type', axis(filter.type.include, new Set(filter.type.exclude))],
     ['subtype', axis(filter.subtype.include, union(filter.subtype.exclude, EXCLUDED_SUBTYPES))],
   ];
-  const narrowed: MetadataFilter = Object.fromEntries(
+  return Object.fromEntries(
     Arr.flatMap(clauses, ([name, clause]) =>
       Option.match(clause, { onNone: () => [], onSome: (value) => [[name, value] as const] }),
     ),
   );
-  if (!filter.excludeApparatus || apparatusBooks.length === 0) return narrowed;
-  const withBooks = Rec.set(narrowed, 'book', { $nin: [...apparatusBooks] });
-  if (encodeFilter(withBooks).length > FILTER_BUDGET) return narrowed;
-  return withBooks;
 };
 
 /** The part of the Vectorize binding the vector leg uses. */
@@ -153,10 +131,6 @@ export interface VectorizeQuery {
  *  index holds no record of it, so the deploy states it, and the search
  *  compares it with the embedder's as it does for a `.bvi` file.
  *
- *  `apparatusBooks` is the codes of the books apparatus by author, read from
- *  the corpus (`vectorizeFilter`). The caller caches it: the books change only
- *  with a sync.
- *
  *  The query vector goes up as its int8 components, as the stored vectors
  *  did. Cosine ignores the query's scale, so the rescored order differs from
  *  the flat scan's int8 dot product only by the small spread in the stored
@@ -164,24 +138,20 @@ export interface VectorizeQuery {
 export const vectorizeNeighbors = (
   index: VectorizeQuery,
   fingerprint: string,
-  apparatusBooks: Effect.Effect<readonly string[]> = Effect.succeed([]),
 ): VectorNeighborsApi => ({
   state: { _tag: 'ready', fingerprint },
   nearest: (vector, scope) =>
-    apparatusBooks.pipe(
-      Effect.flatMap((books) =>
-        Effect.tryPromise({
-          try: () =>
-            index.query(Array.from(vector), {
-              topK: Math.min(scope.topK, MAX_TOP_K),
-              filter: vectorizeFilter(scope, books),
-              returnValues: true,
-              returnMetadata: 'none',
-            }),
-          catch: (cause) =>
-            VectorNeighborsUnavailable.make({ engine: 'vectorize', reason: String(cause) }),
+    Effect.tryPromise({
+      try: () =>
+        index.query(Array.from(vector), {
+          topK: Math.min(scope.topK, MAX_TOP_K),
+          filter: vectorizeFilter(scope),
+          returnValues: true,
+          returnMetadata: 'none',
         }),
-      ),
+      catch: (cause) =>
+        VectorNeighborsUnavailable.make({ engine: 'vectorize', reason: String(cause) }),
+    }).pipe(
       Effect.map((answer) => ({
         ids: answer.matches.map((match) => match.id),
         // An approximate index cannot say how many vectors it considered;
