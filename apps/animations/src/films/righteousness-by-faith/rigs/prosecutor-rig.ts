@@ -1,9 +1,10 @@
 // The prosecutor as a Rive rig, on the cold-studies generator's parts, in
 // the kept concept's (`cold-34`) proportions and shading: tall and narrow,
-// a large rounded-rectangle head turned three-quarters toward screen left
-// (his features and chin carried left, his ear behind them), short black
-// hair with a side part capping it, one ink line round head, hair and ear
-// together (`silhouette`), the concept's peach skin, a long narrow olive
+// a large rounded block of a head turned three-quarters toward screen left
+// and canted, its jaw one curve into a broad chin, short black hair peaked in
+// a tuft over his brow, his head and hair traced from the concept
+// (`traced.ts`), one ink line round head, hair and ear together
+// (`silhouette`), the concept's peach skin, a long narrow olive
 // robe a little wider at the hem, dark shoes under it; the face kit at his
 // size. His circle hands are the hand rig's (`hand-rig.ts`), drawn by the host where
 // they work (laying a sheet on the stack, thrown up on `cover`).
@@ -32,7 +33,8 @@ import {
 } from '../../cold-studies/looks/rive/parts.ts';
 import { el } from '../../cold-studies/looks/rive/rml.ts';
 import { PAPERS, looked } from './papers.ts';
-import { capOutline, headOutline, roundedPolygon, shifted, shoeOutline, streak } from './shapes.ts';
+import { roundedPolygon, shifted, shoeOutline } from './shapes.ts';
+import { PROSECUTOR_HEAD, PROSECUTOR_HAIR } from './traced.ts';
 
 /**
  * His measures, units, as the concept measures them against his head's
@@ -49,46 +51,38 @@ export const PROSECUTOR = {
 } as const;
 
 /**
- * His head's squareness and turn: a rounded rectangle whose sides draw in to
- * an angular jaw, the chin carried toward screen left and the jaw rising
- * toward his ear on the far side.
- */
-const SQUARE = { power: 3, jaw: 0.4, chin: 0.6, turn: 0.22, back: 0.2 } as const;
-
-/**
  * His head as cold-34 sets it on his robe: canted, radians, its crown toward
- * screen right and its chin toward the dock, and carried right of the robe's
- * middle, units, so the chin sits over the robe's top.
+ * screen right and its chin toward the dock (the slope of its eyes there), and
+ * carried right of the robe's middle, units, so the chin sits over the robe's
+ * top.
  */
-const SET = { cant: 0.12, x: 8 } as const;
+const SET = { cant: 0.22, x: 8 } as const;
 
-/** His ear, behind his features on the far side, from his head's centre: centre and half-sizes, units. */
-const EAR = { x: 57, y: 23, rx: 13, ry: 15.5 } as const;
-
-/** How far his features sit toward screen left of his head's centre, units: his head turned three-quarters. */
-const TURNED = -14;
+/** His ear, behind his features on the far side, where cold-34 cuts it: centre and half-sizes, units. */
+const EAR = { x: 53, y: 17.5, rx: 10, ry: 16.5 } as const;
 
 /** The artboard, and where his feet stand on it. */
 export const PROSECUTOR_ART = { width: 360, height: 640, feet: [180, 610] } as const;
 
 /**
- * The face kit's scale on his head, how far below its middle it sits, and
- * its marks as the concept draws them (against his head's width): eyes 0.07
- * across and 0.12 high at the head's middle, 0.22 apart; heavy brows 0.17
- * above them; the mouth 0.37 below.
+ * The face kit on his head: how far toward screen left of the head's middle
+ * it sits (his head turned three-quarters), its scale, how far below the
+ * middle; and its marks where cold-34 draws them once his eyes are on the
+ * dock: eyes 0.07 across and 0.11 high, 0.18 apart; heavy brows 0.12 above
+ * them, the far one nearer the middle; the mouth 0.25 below them.
  */
 export const PROSECUTOR_FACE = {
-  x: TURNED,
+  x: -10.5,
   scale: 1.35,
-  y: 10,
+  y: 10.5,
   shape: {
-    eye: [7.9, 12.8],
-    eyes: [-11.6, 11.6],
-    brows: [-12, 12],
-    browY: -24,
+    eye: [8.45, 14.1],
+    eyes: [-10.9, 10.9],
+    brows: [-14, 10.3],
+    browY: -22.3,
     browHalf: 7.2,
     brow: 3.8,
-    mouth: [0, 30],
+    mouth: [0, 26.5],
   },
 } as const;
 
@@ -141,42 +135,22 @@ export const ROBE = roundedPolygon(
 /** His shoes, as cold-34 cuts them: 0.49 of his head's width across under their ink, set under the hem's corners, the toes out. */
 const SHOE = { x: 60, w: 58, h: 28 } as const;
 
-/**
- * Short black hair capping his turned head: close over the crown, fuller
- * over the back of his head and down behind his ear, straight across his
- * brow, a forelock where the part lifts it.
- */
-const HAIR = capOutline(PROSECUTOR.head.rx, PROSECUTOR.head.ry, {
-  power: SQUARE.power,
-  loft: 0.03,
-  back: 0.1,
-  front: 0.55,
-  rear: 0.12,
-  line: 0.5,
-  temple: 0.6,
-  nape: 0.1,
-  forelock: 0.08,
-});
+/** The light on his tuft, where the window catches it in cold-34 (#5e4a47 there): soft, fading into the black. */
+const TUFT = [{ pts: ellipse(-46, -63, 12, 7, 14), color: '#5e4a47', soft: true }] as const;
 
 /**
- * The light the part lifts, as cold-34 draws it: a lighter band along the
- * lock swept up from his forelock over the crown, and a crisp streak at its
- * edge.
+ * Over his skin: the shade his hair lays on his brow (its own outline a
+ * little lower, twice, fading), and the warm blush on his far cheek beside
+ * his ear (cold-34 #ef9c74).
  */
-const SHEEN = [
-  { pts: streak([-52, -42], [-28, -64], [8, -62], 12), color: '#5a4644', alpha: 0.6 },
-  { pts: streak([-50, -45], [-26, -62], [6, -60], 3.5), color: '#6c5352' },
-] as const;
-
-/** The shade his hair lays on his brow: its own outline a little lower, twice, fading. */
-const UNDER_HAIR = [
-  { pts: shifted(HAIR, 0, 2.5), color: '#ec9a77', alpha: 0.8 },
-  { pts: shifted(HAIR, 0, 5), color: '#ec9a77', alpha: 0.4 },
+const SKIN_TONES = [
+  { pts: shifted(PROSECUTOR_HAIR, 0, 2.5), color: '#ec9a77', alpha: 0.8 },
+  { pts: shifted(PROSECUTOR_HAIR, 0, 5), color: '#ec9a77', alpha: 0.4 },
+  { pts: ellipse(34, 18, 12, 9, 14), color: '#ec9672', alpha: 0.7, soft: true },
 ] as const;
 
 export const prosecutorRig = (fig: Figure) => {
   const { head } = PROSECUTOR;
-  const skin = looked(PAPERS.skin);
   const headNode = el('Node', { y: PROSECUTOR.neck, name: 'neck', id: fig.idOf('neck') }, [
     el('Node', { name: 'head', id: fig.idOf('head') }, [
       fig.bind('tilt', KEY.rotation),
@@ -190,7 +164,7 @@ export const prosecutorRig = (fig: Figure) => {
               look: looked(PAPERS.ear),
               boil: 0.6,
             },
-            { key: 'hair', pts: HAIR, look: looked(PAPERS.darkHair, { tones: SHEEN }) },
+            { key: 'hair', pts: PROSECUTOR_HAIR, look: looked(PAPERS.darkHair, { tones: TUFT }) },
             el(
               'Node',
               {
@@ -218,8 +192,8 @@ export const prosecutorRig = (fig: Figure) => {
             ),
             {
               key: 'headPaper',
-              pts: headOutline(head.rx, head.ry, SQUARE),
-              look: { ...skin, tones: UNDER_HAIR },
+              pts: PROSECUTOR_HEAD,
+              look: looked(PAPERS.prosecutorSkin, { tones: SKIN_TONES }),
             },
           ]),
         ]),
@@ -240,7 +214,7 @@ export const prosecutorRig = (fig: Figure) => {
         fig,
         `shoe${x < 0 ? 'L' : 'R'}`,
         shifted(shoeOutline(SHOE.w, SHOE.h, x < 0 ? -1 : 1), x, 0),
-        looked(PAPERS.shoe),
+        looked(x < 0 ? PAPERS.shoe : PAPERS.farShoe),
         {
           boil: 0.6,
         },

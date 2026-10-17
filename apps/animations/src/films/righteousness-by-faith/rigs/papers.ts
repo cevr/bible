@@ -32,23 +32,33 @@ const paperOf = (base: Hex): Paper => {
 
 /**
  * The concept's rim, units: about 0.04 of a head's width, the light band
- * just inside the outline on the side facing the window.
+ * just inside the outline on the side facing the window (cold-34's faces
+ * and robes: 6 px wide, #fbd0b3 on #f8b48a skin, #96825e on #817154 olive).
  */
 const RIM = 5.5;
 
 /**
  * The concept's turns, sampled on its pieces: a face shades only its far
- * side, its edge a little soft and leaning (about 30° off upright); a robe
- * turns sharply nearer upright (about 13°); the judge's robe darkens across
- * its whole width; a hand only at its far edge; the lead's sheet turns its
- * head and tunic sharply at the light's own angle.
+ * side, its edge a little soft and leaning (about 30° off upright); the
+ * prosecutor's and the judge's faces each in one broad band from the temple
+ * to the jaw, where cold-34 lays it on each (their heads' boxes, in their
+ * skull frames: the prosecutor's 11° off upright, 10 px soft; the judge's
+ * 20°, 6 px soft), and the lead's head cut straight across its far side
+ * (27°, 7 px soft); a robe turns sharply nearer upright (about 13°); the
+ * judge's robe darkens across its whole width; a hand only at its far edge;
+ * the lead's sheet turns his tunic sharply at the light's own angle.
  */
 const TURN = {
   face: { at: 0.72, soft: 0.06, toward: 0.5 },
+  prosecutorFace: { at: 0.697, soft: 0.066, toward: 0.185 },
+  judgeFace: { at: 0.686, soft: 0.04, toward: 0.352 },
   robe: { at: 0.55, soft: 0.01, toward: 0.23 },
   wideRobe: { at: 0.55, soft: 0.5, toward: 0.2 },
   hand: { at: 0.75, soft: 0.06 },
   sheet: { at: 0.64, crescent: 0.45 },
+  leadHead: { at: 0.648, soft: 0.037, toward: 0.464 },
+  shoe: { at: 0.4, soft: 0.04, toward: -0.7 },
+  farShoe: { at: 0.3, soft: 0.04, toward: -0.7 },
   whiteRobe: { at: 0.72, soft: 0.02, toward: 0.2 },
 } as const satisfies Record<string, Crease>;
 
@@ -56,10 +66,32 @@ const TURN = {
 export const PAPERS = {
   /** The plain lead's one paper: head, tunic, legs and hands, a lilac white as cold-34 paints him in the room, his shade a clear violet, his rim near white. */
   lead: { color: '#ece7fa', shade: '#c9bcf2', light: '#fffffb', crease: TURN.sheet, rim: RIM },
+  /** The lead's head: his paper, its shade cut straight across the far side as cold-34 cuts it (27° off upright). */
+  leadHead: {
+    color: '#ece7fa',
+    shade: '#c9bcf2',
+    light: '#fffffb',
+    crease: TURN.leadHead,
+    rim: RIM,
+  },
   /** The white tunic the lead is given (`court.back`). */
   robe: { ...paperOf('#fcfbfc'), crease: TURN.sheet, rim: RIM },
-  /** Skin, as cold-34 paints the prosecutor's and the judge's faces: warm peach, its shade rosier and barely darker. */
-  skin: { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6', crease: TURN.face, rim: RIM },
+  /** Skin, as cold-34 paints the prosecutor's face: warm peach, its shade rosier and barely darker. */
+  prosecutorSkin: {
+    color: '#f7b284',
+    shade: '#f0a27c',
+    light: '#fbd2b6',
+    crease: TURN.prosecutorFace,
+    rim: RIM,
+  },
+  /** The judge's face: the same peach, turned in his own band. */
+  judgeSkin: {
+    color: '#f7b284',
+    shade: '#f0a27c',
+    light: '#fbd2b6',
+    crease: TURN.judgeFace,
+    rim: RIM,
+  },
   /** An ear: flat skin, a touch deeper than the lit face, no crease and no rim (cold-34 samples it #f4a880 to #f7b386). */
   ear: { color: '#f4aa80', light: '#f4aa80' },
   /** Christ's ear, on his head's far side: flat, in the shade's warmth (court-12). */
@@ -96,8 +128,15 @@ export const PAPERS = {
   },
   /** Sandals: a leather brown. */
   sandal: { color: '#955b3a', shade: '#7c4a30', light: '#a86c48' },
-  /** Shoes, as cold-34 paints the prosecutor's: a warm brown leather, its far edge a deeper brown, no rim. */
-  shoe: { color: '#604940', shade: '#4d3a37', light: '#604940', crease: TURN.hand },
+  /**
+   * Shoes, as cold-34 paints the prosecutor's: a warm brown leather lit on
+   * its left, toward the window (#765949 there), the rest a deeper brown
+   * (#5c463e); the near shoe lit over two fifths of it, a 6 px rim of
+   * #9d7559 down its left curve; the far one all in the deeper brown, lit
+   * only by a fainter rim at its left edge (#6a4f44, 4 px).
+   */
+  shoe: { color: '#765949', shade: '#5c463e', light: '#9d7559', crease: TURN.shoe, rim: RIM },
+  farShoe: { color: '#5c463e', shade: '#5c463e', light: '#6a4f44', crease: TURN.farShoe, rim: 4 },
   /** The judge's bands: a warm white linen, flat (cold-34 samples #fcf4ec), no rim. */
   bands: { color: '#fcf4ec', light: '#fcf4ec' },
 } as const satisfies Record<string, Paper>;

@@ -165,3 +165,7 @@ round 6: ears drew a light rim inside the outline (owner: "an inner border"); co
 ## 2026-10-17T23:04:58Z · cold
 
 round 7 at 3.87 s against cold-34, in head heights: prosecutor hair-to-sole 3.29 (concept 3.31), robe widths within 3% from 1.1h to 3.05h, shoes now a dome whose visible top is 0.8 of the sole (concept 0.77), 0.455h across (0.444-0.451), 0.70h apart (0.69); judge robe edge within 0.03h out to 0.8h, the far shoulder drops 0.1-0.19h later at its steep end; bands 0.30h long (0.31), widths within 4%; lead tunic 0.98h at 2.0h (0.98), 0.76h at 1.3h (0.79).
+
+## 2026-10-17T23:50:45Z · cold
+
+round 8 against cold-34: the concept's faces do carry a 6 px light rim (ours matches it); its eyes are 1.08x round 7's, not 1.2-1.3x; the prosecutor's and judge's heads traced from it overlay their silhouettes; the lead's head/hem is 1.010 against 1.020; the near shoe's rim reads 125 luma against 124, its mid 95 against 97, the far shoe 76 and 85 against 77 and 85; the judge's far robe edge lies within 2 px of the concept's from shoulder to bench; the shoe's one rim also lights the left half of its sole, which the concept leaves unlit.

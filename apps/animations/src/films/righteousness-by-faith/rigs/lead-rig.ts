@@ -62,20 +62,24 @@ export const LEAD_ART = { width: 360, height: 470, feet: [180, 440] } as const;
 
 /**
  * The face kit's scale on his head, and its marks as his sheet draws them
- * (`1-the-lead-sheet`, by its head's width): tall oval eyes 0.07 across and
- * 0.14 high, 0.30 apart, at the head's middle; short thin brows 0.13 long,
- * 0.25 above it; the mouth a quarter of its width below it.
+ * (`1-the-lead-sheet`, by its head's width) at cold-34's size: tall oval
+ * eyes 0.09 across and 0.17 high, 0.30 apart, at the head's middle; short
+ * brows 0.13 long and 0.04 thick, 0.25 above it; the mouth a quarter of its
+ * width below it. His face is drawn on a flat round, so it turns by its
+ * marks alone: they slide up to 0.11 of the head across toward what he
+ * watches (`turn`), as cold-34 carries them toward the bench.
  */
 export const LEAD_FACE = {
   scale: 1.75,
   y: 12,
   shape: {
-    eye: [7.3, 13.2],
+    eye: [7.9, 13.9],
     eyes: [-14.2, 15.2],
     brows: [-15.2, 16.2],
     browY: -29.9,
     browHalf: 5.3,
-    brow: 2.3,
+    brow: 3.15,
+    turn: 9.2,
   },
 } as const;
 
@@ -104,7 +108,13 @@ export const LEAD_FACE_CHECK = { node: 'face', height: 2 * LEAD.head.r } as cons
 /** The view model's property keys (`rive schema`). */
 const KEY = { y: 14, rotation: 15, opacity: 18 } as const;
 
-/** The tunic: narrow at the neck (0.62 of his head across), wide at the hem, its corners rounded. */
+/**
+ * How far the tunic's sides bow out at their middle, units: cold-34 widens
+ * it fast below the shoulders and slower to the hem.
+ */
+const BOW = 4;
+
+/** The tunic: narrow at the neck (0.62 of his head across), wide at the hem, its sides bowed out, its corners rounded. */
 export const TUNIC = roundedPolygon(
   [
     [-41, LEAD.neck],
@@ -113,7 +123,10 @@ export const TUNIC = roundedPolygon(
     [-75, LEAD.hem],
   ],
   22,
-);
+).map(([x, y]): Pt => {
+  const t = (y - LEAD.neck) / (LEAD.hem - LEAD.neck);
+  return t > 0 && t < 1 ? [x + Math.sign(x) * BOW * Math.sin(Math.PI * t), y] : [x, y];
+});
 
 /** His legs, as cold-34 stands them under the hem: each 28 units across, their inner edges all but touching, their feet round. */
 const LEGS = { x: 23.5, r: 14 } as const;
@@ -168,7 +181,12 @@ export const leadRig = (fig: Figure) => {
             fig.bind('faceY', KEY.y),
             faceKit(fig, { x: 0, y: LEAD_FACE.y, scale: LEAD_FACE.scale }, LEAD_FACE.shape),
           ]),
-          piece(fig, 'headPaper', ellipse(0, 0, LEAD.head.r, LEAD.head.r - 1, 22), lead),
+          piece(
+            fig,
+            'headPaper',
+            ellipse(0, 0, LEAD.head.r, LEAD.head.r - 1, 22),
+            looked(PAPERS.leadHead),
+          ),
         ]),
       ]),
     ]),
