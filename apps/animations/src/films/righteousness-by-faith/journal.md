@@ -157,3 +157,7 @@ luma per mark, round 5 against the kept panels (full frame, panels cropped y 63-
 ## 2026-10-16T19:30:08Z · film
 
 figures.riv at 955 KB (round 3: 415 KB) on this Mac: a look of cold takes 0.96 s cold, 0.50-0.54 s warm (round-3 rig 0.93, 0.46-0.49); a cold+title render takes 13.0 s, draw 32.0 ms a frame, 4.4 s from pages open to the first frames (round-3 rig 12.3 s, 28.3 ms, 4.4 s): single runs.
+
+## 2026-10-17T22:14:56Z · cold
+
+round 6: ears drew a light rim inside the outline (owner: "an inner border"); cold-34's ears are flat skin #f4a880-#f7b386 with no rim; with the rim on the silhouette's backmost part only and the ear flat #f4aa80, the prosecutor's ear measures #f4a87b (luma 185), no border; cold-studies riv byte-identical.
