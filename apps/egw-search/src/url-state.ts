@@ -24,7 +24,6 @@ import {
   BookType,
   CorpusScope,
   CorpusSection,
-  DEFAULT_LIMIT,
   NO_SELECTION,
   type SearchRequest,
   type Signed,
@@ -67,6 +66,8 @@ export const cycle = <A>(selection: Selection<A>, value: A): Selection<A> => {
   if (next === 'include') return { ...without, include: [...without.include, value] };
   return { ...without, exclude: [...without.exclude, value] };
 };
+
+export const DEFAULT_LIMIT = 40;
 
 /** How many rows a pane asks for: a whole number from 1 to 100. A value that
  *  is not a number, or truncates to below 1, reads as the default. */

@@ -17,7 +17,6 @@ import { SearchQuery, SearchService, type SearchResult } from '@bible/core/searc
 import type { CorpusFilter } from '@bible/core/writings';
 
 import {
-  DEFAULT_LIMIT,
   readerUrl,
   SearchFailed,
   type SearchRequest,
@@ -26,6 +25,7 @@ import {
 } from './api.js';
 import { emptySurrounding, surroundingParagraphs, type Surrounding } from './context.js';
 
+const DEFAULT_LIMIT = 40;
 const MAX_LIMIT = 100;
 const DEFAULT_CONTEXT = 1;
 const MAX_CONTEXT = 3;

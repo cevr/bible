@@ -8,7 +8,7 @@
  * something that has to close over a captured runtime.
  */
 
-import { type Array as Arr, Schema as S } from 'effect';
+import { Schema as S } from 'effect';
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from 'effect/http-api';
 
 import {
@@ -47,31 +47,6 @@ export {
   Signed,
   SignedFromStrings,
 };
-
-/** Rows a search asks for when it names no limit: the page's default, and
- *  the server's for a request that leaves it out. */
-export const DEFAULT_LIMIT = 40;
-
-/** Paragraphs the page fetches on each side of a match, which is not the
- *  number it shows.
- *
- *  One neighbour is usually the sentence that makes the hit land; more turns
- *  the results page into a reader. So the page renders one and keeps the rest
- *  for its expand control: fetching the full radius up front means "show
- *  more" is instant and costs no second request. The server caps this at
- *  three regardless. */
-export const PAGE_CONTEXT = 3;
-
-/** The searches the empty page offers. The search Worker runs them on a
- *  schedule too (`./cloudflare/warm.ts`), so the corpus a click reaches is
- *  warm. */
-export const EXAMPLE_QUERIES: Arr.NonEmptyReadonlyArray<string> = [
-  'walk through the fire',
-  'time of trouble',
-  'latter rain',
-  'the shaking',
-  'loud cry',
-];
 
 /** One paragraph of context around a hit.
  *
@@ -171,7 +146,7 @@ export const SearchRequest = S.Struct({
   excludeApparatus: S.Boolean,
   limit: S.Finite,
   /** Paragraphs fetched on each side of a hit. A rendering choice the caller
-   *  supplies, not search state; see `PAGE_CONTEXT`. */
+   *  supplies, not search state; see `CONTEXT` in `../src/app.tsx`. */
   context: S.Finite,
 });
 export type SearchRequest = S.Schema.Type<typeof SearchRequest>;

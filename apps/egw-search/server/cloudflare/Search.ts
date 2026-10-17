@@ -18,9 +18,7 @@
  * makes it on the Bun server.
  *
  * The vector leg is ready from the first request: nothing is read into
- * memory, so `/health` always says `ready`. What is cold after an idle spell
- * is D1 and Vectorize themselves, so the Worker runs one of the page's
- * example searches every minute (`./warm.ts`).
+ * memory, so `/health` always says `ready`.
  *
  * Where `prod` is served from follows `SERVED_FROM` (`./site.ts`). Any other
  * stage is a throwaway copy on a generated `workers.dev` name over the same
@@ -52,7 +50,6 @@ import { Corpus, SyncReports, Vectors } from './resources.ts';
 import { DOMAIN, SERVED_FROM, type ServedFrom, WORKER_NAME } from './site.ts';
 import { nameOfKey, type ReportStore, type StoredFile, syncRoutes } from './sync-pages.ts';
 import { vectorizeNeighbors, type VectorizeQuery } from './vectorize.ts';
-import { WARM_SCHEDULE, warmSearch } from './warm.ts';
 import { EMBEDDING_MODEL, workersAiEmbedder } from './workers-ai.ts';
 
 const ASSETS = {
@@ -195,39 +192,24 @@ export default class Search extends Cloudflare.Worker<Search>()(
         ),
     };
     // The constructor also runs at deploy time, to collect the bindings, and
-    // the handles are empty then. So the search is built on the first request
-    // or warm-up, once per isolate, in a scope that lives as long as the
-    // isolate does; the requests and the warm-ups share it.
+    // the handles are empty then. So the app is built on the first request,
+    // once per isolate, in a scope that lives as long as the isolate does.
     const scope = yield* Scope.make();
-    const services = yield* Effect.cached(
+    const app = yield* Effect.cached(
       Effect.gen(function* () {
         const bindings: Bindings = {
           corpus: yield* corpus.raw,
           vectors: yield* vectors.raw,
           ai,
         };
-        return yield* Layer.buildWithScope(searchLayer(bindings), scope);
-      }),
-    );
-    const app = yield* Effect.cached(
-      Effect.gen(function* () {
-        const search = Layer.succeedContext(yield* services);
         const api = HttpApiBuilder.layer(SearchApi).pipe(
-          Layer.provide(SearchGroupLive.pipe(Layer.provide(search))),
+          Layer.provide(SearchGroupLive.pipe(Layer.provide(searchLayer(bindings)))),
           Layer.provide(Layer.mergeAll(Etag.layer, HttpPlatform.layer)),
         );
         return yield* HttpRouter.toHttpEffect(Layer.mergeAll(api, syncRoutes(store))).pipe(
           Scope.provide(scope),
         );
       }),
-    );
-    yield* Cloudflare.Workers.cron(WARM_SCHEDULE, (controller) =>
-      services.pipe(
-        Effect.flatMap((context) =>
-          warmSearch(controller.scheduledTime).pipe(Effect.provide(context)),
-        ),
-        Effect.catchCause((cause) => Effect.logWarning('search.warm.failed', cause)),
-      ),
     );
     return { fetch: Effect.flatten(app) };
   }).pipe(
@@ -237,7 +219,6 @@ export default class Search extends Cloudflare.Worker<Search>()(
         Cloudflare.Vectorize.SearchIndexBinding,
         Cloudflare.Workers.AIBinding,
         Cloudflare.R2.ReadBucketBinding,
-        Cloudflare.Workers.CronEventSourceLive,
       ),
     ),
   ),

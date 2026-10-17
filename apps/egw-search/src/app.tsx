@@ -43,8 +43,6 @@ import {
   type BookType,
   type CorpusScope,
   type CorpusSection,
-  EXAMPLE_QUERIES,
-  PAGE_CONTEXT,
   SELECTABLE_SUBTYPES,
   type SearchResponse,
 } from '../server/api.js';
@@ -102,9 +100,25 @@ const useWorkspace = (): WorkspaceState => {
   };
 };
 
-/** Paragraphs shown on each side before the reader asks for more; the page
- *  fetches `PAGE_CONTEXT`. */
+/** Paragraphs *fetched* on each side of a match, which is not the number shown.
+ *
+ *  One neighbour is usually the sentence that makes the hit land; more turns the
+ *  results page into a reader. So the page renders {@link CONTEXT_SHOWN} and
+ *  keeps the rest for the expand control — fetching the full radius up front
+ *  means "show more" is instant and costs no second request. The server caps
+ *  this at `MAX_CONTEXT` (3) regardless. */
+const CONTEXT = 3;
+
+/** Paragraphs shown on each side before the reader asks for more. */
 const CONTEXT_SHOWN = 1;
+
+const EXAMPLES: readonly string[] = [
+  'walk through the fire',
+  'time of trouble',
+  'latter rain',
+  'the shaking',
+  'loud cry',
+];
 
 // ---------------------------------------------------------------------------
 // The filter vocabulary, as the UI labels it
@@ -269,7 +283,7 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
     const key = requestKey();
     attempt();
     if (!ready || key === '') return IDLE;
-    const request = toRequest(untrack(params), PAGE_CONTEXT);
+    const request = toRequest(untrack(params), CONTEXT);
     const known = remembered(request);
     if (Option.isSome(known)) return { _tag: 'Ready', response: known.value };
     const controller = new AbortController();
@@ -744,7 +758,7 @@ const Empty = () => {
         when={narrowed()}
         fallback={
           <div class="examples">
-            <For each={EXAMPLE_QUERIES}>
+            <For each={EXAMPLES}>
               {(example) => (
                 <button type="button" onClick={() => search.search(example)}>
                   {example}

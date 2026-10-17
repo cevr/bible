@@ -11,10 +11,11 @@ import type { SqlClient } from 'effect/sql';
 
 import type { SearchService } from '@bible/core/search';
 
-import { DEFAULT_LIMIT, NO_SELECTION, SearchApi } from './api.js';
+import { NO_SELECTION, SearchApi } from './api.js';
 import { runSearch, runSearchBatch } from './search.js';
 import { VectorIndexLoad } from './vector-index.js';
 
+const DEFAULT_LIMIT = 40;
 const DEFAULT_CONTEXT = 1;
 
 /** The JSON wire's defaults, applied where the `HttpApi` leaves a field
