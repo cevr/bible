@@ -126,6 +126,29 @@ describe('bookVectorsPage', () => {
       }).pipe(Effect.provide(corpus)),
     ));
 
+  test('reads nothing for an apparatus book, by its author or its type', () =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        yield* book(1, 'DAPlan', 'Ellen G. White Estate', Option.none());
+        yield* book(2, 'TopIndex', 'Ellen Gould White', Option.none());
+        yield* sql`UPDATE books SET book_type = 'topicalindex' WHERE book_id = 2`;
+        yield* paragraph(1, 1, Option.some('1.1'), 'Read Genesis 1.');
+        yield* paragraph(2, 1, Option.some('2.1'), 'Trouble, Time of.');
+        const written: Parameters<VectorizeUpsert['upsert']>[0][number][] = [];
+
+        const pages = yield* Effect.forEach([1, 2], (bookId) =>
+          bookVectorsPage({ bookId, after: 0, scope: 'book' }, embedder([]), index(written)),
+        );
+
+        expect(pages).toEqual([
+          { read: 0, upserted: 0, after: 0 },
+          { read: 0, upserted: 0, after: 0 },
+        ]);
+        expect(written).toEqual([]);
+      }).pipe(Effect.provide(corpus)),
+    ));
+
   test('a failed embedding fails the page with the book it was for', () =>
     Effect.runPromise(
       Effect.gen(function* () {
