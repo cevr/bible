@@ -1,0 +1,5 @@
+[install]
+# One (apps/hymnal) resolves its own dependencies from the app, so every
+# package is linked at the root too; the npm "bun" (a peer of
+# effect-bun-test) is not, or its bin would shadow the Bun that runs scripts.
+publicHoistPattern = ["*", "!bun"]

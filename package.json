@@ -56,11 +56,19 @@
   },
   "overrides": {
     "@effect/platform-node-shared": "4.0.2",
+    "@react-navigation/bottom-tabs": "8.0.0-alpha.57",
+    "@react-navigation/core": "8.0.0-alpha.41",
+    "@react-navigation/drawer": "8.0.0-alpha.58",
+    "@react-navigation/elements": "3.0.0-alpha.55",
+    "@react-navigation/native": "8.0.0-alpha.51",
+    "@react-navigation/native-stack": "8.0.0-alpha.59",
+    "@react-navigation/routers": "8.0.0-alpha.21",
     "effect": "4.0.2"
   },
   "packageManager": "bun@1.4.3",
   "catalog": {
     "@effect/ai-typesafe": "4.0.2",
+    "@effect/atom-react": "4.0.2",
     "@effect/platform-bun": "4.0.2",
     "@effect/platform-node": "4.0.2",
     "@effect/platform-node-shared": "4.0.2",
