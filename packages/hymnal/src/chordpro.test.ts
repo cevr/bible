@@ -74,4 +74,27 @@ describe('ChordPro', () => {
       }
     }),
   );
+
+  it.effect(
+    'fails on a trailing escape and on a directive it does not read, never dropping it',
+    () =>
+      Effect.gen(function* () {
+        const charts = [
+          '{start_of_verse: Verse 1}\n[C]one\\\n{end_of_verse}',
+          '{start_of_verse: Verse 1}\n{unreadable: [G]two}\n{end_of_verse}',
+          '{start_of_verse: Verse 1}\n{comment: [G]two}\n{end_of_verse}',
+          '{start_of_verse: Verse 1}\n{[G]two\n{end_of_verse}',
+          '{unreadable: x}\n{start_of_verse: Verse 1}\n[C]one\n{end_of_verse}',
+        ];
+        const lines = [];
+        for (const chart of charts) {
+          const result = yield* Effect.result(ChordPro.parse(chart));
+          lines.push(Result.isFailure(result) ? result.failure.line : 'read');
+        }
+        expect(lines).toEqual([2, 2, 2, 2, 1]);
+        const kept =
+          '{title: One}\n{comment: a note}\n{start_of_verse: Verse 1}\n[C]one\n{end_of_verse}';
+        expect((yield* ChordPro.parse(kept)).map((section) => section.lines.length)).toEqual([1]);
+      }),
+  );
 });

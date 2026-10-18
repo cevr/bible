@@ -88,14 +88,17 @@ export const render = (part: Sung, key: Chord.Key, level: 'full' | 'guitar'): st
     })
     .join('\n');
 
-/** Splits a line into tokens at unescaped spaces. */
-const tokens = (line: string): string[] => {
+type Fail = (reason: string) => never;
+
+/** Splits a line into tokens at unescaped spaces; an escape with nothing after it is unreadable. */
+const tokens = (line: string, fail: Fail): string[] => {
   const out: string[] = [];
   let token = '';
   for (let i = 0; i < line.length; i++) {
     const c = line[i] ?? '';
     if (c === '\\') {
-      token += c + (line[i + 1] ?? '');
+      const next = line[i + 1] ?? fail(`an escape with nothing after it in "${line}"`);
+      token += c + next;
       i += 1;
     } else if (/\s/.test(c)) {
       if (token !== '') out.push(token);
@@ -105,8 +108,6 @@ const tokens = (line: string): string[] => {
   if (token !== '') out.push(token);
   return out;
 };
-
-type Fail = (reason: string) => never;
 
 /** Reads a `[X]` at `i`: the chord and where the syllable's text starts. */
 const chordAt = (token: string, i: number, fail: Fail): [string | undefined, number] => {
@@ -150,7 +151,7 @@ const syllablesOf = (token: string, fail: Fail) => {
 const lineOf = (line: string, fail: Fail): Syllable[] => {
   const out: Syllable[] = [];
   let word = -1;
-  for (const token of tokens(line)) {
+  for (const token of tokens(line, fail)) {
     if (token.startsWith('~')) {
       if (!/^(?:~\[[^\]]+\])+$/.test(token)) fail(`unreadable change "${token}"`);
       const changes = [...token.matchAll(/~\[([^\]]+)\]/g)].map((m) => m[1] ?? '');
@@ -180,6 +181,15 @@ const sectionOf = (label: string, lines: Syllable[][], fail: Fail): Section => {
   };
 };
 
+/** The directives a chart may give outside a section; they say nothing the golden reads. */
+const METADATA: ReadonlySet<string> = new Set(['title', 'subtitle', 'key', 'time', 'comment']);
+const SECTIONS: ReadonlySet<string> = new Set([
+  'start_of_verse',
+  'end_of_verse',
+  'start_of_chorus',
+  'end_of_chorus',
+]);
+
 const read = (chart: string): readonly Section[] => {
   const sections: Section[] = [];
   let open: { label: string; lines: Syllable[][] } | undefined;
@@ -190,7 +200,12 @@ const read = (chart: string): readonly Section[] => {
     };
     const line = raw.trim();
     const [, name, value = ''] = /^\{\s*([a-z_]+)\s*(?::\s*(.*?))?\s*\}$/i.exec(line) ?? [];
-    if (name === 'start_of_verse' || name === 'start_of_chorus') {
+    if (name === undefined && line.startsWith('{')) fail(`an unreadable directive: "${line}"`);
+    if (name !== undefined && METADATA.has(name)) {
+      if (open !== undefined) fail(`a {${name}} inside a section`);
+    } else if (name !== undefined && !SECTIONS.has(name)) {
+      fail(`an unknown directive: "${line}"`);
+    } else if (name === 'start_of_verse' || name === 'start_of_chorus') {
       if (open !== undefined) fail('a section inside a section');
       open = { label: value, lines: [] };
     } else if (name === 'end_of_verse' || name === 'end_of_chorus') {
