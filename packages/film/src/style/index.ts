@@ -21,9 +21,10 @@
 // carry, whatever rule it frees (`figureOverrides`), each saying what it
 // cites (`citedBy`: the owner's words or his pick on an ask); a circle
 // hand's artboard is `HAND_ART` times its size. `@bible/film/style/build`
-// builds the file, holding each override's citation to the owner's word on
-// his production's ledger (`unsaid`) and each locked figure's print to its
-// lock (`unlocked`).
+// builds the file, holding each override's citation to the owner's decision
+// on its figure on his production's ledger (`unsaid`), and each locked
+// figure's print to its lock and the lock to the decision it names
+// (`unlocked`).
 
 export { EASE, type Expression, acted } from './face.ts';
 export { figure } from './figure.ts';

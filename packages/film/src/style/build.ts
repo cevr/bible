@@ -5,14 +5,15 @@
 // (`righteousness-by-faith/rigs/build.ts`) copies the file and its stamp
 // beside its rigs, and holds the committed file to its rigs through the stamp
 // (`unbuilt`), as the film's test does on a host with no CLI. Both hold
-// first each override its figures carry to the owner's word on his
-// production's ledger, his quote or his pick (`unsaid`, `override.ts`), then
-// each locked figure's print to its lock (`unlocked`, `lock.ts`). The CLI is
-// `rive` on the PATH, or the one `RIVE` names.
+// first each override its figures carry to the owner's decisions on his
+// production's ledger, his words or his pick on that figure (`unsaid`,
+// `override.ts`), then each locked figure's print to its lock, and the lock
+// to the decision it names (`unlocked`, `lock.ts`). The CLI is `rive` on the
+// PATH, or the one `RIVE` names.
 
 import { Config, Crypto, Effect, FileSystem, Schema, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
-import { ProductionFile, ownerWords } from '../core/production.ts';
+import { ProductionFile, decisionsOf } from '../core/production.ts';
 import { repoJson } from '../core/schema.ts';
 import { type Lock, heldTo } from './lock.ts';
 import { type Laid, unbacked } from './override.ts';
@@ -143,21 +144,36 @@ export const unbuilt = Effect.fn('unbuilt')(function* (committed: {
     .map((check) => check.why);
 });
 
+/** A production's ledger, as the repo keeps it (`core/production.ts`). */
+const LedgerJson = repoJson(ProductionFile);
+
+/** The owner's decisions on the ledger `ledger`, the file committed with the film. */
+const decisionsAt = Effect.fn('decisionsAt')(function* (ledger: string) {
+  const fs = yield* FileSystem.FileSystem;
+  return decisionsOf(yield* Schema.decodeEffect(LedgerJson)(yield* fs.readFileString(ledger)));
+});
+
 /**
  * Which locked figures are not as the owner kept them, and which an
  * override frees: each figure's print (as its film draws it alone) hashed
  * and held to its lock (`heldTo`), each named by the item it is laid as in
- * its film. A broken one answers why, and its print's sha256, the one an
- * override citing the owner's words or his pick would name to free it.
+ * its film, read against his decisions on his production's ledger, the file
+ * `ledger`: a lock that names no decision there is broken, and an override
+ * frees a print only on a decision of his on that figure filed after the
+ * lock. A broken one answers why, and its print's sha256, the one an
+ * override would name to free it. While no figure is locked it reads no
+ * ledger.
  */
 export const unlocked = Effect.fn('unlocked')(function* (
+  ledger: string,
   locked: ReadonlyArray<{ readonly item: string; readonly lock: Lock; readonly print: string }>,
 ) {
+  const decisions = locked.length === 0 ? [] : yield* decisionsAt(ledger);
   const answers = yield* Effect.forEach(locked, ({ item, lock, print }) =>
     Effect.map(sha256(new TextEncoder().encode(print)), (hash) => ({
       item,
       hash,
-      held: heldTo(item, lock, hash),
+      held: heldTo(item, lock, hash, decisions),
     })),
   );
   return {
@@ -178,21 +194,16 @@ export const unlocked = Effect.fn('unlocked')(function* (
   };
 });
 
-/** A production's ledger, as the repo keeps it (`core/production.ts`). */
-const LedgerJson = repoJson(ProductionFile);
-
 /**
- * Which overrides laid on a film's figures (`overridesIn`) the owner's word
- * does not allow: each whose quote is not, verbatim, a decision's or a
- * note's on his production's ledger, the file `ledger`, or whose answer is
- * not a pick the ledger filed with the decision that answered its ask
- * (`unbacked`). The ledger is the one committed with the film, as the
- * override is: the word it cites is held to those filed beside it. While no
- * override is laid it reads none.
+ * Which overrides laid on a film's figures (`overridesIn`) the owner's
+ * decisions do not allow (`unbacked`): each that no decision on his
+ * production's ledger, the file `ledger`, filed at the point of the figure
+ * it is laid on (and after the lock it frees, for a lock's), says in its
+ * quote's words or answered with the pick it cites. The ledger is the one
+ * committed with the film, as the override is: the word it cites is held to
+ * those filed beside it. While no override is laid it reads none.
  */
 export const unsaid = Effect.fn('unsaid')(function* (ledger: string, laid: ReadonlyArray<Laid>) {
   if (laid.length === 0) return [];
-  const fs = yield* FileSystem.FileSystem;
-  const file = yield* Schema.decodeEffect(LedgerJson)(yield* fs.readFileString(ledger));
-  return unbacked(laid, ownerWords(file));
+  return unbacked(laid, yield* decisionsAt(ledger));
 });

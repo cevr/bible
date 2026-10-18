@@ -50,7 +50,7 @@ interface Arms {
 
 /** What every figure is composed of: the concept it is drawn from, and a part in each slot. */
 interface Composed {
-  /** The owner's lock on it, when he kept it (its `<item>.lock.json`), and an override citing his words or his pick that frees one print of it. */
+  /** The owner's lock on it, when he kept it (its `<item>.lock.json`), and an override that frees one print of it, citing his decision on it filed after the lock. */
   readonly lock?: Lock;
   /** The kept concept: its image and the figure's box in it, which `film match` holds the figure to. */
   readonly concept: ConceptRef;

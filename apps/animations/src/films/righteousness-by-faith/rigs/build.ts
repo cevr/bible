@@ -3,15 +3,17 @@
 // built from (`figures.stamp.json`): the project the house prints from the
 // file (`figuresRml`, `@bible/film/style`), generated (`project/`) and
 // compiled by the house's `compile` (`@bible/film/style/build`: the Rive CLI,
-// offline and unsigned). It builds nothing while an override on a figure cites words or
-// a pick that are not the owner's on RBF's ledger (`unsaid`, `LEDGER`), nor
-// while a locked figure's print is not the one its lock holds (`unlocked`),
-// unless an override citing his words or his pick frees that print, which it
-// lists. A build whose
-// stamp still holds (`unbuilt`) compiles nothing, so to build with a newer
-// CLI, delete the stamp first. Fails when the CLI reports a problem. The
-// film's test (`build.test.ts`) holds the overrides, the locks and the
-// committed file to the rigs through the same checks.
+// offline and unsigned). It builds nothing while an override on a figure
+// cites a word that is not the owner's on that figure (`unsaid`): a decision
+// on RBF's ledger (`LEDGER`) filed at the point `item:<item>`, after the lock
+// it frees, in the override's words or with the pick it cites. Nor does it
+// build while a locked figure's print is not the one its lock holds, or its
+// lock names no decision on the ledger (`unlocked`), unless such an override
+// frees that very print, which it lists. A build whose stamp still holds
+// (`unbuilt`) compiles nothing, so to build with a newer CLI, delete the
+// stamp first. Fails when the CLI reports a problem. The film's test
+// (`build.test.ts`) holds the overrides, the locks and the committed file to
+// the rigs through the same checks.
 // `bun src/films/righteousness-by-faith/rigs/build.ts`, from the app's
 // folder or anywhere: paths are this file's. The CLI is `rive` on the PATH,
 // or the one `RIVE` names.
@@ -25,7 +27,7 @@ import { ARTBOARDS, FIGURES } from './figures.ts';
 
 const here = import.meta.dir;
 
-/** RBF's production ledger, committed with the film (`apps/animations/productions/`): the owner's decisions and notes, whose words an override carries. */
+/** RBF's production ledger, committed with the film (`apps/animations/productions/`): the owner's decisions, which a lock names and an override cites. */
 export const LEDGER = `${here}/../../../../productions/righteousness-by-faith.json`;
 
 /** The CLI's problems as JSON text, for the failure's message. */
@@ -40,7 +42,7 @@ class RiveProblems extends Schema.TaggedError<RiveProblems>()('RiveProblems', {
   }
 }
 
-/** An override on a figure cites a word that is not the owner's: its quote is on no decision or note of RBF's ledger, or its answer is no pick a decision there filed. Why, each. */
+/** An override on a figure cites a word that is not the owner's on that figure: no decision on RBF's ledger at its point (`item:<item>`), after the lock it frees, says its quote or filed the pick it cites. Why, each. */
 class OverridesUnsaid extends Schema.TaggedError<OverridesUnsaid>()('OverridesUnsaid', {
   unsaid: Schema.Array(Schema.String),
 }) {
@@ -49,7 +51,7 @@ class OverridesUnsaid extends Schema.TaggedError<OverridesUnsaid>()('OverridesUn
   }
 }
 
-/** A locked figure's print is not the one its lock holds, and no override citing the owner's words or his pick frees it: why, each. */
+/** A locked figure's print is not the one its lock holds and no override backed by the owner's decision on him frees it, or its lock names no decision on RBF's ledger: why, each. */
 class LocksBroken extends Schema.TaggedError<LocksBroken>()('LocksBroken', {
   broken: Schema.Array(Schema.String),
 }) {
@@ -66,7 +68,7 @@ const build = Effect.gen(function* () {
   const unbacked = yield* unsaid(LEDGER, figureOverrides(FIGURES));
   if (unbacked.length > 0)
     return yield* OverridesUnsaid.make({ unsaid: unbacked.map((u) => u.why) });
-  const locks = yield* unlocked(lockedPrints(FIGURES));
+  const locks = yield* unlocked(LEDGER, lockedPrints(FIGURES));
   yield* Effect.forEach(locks.overridden, ({ item, override }) =>
     Console.log(
       `overridden: ${item}'s lock (FigureLock): ${override.reason} (${citedBy(override)})`,

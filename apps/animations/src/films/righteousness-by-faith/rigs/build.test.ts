@@ -1,24 +1,26 @@
 // The committed `figures.riv` is the build of these rigs: the project the
 // house prints from RBF's figures file (`FIGURES`) is the one its stamp
-// (`figures.stamp.json`) says it was built from, and the file is the one that
-// build wrote (`unbuilt`). A rig edited
-// without a rebuild (`bun src/films/righteousness-by-faith/rigs/build.ts`)
-// fails here, on a host with no Rive CLI too. And the figures the owner
-// locked are drawn as he kept them: each one's print alone is the one its
-// lock holds (`unlocked`), and a part of him moved breaks his lock, so the
-// print the film holds is his parts as drawn. Every override on them cites
-// his word: its quote is a decision's or a note's on RBF's ledger, or its
-// answer a pick the ledger filed with the decision that answered that ask
-// (`unsaid`), so one in words he never said, or citing an ask he never
-// answered that way, is broken. What a lock answers a print and its way out
-// are the house's (`packages/film/src/style/lock.test.ts`), and so are how an
-// override is held to his word (`packages/film/src/style/override.test.ts`)
-// and how a figures file is laid and printed
-// (`packages/film/src/style/figures-file.test.ts`).
+// (`figures.stamp.json`) says it was built from, and the file is the one
+// that build wrote (`unbuilt`). A rig edited without a rebuild
+// (`bun src/films/righteousness-by-faith/rigs/build.ts`) fails here, on a
+// host with no Rive CLI too. And the figures the owner locked are drawn as
+// he kept them: each one's print alone is the one its lock holds, and each
+// lock names his decision on RBF's ledger (`unlocked`); a part of him moved
+// breaks his lock, so the print the film holds is his parts as drawn. Every
+// override on them cites his word on that figure: a decision on the ledger
+// filed at the point `item:<item>`, after the lock it frees, in its quote's
+// words or with the pick its answer cites (`unsaid`). So one in words he
+// never said, in his words on another matter, or citing an ask he never
+// answered that way, is broken and frees nothing. What a lock answers a
+// print and its way out are the house's
+// (`packages/film/src/style/lock.test.ts`), and so are how an override is
+// held to his word, the case it is backed in among them
+// (`packages/film/src/style/override.test.ts`), and how a figures file is
+// laid and printed (`packages/film/src/style/figures-file.test.ts`).
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect } from 'effect';
+import { Array as Arr, Effect, Option } from 'effect';
 import {
   Ear,
   figure,
@@ -57,25 +59,36 @@ describe("RBF's figures", () => {
       Effect.gen(function* () {
         const locked = lockedPrints(FIGURES);
         expect(locked.map((l) => l.item)).toEqual(['lead', 'judge', 'prosecutor']);
-        expect(yield* unlocked(locked)).toEqual({ broken: [], overridden: [] });
+        expect(yield* unlocked(LEDGER, locked)).toEqual({ broken: [], overridden: [] });
         // One artboard (SkinHand) draws both their hands, so they are of one paper.
         expect(prosecutor.hands.paper).toEqual(judge.hands.paper);
       }),
   );
 
-  it.effect.layer(BunServices.layer)('a part of a locked figure moved breaks his lock', () =>
-    Effect.gen(function* () {
-      // RBF's figures with the prosecutor's ear a unit further back.
-      const moved = laid(
-        figure({
-          ...PROSECUTOR_SPEC,
-          ear: Ear.Round({ at: [54, 17.5], r: [10, 16.5], paper: PAPERS.ear }),
-        }),
-      );
-      const changed = yield* unlocked(lockedPrints(moved));
-      expect(changed.broken.map((b) => b.item)).toEqual(['prosecutor']);
-      expect(changed.overridden).toEqual([]);
-    }),
+  it.effect.layer(BunServices.layer)(
+    "a part of a locked figure moved breaks his lock, and an override freeing that very print in the owner's words on another matter frees nothing",
+    () =>
+      Effect.gen(function* () {
+        const changed = yield* unlocked(LEDGER, lockedPrints(laid(figure(MOVED))));
+        expect(changed.broken.map((b) => b.item)).toEqual(['prosecutor']);
+        expect(changed.overridden).toEqual([]);
+        // His moved print, as the broken lock names it for an override to free.
+        const frees = Option.getOrThrow(Arr.head(changed.broken)).hash;
+        // A decision of the owner's on RBF's ledger after the lock (2026-10-17), on Christ, at no figure's point.
+        const quote = 'ensure Christ has a consistent body, frame, face';
+        const quoted = laid(
+          figure({
+            ...MOVED,
+            lock: { ...PROSECUTOR_LOCK, override: { ...OVERRIDE, quote, frees } },
+          }),
+        );
+        const still = yield* unlocked(LEDGER, lockedPrints(quoted));
+        expect(still.broken.map((b) => [b.item, b.hash])).toEqual([['prosecutor', frees]]);
+        expect(still.broken.map((b) => b.why)).toEqual([
+          `prosecutor's lock is broken (FigureLock, a locked figure is drawn as the owner kept it, its print the one its lock holds): prosecutor's override of FigureLock at prosecutor is broken: no decision on his production's ledger at the point item:prosecutor, filed after his lock (2026-10-17T23:57:24.576Z) says "${quote}": file his words as a decision there (\`film production decide\` with \`--quote\`, \`--set\` and \`--point item:prosecutor\`), then quote them verbatim`,
+        ]);
+        expect(still.overridden).toEqual([]);
+      }),
   );
 
   it.effect(
@@ -99,31 +112,38 @@ describe("RBF's figures", () => {
   );
 
   it.effect.layer(BunServices.layer)(
-    "an override in words the owner never said is broken, and one in his words on RBF's ledger is not",
+    "an override in words the owner never said is broken, and so is one in his words on RBF's ledger that are no decision of his on that figure after its lock",
     () =>
       Effect.gen(function* () {
-        const fabricated = yield* unsaid(
-          LEDGER,
-          freed({ quote: 'move his ear back, as the owner asked' }),
-        );
-        expect(fabricated.map((u) => u.item)).toEqual(['prosecutor']);
-        // A decision of the owner's on RBF's ledger (2026-10-15), in his words.
-        expect(yield* unsaid(LEDGER, freed({ quote: 'lets lock in that style' }))).toEqual([]);
+        const quotes = [
+          'move his ear back, as the owner asked',
+          // A decision of his (2026-10-15), before the lock and at no figure's point.
+          'lets lock in that style',
+          // A decision of his after the lock (2026-10-17), on Christ, at no figure's point.
+          'ensure Christ has a consistent body, frame, face',
+          // A note of his (2026-10-16): a note decides nothing.
+          'the ears have an inner border that act as a lighting that the concept doesnt have',
+        ];
+        for (const quote of quotes)
+          expect((yield* unsaid(LEDGER, freed({ quote }))).map((u) => u.item)).toEqual([
+            'prosecutor',
+          ]);
       }),
   );
 
   it.effect.layer(BunServices.layer)(
-    "an override citing an ask no decision on RBF's ledger answered, or a value the owner did not pick there, is broken",
+    "an override citing an ask no decision on RBF's ledger answered, or the ask the lock was kept in, is broken",
     () =>
       Effect.gen(function* () {
         const ask = (id: string, value: string) =>
           unsaid(LEDGER, freed({ answer: { ask: id, question: 'keep', value } }));
         // No decision on RBF's ledger answers this ask.
         expect((yield* ask('a0000000000', 'lock')).map((u) => u.item)).toEqual(['prosecutor']);
-        // The ask he kept and locked the court figures in (2026-10-17): a decision answers it, and files no pick of `revise`.
-        expect((yield* ask(PROSECUTOR_LOCK.ask, 'revise')).map((u) => u.item)).toEqual([
-          'prosecutor',
-        ]);
+        // The ask he kept and locked the court figures in (2026-10-17): its decision is the lock's own, at no figure's point and no later than it, and files no pick.
+        for (const value of ['lock', 'revise'])
+          expect((yield* ask(PROSECUTOR_LOCK.ask, value)).map((u) => u.item)).toEqual([
+            'prosecutor',
+          ]);
       }),
   );
 });
@@ -134,6 +154,19 @@ const laid = (him: typeof prosecutor) =>
     weight: FIGURES.weight,
     boards: { ...FIGURES.boards, prosecutor: { ...FIGURES.boards.prosecutor, figure: him } },
   });
+
+/** The prosecutor's parts with his ear a unit further back. */
+const MOVED = {
+  ...PROSECUTOR_SPEC,
+  ear: Ear.Round({ at: [54, 17.5], r: [10, 16.5], paper: PAPERS.ear }),
+};
+
+/** What an override of the prosecutor's lock carries, whatever it cites and frees. */
+const OVERRIDE = {
+  rule: 'FigureLock',
+  place: 'prosecutor',
+  reason: 'his ear a unit back',
+} as const;
 
 /** The overrides of RBF's figures with the prosecutor's lock carrying one citing `cited` that frees a changed print of him. */
 const freed = (
@@ -151,16 +184,7 @@ const freed = (
     laid(
       figure({
         ...PROSECUTOR_SPEC,
-        lock: {
-          ...PROSECUTOR_LOCK,
-          override: {
-            rule: 'FigureLock',
-            place: 'prosecutor',
-            reason: 'his ear a unit back',
-            ...cited,
-            frees: 'b'.repeat(64),
-          },
-        },
+        lock: { ...PROSECUTOR_LOCK, override: { ...OVERRIDE, ...cited, frees: 'b'.repeat(64) } },
       }),
     ),
   );

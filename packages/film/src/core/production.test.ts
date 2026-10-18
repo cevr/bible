@@ -10,9 +10,9 @@ import {
   type Said,
   choiceStateOf,
   currentOf,
+  decisionsOf,
   moveForward,
   newProduction,
-  ownerWords,
   productionsOf,
   unfiledOf,
   versionAt,
@@ -200,7 +200,7 @@ describe('a production’s history', () => {
     ]);
   });
 
-  test('the owner’s words are his decisions’ and notes’ quotes and the picks his answers filed, never a question’s', () => {
+  test('the owner’s decisions are his `Decided` words in the ledger’s order, never a question or a note', () => {
     const word = (
       tag: Said['_tag'],
       at: number,
@@ -219,43 +219,40 @@ describe('a production’s history', () => {
       picks,
       by: Option.none(),
     });
-    const file = {
-      ...look(),
-      said: [
-        word('Asked', HOUR, Option.some('Keep and lock them?'), Option.some('a92f276635e')),
-        word('Decided', 2 * HOUR, Option.some('lets lock in that style')),
-        // An ask answered by a pick alone files no words, and its picks.
-        word(
-          'Decided',
-          3 * HOUR,
-          Option.none(),
-          Option.some('a92f276635e'),
-          Option.some({ keep: 'lock' }),
-        ),
-        word('Noted', 4 * HOUR, Option.some('lock in a rig and a style')),
-        // A question, and an ask withdrawn, file no picks of his.
-        word(
-          'Asked',
-          5 * HOUR,
-          Option.none(),
-          Option.some('a0590057595'),
-          Option.some({ arm: 'arm' }),
-        ),
-        word(
-          'Noted',
-          6 * HOUR,
-          Option.none(),
-          Option.some('a0590057595'),
-          Option.some({ arm: 'arm' }),
-        ),
-        // A decision from chat names no ask, so its picks answer none.
-        word('Decided', 7 * HOUR, Option.none(), Option.none(), Option.some({ arm: 'no-arm' })),
-      ],
-    };
-    expect(ownerWords(file)).toEqual({
-      quotes: new Set(['lets lock in that style', 'lock in a rig and a style']),
-      picks: new Map([['a92f276635e', { keep: 'lock' }]]),
-    });
+    const said = [
+      word('Asked', HOUR, Option.some('Keep and lock them?'), Option.some('a92f276635e')),
+      word('Decided', 2 * HOUR, Option.some('lets lock in that style')),
+      // An ask answered by a pick alone files no words, and its picks.
+      word(
+        'Decided',
+        3 * HOUR,
+        Option.none(),
+        Option.some('a92f276635e'),
+        Option.some({ keep: 'lock' }),
+      ),
+      word('Noted', 4 * HOUR, Option.some('lock in a rig and a style')),
+      // A question, and an ask withdrawn, decide nothing.
+      word(
+        'Asked',
+        5 * HOUR,
+        Option.none(),
+        Option.some('a0590057595'),
+        Option.some({ arm: 'arm' }),
+      ),
+      word(
+        'Noted',
+        6 * HOUR,
+        Option.none(),
+        Option.some('a0590057595'),
+        Option.some({ arm: 'arm' }),
+      ),
+      word('Decided', 7 * HOUR, Option.none(), Option.none(), Option.some({ arm: 'no-arm' })),
+    ];
+    expect(decisionsOf({ ...look(), said }).map((d) => d.at)).toEqual([
+      2 * HOUR,
+      3 * HOUR,
+      7 * HOUR,
+    ]);
   });
 
   test('an ask waits on the owner until a pick in its choice or a later decision answers it', () => {

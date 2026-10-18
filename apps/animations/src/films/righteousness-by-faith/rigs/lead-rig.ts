@@ -6,8 +6,8 @@
 // (`drawHand`), so the rig is the body alone. How each part is cut, lit and
 // drawn is the house's (`drawFigure`). The owner locked him (ask
 // `a92f276635e`, 2026-10-17): `lead.lock.json` holds his print, and only an
-// override citing the owner's words or his pick frees a change to it
-// (FigureLock, `@bible/film/style`'s `lock.ts`).
+// override citing the owner's decision on him, filed after the lock, frees
+// a change to it (FigureLock, `@bible/film/style`'s `lock.ts`).
 //
 // Units are the Board's pixels (a panel is 1536 × 1024): in `cold.evidence`
 // he stands 373 tall, his head 146 across. His feet are the artboard's

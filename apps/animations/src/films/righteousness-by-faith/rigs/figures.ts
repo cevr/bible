@@ -10,7 +10,8 @@
 // (`WEIGHT`). The house prints each locked figure's print alone, which its
 // lock holds (`lockedPrints`), as the file draws it, and lists every
 // override the figures carry with the artboard it is laid on
-// (`figureOverrides`), to be held to the owner's words. Pure.
+// (`figureOverrides`), to be held to the owner's decisions on that figure
+// (`unsaid`, `@bible/film/style/build`). Pure.
 
 import { figuresFile } from '@bible/film/style';
 import { christ, christFront } from './christ-rig.ts';

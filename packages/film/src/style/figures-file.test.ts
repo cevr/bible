@@ -199,7 +199,7 @@ describe("a film's figures file", () => {
     expect(lockedPrints(reseeded)[0]?.print).not.toBe(print);
   });
 
-  test('lists every override its figures carry, by the artboard each is laid on', () => {
+  test("lists every override its figures carry, by the artboard each is laid on, a lock's with the time the ledger filed the lock", () => {
     expect(figureOverrides(FILE)).toEqual([]);
     const freed = figuresFile({
       weight: 1,
@@ -211,6 +211,6 @@ describe("a film's figures file", () => {
         },
       },
     });
-    expect(figureOverrides(freed)).toEqual([{ item: 'lead', override: OVERRIDE }]);
+    expect(figureOverrides(freed)).toEqual([{ item: 'lead', override: OVERRIDE, since: LOCK.at }]);
   });
 });

@@ -3,21 +3,24 @@
 // a line, and cites the owner's own word that allows it: his words,
 // verbatim (`quote`, owner, 2026-10-17), or his pick on a lab ask (`answer`:
 // the ask, the question and the value of the option he chose), never both.
-// A rule whose way is `none` (a grey shade, a hand that is not a circle) has
-// no override, so `overrideOf` takes none. Each rule adds the fields it
-// needs: FigureLock the print it frees (`lock.ts`). Whatever holds the rule
-// skips only what an override names, at the place it names, and lists it as
-// overridden. The word is his only when he gave it: an override's quote is,
-// verbatim, a decision's or a note's on his production's ledger, and its
-// answer a pick the ledger filed with the decision that answered that ask;
-// else the override itself is broken, whatever rule it frees (`unbacked`;
-// a film's build and its test read the ledger, `build.ts` `unsaid`). A
-// question an agent asked him is never his word. Every override a figure
+// A rule whose way is not `override` has none, so `overrideOf` takes none.
+// Each rule adds the fields it needs: FigureLock the print it frees
+// (`lock.ts`). Whatever holds the rule skips only what an override names, at
+// the place it names, and lists it as overridden. The word is his only when
+// he gave it on that figure: a decision of his on its production's ledger,
+// filed at the point `item:<item>` (the figure's place in its film's file,
+// where his lock on it is filed too), and after the lock when the override
+// frees one; its quote is the decision's words, verbatim, or its answer the
+// pick the decision filed with the ask it answered. Else the override itself
+// is broken, whatever rule it frees (`unbacked`; a film's build and its test
+// read the ledger, `build.ts` `unsaid` and `unlocked`). A question an agent
+// asked him is never his word, a note decides nothing, and a decision on
+// another figure, or on none, allows nothing here. Every override a figure
 // carries is found by the fields every override has, wherever it is laid
 // (`overridesIn`), so none is left out. Pure.
 
-import { Predicate, Schema } from 'effect';
-import type { OwnerWords } from '../core/production.ts';
+import { DateTime, Option, Predicate, Schema } from 'effect';
+import type { Decided } from '../core/production.ts';
 import type { RULES, RuleId } from './rules.ts';
 
 /** The rules an override may free: each whose way is `override`. */
@@ -77,39 +80,67 @@ export const citedBy = (override: Override): string =>
     ? `"${override.quote}"`
     : `his pick "${override.answer.value}" for ${override.answer.question} on ask ${override.answer.ask}`;
 
-/** An override laid on a film's figure: the item the figure is laid as, and the override. */
+/**
+ * An override laid on a film's figure: the item the figure is laid as, the
+ * override, and for a lock's, the time the ledger filed the lock (`since`):
+ * the decision that frees it is a later one.
+ */
 export interface Laid {
   readonly item: string;
   readonly override: Override;
+  readonly since?: number;
 }
 
-/**
- * Whether the owner's word on his ledger (`words`) allows `override`: its
- * quote is one he said, verbatim, or its answer is a pick he made on that
- * ask, at that question.
- */
-const backed = (override: Override, words: OwnerWords): boolean =>
-  'quote' in override
-    ? words.quotes.has(override.quote)
-    : words.picks.get(override.answer.ask)?.[override.answer.question] === override.answer.value;
+/** The point a decision on the figure laid as `item` is filed at on its production's ledger, as the lock on it is. */
+const pointOn = (item: string) => `item:${item}`;
 
-/** Why `item`'s `override` is broken: its citation is not on his ledger. */
-const unbackedWhy = (item: string, override: Override): string => {
+/** Whether `decision` is the word `override` cites: its words, verbatim, or the pick it filed on the ask the override names. */
+const cites = (override: Override, decision: Decided): boolean =>
+  'quote' in override
+    ? Option.contains(decision.quote, override.quote)
+    : Option.contains(decision.ask, override.answer.ask) &&
+      Option.exists(
+        decision.picks,
+        (picks) => picks[override.answer.question] === override.answer.value,
+      );
+
+/** Whether `decision` allows `laid`'s override: one on its figure, after its lock when it frees one, that it cites. */
+const allows = ({ item, override, since }: Laid, decision: Decided): boolean =>
+  Option.contains(decision.point, pointOn(item)) &&
+  (since === undefined || decision.at > since) &&
+  cites(override, decision);
+
+/**
+ * Why the owner's decisions on his production's ledger (`decisions`) do not
+ * allow `laid`'s override, and how to file and cite one that does; none when
+ * one does (`allows`).
+ */
+export const whyUnbacked = (
+  laid: Laid,
+  decisions: ReadonlyArray<Decided>,
+): Option.Option<string> => {
+  if (decisions.some((decision) => allows(laid, decision))) return Option.none();
+  const { item, override, since } = laid;
+  const point = pointOn(item);
+  const where = `at the point ${point}${since === undefined ? '' : `, filed after his lock (${DateTime.formatIso(DateTime.makeUnsafe(since))})`}`;
   const broken = `${item}'s override of ${override.rule} at ${override.place} is broken`;
   if ('quote' in override)
-    return `${broken}: its quote is not on the ledger: no decision or note filed on his production says "${override.quote}"`;
+    return Option.some(
+      `${broken}: no decision on his production's ledger ${where} says "${override.quote}": file his words as a decision there (\`film production decide\` with \`--quote\`, \`--set\` and \`--point ${point}\`), then quote them verbatim`,
+    );
   const { ask, question, value } = override.answer;
-  return `${broken}: its answer is not on the ledger: no decision filed on his production by ask ${ask} picks "${value}" for ${question}`;
+  return Option.some(
+    `${broken}: no decision on his production's ledger ${where} answers ask ${ask} with "${value}" for ${question}: ask him with the point ${point} (the lab's \`ask\`, with its \`production\`, \`set\` and \`point\`), then cite the pick his answer files`,
+  );
 };
 
 /**
- * Of the overrides laid on a film's figures, each the owner's word on his
- * production's ledger (`words`) does not allow: its quote is not, verbatim,
- * a decision's or a note's, or its answer is not a pick the ledger filed
- * with the decision that answered its ask. Such an override is broken
- * itself, whatever rule it frees, and frees nothing.
+ * Of the overrides laid on a film's figures, each the owner's decisions on
+ * his production's ledger (`decisions`) do not allow (`whyUnbacked`), and
+ * why. Such an override is broken itself, whatever rule it frees, and frees
+ * nothing.
  */
-export const unbacked = (laid: ReadonlyArray<Laid>, words: OwnerWords) =>
-  laid
-    .filter(({ override }) => !backed(override, words))
-    .map(({ item, override }) => ({ item, override, why: unbackedWhy(item, override) }));
+export const unbacked = (laid: ReadonlyArray<Laid>, decisions: ReadonlyArray<Decided>) =>
+  laid.flatMap((l) =>
+    Option.toArray(Option.map(whyUnbacked(l, decisions), (why) => ({ ...l, why }))),
+  );

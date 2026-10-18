@@ -196,11 +196,17 @@ export const lockedPrints = (file: LaidFile) =>
   );
 
 /**
- * Every override the figures of `file` carry (`overridesIn`), with the
- * artboard each is laid as: what a film's build and its test hold to the
- * owner's words on its ledger (`unsaid`, `@bible/film/style/build`).
+ * Every override the figures of `file` carry, with the artboard each is laid
+ * as: its lock's, with the time the ledger filed the lock, then every other
+ * its parts carry (`overridesIn`). What a film's build and its test hold to
+ * the owner's decisions on its ledger (`unsaid`, `@bible/film/style/build`).
  */
 export const figureOverrides = (file: LaidFile): ReadonlyArray<Laid> =>
-  Object.entries(file.boards).flatMap(([item, b]) =>
-    isFigureBoard(b) ? overridesIn(b.figure).map((override) => ({ item, override })) : [],
-  );
+  Object.entries(file.boards).flatMap(([item, b]) => {
+    if (!isFigureBoard(b)) return [];
+    const { lock, ...parts } = b.figure;
+    return [
+      ...(lock?.override === undefined ? [] : [{ item, override: lock.override, since: lock.at }]),
+      ...overridesIn(parts).map((override) => ({ item, override })),
+    ];
+  });

@@ -1,15 +1,16 @@
 // The house's rules for a figure, by id: what each says, where the owner's
 // words for it are written, and whether anything may free it (an override
-// citing his words or his pick, `override.ts`). A part, a paper or a figure
-// the house refuses as it is made names the rule it breaks (`decode.ts`), so
-// the refusal reads as the rule, not as a schema's words; a locked figure
-// whose print is not its lock's names FigureLock (`lock.ts`). Pure.
+// citing his decision on the figure, `override.ts`). A part, a paper or a
+// figure the house refuses as it is made names the rule it breaks
+// (`decode.ts`), so the refusal reads as the rule, not as a schema's words;
+// a locked figure whose print is not its lock's names FigureLock
+// (`lock.ts`). Pure.
 
 /** A rule: what it says, where it is written, and its way out. */
 interface Rule {
   readonly says: string;
   readonly source: string;
-  /** `none`: nothing frees it (the owner's "never", "ever"); `override`: an override citing his own words or his pick may. */
+  /** `none`: nothing frees it (the owner's "never", "ever"); `override`: an override citing his decision on the figure, in his words or by his pick, may. */
   readonly way: 'none' | 'override';
 }
 

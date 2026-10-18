@@ -364,38 +364,23 @@ export const versionAt = (file: ProductionFile, at: number): number =>
   Math.max(1, file.versions.findLastIndex((v) => v.at <= at) + 1);
 
 /** A decision of the owner's, as the ledger keeps it. */
-type Decided = Extract<Said, { readonly _tag: 'Decided' }>;
+export type Decided = Extract<Said, { readonly _tag: 'Decided' }>;
+
+/**
+ * The owner's decisions on `file`'s ledger, in its order (oldest first), in
+ * chat or by an ask he answered: each with when it was filed (`at`), what it
+ * is on (`set`, `point`), his words (`quote`) and, filed by an ask's answer,
+ * the ask and his picks there. What an override cites (`style/override.ts`):
+ * a question (`Asked`) is an agent's, and a note decides nothing.
+ */
+export const decisionsOf = (file: ProductionFile): ReadonlyArray<Decided> =>
+  file.said.filter((s): s is Decided => s._tag === 'Decided');
 
 /** The owner's decisions filed in version `version` (in chat, or an ask's answer), newest first. */
 export const decisionsIn = (file: ProductionFile, version: number): ReadonlyArray<Decided> =>
-  file.said
-    .filter((s): s is Decided => s._tag === 'Decided' && versionAt(file, s.at) === version)
+  decisionsOf(file)
+    .filter((d) => versionAt(file, d.at) === version)
     .toReversed();
-
-/**
- * The owner's own word on a ledger, as an override cites it
- * (`style/override.ts`): each decision's and note's quote, verbatim, filed
- * from chat or by an ask he answered in words (`quotes`); and each ask's
- * picks, filed with the decision that answered it (`picks`, by the ask's
- * id). A question (`Asked`) is an agent's, so neither its words nor an ask
- * that only asked are his.
- */
-export interface OwnerWords {
-  readonly quotes: ReadonlySet<string>;
-  readonly picks: ReadonlyMap<string, Readonly<Record<string, string>>>;
-}
-
-/** The owner's own word on `file`'s ledger: his quotes and his picks. */
-export const ownerWords = (file: ProductionFile): OwnerWords => ({
-  quotes: new Set(Arr.getSomes(file.said.filter((s) => s._tag !== 'Asked').map((s) => s.quote))),
-  picks: new Map(
-    Arr.getSomes(
-      file.said
-        .filter((s): s is Decided => s._tag === 'Decided')
-        .map((d) => Option.zipWith(d.ask, d.picks, (ask, picks) => [ask, picks] as const)),
-    ),
-  ),
-});
 
 /**
  * The move an agent makes on the owner's word: from version `after`, because
