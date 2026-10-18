@@ -2,11 +2,12 @@
 // stage's cast sheets, the film skill's Concept step).
 //
 //   film concept brief --look <file> --references <file>
-//       (--turnaround <who> | --layout <file>) [--house <file>]
+//       (--turnaround <who> | --layout <file> --kind poses|heads) [--house <file>]
 //     print the prompt one try of the sheet is painted from: the house block
 //     made a sheet's, the references' note, the member's look, the layout and
-//     the sheet rules (`cast-sheet-brief.ts`). The house block is read from
-//     `docs/ref/house-look.txt` under the app unless `--house` names another.
+//     its kind's rules (`cast-sheet-brief.ts`). The house block is the app's
+//     own (`FilmApp.house`), wherever the command runs, unless `--house` names
+//     another.
 //
 //   film concept measure <sheet.png> --kind turnaround|poses|heads
 //       --count <n> --anchor <view> [--slot <slot> ...] [--standing <view> ...]
@@ -43,11 +44,17 @@ class ConceptUnread extends Schema.TaggedError<ConceptUnread>()('ConceptUnread',
   }
 }
 
-/** A brief given both a turnaround and a layout, or neither. */
+/** A brief given both a turnaround and a layout, or neither, or a layout with no kind. */
 class LayoutUnset extends Schema.TaggedError<LayoutUnset>()('LayoutUnset', {}) {
   override get message() {
-    return "name the sheet's layout once: --turnaround <who> for a turnaround, or --layout <file> for poses or heads";
+    return "name the sheet's layout once: --turnaround <who> for a turnaround, or --layout <file> --kind poses|heads";
   }
+}
+
+/** The app's house look: the block every concept prompt opens with, and its image, every try's first reference. */
+interface HouseLook {
+  readonly text: string;
+  readonly image: string;
 }
 
 const measuredJson = Schema.encodeSync(Schema.fromJsonString(SheetMeasure));
@@ -156,63 +163,75 @@ const measure = Command.make(
   ),
 );
 
-const brief = Command.make(
-  'brief',
-  {
-    look: Flag.String('look').pipe(
-      Flag.withDescription(
-        "a file of the member's look: face, hair, beard, skin, garments, as the kept concepts draw them",
+const brief = (house: HouseLook) =>
+  Command.make(
+    'brief',
+    {
+      look: Flag.String('look').pipe(
+        Flag.withDescription(
+          "a file of the member's look: face, hair, beard, skin, garments, as the kept concepts draw them",
+        ),
       ),
-    ),
-    references: Flag.String('references').pipe(
-      Flag.withDescription('a file saying what each reference image is for, in their order'),
-    ),
-    turnaround: Flag.String('turnaround').pipe(
-      Flag.optional,
-      Flag.withDescription('a turnaround of the member, named by its pronoun (Him, her)'),
-    ),
-    layout: Flag.String('layout').pipe(
-      Flag.optional,
-      Flag.withDescription(
-        'a file of the poses or heads, left to right, each facing as its kept panel',
+      references: Flag.String('references').pipe(
+        Flag.withDescription('a file saying what each reference image is for, in their order'),
       ),
-    ),
-    house: Flag.String('house').pipe(
-      Flag.withDefault('docs/ref/house-look.txt'),
-      Flag.withDescription('the house block every concept prompt opens with'),
-    ),
-  },
-  Effect.fn('film.concept.brief')(function* (input) {
-    const fs = yield* FileSystem.FileSystem;
-    const layout = yield* Option.match(input.turnaround, {
-      onSome: (who) =>
-        Option.match(input.layout, {
-          onNone: () => Effect.succeed(turnaroundLayout(who)),
-          onSome: () => Effect.fail(LayoutUnset.make({})),
+      turnaround: Flag.String('turnaround').pipe(
+        Flag.optional,
+        Flag.withDescription('a turnaround of the member, named by its pronoun (Him, her)'),
+      ),
+      layout: Flag.String('layout').pipe(
+        Flag.optional,
+        Flag.withDescription(
+          'a file of the poses or heads, left to right, each facing as its kept panel',
+        ),
+      ),
+      kind: Flag.Literals('kind', ['poses', 'heads']).pipe(
+        Flag.optional,
+        Flag.withDescription("a layout's sheet: poses or heads"),
+      ),
+      house: Flag.String('house').pipe(
+        Flag.optional,
+        Flag.withDescription("the house block every concept prompt opens with (the app's own)"),
+      ),
+    },
+    Effect.fn('film.concept.brief')(function* (input) {
+      const fs = yield* FileSystem.FileSystem;
+      const sheet = yield* Option.match(input.turnaround, {
+        onSome: (who) =>
+          Option.match(
+            Option.orElse(input.layout, () => input.kind),
+            {
+              onNone: () =>
+                Effect.succeed({ kind: 'turnaround' as const, layout: turnaroundLayout(who) }),
+              onSome: () => Effect.fail(LayoutUnset.make({})),
+            },
+          ),
+        onNone: () =>
+          Option.match(Option.all([input.layout, input.kind]), {
+            onNone: () => Effect.fail(LayoutUnset.make({})),
+            onSome: ([file, kind]) =>
+              Effect.map(fs.readFileString(file), (layout) => ({ kind, layout })),
+          }),
+      });
+      const prompt = yield* Effect.fromResult(
+        castSheetBrief({
+          ...sheet,
+          house: yield* fs.readFileString(Option.getOrElse(input.house, () => house.text)),
+          references: yield* fs.readFileString(input.references),
+          look: yield* fs.readFileString(input.look),
         }),
-      onNone: () =>
-        Option.match(input.layout, {
-          onNone: () => Effect.fail(LayoutUnset.make({})),
-          onSome: (file) => fs.readFileString(file),
-        }),
-    });
-    const prompt = yield* Effect.fromResult(
-      castSheetBrief({
-        house: yield* fs.readFileString(input.house),
-        references: yield* fs.readFileString(input.references),
-        look: yield* fs.readFileString(input.look),
-        layout,
-      }),
-    );
-    yield* Console.log(prompt);
-  }),
-).pipe(
-  Command.withDescription(
-    "Print a cast sheet's brief for the image route: the house block made a sheet's, the references, the look, the layout and the sheet rules (no lettering, a sleeve at rest only, the hair behind the head and the beard parted from it)",
-  ),
-);
+      );
+      yield* Console.log(prompt);
+    }),
+  ).pipe(
+    Command.withDescription(
+      "Print a cast sheet's brief for the image route: the house block made a sheet's, the references, the look, the layout and its kind's rules (no lettering, a sleeve at rest only, the beard parted from the hair by a dark band)",
+    ),
+  );
 
-export const concept = Command.make('concept').pipe(
-  Command.withDescription("A cast member's sheet: its brief, and a try measured"),
-  Command.withSubcommands([brief, measure]),
-);
+/** `film concept` over the app's house look. */
+export const concept = (house: HouseLook) =>
+  Command.make('concept').pipe(
+    Command.withDescription("A cast member's sheet: its brief, and a try measured"),
+    Command.withSubcommands([brief(house), measure]),
+  );

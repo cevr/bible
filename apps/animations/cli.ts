@@ -16,6 +16,12 @@ export const SOUNDS = `${import.meta.dir}/sounds`;
 /** The app's footage library, shared by its talks (`footage/library.lock.json`). */
 export const FOOTAGE = `${import.meta.dir}/footage`;
 
+/** The house look every concept prompt opens with (`docs/ref/`): its block and its picture. */
+const HOUSE_LOOK = {
+  text: `${import.meta.dir}/docs/ref/house-look.txt`,
+  image: `${import.meta.dir}/docs/ref/house-look.png`,
+};
+
 /** The app's planned series, their drafts under `<series>/scripts/` (`series/README.md`). */
 const SERIES = `${import.meta.dir}/series`;
 
@@ -95,6 +101,7 @@ export const appCli = (films: string, sounds: string, self: string): void =>
     self: ['bun', self],
     judge: { rules: JUDGE_RULES },
     critique: { rules: CRITIQUE_RULES },
+    house: HOUSE_LOOK,
   });
 
 if (import.meta.main) appCli(FILMS, SOUNDS, import.meta.path);

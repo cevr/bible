@@ -1053,6 +1053,12 @@ interface FilmApp<E> {
    * A section its file lacks is the critique's skip, logged.
    */
   readonly critique: { readonly rules: ReadonlyArray<CritiqueRule> };
+  /**
+   * The app's house look: `text`, the block every concept prompt opens with,
+   * and `image`, its picture, every concept try's first reference. `film
+   * concept` reads them from here, wherever it runs.
+   */
+  readonly house: { readonly text: string; readonly image: string };
 }
 
 /**
@@ -1071,6 +1077,7 @@ export const runFilmCli = <E>({
   self,
   judge: judging,
   critique: critiquing,
+  house,
 }: FilmApp<E>): void => {
   // The film's services, the lab's included (`film-services.ts`), over the app's folders,
   // reading a film fresh through this CLI, with the real ElevenLabs and the private store
@@ -1122,7 +1129,7 @@ export const runFilmCli = <E>({
       match(films),
       critique(films, critiquing.rules),
       review(films, critiquing.rules),
-      concept,
+      concept(house),
       ask,
       journal,
       production,
