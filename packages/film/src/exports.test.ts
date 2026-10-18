@@ -26,7 +26,7 @@
 //   style/rig a film's hand-written rigs, and its set's creases: the
 //             generator's parts
 //   style/build
-//             a film's rig build (`compile`)
+//             a film's rig build and its test (`compile`, `unbuilt`)
 // `tools`, `lab`, `review` and `solid-plugin` are not guarded here: the
 // tooling entries are read by the CLI, the app's build and the tests, and the
 // framework reads each core module by its path.
