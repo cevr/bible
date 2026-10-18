@@ -1011,7 +1011,7 @@ request reaches the gate. It knows three pages, the
 app's: the review (below); the player (`play.html`, `mountFilmStudio(pages)`), a
 film's studio (**The film's studio**, below); and the render page
 (`index.html`, `mountRender(pages)`) at a film's export place, which the
-easel opens (`film look`). Its API is under
+easel opens (`film lab look`). Its API is under
 `/api/` (The HTTP API, below), and every other path a page serves is one of
 the framework's places (`Places` in `core/api.ts`, each a `@bible/url-state`
 Place; the app gives each page's HTML entry, `LabPageSpec.pages`, and its
@@ -2375,10 +2375,11 @@ them, and a correction's words to say instead.
 `--watch` prints each new note, and each reply from the user (`reply id=…
 by=user … still=… text="…"`), once per run, starting past the current cursor
 (`--since n` to start earlier): run it under a Claude Code Monitor and each
-note arrives as a notification. `film notes reply <film> <id> "…" [--still
-file.png]` answers as the agent (the still is copied to `stills/<id>.r<seq>.png`
-and the note becomes `replied`); `film notes resolve <film> <id>` closes it.
-An unknown id fails with `NoteNotFound`, listing the film's notes.
+note arrives as a notification. `film lab reply --film <film> --note <id>
+--text "…" [--still file.png]` answers as the agent (the still is copied to
+`stills/<id>.r<seq>.png` and the note becomes `replied`); `film lab resolve
+--film <film> --note <id>` closes it. An unknown id fails with `NoteNotFound`,
+listing the film's notes.
 
 ### The look-book, light and chapters
 
@@ -2428,7 +2429,43 @@ also gets `main.description.txt`, the video's description: its chapters, then
 one "Sound:" line, then a line for each CC BY recording it places, its pages
 linked (`videoDescription`); none when it has neither.
 
-### The easel: `film look`
+### The lab's commands: `film lab <command>`
+
+Every action an agent or a terminal takes on the lab is one command, defined
+once (`labCommand`, `tools/lab-command.ts`: an Effect `Tool`, its parameters,
+success and failure schemas, and the effect it runs), and both transports are
+made from the one list (`tools/lab-commands.ts`): the lab's MCP serves each as
+a tool (`tools/lab-mcp.ts`), and `film lab <command>` (`tools/lab-cli.ts`) as
+a subcommand with a flag for each field of its parameters, by the field's own
+name, read from the JSON Schema the tool is listed by: a word, a number, a
+switch, a repeated flag for a list (`--at mark:a --at 2.5`; numbers also
+comma-separated, `--crop 0,0,400,300`), and JSON text for the rest
+(`--blocks '[…]'`, `--levels '{"ground":"light"}'`). `--input '<json>'` gives
+the whole input as one object, a flag beside it winning; `--json` prints the
+answer as its success schema encodes it, one line, and without it the
+command's plain lines. The input is read by the command's own parameters on
+both transports, so a terminal is refused in the words an MCP client is
+(`Invalid parameters for tool '<name>': …`, or the command's refusal).
+In `apps/animations`, `bun run lab <command>` runs it; `look`, `match`,
+`critique` and `journal` have scripts of their own.
+
+Where a terminal runs a command follows from what it needs, and the types
+hold it there:
+
+| Where      | Commands                                                                                                                                                                                                                                           | Why                                                                                                                                                            |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| here       | `notes` `board` `reply` `resolve` `request_tweak` `keep_try` `approve_beat` `withdraw_beat` `catalogue` `sets` `set` `publish_set` `record_render` `ask_read` `asks` `close_ask` `decide` `note` `forward` `check` `cues` `journal` `journal_note` | over the lab's files alone, through the stores the lab writes through; each write holds its file's lock across processes (`ContentStore`), so no lab need run  |
+| in the lab | `overview` `changes` `ask` `timeline` `working` `look` `match` `critique`                                                                                                                                                                          | over what only the running lab holds: its change feed, the agents' lines, the asks' page lock (held in memory), the easel's warm page and the critic beside it |
+
+An in-lab command is the lab MCP's own tool asked at `FILM_LAB_URL` (else
+`http://127.0.0.1:8229/`, `tools/lab-client.ts`): its input checked here
+first, its structured answer read back by the command's success schema, so a
+lab that answers another shape is refused (`LabAnswerUnread`) rather than
+misread. The test `tools/lab-command.test.ts` holds the two transports to one
+set: every tool the lab lists is a `film lab` subcommand with the same fields
+and the same required ones.
+
+### The easel: `film lab look`
 
 A look is a still of a scene as its sources stand, drawn in about a second
 with no render: the painter's step back from the easel after a passage. The
@@ -2437,10 +2474,11 @@ lab holds one export page per film open in its own process's Chrome
 launcher): the app's render page (`LabPageSpec.pages.render`, its
 `index.html`), at the film's export place (`/films/<film>/export`,
 `pageHref.export`) on the lab's own address, and a look seeks it to the frame and takes the canvas through the view
-(`ExportHandle.still`, composed by `player/still.ts`). `film look` is a thin
-client of the route (`tools/easel-cli.ts`, an `HttpApiClient` of
-`LabHttpApi` at `FILM_LAB_URL`, else `http://127.0.0.1:8229/`); an agent's
-tool calls the route the same way.
+(`ExportHandle.still`, composed by `player/still.ts`). `film lab look` is
+the lab MCP's `look` asked of the running lab (`tools/lab-client.ts`, at
+`FILM_LAB_URL`, else `http://127.0.0.1:8229/`; The lab's commands, above);
+the judge and the review ask the route itself (`tools/easel-client.ts`, an
+`HttpApiClient` of `LabHttpApi`).
 
 | Route                          | What it does                                                                                                                                                                       |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2496,7 +2534,7 @@ the route's refusals, `LabDown`, the judge's own, and `ToolFailed`
 draw_ms=`: the build asked, the page opened (0 when held), the frames drawn
 and written.
 
-**Wedges.** `levels` (`{ground: 'light'}`, `film look --level ground=light`)
+**Wedges.** `levels` (`{ground: 'light'}`, `film lab look --levels '{"ground":"light"}'`)
 draws a wedge, the printer's strip at several grades: each look named at
 that level in place of the one it plays, the pick unwritten. The easel reads
 the film's `palette.ts`, checks each look and level against the ones it
@@ -2510,9 +2548,9 @@ under `/wedge/<id>/`. Its page is held beside the film's own (four at
 most), and its stills carry the levels in their names
 (`….wground-light.b<server>.<build>.<wedge>.jpg`).
 
-### The match: `film match`
+### The match: `film lab match`
 
-`film match <film> --scene <id> --at <place> [--figure <name>] [--json]`
+`film lab match --film <film> --scene <id> --at <place> [--figure <name>] [--json]`
 holds each figure a frame draws against the concept it was painted from.
 A rig declares its concept beside itself (`RivePropSpec.concept`, a
 `ConceptRef` in `core/match.ts`: a set's image, `{set, file}` under
@@ -2609,9 +2647,9 @@ painter's step after a passage that touches a figure
 (`.claude/skills/film/reference/scene-painter.md`). Each match logs
 `easel.match … figures= unmatched= ms=`.
 
-### The critique: `film critique`
+### The critique: `film lab critique`
 
-`film critique <film> --scene <id> --at <place> [--figure <name>] [--json]`
+`film lab critique --film <film> --scene <id> --at <place> [--figure <name>] [--json]`
 (`tools/critique.ts`, its words pure in `core/critique.ts`; the lab MCP's
 `critique` tool beside `match`) takes the match, then shows each figure's
 two crops at 1:1 to a fresh Opus (`Counsel`, as `film judge` asks it:
@@ -2866,7 +2904,7 @@ own names, and the stored and wire words stay as they are.
   sets published into it, the owner's words given outside the lab, and the
   sets filed there that no root holds now. The current version is open, says
   what waits on the owner (each question asked of them about a set, a lab
-  ask made by `film production ask` or the lab's MCP, that no pick in its
+  ask made by the lab's `ask` (`film lab ask`, or its MCP), that no pick in its
   choice, no later decision on it and no close of the ask has answered; an
   open one stays open across a move), and holds the
   page's one verb, Move forward: the decision, one of the owner's filed in the

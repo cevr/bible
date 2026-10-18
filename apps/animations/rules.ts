@@ -34,7 +34,7 @@ export const JUDGE_RULES = [
 const CHARACTERS = `${SKILL}/reference/character-design.md`;
 
 /**
- * What `film critique` quotes to its counsel beside a figure's two crops: how
+ * What `film lab critique` quotes to its counsel beside a figure's two crops: how
  * a figure is drawn in the house look (the K1 look, the grammar every figure
  * shares, figures and faces, the look's rule).
  */

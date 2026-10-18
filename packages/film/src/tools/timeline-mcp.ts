@@ -1,4 +1,5 @@
-// The lab MCP's studio tools (`lab-mcp.ts` serves them): a film's timeline
+// The lab's studio commands (`lab-command.ts`; MCP and `film lab` serve
+// them, in the lab alone: both read what the lab holds): a film's timeline
 // read as the studio page reads it (`timeline`, over `FilmTimelines`), an
 // agent's "doing now" line said on the studio's header (`working`, held in
 // the lab's memory by `Working`), and the studio's edits of a version's
@@ -6,18 +7,18 @@
 // made by `BeatEdits` as the page makes them: the owner and the agents step
 // one history.
 
-import { Duration, Effect, Layer, Match, Option, Schema } from 'effect';
+import { Duration, Effect, Match, Option, Schema } from 'effect';
+import { Tool } from 'effect/ai';
 import { ChangeId } from '../core/schema.ts';
 import { BeatEdits, type Edited } from './beat-edits.ts';
-import { McpServer, Tool, Toolkit } from 'effect/ai';
 import { onlyTracks } from '../core/film-timeline.ts';
 import { seamsAround } from '../core/beat-edit.ts';
 import { FilmTimeline, Track, WorkingLine } from '../core/timeline-schema.ts';
 import { LabLinks } from '../core/lab-events.ts';
 import { type FilmFolder, filmNamed } from './film-repo.ts';
 import { FilmTimelines } from './film-timeline.ts';
-import { FilmParam, LabRefused, type LabMcpOptions, refused } from './lab-mcp-parts.ts';
-import { logged } from './mcp-calls.ts';
+import { LabAddress, labCommand } from './lab-command.ts';
+import { FilmParam, LabRefused, refused } from './lab-mcp-parts.ts';
 import { WORKING_HELD, Working } from './working.ts';
 
 // ---------------------------------------------------------------------------
@@ -134,14 +135,6 @@ const UndoTool = Tool.make('undo', {
   failure: LabRefused,
 });
 
-const TimelineToolkit = Toolkit.make(
-  TimelineTool,
-  WorkingTool,
-  BeatMoveTool,
-  BeatHoldTool,
-  UndoTool,
-);
-
 /** An edit as the tools answer it. */
 const editRead = (edited: Edited) => ({
   ...Option.match(edited.change, { onNone: () => ({}), onSome: (c) => ({ change: c.id }) }),
@@ -163,87 +156,76 @@ const NO_TEXT = LabRefused.make({
   reason: 'say `text` (what you are doing now), or `done: true` to clear your line',
 });
 
-/** The studio's tools, served by the lab's MCP server. */
-export const timelineMcp = (options: LabMcpOptions) =>
-  McpServer.toolkit(TimelineToolkit).pipe(
-    Layer.provideMerge(
-      TimelineToolkit.toLayer(
-        Effect.gen(function* () {
-          const timelines = yield* FilmTimelines;
-          const working = yield* Working;
-          const films = yield* Effect.context<FilmFolder>();
-          const edits = yield* BeatEdits;
-          return TimelineToolkit.of({
-            beat_move: logged('beat_move', ({ film, version, beat, before, by }) =>
-              refused(
-                Effect.map(
-                  edits.move({
-                    film,
-                    version: Option.fromUndefinedOr(version),
-                    beat,
-                    before: Option.fromUndefinedOr(before),
-                    by,
-                  }),
-                  editRead,
-                ),
-              ),
-            ),
-            beat_hold: logged('beat_hold', ({ film, version, beat, edge, seconds, by }) =>
-              refused(
-                Effect.gen(function* () {
-                  const held = yield* edits.hold({
-                    film,
-                    version: Option.fromUndefinedOr(version),
-                    beat,
-                    edge,
-                    seconds,
-                    by,
-                  });
-                  // The version read again after the write: the seams the hold moved.
-                  const after = yield* timelines.timeline(film, Option.fromUndefinedOr(version));
-                  return { ...editRead(held), seams: seamsAround(scriptLane(after), beat) };
-                }),
-              ),
-            ),
-            undo: logged('undo', ({ film, change }) =>
-              refused(
-                Effect.map(
-                  edits.step(
-                    'undo',
-                    film,
-                    Option.match(Option.fromUndefinedOr(change), {
-                      onNone: () => ({}),
-                      onSome: (c) => ({ change: c }),
-                    }),
-                  ),
-                  editRead,
-                ),
-              ),
-            ),
-            timeline: logged('timeline', ({ film, version, tracks }) =>
-              refused(
-                Effect.map(timelines.timeline(film, Option.fromUndefinedOr(version)), (read) => ({
-                  ...onlyTracks(read, Option.fromUndefinedOr(tracks)),
-                  lab: options.links,
-                })),
-              ),
-            ),
-            working: logged('working', ({ film, text, by, done }) =>
-              refused(
-                Effect.gen(function* () {
-                  const named = yield* filmNamed(film).pipe(Effect.provideContext(films));
-                  if (done === true) yield* working.done(named, by);
-                  else
-                    yield* Option.match(Option.fromUndefinedOr(text), {
-                      onNone: () => Effect.fail(NO_TEXT),
-                      onSome: (line) => working.say(named, by, line),
-                    });
-                  return { film: named, working: yield* working.on(named) };
-                }),
-              ),
-            ),
+/** The studio's commands: its reads, the agents' lines, and its edits of a version's script. */
+export const timelineCommands = [
+  labCommand(BeatMoveTool, {
+    run: ({ film, version, beat, before, by }) =>
+      Effect.gen(function* () {
+        const edits = yield* BeatEdits;
+        const moved = yield* refused(
+          edits.move({
+            film,
+            version: Option.fromUndefinedOr(version),
+            beat,
+            before: Option.fromUndefinedOr(before),
+            by,
+          }),
+        );
+        return editRead(moved);
+      }),
+  }),
+  labCommand(BeatHoldTool, {
+    run: ({ film, version, beat, edge, seconds, by }) =>
+      Effect.gen(function* () {
+        const edits = yield* BeatEdits;
+        const timelines = yield* FilmTimelines;
+        const held = yield* refused(
+          edits.hold({ film, version: Option.fromUndefinedOr(version), beat, edge, seconds, by }),
+        );
+        // The version read again after the write: the seams the hold moved.
+        const after = yield* refused(timelines.timeline(film, Option.fromUndefinedOr(version)));
+        return { ...editRead(held), seams: seamsAround(scriptLane(after), beat) };
+      }),
+  }),
+  labCommand(UndoTool, {
+    run: ({ film, change }) =>
+      Effect.gen(function* () {
+        const edits = yield* BeatEdits;
+        const undone = yield* refused(
+          edits.step(
+            'undo',
+            film,
+            Option.match(Option.fromUndefinedOr(change), {
+              onNone: () => ({}),
+              onSome: (c) => ({ change: c }),
+            }),
+          ),
+        );
+        return editRead(undone);
+      }),
+  }),
+  labCommand(TimelineTool, {
+    run: ({ film, version, tracks }) =>
+      Effect.gen(function* () {
+        const timelines = yield* FilmTimelines;
+        const lab = yield* LabAddress;
+        const read = yield* refused(timelines.timeline(film, Option.fromUndefinedOr(version)));
+        return { ...onlyTracks(read, Option.fromUndefinedOr(tracks)), lab };
+      }),
+  }),
+  labCommand(WorkingTool, {
+    run: ({ film, text, by, done }) =>
+      Effect.gen(function* () {
+        const working = yield* Working;
+        const films = yield* Effect.context<FilmFolder>();
+        const named = yield* refused(filmNamed(film).pipe(Effect.provideContext(films)));
+        if (done === true) yield* working.done(named, by);
+        else
+          yield* Option.match(Option.fromUndefinedOr(text), {
+            onNone: () => Effect.fail(NO_TEXT),
+            onSome: (line) => working.say(named, by, line),
           });
-        }),
-      ),
-    ),
-  );
+        return { film: named, working: yield* working.on(named) };
+      }),
+  }),
+];

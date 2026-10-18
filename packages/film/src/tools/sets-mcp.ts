@@ -1,4 +1,4 @@
-// The lab MCP's sets (`lab-mcp.ts` serves them): the sets under the review
+// The lab's set commands (`lab-command.ts`; MCP and `film lab` serve them): the sets under the review
 // roots as the review walks them (`sets`), one montage's `review.json`
 // (`set`), a project folder's catalogue (`catalogue`), and the writes into
 // them, each through the store the page and the CLI write through
@@ -6,9 +6,9 @@
 // render recorded (`record_render`). Each write drops the review's index, so
 // its next read sees what was written.
 
-import { Clock, Effect, FileSystem, Layer, Option, Path, Result, Schema, Struct } from 'effect';
-import { McpServer, Tool, Toolkit } from 'effect/ai';
-import { pageHref } from '../core/api.ts';
+import { Clock, Effect, FileSystem, Option, Path, Result, Schema, Struct } from 'effect';
+import { Tool } from 'effect/ai';
+import { pageHref, reviewFileUrl } from '../core/api.ts';
 import { Catalogue, Render } from '../core/catalogue.ts';
 import { LabLinks, linksAt } from '../core/lab-events.ts';
 import { setNamed } from '../core/production.ts';
@@ -18,9 +18,9 @@ import { Segment } from '../core/segment.ts';
 import { CATALOGUE_FILE, RenderCatalogue } from './catalogue.ts';
 import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts';
 import { FilmFolder, filmNamed, filmsOut } from './film-repo.ts';
-import { LabRefused, type LabMcpOptions, inside, refused } from './lab-mcp-parts.ts';
-import { logged } from './mcp-calls.ts';
-import { Review, filesInMontage, pathOf, recordsUnder, refOf } from './review.ts';
+import { LabAddress, labCommand } from './lab-command.ts';
+import { LabRefused, inside, refused } from './lab-mcp-parts.ts';
+import { Review, filesInMontage, namesInMontage, pathOf, recordsUnder, refOf } from './review.ts';
 
 // ---------------------------------------------------------------------------
 // What the tools answer
@@ -41,11 +41,23 @@ const CatalogueRead = Schema.Struct({
   catalogue: Catalogue,
 });
 
+/** A file a set shows, by the names an asker gives it: its ref (a `video` or `document` block's), its lab path (an image's `src`) and its links. */
+const SetFileRead = Schema.Struct({
+  /** Its path in the set's folder, as `review.json` names it. */
+  file: Schema.String,
+  ref: Schema.String,
+  /** Where the lab serves it: the `src` an ask's image takes. */
+  src: Schema.String,
+  links: LabLinks,
+});
+
 const SetManifestRead = Schema.Struct({
   set: Schema.String,
   links: LabLinks,
   dir: Schema.String,
   manifest: ReviewManifest,
+  /** Each file the manifest names that is in the folder, where the lab serves it. */
+  files: Schema.Array(SetFileRead),
 });
 
 /** A file put into a set: from a path on this machine to a path in the set's folder. */
@@ -107,7 +119,7 @@ const CatalogueTool = Tool.make('catalogue', {
   failure: LabRefused,
 }).annotate(Tool.Readonly, true);
 
-export const Sets = Tool.make('sets', {
+const Sets = Tool.make('sets', {
   description:
     'Every set the lab lists, by ref, as the review lists them (a folder with something to review: a set published with no file in it waits until one lands): montages (a `review.json`) and project folders (a `catalogue.json`), each with its title, lab link and folder.',
   success: Schema.Struct({ sets: Schema.Array(SetRead) }),
@@ -115,7 +127,8 @@ export const Sets = Tool.make('sets', {
 }).annotate(Tool.Readonly, true);
 
 const SetTool = Tool.make('set', {
-  description: "A montage set's `review.json`, its lab link and its folder.",
+  description:
+    "A montage set's `review.json`, its lab link and its folder, and each file it shows where the lab serves it (`files`: its `ref` for a `video` or `document` block, its `src` for an ask's image, its links): copy them, never build them.",
   parameters: Schema.Struct({ set: Schema.String }),
   success: SetManifestRead,
   failure: LabRefused,
@@ -123,7 +136,7 @@ const SetTool = Tool.make('set', {
 
 const PublishSet = Tool.make('publish_set', {
   description:
-    "Publish a set into the lab, or update one: its folder `name` in the lab's own `out/` (never a project folder, a film's or one a catalogue keeps: a render is recorded there with `record_render`), the files copied in (each `from` an absolute path, `to` its place in the folder), and its `review.json` written with the keys given (each replaces the one there; a key left out is kept). List each file the set shows under `images`, `videos`, `docs`, `downloads` or a comparison set's variants (and their `notes`), by its path in the folder: each must be there once the files are in, a variant with no `file` as its share copy or its master. Answers the set's ref and link: the owner sees it at once.",
+    "Publish a set into the lab, or update one: its folder `name` in the lab's own `out/` (never a project folder, a film's or one a catalogue keeps: a render is recorded there with `record_render`), the files copied in (each `from` an absolute path, `to` its place in the folder), and its `review.json` written with the keys given (each replaces the one there; a key left out is kept). List each file the set shows under `images`, `videos`, `docs`, `downloads` or a comparison set's variants (and their `notes`), by its path in the folder: each must be there once the files are in, a variant with no `file` as its share copy or its master. Answers the set's ref and link (the owner sees it at once), and each file it shows where the lab serves it (`files`: its `ref`, its `src` for an ask's image, its links).",
   parameters: Schema.Struct({
     name: SetName,
     files: Schema.optionalKey(Schema.Array(SetFile)),
@@ -144,14 +157,13 @@ const RecordRender = Tool.make('record_render', {
   failure: LabRefused,
 });
 
-const SetsToolkit = Toolkit.make(CatalogueTool, Sets, SetTool, PublishSet, RecordRender);
-
 // ---------------------------------------------------------------------------
 // The reads and writes, over the review's roots
 
 /** The sets as the tools, the overview and the asks read and write them. */
-export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMcpOptions) {
+export const setsReads = Effect.fn('LabMcp.setsReads')(function* () {
   const fs = yield* FileSystem.FileSystem;
+  const links = yield* LabAddress;
   const path = yield* Path.Path;
   const folder = yield* FilmFolder;
   const review = yield* Review;
@@ -159,9 +171,9 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
   const catalogues = yield* RenderCatalogue;
   const films = yield* Effect.context<FilmFolder>();
   const platform = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
-  const out = yield* filmsOut;
+  const out = yield* refused(filmsOut);
 
-  const linksOf = (at: string) => linksAt(options.links, at);
+  const linksOf = (at: string) => linksAt(links, at);
   const named = (film: string) => refused(filmNamed(film).pipe(Effect.provideContext(films)));
 
   /**
@@ -225,6 +237,23 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
     empty: {},
   });
 
+  /** Each file `manifest` names that is in the set's folder `dir`, where the lab serves it. */
+  const filesOf = (ref: string, dir: string, manifest: ReviewManifest) =>
+    Effect.map(
+      Effect.filter(namesInMontage(manifest), (name) =>
+        Option.match(inside(path, dir, name), {
+          onNone: () => Effect.succeed(false),
+          onSome: (at) => Effect.orElseSucceed(fs.exists(at), () => false),
+        }),
+      ),
+      (names) =>
+        names.map((file) => {
+          const fileRef = `${ref}/${file}`;
+          const src = reviewFileUrl(fileRef);
+          return { file, ref: fileRef, src, links: linksOf(src) };
+        }),
+    );
+
   const setOf = Effect.fn('LabMcp.set')(function* (ref: string) {
     const at = yield* folderOf(Option.none(), Option.some(ref));
     const file = path.join(at.dir, 'review.json');
@@ -235,7 +264,13 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
     const manifest = yield* refused(
       store.read({ file, codec: ReviewManifestJson, empty: emptyManifest }),
     );
-    return { set: ref, links: linksOf(pageHref.folder(ref)), dir: at.dir, manifest };
+    return {
+      set: ref,
+      links: linksOf(pageHref.folder(ref)),
+      dir: at.dir,
+      manifest,
+      files: yield* filesOf(ref, at.dir, manifest),
+    };
   });
 
   // A write drops the review's index (`written`), refused or not, so its next read sees the folder as it is.
@@ -317,7 +352,13 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
       ),
     );
     yield* Effect.log(`lab.mcp.publish set=${ref} files=${copies.length}`);
-    return { set: ref, links: linksOf(pageHref.folder(ref)), dir, manifest: written };
+    return {
+      set: ref,
+      links: linksOf(pageHref.folder(ref)),
+      dir,
+      manifest: written,
+      files: yield* filesOf(ref, dir, written),
+    };
   }, Effect.ensuring(review.written));
 
   // As for a set: the catalogue written, the review's index is dropped.
@@ -374,26 +415,26 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* (options: LabMc
   return { sets, setOf, catalogueOf, publishSet, recordRender, folderNamed };
 });
 
-/** The sets' tools, served by the lab's MCP server. */
-export const setsMcp = (options: LabMcpOptions) =>
-  McpServer.toolkit(SetsToolkit).pipe(
-    Layer.provideMerge(
-      SetsToolkit.toLayer(
-        Effect.map(setsReads(options), (lab) =>
-          SetsToolkit.of({
-            catalogue: logged('catalogue', ({ film, set }) =>
-              lab.catalogueOf(Option.fromUndefinedOr(film), Option.fromUndefinedOr(set)),
-            ),
-            sets: logged('sets', () => Effect.map(lab.sets, (sets) => ({ sets }))),
-            set: logged('set', ({ set }) => lab.setOf(set)),
-            publish_set: logged('publish_set', ({ name, files, manifest }) =>
-              lab.publishSet(name, files ?? [], manifest),
-            ),
-            record_render: logged('record_render', ({ film, render }) =>
-              lab.recordRender(film, render),
-            ),
-          }),
-        ),
+/** The work of the sets' commands. */
+const lab = setsReads();
+
+/** The sets' commands. */
+export const setsCommands = [
+  labCommand(CatalogueTool, {
+    run: ({ film, set }) =>
+      Effect.flatMap(lab, (l) =>
+        l.catalogueOf(Option.fromUndefinedOr(film), Option.fromUndefinedOr(set)),
       ),
-    ),
-  );
+  }),
+  labCommand(Sets, {
+    run: () => Effect.flatMap(lab, (l) => Effect.map(l.sets, (sets) => ({ sets }))),
+  }),
+  labCommand(SetTool, { run: ({ set }) => Effect.flatMap(lab, (l) => l.setOf(set)) }),
+  labCommand(PublishSet, {
+    run: ({ name, files, manifest }) =>
+      Effect.flatMap(lab, (l) => l.publishSet(name, files ?? [], manifest)),
+  }),
+  labCommand(RecordRender, {
+    run: ({ film, render }) => Effect.flatMap(lab, (l) => l.recordRender(film, render)),
+  }),
+];

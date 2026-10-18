@@ -947,7 +947,7 @@ describe('lab routes', () => {
           _tag: 'LookFailed',
           reason: 'no easel in this test',
         });
-        // The one shape a tool decodes, as `film look --json` prints it too.
+        // The one shape a tool decodes, as `film lab look --json` prints it too.
         expect(yield* Schema.decodeEffect(Schema.fromJsonString(ToolFailure))(body)).toMatchObject({
           _tag: 'LookFailed',
         });

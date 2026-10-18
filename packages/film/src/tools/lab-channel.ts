@@ -30,7 +30,7 @@ import {
 import { Command } from 'effect/cli';
 import type { LabChange } from '../core/lab-events.ts';
 import { labClient, labUrl } from './lab-client.ts';
-import { Changes } from './lab-mcp.ts';
+import { Changes } from './lab-commands.ts';
 import { relayFeed } from './lab-relay.ts';
 
 /** The capability Claude Code reads a channel by. */

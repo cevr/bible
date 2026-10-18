@@ -3,7 +3,7 @@
 // is told by the ids it names (a film, a note, a set, a cursor), never by
 // its words: a note's text, a reply, an ask's question or a quote stay out.
 
-import { Boolean as Bool, Cause, Clock, Effect, Exit, Option } from 'effect';
+import { Boolean as Bool, Cause, Clock, Effect, Exit, Option, Schema } from 'effect';
 
 /** The arguments a call is logged by: names and ids, never words. */
 const LOGGED_ARGS = [
@@ -26,6 +26,26 @@ const LOGGED_ARGS = [
 
 /** A tool call's arguments as far as its line reads them: the logged ones, each a name, an id or a count. */
 export type CallParams = { readonly [Arg in (typeof LOGGED_ARGS)[number]]?: string | number };
+
+const isJsonObject = Schema.is(Schema.JsonObject);
+const isLogged = Schema.is(Schema.Union([Schema.String, Schema.Finite]));
+
+/** A call's raw arguments as its line reads them: each logged one that is a word or a number. Pure. */
+export const callParamsOf = (raw: Schema.Json): CallParams =>
+  Option.match(Option.liftPredicate(raw, isJsonObject), {
+    onNone: () => ({}),
+    onSome: (record) =>
+      Object.fromEntries(
+        LOGGED_ARGS.flatMap((key) =>
+          Option.toArray(
+            Option.map(
+              Option.filter(Option.fromUndefinedOr(record[key]), isLogged),
+              (value) => [key, value] as const,
+            ),
+          ),
+        ),
+      ),
+  });
 
 /** `params`' logged arguments, as ` key=value` each (`LOGGED_ARGS`). Pure. */
 const callArgs = (params: CallParams): string =>

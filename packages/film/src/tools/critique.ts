@@ -1,4 +1,4 @@
-// The critique (`film critique`, the lab's `critique` tool): each figure a
+// The critique (`film lab critique`, the lab's `critique` tool): each figure a
 // match held against its concept, shown to a fresh model at 1:1 beside the
 // match's flagged rows and the house rules' figure sections, its findings
 // written beside the match's table (`<stem>.critique.md`). `core/critique.ts`

@@ -1,4 +1,4 @@
-// `film look` as a client of the lab's look route: a request it cannot even
+// The easel client of the lab's look route: a request it cannot even
 // send (a size the route refuses) is `LookInvalid`, asked of no lab, never
 // `LabDown`; and a failure prints as the very JSON the route answers with,
 // one shape for a tool to read whichever side it came from.
@@ -8,7 +8,7 @@ import { Effect, Layer, Schema } from 'effect';
 import { FetchHttpClient, HttpClient, HttpClientResponse } from 'effect/http';
 import { ToolFailure } from '../core/api.ts';
 import { type LookPost, ToolFailed } from '../core/easel.ts';
-import { failureJson, takeLook } from './easel-cli.ts';
+import { failureJson, takeLook } from './easel-client.ts';
 
 /** A lab that answers every request with `status` and `body`, each request counted in `asked`. */
 const labAnswering = (status: number, body: string, asked: Array<string>) =>
@@ -34,7 +34,7 @@ const post = (size: number): LookPost => ({
 const parse = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown));
 const decodeFailure = Schema.decodeUnknownSync(Schema.fromJsonString(ToolFailure));
 
-describe('film look, as the look route sees it', () => {
+describe('the easel client, as the look route sees it', () => {
   const asked: Array<string> = [];
   it.effect('a request it cannot send is LookInvalid, and no lab is asked', () =>
     Effect.gen(function* () {

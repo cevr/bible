@@ -1,4 +1,4 @@
-// A figure's render artifacts, read from its head's pixels (`film match`):
+// A figure's render artifacts, read from its head's pixels (`film lab match`):
 // the marks a drawn figure shows that no part of it draws, each a thin line
 // of a third colour, at 1:1 only (owner, 2026-10-17, his local day, on the RBF v3 cast:
 // "theres some artifacts in the render"). Pure: RGBA and the head's masks

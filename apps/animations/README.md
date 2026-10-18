@@ -9,6 +9,7 @@ scrubbable preview and a frame-exact MP4 export.
 
 ```sh
 bun run lab                                    # the lab at http://localhost:8229/: the review at /, a film's studio (the film on one timeline) at /films/<film>/studio (LAB_HOST, LAB_PORT, FILM_LAB_PHONE_URL, FILM_STAGING_FILL)
+bun run lab <command> --<field> … [--json]     # one of the lab MCP's tools from a terminal, its fields as flags (`bun run lab --help` lists them); over the lab's files it runs here, else it asks the running lab (FILM_LAB_URL, else :8229)
 bun run narrate <film>                         # stage stale beats with ElevenLabs, verify, remix full.wav
 bun run script <film> [--sheet]                # the reading sheet; --sheet writes out/<film>/script-sheet.md + .html to print
 bun run takes import <film> <folder|file>      # the owner's recordings as takes (trimmed, levelled, timed), remix full.wav
@@ -59,15 +60,15 @@ bun run render <film> --short <id> ...         # out/<film>/shorts/<id>/main.mp4
 bun run render <film> ... --variant <name>     # another render of the same address beside main (<name>.mp4, <name>/stills/…): a look or score option, lab-<id>
 bun run render <film> ... --level <look>=<level> [--variant <name>]  # a wedge render: that look at that level instead of the one it plays, the pick left unwritten; files named for the levels (style-ps1) unless --variant names them
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
-bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
-bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer, or its failure as the route answers it (`ToolFailure`), as one line
-bun run look <film> ... --level <look>=<level>  # a wedge: that look (palette.ts's looks) drawn at that level instead of the one it plays, the pick left unwritten
-bun run match <film> --scene <id> --at <place> [--figure <name>] [--json]  # each figure drawn there against its rig's concept: out/<film>/match/<scene>/<figure>.….png (concept, scene, scene under the concept's outline) and .md (the table, flagged past tolerance); guidance, never a gate
+bun run look --film <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
+bun run look --film <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer, or its failure (`{_tag, message}`), as one line
+bun run look --film <film> ... --levels '{"<look>":"<level>"}'  # a wedge: that look (palette.ts's looks) drawn at that level instead of the one it plays, the pick left unwritten
+bun run match --film <film> --scene <id> --at <place> [--figure <name>] [--json]  # each figure drawn there against its rig's concept: out/<film>/match/<scene>/<figure>.….png (concept, scene, scene under the concept's outline) and .md (the table, flagged past tolerance); guidance, never a gate
 bun run concept brief --look <file> --references <file> (--turnaround <who> | --layout <file> --kind poses|heads)  # a cast sheet's prompt for the image route: the house block made a sheet's, the references, the look, the layout and the sheet rules
 bun run concept measure <try.png> --kind turnaround|poses|heads --count <n> --anchor <view> [--slot …] [--standing <view> …] [--level <view> …] [--headgear] [--concept <crop.png>:<view>]  # a cast sheet try measured, facing first: a line per flag, <stem>.measure.md/.json and .overlay.png beside it; guidance, never a gate
 bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by a fresh Opus at max effort (headless Claude) in a macOS sandbox that reads, of the user's files, only the packet, Claude's install and the keychains (its sign-in), asking through the host's Claude proxy (`ANTHROPIC_BASE_URL`) when it has one; prints the verdict's path (out/<film>/judge/<scene>-<stamp>-<draw>/verdict.md) and the ranking; writes no choice
-bun run journal <film> note "text" [--scene <id>]   # append an observation to src/films/<film>/journal.md (committed), dated and placed; an empty note is refused
-bun run journal <film> read [--scene <id>] [--last N]  # the newest N entries (20), oldest first, one line each, under 8,000 characters
+bun run lab journal_note --film <film> --text "text" [--scene <id>]  # append an observation to src/films/<film>/journal.md (committed), dated and placed; an empty note is refused
+bun run journal --film <film> [--scene <id>] [--last N]  # the newest N entries (20), oldest first, one line each, under 8,000 characters
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
 bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force), a stale:sound one re-muxed (nothing drawn)
 bun run project approve <film> --scene id,id | --act name | --all  # approve scenes' renders (a stale or missing one named is refused), an act's current scenes, or every current one; a re-render leaves the approval stale
@@ -81,16 +82,16 @@ bun cli.ts options keep-voice <film> <beat> <file> [--accept-mismatch]  # keep a
 bun cli.ts read voice <film>                   # what the lab's studio reads of the film, fresh from disk (one line of JSON)
 bun cli.ts read cue <film> <scene> <cue> [--spans <json>] [--patch <json>]  # a cue on its scene's clock as the files declare it (or with these spans, and this patch over its own span when its source computes part of it), or why it does not resolve (one line of JSON)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
-bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
-bun run notes resolve <film> <id>
+bun run lab reply --film <film> --note <id> --text "text" [--still file.png]  # reply as the agent; the note becomes replied
+bun run lab resolve --film <film> --note <id>
 bun run board <film> [--beat id,id] [--tries 2] [--lanes 3] [--dry-run]  # the storyboard: every panel the board lacks (a beat's picture's marks, at most 3; its start when none), 2 tries each on okra image's Codex route, into src/films/<film>/board/ + board.json
 bun run board style <film> --id <id> --name "…" --block-file f --ref img [--world-file f]  # the board's look: the style block every prompt opens with, its reference image, the film's world
 bun run board import <film> --panel <beat>.<at> <file…> [--keep n --why "…"] [--from "…"] [--prompt-file f]  # images made elsewhere as a panel's tries
 bun run board card|verse <film> --panel <beat>.<at> ...  # a panel the engine sets (card: --payoff word [--to mark]; verse: --ref --text --phrase): never an image
-bun run board pick <film> --panel <beat>.<at> --try n [--why "…"]  # keep one try (the studio's Board section writes the same)
-bun run board approve|withdraw <film> --beat <id>  # a beat's board approved as it stands (a later pick leaves it stale)
+bun run lab keep_try --film <film> --panel <beat>.<at> --try n [--why "…"]  # keep one try (the studio's Board section writes the same)
+bun run lab approve_beat|withdraw_beat --film <film> --beat <id>  # a beat's board approved as it stands (a later pick leaves it stale)
 bun run board tweak <film> <note> [--tries 2]      # a panel note asking a tweak: new tries from the try, the note's sketched still and the style ref; the old tries stay
-bun run board list <film>                          # every panel: its tries, the one kept, the beat's approval
+bun run lab board --film <film> [--beat <id>]      # every panel: its tries, the one kept, the beat's approval
 ```
 
 Every command is the `film` CLI from `@bible/film/tools`, run by this app's
@@ -396,10 +397,10 @@ made, so the next pass reads the film's history instead of finding it again.
 Its rule is written at its top: **observations, never instructions**. "Under
 squint the robe is the lightest mass at mark roof" is an entry; "make the
 robe lighter" is not (a decision lands in the source, a request is a lab
-note). `bun run journal <film> note "…" --scene <id>` appends one entry, its
+note). `bun run lab journal_note --film <film> --text "…" --scene <id>` appends one entry, its
 UTC time to the second and its scene (`film` without one), the words on one
 line; a scene the film lacks is refused (`UnknownScene`), and so is an empty
-note (`JournalEmpty`). Notes at once all land: a first note publishes its journal whole (written beside it, then linked into place, which fails if one is there), and every other appends. `bun run journal <film> read [--scene <id>] [--last N]`
+note (`JournalEmpty`). Notes at once all land: a first note publishes its journal whole (written beside it, then linked into place, which fails if one is there), and every other appends. `bun run journal --film <film> [--scene <id>] [--last N]`
 prints the newest entries, oldest first, as `<time> scene=<id> <text>`,
 never more than 8,000 characters, with a first line saying how many earlier
 entries it left out.
@@ -409,7 +410,8 @@ entries it left out.
 The lab's MCP (`/mcp`; [plans/lab-mcp.md](plans/lab-mcp.md)) serves the
 easel to every agent, Claude Code, Codex or any MCP client: `look`, `match`,
 `critique`, `cues`, `check`, `journal` and `journal_note`
-(`packages/film/src/tools/easel-mcp.ts`). They are the commands' own owners.
+(`packages/film/src/tools/easel-mcp.ts`), each also `bun run lab <tool>` with
+its fields as flags (`packages/film/README.md`, "The lab's commands").
 `look` is the lab's easel, its stills answered as images the model reads,
 each after its line. `match` holds each figure to its concept, and
 `critique` shows its 1:1 crops to a fresh Opus beside the house rules

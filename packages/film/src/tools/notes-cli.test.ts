@@ -49,8 +49,6 @@ describe('film notes', () => {
   for (const [film, args] of [
     ['f-typo', ['f-typo']],
     ['f-typo', ['f-typo', '--watch']],
-    ['f-typo', ['reply', 'f-typo', 'n1', 'hello']],
-    ['f-typo', ['resolve', 'f-typo', 'n1']],
     ['../escape', ['../escape']],
   ] as const)
     it.effect(`\`notes ${args.join(' ')}\` answers FilmUnknown and makes no lab folder`, () =>

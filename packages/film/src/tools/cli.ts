@@ -15,6 +15,7 @@
 //   film options …    (choices-cli.ts) a film's choice points, read fresh for the lab
 //   film read …       (read-cli.ts)    the studio's reading, a cue, the scenes' sites, read fresh for the lab
 //   film lab                                                   the lab's server, every film (Ctrl-C stops it)
+//   film lab <command> … (lab-cli.ts) the lab's command set, the same as its MCP tools (`--help` lists them)
 //   film notes …      (notes-cli.ts)   the lab's notes, from the terminal
 //   film ask wait …   (ask-cli.ts)     wait on the owner's answer to an ask, in the background
 //   film concept …    (concept-cli.ts) a cast member's sheet: its brief, and a try measured
@@ -104,11 +105,11 @@ import { fillBeside, ScriptVoices, stagingFill } from './script-voice.ts';
 import { SeriesDrafts, draftKey } from './series-drafts.ts';
 import { ask } from './ask-cli.ts';
 import { concept } from './concept-cli.ts';
-import { critique, look, match } from './easel-cli.ts';
+import { labCliCommands } from './lab-cli.ts';
+import { hereCommands, inLabCommands } from './lab-commands.ts';
 import { review } from './review-cli.ts';
 import { Counsel } from './counsel.ts';
 import { Critic } from './critique.ts';
-import { journal } from './journal-cli.ts';
 import { production, publish } from './production-cli.ts';
 import { board } from './board-cli.ts';
 import { judge } from './judge-cli.ts';
@@ -1048,7 +1049,7 @@ interface FilmApp<E> {
    */
   readonly judge: { readonly rules: ReadonlyArray<JudgeRule> };
   /**
-   * What `film critique` and the lab's `critique` tool quote: the sections of
+   * What `film lab critique` and the lab's `critique` tool quote: the sections of
    * the app's rule files on how a figure is drawn, each by its heading line.
    * A section its file lacks is the critique's skip, logged.
    */
@@ -1123,15 +1124,15 @@ export const runFilmCli = <E>({
       lookbook(lookLayer),
       chaptersCommand,
       doctor(previewServer),
-      lab(labApp, films, footageAt, critiquing.rules),
+      lab(labApp, films, footageAt, critiquing.rules).pipe(
+        Command.withSubcommands(
+          labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films }),
+        ),
+      ),
       channel.pipe(Command.provide(FetchHttpClient.layer)),
-      look(films),
-      match(films),
-      critique(films, critiquing.rules),
       review(films, critiquing.rules),
       concept(house),
       ask,
-      journal,
       production,
       publish,
       board,

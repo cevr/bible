@@ -5,7 +5,7 @@
 // interlaced and holds no palette (grey, grey and alpha, RGB, RGBA), as an
 // image model, a page or this writer saves one. Bun's `node:zlib` holds the
 // deflate, the inflate and the chunk CRC, so a sound's sheet and a figure's
-// concept need no image library (`sfx render --sheet`, `film match`).
+// concept need no image library (`sfx render --sheet`, `film lab match`).
 
 import { crc32, deflateSync, inflateSync } from 'node:zlib';
 import { Option, Result, Schema } from 'effect';

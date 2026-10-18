@@ -1,5 +1,5 @@
 // The easel: a still of a scene as its sources stand, in about a second, with
-// no render (`film look`). The lab holds one export page per film warm in
+// no render (`film lab look`). The lab holds one export page per film warm in
 // this process's Chrome (`Browser`) on its own server (the app's render page,
 // at the film's export place, `pageHref.export`), and a look seeks it
 // to the frame and takes the canvas as the view asks (`still`, the export
@@ -10,7 +10,7 @@
 // it when the build moved, so the page always runs the code on disk. Each still is written once, under the film's
 // `out/<film>/look/<scene>/`, named by its time, view and build.
 //
-// A match (`film match`) draws one frame twice on the same page: once with
+// A match (`film lab match`) draws one frame twice on the same page: once with
 // the figure probe on, for each rig's box on screen and its concept, and once
 // as a plain PNG, which it crops each figure from; it measures the crop and
 // the concept's (`core/figure.ts`), writes the table and the side-by-side

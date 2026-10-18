@@ -85,7 +85,7 @@ export interface RivePropSpec<Tl extends string = string, N extends string = str
   readonly face?: { readonly node: string; readonly height: number };
   /**
    * The figure's concept: the image it was painted in and its box there
-   * (`film match` holds the rig as drawn against it). A rig with a face and
+   * (`film lab match` holds the rig as drawn against it). A rig with a face and
    * a concept is a figure `match` reads; a hand has neither.
    */
   readonly concept?: ConceptRef;

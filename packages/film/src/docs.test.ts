@@ -78,6 +78,8 @@ import { JSONC, TOML } from 'bun';
 import { type Node, type Program, Visitor, parseSync } from 'oxc-parser';
 import { LabHttpApi } from './core/api.ts';
 import { declares as declaresRoute, routesOf } from './core/testing.ts';
+import { fieldsOf } from './tools/lab-fields.ts';
+import { allCommands } from './tools/lab-commands.ts';
 import {
   ANOTHER_REPO,
   type Anchor,
@@ -987,7 +989,11 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
         Option.toArray(Option.fromNullOr(/^bun cli\.ts ([a-z][\w-]*)/.exec(run))).map(firstGroup),
       ),
     ),
-    flags: new Set(matches(tools, /Flag\.\w+\(\s*'([a-z][a-z-]*)'/g).map(firstGroup)),
+    // A flag a command declares itself, and each field of a lab command (`film lab <name> --<field>`, `lab-cli.ts`).
+    flags: new Set([
+      ...matches(tools, /Flag\.\w+\(\s*'([a-z][a-z-]*)'/g).map(firstGroup),
+      ...allCommands.flatMap((command) => fieldsOf(command.tool).map((field) => field.name)),
+    ]),
     tags: new Set(matches(src, /TaggedError<(\w+)>/g).map(firstGroup)),
     names: new Set(
       [

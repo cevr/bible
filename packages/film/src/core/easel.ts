@@ -252,18 +252,8 @@ export const formatFor = (cropped: boolean): StillView['format'] => {
 const Crop = Schema.Tuple([Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]);
 type Crop = typeof Crop.Type;
 
-/** `x0,y0,x1,y1` read as a crop, or why it is none. */
-export const cropOf = (text: string): Result.Result<Crop, LookInvalid> => {
-  const parts = text.split(',').map((n) => n.trim());
-  const corners = parts.map(Number);
-  const [x0 = 0, y0 = 0, x1 = 0, y1 = 0] = corners;
-  if (parts.length !== 4 || parts.includes('') || !corners.every(Number.isFinite))
-    return invalid(`"${text}" is no crop: four pixel numbers, x0,y0,x1,y1`);
-  return Result.succeed([x0, y0, x1, y1]);
-};
-
 /**
- * `--level look=level` flags (`film look`, `film render`) as a wedge's
+ * `--level look=level` flags (`film render`) as a wedge's
  * levels, each look once; a flag of another shape, or a look given twice, is
  * `LookInvalid`. No flags is no wedge: the levels the film plays.
  */
@@ -316,7 +306,7 @@ export const wedgeVariant = (
 };
 
 /** The longest side a look is asked at. */
-export const LOOK_MAX_SIZE = 4096;
+const LOOK_MAX_SIZE = 4096;
 
 /**
  * How a look is shown, as it crosses into the page (plain data): the region

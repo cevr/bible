@@ -977,7 +977,7 @@ export type NoteDraft = typeof NoteDraft.Type;
 
 export const Note = Schema.Struct({
   ...NoteDraft.fields,
-  /** `n<seq>`: short enough to type in `film notes reply`. */
+  /** `n<seq>`: short enough to type in `film lab reply --note`. */
   id: Schema.String,
   film: Schema.String,
   /** The change that made the note. */

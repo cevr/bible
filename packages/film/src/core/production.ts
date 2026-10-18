@@ -194,7 +194,7 @@ export const moveForward = (
   });
 };
 
-/** The owner's word recorded (`film production decide|note`). */
+/** The owner's word recorded (`film lab decide|note`). */
 export const withSaid = (file: ProductionFile, said: Said): ProductionFile => ({
   ...file,
   said: Arr.sort(
@@ -207,7 +207,7 @@ export const withSaid = (file: ProductionFile, said: Said): ProductionFile => ({
  * A word aimed where it says: a choice (`point`) is one in a set, so it
  * names the `set`; a variant is one of a choice's, so it names the `point`.
  * The rule every caller of the store's `say` gets (the MCP's `decide|note`,
- * `film production decide|note`), and every ask the asks' store makes.
+ * `film lab decide|note`), and every ask the asks' store makes.
  */
 export const aimedWord = <W extends Pick<OwnerWord, 'set' | 'point' | 'variant'>>(
   word: W,

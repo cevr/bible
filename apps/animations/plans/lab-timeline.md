@@ -51,7 +51,7 @@ This plan gives the lab one more thing to read: a **production** and its **timel
    - each set the version holds that no review root has now, said **Missing** (moved, in the Trash, or on
      another machine), so the history never silently loses a step.
 4. **See what waits.** The current version says what waits on the owner: each question an agent asked about a
-   set (a lab ask, made by `film production ask` or the lab's MCP `ask`) that no pick in its choice, no later
+   set (a lab ask, made by the lab's `ask`: its MCP tool, or `film lab ask`) that no pick in its choice, no later
    decision on it and no close of the ask has answered, whatever version asked it. Each line is the question, linked to its choice (or its set). A set no one asked about
    never waits: a montage of ten stacks is not ten chores.
 5. **Move forward.** The current version's one button, "Move forward to v6", opens a short form: _What did we
@@ -97,13 +97,14 @@ cd apps/animations
 bun cli.ts publish out/rbf-rive-2026-10-14 --production righteousness-by-faith   # lands in the version open now
 bun cli.ts publish out/oneline-2026-10-14 --production look --version 5           # made for an older version
 bun run production list
-bun run production decide righteousness-by-faith "9005 over 9006" --quote "ok 9005 over 9006 for sure" \
-  --set rbf-rive-2026-10-14 --point render:cold --variant 9005
-bun run production note look "Explore the One Line concept" --quote "also lets try exploring the one line concept"
-bun run production ask righteousness-by-faith "Punchy subtitles or the clean master?" \
-  --why "the master's subtitles" --option "Punchy" --option "Clean master" \
-  --set rbf-rive-2026-10-14 --point render:subtitles   # a page on the running lab: prints its links
-bun run production forward look --after 5 --title "One Line" --because "9005 holds; try One Line"
+bun run lab decide --production righteousness-by-faith --text "9005 over 9006" --quote "ok 9005 over 9006 for sure" \
+  --by <you> --set rbf-rive-2026-10-14 --point render:cold --variant 9005
+bun run lab note --production look --text "Explore the One Line concept" \
+  --quote "also lets try exploring the one line concept" --by <you>
+bun run lab ask --production righteousness-by-faith --title "Punchy subtitles or the clean master?" \
+  --why "the master's subtitles" --by <you> --set <its ref, as sets lists it> --point render:subtitles \
+  --blocks '[{"kind":"choose","id":"pick","label":"Which?","options":[…]}]'   # a page on the running lab: prints its links
+bun run lab forward --production look --after 5 --title "One Line" --decision <the decision's at>
 ```
 
 `film publish` stamps the set's `review.json` (every other field kept) and prints its `/sets/` link. A unit
@@ -132,7 +133,7 @@ seams the lab and the CLI do.
   lab ask; the lab MCP's `decide` and `note` call it too), `file` (refused
   `VersionUnknown`), and `publish` (stamps a set's `review.json`; `FileInvalid` when it would be no
   manifest). Over HTTP only `forward` is exposed (`POST /api/productions/<production>/versions`); the CLI
-  (`film production …`, `film publish`) is a thin shell over the same verbs.
+  (`film production …`, `film lab decide|note|forward`, `film publish`) is a thin shell over the same verbs.
 - **Events** — none pushed yet: a ledger is a file (`FILMS_PRODUCTIONS/<production>.json`), so a watcher
   on that folder sees every move, word and ask, whoever wrote it; the owner's picks and approvals that answer
   an ask are the catalogue's and the sets' as today.

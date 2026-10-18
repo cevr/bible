@@ -23,7 +23,7 @@ The image route letters a sign well enough, yet a word the narration says always
    No code default exists: the house look is those two committed files, and `board style` copies the image into the board folder as `style.9005.png`. A frame the owner already approved, a kept concept among them, comes in by `board import` with `--keep` and `--why`.
 
 2. **Draw.** `bun run board <film> --lanes 3` (or `--beat id,id`): two tries a panel on `okra image`'s Codex route, with the style ref attached. The route is the Codex one only: never pass `--model`, never a paid route, and keep personal data out of every prompt. A try takes about 50 s (37–164 s); RBF's 100 tries took 31 minutes on 3 lanes. `--dry-run` prints the prompts first.
-3. **Pick.** Look at both tries of every panel against its brief, the line at its mark, the style and the frames already kept, and keep one with a concrete why (`board pick … --why`). The owner keeps a try in the studio's inspector too; an agent's picks are the owner's to overrule.
+3. **Pick.** Look at both tries of every panel against its brief, the line at its mark, the style and the frames already kept, and keep one with a concrete why (`bun run lab keep_try --film <film> --panel <beat>.<at> --try <n> --why …`). The owner keeps a try in the studio's inspector too; an agent's picks are the owner's to overrule.
 4. **Text.** Set every card and verse panel (`board card|verse`): where the line's key word or a quotation must be read, the board shows the card at its mark.
 
 ### What the route does
@@ -48,13 +48,13 @@ A comment or a tweak is a lab note carrying its `panel` (`id`, `try`, `ask: twea
 bun run board tweak <film> <note>
 ```
 
-It sends the try, the note's still (the sketch on it) and the style ref, with the note's words, and adds the results as new tries (`made: tweak`, the note named); the old tries stay as history. Then pick, reply on the note (`bun run notes reply`) and resolve it once the owner keeps the result.
+It sends the try, the note's still (the sketch on it) and the style ref, with the note's words, and adds the results as new tries (`made: tweak`, the note named); the old tries stay as history. Then pick, reply on the note (`bun run lab reply`) and resolve it once the owner keeps the result.
 
 ## Building a scene to its board
 
 The kept panel at a mark is the frame the scene shows at that mark: its staging, its cast and their places, its light. The figures are the engine's K1 rigs, never the panel's drawing; the backgrounds, skies, light and glow follow the kept panel (owner, 2026-10-14: "matched to these panels"). Draw the scene to it ([SKILL.md](../SKILL.md) step 7, **Scenes**), then hold the render against it and against the film's kept concepts:
 
 - In the studio, the panel's clip on the Board lane shows the kept try; the scene plays in the viewer at the same mark.
-- From the terminal, `bun run look <film> --scene <id> --at mark:<at>` gives the scene's still at the mark, to view beside `board/<file>`.
+- From the terminal, `bun run look --film <film> --scene <id> --at mark:<at>` gives the scene's still at the mark, to view beside `board/<file>`.
 
 Done when every kept panel's staging reads in its scene's frame at its mark, or the owner has accepted the difference on the board.

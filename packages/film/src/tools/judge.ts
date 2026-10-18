@@ -3,7 +3,7 @@
 // picture choice picks between:
 //
 // - a look's levels (`look:<name>`, `palette.ts`'s `looks`): each drawn
-//   through the easel as a wedge (`film look --level`), the level in place of
+//   through the easel as a wedge (`film lab look --levels`), the level in place of
 //   the one the film plays, the pick unwritten;
 // - a render set's variants (`render:<address>`, the catalogue's videos at an
 //   address that holds the scene): each one's frames, cut from its video.

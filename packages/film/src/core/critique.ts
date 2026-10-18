@@ -1,4 +1,4 @@
-// The critique's words (`film critique`, the lab's `critique` tool): a fresh
+// The critique's words (`film lab critique`, the lab's `critique` tool): a fresh
 // model's eye on a figure as drawn against the concept it was painted from,
 // at 1:1, beside the match's numbers. The match measures what can be
 // measured (proportions, outlines, shading, facing, the render's thin lines);

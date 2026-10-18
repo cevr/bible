@@ -14,7 +14,7 @@ import { Console, Effect, Layer, Option, Path, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { type JudgeRule, pickOf, rankingLine } from '../core/judge.ts';
 import { Counsel } from './counsel.ts';
-import { failureJson, takeLook } from './easel-cli.ts';
+import { failureJson, takeLook } from './easel-client.ts';
 import { labUrl } from './lab-client.ts';
 import { filmNamed } from './film-repo.ts';
 import { judge as judgeScene } from './judge.ts';

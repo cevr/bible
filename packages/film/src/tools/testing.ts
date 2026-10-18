@@ -71,6 +71,7 @@ import { ContentStore } from './content-store.ts';
 import { ManifestLock, type ManifestLockService } from './manifest-lock.ts';
 import { labHandler } from './lab.ts';
 import { LabEvents } from './lab-events.ts';
+import { LabAddress } from './lab-command.ts';
 import { type LabMcpNeeds, MCP_PATH, labMcp } from './lab-mcp.ts';
 import { notes } from './notes-cli.ts';
 import { NotesStore } from './notes-store.ts';
@@ -1895,7 +1896,7 @@ const labStores = (
     BoardStore.layer.pipe(Layer.provide(FilmFolder.layer('/films'))),
     AskStore.layer.pipe(
       Layer.provide(AskMaterials.layer),
-      Layer.provide([BoardStore.layer, ProductionStore.layer, asking, film]),
+      Layer.provide([BoardStore.layer, NotesStore.layer, ProductionStore.layer, asking, film]),
       Layer.provide(FilmFolder.layer('/films')),
     ),
     FilmFolder.layer('/films'),
@@ -1936,8 +1937,12 @@ export const labWithMcp = Effect.gen(function* () {
   const events = yield* LabEvents.make({ links });
   yield* events.look;
   const services = yield* Effect.context<LabMcpNeeds>();
-  const mcp = labMcp({ links }).pipe(
-    Layer.provide(Layer.succeedContext(Context.add(services, LabEvents, events))),
+  const mcp = labMcp.pipe(
+    Layer.provide(
+      Layer.succeedContext(
+        Context.add(Context.add(services, LabEvents, events), LabAddress, links),
+      ),
+    ),
   );
   const lab = yield* labHandler(mcp);
   return { lab, events };
@@ -2434,6 +2439,7 @@ export const reviewHttpFixtureLasting = (seconds: number, phoneCopies = false) =
                 Layer.provide(AskMaterials.layer),
                 Layer.provide([
                   BoardStore.layer,
+                  NotesStore.layer,
                   ProductionStore.layer,
                   noStudio,
                   noRenders,

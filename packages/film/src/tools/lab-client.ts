@@ -1,12 +1,13 @@
 // The lab's MCP as a command calls it: one small client of the running lab
 // at `FILM_LAB_URL` (the always-on lab, http://127.0.0.1:8229/, unless set),
-// for each command that works through the lab's tools (`film channel`'s
-// change feed, `film production ask`). A session lasts as long as its scope:
+// for each command that works through the lab's tools (`film lab`, `film channel`'s
+// change feed, `film ask wait`). A session lasts as long as its scope:
 // started (`initialize`, then `notifications/initialized`; the lab says the
 // session's id in `Mcp-Session-Id`), and ended (`DELETE`) when the scope
 // closes, so the lab keeps no session a command has left. Each `tools/call`
-// is typed by the lab's own tool (`lab-mcp.ts`): its arguments encoded by
-// the tool's parameters, its structured answer decoded by the tool's
+// is JSON in and out (`callJson`, what `film lab` sends a command's checked
+// input by), or typed by the lab's own tool (`call`): its arguments encoded
+// by the tool's parameters, its structured answer decoded by the tool's
 // success. The lab answers loopback with no token. No lab answering, or one
 // answering in a shape this checkout does not read, is `LabUnanswered`; a
 // tool's refusal is `LabToolRefused`, in the lab's words.
@@ -60,16 +61,17 @@ const Sent = Schema.fromJsonString(
   }),
 );
 
-/** A call of a tool as the lab reads it: its name, and its arguments as the tool encodes them. */
-const callOf = <P, PE>(parameters: Schema.Codec<P, PE>) =>
-  Schema.fromJsonString(
-    Schema.Struct({
-      jsonrpc: Schema.Literal('2.0'),
-      id: Schema.Finite,
-      method: Schema.Literal('tools/call'),
-      params: Schema.Struct({ name: Schema.String, arguments: parameters }),
-    }),
-  );
+/** A call of a tool as the lab reads it: its name, and its arguments as JSON. */
+const Call = Schema.fromJsonString(
+  Schema.Struct({
+    jsonrpc: Schema.Literal('2.0'),
+    id: Schema.Finite,
+    method: Schema.Literal('tools/call'),
+    params: Schema.Struct({ name: Schema.String, arguments: Schema.Json }),
+  }),
+);
+
+const readJsonValue = Schema.decodeUnknownEffect(Schema.Json);
 
 /** The lab's answer to a request, by the request's id: a tool's result, or the call refused unread. */
 const Answer = Schema.Struct({
@@ -124,6 +126,11 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
   const endpoint = new URL(MCP_PATH, url).href;
   const ids = yield* Ref.make(0);
   const unanswered = (reason: string) => LabUnanswered.make({ url, reason });
+  /** An answer this checkout does not read: the lab runs older code than the checkout. */
+  const outdated = (name: string, reason: string) =>
+    unanswered(
+      `its answer to ${name} does not read (${reason}); a lab older than this checkout needs a restart`,
+    );
 
   const post = (body: string, session: Option.Option<string>) =>
     http
@@ -201,16 +208,19 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
     return id;
   });
 
-  const call = <P, PE, S, SE>(session: string, tool: LabTool<P, PE, S, SE>, params: P) =>
+  /** One of the lab's tools called by `name` in `session` with `args`: its structured answer, as JSON. */
+  const callJson = (session: string, name: string, args: Schema.Json) =>
     Effect.gen(function* () {
       const id = yield* Ref.updateAndGet(ids, (n) => n + 1);
-      const refused = (reason: string) => LabToolRefused.make({ tool: tool.name, reason });
-      const body = yield* Schema.encodeEffect(callOf(tool.parametersSchema))({
-        jsonrpc: '2.0',
-        id,
-        method: 'tools/call',
-        params: { name: tool.name, arguments: params },
-      }).pipe(Effect.mapError((error) => refused(`its arguments do not fit: ${error.message}`)));
+      const refused = (reason: string) => LabToolRefused.make({ tool: name, reason });
+      const body = yield* Effect.orDie(
+        Schema.encodeEffect(Call)({
+          jsonrpc: '2.0',
+          id,
+          method: 'tools/call',
+          params: { name, arguments: args },
+        }),
+      );
       const answered = yield* post(body, Option.some(session));
       if (answered.status !== 200) return yield* unanswered(`it answered ${answered.status}`);
       const text = yield* answered.text.pipe(Effect.mapError((error) => unanswered(error.message)));
@@ -223,12 +233,12 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
           ),
           (m) => m.id === id,
         ),
-        () => unanswered(`it sent no answer to ${tool.name}`),
+        () => unanswered(`it sent no answer to ${name}`),
       );
       const unread = Option.fromUndefinedOr(answer.error);
       if (Option.isSome(unread)) return yield* refused(unread.value.message);
       const result = yield* Effect.fromOption(Option.fromUndefinedOr(answer.result), () =>
-        unanswered(`it sent ${tool.name} no result`),
+        unanswered(`it sent ${name} no result`),
       );
       if (result.isError === true)
         return yield* refused(
@@ -239,17 +249,28 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
             ),
           ),
         );
-      return yield* Schema.decodeUnknownEffect(tool.successSchema)(result.structuredContent).pipe(
-        Effect.mapError((error) =>
-          unanswered(
-            `its answer to ${tool.name} does not read (${error.message}); a lab older than this checkout needs a restart`,
-          ),
-        ),
+      return yield* Effect.fromOption(Option.fromUndefinedOr(result.structuredContent), () =>
+        unanswered(`it sent ${name} no structured answer`),
       );
     });
 
-  return { url, session, call };
-});
+  /** One of the lab's tools called in `session`, typed by the tool: its arguments encoded by its parameters, its answer decoded by its success. */
+  const call = <P, PE, S, SE>(session: string, tool: LabTool<P, PE, S, SE>, params: P) =>
+    Effect.gen(function* () {
+      const args = yield* Schema.encodeEffect(tool.parametersSchema)(params).pipe(
+        Effect.flatMap((encoded) => readJsonValue(encoded)),
+        Effect.mapError((error) =>
+          LabToolRefused.make({
+            tool: tool.name,
+            reason: `its arguments do not fit: ${error.message}`,
+          }),
+        ),
+      );
+      const json = yield* callJson(session, tool.name, args);
+      return yield* Schema.decodeUnknownEffect(tool.successSchema)(json).pipe(
+        Effect.mapError((error) => outdated(tool.name, error.message)),
+      );
+    });
 
-/** A client of the lab's MCP, as `labClient` makes it. */
-export type LabClient = Effect.Success<ReturnType<typeof labClient>>;
+  return { url, session, call, callJson };
+});

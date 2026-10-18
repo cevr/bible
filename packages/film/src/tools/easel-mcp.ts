@@ -1,16 +1,16 @@
-// The easel's tools on the lab's MCP (`lab-mcp.ts`): what an agent paints a
-// scene with, in any client that reaches the lab (Claude Code, Codex, gent):
+// The easel's commands (`lab-command.ts`; MCP and `film lab` serve them):
+// what an agent paints a scene with, in any client that reaches the lab
+// (Claude Code, Codex, gent), or from a terminal:
 //
 // - `look`: stills of a scene as its files stand, drawn on the lab's warm
-//   export page in this process (`Easel`, which `film look` asks over HTTP),
-//   each answered as an image after its line (`lookLine`), so the model
-//   reads the picture itself.
+//   export page (`Easel`, in the lab alone), each answered on MCP as an
+//   image after its line (`lookLine`), so the model reads the picture
+//   itself; in a terminal, its lines.
 // - `match`: a scene's figures at one place held against their concepts
-//   (`Easel.match`, which `film match` asks over HTTP): per figure its table
-//   as text and its side-by-side as an image.
+//   (`Easel.match`): per figure its table and its side-by-side.
 // - `critique`: the same match, then each figure's two crops shown at 1:1 to
-//   a fresh model (`Critic`, which `film critique` runs in its own process):
-//   per figure its findings as text, a skip said and never a refusal.
+//   a fresh model (`Critic`): per figure its findings, a skip said and never
+//   a refusal.
 // - `cues`: each scene's placement, marks and named cues (`film read cues`).
 // - `check`: scenes checked as drawn (`film check --draw`).
 // - `journal`, `journal_note`: the film's journal read, and an observation
@@ -32,12 +32,12 @@
 // `scene`), so asking again with it reads on in the same answer; a refusal
 // is a tool error in the film's own words, its tag first (`FilmRefused`).
 
-import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { McpSchema, McpServer, Tool, Toolkit } from 'effect/ai';
+import { Array as Arr, Boolean as Bool, Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { type McpSchema, Tool } from 'effect/ai';
 import { PartId } from '../core/address-schema.ts';
 import { ServerFailed } from '../core/api.ts';
-import { type Look, LookMode, type LookPost, formatFor, lookLine } from '../core/easel.ts';
-import type { MatchTaken } from '../core/match.ts';
+import { LookMode, type LookPost, LookTaken, formatFor, lookLine } from '../core/easel.ts';
+import { MatchTaken, matchLines } from '../core/match.ts';
 import {
   CHECK_MAX_SCENES,
   CheckPage,
@@ -50,13 +50,13 @@ import {
   journalPage,
 } from '../core/tool-pages.ts';
 import { UnknownScene } from '../core/errors.ts';
-import { Critic } from './critique.ts';
+import { Critic, CritiqueTaken } from './critique.ts';
 import { Easel, elsewhereOf, plainAbsolute } from './easel.ts';
 import { CuesLate } from './errors.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { JOURNAL_LAST, note, read } from './journal.ts';
-import { type CallParams, logged } from './mcp-calls.ts';
+import { labCommand } from './lab-command.ts';
 
 /** The most stills one look takes: each is an image the model reads, and a request keeps 20 at full size. */
 const LOOK_MAX_PLACES = 8;
@@ -173,6 +173,21 @@ const LookParams = Schema.Struct({
         'plain (the default); value (greys: the light and dark alone); squint (greys, blurred: the big masses, where the eye lands first)',
     }),
   ),
+  captions: Schema.optionalKey(
+    Schema.Boolean.annotate({ description: 'Burn the captions in (false)' }),
+  ),
+  format: Schema.optionalKey(
+    Schema.Literals(['png', 'jpeg']).annotate({
+      description:
+        'png (lossless) or jpeg (0.95); unless told, a crop is png and a whole frame jpeg (a whole frame as png is about 4 MB)',
+    }),
+  ),
+  levels: Schema.optionalKey(
+    Schema.Record(Schema.String, Schema.String).annotate({
+      description:
+        "A wedge: each look named (palette.ts's looks) drawn at the level given, not the one it plays, the pick unwritten: { <look>: <level> }",
+    }),
+  ),
 });
 type LookParams = typeof LookParams.Type;
 
@@ -195,6 +210,10 @@ type MatchParams = typeof MatchParams.Type;
 
 /** The `critique` tool as the lab lists it: its answer is each figure's findings, as text. */
 const CRITIQUE_DESCRIPTION = `Match a scene's figures at one place (as \`match\` does), then show each figure's concept crop and scene crop at 1:1 to a fresh Opus (headless Claude at max effort, sandboxed, Read its one tool) beside the match's flagged rows and the app's figure rules (the K1 look, the grammar every figure shares, figures and faces, the look): it names each difference in head angle and turn, face shape and features, pose, proportion (never height in heads: that is the cast's band), palette and artifacts. One counsel run answers every figure at the place; the answer is kept by the hash of the prompt and the crops, so the same prompt over the same crops is never asked twice. Answers per figure its findings, written beside the match's table (<stem>.critique.md under out/<film>/match/<scene>/), and each finding rejected (one that does not read, or names no figure asked about). It fails open: a counsel that fails or dies, or answers no json block, is a skip, said and logged, never a refusal. Before a figure is called done, and before an owner look, critique it; a finding is fixed or said why not (\`film review\`).`;
+
+/** A critique's answer: the match it critiqued, and the critique. */
+const Critiqued = Schema.Struct({ match: MatchTaken, critique: CritiqueTaken });
+type Critiqued = typeof Critiqued.Type;
 
 const JournalNoted = Schema.Struct({
   file: Schema.String,
@@ -286,283 +305,278 @@ const JournalNoteTool = Tool.make('journal_note', {
   failure: FilmRefused,
 });
 
-const EaselToolkit = Toolkit.make(CheckTool, CuesTool, JournalTool, JournalNoteTool);
-
-/** The `look` tool as the lab lists it: its answer is images, which a toolkit's JSON answer cannot carry. */
+/** The `look` tool as the lab lists it. */
 const LOOK_DESCRIPTION = `Look at a scene as its files stand now: stills drawn on the lab's warm export page in about a second (no render), each answered as an image after its line (its file, scene, place, time in the scene, frame, size and the lab's build). Look at the moments the beat is about: its marks and the middle of each cue that moves something (mark:<m>, cue:<c>@0.5). \`mode\` value checks the light and dark, squint where the eye lands first; \`crop\` reads a face, a hand or lettering at 1:1 (a PNG; a whole frame is a JPEG). The stills stay under out/<film>/look/<scene>/. A look never shows stale code: a page that does not build is PagesBroken, with the bundler's words.`;
 
-/** The `match` tool as the lab lists it: its answer is tables and images. */
+/** The `match` tool as the lab lists it. */
 const MATCH_DESCRIPTION = `Hold a scene's figures against their concepts at one place, as the files stand now (the look's warm page, its build and stale-code guarantees): each rig with a concept (its RivePropSpec's \`concept\`: an image and the figure's box in it) is cropped from the frame by the box the engine draws it in and measured as its concept is: head height, jaw, the body under the chin, at 0.35 and 0.7 and at the hem, height in heads, hand, eyes, brows, mouth, outline width, feet width and height (each a share of the head's width), ink on the hair/skin edge (the rule is none), a light rim inside an inner part such as an ear (flagged where the concept paints none), the head's and the body's shading (value drop, hue turn, saturation kept, the edge's angle, colour not grey), the head's facing (its turn: the eyes in the face; its roll: the eye line's slope; a concept's angle is design, so a turn past 0.1 or a roll past 6° and the eyes' grain is flagged), the render's artifacts on the head at 1:1 (a seam: a light line between two fills; a sliver: a fill short of the outline; weather over the face; the rule is none), and the outline: the head's shape, the body's sides and the feet shown or not, against the concept's. Answers per figure its table (concept, scene, difference; a ratio flagged past 5%, the head's outline past a mean gap of 0.03 of a head, the body's past 0.05) and one side-by-side image at one head height: the concept, the scene with each artifact ringed (a seam red, a sliver blue, weather green), and the scene under the concept's outline in magenta; both stay under out/<film>/match/<scene>/. Guidance, not a gate: a concept is painted. After a passage that touches a figure, match it.`;
+
+const LookTool = Tool.make('look', {
+  description: LOOK_DESCRIPTION,
+  parameters: LookParams,
+  success: LookTaken,
+  failure: FilmRefused,
+}).annotate(Tool.Readonly, true);
+
+const MatchTool = Tool.make('match', {
+  description: MATCH_DESCRIPTION,
+  parameters: MatchParams,
+  success: MatchTaken,
+  failure: FilmRefused,
+}).annotate(Tool.Readonly, true);
+
+const CritiqueTool = Tool.make('critique', {
+  description: CRITIQUE_DESCRIPTION,
+  parameters: MatchParams,
+  success: Critiqued,
+  failure: FilmRefused,
+}).annotate(Tool.Readonly, true);
 
 // ---------------------------------------------------------------------------
 // The work, over the lab's easel, its fresh runs and its films
 
-const easelWork = Effect.gen(function* () {
-  const easel = yield* Easel;
-  const critic = yield* Critic;
-  const fresh = yield* FreshFilm;
+/** `film` as one the lab serves from the asker's films folder `from`: another checkout's is `LabElsewhere`. */
+const served = Effect.fn('EaselMcp.served')(function* (from: string, film: string) {
   const folder = yield* FilmFolder;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const films = yield* Effect.context<FilmFolder | FileSystem.FileSystem | Path.Path>();
-
-  /** `film` as one the lab serves from the asker's films folder `from`: another checkout's is `LabElsewhere`. */
-  const served = Effect.fn('EaselMcp.served')(function* (from: string, film: string) {
-    const elsewhere = yield* elsewhereOf(fs, path, folder.paths(film).dir, from, film);
-    if (Option.isSome(elsewhere)) return yield* elsewhere.value;
-    return yield* filmNamed(film).pipe(Effect.provideContext(films));
-  });
-
-  /**
-   * `scene` as one of `film`'s, when it names one, as `film journal` finds it
-   * (no timeline resolved): `UnknownScene`, naming the film's, when not.
-   */
-  const sceneOf = Effect.fn('EaselMcp.sceneOf')(function* (
-    film: FilmName,
-    scene: Option.Option<string>,
-  ) {
-    if (Option.isNone(scene)) return;
-    const known = yield* fresh.scenes(film);
-    if (!known.includes(scene.value))
-      return yield* UnknownScene.make({ scene: scene.value, known });
-  });
-
-  const check = Effect.fn('EaselMcp.check')(function* (
-    params: typeof CheckTool.parametersSchema.Type,
-  ) {
-    const film = yield* served(params.films, params.film);
-    return checkPage(yield* fresh.check(film, 'draw', params.scenes ?? []), params);
-  });
-
-  const cues = Effect.fn('EaselMcp.cues')(function* (
-    params: typeof CuesTool.parametersSchema.Type,
-  ) {
-    const film = yield* served(params.films, params.film);
-    const read = yield* fresh.cues(film, Option.fromUndefinedOr(params.scene));
-    const late = Option.map(
-      Option.liftPredicate(read.late, (count) => count > 0),
-      (count) => CuesLate.make({ count }).message,
-    );
-    return cuesPage(read.lines, late, params);
-  });
-
-  const journal = Effect.fn('EaselMcp.journal')(function* (
-    params: typeof JournalTool.parametersSchema.Type,
-  ) {
-    const film = yield* served(params.films, params.film);
-    const scene = Option.fromUndefinedOr(params.scene);
-    yield* sceneOf(film, scene);
-    const page = yield* read(
-      film,
-      scene,
-      params.last ?? JOURNAL_LAST,
-      Number.MAX_SAFE_INTEGER,
-    ).pipe(Effect.provideContext(films));
-    return journalPage(page.file, page.lines, page.left);
-  });
-
-  const journalNote = Effect.fn('EaselMcp.journalNote')(function* (
-    params: typeof JournalNoteTool.parametersSchema.Type,
-  ) {
-    const film = yield* served(params.films, params.film);
-    const scene = Option.fromUndefinedOr(params.scene);
-    yield* sceneOf(film, scene);
-    const noted = yield* note(film, params.text, scene).pipe(Effect.provideContext(films));
-    return { file: noted.file, at: noted.entry.at, scene: noted.entry.scene };
-  });
-
-  /**
-   * Each still a look wrote, read back beside it: refused whole when one, or
-   * all of them, would pass what a model's request takes.
-   */
-  const stillsOf = Effect.fn('EaselMcp.stills')(function* (looks: ReadonlyArray<Look>) {
-    const read = yield* Effect.forEach(looks, (one) =>
-      Effect.map(fs.readFile(one.file), (bytes) => ({ look: one, bytes })),
-    );
-    const sized = read.map((still) => ({ file: still.look.file, bytes: still.bytes.length }));
-    const large = sized.filter((still) => still.bytes > STILL_MAX_BYTES);
-    if (Arr.isReadonlyArrayNonEmpty(large))
-      return yield* LookTooLarge.make({ stills: large, limit: STILL_MAX_BYTES });
-    if (sized.reduce((sum, still) => sum + still.bytes, 0) > LOOK_MAX_BYTES)
-      return yield* LookTooLarge.make({ stills: sized, limit: LOOK_MAX_BYTES });
-    return read;
-  });
-
-  const look = Effect.fn('EaselMcp.look')(function* (params: LookParams) {
-    const film = yield* served(params.films, params.film);
-    const crop = Option.fromUndefinedOr(params.crop);
-    const view: LookPost['view'] = {
-      ...Option.match(crop, { onNone: () => ({}), onSome: (c) => ({ crop: c }) }),
-      ...Option.match(Option.fromUndefinedOr(params.size), {
-        onNone: () => ({}),
-        onSome: (s) => ({ size: s }),
-      }),
-      mode: params.mode ?? 'plain',
-      captions: false,
-      format: formatFor(Option.isSome(crop)),
-    };
-    const taken = yield* easel.look(film, {
-      scene: params.scene,
-      at: params.at,
-      view,
-      from: params.films,
-    });
-    const stills = yield* stillsOf(taken.looks);
-    return stills.flatMap(({ look: one, bytes }): ReadonlyArray<McpSchema.ContentBlock> => [
-      { type: 'text', text: lookLine(one, taken.build) },
-      { type: 'image', data: bytes, mimeType: view.format },
-    ]);
-  });
-
-  const match = Effect.fn('EaselMcp.match')(function* (params: MatchParams) {
-    const film = yield* served(params.films, params.film);
-    const taken: MatchTaken = yield* easel.match(film, {
-      scene: params.scene,
-      at: params.at,
-      figure: params.figure,
-      from: params.films,
-    });
-    const read = yield* Effect.forEach(taken.figures, (one) =>
-      Effect.all({
-        table: fs.readFileString(one.table),
-        side: fs.readFile(one.side),
-      }).pipe(Effect.map((files) => ({ one, ...files }))),
-    );
-    const sized = read.map(({ one, side }) => ({ file: one.side, bytes: side.length }));
-    const large = sized.filter((still) => still.bytes > STILL_MAX_BYTES);
-    if (Arr.isReadonlyArrayNonEmpty(large))
-      return yield* LookTooLarge.make({ stills: large, limit: STILL_MAX_BYTES });
-    const head = `match scene=${taken.scene} at=${taken.at} t=${taken.time.toFixed(2)} frame=${taken.frame} build=${taken.build}`;
-    return [
-      { type: 'text', text: head },
-      ...read.flatMap(({ one, table, side }): ReadonlyArray<McpSchema.ContentBlock> => [
-        { type: 'text', text: `${one.side}\n${table}` },
-        { type: 'image', data: side, mimeType: 'image/png' },
-      ]),
-      ...taken.unmatched.map((one): McpSchema.ContentBlock => ({
-        type: 'text',
-        text: `${one.figure}: unmatched (${one.reason})`,
-      })),
-    ] satisfies ReadonlyArray<McpSchema.ContentBlock>;
-  });
-
-  const critique = Effect.fn('EaselMcp.critique')(function* (params: MatchParams) {
-    const film = yield* served(params.films, params.film);
-    const taken: MatchTaken = yield* easel.match(film, {
-      scene: params.scene,
-      at: params.at,
-      figure: params.figure,
-      from: params.films,
-    });
-    const critiqued = yield* critic.critique(taken);
-    const head = [
-      `critique scene=${taken.scene} at=${taken.at} t=${taken.time.toFixed(2)} build=${taken.build} cached=${critiqued.cached}`,
-      ...Option.toArray(
-        Option.map(Option.fromUndefinedOr(critiqued.skipped), (why) => `skipped: ${why}`),
-      ),
-    ].join('\n');
-    const read = yield* Effect.forEach(critiqued.figures, (one) =>
-      Effect.map(fs.readFileString(one.file), (words) => `${one.file}\n${words}`),
-    );
-    return [
-      { type: 'text', text: head },
-      ...read.map((words): McpSchema.ContentBlock => ({ type: 'text', text: words })),
-      ...taken.unmatched.map((one): McpSchema.ContentBlock => ({
-        type: 'text',
-        text: `${one.figure}: unmatched (${one.reason})`,
-      })),
-    ] satisfies ReadonlyArray<McpSchema.ContentBlock>;
-  });
-
-  return { check, critique, cues, journal, journalNote, look, match };
+  const elsewhere = yield* elsewhereOf(fs, path, folder.paths(film).dir, from, film);
+  if (Option.isSome(elsewhere)) return yield* elsewhere.value;
+  return yield* filmNamed(film);
 });
 
-/** The toolkit's handlers: each tool's work, its failure said as the film's refusal. */
-const handlers = EaselToolkit.toLayer(
-  Effect.map(easelWork, (work) =>
-    EaselToolkit.of({
-      check: logged('check', (params) => Effect.mapError(work.check(params), refusedAs)),
-      cues: logged('cues', (params) => Effect.mapError(work.cues(params), refusedAs)),
-      journal: logged('journal', (params) => Effect.mapError(work.journal(params), refusedAs)),
-      journal_note: logged('journal_note', (params) =>
-        Effect.mapError(work.journalNote(params), refusedAs),
-      ),
+/**
+ * `scene` as one of `film`'s, when it names one, as the journal finds it (no
+ * timeline resolved): `UnknownScene`, naming the film's, when not.
+ */
+const sceneOf = Effect.fn('EaselMcp.sceneOf')(function* (
+  film: FilmName,
+  scene: Option.Option<string>,
+) {
+  if (Option.isNone(scene)) return;
+  const known = yield* (yield* FreshFilm).scenes(film);
+  if (!known.includes(scene.value)) return yield* UnknownScene.make({ scene: scene.value, known });
+});
+
+/** A still as MCP shows it: its file read back, refused when it is past what a model's request takes. */
+const imagesOf = Effect.fn('EaselMcp.images')(function* (
+  files: ReadonlyArray<string>,
+  together: number,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const read = yield* Effect.forEach(files, (file) =>
+    Effect.map(fs.readFile(file), (bytes) => ({ file, bytes })),
+  );
+  const sized = read.map((still) => ({ file: still.file, bytes: still.bytes.length }));
+  const large = sized.filter((still) => still.bytes > STILL_MAX_BYTES);
+  if (Arr.isReadonlyArrayNonEmpty(large))
+    return yield* LookTooLarge.make({ stills: large, limit: STILL_MAX_BYTES });
+  if (sized.reduce((sum, still) => sum + still.bytes, 0) > together)
+    return yield* LookTooLarge.make({ stills: sized, limit: together });
+  return read;
+});
+
+const FORMATS = { png: 'image/png', jpeg: 'image/jpeg' } as const;
+
+const look = Effect.fn('EaselMcp.look')(function* (params: LookParams) {
+  const film = yield* served(params.films, params.film);
+  const crop = Option.fromUndefinedOr(params.crop);
+  const view: LookPost['view'] = {
+    ...Option.match(crop, { onNone: () => ({}), onSome: (c) => ({ crop: c }) }),
+    ...Option.match(Option.fromUndefinedOr(params.size), {
+      onNone: () => ({}),
+      onSome: (s) => ({ size: s }),
     }),
-  ),
-);
+    mode: params.mode ?? 'plain',
+    captions: params.captions ?? false,
+    format: Option.match(Option.fromUndefinedOr(params.format), {
+      onNone: () => formatFor(Option.isSome(crop)),
+      onSome: (f) => FORMATS[f],
+    }),
+  };
+  return yield* (yield* Easel).look(film, {
+    scene: params.scene,
+    at: params.at,
+    view,
+    from: params.films,
+    ...Option.match(Option.fromUndefinedOr(params.levels), {
+      onNone: () => ({}),
+      onSome: (levels) => ({ levels }),
+    }),
+  });
+});
+
+/** A look's answer as MCP shows it: each still's line, then the still. */
+const lookContent = (taken: LookTaken) =>
+  Effect.map(
+    imagesOf(
+      taken.looks.map((one) => one.file),
+      LOOK_MAX_BYTES,
+    ),
+    (read) =>
+      Arr.zip(taken.looks, read).flatMap(
+        ([one, { bytes }]): ReadonlyArray<McpSchema.ContentBlock> => [
+          { type: 'text', text: lookLine(one, taken.build) },
+          {
+            type: 'image',
+            data: bytes,
+            mimeType: Bool.match(one.file.endsWith('.png'), {
+              onTrue: () => 'image/png',
+              onFalse: () => 'image/jpeg',
+            }),
+          },
+        ],
+      ),
+  );
+
+const matched = Effect.fn('EaselMcp.match')(function* (params: MatchParams) {
+  const film = yield* served(params.films, params.film);
+  return yield* (yield* Easel).match(film, {
+    scene: params.scene,
+    at: params.at,
+    figure: params.figure,
+    from: params.films,
+  });
+});
+
+/** A match's first line. Pure. */
+const matchHead = (taken: MatchTaken): string =>
+  `match scene=${taken.scene} at=${taken.at} t=${taken.time.toFixed(2)} frame=${taken.frame} build=${taken.build}`;
+
+const unmatchedLines = (taken: MatchTaken): ReadonlyArray<string> =>
+  taken.unmatched.map((one) => `${one.figure}: unmatched (${one.reason})`);
+
+/** A match's answer as MCP shows it: its head, then per figure its table and its side-by-side. */
+const matchContent = Effect.fn('EaselMcp.matchContent')(function* (taken: MatchTaken) {
+  const fs = yield* FileSystem.FileSystem;
+  const sides = yield* imagesOf(
+    taken.figures.map((one) => one.side),
+    Number.MAX_SAFE_INTEGER,
+  );
+  const tables = yield* Effect.forEach(taken.figures, (one) => fs.readFileString(one.table));
+  return [
+    { type: 'text', text: matchHead(taken) },
+    ...taken.figures.flatMap((one, i): ReadonlyArray<McpSchema.ContentBlock> => [
+      { type: 'text', text: `${one.side}\n${tables[i] ?? ''}` },
+      { type: 'image', data: sides[i]?.bytes ?? new Uint8Array(), mimeType: 'image/png' },
+    ]),
+    ...unmatchedLines(taken).map((text): McpSchema.ContentBlock => ({ type: 'text', text })),
+  ] satisfies ReadonlyArray<McpSchema.ContentBlock>;
+});
+
+const critiqued = Effect.fn('EaselMcp.critique')(function* (params: MatchParams) {
+  const match = yield* matched(params);
+  return { match, critique: yield* (yield* Critic).critique(match) };
+});
+
+/** A critique's first line. Pure. */
+const critiqueHead = ({ match, critique }: Critiqued): string =>
+  `critique scene=${match.scene} at=${match.at} t=${match.time.toFixed(2)} build=${match.build} cached=${critique.cached}`;
+
+/** A critique's answer as MCP shows it: its head, then each figure's findings as its file says them. */
+const critiqueContent = Effect.fn('EaselMcp.critiqueContent')(function* (taken: Critiqued) {
+  const fs = yield* FileSystem.FileSystem;
+  const head = [
+    critiqueHead(taken),
+    ...Option.toArray(
+      Option.map(Option.fromUndefinedOr(taken.critique.skipped), (why) => `skipped: ${why}`),
+    ),
+  ].join('\n');
+  const read = yield* Effect.forEach(taken.critique.figures, (one) =>
+    Effect.map(fs.readFileString(one.file), (words) => `${one.file}\n${words}`),
+  );
+  return [
+    { type: 'text', text: head },
+    ...read.map((text): McpSchema.ContentBlock => ({ type: 'text', text })),
+    ...unmatchedLines(taken.match).map((text): McpSchema.ContentBlock => ({ type: 'text', text })),
+  ] satisfies ReadonlyArray<McpSchema.ContentBlock>;
+});
+
+const check = Effect.fn('EaselMcp.check')(function* (
+  params: typeof CheckTool.parametersSchema.Type,
+) {
+  const film = yield* served(params.films, params.film);
+  return checkPage(yield* (yield* FreshFilm).check(film, 'draw', params.scenes ?? []), params);
+});
+
+const cues = Effect.fn('EaselMcp.cues')(function* (params: typeof CuesTool.parametersSchema.Type) {
+  const film = yield* served(params.films, params.film);
+  const read = yield* (yield* FreshFilm).cues(film, Option.fromUndefinedOr(params.scene));
+  const late = Option.map(
+    Option.liftPredicate(read.late, (count) => count > 0),
+    (count) => CuesLate.make({ count }).message,
+  );
+  return cuesPage(read.lines, late, params);
+});
+
+const journal = Effect.fn('EaselMcp.journal')(function* (
+  params: typeof JournalTool.parametersSchema.Type,
+) {
+  const film = yield* served(params.films, params.film);
+  const scene = Option.fromUndefinedOr(params.scene);
+  yield* sceneOf(film, scene);
+  const page = yield* read(film, scene, params.last ?? JOURNAL_LAST, Number.MAX_SAFE_INTEGER);
+  return journalPage(page.file, page.lines, page.left);
+});
+
+const journalNote = Effect.fn('EaselMcp.journalNote')(function* (
+  params: typeof JournalNoteTool.parametersSchema.Type,
+) {
+  const film = yield* served(params.films, params.film);
+  const scene = Option.fromUndefinedOr(params.scene);
+  yield* sceneOf(film, scene);
+  const noted = yield* note(film, params.text, scene);
+  return { file: noted.file, at: noted.entry.at, scene: noted.entry.scene };
+});
+
+// ---------------------------------------------------------------------------
+// The commands
+
+/** The film's own tools: they read and write the film's files and run its CLI fresh, so any process runs them. */
+export const easelCommands = [
+  labCommand(CheckTool, { run: (params) => Effect.mapError(check(params), refusedAs) }),
+  labCommand(CuesTool, { run: (params) => Effect.mapError(cues(params), refusedAs) }),
+  labCommand(JournalTool, { run: (params) => Effect.mapError(journal(params), refusedAs) }),
+  labCommand(JournalNoteTool, {
+    run: (params) => Effect.mapError(journalNote(params), refusedAs),
+  }),
+];
 
 /**
- * A tool registered by hand: a toolkit answers its result as JSON text, and
- * `look` and `match` answer images. Its arguments are decoded as a toolkit's
- * are (bad ones are the call's `InvalidParams`); a refusal is the tool's
- * error, in the same words `FilmRefused` says. It writes under out/ and
- * nothing else, and reaches nothing past the lab.
+ * The easel's pictures, drawn in the lab alone (its warm page, and the
+ * critic beside it): each answered on MCP as its lines and its images beside
+ * its structured answer, in a terminal as its lines.
  */
-const imageTool = <P extends CallParams, I, E extends Named>(
-  name: string,
-  description: string,
-  params: Schema.Codec<P, I>,
-  work: (params: P) => Effect.Effect<ReadonlyArray<McpSchema.ContentBlock>, E>,
-) =>
-  Effect.gen(function* () {
-    const server = yield* McpServer.McpServer;
-    // Logged before its refusal is answered, so a refusal logs as failed.
-    const run = logged(name, work);
-    const decode = Schema.decodeUnknownEffect(params);
-    const document = Schema.toJsonSchemaDocument(params, { onExcessProperty: 'ignore' });
-    const inputSchema = yield* Schema.decodeUnknownEffect(McpSchema.ToolJson)({
-      ...document.schema,
-      $defs: document.definitions,
-    }).pipe(Effect.orDie);
-    yield* server.addTool({
-      tool: McpSchema.Tool.make({
-        name,
-        description,
-        inputSchema,
-        annotations: {
-          readOnlyHint: true,
-          destructiveHint: false,
-          idempotentHint: false,
-          openWorldHint: false,
-        },
-      }),
-      annotations: Context.empty(),
-      handle: (payload) =>
-        decode(payload).pipe(
-          Effect.mapError((error) => McpSchema.InvalidParams.make({ message: error.message })),
-          Effect.flatMap((decoded) =>
-            run(decoded, {}).pipe(
-              Effect.map((content) => McpSchema.CallToolResult.make({ content: [...content] })),
-              Effect.catch((error) =>
-                Effect.succeed(
-                  McpSchema.CallToolResult.make({
-                    isError: true,
-                    content: [{ type: 'text', text: refusedAs(error).message }],
-                  }),
-                ),
-              ),
-            ),
-          ),
-        ),
-    });
-  });
-
-/** `look`, `match` and `critique`, registered by hand: the first two answer images, and the critique's blocks are its files. */
-const imageTools = Layer.effectDiscard(
-  Effect.gen(function* () {
-    const work = yield* easelWork;
-    yield* imageTool('look', LOOK_DESCRIPTION, LookParams, work.look);
-    yield* imageTool('match', MATCH_DESCRIPTION, MatchParams, work.match);
-    yield* imageTool('critique', CRITIQUE_DESCRIPTION, MatchParams, work.critique);
+export const easelInLab = [
+  labCommand(LookTool, {
+    run: (params) => Effect.mapError(look(params), refusedAs),
+    lines: (taken) => taken.looks.map((one) => lookLine(one, taken.build)),
+    content: (taken) => Effect.mapError(lookContent(taken), refusedAs),
   }),
-).pipe(Layer.provide(McpServer.McpServer.layer));
+  labCommand(MatchTool, {
+    run: (params) => Effect.mapError(matched(params), refusedAs),
+    lines: (taken) => [
+      matchHead(taken),
+      ...taken.figures.flatMap(matchLines),
+      ...unmatchedLines(taken),
+    ],
+    content: (taken) => Effect.mapError(matchContent(taken), refusedAs),
+  }),
+  labCommand(CritiqueTool, {
+    run: (params) => Effect.mapError(critiqued(params), refusedAs),
+    lines: (taken) => [
+      `${critiqueHead(taken)}${Option.match(Option.fromUndefinedOr(taken.critique.skipped), { onNone: () => '', onSome: (why) => ` skipped="${why}"` })}`,
+      ...taken.critique.figures.flatMap((one) => [
+        `${one.figure}: ${one.file}`,
+        ...one.findings.map((f) => `  ${f.aspect}: ${f.what}`),
+      ]),
+      ...taken.critique.rejected.map((why) => `rejected: ${why}`),
+      ...unmatchedLines(taken.match),
+    ],
+    content: (taken) => Effect.mapError(critiqueContent(taken), refusedAs),
+  }),
+];
 
 /** What the lab's MCP says of the easel's tools, beside its own instructions. */
 export const EASEL_INSTRUCTIONS =
   "Paint and review a film's scenes with the easel's tools: `look` (stills of a scene as its files stand, as images), `match` (a scene's figures held against their concepts: a table and a side-by-side each), `critique` (the same figures shown at 1:1 to a fresh model: its findings on head angle, face, pose, palette and artifacts), `cues` (each scene's marks and named cues), `check` (scenes checked as drawn), `journal` and `journal_note` (the film's observations, read and noted). Each takes `films`, your checkout's films folder: a lab that serves another checkout's refuses (`LabElsewhere`). How a scene is painted with them, a passage at a time: .claude/skills/film/reference/scene-painter.md in the repository.";
-
-/** The easel's tools on the lab's MCP, over the lab's easel, its fresh runs and its films. */
-export const easelMcp = Layer.mergeAll(
-  McpServer.toolkit(EaselToolkit).pipe(Layer.provideMerge(handlers)),
-  imageTools,
-);

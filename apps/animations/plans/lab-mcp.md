@@ -18,17 +18,31 @@ does, while the lab runs.
   every session can use, a stdio bridge for Claude Code's channels, and a command that exits once an ask is
   answered.
 - **One client** of it in this checkout, `tools/lab-client.ts`, for the commands that work through the running
-  lab (`film channel`'s feed, `film production ask`, `film ask wait`): a session (`initialize`, `notifications/initialized`, the
+  lab (`film lab`'s in-lab commands, `film channel`'s feed, `film ask wait`): a session (`initialize`, `notifications/initialized`, the
   id from `Mcp-Session-Id`), then `tools/call` typed by the lab's own tool (its parameters encode the arguments,
-  its success decodes `structuredContent`), at `FILM_LAB_URL` (else 8229). No lab answering, or one answering in a
+  its success decodes `structuredContent`; `film lab` sends a command's checked input as JSON and reads the answer
+  back by the command's success), at `FILM_LAB_URL` (else 8229). No lab answering, or one answering in a
   shape this checkout does not read (an older lab), is `LabUnanswered`, which says to start one; a tool's refusal
   is `LabToolRefused`, in the lab's words.
 - **Sessions end.** The transport keeps a session until a `DELETE` ends it (it has no expiry), so the lab allows
-  one (`allowSessionTermination`) and the client's session lasts as long as its scope: `film production ask`
-  ends its own once answered, and the channel ends each on losing it and the last when it stops. The end is kept
+  one (`allowSessionTermination`) and the client's session lasts as long as its scope: `film lab ask` ends
+  its own once answered, and the channel ends each on losing it and the last when it stops. The end is kept
   the moment the lab names the session, so a handshake that fails after `initialize` ends it too. The lab's gate
   takes a `DELETE` only with `Content-Type: application/json`, as every write; a client that sends none gets
   415 and its session stays.
+
+## One command set
+
+Every tool below is one command of the lab's set (`tools/lab-command.ts`, listed in `tools/lab-commands.ts`): its
+name, its Effect Schema input, output and refusal, and its effect, defined once. The MCP tool and the terminal's
+`film lab <command> [--json]` (`tools/lab-cli.ts`; `bun run lab <command>` in `apps/animations`) are both made
+from that definition: the flags from the input schema, by each field's name; `--json` the output schema's value;
+the default the command's plain lines. Over the lab's files a terminal runs the command in its own process; over
+what only the running lab holds (`overview`, `changes`, `ask`, `timeline`, `working`, `look`, `match`,
+`critique`) it asks the lab through `lab-client.ts` (`packages/film/README.md`, "The lab's commands", says which
+and why). The parity test (`tools/lab-command.test.ts`) holds every tool the lab lists to a `film lab` command
+with the same fields. The studio's edits (`beat_move`, `beat_hold`, `undo`) join the set as commands of their own
+where the studio's commands are listed (`tools/timeline-mcp.ts`).
 
 ## Tools, resources, prompt
 
@@ -82,13 +96,13 @@ tools only, the film skill preloaded), started with the Agent tool. gent's `film
 is the Agent tool's `subagent_type: scene-painter` now; the compactor that condensed a painter's window from the
 files with no model call is the brief's rule to read the state from the files again when its context is condensed.
 
-- **One owner each.** `look` is the lab's own easel (`Easel.look`, the warm export page `film look` asks over HTTP),
+- **One owner each.** `look` is the lab's own easel (`Easel.look`, the warm export page `film lab look` asks through this MCP),
   its stills answered as MCP images, each after its line (`lookLine`: file, scene, place, time, frame, size, build),
   so the model reads the picture itself. `journal` and `journal_note` are `journal.ts`'s `read` and `note`. `cues`
   and `check` read the film's modules, which the lab never imports (`lab.test.ts`), so they run the film CLI fresh
   (`FreshFilm`), as the lab's after-write check does: `film read cues <film> [scene]` answers `film cues`' lines
   (`sceneReport`) as one line of JSON, and `film check <film> --draw --scene … --allow-stale --json` answers its
-  findings. A scene named to `journal` or `journal_note` is found among the film's scenes as `film journal` knows
+  findings. A scene named to `journal` or `journal_note` is found among the film's scenes as the journal knows
   them (`film read scenes <film>`, no timeline resolved), so a scene whose marks do not resolve keeps its journal,
   and one the film lacks is the film's own `UnknownScene`.
 - **`films`, the asker's checkout.** Each tool takes `films`, the asker's films folder, absolute
@@ -124,8 +138,8 @@ files with no model call is the brief's rule to read the state from the files ag
   fresh run is given 5). Name the scenes worked on. Codex stops a tool after 60 s unless the server's
   `tool_timeout_sec` says more ([Registration](#registration-the-owner-runs-these)).
 
-`film look`, `film cues`, `film check` and `film journal` are unchanged: the tools are the same owners, reached
-through the lab.
+`film cues` and `film check` are unchanged: the tools are the same owners, reached through the lab. The easel's
+tools are `film lab look|match|critique|cues|check|journal|journal_note` from a terminal (One command set, above).
 
 ## Events
 
@@ -225,7 +239,7 @@ terminal; learn of a pick when told. Now:
 3. `reply` on the note that asked for it, `resolve` once made; a board tweak is asked with `request_tweak`.
 4. `changes {since, wait: 60}` in a loop (a subagent can too), or the channel in the main session: the owner's
    note, pick or approval arrives with its film, panel or render, words and link.
-5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run production ask`),
+5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run lab ask --title … --why … --by … --blocks '<json>'`),
    give the owner its page's link (`page.links`: asks made in a row join one page, so hand it once), wait on it
    in the background (`bun cli.ts ask wait <ask>`, or `--page <ask>` for the whole page; never ask him to say he
    answered) or hear the answers on `changes`, act, and `close_ask`. What he has already decided in
@@ -381,7 +395,7 @@ an end (`thanks`, if given). So the one-question ask is
 
 The owner (2026-10-17): "also we should make it so asks get grouped into pages when made sequentially". An ask
 made while an earlier ask from the same `by` is still asking joins that ask's page; otherwise it opens a page of
-its own. `page` on the `ask` tool (and `--page` on `film production ask`) names an ask whose page to join, any
+its own. `page` on the `ask` tool (and `--page` on `film lab ask`) names an ask whose page to join, any
 ask on it, refused (`AskRefused`) when nothing there still asks; `page: "new"` opens a new one. Each ask stays its
 own record, answered, heard and closed alone.
 
@@ -465,35 +479,28 @@ record of versions and of what waits on the owner; asks file onto it rather than
   `Noted` withdrawn) when the agent closes it. The ledger's words carry an optional `ask` id (old ledgers read
   as before; a question filed before the field is known by the `(ask a…)` its text names): a word naming an ask
   answers that ask's question only, and is not a decision on its set, so one
-  ask answered on a set leaves another asked on the same set waiting. A bare decision on the set (`film production
-  decide`) still answers every question on it.
+  ask answered on a set leaves another asked on the same set waiting. A bare decision on the set (`decide`) still answers every question on it.
 - The `Asked` text names the ask (`(ask a…)`). The timeline does not yet link to the ask's page; a waiting entry
   that is an ask could open it.
-- `film production ask` in a terminal makes the same ask through the running lab (`lab-client.ts`, the `ask`
-  tool), so it lands in the lab's own asks and ledger and is filed as above: two `--option`s or more are a
-  `choose` (`pick`, values `1`, `2`, …) with an optional `free_text` (`note`, "Anything else?"); none asks for
-  words (one `free_text`, `answer`, required). Its `--set` names the set as every production command and the
-  ledger do, by its folder under its root; the lab's `sets` say which ref that is. A ref is refused, naming its
-  folder, so `decide --set` later says the same word; a folder two roots hold is refused, by its folder or a ref,
-  since a timeline names a set by its folder alone and could not tell the two apart. It prints the ask's local
-  and phone links and the folder it waits at. With no lab answering it refuses (`LabUnanswered`) and asks
-  nothing. Every question has a page: the ledger's `say`
-  takes only the owner's words (`Decided`, `Noted`), and an `Asked` is filed only by an ask.
-- `decide` and `note` file what the owner said in chat, as `film production decide|note` does, through the same
+- `film lab ask` in a terminal makes the same ask through the running lab (`lab-client.ts`, the `ask` tool), its
+  input the tool's own (`--blocks` or `--machine` as JSON, `--set`, `--point`, `--page`), so it lands in the lab's
+  own asks and ledger, is filed as above, and is refused in the tool's words. It prints the ask's local and phone
+  links and where it waits. With no lab answering it refuses (`LabUnanswered`) and asks nothing. Every question has
+  a page: the ledger's `say` takes only the owner's words (`Decided`, `Noted`), and an `Asked` is filed only by an
+  ask.
+- `decide` and `note` file what the owner said in chat, as `film lab decide|note` does from a terminal, through the same
   `ProductionStore.say`, in the version open when filed. Owner, 2026-10-14: "yes build mcpdecide"; an agent's
   write to a ledger file was refused, and the owner had to run the CLI himself. `quote`, his words verbatim, is
   required and never blank: it is what shows he said it, and keeps an agent from filing a decision he did not
   make. `by` names who filed it; every word keeps it (`by` on the ledger, optional; an ask's words carry the
   asker), `film production show` prints it (`by=…`) and the timeline shows "filed by". The `set` is its ref as
-  `sets` lists it or its folder under its root, kept as the folder (`setNamed`, the CLI's `ask --set` reads
-  folders the same way); a folder two roots hold is refused here and for `ask` alike. A `point` needs its `set`,
-  a `variant` its `point` (`aimedWord`, in the store's `say`, so the CLI refuses the same); the production must
+  `sets` lists it or its folder under its root, kept as the folder (`setNamed`); a folder two roots hold is refused here and for `ask` alike. A `point` needs its `set`,
+  a `variant` its `point` (`aimedWord`, in the store's `say`); the production must
   keep a ledger (`film production new`). Each call files once: a word filed twice is two words.
-- `forward {production, after, title, decision}` moves a production as `film production forward` does,
+- `forward {production, after, title, decision}` moves a production (`film lab forward` from a terminal),
   through the store's `forward`, only on the owner's word to move on: `decision` names one decision of his in
   the version open now (filed by `decide`, or by an ask he answered) by its `at`, and the timeline records that
-  one as the reason (`forwardOnDecision`). A stale `after` is refused first, as the CLI refuses it
-  (`VersionMoved`); a version with no decision of his is refused (`Undecided`), and a `decision` it does not
+  one as the reason (`forwardOnDecision`). A stale `after` is refused first (`VersionMoved`); a version with no decision of his is refused (`Undecided`), and a `decision` it does not
   hold, naming those it holds (`DecisionUnknown`). The decision stays his; the tool only carries it out
   (HARNESS6-7).
 - Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the

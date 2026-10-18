@@ -1,4 +1,4 @@
-// A figure measured from its pixels (`film match`): one figure's crop, a
+// A figure measured from its pixels (`film lab match`): one figure's crop, a
 // painted concept or a rig drawn alone, read as the house look draws a
 // figure (DIRECTION's K1: flat paper shapes inside one thick warm dark ink
 // line, three-mark faces, circle hands) and turned into proportions, each a

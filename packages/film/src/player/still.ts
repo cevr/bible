@@ -1,4 +1,4 @@
-// A look's still, composed in the page (`film look`): the frame just drawn on
+// A look's still, composed in the page (`film lab look`): the frame just drawn on
 // `canvas`, cropped and scaled as the view asks (`viewBox`, core/easel.ts),
 // in greys for `value`, and in greys blurred for `squint`. The blur reads
 // past the still's edges, so the region is first laid on a sheet padded by

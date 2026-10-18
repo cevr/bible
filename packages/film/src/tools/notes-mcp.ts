@@ -1,38 +1,47 @@
-// The lab MCP's notes and board (`lab-mcp.ts` serves them): a film's notes
-// (`notes`) and its storyboard (`board`) read, and the writes on them, each
-// through the store the page and the CLI write through (`NotesStore`,
-// `BoardStore`): a reply or a note marked done (`reply`, `resolve`), and a
-// tweak asked of a panel (`request_tweak`).
+// The lab's notes and board commands (`lab-command.ts`; MCP and `film lab`
+// serve them): a film's notes (`notes`) and its storyboard (`board`) read,
+// and the writes on them, each through the store the page writes through
+// (`NotesStore`, `BoardStore`): a reply or a note marked done (`reply`,
+// `resolve`), a tweak asked of a panel (`request_tweak`), a try kept
+// (`keep_try`), and a beat's board approved or its approval withdrawn
+// (`approve_beat`, `withdraw_beat`).
 
 import {
   Array as Arr,
   Boolean as Bool,
+  DateTime,
   Effect,
   FileSystem,
-  Layer,
   Match,
   Option,
   Path,
+  type Result,
   Schema,
   Struct,
 } from 'effect';
-import { McpServer, Tool, Toolkit } from 'effect/ai';
+import { Tool } from 'effect/ai';
 import {
   type BoardFile,
+  BoardName,
+  type BoardRefusal,
   BoardStyle,
   PANEL_START,
   Panel,
+  approvalOf,
+  approveBeat,
   panelById,
+  pickTry,
   shownTry,
   tryOf,
+  withdrawBeat,
 } from '../core/board.ts';
 import { LabLinks, boardPath, linksAt, notePath } from '../core/lab-events.ts';
 import { unresolved } from '../core/notes.ts';
 import { Note, type NoteDraft, NoteStatus } from '../core/schema.ts';
 import { BoardStore } from './board-store.ts';
 import { type FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
-import { FilmParam, LabRefused, type LabMcpOptions, refused } from './lab-mcp-parts.ts';
-import { logged } from './mcp-calls.ts';
+import { LabAddress, labCommand } from './lab-command.ts';
+import { FilmParam, LabRefused, refused } from './lab-mcp-parts.ts';
 import { NotesStore } from './notes-store.ts';
 
 // ---------------------------------------------------------------------------
@@ -67,6 +76,8 @@ const TryRead = Schema.Struct({
 const PanelRead = Schema.Struct({
   ...Struct.omit(Panel.fields, ['tries']),
   tries: Schema.Array(TryRead),
+  /** Its beat's board approval: approved as it stands, stale (a pick since), or none. */
+  approval: Schema.Literals(['approved', 'stale', 'none']),
   links: LabLinks,
 });
 
@@ -80,6 +91,10 @@ export const BoardRead = Schema.Struct({
       kept: Schema.Array(Schema.Struct({ panel: Schema.String, try: Schema.Int })),
       at: Schema.String,
     }),
+  ),
+  /** The images the board names that are missing from its folder, or changed since they were filed. */
+  problems: Schema.Array(
+    Schema.Struct({ file: Schema.String, problem: Schema.Literals(['missing', 'changed']) }),
   ),
 });
 
@@ -114,6 +129,12 @@ const Reply = Tool.make('reply', {
     ...FilmParam.fields,
     note: Schema.String.annotate({ description: 'The note (`n12`).' }),
     text: Schema.String.check(Schema.isNonEmpty()),
+    still: Schema.optionalKey(
+      Schema.String.annotate({
+        description:
+          'A PNG on this machine to show with the reply, by its absolute path: the frame after the change',
+      }),
+    ),
   }),
   success: NoteWritten,
   failure: LabRefused,
@@ -139,20 +160,55 @@ const RequestTweak = Tool.make('request_tweak', {
   failure: LabRefused,
 });
 
-const NotesToolkit = Toolkit.make(Notes, Board, Reply, Resolve, RequestTweak);
+/** A board as a write leaves it. */
+const BoardWritten = BoardRead;
+
+const KeepTry = Tool.make('keep_try', {
+  description:
+    "Keep one try of a board panel, and say why in a sentence: the Board shows it, and a beat approved on another try goes stale. Use it to put the owner's pick from chat onto the board.",
+  parameters: Schema.Struct({
+    ...FilmParam.fields,
+    panel: Schema.String.annotate({ description: 'The panel (`<beat>.<mark>`).' }),
+    try: Schema.Int.annotate({ description: 'The try to keep.' }),
+    why: Schema.optionalKey(Schema.String),
+  }),
+  success: BoardWritten,
+  failure: LabRefused,
+}).annotate(Tool.Idempotent, true);
+
+const BeatParams = Schema.Struct({
+  ...FilmParam.fields,
+  beat: BoardName.annotate({ description: 'The beat, by its id.' }),
+});
+
+const ApproveBeat = Tool.make('approve_beat', {
+  description:
+    "Approve a beat's board as it stands, each picture panel on the try it keeps (refused while one keeps none): a later pick leaves it stale. On the owner's word only.",
+  parameters: BeatParams,
+  success: BoardWritten,
+  failure: LabRefused,
+}).annotate(Tool.Idempotent, true);
+
+const WithdrawBeat = Tool.make('withdraw_beat', {
+  description: "Withdraw a beat's board approval (refused when it has none).",
+  parameters: BeatParams,
+  success: BoardWritten,
+  failure: LabRefused,
+});
 
 // ---------------------------------------------------------------------------
 // The reads and writes, over the notes and the boards
 
 /** A film's notes and board as the tools, the resources and the prompt read and write them. */
-export const notesReads = Effect.fn('LabMcp.notesReads')(function* (options: LabMcpOptions) {
+export const notesReads = Effect.fn('LabMcp.notesReads')(function* () {
   const fs = yield* FileSystem.FileSystem;
+  const links = yield* LabAddress;
   const path = yield* Path.Path;
   const notes = yield* NotesStore;
   const boards = yield* BoardStore;
   const films = yield* Effect.context<FilmFolder>();
 
-  const linksOf = (at: string) => linksAt(options.links, at);
+  const linksOf = (at: string) => linksAt(links, at);
   const named = (film: string) => refused(filmNamed(film).pipe(Effect.provideContext(films)));
 
   const noteRead = (film: FilmName, note: Note): typeof NoteRead.Type => ({
@@ -203,17 +259,49 @@ export const notesReads = Effect.fn('LabMcp.notesReads')(function* (options: Lab
             }),
             at: t.at,
           })),
+          approval: approvalOf(board, panel.beat),
           links: linksOf(boardPath(film, panel.beat, Option.some(panel.at))),
         })),
       approvals: board.approvals.filter((a) =>
         Option.match(beat, { onNone: () => true, onSome: (b) => a.beat === b }),
       ),
+      problems: (yield* refused(boards.problems(film))).map((p) => ({
+        file: p.file,
+        problem: p.problem,
+      })),
     };
   });
 
-  const reply = Effect.fn('LabMcp.reply')(function* (name: string, id: string, text: string) {
+  /** `film`'s board changed by `change` (a pick, an approval, a withdrawal), read back as `board` reads it. */
+  const boardChanged = Effect.fn('LabMcp.boardChanged')(function* (
+    name: string,
+    change: (board: BoardFile, at: string) => Result.Result<BoardFile, BoardRefusal>,
+  ) {
     const film = yield* named(name);
-    const note = yield* refused(notes.reply(film, id, { by: 'agent', text, still: Option.none() }));
+    const at = DateTime.formatIso(yield* DateTime.now);
+    yield* refused(boards.modify(film, (board) => change(board, at)));
+    return yield* boardOf(film, Option.none());
+  });
+
+  const reply = Effect.fn('LabMcp.reply')(function* (
+    name: string,
+    id: string,
+    text: string,
+    shown: Option.Option<string>,
+  ) {
+    const film = yield* named(name);
+    const still = yield* Option.match(shown, {
+      onNone: () => Effect.succeedNone,
+      onSome: (file) =>
+        Bool.match(path.isAbsolute(file), {
+          onTrue: () => Effect.asSome(refused(fs.readFile(file))),
+          onFalse: () =>
+            Effect.fail(
+              LabRefused.make({ reason: `${file}: name the still by its absolute path` }),
+            ),
+        }),
+    });
+    const note = yield* refused(notes.reply(film, id, { by: 'agent', text, still }));
     return { note: noteRead(film, note) };
   });
 
@@ -274,27 +362,44 @@ export const notesReads = Effect.fn('LabMcp.notesReads')(function* (options: Lab
     return { note: noteRead(film, note) };
   });
 
-  return { notesOf, boardOf, reply, resolve, requestTweak };
+  return { notesOf, boardOf, boardChanged, reply, resolve, requestTweak };
 });
 
-/** The notes' and the board's tools, served by the lab's MCP server. */
-export const notesMcp = (options: LabMcpOptions) =>
-  McpServer.toolkit(NotesToolkit).pipe(
-    Layer.provideMerge(
-      NotesToolkit.toLayer(
-        Effect.map(notesReads(options), (lab) =>
-          NotesToolkit.of({
-            notes: logged('notes', ({ film, status }) => lab.notesOf(film, status ?? 'unresolved')),
-            board: logged('board', ({ film, beat }) =>
-              lab.boardOf(film, Option.fromUndefinedOr(beat)),
-            ),
-            reply: logged('reply', ({ film, note, text }) => lab.reply(film, note, text)),
-            resolve: logged('resolve', ({ film, note }) => lab.resolve(film, note)),
-            request_tweak: logged('request_tweak', ({ film, panel, text, try: n }) =>
-              lab.requestTweak(film, panel, text, Option.fromUndefinedOr(n)),
-            ),
-          }),
-        ),
+/** The work of the notes' and the board's commands. */
+const lab = notesReads();
+
+/** The notes' and the board's commands. */
+export const notesCommands = [
+  labCommand(Notes, {
+    run: ({ film, status }) => Effect.flatMap(lab, (l) => l.notesOf(film, status ?? 'unresolved')),
+  }),
+  labCommand(Board, {
+    run: ({ film, beat }) =>
+      Effect.flatMap(lab, (l) => l.boardOf(film, Option.fromUndefinedOr(beat))),
+  }),
+  labCommand(Reply, {
+    run: ({ film, note, text, still }) =>
+      Effect.flatMap(lab, (l) => l.reply(film, note, text, Option.fromUndefinedOr(still))),
+  }),
+  labCommand(Resolve, {
+    run: ({ film, note }) => Effect.flatMap(lab, (l) => l.resolve(film, note)),
+  }),
+  labCommand(RequestTweak, {
+    run: ({ film, panel, text, try: n }) =>
+      Effect.flatMap(lab, (l) => l.requestTweak(film, panel, text, Option.fromUndefinedOr(n))),
+  }),
+  labCommand(KeepTry, {
+    run: ({ film, panel, try: n, why }) =>
+      Effect.flatMap(lab, (l) =>
+        l.boardChanged(film, (board) => pickTry(board, panel, n, Option.fromUndefinedOr(why))),
       ),
-    ),
-  );
+  }),
+  labCommand(ApproveBeat, {
+    run: ({ film, beat }) =>
+      Effect.flatMap(lab, (l) => l.boardChanged(film, (board, at) => approveBeat(board, beat, at))),
+  }),
+  labCommand(WithdrawBeat, {
+    run: ({ film, beat }) =>
+      Effect.flatMap(lab, (l) => l.boardChanged(film, (board) => withdrawBeat(board, beat))),
+  }),
+];

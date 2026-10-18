@@ -12,10 +12,11 @@
 //   film board import <film> --panel <beat>.<at> <file…> [--keep n --why "…"] [--from "…"] [--prompt-file f]
 //   film board card <film> --panel <beat>.<at> --payoff word [--to mark]
 //   film board verse <film> --panel <beat>.<at> --ref "Job 9:2" --text "…" --phrase "…"
-//   film board pick <film> --panel <beat>.<at> --try n [--why "…"]
-//   film board approve|withdraw <film> --beat id
 //   film board tweak <film> <note> [--tries 2]
-//   film board list <film>
+//
+// A try kept, a beat approved or withdrawn, and the board read are the
+// lab's commands (`film lab keep_try|approve_beat|withdraw_beat|board`, the
+// same as the lab's MCP tools: `lab-commands.ts`).
 
 import { Argument, Command, Flag } from 'effect/cli';
 import {
@@ -27,7 +28,6 @@ import {
   FileSystem,
   Option,
   Path,
-  Predicate,
   Result,
   Schema,
 } from 'effect';
@@ -39,8 +39,6 @@ import {
   type PanelText,
   TryExt,
   styleFile,
-  approvalOf,
-  approveBeat,
   cardLine,
   filmOrder,
   panelById,
@@ -48,7 +46,6 @@ import {
   phraseIn,
   pickTry,
   withPanel,
-  withdrawBeat,
 } from '../core/board.ts';
 import { BoardRefused, NoteNotFound } from '../core/refusals.ts';
 import { noteById } from '../core/notes.ts';
@@ -64,10 +61,6 @@ const film = Argument.String('film').pipe(
 );
 const panelFlag = Flag.String('panel').pipe(
   Flag.withDescription('the panel, <beat>.<at>: its beat and the mark it is held from (or start)'),
-);
-const beatFlag = Flag.String('beat').pipe(
-  Flag.withSchema(BoardName),
-  Flag.withDescription('the beat, by its id'),
 );
 
 /** The film's beats as the board reads them, from its script. */
@@ -383,47 +376,6 @@ const verse = Command.make(
   }),
 ).pipe(Command.withDescription('Make a panel a verse on its page, its phrase highlighted'));
 
-const pick = Command.make(
-  'pick',
-  {
-    film,
-    panel: panelFlag,
-    n: Flag.Int('try').pipe(Flag.withDescription('the try to keep')),
-    why: Flag.String('why').pipe(Flag.optional, Flag.withDescription('why, in a sentence')),
-  },
-  Effect.fn('film.board.pick')(function* (input) {
-    const store = yield* BoardStore;
-    const name = yield* filmNamed(input.film);
-    yield* store.modify(name, (b) => pickTry(b, input.panel, input.n, input.why));
-    yield* Console.log(`kept ${input.panel} try=${input.n}`);
-  }),
-).pipe(Command.withDescription('Keep one try of a panel, and say why'));
-
-const approve = Command.make(
-  'approve',
-  { film, beat: beatFlag },
-  Effect.fn('film.board.approve')(function* (input) {
-    const store = yield* BoardStore;
-    const name = yield* filmNamed(input.film);
-    const at = DateTime.formatIso(yield* DateTime.now);
-    yield* store.modify(name, (b) => approveBeat(b, input.beat, at));
-    yield* Console.log(`approved ${input.beat}`);
-  }),
-).pipe(
-  Command.withDescription("Approve a beat's board as it stands (a later pick leaves it stale)"),
-);
-
-const withdraw = Command.make(
-  'withdraw',
-  { film, beat: beatFlag },
-  Effect.fn('film.board.withdraw')(function* (input) {
-    const store = yield* BoardStore;
-    const name = yield* filmNamed(input.film);
-    yield* store.modify(name, (b) => withdrawBeat(b, input.beat));
-    yield* Console.log(`withdrawn ${input.beat}`);
-  }),
-).pipe(Command.withDescription("Withdraw a beat's board approval"));
-
 const tweak = Command.make(
   'tweak',
   {
@@ -462,49 +414,6 @@ const tweak = Command.make(
 ).pipe(
   Command.withDescription(
     "Make a note's panel again from the try it was written on, its words and its sketch; reply to the note",
-  ),
-);
-
-const list = Command.make(
-  'list',
-  { film },
-  Effect.fn('film.board.list')(function* (input) {
-    const store = yield* BoardStore;
-    const notes = yield* NotesStore;
-    const name = yield* filmNamed(input.film);
-    const board = yield* store.read(name);
-    const open = (yield* notes.read(name)).notes.filter(
-      (n) => n.status === 'open' && Predicate.isNotUndefined(n.panel),
-    );
-    yield* Console.log(
-      Option.match(Option.fromUndefinedOr(board.style), {
-        onNone: () => 'style none',
-        onSome: (s) => `style ${s.id} name="${s.name}" ref=${s.ref}`,
-      }),
-    );
-    for (const p of board.panels) {
-      const kind = Option.match(Option.fromUndefinedOr(p.text), {
-        onNone: () =>
-          `tries=${p.tries.length} kept=${Option.match(Option.fromUndefinedOr(p.kept), { onNone: () => '-', onSome: String })}`,
-        onSome: (text) => text._tag.toLowerCase(),
-      });
-      const asks = open.filter((n) => n.panel?.id === p.id).map((n) => n.id);
-      const why = Option.match(Option.fromUndefinedOr(p.why), {
-        onNone: () => '',
-        onSome: (w) => ` why="${w}"`,
-      });
-      const noted = Bool.match(asks.length > 0, {
-        onTrue: () => ` notes=${asks.join(',')}`,
-        onFalse: () => '',
-      });
-      yield* Console.log(`panel ${p.id} ${kind} board=${approvalOf(board, p.beat)}${noted}${why}`);
-    }
-    for (const problem of yield* store.problems(name))
-      yield* Console.log(`image ${problem.file} ${problem.problem}`);
-  }),
-).pipe(
-  Command.withDescription(
-    "List the board's panels: tries, kept, approval, open notes; images missing or changed",
   ),
 );
 
@@ -553,6 +462,6 @@ export const board = Command.make(
   Command.withDescription(
     "Draw the film's storyboard: each beat's panels at the marks its picture turns on, two tries each on okra image (Codex route)",
   ),
-  Command.withSubcommands([style, importTries, card, verse, pick, approve, withdraw, tweak, list]),
+  Command.withSubcommands([style, importTries, card, verse, tweak]),
   Command.provide(ImageRoute.layer),
 );

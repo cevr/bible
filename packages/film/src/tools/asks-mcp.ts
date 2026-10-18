@@ -1,6 +1,6 @@
-// The lab MCP's asks and the owner's word (`lab-mcp.ts` serves them): a
-// decision page an agent composes from the lab's primitives as a small
-// machine (`ask`), on a page of asks (one made while the same asker's
+// The lab's ask commands and the owner's word (`lab-command.ts`; MCP and
+// `film lab` serve them): a decision page an agent composes from the lab's
+// primitives as a small machine (`ask`), on a page of asks (one made while the same asker's
 // earlier ask still asks joins that one's page, so asks made in sequence
 // share one page and one link), answered by the owner on any device, each step's answers
 // heard as `ask.step` changes; read (`ask_read`, `asks`) and closed
@@ -9,8 +9,8 @@
 // from chat filed there (`decide`, `note`), and the production moved forward
 // on his filed decision (`forward`), each through `ProductionStore`.
 
-import { Clock, Effect, Layer, Match, Option, Schema, Struct } from 'effect';
-import { McpServer, Tool, Toolkit } from 'effect/ai';
+import { Clock, Effect, Match, Option, Schema, Struct } from 'effect';
+import { Tool } from 'effect/ai';
 import { pageHref } from '../core/api.ts';
 import {
   Ask,
@@ -34,8 +34,8 @@ import {
   versionAt,
 } from '../core/production.ts';
 import { AskStore } from './ask-store.ts';
-import { LabRefused, type LabMcpOptions, refused } from './lab-mcp-parts.ts';
-import { logged } from './mcp-calls.ts';
+import { LabAddress, labCommand } from './lab-command.ts';
+import { LabRefused, refused } from './lab-mcp-parts.ts';
 import { ProductionStore } from './production-store.ts';
 import { setsReads } from './sets-mcp.ts';
 
@@ -74,7 +74,7 @@ const AskMade = Schema.Struct({
   onPage: Schema.String,
 });
 
-export const AskTool = Tool.make('ask', {
+const AskTool = Tool.make('ask', {
   description: [
     "Ask the owner to review something and decide, on one scrolling page made for it: answered on the laptop or the phone, the answers typed. A guided review has one section per piece of material, in the flow's order (script → concept → Board → voice → animatic → Rive scenes → sound → render → shorts), each section the material itself first, then its questions; one Send under them all. Give `blocks` for one section, or `machine` for several: `{start, steps}`, each step a section (`title`, its heading, e.g. 'The Board'; `blocks`; then `next`: `[{to, when?: {answer, is: [values]}}, …, {to}]`, the first whose `when` holds, the last unguarded) or an end (`{end: true, text?}`). Every section the owner's answers reach shows on the page; a guarded one appears once its choice is made.",
     "Show the material in place, by reference, never prose that points elsewhere: `{kind: 'script', film}` or `{kind: 'script', series, draft}` (the Script reader, its staging takes playable and its delivery marks editable in place; `beats` for some), `{kind: 'board', film, panels?}` (the Board's panels, each with its kept try), `{kind: 'video', ref, at?}` (a set's or a render's video in the review's player, from `at` seconds), `{kind: 'audio', film, beat, attempt?}` (a recorded take, the kept one unless named), `{kind: 'document', ref}` (a set's Markdown). A script under review is a `script` block, never a `document` of its Markdown, and an ask shows one script (ask about the next in an ask of its own); a new script that is no film's yet is written as a series draft first (`series/<series>/scripts/<draft>.md`), then named in a `script` block. A `ref` is a file as `sets` lists it (`<root>/<folder>/<file>`). Each is found when the ask is made; one the lab cannot show is refused, named. Other blocks: a heading, prose (context only), an image (`{src}`, a lab URL `/api/…`, or `{board: {film, panel, try}}`), a choose, a free_text; each question names its answer by `id`. The machine is checked before anything is kept (every step reachable, no loops, guards on the step's own choices, every material found, one script, one recommendation per choose), and a refusal lists every problem.",
@@ -190,7 +190,7 @@ const WordFiled = Schema.Struct({
 
 const DecideTool = Tool.make('decide', {
   description:
-    "File a decision the owner has already made in chat on a production's timeline, as `film production decide` does: `text` says it plainly, `quote` is his own words verbatim (required: never file a decision he did not make; what is still his to choose is an `ask`), `by` is who you are. With a `set` it is a decision on that set (with a `point`, on that choice; a `variant`, the one he chose), and it answers the questions waiting there. It lands in the version open now. Answers the word as filed and the timeline's link.",
+    "File a decision the owner has already made in chat on a production's timeline: `text` says it plainly, `quote` is his own words verbatim (required: never file a decision he did not make; what is still his to choose is an `ask`), `by` is who you are. With a `set` it is a decision on that set (with a `point`, on that choice; a `variant`, the one he chose), and it answers the questions waiting there. It lands in the version open now. Answers the word as filed and the timeline's link.",
   parameters: OwnerWordParams,
   success: WordFiled,
   failure: LabRefused,
@@ -198,7 +198,7 @@ const DecideTool = Tool.make('decide', {
 
 const NoteTool = Tool.make('note', {
   description:
-    "File a note the owner gave in chat on a production's timeline, as `film production note` does: his feedback, which decides nothing and answers no question waiting there. `text`, `quote` (his own words verbatim, required) and `by` as for `decide`; a `set`, its `point` and a `variant` say what it is about. Answers the word as filed and the timeline's link.",
+    "File a note the owner gave in chat on a production's timeline: his feedback, which decides nothing and answers no question waiting there. `text`, `quote` (his own words verbatim, required) and `by` as for `decide`; a `set`, its `point` and a `variant` say what it is about. Answers the word as filed and the timeline's link.",
   parameters: OwnerWordParams,
   success: WordFiled,
   failure: LabRefused,
@@ -231,32 +231,23 @@ const MovedForward = Schema.Struct({
 
 const ForwardTool = Tool.make('forward', {
   description:
-    "Move a production forward, as `film production forward` does: its next version opens now, after `after` (the one you read as current), for `title`, because of `decision`. Only on the owner's word to move on: `decision` names one decision of his in the version open now (filed with `decide` from chat, or by an ask he answered) by its `at`, and the timeline records that one as the reason. With no decision of his in the version it is refused (file or ask it first); a `decision` the version does not hold is refused, naming those it holds. Answers the version opened and the timeline's link.",
+    "Move a production forward: its next version opens now, after `after` (the one you read as current), for `title`, because of `decision`. Only on the owner's word to move on: `decision` names one decision of his in the version open now (filed with `decide` from chat, or by an ask he answered) by its `at`, and the timeline records that one as the reason. With no decision of his in the version it is refused (file or ask it first); a `decision` the version does not hold is refused, naming those it holds. Answers the version opened and the timeline's link.",
   parameters: ForwardParams,
   success: MovedForward,
   failure: LabRefused,
 });
 
-const AsksToolkit = Toolkit.make(
-  AskTool,
-  AskReadTool,
-  AsksTool,
-  CloseAsk,
-  DecideTool,
-  NoteTool,
-  ForwardTool,
-);
-
 // ---------------------------------------------------------------------------
 // The reads and writes, over the asks and the productions' ledgers
 
 /** The asks and the timelines as the tools read and write them. */
-const asksReads = Effect.fn('LabMcp.asksReads')(function* (options: LabMcpOptions) {
+const asksReads = Effect.fn('LabMcp.asksReads')(function* () {
   const asks = yield* AskStore;
   const productions = yield* ProductionStore;
-  const { sets, folderNamed } = yield* setsReads(options);
+  const links = yield* LabAddress;
+  const { sets, folderNamed } = yield* setsReads();
 
-  const linksOf = (at: string) => linksAt(options.links, at);
+  const linksOf = (at: string) => linksAt(links, at);
 
   const askRead = (record: AskRecord): AskRead => ({
     page: { id: pageIdOf(record), links: linksOf(pageHref.askPage(pageIdOf(record))) },
@@ -345,7 +336,7 @@ const asksReads = Effect.fn('LabMcp.asksReads')(function* (options: LabMcpOption
 
   /**
    * The owner's word from chat on its production's timeline, through the
-   * store's own `say` (as `film production decide|note`, refused by it, as the
+   * store's own `say` (as `film lab decide|note`, refused by it, as the
    * terminal's is, when not aimed: `aimedWord`), in the version open now: its
    * words, who filed it, and the set, choice and variant it is about.
    */
@@ -416,22 +407,55 @@ const asksReads = Effect.fn('LabMcp.asksReads')(function* (options: LabMcpOption
   return { ask, askOf, asksOf, closeAsk, fileWord, forward };
 });
 
-/** The asks' and the timelines' tools, served by the lab's MCP server. */
-export const asksMcp = (options: LabMcpOptions) =>
-  McpServer.toolkit(AsksToolkit).pipe(
-    Layer.provideMerge(
-      AsksToolkit.toLayer(
-        Effect.map(asksReads(options), (lab) =>
-          AsksToolkit.of({
-            ask: logged('ask', (given) => lab.ask(given)),
-            ask_read: logged('ask_read', ({ ask }) => lab.askOf(ask)),
-            asks: logged('asks', ({ status }) => lab.asksOf(Option.fromUndefinedOr(status))),
-            close_ask: logged('close_ask', ({ ask, why }) => lab.closeAsk(ask, why)),
-            decide: logged('decide', (given) => lab.fileWord('Decided', given)),
-            note: logged('note', (given) => lab.fileWord('Noted', given)),
-            forward: logged('forward', (given) => lab.forward(given)),
-          }),
-        ),
-      ),
-    ),
-  );
+/** The work of the asks' and the timelines' commands. */
+const lab = asksReads();
+
+/**
+ * The ask, run in the lab alone: an ask made while the same asker's earlier
+ * one still asks joins its page, and the store groups them under a lock it
+ * holds in memory (`AskStore`).
+ */
+/** An ask made, as a terminal reads it: where it waits, its page and its links, and how to wait on its answer. Pure. */
+const askLines = (asked: typeof AskMade.Type): ReadonlyArray<string> => [
+  `asked ${asked.ask}${Option.match(Option.fromUndefinedOr(asked.production), {
+    onNone: () => '',
+    onSome: (production) => ` on ${production}`,
+  })}${Option.match(Option.fromUndefinedOr(asked.set), {
+    onNone: () =>
+      Option.match(Option.fromUndefinedOr(asked.production), {
+        onNone: () => '',
+        onSome: () => ': filed on its timeline once closed',
+      }),
+    onSome: (set) =>
+      `: waits on its timeline at ${set}${Option.match(Option.fromUndefinedOr(asked.point), {
+        onNone: () => '',
+        onSome: (point) => `, ${point}`,
+      })}`,
+  })}`,
+  asked.onPage,
+  `local ${asked.page.links.local}`,
+  Option.match(Option.fromUndefinedOr(asked.page.links.phone), {
+    onNone: () => 'phone none: the lab has no FILM_LAB_PHONE_URL',
+    onSome: (phone) => `phone ${phone}`,
+  }),
+  `then: bun cli.ts ask wait ${asked.ask} in the background (it exits once answered, with the answers; --page ${asked.page.id} for every ask on the page); close_ask it once acted on`,
+];
+
+export const askInLab = labCommand(AskTool, {
+  run: (given) => Effect.flatMap(lab, (l) => l.ask(given)),
+  lines: askLines,
+});
+
+/** The asks' and the timelines' commands any process runs: each write holds the store's file lock. */
+export const asksCommands = [
+  labCommand(AskReadTool, { run: ({ ask }) => Effect.flatMap(lab, (l) => l.askOf(ask)) }),
+  labCommand(AsksTool, {
+    run: ({ status }) => Effect.flatMap(lab, (l) => l.asksOf(Option.fromUndefinedOr(status))),
+  }),
+  labCommand(CloseAsk, { run: ({ ask, why }) => Effect.flatMap(lab, (l) => l.closeAsk(ask, why)) }),
+  labCommand(DecideTool, {
+    run: (given) => Effect.flatMap(lab, (l) => l.fileWord('Decided', given)),
+  }),
+  labCommand(NoteTool, { run: (given) => Effect.flatMap(lab, (l) => l.fileWord('Noted', given)) }),
+  labCommand(ForwardTool, { run: (given) => Effect.flatMap(lab, (l) => l.forward(given)) }),
+];

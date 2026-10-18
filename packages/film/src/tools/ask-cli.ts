@@ -27,7 +27,7 @@ import { FetchHttpClient } from 'effect/http';
 import { AskRead, AsksTool } from './asks-mcp.ts';
 import { ASK_WAIT_PACE, type AskFeed, AskLatch, askLines, waitForAsk } from './ask-wait.ts';
 import { labClient, labUrl } from './lab-client.ts';
-import { Changes } from './lab-mcp.ts';
+import { Changes } from './lab-commands.ts';
 
 /** A wait asked two ways at once, or neither. */
 class AskWaitInvalid extends Schema.TaggedError<AskWaitInvalid>()('AskWaitInvalid', {

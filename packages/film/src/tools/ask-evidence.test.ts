@@ -90,7 +90,7 @@ const run = <A, E>(
       Review.of({
         ...none,
         resolve: (ref) =>
-          Bool.match(listed && ref === 'p5/rbf/review/evidence.md', {
+          Bool.match((listed && ref === 'p5/rbf/review/evidence.md') || ref === FARMER, {
             onTrue: () => Effect.succeed(`/out/${ref}`),
             onFalse: () => Effect.fail(ReviewFileUnknown.make({ ref })),
           }),
@@ -104,6 +104,9 @@ const run = <A, E>(
     ),
   );
 };
+
+/** The still of the farmer the asks show, a file of the set. */
+const FARMER = 'p5/rbf/farmer.png';
 
 /** The farmer of `film`'s scene `a`, as a keep keeps him. */
 const farmerOf = (film: string) => ({ film, scenes: [{ scene: 'a', figures: ['farmer'] }] });
@@ -128,7 +131,7 @@ const askOfForm = (form: Form): Ask =>
           },
         ],
         onFalse: () => [
-          { kind: 'image', image: { src: '/api/review/p5/rbf/farmer.png' } },
+          { kind: 'image', image: { src: '/api/review/files/p5/rbf/farmer.png' } },
           {
             kind: 'choose',
             id: 'farmer',

@@ -9,7 +9,6 @@ import { MAIN_VARIANT, RenderVariantName } from './catalogue.ts';
 import {
   type SceneTimes,
   type StillView,
-  cropOf,
   formatFor,
   levelsOf,
   lookAtOf,
@@ -145,13 +144,7 @@ describe('a view', () => {
   });
 });
 
-describe('a crop and a format', () => {
-  test('four numbers are a crop; anything else is refused', () => {
-    expect(Result.getOrThrow(cropOf('1, 2,3,4.5'))).toEqual([1, 2, 3, 4.5]);
-    for (const text of ['1,2,3', '1,2,3,4,5', '1,,3,4', 'a,b,c,d'])
-      expect(failureTag(cropOf(text))).toBe('LookInvalid');
-  });
-
+describe('a wedge and a format', () => {
   test('--level flags are look=level, each look once; none is no wedge', () => {
     expect(Result.getOrThrow(levelsOf([]))).toEqual({});
     expect(Result.getOrThrow(levelsOf(['style=ps1', 'ground=light']))).toEqual({

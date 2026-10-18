@@ -178,7 +178,7 @@ export class NoteAnswered extends Schema.TaggedError<NoteAnswered>()('NoteAnswer
   }
 }
 
-/** `film notes reply|resolve` named a note the film's lab does not have. */
+/** `reply` or `resolve` named a note the film's lab does not have. */
 export class NoteNotFound extends Schema.TaggedError<NoteNotFound>()('NoteNotFound', {
   film: Schema.String,
   id: Schema.String,

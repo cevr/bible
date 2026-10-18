@@ -1,4 +1,4 @@
-// The match's words (`film match`), shared by the page, the lab, the CLI and
+// The match's words (`film lab match`), shared by the page, the lab, the CLI and
 // the MCP: a figure's concept reference as a film declares it beside its
 // rig, a match asked, the table it answers (each ratio and shade of the
 // concept against the scene, flagged past its tolerance) and the files it

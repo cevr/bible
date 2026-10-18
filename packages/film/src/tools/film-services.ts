@@ -45,6 +45,7 @@ import { Working } from './working.ts';
 import type { LabLinks } from '../core/lab-events.ts';
 import { labHandler } from './lab.ts';
 import { LabEvents } from './lab-events.ts';
+import { LabAddress } from './lab-command.ts';
 import { type LabMcpNeeds, labMcp } from './lab-mcp.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { Earshot } from './earshot.ts';
@@ -271,7 +272,11 @@ const mcpRoutes = Effect.fn('film.lab.mcp')(function* (links: LabLinks, beside: 
   const services = yield* Effect.context<LabMcpNeeds>();
   return Layer.merge(
     beside,
-    labMcp({ links }).pipe(Layer.provide(Layer.succeedContext(Context.merge(services, events)))),
+    labMcp.pipe(
+      Layer.provide(
+        Layer.succeedContext(Context.add(Context.merge(services, events), LabAddress, links)),
+      ),
+    ),
   );
 });
 

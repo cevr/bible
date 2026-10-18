@@ -37,7 +37,7 @@
 //       `script.ts` on the folder's own takes (no acts, no score, no scene
 //       draws it). The lab's `timeline` tool and the studio read it
 //   film read scenes <film>
-//       the film's scenes by id, in order, as `film journal` knows them: no
+//       the film's scenes by id, in order, as `film lab journal` knows them: no
 //       timeline is resolved, so a scene that does not lay out still names
 //       its film's scenes (the lab's `journal` and `journal_note` tools)
 //
@@ -509,7 +509,7 @@ const scenes = Command.make(
   }, answering),
 ).pipe(
   Command.withDescription(
-    "The film's scenes by id, in order, as `film journal` knows them (no timeline resolved), as one line of JSON",
+    "The film's scenes by id, in order, as `film lab journal` knows them (no timeline resolved), as one line of JSON",
   ),
 );
 

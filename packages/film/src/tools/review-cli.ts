@@ -1,8 +1,8 @@
 // `film review`: the evidence a keep is asked on (`core/review-record.ts`).
 // It reads the scene's source key as `film project` reads it, then at each
 // place named, all at once, takes the scene's figures through the lab's
-// match (`takeMatch`, as `film match` does), critiques them (`Critic`, as
-// `film critique` does) and copies each figure's crops and side-by-side into
+// match (`takeMatch`, as `film lab match` does), critiques them (`Critic`, as
+// `film lab critique` does) and copies each figure's crops and side-by-side into
 // the set's folder (`<set>/review/crops/<review>/`), then reads the key again:
 // a scene changed between the two reads is refused, so no record stamps old
 // crops with a new key. The run is appended to the record
@@ -48,7 +48,7 @@ import {
 import { repoJson } from '../core/schema.ts';
 import { Counsel } from './counsel.ts';
 import { Critic } from './critique.ts';
-import { takeMatch } from './easel-cli.ts';
+import { takeMatch } from './easel-client.ts';
 import { filmsOut } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { labUrl } from './lab-client.ts';

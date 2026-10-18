@@ -16,7 +16,7 @@ export const FILMS = join(import.meta.dir, 'src/films');
 /**
  * The lab's pages, each this app's HTML entry: its review, its play page
  * (a film's studio), and its render page, whose
- * handle the easel draws a look through (`film look`, at a film's export
+ * handle the easel draws a look through (`film lab look`, at a film's export
  * page). The places each is served at are the framework's (`Places`,
  * `pageAt`); `film lab` and the studio harness serve these.
  */

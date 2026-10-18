@@ -286,7 +286,7 @@ export const Refusal = Schema.Union(Refusals);
 export type Refusal = typeof Refusal.Type;
 
 /**
- * A failure as a film tool prints it (`film look --json`, `film judge
+ * A failure as a film tool prints it (`film lab look --json`, `film judge
  * --json`): a route's refusal exactly as the route answers it (tagged, its
  * fields), or the tool's own (no lab answering, the judge's), or
  * `ToolFailed` for any other. One shape for a tool to decode, whichever
@@ -1118,7 +1118,7 @@ class ProjectGroup extends HttpApiGroup.make('project').add(
 /**
  * A look (`core/easel.ts`): stills of a scene as its sources stand, drawn by
  * a page the lab holds warm, written under the film's `out/<film>/look/` and
- * answered by their paths. A tool's call (`film look`), not a page's: it
+ * answered by their paths. A tool's call (`film lab look`), not a page's: it
  * writes files, never source, and waits for the pages' build of every save
  * made before it; a build that fails is answered as `PagesBroken`, its words.
  */
@@ -1427,7 +1427,7 @@ const Replaced = {
  * Script, its Board and its Lab (`Replaced`, whose links are sent on to
  * it). Render: a film's export page `/films/<film>/export`, the film staged with
  * no chrome and its handle on `window.__film` (`mountRender`), which the
- * easel opens (`film look`); no reviewer's view, so it holds no
+ * easel opens (`film lab look`); no reviewer's view, so it holds no
  * time and no selection.
  */
 export const Places = {

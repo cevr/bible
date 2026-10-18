@@ -5,7 +5,7 @@
 // after it. Pure.
 
 import { Option } from 'effect';
-import type { Note, NoteEvent, NotesFile, Reply } from '../core/schema.ts';
+import type { Note, NoteEvent, Reply } from '../core/schema.ts';
 import { sketchSummary } from '../core/sketch.ts';
 import type { NotesPaths } from './notes-store.ts';
 
@@ -90,13 +90,6 @@ export const eventLine = (at: NotesPaths, event: NoteEvent): Option.Option<strin
     return Option.some(replyLine(at, event.note, event.reply));
   return Option.none();
 };
-
-/** Where the agent last left the notes: the change of its newest reply, 0 before its first. */
-export const agentCursor = (file: NotesFile) =>
-  Math.max(
-    0,
-    ...file.notes.flatMap((n) => n.thread.filter((r) => r.by === 'agent').map((r) => r.seq)),
-  );
 
 /** The notes file's cursor: pass it to `--watch --since` to see every change after it. */
 export const cursorLine = (seq: number) => `cursor seq=${seq}`;

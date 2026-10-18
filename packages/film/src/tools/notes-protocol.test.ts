@@ -1,6 +1,5 @@
-// `film notes` as an agent reads it: the open notes and the cursor, a reply
-// that prints what the user said since the agent last replied, and `--watch`
-// printing each new note and user reply once, never the agent's own, from
+// `film notes` as an agent reads it: the open notes and the cursor, and
+// `--watch` printing each new note and user reply once, never the agent's own, from
 // the cursor a list printed. In process over the memory store; the lines are
 // what the command logs to its console.
 
@@ -62,7 +61,7 @@ const cardNote = Effect.fn('test.cardNote')(function* (words: string) {
 const Fresh = Layer.merge(BunServices.layer, World);
 
 describe('film notes, as an agent reads it', () => {
-  it.live('lists open notes, replies with a still, resolves, and fails on an unknown id', () =>
+  it.live('lists open notes and the cursor, and none once each is done', () =>
     Effect.gen(function* () {
       const empty = yield* cli('tiny');
       // No notes: only the cursor a watch resumes from.
@@ -74,14 +73,8 @@ describe('film notes, as an agent reads it', () => {
         'cursor seq=1',
       ]);
 
-      const replied = yield* cli('reply', 'tiny', 'n1', 'raised it 40px');
-      expect(replied.ok).toBe(true);
-      expect(replied.lines[0]).toContain('status=replied');
-      expect(replied.lines[0]).toContain('replies=1');
-
-      expect((yield* cli('resolve', 'tiny', 'n9')).ok).toBe(false);
-      expect((yield* cli('resolve', 'tiny', 'n1')).ok).toBe(true);
-      expect((yield* cli('tiny')).lines).toEqual(['cursor seq=3']);
+      yield* (yield* NotesStore).resolve(film, 'n1');
+      expect((yield* cli('tiny')).lines).toEqual(['cursor seq=2']);
     }).pipe(Effect.provide(Fresh)),
   );
 
@@ -167,42 +160,6 @@ describe('film notes, as an agent reads it', () => {
         expect(lines[1]).toBe(
           `note id=n2 seq=2 status=open scene=turn T=6.00 frame=180 words=turn:4-6 said="the page \\"turns\\"" kind=removal replies=0 still=${LAB}/tiny/stills/n2.png text="cut it"`,
         );
-      }).pipe(Effect.provide(Fresh)),
-  );
-
-  it.live(
-    'a reply prints what the user said since the agent last replied: new notes and user replies',
-    () =>
-      Effect.gen(function* () {
-        const store = yield* NotesStore;
-        yield* cardNote('the card sits too low');
-        // The agent's first reply: the only note is the one it answers, whose line it prints.
-        const first = yield* cli('reply', 'tiny', 'n1', 'raised it');
-        expect(first.lines.map(head3)).toEqual(['note id=n1 seq=2', 'cursor seq=2']);
-        // While the agent worked: a user reply on the first note, and two new notes (a note's
-        // id is its change number: n4, n5).
-        yield* store.reply(film, 'n1', { by: 'user', text: 'lower still', still: Option.none() });
-        yield* cardNote('and the cup');
-        yield* cardNote('and the saucer');
-        const second = yield* cli('reply', 'tiny', 'n4', 'moved the cup');
-        // The note it answered, then what came past its last reply (seq 2) but that one, then
-        // the cursor.
-        expect(second.lines.map(head3)).toEqual([
-          'note id=n4 seq=6',
-          'reply id=n1 seq=3',
-          'note id=n5 seq=5',
-          'cursor seq=6',
-        ]);
-        // Whole lines: each ends at its text, with nothing printed after it.
-        expect(second.lines[1]).toMatch(
-          /^reply id=n1 seq=3 by=user scene=.* still=\S+ text="lower still"$/,
-        );
-        expect(second.lines[2]).toMatch(
-          /^note id=n5 seq=5 status=open scene=.* text="and the saucer"$/,
-        );
-        // --since picks the cursor instead: past 6, nothing new.
-        const since = yield* cli('reply', 'tiny', 'n1', 'ok', '--since', '6');
-        expect(since.lines.map(head3)).toEqual(['note id=n1 seq=7', 'cursor seq=7']);
       }).pipe(Effect.provide(Fresh)),
   );
 

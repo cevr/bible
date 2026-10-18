@@ -214,7 +214,18 @@ describe("the easel's tools on the MCP", () => {
         properties: { at: { type: 'array', minItems: 1, maxItems: 8 } },
       });
       expect(Object.keys(named('look').inputSchema.properties).toSorted()).toEqual(
-        ['at', 'crop', 'film', 'films', 'mode', 'scene', 'size'].toSorted(),
+        [
+          'at',
+          'captions',
+          'crop',
+          'film',
+          'films',
+          'format',
+          'levels',
+          'mode',
+          'scene',
+          'size',
+        ].toSorted(),
       );
       expect(Object.keys(named('match').inputSchema.properties).toSorted()).toEqual(
         ['at', 'figure', 'film', 'films', 'scene'].toSorted(),

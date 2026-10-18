@@ -10,7 +10,11 @@
 // the studio lists (`beatAttempts`, the studio's route's own read, which
 // refuses a beat the film does not have), the one named or the one kept. A ref
 // is a ref, never a path: the review finds it among the files it lists, or
-// it is not there.
+// it is not there. An image's `src` is one of the lab's image routes, its
+// file found by the read that route makes (a set's file by `Review.resolve`,
+// a board's by `BoardStore.image`, a note's still by `NotesStore.still`, a
+// video's frame by the review's index); a path no image route takes would
+// 404 on the page, so it is refused, named.
 
 import {
   Boolean as Bool,
@@ -21,9 +25,11 @@ import {
   Option,
   Path,
   Predicate,
+  Result,
   Schema,
 } from 'effect';
-import { type Ask, type Material, materialsIn, scriptSource } from '../core/ask.ts';
+import { REVIEW_FILES, labUrls } from '../core/api.ts';
+import { type Ask, type Material, imagesIn, materialsIn, scriptSource } from '../core/ask.ts';
 import { panelById } from '../core/board.ts';
 import {
   EVIDENCE_FILE,
@@ -34,12 +40,16 @@ import {
   typingProblems,
 } from '../core/review-record.ts';
 import { docAt, videoAt } from '../core/review.ts';
+import { Segment } from '../core/segment.ts';
+import { decodeComponent } from '@bible/url-state';
 import { BoardStore } from './board-store.ts';
 import type { ContentStore } from './content-store.ts';
 import type { FilmFolder } from './film-repo.ts';
 import { filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
+import { NotesStore } from './notes-store.ts';
 import { Review } from './review.ts';
+import { refFromUrl } from './review-http.ts';
 import { SeriesDrafts } from './series-drafts.ts';
 import type { StudioReadings } from './studio.ts';
 import { beatAttempts } from './studio.ts';
@@ -76,6 +86,16 @@ interface AskMaterialsService {
 const problemIf = (wrong: boolean, problem: string): ReadonlyArray<string> =>
   Bool.match(wrong, { onFalse: () => [], onTrue: () => [problem] });
 
+/** A board's image route and a note's still's, by their path's segments after the film's. */
+const FILM_IMAGE = /^\/api\/films\/([^/]+)\/(board\/files|stills)\/([^/]+)$/;
+
+/** The review's frame route: a video's frame, by its ref in the query. */
+const FRAME = labUrls.review.frame({ query: { ref: '' } }).split('?')[0];
+
+/** A path component decoded, or none when it does not decode. */
+const decoded = (component: string): Option.Option<string> =>
+  Result.getSuccess(decodeComponent(component));
+
 /** The ids `named` names that `known` does not hold. */
 const unknownOf = (
   named: Option.Option<ReadonlyArray<string>>,
@@ -100,6 +120,7 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
       const boards = yield* BoardStore;
       const films = yield* Effect.context<FilmFolder>();
       const studio = yield* Effect.context<StudioReadings | Takes | ContentStore | FilmFolder>();
+      const notes = yield* NotesStore;
 
       /** Film `name`, when the lab has one so named; else the problem. */
       const film = (where: string, name: string) =>
@@ -211,12 +232,79 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
         }
       };
 
-      const problems = (ask: Ask) =>
+      /**
+       * Whether the lab serves an image at `src`: the read its route makes
+       * finds a file. A path no image route takes is none.
+       */
+      const served = (src: string): Effect.Effect<boolean> => {
+        const url = new URL(src, 'http://lab.invalid');
+        const filmImage = Option.flatMap(Option.fromNullishOr(FILM_IMAGE.exec(url.pathname)), (m) =>
+          Option.all([
+            Option.flatMap(Option.fromUndefinedOr(m[1]), decoded),
+            Option.fromUndefinedOr(m[2]),
+            Option.flatMap(Option.fromUndefinedOr(m[3]), decoded),
+          ]),
+        );
+        const reads: ReadonlyArray<Option.Option<Effect.Effect<boolean, unknown>>> = [
+          Option.map(refFromUrl(src, REVIEW_FILES), (ref) => Effect.as(review.resolve(ref), true)),
+          Option.map(filmImage, ([name, route, file]) =>
+            Effect.flatMap(Effect.provideContext(filmNamed(name), films), (named) =>
+              Bool.match(route === 'stills', {
+                onTrue: () => Effect.map(notes.still(named, file), Option.isSome),
+                onFalse: () =>
+                  Effect.flatMap(
+                    Effect.fromOption(
+                      Option.match(Option.fromNullishOr(url.searchParams.get('folder')), {
+                        onNone: () => Option.some(Option.none<Segment>()),
+                        onSome: (folder) =>
+                          Option.map(Schema.decodeOption(Segment)(folder), Option.some),
+                      }),
+                    ),
+                    (folder) =>
+                      Effect.as(boards.image(named, file, Option.getOrUndefined(folder)), true),
+                  ),
+              }),
+            ),
+          ),
+          Option.map(
+            Option.filter(
+              Option.fromNullishOr(url.searchParams.get('ref')),
+              () => url.pathname === FRAME,
+            ),
+            (ref) => Effect.map(review.index(false), (index) => Option.isSome(videoAt(index, ref))),
+          ),
+        ];
+        return Option.match(Option.firstSomeOf(reads), {
+          onNone: () => Effect.succeed(false),
+          onSome: (read) => Effect.orElseSucceed(read, () => false),
+        });
+      };
+
+      /** Every image `ask` shows by its `src` that the lab does not serve, named. */
+      const images = (ask: Ask) =>
         Effect.map(
-          Effect.forEach(materialsIn(ask), ({ step, block }) =>
-            found(step, block).pipe(Effect.catch((problem) => Effect.succeed([problem]))),
+          Effect.forEach(
+            imagesIn(ask).flatMap((image) => Option.toArray(Option.fromUndefinedOr(image.src))),
+            (src) =>
+              Effect.map(served(src), (is) =>
+                problemIf(
+                  !is,
+                  `image ${src}: the lab serves no image there (a set's file is at the link \`set\` and \`publish_set\` answer for it, under ${REVIEW_FILES}; a board try, {board: {film, panel, try}})`,
+                ),
+              ),
           ),
           (each) => each.flat(),
+        );
+
+      const problems = (ask: Ask) =>
+        Effect.map(
+          Effect.all([
+            Effect.forEach(materialsIn(ask), ({ step, block }) =>
+              found(step, block).pipe(Effect.catch((problem) => Effect.succeed([problem]))),
+            ),
+            images(ask),
+          ]),
+          ([each, unserved]) => [...each.flat(), ...unserved],
         );
 
       /** The set's review record, as the set lists it, decoded; or why there is none. */
