@@ -220,6 +220,20 @@ describe('audio copy', () => {
       expect(failedWith(result)).toContain('failed=1');
     }));
 
+  test('a fill past ten hymns is warned of first, before any hymn is read or written', () =>
+    Effect.gen(function* () {
+      const fx = yield* fixture;
+      for (const hymn of Arr.range(1, 11)) fx.s3.delete(hymn);
+      const state = yield* bucket;
+      const warning =
+        'warning 12 hymns come from the github fill, not s3: is the s3 bucket still public?';
+
+      const preview = yield* exec(dryRun, Layer.mergeAll(sourceOf(fx), fillOf(fx), unreachable));
+      expect(preview.lines[0]).toBe(warning);
+      const copied = yield* exec(run, stores(fx, state));
+      expect(copied.lines[0]).toBe(warning);
+    }));
+
   test('a second run uploads nothing and keeps every hymn', () =>
     Effect.gen(function* () {
       const fx = yield* fixture;

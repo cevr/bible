@@ -255,8 +255,8 @@ const endOf = (failures: number, missing: number, verified: number, complete: bo
 export const dryRun = Effect.gen(function* () {
   const answered = yield* heads;
   const items = plan(answered, yield* fillTree(answered), new Map());
-  const outcomes = yield* Effect.forEach(items, preview, { concurrency: 4 });
   yield* warnFills(items);
+  const outcomes = yield* Effect.forEach(items, preview, { concurrency: 4 });
   yield* Console.log(`audio-copy dry-run ${sources(items)} target=unread`);
   const failures = count(outcomes, 'Failed');
   const missing = count(outcomes, 'Missing');
@@ -291,13 +291,13 @@ export const run = Effect.gen(function* () {
   const target = yield* Target;
   const listed = yield* target.list(AUDIO_PREFIX);
   const items = plan(answered, fill, listed);
+  yield* warnFills(items);
   const outcomes = yield* Effect.forEach(items, copy, { concurrency: 4 });
   const verified = yield* verify(outcomes);
   const kept = count(outcomes, 'Kept');
   const uploaded = count(outcomes, 'Uploaded');
   const failures = count(outcomes, 'Failed');
   const missing = count(outcomes, 'Missing');
-  yield* warnFills(items);
   yield* Console.log(
     `audio-copy run ${sources(items)} target=kept ${kept} uploaded ${uploaded} failed ${failures} verified ${verified}/${SDAH_HYMNS.length}`,
   );
