@@ -10,7 +10,15 @@
 import { Clock, Effect, Layer, Match, Option, Schema, Struct } from 'effect';
 import { McpServer, Tool, Toolkit } from 'effect/ai';
 import { pageHref } from '../core/api.ts';
-import { Ask, AskAnswer, AskBlock, type AskRecord, askStatus, oneQuestion } from '../core/ask.ts';
+import {
+  Ask,
+  AskAnswer,
+  AskBlock,
+  type AskRecord,
+  askStatus,
+  oneQuestion,
+  pageIdOf,
+} from '../core/ask.ts';
 import { LabLinks, linksAt } from '../core/lab-events.ts';
 import {
   type OwnerWord,
@@ -48,7 +56,10 @@ export const AskRead = Schema.Struct({
   production: Schema.optionalKey(Schema.String),
   set: Schema.optionalKey(Schema.String),
   point: Schema.optionalKey(Schema.String),
+  /** The ask's own links: they open its page, at this ask. */
   links: LabLinks,
+  /** The page it is on (by the id of the ask that opened it), and the page's links. */
+  page: Schema.Struct({ id: Schema.String, links: LabLinks }),
 });
 export type AskRead = typeof AskRead.Type;
 
@@ -81,7 +92,7 @@ export const AskTool = Tool.make('ask', {
 
 const AskReadTool = Tool.make('ask_read', {
   description:
-    "An ask: where its run is, every answer so far (typed: a choose's value and label, a free_text's words, `skipped` for an optional one left empty), each step answered, and its links.",
+    "An ask: where its run is, every answer so far (typed: a choose's value and label, a free_text's words, `skipped` for an optional one left empty), each step answered, its links, and its page (`page.id`, `page.links`).",
   parameters: Schema.Struct({ ask: Schema.String }),
   success: AskRead,
   failure: LabRefused,
@@ -229,6 +240,7 @@ const asksReads = Effect.fn('LabMcp.asksReads')(function* (options: LabMcpOption
   const linksOf = (at: string) => linksAt(options.links, at);
 
   const askRead = (record: AskRecord): AskRead => ({
+    page: { id: pageIdOf(record), links: linksOf(pageHref.askPage(pageIdOf(record))) },
     ask: record.id,
     title: record.title,
     by: record.by,

@@ -17,7 +17,12 @@ import type { LabChanges } from './lab-events.ts';
 
 const PACE = { wait: 50, retry: Schedule.spaced('1 second'), sayEvery: '1 minute' } as const;
 
-const read = (ask: string, status: AskRead['status'], steps: ReadonlyArray<string> = []) =>
+const read = (
+  ask: string,
+  status: AskRead['status'],
+  steps: ReadonlyArray<string> = [],
+  page = ask,
+) =>
   ({
     ask,
     title: `the ${ask}`,
@@ -26,6 +31,7 @@ const read = (ask: string, status: AskRead['status'], steps: ReadonlyArray<strin
     answers: {},
     answered: steps.map((step) => ({ step, at: '2026-10-17T12:00:00.000Z' })),
     links: { local: `http://127.0.0.1:8229/asks/${ask}` },
+    page: { id: page, links: { local: `http://127.0.0.1:8229/asks/page/${page}` } },
   }) satisfies AskRead;
 
 /** A lab that did not answer, in its words. */
@@ -99,13 +105,13 @@ describe("film ask wait's latch", () => {
   it.effect('ends at once on an ask answered before it began', () =>
     Effect.gen(function* () {
       const lab = fakeLab([answer('e.0')], [listed(read('a1', 'answered'))]);
-      const got = yield* waitForAsk(
+      const [got] = yield* waitForAsk(
         lab.feed,
         AskLatch.One({ ask: 'a1', step: Option.none() }),
         PACE,
         Option.none(),
       );
-      expect(got.status).toBe('answered');
+      expect(got?.status).toBe('answered');
       expect(lab.calls).toEqual(['s1 changes now 0', 's1 asks']);
     }),
   );
@@ -120,13 +126,13 @@ describe("film ask wait's latch", () => {
         ],
         [listed(read('a1', 'asking')), listed(read('a1', 'answered'))],
       );
-      const got = yield* waitForAsk(
+      const [got] = yield* waitForAsk(
         lab.feed,
         AskLatch.One({ ask: 'a1', step: Option.none() }),
         PACE,
         Option.none(),
       );
-      expect(got.status).toBe('answered');
+      expect(got?.status).toBe('answered');
       expect(lab.calls).toEqual([
         's1 changes now 0',
         's1 asks',
@@ -151,13 +157,13 @@ describe("film ask wait's latch", () => {
           listed(read('a1', 'asking', ['intro', 'board'])),
         ],
       );
-      const got = yield* waitForAsk(
+      const [got] = yield* waitForAsk(
         lab.feed,
         AskLatch.One({ ask: 'a1', step: Option.some('board') }),
         PACE,
         Option.none(),
       );
-      expect(got.answered.map((a) => a.step)).toEqual(['intro', 'board']);
+      expect(got?.answered.map((a) => a.step)).toEqual(['intro', 'board']);
     }),
   );
 
@@ -181,8 +187,8 @@ describe("film ask wait's latch", () => {
         waitForAsk(lab.feed, AskLatch.One({ ask: 'a1', step: Option.none() }), PACE, Option.none()),
       );
       yield* TestClock.adjust('10 seconds');
-      const got = yield* Fiber.join(fiber);
-      expect(got.status).toBe('answered');
+      const [got] = yield* Fiber.join(fiber);
+      expect(got?.status).toBe('answered');
       expect(lab.calls).toEqual([
         's1 changes now 0',
         's1 asks',
@@ -235,13 +241,13 @@ describe("film ask wait's latch", () => {
           [answer('e.0'), answer('f.0', [], true)],
           [listed(read('a1', 'asking')), listed(read('a1', 'answered'))],
         );
-        const got = yield* waitForAsk(
+        const [got] = yield* waitForAsk(
           lab.feed,
           AskLatch.One({ ask: 'a1', step: Option.none() }),
           PACE,
           Option.none(),
         );
-        expect(got.status).toBe('answered');
+        expect(got?.status).toBe('answered');
         expect(lab.calls.at(-1)).toBe('s1 asks');
       }),
   );
@@ -261,13 +267,13 @@ describe("film ask wait's latch", () => {
           listed(old, { ...read('a1', 'answered'), production: 'rbf' }, read('a2', 'answered')),
         ],
       );
-      const got = yield* waitForAsk(
+      const [got] = yield* waitForAsk(
         lab.feed,
         AskLatch.Any({ production: Option.some('rbf') }),
         PACE,
         Option.none(),
       );
-      expect(got.ask).toBe('a1');
+      expect(got?.ask).toBe('a1');
     }),
   );
 
@@ -307,6 +313,72 @@ describe("film ask wait's latch", () => {
   );
 });
 
+describe("film ask wait's latch on a page", () => {
+  it.effect(
+    'ends once every ask on the page is answered or closed, an ask that joined meanwhile too',
+    () =>
+      Effect.gen(function* () {
+        const lab = fakeLab(
+          [
+            answer('e.0'),
+            answer('e.1', [change('a2', 'ask.answered')]),
+            answer('e.2', [change('a3', 'ask.step')]),
+            answer('e.3', [change('a3', 'ask.answered')]),
+          ],
+          [
+            // Newest first, as the lab lists them: a2 joined a1's page, b1 is another page.
+            listed(read('b1', 'asking'), read('a2', 'asking', [], 'a1'), read('a1', 'answered')),
+            // An ask joined the page as the last one there was answered: the latch waits for it too.
+            listed(
+              read('a3', 'asking', [], 'a1'),
+              read('a2', 'answered', [], 'a1'),
+              read('a1', 'answered'),
+            ),
+            listed(
+              read('a3', 'asking', ['pick'], 'a1'),
+              read('a2', 'answered', [], 'a1'),
+              read('a1', 'closed'),
+            ),
+            listed(
+              read('a3', 'answered', [], 'a1'),
+              read('b1', 'asking'),
+              read('a2', 'answered', [], 'a1'),
+              read('a1', 'closed'),
+            ),
+          ],
+        );
+        const got = yield* waitForAsk(lab.feed, AskLatch.Page({ page: 'a2' }), PACE, Option.none());
+        // Every ask on the page, in the order made; the other page's waits on.
+        expect(got.map((a) => `${a.ask} ${a.status}`)).toEqual([
+          'a1 closed',
+          'a2 answered',
+          'a3 answered',
+        ]);
+        expect(lab.calls.filter((c) => c.endsWith('asks'))).toHaveLength(4);
+      }),
+  );
+
+  it.effect(
+    'ends at once on a page answered before it began, and fails on a page the lab does not have',
+    () =>
+      Effect.gen(function* () {
+        const settled = fakeLab([answer('e.0')], [listed(read('a1', 'answered'))]);
+        const got = yield* waitForAsk(
+          settled.feed,
+          AskLatch.Page({ page: 'a1' }),
+          PACE,
+          Option.none(),
+        );
+        expect(got.map((a) => a.ask)).toEqual(['a1']);
+        const none = fakeLab([answer('e.0')], [listed(read('a1', 'asking'))]);
+        const exit = yield* Effect.exit(
+          waitForAsk(none.feed, AskLatch.Page({ page: 'a9' }), PACE, Option.none()),
+        );
+        expect(String(exit)).toContain('AskUnknown');
+      }),
+  );
+});
+
 describe("film ask wait's lines", () => {
   it.effect('prints the ask, each step answered, each answer typed and its links', () =>
     Effect.sync(() => {
@@ -327,9 +399,10 @@ describe("film ask wait's lines", () => {
             local: 'http://127.0.0.1:8229/asks/a1',
             phone: 'http://100.92.183.50:8230/asks/a1',
           },
+          page: { id: 'a0', links: { local: 'http://127.0.0.1:8229/asks/page/a0' } },
         }),
       ).toEqual([
-        'ask a1 status=closed by=orchestrator title="Which board?"',
+        'ask a1 status=closed page=a0 by=orchestrator title="Which board?"',
         'answered step=board at=2026-10-17T12:00:00.000Z',
         'answer pick choose value=k1 label="K1, the cut paper"',
         'answer why free_text text="warmer\\nand plainer"',
