@@ -9,10 +9,10 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | -------- | ----------------------- | -------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------- |
 | appbase  | —                       | .rifts/bible-tools/hymnal                          |        | merged 27d0cc3ae (2 rounds; verify pass r2)                                                               |
 | simtools | —                       | none (host tools)                                  |        | done: agent-device 0.21.28 + idb 1.7.6, notes/simtools.md                                                 |
-| compile  | —                       | .rifts/bible-tools/compile                         |        |                                                                                                           |
-| glass    | appbase                 | .rifts/bible-tools/glass                           |        |                                                                                                           |
-| r2       | appbase                 | .rifts/bible-tools/r2                              |        |                                                                                                           |
-| android  | appbase (build leg)     | none (host tools), then .rifts/bible-tools/android |        | tools done: NDK 27.1, openjdk@17 (keg-only; JAVA_HOME in notes/android.md), agent-device android snapshot |
+| compile  | —                       | .rifts/bible-tools/compile                         | impl a0c9e9b (r2 fresh; r1 a440a5f compacted 2x) |                                                                                                           |
+| glass    | appbase                 | .rifts/bible-tools/glass                           | impl ab67b82 (r2 fresh; a879fd1 compacted 2x) |                                                                                                           |
+| r2       | appbase                 | .rifts/bible-tools/r2                              | | merged ddd40f803 (3 rounds; verify pass r3); deploy by the orchestrator |
+| android  | appbase (build leg)     | none (host tools), then .rifts/bible-tools/android |        | done: tools (NDK 27.1, openjdk@17) + build leg r3: app builds (cold 402 s, warm 5 s), launches on pixel_api36, Chords survives force-stop; recipe in notes/android.md |
 | reader   | appbase, compile, glass | .rifts/bible-tools/reader                          |        |                                                                                                           |
 
 Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `inexact` (the 7 MIDI files whose verses do not split: 126 225 262 292 403 453 580), `decks` (syllable splits into feat/hymn-decks, last by the owner's word), `selah` (deferred: react-native-gpui is not buildable standalone).
@@ -27,7 +27,13 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 - The r2 stack's plan, deploy and audio copy run by the orchestrator after r2 merges, not handed to the owner (owner, 2026-10-18: "you deploy yourself"). Stop at the first unexpected plan line. S3 deletion stays the owner's. — owner, r2
 - appbase r2 also takes review o4 (root `turbo.json` `globalDependencies: ["bunfig.toml"]`) and o5 (CLAUDE.md's Web UI rule names the hymnal exception): both one-liners on files this unit's change makes wrong, so they land with it, not as later units. — fix the cause, appbase
 
-- compile Decided 10: the hymn 1 test carries its text and chords as separate, lyric-free strings in the repo. Hymn 1 is public domain (Neander, tr. Winkworth, harm. Bennett 1863), its text is already tracked in hymnal.db, and its melody is already in midi-fixture.ts; hymn 100 (1923) stays out of git. — copyright rule kept by its reason, compile
+- compile Decided 10, revised after r1 B1: every hymn's data, hymn 100 included, goes in git. The owner's word ("you can keep all in git, its not a big deal", 2026-10-18) covers all hymn data; the text of all 920 hymns, copyrighted ones too, is already tracked in `packages/core/data/hymnal.db`, so holding one 1923 hymn out protects nothing and leaves the compiled set incomplete. The tests still build small MIDI in code. — owner, compile
+
+- reader lays chords out by structure, not by spacing: each syllable is its own box, its chord (and any `at` > 0 changes) stacked above it, the boxes flowing and wrapping in a proportional font, with no monospace and no padded spaces. The old app used "monospace fonts and percise spaces to put chords in their right positions, it would be nice to not need todo that for this app so chords can appear above the words/syllables" (owner, 2026-10-18). compile already attaches each chord to its syllable (`Placed { chord, at }`), so the data needs no change. — owner, reader
+
+- The Cloudflare CLI `cf` (1.0.0-beta.17, OAuth login, authenticated, measured 2026-10-18) is a tool for the orchestrator around the r2 deploy: read-only checks before it (`cf r2 buckets list` showed no `cvr-hymns` yet, so the deploy creates the bucket rather than adopting it), checks after it (`cf r2 buckets domains custom list`, object listing). Not `cf r2 objects put` for retries: r2 r2 review measured that it percent-encodes the key's slashes despite its own help; a failed key is retried by rerunning the job (idempotent). The copy job stays Effect code. (owner, 2026-10-18: "you can also you use cloudflare cli too") — owner, r2
+
+- glass: safe-area insets come from One's own `useSafeAreaInsets` (One's Root mounts its provider; a second package would read an empty context), replacing spec Decided 9's `react-native-safe-area-context`. glass's acceptance script now runs jest through `test:app` when it exists, so the shared `test` line cannot break it. — one owner per resource, glass
 
 ## Owner questions
 
@@ -40,5 +46,10 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 - Evaluate `e2e` (tester-army/e2e, Apache-2.0, 0.21.2, ~11k stars; TypeScript tests with deterministic locators plus agent steps, mobile via agent-device, BYO model) as the app's e2e runner and a `verify-hymnal` skill, once `reader` exists (owner pointer, 2026-10-17).
 - A Fabric layout oddity: on the placeholder screen the `Switch` drew at the top while its label sat centred (row, alignItems center). Re-check in glass/reader.
 - appbase r2 m1: `apps/hymnal/turbo.json` build inputs `app/**` also hash the git-ignored `app/routes.d.ts` that `one dev` writes (needless cache misses, never a false green). Add `"!app/routes.d.ts"`; carried into glass, which owns the app's files next.
+
+- `bun run android` ignores the Metro port (`one run:android` takes no flags, `vite.config.ts` sets no `server.port`), so a unit on a port other than 8081 calls the community CLI with `--port`. Set per-unit ports through `server.port` or an env var in a unit that owns `vite.config.ts` (reader), not mid-glass. (android r3)
+- Native screens show a default header titled "index" (Android r3 screenshot); glass hides it for the gallery only. reader owns the real header.
+
+- r2 r3 m1: a malformed R2 reply (a non-string `etag`, a null listing item) throws a TypeError outside the typed errors and stops the copy run (fails safe: nothing verified wrongly). Decode R2's replies with a Schema so a bad field is that key's `StoreFailed`. Also: bun's junit gives every `it.effect` case line 166, so `redfirst` misses `it.effect` cases edited in place (a packages/scripts follow-up).
 
 ## Review later
