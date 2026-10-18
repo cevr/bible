@@ -385,7 +385,10 @@
       }
     },
     {
-      "files": ["**/packages/hymnal/src/midi.ts"],
+      // midi.ts and chordpro.ts each read a file in one synchronous pass that
+      // throws its own failure (Malformed, Unreadable); each `parse` turns it
+      // into its tagged error at its single Effect.try.
+      "files": ["**/packages/hymnal/src/midi.ts", "**/packages/hymnal/src/chordpro.ts"],
       "rules": {
         "effect/noThrowStatement": "off"
       }

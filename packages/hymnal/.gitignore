@@ -1,0 +1,2 @@
+# The compile report names the time the run took, so it changes every run.
+data/*.report.md

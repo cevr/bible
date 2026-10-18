@@ -4,13 +4,17 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./chord": "./src/chord.ts",
+    "./hymn": "./src/hymn.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "align": "bun scripts/align.ts",
     "chart": "bun scripts/chart.ts",
+    "compile": "bun scripts/compile.ts",
+    "golden": "bun scripts/golden.ts",
     "split": "bun scripts/split.ts"
   },
   "dependencies": {
@@ -19,6 +23,8 @@
     "syllable": "5.0.1"
   },
   "devDependencies": {
+    "@bible/core": "workspace:*",
+    "@effect/platform-bun": "catalog:",
     "effect-bun-test": "catalog:"
   }
 }

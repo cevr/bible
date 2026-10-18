@@ -226,6 +226,8 @@
         "syllable": "5.0.1",
       },
       "devDependencies": {
+        "@bible/core": "workspace:*",
+        "@effect/platform-bun": "catalog:",
         "effect-bun-test": "catalog:",
       },
     },
