@@ -1,12 +1,12 @@
 // A robed standing figure as a Rive rig, on the house generator's parts: its
-// head traced from its concept (the outline inside the ink, and the hair or
+// head traced from its concept (the outline inside the ink, and the
 // headcloth, beard and ear inside it), cut with one ink line round the whole
 // (`silhouette`), the face kit at its place; a long robe with what lies on
-// it (a sash, the shade of a neckline) laid as colour clipped to it, and its
-// feet under the hem. Christ is one (`christ-rig.ts`), and every robed
-// figure of the cast is another: a figure is its traced measures and its
-// papers (`Robed`), the rig the same for each. Its circle hands are the hand
-// rig's, drawn by the host where they work.
+// it (a vest, the shade of a neckline) laid as colour clipped to it, and its
+// feet under the hem. The farmer is one (`farmer-rig.ts`): a figure is its
+// traced measures and its papers (`Robed`). Christ is composed of the
+// house's parts (`christ-rig.ts`). Its circle hands are the hand rig's,
+// drawn by the host where they work.
 //
 // Units are the Board's pixels; the feet are the artboard's origin.
 //
@@ -118,70 +118,6 @@ export interface Robed {
   /** Its breath's period, seconds. */
   readonly breath: number;
 }
-
-/** A face's marks as its concept draws them, in the concept's pixels: each eye's centre and size, each brow's ends and stroke, the mouth's ends and stroke. */
-interface TracedMarks {
-  readonly eyes: readonly [Pt, Pt];
-  readonly eye: readonly [number, number];
-  readonly brows: readonly [readonly [Pt, Pt], readonly [Pt, Pt]];
-  readonly brow: number;
-  readonly mouth: readonly [Pt, Pt];
-  readonly mouthLine: number;
-}
-
-/** The face kit's place on the head and its marks, from marks traced in a concept. */
-interface TracedFace {
-  readonly at: FaceAt;
-  readonly marks: FaceMarks;
-}
-
-/**
- * The face kit's place and marks for marks traced in a concept's pixels,
- * `panel` taking a pixel to units about the head's centre: the kit sits at
- * the eyes' middle, turned as the line through the eyes tips, each mark in
- * that turned frame; `turn` is how far the features slide after the gaze.
- */
-export const tracedFace = (
-  m: TracedMarks,
-  panel: { readonly scale: number; readonly head: Pt },
-  turn: number,
-): TracedFace => {
-  const [l, r] = m.eyes;
-  const c: Pt = [(l[0] + r[0]) / 2, (l[1] + r[1]) / 2];
-  const rotation = Math.atan2(r[1] - l[1], r[0] - l[0]);
-  const [cos, sin] = [Math.cos(-rotation), Math.sin(-rotation)];
-  const r2 = (v: number) => +v.toFixed(2);
-  const local = ([x, y]: Pt): Pt => {
-    const [dx, dy] = [x - c[0], y - c[1]];
-    return [(dx * cos - dy * sin) * panel.scale, (dx * sin + dy * cos) * panel.scale];
-  };
-  const mid = (a: Pt, b: Pt): Pt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  const half = (a: Pt, b: Pt) => (Math.hypot(b[0] - a[0], b[1] - a[1]) / 2) * panel.scale;
-  const [eyeL, eyeR] = [local(l), local(r)];
-  const [browL, browR] = [local(mid(...m.brows[0])), local(mid(...m.brows[1]))];
-  const mouth = local(mid(...m.mouth));
-  return {
-    at: {
-      x: r2((c[0] - panel.head[0]) * panel.scale),
-      y: r2((c[1] - panel.head[1]) * panel.scale),
-      scale: 1,
-      rotation: r2(rotation),
-    },
-    marks: {
-      eyes: [r2(eyeL[0]), r2(eyeR[0])],
-      eyeY: r2((eyeL[1] + eyeR[1]) / 2),
-      eye: [r2(m.eye[0] * panel.scale), r2(m.eye[1] * panel.scale)],
-      turn,
-      brows: [r2(browL[0]), r2(browR[0])],
-      browY: r2((browL[1] + browR[1]) / 2),
-      browHalf: r2((half(...m.brows[0]) + half(...m.brows[1])) / 2),
-      brow: r2(m.brow * panel.scale),
-      mouth: [r2(mouth[0]), r2(mouth[1])],
-      mouthHalf: r2(half(...m.mouth)),
-      mouthLine: r2(m.mouthLine * panel.scale),
-    },
-  };
-};
 
 /** The view model's numbers at rest for a figure looking at `gaze`, upright: the kit's, and `over` for its own. */
 export const robedKnobs = (gaze: Pt, over: Partial<Record<keyof typeof FACE, number>> = {}) =>

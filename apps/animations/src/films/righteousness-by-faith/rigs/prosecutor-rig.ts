@@ -108,6 +108,7 @@ export const prosecutor = figure({
   stature: Stature.Canon(),
   stance: Stance.Standing({ breath: BREATH }),
   head: Head.Traced({
+    view: 'threeQuarter',
     outline: PROSECUTOR_HEAD,
     y: PROSECUTOR.head.y,
     neck: PROSECUTOR.neck,
@@ -116,7 +117,7 @@ export const prosecutor = figure({
     tones: SKIN_TONES,
   }),
   hair: Hair.Traced({ outline: PROSECUTOR_HAIR, paper: PAPERS.darkHair, tones: TUFT }),
-  ear: Ear({ at: [53, 17.5], r: [10, 16.5], paper: PAPERS.ear }),
+  ear: Ear.Round({ at: [53, 17.5], r: [10, 16.5], paper: PAPERS.ear }),
   face: KitA({
     x: -10.5,
     y: 10.5,

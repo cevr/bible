@@ -3,12 +3,14 @@
 // on it with no line of its own (`over.ts`). A tunic is cut from its neck
 // and hem: narrow at one, wide at the other, its sides bowed out, its corners
 // rounded. A cut robe is its corners, each rounded by its own radius, down to
-// its hem. How each is cut and inked is the house's (`rig/draw.ts`). Pure.
+// its hem, and the colour laid on it, clipped to it (a sash, the shade past
+// it, the skin in its neckline). How each is cut and inked is the house's
+// (`rig/draw.ts`). Pure.
 
 import { Schema } from 'effect';
 import { decoder } from '../decode.ts';
-import { Paper } from '../paper.ts';
-import { Length, Outline, Units } from './measure.ts';
+import { Paper, Tones } from '../paper.ts';
+import { Length, Outline, Units, oneRadiusOrEach } from './measure.ts';
 
 /** A tunic: its neck's and hem's heights, its half-width at each, its corners' radius, its sides' bow, its paper. */
 const TunicPart = Schema.TaggedStruct('Tunic', {
@@ -24,15 +26,7 @@ const TunicPart = Schema.TaggedStruct('Tunic', {
 });
 export type Tunic = typeof TunicPart.Type;
 
-/** A robe cut from its corners: one radius rounds them all, or each corner takes its own, in turn. */
-const oneRadiusOrEach = Schema.makeFilter(
-  (robe: { readonly corners: ReadonlyArray<unknown>; readonly radii: ReadonlyArray<unknown> }) =>
-    robe.radii.length === 1 || robe.radii.length === robe.corners.length
-      ? true
-      : `${robe.radii.length} radii for ${robe.corners.length} corners: give one, or one for each`,
-);
-
-/** A cut robe: its corners, their radii, its hem's height, its paper. */
+/** A cut robe: its corners, their radii, its hem's height, its paper and the colour on it. */
 const CutRobePart = Schema.TaggedStruct('CutRobe', {
   /** Its corners, clockwise from the left of its neck, units from the figure's origin. */
   corners: Outline,
@@ -44,6 +38,8 @@ const CutRobePart = Schema.TaggedStruct('CutRobe', {
    */
   hem: Units,
   paper: Paper,
+  /** Colour laid on it with no line of its own, clipped to it, in order: a sash, the shade past it, the skin in its neckline. */
+  tones: Schema.optionalKey(Tones),
 }).check(oneRadiusOrEach);
 type CutRobe = typeof CutRobePart.Type;
 
@@ -69,6 +65,6 @@ export const Tunic = (o: Omit<Tunic, '_tag'>): Tunic =>
 
 /** The robes. */
 export const Robe = {
-  /** A robe cut from its corners (the prosecutor's, the judge's). */
+  /** A robe cut from its corners (the prosecutor's, the judge's, Christ's). */
   Cut: (o: Omit<CutRobe, '_tag'>): CutRobe => decodeCutRobe({ _tag: 'CutRobe', ...o }, 'Robe.Cut'),
 };

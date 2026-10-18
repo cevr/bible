@@ -1,10 +1,11 @@
 // How the house draws a composed figure (`figure`, `style/figure.ts`) as a
 // Rive artboard, on the generator's parts: each part kind cut, inked, lit
-// and rimmed one way, and a figure's nodes made in one order for its stance,
-// so one composition prints one project, id for id (the ids are handed out
-// in the order the nodes are made, `Figure.idOf`, and the boil draws its
-// noise in the order the pieces are). And the circle hand's own artboard, in
-// one paper, which the host draws wherever the hand works. Pure.
+// and rimmed one way, a head's papers stacked by one rule (`tracedHeadOf`),
+// and a figure's nodes made in one order for its stance, so one composition
+// prints one project, id for id (the ids are handed out in the order the
+// nodes are made, `Figure.idOf`, and the boil draws its noise in the order
+// the pieces are). And the circle hand's own artboard, in one paper, which
+// the host draws wherever the hand works. Pure.
 
 import {
   type ComposedFigure,
@@ -14,9 +15,10 @@ import {
   isSeated,
 } from '../figure.ts';
 import { type Paper, looked, paper } from '../paper.ts';
+import type { Beard } from '../parts/beard.ts';
 import type { Garment, Tunic } from '../parts/body.ts';
 import type { Ear } from '../parts/ear.ts';
-import type { Feet, Shoes, StubLegs } from '../parts/feet.ts';
+import type { Feet, Sandals, Shoes, StubLegs } from '../parts/feet.ts';
 import type { Hair } from '../parts/hair.ts';
 import type { RoundHead, TracedHead } from '../parts/head.ts';
 import type { KitA } from '../parts/kit.ts';
@@ -40,7 +42,15 @@ import {
   timeline,
 } from './parts.ts';
 import { type Element, el } from './rml.ts';
-import { blotOutline, roundedPolygon, shifted, shoeLight, shoeOutline } from './shapes.ts';
+import {
+  blotOutline,
+  roundedPolygon,
+  shifted,
+  shoeLight,
+  shoeOutline,
+  tucked,
+  tuckedRimmed,
+} from './shapes.ts';
 
 /** The view model's property keys a figure's nodes bind (`rive schema`). */
 const KEY = { y: 14, rotation: 15, scaleY: 17, opacity: 18 } as const;
@@ -72,9 +82,27 @@ const BAND_BOIL = 0.5;
 /** The radius each band's corners are rounded by, units. */
 const BAND_CORNER = 2;
 
-/** Kit A at its place on the head, its marks as the figure's sheet draws them. */
-const kitOf = (rig: Figure, face: KitA) =>
-  faceKit(rig, { x: face.x, y: face.y, scale: face.scale }, face.shape);
+/** How far a bearded head's paper lies under the seams of the papers over it past its rim's width, units. */
+const TUCK_UNDER_RIM = 2;
+
+/**
+ * A sandal's sole: its leather under a foot's last `depth` units, from
+ * `past` units beyond its heel to as far beyond its toe and `under` units
+ * down past the ground, clipped to the foot.
+ */
+const SOLE = { depth: 6.5, past: 4, under: 4 } as const;
+
+/**
+ * Kit A at its place on the head, its marks as the figure's sheet draws
+ * them, turned about its place where the concept draws the face tipped.
+ */
+const kitOf = (rig: Figure, face: KitA) => {
+  const kit = faceKit(rig, { x: face.x, y: face.y, scale: face.scale }, face.shape);
+  if (face.rotation === undefined) return kit;
+  return el('Node', { x: face.x, y: face.y, rotation: face.rotation, name: 'faceTurn' }, [
+    el('Node', { x: -face.x, y: -face.y, name: 'faceAt' }, [kit]),
+  ]);
+};
 
 /**
  * A stain: a flat blot of its colour with no ink, and its soaked edge, rings
@@ -128,30 +156,94 @@ const roundHeadOf = (rig: Figure, head: RoundHead, face: KitA) =>
     ]),
   ]);
 
-/** The ear, flat skin inside the head's outline, crawling as a small piece. */
-const earOf = (ear: Ear) => ({
-  key: 'ear',
-  pts: ellipse(ear.at[0], ear.at[1], ear.r[0], ear.r[1], EAR_POINTS),
-  look: looked(ear.paper),
-  boil: SMALL_BOIL,
-});
+/** A paper cut inside a traced head's outline: its key, its outline, its paint and its crawl (a part of its `silhouette`). */
+interface Cut {
+  readonly key: string;
+  readonly pts: ReadonlyArray<Pt>;
+  readonly look: PieceLook;
+  readonly boil?: number;
+}
+
+/** The ear or the ears, flat skin inside the head's outline, each crawling as a small piece: both ears the near one first. */
+const earsOf = (ear: Ear): Cut[] => {
+  const flat = (key: string, pts: ReadonlyArray<Pt>): Cut => ({
+    key,
+    pts,
+    look: looked(ear.paper),
+    boil: SMALL_BOIL,
+  });
+  switch (ear._tag) {
+    case 'RoundEar':
+      return [flat('ear', ellipse(ear.at[0], ear.at[1], ear.r[0], ear.r[1], EAR_POINTS))];
+    case 'TracedEar':
+      return [flat('ear', ear.outline)];
+    case 'BothEars':
+      return [flat('earNear', ear.near), flat('earFar', ear.far)];
+  }
+};
 
 /** The hair, inside the head's outline, its light laid on it as tones. */
-const hairOf = (hair: Hair) => ({
+const hairOf = (hair: Hair): Cut => ({
   key: 'hair',
   pts: hair.outline,
   look: looked(hair.paper, { tones: hair.tones ?? [] }),
 });
 
+/** A beard and the lip cut in it, the lip in front, the beard's light laid on it as tones. */
+const beardOf = (beard: Beard): Cut[] => [
+  ...(beard.lip === undefined
+    ? []
+    : [{ key: 'lip', pts: beard.lip.outline, look: looked(beard.lip.paper) }]),
+  { key: 'beard', pts: beard.outline, look: looked(beard.paper, { tones: beard.tones ?? [] }) },
+];
+
+/** What is cut inside a traced head's outline, front first: a beard and its lip, the ear or ears, the hair. */
+const cutOf = (f: Parts): Cut[] => [
+  ...(f.beard === undefined ? [] : beardOf(f.beard)),
+  ...(f.ear === undefined ? [] : earsOf(f.ear)),
+  ...(f.hair === undefined ? [] : [hairOf(f.hair)]),
+];
+
+/** A traced head's own paper, the colour on its skin laid on it as tones. */
+const headPaperOf = (head: TracedHead): Cut => ({
+  key: 'headPaper',
+  pts: head.outline,
+  look: looked(head.paper, { tones: head.tones ?? [] }),
+});
+
 /**
- * The mouth thrown open where the kit's mouth sits, at the kit's scale: one
- * flat colour with no ink and no lift, its opacity and its height the
- * `shout` number.
+ * `papers`, front first, each tucked under those laid over it (`tucked`);
+ * the backmost, when it draws a rim (it alone does, `silhouette`), its
+ * rim's width and more under their seams (`tuckedRimmed`). So no sliver of
+ * a paper behind shows at a seam, or round the silhouette, as their
+ * outlines crawl.
+ */
+const tuckedUnder = (papers: ReadonlyArray<Cut>): Cut[] => {
+  const base = papers.length - 1;
+  return papers.map((p, i) => {
+    const fronts = papers.slice(0, i).map((q) => q.pts);
+    const rim = p.look.rim ?? 0;
+    const pts =
+      i === base && rim > 0
+        ? tuckedRimmed(p.pts, fronts, TUCK_UNDER_RIM + rim)
+        : tucked(p.pts, fronts);
+    return { ...p, pts };
+  });
+};
+
+/**
+ * The mouth thrown open where the kit's mouth sits, at the kit's scale and
+ * turned with it: one flat colour with no ink and no lift, its opacity and
+ * its height the `shout` number.
  */
 const shoutOf = (rig: Figure, mouth: OpenMouth, face: KitA) => {
-  const [x, y] = kitMarks(face.shape).mouth;
+  const [mx, my] = kitMarks(face.shape).mouth;
+  const [dx, dy] = [mx * face.scale, my * face.scale];
+  const turn = face.rotation ?? 0;
+  const [cos, sin] = [Math.cos(turn), Math.sin(turn)];
+  const at = { x: face.x + (dx * cos - dy * sin), y: face.y + (dx * sin + dy * cos) };
   const flat: PieceLook = { color: mouth.paper, light: mouth.paper, ink: 'none', shadow: 0 };
-  return el('Node', { x: face.x + x * face.scale, y: face.y + y * face.scale, name: 'shout' }, [
+  return el('Node', { ...at, rotation: face.rotation, name: 'shout' }, [
     rig.bind('shout', KEY.opacity),
     el('Node', { name: 'shoutOpen', id: rig.idOf('shoutOpen') }, [
       rig.bind('shout', KEY.scaleY),
@@ -160,15 +252,26 @@ const shoutOf = (rig: Figure, mouth: OpenMouth, face: KitA) => {
   ]);
 };
 
+/** The open mouth, when the figure has one. */
+const shoutsOf = (rig: Figure, f: Parts) =>
+  f.mouth === undefined ? [] : [shoutOf(rig, f.mouth, f.face)];
+
 /**
  * A traced head on its neck, set on the body as its concept sets it
- * (carried off the body's middle and canted): it turns about the neck
- * (`tilt`) and sinks toward the body (`nod`); its ear, hair and open mouth
- * are cut inside its outline, the face kit lies over its paper, and one ink
- * line runs round them all (`silhouette`).
+ * (carried off the body's middle, and canted where the concept cants it):
+ * it turns about the neck (`tilt`) and sinks toward the body (`nod`); what
+ * is cut inside its outline (`cutOf`), its open mouth and its face kit lie
+ * over its paper, and one ink line runs round them all (`silhouette`). Its
+ * papers stack by one rule, keyed on a beard. A bearded head's mouth is
+ * drawn in its beard, so its open mouth and its face kit lie over every
+ * part cut from it, the kit made first (its ids start with the face's), and
+ * each paper tucks under those laid over it (`tuckedUnder`): Christ's, the
+ * farmer's. A head with no beard lays its open mouth and its face kit under
+ * what is cut from it, over its paper, untucked: the locked three's.
  */
-const tracedHeadOf = (rig: Figure, f: Parts, head: TracedHead) =>
-  el('Node', { y: head.neck, name: 'neck', id: rig.idOf('neck') }, [
+const tracedHeadOf = (rig: Figure, f: Parts, head: TracedHead) => {
+  const face = f.beard === undefined ? undefined : kitOf(rig, f.face);
+  return el('Node', { y: head.neck, name: 'neck', id: rig.idOf('neck') }, [
     el('Node', { name: 'head', id: rig.idOf('head') }, [
       rig.bind('tilt', KEY.rotation),
       el('Node', { name: 'nodded', id: rig.idOf('nodded') }, [
@@ -177,22 +280,19 @@ const tracedHeadOf = (rig: Figure, f: Parts, head: TracedHead) =>
           'Node',
           { x: head.set.x, y: head.y - head.neck, rotation: head.set.cant, name: 'skull' },
           [
-            silhouette(rig, 'headCut', [
-              ...(f.ear === undefined ? [] : [earOf(f.ear)]),
-              ...(f.hair === undefined ? [] : [hairOf(f.hair)]),
-              ...(f.mouth === undefined ? [] : [shoutOf(rig, f.mouth, f.face)]),
-              kitOf(rig, f.face),
-              {
-                key: 'headPaper',
-                pts: head.outline,
-                look: looked(head.paper, { tones: head.tones ?? [] }),
-              },
-            ]),
+            silhouette(
+              rig,
+              'headCut',
+              face === undefined
+                ? [...cutOf(f), ...shoutsOf(rig, f), kitOf(rig, f.face), headPaperOf(head)]
+                : [...shoutsOf(rig, f), face, ...tuckedUnder([...cutOf(f), headPaperOf(head)])],
+            ),
           ],
         ),
       ]),
     ]),
   ]);
+};
 
 /** A figure's head, as its kind is cut. */
 const headOf = (rig: Figure, f: Parts) =>
@@ -219,6 +319,9 @@ const garmentOutline = (g: Garment): Pt[] =>
 
 /** What a garment's piece is named, and its side's node after it. */
 const garmentKey = (g: Garment) => (g._tag === 'CutRobe' ? 'robe' : 'tunic');
+
+/** The colour laid on a garment, clipped to it: a cut robe's (a sash, a neckline's skin); a tunic lays none. */
+const tonesOn = (g: Garment) => (g._tag === 'CutRobe' ? (g.tones ?? []) : []);
 
 /** The band on `side` of the bands' middle (-1 screen left), clockwise. */
 const bandOutline = (b: Bands, side: -1 | 1): Pt[] => {
@@ -271,7 +374,7 @@ const clothOf = (
           ]),
         ]),
     ...stain,
-    piece(rig, garmentKey(f.body), outline, looked(f.body.paper)),
+    piece(rig, garmentKey(f.body), outline, looked(f.body.paper, { tones: tonesOn(f.body) })),
   ];
 };
 
@@ -320,9 +423,48 @@ const shoesOf = (rig: Figure, s: Shoes) =>
     );
   });
 
+/** A sandal's sole under the foot cut from `corners`, as `SOLE` lays it. */
+const soleOf = (corners: ReadonlyArray<Pt>): Pt[] => {
+  const xs = corners.map(([x]) => x);
+  const [heel, toe] = [Math.min(...xs) - SOLE.past, Math.max(...xs) + SOLE.past];
+  return [
+    [heel, -SOLE.depth],
+    [toe, -SOLE.depth],
+    [toe, SOLE.under],
+    [heel, SOLE.under],
+  ];
+};
+
+/** Sandals: each bare foot cut from its corners, what lies on it and then its sole laid on it as tones, crawling as a small piece; the near one first. */
+const sandalsOf = (rig: Figure, s: Sandals) =>
+  (
+    [
+      ['footNear', s.near],
+      ['footFar', s.far],
+    ] as const
+  ).map(([key, foot]) =>
+    piece(
+      rig,
+      key,
+      roundedPolygon(foot.corners, foot.radii),
+      looked(s.paper, {
+        tones: [...(foot.tones ?? []), { pts: soleOf(foot.corners), color: s.sole }],
+      }),
+      { boil: SMALL_BOIL },
+    ),
+  );
+
 /** A figure's feet under the hem at `hem`. */
-const feetOf = (rig: Figure, feet: Feet, hem: number) =>
-  feet._tag === 'Shoes' ? shoesOf(rig, feet) : legsOf(rig, feet, hem);
+const feetOf = (rig: Figure, feet: Feet, hem: number) => {
+  switch (feet._tag) {
+    case 'Shoes':
+      return shoesOf(rig, feet);
+    case 'StubLegs':
+      return legsOf(rig, feet, hem);
+    case 'Sandals':
+      return sandalsOf(rig, feet);
+  }
+};
 
 /**
  * A standing figure's body, about its feet: it leans there (`lean`); the

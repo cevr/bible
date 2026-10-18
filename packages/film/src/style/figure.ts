@@ -2,18 +2,19 @@
 // constructor checked, put together and checked again as one (`figure`), so
 // a part spread with a field its kind lacks, or a paper copied with a grey
 // shade, is refused as the module that composes it loads, and so are parts
-// the house cannot draw together (hair on a round head, a given robe over a
-// cut robe). A figure stands on its feet, its origin, or sits, its head's
-// centre its origin, the part of it above what hides its feet drawn. Its
-// view model's numbers are its parts', in one order, never listed by hand
-// (`knobsOf`). How it is drawn is the house's (`rig/draw.ts`). A figure the
-// owner locked carries its lock, checked here, and its film holds its print
-// to it (`lock.ts`). Pure.
+// the house cannot draw together (hair or a beard on a round head, a given
+// robe over a cut robe). A figure stands on its feet, its origin, or sits,
+// its head's centre its origin, the part of it above what hides its feet
+// drawn. Its view model's numbers are its parts', in one order, never listed
+// by hand (`knobsOf`). How it is drawn is the house's (`rig/draw.ts`). A
+// figure the owner locked carries its lock, checked here, and its film holds
+// its print to it (`lock.ts`). Pure.
 
 import { Predicate, Schema } from 'effect';
 import { ConceptRef } from '../core/match.ts';
 import { decoder } from './decode.ts';
 import { type Lock, decodeLock } from './lock.ts';
+import { type Beard, decodeBeard } from './parts/beard.ts';
 import { type Garment, decodeGarment } from './parts/body.ts';
 import { type Ear, decodeEar } from './parts/ear.ts';
 import { type Feet, decodeFeet } from './parts/feet.ts';
@@ -43,7 +44,8 @@ interface Composed {
   readonly concept: ConceptRef;
   readonly stature: Stature;
   readonly head: Head;
-  /** Cut inside a traced head's outline: its hair, its ear, and a mouth thrown open. */
+  /** Cut inside a traced head's outline: its beard, its hair, its ear or ears, and a mouth thrown open. */
+  readonly beard?: Beard;
   readonly hair?: Hair;
   readonly ear?: Ear;
   readonly face: KitA;
@@ -82,18 +84,19 @@ const oncePerKind = Schema.makeFilter((states: ReadonlyArray<unknown>) => {
   return new Set(kinds).size === kinds.length ? true : 'a state of one kind is laid twice';
 });
 
-/** Hair, an ear and an open mouth are cut inside a traced head's outline, so a round head takes none. */
+/** A beard, hair, an ear and an open mouth are cut inside a traced head's outline, so a round head takes none. */
 const cutInTracedHead = Schema.makeFilter(
   (s: {
     readonly head: unknown;
+    readonly beard?: unknown;
     readonly hair?: unknown;
     readonly ear?: unknown;
     readonly mouth?: unknown;
   }) =>
     isPart(s.head) &&
     s.head._tag === 'RoundHead' &&
-    (s.hair !== undefined || s.ear !== undefined || s.mouth !== undefined)
-      ? 'a round head takes no hair, ear or open mouth: each is cut inside a traced head (Head.Traced)'
+    [s.beard, s.hair, s.ear, s.mouth].some((cut) => cut !== undefined)
+      ? 'a round head takes no beard, hair, ear or open mouth: each is cut inside a traced head (Head.Traced)'
       : true,
 );
 
@@ -124,6 +127,7 @@ const slots = {
   concept: ConceptRef,
   stature: Schema.Unknown,
   head: Schema.Unknown,
+  beard: Schema.optionalKey(Schema.Unknown),
   hair: Schema.optionalKey(Schema.Unknown),
   ear: Schema.optionalKey(Schema.Unknown),
   face: Schema.Unknown,
@@ -157,6 +161,7 @@ interface ComposedParts {
   readonly concept: ConceptRef;
   readonly stature: Stature;
   readonly head: Head;
+  readonly beard?: Beard;
   readonly hair?: Hair;
   readonly ear?: Ear;
   readonly face: KitA;
@@ -254,6 +259,7 @@ const composedOf = (spec: FigureSpec, concept: ConceptRef): ComposedParts => ({
   concept,
   stature: decodeStature(spec.stature, 'stature'),
   head: decodeHead(spec.head, 'head'),
+  beard: spec.beard === undefined ? undefined : decodeBeard(spec.beard, 'beard'),
   hair: spec.hair === undefined ? undefined : decodeHair(spec.hair, 'hair'),
   ear: spec.ear === undefined ? undefined : decodeEar(spec.ear, 'ear'),
   face: decodeKit(spec.face, 'face'),
@@ -281,7 +287,7 @@ const partsOf = (spec: FigureSpec): Parts => {
 
 /**
  * A figure of `spec`'s parts, each checked again as its kind's (a part's
- * stray field, a paper's grey shade) and together (hair on a round head),
+ * stray field, a paper's grey shade) and together (a beard on a round head),
  * refused naming the rule it breaks; and its view model's numbers, the
  * parts' own (`knobsOf`), their names as `KnobsOf` reads them off the spec.
  */

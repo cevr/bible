@@ -74,8 +74,12 @@ export const PAPERS = papers({
   ear: { color: '#f4aa80', light: '#f4aa80' },
   /** Christ's ear, on his head's far side: flat, in the shade's warmth (court-12). */
   christEar: { color: '#c97a58', light: '#c97a58' },
+  /** His lower lip under the smile in His beard: court-12's pale crescent, flat. */
+  christLip: { color: '#dc8e64', light: '#dc8e64' },
   /** Skin on a hand: the same peach, shaded only at its far edge, its rim 4 units wide. */
   skinHand: { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6', crease: TURN.hand, rim: 4 },
+  /** Christ's hands: His skin (`christSkin`), shaded as a hand is, only at its far edge, its rim 4 units wide. */
+  christHand: { color: '#f9aa76', shade: '#e48c6c', light: '#f9d5a6', crease: TURN.hand, rim: 4 },
   /** The judge's robe: a plum that darkens toward violet across its width. */
   judgeRobe: {
     color: '#5c3f4d',

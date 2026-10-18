@@ -1,14 +1,14 @@
 // RBF's Rive project: every figure rig of the film in one file
 // (`figures.riv`, built by `build.ts`), each an artboard with its own view
 // model, all drawn on the house generator's parts (`@bible/film/style/rig`):
-// the composed lead, judge and prosecutor by `drawFigure`, every circle hand
-// by `drawHand` (Christ's held out to us at each size it grows through,
-// `hand-rig.ts`), Christ and the farmer by their own rig (`robedRig`); in the
-// house look's direction (K1, `DIRECTION`), their ink as heavy against a
-// head as the kept concept draws it (`WEIGHT`). Each artboard is laid in the
-// file by one table (`LAID`: its boil's seed, its place on the stage), so a
-// locked figure's print alone (`aloneRml`), which its lock holds
-// (`lockedPrints`), is drawn as the file draws it. Every override the
+// the composed lead, judge, prosecutor and Christ (each of His two views) by
+// `drawFigure`, every circle hand by `drawHand` (Christ's held out to us at
+// each size it grows through, `hand-rig.ts`), the farmer by his own rig
+// (`robedRig`); in the house look's direction (K1, `DIRECTION`), their ink as
+// heavy against a head as the kept concept draws it (`WEIGHT`). Each artboard
+// is laid in the file by one table (`LAID`: its boil's seed, its place on the
+// stage), so a locked figure's print alone (`aloneRml`), which its lock
+// holds (`lockedPrints`), is drawn as the file draws it. Every override the
 // figures carry, whatever rule it frees, is listed with the artboard it is
 // laid on (`figureOverrides`), to be held to the owner's words.
 // Pure: `figuresRml()` is the whole project file, the same text for the
@@ -16,7 +16,7 @@
 
 import { type ComposedFigure, overridesIn } from '@bible/film/style';
 import { DIRECTION, drawFigure, drawHand, figure, fragment, ids } from '@bible/film/style/rig';
-import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
+import { christ, christFront } from './christ-rig.ts';
 import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
 import { HAND_OUT_STEPS } from './hand-rig.ts';
 import { judge } from './judge-rig.ts';
@@ -77,9 +77,6 @@ const LINE = { ...DIRECTION, weight: WEIGHT };
 const board = (next: () => string, key: Board, stage: number = LAID[key].stage) =>
   figure(next, ARTBOARDS[key], LAID[key].seed, stage, LINE);
 
-/** Christ's hands' paper: His skin, creased as the house skin is. */
-const CHRIST_HAND = { ...PAPERS.christSkin, crease: PAPERS.skinHand.crease, rim: 4 };
-
 /** The artboards of Christ's hand held out to us, one for each of its sizes (`HAND_OUT_STEPS`), smallest first. */
 const HAND_OUT_BOARDS = [
   'christHandOut1',
@@ -98,18 +95,19 @@ export const figuresRml = (): string => {
     ...drawFigure(board(next, 'prosecutor'), prosecutor),
     // The judge's and the prosecutor's hands: one artboard, of the paper both are composed with.
     ...drawHand(board(next, 'skinHand'), judge.hands.paper),
-    ...robedRig(board(next, 'christ'), CHRIST, CHRIST_KNOBS),
-    ...drawHand(board(next, 'christHand'), CHRIST_HAND),
+    ...drawFigure(board(next, 'christ'), christ),
+    // Christ's hands, either view's: one artboard, of the paper He is composed with.
+    ...drawHand(board(next, 'christHand'), christ.hands.paper),
     ...robedRig(board(next, 'farmer'), FARMER, FARMER_KNOBS),
     ...drawHand(board(next, 'farmerHand'), {
       ...PAPERS.farmerSkin,
       crease: PAPERS.skinHand.crease,
       rim: 4,
     }),
-    ...robedRig(board(next, 'christFront'), CHRIST_FRONT, CHRIST_FRONT_KNOBS),
+    ...drawFigure(board(next, 'christFront'), christFront),
     // Christ's hand held out to us, a board for each size it grows through.
     ...HAND_OUT_BOARDS.flatMap((key, i) =>
-      drawHand(board(next, key), CHRIST_HAND, HAND_OUT_STEPS[i]),
+      drawHand(board(next, key), christ.hands.paper, HAND_OUT_STEPS[i]),
     ),
   ]);
 };
@@ -133,6 +131,8 @@ const COMPOSED = [
   { item: 'lead', figure: lead, hand: 'leadHand' },
   { item: 'judge', figure: judge, hand: 'skinHand' },
   { item: 'prosecutor', figure: prosecutor, hand: 'skinHand' },
+  { item: 'christ', figure: christ, hand: 'christHand' },
+  { item: 'christFront', figure: christFront, hand: 'christHand' },
 ] as const;
 
 /**

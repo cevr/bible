@@ -106,6 +106,7 @@ export const judge = figure({
   stature: Stature.Canon(),
   stance: Stance.Seated({ breath: BREATH }),
   head: Head.Traced({
+    view: 'threeQuarter',
     outline: JUDGE_HEAD,
     y: 0,
     neck: JUDGE.neck,
@@ -114,7 +115,7 @@ export const judge = figure({
     tones: SKIN_TONES,
   }),
   hair: Hair.Traced({ outline: JUDGE_HAIR, paper: PAPERS.greyHair, tones: LUMPS }),
-  ear: Ear({ at: [61, 6], r: [11, 16], paper: PAPERS.ear }),
+  ear: Ear.Round({ at: [61, 6], r: [11, 16], paper: PAPERS.ear }),
   face: KitA({
     x: -9.9,
     y: 8.6,

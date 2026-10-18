@@ -19,6 +19,7 @@ import { Effect } from 'effect';
 import { Ear, overridesIn } from '@bible/film/style';
 import { unbuilt, unlocked, unsaid } from '@bible/film/style/build';
 import { LEDGER } from './build.ts';
+import { christ, christFront } from './christ-rig.ts';
 import { ARTBOARDS, aloneRml, figureOverrides, figuresRml, lockedPrints } from './figures.ts';
 import { judge } from './judge-rig.ts';
 import { PAPERS } from './papers.ts';
@@ -57,7 +58,7 @@ describe("RBF's figures", () => {
       // The prosecutor with his ear a unit further back.
       const moved = aloneRml(
         'prosecutor',
-        { ...prosecutor, ear: Ear({ at: [54, 17.5], r: [10, 16.5], paper: PAPERS.ear }) },
+        { ...prosecutor, ear: Ear.Round({ at: [54, 17.5], r: [10, 16.5], paper: PAPERS.ear }) },
         'skinHand',
       );
       const changed = yield* unlocked([
@@ -66,6 +67,20 @@ describe("RBF's figures", () => {
       expect(changed.broken.map((b) => b.item)).toEqual(['prosecutor']);
       expect(changed.overridden).toEqual([]);
     }),
+  );
+
+  it.effect(
+    "Christ's two views are one figure: His head traced in each, one frame, feet and hands, and one robe turned with Him",
+    () =>
+      Effect.sync(() => {
+        const views = [christ, christFront].map((f) => f.head._tag === 'TracedHead' && f.head.view);
+        expect(views).toEqual(['threeQuarter', 'front']);
+        for (const part of ['art', 'stature', 'stance', 'feet', 'hands'] as const)
+          expect(christFront[part]).toEqual(christ[part]);
+        // Turned to us His robe is cut to court.you's shoulders, of the same paper and breathing from the same hem.
+        const robe = (f: typeof christ) => [f.body._tag, f.body.paper, f.body.hem];
+        expect(robe(christFront)).toEqual(robe(christ));
+      }),
   );
 
   it.effect.layer(BunServices.layer)("every override on them cites the owner's word", () =>

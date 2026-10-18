@@ -8,7 +8,16 @@ import { HAND_ART } from '@bible/film/style/rig';
 import { Record as Rec } from 'effect';
 import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
-import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
+import {
+  CHRIST_FACE_CHECK,
+  CHRIST_FRONT_FACE_CHECK,
+  CHRIST_FRONT_KNOBS,
+  CHRIST_KNOBS,
+  CHRIST_TIMELINES,
+  type ChristTimeline,
+  christ,
+  christFront,
+} from './christ-rig.ts';
 import { FARMER, FARMER_KNOBS, type FarmerKnob } from './farmer-rig.ts';
 import { HAND_OUT_STEPS } from './hand-rig.ts';
 import {
@@ -32,12 +41,7 @@ import {
   type ProsecutorTimeline,
   prosecutor,
 } from './prosecutor-rig.ts';
-import {
-  ROBED_TIMELINES,
-  type RobedKnob,
-  type RobedTimeline,
-  robedFaceCheck,
-} from './robed-rig.ts';
+import { ROBED_TIMELINES, type RobedTimeline, robedFaceCheck } from './robed-rig.ts';
 
 /** The plain lead: his feet at our origin. */
 export const leadProp: RivePropSpec<LeadTimeline, keyof typeof LEAD_KNOBS> = {
@@ -85,41 +89,33 @@ export const prosecutorProp: RivePropSpec<ProsecutorTimeline, keyof typeof PROSE
 };
 
 /** Christ: His feet at our origin. */
-export const christProp: RivePropSpec<RobedTimeline, RobedKnob> = {
+export const christProp: RivePropSpec<ChristTimeline, keyof typeof CHRIST_KNOBS> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.christ,
-    timelines: Rec.keys(ROBED_TIMELINES),
+    timelines: Rec.keys(CHRIST_TIMELINES),
     numbers: Rec.keys(CHRIST_KNOBS),
   },
   engine: 'canvas',
   key: 'righteousness-by-faith/christ',
-  origin: CHRIST.art.feet,
-  face: robedFaceCheck(CHRIST),
-  // `film match`'s concept: Christ beside the accused in court.12, the kept concept His head and face are traced from.
-  concept: {
-    image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/5-court-12.png' },
-    box: [370, 270, 575, 760],
-  },
+  origin: christ.art.feet,
+  face: CHRIST_FACE_CHECK,
+  concept: christ.concept,
 };
 
 /** Christ turned to us (court.you): His feet at our origin, where `christProp`'s are. */
-export const christFrontProp: RivePropSpec<RobedTimeline, RobedKnob> = {
+export const christFrontProp: RivePropSpec<ChristTimeline, keyof typeof CHRIST_FRONT_KNOBS> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.christFront,
-    timelines: Rec.keys(ROBED_TIMELINES),
+    timelines: Rec.keys(CHRIST_TIMELINES),
     numbers: Rec.keys(CHRIST_FRONT_KNOBS),
   },
   engine: 'canvas',
   key: 'righteousness-by-faith/christ-front',
-  origin: CHRIST_FRONT.art.feet,
-  face: robedFaceCheck(CHRIST_FRONT),
-  // `film match`'s concept: court.you's kept try 2, His head turned to us.
-  concept: {
-    image: { set: 'rbf-v3-cast-2026-10-18', file: 'aids/court-you-2.png' },
-    box: [700, 70, 1080, 760],
-  },
+  origin: christFront.art.feet,
+  face: CHRIST_FRONT_FACE_CHECK,
+  concept: christFront.concept,
 };
 
 /** The farmer of the rain: his feet at our origin. */
