@@ -405,6 +405,7 @@ describe("the easel's tools on the MCP", () => {
       ].join('\n');
       const critic = Critic.layer([{ file: '/rules.md', heading: '## The look' }]).pipe(
         Layer.provide(Counsel.layerTest(() => answer, asked)),
+        Layer.orDie,
       );
       const lines: Array<string> = [];
       return Effect.gen(function* () {

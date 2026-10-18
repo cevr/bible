@@ -4,7 +4,7 @@
 // measured (proportions, outlines, shading, facing, the render's thin lines);
 // the critique names what a measure misses or reads wrong: a head's angle
 // and turn, the face's shape and features, the pose, the palette, an
-// artifact (owner, 2026-10-18, on the RBF v3 cast: "theres some artifacts in
+// artifact (owner, 2026-10-17, his local day, on the RBF v3 cast: "theres some artifacts in
 // the render, and the farmer looks nothing like the concept, face
 // proportions and angles are off"). Pure: the packet it sends, the answer it
 // reads, the file it writes.
@@ -45,13 +45,17 @@ export const CritiqueFinding = Schema.Struct({
 });
 export type CritiqueFinding = typeof CritiqueFinding.Type;
 
-/** The answer's one JSON block: every finding, on every figure. */
-const CritiqueAnswer = Schema.Struct({ findings: Schema.Array(CritiqueFinding) });
+/** The answer's one JSON block: its findings, each read on its own (`findingsOf`). */
+const CritiqueAnswer = Schema.Struct({ findings: Schema.Array(Schema.Unknown) });
 
 const decodeAnswer = Schema.decodeUnknownResult(Schema.fromJsonString(CritiqueAnswer));
+const decodeFinding = Schema.decodeUnknownResult(CritiqueFinding);
 
-/** What changes the cache's key when the packet's words change. */
-export const CRITIQUE_VERSION = 1;
+/** An answer read: the findings that read, each on a figure asked about, and each one that did not, said. */
+export interface CritiqueRead {
+  readonly findings: ReadonlyArray<CritiqueFinding>;
+  readonly rejected: ReadonlyArray<string>;
+}
 
 /** One figure in the packet: its name, its two crops by their files beside the packet, and the match's flagged rows. */
 export interface CritiqueFigure {
@@ -108,37 +112,76 @@ export const critiquePacket = (
     '{"findings": [{"figure": "<name>", "aspect": "head angle", "what": "<the difference, one sentence>", "where": "<where on the figure, optional>"}]}',
     '```',
     '',
-    `Each \`aspect\` is one of: ${CRITIQUE_ASPECTS.map((a) => `"${a}"`).join(', ')}. A figure that matches its concept in every aspect has no finding.`,
+    `Each \`figure\` is one of: ${figures.map((f) => `"${f.figure}"`).join(', ')}. Each \`aspect\` is one of: ${CRITIQUE_ASPECTS.map((a) => `"${a}"`).join(', ')}. A figure that matches its concept in every aspect has no finding.`,
     '',
   ].join('\n');
 
-/** The answer's last fenced `json` block, decoded, or why it cannot be read. */
-export const findingsOf = (answer: string): Result.Result<ReadonlyArray<CritiqueFinding>, string> =>
+/**
+ * The answer's last fenced `json` block, its findings read one by one on
+ * the figures asked about (`figures`, named in any case, kept in the case
+ * asked): a finding that does not read, or names no figure asked about, is
+ * rejected and said, never taken as none. Fails when there is no block, or
+ * it is not `{"findings": [...]}`.
+ */
+export const findingsOf = (
+  answer: string,
+  figures: ReadonlyArray<string>,
+): Result.Result<CritiqueRead, string> =>
   Option.match(Arr.last([...answer.matchAll(/```json\s*\n([\s\S]*?)\n```/g)]), {
     onNone: () => Result.fail('the answer ends with no ```json block'),
     onSome: (block) =>
       Result.mapBoth(decodeAnswer(block[1] ?? ''), {
         onFailure: (error) => `its json block does not read: ${error.message}`,
-        onSuccess: (read) => read.findings,
+        onSuccess: (read) =>
+          read.findings.reduce<CritiqueRead>(
+            (acc, raw, index) =>
+              Result.match(decodeFinding(raw), {
+                onFailure: (error) => ({
+                  ...acc,
+                  rejected: [
+                    ...acc.rejected,
+                    `finding ${index + 1} does not read: ${error.message}`,
+                  ],
+                }),
+                onSuccess: (finding) =>
+                  Option.match(
+                    Arr.findFirst(figures, (f) => f.toLowerCase() === finding.figure.toLowerCase()),
+                    {
+                      onNone: () => ({
+                        ...acc,
+                        rejected: [
+                          ...acc.rejected,
+                          `finding ${index + 1} names ${finding.figure}, no figure asked about (${figures.join(', ')})`,
+                        ],
+                      }),
+                      onSome: (figure) => ({
+                        ...acc,
+                        findings: [...acc.findings, { ...finding, figure }],
+                      }),
+                    },
+                  ),
+              }),
+            { findings: [], rejected: [] },
+          ),
       }),
   });
 
-/** One figure's critique as its file says it: the place, the crops, then each finding, or why there is none. */
+/** One figure's critique as its file says it: the place, then each finding on it, or why there is none. */
 export const critiqueMarkdown = (
   figure: string,
   place: string,
-  read: Result.Result<ReadonlyArray<CritiqueFinding>, string>,
+  read: Result.Result<CritiqueRead, string>,
 ): string =>
   [
     `### ${figure}: critique (${place})`,
     '',
     ...Result.match(read, {
       onFailure: (why) => [`Skipped: ${why}. The critique fails open: look at the crops yourself.`],
-      onSuccess: (findings) =>
-        Arr.match(
+      onSuccess: ({ findings, rejected }) => [
+        ...Arr.match(
           findings.filter((f) => f.figure === figure),
           {
-            onEmpty: () => ['No finding: the counsel saw the scene match its concept.'],
+            onEmpty: () => ['No finding named this figure.'],
             onNonEmpty: (own) =>
               own.map((f) =>
                 [
@@ -148,6 +191,11 @@ export const critiqueMarkdown = (
               ),
           },
         ),
+        ...Arr.match(rejected, {
+          onEmpty: () => [],
+          onNonEmpty: (all) => ['', 'Rejected from the answer:', '', ...all.map((r) => `- ${r}`)],
+        }),
+      ],
     }),
     '',
   ].join('\n');

@@ -2,13 +2,15 @@
 // (`Counsel.layerTest`): one run answers every figure at a place, the
 // packet quotes the house rules and lists each figure's crops and flagged
 // rows, the findings land beside the match's table, the same inputs are
-// answered from the kept answer without asking again, and a counsel that
-// fails or answers no json block is a skip, said in the file, never a
-// failure.
+// answered from the kept answer without asking again, each finding is read
+// on its own (a figure named in another case kept, one that does not read
+// rejected and said), and a counsel that fails, dies or answers no json
+// block is a skip, said in the file, never a failure. A rule section its
+// file lacks fails the critic's build.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Effect, FileSystem, Layer, Path } from 'effect';
+import { Cause, Context, Effect, Exit, FileSystem, Layer, Path } from 'effect';
 import { CounselFailed } from '../core/judge.ts';
 import type { MatchTaken } from '../core/match.ts';
 import { Counsel } from './counsel.ts';
@@ -87,7 +89,57 @@ const critiqued = (counsel: Layer.Layer<Counsel, never, FileSystem.FileSystem | 
     return { first, second, file };
   }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
+const MIXED = [
+  'Three findings.',
+  '```json',
+  '{"findings": [',
+  '{"figure": "Farmer", "aspect": "face", "what": "the face longer, flat at the chin"},',
+  '{"figure": "farmer", "aspect": "artifacts", "what": "a seam"},',
+  '{"figure": "judge", "aspect": "pose", "what": "the hand low"}',
+  ']}',
+  '```',
+].join('\n');
+
 describe('the critique', () => {
+  it.effect("a heading its rule file lacks fails the critic's build, as the judge's does", () =>
+    Effect.gen(function* () {
+      const { rules } = yield* written;
+      const built = yield* Layer.build(
+        Critic.layer([{ file: rules, heading: '## 12. The look' }]).pipe(
+          Layer.provide(Counsel.layerTest(() => ANSWER)),
+        ),
+      ).pipe(Effect.exit);
+      expect(
+        Exit.match(built, { onFailure: (cause) => Cause.pretty(cause), onSuccess: () => 'built' }),
+      ).toContain('the critique quotes "## 12. The look"');
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.effect(
+    'reads each finding on its own: another case is kept on its figure, the rest rejected and said',
+    () =>
+      Effect.gen(function* () {
+        const { first, file } = yield* critiqued(Counsel.layerTest(() => MIXED));
+        expect(first.figures.map((f) => [f.figure, f.findings.map((x) => x.what)])).toEqual([
+          ['farmer', ['the face longer, flat at the chin']],
+          ['christ', []],
+        ]);
+        expect(first.rejected).toHaveLength(2);
+        expect(first.rejected[1]).toBe(
+          'finding 3 names judge, no figure asked about (farmer, christ)',
+        );
+        expect(file).toContain('Rejected from the answer:');
+      }),
+  );
+
+  it.effect('fails open: a counsel that dies is a skip, said', () =>
+    Effect.gen(function* () {
+      const dying = Layer.succeed(Counsel, Counsel.of({ ask: () => Effect.die('boom') }));
+      const { first } = yield* critiqued(dying);
+      expect(first.skipped).toContain('the critique died');
+    }),
+  );
+
   it.effect(
     'asks once for every figure, quotes the rules and the flagged rows, and keeps the answer',
     () =>

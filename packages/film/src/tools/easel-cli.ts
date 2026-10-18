@@ -329,6 +329,7 @@ export const critique = (films: string, rules: ReadonlyArray<CritiqueRule>) =>
           yield* Console.log(`${one.figure}: ${one.file}`);
           for (const f of one.findings) yield* Console.log(`  ${f.aspect}: ${f.what}`);
         }
+        for (const why of critiqued.rejected) yield* Console.log(`rejected: ${why}`);
         for (const one of taken.unmatched)
           yield* Console.log(`${one.figure}: unmatched (${one.reason})`);
       },
@@ -342,6 +343,6 @@ export const critique = (films: string, rules: ReadonlyArray<CritiqueRule>) =>
       Layer.mergeAll(FetchHttpClient.layer, Critic.layer(rules).pipe(Layer.provide(Counsel.layer))),
     ),
     Command.withDescription(
-      "Match a scene's figures at one place, then show each figure's concept and scene crops at 1:1 to a fresh Opus (headless Claude, sandboxed) beside the flagged rows and the app's figure rules: differences in head angle and turn, face, pose, proportion, palette and artifacts, written beside the match (<stem>.critique.md); batched, kept by the hash of its inputs, and a skip (logged) when the counsel fails",
+      "Match a scene's figures at one place, then show each figure's concept and scene crops at 1:1 to a fresh Opus (headless Claude, sandboxed) beside the flagged rows and the app's figure rules: differences in head angle and turn, face, pose, proportion, palette and artifacts, written beside the match (<stem>.critique.md); batched, kept by the hash of its prompt and crops; a finding that does not read, or names no figure asked about, printed as rejected; a skip (logged) when the counsel fails or dies",
     ),
   );
