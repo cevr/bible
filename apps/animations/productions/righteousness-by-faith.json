@@ -363,6 +363,223 @@
       "text": "The garden grandmother becomes the recurring cast's Rosa; the script adds that Jesus Himself paid the price of our sins, and the exchange: He asks for our sins and gives us His righteousness (grain and robe).",
       "quote": "id say the grandmother should be one the background cast members, the old lady, secondly we should include that Jesus Himself paid the price of our sins - he asks for our sins, and He gives us His righteousness - an exchange",
       "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792161745068,
+      "text": "RBF v3: the animatic on the staged voice (ask a483b1fa075): animatic: Accept it: draw the scenes from this Board",
+      "ask": "a483b1fa075",
+      "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792174226004,
+      "text": "RBF cold open in Rive: approve the pilot, then paint the rest? (ask a0298522031)",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a0298522031",
+      "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792174382156,
+      "text": "RBF cold open in Rive: approve the pilot, then paint the rest? (ask a0298522031): pilot: Fix what I note first, then show me again · note: lets keep the body/face shape and proportions the same as the concept",
+      "quote": "lets keep the body/face shape and proportions the same as the concept",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a0298522031",
+      "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792174423096,
+      "text": "Cold pilot round 2: fix first. Keep the figures' body and face shapes and proportions the same as the kept concept cold.34.",
+      "quote": "lets keep the body/face shape and proportions the same as the concept",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792176142226,
+      "text": "RBF cold open, round 3: the figures in the concept's proportions (ask a669b9776fb)",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a669b9776fb",
+      "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792176588472,
+      "text": "RBF cold open, round 3: the figures in the concept's proportions (ask a669b9776fb): turn: Add the three-quarter turn and the ear, as the concept draws them · hair: The concept's fluffy, swept-back grey hair · pilot: Approve with those choices; paint the rest in plan order · note: i prefer the hair of the concept, how it blends, lets keep this. the way the outline is outside of the head details (hair does not have its own outline only the head in total. as well as the shading and proportions of the concept - see if we can match this and then make it easier to match",
+      "quote": "i prefer the hair of the concept, how it blends, lets keep this. the way the outline is outside of the head details (hair does not have its own outline only the head in total. as well as the shading and proportions of the concept - see if we can match this and then make it easier to match",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a669b9776fb",
+      "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792176685880,
+      "text": "Cold pilot approved with the concept's three-quarter turn and ear, and its blended hair. One silhouette outline goes round the whole head, and the hair has no outline of its own. The shading and proportions match the concept. The remaining beats are painted in plan order.",
+      "quote": "i prefer the hair of the concept, how it blends, lets keep this. the way the outline is outside of the head details (hair does not have its own outline only the head in total. as well as the shading and proportions of the concept - see if we can match this and then make it easier to match",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792179780175,
+      "text": "The ears carry an inner light border that the concept does not have. Inner parts get no rim of their own.",
+      "quote": "the ears have an inner border that act as a lighting that the concept doesnt have",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "by": "Claude (orchestrator)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792275619543,
+      "text": "Match the concept's face shape, shoes and body on the Rive figures, as well as the ears.",
+      "quote": "try to match concept face shape, shoes, and body as well",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792277585088,
+      "text": "The house look as a pit of success: the design (ask acdc31b8a4f)",
+      "set": "p6-stylepit-design-2026-10-17",
+      "ask": "acdc31b8a4f",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792277990234,
+      "text": "The house look as a pit of success: the design (ask acdc31b8a4f): strict: An error until an override names it · override: Your own words, verbatim, plus a reason · shapes: Traced from the kept concept · when: (a) now at the painter's next commit; (b) after round 7 and the Christ and robed rigs",
+      "set": "p6-stylepit-design-2026-10-17",
+      "ask": "acdc31b8a4f",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792278021153,
+      "text": "House-look guards: inner ink, inner rim and grey shade are errors until an override names them; an override carries the owner's verbatim words plus a reason; figure shapes are traced from the kept concept; sub-unit (a) starts now, (b) after round 7 and the Christ and robed rigs.",
+      "quote": "answered (ask acdc31b8a4f: strict=error, override=quote, shapes=traced, when=now)",
+      "set": "p6-stylepit-design-2026-10-17",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792278699360,
+      "text": "Sound sources: earshot, Mirelo AI, Fish Audio (ask a8f87c7a1b3)",
+      "set": "p6-soundsources-2026-10-17",
+      "ask": "a8f87c7a1b3",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792278724633,
+      "text": "RBF cold, round 7: face shape, shoes and body (ask a2a01fa05d8)",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a2a01fa05d8",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792278876897,
+      "text": "RBF cold, round 7: face shape, shoes and body (ask a2a01fa05d8): keep: Another round on these figures first",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a2a01fa05d8",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792278930025,
+      "text": "Sound sources: earshot, Mirelo AI, Fish Audio (ask a8f87c7a1b3): earshot: Trial an `sfx fit` command: a recording becomes a code trial, judged by sfx compare and sfx ab · scope: Only recordings the repo may hold: CC0, or CC BY with its credit · mirelo: No · fish: Stay on ElevenLabs v4",
+      "set": "p6-soundsources-2026-10-17",
+      "ask": "a8f87c7a1b3",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792280282352,
+      "text": "The aim of the style work: a process that recreates a concept as a rig, locks the rig and the style, and from then on keeps new concepts and rigs aligned.",
+      "quote": "our goal here is to create a process that makes it easier to recreate concepts, lock in a rig and a style, then in the futuer, concepts and rigs will be aligned",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792281267077,
+      "text": "RBF cold, round 8: the court figures traced from the concept (ask a92f276635e)",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a92f276635e",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792281444576,
+      "text": "RBF cold, round 8: the court figures traced from the concept (ask a92f276635e): keep: Keep and lock them: the first locked rigs. The shoe sole is fixed in passing.",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a92f276635e",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792282573562,
+      "text": "Christ's dress, and the farmer's lower body (ask a14290aca0a)",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a14290aca0a",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792283120051,
+      "text": "Christ's dress, and the farmer's lower body (ask a14290aca0a): dress: One look throughout: the white robe and gold sash, as the approved Board shows; update rule 3.2 for this film · farmer: Trace it from the middle figure in robe.5 (headcloth, robe, sandals) · notes: ensure Christ has a consistent body, frame, face",
+      "quote": "ensure Christ has a consistent body, frame, face",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a14290aca0a",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792283496952,
+      "text": "Christ's one figure: which height? (ask a5fc41dfe7b)",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a5fc41dfe7b",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792284109576,
+      "text": "Christ's one figure: which height? (ask a5fc41dfe7b): canon: The court canon, about 3.36 heads: one canon for the whole cast; robe.5's robe is drawn shorter · notes: lets also make sure every character has similar heights (other than natural variability - or characters that are desdribed as being tall like Goliath) - Jesus should not be short compared to others",
+      "quote": "lets also make sure every character has similar heights (other than natural variability - or characters that are desdribed as being tall like Goliath) - Jesus should not be short compared to others",
+      "set": "rbf-v3-cold-pilot-2026-10-16",
+      "ask": "a5fc41dfe7b",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792284406598,
+      "text": "Concepts are image-generated rough design sketches: follow their design, but take figure heights from the cast height band, not from the concept.",
+      "quote": "since concepts use image generation, we can use them as rough design sketch. i like the design more, but we dont need to take too much stalk on heights sicne its hard to constrain, use it only as a general design",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792292076259,
+      "text": "Christ and the farmer: keep them? (ask aab16c0cb70)",
+      "set": "rbf-v3-cast-2026-10-18",
+      "ask": "aab16c0cb70",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792292286642,
+      "text": "Christ and the farmer: keep them? (ask aab16c0cb70): christ: Revise Him (say what below) · farmer: Revise him (say what below) · scenes: Go on with them · notes: theres some artifacts in the render, and the farmer looks nothing like the concept, face proportions and angles are off",
+      "quote": "theres some artifacts in the render, and the farmer looks nothing like the concept, face proportions and angles are off",
+      "set": "rbf-v3-cast-2026-10-18",
+      "ask": "aab16c0cb70",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792292335521,
+      "text": "Render artifacts on the figures; the farmer's face proportions and angle do not match his concept.",
+      "quote": "theres some artifacts in the render, and the farmer looks nothing like the concept, face proportions and angles are off",
+      "set": "rbf-v3-cast-2026-10-18",
+      "by": "orchestrator"
     }
   ],
   "filed": [
