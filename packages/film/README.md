@@ -165,12 +165,17 @@ writing only a scratch folder. A clone missing, off the pin or changed fails
 `EarshotFailed`. It never runs in CI or the gate. The model it wrote is kept
 under `<FILMS_OUT>/sounds/fits/<name>.model.json`, and `--from` translates a
 model file in place of running earshot (`FitModelInvalid` when it does not
-decode). `small` writes a graph a person can read (modes closer than their
-bandwidth merged by their sum, the strongest 16 kept, noise bands merged by
-octave and each coloured by its slope, breakpoints thinned with their energy
-kept); `full` keeps every part that fits; either merges further until the
-render's work fits `MAX_CODE_WORK`. A bed is tilted so its loop seam is level,
-and a recording with little rumble under 30 Hz is high-passed there.
+decode). `small` writes a graph a person can read: modes closer than their
+bandwidth merged by their sum, the 16 heard loudest kept (their energy within
+the loudness meter's 400 ms block), and the energy each third of an octave
+sounded kept, sums and cancellations counted: a strike's kept modes scaled
+down where the ones left out cancelled them, and what the left-out modes
+carried added to their band as noise; noise bands merged by octave, each
+coloured by its slope, their breakpoints thinned with their energy kept.
+`full` keeps every part that fits; either merges further until the render's
+work fits `MAX_CODE_WORK`. A bed is tilted so its loop seam is level, and a
+recording with little rumble under 30 Hz is high-passed there, its lowest
+band of noise starting at 30 Hz.
 
 `film footage` is the app's camera footage (`FootageLibrary`,
 `tools/footage.ts`, its schema in `core/footage.ts`), shared by its talks.

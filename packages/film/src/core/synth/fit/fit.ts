@@ -32,7 +32,7 @@
 // under 20 Hz), its stereo side, the attack clamp of its post stage, and a
 // bed's texture (grains, AM).
 
-import { Predicate, Result } from 'effect';
+import { Array as Arr, Predicate, Result } from 'effect';
 import { CodeTooLong } from '../../errors.ts';
 import type { SoundUse } from '../../sfx.ts';
 import { boundOf } from '../graph/bound.ts';
@@ -473,18 +473,213 @@ const mergeModes = (modes: ReadonlyArray<Mode>): ReadonlyArray<Mode> => {
 
 const energy = (m: Mode) => m.a ** 2 * m.tau;
 
-/** Each strike's modes merged, then the `most` loudest by energy kept across every strike. */
-const reduceStrikes = (strikes: ReadonlyArray<Strike>, most: number): ReadonlyArray<Strike> => {
-  if (!Number.isFinite(most)) return strikes;
+/** The loudness meter's momentary block, in seconds: how long the ear sums a sound into one loudness. */
+const HEARD_SECS = 0.4;
+
+/** How loud a mode is heard: its energy within one momentary block from its strike. */
+const heard = (m: Mode) => energy(m) * (1 - Math.exp((-2 * HEARD_SECS) / m.tau));
+
+/** A mode at its place in the sound: from its strike's time. */
+interface Placed {
+  readonly t: number;
+  readonly mode: Mode;
+}
+
+/**
+ * The energy of two damped sines struck together, over the `secs` after their
+ * strike (∫₀^secs of their product): a mode with itself rings a²·tau/4 in
+ * all, and two near in pitch add or cancel by their phases, as they sound.
+ */
+const crossEnergy = (x: Mode, y: Mode, secs: number): number => {
+  const alpha = 1 / x.tau + 1 / y.tau;
+  const fade = Math.exp(-alpha * secs);
+  // Re(e^{i·ph}·(1 − e^{−(alpha − i·w)·secs}) / (alpha − i·w)).
+  const part = (w: number, ph: number) => {
+    const re = Math.cos(ph) - fade * Math.cos(ph + w * secs);
+    const im = Math.sin(ph) - fade * Math.sin(ph + w * secs);
+    return (alpha * re - w * im) / (alpha ** 2 + w ** 2);
+  };
+  return (
+    ((x.a * y.a) / 2) *
+    (part(2 * Math.PI * (x.f - y.f), x.ph - y.ph) + part(2 * Math.PI * (x.f + y.f), x.ph + y.ph))
+  );
+};
+
+/** A mode struck at `t`, as it stands at `at` (later): decayed, its phase turned on. */
+const carried = ({ t, mode }: Placed, at: number): Mode => ({
+  ...mode,
+  a: mode.a * Math.exp(-(at - t) / mode.tau),
+  ph: mode.ph + 2 * Math.PI * mode.f * (at - t),
+});
+
+/**
+ * The energy struck modes sound until `end`, every pair's sum and
+ * cancellation counted, the earlier carried to the later's strike.
+ */
+const placedEnergy = (modes: ReadonlyArray<Placed>, end: number): number =>
+  Math.max(
+    0,
+    modes.reduce(
+      (sum, x) =>
+        sum +
+        modes.reduce((s, y) => {
+          const [first, last] = x.t <= y.t ? [x, y] : [y, x];
+          return s + crossEnergy(carried(first, last.t), last.mode, Math.max(0, end - last.t));
+        }, 0),
+      0,
+    ),
+  );
+
+/** Energy a reduction left out, heard as noise in band `band` from `t`, falling with `tau`, until the end. */
+interface Residue {
+  readonly band: number;
+  readonly t: number;
+  readonly energy: number;
+  readonly tau: number;
+}
+
+/** A strike's modes reduced: those kept, and the energy left out. */
+interface Reduced {
+  readonly strikes: ReadonlyArray<Strike>;
+  readonly residue: ReadonlyArray<Residue>;
+}
+
+/** A mode's third of an octave: as finely as the ear weighs a balance. */
+const thirdOf = (mode: Mode) => Math.round(3 * Math.log2(Math.max(mode.f, 1) / 1000));
+
+/**
+ * Each strike's modes merged, then the `most` heard loudest (`heard`) kept
+ * across every strike, and the energy of each third of an octave kept as the modes
+ * sound it, sums and cancellations counted:
+ *
+ * - where a strike's kept modes sound more than all its modes did (a loud
+ *   mode kept, the quieter ones that cancelled it left out), they are scaled
+ *   down to it, that strike alone, so its attack stands where it stood;
+ * - where the kept modes of every strike sound less than all the modes of
+ *   every strike did (a strike's ringing cut short by a later one counted),
+ *   the rest is a residue the band carries as noise, from each strike in the
+ *   share of the energy it lost.
+ */
+const reduceStrikes = (
+  strikes: ReadonlyArray<Strike>,
+  most: number,
+  bands: ReadonlyArray<Band>,
+  secs: number,
+): Reduced => {
+  if (!Number.isFinite(most)) return { strikes, residue: [] };
   const merged = strikes.map((s) => ({ ...s, modes: mergeModes(s.modes) }));
   const kept = new Set(
     merged
       .flatMap((s) => s.modes)
-      .sort((x, y) => energy(y) - energy(x))
+      .sort((x, y) => heard(y) - heard(x))
       .slice(0, most),
   );
-  return merged.map((s) => ({ ...s, modes: s.modes.filter((m) => kept.has(m)) }));
+  const scale = cancelledScales(strikes, merged, kept, secs);
+  const reduced = merged.map((s) => ({
+    ...s,
+    modes: s.modes.flatMap((m) => (kept.has(m) ? [{ ...m, a: m.a * (scale.get(m) ?? 1) }] : [])),
+  }));
+  const gone = placed(merged).filter(({ mode }) => !kept.has(mode));
+  return { strikes: reduced, residue: residueOf(strikes, reduced, gone, bands, secs) };
 };
+
+const placed = (ss: ReadonlyArray<Strike>): ReadonlyArray<Placed> =>
+  ss.flatMap((s) => s.modes.map((mode) => ({ t: s.t, mode })));
+
+/**
+ * The scale of each kept mode whose strike's kept modes sound more in its
+ * third than all that strike's modes did there: down to it. A strike's modes
+ * and its contact's are struck at one time, so they sound, and cancel,
+ * together.
+ */
+const cancelledScales = (
+  strikes: ReadonlyArray<Strike>,
+  merged: ReadonlyArray<Strike>,
+  kept: ReadonlySet<Mode>,
+  secs: number,
+): ReadonlyMap<Mode, number> => {
+  const struck = ({ t, mode }: Placed) => `${t}|${thirdOf(mode)}`;
+  const truths = Arr.groupBy(placed(strikes), struck);
+  const reduceds = Arr.groupBy(placed(merged), struck);
+  const scale = new Map<Mode, number>();
+  for (const [key, truth] of Object.entries(truths)) {
+    const left = (reduceds[key] ?? []).filter(({ mode }) => kept.has(mode));
+    const want = placedEnergy(truth, secs);
+    const have = placedEnergy(left, secs);
+    if (have > want) for (const { mode } of left) scale.set(mode, Math.sqrt(want / have));
+  }
+  return scale;
+};
+
+/**
+ * What every strike's modes sounded in each third, less what the kept ones
+ * sound: a residue from each strike that lost modes there, in the share of the
+ * energy it lost, in the band its lost modes sounded in.
+ */
+const residueOf = (
+  strikes: ReadonlyArray<Strike>,
+  reduced: ReadonlyArray<Strike>,
+  gone: ReadonlyArray<Placed>,
+  bands: ReadonlyArray<Band>,
+  secs: number,
+): ReadonlyArray<Residue> => {
+  const third = ({ mode }: Placed) => String(thirdOf(mode));
+  const wholes = Arr.groupBy(placed(strikes), third);
+  const keeps = Arr.groupBy(placed(reduced), third);
+  const rings = ({ t, mode }: Placed) =>
+    energy(mode) * (1 - Math.exp((-2 * Math.max(0, secs - t)) / mode.tau));
+  return Object.entries(Arr.groupBy(gone, third)).flatMap(([key, lost]) => {
+    const short = placedEnergy(wholes[key] ?? [], secs) - placedEnergy(keeps[key] ?? [], secs);
+    const total = lost.reduce((w, p) => w + rings(p), 0);
+    if (short <= 0 || total <= 0) return [];
+    return Object.values(Arr.groupBy(lost, ({ t }) => String(t))).flatMap((at) => {
+      const weight = at.reduce((w, p) => w + rings(p), 0);
+      if (weight <= 0) return [];
+      const f = at.reduce((w, p) => w + rings(p) * p.mode.f, 0) / weight;
+      const tau = at.reduce((w, p) => w + rings(p) * p.mode.tau, 0) / weight;
+      const band = bands.findIndex((b) => f >= b.lo && f < b.hi);
+      if (band < 0) return [];
+      return [{ band, t: at[0].t, energy: (short * weight) / total, tau }];
+    });
+  });
+};
+
+/** Where a residue's decay is read, in its decays from its strike: its power falls 8.7 dB a decay. */
+const DECAYS = [0, 0.5, 1, 2, 3.5, 7];
+
+/**
+ * The energy a reduction left out, added to its band's power from its strike
+ * until `secs` (falling with its decay, its energy over that span the
+ * residue's), so a reduced fit keeps its loudness and balance: what rang as a
+ * tone sounds as noise.
+ */
+const foldResidue = (
+  bands: ReadonlyArray<Band>,
+  residue: ReadonlyArray<Residue>,
+  secs: number,
+): ReadonlyArray<Band> =>
+  bands.map((band, b) => {
+    const ins = residue.filter((r) => r.band === b);
+    if (ins.length === 0) return band;
+    const start = (r: Residue) =>
+      (2 * r.energy) / (r.tau * (1 - Math.exp((-2 * Math.max(secs - r.t, 1e-6)) / r.tau)));
+    const at = (t: number) =>
+      ins.reduce(
+        (sum, r) => (t < r.t ? sum : sum + start(r) * Math.exp((-2 * (t - r.t)) / r.tau)),
+        10 ** (interp(band.pts, t) / 10),
+      );
+    const times = [
+      ...new Set([
+        ...band.pts.map(([t]) => t),
+        ...ins.flatMap((r) => [
+          Math.max(0, r.t - 1e-4),
+          ...DECAYS.map((k) => r.t + k * r.tau).filter((x) => x < secs),
+        ]),
+        secs,
+      ]),
+    ].sort((x, y) => x - y);
+    return { ...band, pts: times.map((t): Point => [t, 10 * Math.log10(at(t))]) };
+  });
 
 const trackEnergy = (t: Track) => energyOf(t.amp, t.t0, t.end);
 
@@ -518,8 +713,8 @@ const perOctave = (band: Band, secs: number) =>
  * Neighbouring bands merged to groups at most `width` wide (a band down to DC
  * stays alone, so its rumble stays its own): their power summed at every time
  * any holds, held `VALLEY_DB` under the loudest, cut to `most` points at `tol`
- * dB with the energy kept, and coloured by the group's slope: white rises
- * 3 dB an octave, pink holds, brown falls 6.
+ * dB with the energy kept, and coloured by the group's slope (each octave's
+ * power): white rises 3 dB an octave, pink holds, brown falls 3.
  */
 const mergeBands = (
   bands: ReadonlyArray<Band>,
@@ -561,7 +756,7 @@ const mergeBands = (
     const slope = den > 0 ? xs.reduce((a, x, k) => a + (x - mx) * ((ys[k] ?? 0) - my), 0) / den : 0;
     let color: Color = 'brown';
     if (slope > 1.5) color = 'white';
-    else if (slope > -3) color = 'pink';
+    else if (slope > -1.5) color = 'pink';
     return {
       lo: group[0]?.lo ?? 0,
       hi: group[group.length - 1]?.hi ?? NYQ,
@@ -575,12 +770,6 @@ const mergeBands = (
 const SEAM_STEP = 0.02;
 /** Modes closer than this (Hz) beat slower than the timeline averages: their sum is read with its phases. */
 const COHERENT_HZ = 2;
-
-/** A mode at its place in the sound: from its strike's time. */
-interface Placed {
-  readonly t: number;
-  readonly mode: Mode;
-}
 
 /** A placed mode's amplitude and phase (radians) at `t`, or none before its strike. */
 const phasorAt = ({ t: from, mode }: Placed, t: number) =>
@@ -922,7 +1111,12 @@ const written = (parts: Parts, options: FitOptions): Written => {
   );
   const quiet = peak * 10 ** (-DROP_DB / 20);
   const modes = parts.strikes.flatMap((s) => strikeLayers(s, secs, quiet));
-  const bands = parts.bands.filter((b) => Math.max(...b.pts.map(([, v]) => v)) > loudest - DROP_DB);
+  // A source with little rumble had its lowest band's power over 30 Hz, where the high-pass keeps it.
+  const quietLow = options.rumble <= QUIET_RUMBLE;
+  const bands = parts.bands
+    .filter((b) => Math.max(...b.pts.map(([, v]) => v)) > loudest - DROP_DB)
+    .filter((b) => !quietLow || b.hi > RUMBLE_HZ * 1.25)
+    .map((b) => (quietLow && b.lo < RUMBLE_HZ ? { ...b, lo: RUMBLE_HZ } : b));
   const noise = bands.map((b) => bandLayer(b, secs));
   let struck: ReadonlyArray<Layered> = [];
   if (modes.length > 0) {
@@ -938,9 +1132,9 @@ const written = (parts: Parts, options: FitOptions): Written => {
     secs,
   );
   if (options.use === 'bed') {
-    // Its level ramped the same dB a second over the whole, half the tilt either side of its middle.
+    // Its level ramped the same dB a second over the whole, its louder end at unity (an envelope only cuts).
     const tilt = seamTilt(parts);
-    const gain = (t: number) => round(10 ** ((tilt * (t - secs / 2)) / 20), 6);
+    const gain = (t: number) => round(10 ** ((tilt * t - Math.max(0, tilt * secs)) / 20), 6);
     play = {
       _tag: 'Envelope',
       curve: 'exponential',
@@ -951,7 +1145,7 @@ const written = (parts: Parts, options: FitOptions): Written => {
       of: play,
     };
   }
-  if (options.rumble <= QUIET_RUMBLE) play = highpassed(play);
+  if (quietLow) play = highpassed(play);
   if (options.use === 'bed') play = { _tag: 'Loop', crossfade: BED_CROSSFADE, of: play };
   return {
     sound: { play },
@@ -1019,11 +1213,12 @@ export const fitSound = (
   const tracks = reduceTracks(parts.tracks, budget.tracks);
   let work = Infinity;
   for (const rung of rungsOf(budget)) {
-    const strikes = reduceStrikes(parts.strikes, rung.modes);
+    const { strikes, residue } = reduceStrikes(parts.strikes, rung.modes, parts.bands, parts.secs);
+    const folded = foldResidue(parts.bands, residue, parts.secs);
     const bands =
       rung.merge === undefined
-        ? parts.bands
-        : mergeBands(parts.bands, parts.secs, rung.merge, Math.max(budget.tol, 2), parts.most);
+        ? folded
+        : mergeBands(folded, parts.secs, rung.merge, Math.max(budget.tol, 2), parts.most);
     const made = written({ ...parts, strikes, tracks, bands }, options);
     work = boundOf(made.sound.play, () => ({ secs: 0, work: 0 })).work;
     if (work <= MAX_CODE_WORK)
