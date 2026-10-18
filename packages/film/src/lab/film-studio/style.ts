@@ -106,6 +106,7 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-app .st-key:hover { background: var(--surface-3); }
 /* Play: a raised neutral key at rest; the blue gradient, with a halo, only while it plays. */
 .st-app .st-key[data-look="play"] { position: relative; width: 52px; background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line-strong); transition: background var(--t-base) var(--ease); }
+.st-app .st-key[data-look="play"]:focus-visible { box-shadow: var(--focus-ring); }
 .st-app .st-key[data-look="play"][aria-pressed="true"] { background: linear-gradient(165deg, var(--accent-a), var(--accent-b)); color: var(--accent-ink); }
 .st-key[data-look="play"][aria-pressed="true"]::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 0 var(--accent); animation: st-halo var(--t-sheet) var(--ease) forwards; pointer-events: none; }
 @keyframes st-halo { from { box-shadow: 0 0 0 0 var(--accent-wash-strong); } to { box-shadow: 0 0 0 var(--s-3) transparent; } }
@@ -338,7 +339,6 @@ export const INSPECTOR_CSS = `
 .st-code { margin: 0; display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
 .st-code-file { font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
 .st-code pre { margin: 0; max-height: 360px; overflow: auto; padding: var(--s-2) 0; border-radius: var(--r-1); background: var(--surface-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-2); counter-reset: line; }
-.st-app .st-lab { align-self: flex-start; display: inline-flex; align-items: center; color: var(--text-1); text-decoration: none; }
 .st-code-line { display: block; white-space: pre; padding: 0 var(--s-3) 0 0; }
 .st-code-line::before { counter-increment: line; content: counter(line); display: inline-block; width: 4ch; margin-right: var(--s-3); text-align: right; color: var(--text-3); user-select: none; -webkit-user-select: none; }
 /* Notes and asks: each open note a disclosure with its thread, each ask a link to its page. */

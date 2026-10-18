@@ -91,8 +91,11 @@ const FIELDS = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUDIO', 'VIDEO']);
 const OVERLAYS =
   ':is([role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]):not([data-ending-style], [data-closed])';
 
-/** The studio's section: it takes its own keys while focus is in it (`lab/studio/section.tsx`). */
-const STUDIO = '.lab-studio';
+/**
+ * The recorder's section: it takes its own keys while focus is in it
+ * (`lab/studio/section.tsx`), the dialog it stands in over the studio too.
+ */
+const STUDIO = '[data-role="studio"]';
 
 /** A slider that is no field (a wipe's grip): it takes its own arrows, Home and End while focused. */
 const SLIDER = '[role="slider"]';
@@ -118,20 +121,22 @@ export const isField = (target: Option.Option<EventTarget>): boolean =>
 /**
  * Where a press aimed at `target` puts the keyboard: in a field (one typed
  * into, or an open menu or dialog, whose own keys move through it and close
- * it), in the studio, on a slider, on a control, or on the page.
+ * it), in the recorder's section (in its dialog too), on a slider, on a
+ * control, or on the page.
  */
 export const focusOf = (target: Option.Option<EventTarget>): Focus =>
   Option.match(Option.filter(target, focusable), {
     onNone: (): Focus => 'page',
     onSome: (el): Focus =>
       Match.value(el).pipe(
-        Match.when(
-          (e) => typedInto(e) || within(e, OVERLAYS),
-          (): Focus => 'field',
-        ),
+        Match.when(typedInto, (): Focus => 'field'),
         Match.when(
           (e) => within(e, STUDIO),
           (): Focus => 'studio',
+        ),
+        Match.when(
+          (e) => within(e, OVERLAYS),
+          (): Focus => 'field',
         ),
         Match.when(
           (e) => within(e, SLIDER),

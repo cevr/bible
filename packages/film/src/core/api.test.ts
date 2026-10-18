@@ -68,14 +68,6 @@ const LINKS: ReadonlyArray<
     'player',
     '/films/rbf%2Fshorts%2Fverdict/studio#t=3.25',
   ],
-  ['/films/rbf/lab', 'lab', 'lab', '/films/rbf/lab'],
-  ['/films/rbf/lab?note=n-1#t=60', 'lab', 'lab', '/films/rbf/lab?note=n-1#t=60'],
-  ['/films/rbf/lab?cue=lower', 'lab', 'lab', '/films/rbf/lab'],
-  ['/films/rbf/lab/roof', 'labScene', 'lab', '/films/rbf/lab/roof'],
-  ['/films/rbf/lab/roof?cue=lower#t=1.5', 'labScene', 'lab', '/films/rbf/lab/roof?cue=lower#t=1.5'],
-  ['/films/rbf/lab/roof?knob=sway', 'labScene', 'lab', '/films/rbf/lab/roof?knob=sway'],
-  ['/films/rbf/lab/roof?note=n-2#t=-0.5', 'labScene', 'lab', '/films/rbf/lab/roof?note=n-2#t=-0.5'],
-  ['/films/rbf/lab/roof#t=nope', 'labScene', 'lab', '/films/rbf/lab/roof'],
   ['/films/rbf/export', 'export', 'render', '/films/rbf/export'],
   [
     '/films/rbf%2Fshorts%2Fverdict/export',
@@ -121,6 +113,8 @@ describe('page places', () => {
     '/films/rbf/script/roof',
     '/films/rbf/board',
     '/films/rbf/board/roof',
+    '/films/rbf/lab',
+    '/films/rbf/lab/roof',
   ])('%s serves no page', (path) => {
     expect(pageAt(path)).toEqual(Option.none());
   });
@@ -143,10 +137,6 @@ describe('page places', () => {
     expect(pageHref.studio('rbf', { v: 2, sel: 'beat:roof' }, Option.some(4.5))).toBe(
       '/films/rbf/studio?v=2&sel=beat%3Aroof#t=4.5',
     );
-    expect(pageHref.lab('rbf')).toBe('/films/rbf/lab');
-    expect(pageHref.labScene('rbf', 'roof', { cue: 'lower' }, Option.some(0.25))).toBe(
-      '/films/rbf/lab/roof?cue=lower#t=0.25',
-    );
   });
 
   test('a moving time is written at most every TIME_EVERY_MS on every place that keeps one, in place', () => {
@@ -156,8 +146,6 @@ describe('page places', () => {
     };
     const along = (at: string) => [`${at}#t=1`, `${at}#t=2`] as const;
     expect(Place.history(Places.studio, ...along('/films/f/studio'))).toEqual(moving);
-    expect(Place.history(Places.lab, ...along('/films/f/lab'))).toEqual(moving);
-    expect(Place.history(Places.labScene, ...along('/films/f/lab/one'))).toEqual(moving);
     expect(Place.history(Places.set, ...along('/sets/f/p'))).toEqual(moving);
   });
 
@@ -170,7 +158,7 @@ describe('page places', () => {
   });
 
   test("a film's page names its film in its path, a short's whole name too", () => {
-    expect(filmOfPage('/films/rbf/lab/roof?cue=lower#t=1')).toEqual(Option.some('rbf'));
+    expect(filmOfPage('/films/rbf/studio?sel=beat%3Aroof#t=1')).toEqual(Option.some('rbf'));
     expect(filmOfPage(pageHref.studio('rbf/shorts/verdict'))).toEqual(
       Option.some('rbf/shorts/verdict'),
     );
@@ -196,15 +184,15 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ],
   ['/?film=rbf&export', '/films/rbf/export'],
   ['/?film=rbf&export&captions=0', '/films/rbf/export?captions=0'],
-  ['/lab?film=rbf', '/films/rbf/lab'],
-  ['/lab?film=rbf#42.000', '/films/rbf/lab#t=42'],
-  ['/lab?film=rbf&sel=cue:roof:lower', '/films/rbf/lab/roof?cue=lower'],
-  ['/lab?film=rbf&sel=cue:roof:lower#60.000', '/films/rbf/lab/roof?cue=lower#60.000'],
-  ['/lab?film=rbf&sel=knob:roof:sway', '/films/rbf/lab/roof?knob=sway'],
-  ['/lab?film=rbf&sel=cue:render:scenes:x', '/films/rbf/lab/render?cue=scenes%3Ax'],
-  ['/lab?film=rbf&sel=nonsense', '/films/rbf/lab'],
+  // An old `/lab?film=` link: the studio, a cue's or a knob's scene selected as its beat, its film time kept.
+  ['/lab?film=rbf', '/films/rbf/studio'],
+  ['/lab?film=rbf#42.000', '/films/rbf/studio#t=42'],
+  ['/lab?film=rbf&sel=cue:roof:lower', '/films/rbf/studio?sel=beat%3Aroof'],
+  ['/lab?film=rbf&sel=cue:roof:lower#60.000', '/films/rbf/studio?sel=beat%3Aroof#t=60'],
+  ['/lab?film=rbf&sel=knob:roof:sway', '/films/rbf/studio?sel=beat%3Aroof'],
+  ['/lab?film=rbf&sel=nonsense', '/films/rbf/studio'],
   // A name no path can hold (a URL resolves `.` and `..` away) names nothing.
-  ['/lab?film=rbf&sel=cue:..:lower', '/films/rbf/lab'],
+  ['/lab?film=rbf&sel=cue:..:lower', '/films/rbf/studio'],
   ['/lab?film=..', '/'],
   ['/?folder=f&set=..', '/sets/f'],
   ['/lab', '/'],
@@ -212,14 +200,14 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/player?film=rbf#42.000', '/films/rbf/studio#t=42'],
   ['/player?film=rbf&lookbook', '/films/rbf/studio'],
   ['/player?film=rbf&lookbook#42.5', '/films/rbf/studio#t=42.5'],
-  ['/player?film=rbf&lab#3.5', '/films/rbf/lab#t=3.5'],
+  ['/player?film=rbf&lab#3.5', '/films/rbf/studio#t=3.5'],
   ['/player?film=rbf%2Fshorts%2Fverdict&lookbook', '/films/rbf%2Fshorts%2Fverdict/studio'],
   ['/player', '/'],
   ['/?project=rbf', '/films/rbf/studio'],
   ['/?film=rbf', '/films/rbf/studio'],
   ['/?film=rbf&lookbook', '/films/rbf/studio'],
   ['/?film=rbf&lookbook#42.5', '/films/rbf/studio#t=42.5'],
-  ['/?film=rbf&lab', '/films/rbf/lab'],
+  ['/?film=rbf&lab', '/films/rbf/studio'],
   ['/?folder=bible-tools%2Frbf', '/sets/bible-tools%2Frbf'],
   [
     '/?folder=bible-tools%2Frbf&set=render%3Ascenes%3Aroof',
@@ -372,16 +360,18 @@ const REPLACED_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   // A try names a try of a panel: with no panel it names nothing.
   ['/films/rbf/board/roof?try=2', '/films/rbf/studio?sel=beat%3Aroof#'],
   ['/films/rbf/board/roof?panel=start&try=x', '/films/rbf/studio?sel=panel%3Aroof.start#'],
-];
-
-/**
- * The film page still served as asked beside the studio: the Lab, each
- * scene's place and each note's (`?note=`) kept in its own address.
- */
-const KEPT_PAGES = [
-  '/films/rbf/lab',
-  '/films/rbf/lab?note=n-1#t=60',
-  '/films/rbf/lab/roof?cue=lower#t=1.5',
+  // The film's Lab: its note open and its film time kept.
+  ['/films/rbf/lab', '/films/rbf/studio'],
+  ['/films/rbf/lab?note=n-1#t=60', '/films/rbf/studio?note=n-1#t=60'],
+  ['/films/rbf/lab?cue=lower', '/films/rbf/studio'],
+  ['/films/rbf/lab/', '/films/rbf/studio'],
+  // A scene's Lab: its beat selected, its note kept; its time was in the scene, which the studio
+  // cannot place, so the empty fragment drops it and the studio opens at the beat's start.
+  ['/films/rbf/lab/roof', '/films/rbf/studio?sel=beat%3Aroof#'],
+  ['/films/rbf/lab/roof?cue=lower#t=1.5', '/films/rbf/studio?sel=beat%3Aroof#'],
+  ['/films/rbf/lab/roof?knob=sway', '/films/rbf/studio?sel=beat%3Aroof#'],
+  ['/films/rbf/lab/roof?note=n-2#t=-0.5', '/films/rbf/studio?sel=beat%3Aroof&note=n-2#'],
+  ['/films/rbf/lab/roof/?cue=lower', '/films/rbf/studio?sel=beat%3Aroof#'],
 ];
 
 describe('the pages the studio replaced', () => {
@@ -389,35 +379,16 @@ describe('the pages the studio replaced', () => {
     expect(servedPlace(old)).toEqual(Option.some(now));
   });
 
-  test.each(['/films/rbf/studio', '/films/rbf/export', '/sets/f/p', '/', ...KEPT_PAGES])(
+  test.each(['/films/rbf/studio', '/films/rbf/export', '/sets/f/p', '/'])(
     '%s is served as asked',
     (href) => {
       expect(servedPlace(href)).toEqual(Option.none());
     },
   );
 
-  test.each(KEPT_PAGES)('%s is the Lab page, served at its own path', (href) => {
-    expect(pageAt(href.split(/[?#]/)[0] ?? '')).toEqual(Option.some('lab'));
-  });
-
-  test('the Lab holds its note and its scene time in its address', () => {
-    expect(
-      Option.map(Place.decode(Places.lab, '/films/rbf/lab?note=n-1#t=60'), (v) => [
-        v.query.note,
-        v.hash.t,
-      ]),
-    ).toEqual(Option.some(['n-1', Option.some(60)]));
-    expect(
-      Option.map(Place.decode(Places.labScene, '/films/rbf/lab/roof?cue=lower#t=1.5'), (v) => [
-        v.query.cue,
-        v.hash.t,
-      ]),
-    ).toEqual(Option.some(['lower', Option.some(1.5)]));
-  });
-
-  test("an old lab link lands on the Lab, its scene's place kept", () => {
+  test("an old lab link lands on the studio, its scene's beat selected", () => {
     expect(servedPlace('/lab?film=rbf&sel=cue:roof:lower')).toEqual(
-      Option.some('/films/rbf/lab/roof?cue=lower'),
+      Option.some('/films/rbf/studio?sel=beat%3Aroof'),
     );
   });
 });

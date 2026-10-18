@@ -48,9 +48,14 @@ const ASKED_AGAIN = { voicing: '4 seconds', resting: '1 minute' } as const;
 /** A take ready to play: its file and its words, on the take's clock. */
 type Ready = Extract<StagingTake, { readonly _tag: 'Ready' }>;
 
-/** What the reader is hearing: nothing, or a beat's take from `start` to `end`, the beats after it to follow. */
+/**
+ * What the reader is hearing: nothing; a beat's take from `start` to `end`,
+ * the beats after it to follow; or nothing because the browser refused the
+ * sound of beat `beat`'s play until the viewer presses again.
+ */
 type Heard = Data.TaggedEnum<{
   Quiet: {};
+  Blocked: { readonly beat: string };
   Hearing: {
     readonly beat: string;
     readonly words: ReadonlyArray<TakeWord>;
@@ -89,6 +94,8 @@ interface VoiceContextValue {
   readonly heard: Accessor<Option.Option<WordAt>>;
   /** The beat being heard: none while nothing is. */
   readonly hearing: Accessor<Option.Option<string>>;
+  /** The beat whose play the browser refused its sound: none unless the last play was refused so. */
+  readonly blocked: Accessor<Option.Option<string>>;
   /** Hear beat `id`'s take, or words `from`–`to` of it; `on` goes on to the beats after it. */
   readonly hear: (
     id: string,
@@ -266,6 +273,12 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
     const hushed = Effect.sync(() => {
       if (mine()) stop();
     });
+    /** Quiet, saying the browser refused the sound until a press: unless a later play took this one's place. */
+    const blocked = Effect.sync(() => {
+      if (!mine()) return;
+      halt();
+      setHeard(Heard.Blocked({ beat }));
+    });
     // The frames run until the stretch ends (on to the next beat) or Play takes over (quiet); then what follows.
     let then = stop;
     const heardThrough = Frames.use((f) =>
@@ -289,7 +302,7 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
               Muted: () => heardThrough,
               // A pause cut it short: whoever paused it says what follows.
               Aborted: () => Effect.void,
-              Blocked: () => hushed,
+              Blocked: () => blocked,
               Failed: () => hushed,
             }),
           ),
@@ -425,12 +438,20 @@ export const VoiceOver = (props: ParentProps<{ readonly source: VoiceSource }>) 
     heard: () =>
       Heard.$match(heard(), {
         Quiet: () => Option.none<WordAt>(),
+        Blocked: () => Option.none<WordAt>(),
         Hearing: (h) => Option.map(h.index, (index): WordAt => ({ section: h.beat, index })),
       }),
     hearing: () =>
       Heard.$match(heard(), {
         Quiet: () => Option.none<string>(),
+        Blocked: () => Option.none<string>(),
         Hearing: (h) => Option.some(h.beat),
+      }),
+    blocked: () =>
+      Heard.$match(heard(), {
+        Quiet: () => Option.none<string>(),
+        Blocked: (b) => Option.some(b.beat),
+        Hearing: () => Option.none<string>(),
       }),
     hear,
     stop,

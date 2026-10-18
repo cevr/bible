@@ -10,9 +10,8 @@ import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Path, Schema } from 'effect';
 import { HttpPlatform } from 'effect/http';
-import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { labUrls } from '../core/api.ts';
-import { HeadSource, LabWrite, SceneCode, SceneSource } from '../core/schema.ts';
+import { LabWrite, SceneCode, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmModuleInvalid } from './errors.ts';
 import { FilmFolder, FilmRepo } from './film-repo.ts';
@@ -20,8 +19,6 @@ import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
 import { BoardStore } from './board-store.ts';
-import { collect } from './process.ts';
-import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
@@ -35,9 +32,6 @@ import {
   sceneFixture,
   withTimelines,
 } from './testing.ts';
-
-/** The timeout of a test here that spawns (git): a cold start's time is the machine's (effect/requireSpawnBudget). */
-const SPAWNS_MS = 30_000;
 
 /** The fixture's hand scene file. */
 class HandFile extends Context.Service<HandFile, string>()('test/HandFile') {}
@@ -78,7 +72,7 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
       const films = yield* sceneFixture(root);
       const repo = repoOver(films);
       return Layer.mergeAll(
-        Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
+        SceneWriter.layer.pipe(
           Layer.provideMerge(SourceWriter.layer),
           Layer.provideMerge(SceneSources.layer),
           Layer.provideMerge(Layer.merge(repo, fakeCheck.pipe(Layer.provide(repo)))),
@@ -366,74 +360,6 @@ describe('lab source routes', () => {
         });
         expect(yield* read()).toBe(last);
       }).pipe(Effect.scoped, Effect.provide(fixture)),
-  );
-
-  it.effect(
-    "head answers HEAD's data, and says when the code changed since",
-    () =>
-      Effect.gen(function* () {
-        const lab = yield* labHandler();
-        const fs = yield* FileSystem.FileSystem;
-        const file = yield* HandFile;
-        const dir = (yield* Path.Path).dirname(file);
-        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-        const git = (...args: ReadonlyArray<string>) =>
-          collect(
-            spawner,
-            ChildProcess.make('git', [...args], { cwd: dir, forceKillAfter: '5 seconds' }),
-          );
-        const request = () =>
-          Effect.promise(() =>
-            lab(
-              new Request(at(labUrls.scenes.head({ params: { film: 'f', scene: 'hand' } }))),
-              bound,
-            ),
-          );
-        const head = Effect.fn('test.head')(function* () {
-          const res = yield* request();
-          return yield* Schema.decodeUnknownEffect(HeadSource)(
-            yield* Effect.promise(() => res.json()),
-          );
-        });
-        // Not in a repository yet: nothing to compare with, the file named as the film has it.
-        const unavailable = yield* request();
-        expect(unavailable.status).toBe(404);
-        expect(yield* Effect.promise(() => unavailable.json())).toMatchObject({
-          _tag: 'HeadUnavailable',
-          file: 'scenes/hand.ts',
-        });
-        yield* git('init', '-q');
-        yield* git('add', '.');
-        yield* git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'scenes');
-        expect(yield* head()).toMatchObject({
-          file: 'scenes/hand.ts',
-          codeChanged: false,
-          sameData: true,
-          knobs: { palm: [960, 800] },
-        });
-        // A lab write changes data only; HEAD still has the old offset, and the computed cue is left out.
-        yield* Effect.promise(() =>
-          lab(
-            post(
-              labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } }),
-              '{"offset":0.4}',
-            ),
-            bound,
-          ),
-        );
-        const moved = yield* head();
-        expect(moved).toMatchObject({
-          codeChanged: false,
-          sameData: false,
-          timeline: { topple: { mark: 'earns', offset: 0.1, dur: 1.8 } },
-        });
-        expect(Object.keys(moved.timeline)).toEqual(['topple']);
-        // Code outside the literals changed: the compare can show data only.
-        const now = yield* fs.readFileString(file);
-        yield* fs.writeFileString(file, now.replace('const GAP = 0.2;', 'const GAP = 0.3;'));
-        expect(yield* head()).toMatchObject({ codeChanged: true });
-      }).pipe(Effect.scoped, Effect.provide(fixture)),
-    SPAWNS_MS,
   );
 
   it.effect(

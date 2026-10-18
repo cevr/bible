@@ -381,7 +381,6 @@ const drivenPages = (
         text(`<!doctype html><html><head><title>${title}</title></head><body></body></html>`);
       const files = new Map<string, Uint8Array>([
         ['/app/review.html', page('review')],
-        ['/app/lab.html', page('lab')],
         ['/app/sub/player.html', page('player')],
         ['/app/index.html', page('render')],
         ...SOURCES.map((file) => [file, text('export {};\n')] as const),
@@ -392,7 +391,6 @@ const drivenPages = (
       const spec: LabPageSpec = {
         pages: {
           review: '/app/review.html',
-          lab: '/app/lab.html',
           player: '/app/sub/player.html',
           render: '/app/index.html',
         },
@@ -492,7 +490,7 @@ const trackPages = (
   armed: Deferred.Deferred<void>,
 ) => {
   const page = text('<!doctype html><html><head></head><body></body></html>');
-  for (const name of ['review', 'lab', 'player', 'index']) files.set(`/app/${name}.html`, page);
+  for (const name of ['review', 'player', 'index']) files.set(`/app/${name}.html`, page);
   files.set('/app/films/f/scenes/index.ts', text('export {};\n'));
   files.set(TRACK, text('mix one'));
   mtimes.set(TRACK, MIXED_AT);
@@ -514,7 +512,6 @@ const trackPages = (
   const spec: LabPageSpec = {
     pages: {
       review: '/app/review.html',
-      lab: '/app/lab.html',
       player: '/app/player.html',
       render: '/app/index.html',
     },
@@ -1145,6 +1142,7 @@ describe('lab routes', () => {
             place.pattern.replace(':film', 'f').replaceAll(/:\w+/g, 'x'),
           ),
           '/lab?film=f',
+          '/films/f/lab/x',
           '/player?film=f&lookbook',
           '/?project=f',
         ];

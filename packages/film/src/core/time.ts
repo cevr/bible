@@ -130,9 +130,6 @@ export const framesOf = (span: Interval, fps: number) => ({
  */
 export const onTheMs = (T: number): number => frameAtOrAfter(T, 1000) / 1000;
 
-/** `T` to the millisecond, rounded down: an out point, so a span marked never reaches past the times marked. */
-export const offTheMs = (T: number): number => frameAtOrBefore(T, 1000) / 1000;
-
 /**
  * How far apart two times on a scene's clock may be and still be one time: a
  * sum of seconds (a mark plus an offset) carries float noise in its last bits

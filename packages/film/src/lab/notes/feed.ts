@@ -16,7 +16,7 @@
 //   Connecting | Live ─Dropped→ Lost ─Retry (after RETRY_MS)→ Connecting
 //   Live | Lost ─Refresh→ Connecting        Connecting ─Refresh→ Connecting (read again)
 
-import { Duration, Effect, Exit, Match, Schema } from 'effect';
+import { Duration, Effect, Exit, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { Note, NotesFile } from '../../core/schema.ts';
 import { type LabFailure, NotesApi, reasonOf } from '../api.ts';
@@ -111,10 +111,3 @@ export const feedFrom = (initial: FeedState) =>
 /** The feed's actor, started in `initial` (`startOf` the notes the page was sent with). */
 export const spawnFeed = (initial: FeedState) =>
   Machine.spawn(feedFrom(initial)).pipe(Effect.tap((actor) => actor.start));
-
-/** What the notes say of the feed: nothing while it holds, the reason once lost. */
-export const feedText = (state: FeedState): string =>
-  Match.value(state).pipe(
-    Match.tag('Lost', (s) => `notes offline: ${s.reason}; trying again`),
-    Match.orElse(() => ''),
-  );

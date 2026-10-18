@@ -258,7 +258,9 @@ export const Spend = (props: { readonly cost: boolean }) => {
 /**
  * Hear the script from its first beat with a take ready, on through the
  * ready beats after it (■ Stop while it plays): the reader's one labelled
- * press for its sound, at its head. Nothing until a take is ready.
+ * press for its sound, at its head. Nothing until a take is ready. A play
+ * whose sound the browser refused says so beside it, and that a press
+ * plays it (a browser lets sound start from a press).
  */
 export const HearIt = (props: { readonly beats: ReadonlyArray<string> }) => {
   const voice = useVoice();
@@ -268,18 +270,26 @@ export const HearIt = (props: { readonly beats: ReadonlyArray<string> }) => {
   return (
     <Show when={Option.getOrUndefined(first())}>
       {(beat: Accessor<string>) => (
-        <button
-          type="button"
-          class="sh-btn lab-script-hear-all"
-          data-act="hear-script"
-          aria-pressed={pressed(hearing())}
-          onClick={() => {
-            if (hearing()) voice.stop();
-            else voice.hear(beat(), Option.none(), true);
-          }}
-        >
-          {HEAR_ALL[pressed(hearing())]}
-        </button>
+        <>
+          <button
+            type="button"
+            class="sh-btn lab-script-hear-all"
+            data-act="hear-script"
+            aria-pressed={pressed(hearing())}
+            onClick={() => {
+              if (hearing()) voice.stop();
+              else voice.hear(beat(), Option.none(), true);
+            }}
+          >
+            {HEAR_ALL[pressed(hearing())]}
+          </button>
+          <span class="lab-script-blocked" role="status" data-role="hear-blocked">
+            {Option.match(voice.blocked(), {
+              onNone: () => '',
+              onSome: (id) => `The browser kept beat ${id} quiet: tap ▶ again`,
+            })}
+          </span>
+        </>
       )}
     </Show>
   );

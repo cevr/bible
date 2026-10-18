@@ -5,7 +5,7 @@
 // takes above it (`.sh-dock`); and
 // the kit (§5), each control styled once: the quiet and primary buttons
 // (`.sh-btn`), the icon button (`.sh-tool`), the segmented control
-// (`.sh-seg`), the field (`.lab-num`, a `select`), the slider, the badge
+// (`.sh-seg`), the field (`.sh-field`, a `select`), the slider, the badge
 // (`.sh-badge`), and words said, not shown (`.sh-sr`); and the one focus
 // ring, `--focus-ring`, on whatever the keyboard focuses: a control, a link,
 // a scroll box the browser makes focusable, a dialog the focus falls back
@@ -30,9 +30,8 @@ body { --shell-floor: env(safe-area-inset-bottom); }
   align-items: center; gap: var(--s-1); padding: 0 calc(var(--gutter) - var(--s-1)); background: var(--surface-1);
   border-bottom: var(--border); min-width: 0; }
 .sh-films { display: inline-grid; place-items: center; width: var(--hit); height: var(--hit); flex: none;
-  color: var(--text-2); text-decoration: none; border-radius: var(--r-2); }
+  color: var(--accent); text-decoration: none; border-radius: var(--r-2); }
 .sh-films > span { display: none; }
-.sh-films[data-active="true"] { color: var(--accent); }
 .sh-vsep { display: none; width: 1px; height: var(--s-4); background: var(--line); flex: none; margin: 0 var(--s-1); }
 .sh-switcher { display: inline-flex; align-items: center; gap: var(--s-1); min-width: var(--hit); height: var(--control-h);
   padding: 0 var(--s-2); border: 0; border-radius: var(--r-2); background: none; color: var(--text-1);
@@ -44,9 +43,6 @@ body { --shell-floor: env(safe-area-inset-bottom); }
   color: var(--accent); text-decoration: none; font-size: var(--fs-2); font-weight: var(--w-2); white-space: nowrap;
   border-radius: var(--r-2); }
 .sh-studio:hover { background: var(--surface-3); }
-.sh-page { display: inline-flex; align-items: center; gap: var(--s-2); flex: none; color: var(--text-1);
-  font-size: var(--fs-2); font-weight: var(--w-2); white-space: nowrap; }
-.sh-page i { font-style: normal; color: var(--text-3); }
 .sh-crumb { display: inline-flex; align-items: center; gap: var(--s-2); min-width: 0; color: var(--text-2);
   font-size: var(--fs-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sh-crumb i { font-style: normal; color: var(--text-3); }
@@ -63,7 +59,6 @@ body { --shell-floor: env(safe-area-inset-bottom); }
   border: 0; border-radius: var(--r-2); background: none; color: var(--text-2); cursor: pointer; }
 .sh-goto > span, .sh-goto > kbd { display: none; }
 .sh-goto:hover { background: var(--surface-3); color: var(--text-1); }
-.sh-tools { display: contents; }
 .sh-tool { display: inline-grid; place-items: center; width: var(--hit); height: var(--hit); flex: none; padding: 0;
   border: 0; border-radius: var(--r-2); background: none; color: var(--text-2); cursor: pointer; }
 .sh-tool:hover:not(:disabled), .sh-tool[data-popup-open] { background: var(--surface-3); color: var(--text-1); }
@@ -74,20 +69,16 @@ body { --shell-floor: env(safe-area-inset-bottom); }
 .sh kbd { font-family: var(--font); font-size: var(--fs-1); line-height: var(--lh-1); padding: 0 var(--s-1);
   border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--text-2); }
 .sh-body { flex: 1; min-width: 0; }
-/* A film's page before its film is staged (\`film-page.tsx\`): a quiet line where the picture lands. */
-.sh-await { margin: 0; padding: var(--s-4) var(--gutter); color: var(--text-2); font-size: var(--fs-2); }
-body.lab .sh-await { grid-column: 1; grid-row: 2; }
 
 /* The phone: the transport docked above the safe area. */
 @media ${PHONE} {
   .sh[data-film="true"] { padding-bottom: var(--shell-floor); }
-  .sh-page { font-size: var(--fs-1); }
-  /* The phone's header holds the film and the page: the studio is the film menu's Open the studio. */
+  /* The phone's header holds the film: the studio is the film menu's Open the studio. */
   .sh-studio { display: none; }
   /* The crumb names the subject on a phone too (a Set's scene, a Folder's), shortened first. */
   .sh-crumb { flex: 0 1 auto; font-size: var(--fs-1); }
-  /* The phone's dock, the one docked row: a page's (\`.sh-dock\`) and the Lab's transport row (\`player.css\`). */
-  .sh-dock, body.lab .bar > .row { position: fixed; left: 0; right: 0; z-index: 25; height: var(--dock-h);
+  /* The phone's dock, the one docked row (\`.sh-dock\`). */
+  .sh-dock { position: fixed; left: 0; right: 0; z-index: 25; height: var(--dock-h);
     bottom: var(--shell-floor); border-top: var(--border);
     padding: 0 var(--gutter); background: var(--surface-1); }
   .sh-body:has(.sh-dock) { padding-bottom: calc(var(--dock-h) + var(--s-3)); }
@@ -102,11 +93,10 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 /* The laptop: Films in words, the timecode and Go to… in full. */
 @media ${WIDE} {
   .sh-films { display: flex; width: auto; height: auto; align-self: stretch; padding: 0 var(--s-3);
-    font-size: var(--fs-2); font-weight: var(--w-2); position: relative; }
+    font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-1); position: relative; }
   .sh-films .sh-icon { display: none; }
   .sh-films > span { display: inline; }
-  .sh-films[data-active="true"] { color: var(--text-1); }
-  .sh-films[data-active="true"]::after { content: ""; position: absolute; left: var(--s-3); right: var(--s-3);
+  .sh-films::after { content: ""; position: absolute; left: var(--s-3); right: var(--s-3);
     bottom: -1px; height: 2px; background: var(--accent); }
   .sh-vsep { display: block; }
   .sh-tc { display: inline-flex; align-items: center; min-height: var(--hit); }
@@ -147,10 +137,9 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 :where(.sh-seg > button + button) { border-left: var(--border); }
 :where(.sh-seg > button:hover) { color: var(--text-1); }
 :where(.sh-seg > button:is([aria-pressed="true"], [data-pressed])) { background: var(--surface-3); color: var(--text-1); }
-/* Field: a number (NumberField's input), the platform's select, a line of text (.sh-field), on the field's surface. */
-:where(.lab-num, select, .sh-field) { min-height: var(--hit); padding: 0 var(--s-1); background: var(--surface-2); color: var(--text-1);
+/* Field: the platform's select, a line of text (.sh-field), on the field's surface. */
+:where(select, .sh-field) { min-height: var(--hit); padding: 0 var(--s-1); background: var(--surface-2); color: var(--text-1);
   border: 1px solid var(--line-strong); border-radius: var(--r-1); font: inherit; }
-:where(.lab-num) { width: 80px; }
 /* A phone's field keeps its text at 16 px or more (the type scale's 17 px): iOS zooms the page into a field whose text
    is smaller when it takes focus. */
 @media ${PHONE} { :where(.sh-field) { font-size: var(--fs-5); line-height: var(--lh-5); } }

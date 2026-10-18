@@ -8,7 +8,7 @@
 //
 //   HARNESS_FILM=<film> bun studio-harness.ts   (from apps/animations)
 //
-// The lab is at http://127.0.0.1:$HARNESS_PORT (4411) /films/<film>/lab. Its
+// The studio is at http://127.0.0.1:$HARNESS_PORT (4411) /films/<film>/studio. Its
 // control sits beside the lab's routes, behind the lab's gate (a write is
 // JSON from the lab's own origin, or a tool's: `curl -H 'content-type:
 // application/json' -d '{}'`): `POST /harness/mishear/<beat>` (hear that beat
@@ -181,7 +181,7 @@ const Harness = Layer.unwrap(
         const at = { hostname: '127.0.0.1', port };
         const links = yield* startLab(at, Option.none(), control(misheard, root));
         yield* Effect.log(
-          `harness.ready url=${new URL(pageHref.lab(film), links.local)} root=${root}`,
+          `harness.ready url=${new URL(pageHref.studio(film), links.local)} root=${root}`,
         );
       }),
     );

@@ -17,6 +17,13 @@
 
 import { Effect, Predicate, Schema, type Scope } from 'effect';
 import { type Affine, IDENTITY } from '../../core/affine.ts';
+import type { Point } from '../../core/schema.ts';
+
+/** Where `p` lands under `m`, as the canvas maps it: where a test reads a draw landed. */
+export const applyAffine = (m: Affine, p: Point): Point => [
+  m[0] * p[0] + m[2] * p[1] + m[4],
+  m[1] * p[0] + m[3] * p[1] + m[5],
+];
 
 /** What a stand-in's `createPattern` hands back: the tile it repeats. */
 interface StandInPattern {

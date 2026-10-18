@@ -51,9 +51,6 @@ const classicScript: BunPlugin = {
 };
 
 export const ENTRIES = [
-  'lab-page.ts',
-  'lab-narrated-page.ts',
-  'lab-hydrated-page.ts',
   'review-page.ts',
   'review-hydrated-page.ts',
   'player-page.ts',
@@ -68,7 +65,6 @@ export const ENTRIES = [
  * a production build keeps quiet: each hydration mismatch, as a warning.
  */
 const DEVELOPMENT: ReadonlySet<string> = new Set([
-  'lab-hydrated-page.ts',
   'review-hydrated-page.ts',
   'player-hydrated-page.ts',
 ]);

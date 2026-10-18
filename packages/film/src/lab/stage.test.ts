@@ -1,4 +1,4 @@
-// The stage's still waits for the film's faces: a frame is never taken in a
+// The player's still waits for the film's faces: a frame is never taken in a
 // fallback face, and the tools that ask for one stand before the faces load.
 // It is the frame asked for: the canvas is read once the player has painted
 // it, however long its footage takes to decode.
@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber } from 'effect';
 import type { Player } from '../player/main.ts';
-import { makeStage } from './stage.ts';
+import { playerStill } from './stage.ts';
 
 /**
  * A player whose faces are in or not, painting a frame only after its
@@ -18,7 +18,6 @@ const fakePlayer = (faces: { drawable: boolean }) => {
   const drawn: number[] = [];
   let painted = 0;
   const player = {
-    film: { placed: [] },
     ctx: {},
     canvas: {
       toBlob: (done: Parameters<HTMLCanvasElement['toBlob']>[0]) =>
@@ -46,12 +45,11 @@ const fakePlayer = (faces: { drawable: boolean }) => {
   return { player, drawn, land, listening: () => listeners.size };
 };
 
-describe('the stage still', () => {
+describe('the player still', () => {
   it.effect('is the frame asked for, taken once it is painted, when the faces are in', () =>
     Effect.gen(function* () {
       const { player, drawn } = fakePlayer({ drawable: true });
-      const stage = makeStage(player, () => {}, Effect.void);
-      const bytes = yield* stage.still(2);
+      const bytes = yield* playerStill(player, 2);
       expect([...bytes]).toEqual([2]);
       expect(drawn).toEqual([2]);
     }),
@@ -60,8 +58,7 @@ describe('the stage still', () => {
   it.effect('waits for the first frame while the faces load, then draws the frame asked for', () =>
     Effect.gen(function* () {
       const faces = fakePlayer({ drawable: false });
-      const stage = makeStage(faces.player, () => {}, Effect.void);
-      const taken = yield* Effect.forkChild(stage.still(3));
+      const taken = yield* Effect.forkChild(playerStill(faces.player, 3));
       yield* Effect.yieldNow;
       expect(faces.drawn).toEqual([]);
       faces.land();

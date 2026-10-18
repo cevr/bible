@@ -77,6 +77,8 @@ export const READER_CSS = `
 .rd-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--gutter) 0; }
 .rd-head .lab-script-spend { padding: 0; }
 .lab-script-hear-all { min-height: var(--hit); }
+/* A play the browser refused its sound: said beside the press, in the warning's ink (a live region always there, its words alone changing). */
+.lab-script-blocked { color: var(--state-warning); font-size: var(--fs-2); }
 ::highlight(lab-live) { background-color: color-mix(in srgb, var(--state-live) 26%, transparent); color: var(--text-1); }
 ::highlight(lab-picked) { background-color: var(--accent-wash); color: var(--text-1); text-decoration: underline var(--accent); }
 /* The beat at the page's playhead: a rule down its edge, never a fill, so the words keep their ink. */

@@ -5,23 +5,17 @@
 import { Effect, Option, type Scope, Struct } from 'effect';
 import { Place } from '@bible/url-state';
 import { Places, pageHref } from '../../src/core/api.ts';
-import type { LabMode } from '../../src/lab/mode.ts';
 import { rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
 import {
   type FakeRoute,
   type Viewport,
-  changeOf,
-  json,
-  labAt,
-  openLab,
   openPlayer,
   openReview,
-  route,
   tokensCss,
 } from '../../src/lab/fixtures/harness.ts';
 import { untokened } from '../../src/lab/fixtures/drawn-tokens.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { evaluates, sheetsStand, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
+import { countIs, evaluates, sheetsStand, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
   STUDIO_FOLDER,
   STUDIO_ASK,
@@ -35,6 +29,7 @@ import {
 } from '../../src/lab/fixtures/studio-film.ts';
 import { type Tab, jsonOf } from '../../src/lab/fixtures/tab.ts';
 import { DESK_HIT, PHONE_HIT, undersizedTargets } from '../../src/lab/fixtures/touch-targets.ts';
+import { editsKept } from './studio/edits-kept.ts';
 
 export const SLOW = 30_000;
 
@@ -82,8 +77,8 @@ export interface Budget {
 
 /** A view's budget: at most `phone` things on a phone, `laptop` on a laptop. */
 export const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
-/** The Lab's Edit: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
-export const LAB_EDIT = most(47, 56);
+/** The studio at rest: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
+export const STUDIO_AT_REST = most(31, 54);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 export interface State {
@@ -175,10 +170,6 @@ export const review =
       return page;
     });
 
-/** The lab in `mode`. */
-export const lab = (mode: LabMode) => (viewport: Viewport) =>
-  Effect.map(openLab([], { viewport, mode }), (o) => o.page);
-
 /** A beat to record, as the studio's routes answer it. */
 export const beat = (id: string, state: string, text: string) => ({
   id,
@@ -189,28 +180,6 @@ export const beat = (id: string, state: string, text: string) => ({
   recorded: state === 'recorded',
   attempts: 0,
 });
-
-/** The studio's routes over the probe film: a beat recorded, one to record, none tried yet. */
-export const RECORD_ROUTES: ReadonlyArray<FakeRoute> = [
-  route('GET', /^\/studio\/beats$/, () =>
-    json({
-      film: PROBE,
-      beats: [
-        beat('opening', 'recorded', 'In the beginning.'),
-        beat('thesis', 'staging', 'The law is holy.'),
-      ],
-    }),
-  ),
-  route('GET', /^\/studio\/takes\/\w+\/attempts$/, () => json({ beat: 'thesis', attempts: [] })),
-];
-
-/** The lab's Record mode with its beats listed, the recorder on the first to record. */
-export const recording = (viewport: Viewport) =>
-  Effect.gen(function* () {
-    const { page } = yield* openLab(RECORD_ROUTES, { viewport, mode: 'record' });
-    yield* waitFor(page, '.studio-beats');
-    return page;
-  });
 
 /**
  * The harness's player page (the studio) at `href`, once `ready` shows and every sheet it
@@ -268,93 +237,32 @@ export const CHIP_MENU = '[data-role="chip-menu"]';
 export const VIEW_MENU = '[data-role="view-menu"]';
 export const RECEIPTS = '[data-role="receipts"]';
 
-/**
- * The film's check as a film with a step to undo has it, so a receipt of a
- * write the page made offers Undo (as the editor's cases read it).
- */
-export const UNDO_ROUTES: ReadonlyArray<FakeRoute> = [
-  route('GET', /^\/check$/, () =>
-    json({
-      findings: [],
-      undo: {
-        scene: 'one',
-        file: 'scenes/one.ts',
-        target: 'cue rise offset',
-        change: changeOf('cue'),
-      },
-    }),
-  ),
-];
+/** The studio's first clip drawn: the timeline is read and laid out. */
+export const STUDIO_READY = '.st-timeline .st-clip';
 
-/** The Lab with a cue dragged and the page read again: its receipt offers Undo. */
+/** Script clip `beat` on the studio's timeline. */
+const scriptClip = (beat: string) => `.st-lane[data-track="script"] .st-clip[data-beat="${beat}"]`;
+
+/**
+ * The studio's first version with a beat moved from its menu: the move's
+ * receipt offers Undo, the page's clock held so its own timer does not put
+ * it away before it is measured.
+ */
 export const receipted = (viewport: Viewport) =>
   Effect.gen(function* () {
-    const { page } = yield* openLab(UNDO_ROUTES, { viewport, mode: 'edit', href: labAt(1) });
-    yield* page.waitFor('.lab-cue[data-cue="rise"]');
-    // The strip names the scene's file once the page can write to it: a drag before then writes nothing.
-    yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
-    const bar = yield* page.box('.lab-cue[data-cue="rise"]');
-    const [x, y] = [bar.x + bar.width / 2, bar.y + bar.height / 2];
-    yield* page.mouse.move(x, y);
-    yield* page.mouse.down;
-    for (const step of [1, 2, 3, 4]) yield* page.mouse.move(x + 15 * step, y);
-    yield* page.mouse.up;
-    // The write has landed once its receipt names the change ("writing…" before): a reload
-    // before then loses the write, and with it the receipt.
-    yield* textHas(page, '[data-receipt="edit"] .lab-receipt-said', 'cue rise offset');
-    yield* page.reload;
-    yield* page.waitFor('[data-receipt="edit"] [data-act="receipt-undo"]');
-    // The page's clock held, so the receipt is not put away by its own timer before it is measured.
+    const page = yield* player(
+      pageHref.studio(PROBE, { v: 1 }),
+      STUDIO_READY,
+      editsKept(),
+    )(viewport);
+    yield* rightClick(page, scriptClip('three'));
+    yield* page.click(`${CONTEXT_MENU} [data-command="studio.move-before"]`);
+    yield* page.click('[data-role="move-picker"] .st-picker-row[data-to="two"]');
+    yield* countIs(page, '[data-role="move-picker"]', 0);
+    yield* waitFor(page, '[data-role="receipt"] [data-act="receipt-undo"]');
     yield* page.clock.hold;
     return page;
   });
-
-/** A phone's sheet of the selected cue or knob. */
-export const SELECTION_SHEET = '.lab-selection-sheet';
-
-/**
- * The Lab with a cue that runs until a mark selected, at rest: its scene's
- * place, the Snap toggle shown, its End field written and shown (on a phone
- * in the selection's sheet, peeking its one line above the dock).
- */
-export const labCue = (viewport: Viewport) =>
-  Effect.gen(function* () {
-    const href = labAt(10, { selection: { _tag: 'Cue', scene: 'three', name: 'push' } });
-    const { page } = yield* openLab([], { viewport, mode: 'edit', href });
-    yield* page.attached('.lab-edit-cue input[data-field="end"]:not([disabled])');
-    yield* waitFor(page, '[data-act="snap"]');
-    yield* waitFor(page, `:is(${SELECTION_SHEET} .lab-sheet-title, .lab-edit-cue)`);
-    return page;
-  });
-
-/** The selected cue's fields shown: on a phone, its sheet opened by a tap on its head. */
-export const cueFieldsShown = (page: Tab) =>
-  Effect.gen(function* () {
-    const phone = yield* page.evaluate<boolean>(
-      `document.querySelector('${SELECTION_SHEET}') !== null`,
-    );
-    if (phone) yield* page.click(`${SELECTION_SHEET} [data-act="sheet"]`);
-    yield* waitFor(page, '.lab-edit-cue input[data-field="end"]:not([disabled])');
-  });
-
-/** The Lab's Note mode with a cue selected: a note begun there is scoped to the cue, its × beside it. */
-export const labNoteOnCue = (viewport: Viewport) =>
-  Effect.gen(function* () {
-    const href = labAt(10, { selection: { _tag: 'Cue', scene: 'three', name: 'push' } });
-    const { page } = yield* openLab([], { viewport, mode: 'note', href });
-    yield* waitFor(page, '[data-act="note-frame"]');
-    return page;
-  });
-
-/**
- * A film's Lab link (`pageHref.lab`) is the Lab's place only until it opens:
- * the path names the scene under the playhead (`lab/place.ts`), so a film
- * with a scene stands at `labScene`, where its Lab is measured.
- */
-export const LAB_MOVES: Exempt = {
-  measuredAt: 'labScene',
-  why: "a film's Lab moves to the scene under its playhead as it opens",
-};
 
 /** An ask, read: its page's send, under its sections. */
 export const ASK_READY = '.ak-sections:has(.ak-step) ~ .ak-send [data-act="send"]';
@@ -372,7 +280,6 @@ export const DELIVERY_READY = '.lab-script-delivery [data-act="stress-words"]';
 export const PRODUCTION_READY = '.pd-v[data-current="true"] [data-act="move-forward"]';
 
 export const STATES: ByPlace<State, AtRest> = {
-  lab: LAB_MOVES,
   home: [
     {
       name: 'Films',
@@ -383,6 +290,24 @@ export const STATES: ByPlace<State, AtRest> = {
       open: review(pageHref.home(), '.rv-film-card [data-role="counts"]'),
       disclose: AT_REST,
       budget: most(12, 12),
+    },
+    {
+      // The shell's view menu (`⋯`), which every review page's header holds.
+      name: 'Films, the view menu',
+      open: review(pageHref.home(), '.rv-film-card [data-role="counts"]'),
+      disclose: opens('[data-act="view-menu"]', `${VIEW_MENU} [data-command]`),
+      layer: VIEW_MENU,
+    },
+    {
+      name: "Films, the command menu's Go to",
+      open: review(pageHref.home(), '.rv-film-card [data-role="counts"]'),
+      disclose: (page) =>
+        Effect.gen(function* () {
+          yield* page.press('Control+k');
+          yield* page.fill('.lab-command-query', 'go to');
+          yield* waitFor(page, `${COMMAND_MENU} [data-command^="go."]`);
+        }),
+      layer: COMMAND_MENU,
     },
   ],
   set: [
@@ -483,84 +408,10 @@ export const STATES: ByPlace<State, AtRest> = {
       page: most(22, 20),
     },
   ],
-  labScene: [
-    {
-      name: 'Lab, Edit, a cue that runs until a mark selected (on a phone its sheet peeking)',
-      open: labCue,
-      disclose: AT_REST,
-      // A phone's peek counted: its grip, its line and its Close over the Edit's at rest, the
-      // fields in the sheet below it. A laptop's panel shows the cue's fields, its eases and the knobs.
-      budget: most(42, 80),
-    },
-    {
-      // On a phone the opened sheet is a layer, as an inspector is: the Lab under it is the case
-      // above. On a laptop the fields stand in the panel: the page is measured.
-      name: 'Lab, Edit, a cue that runs until a mark selected, its fields shown (its End field, the Snap toggle)',
-      open: labCue,
-      disclose: cueFieldsShown,
-      layer: `:is(${SELECTION_SHEET}, :root:not(:has(${SELECTION_SHEET})))`,
-    },
-    { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
-    {
-      // The shell's view menu (`⋯`), which every page's header holds: the Lab's has the most in it.
-      name: 'Lab, the view menu',
-      open: lab('edit'),
-      disclose: opens('[data-act="view-menu"]', `${VIEW_MENU} [data-command]`),
-      layer: VIEW_MENU,
-    },
-    { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(41, 45) },
-    {
-      name: 'Lab, Note with a scoped composer',
-      open: labNoteOnCue,
-      disclose: opens(
-        '[data-act="note-frame"]',
-        '[data-role="note-scope"] [data-act="clear-scope"]',
-      ),
-    },
-    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(44, 51) },
-    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(42, 46) },
-    // Its budget is the resting Record's, with no beats listed.
-    { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(38, 42) },
-    { name: 'Lab, Record, its beats and the recorder', open: recording, disclose: AT_REST },
-    {
-      name: "Lab, the command menu's Go to",
-      open: lab('edit'),
-      disclose: (page) =>
-        Effect.gen(function* () {
-          yield* page.press('Control+k');
-          yield* page.fill('.lab-command-query', 'go to');
-          yield* waitFor(page, `${COMMAND_MENU} [data-command^="go."]`);
-        }),
-      layer: COMMAND_MENU,
-    },
-    {
-      name: 'Lab, the context menu',
-      open: lab('edit'),
-      disclose: menuOn('.lab-panel'),
-      layer: CONTEXT_MENU,
-    },
-    {
-      name: 'Lab, the keys dialog',
-      open: lab('edit'),
-      // The first command's Change holds the focus, whichever element the opening focus chose.
-      disclose: (page) =>
-        Effect.gen(function* () {
-          yield* pressed('?', `${KEYS} [data-command]`)(page);
-          yield* page.focus(`${KEYS} .lab-keys-actions > button`);
-        }),
-      layer: KEYS,
-    },
-    {
-      name: 'Lab, a receipt with Undo',
-      open: receipted,
-      disclose: AT_REST,
-      layer: RECEIPTS,
-    },
-  ],
   studio: [
     {
       name: 'Studio',
-      open: player(pageHref.studio(PROBE), '.st-timeline .st-clip'),
+      open: player(pageHref.studio(PROBE), STUDIO_READY),
       disclose: AT_REST,
       // On a laptop each of the probe's thirteen clips is a control and the ruler labels each of
       // its 13 seconds: 53 things (measured 2026-10-16). Two earn their place in most visits: the
@@ -568,7 +419,7 @@ export const STATES: ByPlace<State, AtRest> = {
       // probe's card panel, a Board clip as a film's narration cards are (CRAFT rule 1), most of an
       // animatic's panels. The Note key is one more on each: the frame's
       // note is the studio's one way to say what to change, so it stands in the transport.
-      budget: most(31, 54),
+      budget: STUDIO_AT_REST,
     },
     {
       name: 'Studio, a beat selected: the inspector open on its Words',
@@ -620,9 +471,32 @@ export const STATES: ByPlace<State, AtRest> = {
     },
     {
       name: 'Studio, the version menu',
-      open: player(pageHref.studio(PROBE), '.st-timeline .st-clip'),
+      open: player(pageHref.studio(PROBE), STUDIO_READY),
       disclose: opens('[data-act="version"]', '[data-role="versions"] [data-version="1"]'),
       layer: '[data-role="versions"]',
+    },
+    {
+      name: 'Studio, the context menu',
+      open: player(pageHref.studio(PROBE), STUDIO_READY),
+      disclose: menuOn('.st-transport'),
+      layer: CONTEXT_MENU,
+    },
+    {
+      name: 'Studio, the keys dialog',
+      open: player(pageHref.studio(PROBE), STUDIO_READY),
+      // The first command's Change holds the focus, whichever element the opening focus chose.
+      disclose: (page) =>
+        Effect.gen(function* () {
+          yield* pressed('?', `${KEYS} [data-command]`)(page);
+          yield* page.focus(`${KEYS} .lab-keys-actions > button`);
+        }),
+      layer: KEYS,
+    },
+    {
+      name: 'Studio, a receipt with Undo',
+      open: receipted,
+      disclose: AT_REST,
+      layer: RECEIPTS,
     },
   ],
 };
@@ -673,12 +547,12 @@ export const drawnIn = (place: PlaceName, state: State, device: Device) =>
  * run at once, and asked in a serial case of its own (`film/touches-serial`).
  */
 export const LONG_PRESSED: State = {
-  name: "the Lab's long-press menu",
-  open: lab('edit'),
+  name: "the studio's long-press menu on a clip",
+  open: player(pageHref.studio(PROBE), STUDIO_READY),
   // Made in its case, not as the table is: a call in an initializer runs where it is declared.
-  disclose: (page) => heldOn('.lab-panel')(page),
+  disclose: (page) => heldOn(scriptClip('two'))(page),
   layer: CONTEXT_MENU,
 };
 
 /** The place `LONG_PRESSED` is at. */
-export const LONG_PRESSED_AT: PlaceName = 'labScene';
+export const LONG_PRESSED_AT: PlaceName = 'studio';

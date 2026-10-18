@@ -6,8 +6,8 @@
 // components run. A film page whose film does not start, or whose faces do
 // not load, fails (`PageEnd`): its tree disposed and its keys unheard before
 // it says why in its place.
-// Every studio page mounts in the one sequence `mountStudio` runs (the Lab,
-// Scenes and Play, and the review).
+// Every studio page mounts in the one sequence `mountStudio` runs (a film's
+// studio and the review).
 
 import { Location } from '@bible/url-state';
 import { type JSX, hydrate, render } from '@solidjs/web';

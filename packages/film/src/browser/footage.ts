@@ -127,7 +127,7 @@ export const footageAt = (
 /**
  * Frame `T` of `film` painted by `paint`, with its footage decoded first (at
  * once for a film that reads none): it resolves once the frame is painted,
- * so whatever reads the canvas after it (a note's still, the onion) reads
+ * so whatever reads the canvas after it (a note's still) reads
  * this frame.
  */
 const paintedAt = (

@@ -32,7 +32,7 @@ import { PageRenderer } from './page-render.ts';
  * On 2026-10-16, with Geist's tokens, the heaviest places, Scenes, a scene
  * and Play, held 65,491 B, 45 B under it: Play's own styles with the UI
  * face's rule (40.1 KB) and the tokens and the player's (25.4 KB, the tokens
- * 4.4 KB of it). The Lab's six places held 64,492 B; the review's 57,169 B,
+ * 4.4 KB of it). The review held 57,169 B,
  * its own styles (52.8 KB) and its tokens (4.4 KB), plus a place's own
  * (`PlaceStyle`: the draft's 6.1 KB, Project's 3.7 KB). Each
  * pass prints every place's weight and margin (`page.css.weighed`).

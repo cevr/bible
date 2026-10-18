@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { Effect, Option } from 'effect';
-import { type Command, labelOf, makeCommands, moved, quiet, refused, said } from './command.ts';
+import { type Command, labelOf, makeCommands, quiet, refused, said } from './command.ts';
 import { contextAt, focusOf, isField, selected, withFocused, withSelection } from './context.ts';
-import { cueOf, Selection } from './selection.ts';
+import { Selection } from './selection.ts';
 import { ChangeId } from '../core/schema.ts';
 
 const command = (id: string, over: Partial<Omit<Command, 'touch'>> = {}): Command => ({
@@ -15,7 +15,7 @@ const command = (id: string, over: Partial<Omit<Command, 'touch'>> = {}): Comman
   ...over,
 });
 
-const lab = contextAt('lab', '/films/f/lab/one');
+const lab = contextAt('player', '/films/f/studio');
 
 describe('the command registry', () => {
   test('lists each id once, in the order first registered', () => {
@@ -54,12 +54,12 @@ describe('the command registry', () => {
     const commands = makeCommands();
     commands.register(
       command('always'),
-      command('on a cue', { when: (ctx) => Option.isSome(selected(ctx, 'Cue')) }),
+      command('on a beat', { when: (ctx) => Option.isSome(selected(ctx, 'Beat')) }),
       command('playing', { when: (ctx) => ctx.playing }),
     );
     expect(commands.available(lab).map((c) => c.id)).toEqual(['always']);
-    const onCue = withSelection(lab, [cueOf('one', 'rise')]);
-    expect(commands.available(onCue).map((c) => c.id)).toEqual(['always', 'on a cue']);
+    const onBeat = withSelection(lab, [Selection.cases.Beat.make({ beat: 'rise' })]);
+    expect(commands.available(onBeat).map((c) => c.id)).toEqual(['always', 'on a beat']);
     expect(commands.available({ ...lab, playing: true }).map((c) => c.id)).toEqual([
       'always',
       'playing',
@@ -90,13 +90,6 @@ describe('the command registry', () => {
 });
 
 describe('receipts', () => {
-  test('say what moved, from before to after, with its unit', () => {
-    expect(moved('cue slam start', '0.42', '0.38', 's')).toBe('cue slam start 0.42 → 0.38 s');
-    expect(moved('knob face', '[960, 800]', '[940, 812]')).toBe(
-      'knob face [960, 800] → [940, 812]',
-    );
-  });
-
   test('carry the command that undoes them, bound to its change, or none; a refusal never undoes', () => {
     const bound = { film: 'f', change: ChangeId.make('k1') };
     expect(said('picked', Option.some({ command: 'edit.undo', bound }))).toMatchObject({
@@ -115,10 +108,10 @@ describe('the context', () => {
     const many = withSelection(lab, [
       Selection.cases.Point.make({ film: 'f', point: 'cold' }),
       Selection.cases.Point.make({ film: 'f', point: 'word' }),
-      cueOf('one', 'rise'),
+      Selection.cases.Beat.make({ beat: 'rise' }),
     ]);
     expect(Option.map(selected(many, 'Point'), (p) => p.point)).toEqual(Option.some('cold'));
-    expect(Option.isNone(selected(many, 'Cue'))).toBe(true);
+    expect(Option.isNone(selected(many, 'Beat'))).toBe(true);
   });
 
   test('reads where a press puts the keyboard: a field, the studio, a slider, a control, the page', () => {
@@ -137,7 +130,10 @@ describe('the context', () => {
       focusOf(Option.map(el('DIV'), (div) => Object.assign(div, { isContentEditable: true }))),
     ).toBe('field');
     expect(focusOf(el('DIV', ['[role="dialog"]']))).toBe('field');
-    expect(focusOf(el('BUTTON', ['.lab-studio']))).toBe('studio');
+    expect(focusOf(el('BUTTON', ['[data-role="studio"]']))).toBe('studio');
+    // The recorder stands in a dialog over the studio: its section's keys are its own there.
+    expect(focusOf(el('BUTTON', ['[data-role="studio"]', '[role="dialog"]']))).toBe('studio');
+    expect(focusOf(el('TEXTAREA', ['[data-role="studio"]', '[role="dialog"]']))).toBe('field');
     // A slider (a wipe's grip) takes its own arrows, Home and End.
     expect(focusOf(el('BUTTON', ['[role="slider"]']))).toBe('slider');
     expect(focusOf(el('circle', ['[role="slider"]']))).toBe('slider');
@@ -157,9 +153,9 @@ describe('the context', () => {
     const version = Selection.cases.Version.make({ folder: 'a', point: 'p', version: 'v2' });
     expect(withFocused(set, Option.some(version)).selection).toEqual([version, ...set.selection]);
     expect(withFocused(set, Option.none())).toBe(set);
-    const onCue = withSelection(lab, [cueOf('one', 'rise')]);
-    expect(withFocused(onCue, Option.some(cueOf('one', 'fall'))).selection).toEqual([
-      cueOf('one', 'rise'),
-    ]);
+    const onBeat = withSelection(lab, [Selection.cases.Beat.make({ beat: 'rise' })]);
+    expect(
+      withFocused(onBeat, Option.some(Selection.cases.Beat.make({ beat: 'fall' }))).selection,
+    ).toEqual([Selection.cases.Beat.make({ beat: 'rise' })]);
   });
 });

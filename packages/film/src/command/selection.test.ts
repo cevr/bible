@@ -1,54 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { ActName } from '../core/address-schema.ts';
-import { Places, beatSelection, pageHref } from '../core/api.ts';
-import { Place } from '@bible/url-state';
-import {
-  Selection,
-  citeOf,
-  cueOf,
-  knobOf,
-  labKeysOf,
-  selectionOf,
-  selectionText,
-} from './selection.ts';
+import { beatSelection, pageHref, panelSelection } from '../core/api.ts';
+import { Selection, citeOf, selectionOf, selectionText, wordsIn } from './selection.ts';
 
 const OPENING = ActName.make('opening');
 
-const {
-  Cue,
-  Knob,
-  Mark,
-  Words,
-  Note,
-  Point,
-  Folder,
-  Set,
-  Version,
-  Variant,
-  Act,
-  Film,
-  Beat,
-  Scene,
-} = Selection.cases;
+const { Mark, Words, Note, Point, Folder, Set, Version, Variant, Act, Film, Beat, Panel, Scene } =
+  Selection.cases;
 
 describe("a selection in the pages' URLs", () => {
-  test('reads the lab scene keys as a cue, a knob or a note, cue first', () => {
-    expect(selectionOf(pageHref.labScene('f', 'one', { cue: 'rise' }))).toEqual(
-      Option.some(Cue.make({ scene: 'one', name: 'rise' })),
-    );
-    expect(selectionOf(pageHref.labScene('f', 'one', { knob: 'size' }))).toEqual(
-      Option.some(Knob.make({ scene: 'one', name: 'size' })),
-    );
-    expect(selectionOf(pageHref.labScene('f', 'one', { note: 'n7' }))).toEqual(
-      Option.some(Note.make({ id: 'n7' })),
-    );
-    expect(selectionOf(pageHref.labScene('f', 'one', { cue: 'rise', note: 'n7' }))).toEqual(
-      Option.some(Cue.make({ scene: 'one', name: 'rise' })),
-    );
-    expect(selectionOf(pageHref.labScene('f', 'one'))).toEqual(Option.none());
-  });
-
   test('reads a folder and a comparison set', () => {
     expect(selectionOf(pageHref.set('renders', 'cold'))).toEqual(
       Option.some(Set.make({ folder: 'renders', point: 'cold' })),
@@ -73,87 +34,46 @@ describe("a selection in the pages' URLs", () => {
     );
   });
 
-  test('cites a lab selection on the page it is on, keeping the time in the same scene', () => {
-    const here = pageHref.labScene('f', 'one', {}, Option.some(1.5));
-    const rise = citeOf(Cue.make({ scene: 'one', name: 'rise' }), here);
-    expect(rise).toBe(pageHref.labScene('f', 'one', { cue: 'rise' }, Option.some(1.5)));
-    expect(selectionOf(rise)).toEqual(Option.some(Cue.make({ scene: 'one', name: 'rise' })));
-    expect(Option.map(Place.decode(Places.labScene, rise), (v) => v.hash.t)).toEqual(
-      Option.some(Option.some(1.5)),
-    );
-    // Another scene's knob drops this scene's time.
-    expect(citeOf(Knob.make({ scene: 'two', name: 'size' }), here)).toBe(
-      pageHref.labScene('f', 'two', { knob: 'size' }),
-    );
-    expect(selectionOf(citeOf(Note.make({ id: 'n7' }), here))).toEqual(
-      Option.some(Note.make({ id: 'n7' })),
-    );
-    expect(selectionOf(citeOf(Note.make({ id: 'n7' }), pageHref.lab('f')))).toEqual(
-      Option.some(Note.make({ id: 'n7' })),
-    );
-  });
-
-  test('cites a line of the code as the Source view held on it, at the time of the scene', () => {
-    const here = pageHref.labScene('f', 'one', {}, Option.some(1.5));
-    const line = Selection.cases.Line.make({ scene: 'one', line: 42 });
-    expect(citeOf(line, here)).toBe(
-      pageHref.labScene('f', 'one', { code: '42' }, Option.some(1.5)),
-    );
-    expect(selectionText(line)).toBe('line 42 of one');
-  });
-
-  test("reads a talk's words (?words=<a>-<b>) and cites them selected, the Transcript view held on the first", () => {
-    const here = pageHref.labScene('f', 'law', {}, Option.some(1.5));
-    const words = Selection.cases.Words.make({ scene: 'law', from: 3, to: 4 });
-    expect(selectionOf(pageHref.labScene('f', 'law', { words: '3-4' }))).toEqual(
-      Option.some(words),
-    );
-    expect(citeOf(words, here)).toBe(
-      pageHref.labScene('f', 'law', { words: '3-4', text: '3' }, Option.some(1.5)),
-    );
-    expect(selectionOf(citeOf(words, here))).toEqual(Option.some(words));
-    expect(selectionText(words)).toBe('words 3–4 of law');
-    expect(selectionText(Selection.cases.Words.make({ scene: 'law', from: 2, to: 2 }))).toBe(
-      'word 2 of law',
-    );
-    // Anything but a range, first to last, selects nothing, and an old link has no key.
-    for (const bad of ['4-3', '3', 'a-b', '-1-2', ''])
-      expect(selectionOf(pageHref.labScene('f', 'law', { words: bad }))).toEqual(Option.none());
-    expect(pageHref.labScene('f', 'law')).toBe('/films/f/lab/law');
-  });
-
-  test("cites the studio's beat in the lab's scene at its time (?beat=), else in the beat's own scene", () => {
-    const here = pageHref.labScene('f', 'one', {}, Option.some(1.5));
+  test("cites a beat, a panel, a beat's words and a note on the studio it is on, at its playhead", () => {
+    const here = pageHref.studio('f', { sel: beatSelection('one') }, Option.some(1.5));
     expect(citeOf(Beat.make({ beat: 'two' }), here)).toBe(
-      pageHref.labScene('f', 'one', { beat: 'two' }, Option.some(1.5)),
+      pageHref.studio('f', { sel: beatSelection('two') }, Option.some(1.5)),
     );
-    expect(citeOf(Beat.make({ beat: 'two' }), pageHref.lab('f', Option.some(9)))).toBe(
-      pageHref.labScene('f', 'two', { beat: 'two' }),
+    expect(citeOf(Panel.make({ panel: 'two.rise' }), here)).toBe(
+      pageHref.studio('f', { sel: panelSelection('two.rise') }, Option.some(1.5)),
     );
-    // A cue picked wins the URL's selection over the beat, as it does over a note.
-    expect(selectionOf(pageHref.labScene('f', 'one', { cue: 'rise', beat: 'two' }))).toEqual(
-      Option.some(Cue.make({ scene: 'one', name: 'rise' })),
+    expect(citeOf(Words.make({ scene: 'law', from: 3, to: 4 }), here)).toBe(
+      pageHref.studio('f', { sel: beatSelection('law'), words: '3-4' }, Option.some(1.5)),
     );
+    expect(citeOf(Note.make({ id: 'n7' }), here)).toBe(
+      pageHref.studio('f', { sel: beatSelection('one'), note: 'n7' }, Option.some(1.5)),
+    );
+  });
+
+  test("reads a talk's words (`<a>-<b>`), first to last; anything else selects nothing", () => {
+    expect(wordsIn('law', '3-4')).toEqual(
+      Option.some(Words.make({ scene: 'law', from: 3, to: 4 })),
+    );
+    for (const bad of ['4-3', '3', 'a-b', '-1-2', ''])
+      expect(wordsIn('law', bad)).toEqual(Option.none());
+    expect(selectionText(Words.make({ scene: 'law', from: 3, to: 4 }))).toBe('words 3–4 of law');
+    expect(selectionText(Words.make({ scene: 'law', from: 2, to: 2 }))).toBe('word 2 of law');
   });
 
   test('every selection round-trips through its citation where the places have a key for it', () => {
-    const here = pageHref.labScene('f', 'one');
+    const here = pageHref.home();
     for (const s of [
-      Cue.make({ scene: 'one', name: 'rise' }),
-      Knob.make({ scene: 'one', name: 'size' }),
-      Words.make({ scene: 'one', from: 2, to: 5 }),
-      Note.make({ id: 'n7' }),
-      Beat.make({ beat: 'two' }),
       Folder.make({ folder: 'renders' }),
       Set.make({ folder: 'renders', point: 'cold' }),
       Version.make({ folder: 'renders', point: 'cold', version: 'b' }),
+      Scene.make({ film: 'f', scene: 'two' }),
     ]) {
       expect(selectionOf(citeOf(s, here))).toEqual(Option.some(s));
     }
   });
 
   test("cites a mark on the studio, its beat selected, whose Words read the beat's line", () => {
-    expect(citeOf(Mark.make({ scene: 'one', name: 'fall' }), pageHref.labScene('f', 'one'))).toBe(
+    expect(citeOf(Mark.make({ scene: 'one', name: 'fall' }), pageHref.studio('f'))).toBe(
       pageHref.studio('f', { sel: beatSelection('one') }),
     );
     expect(selectionText(Mark.make({ scene: 'one', name: 'fall' }))).toBe('mark fall in one');
@@ -203,13 +123,8 @@ describe("a selection in the pages' URLs", () => {
     expect(citeOf(Point.make({ film: 'f', point: 'score' }), studio)).toBe(studio);
   });
 
-  test("writes a cue's or a knob's lab keys", () => {
-    expect(labKeysOf(cueOf('one', 'rise'))).toEqual({ cue: 'rise' });
-    expect(labKeysOf(knobOf('one', 'size'))).toEqual({ knob: 'size' });
-  });
-
   test('reads as a person names it', () => {
-    expect(selectionText(cueOf('cold', 'slam'))).toBe('cue slam in cold');
+    expect(selectionText(Beat.make({ beat: 'cold' }))).toBe('beat cold');
     expect(selectionText(Version.make({ folder: 'r', point: 'cold', version: 'b' }))).toBe(
       'option b of cold',
     );

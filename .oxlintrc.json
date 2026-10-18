@@ -525,11 +525,10 @@
                   "@bible/film/tokens.css",
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
-                  "@bible/film/lab",
                   "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
-                  "@bible/film/lab-server"
+                  "@bible/film/play-server"
                 ],
                 "message": "the engine never imports the player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
               },
@@ -580,11 +579,10 @@
                   "@bible/film/tokens.css",
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
-                  "@bible/film/lab",
                   "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
-                  "@bible/film/lab-server"
+                  "@bible/film/play-server"
                 ],
                 "message": "the engine never imports the player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
               },
@@ -632,11 +630,10 @@
                   "@bible/film/tokens.css",
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
-                  "@bible/film/lab",
                   "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
-                  "@bible/film/lab-server"
+                  "@bible/film/play-server"
                 ],
                 "message": "the Rive loader and its runtimes never import the player, tools, lab, the pages' commands or the host's adapters (browser): the player and the tools import them (packages/film/README.md, the purity rule)."
               },
@@ -684,11 +681,10 @@
                   "@bible/film/tokens.css",
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
-                  "@bible/film/lab",
                   "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
-                  "@bible/film/lab-server"
+                  "@bible/film/play-server"
                 ],
                 "message": "the house look never imports the player, tools, lab, the pages' commands, the Rive loader (src/rive/) or the host's adapters (browser): they may import it (packages/film/README.md, the purity rule)."
               }
@@ -721,11 +717,10 @@
                   "@bible/film/tokens.css",
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
-                  "@bible/film/lab",
                   "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
-                  "@bible/film/lab-server"
+                  "@bible/film/play-server"
                 ],
                 "message": "the engine never imports the player, tools or lab: they import it (packages/film/README.md, the purity rule)."
               }
@@ -749,11 +744,10 @@
                   "**/lab",
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
-                  "@bible/film/lab",
                   "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
-                  "@bible/film/lab-server"
+                  "@bible/film/play-server"
                 ],
                 "message": "the player never imports the tools or the lab: the lab mounts the player (packages/film/README.md, the purity rule)."
               },
@@ -840,11 +834,10 @@
                   "@bible/film/tokens.css",
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
-                  "@bible/film/lab",
                   "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
-                  "@bible/film/lab-server"
+                  "@bible/film/play-server"
                 ],
                 "message": "the pages' commands never import the player, the tools or the lab: they register their commands with it (packages/film/README.md, the purity rule)."
               }
@@ -1110,20 +1103,17 @@
     {
       // The media module itself, the tests and fixtures; and the sites that
       // hold an element today, each moved onto the media module by the
-      // readers' batch (NEW6-8): the voice's take, the studio's takes, the
-      // review's player, compare and mix, and an ask's take.
+      // readers' batch (NEW6-8): the studio's takes, the review's player and
+      // compare, and an ask's take.
       "files": [
         "**/packages/film/src/browser/media*.ts",
         "**/packages/film/src/**/fixtures/**",
         "**/packages/film/src/**/*.test.ts",
         "**/packages/film/src/**/*.test.tsx",
-        "**/packages/film/src/lab/script/voice.tsx",
         "**/packages/film/src/lab/ask/material.tsx",
         "**/packages/film/src/lab/studio/section.tsx",
         "**/packages/film/src/lab/review/player.tsx",
-        "**/packages/film/src/lab/review/section.tsx",
-        "**/packages/film/src/lab/review/options/section.tsx",
-        "**/packages/film/src/lab/review/options/context.tsx"
+        "**/packages/film/src/lab/review/section.tsx"
       ],
       "rules": {
         "film/media-through-player": "off"
@@ -1194,11 +1184,10 @@
                   "@bible/film/tokens.css",
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
-                  "@bible/film/lab",
                   "@bible/film/play",
                   "@bible/film/review",
                   "@bible/film/review-server",
-                  "@bible/film/lab-server"
+                  "@bible/film/play-server"
                 ],
                 "message": "the host's adapters never import the player, the tools or the lab: the pages import them (packages/film/README.md, the purity rule)."
               }

@@ -1,5 +1,5 @@
-// Animation frames: the player's play loop, the review's synced loop and the
-// lab's paints (the compare layer's, the onion's) all run on `Frames`. Each
+// Animation frames: the player's play loop and the review's synced loop
+// both run on `Frames`. Each
 // is built on one primitive, a callback asked for on the next frame (`Ask`):
 // live it is the browser's `requestAnimationFrame` (`frames-browser.ts`), so a
 // step or a paint runs inside the frame's own callback, and a whole loop is

@@ -1,8 +1,7 @@
 // A script's words as the page's commands: Select to here, on the context
 // menu of a word (a right-click, or a finger held still on it), so a phone,
 // which has no Shift, selects a range as a laptop does: tap the first word,
-// hold the last, Select to here. It is the Transcript's (`selectedTo`): a
-// beat's line is selected as a talk's section is. Pure but for what
+// hold the last, Select to here (`selectedTo`). Pure but for what
 // `ScriptVerbs` does.
 
 import { Option } from 'effect';

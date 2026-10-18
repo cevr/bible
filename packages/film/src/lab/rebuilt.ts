@@ -1,15 +1,15 @@
-// The lab page onto new code: the server builds the pages itself and numbers
-// each build (`LabPage`); the page was served at one, by one server process
-// (`<meta name="lab-build">`, `<meta name="lab-server">`), and waits on
-// `/api/review/build?since=&film=` for a later one, which a change to a file
-// the pages are built from makes, or a new mix of its film's track, or for
-// an answer from another server (the lab
-// restarted: the page is old code, whatever the numbers). Then the page
-// reloads at the frame it shows, as a write does (`StageOps.reload`), so a
-// scene edited in the editor or by an agent is on screen without a hand on
-// the page. A failed wait (the server restarting) is asked again after a
-// pause, for an hour at most (a page left open past that loads the new code
-// on its next reload); nothing else of the page waits on it.
+// A film's studio onto new code: the server builds the pages itself and
+// numbers each build (`LabPage`); the page was served at one, by one server
+// process (`<meta name="lab-build">`, `<meta name="lab-server">`), and waits
+// on `/api/review/build?since=&film=` for a later one, which a change to a
+// file the pages are built from makes, or a new mix of its film's track, or
+// for an answer from another server (the lab restarted: the page is old
+// code, whatever the numbers). Then the page loads again at its place
+// (`Editing.Root`, once no edit is in hand), so a scene edited in an editor
+// or by an agent is on screen without a hand on the page. A failed wait
+// (the server restarting) is asked again after a pause, for an hour at most
+// (a page left open past that loads the new code on its next reload);
+// nothing else of the page waits on it.
 
 import { Effect, Option, Schedule } from 'effect';
 import type { PageBuild } from '../core/schema.ts';
@@ -47,7 +47,7 @@ const newer = (served: PageBuild) => (answer: PageBuild) =>
  * Wait (through `wait`, asked with the build served) for newer code than
  * `served`, then `reload`. A failed wait is asked again after a pause.
  */
-export const reloadPast = <E, R>(
+const reloadPast = <E, R>(
   served: PageBuild,
   wait: (served: PageBuild) => Effect.Effect<PageBuild, E, R>,
   reload: Effect.Effect<void>,
@@ -78,25 +78,3 @@ export const reloadOnRebuild = (film: string, reload: Effect.Effect<void>) =>
         ),
     }),
   );
-
-/**
- * Each newer answer than the last (through `wait`, asked first with `served`),
- * then `heard` with it, for as long as it runs: a page that keeps its place
- * rather than reloading. A failed wait is asked again after a pause.
- */
-export const hearEach = <E, R, H = never>(
-  served: PageBuild,
-  wait: (served: PageBuild) => Effect.Effect<PageBuild, E, R>,
-  heard: (answer: PageBuild) => Effect.Effect<void, never, H>,
-) =>
-  Effect.gen(function* () {
-    let last = served;
-    while (true) {
-      const answer = yield* wait(last).pipe(Effect.retry(REASKED));
-      if (newer(last)(answer)) {
-        yield* Effect.logInfo(`lab.heard since=${last.build} build=${answer.build}`);
-        yield* heard(answer);
-      }
-      last = answer;
-    }
-  });

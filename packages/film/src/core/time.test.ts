@@ -12,7 +12,6 @@ import {
   justBefore,
   keys,
   lerp,
-  offTheMs,
   onTheMs,
   progress,
   staggered,
@@ -43,16 +42,6 @@ describe('the time grid', () => {
     }
     // A time already on the grid is written as itself, so reloads never creep.
     expect(onTheMs(12.33)).toBe(12.33);
-  });
-
-  test('an out point rounds down, so a span marked never reaches past the times marked', () => {
-    for (const T of [12.3333333, 4.5, 0, 7.12999, 99.0001]) {
-      const read = offTheMs(T);
-      expect(read).toBeLessThanOrEqual(T);
-      expect(T - read).toBeLessThan(0.001);
-    }
-    expect(offTheMs(12.33)).toBe(12.33);
-    expect([onTheMs(3.4562), offTheMs(3.4562)]).toEqual([3.457, 3.456]);
   });
 
   test('a time on a frame is that frame, either way; float noise around it is not the next', () => {

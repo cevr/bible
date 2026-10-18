@@ -110,10 +110,6 @@ export const attributesAre = (
 export const attributeIs = (page: Tab, selector: string, name: string, want: string | RegExp) =>
   settle(page, { selector, read: { _tag: 'Attribute', name }, want: wantOf(want) });
 
-/** Wait until the field at `selector` holds `want`. */
-export const valueIs = (page: Tab, selector: string, want: string) =>
-  settle(page, { selector, read: { _tag: 'Value' }, want: { _tag: 'Is', value: want } });
-
 /** Wait until `n` elements match `selector`. */
 export const countIs = (page: Tab, selector: string, n: number) =>
   settle(page, { selector, read: { _tag: 'Count' }, want: { _tag: 'Is', value: n } });
@@ -167,60 +163,8 @@ export const inkIs = (selector: string, token: string) =>
   drawnAs(selector, 'color', `var(${token})`);
 
 /**
- * An expression run in the page: whether `selector`'s first match wears the
- * kit's pressed look (DL §5, a quiet button pressed): the raised surface, the
- * accent edge, its words in the primary ink.
- */
-export const pressedLook = (selector: string) =>
-  `[${drawnAs(selector, 'background-color', 'var(--surface-3)')}, ${drawnAs(selector, 'border-top-color', 'var(--accent)')}, ${drawnAs(selector, 'color', 'var(--text-1)')}].every(Boolean)`;
-
-/**
  * An expression run in the page: how the focused element shows its focus,
  * `ring` (the studio's `--focus-ring` and no outline) or `outline` (the
  * browser's, or any other), and `none` when nothing has focus.
  */
 export const FOCUS_SHOWN = `((el) => el === null || el === document.body ? 'none' : getComputedStyle(el).outlineStyle === 'none' && getComputedStyle(el).boxShadow === ((probe) => { probe.style.boxShadow = 'var(--focus-ring)'; el.parentElement.append(probe); const ring = getComputedStyle(probe).boxShadow; probe.remove(); return ring; })(document.createElement('i')) ? 'ring' : 'outline')(document.activeElement)`;
-
-/**
- * An expression run in the page: what describes `selector`'s first match for
- * assistive tech (the text of each element its `aria-describedby` names that
- * is on the page and shown, joined by a space); `''` when nothing does.
- */
-export const describedBy = (selector: string) =>
-  `((el) => (el.getAttribute('aria-describedby') || '').split(' ').map((id) => document.getElementById(id)).filter((d) => d !== null && d.checkVisibility()).map((d) => d.textContent).join(' '))(document.querySelector(${json(selector)}))`;
-
-/**
- * An expression run in the page: every way the shown `labels` (each the
- * element holding a label's text) fail to read, as `text: why`; none, `[]`.
- * A label stays inside its room (its closest `room`, or itself): the span of
- * time it names. One whose text does not fit is shortened with an ellipsis,
- * keeping a letter and the ellipsis at least, or dropped; never cut mid-letter.
- * And no two shown labels overlap.
- */
-export const labelsClash = (labels: string, room: string) =>
-  `(() => {
-    const out = [];
-    const shown = [...document.querySelectorAll('${labels}')].filter((e) => {
-      const s = getComputedStyle(e);
-      return s.display !== 'none' && s.visibility !== 'hidden' && e.textContent.trim() !== '' && e.getBoundingClientRect().width > 0;
-    });
-    const boxes = shown.map((e) => {
-      const r = e.getBoundingClientRect();
-      const own = (e.closest('${room}') || e).getBoundingClientRect();
-      const text = e.textContent.trim();
-      if (r.left < own.left - 0.5 || r.right > own.right + 0.5) out.push(text + ': leaves its room');
-      if (e.scrollWidth > e.clientWidth + 0.5) {
-        const glyph = document.createRange();
-        glyph.setStart(e.firstChild, 0);
-        glyph.setEnd(e.firstChild, 1);
-        if (getComputedStyle(e).textOverflow !== 'ellipsis') out.push(text + ': cut mid-letter');
-        else if (e.clientWidth < 2 * glyph.getBoundingClientRect().width - 0.5) out.push(text + ': no letter left');
-      }
-      return { text, r };
-    });
-    boxes.forEach((a, i) => boxes.slice(i + 1).forEach((b) => {
-      if (a.r.left < b.r.right - 0.5 && b.r.left < a.r.right - 0.5 && a.r.top < b.r.bottom - 0.5 && b.r.top < a.r.bottom - 0.5)
-        out.push(a.text + ': overlaps ' + b.text);
-    }));
-    return out;
-  })()`;

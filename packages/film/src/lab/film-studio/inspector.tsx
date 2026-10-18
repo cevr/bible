@@ -40,7 +40,6 @@ import {
 import { Frames } from '../../browser/frames.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { reloadHere } from '../stage.ts';
-import { pageHref } from '../../core/api.ts';
 import { boardNamed, shownTry, tryOf } from '../../core/board.ts';
 import type { BoardClip, FilmTimeline, ScriptClip, Track } from '../../core/timeline-schema.ts';
 import { Actor } from '../actor.tsx';
@@ -601,9 +600,6 @@ const useRecordPage = (): Accessor<Option.Option<RecordPage>> => {
           focus = Option.some(f);
         },
       },
-      // The studio reloads only for a take kept, so no reload waits on a take.
-      hold: () => Effect.void,
-      listed: () => {},
       place: (children) => <RecordOver>{children}</RecordOver>,
     })),
   );
@@ -928,7 +924,7 @@ const VoiceBody = (props: { readonly beat: ScriptClip; readonly timeline: FilmTi
 
 // ---------------------------------------------------------------- Code
 
-/** The scene's source as its file stands, read only, a line each; the Lab, where it is edited, a link away. */
+/** The scene's source as its file stands, read only, a line each: an agent edits it, the owner reads it. */
 const CodeBody = (props: { readonly scene: string }) => {
   const { meta } = useStudio();
   // The pane is the beat's alone, so the scene read is the one it opened on.
@@ -958,13 +954,6 @@ const CodeBody = (props: { readonly scene: string }) => {
               </For>
             </code>
           </pre>
-          <a
-            class="st-btn st-lab"
-            data-act="open-lab"
-            href={pageHref.labScene(meta.film, scene, {}, Option.none())}
-          >
-            Edit in the Lab
-          </a>
         </figure>
       )}
     </Show>

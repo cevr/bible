@@ -101,10 +101,9 @@ from this app's source in its own process when they are asked for, and again
 after a file they were built from changes: the review (`review.html`) at `/`,
 `/sets/<folder>[/<point>]` and `/productions/<production>`, and the
 player (`play.html`, whose entry `src/play.ts` mounts `@bible/film/play`) at
-a film's studio, `/films/<film>/studio`. The lab page (`lab.html`, whose
-entry `src/lab.ts` mounts `@bible/film/lab`) serves a film's `/lab`; the
-studio's inspector links to it. The lab sends a film's `/scenes`,
-`/project`, `/play`, `/choices`, `/script` and `/board` paths to its studio. Each page is rendered first on the server by its server
+a film's studio, `/films/<film>/studio`. The lab sends a film's `/scenes`,
+`/project`, `/play`, `/choices`, `/script`, `/board` and `/lab[/<scene>]`
+paths to its studio. Each page is rendered first on the server by its server
 entry beside it (`src/*.server.tsx`, `LAB_SERVERS` in `server.ts`), in a
 worker of its build's own, and the browser bundle hydrates it. The render page
 (`index.html`) is the lab's too, at a film's `/films/<film>/export`, drawn in
@@ -223,57 +222,41 @@ needs no other tool; it writes `full.wav` whole (a partial of its own,
 renamed only once written), so a failed or interrupted mix leaves the previous track as it was. The
 player streams the same WAV. Ctrl-C stops
 a render cleanly: every page, the browser and the server close. Player keys: space play, ←/→ frame (shift = ten frames), `[` `]` scene,
-`c` captions. In the lab (`bun run lab`, `/films/<film>/lab`) a click on the frame pins a
-note, a drag boxes one, the Pen draws on it and `n` (or the Note frame button, on a phone)
-notes the whole frame; notes show as pink pins on the track and in the side list, where the
-agent's replies arrive with their after-stills (if the page loses the lab server, the notes say so and connect again on their own). The strip under the timeline shows the
-current scene's cues: drag one (body = offset, edges = start/end; a bar too short for edges is
-all body, alt-drag for its end; an `until` cue's right edge sets its `untilOffset` off its point, so its end keeps following the point; snaps to words and frames while Snap is on (S), shift inverts it; Esc puts it back) and the release writes the new value into
-the scene's `.ts` file, the page reloading at the same time and selection.
-The inspector sets offset, dur (an `until` cue's end) and ease (each curve drawn) and knobs; a point
-knob gets a handle on the frame, placed through the transform it was read
-under (inside `at(...)`, scaled, tilted) or, read before a camera, through that
-camera, so it drags where it is drawn. A camera's target (a point knob `face`
-beside `faceZoom`) is a reticle; while the camera sits on it, dragging it moves
-the picture with the pointer (the target moves the other way). `film check --static`
-runs after each write and its findings show in the panel; Undo (⌘Z) puts the
-newest write back and Redo (⇧⌘Z) makes it again, over the last 50 writes, never
-over a change made since. One write is out at a time: a drag or a field set while one
-is in flight is not taken. Review with `git diff`. The lab's tools are modes, one at a time on the
-mode tray (Edit, Note, Motion, Compare, Record; ⌘K too). Motion ghosts the frames
-around a paused one (Onion: warm before, cool after), slows the clock to
-0.25× or 0.5× (narration mutes), and loops the selected cue or an A–B range (setting B after A plays from A; a B before A waits for a new one). A film with no mixed `full.wav` yet plays on its own clock and the time line says `no narration`; a browser that holds the narration until a click says `narration waits for a click`, and the next play tries again. A play pressed while the narration still loads starts the voice once it can, from where the picture is then.
-Compare draws the same frame as HEAD declared the scene's timeline and
-knobs: wipe (HEAD left of a divider you drag), blink, or diff (HEAD over now
-in the difference blend: black where nothing moved), the mode in the link
-(`?view=wipe|blink|diff`); when HEAD cannot give the scene, the mode says the server's reason. Speed, loop, onion,
-the wipe's divider and play are kept through the reload a write causes (the tab's
-sessionStorage, per film). The **Record**
-mode records the owner's voiceover beat by beat: pick a beat (its line is
-the teleprompter), click into the mode, then R records after a 3 s
-count-in (the meter warns of clipping at −1 dBFS), Space stops, play it back,
-K submits; what was heard and the word error show, or the server's refusal,
-and a `TakeMismatch` offers Accept anyway (K). ←/→ step through the beats and
-Esc cancels; those keys are Record's only while it has focus. Each beat's
-attempts play again and Keep makes one the take; a keep, like every lab write,
-is undone by Undo (⌘Z) and redone by Redo: the track remixes and the lab reloads, the take it replaced playing again (the editor waits as long as for a keep, then asks the lab whether the step landed). A reload never takes a take being recorded or under review, nor a note being written: it waits until you submit, discard or save it, and the panel says what it waits for. A kept take reloads the lab
-at the same time, on the same beat, playing the new take (`/films/*` is served
-uncached for that). Use Chrome or Firefox on a computer (every iPhone and
+`c` captions. In the film's studio (`bun run lab`, `/films/<film>/studio`; the old
+`/films/<film>/lab[/<scene>]` links land there) the timeline holds the film's lanes,
+the Script's beats a clip each. Drag a Script clip to another gap and its beat moves;
+pull a clip's edge and its hold changes: each writes the scene's TypeScript through
+the lab's `beats/move` and `beats/hold`, ripples on the timeline at once, and the
+page comes back to the same moment of the same beat once the lab has read it
+(`packages/film/src/lab/film-studio/editing.tsx`). ⌘Z and ⇧⌘Z, and a receipt's
+Undo, step the film's one history (`edits/undo`, `edits/redo`), the agents' edits
+and the owner's on one stack. What the page cannot write exactly it files as a note
+for an agent: N, or a clip's Note on this frame, draws on the frame in red with one
+line; a beat split at the playhead and a Board panel moved to another beat are notes
+too, and a receipt's Withdraw takes one back while no one has answered it. The
+context menu, ⌘K, a key and a receipt's button run the same commands. Review a write
+with `git diff`. A film with no mixed `full.wav` yet plays on its own clock. The
+studio's **Record** dialog records the owner's voiceover beat by beat: pick a beat
+(its line is the teleprompter), then R records after a 3 s count-in (the meter warns
+of clipping at −1 dBFS), Space stops, play it back, K submits; what was heard and
+the word error show, or the server's refusal, and a `TakeMismatch` offers Accept
+anyway (K). ←/→ step through the beats; those keys are the recorder's only while
+focus is in it, and Esc is the dialog's. Each beat's attempts play again and Keep
+makes one the take; a keep is a step of the one history too: the track remixes and
+the studio reloads on the same beat. A reload never takes a take being recorded or
+under review, nor a frame being drawn on. Use Chrome or Firefox on a computer (every iPhone and
 iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to a secure page,
 and the phone's plain `http://` link is not one, so record on the local link
-(`http://localhost:8229/…`; on the phone's, Record says so); pick the interface in Record's mic list
+(`http://localhost:8229/…`; on the phone's, Record says so); pick the interface from ⌘K
 (it is remembered in the browser). The capture is raw PCM (no echo cancelling,
 noise suppression or gain control) posted as a 24-bit WAV at the microphone's
 own rate. `bun studio-harness.ts` runs the same lab over a temp
 copy of a film with a fake speech-to-text (no paid call; its control is behind
 the lab's gate, a write JSON as from a tool, `curl -H 'content-type: application/json' -d '{}'`: `POST
 /harness/mishear/<beat>` makes it mis-hear a beat, `POST
-/harness/stop` stops it and removes the copy), for driving the panel
-without touching the real films. A striped timeline segment means that beat's narration is
-estimated, not recorded. The track also marks every `{mark}` (a tick at its
-foot), every named cue (a bar as long as the cue), every sound effect (a dot
-along the top) and every score movement's start (a line through it), from the film's
-`sound` passed to `createFilm`; hover one for its name and time.
+/harness/stop` stops it and removes the copy), for driving the recorder
+without touching the real films. A striped Script clip means that beat's narration is
+estimated, not recorded.
 
 **The review** (the lab's home page, `/`) is where options are compared and
 picked; each film on it is a card that opens the film's studio
@@ -298,7 +281,7 @@ the film's studio. The lab answers each of its listeners' own names
 in process and served behind the check); every request passes one gate
 (`admit`), and writes are JSON, from the lab's own origin or from a tool's
 (no Origin). The
-review never edits a scene: the lab's own page does. The player and the lab
+review never edits a scene: the film's studio does. The player and the lab
 serve a film's narration through the framework's one route
 (`packages/film/src/tools/narration-route.ts`),
 `/films/<film>/narration/<file>`: the film one of the app's films now (a
@@ -855,7 +838,7 @@ itself is not wired yet.
 
 The engine lives in [`packages/film`](../../packages/film); this app is its
 first user. `src/main.ts` is the render page's entry: it calls `mountRender(pages)`
-with the registry in `src/films/index.ts` (the films and their shorts); `src/play.ts` calls `mountFilmStudio(pages)` for a film's studio (the studio's frame around the studio's own header), `src/lab.ts` calls `mountLab(films)`, and `src/review.ts` calls `mountReview(films)`; beside each, its server entry (`src/<page>.server.tsx`) renders the page on the server with none of the films imported. Scenes import from three entry
+with the registry in `src/films/index.ts` (the films and their shorts); `src/play.ts` calls `mountFilmStudio(pages)` for a film's studio (the studio's frame around the studio's own header), and `src/review.ts` calls `mountReview(films)`; beside each, its server entry (`src/<page>.server.tsx`) renders the page on the server with none of the films imported. Scenes import from three entry
 points:
 
 | Entry point          | Module               | What it gives a scene                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |

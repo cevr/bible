@@ -3,15 +3,10 @@
 // handle can be read off the frame; the third a camera pushed in on a knob,
 // with a cue that runs `until` a mark.
 
-import { Result } from 'effect';
 import { camera } from '../../canvas/camera.ts';
 import { type Film, type FilmSpec, createFilm, drawing } from '../../canvas/film.ts';
 import { REVIEW_FILES } from '../../core/api.ts';
-import { estimate, hashText, parse, takeScript } from '../../core/narration.ts';
-import type { VoiceTiming } from '../../core/schema.ts';
-import { unmeasured } from '../../core/voiced.ts';
 import { type Face, SUBSETS } from '../../player/face.ts';
-import { narrationUrls } from '../../player/narrated.ts';
 
 /** The probe film's name in its registry and in the lab's URLs. */
 export const PROBE = 'probe';
@@ -112,32 +107,3 @@ const probeSpec = (): FilmSpec => ({
     },
   ],
 });
-
-/**
- * The probe film with a master to play (`narrationUrls`): each scene's take
- * recorded as its own estimate, so it lays out and draws as `probeFilm` does,
- * and only its narration is new.
- */
-export const narratedProbeFilm = (): Film => {
-  const spec = probeSpec();
-  const take = (id: string, say: string) => {
-    const parsed = Result.getOrThrow(parse(id, say));
-    const words = unmeasured(estimate(parsed.spoken));
-    const timing: VoiceTiming = {
-      hash: hashText(takeScript(parsed)),
-      file: `${id}.wav`,
-      duration: words.at(-1)?.end ?? 0,
-      words,
-      source: 'recorded',
-    };
-    return [id, timing] as const;
-  };
-  return createFilm({
-    ...spec,
-    timings: {
-      voice: '',
-      scenes: Object.fromEntries(spec.scenes.map((s) => take(s.id, s.say ?? ''))),
-    },
-    audio: narrationUrls(PROBE).audio,
-  });
-};

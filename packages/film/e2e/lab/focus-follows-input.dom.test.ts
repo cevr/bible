@@ -17,9 +17,9 @@
 //   (`FOCUS_SITES` in `src/lab/focus-sites.test.ts`, by file and call, the
 //   lab's wrappers' callers and the kit popups' `initialFocus` too): that
 //   unit test's source scan fails on a place not named there, and each site's
-//   paths that no command reaches (a kind's tab, Back and Forward, a studio
-//   button or its prompter, a kept take's reload, an ask's index entry and
-//   its Send with a question open), run below, by the keyboard and by the
+//   paths that no command reaches (a recorder button or its prompter, a
+//   recorder control pressed away, an ask's index entry and its Send with a
+//   question open), run below, by the keyboard and by the
 //   pointer, and a key pressed in the middle of a click.
 // `:focus-visible` matches only in the window that has the focus, so every
 // case runs alone, and a page without it answers so instead of passing.
@@ -28,14 +28,7 @@ import { Effect, type Scope } from 'effect';
 import { expect, it } from 'effect-bun-test';
 import type { Input } from '../../src/browser/keys.ts';
 import { pageHref } from '../../src/core/api.ts';
-import {
-  type Json,
-  json,
-  labAt,
-  openLab,
-  openReview,
-  route,
-} from '../../src/lab/fixtures/harness.ts';
+import { DESK, json, openPlayer, openReview, route } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import {
   STUDIO_ASK,
@@ -223,16 +216,16 @@ const everyCommand = (opened: Opened) =>
     expect(unrun).toEqual([]);
   });
 
-/** One beat to record, with one earlier attempt that can be kept, whose keep mixes: the page reloads. */
+/** The beat the studio selects, to record, with one earlier attempt that can be kept. */
 const STUDIO_ROUTES = [
   route('GET', /^\/studio\/beats$/, () =>
     json({
       film: PROBE,
       beats: [
         {
-          id: 'thesis',
-          file: 'thesis.wav',
-          parts: [{ kind: 'line', text: 'The law is holy.' }],
+          id: 'one',
+          file: 'one.wav',
+          parts: [{ kind: 'line', text: 'The ball climbs.' }],
           sources: [],
           state: 'staging',
           recorded: false,
@@ -241,13 +234,13 @@ const STUDIO_ROUTES = [
       ],
     }),
   ),
-  route('GET', /^\/studio\/takes\/thesis\/attempts$/, () =>
+  route('GET', /^\/studio\/takes\/one\/attempts$/, () =>
     json({
-      beat: 'thesis',
+      beat: 'one',
       attempts: [
         {
-          file: 'thesis.new.flac',
-          transcript: 'the law is holy',
+          file: 'one.new.flac',
+          transcript: 'the ball climbs',
           wer: 0,
           at: 0,
           duration: 2.5,
@@ -257,31 +250,38 @@ const STUDIO_ROUTES = [
       ],
     }),
   ),
-  route('POST', /^\/studio\/takes\/thesis\/keep$/, () =>
-    json({
-      beat: 'thesis',
-      take: { hash: 'h', file: 'thesis.new.flac', duration: 2.5, words: [], source: 'recorded' },
-      transcript: 'the law is holy',
-      wer: 0,
-      timings: { voice: 'v', scenes: {} },
-      mixed: true,
-    } satisfies Json),
-  ),
 ];
 
-/** The Lab in Record over `STUDIO_ROUTES`. */
+/** The studio at rest: its timeline drawn. */
+const READY = '.st-timeline .st-clip';
+/** The recorder over the studio, a beat in it, its prompter, and an earlier attempt's Keep. */
+const RECORD = '[data-role="record"]';
+const STUDIO = `${RECORD} [data-role="studio"]`;
+const BEAT = `${RECORD} [data-beat="one"]`;
+const PROMPTER = `${RECORD} [data-role="prompter"]`;
+
+/** The studio at a desk. */
+const atRest = () => openPlayer({ href: pageHref.studio(PROBE), viewport: DESK }, READY);
+
+/** The studio's recorder over `STUDIO_ROUTES`, opened from beat one's Voice section. */
 const inRecord = () =>
-  openLab(STUDIO_ROUTES, { href: labAt(1), mic: { allowed: true }, mode: 'record' });
+  Effect.gen(function* () {
+    const opened = yield* openPlayer(
+      { href: pageHref.studio(PROBE, { sel: 'beat:one' }), viewport: DESK, microphone: true },
+      READY,
+      STUDIO_ROUTES,
+    );
+    const { page } = opened;
+    const voice = '.st-pane .st-sec[data-section="Voice"]';
+    yield* page.click(`${voice} > summary`);
+    yield* page.click(`${voice} [data-act="record"]`);
+    yield* waitFor(page, BEAT);
+    return opened;
+  });
 
 /** The pages whose registries the property runs, each at a desk. */
 const PAGES: ReadonlyArray<Opened> = [
-  { name: 'the Lab', open: () => openLab(), moves: [], runs: [] },
-  {
-    name: 'the Lab in Note',
-    open: () => openLab([], { mode: 'note' }),
-    moves: [],
-    runs: ['notes.frame'],
-  },
+  { name: 'the studio', open: atRest, moves: [], runs: ['studio.note'] },
   { name: 'Record', open: inRecord, moves: [], runs: [] },
 ];
 
@@ -306,10 +306,10 @@ const ASKED = { key: 'pressed', pointer: 'clicked' } as const;
 /** A command whose field ⌘K's closing takes the focus back from, run by its key instead. */
 const BY_THEIR_KEYS = [
   {
-    command: 'notes.frame, in Note,',
-    open: () => openLab([], { mode: 'note' }),
+    command: "the studio's studio.note",
+    open: atRest,
     key: 'n',
-    field: '.lab-compose textarea',
+    field: '.st-notebar [data-role="note-text"]',
   },
 ] as const;
 
@@ -334,12 +334,6 @@ for (const { command, open, key, field } of BY_THEIR_KEYS)
 const holds = (path: string, input: Input, seen: Seen) =>
   Effect.sync(() => expect(wrong(path, input, seen)).toEqual([]));
 
-/** The studio, a beat in it, its prompter, and an earlier attempt's Keep. */
-const STUDIO = '[data-role="studio"]';
-const BEAT = '[data-beat="thesis"]';
-const PROMPTER = '[data-role="prompter"]';
-const KEEP = '[data-file="thesis.new.flac"] [data-act="keep"]';
-
 for (const [part, at] of [
   ['a studio button', BEAT],
   ['the prompter', PROMPTER],
@@ -348,7 +342,6 @@ for (const [part, at] of [
     `in Record, the keyboard on the studio, then ${part} pressed with the mouse: the ring goes`,
     Effect.gen(function* () {
       const { page, errors } = yield* inRecord();
-      yield* waitFor(page, BEAT);
       yield* waitFor(page, at);
       yield* page.focus(STUDIO);
       yield* page.press('ArrowRight');
@@ -358,53 +351,10 @@ for (const [part, at] of [
     }),
   );
 
-for (const input of INPUTS)
-  alone(
-    `in Record, Keep ${ASKED[input]}, the take kept reloads the page, and the studio takes the focus back with the ring iff the keyboard asked`,
-    Effect.gen(function* () {
-      const { page, errors } = yield* inRecord();
-      yield* waitFor(page, BEAT);
-      yield* page.click(BEAT);
-      yield* waitFor(page, `${KEEP}:not([disabled])`);
-      const loaded = yield* page.nextLoad;
-      if (input === 'key') yield* page.pressIn(KEEP, 'Enter');
-      else yield* page.click(KEEP);
-      yield* loaded;
-      yield* waitFor(page, BEAT);
-      yield* until(page, `document.activeElement?.matches('${STUDIO}') === true`);
-      const seen = yield* page.evaluate<Seen>(SEEN);
-      yield* holds('a kept take’s reload', input, seen);
-      expect(errors).toEqual([]);
-    }),
-  );
-
-alone(
-  'in Record, Keep pressed, then a beat clicked, then a reload nothing asked for: the studio takes the focus back with no ring',
-  Effect.gen(function* () {
-    const { page, errors } = yield* inRecord();
-    yield* waitFor(page, BEAT);
-    yield* page.click(BEAT);
-    yield* waitFor(page, `${KEEP}:not([disabled])`);
-    const kept = yield* page.nextLoad;
-    yield* page.pressIn(KEEP, 'Enter');
-    yield* kept;
-    yield* waitFor(page, BEAT);
-    yield* until(page, `document.activeElement?.matches('${STUDIO}:focus-visible') === true`);
-    yield* page.click(BEAT);
-    // A reload the viewer did not ask for (the rebuild's, an Undo's) restores the focus as nothing asked.
-    yield* page.reload;
-    yield* waitFor(page, BEAT);
-    yield* until(page, `document.activeElement?.matches('${STUDIO}') === true`);
-    yield* holds('a reload after a click', 'pointer', yield* page.evaluate<Seen>(SEEN));
-    expect(errors).toEqual([]);
-  }),
-);
-
 alone(
   'in Record, a studio control the keyboard pressed away hands the focus to the studio, with the ring',
   Effect.gen(function* () {
     const { page, errors } = yield* inRecord();
-    yield* waitFor(page, BEAT);
     yield* page.click(BEAT);
     const record = `${STUDIO} [data-act="arm"]`;
     yield* waitFor(page, record);

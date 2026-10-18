@@ -6,7 +6,6 @@
 
 import { Array as Arr, Option, Schema, SchemaTransformation, Struct } from 'effect';
 import { ActName, Address, PartId } from './address-schema.ts';
-import { inspected } from './field.ts';
 import { SketchItem } from './sketch.ts';
 import type { ease } from './time.ts';
 
@@ -432,22 +431,12 @@ export type Span = typeof Span.Type;
 export const Timeline = Schema.Record(Schema.String, Span);
 export type Timeline = typeof Timeline.Type;
 
-/** One coordinate of a point, in canvas pixels: a pixel a step, ten with Shift, a hundredth with Alt. */
-export const Pixel = Schema.Finite.annotate(
-  inspected({ unit: 'px', step: 1, coarse: 10, fine: 0.01 }),
-);
-
 /** A point in canvas pixels. */
-export const Point = Schema.Tuple([Pixel, Pixel]);
+export const Point = Schema.Tuple([Schema.Finite, Schema.Finite]);
 export type Point = typeof Point.Type;
 
-/** A knob's number (a zoom, a turn, a share): a hundredth a step, a tenth with Shift, a thousandth with Alt. */
-export const KnobNumber = Schema.Finite.annotate(
-  inspected({ step: 0.01, coarse: 0.1, fine: 0.001 }),
-);
-
 /** A value a drawing reads by name (`f.knob`) instead of hard-coding: a number or a point. */
-export const Knob = Schema.Union([KnobNumber, Point]);
+export const Knob = Schema.Union([Schema.Finite, Point]);
 export type Knob = typeof Knob.Type;
 
 /** A drawing's knobs: name → value, the one place the value lives. */
@@ -953,11 +942,11 @@ export const NoteDraft = Schema.Struct({
   /** The `{mark}` nearest the note's time, in its scene. */
   mark: Schema.optionalKey(Schema.String),
   /**
-   * The stretch of its scene it is about (its scope chip's `t 3.2–4.0 s`).
+   * The stretch of its scene it is about (`t 3.2–4.0 s`).
    * Optional and additive: a note without one is about its frame.
    */
   range: Schema.optionalKey(NoteRange),
-  /** The line of its scene's file it is about (written with the Source view held on a line). Optional and additive. */
+  /** The line of its scene's file it is about. Optional and additive. */
   source: Schema.optionalKey(NoteSource),
   /**
    * The words of its scene's line it is about (written with words of the
@@ -1039,15 +1028,11 @@ export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonE
 // ---------------------------------------------------------------------------
 // Lab write-back: the lab edits a scene's cues and knobs in its source file.
 
-/** A cue's offset from its anchor, in seconds: a frame a step, ten with Shift, a millisecond with Alt. */
-export const CueOffset = Schema.Finite.annotate(
-  inspected({ unit: 's', step: { frames: 1 }, coarse: { frames: 10 }, fine: 0.001 }),
-);
+/** A cue's offset from its anchor, in seconds. */
+const CueOffset = Schema.Finite;
 
-/** A cue's length, in seconds, never below 0: stepped as its offset is. */
-export const CueDur = Seconds.annotate(
-  inspected({ unit: 's', step: { frames: 1 }, coarse: { frames: 10 }, fine: 0.001, min: 0 }),
-);
+/** A cue's length, in seconds, never below 0. */
+const CueDur = Seconds;
 
 /** A cue patch's fields, in the order a span writes them. */
 const CuePatchFields = {
@@ -1249,7 +1234,7 @@ const MarkSite = Schema.Struct({
 /**
  * `GET /api/films/<film>/scenes/<scene>/code`: the scene file as it stands, and
  * where in it each cue and knob is written and read, and each mark read, for
- * the Source view to light what plays. The ranges come from the parse the
+ * the studio's Scene section to light what plays. The ranges come from the parse the
  * writes use (`tools/scene-source.ts`). A read is matched by name: a call of
  * a frame's reader (`at`, `cue`, `keys`, `stagger`, `staggerAt`, `knob`,
  * `mark`, `spoken`) whose first argument is a string naming a cue or knob the
@@ -1273,26 +1258,6 @@ export const SceneCode = Schema.Struct({
   ),
 });
 export type SceneCode = typeof SceneCode.Type;
-
-/**
- * `GET /api/films/:film/scenes/:scene/head`: the scene's timeline and knobs as the file
- * declares them at HEAD (literals only), for the lab to draw beside now.
- */
-export const HeadSource = Schema.Struct({
-  scene: Schema.String,
-  /** The scene file, relative to the film's folder. */
-  file: Schema.String,
-  timeline: Timeline,
-  knobs: Knobs,
-  /**
-   * The file's code (all but the drawing's timeline and knobs literals)
-   * differs from HEAD: the compare draws HEAD's data through today's code.
-   */
-  codeChanged: Schema.Boolean,
-  /** HEAD declares the same timeline and knobs as the file does now. */
-  sameData: Schema.Boolean,
-});
-export type HeadSource = typeof HeadSource.Type;
 
 /**
  * The page's build: the number of the lab's pages as built now, past the

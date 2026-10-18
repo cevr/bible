@@ -42,6 +42,13 @@ interface KeysOps {
    */
   readonly listen: (take: (press: KeyPress) => boolean) => Effect.Effect<never>;
   /**
+   * Hear the presses inside `part` before they leave it, until interrupted:
+   * a wrapper that keeps some from the page (a dialog stops the arrow keys)
+   * never keeps them from `take`. A press it takes has its default prevented
+   * and goes no further, so the page never hears it twice.
+   */
+  readonly within: (part: EventTarget, take: (press: KeyPress) => boolean) => Effect.Effect<never>;
+  /**
    * Hear which input the viewer uses until interrupted: `heard` gets `key`
    * for every key pressed, unless a pointer is down (a key in the middle of a
    * click is the click's), and `pointer` for every pointer put down (a mouse,
@@ -144,6 +151,20 @@ const keysOn = (page: EventTarget, mac: boolean): KeysOps => ({
         'keydown',
         (e) => {
           if (Option.exists(pressOf(e), take)) e.preventDefault();
+        },
+        { signal: listening.signal },
+      );
+      return Effect.sync(() => listening.abort());
+    }),
+  within: (part, take) =>
+    Effect.callback<never>(() => {
+      const listening = new AbortController();
+      part.addEventListener(
+        'keydown',
+        (e) => {
+          if (!Option.exists(pressOf(e), take)) return;
+          e.preventDefault();
+          e.stopPropagation();
         },
         { signal: listening.signal },
       );

@@ -27,12 +27,6 @@ const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: 
     'focusFor(target',
     "an ask's goTo: its index's entry and its Send with a question open, pressed and clicked below",
   ],
-  ['notes/section.tsx', 'focusFor(el', "the Lab in Note's notes.frame, a text field"],
-  [
-    'notes/section.tsx',
-    'focusFor(el',
-    'a Save that found the note saying nothing, pressed and clicked below, a text field',
-  ],
   [
     'review/production.tsx',
     'focusFor(field',
@@ -52,7 +46,7 @@ const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: 
   [
     'studio/section.tsx',
     'focusFor(r',
-    'a kept take’s reload, by the keyboard and the pointer; a reload after a click',
+    'a kept take’s reload: no studio path, the studio keeps no focus across a reload',
   ],
   [
     'studio/section.tsx',

@@ -17,14 +17,14 @@ describe("the fixture pages' decoder", () => {
     'is left out of a page whose tests show no footage, and kept in one whose tests show a talk',
     () =>
       Effect.gen(function* () {
-        const [lab, player] = yield* Effect.all(
-          [compile('lab-page.ts'), compile('player-page.ts')],
+        const [review, player] = yield* Effect.all(
+          [compile('review-page.ts'), compile('player-page.ts')],
           {
             concurrency: 2,
           },
         );
-        expect(lab.includes('EncodedPacketSink')).toBe(false);
-        expect(lab).toContain('this fixture page decodes no footage');
+        expect(review.includes('EncodedPacketSink')).toBe(false);
+        expect(review).toContain('this fixture page decodes no footage');
         expect(player.includes('EncodedPacketSink')).toBe(true);
       }),
     BUNDLING,

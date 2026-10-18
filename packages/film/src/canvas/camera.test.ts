@@ -3,7 +3,7 @@
 // every veil; bun has no canvas.
 
 import { describe, expect, test } from 'bun:test';
-import { type Affine, IDENTITY, applyAffine } from '../core/affine.ts';
+import { type Affine, IDENTITY } from '../core/affine.ts';
 import {
   type Camera,
   DRIFT,
@@ -25,7 +25,7 @@ import {
 } from './camera.ts';
 import { heightOf } from './cutout.ts';
 import { FIBRE_SIZE, PLANE_FIBRE } from './fibre.ts';
-import { type Recorder, isPattern, recorder, withDom } from './fixtures/stand-in.ts';
+import { type Recorder, applyAffine, isPattern, recorder, withDom } from './fixtures/stand-in.ts';
 
 /** One plane of a `multiplane` shot. */
 type Plane = Parameters<typeof multiplane>[4][number];

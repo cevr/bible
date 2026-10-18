@@ -40,8 +40,6 @@ const FILM_HREFS = {
   folder: pageHref.folder(STUDIO_FOLDER),
   set: pageHref.set(STUDIO_FOLDER, STUDIO_SET),
   studio: pageHref.studio(PROBE),
-  lab: pageHref.lab(PROBE),
-  labScene: pageHref.labScene(PROBE, 'one'),
 } satisfies Record<keyof typeof PLACE_HREFS, string>;
 
 /** Whether a page is one the server renders: the export page is drawn in the browser alone. */

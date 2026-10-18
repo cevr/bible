@@ -62,7 +62,6 @@ import { NotesStore } from './notes-store.ts';
 import { BoardStore } from './board-store.ts';
 import { approveBeat, pickTry, withdrawBeat } from '../core/board.ts';
 import { readKnob, readSpans } from './scene-source.ts';
-import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { type CueWritten, SceneWriter } from './scene-writer.ts';
 import { type Follows, type Remade, SourceWriter, type Wrote } from './source-writer.ts';
@@ -199,22 +198,6 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
           const film = yield* filmNamed(params.film);
           const { site, ...found } = yield* (yield* SceneSources).code(film, params.scene);
           return { scene: params.scene, file: site.shown, ...found };
-        }),
-      ),
-    )
-    .handle('head', ({ params }) =>
-      answered(
-        Effect.gen(function* () {
-          const film = yield* filmNamed(params.film);
-          const head = yield* (yield* SceneHead).head(film, params.scene);
-          return {
-            scene: params.scene,
-            file: head.site.shown,
-            timeline: head.timeline,
-            knobs: head.knobs,
-            codeChanged: head.codeChanged,
-            sameData: head.sameData,
-          };
         }),
       ),
     )
@@ -357,7 +340,7 @@ const strikesWritten =
     );
   };
 
-/** A talk's words as the Transcript view reads them, and its writes there: Cut, Restore, Mark here. */
+/** A talk's words as the lab reads them, and its writes of them: Cut, Restore, Mark here. */
 const talkGroup = HttpApiBuilder.group(LabHttpApi, 'talk', (handlers) =>
   handlers
     .handle('words', ({ params }) =>
@@ -642,7 +625,6 @@ export type LabContext =
   | SceneSources
   | SceneWriter
   | SourceWriter
-  | SceneHead
   | FreshFilm
   | Takes
   | StudioReadings

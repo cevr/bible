@@ -7,8 +7,10 @@
 // write the lab refuses says why under the words; a refresh reads the draft
 // again, outranking a write's answer sent over the older read; a phone
 // selects a range as the studio's Words does (tap the first word, hold the
-// last, Select to here) and marks it; and the
-// review's home lists the series, each opening to its drafts' links.
+// last, Select to here) and marks it; the review's home lists the series,
+// each opening to its drafts' links; and a Hear whose sound the browser
+// refuses says so beside the press, at a desk and on a phone, until a
+// press plays it.
 
 import { Boolean as Bool, Effect, Option, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
@@ -18,6 +20,7 @@ import { SourceChanged } from '../../../src/core/refusals.ts';
 import {
   type Asked,
   type FakeRoute,
+  DESK,
   PHONE,
   json,
   openReview,
@@ -322,4 +325,59 @@ describe('a series draft in the Script reader, on a phone', () => {
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.runPromise),
   );
+});
+
+/** The page's media refuse to play as a browser refuses sound nobody pressed for; or play again. */
+const REFUSE_PLAY = `(() => { HTMLMediaElement.prototype.play = function () { return Promise.reject(new DOMException('no press', 'NotAllowedError')); }; return true; })()`;
+const ALLOW_PLAY = `(() => { HTMLMediaElement.prototype.play = function () { return Promise.resolve(); }; return true; })()`;
+
+describe("a series draft's Hear the browser refuses", () => {
+  for (const [where, viewport] of [
+    ['a desk', DESK],
+    ['a phone', PHONE],
+  ] as const)
+    it.live(
+      `on ${where}, says so beside the press, and the next press plays it`,
+      () =>
+        Effect.gen(function* () {
+          const routes: ReadonlyArray<FakeRoute> = [
+            ...draftWrites('The first thing {*}God {*}gave was breath.', []),
+            route('GET', VOICE, () => json(draftVoice)),
+            ...studioRoutes,
+          ];
+          const { page, errors } = yield* openReview(routes, {
+            href: pageHref.draft(STUDIO_SERIES, STUDIO_DRAFT),
+            viewport,
+          });
+          yield* waitFor(page, DRAFT_READY);
+          const hear = '[data-act="hear-script"]';
+          const said = '[data-role="hear-blocked"]';
+          // At rest the line is there, a live region, saying nothing.
+          yield* evaluates(
+            page,
+            `document.querySelector('${said}').getAttribute('role')`,
+            'status',
+          );
+          yield* evaluates(page, `document.querySelector('${said}').textContent`, '');
+          yield* page.evaluate(REFUSE_PLAY);
+          yield* page.click(hear);
+          yield* textHas(page, said, 'The browser kept beat 1 quiet: tap ▶ again');
+          yield* evaluates(
+            page,
+            `document.querySelector('${hear}').getAttribute('aria-pressed')`,
+            'false',
+          );
+          // A press the browser lets sound from: the take plays, and the line goes.
+          yield* page.evaluate(ALLOW_PLAY);
+          yield* page.click(hear);
+          yield* evaluates(
+            page,
+            `document.querySelector('${hear}').getAttribute('aria-pressed')`,
+            'true',
+          );
+          yield* evaluates(page, `document.querySelector('${said}').textContent`, '');
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
 });

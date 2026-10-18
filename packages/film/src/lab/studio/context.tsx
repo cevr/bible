@@ -4,9 +4,9 @@
 // the recorder (one actor, spawned on the first beat once the beats are
 // read), the selected beat's attempts, the microphones and the one picked,
 // the meter, and the recording under review as a URL to play. The page it is
-// on (`RecordPage`: the Lab's panel, the film studio's Record dialog) gives
-// its client, its keys, its film, the beat its address names, how a beat
-// picked is written there and where the recorder's parts stand. The
+// on (`RecordPage`: the film studio, whose Record dialog shows it) gives its
+// client, its keys, its film, the beat it selects, how a beat picked is
+// selected there and where the recorder's parts stand. The
 // section's components read this context and act through it; the page
 // around them reads the take it holds (`useHeld`: what a close asks before
 // it drops a take, and the drop), none while the recorder waits on its
@@ -26,18 +26,16 @@ import {
   createEffect,
   createMemo,
   createSignal,
-  onCleanup,
   untrack,
   useContext,
 } from 'solid-js';
-import * as UrlAtom from '@bible/url-state/atom';
 import type { Input } from '../../browser/keys.ts';
 import type { Hub } from '../../command/hub.ts';
 import { said } from '../../command/command.ts';
 import { hubKeys } from '../command/changes.ts';
 import { attemptUrl } from '../../core/api.ts';
 import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
-import { type BrowserServices, type Host, addressOn, hostLayer } from '../../browser/host.ts';
+import { type BrowserServices, type Host, hostLayer } from '../../browser/host.ts';
 import type { LabClient, LabFailure } from '../api.ts';
 import { Actor } from '../actor.tsx';
 import { StudioApi, studioApiLayer } from './api.ts';
@@ -78,11 +76,9 @@ export interface RecordFocus {
 /**
  * The page a recorder is on: its film, host, keys and one client; what its
  * film does when asked (`stage`: pause, load again once a take is mixed); the
- * beat an address of the page names among `beats` (`linked`), and how a beat picked is
- * written there (`go`, a step Back walks; `follow`, in place); where focus
- * is remembered through a reload (`focus`); its reloads, held while a take
- * no one has kept is only on the page (`hold`); and what it hears of the
- * beats read (`listed`).
+ * beat the page selects among `beats` (`linked`, read as it changes), and how
+ * a beat picked is selected there (`go`); and where focus is remembered
+ * through a reload (`focus`).
  */
 export interface RecordPage {
   readonly film: string;
@@ -90,18 +86,16 @@ export interface RecordPage {
   readonly hub: Hub;
   readonly client: Layer.Layer<LabClient>;
   readonly stage: Layer.Layer<RecordStage>;
-  readonly linked: (beats: ReadonlyArray<string>, href: string) => Option.Option<string>;
-  readonly go: (beat: string, move: 'go' | 'follow') => void;
+  readonly linked: (beats: ReadonlyArray<string>) => Option.Option<string>;
+  readonly go: (beat: string) => void;
   readonly focus: {
     readonly get: () => Option.Option<RecordFocus>;
     readonly set: (focus: RecordFocus) => void;
   };
-  readonly hold: (why: Option.Option<string>) => Effect.Effect<void>;
-  readonly listed: (beats: ReadonlyArray<string>) => void;
   /**
-   * Where the page shows the recorder's parts (the Lab's Record slot, the
-   * dialog itself): the recorder stays outside it, so a slot made again
-   * never spawns it again.
+   * Where the page shows the recorder's parts (the dialog over the page):
+   * the recorder stays outside it, so a place made again never spawns it
+   * again.
    */
   readonly place: (children: JSX.Element) => JSX.Element;
 }
@@ -191,8 +185,8 @@ interface RecordHeld {
 interface StudioContextValue {
   readonly state: StudioStateValue;
   readonly actions: StudioActions;
-  /** The page's keys. */
-  readonly meta: { readonly hub: Hub };
+  /** The page's keys, and the host they are heard through. */
+  readonly meta: { readonly hub: Hub; readonly host: Host };
 }
 
 const StudioContext = createContext<StudioContextValue>();
@@ -282,17 +276,16 @@ const Body = (
   );
   const refocus = Option.liftPredicate(keptBy, () => hadFocus);
 
-  // The beat is the link's (`page.linked`): a beat picked is written there
-  // (`page.go`). The recorder is on the link's beat whenever
-  // it is at rest (`atRest`): the link landing on another beat (Back,
-  // Forward, play into the next scene) or the recorder coming back to rest
-  // (a count-in cancelled, a take discarded) on a beat the link has left
-  // moves it there. A recorder holding a take no one has kept stays on its
-  // beat, so a take is never lost to a navigation, and the link moving on
-  // says so; once it rejoins the link, that receipt is replaced in its slot
-  // by the beat it is on now, so none still names a beat the recorder left.
-  const href = useAtomValue(() => UrlAtom.href);
-  const linked = createMemo(() => page.linked(beatIds(beats()), href()), { equals: Equal.equals });
+  // The beat is the page's (`page.linked`): a beat picked is selected there
+  // (`page.go`). The recorder is on the page's beat whenever it is at rest
+  // (`atRest`): the page landing on another beat (Back, Forward, a beat
+  // selected) or the recorder coming back to rest (a count-in cancelled, a
+  // take discarded) on a beat the page has left moves it there. A recorder
+  // holding a take no one has kept stays on its beat, so a take is never
+  // lost to a navigation, and the page moving on says so; once it rejoins
+  // the page, that receipt is replaced in its slot by the beat it is on now,
+  // so none still names a beat the recorder left.
+  const linked = createMemo(() => page.linked(beatIds(beats())), { equals: Equal.equals });
   const due = createMemo(
     () => {
       const now = recorder();
@@ -359,17 +352,6 @@ const Body = (
     },
   );
 
-  // A recording only this page has holds every reload (an Undo's, a rebuild's) until it is kept or discarded.
-  createEffect(
-    () => unsubmitted(recorder()),
-    (why) => {
-      Effect.runFork(page.hold(why));
-    },
-  );
-  onCleanup(() => {
-    Effect.runFork(page.hold(Option.none()));
-  });
-
   // The recording under review, as a URL the page's audio plays; let go when it changes.
   const [review, setReview] = createSignal(Option.none<string>(), written);
   createEffect(
@@ -408,18 +390,18 @@ const Body = (
     return 'busy';
   });
 
-  // A beat picked is a step Back walks; a ←/→ step through the beats follows in place.
-  const select = (id: string, move: 'go' | 'follow') => {
+  // A beat picked, or a ←/→ step through the beats, is the page's selection too.
+  const select = (id: string) => {
     send(RecorderEvent.SelectBeat({ beat: id }));
     if (Option.contains(untrack(linked), id)) return;
-    page.go(id, move);
+    page.go(id);
   };
   const perform = (act: Act, input: Input) => {
     setActedBy(Option.some(input));
     send(eventOf(act, device()));
   };
   const actions: StudioActions = {
-    select: (id) => select(id, 'go'),
+    select,
     perform,
     keep: (file, input) => {
       setActedBy(Option.some(input));
@@ -429,7 +411,7 @@ const Body = (
     control: (command) => controlFor(recorder(), command),
     stepsBeats: () => stepsBeats(recorder()),
     step: (by) => {
-      Option.map(neighbour(beats(), beat(), by), (id) => select(id, 'follow'));
+      Option.map(neighbour(beats(), beat(), by), select);
     },
     focused: setFocused,
   };
@@ -478,7 +460,7 @@ const Body = (
       refocus,
     },
     actions,
-    meta: { hub: page.hub },
+    meta: { hub: page.hub, host: page.host },
   };
   return (
     <StudioContext value={value}>
@@ -532,20 +514,14 @@ export const Provider = (props: ParentProps<{ readonly page: RecordPage }>) => {
     beats: runtime.atom(StudioApi.use((api) => api.beats)),
   };
   const beats = useAtomValue(() => reads.beats);
-  // The panel hears the list this one read gives (the page's only read of
-  // the beats), so its mode and the recorder never disagree on a beat.
-  createEffect(
-    () => Option.map(AsyncResult.value(beats()), (b) => beatIds(b.beats)),
-    (listed) => {
-      Option.map(listed, page.listed);
-    },
+  // The page's beat as the beats first land, kept (`first`): the page's later beats, and
+  // the beats read again, move the recorder spawned here (`linked`), never respawn it.
+  const kept = createMemo<Option.Option<string>>((first) =>
+    Option.orElse(Option.flatten(Option.fromNullishOr(first)), () =>
+      startBeat(beats(), (ids) => untrack(() => page.linked(ids))),
+    ),
   );
-  // The address it opened on, read once: the page's later beats move the recorder spawned
-  // here (`linked`), never respawn it.
-  const opened = addressOn(page.host).href();
-  const start = createMemo(() =>
-    Option.getOrUndefined(startBeat(beats(), (ids) => page.linked(ids, opened))),
-  );
+  const start = () => Option.getOrUndefined(kept());
   return (
     <Show
       when={start()}

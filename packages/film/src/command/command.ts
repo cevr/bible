@@ -155,10 +155,6 @@ export const refused = (text: string, past: Option.Option<CommandId> = Option.no
 export const busy = (text: string): Receipt =>
   Receipt.Said({ said: text, undo: Option.none(), bound: Option.none(), tone: 'busy' });
 
-/** What moved, from before to after: `cue slam start 0.42 → 0.38 s`. */
-export const moved = (what: string, before: string, after: string, unit = ''): string =>
-  [what, before, '→', after, ...[unit].filter((u) => u !== '')].join(' ');
-
 /**
  * How a command was asked for: the step a key's modifiers pick, where it came
  * from, and the input that asked (a key or a pointer), whatever it came

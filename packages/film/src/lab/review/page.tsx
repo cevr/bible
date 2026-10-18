@@ -149,7 +149,6 @@ const Shell = (props: { readonly children: JSX.Element }) => {
     depthOf(state.place(), index(), histories(), AsyncResult.value(state.series()), state.ask());
   return (
     <PageShell
-      page={() => 'films'}
       film={film}
       lastFilm={!['Draft', 'Ask', 'AskPage'].includes(state.place()._tag)}
       crumb={depth}

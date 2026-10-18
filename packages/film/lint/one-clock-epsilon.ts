@@ -1,9 +1,9 @@
 // `film/one-clock-epsilon`: a time is put on its grid, and two times are
 // judged one, by one owner, `core/time.ts`: `frameAtOrAfter` and
-// `frameAtOrBefore` (a frame, or a millisecond at 1000), `onTheMs` and
-// `offTheMs` (an in point up, an out point down), `heardAtOrAfter` (a word
-// heard at or after a mark), `justBefore` (the last instant before a time),
-// and `CLOCK_EPSILON` (two sums of seconds that are one time). A nudge
+// `frameAtOrBefore` (a frame, or a millisecond at 1000), `onTheMs` (an in
+// point up), `heardAtOrAfter` (a word heard at or after a mark), `justBefore`
+// (the last instant before a time), and `CLOCK_EPSILON` (two sums of seconds
+// that are one time). A nudge
 // written out beside a time (`Math.ceil(t * fps - 1e-6)`) is a second owner
 // of that rule, with a tolerance of its own, and a time rounded by two owners
 // creeps a frame.
@@ -46,7 +46,7 @@ const NOISE = 1e-4;
 const MILLISECOND = 1e-3;
 
 const MESSAGE =
-  'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, offTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.';
+  'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.';
 
 /** Whether `node` writes a nudge out: a number above 0 and below `NOISE`. */
 const isNudge = (node: ESTree.Node) =>

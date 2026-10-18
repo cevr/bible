@@ -54,12 +54,10 @@ export const appFolderWith = (own: Readonly<Record<string, string>>) =>
       yield* fs.makeDirectory(path.join(making, folder), { recursive: true });
     const files = {
       'review.html': html('review', './src/p.ts'),
-      'lab.html': html('lab', './src/lab.ts'),
       'sub/player.html': html('player', '../src/play.ts'),
       'index.html': html('render', './src/render.ts'),
       'src/p.ts': "import { shared } from '../lib/shared.ts';\nconsole.log('first', shared);\n",
       'lib/shared.ts': "export const shared = 'shared one';\n",
-      'src/lab.ts': "console.log('the lab');\n",
       'src/play.ts': "console.log('the player');\n",
       'src/render.ts': "console.log('the render page');\n",
       'src/notes.json': '{}',
@@ -77,7 +75,6 @@ export const appFolderWith = (own: Readonly<Record<string, string>>) =>
     const spec = {
       pages: {
         review: path.join(dir, 'review.html'),
-        lab: path.join(dir, 'lab.html'),
         player: path.join(dir, 'sub', 'player.html'),
         render: path.join(dir, 'index.html'),
       },
@@ -191,7 +188,6 @@ export const filmsInMemory = Effect.gen(function* () {
   const html = text('<!doctype html><html><head></head><body></body></html>');
   const files = new Map<string, Uint8Array>([
     ['/app/review.html', html],
-    ['/app/lab.html', html],
     ['/app/player.html', html],
     ['/app/index.html', html],
   ]);
@@ -234,7 +230,6 @@ export const filmsInMemory = Effect.gen(function* () {
   const spec = {
     pages: {
       review: '/app/review.html',
-      lab: '/app/lab.html',
       player: '/app/player.html',
       render: '/app/index.html',
     },

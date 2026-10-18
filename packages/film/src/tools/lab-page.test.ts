@@ -277,8 +277,6 @@ describe('lab pages', () => {
           '/': 'review',
           '/sets/root/folder': 'review',
           '/films/f/studio': 'player',
-          '/films/f/lab': 'lab',
-          '/films/f/lab/hand': 'lab',
           '/films/f/export': 'render',
         };
         for (const [pathname, page] of Object.entries(places))
@@ -290,8 +288,6 @@ describe('lab pages', () => {
         const page = (yield* ask('/films/f/studio')).text;
         expect(page).toMatch(/src="\/[^"]+\.js"/);
         expect(yield* scriptOf('/films/f/studio')).toContain('the player');
-        expect((yield* ask('/films/f/lab/hand')).text).toMatch(/src="\/[^"]+\.js"/);
-        expect(yield* scriptOf('/films/f/lab/hand')).toContain('the lab');
         // No page at a path no place declares, nor a narration file of a film that has none.
         for (const pathname of ['/films/f/narration/full.wav', '/films/f/narration', '/p', '/p/'])
           expect([pathname, (yield* ask(pathname)).status]).toEqual([pathname, 404]);
@@ -302,8 +298,8 @@ describe('lab pages', () => {
     Effect.gen(function* () {
       const { ask } = yield* app;
       const old = {
-        '/lab?film=f': '/films/f/lab',
-        '/lab?film=f&sel=cue:hand:rise': '/films/f/lab/hand?cue=rise',
+        '/lab?film=f': '/films/f/studio',
+        '/lab?film=f&sel=cue:hand:rise': '/films/f/studio?sel=beat%3Ahand',
         '/lab': '/',
         '/player?film=f&lookbook': '/films/f/studio',
         '/player?film=f': '/films/f/studio',
@@ -315,6 +311,12 @@ describe('lab pages', () => {
         '/films/f/scenes': '/films/f/studio',
         '/films/f/scenes/hand': '/films/f/studio?sel=beat%3Ahand',
         '/films/f/project': '/films/f/studio',
+        // The film's Lab is the studio now (the browser keeps the link's `#t=`, film time on
+        // both); a scene's Lab lands on its beat, at the beat's start, its note kept.
+        '/films/f/lab': '/films/f/studio',
+        '/films/f/lab?note=n1': '/films/f/studio?note=n1',
+        '/films/f/lab/hand': '/films/f/studio?sel=beat%3Ahand#',
+        '/films/f/lab/hand?note=n2': '/films/f/studio?sel=beat%3Ahand&note=n2#',
         // The choices, the Script and the Board are the studio's inspector now: a scene render's
         // card lands on its beat; a beat's page on the studio with its beat selected, a panel's
         // with its panel and the try shown; the note open is kept.
@@ -334,7 +336,7 @@ describe('lab pages', () => {
           '/films/f/studio?sel=panel%3Ahand.rise&note=n1&try=2#',
         // A trailing slash is dropped; a parent path opens its nearest page.
         '/films/f/studio/': '/films/f/studio',
-        '/films/f/lab/?note=n1': '/films/f/lab?note=n1',
+        '/films/f/lab/?note=n1': '/films/f/studio?note=n1',
         '/films/f/board/': '/films/f/studio',
         '/films/f': '/films/f/studio',
         '/films': '/',
@@ -523,14 +525,12 @@ const memoryApp = (
 ) => {
   const files = new Map<string, Uint8Array>([
     ['/app/review.html', text(html('review old', './src/p.ts'))],
-    ['/app/lab.html', text(html('lab', './src/lab.ts'))],
     ['/app/sub/player.html', text(html('player', '../src/play.ts'))],
     ['/app/index.html', text(html('render', './src/render.ts'))],
   ]);
   const spec = {
     pages: {
       review: '/app/review.html',
-      lab: '/app/lab.html',
       player: '/app/sub/player.html',
       render: '/app/index.html',
     },

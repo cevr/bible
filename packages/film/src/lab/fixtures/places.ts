@@ -16,6 +16,4 @@ export const PLACE_HREFS = {
   folder: pageHref.folder('f'),
   set: pageHref.set('f', 'p'),
   studio: pageHref.studio('f'),
-  lab: pageHref.lab('f'),
-  labScene: pageHref.labScene('f', 's'),
 } satisfies Record<Exclude<keyof typeof Places, 'export'>, string>;

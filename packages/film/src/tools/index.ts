@@ -40,7 +40,6 @@ export { pageHref } from '../core/api.ts';
 export { type ArtAxis, type ArtDeck, artBrief, conflicts, drawBatch } from '../core/art-seed.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';
-export * from './scene-head.ts';
 export * from './scene-sources.ts';
 export * from './scene-writer.ts';
 export * from './source-writer.ts';

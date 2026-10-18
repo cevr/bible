@@ -549,7 +549,7 @@ export const versionOpens = (version: FilmVersion): boolean => version.files !==
 /**
  * Whether `timeline`'s version is the one kept in the film's own files: the
  * registry's film plays it, the film's script holds its words and board,
- * and the inspector writes them and the Lab shows them. A version in its own
+ * and the inspector writes them and the viewer shows them. A version in its own
  * folder, or with nothing kept, is none of these.
  */
 export const keptInFilm = (timeline: FilmTimeline): boolean => timeline.version.files === 'film';

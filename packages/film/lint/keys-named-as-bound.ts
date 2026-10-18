@@ -2,10 +2,9 @@
 // bound now, never a key written into it or read once. The viewer rebinds
 // any key in the `?` sheet (`command/keymap.ts`, `rebind`): a title that
 // wrote `(n)`, or read the keymap once as the control was made, still names
-// the old key after a rebind. A Solid control reads `hubKeys`
+// the old key after a rebind. A control reads `hubKeys`
 // (`lab/command/changes.ts`: `titled`, `text`, `first`), which follows each
-// change of keys; a control outside Solid names itself with `titledNow`
-// (`command/hub.ts`) again on `Hub.subscribe`.
+// change of keys.
 //
 // Refused: a call of `.keysOf(…)` (the keymap read directly), and a `title`
 // (a JSX attribute, or an assignment to `.title`) written with a key in
@@ -18,7 +17,7 @@ import { Diagnostic, type ESTree, Rule, RuleContext } from 'oxlint-plugin-effect
 import { memberName } from './nodes.ts';
 
 const FOLLOW =
-  "name the key as bound now: hubKeys' titled or text in Solid (packages/film/src/lab/command/changes.ts), titledNow on Hub.subscribe outside it (packages/film/src/command/hub.ts)";
+  "name the key as bound now: hubKeys' titled or text (packages/film/src/lab/command/changes.ts)";
 
 /** A key in brackets, as a title writes one: a single key, a modifier's mark, a named key or a chord. */
 const KEY_IN_BRACKETS =

@@ -2,14 +2,12 @@
 // pause, a frame back or on, a scene back or on, and the captions. Their
 // keys are the transport's usual ones: Space plays, ← and → step one frame
 // (with Shift, ten: the coarse step, as an editor's nudge; with Alt, one),
-// [ and ] go by scenes, C toggles the captions; and the lab's legend, hidden
-// at rest (`legendCommand`). The frame and
-// scene steps are the page's (a
-// long press or a right-click on the film lists them, the frames' also ×10:
-// a finger's Shift, `menu.ts`). Each answers quietly: the
+// [ and ] go by scenes, C toggles the captions. The frame and scene steps
+// are the page's (a long press or a right-click on the film lists them, the
+// frames' also ×10: a finger's Shift, `menu.ts`). Each answers quietly: the
 // picture, the time line and the bar show what changed. The preview
-// registers them with its page's hub for as long as it lives, so the lab's
-// keys, ⌘K and the `?` sheet read them as they read the lab's own.
+// registers them with its page's hub for as long as it lives, so the page's
+// keys, ⌘K and the `?` sheet read them as they read the page's own.
 
 import { Option } from 'effect';
 import { type Command, type Invocation, quietly } from '../command/command.ts';
@@ -42,14 +40,12 @@ const PLAY_LABEL: Readonly<Record<'true' | 'false', string>> = { true: 'Pause', 
 /** How a phone plays and pauses, by page. */
 const TOUCH_PLAY: Readonly<Record<PageName, string>> = {
   player: 'tap the film',
-  lab: 'tap the film',
   review: 'tap the film',
 };
 
-/** Where a phone turns the captions, by page: the lab's bar and the studio's transport have no CC. */
+/** Where a phone turns the captions, by page: the studio's transport has no CC. */
 const TOUCH_CAPTIONS: Readonly<Record<PageName, string>> = {
   player: 'the command menu, then Captions on or off',
-  lab: 'the view menu (⋯), then Captions on or off',
   review: 'the CC button',
 };
 
@@ -179,18 +175,6 @@ export const rateCommands = <R extends number>(rates: Rates<R>): ReadonlyArray<C
   ];
 };
 
-/** What the legend's command says, by whether the legend shows. */
-const LEGEND_LABEL: Readonly<Record<'true' | 'false', string>> = {
-  true: 'Hide the legend',
-  false: 'Show the legend',
-};
-
-/** The lab bar's legend: whether it shows, and the toggle. */
-interface Legend {
-  readonly shown: () => boolean;
-  readonly toggle: () => void;
-}
-
 /**
  * What the bar's stripes and ticks mean, written once: the bar's legend
  * (`legendHtml`) and the `?` sheet's on a film's page (`keys-sheet.tsx`).
@@ -210,22 +194,3 @@ export const BAR_LEGEND = {
 /** The bar's legend as markup: the stripes, then each tick's swatch before its name. */
 export const legendHtml = (): string =>
   `${BAR_LEGEND.striped} · ticks: ${BAR_LEGEND.ticks.map((t) => `<i class="k-${t.kind}"></i>${t.name}`).join(' ')} ${BAR_LEGEND.names}`;
-
-/**
- * The lab bar's legend (what the stripes and the ticks mean), hidden at
- * rest. It has no key: on every page in the studio's shell `?`
- * opens the keys sheet, the one place the keys are listed, and on
- * a film's page the sheet ends on this legend too. ⌘K and the page's
- * long-press menu show it.
- */
-export const legendCommand = (legend: Legend): Command => ({
-  id: 'view.legend',
-  label: 'Show or hide the legend',
-  labelIn: () => LEGEND_LABEL[`${legend.shown()}`],
-  group: 'View',
-  keys: [],
-  about: ['Page'],
-  touch: 'hold the page, or the command menu',
-  when: always,
-  run: quietly(() => legend.toggle()),
-});

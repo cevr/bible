@@ -1,16 +1,16 @@
-// The transport's rates and legend as commands: the rate chip offers every
-// rate but the one it plays at, K plays at 1× again, J and L step a rate
-// slower or faster and are not offered past either end; the legend's `?` is
-// the player page's alone (the lab's `?` opens the keys sheet).
+// The transport's rates as commands: the rate chip offers every rate but the
+// one it plays at, K plays at 1× again, J and L step a rate slower or faster
+// and are not offered past either end; and where a phone plays and turns the
+// captions, by page.
 
 import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
-import { BY_BUTTON, type Command, labelOf } from '../command/command.ts';
+import { BY_BUTTON, type Command } from '../command/command.ts';
 import { contextAt } from '../command/context.ts';
 import { chipRows, contextRows } from '../command/menu.ts';
-import { legendCommand, rateCommands, rateId, rateText, transportCommands } from './transport.ts';
+import { rateCommands, rateId, rateText, transportCommands } from './transport.ts';
 
-const ctx = contextAt('lab', '/films/f/lab');
+const ctx = contextAt('player', '/films/f/studio');
 
 /** A transport at `start` among the lab's rates, and the commands over it. */
 const transport = (start: number) => {
@@ -89,19 +89,8 @@ describe('the steps, a finger away (AA-8)', () => {
   });
 });
 
-describe('the legend', () => {
-  test('it has no key (`?` is the keys sheet), and its label says what it would do', () => {
-    let shown = false;
-    const command = legendCommand({ shown: () => shown, toggle: () => (shown = !shown) });
-    expect(command.keys).toEqual([]);
-    expect(labelOf(command, ctx)).toBe('Show the legend');
-    Effect.runSync(command.run(ctx, { ...BY_BUTTON, input: 'pointer' }));
-    expect(labelOf(command, ctx)).toBe('Hide the legend');
-  });
-});
-
 describe('the captions and play, a finger away', () => {
-  test("the lab's captions are the view menu's (its bar has no CC); the studio's are its command menu's, and a tap on the film plays", () => {
+  test("the studio's captions are its command menu's, the review's its CC button, and a tap on the film plays", () => {
     const transport = {
       toggle: () => undefined,
       stepFrames: () => undefined,
@@ -109,9 +98,9 @@ describe('the captions and play, a finger away', () => {
       previousScene: () => undefined,
       toggleCaptions: () => undefined,
     };
-    const touchOf = (page: 'lab' | 'player', id: string) =>
+    const touchOf = (page: 'review' | 'player', id: string) =>
       transportCommands(page, transport).find((c) => c.id === id)?.touch;
-    expect(touchOf('lab', 'view.captions')).toBe('the view menu (⋯), then Captions on or off');
+    expect(touchOf('review', 'view.captions')).toBe('the CC button');
     expect(touchOf('player', 'view.captions')).toBe('the command menu, then Captions on or off');
     expect(touchOf('player', 'play.toggle')).toBe('tap the film');
   });

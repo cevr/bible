@@ -1,29 +1,18 @@
-// A note's draft and where it sits, pure: the scene and timecode of the
-// moment noted (on the Script, the film's timecode), with the cue edge and
-// mark nearest it; the draft carries
-// the box and the ink only when there are any; its scope (the cue selected,
-// the in and out points cut to its scene, the words of its line selected) as
-// its chip says it and as the draft carries it, and nothing once cleared;
-// what a note on words asks of them (a note, a correction, a removal), and
-// whether it says no more than that; and a pointer's place on the frame in
-// film pixels.
+// A note's draft, pure: the scene of the moment noted, with the cue edge and
+// mark nearest it; the draft carries the box and the ink only when there are
+// any; its scope (the cue selected, the in and out points cut to its scene,
+// the line of its scene's file, the words of its line selected) as the draft
+// carries it, and nothing once cleared; what a note on words asks of them (a
+// note, a correction, a removal), and whether it says no more than that.
 
 import { Option, Schema } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import { NoteDraft } from '../../core/schema.ts';
 import { probeFilm } from '../fixtures/probe-film.ts';
-import {
-  NO_SCOPE,
-  type Scope,
-  boxOf,
-  draftOf,
-  filmPixel,
-  saysOnlyAsked,
-  scopeText,
-  unsaid,
-  whenText,
-  whereText,
-} from './draft.ts';
+import { NO_SCOPE, draftOf, saysOnlyAsked, unsaid } from './draft.ts';
+
+/** What the page has selected as a note is written (`draftOf`'s scope). */
+type Scope = typeof NO_SCOPE;
 
 /** What a note asks of its words, as the composer asks it (`unsaid`'s). */
 type Asked = Parameters<typeof unsaid>[2];
@@ -32,32 +21,6 @@ type Asked = Parameters<typeof unsaid>[2];
 const NOTE_ASKED: Asked = { kind: 'note', replace: '' };
 
 const film = probeFilm();
-
-describe('where a note sits', () => {
-  test('names the scene and the timecode, with the nearest cue edge', () => {
-    const where = whereText(film.placed, film.fps, 1);
-    expect(where.startsWith('one · 00:00:01:00 · ')).toBe(true);
-    expect(where).toContain('cue ');
-  });
-
-  test('names the mark nearest it', () => {
-    expect(whereText(film.placed, film.fps, 1)).toMatch(/ · \{\w+\}$/);
-  });
-
-  test("speaks the scene's time beside the scene's name, never the film's", () => {
-    const two = film.placed[1]?.start ?? 0;
-    expect(whereText(film.placed, film.fps, two + 0.5).startsWith('two · 00:00:00:15')).toBe(true);
-  });
-
-  test("a made note says its time into its scene now, or the film's, named, once its scene is gone", () => {
-    expect(whenText(film.placed, film.fps, { scene: 'two', T: 0.5, local: 0.4 })).toBe(
-      '00:00:00:12',
-    );
-    expect(whenText(film.placed, film.fps, { scene: 'gone', T: 2, local: 0.4 })).toBe(
-      'film 00:00:02:00',
-    );
-  });
-});
 
 describe('the draft', () => {
   test('a point or a box goes with the draft; no ink leaves ink out', () => {
@@ -134,16 +97,6 @@ describe('the scope', () => {
     words: Option.none(),
   };
 
-  test('its chip names the scene, the cue selected and the range in timecode', () => {
-    expect(scopeText(film.placed, scope, film.fps, 1.5)).toEqual(
-      Option.some('one · fall · 00:00:01:06–00:00:04:21'),
-    );
-    expect(scopeText(film.placed, { ...scope, range: Option.none() }, film.fps, 1.5)).toEqual(
-      Option.some('one · fall'),
-    );
-    expect(scopeText(film.placed, NO_SCOPE, film.fps, 1.5)).toEqual(Option.none());
-  });
-
   test('a cue or a range of another scene is no scope of a note in this one', () => {
     const elsewhere: Scope = {
       cue: Option.some({ scene: 'two', name: 'fall' }),
@@ -151,22 +104,17 @@ describe('the scope', () => {
       source: Option.some({ scene: 'two', source: { file: 'scenes/two.ts', line: 4, text: 'x' } }),
       words: Option.some({ beat: 'two', from: 0, to: 1, text: 'A second' }),
     };
-    expect(scopeText(film.placed, elsewhere, film.fps, 1.5)).toEqual(Option.none());
+    const draft = Option.getOrThrow(draftOf(film.placed, film.fps, composed, elsewhere));
+    expect(draft.cue).toEqual({ name: 'rise', edge: 'start' });
+    expect(['range' in draft, 'source' in draft, 'words' in draft]).toEqual([false, false, false]);
   });
 
-  test('a line of the scene’s file joins the chip and the draft, with its text', () => {
+  test('a line of the scene’s file joins the draft, with its text', () => {
     const line = { file: 'scenes/one.ts', line: 118, text: 'fall: { after: rise, dur: 0.4 },' };
     const cited: Scope = { ...scope, source: Option.some({ scene: 'one', source: line }) };
-    expect(scopeText(film.placed, cited, film.fps, 1.5)).toEqual(
-      Option.some('one · fall · scenes/one.ts:118 · 00:00:01:06–00:00:04:21'),
-    );
     const draft = Option.getOrThrow(draftOf(film.placed, film.fps, composed, cited));
     expect(draft.source).toEqual(line);
     expect(Schema.is(NoteDraft)(draft)).toBe(true);
-    const alone: Scope = { ...NO_SCOPE, source: cited.source };
-    expect(scopeText(film.placed, alone, film.fps, 1.5)).toEqual(
-      Option.some('one · scenes/one.ts:118'),
-    );
   });
 
   test('the draft carries the selected cue’s nearer edge and the range cut to its scene', () => {
@@ -197,12 +145,6 @@ describe('a note on words of a line', () => {
     kind: Option.fromUndefinedOr(d.kind),
     replace: Option.fromUndefinedOr(d.replace),
     text: d.text,
-  });
-
-  test('its chip names the words, as they read', () => {
-    expect(scopeText(film.placed, onWords, film.fps, 1.5)).toEqual(
-      Option.some('one · “ball rises”'),
-    );
   });
 
   test('a note carries its words and says what it says; one that says nothing is no draft', () => {
@@ -297,17 +239,5 @@ describe('a note on words of a line', () => {
     expect(
       draftOf(film.placed, film.fps, at('', two), onWords, { kind: 'removal', replace: '' }),
     ).toEqual(Option.none());
-  });
-});
-
-describe('pixels', () => {
-  test("a pointer's place on the frame, in film pixels", () => {
-    const frame = { left: 100, top: 50, width: 320, height: 180 };
-    expect(filmPixel(frame, { width: 640, height: 360 }, 260, 140)).toEqual([320, 180]);
-  });
-
-  test('a box from where a drag began to where it is, either way', () => {
-    expect(boxOf([300, 200], [100, 120])).toEqual({ x: 100, y: 120, w: 200, h: 80 });
-    expect(boxOf([10, 10], [10, 10])).toEqual({ x: 10, y: 10, w: 0, h: 0 });
   });
 });

@@ -9,7 +9,6 @@ import type { Bound, ChangeBound } from '../command/command.ts';
 import { OpId } from '../core/catalogue.ts';
 import { ChangeId, type RequestId } from '../core/schema.ts';
 import { uniqueId } from '../core/unique.ts';
-import type { stepRequest } from './api.ts';
 
 declare const cueName: string;
 declare const film: string;
@@ -28,7 +27,7 @@ export const byTime: Bound = { film, change: String(madeAt) };
 
 // i3: the Undo request id and any other string Effect are one type.
 // @ts-expect-error a step's request id is made as one (`uniqueId(RequestId)`)
-export const sameType: typeof stepRequest = anyStringEffect;
+export const sameType: Effect.Effect<RequestId> = anyStringEffect;
 
 // i4: what an id carries is a string any string stands in for.
 // @ts-expect-error a change id is made or decoded, never any string

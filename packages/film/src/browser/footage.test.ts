@@ -1,7 +1,7 @@
 // A surface's frames asked one after another (an `Ask` each of one `newestAsked`), each painted
 // once its footage decodes (`paintedIfNewest`): decodes that land out of
 // order paint only the newest frame, and only the newest frame's failure is
-// said. The preview, the HEAD layer and the onion ask so.
+// said. The studio's viewer asks so.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Exit, Fiber, Layer, Option } from 'effect';

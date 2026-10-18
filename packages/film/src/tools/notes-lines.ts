@@ -16,7 +16,7 @@ const quoted = (text: string) =>
 const fields = (note: Note) => {
   const cue = Option.map(Option.fromNullishOr(note.cue), (c) => ` cue=${c.name}:${c.edge}`);
   const mark = Option.map(Option.fromNullishOr(note.mark), (m) => ` mark=${m}`);
-  // The stretch of its scene the note is about (its scope chip's range), in scene seconds.
+  // The stretch of its scene the note is about, in scene seconds.
   const range = Option.map(
     Option.fromNullishOr(note.range),
     (r) => ` range=${r.from.toFixed(2)}-${r.to.toFixed(2)}`,

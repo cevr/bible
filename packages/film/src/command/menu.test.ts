@@ -20,7 +20,7 @@ const commands = [
   command('edit.undo', 'Edit', 'Undo'),
   command('play.frame-next', 'Transport', 'Next frame'),
 ];
-const ctx = contextAt('lab', '/films/f/lab');
+const ctx = contextAt('player', '/films/f/studio');
 
 describe('the command menu and the sheet', () => {
   test('group commands where their group first comes, keeping their order within it', () => {

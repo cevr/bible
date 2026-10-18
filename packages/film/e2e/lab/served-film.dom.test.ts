@@ -1,20 +1,14 @@
-// A film's Lab as the lab serves it once it renders it on the server: the
-// server's document is the studio's shell (the header, the film switcher,
-// the film's Studio link, the page's name) with a quiet line where the film
-// lands, and none of the film (no canvas, no bar: the server never imports a
-// film's modules). The Lab's panel is the server's too: its mode tray, each tool's section and the
-// film's notes as the server read them, which the browser adopts (no second
-// read) and goes on following. The browser hydrates with no mismatch, then
-// stages the film, puts its tools in the panel, and fits a phone as ever;
-// what the server painted first stays where the staged page has it. A
-// film's studio is served the same way: the header and a quiet line, none of
-// the film, its root held until the faces land; the browser hydrates it,
-// shows it, and its keys and clips work.
+// A film's studio as the lab serves it once it renders it on the server: the
+// server's document is the header and a quiet line where the film lands,
+// none of the film (no canvas: the server never imports a film's modules),
+// its root held until the faces land; the browser hydrates it with no
+// mismatch, shows it, and its keys and clips work. Stamped with the build
+// it was served at, it loads again at its place once the build feed answers
+// a newer one (a scene's source changed, or another server: the lab
+// restarted), a failed wait asked again after a pause, and only then.
 
-import { Effect, Schedule, Schema } from 'effect';
+import { Effect, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { appleAgent } from '../../src/browser/keys.ts';
-import { chordLabel } from '../../src/command/keymap.ts';
 import { pageHref } from '../../src/core/api.ts';
 import { PAGE_ROOT } from '../../src/core/page-render.ts';
 import {
@@ -24,13 +18,12 @@ import {
   json,
   openServed,
   route,
-  servedTitle,
+  text,
 } from '../../src/lab/fixtures/harness.ts';
+import type { PageBuild } from '../../src/core/schema.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
-import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { attributeIs, evaluates, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
-import { LAB_MODES } from '../../src/lab/mode.ts';
+import { attributeIs, evaluates, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import { faceHold } from '../../src/player/face.ts';
 
 /** Long enough to bundle the server entry once, render, open, hydrate and stage the film. */
@@ -62,185 +55,9 @@ const painted = (html: string) =>
 const rooted = (html: string) => html.slice(html.indexOf('data-page-root'));
 
 /** What a film's page never sends from the server: the film itself. */
-const FILM_PARTS = ['<canvas', 'class="stage"', 'class="bar"'];
-
-/** The probe film's one note, at change 3 of its log, as the fake lab keeps it. */
-const NOTE = {
-  scene: 'one',
-  T: 1,
-  frame: 30,
-  text: 'the ball rises too early',
-  id: 'n1',
-  film: PROBE,
-  seq: 3,
-  changed: 3,
-  status: 'open',
-  still: 'n1.png',
-  thread: [],
-  createdAt: '2026-09-28T00:00:00.000Z',
-};
-
-/** Each tool's section of the Lab's panel, as the server writes it. */
-const SECTIONS = ['lab-edit', 'lab-motion', 'lab-compare-tools', 'lab-notes-box', 'lab-studio'];
-
-/**
- * Every target the page shows now that the staged page (its boxes kept on
- * the window as `stagedTargets`) has elsewhere or not at all, as
- * `key: box now → box staged`; none, `[]`.
- */
-const MOVED = `(() => {
-  const now = ${targetBoxes()};
-  return Object.entries(now)
-    .filter(([key, box]) => window.stagedTargets[key] !== box)
-    .map(([key, box]) => key + ': ' + box + ' → ' + (window.stagedTargets[key] ?? 'gone'));
-})()`;
-
-/** How many targets the page shows now that carry each of `attributes`. */
-const shownWith = (attributes: ReadonlyArray<string>) =>
-  `(() => {
-  const keys = Object.keys(${targetBoxes()});
-  return ${literal(attributes.join(' '))}.split(' ').map((attribute) => keys.filter((key) => key.includes(' ' + attribute + '=')).length);
-})()`;
-
-/** The attributes that name what a Lab's first paint shows: the shell's links, the panel's modes, the acts. */
-const NAMING = ['data-page', 'data-mode-pick', 'data-act'];
-
-/** Whether the panel is seen. */
-const SEEN = `getComputedStyle(document.querySelector('.lab-panel')).visibility`;
-
-/** The build the Lab is served at, as the lab stamps it. */
-const SERVED_AT = { build: 7, server: 'lab' };
-
-/** Done once the page has asked a path starting `start`. */
-const asks = (asked: ReadonlyArray<{ readonly path: string }>, start: string) =>
-  Effect.filterOrFail(
-    Effect.sync(() => asked.some((a) => a.path.startsWith(start))),
-    (did) => did,
-    () => `the page never asked ${start}`,
-  ).pipe(Effect.retry({ schedule: Schedule.spaced('50 millis'), times: 100 }));
-
-/** A string as a script's literal. */
-const literal = Schema.encodeSync(Schema.fromJsonString(Schema.String));
-
-/**
- * The windows the Lab is served to, whether the panel is seen before the
- * film is staged (on a desk, beside where the film lands; on a phone, under
- * it, so unseen until it lands), and the targets its first paint shows, by
- * `NAMING`: the shell's links (Films, and on a desk the film's Studio: a
- * phone's is its film menu's Open the studio); the panel's
- * modes on a desk, none on a phone; and the acts (the film switcher, Go to,
- * View: the pen and note-this-frame are Note mode's, and the panel opens in
- * Edit).
- */
-const LAB_WINDOWS = [
-  {
-    where: 'a desk',
-    viewport: DESK,
-    first: 'visible',
-    shows: [2, LAB_MODES.length, 3],
-  },
-  { where: 'a phone', viewport: PHONE, first: 'hidden', shows: [1, 0, 3] },
-] as const;
+const FILM_PARTS = ['<canvas', 'class="stage"'];
 
 describe("a film's pages served as the lab renders them", () => {
-  it.live(
-    "Lab on a scene's path: the tab's title names the scene first, served and hydrated",
-    () =>
-      Effect.gen(function* () {
-        const { page, documents } = yield* openServed(
-          'lab',
-          [
-            route('GET', /^\/notes$/, () => json({ film: PROBE, seq: 0, notes: [] })),
-            route('GET', /^\/api\/review\/build\?/, () => hold),
-          ],
-          { href: pageHref.labScene(PROBE, 'two'), viewport: DESK },
-        );
-        const title = `two · Lab · ${PROBE}`;
-        expect(yield* servedTitle(page, documents[0]?.html ?? '')).toBe(title);
-        yield* until(page, `document.querySelector('.stage canvas') !== null`);
-        yield* evaluates(page, 'document.title', title);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
-  for (const { where, viewport, first, shows } of LAB_WINDOWS)
-    it.live(
-      `Lab on ${where}: the server's document holds the panel, each tool's section and the film's notes as the server read them, none of the film; the browser adopts the notes, reads them no second time, and puts the film's tools in the panel; no control the server painted moves`,
-      () =>
-        Effect.gen(function* () {
-          const { page, documents, errors, read, asked } = yield* openServed(
-            'lab',
-            [
-              route('GET', /^\/notes$/, () => json({ film: PROBE, seq: 3, notes: [NOTE] })),
-              route('GET', /^\/api\/review\/build\?/, () => hold),
-            ],
-            { href: pageHref.lab(PROBE), viewport, build: SERVED_AT },
-          );
-          const whole = documents[0]?.html ?? '';
-          // The build the page was served at, in the same response: the build feed's first answer.
-          expect(whole).toContain(`<meta name="lab-build" content="${SERVED_AT.build}">`);
-          const html = rooted(painted(whole));
-          expect(html).toContain('class="sh" data-part="lab" data-film="true"');
-          // The header leads into the film's studio, and names the page.
-          expect(html).toMatch(
-            new RegExp(`class="sh-studio" data-page="studio" href="${pageHref.studio(PROBE)}"`),
-          );
-          expect(html).toMatch(/class="sh-page"[^>]*>.*?Lab</);
-          expect(html).toContain(`Opening ${PROBE}…`);
-          // The panel, painted before any script runs: the mode tray, each tool's section, the notes.
-          expect(html).toMatch(/class="lab-panel"[^>]*data-mode="edit"/);
-          for (const mode of LAB_MODES) expect(html).toContain(`data-mode-pick="${mode}"`);
-          for (const section of SECTIONS) expect(html).toContain(`class="${section}"`);
-          expect(html).toContain('data-act="pen"');
-          expect(html).toContain('data-act="note-frame"');
-          expect(html).toContain('data-id="n1"');
-          expect(html).toContain(NOTE.text);
-          for (const film of FILM_PARTS) expect(html).not.toContain(film);
-          // The server read the notes once, for the page; the browser waits past them.
-          expect(read.map((r) => r.path)).toEqual(['/notes']);
-          yield* waitFor(page, '.lab-panel[data-staged="true"]');
-          yield* until(page, `document.querySelector('.stage canvas') !== null`);
-          yield* textHas(page, '.lab-note-item[data-id="n1"] .lab-note-text', NOTE.text);
-          // The staged film lends the list each note's time.
-          yield* textHas(page, '.lab-note-item[data-id="n1"] .lab-note-label', 'n1 · one · ');
-          // Both feeds go on from what the page was sent: the notes past change
-          // 3, the build past the one stamped; neither reads its first answer again.
-          yield* asks(asked, '/notes/wait?since=3&');
-          yield* asks(asked, `/api/review/build?since=${SERVED_AT.build}&`);
-          expect(asked.filter((a) => a.path === '/notes')).toEqual([]);
-          yield* evaluates(page, SEEN, 'visible');
-          if (viewport === PHONE) yield* fitsPhone(page);
-          // The server labelled the page's chords for this browser's keyboard, as
-          // its hydration does: Go to's ⌘K on a Mac, Ctrl+K elsewhere.
-          const mac = appleAgent(yield* page.evaluate<string>('navigator.userAgent'));
-          yield* attributeIs(
-            page,
-            '[data-act="search"]',
-            'title',
-            `Go to a film, a part or a thing by name, or run a command (/ or ${chordLabel('mod+k', mac)})`,
-          );
-          expect(mismatches(page.logged)).toEqual([]);
-          expect(errors).toEqual([]);
-          // What the server painted first, before any script but the face hold: every target it
-          // shows stands where the staged page has it. On a desk that is the
-          // panel's too; on a phone the panel, under a picture and a bar only
-          // the film can size, is not seen until they land. (The staged
-          // targets are kept on the window, which a document written anew keeps.)
-          yield* page.evaluate(`(window.stagedTargets = ${targetBoxes()}, 0)`);
-          yield* page.evaluate(
-            `(document.open(), document.write(${literal(painted(whole))}), document.close(), 0)`,
-          );
-          yield* until(
-            page,
-            `document.fonts.status === 'loaded' && document.querySelector('.lab-modes') !== null`,
-          );
-          yield* evaluates(page, SEEN, first);
-          yield* evaluates(page, shownWith(NAMING), shows);
-          yield* evaluates(page, MOVED, []);
-        }).pipe(Effect.scoped),
-      SLOW,
-    );
-
   for (const { where, viewport } of [
     { where: 'a desk', viewport: DESK },
     { where: 'a phone', viewport: PHONE },
@@ -283,4 +100,71 @@ describe("a film's pages served as the lab renders them", () => {
         }).pipe(Effect.scoped),
       SLOW,
     );
+
+  /** The studio stamped with `served`, its build feed answering `answers` in turn, then holding. */
+  const stamped = (served: PageBuild, answers: ReadonlyArray<ReturnType<typeof json>>) => {
+    const queue = [...answers];
+    return openServed(
+      'player',
+      [
+        route('GET', /^\/api\/review\/build\?/, () =>
+          Option.getOrElse(Option.fromNullishOr(queue.shift()), () => hold),
+        ),
+      ],
+      { href: pageHref.studio(PROBE, { sel: 'beat:two' }), viewport: DESK, build: served },
+    );
+  };
+
+  /** The feed's asks since `served`'s build. */
+  const asksSince = (asked: ReadonlyArray<{ readonly path: string }>, served: PageBuild) =>
+    asked.filter((a) => a.path.startsWith(`/api/review/build?since=${served.build}&`)).length;
+
+  for (const [name, answers] of [
+    ['a newer build (a scene changed)', [json({ build: 8, server: 'lab' })]],
+    [
+      "a failed wait asked again after a pause, then another server's first build",
+      [text('restarting', 503), json({ build: 0, server: 'other' })],
+    ],
+  ] as const)
+    it.live(
+      `Studio stamped with its build: ${name} loads it again at its place, once`,
+      () =>
+        Effect.gen(function* () {
+          const served = { build: 7, server: 'lab' };
+          const { page, documents, asked, errors } = yield* stamped(served, answers);
+          const place = documents[0]?.path ?? '';
+          expect(documents[0]?.html ?? '').toContain(`<meta name="lab-build" content="7">`);
+          // The page loaded again, at the place it stood, and waits on the feed once more.
+          yield* Effect.filterOrFail(
+            Effect.sync(() => documents.length),
+            (n) => n >= 2,
+            () => 'the studio never loaded again',
+          ).pipe(Effect.retry({ schedule: Schedule.spaced('50 millis'), times: 300 }));
+          yield* waitFor(page, '.st-timeline .st-clip');
+          yield* until(page, `document.querySelector('.st-pane[data-beat="two"]') !== null`);
+          expect(documents.map((d) => d.path)).toEqual([place, place]);
+          expect(asksSince(asked, served)).toBeGreaterThanOrEqual(answers.length + 1);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+  it.live(
+    'Studio stamped with its build: its own build answered is asked again, and never loads it again',
+    () =>
+      Effect.gen(function* () {
+        const served = { build: 7, server: 'lab' };
+        const { page, documents, asked, errors } = yield* stamped(served, [json(served)]);
+        yield* waitFor(page, '.st-timeline .st-clip');
+        // The second ask is the page waiting again on the same build: it has not loaded again.
+        yield* Effect.filterOrFail(
+          Effect.sync(() => asksSince(asked, served)),
+          (n) => n >= 2,
+          () => 'the studio never asked again',
+        ).pipe(Effect.retry({ schedule: Schedule.spaced('50 millis'), times: 300 }));
+        expect(documents).toHaveLength(1);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
 });

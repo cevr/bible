@@ -4,60 +4,28 @@
 // the server's own failure class (`SourceRefused`, `NoteNotFound`, …), its
 // message the words the panel shows; a request that never reached the
 // server, or an answer that does not decode, is LabUnreachable in its own
-// words. One client (`LabClient`) serves every page's calls: the scene
-// source routes and a talk's (its words, and its writes: `TalkAsk`, which
-// the editor's machine sends as it sends a scene write) are `LabApi`, the
-// notes routes `NotesApi`, and the studio's,
-// the review's and its films' build on it (`studio/api.ts`,
-// `review/api.ts`, `review/options/api.ts`). An Undo or Redo carries an id
-// unique to its request (`stepRequest`), so a page whose step had no answer
-// learns from the lab's check whether it landed (`landedStep`).
+// words. One client (`LabClient`) serves every page's calls: a scene's code
+// and the film's Board are `LabApi`, the notes routes `NotesApi`, and the
+// studio's, the review's and its films' build on it (`studio/api.ts`,
+// `review/api.ts`, `review/options/api.ts`).
 
-import {
-  Array as Arr,
-  Cause,
-  Context,
-  Effect,
-  Layer,
-  Match,
-  Option,
-  Predicate,
-  Schema,
-} from 'effect';
+import { Cause, Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
 import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import { type Bound, Unfit, boundChange } from '../command/command.ts';
-import {
-  LabHttpApi,
-  Refusal,
-  type MarksPost,
-  type ScriptBeats,
-  type ScriptVoice,
-  TalkMarkPost,
-  type TalkWords,
-  TalkWordsPost,
-  isRefusal,
-} from '../core/api.ts';
+import { LabHttpApi, Refusal, isRefusal } from '../core/api.ts';
 import type { BoardFile, BoardName } from '../core/board.ts';
 import type { PageRequest } from '../core/page-render.ts';
 import { newerFirst } from '../core/refusals.ts';
-import { uniqueId } from '../core/unique.ts';
 import {
-  type ChangeId,
   type CheckReport,
-  type CuePatch,
-  type HeadSource,
-  type Knob,
-  type LabWrite,
   type Note,
   type NotePost as NotePostSchema,
   type NotesFile,
   type NotesWait,
-  RequestId,
   type SceneCode,
-  type SceneSource,
 } from '../core/schema.ts';
 
 /** The request did not reach the server, or its answer did not decode. */
@@ -107,37 +75,9 @@ export const reasonOf = (cause: Cause.Cause<unknown>): string => {
   return String(squashed);
 };
 
-/**
- * A write of a talk's `talk.ts` as the page asks it (the Transcript view's
- * Cut, Restore and Mark here), each its route's body under its verb.
- */
-export const TalkAsk = Schema.Union([
-  Schema.TaggedStruct('Cut', TalkWordsPost.fields),
-  Schema.TaggedStruct('Restore', TalkWordsPost.fields),
-  Schema.TaggedStruct('Mark', TalkMarkPost.fields),
-]);
-export type TalkAsk = typeof TalkAsk.Type;
-
 /** Undo or Redo: the server's bounded stack of the lab's writes. */
 export const StepVerb = Schema.Literals(['undo', 'redo']);
 export type StepVerb = typeof StepVerb.Type;
-
-/** An id for an Undo or Redo request that no other request has, from any page (`StepRequest.request`). */
-export const stepRequest: Effect.Effect<RequestId> = uniqueId(RequestId);
-
-/**
- * The step the lab recorded under `request` (`CheckReport.landed`), as its
- * answer would have said it, with the check now: what a page whose step had
- * no answer learns by its id. None when the lab has no record of it (it did
- * not land, or has not yet).
- */
-export const landedStep = (report: CheckReport, request: RequestId): Option.Option<LabWrite> =>
-  Option.map(
-    Option.flatMap(Option.fromUndefinedOr(report.landed), (steps) =>
-      Arr.findFirst(steps, (l) => l.request === request),
-    ),
-    ({ request: _, ...walked }): LabWrite => ({ ...walked, findings: report.findings }),
-  );
 
 /** What a step's receipt's button does once it lands: Redo for an Undo, Undo for a Redo. */
 const OTHER: Readonly<Record<StepVerb, StepVerb>> = { undo: 'redo', redo: 'undo' };
@@ -187,47 +127,9 @@ export const stepWhyNot =
     });
   };
 
-export interface LabCalls {
-  /** A scene's file and what of it the lab may rewrite. */
-  readonly source: (scene: string) => Effect.Effect<SceneSource, LabFailure>;
+interface LabCalls {
   /** A scene's file text now, and where its cues and knobs are written and read. */
   readonly code: (scene: string) => Effect.Effect<SceneCode, LabFailure>;
-  /** A scene's timeline and knobs at HEAD. */
-  readonly head: (scene: string) => Effect.Effect<HeadSource, LabFailure>;
-  /** `film check --static` now, the latest change, and what Undo and Redo would do. */
-  readonly check: Effect.Effect<CheckReport, LabFailure>;
-  /** Write a cue's fields into its scene file. */
-  readonly writeCue: (
-    scene: string,
-    cue: string,
-    patch: CuePatch,
-  ) => Effect.Effect<LabWrite, LabFailure>;
-  /** Write a knob's value into its scene file. */
-  readonly writeKnob: (
-    scene: string,
-    knob: string,
-    value: Knob,
-  ) => Effect.Effect<LabWrite, LabFailure>;
-  /**
-   * Undo the newest write, or redo the newest undone one, as request
-   * `request` (the id the lab records on it); asked for one change (a
-   * receipt's), that change only, or refused (`StepRequest.change`).
-   */
-  readonly step: (
-    verb: StepVerb,
-    request: RequestId,
-    change: Option.Option<ChangeId>,
-  ) => Effect.Effect<LabWrite, LabFailure>;
-  /** A talk's words as the server reads its `talk.ts` and cuts it now (a film with none: refused). */
-  readonly talkWords: Effect.Effect<TalkWords, LabFailure>;
-  /** A write of a talk's `talk.ts`: words struck, played again, or a mark set. */
-  readonly writeTalk: (ask: TalkAsk) => Effect.Effect<LabWrite, LabFailure>;
-  /** Each beat's picture and sources, as the film's `script.ts` says them now. */
-  readonly scriptBeats: Effect.Effect<ScriptBeats, LabFailure>;
-  /** Each spoken beat's staging take in the voice and marks the script has now, and the day's spend. */
-  readonly scriptVoice: Effect.Effect<ScriptVoice, LabFailure>;
-  /** A beat's delivery marks written into `script.ts`, its words unchanged. */
-  readonly writeMarks: (post: MarksPost) => Effect.Effect<LabWrite, LabFailure>;
   /** The film's storyboard, as its record (`board.json`) stands now: empty before its first panel. */
   readonly board: Effect.Effect<BoardFile, LabFailure>;
   /** Keep try `tried` of `panel`, and why: the board as it stands after. */
@@ -314,42 +216,11 @@ export class LabClient extends Context.Service<LabClient, Effect.Success<typeof 
   };
 }
 
-/** The scene source routes for `film`, over the page's derived client. */
+/** A scene's code and the film's Board for `film`, over the page's derived client. */
 const makeLabApi = Effect.fn('lab.api.make')(function* (film: string) {
   const client = yield* LabClient;
   const api: LabCalls = {
-    source: (scene) => called(client.scenes.source({ params: { film, scene } })),
     code: (scene) => called(client.scenes.code({ params: { film, scene } })),
-    head: (scene) => called(client.scenes.head({ params: { film, scene } })),
-    check: called(client.steps.check({ params: { film } })),
-    writeCue: (scene, cue, patch) =>
-      called(client.scenes.cue({ params: { film, scene, cue }, payload: patch })),
-    writeKnob: (scene, knob, value) =>
-      called(client.scenes.knob({ params: { film, scene, knob }, payload: { value } })),
-    step: (verb, request, change) =>
-      called(
-        client.steps[verb]({
-          params: { film },
-          payload: {
-            request,
-            ...Option.match(change, { onNone: () => ({}), onSome: (c) => ({ change: c }) }),
-          },
-        }),
-      ),
-    talkWords: called(client.talk.words({ params: { film } })),
-    writeTalk: (ask) =>
-      called(
-        Match.value(ask).pipe(
-          Match.tagsExhaustive({
-            Cut: ({ _tag, ...payload }) => client.talk.cut({ params: { film }, payload }),
-            Restore: ({ _tag, ...payload }) => client.talk.restore({ params: { film }, payload }),
-            Mark: ({ _tag, ...payload }) => client.talk.mark({ params: { film }, payload }),
-          }),
-        ),
-      ),
-    scriptBeats: called(client.script.beats({ params: { film } })),
-    scriptVoice: called(client.script.voice({ params: { film } })),
-    writeMarks: (payload) => called(client.script.marks({ params: { film }, payload })),
     board: called(client.board.read({ params: { film } })),
     boardPick: (panel, tried, why) =>
       called(client.board.pick({ params: { film }, payload: { panel, try: tried, why } })),

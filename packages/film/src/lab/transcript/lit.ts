@@ -1,19 +1,12 @@
-// What the Transcript view shows and lights, pure: a talk's words as the
-// server reads them (`TalkWords`), each word with its offset in the one text (the words in play order, a space between, struck ones too, so an
-// offset never moves as "Show cuts" turns), and, for a word the film plays,
-// when it starts on the film's clock (its section's start, where the
-// section's voice starts, and when the word is heard in it). The word lit is
-// the one playing at `T`, or the last one said before it in that section;
-// the words selected are painted as their ranges of the one text. Mark here
-// names its mark from the word.
+// A section's words as the page lays them out and paints them, pure: each
+// word with its offset in the section's one text (the words in order, a space
+// between), and, for a word the film plays, when it starts on the film's
+// clock; the words lit or selected are painted as their ranges of that text.
 
-import { Array as Arr, Option, Order, Record as Rec } from 'effect';
-import type { TalkWords } from '../../core/api.ts';
-import { type Placed, sceneAt } from '../../core/layout.ts';
+import { Array as Arr, Option, Order } from 'effect';
 import type { CodeRange } from '../../core/schema.ts';
-import { CLOCK_EPSILON } from '../../core/time.ts';
 
-/** A word of the transcript as the view lays it out. */
+/** A word of a section as the page lays it out. */
 export interface Row {
   /** Its index in its take. */
   readonly index: number;
@@ -21,13 +14,13 @@ export interface Row {
   readonly text: string;
   /** Whether the cut strikes it. */
   readonly struck: boolean;
-  /** Its offset in the transcript's one text. */
+  /** Its offset in the one text. */
   readonly from: number;
   /** When it starts, in film seconds: none for a struck word, or a section the film does not lay out. */
   readonly start: Option.Option<number>;
 }
 
-/** A section of the transcript: its id (its scene), its take, its words, and its marks (each by the index of the word it stands before). */
+/** A section of words: its id (its scene), its take, its words, and its marks (each by the index of the word it stands before). */
 export interface SectionRows {
   readonly id: string;
   readonly take: string;
@@ -35,89 +28,17 @@ export interface SectionRows {
   readonly marks: Readonly<Record<string, number>>;
 }
 
-/** `talk`'s sections as the view lays them out, against the film laid out as `placed`. */
-export const rowsOf = (
-  talk: TalkWords,
-  placed: ReadonlyArray<Placed>,
-): ReadonlyArray<SectionRows> => {
-  let at = 0;
-  return talk.sections.map((section) => {
-    const speech = Option.map(
-      Arr.findFirst(placed, (p) => p.spec.id === section.id),
-      (p) => p.start + p.speechStart,
-    );
-    const rows = section.words.map((word): Row => {
-      const from = at;
-      at += word.text.length + 1;
-      return {
-        index: word.index,
-        text: word.text,
-        struck: word.struck,
-        from,
-        start: Option.flatMap(speech, (s) =>
-          Option.map(Option.fromUndefinedOr(word.heard), ([heard]) => s + heard),
-        ),
-      };
-    });
-    return { id: section.id, take: section.take, rows, marks: section.marks };
-  });
-};
-
-/** A word of a section: what the view lights, selects and follows. */
+/** A word of a section: what the page lights and selects. */
 export interface WordAt {
   readonly section: string;
   readonly index: number;
 }
-
-/** Whether `a` and `b` are the same word, or both none: a word lit settles while the word does. */
-export const sameWord = (a: Option.Option<WordAt>, b: Option.Option<WordAt>): boolean =>
-  Option.getOrElse(
-    Option.zipWith(a, b, (x, y) => x.section === y.section && x.index === y.index),
-    () => Option.isNone(a) && Option.isNone(b),
-  );
 
 /** The row of word `at` among `sections`. */
 export const rowOf = (sections: ReadonlyArray<SectionRows>, at: WordAt): Option.Option<Row> =>
   Option.flatMap(
     Arr.findFirst(sections, (s) => s.id === at.section),
     (s) => Arr.findFirst(s.rows, (r) => r.index === at.index),
-  );
-
-/**
- * The word at film seconds `T`: in the section under `T`, the last word
- * played that starts at or before it (the one playing, or the one just
- * said); none before the section's first word, or in a section the talk does
- * not cut.
- */
-export const wordAt = (
-  sections: ReadonlyArray<SectionRows>,
-  placed: ReadonlyArray<Placed>,
-  T: number,
-): Option.Option<WordAt> =>
-  Option.flatMap(sceneAt(placed, T), (p) =>
-    Option.flatMap(
-      Arr.findFirst(sections, (s) => s.id === p.spec.id),
-      (section) =>
-        Option.map(
-          Arr.findLast(section.rows, (r) => Option.exists(r.start, (s) => s - T <= CLOCK_EPSILON)),
-          (r) => ({ section: section.id, index: r.index }),
-        ),
-    ),
-  );
-
-/** The rows of section `id` whose indices `from`–`to` take in. */
-export const rowsIn = (
-  sections: ReadonlyArray<SectionRows>,
-  id: string,
-  from: number,
-  to: number,
-): ReadonlyArray<Row> =>
-  Option.getOrElse(
-    Option.map(
-      Arr.findFirst(sections, (s) => s.id === id),
-      (s) => s.rows.filter((r) => r.index >= from && r.index <= to),
-    ),
-    () => [],
   );
 
 /**
@@ -141,36 +62,3 @@ export const rangesOf = (rows: ReadonlyArray<Row>): ReadonlyArray<CodeRange> =>
       ),
     [],
   );
-
-/**
- * The mark Mark here sets on word `index` (spelt `text`), given the marks its
- * section has: the word in lower-case ASCII letters and digits, a letter's
- * accent let go (`café` is `cafe`; `mark` when none is left), so it is a name
- * the talk's decode keeps (`MarkName`: the server refuses any other), with
- * `-2`, `-3`, … while another word of the section has that name; a mark
- * already on the word is its own name again.
- */
-export const markName = (
-  text: string,
-  index: number,
-  marks: Readonly<Record<string, number>>,
-): string => {
-  const base =
-    text
-      .normalize('NFD')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '') || 'mark';
-  const free = (name: string) =>
-    Option.match(Rec.get(marks, name), {
-      onNone: () => true,
-      onSome: (on) => on === index,
-    });
-  const named = (k: number) => {
-    if (k === 0) return base;
-    return `${base}-${k + 1}`;
-  };
-  return Option.getOrElse(
-    Arr.findFirst(Arr.makeBy(Object.keys(marks).length + 1, named), free),
-    () => base,
-  );
-};

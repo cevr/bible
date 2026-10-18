@@ -12,7 +12,7 @@ import { TestClock } from 'effect/testing';
 import type { Note, NotesFile, NotesWait } from '../../core/schema.ts';
 import { ServerFailed } from '../../core/api.ts';
 import { type LabFailure, NotesApi, type NotesCalls } from '../api.ts';
-import { FeedEvent, FeedState, RETRY_MS, feedFrom, feedText, spawnFeed, startOf } from './feed.ts';
+import { FeedEvent, FeedState, RETRY_MS, feedFrom, spawnFeed, startOf } from './feed.ts';
 
 const note = (id: string, text = 'the ball rises too early'): Note => ({
   scene: 'one',
@@ -228,7 +228,7 @@ describe('the connection, through an actor', () => {
       return Effect.gen(function* () {
         const actor = yield* spawnFeed(startOf(Exit.failCause(Cause.fail(refused))));
         const lost = yield* SubscriptionRef.get(actor.state);
-        expect(feedText(lost)).toBe('notes offline: notes.json is being written; trying again');
+        expect(lost).toMatchObject({ _tag: 'Lost', reason: 'notes.json is being written' });
         expect(asked).toEqual([]);
         yield* TestClock.adjust(`${RETRY_MS} millis`);
         expect(yield* SubscriptionRef.get(actor.state)).toEqual(
@@ -245,11 +245,10 @@ describe('the connection, through an actor', () => {
       const actor = yield* started;
       yield* TestClock.adjust('10 millis');
       const lost = yield* SubscriptionRef.get(actor.state);
-      expect(feedText(lost)).toBe('notes offline: notes.json is being written; trying again');
+      expect(lost).toMatchObject({ _tag: 'Lost', reason: 'notes.json is being written' });
       yield* TestClock.adjust(`${RETRY_MS} millis`);
       const back = yield* SubscriptionRef.get(actor.state);
       expect(back).toEqual(FeedState.Live({ notes: [], cursor: 0 }));
-      expect(feedText(back)).toBe('');
       expect(asked).toEqual(['notes', 'notes', 'wait 0']);
     }).pipe(Effect.scoped, Effect.provide(layer));
   });

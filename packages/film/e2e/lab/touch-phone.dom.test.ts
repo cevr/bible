@@ -1,8 +1,7 @@
 // The studio on a phone (390 × 844): the review's transport lies in one row
 // on the floor; every page fits (no sideways scroll, each control inside
-// the width, its chrome at most a quarter of the height); a short name is as
-// wide as its words; a finger on a note's field under the scope's × writes in
-// the field; a finger on a slider drags it from the top edge of its box.
+// the width, its chrome at most a quarter of the height); a finger on a
+// slider drags it from the top edge of its box.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -29,19 +28,12 @@ import {
   byPlace,
   isAt,
   review,
-  lab,
   player,
-  opens,
   PRODUCTION_READY,
   ASK_READY,
   PAGE_READY,
   DELIVERY_READY,
   DRAFT_READY,
-  SELECTION_SHEET,
-  labCue,
-  cueFieldsShown,
-  labNoteOnCue,
-  LAB_MOVES,
 } from './studio-states.ts';
 
 /**
@@ -105,19 +97,6 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
         review(pageHref.draftBeat(STUDIO_SERIES, STUDIO_DRAFT, '1', '4-4'), DELIVERY_READY),
       ],
     ],
-    lab: LAB_MOVES,
-    labScene: [
-      ['Lab', lab('edit')],
-      // Its sheet peeks one line above the dock, counted as chrome: the header, the peek and the
-      // dock, within the quarter.
-      ['Lab, a scene with a cue selected', labCue],
-      [
-        // Opened, the sheet is a layer over the Lab, as an inspector is: shut to go back, so no chrome.
-        "Lab, a scene with a cue selected, its sheet opened: the sheet's width and controls the page's, the sheet no chrome",
-        (viewport) => Effect.tap(labCue(viewport), cueFieldsShown),
-        SELECTION_SHEET,
-      ],
-    ],
     studio: [['Studio', player(pageHref.studio(PROBE), '.st-timeline .st-clip')]],
   };
   for (const [place, [name, open, layer]] of byPlace(PAGES)) {
@@ -132,31 +111,6 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
       SLOW,
     );
   }
-});
-
-describe("a note's scope × on a phone", () => {
-  const SCOPE_X = '[data-role="note-scope"] [data-act="clear-scope"]';
-  const FIELD = '.lab-compose textarea';
-  // Serial: a finger's touches (`film/touches-serial`).
-  it.scopedLive.serial(
-    "a finger on the note's field, just under the ×, writes in the field and keeps the scope",
-    () =>
-      Effect.gen(function* () {
-        const page = yield* labNoteOnCue(PHONE.viewport);
-        yield* opens('[data-act="note-frame"]', SCOPE_X)(page);
-        yield* page.until(
-          `(() => { document.querySelector('${FIELD}').scrollIntoView({ block: 'center', behavior: 'instant' }); document.activeElement.blur(); return document.activeElement === document.body; })()`,
-        );
-        const x = yield* page.box(SCOPE_X);
-        const field = yield* page.box(FIELD);
-        // The finger lands 1 px inside the field's top edge, under the ×'s middle.
-        yield* page.finger.down(x.x + x.width / 2, field.y + 1);
-        yield* page.finger.up;
-        yield* page.until(`document.activeElement === document.querySelector('${FIELD}')`);
-        yield* evaluates(page, `document.querySelector('${SCOPE_X}') !== null`, true);
-      }),
-    SLOW,
-  );
 });
 
 describe('a finger on a slider', () => {

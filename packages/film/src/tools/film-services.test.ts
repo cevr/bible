@@ -45,7 +45,6 @@ const GUARDED: ReadonlyArray<readonly [service: string, member: string]> = [
     'NotesStore',
     'FreshFilm',
     'SceneWriter',
-    'SceneHead',
     'SceneSources',
     'SourceWriter',
     'RenderCatalogue',

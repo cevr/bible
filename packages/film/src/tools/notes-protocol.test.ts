@@ -98,7 +98,7 @@ describe('film notes, as an agent reads it', () => {
     }).pipe(Effect.provide(Fresh)),
   );
 
-  it.live('prints the stretch of its scene a note is about, its scope chip’s range', () =>
+  it.live('prints the stretch of its scene a note is about', () =>
     Effect.gen(function* () {
       yield* (yield* NotesStore).add(
         film,

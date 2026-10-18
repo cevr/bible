@@ -4,7 +4,7 @@
 // run only while focus is in the studio (`keysIn: ['studio']`), and the
 // command menu offers each while it has something to do. The studio owns
 // these keys (`command/keymap.ts`): one with nothing to do now is still not
-// the lab's. Each answers quietly: the recorder's status line says what
+// the page's. Each answers quietly: the recorder's status line says what
 // happened. The microphone is picked here too: a ⌘K entry per one the
 // browser lists (`micCommands`), no key, the one in use not offered.
 

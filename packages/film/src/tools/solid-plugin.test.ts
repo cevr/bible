@@ -26,8 +26,8 @@ const loader = Effect.suspend(() => {
 });
 
 const TSX = [
-  `${import.meta.dir}/../lab/editor/strip.tsx`,
-  `${import.meta.dir}/../lab/shell.tsx`,
+  `${import.meta.dir}/../lab/film-studio/editing.tsx`,
+  `${import.meta.dir}/../lab/film-studio/page.tsx`,
   `${import.meta.dir}/../lab/film-studio/inspector.tsx`,
 ];
 

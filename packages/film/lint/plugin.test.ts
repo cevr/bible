@@ -101,9 +101,9 @@ const MESSAGES = {
   'host-events-jsx.tsx:9 film/host-events-through-adapter':
     "a JSX handler for 'pointerup' ends a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).",
   'keys-named-as-bound.tsx:9 film/keys-named-as-bound':
-    "keysOf reads the keymap once, so a rebound key reads as the old one: name the key as bound now: hubKeys' titled or text in Solid (packages/film/src/lab/command/changes.ts), titledNow on Hub.subscribe outside it (packages/film/src/command/hub.ts).",
+    "keysOf reads the keymap once, so a rebound key reads as the old one: name the key as bound now: hubKeys' titled or text (packages/film/src/lab/command/changes.ts).",
   'keys-named-as-bound.tsx:15 film/keys-named-as-bound':
-    "a title written with its key: name the key as bound now: hubKeys' titled or text in Solid (packages/film/src/lab/command/changes.ts), titledNow on Hub.subscribe outside it (packages/film/src/command/hub.ts).",
+    "a title written with its key: name the key as bound now: hubKeys' titled or text (packages/film/src/lab/command/changes.ts).",
   'keys-through-keymap.tsx:10 film/keys-through-keymap':
     'a JSX handler hears keydown on its own: declare a command with its keys (packages/film/src/command/command.ts), registered with the page hub.',
   'keys-through-keymap.tsx:18 film/keys-through-keymap':
@@ -115,7 +115,7 @@ const MESSAGES = {
   'history-through-host.ts:11 film/history-through-host':
     "a history move chosen here: a place's field declares its policy (Place.history, @bible/url-state), and the address bar is written through addressOn (packages/film/src/browser/host.ts).",
   'one-clock-epsilon.ts:12 film/one-clock-epsilon':
-    'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, offTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.',
+    'a nudge written beside a time: put the time on its grid through packages/film/src/core/time.ts (frameAtOrAfter, frameAtOrBefore, onTheMs, heardAtOrAfter, justBefore), or judge two times one with CLOCK_EPSILON, so one owner rounds every time.',
   'lock-through-sqlite.ts:11 film/lock-through-sqlite':
     "a manifest's lock file named outside its lock: SQLite alone opens it (packages/film/src/tools/manifest-lock-bun.ts), since closing any other handle on it lets go of the process's lock.",
   'media-through-player.tsx:7 film/media-through-player':

@@ -1,9 +1,7 @@
 // Follow: the one rule by which a view's scroll box keeps what the frame
-// lights in sight, shared by the Source view (the playing literal's line,
-// `source/view.tsx`), the cue strip (the live lanes, `editor/strip.tsx`), the
-// Transcript (the word heard, `transcript/context.tsx`) and the words reader
-// (the beat at the studio's playhead, `words/reader.tsx`). The page's clock
-// is the view's to give (`FollowClock`): the Lab's player, the studio's.
+// lights in sight, as the words reader keeps the beat at the studio's
+// playhead (`words/reader.tsx`). The page's clock is the view's to give
+// (`FollowClock`): the studio's.
 // The view names a target as a key that only changes when the target does
 // (so a frame that moves nothing reads no layout), and a span of rows for it.
 // When the key changes, or the box or its content is resized, and the span is

@@ -3,7 +3,7 @@ import { HttpServer, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { test } from 'bun:test';
 import { Context, Effect, Exit, Layer, Option, Scope } from 'effect';
 import { expect, it } from 'effect-bun-test';
-import { LabApi, LabClient, NotesApi, labApiLayer, stepWhyNot } from './api.ts';
+import { LabClient, NotesApi, labApiLayer, stepWhyNot } from './api.ts';
 import { StudioApi, studioApiLayer } from './studio/api.ts';
 import { Unfit } from '../command/command.ts';
 import { ChangeId } from '../core/schema.ts';
@@ -72,7 +72,6 @@ const server = Effect.gen(function* () {
         .pathname;
       asked.push(path);
       const film = path.split('/')[3];
-      if (path.endsWith('/check')) return HttpServerResponse.jsonUnsafe({ findings: [] });
       if (path.endsWith('/notes'))
         return HttpServerResponse.jsonUnsafe({ film, seq: 0, notes: [] });
       if (path.endsWith('/studio/beats')) return HttpServerResponse.jsonUnsafe({ film, beats: [] });
@@ -118,7 +117,6 @@ it.live(
           studioScope,
         );
         expect(lifetime).toEqual(['acquired']);
-        expect(yield* Context.get(lab, LabApi).check).toEqual({ findings: [] });
         expect(yield* Context.get(lab, NotesApi).notes).toEqual({ film, seq: 0, notes: [] });
         expect(yield* Context.get(studio, StudioApi).beats).toEqual({ film, beats: [] });
         yield* Scope.close(labScope, Exit.void);
@@ -127,7 +125,6 @@ it.live(
         yield* Scope.close(studioScope, Exit.void);
         expect(lifetime).toEqual(['acquired', 'released']);
         expect(host.asked).toEqual([
-          `/api/films/${film}/check`,
           `/api/films/${film}/notes`,
           `/api/films/${film}/studio/beats`,
           `/api/films/${film}/studio/beats`,

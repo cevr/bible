@@ -2,13 +2,12 @@
 // tap that opened the sheet only when that entry is exactly where the Close
 // would write. Time moved while the sheet was open lives in the entry the
 // sheet is on, so Back would rewind it; the Close then follows (a replace) and
-// keeps the time. Checked on the phone Lab's cue sheet and a Set's
-// inspector, each by the `#t=` after the Close.
+// keeps the time. Checked on a Set's inspector by the `#t=` after the Close.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
-import { PHONE, URL_T, labAt, openLab, openReview, route } from '../../src/lab/fixtures/harness.ts';
+import { openReview, route } from '../../src/lab/fixtures/harness.ts';
 import { STUDIO_FOLDER, STUDIO_SET, studioRoutes } from '../../src/lab/fixtures/studio-film.ts';
 import { countIs, evaluates, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import { tone } from '../../src/lab/fixtures/tone.ts';
@@ -25,27 +24,6 @@ const movedFrom = (page: Tab, was: string) =>
   });
 
 describe('a sheet closed after the time moved keeps the time', () => {
-  it.live(
-    "the phone Lab's cue sheet",
-    () =>
-      Effect.gen(function* () {
-        const { page, errors } = yield* openLab([], { href: labAt(1), viewport: PHONE });
-        yield* waitFor(page, '.lab-cue[data-cue="rise"]');
-        yield* page.click('.lab-cue[data-cue="rise"]');
-        yield* waitFor(page, '.lab-selection-sheet');
-        const tapped = yield* page.evaluate<string>(HASH);
-        yield* page.press('.');
-        const moved = yield* movedFrom(page, tapped);
-        const t = yield* page.evaluate<number>(URL_T);
-        yield* page.click('.lab-selection-sheet [data-act="close-inspector"]');
-        yield* countIs(page, '.lab-selection-sheet', 0);
-        yield* evaluates(page, HASH, moved);
-        yield* until(page, `Math.abs(${URL_T} - ${t}) < 0.02`);
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
-
   it.live(
     "a Set's inspector",
     () =>

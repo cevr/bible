@@ -6,7 +6,7 @@
 // that does not resolve fails as a value naming its scene and cue. Pure and
 // DOM-free.
 
-import { Option, Predicate, Result } from 'effect';
+import { Predicate, Result } from 'effect';
 import {
   CueCycle,
   type PointError,
@@ -26,46 +26,11 @@ import {
   type Until,
   type Word,
 } from './schema.ts';
-import {
-  CLOCK_EPSILON,
-  DEFAULT_EASE,
-  type Key,
-  ease,
-  keys,
-  onTheMs,
-  progress,
-  toMs,
-} from './time.ts';
+import { CLOCK_EPSILON, DEFAULT_EASE, type Key, ease, keys, progress, toMs } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
 export const cueProgress = (cue: ResolvedCue, t: number): number =>
   progress(t, cue.start, cue.dur, ease[cue.ease]);
-
-/** A cue the playhead is inside, and how far through it (`cueProgress`). */
-interface LiveCue {
-  readonly name: string;
-  readonly progress: number;
-}
-
-/** Where `cue` stops playing, in a film at `fps`: its end, or for a cue with no length, the end of its one frame. */
-export const liveEnd = (cue: ResolvedCue, fps: number): number =>
-  cue.dur > 0 ? cue.end : cue.start + 1 / fps;
-
-/**
- * The cues playing at scene time `t`, in `cues`' order: one is live from its
- * start up to its end, and a cue with no length on its one frame (of a film
- * at `fps`, `liveEnd`). Pure in the time and the shown cues, so a link with
- * `#t=` lights what the sender saw; nothing is read from drawing.
- */
-export const liveAt = (
-  cues: ReadonlyMap<string, ResolvedCue>,
-  t: number,
-  fps: number,
-): ReadonlyArray<LiveCue> =>
-  [...cues].flatMap(([name, cue]) => {
-    if (t < cue.start || t >= liveEnd(cue, fps)) return [];
-    return [{ name, progress: cueProgress(cue, t) }];
-  });
 
 /**
  * 0→1 for the item at `at` (0 the first, 1 the last) across a staggered cue
@@ -174,83 +139,6 @@ export const patchSpan = (span: Span, patch: CuePatch): Span => {
   };
 };
 
-/** Where a lab drag grabs a cue's bar: its body, its left edge or its right edge. */
-export type DragEdge = 'move' | 'start' | 'end';
-
-/** Where a dragged bar now sits on the scene clock. */
-interface DraggedBar {
-  readonly start: number;
-  readonly end: number;
-}
-
-/**
- * The patch a lab drag of `span` writes, given its cue as resolved before the
- * drag and where the bar now sits; none when the drag changes nothing. The
- * body moves the offset, the right edge the dur, the left edge both. A span
- * that `ends` on its anchor mirrors it: its offset moves the end, so the left
- * edge sets only the dur and the right edge both.
- *
- * A span that runs `until` a point (a mark, a landmark or a cue's edge) keeps
- * following it: the body and the left edge move only its offset, its start
- * held at least `frame` before its end so it never ends before it starts, and
- * the right edge sets the end's offset off the point (`untilOffset`; 0, the
- * key dropped, when dropped back on it), never a `dur`, so a re-take or a drag
- * of that point still moves the end.
- */
-export const dragPatch = (
-  span: Span,
-  cue: ResolvedCue,
-  edge: DragEdge,
-  at: DraggedBar,
-  frame: number,
-): Option.Option<CuePatch> => {
-  if (span.until !== undefined)
-    return untilPatch(span, cue, edge, at, cue.start - (span.offset ?? 0), frame);
-  const lands = span.ends === true;
-  const anchor = (lands ? cue.end : cue.start) - (span.offset ?? 0);
-  const offset = toMs((lands ? at.end : at.start) - anchor);
-  const dur = toMs(at.end - at.start);
-  if (offset === toMs(span.offset ?? 0) && dur === toMs(cue.dur)) return Option.none();
-  if (edge === 'move') return Option.some({ offset });
-  if (edge === (lands ? 'start' : 'end')) return Option.some({ dur });
-  return Option.some({ offset, dur });
-};
-
-/**
- * The fields a drag of `span` at `edge` writes (`dragPatch`): what the lab
- * must find literal, or absent, in the source to write it.
- */
-export const dragFields = (span: Span, edge: DragEdge): ReadonlyArray<keyof CuePatch> => {
-  if (edge === 'move') return ['offset'];
-  if (span.until !== undefined) return edge === 'end' ? ['untilOffset'] : ['offset'];
-  if (edge === (span.ends === true ? 'start' : 'end')) return ['dur'];
-  return ['offset', 'dur'];
-};
-
-/** `dragPatch` for a span that runs `until` a point: see there. */
-const untilPatch = (
-  span: Span,
-  cue: ResolvedCue,
-  edge: DragEdge,
-  at: DraggedBar,
-  anchor: number,
-  frame: number,
-): Option.Option<CuePatch> => {
-  if (edge === 'end') {
-    if (toMs(at.end) === toMs(cue.end)) return Option.none();
-    // The point the span runs until: its end less the offset it ends off it.
-    const point = cue.end - (span.untilOffset ?? 0);
-    const near = toMs(Math.max(cue.start, at.end) - point);
-    // Rounded, the end may fall before the start: then it is the first millisecond at or after it.
-    // On the start within float noise is on it, as the resolver judges it (`CLOCK_EPSILON`).
-    if (point + near >= cue.start - CLOCK_EPSILON) return Option.some({ untilOffset: near });
-    return Option.some({ untilOffset: onTheMs(cue.start - point) });
-  }
-  const offset = toMs(Math.min(at.start, cue.end - frame) - anchor);
-  if (offset === toMs(span.offset ?? 0)) return Option.none();
-  return Option.some({ offset });
-};
-
 /** What a timeline resolves against. `marks` and `words` are speech-relative, as narration gives them. */
 export interface SceneClock {
   readonly scene: string;
@@ -323,8 +211,8 @@ const untilPoint = (until: Until): ScenePoint => {
   return { at: until.at };
 };
 
-/** Where a span runs `until`, as the lab and an error say it: `{mark}`, the landmark's name, or `the end of cue "roll"`. */
-export const untilText = (until: Until): string => {
+/** Where a span runs `until`, as `film cues` and an error say it: `{mark}`, the landmark's name, or `the end of cue "roll"`. */
+const untilText = (until: Until): string => {
   if (Predicate.isString(until)) return `{${until}}`;
   if (until.cue !== undefined) return `the ${until.edge ?? 'end'} of cue "${until.cue}"`;
   return until.at;
@@ -332,15 +220,15 @@ export const untilText = (until: Until): string => {
 
 /**
  * Whether `cue` ends after its scene, `sceneDur` long: past its end by more
- * than float noise (`CLOCK_EPSILON`). The one judgement the lab's strip,
- * `film cues` and `film check` (`CueLate`) make of it.
+ * than float noise (`CLOCK_EPSILON`). The one judgement `film cues` and
+ * `film check` (`CueLate`) make of it.
  */
 export const endsLate = (cue: ResolvedCue, sceneDur: number): boolean =>
   cue.end > sceneDur + CLOCK_EPSILON;
 
 /**
- * Where a span that runs `until` a point ends, as the lab, `film cues` and an
- * error say it: the point (`untilText`), and its offset off it when it has
+ * Where a span that runs `until` a point ends, as `film cues` and an error
+ * say it: the point (`untilText`), and its offset off it when it has
  * one, to the hundredth: `{first} + 0.10 s`, `{first} − 0.10 s`.
  */
 export const untilEndText = (until: Until, untilOffset = 0): string => {

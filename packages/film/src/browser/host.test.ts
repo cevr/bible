@@ -29,7 +29,7 @@ const entryOf = (moves: () => void) =>
 describe('the address bar', () => {
   it.live('a reload loads the page at the place written the moment before', () => {
     const loaded: Array<string> = [];
-    const address = UrlState.layer.pipe(Layer.provideMerge(layerMemory('/films/p/lab/one#t=0')));
+    const address = UrlState.layer.pipe(Layer.provideMerge(layerMemory('/films/p/studio#t=0')));
     const pageLoad = Layer.effect(
       PageLoad,
       Effect.gen(function* () {
@@ -44,53 +44,50 @@ describe('the address bar', () => {
     ).pipe(Layer.provideMerge(address));
     return Effect.gen(function* () {
       const url = yield* UrlState.UrlState;
-      yield* url.navigate('/films/p/lab/two#t=1.5', {
+      yield* url.navigate('/films/q/studio#t=1.5', {
         history: 'replace',
         throttle: Option.none(),
       });
       yield* reloadAtAddress;
-      expect(loaded).toEqual(['/films/p/lab/two#t=1.5']);
+      expect(loaded).toEqual(['/films/q/studio#t=1.5']);
     }).pipe(Effect.provide(pageLoad));
   });
 
   it.live(
     "a viewer's move is a step where its place declares one; the URL following the page never is",
     () => {
-      const host = hostOf(UrlState.layer.pipe(Layer.provideMerge(layerMemory('/films/p/lab/one'))));
+      const host = hostOf(UrlState.layer.pipe(Layer.provideMerge(layerMemory('/films/p/studio'))));
       const address = addressOn(host);
       return Effect.gen(function* () {
         // The time alone, on the viewer's move or the page's: no step.
-        expect(yield* entryOf(() => address.go('/films/p/lab/one#t=1'))).toBe(
-          'replace /films/p/lab/one#t=1',
+        expect(yield* entryOf(() => address.go('/films/p/studio#t=1'))).toBe(
+          'replace /films/p/studio#t=1',
         );
-        expect(yield* entryOf(() => address.follow('/films/p/lab/one#t=2'))).toBe(
-          'replace /films/p/lab/one#t=2',
+        expect(yield* entryOf(() => address.follow('/films/p/studio#t=2'))).toBe(
+          'replace /films/p/studio#t=2',
         );
-        // A cue picked and the compare's mode picked: cited keys, each a step.
-        expect(yield* entryOf(() => address.go('/films/p/lab/one?cue=rise#t=2'))).toBe(
-          'push /films/p/lab/one?cue=rise#t=2',
+        // A beat selected and a note opened: cited keys, each a step.
+        expect(yield* entryOf(() => address.go('/films/p/studio?sel=rise#t=2'))).toBe(
+          'push /films/p/studio?sel=rise#t=2',
         );
-        expect(yield* entryOf(() => address.go('/films/p/lab/one?cue=rise&view=wipe#t=2'))).toBe(
-          'push /films/p/lab/one?cue=rise&view=wipe#t=2',
+        expect(yield* entryOf(() => address.go('/films/p/studio?sel=rise&note=n1#t=2'))).toBe(
+          'push /films/p/studio?sel=rise&note=n1#t=2',
         );
-        // The compare's own move: written in place.
-        expect(
-          yield* entryOf(() => address.follow('/films/p/lab/one?cue=rise&view=blink#t=2')),
-        ).toBe('replace /films/p/lab/one?cue=rise&view=blink#t=2');
-        // Play crosses into the next scene: in place; a jump to the next: a step.
-        expect(yield* entryOf(() => address.follow('/films/p/lab/two#t=0'))).toBe(
-          'replace /films/p/lab/two#t=0',
+        // The page following its own selection: written in place.
+        expect(yield* entryOf(() => address.follow('/films/p/studio?sel=fall#t=3'))).toBe(
+          'replace /films/p/studio?sel=fall#t=3',
         );
-        expect(yield* entryOf(() => address.go('/films/p/lab/three#t=0'))).toBe(
-          'push /films/p/lab/three#t=0',
+        // Another film's studio: a step.
+        expect(yield* entryOf(() => address.go('/films/q/studio#t=0'))).toBe(
+          'push /films/q/studio#t=0',
         );
         // A play write and a jump in one tick are one step, judged from the entry on screen.
         expect(
           yield* entryOf(() => {
-            address.follow('/films/p/lab/one#t=0');
-            address.go('/films/p/lab/one#t=0.5');
+            address.follow('/films/p/studio#t=0');
+            address.go('/films/p/studio#t=0.5');
           }),
-        ).toBe('push /films/p/lab/one#t=0.5');
+        ).toBe('push /films/p/studio#t=0.5');
       }).pipe(Effect.provide(Layer.succeedContext(host)));
     },
   );

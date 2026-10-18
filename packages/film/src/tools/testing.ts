@@ -108,7 +108,6 @@ import { ScriptVoices } from './script-voice.ts';
 import { SeriesDrafts } from './series-drafts.ts';
 import { StagingCache } from './staging.ts';
 import { PreviewServer } from './preview-server.ts';
-import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
@@ -784,7 +783,6 @@ export const noScenes = Layer.mergeAll(
     SceneWriter,
     SceneWriter.of({ setCue: () => unusedSource, setKnob: () => unusedSource }),
   ),
-  Layer.succeed(SceneHead, SceneHead.of({ head: () => unusedSource })),
 );
 
 /**

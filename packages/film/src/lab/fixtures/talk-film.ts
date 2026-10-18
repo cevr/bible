@@ -9,8 +9,7 @@
 // the take's transcript, which the render harness serves at the footage
 // route (`TALK_LIBRARY`).
 
-import { Effect, Layer, Option, Schema } from 'effect';
-import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http';
+import { Effect, Schema } from 'effect';
 import type { Film } from '../../canvas/film.ts';
 import { syntheticTake } from '../../core/fixtures/talk-take.ts';
 import {
@@ -104,44 +103,4 @@ export const talkFilm: Effect.Effect<Film> = Effect.map(
     talkFilms({ [TALK]: () => Effect.runPromise(Effect.succeed({ talk: TALK_EDIT })) })[TALK](),
   ),
   (page) => page.film({ audio: '' }),
-);
-
-/** The footage library's files (`TALK_LIBRARY`) answered in the page, by path: the lab's fake server has no footage route. */
-const libraryClient: Layer.Layer<HttpClient.HttpClient> = Layer.effect(
-  HttpClient.HttpClient,
-  Effect.map(TALK_LIBRARY, (files) =>
-    HttpClient.mapRequest(
-      HttpClient.make((request, url) =>
-        Effect.succeed(
-          HttpClientResponse.fromWeb(
-            request,
-            Option.match(Option.fromUndefinedOr(files[url.pathname]), {
-              onNone: () => new Response('not found', { status: 404 }),
-              onSome: (body) => new Response(body),
-            }),
-          ),
-        ),
-      ),
-      HttpClientRequest.prependUrl('http://lab.test'),
-    ),
-  ),
-);
-
-/**
- * The talk as the lab's browser tests stage it: cut as the films index cuts
- * it, its footage left out (the lab's fixture page bundles no decoder,
- * `bundles.ts`), so it draws its captions over nothing. The lab reads it a
- * talk all the same by its words (`GET …/talk`), which a test answers.
- */
-export const labTalkFilm: Effect.Effect<Film> = Effect.map(
-  Effect.promise(() =>
-    talkFilms(
-      { [TALK]: () => Effect.runPromise(Effect.succeed({ talk: TALK_EDIT })) },
-      libraryClient,
-    )[TALK](),
-  ),
-  (page) => {
-    const { footageAt: _footage, ...film } = page.film({ audio: '' });
-    return film;
-  },
 );

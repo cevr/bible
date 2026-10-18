@@ -18,9 +18,7 @@ import {
   type SceneClock,
   cueKeys,
   cueProgress,
-  dragPatch,
   endsLate,
-  liveAt,
   patchSpan,
   resolveTimeline,
   staggerAt,
@@ -63,42 +61,6 @@ describe('endsLate', () => {
     expect(endsLate(ending(4), 4)).toBe(false);
     expect(endsLate(ending(4 + CLOCK_EPSILON / 2), 4)).toBe(false);
     expect(endsLate(ending(4 + CLOCK_EPSILON * 10), 4)).toBe(true);
-  });
-});
-
-describe('what plays at a time', () => {
-  const at = (start: number, end: number): ResolvedCue => ({
-    start,
-    end,
-    dur: end - start,
-    ease: 'linear',
-    stagger: 0,
-  });
-  const cues = new Map<string, ResolvedCue>([
-    ['rise', at(1, 2)],
-    ['fall', at(2, 3)],
-    ['beat', at(2, 2)],
-  ]);
-  const names = (t: number) => liveAt(cues, t, 30).map((l) => l.name);
-
-  test('a cue is live from its start up to its end, and not at its end', () => {
-    expect(names(0.5)).toEqual([]);
-    expect(names(1)).toEqual(['rise']);
-    expect(names(1.999)).toEqual(['rise']);
-    expect(names(3)).toEqual([]);
-  });
-
-  test('a cue with no length is live on its frame only', () => {
-    expect(names(2)).toEqual(['fall', 'beat']);
-    expect(names(2 + 1 / 30 - 1e-6)).toEqual(['fall', 'beat']);
-    expect(names(2 + 1 / 30)).toEqual(['fall']);
-  });
-
-  test('a live cue carries how far through it the playhead is, as the frame reads it', () => {
-    expect(liveAt(cues, 1.25, 30)).toEqual([
-      { name: 'rise', progress: cueProgress(at(1, 2), 1.25) },
-    ]);
-    expect(liveAt(cues, 1.25, 30)[0]?.progress).toBeCloseTo(0.25, 9);
   });
 });
 
@@ -356,19 +318,6 @@ describe('timeline', () => {
     expect(patchSpan(walk, { ease: 'inQuad' })).toEqual({ ...walk, ease: 'inQuad' });
   });
 
-  test('dragPatch: the body moves the offset, the right edge the dur, the left edge both', () => {
-    const slam = { mark: 'fiction', offset: 0.9, dur: 0.35 } as const;
-    const c = Option.getOrThrow(
-      Option.fromUndefinedOr(Result.getOrThrow(resolveTimeline({ slam }, clock)).get('slam')),
-    );
-    const drag = (edge: 'move' | 'start' | 'end', start: number, end: number) =>
-      dragPatch(slam, c, edge, { start, end }, 1 / 30);
-    expect(drag('move', c.start + 0.2, c.end + 0.2)).toEqual(Option.some({ offset: 1.1 }));
-    expect(drag('end', c.start, c.end + 0.25)).toEqual(Option.some({ dur: 0.6 }));
-    expect(drag('start', c.start - 0.1, c.end)).toEqual(Option.some({ offset: 0.8, dur: 0.45 }));
-    expect(drag('start', c.start, c.end)).toEqual(Option.none());
-  });
-
   test('a span that `ends` on its anchor lands there, and a dur edit keeps the landing', () => {
     const land = { mark: 'fiction', dur: 0.5, ends: true } as const;
     const at = (span: Span) =>
@@ -385,97 +334,7 @@ describe('timeline', () => {
     expect(patchSpan(land, { until: 'as' })).toEqual({ mark: 'fiction', until: 'as' });
   });
 
-  test('dragPatch: a span that ends on its anchor moves its end by its offset', () => {
-    const land = { mark: 'fiction', dur: 0.5, ends: true } as const;
-    const c = Option.getOrThrow(
-      Option.fromUndefinedOr(Result.getOrThrow(resolveTimeline({ land }, clock)).get('land')),
-    );
-    const drag = (edge: 'move' | 'start' | 'end', start: number, end: number) =>
-      dragPatch(land, c, edge, { start, end }, 1 / 30);
-    // The left edge sets only the dur: the landing stays on the mark.
-    expect(drag('start', c.start - 0.3, c.end)).toEqual(Option.some({ dur: 0.8 }));
-    // The body and the right edge move the landing by the offset.
-    expect(drag('move', c.start + 0.2, c.end + 0.2)).toEqual(Option.some({ offset: 0.2 }));
-    expect(drag('end', c.start, c.end + 0.2)).toEqual(Option.some({ offset: 0.2, dur: 0.7 }));
-    expect(drag('start', c.start, c.end)).toEqual(Option.none());
-  });
-
-  test('dragPatch: a span that runs until a mark keeps ending on it', () => {
-    // Starts at 2.8 (speech 0.5 + fiction 2 + 0.3), ends on {as} at 5.5.
-    const walk = { mark: 'fiction', offset: 0.3, until: 'as' } as const;
-    const c = Option.getOrThrow(
-      Option.fromUndefinedOr(Result.getOrThrow(resolveTimeline({ walk }, clock)).get('walk')),
-    );
-    const drag = (edge: 'move' | 'start' | 'end', start: number, end: number) =>
-      dragPatch(walk, c, edge, { start, end }, 1 / 30);
-    // The left edge and the body move only the start: the end stays on the mark.
-    expect(drag('start', 3, 5.5)).toEqual(Option.some({ offset: 0.5 }));
-    expect(drag('move', 3.8, 6.5)).toEqual(Option.some({ offset: 1.3 }));
-    // Dragged past the mark, the start holds a frame before it: the span still resolves.
-    const past = drag('move', 6, 8.7);
-    expect(past).toEqual(Option.some({ offset: 2.967 }));
-    const moved = Result.getOrThrow(
-      resolveTimeline({ walk: patchSpan(walk, Option.getOrThrow(past)) }, clock),
-    );
-    expect(moved.get('walk')?.end).toBe(5.5);
-    // The right edge dropped on the mark changes nothing; dropped off it, the end keeps
-    // following the mark, by its offset from it: never a dur.
-    expect(drag('end', 2.8, 5.5)).toEqual(Option.none());
-    expect(drag('end', 2.8, 6)).toEqual(Option.some({ untilOffset: 0.5 }));
-    expect(drag('end', 2.8, 5.2)).toEqual(Option.some({ untilOffset: -0.3 }));
-    // Its start held, the end dragged onto its start: the offset that reaches it.
-    expect(drag('end', 2.8, 2.8)).toEqual(Option.some({ untilOffset: -2.7 }));
-  });
-
-  test('dragPatch: an until end dragged onto a start off the millisecond rounds to the first millisecond at or after it', () => {
-    // Starts at 1.0004 (speech 0.5 + fiction 2 − 1.4996); {as} is at 5.5.
-    const walk = { mark: 'fiction', offset: -1.4996, until: 'as' } as const;
-    const resolved = (span: Span) =>
-      Option.getOrThrow(
-        Option.fromUndefinedOr(
-          Result.getOrThrow(resolveTimeline({ walk: span }, clock)).get('walk'),
-        ),
-      );
-    const c = resolved(walk);
-    expect(c.start).toBeCloseTo(1.0004, 9);
-    // Rounded to the nearest millisecond, -4.4996 is -4.5: an end at 1.0, before the start.
-    const patch = Option.getOrThrow(
-      dragPatch(walk, c, 'end', { start: c.start, end: c.start }, 1 / 30),
-    );
-    expect(patch).toEqual({ untilOffset: -4.499 });
-    const onStart = resolved(patchSpan(walk, patch));
-    expect(onStart.end).toBeGreaterThanOrEqual(onStart.start);
-    expect(onStart.end - onStart.start).toBeLessThan(0.001);
-    // The same, from a span already off its point.
-    const off = { ...walk, untilOffset: 0.25 } as const;
-    const c2 = resolved(off);
-    const again = Option.getOrThrow(
-      dragPatch(off, c2, 'end', { start: c2.start, end: c2.start }, 1 / 30),
-    );
-    expect(again).toEqual({ untilOffset: -4.499 });
-    expect(resolved(patchSpan(off, again)).end).toBeGreaterThanOrEqual(c2.start);
-  });
-
-  test('dragPatch: an until end set exactly on its start stays there, never a millisecond past it', () => {
-    // Starts at 1 (speech 0.5 + fiction 2 − 1.5); {two} is at 2; ends 0.9995 before it, at 1.0005.
-    const two = { ...clock, marks: new Map([...clock.marks, ['two', 1.5]]) };
-    const walk = { mark: 'fiction', offset: -1.5, until: 'two', untilOffset: -0.9995 } as const;
-    const resolved = (span: Span) =>
-      Option.getOrThrow(
-        Option.fromUndefinedOr(Result.getOrThrow(resolveTimeline({ walk: span }, two)).get('walk')),
-      );
-    const c = resolved(walk);
-    expect(c.start).toBe(1);
-    expect(c.end).toBeCloseTo(1.0005, 9);
-    // End set to 1, the start: shortened onto it, the 1 s before {two}; not 1.001.
-    const patch = Option.getOrThrow(dragPatch(walk, c, 'end', { start: c.start, end: 1 }, 1 / 30));
-    expect(patch).toEqual({ untilOffset: -1 });
-    const onStart = resolved(patchSpan(walk, patch));
-    expect(onStart.end).toBe(1);
-    expect(onStart.dur).toBe(0);
-  });
-
-  test('dragPatch and the resolver share one tolerance: an end on its start by float noise alone is on it', () => {
+  test('the resolver takes an end on its start by float noise alone as on it', () => {
     // Starts at 0.1 + 0.2 (0.30000000000000004 in floats); {b} is at 0.5; 0.5 − 0.2 is 0.3.
     const noisy: SceneClock = {
       ...clock,
@@ -495,35 +354,21 @@ describe('timeline', () => {
     const c = resolved(walk);
     expect(c.start).toBe(0.1 + 0.2);
     expect(c.end).toBe(0.5);
-    // Dragged onto its start: the 0.2 s before {b}, not a millisecond more to clear the noise.
-    const patch = Option.getOrThrow(
-      dragPatch(walk, c, 'end', { start: c.start, end: c.start }, 1 / 30),
-    );
-    expect(patch).toEqual({ untilOffset: -0.2 });
-    // And the resolver takes that end as on the start: no UntilBeforeStart, no negative dur.
-    const onStart = resolved(patchSpan(walk, patch));
+    // Ended 0.2 s before {b}, not a millisecond more to clear the noise: on the start,
+    // with no UntilBeforeStart and no negative dur.
+    const onStart = resolved(patchSpan(walk, { untilOffset: -0.2 }));
     expect(onStart.dur).toBe(0);
     expect(onStart.end).toBe(onStart.start);
   });
 
-  test('dragPatch: an until span off its point moves the offset, and dropped back on the point is a plain until', () => {
-    // Ends 0.5 past {as} (5.5): at 6.
+  test('an until span patched back on its point is a plain until; a moved start keeps its end off the point', () => {
     const walk = { mark: 'fiction', offset: 0.3, until: 'as', untilOffset: 0.5 } as const;
-    const c = Option.getOrThrow(
-      Option.fromUndefinedOr(Result.getOrThrow(resolveTimeline({ walk }, clock)).get('walk')),
-    );
-    expect(c.end).toBe(6);
-    const drag = (edge: 'move' | 'start' | 'end', start: number, end: number) =>
-      dragPatch(walk, c, edge, { start, end }, 1 / 30);
-    expect(drag('end', c.start, 6.2)).toEqual(Option.some({ untilOffset: 0.7 }));
-    // Back on the mark, to the millisecond: the offset is 0, and the span drops it.
-    const back = Option.getOrThrow(drag('end', c.start, 5.5004));
-    expect(back).toEqual({ untilOffset: 0 });
-    expect(patchSpan(walk, back)).toEqual({ mark: 'fiction', offset: 0.3, until: 'as' });
-    // The left edge and the body still move only the start, the end kept off the mark.
-    const moved = Option.getOrThrow(drag('move', 3, 6.2));
-    expect(moved).toEqual({ offset: 0.5 });
-    expect(patchSpan(walk, moved)).toEqual({ ...walk, offset: 0.5 });
+    expect(patchSpan(walk, { untilOffset: 0 })).toEqual({
+      mark: 'fiction',
+      offset: 0.3,
+      until: 'as',
+    });
+    expect(patchSpan(walk, { offset: 0.5 })).toEqual({ ...walk, offset: 0.5 });
   });
 
   test('`untilOffset` ends a cue off its point, and the end follows the point', () => {

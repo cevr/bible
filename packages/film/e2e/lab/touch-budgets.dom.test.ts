@@ -9,8 +9,19 @@ import { describe, expect, it } from 'effect-bun-test';
 import { type Tab, WAIT_MS } from '../../src/lab/fixtures/tab.ts';
 import { firstScreenItems } from '../../src/lab/fixtures/touch-targets.ts';
 import { pageHref } from '../../src/core/api.ts';
+import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { STUDIO_FOLDER } from '../../src/lab/fixtures/studio-film.ts';
-import { SLOW, PHONE, DEVICES, LAB_EDIT, byPlace, review, lab, STATES } from './studio-states.ts';
+import {
+  SLOW,
+  PHONE,
+  DEVICES,
+  STUDIO_AT_REST,
+  STUDIO_READY,
+  byPlace,
+  player,
+  review,
+  STATES,
+} from './studio-states.ts';
 
 /**
  * How far the page's clock runs on before a view is counted: what a view
@@ -50,17 +61,24 @@ const withinBudget = (
     });
   });
 
-/** The script that puts a `tag` saying "planted", fixed on the first screen, over the page. */
+/**
+ * The script that puts one more `tag` than the studio's whole phone budget,
+ * each saying "planted", fixed on the first screen over the page: past the
+ * budget whatever the page shows under it.
+ */
 const PLANT = (tag: 'button' | 'p') =>
-  `const el = document.createElement('${tag}'); el.textContent = 'planted'; Object.assign(el.style, { position: 'fixed', top: '120px', left: '16px', zIndex: '999' }); document.body.append(el);`;
+  `for (let i = 0; i <= ${STUDIO_AT_REST.phone}; i++) { const el = document.createElement('${tag}'); el.textContent = 'planted ' + i; Object.assign(el.style, { position: 'fixed', top: (120 + (i % 20) * 24) + 'px', left: (16 + Math.floor(i / 20) * 120) + 'px', zIndex: '999' }); document.body.append(el); }`;
 
-/** Put `tag` saying "planted" on the first screen, over the page. */
+/** Put the planted `tag`s on the first screen, over the page. */
 const plant = (page: Tab, tag: 'button' | 'p') =>
   page.evaluate(`(() => { ${PLANT(tag)} return true; })()`);
 
-/** Put `tag` saying "planted" on the page 2 s from now, on the page's own clock: a thing that lands after the view is ready. */
+/** Put the planted `tag`s on the page 2 s from now, on the page's own clock: things that land after the view is ready. */
 const plantLater = (page: Tab, tag: 'button' | 'p') =>
   page.evaluate(`(() => { setTimeout(() => { ${PLANT(tag)} }, 2000); return true; })()`);
+
+/** The studio at rest on a phone. */
+const studio = player(pageHref.studio(PROBE), STUDIO_READY);
 
 for (const device of DEVICES) {
   describe(`the targets each view shows at rest on ${device.name} (UR2-17)`, () => {
@@ -101,18 +119,24 @@ for (const device of DEVICES) {
 
 describe('the at-rest budget (UR2-17)', () => {
   for (const [tag, what] of [
-    ['button', 'a button'],
-    ['p', 'a line of text'],
+    ['button', 'buttons'],
+    ['p', 'lines of text'],
   ] as const) {
     it.live(
-      `fails the Lab's Edit on a phone with ${what} landing 2 s after the view is ready`,
+      `fails the studio on a phone with ${what} landing 2 s after the view is ready`,
       () =>
         Effect.gen(function* () {
-          const page = yield* lab('edit')(PHONE.viewport);
-          yield* withinBudget(page, LAB_EDIT.phone, 'the Lab');
+          const page = yield* studio(PHONE.viewport);
+          yield* withinBudget(page, STUDIO_AT_REST.phone, 'the studio');
           yield* plantLater(page, tag);
           const exit = yield* Effect.exit(
-            withinBudget(page, LAB_EDIT.phone, 'the Lab, a thing landing late', 'screen', 0),
+            withinBudget(
+              page,
+              STUDIO_AT_REST.phone,
+              'the studio, things landing late',
+              'screen',
+              0,
+            ),
           );
           expect(Exit.isFailure(exit)).toBe(true);
         }).pipe(Effect.scoped),
@@ -129,11 +153,11 @@ describe('the at-rest budget (UR2-17)', () => {
         const screen = folder?.budget?.phone ?? 0;
         yield* withinBudget(page, screen, 'a Folder');
         yield* withinBudget(page, ceiling, 'a Folder', 'page');
-        // Lines far below the fold, one past what the page has left under its ceiling: the
-        // first screen counts none of them, the page counts each.
-        const shown = yield* page.evaluate<number>(`${firstScreenItems('page')}.length`);
+        // Lines far below the fold, one more than the page's whole ceiling: the first screen
+        // counts none of them, the page counts each. The whole ceiling, not what is left under
+        // it: what is left can change between the read and the plant.
         yield* page.evaluate(
-          `(() => { const box = document.createElement('div'); box.style.marginTop = '5000px'; for (let i = 0; i <= ${ceiling - shown}; i++) { const el = document.createElement('p'); el.textContent = 'planted ' + i; box.append(el); } document.body.append(box); return true; })()`,
+          `(() => { const box = document.createElement('div'); box.style.marginTop = '5000px'; for (let i = 0; i <= ${ceiling}; i++) { const el = document.createElement('p'); el.textContent = 'planted ' + i; box.append(el); } document.body.append(box); return true; })()`,
         );
         yield* withinBudget(page, screen, 'a Folder, planted');
         const exit = yield* Effect.exit(
@@ -145,18 +169,18 @@ describe('the at-rest budget (UR2-17)', () => {
   );
 
   for (const [tag, what] of [
-    ['button', 'a button'],
-    ['p', 'a line of text'],
+    ['button', 'buttons'],
+    ['p', 'lines of text'],
   ] as const) {
     it.live(
-      `fails the Lab's Edit on a phone with ${what} planted past its budget`,
+      `fails the studio on a phone with ${what} planted past its budget`,
       () =>
         Effect.gen(function* () {
-          const page = yield* lab('edit')(PHONE.viewport);
-          yield* withinBudget(page, LAB_EDIT.phone, 'the Lab');
+          const page = yield* studio(PHONE.viewport);
+          yield* withinBudget(page, STUDIO_AT_REST.phone, 'the studio');
           yield* plant(page, tag);
           const exit = yield* Effect.exit(
-            withinBudget(page, LAB_EDIT.phone, 'the Lab, planted', 'screen', 0),
+            withinBudget(page, STUDIO_AT_REST.phone, 'the studio, planted', 'screen', 0),
           );
           expect(Exit.isFailure(exit)).toBe(true);
         }).pipe(Effect.scoped),

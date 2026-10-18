@@ -1,5 +1,5 @@
 // The studio's frame around a page, one for every page in its shell (a
-// film's Lab, Scenes and Play, `film-page.tsx`; the review, `review/page.tsx`):
+// film's studio, `film-studio/page.tsx`; the review, `review/page.tsx`):
 // the context menu around the page, then ⌘K, the `?` sheet and the receipts
 // over it, each reading the page's commands. `studioOn` makes those commands
 // for a page over its host, with the app the browser mounts or hydrates and

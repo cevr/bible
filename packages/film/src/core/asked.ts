@@ -9,10 +9,8 @@
 //
 // This is the one way a page applies an async answer to its state: the
 // review's reads and writes, a surface's footage frames
-// (`browser/footage.ts`, `paintedIfNewest`), and the Source face's settle on
-// a line once a read names it (`lab/source/view.tsx`, against a hand's
-// scroll). It lives in core so the player's surfaces reach it as the lab's
-// pages do. A write's answer reaches a page only as `Landed` (`useWrite` in
+// (`browser/footage.ts`, `paintedIfNewest`). It lives in core so the
+// player's surfaces reach it as the lab's pages do. A write's answer reaches a page only as `Landed` (`useWrite` in
 // `loaded.tsx` hands nothing else): its value is reachable only through
 // `show`, which runs when the ask taken as the write was sent is still the
 // newest of that thing's asks. So a new control cannot set state from a

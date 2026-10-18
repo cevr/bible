@@ -1,19 +1,9 @@
-// The inspector's parts: a number field and the footer's hint. A field is an
-// `Inspected` (`core/field.ts`): its steps come from its schema's `field`
-// annotation, so the arrows in it step as the schema says (Shift coarse,
-// Alt fine), a drag across its label scrubs it the same way, and typed
-// arithmetic (`+0.1`, `*2`, `0.42*2`) is read on Enter or on leaving it, as
-// a typed number is. A field that cannot be written now is disabled and says
-// why in its title, and in the line its caller shows it in, which describes
-// its input. Built on @bible/ui's NumberField and its scrub area.
-//
-// The hint prints the keys of the commands about the selection, read from
-// the page's keymap, and the gestures the caller names; it shows only while
-// the pointer or the focus is in the inspector, never at rest, and never on
-// a touch screen, where the long-press menu is the hint.
+// The inspector's footer hint: it prints the keys of the commands about the
+// selection, read from the page's keymap, and the gestures the caller names;
+// it shows only while the pointer or the focus is in the inspector, never at
+// rest, and never on a touch screen, where the long-press menu is the hint.
 
-import { NumberField } from '@bible/ui/number-field';
-import { For, type JSX, Show } from '@solidjs/web';
+import { For } from '@solidjs/web';
 import { Option } from 'effect';
 import { createMemo } from 'solid-js';
 import type { Command } from '../../command/command.ts';
@@ -22,69 +12,7 @@ import type { Hub } from '../../command/hub.ts';
 import { contextRows } from '../../command/menu.ts';
 import type { Selection } from '../../command/selection.ts';
 import { EVERYWHERE } from '../../command/target.ts';
-import { FIELD_FORMAT, FIELD_LOCALE, type Inspected, refusalOf } from '../../core/field.ts';
-import { toMs } from '../../core/time.ts';
 import { hubChanges, hubKeys } from './changes.ts';
-
-/**
- * One field: `label`, when given, is its scrubby label (drag it across to
- * change the value); without one the field is named for assistive tech only.
- * `describedBy` is the id of the line its caller shows the field's refusal
- * in, in words a phone sees too: while the field is refused its input is
- * described by it (`aria-describedby`).
- */
-export const Field = (props: {
-  readonly field: Inspected;
-  readonly label?: JSX.Element;
-  readonly describedBy?: string;
-}) => {
-  const refusal = () => refusalOf(props.field);
-  const title = () => Option.getOrElse(refusal(), () => props.field.label);
-  const describedBy = () =>
-    Option.getOrUndefined(
-      Option.flatMap(refusal(), () => Option.fromUndefinedOr(props.describedBy)),
-    );
-  return (
-    <NumberField.Root
-      class="lab-field"
-      value={props.field.value}
-      step={props.field.spec.step}
-      largeStep={props.field.spec.coarse}
-      smallStep={props.field.spec.fine}
-      min={Option.getOrUndefined(props.field.spec.min)}
-      max={Option.getOrUndefined(props.field.spec.max)}
-      disabled={Option.isSome(refusal())}
-      format={FIELD_FORMAT}
-      locale={FIELD_LOCALE}
-      allowExpressions
-      commitOnEnter
-      onValueCommitted={(next) => {
-        // A cleared field writes nothing; nor does the value it already has, to
-        // the thousandth the lab writes (`toMs`): a literal finer than the field
-        // prints commits as printed on any Enter or blur, and is left as it is.
-        Option.map(
-          Option.filter(Option.fromNullishOr(next), (v) => toMs(v) !== toMs(props.field.value)),
-          props.field.write,
-        );
-      }}
-    >
-      <Show when={props.label}>
-        {(label) => (
-          <NumberField.ScrubArea class="lab-field-scrub" title={title()}>
-            {label()}
-          </NumberField.ScrubArea>
-        )}
-      </Show>
-      <NumberField.Input
-        class="lab-num"
-        data-field={props.field.id}
-        title={title()}
-        aria-label={props.field.label}
-        aria-describedby={describedBy()}
-      />
-    </NumberField.Root>
-  );
-};
 
 /**
  * The inspector's footer: the keys of the commands about `selection`

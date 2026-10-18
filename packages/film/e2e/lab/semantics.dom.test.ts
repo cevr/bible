@@ -9,25 +9,22 @@
 // and a mouse path that moves the focus from script (the studio holding it, a
 // key's Reset) shows no ring.
 
-import { Effect, Option, Result, type Scope } from 'effect';
+import { Effect, type Scope } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { ServerFailed, pageHref } from '../../src/core/api.ts';
-import { talkCut } from '../../src/core/talk.ts';
 import {
   DESK,
   type Json,
   PHONE,
-  hold,
+  type Viewport,
   json,
-  labAt,
-  openLab,
+  openPlayer,
   openReview,
   refused,
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { TALK, TALK_EDIT, TALK_TAKE } from '../../src/lab/fixtures/talk-film.ts';
-import { TALK_FILE, talkWords } from '../../src/tools/talk-source.ts';
+import { STUDIO_FILM, STUDIO_FOLDER, STUDIO_SET } from '../../src/lab/fixtures/studio-film.ts';
 import { rightClick } from '../../src/lab/fixtures/gestures.ts';
 import {
   FOCUS_SHOWN,
@@ -38,13 +35,27 @@ import {
 } from '../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { FLOATING, LEFT_OPEN, pageAfterPage, registry, runFromMenu, sampled } from './registry.ts';
-import { receipted } from './studio-states.ts';
+import { receipted, review } from './studio-states.ts';
 
 const SLOW = 30_000;
 /** A page's every root, its registry run once. */
 const REGISTRY = 180_000;
 
 /** Each radio item of the film menu: its film, its role and whether it reads as checked. */
+/** The studio at rest: its timeline drawn. */
+const READY = '.st-timeline .st-clip';
+
+/** The studio, `viewport` wide. */
+const studio = (viewport: Viewport = DESK) =>
+  openPlayer({ href: pageHref.studio(PROBE), viewport }, READY);
+
+/** A Set of a film (`STUDIO_FILM`'s), at a desk: its header names the film. */
+const aSet = () =>
+  Effect.map(review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')(DESK), (page) => ({
+    page,
+    errors: page.errors,
+  }));
+
 const FILM_ITEMS = `[...document.querySelectorAll('[data-role="film-menu"] [data-film]')].map((e) => [e.dataset.film, e.getAttribute('role'), e.getAttribute('aria-checked'), e.closest('[role="group"]').getAttribute('aria-label')])`;
 
 describe("the shell's header", () => {
@@ -52,11 +63,11 @@ describe("the shell's header", () => {
     'the rule after Films is a vertical separator; the switcher’s films are radio items, the open one checked',
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openLab();
+        const { page, errors } = yield* aSet();
         yield* attributeIs(page, '.sh-header .sh-vsep', 'role', 'separator');
         yield* attributeIs(page, '.sh-header .sh-vsep', 'aria-orientation', 'vertical');
         yield* page.click('.sh-switcher');
-        yield* waitFor(page, `[data-role="film-menu"] [data-film="${PROBE}"]`);
+        yield* waitFor(page, `[data-role="film-menu"] [data-film="${STUDIO_FILM}"]`);
         // Every film is a radio item of the group named Films; the open one alone is checked.
         yield* evaluates(
           page,
@@ -66,7 +77,7 @@ describe("the shell's header", () => {
         yield* evaluates(
           page,
           `${FILM_ITEMS}.filter(([, , checked]) => checked === 'true').map(([film]) => film)`,
-          [PROBE],
+          [STUDIO_FILM],
         );
         // The check is drawn, not said: no key hint stands for a state.
         yield* evaluates(
@@ -99,19 +110,37 @@ describe('a read that fails', () => {
 
 describe("the kit's focus ring", () => {
   it.live(
-    'on the Lab and in its ⌘K portal, a kit control focused from the keyboard shows the studio’s ring',
+    'on the studio and in its ⌘K portal, a kit control focused from the keyboard shows the studio’s ring',
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openLab();
-        // The mode tray's toggle (a segment), the transport's play (an icon button), the header's Studio link.
-        for (const control of ['.lab-modes > button', '.bar [data-act="play"]', 'a.sh-studio']) {
+        const { page, errors } = yield* studio();
+        // The transport's play and next beat (icon buttons), the timeline's Fit (a text button).
+        for (const control of [
+          '.st-key[data-act="play.toggle"]',
+          '.st-key[data-act="studio.on"]',
+          '.st-tbtn[data-act="fit"]',
+        ]) {
           yield* page.focus(control);
           yield* evaluates(page, FOCUS_SHOWN, 'ring');
         }
         // The ⌘K sheet is portalled to the body, outside every page's scope: its query field too.
-        yield* page.click('.sh-header [data-act="search"]');
+        yield* page.press('Control+k');
         yield* waitFor(page, '.lab-command-query:focus');
         yield* evaluates(page, FOCUS_SHOWN, 'ring');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'on a Set, the header’s Studio link and Go to… focused from the keyboard show the studio’s ring',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* aSet();
+        for (const control of ['a.sh-studio', '.sh-header [data-act="search"]']) {
+          yield* page.focus(control);
+          yield* evaluates(page, FOCUS_SHOWN, 'ring');
+        }
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -121,7 +150,7 @@ describe("the kit's focus ring", () => {
     'in the keys dialog, a button drawn outside the kit (a command’s Change) shows the studio’s ring',
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openLab();
+        const { page, errors } = yield* studio();
         const rebind = '[data-role="keys-sheet"] .lab-keys-actions > button';
         yield* page.press('?');
         yield* waitFor(page, rebind);
@@ -209,7 +238,7 @@ const rebind = (page: Tab) =>
 
 /** Each page the studio's frame (and its keys dialog) is on, opened at a desk. */
 const PAGES = [
-  ['the Lab', () => openLab()],
+  ['the studio', () => studio()],
   ['the review', () => openReview([])],
 ] as const;
 
@@ -223,63 +252,51 @@ const SHOWN_FOCUS = `(document.hasFocus() ? ((el) => el === null ? 'none' : ${NA
 /** Whether the studio holds the focus. */
 const IN_STUDIO = `document.activeElement.matches('[data-role="studio"]')`;
 
-/** One beat to record, with one earlier attempt that can be kept, whose keep mixes: the page reloads. */
+/** The beat the studio selects, to record. */
 const STUDIO_ROUTES = [
   route('GET', /^\/studio\/beats$/, () =>
     json({
       film: PROBE,
       beats: [
         {
-          id: 'thesis',
-          file: 'thesis.wav',
-          parts: [{ kind: 'line', text: 'The law is holy.' }],
+          id: 'one',
+          file: 'one.wav',
+          parts: [{ kind: 'line', text: 'The ball climbs.' }],
           sources: [],
           state: 'staging',
           recorded: false,
-          attempts: 1,
+          attempts: 0,
         },
       ],
-    }),
-  ),
-  route('GET', /^\/studio\/takes\/thesis\/attempts$/, () =>
-    json({
-      beat: 'thesis',
-      attempts: [
-        {
-          file: 'thesis.new.flac',
-          transcript: 'the law is holy',
-          wer: 0,
-          at: 0,
-          duration: 2.5,
-          kept: false,
-          current: true,
-        },
-      ],
-    }),
-  ),
-  route('POST', /^\/studio\/takes\/thesis\/keep$/, () =>
-    json({
-      beat: 'thesis',
-      take: { hash: 'h', file: 'thesis.new.flac', duration: 2.5, words: [], source: 'recorded' },
-      transcript: 'the law is holy',
-      wer: 0,
-      timings: { voice: 'v', scenes: {} },
-      mixed: true,
     } satisfies Json),
   ),
 ];
 
-/** The Lab in Record over `STUDIO_ROUTES`. */
+/** The recorder's beat, in its dialog. */
+const RECORD_BEAT = '[data-role="record"] [data-beat="one"]';
+
+/** The studio's recorder over `STUDIO_ROUTES`, opened by the pointer from beat one's Voice section. */
 const inRecord = () =>
-  openLab(STUDIO_ROUTES, { href: labAt(1), mic: { allowed: true }, mode: 'record' });
+  Effect.gen(function* () {
+    const opened = yield* openPlayer(
+      { href: pageHref.studio(PROBE, { sel: 'beat:one' }), viewport: DESK, microphone: true },
+      READY,
+      STUDIO_ROUTES,
+    );
+    const voice = '.st-pane .st-sec[data-section="Voice"]';
+    yield* opened.page.click(`${voice} > summary`);
+    yield* opened.page.click(`${voice} [data-act="record"]`);
+    yield* waitFor(opened.page, RECORD_BEAT);
+    return opened;
+  });
 
 describe('every focus the keyboard shows is the studio’s ring', () => {
   for (const viewport of [DESK, PHONE])
     it.live(
-      `a Tab walk through the Lab at ${viewport.width}: every stop, control, scroll box or root, shows the ring, never the browser’s`,
+      `a Tab walk through the studio at ${viewport.width}: every stop, control, scroll box or root, shows the ring, never the browser’s`,
       () =>
         Effect.gen(function* () {
-          const { page, errors } = yield* openLab([], { viewport });
+          const { page, errors } = yield* studio(viewport);
           yield* page.evaluate(WATCH_FOCUS);
           for (let i = 0; i < 60; i++) yield* page.press('Tab');
           yield* evaluates(page, 'window.focusStops.length > 20', true);
@@ -334,10 +351,10 @@ const alone = <A, E>(name: string, body: Effect.Effect<A, E, Scope.Scope>, timeo
 
 describe('a mouse path that moves the focus from script shows no ring', () => {
   alone(
-    'on the Lab, a plain click on a button or the transport shows none, as before',
+    'on the studio, a plain click on a transport button shows none',
     Effect.gen(function* () {
-      const { page, errors } = yield* openLab();
-      for (const control of ['.lab-modes > button', '.bar [data-act="play"]']) {
+      const { page, errors } = yield* studio();
+      for (const control of ['.st-key[data-act="studio.on"]', '.st-key[data-act="play.toggle"]']) {
         yield* page.click(control);
         yield* evaluates(page, SHOWN_FOCUS, 'none');
       }
@@ -346,26 +363,20 @@ describe('a mouse path that moves the focus from script shows no ring', () => {
   );
 
   alone(
-    'in Record, opened fresh, a click on a studio button leaves the focus on the studio with no ring',
+    'in the recorder, opened by the pointer, a click on a beat leaves the focus on the recorder with no ring',
     Effect.gen(function* () {
       const { page, errors } = yield* inRecord();
-      // A page loaded in Record, as a link or a reload opens it: nothing has had focus yet.
-      yield* page.reload;
-      yield* waitFor(page, '[data-beat="thesis"]');
-      yield* page.click('[data-beat="thesis"]');
+      yield* page.click(RECORD_BEAT);
       yield* evaluates(page, IN_STUDIO, true);
       yield* evaluates(page, SHOWN_FOCUS, 'none');
       expect(errors).toEqual([]);
     }),
   );
 
-  // Keep clicked, and the reload's focus with no ring: the property's case, with its keyboard
-  // twin (`focus-follows-input.dom.test.ts`).
-
   alone(
     'in the keys dialog, Reset clicked hands the focus to the dialog with no ring',
     Effect.gen(function* () {
-      const { page, errors } = yield* openLab();
+      const { page, errors } = yield* studio();
       yield* rebind(page);
       // The key back to its default re-lists the rows: Reset leaves the page, and the dialog takes the focus.
       yield* page.click(`${KEYS_SHEET} [data-act="reset"]`);
@@ -487,78 +498,39 @@ const ROOF_ROUTES = [
   route('GET', /^\/api\/review\/duration/, () => json({ seconds: 20 })),
 ];
 
-/** The talk's Lab: its words, so a phone opens its Transcript view in a sheet. */
-const TALK_API = `/api/films/${TALK}`;
-const talkAt = (path: string) => new RegExp(`^${TALK_API}${path}$`);
-const TALK_ROUTES = [
-  route('GET', talkAt('/notes'), () => json({ film: TALK, seq: 0, notes: [] })),
-  route('GET', talkAt('/notes/wait'), () => hold),
-  route('GET', talkAt('/check'), () => json({ findings: [] })),
-  route('GET', talkAt('/studio/beats'), () => json({ film: TALK, beats: [] })),
-  route('GET', talkAt('/scenes/(ask|answer)/source'), (asked) =>
-    json({
-      scene: asked.path.split('/')[5] ?? '',
-      file: TALK_FILE,
-      cues: [],
-      knobs: [],
-      refused: [],
-    }),
-  ),
-  route('GET', talkAt('/scenes/(ask|answer)/head'), (asked) =>
-    json({
-      scene: asked.path.split('/')[5] ?? '',
-      file: TALK_FILE,
-      timeline: {},
-      knobs: {},
-      codeChanged: false,
-      sameData: true,
-    }),
-  ),
-  route('GET', talkAt('/talk'), () =>
-    json(
-      talkWords(TALK_FILE, {
-        talk: TALK_EDIT,
-        takes: { a: TALK_TAKE },
-        cut: Result.getOrThrow(talkCut(TALK_EDIT, { a: TALK_TAKE })),
-      }),
-    ),
-  ),
-];
+/** The studio, `viewport` wide, with the picker a Script clip's Move before… opens. */
+const movePicker = (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const opened = yield* studio(viewport);
+    yield* rightClick(opened.page, '.st-lane[data-track="script"] .st-clip[data-beat="two"]');
+    yield* opened.page.click('[data-role="context-menu"] [data-command="studio.move-before"]');
+    yield* waitFor(opened.page, '[data-role="move-picker"] .st-picker-row');
+    return opened;
+  }).pipe(Effect.orDie);
 
 /** The pages that open floating roots, at a desk, and at a phone's width (its sheets). */
 const WALKED: ReadonlyArray<Walked> = [
   {
-    name: 'the Lab',
-    open: () => openLab(),
-    roots: ['command-menu', 'context-menu', 'film-menu', 'keys-sheet', 'receipt', 'view-menu'],
+    name: 'the studio',
+    open: () => studio(),
+    roots: ['command-menu', 'context-menu', 'keys-sheet', 'receipt', 'versions', 'waits'],
   },
   {
-    name: 'the Lab in Motion',
-    open: () => openLab([], { mode: 'motion' }),
-    roots: [
-      'chip-menu',
-      'command-menu',
-      'context-menu',
-      'film-menu',
-      'keys-sheet',
-      'receipt',
-      'view-menu',
-    ],
+    name: 'the studio at a phone',
+    open: () => studio(PHONE),
+    roots: ['command-menu', 'context-menu', 'keys-sheet', 'receipt', 'versions', 'waits'],
   },
-  {
-    name: 'the Lab at a phone',
-    open: () => openLab([], { viewport: PHONE }),
-    roots: [
-      'command-menu',
-      'context-menu',
-      'film-menu',
-      'inspector',
-      'keys-sheet',
-      'receipt',
-      'source',
-      'view-menu',
-    ],
-  },
+  ...(
+    [
+      ['a desk', DESK],
+      ['a phone', PHONE],
+    ] as const
+  ).map(([where, viewport]): Walked => ({
+    name: `the studio at ${where}, a beat's Move before… open`,
+    open: () => movePicker(viewport),
+    roots: ['move-picker'],
+    opening: true,
+  })),
   {
     name: 'the review',
     open: () => openReview([]),
@@ -579,31 +551,20 @@ const WALKED: ReadonlyArray<Walked> = [
     roots: ['lightbox'],
     opening: true,
   })),
-  {
-    name: "the talk's Lab at a phone, its Transcript open",
-    open: () =>
-      openLab(TALK_ROUTES, {
-        href: pageHref.labScene(TALK, 'ask', { text: 'follow' }, Option.some(0)),
-        viewport: PHONE,
-      }),
-    roots: ['transcript'],
-    opening: true,
-  },
 ];
 
 /** The roots the pages open, by their `data-role`: each page's together. */
 const ROOTS = [
-  'chip-menu',
   'command-menu',
   'context-menu',
   'film-menu',
-  'inspector',
   'keys-sheet',
   'lightbox',
+  'move-picker',
   'receipt',
-  'source',
-  'transcript',
+  'versions',
   'view-menu',
+  'waits',
 ];
 
 /**

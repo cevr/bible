@@ -70,14 +70,18 @@ export const sampled = (ids: ReadonlyArray<string>): ReadonlyArray<string> => {
 
 /**
  * Run `id` from ⌘K by `input`: by the keys, Control+k, its id typed, the arrows down to its
- * row and Enter; by the pointer, the header's Go to… clicked, its id typed, the row clicked.
+ * row and Enter; by the pointer, the header's Go to… clicked (Control+k on a page with none), its id typed, the row clicked.
  * Done once the menu has gone; answers whether ⌘K offered it (a command an earlier run made
  * unavailable, a take now recording, is not: no run).
  */
 export const runFromMenu = (page: Tab, id: string, input: Input) =>
   Effect.gen(function* () {
     const row = menuEntry(id);
-    if (input === 'key') yield* page.press('Control+k');
+    // A page with no Go to… (the studio draws its own header, with none) opens ⌘K by its keys.
+    const goTo = yield* page.evaluate<boolean>(
+      `document.querySelector('.sh-header [data-act="search"]') !== null`,
+    );
+    if (input === 'key' || !goTo) yield* page.press('Control+k');
     else yield* page.click('.sh-header [data-act="search"]');
     yield* waitFor(page, '.lab-command-query');
     yield* page.fill('.lab-command-query', id);
@@ -108,5 +112,8 @@ export const runFromMenu = (page: Tab, id: string, input: Input) =>
 /** A floating root, known by its role, as the page's commands know one (`command/context.ts`). */
 export const FLOATING = '[role=dialog], [role=alertdialog], [role=menu], [role=listbox]';
 
-/** Whether a floating root a command left is open (a receipt is not one: it waits beside the page). */
-export const LEFT_OPEN = `[...document.querySelectorAll('${FLOATING}')].some((e) => !e.matches('.lab-receipt') && e.checkVisibility())`;
+/**
+ * Whether a command left something open: a floating root (a receipt is not one: it waits
+ * beside the page), or the studio's note bar over a frame drawn on.
+ */
+export const LEFT_OPEN = `([...document.querySelectorAll('${FLOATING}')].some((e) => !e.matches('.lab-receipt') && e.checkVisibility()) || document.querySelector('[data-role="note-bar"]') !== null)`;

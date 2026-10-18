@@ -26,7 +26,7 @@ const recording = RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 
 const review = RecorderState.Review({ beat: 'a', wav });
 const refused = (refusal: TakeMismatch | SttUntimed) =>
   RecorderState.Failed({ beat: 'a', refusal, wav: Option.some(wav) });
-const ctx = contextAt('lab', '/films/f/lab');
+const ctx = contextAt('player', '/films/f/studio');
 
 /** The studio's commands in `state`: what each run did, or `-` where it is not offered now. */
 const pressed = (state: RecorderState) => {

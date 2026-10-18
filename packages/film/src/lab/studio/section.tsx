@@ -1,5 +1,5 @@
-// The record studio's section (the Lab's Record panel, the film studio's
-// Record dialog): the beats with where each take stands,
+// The record studio's section (the film studio's Record dialog): the beats
+// with where each take stands,
 // the recorder's controls and status, the microphone (named when not the
 // default; picked from ⌘K) and its meter, the teleprompter (the selected
 // beat's lines and quotations, as the reading sheet sets them), the
@@ -9,13 +9,15 @@
 // The studio's keys (R record, Space stop, K submit or accept, ←/→ beat,
 // Esc cancel) are commands on the page's hub that run only while focus is
 // in the section (`commands.ts`); there they are the studio's alone, so the
-// lab's keys bound to the same chords (Space play, ←/→ frame, Esc) never
-// fire from here, while its others ([ ] scene, c captions, n note, ⌘Z) do.
+// page's keys bound to the same chords (Space play, ←/→) never fire from
+// here. The section hears its presses itself (`Hub.listenWithin`), since
+// the dialog it stands in stops the arrows before the page would hear them;
+// Escape is the dialog's (it asks before a take only this page has drops).
 // A focused picker or player keeps its own keys.
 
 import { For, Show } from '@solidjs/web';
 import { type Accessor, createEffect, onCleanup, onSettled } from 'solid-js';
-import { Option } from 'effect';
+import { Effect, Fiber, Option } from 'effect';
 import type { Part } from '../../core/sheet.ts';
 import { BY_BUTTON } from '../../command/command.ts';
 import { hubKeys, registerWhile } from '../command/changes.ts';
@@ -304,6 +306,13 @@ export const Section = () => {
     Option.map(state.refocus, (input) => Option.map(held.root, (r) => focusFor(r, input, STAY)));
   });
   onCleanup(meta.hub.commands.register(...studioCommands(actions)));
+  // The section hears its own presses as the page does: the dialog it stands in stops the
+  // arrows (←/→ step the beats) before the page's listener would hear them.
+  let keysHeard = Option.none<Fiber.Fiber<never>>();
+  const hearKeys = (root: HTMLElement) => {
+    keysHeard = Option.some(Effect.runForkWith(meta.host)(meta.hub.listenWithin(root)));
+  };
+  onCleanup(() => Option.map(keysHeard, (f) => Effect.runFork(Fiber.interrupt(f))));
   registerWhile(meta.hub, () => micCommands(state.mics(), actions.pick));
   // A press anywhere in the studio the section itself holds the focus for (a button, the
   // prompter, a beat's line) keeps the focus on the section without the ring: a ring the
@@ -340,12 +349,13 @@ export const Section = () => {
         data-role="studio"
         ref={(el) => {
           held.root = Option.some(el);
+          hearKeys(el);
         }}
         onMouseDown={onMouseDown}
         onFocusIn={onFocusIn}
         onFocusOut={onFocusOut}
       >
-        {/* No heading of its own: the mode tray's Record names the panel. */}
+        {/* No heading of its own: the dialog's title names the recorder. */}
         {/* Record (R) and the meter stand over the prompter, on a phone's first screen. */}
         <Beats />
         <Controls />

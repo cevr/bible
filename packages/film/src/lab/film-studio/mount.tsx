@@ -16,10 +16,9 @@ import { Places } from '../../core/api.ts';
 import { type Films, mountPreview, stageFilm } from '../../player/main.ts';
 import type { TimeInUrl } from '../../player/t-in-url.ts';
 import { LabClient } from '../api.ts';
-import type { FilmBody } from '../film-page.tsx';
 import { mountStudio } from '../page-client.tsx';
 import { Root, type StagedFilm } from './context.tsx';
-import { STUDIO_PAGE, studioPageOn } from './page.tsx';
+import { type FilmBody, STUDIO_PAGE, studioPageOn } from './page.tsx';
 import { Editing } from './editing.tsx';
 import { Studio } from './parts.tsx';
 

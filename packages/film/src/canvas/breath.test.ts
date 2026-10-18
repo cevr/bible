@@ -8,10 +8,10 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Predicate } from 'effect';
-import { type Affine, applyAffine } from '../core/affine.ts';
+import type { Affine } from '../core/affine.ts';
 import { DRIFT, camera, multiplane } from './camera.ts';
-import { type Film, type KnobRead, type SceneSpec, createFilm } from './film.ts';
-import { type Recorder, recorder, withDom } from './fixtures/stand-in.ts';
+import { type Film, type RenderOptions, type SceneSpec, createFilm } from './film.ts';
+import { type Recorder, applyAffine, recorder, withDom } from './fixtures/stand-in.ts';
 
 const W = 320;
 const H = 180;
@@ -60,7 +60,7 @@ const film = (): Film =>
 /** One frame of `scene`, `through` its length (0..1): what it drew and the knobs it read. */
 const frame = (into: Film, scene: string, through: number) => {
   const r: Recorder = recorder(W, H);
-  const knobs: KnobRead[] = [];
+  const knobs: NonNullable<RenderOptions['knobs']> = [];
   withDom(() => into.render(r.ctx, (ORDER.indexOf(scene) + through) * DUR, { knobs }));
   return { r, knobs };
 };

@@ -61,7 +61,6 @@ import { PageRenderer } from './page-render.ts';
 import { PrivateStore } from './private-store.ts';
 import { scenesLocatedHere } from './read-cli.ts';
 import { Review, type ReviewRoot } from './review.ts';
-import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
@@ -169,7 +168,7 @@ export const filmServices = (spec: FilmServicesSpec) => {
   // The lab locates a scene's drawing fresh (`film read sites`); a command's
   // stamps locate it in the command's own process, which imports the film as it stands.
   const Source = Layer.mergeAll(
-    Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(Layer.provideMerge(SceneSources.layer)),
+    SceneWriter.layer.pipe(Layer.provideMerge(SceneSources.layer)),
     Stamps.layer.pipe(Layer.provide(scenesLocatedHere)),
   ).pipe(Layer.provideMerge(SourceWriter.layer), Layer.provide([Repo, Store, Fresh, Platform]));
   // Each film's project folder: its renders, and the owner's approvals and comments on them.

@@ -36,7 +36,7 @@ const command = (id: string, over: Partial<Omit<Command, 'touch'>> = {}): Comman
   ...over,
 });
 
-const page = contextAt('lab', '/films/f/lab');
+const page = contextAt('player', '/films/f/studio');
 
 /** What `p` does among `commands` in `ctx`: the command and step it runs, `owned` or `pass`. */
 const does = (p: KeyPress, commands: ReadonlyArray<Command>, ctx: Context = page) =>

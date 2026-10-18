@@ -14,15 +14,14 @@ import index from './index.html';
 export const FILMS = join(import.meta.dir, 'src/films');
 
 /**
- * The lab's pages, each this app's HTML entry: its review, its lab, its
- * play page, whose look-book is a film's scenes, and its render page, whose
+ * The lab's pages, each this app's HTML entry: its review, its play page
+ * (a film's studio), and its render page, whose
  * handle the easel draws a look through (`film look`, at a film's export
  * page). The places each is served at are the framework's (`Places`,
  * `pageAt`); `film lab` and the studio harness serve these.
  */
 export const LAB_PAGES = {
   review: join(import.meta.dir, 'review.html'),
-  lab: join(import.meta.dir, 'lab.html'),
   player: join(import.meta.dir, 'play.html'),
   render: join(import.meta.dir, 'index.html'),
 };
@@ -31,13 +30,12 @@ export const LAB_PAGES = {
  * The pages the lab renders on the server, each by its server entry: the
  * same components as its HTML entry's script, with none of the app's films
  * (the server never imports a film's modules: Fresh reads; the lab refuses
- * a build whose server entry does, `filmCode`). The lab and the player
- * pages render their shell; the film is staged in the browser. The render
+ * a build whose server entry does, `filmCode`). The player page renders
+ * its shell; the film is staged in the browser. The render
  * page has no shell and no server entry: it is drawn in the browser alone.
  */
 export const LAB_SERVERS: Partial<Record<keyof typeof LAB_PAGES, string>> = {
   review: join(import.meta.dir, 'src/review.server.tsx'),
-  lab: join(import.meta.dir, 'src/lab.server.tsx'),
   player: join(import.meta.dir, 'src/play.server.tsx'),
 };
 

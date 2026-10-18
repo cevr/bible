@@ -6,9 +6,9 @@ import { hostOf } from '../browser/host.ts';
 import { Keys } from '../browser/keys.ts';
 import { storeOver } from '../browser/storage.ts';
 import { type Command, type Receipt, quietly, said } from './command.ts';
-import { makeHub, titledNow } from './hub.ts';
-import { cueOf } from './selection.ts';
-import { pageHref } from '../core/api.ts';
+import { makeHub } from './hub.ts';
+import { Selection } from './selection.ts';
+import { beatSelection, pageHref } from '../core/api.ts';
 
 /** The modifiers a press holds. */
 interface Held {
@@ -21,7 +21,7 @@ interface Held {
 /** A page whose presses go to `target`, with a hub over `storage` at `href`, on a Mac's keyboard unless `mac` is false. */
 const pageWith = (
   storage: Storage,
-  href = pageHref.labScene('f', 'one', { cue: 'rise' }),
+  href = pageHref.studio('f', { sel: beatSelection('one') }),
   mac = true,
 ) => {
   const target = new EventTarget();
@@ -30,7 +30,7 @@ const pageWith = (
   );
   const hub = Effect.runSyncWith(host)(
     makeHub(
-      'lab',
+      'player',
       () => href,
       storeOver(() => storage),
     ),
@@ -85,6 +85,34 @@ describe('the hub', () => {
     expect(frame.ran).toEqual(['normal', 'coarse']);
   });
 
+  test('hears a part whose wrapper keeps its presses from the page: one it takes goes no further', () => {
+    const { hub, stop } = pageWith(memoryStorage());
+    const frame = counter('play.frame-next', { keys: ['arrowright'] });
+    hub.commands.register(frame.command);
+    // A part inside a wrapper (a dialog) that would stop the arrow keys on their way to the
+    // page: what the part's listener leaves goes on to the wrapper (a later listener reads
+    // whether its propagation was stopped).
+    const part = new EventTarget();
+    const reached: Array<string> = [];
+    const host = hostOf(Keys.layerOn(new EventTarget()));
+    const unheard = Effect.runCallbackWith(host)(hub.listenWithin(part));
+    part.addEventListener('keydown', (e) => {
+      if (!e.cancelBubble) reached.push(String(Reflect.get(e, 'key')));
+    });
+    const press = (key: string) => {
+      const e = Object.assign(new Event('keydown', { cancelable: true }), { key });
+      part.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    expect([press('ArrowRight'), press('q')]).toEqual([true, false]);
+    expect(frame.ran).toEqual(['normal']);
+    expect(reached).toEqual(['q']);
+    unheard();
+    press('ArrowRight');
+    expect(frame.ran).toEqual(['normal']);
+    stop();
+  });
+
   test('every press is heard, bound or not, apart from what it runs, until its listener stops', () => {
     const { hub, stop, keydown } = pageWith(memoryStorage());
     const frame = counter('play.frame-next', { keys: ['arrowright'] });
@@ -123,7 +151,9 @@ describe('the hub', () => {
 
   test("reads the URL's selection and what the page refines it with; receipts reach their sinks", () => {
     const { hub } = pageWith(memoryStorage());
-    expect(hub.context().selection).toEqual([cueOf('one', 'rise')]);
+    expect(hub.context().selection).toEqual([
+      Selection.cases.Scene.make({ film: 'f', scene: 'one' }),
+    ]);
     const stopRefining = hub.refine((ctx) => ({ ...ctx, playing: true }));
     expect(hub.context().playing).toBe(true);
     stopRefining();
@@ -158,15 +188,6 @@ describe('the hub', () => {
     hub.invokeId('play.only', { step: 'normal', via: 'menu' });
     expect(keydown('p')).toBe(true);
     expect(playing.ran).toEqual(['normal', 'normal']);
-  });
-
-  test("names a command's key as the page's keyboard writes it", () => {
-    const titled = (mac: boolean) => {
-      const { hub } = pageWith(memoryStorage(), pageHref.lab('f'), mac);
-      hub.commands.register(counter('edit.undo', { keys: ['mod+z'] }).command);
-      return titledNow(hub, 'Undo', 'edit.undo');
-    };
-    expect([titled(true), titled(false)]).toEqual(['Undo (⌘Z)', 'Undo (Ctrl+Z)']);
   });
 
   test('runs a command with the input that asked: its own, else the one the viewer last used', () => {

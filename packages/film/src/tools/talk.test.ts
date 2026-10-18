@@ -534,7 +534,7 @@ describe("a talk's writes in the lab", () => {
         body: json(body),
       }),
     );
-  /** The talk's words as the Transcript view reads them. */
+  /** The talk's words as the lab reads them. */
   const words = Effect.flatMap(ask(new Request(at(labUrls.talk.words(film)))), ({ body }) =>
     Schema.decodeUnknownEffect(TalkWords)(body),
   );

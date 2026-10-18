@@ -10,14 +10,22 @@
 import { RegistryProvider } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
 import { clientOnly } from '@solidjs/web';
+import type { Component } from 'solid-js';
 import { Option } from 'effect';
 import { type Host, addressOn, hostLayer } from '../../browser/host.ts';
 import { filmOfPage, pageHref } from '../../core/api.ts';
+import type { Hub } from '../../command/hub.ts';
 import { COMMAND_CSS } from '../command/style.ts';
-import type { FilmBody } from '../film-page.tsx';
 import { StudioFrame, studioOn } from '../studio-frame.tsx';
 import { StudioIcon } from './icons.tsx';
 import { STUDIO_CSS } from './style.ts';
+
+/**
+ * The studio's body, made once its film is staged, with the page's
+ * commands: what the browser's entry loads (`clientOnly`). The server's
+ * never runs.
+ */
+export type FilmBody = (hub: Hub) => Promise<{ readonly default: Component }>;
 
 /** The studio's page as both sides render it: its body class, its root's class and its styles. */
 export const STUDIO_PAGE = {

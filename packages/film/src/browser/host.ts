@@ -1,7 +1,7 @@
 // The page's host: the browser APIs a page reaches (animation frames, the
 // footage a talk's frames decode, the pointer, the keyboard, the clipboard, text highlights, media elements, the address bar and
 // a page load) as Effect services, built once at each page's root
-// (`mountRender`, `mountFilmStudio`, `mountLab`, `mountReview`) from `BrowserHost.layer`
+// (`mountRender`, `mountFilmStudio`, `mountReview`) from `BrowserHost.layer`
 // (`host-browser.ts`) and handed to everything on the page: the player's own
 // code runs its effects with it, and the lab's and review's runtimes are
 // given it as a layer, so a test builds the same pages over test layers
@@ -9,7 +9,7 @@
 // which the render page loads, imports it.
 
 import { Location, UrlState } from '@bible/url-state';
-import { Clock, Duration, Effect, Exit, Layer, Option, Schedule, Scope, Stream } from 'effect';
+import { Clock, Duration, Effect, Layer, Option, Schedule, Scope, Stream } from 'effect';
 import type { Context } from 'effect';
 import { pageMove } from '../core/api.ts';
 import type { Clipboard } from './clipboard.ts';
@@ -194,24 +194,6 @@ export const reloadAtAddress: Effect.Effect<void, never, UrlState.UrlState | Loc
     addressWritten,
     PageLoad.use((load) => load.reload),
   );
-
-/** A scoped effect run: its value, and the close of its scope. */
-interface Scoped<A> {
-  readonly value: A;
-  readonly close: () => void;
-}
-
-/**
- * Run a scoped `effect` on `host` now, in a scope of its own: its value, and
- * the scope's close (a component's cleanup) to release what it holds.
- */
-export const runScoped =
-  <S>(host: Context.Context<S>) =>
-  <A>(effect: Effect.Effect<A, never, S | Scope.Scope>): Scoped<A> => {
-    const scope = Scope.makeUnsafe();
-    const value = Effect.runSyncWith(host)(Scope.provide(scope)(effect));
-    return { value, close: () => Effect.runFork(Scope.close(scope, Exit.void)) };
-  };
 
 /**
  * A reader of the monotonic time of `host`'s `Clock`, in ms (the page's

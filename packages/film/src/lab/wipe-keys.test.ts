@@ -30,7 +30,7 @@ describe("a wipe's divider by the keyboard", () => {
       },
     );
     const bindings = bindingsOf(commands, []);
-    const onGrip: Context = { ...contextAt('lab', '/films/f/lab'), focus: 'slider' };
+    const onGrip: Context = { ...contextAt('player', '/films/f/studio'), focus: 'slider' };
     const press = (key: string, shift = false, ctx = onGrip) =>
       resolve(
         { key, code: '', shift, meta: false, ctrl: false, alt: false, target: Option.none() },
@@ -53,6 +53,6 @@ describe("a wipe's divider by the keyboard", () => {
     expect(split).toBe(0);
     expect(run('End')).toBe('Run');
     expect(split).toBe(1);
-    expect(press('ArrowRight', false, contextAt('lab', '/films/f/lab'))._tag).toBe('Pass');
+    expect(press('ArrowRight', false, contextAt('player', '/films/f/studio'))._tag).toBe('Pass');
   });
 });

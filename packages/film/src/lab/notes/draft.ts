@@ -1,19 +1,13 @@
-// A note's draft, pure: where the moment noted sits (its scene, the time
-// into the scene, and the cue edge and mark nearest it; on the Script, the
-// film's time beside the cue edge and the mark), when a made note
-// shows (its scene's time, or the film's, named, once its scene is gone), what it
-// is about beside its frame (its scope: the cue selected, the in and out
-// points, the line of the scene's file the Source view is held on and the
-// words of its line selected, shown as a chip the owner can clear), what a
-// note on words asks of them (a note, a correction or a removal) and whether
-// its text says no more than that, the draft
-// the composer posts (the box, the ink, the range, the line and the words
-// only when there are any), and the frame's pixels a pointer is over.
+// A note's draft, pure: what it is about beside its frame (its scope: the cue
+// selected, the in and out points, a line of the scene's file and the words
+// of its line selected), what a note on words asks of them (a note, a
+// correction or a removal) and whether its text says no more than that, and
+// the draft a save posts (the scene and the cue edge and mark nearest it; the
+// box, the ink, the range, the line and the words only when there are any).
 
 import { Option } from 'effect';
 import { type Placed, sceneAt } from '../../core/layout.ts';
-import { kindOf, nearestMoment, noteT } from '../../core/notes.ts';
-import { timecode } from '../../core/time.ts';
+import { kindOf, nearestMoment } from '../../core/notes.ts';
 import type {
   InkStroke,
   NoteBox,
@@ -23,7 +17,6 @@ import type {
   NoteRange,
   NoteSource,
   NoteWords,
-  Point,
   ResolvedCue,
 } from '../../core/schema.ts';
 
@@ -35,61 +28,21 @@ interface Composed {
   readonly text: string;
 }
 
-/** How a composer says where a note at `T` sits in the film laid out as `placed`, at `fps`. */
-export type WhereSaid = (placed: ReadonlyArray<Placed>, fps: number, T: number) => string;
-
-/** Where a time falls on the film, as `nearestMoment` finds it. */
-type Moment = Option.Option.Value<ReturnType<typeof nearestMoment>>;
-
-/** Where a note sits, said: what names its time, then the cue edge and the mark nearest it. */
-const placeText = (time: ReadonlyArray<string>, m: Moment) =>
-  [
-    ...time,
-    ...Option.toArray(Option.map(m.cue, (c) => `cue ${c.name}:${c.edge}`)),
-    ...Option.toArray(Option.map(m.mark, (k) => `{${k}}`)),
-  ].join(' · ');
-
-/**
- * Where a note at `T` sits, as the Lab's composer says it: its scene and the
- * time into it (one clock beside a scene's name: the scene's), and the cue
- * edge and the mark nearest it; nothing for a film with no scenes.
- */
-export const whereText: WhereSaid = (placed, fps, T) =>
-  Option.match(nearestMoment(placed, T), {
-    onNone: () => '',
-    onSome: (m) => placeText([m.scene, timecode(m.local, fps)], m),
-  });
-
-/**
- * When a made note shows, as the list says it beside its scene's name: the
- * time into its scene now (`noteT`); a note whose scene the film no longer
- * has says the film's time, naming the film.
- */
-export const whenText = (
-  placed: ReadonlyArray<Placed>,
-  fps: number,
-  note: Pick<NoteDraft, 'scene' | 'T' | 'local'>,
-): string =>
-  Option.match(Option.fromUndefinedOr(placed.find((p) => p.spec.id === note.scene)), {
-    onNone: () => `film ${timecode(note.T, fps)}`,
-    onSome: (p) => timecode(noteT(placed, fps, note) - p.start, fps),
-  });
-
 /**
  * What the page has selected as a note is written, which the note is about
  * beside its frame (its scope): the cue selected, and the in and out points
  * marked (film seconds).
  */
-export interface Scope {
+interface Scope {
   readonly cue: Option.Option<{ readonly scene: string; readonly name: string }>;
   readonly range: Option.Option<{ readonly from: number; readonly to: number }>;
-  /** The line of a scene's file the Source view is held on. */
+  /** A line of a scene's file. */
   readonly source: Option.Option<{ readonly scene: string; readonly source: NoteSource }>;
   /** Words of a beat's line selected, as they read. */
   readonly words: Option.Option<NoteWords>;
 }
 
-/** No scope: a note about its frame alone (its chip's × clears to it). */
+/** No scope: a note about its frame alone. */
 export const NO_SCOPE: Scope = {
   cue: Option.none(),
   range: Option.none(),
@@ -211,41 +164,6 @@ const scopedAt = (placed: ReadonlyArray<Placed>, scope: Scope, T: number): Optio
   });
 
 /**
- * The scope chip a note at `T` shows (`scene · cue · 00:00:03:06–00:00:04:00`, timecode at `fps`), in the
- * place the lab's link to it names (its scene, its cue, its scene-local
- * time, then the words it is about, `“…”`); none while the scope holds
- * nothing in the note's scene.
- */
-export const scopeText = (
-  placed: ReadonlyArray<Placed>,
-  scope: Scope,
-  fps: number,
-  T: number,
-): Option.Option<string> =>
-  Option.flatMap(
-    Option.filter(
-      scopedAt(placed, scope, T),
-      (s) =>
-        Option.isSome(s.cue) ||
-        Option.isSome(s.range) ||
-        Option.isSome(s.source) ||
-        Option.isSome(s.words),
-    ),
-    (s) =>
-      Option.some(
-        [
-          s.scene,
-          ...Option.toArray(Option.map(s.cue, (c) => c.name)),
-          ...Option.toArray(Option.map(s.source, (c) => `${c.file}:${c.line}`)),
-          ...Option.toArray(
-            Option.map(s.range, (r) => `${timecode(r.from, fps)}–${timecode(r.to, fps)}`),
-          ),
-          ...Option.toArray(Option.map(s.words, (w) => `“${w.text}”`)),
-        ].join(' · '),
-      ),
-  );
-
-/**
  * What a note saying `text` about `words` (none: about its frame alone)
  * says, asking `asked` of them: its writer's words, else what a correction
  * or a removal asks; none for a note that says nothing.
@@ -336,33 +254,3 @@ export const draftOf = (
     ),
   }));
 };
-
-/** Where the frame sits on the page. */
-interface FrameRect {
-  readonly left: number;
-  readonly top: number;
-  readonly width: number;
-  readonly height: number;
-}
-
-/** The film pixel under a pointer at (`x`, `y`) on the page, to the nearest pixel. */
-export const filmPixel = (
-  frame: FrameRect,
-  film: { readonly width: number; readonly height: number },
-  x: number,
-  y: number,
-): Point => [
-  Math.round(((x - frame.left) / frame.width) * film.width),
-  Math.round(((y - frame.top) / frame.height) * film.height),
-];
-
-/** The box a drag from `from` to `to` draws, whichever way it went. */
-export const boxOf = (from: Point, to: Point): NoteBox => ({
-  x: Math.min(from[0], to[0]),
-  y: Math.min(from[1], to[1]),
-  w: Math.abs(to[0] - from[0]),
-  h: Math.abs(to[1] - from[1]),
-});
-
-/** A pinned point: a box with no size. */
-export const pointBox = (at: Point): NoteBox => ({ x: at[0], y: at[1], w: 0, h: 0 });

@@ -428,8 +428,8 @@ export interface FilmSpec {
   readonly card?: { readonly style: CardStyle; readonly verse?: VerseStyle };
 }
 
-/** A knob as a frame read it (`RenderOptions.knobs`): the lab's handles come from these. */
-export interface KnobRead {
+/** A knob as a frame read it (`RenderOptions.knobs`), and where on the frame its value lands. */
+interface KnobRead {
   readonly scene: string;
   readonly name: string;
   readonly value: Knob;
@@ -454,7 +454,7 @@ export interface KnobRead {
   readonly aimed?: Affine;
 }
 
-/** Where a frame records the knobs it read, for the lab (`RenderOptions.knobs`). */
+/** Where a frame records the knobs it read (`RenderOptions.knobs`). */
 interface Reads {
   readonly list: KnobRead[];
   /** Read straight onto the frame, not into a transition's layer. */
@@ -463,13 +463,13 @@ interface Reads {
 
 /**
  * Where a frame records the names it read off each scene's clock
- * (`RenderOptions.clock`), by scene id: what the lab's Source view fires a
- * read of the clock by, so a branch the frame did not take stays dark. A
- * name is recorded once however often the frame reads it, by the scene's
- * draw, its light or its card alike; the engine's own reads (a card's flood)
- * and a draw it lets go (`sheet`'s first guess) record none.
+ * (`RenderOptions.clock`), by scene id, so a branch the frame did not take
+ * records nothing. A name is recorded once however often the frame reads
+ * it, by the scene's draw, its light or its card alike; the engine's own
+ * reads (a card's flood) and a draw it lets go (`sheet`'s first guess)
+ * record none.
  */
-export interface ClockReads {
+interface ClockReads {
   /** Each cue read by name: `f.cue`, and `f.at`, `f.keys`, `f.stagger` and `f.staggerAt` through it. */
   readonly cues: Map<string, Set<string>>;
   /** Each mark read by name: `f.mark`, and both ends of `f.spoken` through it. */
@@ -500,7 +500,7 @@ const HEARD_NOTHING = (): void => {};
 /**
  * Scene `id`'s clock reads in `clock` as they stand now, and how to let go of
  * every name heard after: a frame drawn again keeps only the draw it shows.
- * With no clock (no Source view hears) a draw makes nothing.
+ * With no clock to record into, a draw makes nothing.
  */
 const heardSince = (clock: ClockReads | undefined, id: string): (() => void) => {
   if (clock === undefined) return HEARD_NOTHING;
@@ -512,23 +512,19 @@ const heardSince = (clock: ClockReads | undefined, id: string): (() => void) => 
   };
 };
 
-/**
- * A scene's timeline or knobs, standing in for its drawing's in a frame the
- * lab draws with it: a schema, as the editor's machine carries one in its
- * events.
- */
-export const SceneEdit = Schema.Struct({
+/** A scene's timeline or knobs, standing in for its drawing's in a frame drawn with it (`RenderOptions.edits`). */
+const SceneEdit = Schema.Struct({
   timeline: Schema.optionalKey(Timeline),
   knobs: Schema.optionalKey(Knobs),
 });
-export type SceneEdit = typeof SceneEdit.Type;
+type SceneEdit = typeof SceneEdit.Type;
 
 /**
  * An edit resolved for its scene (`Film.edit`), on the scene's own clock as
  * `layout()` resolves its drawing's: the cues and knobs a frame draws with in
  * place of the scene's own, and the literals they came from.
  */
-export interface ShownEdit {
+interface ShownEdit {
   readonly edit: SceneEdit;
   readonly cues: ReadonlyMap<string, ResolvedCue>;
   readonly knobs: ReadonlyMap<string, Knob>;
@@ -539,7 +535,7 @@ export interface ShownEdit {
  * names what the scene lacks, it moves a card's flood into a transition, or
  * it makes two of the scene's cards hold the frame at once.
  */
-export type EditError = UnknownScene | TimelineError | FloodInTransition | CardsOverlap;
+type EditError = UnknownScene | TimelineError | FloodInTransition | CardsOverlap;
 
 /**
  * One frame of footage a frame of a film reads (`Film.footageAt`): a derived
@@ -572,9 +568,8 @@ export interface RenderOptions {
   readonly footage?: FootageFrames;
   /**
    * Draw each scene named here with its resolved edit's cues and knobs in
-   * place of its drawing's, for this frame only: the lab's live preview of a
-   * drag, and its compare with HEAD. Nothing is kept: the next frame draws
-   * what it is given.
+   * place of its drawing's, for this frame only: a preview of an edit not
+   * yet written. Nothing is kept: the next frame draws what it is given.
    */
   readonly edits?: ReadonlyMap<string, ShownEdit>;
   /** Collect every knob the frame reads into this array. The pixels are the same either way. */

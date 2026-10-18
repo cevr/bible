@@ -1104,36 +1104,6 @@ export const readSpans = (
       ),
   });
 
-/**
- * The knobs of the drawing's `knobs` literal that are literal numbers or
- * points, by name, as the file declares them now; a computed knob is left out.
- */
-export const readKnobs = (
-  file: string,
-  source: string,
-  name: string,
-): Readonly<Record<string, Knob>> =>
-  Result.match(literalOf(file, source, name, 'knobs'), {
-    onFailure: () => ({}),
-    onSuccess: (node) =>
-      Object.fromEntries(
-        literalProperties({ _tag: 'Literal', node }).flatMap((p) =>
-          Option.match(keyName(p), {
-            onNone: () => [],
-            onSome: (knob) =>
-              Result.match(readKnob(file, source, name, knob), {
-                onFailure: () => [],
-                onSuccess: (v) =>
-                  Option.match(v, {
-                    onNone: () => [],
-                    onSome: (value) => [[knob, value] satisfies readonly [string, Knob]],
-                  }),
-              }),
-          }),
-        ),
-      ),
-  });
-
 /** What a frame's reader names by its first argument: a cue, a knob or a mark. */
 type Reads = 'cue' | 'knob' | 'mark';
 
@@ -1186,8 +1156,8 @@ const spokenOf = (method: string, call: CallExpression): Option.Option<Read['spo
  * (`f.at('lift')`, `f.knob(…)`, `f.mark('take')`, `f.spoken('take')`) whose
  * first argument is a string literal, wherever the call stands: a scene's
  * helpers read the frame too. Matched by the member's name, so a lookalike on
- * another object (`list.at('x')`) is a wrong guess the Source view only
- * lights, never writes.
+ * another object (`list.at('x')`) is a wrong guess the studio's Scene
+ * section only lights, never writes.
  */
 const readsIn = (program: Program): ReadonlyArray<Read> => {
   const found: Array<Read> = [];
@@ -1274,7 +1244,7 @@ type SceneRanges = Pick<SceneCode, 'cues' | 'knobs' | 'marks' | 'refused'>;
 /**
  * Where the drawing exported as `name` writes each cue (in its `timeline`
  * literal) and each knob (in its `knobs`), and every call in the module that
- * reads one by name, as the Source view lights them (`GET …/scenes/<scene>/code`):
+ * reads one by name, as the studio's Scene section lights them (`GET …/scenes/<scene>/code`):
  * positions from the same parse the writes splice by, so an offset is a text
  * range as the file now stands. A cue or knob read by a name the scene does not
  * declare, or an array's `.at(0)`, is left out. A `timeline` or `knobs` that
@@ -1310,25 +1280,4 @@ export const sceneCode = (
         }),
       };
     }),
-  );
-
-/**
- * The module's code apart from the drawing's data: the source with the
- * `timeline` and `knobs` object literals of the drawing exported as `name`
- * blanked out. Two versions of a scene whose code is the same differ only in
- * data, which the lab can draw from values alone.
- */
-export const codeOf = (
-  file: string,
-  source: string,
-  name: string,
-): Result.Result<string, SourceRefused> =>
-  Result.map(siteNamed(file, source, name), (site) =>
-    applySplices(
-      source,
-      [site.timeline, site.knobs].flatMap((slot) => {
-        if (slot._tag !== 'Literal') return [];
-        return [{ start: slot.node.start, end: slot.node.end, text: '{}' }];
-      }),
-    ),
   );

@@ -1,6 +1,5 @@
-// Go to… every thing a page can go to by its name (in the lab a
-// scene, a cue of the scene shown, a note; on the review a folder, a set, a
-// film's choices or its project), as a command found only by typing in ⌘K
+// Go to… every thing a page can go to by its name (on the review a folder,
+// a set, a film's choices or its project), as a command found only by typing in ⌘K
 // (`Command.typed`): `Go to scene cold`. A page lists its destinations as
 // they stand and registers them while they hold. The shell's moves are
 // commands too: Films on ⇧1 and the film's studio on ⇧2 (`shellCommands`);

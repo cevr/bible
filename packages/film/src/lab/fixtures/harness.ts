@@ -1,11 +1,13 @@
-// The lab's browser tests: the lab page (`fixtures/lab-page.ts`, the real
-// `mountLab` over the probe film) bundled with Solid's compiler, served to a
-// tab of the test process's Chrome (`browsers.ts`) at its own origin, with the
-// lab API answered by routes the test gives (then the defaults below). Every
-// request the page makes is kept, so a test can read what the lab wrote.
-// The review page (`openReview`) and the player's (`openPlayer`, a film's
-// studio) are served the same way, the player's routes too; the
-// review's videos and mixes are real media (`TONE`) unless a test says not.
+// The lab's browser tests: a film's studio (`openPlayer`, the real
+// `mountFilmStudio` over the probe film in `fixtures/player-page.ts`) bundled
+// with Solid's compiler, served to a tab of the test process's Chrome
+// (`browsers.ts`) at its own origin, with the lab API answered by routes the
+// test gives (then the defaults below). Every request the page makes is
+// kept, so a test can read what the lab wrote. The review page
+// (`openReview`) and the render page (`openRender`) are served the same way;
+// the review's videos and mixes are real media (`TONE`) unless a test says
+// not. A link the lab's server sends on (`servedPlace`) is answered with the
+// same redirect.
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -23,77 +25,34 @@ import {
 } from 'effect';
 import { Base64 } from 'effect/encoding';
 import {
-  type CompareView,
   LabHttpApi,
   type AppPage,
   Refusal,
   pageAt,
   pageHref,
+  servedPlace,
   statusOf,
 } from '../../core/api.ts';
 import { declares } from '../../core/testing.ts';
 import type { PageBuild } from '../../core/schema.ts';
-import type { Interval } from '../../core/time.ts';
 import { PAGE_CUT_MARK, PAGE_MOUNTED, type PageRender } from '../../core/page-render.ts';
 import { appleAgent } from '../../browser/keys.ts';
 import { splice } from '../../tools/lab-page.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled, served } from './bundles.ts';
 import { CLOCK_SCRIPT, CLOCK_STOPPED } from './clock.ts';
-import type { LabSelection } from '../../command/selection.ts';
-import { labHref } from '../place.ts';
-import type { LabMode } from '../mode.ts';
-import { narrationUrls } from '../../player/narrated.ts';
 import { probeTimeline } from './probe-timeline.ts';
-import { PROBE, probeFilm } from './probe-film.ts';
+import { PROBE } from './probe-film.ts';
 import { tone } from './tone.ts';
-import { type Request, type Response, type Tab, jsonOf } from './tab.ts';
+import { type Request, type Response, type Tab } from './tab.ts';
 
 const API = `/api/films/${PROBE}`;
 
-/** The probe film as the lab page lays it out: where each scene starts. */
-const probePlaced = probeFilm().placed;
-
-/**
- * What a test's lab link picks, each part optional: a cue or a knob of a
- * scene, a note, the studio's beat, the compare's mode and the A–B loop
- * (`labAt` fills in the lab's pick).
- */
-interface PickAsked {
-  readonly selection?: LabSelection;
-  readonly note?: string;
-  readonly beat?: string;
-  readonly view?: CompareView;
-  readonly loop?: Interval;
-}
-
-/** The probe film's lab at film seconds `T` with `pick`: the link the lab itself writes (`labHref`). */
-export const labAt = (T: number, pick: PickAsked = {}): string =>
-  labHref(
-    PROBE,
-    probePlaced,
-    {
-      selection: Option.fromUndefinedOr(pick.selection),
-      note: Option.fromUndefinedOr(pick.note),
-      beat: Option.fromUndefinedOr(pick.beat),
-      view: Option.getOrElse(Option.fromUndefinedOr(pick.view), (): CompareView => 'off'),
-      loop: Option.fromUndefinedOr(pick.loop),
-    },
-    T,
-  );
-
 /**
  * The film seconds the page's URL names, as a page-side expression: its
- * path's scene's start (the probe film's) plus `#t=`, as `labOpensAt` reads
- * a Lab or a Script link; a play page's `#t=` is film time. The one reader
- * of the time in the URL the browser tests poll.
+ * `#t=`. The one reader of the time in the URL the browser tests poll.
  */
-export const URL_T = `(() => {
-  const starts = ${jsonOf(Object.fromEntries(probePlaced.map((p) => [p.spec.id, p.start])))};
-  const url = new URL(location.href);
-  const scene = /^\\/films\\/[^/]+\\/(?:lab|script)\\/([^/]+)$/.exec(url.pathname)?.[1] ?? '';
-  return (starts[decodeURIComponent(scene)] ?? 0) + Number(new URLSearchParams(url.hash.slice(1)).get('t'));
-})()`;
+export const URL_T = `Number(new URLSearchParams(location.hash.slice(1)).get('t'))`;
 
 /** A JSON value, as the fake server answers and the page posts. */
 export type Json = Schema.Json;
@@ -356,8 +315,6 @@ const defaults: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/check$/, () => json({ findings: [] })),
   // The film's history as the studio reads it: nothing to undo or redo.
   route('GET', /^\/steps$/, () => json({})),
-  // The film's history as the studio reads it: nothing to undo or redo.
-  route('GET', /^\/steps$/, () => json({})),
   route('GET', /^\/studio\/beats$/, () => json({ film: PROBE, beats: [] })),
   route('GET', /^\/script$/, () => json(probeScript)),
   // The staging voice: nothing voiced, nothing spent (a case that hears a take serves its own).
@@ -403,15 +360,14 @@ const scriptAsset = (entry: string, name: string): Effect.Effect<Asset> =>
   Effect.map(bundled(entry), (js) => asset(name, respond(js, 'text/javascript')));
 
 /**
- * The lab's and the review's scripts, the tokens and the player's styles: read as the
+ * The review's and the player's scripts, the tokens and the player's styles: read as the
  * module loads, once per process, so no case's timeout counts
  * them (on a loaded runner the first cases spent 1-2 s waiting on them).
  */
 // oxlint-disable-next-line effect/noAsyncFunction -- the module's own load waits for its setup, so no case's timeout counts it
-const [labScript, reviewScript, playerScript, tokens, playerCss] = await Effect.runPromise(
+const [reviewScript, playerScript, tokens, playerCss] = await Effect.runPromise(
   Effect.all(
     [
-      scriptAsset('lab-page.ts', 'lab.js'),
       scriptAsset('review-page.ts', 'review.js'),
       scriptAsset('player-page.ts', 'player.js'),
       FileSystem.FileSystem.use((fs) =>
@@ -421,39 +377,14 @@ const [labScript, reviewScript, playerScript, tokens, playerCss] = await Effect.
         fs.readFileString(`${import.meta.dir}/../../player/player.css`),
       ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
     ],
-    { concurrency: 5 },
+    { concurrency: 4 },
   ),
 );
-
-/** The lab's script over the probe film with a master: built the first time a case asks for it. */
-const narratedLabScript = Effect.runSync(
-  Effect.cached(scriptAsset('lab-narrated-page.ts', 'lab.js')),
-);
-
-/** The probe film's master (`narrationUrls`), answered as `found` says when given; a hold answers never. */
-const masterFile =
-  (found: Option.Option<Answer>) =>
-  (request: Request): Option.Option<Effect.Effect<Response>> =>
-    Option.flatMap(found, (a) =>
-      Option.as(
-        Option.liftPredicate(request.url.pathname, (p) => p === narrationUrls(PROBE).audio),
-        Effect.flatMap(
-          answer(a),
-          Option.match({ onNone: () => Effect.never, onSome: Effect.succeed }),
-        ),
-      ),
-    );
-
-/** The lab's script over the probe film, with a master when `narrated`. */
-const labScriptFor = (narrated: boolean): Effect.Effect<Asset> => {
-  if (narrated) return narratedLabScript;
-  return Effect.succeed(labScript);
-};
 
 /** The studio's tokens (`player/tokens.css`), as every page served here links them. */
 export const tokensCss: string = tokens;
 
-/** The styles `lab.html` and `index.html` link: the tokens, then the player's. */
+/** The styles `play.html` and `index.html` link: the tokens, then the player's. */
 const css = `${tokens}${playerCss}`;
 
 /** The `<meta>`s a page served at `build` carries (`lab-build`, `lab-server`); none unstamped. */
@@ -463,14 +394,6 @@ const stampOf = (build: Option.Option<PageBuild>) =>
     onSome: (b) =>
       `<meta name="lab-build" content="${b.build}"><meta name="lab-server" content="${b.server}">`,
   });
-
-/**
- * The lab page as `lab.html` has it, with the player's styles inline, and
- * the build it was served at as the lab's server stamps it (`lab-build`,
- * `lab-server`) when the test gives one: then it waits on the rebuild.
- */
-const labPage = (style: string, script: Asset, build: Option.Option<PageBuild>) =>
-  `<!doctype html><html><head><meta charset="utf-8"><style>${style}</style>${stampOf(build)}</head><body class="lab">${scriptOf(script)}</body></html>`;
 
 /** The page's JSON body, when it sent one. */
 const bodyOf = (request: Request): Option.Option<Json> =>
@@ -646,12 +569,23 @@ const fakeServer =
   ) =>
   (request: Request): Effect.Effect<Option.Option<Response>> =>
     Option.match(
-      Option.orElse(pageFor(request), () => faceFiles(faceHeld)(request)),
+      Option.firstSomeOf([movedOn(request), pageFor(request), faceFiles(faceHeld)(request)]),
       {
         onSome: Effect.asSome,
         onNone: () => apiAnswer(prefix, routes, asked)(request),
       },
     );
+
+/**
+ * An old link, or a page the studio replaced, sent on to its place as the
+ * lab's server sends it (`servedPlace`, `tools/lab-page.ts`): a 302 whose
+ * Location the browser follows, carrying the hash across to one that names
+ * none.
+ */
+const movedOn = (request: Request): Option.Option<Effect.Effect<Response>> =>
+  Option.map(servedPlace(`${request.url.pathname}${request.url.search}`), (to) =>
+    Effect.succeed({ ...respond('', 'text/plain', 302), headers: { location: to } }),
+  );
 
 /** What `answer` makes of each request for `name`, on every path the real server serves it on (`pageAt`, `core/api.ts`). */
 const servedBy =
@@ -698,19 +632,10 @@ const HOT_MIC = `(() => {
  * page errors: what it threw and every console warning or error (Solid's
  * reactivity diagnostics are warnings), which also fail the case as it ends.
  */
-interface OpenLab {
+interface OpenPage {
   readonly page: Tab;
   readonly asked: ReadonlyArray<Asked>;
   readonly errors: ReadonlyArray<string>;
-}
-
-/**
- * The page's microphone: the shared fake (`browsers.ts`), allowed or
- * refused, and `hot` when it should clip.
- */
-interface FakeMic {
-  readonly allowed: boolean;
-  readonly hot?: boolean;
 }
 
 /**
@@ -729,83 +654,17 @@ export const DESK: Viewport = { width: 1440, height: 900 };
 /** A phone's window, as the studio is designed for first: 390 × 844, with a finger. */
 export const PHONE: Viewport = { width: 390, height: 844, coarse: true };
 
-/** What the Lab shows once its film is staged: its panel with the film's tools in it. */
-const STAGED = '.lab-panel[data-staged="true"]';
-
 /**
- * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`,
- * `core/api.ts`; the probe film's lab when none), served on every lab place as the server
- * serves it, with `routes` answering the API before the defaults, and `mic`
- * as its microphone when given, in `mode` when given. The tab goes back to
- * the pool with the scope.
+ * The player's page as the app's `index.html` has it, with its styles inline,
+ * stamped with the build it was served at when the test gives one: then the
+ * studio waits for a newer one.
  */
-export const openLab = Effect.fn('lab.fixture.open')(function* (
-  routes: ReadonlyArray<FakeRoute> = [],
-  at: {
-    readonly href?: string;
-    readonly mic?: FakeMic;
-    /** The build the page is served at, as the lab's server stamps it; none: it waits on no rebuild. */
-    readonly build?: PageBuild;
-    /** The mode to show, picked on the mode tray as the owner would; none: the first (Edit). */
-    readonly mode?: LabMode;
-    /** The window, and its pointer; none: a desk's, 1400 × 900 with a mouse. */
-    readonly viewport?: Viewport;
-    /** What the page is open at; none: the film staged on it (`STAGED`, by the page its link opens). */
-    readonly ready?: string;
-    /**
-     * The probe film with a master to play (`narratedProbeFilm`), its file
-     * answered so (served beside the API, as the lab's server serves a
-     * film's narration); none: the film without one.
-     */
-    readonly master?: Answer;
-  } = {},
-) {
-  const master = Option.fromUndefinedOr(at.master);
-  const script = yield* labScriptFor(Option.isSome(master));
-  const mic = Option.fromUndefinedOr(at.mic);
-  const asked: Array<Asked> = [];
-  const page = yield* openTab({
-    ...(at.viewport ?? DESK),
-    microphone: Option.exists(mic, (m) => m.allowed),
-    // The page's clock (timers, animation frames, `Date`, `performance.now`) is
-    // the test's: it runs on with real time, and a test moves it on with
-    // `clock.runFor` rather than waiting out a count-in, a retry or a loop's
-    // playback. Audio still runs on its own, real, clock.
-    init: [
-      CLOCK_SCRIPT,
-      TO_BLOB_AT_ONCE,
-      ...Arr.filter([HOT_MIC], () => Option.exists(mic, (m) => m.hot === true)),
-    ],
-    assets: [script],
-    serve: fakeServer(
-      (request) =>
-        Option.orElse(
-          servedAs(
-            'lab',
-            respond(labPage(css, script, Option.fromUndefinedOr(at.build)), 'text/html'),
-          )(request),
-          () => masterFile(master)(request),
-        ),
-      API,
-      [...routes, ...defaults],
-      asked,
-    ),
-  });
-  const href = at.href ?? pageHref.lab(PROBE);
-  yield* page.goto(href);
-  // The Lab's panel stands before the film is staged, its tools in it once it is; the Script's reader once it is.
-  yield* page.waitFor(at.ready ?? STAGED);
-  for (const mode of Option.toArray(Option.fromUndefinedOr(at.mode))) {
-    yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
-    yield* page.waitFor(`.lab-panel[data-mode="${mode}"]`);
-  }
-  const open: OpenLab = { page, asked, errors: page.errors };
-  return open;
-});
-
-/** The player's page as the app's `index.html` has it, with its styles inline. */
-const playerPage = (style: string, script: Asset) =>
-  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${style}</style></head><body>${scriptOf(script)}</body></html>`;
+const playerPage = (
+  style: string,
+  script: Asset,
+  build: Option.Option<PageBuild> = Option.none(),
+) =>
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${style}</style>${stampOf(build)}</head><body>${scriptOf(script)}</body></html>`;
 
 /** Where the player opens, and how wide its window is. */
 interface PlayerAt {
@@ -814,6 +673,8 @@ interface PlayerAt {
   readonly viewport: Viewport;
   /** Whether the page is allowed the fake microphone (`browsers.ts`); none: refused. */
   readonly microphone?: boolean;
+  /** Whether the microphone is 6 dB hotter than the fake one, so a take clips (`HOT_MIC`); none: as it is. */
+  readonly hot?: boolean;
 }
 
 /**
@@ -833,7 +694,11 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (
   const page = yield* openTab({
     ...at.viewport,
     microphone: at.microphone ?? false,
-    init: [CLOCK_SCRIPT],
+    // The page's clock (timers, animation frames, `Date`, `performance.now`) is
+    // the test's: it runs on with real time, and a test moves it on with
+    // `clock.runFor` rather than waiting out a count-in, a retry or a loop's
+    // playback. Audio still runs on its own, real, clock.
+    init: [CLOCK_SCRIPT, TO_BLOB_AT_ONCE, ...Arr.filter([HOT_MIC], () => at.hot === true)],
     assets: [playerScript],
     serve: fakeServer(
       servedAs('player', respond(playerPage(css, playerScript), 'text/html')),
@@ -844,7 +709,7 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (
   });
   yield* page.goto(at.href);
   yield* page.waitFor(ready);
-  const open: OpenLab = { page, asked, errors: page.errors };
+  const open: OpenPage = { page, asked, errors: page.errors };
   return open;
 });
 
@@ -878,7 +743,7 @@ export const openRender = Effect.fn('lab.fixture.render')(function* (href: strin
     now: `document.body.innerText.slice(0, 200)`,
     say: (now) => `the export page at ${href} installed no handle: it shows ${now}`,
   });
-  const open: OpenLab = { page, asked, errors: page.errors };
+  const open: OpenPage = { page, asked, errors: page.errors };
   return open;
 });
 
@@ -949,12 +814,12 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
   });
   yield* page.goto(at.href ?? '/');
   yield* page.waitFor('.rv-main');
-  const open: OpenLab = { page, asked, errors: page.errors };
+  const open: OpenPage = { page, asked, errors: page.errors };
   return open;
 });
 
 /** A page the tests serve rendered on the server. */
-export type ServedName = 'review' | 'lab' | 'player';
+export type ServedName = 'review' | 'player';
 
 /**
  * A page as the tests serve it rendered: its server entry, bundled as the
@@ -985,20 +850,12 @@ const SERVED: Readonly<Record<ServedName, ServedPage>> = {
     defaults: reviewDefaults,
     home: '/',
   },
-  lab: {
-    render: Effect.runSync(Effect.cached(served('../film-server.tsx', 'labRender'))),
-    script: Effect.runSync(Effect.cached(scriptAsset('lab-hydrated-page.ts', 'lab-hydrated.js'))),
-    html: (script, build) => labPage(css, script, build),
-    prefix: API,
-    defaults,
-    home: pageHref.lab(PROBE),
-  },
   player: {
-    render: Effect.runSync(Effect.cached(served('../film-server.tsx', 'studioRender'))),
+    render: Effect.runSync(Effect.cached(served('../film-studio/server.tsx', 'studioRender'))),
     script: Effect.runSync(
       Effect.cached(scriptAsset('player-hydrated-page.ts', 'player-hydrated.js')),
     ),
-    html: (script) => playerPage(css, script),
+    html: (script, build) => playerPage(css, script, build),
     prefix: API,
     defaults,
     home: pageHref.studio(PROBE),
@@ -1149,7 +1006,7 @@ interface Document {
 }
 
 /** A page served as the lab serves a page it renders: what the server read and answered too. */
-interface OpenServed extends OpenLab {
+interface OpenServed extends OpenPage {
   /** The reads the server's renders made, apart from the page's own requests (`asked`). */
   readonly read: ReadonlyArray<Asked>;
   /** Each document the server answered, in order. */
@@ -1177,10 +1034,10 @@ export const servedTitle = (page: Tab, html: string) =>
   );
 
 /**
- * Open page `name` (the review, the lab, or a film's studio) at
+ * Open page `name` (the review, or a film's studio) at
  * `href` as the lab serves it once it renders the page on the server: each
  * document is the page's server entry (`review/server.tsx`,
- * `film-server.tsx`) rendered at the link asked, its reads answered by
+ * `film-studio/server.tsx`) rendered at the link asked, its reads answered by
  * `routes` (and kept in `read`), spliced into the page's HTML as the lab
  * splices it (`splice`, `tools/lab-page.ts`); the browser's script (the
  * real entry, with Solid's development build) hydrates it. The page's own

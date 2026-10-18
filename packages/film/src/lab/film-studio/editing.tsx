@@ -8,6 +8,9 @@
 // once (`ripple.ts`), until the lab's read of the version holds it; the
 // playhead comes back to the same moment of the same beat once it does, and
 // a version the staged film draws loads again there, its new order drawn.
+// A newer build of the pages (`rebuilt.ts`: a scene's source changed in an
+// editor or by an agent) loads the page again at its place too, once no
+// edit is in hand, no frame is drawn on and the recorder is not over it.
 //
 // What the page cannot write exactly is a note for an agent, through the
 // inspector's note machine (`note-save.ts`): a frame drawn on in red with
@@ -22,7 +25,7 @@
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Dialog } from '@bible/ui/dialog';
 import { For } from '@solidjs/web';
-import { Array as Arr, Boolean as Bool, Effect, Match, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Effect, Fiber, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as ActorAtom from 'effect-machine/atom';
 import type { Accessor, ParentProps } from 'solid-js';
@@ -31,6 +34,7 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  onCleanup,
   onSettled,
   untrack,
   useContext,
@@ -60,7 +64,8 @@ import { focusFor } from '../focus.ts';
 import { LabClient, NotesApi, type StepVerb, called, stepWhyNot } from '../api.ts';
 import { type SketchEvent, type SketchState, sketchOf, step } from '../sketch/gesture.ts';
 import { Sketch } from '../sketch/surface.tsx';
-import { playerStill } from '../stage.ts';
+import { reloadOnRebuild } from '../rebuilt.ts';
+import { playerStill, reloadHere } from '../stage.ts';
 import { useStudio } from './context.tsx';
 import {
   type EditActor,
@@ -332,6 +337,30 @@ const Body = (
         if (keptInFilm(shown.value) && Option.isSome(meta.player()))
           Effect.runForkWith(meta.host)(reloadAtAddress);
       }),
+  );
+
+  // The server rebuilt the pages (a source changed): the page loads again at its place onto
+  // the new code, once no edit is in hand and the recorder is not over the page.
+  const [rebuilt, setRebuilt] = createSignal(false, { ownedWrite: true });
+  const awaiting = Effect.runForkWith(meta.host)(
+    reloadOnRebuild(
+      meta.film,
+      Effect.sync(() => setRebuilt(true)),
+    ).pipe(Effect.provide(meta.client)),
+  );
+  onCleanup(() => Effect.runFork(Fiber.interrupt(awaiting)));
+  createEffect(
+    () => rebuilt() && atRest(edit()) && Option.isNone(drawing()) && !studio.recording(),
+    (now) => {
+      if (!now) return;
+      setRebuilt(false);
+      Effect.runFork(
+        Option.match(untrack(meta.player), {
+          onSome: (shown) => reloadHere(shown.player, meta.host),
+          onNone: () => Effect.provideContext(reloadAtAddress, meta.host),
+        }),
+      );
+    },
   );
 
   const top = (verb: StepVerb) =>

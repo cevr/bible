@@ -1,7 +1,6 @@
 // The look of the pages' command surfaces (⌘K, the `?` sheet, the context
 // menu, the inspector's fields and hint, the review's inspector sheet and
-// comment dot, the receipts' toasts, a note's scope chip and the in and out
-// points' band on the cue strip, and every primitive after them). The rules
+// comment dot, the receipts' toasts, and every primitive after them). The rules
 // read the studio's tokens (`player/tokens.css`, design language §3 and §5:
 // menus and toasts on `--surface-2` with `--line-strong` and `--shadow-pop`,
 // rows `--row-h`, keys in the Kbd part's look, the accent only for a
@@ -10,10 +9,9 @@
 // the tokens. Only what no studio token holds is named here
 // (`COMMAND_TOKENS`): the paddings and heights the surfaces compose, and
 // their own geometry (widths, heights, the layer). Put in the page by its
-// root (`mountLab`, `mountFilmStudio`, `mountReview`). Each surface fits a phone:
-// no wider than the screen less its gutters, scrolling inside itself. An
-// inspector field is the kit's number field (`.lab-num`), styled where the
-// kit is, never here. A phone's width is the studio's one breakpoint
+// root (`mountFilmStudio`, `mountReview`). Each surface fits a phone:
+// no wider than the screen less its gutters, scrolling inside itself. A
+// field is the kit's (`.sh-field`), styled where the kit is, never here. A phone's width is the studio's one breakpoint
 // (`PHONE`, `WIDE`), asked through its owner. Focus is the shell's ring; a
 // sheet (@bible/ui's Sheet) and the phone sheet's grip, whose edge its
 // scroller clips, draw it inside (`--focus-ring-inset`; this sheet comes after
@@ -27,24 +25,15 @@
 // the page, not over it: the page makes room while an inspector is open. On a
 // phone (the shell's width) the sheet rises from the bottom (design language
 // §7): the screen's width, standing on what `--cmd-sheet-floor` says (the
-// shell's floor, `--shell-floor`: the safe area; and the shell's dock or
-// the Lab's transport row docked on it), so both stay in reach; at most three quarters of the screen tall. Its
+// shell's floor, `--shell-floor`: the safe area; and the shell's dock
+// docked on it), so both stay in reach; at most three quarters of the screen tall. Its
 // head is its grip (a bar drawn at its top): a tap lowers it to a peek, its
 // head alone, and raises it again. The head's Close stands over the grip, a
 // whole target of its own: the grip round it leaves it no spacing. While it
 // stands whole the page makes room under it, so its last row can be scrolled
-// above it. The Lab's selection (a cue, a knob, a note) peeks one line above
-// its dock, what it is and its values, wrapped onto a second line rather than
-// cut before the last value: its head alone, a target tall with no padding
-// above or below it (`--cmd-peek-h`, the sheet's top line with it; two lines
-// of the language's leading fit), so the phone's stack (header, peek, dock)
-// stays within a quarter of the screen. The peek is the subject's
-// line alone; raised, the kind heads it. The page's foot clears the peek, or
-// the whole sheet, as it clears the dock; only a sheet the mode shows keeps
-// its room, the other mode's hidden with its section. Over an open sheet on a
-// phone the receipts stand on its top edge, by anchor positioning, as they
-// stand over the Lab's viewer on a laptop; a browser with none keeps them at
-// the foot, centred.
+// above it. Over an open sheet on a phone the receipts stand on its top
+// edge, by anchor positioning; a browser with none keeps them at the foot,
+// centred.
 
 import { PHONE, WIDE } from '../viewport.ts';
 
@@ -68,13 +57,8 @@ body {
   --cmd-sheet-height: 75dvh;
   --cmd-sheet-floor: var(--shell-floor);
   --cmd-grip-height: 4px;
-  --cmd-peek-h: calc(var(--hit) + 1px);
 }
 `;
-
-/** The Lab's selection sheets the mode shows: Edit's cue or knob, Note's note (the others are hidden). */
-const STANDING =
-  ":is(.lab-panel[data-mode='edit'] [data-mode-of='edit'], .lab-panel[data-mode='note'] [data-mode-of='note']) .lab-selection-sheet";
 
 const COMMAND_RULES = `
 .lab-sheet-backdrop { position: fixed; inset: 0; background: var(--backdrop); z-index: var(--cmd-layer); }
@@ -148,8 +132,6 @@ const COMMAND_RULES = `
 .lab-context-menu kbd:empty { display: none; }
 /* A radio item's check (the film switcher's open film): a glyph in the key's ink, no key's box. */
 .lab-context-check { font-size: var(--fs-2); color: var(--text-2); }
-.lab-field { display: contents; }
-.lab-field-scrub { cursor: ew-resize; }
 .lab-inspector-hint {
   display: none; flex-wrap: wrap; gap: var(--s-1) var(--s-2); margin-top: var(--s-1);
   color: var(--text-2); font-family: var(--font); font-size: var(--fs-2); line-height: var(--body-lh);
@@ -212,7 +194,7 @@ const COMMAND_RULES = `
 @media ${WIDE} { body:has(.lab-inspector-sheet) { padding-right: var(--inspector-w); } }
 .lab-inspector-grip { display: none; }
 @media ${PHONE} {
-  body:has(.sh-dock), body.lab:has(.bar > .row) { --cmd-sheet-floor: calc(var(--shell-floor) + var(--dock-h)); }
+  body:has(.sh-dock) { --cmd-sheet-floor: calc(var(--shell-floor) + var(--dock-h)); }
   .lab-inspector-panel { right: auto; bottom: var(--cmd-sheet-floor); align-self: flex-start; width: var(--visual-viewport-width, 100%); height: auto; }
   .lab-inspector-sheet {
     max-height: var(--cmd-sheet-height);
@@ -234,25 +216,12 @@ const COMMAND_RULES = `
   .lab-inspector-head .lab-inspector-close { position: relative; z-index: 1; min-height: var(--hit); }
   .lab-inspector-sheet[data-peek="true"] > :not(.lab-inspector-head) { display: none; }
   body:has(.lab-inspector-sheet:not([data-peek="true"])) .sh-body { padding-bottom: var(--cmd-sheet-height); }
-  .lab-selection-sheet .lab-sheet-title {
-    flex: 1; min-width: 0; margin: 0; line-height: var(--lh-1); overflow-wrap: anywhere;
-  }
-  .lab-selection-sheet[data-peek="true"] { padding-block: 0; }
-  .lab-selection-sheet[data-peek="true"] .lab-sheet-kind { display: none; }
-  .lab-selection-sheet[data-peek="true"] .lab-inspector-grip { top: 0; }
-  .lab-selection-sheet[data-peek="true"] .lab-inspector-grip::before { top: var(--s-1); }
-  body.lab:has(${STANDING}) { padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-peek-h)); }
-  body.lab:has(${STANDING}:not([data-peek="true"])) {
-    padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-sheet-height));
-  }
 }
 .lab-clamp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /*
  * The receipts (design language §5) cover no control. On a phone they are
  * first in the bottom stack: over what the sheet stands on (the dock) and
- * over a sheet's peek. On the Lab's laptop layout they stand
- * bottom-left over the viewer (the stage), never over the timeline dock or
- * the inspector. Elsewhere, at the foot, centred.
+ * over a sheet's peek. Elsewhere, at the foot, centred.
  */
 .lab-receipts {
   position: fixed; z-index: calc(var(--cmd-layer) + 2); left: 50%; bottom: var(--gutter); transform: translateX(-50%);
@@ -266,16 +235,6 @@ const COMMAND_RULES = `
   @media ${PHONE} {
     .lab-inspector-sheet { anchor-name: --cmd-sheet; }
     body:has(.lab-inspector-sheet) .lab-receipts { position-anchor: --cmd-sheet; bottom: calc(anchor(top) + var(--s-2)); }
-  }
-}
-@supports (anchor-name: --a) {
-  @media ${WIDE} {
-    body.lab .stage { anchor-name: --lab-viewer; }
-    body.lab .lab-receipts {
-      position-anchor: --lab-viewer; transform: none;
-      left: calc(anchor(left) + var(--gutter)); bottom: calc(anchor(bottom) + var(--gutter));
-      width: min(var(--cmd-toast-width), calc(anchor-size(width) - 2 * var(--gutter)));
-    }
   }
 }
 .lab-receipt {
@@ -296,28 +255,6 @@ const COMMAND_RULES = `
 }
 .lab-receipt-undo { border: 1px solid var(--line-strong); color: var(--text-1); }
 .lab-receipt-close { border: 0; color: var(--text-2); }
-.lab-scope {
-  display: inline-flex; align-items: center; gap: var(--s-1); max-width: 100%; justify-self: start;
-  padding: var(--cmd-key-pad); border: 1px solid var(--line-strong); border-radius: var(--r-2);
-  color: var(--text-1); font: var(--w-1) var(--fs-2)/var(--body-lh) var(--font);
-}
-.lab-scope-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/*
- * The scope's × is drawn the count dot's size, its box its min-width (no
- * user agent padding), and reached as a target of the pointer's size
- * (\`--hit\`) through a hit-slop past it each side and upward, toward the
- * note's place: never down, where the note's field lies a gap below.
- */
-.lab-scope button {
-  position: relative; background: none; border: 0; color: var(--text-2); cursor: pointer; font: inherit;
-  min-width: var(--cmd-count-size); min-height: var(--cmd-count-size); padding-inline: 0;
-}
-.lab-scope button::before {
-  content: ''; position: absolute; left: calc(50% - max(50%, var(--hit) / 2)); bottom: 0;
-  width: max(100%, var(--hit)); height: max(100%, var(--hit));
-}
-.lab-scope button:hover { color: var(--text-1); }
-.lab-strip-range { position: absolute; top: 0; bottom: 0; background: var(--accent-wash); pointer-events: none; }
 `;
 
 /** The command surfaces' stylesheet: the tokens, then the rules that read them. */

@@ -20,8 +20,8 @@ const page = (mac = false) => {
   );
   const hub = Effect.runSyncWith(host)(
     makeHub(
-      'lab',
-      () => pageHref.lab('f'),
+      'player',
+      () => pageHref.studio('f'),
       storeOver(() => memoryStorage()),
     ),
   );

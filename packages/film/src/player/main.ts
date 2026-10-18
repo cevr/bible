@@ -5,7 +5,7 @@
 // (`mountFilmStudio`, lab/film-studio/mount.tsx). So the render page never
 // loads Solid, and the studio's pages never load the encoder.
 
-import type { ClockReads, Film, KnobRead, RenderOptions, ShownEdit } from '../canvas/film.ts';
+import type { Film, RenderOptions } from '../canvas/film.ts';
 import type { FilmUnloadable } from './narrated.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { timecode } from '../core/time.ts';
@@ -25,24 +25,17 @@ import {
 import { makeClock } from '../browser/media-clock.ts';
 import { Frames } from '../browser/frames.ts';
 import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
-import { BY_BUTTON } from '../command/command.ts';
-import { type Hub, titledNow } from '../command/hub.ts';
+import type { Hub } from '../command/hub.ts';
 import { Pointer, Surface } from '../browser/pointer.ts';
 import { required } from './dom.ts';
 import { pictureFacesWait } from './face.ts';
 import { narration, narrationNote } from './narration.ts';
 import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
-import { legendCommand, legendHtml, transportCommands } from './transport.ts';
+import { legendHtml, transportCommands } from './transport.ts';
 
 /** How long a tick's name stays after the finger that held it lifts, in ms. */
 const TIP_READ_MS = 1500;
-
-/** A span of film seconds playback repeats: `from` to `to`. */
-export interface LoopRange {
-  readonly from: number;
-  readonly to: number;
-}
 
 /** What the lab drives: the preview's clock, its canvas and its timeline. */
 export interface Player {
@@ -71,47 +64,22 @@ export interface Player {
   play(): void;
   playing(): boolean;
   /**
-   * Play at `rate` × (0.25, 0.5, 1). The narration plays only at 1×; at any
-   * other rate the clock runs on its own and the audio is paused (muted).
-   */
-  setRate(rate: number): void;
-  /** Repeat `range` while playing (none to stop repeating). */
-  setLoop(range: LoopRange | undefined): void;
-  /**
-   * Draw the frame at `T` into `ctx` as the preview shows it: its captions
-   * and the lab's edits, with `over` (an edit per scene) on top of them. The
-   * one spelling of "the frame as the lab shows it": a note's still, the
-   * onion and the HEAD layer draw through it. Nothing is drawn until the
+   * Draw the frame at `T` into `ctx` as the preview shows it, with its
+   * captions: the one spelling of "the frame as the studio shows it", which a
+   * note's still draws through. Nothing is drawn until the
    * film's faces have loaded (`drawable`); a frame that reads footage (a
    * talk's) is drawn once the host has decoded it. It resolves once the frame
    * is painted, so a reader of `ctx`'s canvas after it reads this frame; a
    * frame whose footage will not decode fails, never drawn black. A surface
-   * that asks again before a frame lands (the HEAD layer) passes `ask`
+   * that asks again before a frame lands passes `ask`
    * (one of its `newestAsked`, `core/asked.ts`): a frame no longer the newest asked for paints
    * nothing and fails nothing.
    */
   renderShown(
     ctx: CanvasRenderingContext2D,
     T: number,
-    over?: ReadonlyMap<string, ShownEdit>,
     ask?: Ask,
   ): Effect.Effect<void, FootageFrameMissing>;
-  /**
-   * Draw with `edits` (`RenderOptions.edits`) from now on, starting with the
-   * frame shown now: none until the lab shows some; the lab holds them, and
-   * hands over each change whole.
-   */
-  showEdits(edits: ReadonlyMap<string, ShownEdit>): void;
-  /** Every knob the last frame drawn read, and how (`KnobRead`). */
-  knobReads(): ReadonlyArray<KnobRead>;
-  /**
-   * Hear the names each frame drawn reads off its scenes' clocks
-   * (`RenderOptions.clock`), from the frame shown now (drawn again, heard)
-   * until `stop`: the Source view lights a read of the clock only while the
-   * frame read it. `reads` is the last frame drawn heard's. A frame drawn
-   * while no one hears records nothing.
-   */
-  hearClock(): { readonly reads: () => ClockReads; readonly stop: () => void };
   /**
    * Whether the preview draws frames: once the faces its film draws in have
    * loaded (`pictureFacesWait`). Until then its bar shows where the film is,
@@ -202,10 +170,8 @@ type PreviewTransport = 'own' | 'page';
  * The scrubbable preview of a staged film: its bar and timeline, its clock,
  * and its transport, registered as commands with the page's `hub` (whose
  * keymap binds their keys, which the `?` sheet lists). Its legend (the
- * stripes and the ticks) is hidden at rest: in the lab ⌘K or the page's menu
- * shows it (`legendCommand`). The lab's transport reads in the scene's time (the
- * header keeps the film's), and its captions are the view menu's and `c`.
- * Its film's faces failing to load fail the page (`fail`: it ends, and says
+ * stripes and the ticks) is hidden at rest. Its film's faces failing to
+ * load fail the page (`fail`: it ends, and says
  * why).
  */
 export const mountPreview = (
@@ -323,27 +289,19 @@ export const mountPreview = (
   });
   let T = Math.min(Math.max(time.at(addressOn(host).href()), 0), film.duration);
   let playing = false;
-  let rate = 1;
   /** The play loop, while the film plays (`Frames.loop`). */
   let running = Option.none<Fiber.Fiber<void>>();
   /**
    * The preview's own clock, over the host's monotonic `Clock` (seconds):
-   * what T follows off the narration (at any rate but 1×, or with no
-   * narration to play). It stands while the film does; a seek or a rate
-   * change starts it again from T.
+   * what T follows off the narration (with no narration to play). It stands
+   * while the film does; a seek starts it again from T.
    */
   const nowMs = monotonicMs(host);
   const clock = makeClock(() => nowMs() / 1000);
-  let loop: LoopRange | undefined;
   /** Hears every frame drawn. */
   const drawnTo = listenersOf();
   /** Hears the time each time it is shown, drawn or not (no frame is drawn until the faces load). */
   const movedTo = listenersOf();
-  let reads: KnobRead[] = [];
-  /** How many `hearClock`s hear the frames drawn: while any does, each records the names it reads off its clock. */
-  let hearers = 0;
-  /** The names the last frame drawn heard read off its scenes' clocks. */
-  let heard: ClockReads = { cues: new Map(), marks: new Map() };
   /**
    * T in the URL (`time`, the page's own place), so a reload lands on this
    * frame (`tInUrl`): written at most every `TIME_EVERY_MS` (the time key's
@@ -354,13 +312,9 @@ export const mountPreview = (
    */
   const url = tInUrl((cause) => time.write(T, cause), TIME_EVERY_MS, timersOn(host));
 
-  /** The lab's edits, drawn over the film's own (`Player.showEdits`). */
-  let edits: ReadonlyMap<string, ShownEdit> = new Map();
-
-  /** How the preview draws a frame: its captions and the lab's edits, with `extra` options. */
+  /** How the preview draws a frame: its captions, with `extra` options. */
   const shownOptions = (extra: RenderOptions = {}): RenderOptions => ({
     captions: captions.on,
-    edits,
     ...extra,
   });
 
@@ -404,13 +358,9 @@ export const mountPreview = (
         ),
       ),
     );
-  /** Frame `at` drawn as the preview shows it, with what its knobs read, and what it reads off its clocks while heard. */
+  /** Frame `at` drawn as the preview shows it. */
   const paintShown = (at: number, shown: FootageShown) => {
-    reads = [];
-    const clock: ClockReads | undefined =
-      hearers > 0 ? { cues: new Map(), marks: new Map() } : undefined;
-    film.render(ctx, at, shownOptions({ knobs: reads, clock, ...shown }));
-    if (clock !== undefined) heard = clock;
+    film.render(ctx, at, shownOptions(shown));
     drawnTo.call(at);
   };
 
@@ -423,16 +373,8 @@ export const mountPreview = (
     movedTo.call(T);
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
-    const shownRate = rate === 1 ? '' : ` · ${rate}× muted`;
-    const shownLoop =
-      loop === undefined
-        ? ''
-        : ` · loop ${timecode(loop.from, film.fps)}–${timecode(loop.to, film.fps)}`;
-    // The lab's transport is in the scene's time, the header's timecode the film's; elsewhere the film's.
-    const [at, length] =
-      page === 'lab' ? [Math.max(T - cur.start, 0), cur.dur] : [T, film.duration];
-    timecodeEl.textContent = timecode(at, film.fps);
-    lengthEl.textContent = ` / ${timecode(length, film.fps)}${shownRate}${shownLoop}`;
+    timecodeEl.textContent = timecode(T, film.fps);
+    lengthEl.textContent = ` / ${timecode(film.duration, film.fps)}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     const playWord = playing ? 'Pause' : 'Play';
@@ -468,23 +410,22 @@ export const mountPreview = (
   });
 
   /**
-   * Restart the clock at `T`, and the narration with it at 1× (it follows the
-   * clock only there; any other rate mutes it). A narration that cannot play
-   * is not asked to (`narration.ts`).
+   * Restart the clock at `T`, and the narration with it. A narration that
+   * cannot play is not asked to (`narration.ts`).
    */
   const rebase = () => {
     clock.seek(T);
     if (playing) clock.play();
     else clock.pause();
     voice.seek(T);
-    if (playing && rate === 1) voice.play(() => T);
+    if (playing) voice.play(() => T);
     else voice.pause();
   };
 
   const toggle = () => {
     playing = !playing;
-    // Play at the film's last frame starts it over: from its loop's start, in a loop.
-    if (playing && T >= film.duration - 1 / film.fps) T = loop === undefined ? 0 : loop.from;
+    // Play at the film's last frame starts it over.
+    if (playing && T >= film.duration - 1 / film.fps) T = 0;
     rebase();
     Option.map(running, (frames) => frames.interruptUnsafe());
     running = Option.none();
@@ -496,11 +437,8 @@ export const mountPreview = (
   /** One frame of play: the frame at the clock's time, and whether play goes on. */
   const tick = (): boolean => {
     if (!playing) return false;
-    T = (rate === 1 ? voice.playingAt() : undefined) ?? clock.time();
-    if (loop !== undefined && (T >= loop.to || T < loop.from - 1 / film.fps)) {
-      T = loop.from;
-      rebase();
-    } else if (T >= film.duration) {
+    T = voice.playingAt() ?? clock.time();
+    if (T >= film.duration) {
       T = film.duration;
       playing = false;
       voice.pause();
@@ -544,8 +482,7 @@ export const mountPreview = (
     );
   });
   playBtn.addEventListener('click', toggle);
-  // The captions' button, on the player's pages; the lab's captions are the view menu's and `c`.
-  if (page === 'lab') captionsBtn.remove();
+  // The captions' button.
   captionsBtn.addEventListener('click', () => {
     captions.on = !captions.on;
     draw();
@@ -572,39 +509,6 @@ export const mountPreview = (
       }),
     );
   hub.refine((now) => ({ ...now, playing }));
-  // The lab's transport steps a frame at a time by touch too: the
-  // frame keys' own commands, as a pair beside play. Its legend, hidden at
-  // rest, is ⌘K's and the page's menu's (the keys are the `?` sheet's).
-  if (page === 'lab') {
-    const keysLine = q<HTMLDivElement>('.keys');
-    hub.commands.register(
-      legendCommand({
-        shown: () => !keysLine.hidden,
-        toggle: () => {
-          keysLine.hidden = !keysLine.hidden;
-        },
-      }),
-    );
-    const step = (id: string, glyph: string, label: string) => {
-      const button = document.createElement('button');
-      button.className = 'sh-tool';
-      button.dataset['act'] = id;
-      button.textContent = glyph;
-      button.setAttribute('aria-label', label);
-      // Named again whenever the keys change, so a key rebound in `?` reads as rebound.
-      const name = () => {
-        button.title = titledNow(hub, label, id);
-      };
-      name();
-      hub.subscribe(name);
-      button.addEventListener('click', () => hub.invokeId(id, BY_BUTTON));
-      return button;
-    };
-    playBtn.after(
-      step('play.frame-previous', '◀', 'Previous frame'),
-      step('play.frame-next', '▶', 'Next frame'),
-    );
-  }
   // The picture: a click plays or pauses.
   canvas.addEventListener('click', () => toggle());
   // The first frame: at once when the film's faces are in, else once they
@@ -656,51 +560,17 @@ export const mountPreview = (
       if (!playing) toggle();
     },
     playing: () => playing,
-    setRate: (r) => {
-      rate = r;
-      clock.rate(r);
-      rebase();
-      draw();
-    },
-    setLoop: (range) => {
-      loop = range === undefined || range.to <= range.from ? undefined : range;
-      draw();
-    },
-    renderShown: (into, at, over = new Map(), ask = newestAsked().ask()) =>
+    renderShown: (into, at, ask = newestAsked().ask()) =>
       Effect.suspend(() => {
         if (!drawable) return Effect.void;
         return paintedIfNewest(
           film,
           at,
-          (footage) =>
-            film.render(
-              into,
-              at,
-              shownOptions({ edits: new Map([...edits, ...over]), ...footage }),
-            ),
+          (footage) => film.render(into, at, shownOptions(footage)),
           ask,
         ).pipe(Effect.provideContext(host));
       }),
     drawable: () => drawable,
-    showEdits: (next) => {
-      edits = next;
-      draw();
-    },
-    knobReads: () => reads,
-    hearClock: () => {
-      hearers += 1;
-      // The frame shown now was drawn unheard: drawn again, so a still frame is heard too.
-      if (hearers === 1) draw();
-      let stopped = false;
-      return {
-        reads: () => heard,
-        stop: () => {
-          if (stopped) return;
-          stopped = true;
-          hearers -= 1;
-        },
-      };
-    },
     onDraw: drawnTo.add,
     onMove: movedTo.add,
   };

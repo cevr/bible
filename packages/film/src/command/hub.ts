@@ -9,7 +9,7 @@
 // say's), handed to whoever shows them, each in its slot (the command's id,
 // or the writer's name: a slot's next receipt replaces its last, so
 // `undoing…` becomes what was undone). Built once at each page's root
-// (`mountFilmStudio`, `mountLab`, `mountReview`) and handed to everything on the page, as the
+// (`mountFilmStudio`, `mountReview`) and handed to everything on the page, as the
 // host is. A command runs only where its `when` holds, whether its key, a
 // menu, ⌘K or a button asked for it. The hub is the one owner of which input
 // the viewer last used (`input`, heard through `Keys.inputs`): a command runs
@@ -30,15 +30,7 @@ import {
   makeCommands,
 } from './command.ts';
 import { type Context, type Focus, contextAt, focusOf, withFocused } from './context.ts';
-import {
-  KeymapOverrides,
-  Resolved,
-  bindingsOf,
-  chordLabel,
-  keysOf,
-  resolve,
-  titleWith,
-} from './keymap.ts';
+import { KeymapOverrides, Resolved, bindingsOf, keysOf, resolve } from './keymap.ts';
 import { linkCommands } from './link.ts';
 import { selectionOf } from './selection.ts';
 import { targetAt } from './target.ts';
@@ -92,23 +84,13 @@ export interface Hub {
    * key listener; and which input the viewer uses (`input`).
    */
   readonly listen: Effect.Effect<never, never, Keys>;
+  /**
+   * Hear the presses inside `part` as the page's listener does, until
+   * interrupted: a part whose wrapper keeps keys from the page (the
+   * recorder's section in its dialog, which stops the arrows) hears them here.
+   */
+  readonly listenWithin: (part: EventTarget) => Effect.Effect<never, never, Keys>;
 }
-
-/**
- * `title` naming the first key bound to `id` now, as the viewer's keyboard
- * writes it (`Next frame (→)`), or `title` alone when none is: a control
- * outside Solid reads it again on every change of keys (`Hub.subscribe`), so
- * a rebound key reads as rebound. Solid's controls read `hubKeys`.
- */
-export const titledNow = (hub: Hub, title: string, id: CommandId): string =>
-  titleWith(
-    title,
-    hub
-      .keysOf(id)
-      .slice(0, 1)
-      .map((k) => chordLabel(k, hub.mac))
-      .join(''),
-  );
 
 /** The key the viewer's overrides are kept under. */
 const KEPT_AS = 'film-keymap';
@@ -228,6 +210,7 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+    listenWithin: (part) => Keys.use((k) => k.within(part, press)),
     listen: Keys.use((k) =>
       Effect.andThen(
         Effect.all(

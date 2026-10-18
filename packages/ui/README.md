@@ -166,27 +166,6 @@ A manager has `add` and `close(id)`; an `add` with an existing `id` updates that
 
 CSS variables on `Toast.Root`: `--toast-swipe-movement-x`, `--toast-swipe-movement-y` (the swipe so far). Upstream's stack variables (`--toast-index`, `--toast-offset-y`, `--toast-height` and the viewport's `--toast-frontmost-height`) and the height measurement behind them are left out: the receipts are a flat column. `Toast.Close` is always exposed to assistive technology (upstream hides it while the stack is collapsed).
 
-### Number field
-
-`import { NumberField } from '@bible/ui/number-field'`
-
-- `NumberField.Root`: `<div>`. Its owner holds `value` and hears only `onValueCommitted`: the field shows its own change (typed, stepped, scrubbed) from the change until its commit, then the owner's value again, so a value the owner declines goes back (upstream's hidden form input, `name`, `form` and `required` are left out).
-  - `NumberField.ScrubArea`: `<span role="presentation">` dragged across horizontally to change the value, a step every 2 pixels (under pointer lock for a mouse, outside WebKit).
-  - `NumberField.Input`: `<input>`, the text input; the arrow keys step it (Shift `largeStep`, Alt `smallStep`).
-
-Upstream's stepper buttons, `Group`, `ScrubAreaCursor` and `allowWheelScrub` are left out, and so are the root's `defaultValue`, `onValueChange`, `id`, `readOnly`, `snapOnStep`, `allowOutOfRange` and `step: 'any'`, and the scrub area's `direction` and `pixelSensitivity`; a part or option returns with its first consumer.
-
-Every member carries the same attributes:
-
-| Member | Attribute        | Present when                |
-| ------ | ---------------- | --------------------------- |
-| all    | `data-disabled`  | the field is disabled       |
-| all    | `data-scrubbing` | the value is being scrubbed |
-
-The value and the input's text are not attributes. No CSS variables.
-
-Two root props are not upstream's. `commitOnEnter` makes Enter commit typed text as blur does (reported as `keyboard`). `allowExpressions` keeps typed arithmetic as text and reads it on commit: `0.42*2`, `(1+2)/4`; text opening with `+`, `*` or `/` is relative to the value before typing began (`+0.1`, `*2`, `/2`), `×` and `÷` read as `*` and `/`, and a leading `-` is a negative number.
-
 ### Toggle
 
 `import { Toggle } from '@bible/ui/toggle'`
@@ -269,4 +248,4 @@ function Card(props: { onOpen: () => void; class?: string }) {
 
 ## Styling contract
 
-The studio styles these parts through its tokens (`packages/film/src/player/tokens.css`), in rules that select on the `data-*` attributes above and on its own class names. The menus, dialogs, sheets and toasts are styled in `packages/film/src/lab/command/style.ts`; the toggle group (`.sh-seg`, its toggles' `data-pressed`) and the number field's input (`.lab-num`) in `packages/film/src/lab/page-shell-style.ts`. No part writes a colour, a size or a font family; the only inline styles a part sets are mechanics (position, `pointer-events`, `user-select`, `touch-action`, a transition turned off for a frame or during a drag, an opacity held at 0 until the first position, `will-change: transform` at a device pixel ratio of 1.5 or more; the sheet's overlay, scroll container, stage and snap markers, their snapping and scroll-driven motion) and the CSS variables listed above. A part that needs a visual state exposes it as a `data-*` attribute rather than styling it.
+The studio styles these parts through its tokens (`packages/film/src/player/tokens.css`), in rules that select on the `data-*` attributes above and on its own class names. The menus, dialogs, sheets and toasts are styled in `packages/film/src/lab/command/style.ts`; the toggle group (`.sh-seg`, its toggles' `data-pressed`) in `packages/film/src/lab/page-shell-style.ts`. No part writes a colour, a size or a font family; the only inline styles a part sets are mechanics (position, `pointer-events`, `user-select`, `touch-action`, a transition turned off for a frame or during a drag, an opacity held at 0 until the first position, `will-change: transform` at a device pixel ratio of 1.5 or more; the sheet's overlay, scroll container, stage and snap markers, their snapping and scroll-driven motion) and the CSS variables listed above. A part that needs a visual state exposes it as a `data-*` attribute rather than styling it.

@@ -475,16 +475,6 @@ export class StepNotNewest extends Schema.TaggedError<StepNotNewest>()('StepNotN
 export const newerFirst = (verb: 'undo' | 'redo', top: string): string =>
   `${top} ${{ undo: 'came after it', redo: 'was undone after it' }[verb]}: ${verb} that first`;
 
-/** A scene file with no version at HEAD the lab can compare with: new, or not in a git repository. */
-export class HeadUnavailable extends Schema.TaggedError<HeadUnavailable>()('HeadUnavailable', {
-  file: Schema.String,
-  reason: Schema.String,
-}) {
-  override get message() {
-    return `${this.file}: no version at the last commit to compare with: ${this.reason}`;
-  }
-}
-
 /** A production moved forward past the version the mover saw. */
 export class VersionMoved extends Schema.TaggedError<VersionMoved>()('VersionMoved', {
   production: Schema.String,

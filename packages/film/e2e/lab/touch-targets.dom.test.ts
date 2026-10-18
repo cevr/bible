@@ -65,9 +65,13 @@ describe('a place named exempt from a guard', () => {
   });
 
   test('is found when the place measuring it is exempt itself', () => {
-    expect(unmeasured({ ...STATES, home: { measuredAt: 'lab', why: 'planted' } })).toEqual([
-      'home',
-    ]);
+    expect(
+      unmeasured({
+        ...STATES,
+        home: { measuredAt: 'set', why: 'planted' },
+        set: { measuredAt: 'folder', why: 'planted' },
+      }),
+    ).toEqual(['home']);
   });
 });
 

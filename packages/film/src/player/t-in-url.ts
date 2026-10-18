@@ -23,16 +23,6 @@ import { type Throttled, type Timers, throttled } from './throttle.ts';
  */
 export type TimeCause = 'play' | 'jump';
 
-/**
- * Each cause as the page's address bar moves for it (`addressOn`,
- * browser/host.ts): a jump is the viewer's move, entered as the place
- * declares it; play is the URL following the page, in place.
- */
-export const TIME_MOVE: Readonly<Record<TimeCause, 'go' | 'follow'>> = {
-  play: 'follow',
-  jump: 'go',
-};
-
 /** Where a preview's time is kept: the film seconds an entry names, and the writer of `T` there. */
 export interface TimeInUrl {
   /** The film seconds the entry at `href` names: the page's start when it names none. */

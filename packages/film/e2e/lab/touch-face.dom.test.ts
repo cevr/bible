@@ -164,7 +164,6 @@ const LATE = `[lab] fonts.late reason=cap cap_ms=${FACE_CAP_MS}`;
 for (const device of DEVICES) {
   describe(`the UI faces as they load on ${device.name} (G10)`, () => {
     const PAGES = [
-      ['Lab', 'lab', [], pageHref.lab(PROBE), ['.lab-panel[data-staged="true"]']],
       ['Studio', 'player', [], pageHref.studio(PROBE), ['.st-timeline .st-clip']],
       [
         'a Set',

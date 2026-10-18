@@ -1,6 +1,6 @@
 // A film's notes as a page holds them, on the server and in the browser
 // alike: the feed (`feed.ts`), and what a note shows wherever it is listed
-// (the Lab's list, the studio's Notes and asks): its words, what a note on
+// (the studio's Notes and asks): its words, what a note on
 // words asks of them, its thread, and a reply and a resolve, which say where
 // they stand on their own status line. The notes are the page's first read,
 // made by the server that renders it and sent with it (`served`); the
@@ -8,7 +8,7 @@
 // them, waiting past their cursor (a hybrid read: the server's first answer,
 // then the browser's). What needs the staged film (when a note shows on its
 // time line, the seek to it, a new note on the frame shown) the staged notes
-// lend the page once the film is staged (`NotesStaged`, `context.tsx`).
+// lend the page once the film is staged (`NotesStaged`).
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, Show } from '@solidjs/web';
@@ -41,16 +41,16 @@ export const NOTE_STATE = {
 } as const satisfies Record<NoteStatus, string>;
 
 /** What the page's reads run with: the lab's routes for its film, and its host. */
-export type PageRuntime = Atom.AtomRuntime<LabApi | NotesApi | BrowserServices>;
+type PageRuntime = Atom.AtomRuntime<LabApi | NotesApi | BrowserServices>;
 
 /** A reply to a note, or its resolve: what the thread writes. */
-export type ThreadWrite =
+type ThreadWrite =
   | { readonly _tag: 'Reply'; readonly id: string; readonly text: string }
   | { readonly _tag: 'Resolve'; readonly id: string };
 
 /** What the staged film lends the notes: what needs its code, while it is staged. */
 interface NotesStaged {
-  /** When `note` shows now, as its label says it beside its scene (`whenText`). */
+  /** When `note` shows now, as its label says it beside its scene. */
   readonly whenOf: (note: Note) => string;
   /** Open `note`: select it in the URL and show its frame. */
   readonly select: (note: Note) => void;

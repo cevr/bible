@@ -1,7 +1,7 @@
 // A talk's edit (`talk.ts`) as the lab reads and rewrites it: the
 // `export const talk = {…}` literal, parsed with oxc-parser and never
-// imported (the lab runs for days and never loads a film's module). The
-// Transcript view's words are read from it (`talkWords`), cut on the takes'
+// imported (the lab runs for days and never loads a film's module). A
+// talk's words are read from it (`talkWords`), cut on the takes'
 // transcripts as the page and the tools cut them (`talkCut`); its writes are
 // splices of one section's `cut` or `marks` literal (`editStrikes`,
 // `editMark`), each judged by the talk its new text cuts (`talkCutIn`), so a
@@ -922,7 +922,7 @@ export const talkCutIn = Effect.fn('talk.cutIn')(function* (at: TalkTarget, sour
 });
 
 /**
- * A talk's words as the Transcript view reads them: each section in play
+ * A talk's words as the lab reads them: each section in play
  * order, every word from its first to its last (spelt as the captions spell
  * it), struck or played, a played word with when it is heard in the section.
  */
