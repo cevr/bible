@@ -17,11 +17,12 @@ import { cold } from './cold.ts';
 import { court } from './court.ts';
 import { rain } from './rain.ts';
 import { seed } from './seed.ts';
+import { spoke } from './spoke.ts';
 import { title } from './title.ts';
 import { word } from './word.ts';
 
 export const scenes: SceneSpec[] = scenesOf(script, {
-  drawings: { cold, court, rain, seed, title, word },
+  drawings: { cold, court, rain, seed, spoke, title, word },
   light: lightOf,
   card: { brief: fonts.display, label: fonts.body },
 });

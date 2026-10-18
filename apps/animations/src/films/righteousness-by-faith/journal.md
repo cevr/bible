@@ -293,3 +293,39 @@ onYou 20.01 at 1:1 after triage r3: held-out hand ring 26 px, outer 279, fill 22
 ## 2026-10-18T15:09:57Z · rain
 
 17.5 at 1:1 after triage r3: band, tan strip 11-13 px, skin, brow on both sides; the far side's skin under the strip was 5-8 px until the band's far end rose 4 px, now 11-13 px; farmer eye height -3 % at 17.5 and mark:rain, spacing within 1 %
+
+## 2026-10-18T15:34:52Z · spoke
+
+opening: the first frame is seed's last (the page, him leaning in, the opened seed beside his face); with the gold veil faded as the dip rose, dip@0.5 showed the zoomed seed through it; held at full blaze under the dark veil, the dip reads as one gold-to-dark blend.
+
+## 2026-10-18T15:34:53Z · spoke
+
+dark: the cutout's own rim never shows on a band (a 12 px rimColor rim still hid under the face in the 1:1 crop at mark:light; tear() offsets the rim inward for either winding); the rim cut as a sheet of its own, the band lifted 2.5 px over it, shows as the thin uneven lilac edge spoke.dark paints.
+
+## 2026-10-18T15:34:55Z · spoke
+
+dark: at the house's backdrop fibre (1) the flat indigo sky reads blotched with 100 px mottle at mark:light; at 0.5 it reads as the panel's even indigo with a fine grain.
+
+## 2026-10-18T15:34:57Z · spoke
+
+light: the sky faded to dawn all at once read as grey-mauve smog at flood@0.5, and the sun's pale-gold air laid source-over greyed the indigo through the burst; the dawn flooded out from the sun behind the ring, the dark drawn back by a soft radial edge, reads as light spreading, and the air tied to the flood leaves the burst gold on the dark.
+
+## 2026-10-18T15:35:00Z · spoke
+
+itself and calleth: at mark:calleth the made world lies as spoke.light lays it (pink far hills, tan land either side of the teal water, its glint, the front band dark with its rim, the ribbon arcing into the sun from the left edge); the eight stars read small and gold (about 20 px at 1080p) with their glow; the lift to the heavens is gentle, the land lower by about a tenth of the frame by stars@0.9.
+
+## 2026-10-18T15:35:02Z · spoke
+
+verdict and cover: after the flash his head stands at a third of the frame, the seed floating right of it; the seal's outline round the seed reads as a seal at tails@1, its round clear of the seed and his face, the forked ends of its tails cut by the frame's foot.
+
+## 2026-10-18T15:35:06Z · spoke
+
+brings: at lineUp@1 the row stands across the frame as spoke.brings.2 sets it (lead 17% of the width against 18%, faith 40% against 41%, cloth 64.5% against 64%, blade 87% against 87%); icons faded in showed their own pieces through each other (the cloth glassy at lineUp@0.4); the seed's glow at 0.7 browned the hand circle's ink at its top in the 1:1 crop.
+
+## 2026-10-18T15:35:10Z · spoke
+
+faith, forgiveness, power: the face kit's turn is capped, so his eyes on any icon of the row turned 0.16 of his head's width (match at toBlade@1, flagged); a gaze target 130 units off toward the icon turns them 0.074, as the panel turns his (about 0.075).
+
+## 2026-10-18T15:40:39Z · spoke
+
+cover: with the page framed 23 Board px lower after the flash (idea knob y 588), the seal outline's forked tail ends sit inside the frame at tails@1, and his face stands near the frame's upper third.
