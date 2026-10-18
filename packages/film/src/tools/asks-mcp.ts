@@ -1,6 +1,8 @@
 // The lab MCP's asks and the owner's word (`lab-mcp.ts` serves them): a
 // decision page an agent composes from the lab's primitives as a small
-// machine (`ask`), answered by the owner on any device, each step's answers
+// machine (`ask`), on a page of asks (one made while the same asker's
+// earlier ask still asks joins that one's page, so asks made in sequence
+// share one page and one link), answered by the owner on any device, each step's answers
 // heard as `ask.step` changes; read (`ask_read`, `asks`) and closed
 // (`close_ask`), its words filed on its production's timeline once by its id
 // (by `AskStore`, through `ProductionStore`; `core/ask.ts`). The owner's word
@@ -15,7 +17,9 @@ import {
   AskAnswer,
   AskBlock,
   type AskRecord,
+  NEW_PAGE,
   askStatus,
+  asksOnPage,
   oneQuestion,
   pageIdOf,
 } from '../core/ask.ts';
@@ -63,13 +67,21 @@ export const AskRead = Schema.Struct({
 });
 export type AskRead = typeof AskRead.Type;
 
+/** What `ask` answers: the ask as `ask_read` reads it, and whether it opened its page or joined one. */
+const AskMade = Schema.Struct({
+  ...AskRead.fields,
+  /** `opened page a…` or `joined page a…, 2 asks`. */
+  onPage: Schema.String,
+});
+
 export const AskTool = Tool.make('ask', {
   description: [
     "Ask the owner to review something and decide, on one scrolling page made for it: answered on the laptop or the phone, the answers typed. A guided review has one section per piece of material, in the flow's order (script → concept → Board → voice → animatic → Rive scenes → sound → render → shorts), each section the material itself first, then its questions; one Send under them all. Give `blocks` for one section, or `machine` for several: `{start, steps}`, each step a section (`title`, its heading, e.g. 'The Board'; `blocks`; then `next`: `[{to, when?: {answer, is: [values]}}, …, {to}]`, the first whose `when` holds, the last unguarded) or an end (`{end: true, text?}`). Every section the owner's answers reach shows on the page; a guarded one appears once its choice is made.",
     "Show the material in place, by reference, never prose that points elsewhere: `{kind: 'script', film}` or `{kind: 'script', series, draft}` (the Script reader, its staging takes playable and its delivery marks editable in place; `beats` for some), `{kind: 'board', film, panels?}` (the Board's panels, each with its kept try), `{kind: 'video', ref, at?}` (a set's or a render's video in the review's player, from `at` seconds), `{kind: 'audio', film, beat, attempt?}` (a recorded take, the kept one unless named), `{kind: 'document', ref}` (a set's Markdown). A script under review is a `script` block, never a `document` of its Markdown, and an ask shows one script (ask about the next in an ask of its own); a new script that is no film's yet is written as a series draft first (`series/<series>/scripts/<draft>.md`), then named in a `script` block. A `ref` is a file as `sets` lists it (`<root>/<folder>/<file>`). Each is found when the ask is made; one the lab cannot show is refused, named. Other blocks: a heading, prose (context only), an image (`{src}`, a lab URL `/api/…`, or `{board: {film, panel, try}}`), a choose, a free_text; each question names its answer by `id`. The machine is checked before anything is kept (every step reachable, no loops, guards on the step's own choices, every material found, one script, one recommendation per choose), and a refusal lists every problem.",
     'Ask with a `choose` (the cheap answer: the owner taps one) and mark your recommendation: `recommended: true` on exactly one option (a choose of two or more without one is refused); the page lists it first and marks it; say on it `why` (what makes it the one, said under the options; only the recommended option takes a `why`). Add an optional `free_text` for anything else rather than asking for words. A choose is always answered. A free_text is optional: the page marks it so (write no "(optional)" in its label), and left empty it is answered `{kind: \'skipped\'}`; `required: true` makes the owner write, and only a step with no choose may ask it.',
     'Say `why` (what the answer decides) and `by` (who you are); a `deadline` (ISO time) after which it takes no answer; `production` (and the `set` ref it is about, and the `point`, its choice) to file it on that timeline: it waits there until closed (or, with a `point`, a pick there).',
-    "Answers its links (`local` on this machine, `phone` from the owner's phone when the lab listens there): hand the owner the one he will open it on. Each section the owner sends is an `ask.step` change on `changes` (its answers typed), and `ask.answered` once the end is reached; read it with `ask_read`, and `close_ask` it once acted on. To wait for the answer, run `bun cli.ts ask wait <ask>` (from apps/animations) in the background: it exits once the owner has answered and prints the answers; act when it exits, and never ask the owner to say he answered.",
+    `Asks made in sequence share one page: an ask made while an earlier ask of the same \`by\` still asks joins that ask's page; otherwise it opens a new one. \`page\` names an ask whose page to join (that page must still ask), or \`"${NEW_PAGE}"\` opens a new page. Each ask on a page is answered, read and closed on its own; the page shows them in the order made, each with its own Send.`,
+    "Answers its links (`local` on this machine, `phone` from the owner's phone when the lab listens there), the page's (`page.links`) and `onPage` (`opened page a…`, or `joined page a…, 2 asks`): hand the owner the page's link he will open it on, once per page (an ask that joined a page he has open shows there once he sends or reloads). Each section the owner sends is an `ask.step` change on `changes` (its answers typed), and `ask.answered` once the end is reached; read it with `ask_read`, and `close_ask` it once acted on. To wait for the answer, run `bun cli.ts ask wait <ask>` (or `ask wait --page <id>` for every ask on a page) from apps/animations in the background: it exits once the owner has answered and prints the answers; act when it exits, and never ask the owner to say he answered.",
   ].join(' '),
   parameters: Schema.Struct({
     title: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(200)),
@@ -85,8 +97,10 @@ export const AskTool = Tool.make('ask', {
     /** The words the one page ends on, for `blocks`. */
     thanks: Schema.optionalKey(Schema.String),
     machine: Schema.optionalKey(Ask),
+    /** The page it goes on: an ask's id (that ask's page, still asking), or `new`. */
+    page: Schema.optionalKey(Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(40))),
   }),
-  success: AskRead,
+  success: AskMade,
   failure: LabRefused,
 });
 
@@ -100,7 +114,7 @@ const AskReadTool = Tool.make('ask_read', {
 
 export const AsksTool = Tool.make('asks', {
   description:
-    'Every ask, the newest first: `status` narrows them (`asking`: what waits on the owner).',
+    'Every ask, the newest first, each with its page (`page.id`: asks that share one were made in sequence and are answered on one page): `status` narrows them (`asking`: what waits on the owner).',
   parameters: Schema.Struct({
     status: Schema.optionalKey(Schema.Literals(['asking', 'answered', 'closed'])),
   }),
@@ -289,12 +303,23 @@ const asksReads = Effect.fn('LabMcp.asksReads')(function* (options: LabMcpOption
         LabRefused.make({
           reason: Match.value(e).pipe(
             Match.tag('AskInvalid', (i) => `the ask may not render:\n- ${i.problems.join('\n- ')}`),
+            Match.tag(
+              'AskUnknown',
+              (u) => `no ask ${u.id} whose page to join: \`asks\` lists them`,
+            ),
             Match.orElse((other) => other.message),
           ),
         }),
       ),
     );
-    return askRead(record);
+    const page = asksOnPage(yield* refused(asks.list), pageIdOf(record));
+    return {
+      ...askRead(record),
+      onPage: Option.match(Option.fromUndefinedOr(record.page), {
+        onNone: () => `opened page ${record.id}`,
+        onSome: (on) => `joined page ${on}, ${page.length} asks`,
+      }),
+    };
   });
 
   const askOf = (id: string) => Effect.map(refused(asks.read(id)), askRead);

@@ -5,9 +5,13 @@
 // kept; a choice it makes now recommends one option), the owner answers
 // its page from any device (`answerPage`: each section's step in order, the
 // run moved by its machine, `askMachine`, and every section kept or none),
-// and the agent closes it. A page of asks is only the asks that name it
-// (`pageIdOf`, `asksOnPage`): an ask with no `page` opened its own, as every
-// ask kept before pages did. An answer is kept by its step, so the same
+// and the agent closes it. An ask made while an earlier one of the same
+// asker (`by`) still asks joins that one's page (`page`, the opener's id),
+// so asks made in sequence are answered on one page; `page` on the draft
+// names an open page to join, or `new` opens one. A page is only the asks
+// that name it (`pageIdOf`, `asksOnPage`): an ask with no `page` opened its
+// own, as every ask kept before pages did. Makes are taken one at a time,
+// so two made at once see each other. An answer is kept by its step, so the same
 // answer sent again (a retry, a second tab) is answered as it was; a
 // different one to a step already answered is refused, as is one to a step
 // the ask has left, as its machine has it, and one past the deadline. An ask
@@ -34,6 +38,7 @@ import {
   Random,
   Record,
   Result,
+  Semaphore,
 } from 'effect';
 import { Machine } from 'effect-machine';
 import {
@@ -44,6 +49,7 @@ import {
   type AskRecord,
   AskEvent,
   type AsksPage,
+  NEW_PAGE,
   AskRecordJson,
   type AskState,
   type StepValues,
@@ -53,12 +59,14 @@ import {
   askMachine,
   askProblems,
   askStart,
+  askStatus,
   asksOnPage,
   filled,
   givenAnswers,
   imagesIn,
   mapImages,
   pageIdOf,
+  pageOpen,
   unrecommended,
 } from '../core/ask.ts';
 import { boardFileUrl } from '../core/api.ts';
@@ -81,6 +89,8 @@ interface AskDraft {
   readonly set?: string;
   readonly point?: string;
   readonly deadline?: string;
+  /** The page it goes on: an ask's id (the page that ask is on, which must still ask), or `new`; none: the asker's open page, else a new one. */
+  readonly page?: string;
   readonly ask: Ask;
 }
 
@@ -91,11 +101,13 @@ interface AskStoreService {
   readonly file: (id: string) => string;
   /**
    * A new ask, aimed (`aimedWord`: a `point` names its `set`), its machine
-   * checked and its board tries found, or why it may not render; its question filed.
+   * checked and its board tries found, or why it may not render; its question
+   * filed. It goes on the page `draft.page` names, or the asker's open one,
+   * or a page of its own: a page named that no longer asks is refused.
    */
   readonly make: (
     draft: AskDraft,
-  ) => Effect.Effect<AskRecord, WordUnaimed | AskInvalid | StoreError>;
+  ) => Effect.Effect<AskRecord, WordUnaimed | AskInvalid | AskUnknown | AskRefused | StoreError>;
   readonly read: (id: string) => Effect.Effect<AskRecord, AskUnknown | StoreError>;
   /** The page ask `id` is on (an opener's id is its page's): its asks, in the order made. */
   readonly page: (id: string) => Effect.Effect<AsksPage, AskUnknown | StoreError>;
@@ -243,6 +255,33 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
             }),
         });
 
+      // One make at a time: the page an ask joins is read and its record written under it.
+      const making = yield* Semaphore.make(1);
+
+      /**
+       * The page a new ask by `by` goes on, by its opener's id: the one
+       * `named` says (an ask's page, which must still ask; `new`, none),
+       * else the newest ask of the asker's that still asks, else none (it
+       * opens its own).
+       */
+      const pageFor = (by: string, named: Option.Option<string>) =>
+        Effect.gen(function* () {
+          if (Option.contains(named, NEW_PAGE)) return Option.none<AskName>();
+          if (Option.isSome(named)) {
+            const page = pageIdOf(yield* read(named.value));
+            if (!pageOpen(asksOnPage(yield* list, page)))
+              return yield* AskRefused.make({
+                id: page,
+                reason: `its page has nothing left asking, so it takes no new ask: leave \`page\` out, or say "${NEW_PAGE}"`,
+              });
+            return Option.some(page);
+          }
+          return Option.map(
+            Arr.findFirst(yield* list, (r) => r.by === by && askStatus(r.state) === 'asking'),
+            pageIdOf,
+          );
+        });
+
       const make = Effect.fn('AskStore.make')(function* (draft: AskDraft) {
         yield* Effect.fromResult(
           aimedWord({
@@ -274,44 +313,61 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         const { ask, missing } = yield* located(draft.ask);
         const absent = [...(yield* materials.problems(draft.ask)), ...missing];
         if (absent.length > 0) return yield* AskInvalid.make({ problems: absent });
-        const id = yield* newId;
-        const record: AskRecord = {
-          id,
-          title: draft.title,
-          why: draft.why,
-          by: draft.by,
-          ...Option.match(Option.fromUndefinedOr(draft.film), {
-            onNone: () => ({}),
-            onSome: (film) => ({ film }),
+        return yield* making.withPermit(
+          Effect.gen(function* () {
+            const page = yield* pageFor(draft.by, Option.fromUndefinedOr(draft.page));
+            return yield* kept(draft, ask, deadline, page);
           }),
-          ...Option.match(Option.fromUndefinedOr(draft.production), {
-            onNone: () => ({}),
-            onSome: (production) => ({ production }),
-          }),
-          ...Option.match(Option.fromUndefinedOr(draft.set), {
-            onNone: () => ({}),
-            onSome: (set) => ({ set }),
-          }),
-          ...Option.match(Option.fromUndefinedOr(draft.point), {
-            onNone: () => ({}),
-            onSome: (point) => ({ point }),
-          }),
-          created: yield* now,
-          ...Option.match(Option.flatten(deadline), {
-            onNone: () => ({}),
-            onSome: (at) => ({ deadline: at }),
-          }),
-          ask,
-          state: askStart(ask),
-          answered: [],
-        };
-        yield* store.update(manifest(id, record), () => record);
-        yield* filed(record);
-        yield* Effect.log(
-          `asks.make id=${id} by=${draft.by} steps=${Object.keys(ask.steps).length}`,
         );
-        return record;
       });
+
+      /** `draft` kept as a new ask, its machine `ask` (its images found), on `page` (none: its own). */
+      const kept = (
+        draft: AskDraft,
+        ask: Ask,
+        deadline: Option.Option<Option.Option<string>>,
+        page: Option.Option<AskName>,
+      ) =>
+        Effect.gen(function* () {
+          const id = yield* newId;
+          const record: AskRecord = {
+            id,
+            title: draft.title,
+            why: draft.why,
+            by: draft.by,
+            ...Option.match(Option.fromUndefinedOr(draft.film), {
+              onNone: () => ({}),
+              onSome: (film) => ({ film }),
+            }),
+            ...Option.match(Option.fromUndefinedOr(draft.production), {
+              onNone: () => ({}),
+              onSome: (production) => ({ production }),
+            }),
+            ...Option.match(Option.fromUndefinedOr(draft.set), {
+              onNone: () => ({}),
+              onSome: (set) => ({ set }),
+            }),
+            ...Option.match(Option.fromUndefinedOr(draft.point), {
+              onNone: () => ({}),
+              onSome: (point) => ({ point }),
+            }),
+            ...Option.match(page, { onNone: () => ({}), onSome: (p) => ({ page: p }) }),
+            created: yield* now,
+            ...Option.match(Option.flatten(deadline), {
+              onNone: () => ({}),
+              onSome: (at) => ({ deadline: at }),
+            }),
+            ask,
+            state: askStart(ask),
+            answered: [],
+          };
+          yield* store.update(manifest(id, record), () => record);
+          yield* filed(record);
+          yield* Effect.log(
+            `asks.make id=${id} by=${draft.by} page=${pageIdOf(record)} steps=${Object.keys(ask.steps).length}`,
+          );
+          return record;
+        });
 
       const known = (id: string) =>
         Effect.gen(function* () {

@@ -1084,6 +1084,9 @@ export const AskRecordJson = repoJson(AskRecord);
 export const pageIdOf = (record: Pick<AskRecord, 'id' | 'page'>): AskName =>
   Option.getOrElse(Option.fromUndefinedOr(record.page), () => record.id);
 
+/** What `page` on an ask asks for a new page instead of the asker's open one. */
+export const NEW_PAGE = 'new';
+
 /** The asks on one page, in the order made: the one that opened it first. */
 export const AsksPage = Schema.Struct({ page: AskName, asks: Schema.Array(AskRecord) });
 export type AsksPage = typeof AsksPage.Type;
@@ -1134,6 +1137,10 @@ export const pageCountText = (count: PageCount): string =>
 /** The first ask on a page the owner still has to answer: where the page takes him. */
 export const nextAsking = (asks: ReadonlyArray<AskRecord>): Option.Option<AskRecord> =>
   Arr.findFirst(asks, waiting);
+
+/** Whether a page takes a new ask: one of its asks still asks. */
+export const pageOpen = (asks: ReadonlyArray<Pick<AskRecord, 'state'>>): boolean =>
+  asks.some(waiting);
 
 /** Answers in one line, each by its name: `try: Try 7 · why: the light · more: (skipped)`. */
 export const answersLine = (answers: AskAnswers): string =>

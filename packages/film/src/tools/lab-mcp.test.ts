@@ -692,6 +692,46 @@ describe('asks through the MCP', () => {
         expect(
           (yield* tool('asks', { status: 'asking' })).asks.map((a: { ask: string }) => a.ask),
         ).toEqual([one.ask]);
+        // Its page: it opened one, and its page's links are the ones to hand the owner.
+        expect(one.onPage).toBe(`opened page ${one.ask}`);
+        expect(one.page).toEqual({
+          id: one.ask,
+          links: {
+            local: `${MCP_BASE}asks/page/${one.ask}`,
+            phone: `${MCP_PHONE}asks/page/${one.ask}`,
+          },
+        });
+        // The next ask from the same asker, while the first still asks, joins its page.
+        const name = [{ kind: 'free_text', id: 'name', label: 'And its sequel?' }];
+        const two = yield* tool('ask', { ...who, blocks: name });
+        expect(two.onPage).toBe(`joined page ${one.ask}, 2 asks`);
+        expect(two.page).toEqual(one.page);
+        expect(two.links.local).toBe(`${MCP_BASE}asks/${two.ask}`);
+        // Another asker opens a page of its own; `page: "new"` does too; `page` names one to join.
+        const other = yield* tool('ask', { ...who, by: 'painter', blocks: name });
+        expect(other.onPage).toBe(`opened page ${other.ask}`);
+        const fresh = yield* tool('ask', { ...who, blocks: name, page: 'new' });
+        expect(fresh.onPage).toBe(`opened page ${fresh.ask}`);
+        const named = yield* tool('ask', { ...who, by: 'painter', blocks: name, page: two.ask });
+        expect(named.onPage).toBe(`joined page ${one.ask}, 3 asks`);
+        expect((yield* tool('ask', { ...who, blocks: name, page: 'a0000000000' })).refused).toBe(
+          'no ask a0000000000 whose page to join: `asks` lists them',
+        );
+        // The asks list names each ask's page (made at one clock time, so their order is not told).
+        const pages = new Map(
+          (yield* tool('asks', { status: 'asking' })).asks.map(
+            (a: { ask: string; page: { id: string } }) => [a.ask, a.page.id],
+          ),
+        );
+        expect(pages).toEqual(
+          new Map([
+            [one.ask, one.ask],
+            [two.ask, one.ask],
+            [other.ask, other.ask],
+            [fresh.ask, fresh.ask],
+            [named.ask, one.ask],
+          ]),
+        );
       }),
     ),
   );
@@ -977,9 +1017,10 @@ describe('film production ask', () => {
           });
           expect(asked.lines).toEqual([
             `asked ${made.ask} on f: waits on its timeline at judge-faces, render:cold`,
-            `local ${MCP_BASE}asks/${made.ask}`,
-            `phone ${MCP_PHONE}asks/${made.ask}`,
-            `then: bun cli.ts ask wait ${made.ask} in the background (it exits once answered, with the answers); close_ask it once acted on`,
+            `opened page ${made.ask}`,
+            `local ${MCP_BASE}asks/page/${made.ask}`,
+            `phone ${MCP_PHONE}asks/page/${made.ask}`,
+            `then: bun cli.ts ask wait ${made.ask} in the background (it exits once answered, with the answers; --page ${made.ask} for every ask on the page); close_ask it once acted on`,
           ]);
           // The page: a choice, and words beside it the owner may leave out.
           const record = yield* (yield* AskStore).read(made.ask);

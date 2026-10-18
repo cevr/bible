@@ -18,7 +18,10 @@ import {
   AskName,
   Ask as AskSchema,
   AskState,
+  nextAsking,
   oneQuestion,
+  pageCount,
+  pageCountText,
 } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { Segment } from '../core/segment.ts';
@@ -417,7 +420,81 @@ const choice = (by: string, title: string) => ({
   ),
 });
 
+/** `id`'s one step answered: its ask settled. */
+const answerOne = (asks: AskStore['Service'], id: string) =>
+  asks.answerPage(id, [{ step: step('ask'), values: { pick: 'a' } }]);
+
 describe('the pages of asks', () => {
+  it.effect(
+    'an ask made while the same asker still asks joins its page; answered, or another asker, opens a new one',
+    () =>
+      run(
+        Effect.gen(function* () {
+          const asks = yield* AskStore;
+          yield* TestClock.setTime(Date.UTC(2026, 9, 17, 12));
+          const first = yield* asks.make(choice('canon', 'Which canon?'));
+          expect(first.page).toBeUndefined();
+          yield* TestClock.adjust('1 minute');
+          const second = yield* asks.make(choice('canon', 'And the follow-up?'));
+          expect(second.page).toBe(first.id);
+          // Another asker's ask is a page of its own, and asks of its own join that one.
+          const other = yield* asks.make(choice('look', 'Which look?'));
+          expect(other.page).toBeUndefined();
+          yield* TestClock.adjust('1 minute');
+          const third = yield* asks.make(choice('canon', 'One more?'));
+          expect(third.page).toBe(first.id);
+          // By any of its asks, the page is its asks in the order made.
+          const page = yield* asks.page(third.id);
+          expect(page.page).toBe(first.id);
+          expect(page.asks.map((a) => a.title)).toEqual([
+            'Which canon?',
+            'And the follow-up?',
+            'One more?',
+          ]);
+          expect(pageCount(page.asks)).toEqual({ answered: 0, of: 3 });
+          expect((yield* asks.page(other.id)).asks.map((a) => a.id)).toEqual([other.id]);
+          // Each is answered and closed on its own; one withdrawn is no longer counted.
+          yield* answerOne(asks, first.id);
+          yield* asks.close(second.id, 'withdrawn: asked again');
+          const counted = yield* asks.page(first.id);
+          expect(pageCount(counted.asks)).toEqual({ answered: 1, of: 2 });
+          expect(pageCountText(pageCount(counted.asks))).toBe('1 of 2 answered');
+          expect(Option.map(nextAsking(counted.asks), (a) => a.id)).toEqual(Option.some(third.id));
+          // Once nothing on it asks, the asker's next ask opens a new page.
+          yield* answerOne(asks, third.id);
+          const fresh = yield* asks.make(choice('canon', 'A new question'));
+          expect(fresh.page).toBeUndefined();
+        }),
+      ),
+  );
+
+  it.effect(
+    'an ask names a page to join (by any ask on it) or a new one; a page with nothing asking takes none',
+    () =>
+      run(
+        Effect.gen(function* () {
+          const asks = yield* AskStore;
+          const opener = yield* asks.make(choice('canon', 'Which canon?'));
+          const joined = yield* asks.make(choice('canon', 'Follow-up'));
+          // Another asker joins the page by naming an ask on it, not the opener alone.
+          const named = yield* asks.make({ ...choice('look', 'Which look?'), page: joined.id });
+          expect(named.page).toBe(opener.id);
+          // `new` opens a page though the asker's still asks.
+          const apart = yield* asks.make({ ...choice('canon', 'Apart'), page: 'new' });
+          expect(apart.page).toBeUndefined();
+          const unknown = yield* Effect.flip(
+            asks.make({ ...choice('canon', 'x'), page: 'a00000000ff' }),
+          );
+          expect(unknown._tag).toBe('AskUnknown');
+          yield* answerOne(asks, apart.id);
+          const shut = yield* Effect.flip(asks.make({ ...choice('canon', 'x'), page: apart.id }));
+          expect(shut._tag).toBe('AskRefused');
+          expect(shut.message).toContain('takes no new ask');
+          expect(yield* asks.list).toHaveLength(4);
+        }),
+      ),
+  );
+
   it.effect('an ask kept before pages reads as a page of one', () =>
     run(
       Effect.gen(function* () {

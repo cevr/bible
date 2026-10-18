@@ -18,10 +18,11 @@
 //       MCP `decide` and `note` record the same, through the same store)
 //   film production ask <production> "<question>" --why "<what it decides>"
 //       [--option "<answer>" --option "<answer>" ...] [--set <set> [--point <id>]]
-//       [--film <film>] [--deadline <ISO>] [--by <who>]
+//       [--film <film>] [--deadline <ISO>] [--by <who>] [--page <ask>|new]
 //       ask the owner on a page of the running lab (`FILM_LAB_URL`, through
 //       `lab-client.ts`): the lab's own ask, filed on the production's
-//       timeline as the lab's MCP `ask` files it; prints its links. Two
+//       timeline as the lab's MCP `ask` files it, on the page the asker's
+//       open ask is on (or `--page`'s, or a new one); prints its page and links. Two
 //       options or more are a choice with optional words beside it, the
 //       first given the recommendation (the page lists it first and marks
 //       it); none asks for words. The set is named as every production command and
@@ -463,6 +464,12 @@ const ask = Command.make(
       Flag.withDescription('an ISO time after which it takes no answer'),
     ),
     by: Flag.String('by').pipe(Flag.withDefault('agent'), Flag.withDescription('who asks')),
+    page: Flag.String('page').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "the page it goes on: an ask's id (that ask's page, still asking) or `new`; by default the page of the asker's open ask, else a new one",
+      ),
+    ),
   },
   Effect.fn('film.production.ask')(function* (input) {
     const id = yield* productionNamed(input.production);
@@ -478,6 +485,7 @@ const ask = Command.make(
       ...Option.match(input.point, { onNone: () => ({}), onSome: (point) => ({ point }) }),
       ...Option.match(input.film, { onNone: () => ({}), onSome: (film) => ({ film }) }),
       ...Option.match(input.deadline, { onNone: () => ({}), onSome: (deadline) => ({ deadline }) }),
+      ...Option.match(input.page, { onNone: () => ({}), onSome: (page) => ({ page }) }),
     });
     yield* Console.log(
       `asked ${asked.ask} on ${id}: ${Option.match(Option.fromUndefinedOr(asked.set), {
@@ -492,15 +500,16 @@ const ask = Command.make(
           )}`,
       })}`,
     );
-    yield* Console.log(`local ${asked.links.local}`);
+    yield* Console.log(asked.onPage);
+    yield* Console.log(`local ${asked.page.links.local}`);
     yield* Console.log(
-      Option.match(Option.fromUndefinedOr(asked.links.phone), {
+      Option.match(Option.fromUndefinedOr(asked.page.links.phone), {
         onNone: () => 'phone none: the lab has no FILM_LAB_PHONE_URL',
         onSome: (phone) => `phone ${phone}`,
       }),
     );
     yield* Console.log(
-      `then: bun cli.ts ask wait ${asked.ask} in the background (it exits once answered, with the answers); close_ask it once acted on`,
+      `then: bun cli.ts ask wait ${asked.ask} in the background (it exits once answered, with the answers; --page ${asked.page.id} for every ask on the page); close_ask it once acted on`,
     );
   }),
 ).pipe(
