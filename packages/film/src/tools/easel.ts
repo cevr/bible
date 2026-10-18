@@ -448,6 +448,9 @@ export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/t
               ),
             );
             yield* fs.writeFileString(table, matchTable(name, concept, rows, place));
+            const crops = { concept: `${stem}.concept.png`, scene: `${stem}.scene.png` };
+            yield* fs.writeFile(crops.concept, encodePng(conceptCrop));
+            yield* fs.writeFile(crops.scene, encodePng(sceneCrop));
             return Result.succeed<FigureMatched>({
               figure: name,
               key: mark.key,
@@ -455,6 +458,7 @@ export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/t
               rows,
               side,
               table,
+              crops,
             });
           }).pipe(Effect.mapError(failedLook));
         const results = yield* Effect.forEach(figures, matchOne);

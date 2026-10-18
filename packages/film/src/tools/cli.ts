@@ -95,12 +95,15 @@ import { filmServices, labPages, startLab } from './film-services.ts';
 import { fillBeside, ScriptVoices, stagingFill } from './script-voice.ts';
 import { SeriesDrafts, draftKey } from './series-drafts.ts';
 import { ask } from './ask-cli.ts';
-import { look, match } from './easel-cli.ts';
+import { critique, look, match } from './easel-cli.ts';
+import { Counsel } from './counsel.ts';
+import { Critic } from './critique.ts';
 import { journal } from './journal-cli.ts';
 import { production, publish } from './production-cli.ts';
 import { board } from './board-cli.ts';
 import { judge } from './judge-cli.ts';
 import type { JudgeRule } from '../core/judge.ts';
+import type { CritiqueRule } from '../core/critique.ts';
 import { Review, type ReviewRoot } from './review.ts';
 import { notes } from './notes-cli.ts';
 import { read } from './read-cli.ts';
@@ -922,7 +925,12 @@ const chaptersCommand = Command.make(
   ),
 );
 
-const lab = <E>(app: FilmApp<E>['lab'], films: string, footage: string) =>
+const lab = <E>(
+  app: FilmApp<E>['lab'],
+  films: string,
+  footage: string,
+  critiqueRules: ReadonlyArray<CritiqueRule>,
+) =>
   Command.make(
     'lab',
     {},
@@ -951,10 +959,14 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string, footage: string) =>
     // The pages, built from the app's entries and watched while the lab runs,
     // and the easel's warm pages over them, in this process's Chrome.
     Command.provide(
-      Layer.unwrap(
-        Effect.map(filmsOut, (out) =>
-          labPages({ ...app.pages, films, footage: { dir: footage, out } }),
+      Layer.mergeAll(
+        Layer.unwrap(
+          Effect.map(filmsOut, (out) =>
+            labPages({ ...app.pages, films, footage: { dir: footage, out } }),
+          ),
         ),
+        // The `critique` tool's critic, asking a fresh Claude per place.
+        Critic.layer(critiqueRules).pipe(Layer.provide(Counsel.layer)),
       ),
     ),
     Command.withDescription(
@@ -1012,6 +1024,12 @@ interface FilmApp<E> {
    * (`JudgeRuleMissing`).
    */
   readonly judge: { readonly rules: ReadonlyArray<JudgeRule> };
+  /**
+   * What `film critique` and the lab's `critique` tool quote: the sections of
+   * the app's rule files on how a figure is drawn, each by its heading line.
+   * A section its file lacks is the critique's skip, logged.
+   */
+  readonly critique: { readonly rules: ReadonlyArray<CritiqueRule> };
 }
 
 /**
@@ -1029,6 +1047,7 @@ export const runFilmCli = <E>({
   lab: labApp,
   self,
   judge: judging,
+  critique: critiquing,
 }: FilmApp<E>): void => {
   // The film's services, the lab's included (`film-services.ts`), over the app's folders,
   // reading a film fresh through this CLI, with the real ElevenLabs and the private store
@@ -1074,10 +1093,11 @@ export const runFilmCli = <E>({
       lookbook(lookLayer),
       chaptersCommand,
       doctor(previewServer),
-      lab(labApp, films, footageAt),
+      lab(labApp, films, footageAt, critiquing.rules),
       channel.pipe(Command.provide(FetchHttpClient.layer)),
       look(films),
       match(films),
+      critique(films, critiquing.rules),
       ask,
       journal,
       production,

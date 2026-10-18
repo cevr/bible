@@ -18,6 +18,7 @@
     "lookbook": "bun cli.ts lookbook",
     "look": "bun cli.ts look",
     "match": "bun cli.ts match",
+    "critique": "bun cli.ts critique",
     "journal": "bun cli.ts journal",
     "board": "bun cli.ts board",
     "judge": "bun cli.ts judge",

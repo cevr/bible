@@ -13,13 +13,15 @@
 // and a scene the film lacks refused.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer, Logger, Option, type Schema } from 'effect';
+import { Effect, type FileSystem, Layer, Logger, Option, type Path, type Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
 import { PagesBroken, type LookPost, type LookTaken } from '../core/easel.ts';
 import { UnknownScene } from '../core/errors.ts';
 import { MatchFigureUnknown, type MatchPost } from '../core/match.ts';
 import type { CheckLine } from '../core/schema.ts';
 import { RenderCatalogue } from './catalogue.ts';
+import { Counsel } from './counsel.ts';
+import { Critic } from './critique.ts';
 import { Easel } from './easel.ts';
 import type { FreshFilmService } from './fresh-film.ts';
 import { CuesRead } from './fresh-film.ts';
@@ -104,6 +106,8 @@ const easelDrawing = (
           const stem = `/out/${film}/match/${post.scene}/lead.t0003.00.bs.7`;
           files.set(`${stem}.png`, new Uint8Array([7, 7]));
           files.set(`${stem}.md`, text('### lead\n\n| Measure | Concept | Scene |\n'));
+          files.set(`${stem}.concept.png`, new Uint8Array([1]));
+          files.set(`${stem}.scene.png`, new Uint8Array([2]));
           return Effect.succeed({
             build: 's.7',
             scene: post.scene,
@@ -121,6 +125,7 @@ const easelDrawing = (
                 rows: [],
                 side: `${stem}.png`,
                 table: `${stem}.md`,
+                crops: { concept: `${stem}.concept.png`, scene: `${stem}.scene.png` },
               },
             ],
             unmatched: [{ figure: 'judge', reason: 'its rig declares no concept' }],
@@ -129,19 +134,27 @@ const easelDrawing = (
     }),
   );
 
-/** The lab in memory over film `f` (scenes roof and gate), its easel `easelDrawing`, its fresh runs `fresh`. */
+/** The lab in memory over film `f` (scenes roof and gate), its easel `easelDrawing`, its fresh runs `fresh`, its critic `critic` (one that skips, unless given). */
 const labOver = (
   files: Map<string, Uint8Array>,
   asked: Array<Asked>,
   fresh: Partial<FreshFilmService> = {},
   matched: Array<MatchAsked> = [],
+  critic: Option.Option<
+    Layer.Layer<Critic, never, FileSystem.FileSystem | Path.Path>
+  > = Option.none(),
 ) => {
   const pages = Layer.merge(
     Layer.effect(LabPage, Effect.service(LabPage)).pipe(Layer.provide(echoPages)),
     easelDrawing(files, asked, matched),
   );
   return RenderCatalogue.layer.pipe(
-    Layer.provideMerge(labInMemory(files, pages, { film: freshFilm(fresh) })),
+    Layer.provideMerge(
+      labInMemory(files, pages, {
+        film: freshFilm(fresh),
+        ...Option.match(critic, { onNone: () => ({}), onSome: (given) => ({ critic: given }) }),
+      }),
+    ),
   );
 };
 
@@ -207,10 +220,10 @@ describe("the easel's tools on the MCP", () => {
         ['at', 'figure', 'film', 'films', 'scene'].toSorted(),
       );
       expect(
-        ['look', 'match', 'check', 'cues', 'journal', 'journal_note'].map(
+        ['look', 'match', 'critique', 'check', 'cues', 'journal', 'journal_note'].map(
           (name) => named(name).annotations?.readOnlyHint === true,
         ),
-      ).toEqual([true, true, true, true, true, false]);
+      ).toEqual([true, true, true, true, true, true, false]);
     }).pipe(Effect.scoped, Effect.provide(labOver(files, [])));
   });
 
@@ -374,6 +387,55 @@ describe("the easel's tools on the MCP", () => {
       }).pipe(
         Effect.scoped,
         Effect.provide(Layer.merge(labOver(files, [], {}, matched), mcpLinesIn(lines))),
+      );
+    },
+  );
+
+  it.effect(
+    "a critique answers each figure's findings as text, from one counsel run over the match's crops",
+    () => {
+      const files = filmFiles();
+      files.set('/rules.md', text('# Rules\n\n## The look\n\nOne silhouette outline.\n'));
+      const asked: Array<string> = [];
+      const answer = [
+        'The lead turns away.',
+        '```json',
+        '{"findings": [{"figure": "lead", "aspect": "head angle", "what": "front, the concept three-quarter"}]}',
+        '```',
+      ].join('\n');
+      const critic = Critic.layer([{ file: '/rules.md', heading: '## The look' }]).pipe(
+        Layer.provide(Counsel.layerTest(() => answer, asked)),
+      );
+      const lines: Array<string> = [];
+      return Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const { call } = yield* mcpSession(lab);
+        const critique = (args: Args) =>
+          call('tools/call', { name: 'critique', arguments: { films: FILMS, film: 'f', ...args } });
+        const first = yield* critique({ scene: 'roof', at: 'mark:see' });
+        expect(first.isError).toBeUndefined();
+        expect(first.content[0].text).toBe(
+          'critique scene=roof at=mark:see t=3.00 build=s.7 cached=false',
+        );
+        expect(first.content[1].text).toBe(
+          [
+            '/out/f/match/roof/lead.t0003.00.bs.7.critique.md',
+            '### lead: critique (roof mark:see, t=3.00, build s.7)',
+            '',
+            '- **head angle**: front, the concept three-quarter',
+            '',
+          ].join('\n'),
+        );
+        expect(first.content[2].text).toBe('judge: unmatched (its rig declares no concept)');
+        const again = yield* critique({ scene: 'roof', at: 'mark:see' });
+        expect(again.content[0].text).toMatch(/cached=true$/);
+        expect(asked).toHaveLength(1);
+        expect(asked[0]).toContain('One silhouette outline.');
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          Layer.merge(labOver(files, [], {}, [], Option.some(critic)), mcpLinesIn(lines)),
+        ),
       );
     },
   );

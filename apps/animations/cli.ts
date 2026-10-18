@@ -93,6 +93,7 @@ export const appCli = (films: string, sounds: string, self: string): void =>
     // This CLI, for the lab's fresh `check --static` after each write.
     self: ['bun', self],
     judge: { rules: JUDGE_RULES },
+    critique: { rules: CRITIQUE_RULES },
   });
 
 /** The film skill's rule files: the craft rules and the director's vision. */
@@ -120,6 +121,21 @@ const JUDGE_RULES = [
   { file: CRAFT, heading: '## 1. Words off the picture', registers: ['IDEA'] },
   { file: CRAFT, heading: '## 8. Repetition as layout', registers: ['IDEA'] },
   { file: VISION, heading: '### Type', registers: ['IDEA'] },
+] as const;
+
+/** The character sheets: how every figure is drawn. */
+const CHARACTERS = `${SKILL}/reference/character-design.md`;
+
+/**
+ * What `film critique` quotes to its counsel beside a figure's two crops: how
+ * a figure is drawn in the house look (the K1 look, the grammar every figure
+ * shares, figures and faces, the look's rule).
+ */
+const CRITIQUE_RULES = [
+  { file: CHARACTERS, heading: '## The look these rules assume (K1)' },
+  { file: CHARACTERS, heading: '### 2.1 The grammar every figure shares' },
+  { file: VISION, heading: '### Figures, scale, hands and faces' },
+  { file: CRAFT, heading: '## 12. The look' },
 ] as const;
 
 if (import.meta.main) appCli(FILMS, SOUNDS, import.meta.path);

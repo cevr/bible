@@ -8,6 +8,9 @@
 // - `match`: a scene's figures at one place held against their concepts
 //   (`Easel.match`, which `film match` asks over HTTP): per figure its table
 //   as text and its side-by-side as an image.
+// - `critique`: the same match, then each figure's two crops shown at 1:1 to
+//   a fresh model (`Critic`, which `film critique` runs in its own process):
+//   per figure its findings as text, a skip said and never a refusal.
 // - `cues`: each scene's placement, marks and named cues (`film read cues`).
 // - `check`: scenes checked as drawn (`film check --draw`).
 // - `journal`, `journal_note`: the film's journal read, and an observation
@@ -47,6 +50,7 @@ import {
   journalPage,
 } from '../core/tool-pages.ts';
 import { UnknownScene } from '../core/errors.ts';
+import { Critic } from './critique.ts';
 import { Easel, elsewhereOf, plainAbsolute } from './easel.ts';
 import { CuesLate } from './errors.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
@@ -189,6 +193,9 @@ const MatchParams = Schema.Struct({
 });
 type MatchParams = typeof MatchParams.Type;
 
+/** The `critique` tool as the lab lists it: its answer is each figure's findings, as text. */
+const CRITIQUE_DESCRIPTION = `Match a scene's figures at one place (as \`match\` does), then show each figure's concept crop and scene crop at 1:1 to a fresh Opus (headless Claude at max effort, sandboxed, Read its one tool) beside the match's flagged rows and the app's figure rules (the K1 look, the grammar every figure shares, figures and faces, the look): it names each difference in head angle and turn, face shape and features, pose, proportion (never height in heads: that is the cast's band), palette and artifacts. One counsel run answers every figure at the place; the answer is kept by the hash of the crops, rows and rules, so the same inputs are never asked twice. Answers per figure its findings, written beside the match's table (<stem>.critique.md under out/<film>/match/<scene>/). It fails open: a counsel that fails or answers no json block is a skip, said and logged, never a refusal. Before a figure is called done, and before an owner look, critique it; a finding is fixed or said why not (\`film review\`).`;
+
 const JournalNoted = Schema.Struct({
   file: Schema.String,
   /** When it was noted: ISO 8601, to the second, UTC. */
@@ -292,6 +299,7 @@ const MATCH_DESCRIPTION = `Hold a scene's figures against their concepts at one 
 
 const easelWork = Effect.gen(function* () {
   const easel = yield* Easel;
+  const critic = yield* Critic;
   const fresh = yield* FreshFilm;
   const folder = yield* FilmFolder;
   const fs = yield* FileSystem.FileSystem;
@@ -438,7 +446,35 @@ const easelWork = Effect.gen(function* () {
     ] satisfies ReadonlyArray<McpSchema.ContentBlock>;
   });
 
-  return { check, cues, journal, journalNote, look, match };
+  const critique = Effect.fn('EaselMcp.critique')(function* (params: MatchParams) {
+    const film = yield* served(params.films, params.film);
+    const taken: MatchTaken = yield* easel.match(film, {
+      scene: params.scene,
+      at: params.at,
+      figure: params.figure,
+      from: params.films,
+    });
+    const critiqued = yield* critic.critique(taken);
+    const head = [
+      `critique scene=${taken.scene} at=${taken.at} t=${taken.time.toFixed(2)} build=${taken.build} cached=${critiqued.cached}`,
+      ...Option.toArray(
+        Option.map(Option.fromUndefinedOr(critiqued.skipped), (why) => `skipped: ${why}`),
+      ),
+    ].join('\n');
+    const read = yield* Effect.forEach(critiqued.figures, (one) =>
+      Effect.map(fs.readFileString(one.file), (words) => `${one.file}\n${words}`),
+    );
+    return [
+      { type: 'text', text: head },
+      ...read.map((words): McpSchema.ContentBlock => ({ type: 'text', text: words })),
+      ...taken.unmatched.map((one): McpSchema.ContentBlock => ({
+        type: 'text',
+        text: `${one.figure}: unmatched (${one.reason})`,
+      })),
+    ] satisfies ReadonlyArray<McpSchema.ContentBlock>;
+  });
+
+  return { check, critique, cues, journal, journalNote, look, match };
 });
 
 /** The toolkit's handlers: each tool's work, its failure said as the film's refusal. */
@@ -511,18 +547,19 @@ const imageTool = <P extends CallParams, I, E extends Named>(
     });
   });
 
-/** `look` and `match`, registered by hand: each answers images. */
+/** `look`, `match` and `critique`, registered by hand: the first two answer images, and the critique's blocks are its files. */
 const imageTools = Layer.effectDiscard(
   Effect.gen(function* () {
     const work = yield* easelWork;
     yield* imageTool('look', LOOK_DESCRIPTION, LookParams, work.look);
     yield* imageTool('match', MATCH_DESCRIPTION, MatchParams, work.match);
+    yield* imageTool('critique', CRITIQUE_DESCRIPTION, MatchParams, work.critique);
   }),
 ).pipe(Layer.provide(McpServer.McpServer.layer));
 
 /** What the lab's MCP says of the easel's tools, beside its own instructions. */
 export const EASEL_INSTRUCTIONS =
-  "Paint and review a film's scenes with the easel's tools: `look` (stills of a scene as its files stand, as images), `match` (a scene's figures held against their concepts: a table and a side-by-side each), `cues` (each scene's marks and named cues), `check` (scenes checked as drawn), `journal` and `journal_note` (the film's observations, read and noted). Each takes `films`, your checkout's films folder: a lab that serves another checkout's refuses (`LabElsewhere`). How a scene is painted with them, a passage at a time: .claude/skills/film/reference/scene-painter.md in the repository.";
+  "Paint and review a film's scenes with the easel's tools: `look` (stills of a scene as its files stand, as images), `match` (a scene's figures held against their concepts: a table and a side-by-side each), `critique` (the same figures shown at 1:1 to a fresh model: its findings on head angle, face, pose, palette and artifacts), `cues` (each scene's marks and named cues), `check` (scenes checked as drawn), `journal` and `journal_note` (the film's observations, read and noted). Each takes `films`, your checkout's films folder: a lab that serves another checkout's refuses (`LabElsewhere`). How a scene is painted with them, a passage at a time: .claude/skills/film/reference/scene-painter.md in the repository.";
 
 /** The easel's tools on the lab's MCP, over the lab's easel, its fresh runs and its films. */
 export const easelMcp = Layer.mergeAll(

@@ -2810,9 +2810,9 @@ page), takes the frame plain, uncaptioned and as a PNG, crops each figure
 with its own hands (`sceneBoxOf`) and its concept by its box, and measures
 both (`measureFigure`, `core/figure.ts`, pure: RGBA in, numbers out).
 
-| Route                            | What it does                                                                                                                                                |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/films/<film>/matches` | `MatchPost` `{scene, at, figure?, from?}` → `MatchTaken` `{build, scene, at, frame, time, figures: [{figure, key, concept, rows, side, table}], unmatched}` |
+| Route                            | What it does                                                                                                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /api/films/<film>/matches` | `MatchPost` `{scene, at, figure?, from?}` → `MatchTaken` `{build, scene, at, frame, time, figures: [{figure, key, concept, rows, side, table, crops}], unmatched}` |
 
 **The measure.** Every length is a share of the head's outer width, so a
 concept and a scene compare whatever their sizes: the head's height, the
@@ -2879,7 +2879,8 @@ never a gate: a concept is painted.
 (`<figure>.t<time>.b<build>.png`: the concept, the scene at one head
 height with each artifact ringed (a seam red, a sliver blue, weather
 green), and the scene again under the concept's outline in magenta, laid
-by the head's centre and width) and its table (`….md`), written once, so
+by the head's centre and width), its table (`….md`) and its two crops at
+1:1 (`….concept.png`, `….scene.png`, the critique's input), written once, so
 a path handed on keeps its pixels. A figure with no concept declared, one whose
 box lies past the frame's edge, a concept not on disk or unreadable, or a
 crop where no figure reads is
@@ -2889,6 +2890,36 @@ per figure its files and its flagged rows. The match is the scene
 painter's step after a passage that touches a figure
 (`.claude/skills/film/reference/scene-painter.md`). Each match logs
 `easel.match … figures= unmatched= ms=`.
+
+### The critique: `film critique`
+
+`film critique <film> --scene <id> --at <place> [--figure <name>] [--json]`
+(`tools/critique.ts`, its words pure in `core/critique.ts`; the lab MCP's
+`critique` tool beside `match`) takes the match, then shows each figure's
+two crops at 1:1 to a fresh Opus (`Counsel`, as `film judge` asks it:
+headless Claude at max effort, Read its one tool, sandboxed) beside the
+match's flagged rows and the app's figure rules (`FilmApp.critique.rules`:
+sections of its rule files, each by its heading line). It asks for each
+difference in head angle and turn, face shape and features, pose,
+proportion (never the height in heads, which is the cast's band), palette
+and artifacts, and reads the findings (`CritiqueFinding`
+`{figure, aspect, what, where?}`) from the answer's last `json` block.
+
+- **Batched.** One counsel run answers every figure at the place.
+- **Cached.** The answer is kept at `out/<film>/critique/<hash>.json`, the
+  hash over the packet's version, the rule sections' words, and each
+  figure's name, flagged rows and crops' bytes: the same inputs are never
+  asked twice.
+- **Fails open.** A counsel that fails, an answer with no `json` block or
+  one that does not decode, a rule section its file lacks, or crops that
+  cannot be read is a skip: logged (`critique.skipped scene= at= figures=
+  reason=`), said in each figure's file and in the answer's `skipped`,
+  never a failure. A critique logs `critique scene= at= figures= findings=
+  cached= ms=`.
+- **Files.** Each figure's findings are written beside its match table, as
+  `<stem>.critique.md`.
+
+The critique is the scene painter's step before a figure is called done.
 
 ### The judge: `film judge`
 

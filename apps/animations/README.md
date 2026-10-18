@@ -422,11 +422,13 @@ entries it left out.
 ### A painter agent: the easel over MCP
 
 The lab's MCP (`/mcp`; [plans/lab-mcp.md](plans/lab-mcp.md)) serves the
-easel to every agent, Claude Code, Codex or any MCP client: `look`, `cues`,
-`check`, `journal` and `journal_note`
+easel to every agent, Claude Code, Codex or any MCP client: `look`, `match`,
+`critique`, `cues`, `check`, `journal` and `journal_note`
 (`packages/film/src/tools/easel-mcp.ts`). They are the commands' own owners.
 `look` is the lab's easel, its stills answered as images the model reads,
-each after its line. `journal` and `journal_note` are the journal's `read`
+each after its line. `match` holds each figure to its concept, and
+`critique` shows its 1:1 crops to a fresh Opus beside the house rules
+(`packages/film/README.md`, "The critique"). `journal` and `journal_note` are the journal's `read`
 and `note`. `cues` and `check` run the film CLI fresh, as the lab's
 after-write check does: `film read cues`, `film read scenes` (a scene named
 to the journal) and `film check --draw --scene … --allow-stale --json` (the

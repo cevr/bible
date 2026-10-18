@@ -122,6 +122,7 @@ import { Review } from './review.ts';
 import { Choices } from './choices.ts';
 import { HttpPlatform, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { LabPage } from './lab-page.ts';
+import { Critic } from './critique.ts';
 
 /** A refusal of `method` on `path`, filed under the kind Effect gives Node's error (`why`, its code). */
 const refusal = (_tag: PlatformError.SystemErrorTag, method: string, path: string, why?: string) =>
@@ -1828,7 +1829,12 @@ interface LabInMemory {
     ContentStore | FileSystem.FileSystem | Path.Path
   >;
   readonly mtimes?: ReadonlyMap<string, number>;
+  /** The critic the lab's `critique` tool asks: none given, one that skips every critique (`noCritic`). */
+  readonly critic?: Layer.Layer<Critic, never, FileSystem.FileSystem | Path.Path>;
 }
+
+/** A critic that skips every critique, as a counsel that cannot run does: the lab's tests that critique nothing. */
+const noCritic = Critic.skipping('no critic in this test');
 
 /**
  * The lab's services over `files` in memory, its notes under `NOTES_LAB`:
@@ -1843,8 +1849,9 @@ export const labInMemory = (
     film = freshFilm({}),
     mtimes = new Map(),
     asking = Layer.mergeAll(noStudio, noRenders),
+    critic = noCritic,
   }: LabInMemory = {},
-) => withTimelines(labStores(files, pages, { film, mtimes, asking }));
+) => withTimelines(labStores(files, pages, { film, mtimes, asking, critic }));
 
 /** `stores` with the films' timelines read over them (`FilmTimelines`), as the lab's handler reads them. */
 export const withTimelines = <A, E, R>(stores: Layer.Layer<A, E, R>) =>
@@ -1858,9 +1865,10 @@ export const withTimelines = <A, E, R>(stores: Layer.Layer<A, E, R>) =>
 const labStores = (
   files: Map<string, Uint8Array>,
   pages: typeof echoPages,
-  { film, mtimes, asking }: Required<LabInMemory>,
+  { film, mtimes, asking, critic }: Required<LabInMemory>,
 ) =>
   Layer.mergeAll(
+    critic,
     NotesStore.layer,
     ProductionStore.layer,
     BoardStore.layer.pipe(Layer.provide(FilmFolder.layer('/films'))),

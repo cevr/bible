@@ -178,6 +178,8 @@ export const FigureMatched = Schema.Struct({
   side: Schema.String,
   /** The table as Markdown, absolute. */
   table: Schema.String,
+  /** The two crops at 1:1, absolute: the concept's by its box, the scene's by the figure's (`sceneBoxOf`). What a critique sees. */
+  crops: Schema.Struct({ concept: Schema.String, scene: Schema.String }),
 });
 export type FigureMatched = typeof FigureMatched.Type;
 

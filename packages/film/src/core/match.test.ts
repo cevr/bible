@@ -117,6 +117,7 @@ describe('compareFigures', () => {
       rows,
       side: '/s.png',
       table: '/t.md',
+      crops: { concept: '/s.concept.png', scene: '/s.scene.png' },
     });
     expect(lines[0]).toBe('lead: /s.png /t.md flagged=1');
     expect(lines[1]).toStartWith('  ink on the hair/skin edge, its length: concept 0.000');

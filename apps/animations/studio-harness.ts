@@ -19,6 +19,7 @@
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   ApiKeyMissing,
+  Critic,
   ElevenLabs,
   FilmRepo,
   Media,
@@ -152,6 +153,8 @@ const Harness = Layer.unwrap(
       films: root,
       footage: { dir: FOOTAGE, out: FOLDERS.out },
     }).pipe(
+      // The harness asks no counsel: its lab's `critique` tool skips, saying so.
+      Layer.provideMerge(Critic.skipping('the studio harness runs no critic')),
       Layer.provideMerge(
         filmServices({
           films: root,

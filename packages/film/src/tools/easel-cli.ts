@@ -21,9 +21,16 @@
 // files and the rows past tolerance (`matchLines`), or as one JSON line.
 //
 //   film match <film> --scene <id> --at <place> [--figure <name>] [--json]
+//
+// `film critique`: the same match, then each figure's two crops shown at 1:1
+// to a fresh model beside the match's flagged rows and the app's figure rules
+// (`Critic`, `tools/critique.ts`): its findings written beside each table
+// (`<stem>.critique.md`) and printed, a skip said and never a failure.
+//
+//   film critique <film> --scene <id> --at <place> [--figure <name>] [--json]
 
 import { Argument, Command, Flag } from 'effect/cli';
-import { Array as Arr, Console, Effect, Option, Path, Result, Schema } from 'effect';
+import { Array as Arr, Console, Effect, Layer, Option, Path, Result, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import { LabHttpApi, ToolFailure } from '../core/api.ts';
@@ -41,7 +48,10 @@ import {
   levelsOf,
   lookLine,
 } from '../core/easel.ts';
+import type { CritiqueRule } from '../core/critique.ts';
 import { MatchPost, MatchTaken, matchLines } from '../core/match.ts';
+import { Counsel } from './counsel.ts';
+import { Critic, CritiqueTaken } from './critique.ts';
 import { labUrl } from './lab-client.ts';
 
 const FORMATS = { png: 'image/png', jpeg: 'image/jpeg' } as const;
@@ -269,5 +279,69 @@ export const match = (films: string) =>
     Command.provide(FetchHttpClient.layer),
     Command.withDescription(
       "Hold a scene's figures against their concepts at one place: per figure a table of ratios and shading (flagged past 5%) and a side-by-side at one head height, from the lab's warm page; not a gate",
+    ),
+  );
+
+/** A critique's answer as one JSON line (`--json`). */
+const critiquedJson = Schema.encodeSync(Schema.fromJsonString(CritiqueTaken));
+
+/** `film critique`, over the app's figure rules `rules` (`FilmApp.critique`), its films folder `films` sent as `match` sends it. */
+export const critique = (films: string, rules: ReadonlyArray<CritiqueRule>) =>
+  Command.make(
+    'critique',
+    {
+      film: Argument.String('film').pipe(
+        Argument.withDescription('the film, a folder under src/films'),
+      ),
+      scene: Flag.String('scene').pipe(Flag.withDescription('the scene, by its id')),
+      at: Flag.String('at').pipe(
+        Flag.withDescription(
+          "where in the scene: seconds into it (2.5), mark:<name> (the mark's word), or cue:<name>[@<0..1>]",
+        ),
+      ),
+      figure: Flag.String('figure').pipe(
+        Flag.optional,
+        Flag.withDescription(
+          "one figure, by its rig's name (lead) or key; every figure with a concept when left out",
+        ),
+      ),
+      json: Flag.Boolean('json').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription("print the critique's answer as one JSON line"),
+      ),
+    },
+    Effect.fn('film.critique')(
+      function* (input) {
+        const url = yield* labUrl;
+        const path = yield* Path.Path;
+        const taken = yield* takeMatch(url, input.film, {
+          scene: input.scene,
+          at: input.at,
+          ...Option.match(input.figure, { onNone: () => ({}), onSome: (figure) => ({ figure }) }),
+          from: path.resolve(films),
+        });
+        const critiqued = yield* (yield* Critic).critique(taken);
+        if (input.json) return yield* Console.log(critiquedJson(critiqued));
+        yield* Console.log(
+          `critique scene=${taken.scene} at=${taken.at} build=${taken.build} cached=${critiqued.cached}${Option.match(Option.fromUndefinedOr(critiqued.skipped), { onNone: () => '', onSome: (why) => ` skipped="${why}"` })}`,
+        );
+        for (const one of critiqued.figures) {
+          yield* Console.log(`${one.figure}: ${one.file}`);
+          for (const f of one.findings) yield* Console.log(`  ${f.aspect}: ${f.what}`);
+        }
+        for (const one of taken.unmatched)
+          yield* Console.log(`${one.figure}: unmatched (${one.reason})`);
+      },
+      (effect, input) =>
+        Effect.tapError(effect, (error) =>
+          Effect.when(Console.log(failureJson(error)), Effect.succeed(input.json)),
+        ),
+    ),
+  ).pipe(
+    Command.provide(
+      Layer.mergeAll(FetchHttpClient.layer, Critic.layer(rules).pipe(Layer.provide(Counsel.layer))),
+    ),
+    Command.withDescription(
+      "Match a scene's figures at one place, then show each figure's concept and scene crops at 1:1 to a fresh Opus (headless Claude, sandboxed) beside the flagged rows and the app's figure rules: differences in head angle and turn, face, pose, proportion, palette and artifacts, written beside the match (<stem>.critique.md); batched, kept by the hash of its inputs, and a skip (logged) when the counsel fails",
     ),
   );

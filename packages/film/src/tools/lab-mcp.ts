@@ -56,6 +56,7 @@ import { BoardStore } from './board-store.ts';
 import type { RenderCatalogue } from './catalogue.ts';
 import type { ContentStore } from './content-store.ts';
 import type { Easel } from './easel.ts';
+import type { Critic } from './critique.ts';
 import { EASEL_INSTRUCTIONS, easelMcp } from './easel-mcp.ts';
 import { FilmFolder, filmNamed } from './film-repo.ts';
 import type { FreshFilm } from './fresh-film.ts';
@@ -299,8 +300,8 @@ const INSTRUCTIONS = [
 
 /**
  * What the lab's MCP runs over beside its router: the lab's stores, its
- * change feed, its easel, its fresh runs of the film CLI, the films'
- * timelines and the agents' "doing now" lines.
+ * change feed, its easel and its critic, its fresh runs of the film CLI,
+ * the films' timelines and the agents' "doing now" lines.
  */
 export type LabMcpNeeds =
   | AskStore
@@ -312,6 +313,7 @@ export type LabMcpNeeds =
   | Review
   | ContentStore
   | Easel
+  | Critic
   | FreshFilm
   | FilmTimelines
   | Working
