@@ -169,3 +169,39 @@ round 7 at 3.87 s against cold-34, in head heights: prosecutor hair-to-sole 3.29
 ## 2026-10-17T23:50:45Z · cold
 
 round 8 against cold-34: the concept's faces do carry a 6 px light rim (ours matches it); its eyes are 1.08x round 7's, not 1.2-1.3x; the prosecutor's and judge's heads traced from it overlay their silhouettes; the lead's head/hem is 1.010 against 1.020; the near shoe's rim reads 125 luma against 124, its mid 95 against 97, the far shoe 76 and 85 against 77 and 85; the judge's far robe edge lies within 2 px of the concept's from shoulder to bench; the shoe's one rim also lights the left half of its sole, which the concept leaves unlit.
+
+## 2026-10-18T05:34:06Z · word
+
+At t=0 the frame is title's settled court with its name strip. By 0.1 s the torn page has covered half the name, and by 0.3 s the court is gone. A peach light on the peach page made the corners orange (about 235,175,135 against the Board's 247,214,196). With a warm-white light and the peach in the page paper, the page reads as the Board's light peach, and the lead keeps his lilac.
+
+## 2026-10-18T05:49:47Z · word
+
+measure: the gold line lifted point by point from one end into the tablets' edges looped over itself mid-fold into cursive letter shapes (two l's, two D's); parted where the tablets meet and lifted by each piece's middle, it reads as a cord raised into two arches, then closes as their outlines
+
+## 2026-10-18T05:49:48Z · word
+
+all: the lit lines' glow as one stretched radial gradient read as a cream haze over the stone at the "character" swell; three widening round strokes laid 'lighter' hold it close round each bar as word.all holds it
+
+## 2026-10-18T05:49:50Z · word
+
+fig: leaves falling straight to their pins crossed his forehead and mouth on the way; paths bent down beside him and in from the side at chest height keep his face clear, and the hand meets each at its pin
+
+## 2026-10-18T05:49:52Z · word
+
+framings measured against the kept panels: the lead is 61% of the frame's height in word.all, 39% beside tablets 72% tall in word.short, 58% in word.fig; lawZoom 1.7, shortZoom 1.15, figZoom 1.65 put them there before each creep
+
+## 2026-10-18T05:55:03Z · word
+
+measure: two gold arches rising together, side by side with curled feet, read as a cursive m mid-fold; the near tablet's arch first and the far one after, the stone coming in under them before they close, reads as one cord tracing each tablet as it appears
+
+## 2026-10-18T05:55:06Z · word
+
+match at mark:right: the lead's values on the page (head lit 0.937, shade 0.910) are cold's in the court (0.933, 0.910), so the page's warm white light keeps him as the court does; the flags (body narrow 0.7 under the chin, feet 18% narrow, eye centre low, shade hue turn) show the same in cold and are the rig's
+
+## 2026-10-18T06:01:26Z · word
+
+going: with only the four pinned leaves curling, the last frame had four brown leaves at his feet beside the two strays still bright green on the floor, two kinds of leaf; curled and dried on the same cue, all six lie brown, one withering
+
+## 2026-10-18T06:02:18Z · word
+
+match at 31.6 (the level look): head outline within 0.008 of the concept's, hands and brows on it; the eye height 29% under the concept's is the look's heavy lids (eyes 0.7), and the body 13% narrow at 0.7 under the chin, feet 15% narrow and the shade's hue turn are the same flags as at mark:right and in cold, the rig's

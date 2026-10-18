@@ -17,9 +17,10 @@ import { cold } from './cold.ts';
 import { court } from './court.ts';
 import { rain } from './rain.ts';
 import { title } from './title.ts';
+import { word } from './word.ts';
 
 export const scenes: SceneSpec[] = scenesOf(script, {
-  drawings: { cold, court, rain, title },
+  drawings: { cold, court, rain, title, word },
   light: lightOf,
   card: { brief: fonts.display, label: fonts.body },
 });
