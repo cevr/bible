@@ -78,7 +78,10 @@ const sourceOf = (entry: LibraryEntry): string => {
     case 'recorded':
       return entry.licence.id;
     case 'code':
-      return `code:${describeGraph(entry.sound.play)}`;
+      return Option.match(Option.fromUndefinedOr(entry.licence), {
+        onNone: () => `code:${describeGraph(entry.sound.play)}`,
+        onSome: (licence) => `code fitted from ${licence.id}:${describeGraph(entry.sound.play)}`,
+      });
   }
 };
 

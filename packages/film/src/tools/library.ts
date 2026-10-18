@@ -62,6 +62,7 @@ import {
   influenceOf,
   gainFor,
   isDerived,
+  isKeptFit,
   levelOf,
   lockLoudness,
   lockTiming,
@@ -1209,6 +1210,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const fit = Effect.fn('SoundLibrary.fit')(function* (name: string, request: FitRequest) {
           const loaded = yield* load;
           const entry = yield* entryOf(loaded, name);
+          if (isKeptFit(entry)) return yield* FitRefused.make({ name, kind: 'kept' });
           if (entry.kind !== 'recorded') return yield* FitRefused.make({ name, kind: entry.kind });
           const lockEntry = Option.fromUndefinedOr(loaded.lock[name]);
           const kept = Option.flatMap(lockEntry, (e) => Arr.head(e.variants));

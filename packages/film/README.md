@@ -151,9 +151,12 @@ beside the file and hash it came from, the earshot commit, the size and what
 the code leaves out (`SoundFit`). The library reads each fit as its
 recording's trial (`codeTrialOf`), so `render --trial`, `compare`, `check`
 and `ab` hear it as they hear a generated sound's; a fit for a name that is
-not a recording is refused (`FitUnmatched`), and a fit file that does not
-decode, `FitUnreadable`. `fit` refuses a generated or code sound
-(`FitRefused`): a generated take stays private. earshot is downloaded code,
+not a recording, or code kept from one, is refused (`FitUnmatched`), and a
+fit file that does not decode, `FitUnreadable`. Code kept from a fit names
+the recording's licence (a CC BY one `changed: true`), so `soundCredits`
+owes the same line for the code as for the recording. `fit`
+refuses a generated or code sound, and code kept from a fit (`FitRefused`):
+a generated take stays private. earshot is downloaded code,
 so it runs as an external tool, trusted with nothing: pinned at one commit
 (`Earshot.pin`), its clone and virtualenv outside the repo (`EARSHOT_HOME`,
 else `~/.cache/bible-film/earshot`), its packages wheels only and none of

@@ -310,15 +310,18 @@ export class CodeTrialMissing extends Schema.TaggedError<CodeTrialMissing>()('Co
 /**
  * `sfx fit` asked of a sound that is not a recording: a generated take stays
  * private, and a fit of it would publish a derivative of it; a code sound
- * has no recording to fit.
+ * has no recording to fit; a code sound kept from a fit (`kept`) plays its
+ * fit file, so a new fit is made of the recording, declared as one again.
  */
 export class FitRefused extends Schema.TaggedError<FitRefused>()('FitRefused', {
   name: Schema.String,
-  kind: Schema.Literals(['generated', 'code']),
+  kind: Schema.Literals(['generated', 'code', 'kept']),
 }) {
   override get message() {
     if (this.kind === 'generated')
       return `sound "${this.name}" is generated: its takes stay private, and a fit would publish a derivative of one; only a recorded sound (CC0, or CC BY with its credit) is fitted`;
+    if (this.kind === 'kept')
+      return `sound "${this.name}" is code kept from its fit, which it plays: declare it recorded again (its licence stays) to fit it anew, and keep the new trial only when the owner does`;
     return `sound "${this.name}" is code: it has no recording to fit`;
   }
 }

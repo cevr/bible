@@ -82,6 +82,13 @@ const LIBRARY = `export const library = {
     licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/1/' },
     use: 'one-shot',
   },
+  'wood.kept': {
+    kind: 'code',
+    sound: { play: { _tag: 'Noise', color: 'white', secs: 0.1 } },
+    variants: 2,
+    licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/4/' },
+    use: 'one-shot',
+  },
   'wood.tap': {
     kind: 'recorded',
     licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/2/' },
@@ -847,7 +854,7 @@ describe.concurrent('SoundLibrary', () => {
   );
 
   it.effect.layer(fixture)(
-    'refuses to fit a generated sound by name, and a code sound, running nothing',
+    'refuses to fit a generated sound by name, a code sound and code kept from a fit, running nothing',
     () =>
       withLibrary(({ fitted }) =>
         Effect.gen(function* () {
@@ -862,6 +869,9 @@ describe.concurrent('SoundLibrary', () => {
           });
           expect(generated.message).toContain('"paper.slide" is generated');
           expect(yield* ask('tone.chime')).toMatchObject({ _tag: 'FitRefused', kind: 'code' });
+          const kept = yield* ask('wood.kept');
+          expect(kept).toMatchObject({ _tag: 'FitRefused', name: 'wood.kept', kind: 'kept' });
+          expect(kept.message).toContain('declare it recorded again');
           expect((yield* ask('wood.tap'))._tag).toBe('SoundUnmade');
           expect(fitted).toEqual([]);
         }),
@@ -1185,7 +1195,11 @@ describe.concurrent('SoundLibrary', () => {
       Effect.gen(function* () {
         const library = yield* SoundLibrary;
         const media = yield* Media;
-        expect([...(yield* library.load).code.keys()]).toEqual(['tone.chime', 'tone.tick']);
+        expect([...(yield* library.load).code.keys()]).toEqual([
+          'tone.chime',
+          'wood.kept',
+          'tone.tick',
+        ]);
         const renders = yield* library.render('tone.tick', {
           seed: Option.none(),
           trial: false,

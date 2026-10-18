@@ -280,4 +280,26 @@ describe('the walk of the code trials', () => {
       kind: 'undeclared',
     });
   });
+
+  test('a fit kept as code is that code’s, no trial; code that names no recording takes no fit', () => {
+    const fit = { sound: { play: noise(0.2) }, variants: 3 };
+    const library = defineLibrary({
+      'wood.knock': {
+        kind: 'code',
+        ...fit,
+        licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/1/' },
+        use: 'one-shot',
+      },
+      'tone.drop': code({ play: noise(0.1) }),
+    });
+    const walk = Result.getOrThrow(resolveCode(library, new Map([['wood.knock', fit]])));
+    expect([...walk.code.keys()].toSorted()).toEqual(['tone.drop', 'wood.knock']);
+    expect(walk.trials.size).toBe(0);
+    const refused = Result.match(resolveCode(library, new Map([['tone.drop', fit]])), {
+      onSuccess: () => undefined,
+      onFailure: (error) => error,
+    });
+    expect(refused).toMatchObject({ _tag: 'FitUnmatched', sound: 'tone.drop', kind: 'code' });
+    expect(refused?.message).toContain('names no recording');
+  });
 });

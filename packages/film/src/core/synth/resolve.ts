@@ -13,7 +13,9 @@
 // `code`, a recording's fit) is walked the same way, under its entry's name
 // and "(trial)", and resolved beside the code sounds. It is no code sound
 // itself, so nothing can sample it. A fit for a name the library does not
-// declare as a recording is refused (`FitUnmatched`).
+// declare as a recording, or as code kept from one (`keptFit`, its entry
+// naming the recording's licence), is refused (`FitUnmatched`); a kept fit is
+// that entry's code, so it is no trial.
 
 import { Option, Predicate, Result, Schema } from 'effect';
 import {
@@ -27,7 +29,7 @@ import {
   StreamDuplicate,
 } from '../errors.ts';
 import { hashText } from '../narration.ts';
-import { type CodeTrial, type Library, codeTrialOf, soundEntry } from '../sfx.ts';
+import { type CodeTrial, type Library, codeTrialOf, isKeptFit, soundEntry } from '../sfx.ts';
 import { type Bound, boundOf } from './graph/bound.ts';
 import {
   CodeSound,
@@ -207,8 +209,10 @@ export const resolveCode = (
     const entry = soundEntry(library, name);
     if (Option.isNone(entry))
       return Result.fail(FitUnmatched.make({ sound: name, kind: 'undeclared' }));
-    if (entry.value.kind !== 'recorded')
-      return Result.fail(FitUnmatched.make({ sound: name, kind: entry.value.kind }));
+    // A fit is a recording's trial, or the code kept from one.
+    const { kind } = entry.value;
+    if (kind === 'recorded' || isKeptFit(entry.value)) continue;
+    return Result.fail(FitUnmatched.make({ sound: name, kind }));
   }
   const walk: Walk = { library, done: new Map() };
   const code = new Map<string, ResolvedSound>();

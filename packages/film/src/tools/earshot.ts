@@ -54,7 +54,9 @@ const installOf = (home: string) =>
 /**
  * The driver, run as `python -I -B -c`: its clone, the recording and where
  * the model goes are its arguments. It fits with no description (`clap`
- * off) and saves the model; it prints its kind.
+ * off) and saves the model; it prints its kind. Each candidate is scored on
+ * seed 0, named here: earshot draws nothing else, so a refit of one
+ * recording writes the same model, `fit_engine`'s timings aside.
  */
 const DRIVER = `
 import json, math, sys
@@ -70,7 +72,7 @@ if rate != 48000:
     x = resample_poly(x, 48000 // g, rate // g, axis=0)
 if x.shape[1] == 1:
     x = np.repeat(x, 2, axis=1)
-model = auto.fit(x[:, :2], kind='auto', clap=False, name='fit', verbose=False)
+model = auto.fit(x[:, :2], kind='auto', clap=False, seeds=(0,), name='fit', verbose=False)
 auto.save(model, out)
 print(json.dumps({'kind': auto.kind_of(model)}))
 `;

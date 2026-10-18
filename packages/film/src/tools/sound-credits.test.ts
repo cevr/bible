@@ -98,6 +98,37 @@ describe('film check', () => {
   });
 });
 
+describe('a CC BY recording kept as code from its fit', () => {
+  const kept: Library = defineLibrary({
+    ...library,
+    'amb.hall': {
+      kind: 'code',
+      sound: { play: { _tag: 'Noise', color: 'pink', secs: 1 } },
+      variants: 3,
+      licence: {
+        id: 'CC-BY-4.0',
+        title: 'M Murmer long loop.wav',
+        author: 'Processaurus',
+        authorUrl: 'https://freesound.org/people/Processaurus',
+        source: 'https://freesound.org/people/Processaurus/sounds/440098',
+        changed: true,
+      },
+      use: 'bed',
+    },
+  });
+
+  test('rolls the same line and gives the same description as the recording did', () => {
+    const sound = placing('amb.house', 'amb.hall');
+    expect(creditRoll('T', [], [], soundCredits(kept, sound))).toEqual(
+      creditRoll('T', [], [], soundCredits(library, sound)),
+    );
+    expect(videoDescription(['0:00 Cold open'], soundCredits(kept, sound))).toEqual(
+      videoDescription(['0:00 Cold open'], soundCredits(library, sound)),
+    );
+    expect(soundCredits(kept, sound)).toHaveLength(1);
+  });
+});
+
 describe('videoDescription', () => {
   test('gives the chapters, then each credit owed with its pages linked', () => {
     expect(

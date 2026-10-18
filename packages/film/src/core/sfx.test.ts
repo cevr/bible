@@ -468,4 +468,47 @@ describe('soundCredits', () => {
     expect(soundCredits(credited, { effects: { steps: effect('steps.stone') } })).toEqual([]);
     expect(soundCredits(credited, { beds: [bed('amb.court')], effects: {} })).toEqual([]);
   });
+
+  test('code kept from a CC BY recording’s fit owes the line the recording did; code from none owes none', () => {
+    const fitted = defineLibrary({
+      ...credited,
+      'amb.hall': {
+        kind: 'code',
+        sound: { play: room({ secs: 8 }) },
+        variants: 3,
+        licence: by('M Murmer', 'https://f/2'),
+        use: 'bed',
+      },
+      'room.paper': { kind: 'code', sound: { play: room({ secs: 8 }) }, variants: 1, use: 'bed' },
+    });
+    const placed = { beds: [bed('amb.hall'), bed('room.paper')], effects: {} };
+    expect(soundCredits(fitted, placed)).toEqual(
+      soundCredits(credited, { beds: [bed('amb.hall')], effects: {} }),
+    );
+    expect(soundCredits(fitted, placed).map(creditLine)).toEqual([
+      '"M Murmer" by klankbeeld, CC BY 4.0, changed',
+    ]);
+  });
+});
+
+describe('code kept from a recording', () => {
+  test('says a CC BY recording was changed: a fit is a change of it', () => {
+    const entry = (changed: boolean) => ({
+      kind: 'code',
+      sound: { play: room({ secs: 8 }) },
+      variants: 3,
+      licence: {
+        id: 'CC-BY-4.0',
+        title: 'M Murmer',
+        author: 'Processaurus',
+        authorUrl: 'https://freesound.org/people/Processaurus',
+        source: 'https://f/2',
+        changed,
+      },
+      use: 'bed',
+    });
+    const decoded = (changed: boolean) => Schema.decodeUnknownResult(LibraryEntry)(entry(changed));
+    expect(Result.isSuccess(decoded(true))).toBe(true);
+    expect(Result.isFailure(decoded(false))).toBe(true);
+  });
 });

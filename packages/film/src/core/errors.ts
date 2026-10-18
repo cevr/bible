@@ -449,7 +449,8 @@ export class StreamDuplicate extends Schema.TaggedError<StreamDuplicate>()('Stre
 
 /**
  * A fit (`sounds/fits/<name>.json`, `sfx fit`) for a name the library does
- * not declare as a recording: a fit is a recording's code trial, and a
+ * not declare as a recording, or as code kept from one: a fit is a
+ * recording's code trial, or the code the owner kept from it, and a
  * generated take stays private, so nothing may be fitted from one.
  */
 export class FitUnmatched extends Schema.TaggedError<FitUnmatched>()('FitUnmatched', {
@@ -460,7 +461,9 @@ export class FitUnmatched extends Schema.TaggedError<FitUnmatched>()('FitUnmatch
   override get message() {
     if (this.kind === 'undeclared')
       return `fits/${this.sound}.json fits a sound the library does not declare: remove the fit, or declare "${this.sound}" as recorded`;
-    return `fits/${this.sound}.json fits "${this.sound}", a ${this.kind} sound; only a recorded sound has a fit`;
+    if (this.kind === 'code')
+      return `fits/${this.sound}.json fits "${this.sound}", a code sound that names no recording's licence; only a recorded sound, or code kept from its fit (keptFit, with the recording's licence), has a fit`;
+    return `fits/${this.sound}.json fits "${this.sound}", a ${this.kind} sound; only a recorded sound, or code kept from its fit, has a fit`;
   }
 }
 

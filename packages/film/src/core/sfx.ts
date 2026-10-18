@@ -97,6 +97,16 @@ const CreditLicence = Schema.Struct({
 const Licence = Schema.Union([FreeLicence, CreditLicence]);
 type Licence = typeof Licence.Type;
 
+/**
+ * The licence of the recording a code sound was fitted from (a kept fit), as
+ * the recording's entry named it. A fit is a change of the recording, so a
+ * CC BY one says `changed`, and its credit line stays the recording's.
+ */
+const FittedLicence = Schema.Union([
+  FreeLicence,
+  Schema.Struct({ ...CreditLicence.fields, changed: Schema.Literal(true) }),
+]);
+
 /** What every kind of sound declares besides how it is made. */
 const placing = {
   use: SoundUse,
@@ -175,6 +185,12 @@ const Code = Schema.Struct({
   kind: Schema.Literal('code'),
   sound: CodeSound,
   variants: Seeds,
+  /**
+   * A code sound kept from a recording's fit (`keptFit`): that recording's
+   * licence, so a CC BY one owes its credit wherever the code is placed, as
+   * the recording did (`soundCredits`).
+   */
+  licence: Schema.optionalKey(FittedLicence),
   ...placing,
 });
 type Code = typeof Code.Type;
@@ -202,6 +218,10 @@ type Recorded = typeof Recorded.Type;
 
 export const LibraryEntry = Schema.Union([Generated, Recorded, Code]);
 export type LibraryEntry = typeof LibraryEntry.Type;
+
+/** Whether `entry` is code kept from a recording's fit: it names the recording's licence, and its fit file is its sound. */
+export const isKeptFit = (entry: LibraryEntry): boolean =>
+  entry.kind === 'code' && Option.isSome(Option.fromUndefinedOr(entry.licence));
 
 /** Whether `entry` is rendered from its data (a code sound), so nothing of it is made, kept or paid for. */
 export const isDerived = (entry: LibraryEntry): entry is Code => entry.kind === 'code';
@@ -798,9 +818,10 @@ const creditOf = (licence: Licence): Option.Option<SoundCredit> => {
 
 /**
  * The credits a film's sound owes: one for each CC BY recording it places
- * (`placedSounds`: its beds and effects), in the order it names them, each
- * recording once. A CC0 recording, a generated or code sound, and a sound
- * the film does not place owe none. The film's credit roll and its video's
+ * (`placedSounds`: its beds and effects), or code kept from a fit of one,
+ * in the order it names them, each recording once. A CC0 recording, a
+ * generated sound, a code sound made from no recording, and a sound the film
+ * does not place owe none. The film's credit roll and its video's
  * description both read this list, and `film check` holds the roll to it.
  */
 export const soundCredits = (library: Library, sound: Sound): ReadonlyArray<SoundCredit> =>
@@ -808,8 +829,8 @@ export const soundCredits = (library: Library, sound: Sound): ReadonlyArray<Soun
     placedSounds(sound).flatMap((name) =>
       Option.toArray(
         Option.flatMap(soundEntry(library, name), (entry) => {
-          if (entry.kind !== 'recorded') return Option.none();
-          return creditOf(entry.licence);
+          if (entry.kind === 'generated') return Option.none();
+          return Option.flatMap(Option.fromUndefinedOr(entry.licence), creditOf);
         }),
       ),
     ),
