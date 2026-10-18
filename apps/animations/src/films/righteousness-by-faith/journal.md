@@ -221,3 +221,7 @@ onYou (C3): Christ's head turned to us (ChristFront, traced from court.you try 2
 ## 2026-10-18T06:52:19Z · court
 
 onYou at 20.01: with the lead a pace back at rise 36 his head sat at 0.62 of the frame, under Christ's beard (court.you.2 puts it at 0.45, level with the beard's foot); at rise 100 it sits at 0.44, his feet clear above the floor behind the dock rail in toThree.
+
+## 2026-10-18T12:59:44Z · court
+
+Christ's near hair tip at 16.51: with its outer points 1.6 and 1 unit further out, the light sliver between the ink and the tip (up to rgb 231,198,167 at x 1126) is gone; the brightest pixel there is 134,105,91, the ink's own antialias into the hair.
