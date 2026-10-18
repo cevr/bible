@@ -63,6 +63,8 @@ bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene 
 bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer, or its failure as the route answers it (`ToolFailure`), as one line
 bun run look <film> ... --level <look>=<level>  # a wedge: that look (palette.ts's looks) drawn at that level instead of the one it plays, the pick left unwritten
 bun run match <film> --scene <id> --at <place> [--figure <name>] [--json]  # each figure drawn there against its rig's concept: out/<film>/match/<scene>/<figure>.….png (concept, scene, scene under the concept's outline) and .md (the table, flagged past tolerance); guidance, never a gate
+bun run concept brief --look <file> --references <file> (--turnaround <who> | --layout <file>)  # a cast sheet's prompt for the image route: the house block made a sheet's, the references, the look, the layout and the sheet rules
+bun run concept measure <try.png> --kind turnaround|poses|heads --count <n> --anchor <view> [--slot …] [--headgear] [--concept <crop.png>:<view>]  # a cast sheet try measured, facing first: a line per flag, <stem>.measure.md/.json and .overlay.png beside it; guidance, never a gate
 bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by a fresh Opus at max effort (headless Claude) in a macOS sandbox that reads, of the user's files, only the packet, Claude's install and the keychains (its sign-in), asking through the host's Claude proxy (`ANTHROPIC_BASE_URL`) when it has one; prints the verdict's path (out/<film>/judge/<scene>-<stamp>-<draw>/verdict.md) and the ranking; writes no choice
 bun run journal <film> note "text" [--scene <id>]   # append an observation to src/films/<film>/journal.md (committed), dated and placed; an empty note is refused
 bun run journal <film> read [--scene <id>] [--last N]  # the newest N entries (20), oldest first, one line each, under 8,000 characters
@@ -481,8 +483,9 @@ command.
 
 ## How a film is built
 
-A film goes through a studio's stages: the script, concept art, the
-storyboard (the Board), the animatic, the scenes in Rive, and the render.
+A film goes through a studio's stages: the script, concept art (the tent
+poles and the cast's sheets), the storyboard (the Board), the cast
+rendered to its sheets, the animatic, the scenes in Rive, and the render.
 Each stage starts from what the owner kept at the one before. What each
 stage makes, where it is made today and how the owner decides it are in
 the film skill's flow ([`SKILL.md`](../../.claude/skills/film/SKILL.md),
