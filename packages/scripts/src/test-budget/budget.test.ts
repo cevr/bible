@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { judge } from './budget.js';
 
-const quiet = 3.2;
+const quiet = { one: 3.2, five: 2.8 };
+const busy = { one: 14.6, five: 9.1 };
 const cores = 12;
 
 describe("the tests' time budget, each workspace alone", () => {
@@ -18,14 +19,14 @@ describe("the tests' time budget, each workspace alone", () => {
     expect(judged.failure).toEqual([]);
     expect(judged.report).toEqual([
       '',
-      'test:budget: each workspace alone, under 10.0 s (load average 3.2 before them, on 12 cores)',
+      'test:budget: each workspace alone, under 10.0 s (load average 3.2 over 1 min and 2.8 over 5 min before them, on 12 cores)',
       '    6.1 s  @bible/film',
       '    4.2 s  @bible/core',
     ]);
   });
 
   test('one workspace over budget on a machine at or below its cores fails, naming it alone', () => {
-    for (const load of [quiet, cores]) {
+    for (const load of [quiet, { one: cores, five: cores }]) {
       const judged = judge({
         workspaces: [
           { name: '@bible/core', ms: 4_200, exitCode: 0 },
@@ -58,17 +59,32 @@ describe("the tests' time budget, each workspace alone", () => {
     for (const ms of [4_200, 14_000]) {
       const judged = judge({
         workspaces: [{ name: '@bible/film', ms, exitCode: 0 }],
-        load: 14.6,
+        load: busy,
         cores,
       });
       expect(judged.code).toBe(0);
       expect(judged.failure).toEqual([]);
-      expect(judged.report.at(-1)).toBe('test:budget: not measured (load 14.6 on 12 cores)');
+      expect(judged.report.at(-1)).toBe(
+        'test:budget: not measured (load average 14.6 over 1 min and 9.1 over 5 min, on 12 cores)',
+      );
     }
   });
 
+  test('a lull in a busy period measures nothing: the 5-minute average above the cores holds the run', () => {
+    const judged = judge({
+      workspaces: [{ name: '@bible/film', ms: 11_300, exitCode: 0 }],
+      load: { one: 4.9, five: 19.1 },
+      cores,
+    });
+    expect(judged.code).toBe(0);
+    expect(judged.failure).toEqual([]);
+    expect(judged.report.at(-1)).toBe(
+      'test:budget: not measured (load average 4.9 over 1 min and 19.1 over 5 min, on 12 cores)',
+    );
+  });
+
   test('a workspace whose tests fail fails the run at any load, named with its exit code', () => {
-    for (const load of [quiet, 14.6]) {
+    for (const load of [quiet, busy]) {
       const judged = judge({
         workspaces: [
           { name: '@bible/core', ms: 4_200, exitCode: 0 },
