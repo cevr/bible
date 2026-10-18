@@ -56,9 +56,8 @@ import {
   goldLine,
   leaf,
   shafts,
+  standingTablets,
   tabletEdgeAt,
-  tabletX,
-  tablets,
   tabletsAt,
 } from '../page-set.ts';
 import { LIFT } from '../palette.ts';
@@ -290,7 +289,7 @@ const FOLD_POINTS = 64;
 const TABS: TabletsPose = tabletsAt(TABLETS_AT[0], TABLETS_AT[1]);
 
 /** `p`, from his feet, turned with him as he leans `lean`: where it is on the page. */
-const onHim = (p: Pt, lean: number): Pt => {
+export const onHim = (p: Pt, lean: number): Pt => {
   const c = Math.cos(lean);
   const s = Math.sin(lean);
   return [LEAD_AT[0] + p[0] * c - p[1] * s, LEAD_AT[1] + p[0] * s + p[1] * c];
@@ -392,6 +391,33 @@ const STRAYS: ReadonlyArray<Stray> = [
     to: 1,
   },
 ];
+
+/** Where each leaf lies once it has dropped, on the page: the four he pinned, at his feet, then the two that drifted past him. */
+const FALLEN: ReadonlyArray<Place> = [
+  ...PINNED.map((p): Place => ({
+    at: [LEAD_AT[0] + p.fallen.at[0], LEAD_AT[1] + p.fallen.at[1]],
+    rot: p.fallen.rot,
+  })),
+  ...STRAYS.map((s) => s.lies),
+];
+
+/**
+ * The page as this scene's last frame leaves it, where `seed` opens: the
+ * sheet and its light; where he stands, his hands' rests, their bob and
+ * their size; his last look (`LEVEL`, his eyes on us); where the tablets
+ * stand; and where each leaf lies, dry and flat.
+ */
+export const LAST_FRAME = {
+  sheet: SHEET,
+  light: PEACH,
+  lead: LEAD_AT,
+  hands: HAND_REST,
+  bob: BOB,
+  handScale: HAND_SCALE,
+  face: LEVEL,
+  tablets: TABLETS_AT,
+  leaves: FALLEN,
+} as const;
 
 /** How far out from a leaf's hub his hand presses it on: the middle of its blade. */
 const PRESS_ON = 10;
@@ -682,21 +708,7 @@ export const word = drawing({
       [1, 0],
     ]);
     const law = () => {
-      const s = TABS.scale;
-      cast(
-        ctx,
-        TABS.x,
-        TABS.x + (2 * TABLET.w + TABLET.gap) * s,
-        TABS.y,
-        TABLET.h * s,
-        0.6 * TABS.stone,
-      );
-      ctx.save();
-      ctx.globalAlpha *= TABS.stone;
-      for (let i = 0; i < 2; i++)
-        contact(ctx, tabletX(TABS, i) + (TABLET.w * s) / 2, TABS.y + 2, 0.62 * TABLET.w * s);
-      ctx.restore();
-      tablets(ctx, TABS);
+      standingTablets(ctx, TABS);
       // The gold line: drawn along the floor; risen, its near end sliding out from under him to
       // the tablets' near side; then parted where the tablets will meet, each piece lifted by
       // its middle into a tablet's top, its ends folding down the sides and in along the foot

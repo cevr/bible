@@ -29,7 +29,7 @@ import {
   tableShadow,
 } from './court-set.ts';
 import { C } from './kit.ts';
-import { type SeedPose, noSeed, seed as seedProp } from './props.ts';
+import { SEAL_GOLD, type SeedPose, noSeed, seed as seedProp } from './props.ts';
 import { CHRIST_KNOBS } from './rigs/christ-rig.ts';
 import { JUDGE_KNOBS } from './rigs/judge-rig.ts';
 import { LEAD, LEAD_KNOBS } from './rigs/lead-rig.ts';
@@ -229,15 +229,6 @@ export const stainAt = (lean: number): Pt => {
   return [fx + x * c - y * s, fy + x * s + y * c];
 };
 
-/** The seal's gold, its shade, its rim, and its ribbon. */
-const GOLD = {
-  wax: C.gold,
-  shade: '#cf8a2e',
-  rim: '#b9781f',
-  ribbon: '#d49a32',
-  letter: '#8a5a12',
-} as const;
-
 /** The seal's measures, units: its wax, the ring pressed round the R, the R, and its ribbon's scale. */
 const SEAL = { wax: 23, ring: 16, letter: 22, ribbon: 0.85 } as const;
 
@@ -268,7 +259,7 @@ export const seal = (ctx: CanvasRenderingContext2D, s: SealPose) => {
     ctx.lineTo(side * 4, 50);
     ctx.lineTo(side * -6, 14);
     ctx.closePath();
-    ctx.fillStyle = GOLD.ribbon;
+    ctx.fillStyle = SEAL_GOLD.ribbon;
     ctx.fill();
     ctx.lineWidth = 2.5 / SEAL.ribbon;
     unprobed(ctx, () => ctx.stroke());
@@ -289,10 +280,10 @@ export const seal = (ctx: CanvasRenderingContext2D, s: SealPose) => {
     ctx.closePath();
   };
   const g = ctx.createLinearGradient(-17, -20, 17, 20);
-  g.addColorStop(0, GOLD.wax);
-  g.addColorStop(0.62, GOLD.wax);
-  g.addColorStop(0.63, GOLD.shade);
-  g.addColorStop(1, GOLD.shade);
+  g.addColorStop(0, SEAL_GOLD.wax);
+  g.addColorStop(0.62, SEAL_GOLD.wax);
+  g.addColorStop(0.63, SEAL_GOLD.shade);
+  g.addColorStop(1, SEAL_GOLD.shade);
   ctx.fillStyle = g;
   wax();
   ctx.fill();
@@ -318,9 +309,9 @@ export const seal = (ctx: CanvasRenderingContext2D, s: SealPose) => {
   ctx.beginPath();
   ctx.arc(0, 0, SEAL.ring, 0, 2 * Math.PI);
   ctx.lineWidth = 1.8;
-  ctx.strokeStyle = GOLD.rim;
+  ctx.strokeStyle = SEAL_GOLD.rim;
   unprobed(ctx, () => ctx.stroke());
-  ctx.fillStyle = GOLD.letter;
+  ctx.fillStyle = SEAL_GOLD.letter;
   ctx.font = `700 ${SEAL.letter}px Fraunces`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

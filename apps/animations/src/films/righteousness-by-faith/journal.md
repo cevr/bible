@@ -225,3 +225,51 @@ onYou at 20.01: with the lead a pace back at rise 36 his head sat at 0.62 of the
 ## 2026-10-18T12:59:44Z · court
 
 Christ's near hair tip at 16.51: with its outer points 1.6 and 1 unit further out, the light sliver between the ink and the tip (up to rgb 231,198,167 at x 1126) is gone; the brightest pixel there is 134,105,91, the ink's own antialias into the hair.
+
+## 2026-10-18T14:01:07Z · seed
+
+t=0.02 at 960 px is word's 31.60 to the eye: the page, the peach light, his LEVEL look, the six dry leaves at his feet, the lit tablets, the seal on the stain; the breath and the hand bob restart on seed's clock, a step of about 1 Board unit in the hands (about 3 px at word's 2.55 zoom) at the seam, by the numbers
+
+## 2026-10-18T14:01:10Z · seed
+
+half faded (push@0.6) the tablets show the page's shafts through their stone, the same see-through the stone has in word as it comes in (word stone@0.5); the leaves slide out along the floor, left ones left and right ones right, gone by the end of the push
+
+## 2026-10-18T14:01:13Z · seed
+
+at 5.4 the label framing holds his head at 0.52 of the frame's height with its top about 10 px under the frame's edge at labelZoom 3.4 (the panel's head is larger and cut by the top), the seal floating clear of his near side at about the panel's share of his head (0.32 against 0.35); his gaze on the seal reads as a small slide of the eyes down and right, since the seal floats below his face
+
+## 2026-10-18T14:01:16Z · seed
+
+the card reads “The / seed (gold, 2.6x, underlined) / is the word of God.” with its quotation marks; after the cut back the seal narrows to edge on and comes round as a tan seed with a seam, about the seal's size, its ribbon scrap a small fork at its foot: plain, it looks like a seed and nothing more
+
+## 2026-10-18T14:01:19Z · seed
+
+first cut of the opened seed at 1:1 (17.6) read as an egg with a thin face ring, a small notch, a tusk-shaped root and a long thin ribbon strip against folded.3's cleft tip, broad cut face, fat S root and short broad forked scrap; after the reshape the cleft, the face bands running up into it, the darker tan hollow and the round-tipped S root match the panel's parts
+
+## 2026-10-18T14:01:21Z · seed
+
+with the heart's light laid at full the leaves bleached to pale yellow and the root vanished into the hollow; at half, over a smaller reach, the leaves keep their green and the root its white with the warm light behind them, as life.3 has it; the halo round the seed warms the right edge of his head
+
+## 2026-10-18T14:13:31Z · seed
+
+at 1:1 the heart's light laid over the blade turned the leaves' ink brown; drawn behind the blade, in GOLD_GLOW with the lit hollow at #f4cf6a, the hollow glows yellow behind green leaves and a cream root with black ink, as life.3's does; the lit husk is the seal's gold, brighter and less brown than life.3's caramel husk
+
+## 2026-10-18T14:13:33Z · seed
+
+the worried brows at a tilt of 0.36 read near level at 1:1; at 0.5 (worry@1) both inner ends rise as label.4's do, the eyes on us, the mouth flat; the seal at 1:1 shows no light line under its ink
+
+## 2026-10-18T14:13:36Z · seed
+
+at lifeZoom 3.2 the two-shot was tighter than life.3 fitted by its height (his head 0.5 of the frame's height against 0.4, his hands cut by the frame's foot) while label.4 fitted the same way matched label; at 2.5 on (590, 561) his head is about 0.39 of the height with its top at 0.21, his hands whole, the seed's middle at about (617, 255) of 960 against the panel's (611, 248), its shadow on the page under it
+
+## 2026-10-18T14:13:37Z · seed
+
+the ribbon's scrap 7 units wide read as a thin tab beside folded.3's broad tail (about 15% of the seed's width); at 13.5 units it reads as the panel's broad forked tail, and at the shut seed (flip@1, meh@1) as a small fork at its foot
+
+## 2026-10-18T14:13:40Z · seed
+
+match of the lead at tip@1 (life at zoom 2.5): head, outline, jaw and hand (+3%) within 5%; flags are the expression (eye height +13%, brow +12%, mouth -8%), his eyes turned to the seed (turn +0.12, as life.3 draws), the head's shade hue turn (-24 against the concept's -80 under the peach light), the head outline at the chin where the body joins, and body rows cut by the frame's foot; seam, sliver and weather 0; critique of the lead timed out three times (worry@1, tip@1 twice): The operation timed out.
+
+## 2026-10-18T14:13:48Z · seed
+
+the seed's ink at the seal's 3.45 units read thin beside his outline (about 5.6) once the seed stood 200 tall; grown with the rise to 5 it reads as his line at folded and life; with the seed alone on (870, 520) at foldedZoom 3.8 only the seed and the page show at folded, his near hand outside the frame

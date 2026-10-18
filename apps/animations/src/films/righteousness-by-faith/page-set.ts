@@ -13,17 +13,17 @@
 import { type Hex, clearOf, mix, ramp, rounded, unprobed } from '@bible/film/canvas';
 import { clamp } from '@bible/film/core';
 import { type Pt, keyLight, shading } from '@bible/film/style';
-import { cut } from './court-set.ts';
+import { contact, cut } from './court-set.ts';
 import { C } from './kit.ts';
 
 /** A paper as the page cuts it: its colour and its crease's far side. */
-interface Paper {
+export interface Paper {
   readonly color: Hex;
   readonly shade: Hex;
 }
 
 /** `base`'s ramp under the key light, its crease falling `share` of the way to the ramp's shade. */
-const paper = (base: Hex, share: number): Paper => {
+export const paper = (base: Hex, share: number): Paper => {
   const r = ramp(base, keyLight, shading);
   return { color: r.base, shade: mix(r.base, r.shade, share) };
 };
@@ -153,7 +153,7 @@ export const cast = (
 // ─── the gold line ───────────────────────────────────────────────────────────
 
 /** The gold's glow: what it lays round a lit thing. */
-const GOLD_GLOW: Hex = '#ffd35c';
+export const GOLD_GLOW: Hex = '#ffd35c';
 
 /** The gold's glow, laid round a lit stroke in widening, fading strokes so it has no edge: each one's width against the stroke's, and its light. */
 const GLOW_LAYERS: ReadonlyArray<Layer> = [
@@ -348,6 +348,22 @@ export const tablets = (ctx: CanvasRenderingContext2D, p: TabletsPose) => {
     cut(ctx, tabletShape(x0, p.y, p.scale), STONE, { alpha: p.stone });
     tabletLines(ctx, x0, p, i * LINES_EACH);
   }
+};
+
+/**
+ * The tablets at `p` standing on the page: the shadow they cast and the
+ * shadow at each one's foot, both as far as their stone shows, then the
+ * tablets.
+ */
+export const standingTablets = (ctx: CanvasRenderingContext2D, p: TabletsPose) => {
+  const s = p.scale;
+  cast(ctx, p.x, p.x + (2 * TABLET.w + TABLET.gap) * s, p.y, TABLET.h * s, 0.6 * p.stone);
+  ctx.save();
+  ctx.globalAlpha *= p.stone;
+  for (let i = 0; i < 2; i++)
+    contact(ctx, tabletX(p, i) + (TABLET.w * s) / 2, p.y + 2, 0.62 * TABLET.w * s);
+  ctx.restore();
+  tablets(ctx, p);
 };
 
 /** The five lines of the tablet whose bottom-left corner is at `x0`, the `from`th of the ten its first. */
