@@ -6,11 +6,14 @@
 // cut robe). A figure stands on its feet, its origin, or sits, its head's
 // centre its origin, the part of it above what hides its feet drawn. Its
 // view model's numbers are its parts', in one order, never listed by hand
-// (`knobsOf`). How it is drawn is the house's (`rig/draw.ts`). Pure.
+// (`knobsOf`). How it is drawn is the house's (`rig/draw.ts`). A figure the
+// owner locked carries its lock, checked here, and its film holds its print
+// to it (`lock.ts`). Pure.
 
 import { Predicate, Schema } from 'effect';
 import { ConceptRef } from '../core/match.ts';
 import { decoder } from './decode.ts';
+import { type Lock, decodeLock } from './lock.ts';
 import { type Garment, decodeGarment } from './parts/body.ts';
 import { type Ear, decodeEar } from './parts/ear.ts';
 import { type Feet, decodeFeet } from './parts/feet.ts';
@@ -34,6 +37,8 @@ const SeatedArt = Schema.Struct({ width: Length, height: Length, head: Point });
 
 /** What every figure is composed of: the concept it is drawn from, and a part in each slot. */
 interface Composed {
+  /** The owner's lock on it, when he kept it (its `<item>.lock.json`), and an override with his words that frees one print of it. */
+  readonly lock?: Lock;
   /** The kept concept: its image and the figure's box in it, which `film match` holds the figure to. */
   readonly concept: ConceptRef;
   readonly stature: Stature;
@@ -111,10 +116,11 @@ const headAtOrigin = Schema.makeFilter((s: { readonly head: unknown }) =>
 
 /**
  * Every figure's slots: its concept and its states' kinds checked here, each
- * part as its kind's after (`figure`); a slot the figure lacks is refused,
- * an arm by CircleHands.
+ * part and its lock as its kind's after (`figure`); a slot the figure lacks
+ * is refused, an arm by CircleHands.
  */
 const slots = {
+  lock: Schema.optionalKey(Schema.Unknown),
   concept: ConceptRef,
   stature: Schema.Unknown,
   head: Schema.Unknown,
@@ -147,6 +153,7 @@ const decodeSeatedSlots = decoder(SeatedSlots, { fields: { arm: 'CircleHands' } 
 
 /** Every figure's parts, each checked as its kind's; its states by kind. */
 interface ComposedParts {
+  readonly lock?: Lock;
   readonly concept: ConceptRef;
   readonly stature: Stature;
   readonly head: Head;
@@ -241,8 +248,9 @@ const statesOf = (states: ReadonlyArray<State>): ComposedParts['states'] => {
   };
 };
 
-/** Every figure's parts of `spec`, each checked as its kind's, under its checked `concept`. */
+/** Every figure's parts of `spec`, each checked as its kind's, and its lock, under its checked `concept`. */
 const composedOf = (spec: FigureSpec, concept: ConceptRef): ComposedParts => ({
+  lock: spec.lock === undefined ? undefined : decodeLock(spec.lock, 'lock'),
   concept,
   stature: decodeStature(spec.stature, 'stature'),
   head: decodeHead(spec.head, 'head'),

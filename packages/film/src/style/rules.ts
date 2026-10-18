@@ -1,8 +1,9 @@
 // The house's rules for a figure, by id: what each says, where the owner's
-// words for it are written, and whether anything may free it. A part, a
-// paper or a figure the house refuses as it is made names the rule it breaks
-// (`decode.ts`), so the refusal reads as the rule, not as a schema's words.
-// Pure.
+// words for it are written, and whether anything may free it (an override
+// with his words, `override.ts`). A part, a paper or a figure the house
+// refuses as it is made names the rule it breaks (`decode.ts`), so the
+// refusal reads as the rule, not as a schema's words; a locked figure whose
+// print is not its lock's names FigureLock (`lock.ts`). Pure.
 
 /** A rule: what it says, where it is written, and its way out. */
 interface Rule {
@@ -39,6 +40,12 @@ export const RULES = {
     says: "the rim runs inside a piece's own line, never inside a part laid within it",
     source:
       'RBF journal, round 6: an ear\'s light rim inside the outline (owner: "an inner border")',
+    way: 'override',
+  },
+  FigureLock: {
+    says: 'a locked figure is drawn as the owner kept it, its print the one its lock holds',
+    source:
+      'ask a92f276635e: "Keep and lock them: the first locked rigs" (owner, 2026-10-17); the aim, to "lock in a rig and a style" (owner, RBF ledger, 2026-10-17)',
     way: 'override',
   },
 } as const satisfies Record<string, Rule>;

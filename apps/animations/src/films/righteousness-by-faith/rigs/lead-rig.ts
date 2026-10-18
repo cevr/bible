@@ -4,7 +4,10 @@
 // robe he is given over it. His circle hands are drawn by the host where they
 // work (on the dock's rail, over the stain), each from its own artboard
 // (`drawHand`), so the rig is the body alone. How each part is cut, lit and
-// drawn is the house's (`drawFigure`).
+// drawn is the house's (`drawFigure`). The owner locked him (ask
+// `a92f276635e`, 2026-10-17): `lead.lock.json` holds his print, and only an
+// override with the owner's words frees a change to it (FigureLock,
+// `@bible/film/style`'s `lock.ts`).
 //
 // Units are the Board's pixels (a panel is 1536 × 1024): in `cold.evidence`
 // he stands 373 tall, his head 146 across. His feet are the artboard's
@@ -32,6 +35,7 @@ import {
   figure,
   tunicOutline,
 } from '@bible/film/style';
+import LEAD_LOCK from './lead.lock.json' with { type: 'json' };
 import { PAPERS, STAIN } from './papers.ts';
 
 /** His measures, units: height, head (its middle, half-width and half-height), neck (the tunic's top under the head), hem. */
@@ -86,6 +90,8 @@ export const TUNIC = tunicOutline(TUNIC_PART);
  * His hands are 0.34 of his head across, as the concept draws them.
  */
 export const lead = figure({
+  // The owner locked him (ask `a92f276635e`): his print is the one this lock holds.
+  lock: LEAD_LOCK,
   // `film match`'s concept: the plain lead's model sheet, his front view.
   concept: {
     image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/0-plain-lead-sheet.png' },

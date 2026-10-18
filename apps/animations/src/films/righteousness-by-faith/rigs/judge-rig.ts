@@ -12,7 +12,10 @@
 // (`drawHand`). How each part is cut, lit and drawn is the house's
 // (`drawFigure`). The cold-studies judge (frozen in its `figures.riv`) is
 // another figure (bald, indigo, the cold-studies court's geometry): this one
-// is drawn to RBF's Board.
+// is drawn to RBF's Board. The owner locked him (ask `a92f276635e`,
+// 2026-10-17): `judge.lock.json` holds his print, and only an override with
+// the owner's words frees a change to it (FigureLock, `@bible/film/style`'s
+// `lock.ts`).
 //
 // Units are the Board's pixels: in `cold.evidence` his head is 150 tall with
 // its hair. His head's centre is the artboard's origin.
@@ -35,6 +38,7 @@ import {
   figure,
 } from '@bible/film/style';
 import { ellipse, shifted } from '@bible/film/style/rig';
+import JUDGE_LOCK from './judge.lock.json' with { type: 'json' };
 import { PAPERS } from './papers.ts';
 import { JUDGE_HAIR, JUDGE_HEAD } from './traced.ts';
 
@@ -90,6 +94,8 @@ const BANDS_FROM = JUDGE.neck + 10;
  * hands are 0.45 of his head across, as the concept draws them.
  */
 export const judge = figure({
+  // The owner locked him (ask `a92f276635e`): his print is the one this lock holds.
+  lock: JUDGE_LOCK,
   // `film match`'s concept: the judge at his bench in cold.34, the kept concept.
   concept: {
     image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },

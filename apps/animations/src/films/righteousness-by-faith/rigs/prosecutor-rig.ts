@@ -9,7 +9,10 @@
 // his shout. His circle hands are drawn by the host where they work (laying
 // a sheet on the stack, thrown up on `cover`), each from its own artboard
 // (`drawHand`). How each part is cut, lit and drawn is the house's
-// (`drawFigure`).
+// (`drawFigure`). The owner locked him (ask `a92f276635e`, 2026-10-17, the
+// shoe's sole fixed in passing): `prosecutor.lock.json` holds his print, and
+// only an override with the owner's words frees a change to it (FigureLock,
+// `@bible/film/style`'s `lock.ts`).
 //
 // Units are the Board's pixels: in `cold.evidence` he stands 540 tall behind
 // the table. His feet are the artboard's origin.
@@ -35,6 +38,7 @@ import {
   figure,
 } from '@bible/film/style';
 import { ellipse, shifted } from '@bible/film/style/rig';
+import PROSECUTOR_LOCK from './prosecutor.lock.json' with { type: 'json' };
 import { PAPERS } from './papers.ts';
 import { PROSECUTOR_HAIR, PROSECUTOR_HEAD } from './traced.ts';
 
@@ -92,6 +96,8 @@ const TUFT = [{ pts: ellipse(-46, -63, 12, 7, 14), color: '#5e4a47', soft: true 
  * his head across, as the concept draws them.
  */
 export const prosecutor = figure({
+  // The owner locked him (ask `a92f276635e`): his print is the one this lock holds.
+  lock: PROSECUTOR_LOCK,
   // `film match`'s concept: the prosecutor pointing in cold.34, the kept concept.
   concept: {
     image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },

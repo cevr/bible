@@ -4,12 +4,15 @@
 // problems and its stamp (what it was built from). A film's rig build
 // (`righteousness-by-faith/rigs/build.ts`) copies the file and its stamp
 // beside its rigs, and holds the committed file to its rigs through the stamp
-// (`unbuilt`), as the film's test does on a host with no CLI. The CLI is
+// (`unbuilt`), as the film's test does on a host with no CLI. Both hold each
+// locked figure's print to its lock first (`unlocked`, `lock.ts`). The CLI is
 // `rive` on the PATH, or the one `RIVE` names.
 
 import { Config, Crypto, Effect, FileSystem, Schema, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { repoJson } from '../core/schema.ts';
+import { type Lock, heldTo } from './lock.ts';
+import { RULES } from './rules.ts';
 
 /** What the CLI reports as wrong with a project: kept as it prints it. */
 const Problems = Schema.Array(Schema.Unknown);
@@ -134,4 +137,39 @@ export const unbuilt = Effect.fn('unbuilt')(function* (committed: {
   ]
     .filter((check) => !check.held)
     .map((check) => check.why);
+});
+
+/**
+ * Which locked figures are not as the owner kept them, and which an
+ * override frees: each figure's print (as its film draws it alone) hashed
+ * and held to its lock (`heldTo`), each named by the item it is laid as in
+ * its film. A broken one answers why, and its print's sha256, the one an
+ * override with the owner's words would name to free it.
+ */
+export const unlocked = Effect.fn('unlocked')(function* (
+  locked: ReadonlyArray<{ readonly item: string; readonly lock: Lock; readonly print: string }>,
+) {
+  const answers = yield* Effect.forEach(locked, ({ item, lock, print }) =>
+    Effect.map(sha256(new TextEncoder().encode(print)), (hash) => ({
+      item,
+      hash,
+      held: heldTo(item, lock, hash),
+    })),
+  );
+  return {
+    broken: answers.flatMap(({ item, hash, held }) =>
+      held._tag === 'Broken'
+        ? [
+            {
+              item,
+              hash,
+              why: `${item}'s lock is broken (FigureLock, ${RULES.FigureLock.says}): ${held.why}`,
+            },
+          ]
+        : [],
+    ),
+    overridden: answers.flatMap(({ item, held }) =>
+      held._tag === 'Freed' ? [{ item, override: held.override }] : [],
+    ),
+  };
 });

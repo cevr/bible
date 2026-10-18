@@ -4,7 +4,10 @@
 // dark. Their shapes, proportions, papers and faces (here, their three
 // compositions, `papers.ts`, and how the house cuts and draws their parts,
 // `style/rig/draw.ts` and `style/rig/shapes.ts`) change only on his word,
-// asked for first.
+// asked for first: each one's lock (`lead.lock.json`, `judge.lock.json`,
+// `prosecutor.lock.json`) holds his print as he kept it, and the build and
+// the test refuse a print that differs unless an override with his words
+// frees it (FigureLock, `build.test.ts`).
 
 // The heads of RBF's court as the kept concept (`cold-34`) cuts them, traced
 // from it: each the inner edge of its ink (the head's paper, hair and ear

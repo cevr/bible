@@ -334,3 +334,58 @@ describe('the parts', () => {
     ).toThrow(/Head.Traced refused/);
   });
 });
+
+/** A lock as its file keeps it, on the plain lead. */
+const LOCK = {
+  item: 'lead',
+  version: 1,
+  hash: 'a'.repeat(64),
+  ask: 'a92f276635e',
+  at: 1792281444576,
+  seen: { set: 'concepts', file: 'images/lead.png' },
+};
+
+/** An override of the lead's lock, freeing one print of him. */
+const OVERRIDE = {
+  rule: 'FigureLock' as const,
+  place: 'lead',
+  frees: 'b'.repeat(64),
+  reason: 'a test of the way out',
+  quote: 'words a test stands in for',
+};
+
+describe('a lock', () => {
+  test('a figure carries its lock, and the override that frees a print of it', () => {
+    expect(figure({ ...leadOf([]), lock: LOCK }).lock).toEqual(LOCK);
+    const freed = { ...LOCK, override: OVERRIDE };
+    expect(figure({ ...leadOf([]), lock: freed }).lock).toEqual(freed);
+  });
+
+  test('an override that frees another figure is refused by FigureLock', () => {
+    const elsewhere = { ...LOCK, override: { ...OVERRIDE, place: 'judge' } };
+    expect(() => figure({ ...leadOf([]), lock: elsewhere })).toThrow(
+      /lock refused by FigureLock, .*: its override frees judge, not lead/,
+    );
+  });
+
+  test("an override without the owner's words written out is refused", () => {
+    for (const quote of ['', ' padded '])
+      expect(() =>
+        figure({ ...leadOf([]), lock: { ...LOCK, override: { ...OVERRIDE, quote } } }),
+      ).toThrow(/lock refused: /);
+  });
+
+  test('a rule with no way out has no override', () => {
+    const grey = { ...LOCK, override: { ...OVERRIDE, rule: 'GreyShade' } };
+    // @ts-expect-error GreyShade's way is none, so no override of it is a lock's
+    expect(() => figure({ ...leadOf([]), lock: grey })).toThrow(/lock refused: /);
+  });
+
+  test("a lock's hash is a sha256, and a lock has no field its file lacks", () => {
+    expect(() => figure({ ...leadOf([]), lock: { ...LOCK, hash: 'abc' } })).toThrow(
+      /lock refused: .*a sha256/,
+    );
+    const noted = { ...LOCK, note: 'kept' };
+    expect(() => figure({ ...leadOf([]), lock: noted })).toThrow(/lock refused: /);
+  });
+});

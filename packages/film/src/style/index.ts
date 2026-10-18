@@ -10,11 +10,13 @@
 // `parchment`). A figure is composed of parts (`figure`: `Head`, `Hair`,
 // `Ear`, `KitA`, `OpenMouth`, `Tunic`, `Robe`, `Bands`, `Stain`,
 // `GivenRobe`, `StubLegs`, `Shoes`, `Hands`, `Stance`, `Stature`), each
-// checked under the house's rules (`rules.ts`) as it is made. The rigs are
-// drawn on `@bible/film/style/rig`, and built by `@bible/film/style/build`.
+// checked under the house's rules (`rules.ts`) as it is made; one the owner
+// locked carries its lock (`lock.ts`). The rigs are drawn on
+// `@bible/film/style/rig`, and built by `@bible/film/style/build`, which
+// holds each locked figure's print to its lock (`unlocked`).
 
 export { EASE, type Expression, acted } from './face.ts';
-export { figure } from './figure.ts';
+export { type ComposedFigure, figure } from './figure.ts';
 export { RIM, keyLight, parchment, peoplePaper, shading } from './house.ts';
 export { looked, papers, rampedPaper } from './paper.ts';
 export { Robe, Tunic } from './parts/body.ts';
