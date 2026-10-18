@@ -10,6 +10,142 @@ const named = (keys: number[], key: Chord.Key) => {
   return chord === undefined ? undefined : Chord.format(chord, key);
 };
 
+/** Each quality's notes: semitones above the root, and the letters above the root's letter. */
+const MEMBERS: Record<Chord.Quality, ReadonlyArray<readonly [number, number]>> = {
+  '': [
+    [0, 0],
+    [4, 2],
+    [7, 4],
+  ],
+  m: [
+    [0, 0],
+    [3, 2],
+    [7, 4],
+  ],
+  '7': [
+    [0, 0],
+    [4, 2],
+    [7, 4],
+    [10, 6],
+  ],
+  m7: [
+    [0, 0],
+    [3, 2],
+    [7, 4],
+    [10, 6],
+  ],
+  maj7: [
+    [0, 0],
+    [4, 2],
+    [7, 4],
+    [11, 6],
+  ],
+  '6': [
+    [0, 0],
+    [4, 2],
+    [7, 4],
+    [9, 5],
+  ],
+  m6: [
+    [0, 0],
+    [3, 2],
+    [7, 4],
+    [9, 5],
+  ],
+  dim: [
+    [0, 0],
+    [3, 2],
+    [6, 4],
+  ],
+  dim7: [
+    [0, 0],
+    [3, 2],
+    [6, 4],
+    [9, 6],
+  ],
+  m7b5: [
+    [0, 0],
+    [3, 2],
+    [6, 4],
+    [10, 6],
+  ],
+  aug: [
+    [0, 0],
+    [4, 2],
+    [8, 4],
+  ],
+  sus4: [
+    [0, 0],
+    [5, 3],
+    [7, 4],
+  ],
+  sus2: [
+    [0, 0],
+    [2, 1],
+    [7, 4],
+  ],
+  '7sus4': [
+    [0, 0],
+    [5, 3],
+    [7, 4],
+    [10, 6],
+  ],
+};
+const LETTERS = 'CDEFGAB';
+const NOTE = /^[A-G](#{1,2}|b{1,2})?/;
+
+/** Every key a signature names, major and minor. */
+const KEYS = Array.from({ length: 15 }, (_, i) => i - 7).flatMap((fifths) => [
+  Chord.keyFromSignature(fifths, false),
+  Chord.keyFromSignature(fifths, true),
+]);
+
+/** A diminished chord on #1, #2 or #5 of a major key: the leading tone of ii, iii or vi. */
+const leadsUp = (key: Chord.Key, chord: Chord.Chord) =>
+  !key.minor && ['dim', 'dim7', 'm7b5'].includes(chord.quality) && [1, 3, 8].includes(chord.root);
+
+/** The letter a chord's bass is written on: a member's from the root's letter, unless that takes three accidentals. */
+const bassLetter = (key: Chord.Key, chord: Chord.Chord, rootLetter: string, bass: number) => {
+  const member = MEMBERS[chord.quality].find(
+    ([semitones]) => semitones === (bass - chord.root + 12) % 12,
+  );
+  const keyLetter = Chord.spell(key, bass)[0];
+  if (member === undefined) return keyLetter;
+  const letter = LETTERS[(LETTERS.indexOf(rootLetter) + member[1]) % 7] ?? '';
+  const off = (Chord.pitchClass(key.tonic) + bass - Chord.pitchClass(letter) + 12) % 12;
+  return [10, 11, 0, 1, 2].includes(off) ? letter : keyLetter;
+};
+
+/** What is wrong with a chord's symbol in a key: none when its pitches and letters are right. */
+const misspelled = (key: Chord.Key, chord: Chord.Chord): string[] => {
+  const symbol = Chord.format(chord, key);
+  const [head = '', bassName] = symbol.split('/');
+  const rootName = NOTE.exec(head)?.[0] ?? '';
+  const tonic = Chord.pitchClass(key.tonic);
+  const raised = leadsUp(key, chord);
+  const rootLetter = Chord.spell(key, raised ? chord.root - 1 : chord.root)[0] ?? '';
+  const why = [
+    Chord.pitchClass(rootName) === (tonic + chord.root) % 12 ? '' : 'root pitch',
+    rootName[0] === rootLetter ? '' : `root letter, not ${rootLetter}`,
+    raised && rootName.includes('b') ? 'raised root flat' : '',
+  ];
+  if (chord.bass !== undefined) {
+    const bass = bassName ?? '';
+    const letter = bassLetter(key, chord, rootLetter, chord.bass);
+    why.push(
+      NOTE.exec(bass)?.[0] === bass ? '' : 'bass not a note',
+      Chord.pitchClass(bass) === (tonic + chord.bass) % 12 ? '' : 'bass pitch',
+      bass[0] === letter ? '' : `bass letter, not ${letter}`,
+    );
+  }
+  return why
+    .filter((w) => w !== '')
+    .map(
+      (w) =>
+        `${key.tonic}${key.minor ? 'm' : ''} ${symbol} (root ${chord.root}, bass ${chord.bass ?? '-'}): ${w}`,
+    );
+};
+
 describe('Chord.fromPitches', () => {
   it.effect('names four voices with the bass tried as the root first', () =>
     Effect.sync(() => {
@@ -94,6 +230,38 @@ describe('Chord.format', () => {
       expect(Chord.format(flatSeven, { tonic: 'E', minor: false })).toBe('D');
       expect(Chord.format({ root: 7, quality: 'm', bass: 2 }, Db)).toBe('Abm/Eb');
     }),
+  );
+
+  it.effect('spells the examples the hymns showed misspelled as the score spells them', () =>
+    Effect.sync(() => {
+      const major = (tonic: string) => ({ tonic, minor: false });
+      expect(Chord.format({ root: 4, quality: '', bass: 8 }, major('Eb'))).toBe('G/B');
+      expect(Chord.format({ root: 4, quality: '', bass: 8 }, major('Ab'))).toBe('C/E');
+      expect(Chord.format({ root: 4, quality: '', bass: 8 }, major('D'))).toBe('F#/A#');
+      expect(Chord.format({ root: 9, quality: '', bass: 1 }, major('D'))).toBe('B/D#');
+      expect(Chord.format({ root: 1, quality: 'dim', bass: 4 }, major('F'))).toBe('F#dim/A');
+      expect(Chord.format({ root: 8, quality: 'dim7' }, major('Ab'))).toBe('Edim7');
+      expect(Chord.format({ root: 1, quality: 'dim', bass: 4 }, major('G'))).toBe('G#dim/B');
+      // A bass outside the chord keeps the key's spelling.
+      expect(Chord.format({ root: 0, quality: '', bass: 8 }, major('Ab'))).toBe('Ab/Fb');
+    }),
+  );
+
+  it.effect(
+    'spells every chord on every degree of every key: right pitches, a member bass on its letter, a leading-tone diminished root sharp',
+    () =>
+      Effect.sync(() => {
+        const wrong = KEYS.flatMap((key) =>
+          Array.from({ length: 12 }, (_, root) => root).flatMap((root) =>
+            Chord.Quality.literals.flatMap((quality) =>
+              [undefined, ...Array.from({ length: 12 }, (_, bass) => bass)].flatMap((bass) =>
+                misspelled(key, bass === undefined ? { root, quality } : { root, quality, bass }),
+              ),
+            ),
+          ),
+        );
+        expect(wrong.slice(0, 10)).toEqual([]);
+      }),
   );
 
   it.effect('reads a key signature as its key, minor keys by their relative major', () =>

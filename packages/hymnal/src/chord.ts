@@ -197,14 +197,44 @@ export const pitchClass = (name: string): number => {
   return mod12(natural + accidentals);
 };
 
-/** Spells the note a degree above a key's tonic, by letter steps so each key keeps its own accidentals. */
-export const spell = (key: Key, degree: number): string => {
-  const step = STEPS[mod12(degree)] ?? 0;
-  const letter = (letterIndex(key.tonic) + step) % 7;
-  const target = mod12(pitchClass(key.tonic) + degree);
-  const offset = mod12(target - (NATURAL[letter] ?? 0));
+/** A note on a letter (an index into the letters, any octave) at a pitch class: its accidentals come from the difference. */
+const written = (letter: number, pc: number): string => {
+  const at = ((letter % 7) + 7) % 7;
+  const offset = mod12(pc - (NATURAL[at] ?? 0));
   const accidental = offset === 0 ? '' : offset <= 2 ? '#'.repeat(offset) : 'b'.repeat(12 - offset);
-  return `${LETTERS[letter]}${accidental}`;
+  return `${LETTERS[at]}${accidental}`;
+};
+
+/** Spells the note a degree above a key's tonic, by letter steps so each key keeps its own accidentals. */
+export const spell = (key: Key, degree: number): string =>
+  written(
+    letterIndex(key.tonic) + (STEPS[mod12(degree)] ?? 0),
+    mod12(pitchClass(key.tonic) + degree),
+  );
+
+/** Letter steps above a chord's root for each interval in it: a third is two letters up, a fifth four, a seventh six. */
+const INTERVAL_STEPS = [0, 1, 1, 2, 2, 3, 4, 4, 4, 5, 6, 6] as const;
+const intervalSteps = (quality: Quality, interval: number) =>
+  quality === 'dim7' && interval === 9 ? 6 : (INTERVAL_STEPS[interval] ?? 0);
+
+const intervalsOf = (quality: Quality): ReadonlyArray<number> =>
+  COMPLETE.find(([q]) => q === quality)?.[1] ?? [0];
+
+/** The diminished qualities: built on a leading tone, the note a semitone below the chord it leads to. */
+const DIMINISHED: ReadonlySet<Quality> = new Set(['dim', 'dim7', 'm7b5']);
+
+/**
+ * The degrees of a major key a diminished chord stands on as a raised
+ * degree, the leading tone of the chord above it: #1 (to ii), #2 (to iii),
+ * #5 (to vi). Its root takes the letter of the degree below, sharpened.
+ */
+const RAISED: ReadonlySet<number> = new Set([1, 3, 8]);
+
+/** The letter, as steps above the tonic's, a chord's root is written on. */
+const rootSteps = (chord: Chord, key: Key): number => {
+  const degree = mod12(chord.root);
+  const raised = !key.minor && DIMINISHED.has(chord.quality) && RAISED.has(degree);
+  return STEPS[raised ? degree - 1 : degree] ?? 0;
 };
 
 /** How each quality is written after its root. */
@@ -225,10 +255,24 @@ const SUFFIX: Record<Quality, string> = {
   '7sus4': '7sus4',
 };
 
-/** A chord's symbol in a key: "Gm7/Bb". */
+/**
+ * A chord's symbol in a key: "Gm7/Bb". The root is spelled from its degree
+ * (a diminished chord on a raised degree from the degree below, G#dim in G);
+ * a bass that is one of the chord's notes is spelled from the root's letter
+ * by its interval (G/B in E-flat, not G/Cb), any other from the key.
+ */
 export const format = (chord: Chord, key: Key): string => {
-  const symbol = `${spell(key, chord.root)}${SUFFIX[chord.quality]}`;
-  return chord.bass === undefined ? symbol : `${symbol}/${spell(key, chord.bass)}`;
+  const letter = letterIndex(key.tonic) + rootSteps(chord, key);
+  const pc = (degree: number) => mod12(pitchClass(key.tonic) + degree);
+  const symbol = `${written(letter, pc(chord.root))}${SUFFIX[chord.quality]}`;
+  if (chord.bass === undefined) return symbol;
+  const interval = mod12(chord.bass - chord.root);
+  const member = intervalsOf(chord.quality).includes(interval)
+    ? written(letter + intervalSteps(chord.quality, interval), pc(chord.bass))
+    : undefined;
+  // A member that would take three accidentals (a diminished seventh in C-flat) keeps the key's spelling.
+  const bass = member !== undefined && member.length <= 3 ? member : spell(key, chord.bass);
+  return `${symbol}/${bass}`;
 };
 
 /** The major keys from seven flats to seven sharps, by key signature. */
