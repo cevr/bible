@@ -580,6 +580,87 @@
       "quote": "theres some artifacts in the render, and the farmer looks nothing like the concept, face proportions and angles are off",
       "set": "rbf-v3-cast-2026-10-18",
       "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792338423342,
+      "text": "RBF spoke: four differences from its panels (ask a69295abfe6)",
+      "set": "rbf-v3-spoke-2026-10-18",
+      "ask": "a69295abfe6",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792338607892,
+      "text": "RBF spoke: four differences from its panels (ask a69295abfe6): stain: Keep the stain until roof lifts it · cloth: The robe's blue-violet shade, as everywhere else · ground: Keep the peach of word and seed",
+      "set": "rbf-v3-spoke-2026-10-18",
+      "ask": "a69295abfe6",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792341314220,
+      "text": "Christ's robe cut and the line weight in close shots (ask a9d1c6ec862)",
+      "set": "rbf-v3-cast-2026-10-18",
+      "ask": "a9d1c6ec862",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792342088771,
+      "text": "Christ's robe cut and the line weight in close shots (ask a9d1c6ec862) withdrawn: Withdrawn: its two images pointed at a wrong lab address and did not show. Remade as a new ask with the same questions.",
+      "set": "rbf-v3-cast-2026-10-18",
+      "ask": "a9d1c6ec862",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792342099167,
+      "text": "Christ's robe cut and the line weight in close shots (ask a9e82d17477)",
+      "set": "rbf-v3-cast-2026-10-18",
+      "ask": "a9e82d17477",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792342418742,
+      "text": "The Num 21 camp: who its people are, and their colours (ask a6b607b8a0f)",
+      "set": "p6-concept-design-2026-10-18",
+      "ask": "a6b607b8a0f",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792342448060,
+      "text": "Cast sheets: how each cast member is drawn and kept (ask ae44af894e1)",
+      "set": "p6-concept-design-2026-10-18",
+      "ask": "ae44af894e1",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792342613753,
+      "text": "Cast sheets: how each cast member is drawn and kept (ask ae44af894e1): four: Four cast members on one shared sheet, kept in one ask · drift: The kept concept, as your rounds changed it. The view is drawn again until it matches. A view a tuned rig already holds is never painted again. · standard: All six views, the house poses and the head tilts, drawn once · sleeve: A sleeve may hang at rest, but never reach toward a hand · store: The kept images committed beside the member (about 6 MB each); the tries stay in the lab's out/ · keep: Pick a try per kind, then decide only the views the measure flagged (three taps for a clean sheet) · else: Jesus's render confuses parts of his hair with his beard, look more closely to the concept",
+      "quote": "Jesus's render confuses parts of his hair with his beard, look more closely to the concept",
+      "set": "p6-concept-design-2026-10-18",
+      "ask": "ae44af894e1",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792342635786,
+      "text": "Christ's robe cut and the line weight in close shots (ask a9e82d17477): robe: The step from robe-5, as the render has it · line: About 25% thinner in close shots",
+      "set": "rbf-v3-cast-2026-10-18",
+      "ask": "a9e82d17477",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792342637959,
+      "text": "The Num 21 camp: who its people are, and their colours (ask a6b607b8a0f): camp: The crowd kit, with the climber a role built from a kit body and his own face for the close-up · colours: Story cloth, with the locked look's terracotta and blue as two of its cloths, and no scarlet on a person",
+      "set": "p6-concept-design-2026-10-18",
+      "ask": "a6b607b8a0f",
+      "by": "orchestrator"
     }
   ],
   "filed": [
