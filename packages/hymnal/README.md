@@ -25,7 +25,10 @@ voices sound, named and placed on the melody note where it changes.
   two syllables on one note. The files carry no slurs, so a dotted note and
   its short neighbour can go either way.
 - `Chord` keeps a root and bass as degrees above the tonic, so a hymn
-  transposes by changing its key alone, and spells them in any key. A set of
+  transposes by changing its key alone, and spells them in any key as a
+  score does: a bass that is one of the chord's notes on the letter its
+  interval gives (G/B in E-flat, not G/Cb), and a diminished chord on a
+  raised degree of a major key with a sharp (G#dim in G, not Abdim). A set of
   notes no chord names is named, when it can be, by the complete chord its
   notes above the bass make (`Db/Eb`), or by the one complete chord it makes
   with one note left out (a passing tone); `Harmony` drops a chord over a held
@@ -52,8 +55,11 @@ relative to the repository root: `--db`, `--midi`, `--out`, `--key`.
 
 The app reads a hymn through `@bible/hymnal/hymn`, which imports only
 `effect` and `@bible/hymnal/chord` (no Bun, Node or dictionary). A hymn holds
-its key, its meter, each stanza in order and its refrain once. Each part
-says how far its placement can be trusted:
+its key, its meter, each stanza in order and its refrain once. The compiler
+reads that order from the text's verse ids, stanzas 0, 1, … n − 1 and at most
+one refrain with a negative id; a text laid out any other way is refused
+(`VerseLayoutError`, counted as failed), never compiled in a guessed order.
+Each part says how far its placement can be trusted:
 
 - `Sung` at `syllable`: the chords sit on the syllables they change on. The
   app shows each chord over its syllable.
@@ -68,7 +74,9 @@ says how far its placement can be trusted:
 came from the phrase search, not exact repeats) and `reused` (the text has
 more stanzas than the file plays: the extra ones are laid on its last
 verse). The thresholds are constants in `src/compile.ts`; only the held
-list in `scripts/compile.ts` names hymns.
+list in `scripts/compile.ts` names hymns. The level is judged from the fit's
+numbers alone, so it cannot see a line laid a note off: the key's section of
+the report shows `syllable` parts with lines that do not match the score.
 
 Where a chord goes, at both levels (`full` and `guitar`):
 
@@ -80,14 +88,21 @@ Where a chord goes, at both levels (`full` and `guitar`):
 - A change after a syllable's start shorter than a quarter note is a passing
   chord: it folds into the chord before it.
 - Each line's first syllable carries the chord sounding when it starts.
-  Changes in the rest between lines are dropped.
+  Changes in the rest between lines are dropped. Where the file plays a
+  line's pickup in unison or octaves no chord sounds, and the syllable
+  carries none.
 - A syllable sharing the note before it carries no chord.
 
 `bun run golden <compiled.json> <chart.chordpro> [--level full|guitar|both]
 [--allow <file>]` compares a compiled hymn with a hand chart
 (`data/charts/sdah-001.chordpro`, `sdah-100.chordpro`, written in the dialect
 `src/chordpro.ts` reads and writes), syllable by syllable, and prints each
-difference; `data/charts/allowed.txt` lists the four accepted ones.
+difference (a `cut` difference prints the two syllables' texts where the
+others print chords); `data/charts/allowed.txt` lists the four accepted
+ones. The
+chart reader fails on what it cannot read (a trailing escape, a directive
+other than `title`, `subtitle`, `key`, `time` and `comment` outside a section
+and the four section directives) rather than drop it.
 
 `data/key/NNN.txt` is the alignment key: for fifteen hymns, stanza 1 and its
 refrain as the score prints them, a syllable per token, `text_N` for one sung
@@ -95,5 +110,6 @@ on N notes and `text_0` for one sharing the note before. The compile reports
 how many lines lay exactly as the key says, in all and per level.
 
 The MIDI files, the hand charts, the key and the compiled set are tracked
-here (owner, 2026-10-18). The tests read at most a few of them; most build
-their MIDI in code (`src/midi-fixture.ts`).
+here (owner, 2026-10-18). The tests read none of them: they build their MIDI
+in code (`src/midi-fixture.ts`), and read only the texts' verse layout from
+hymnal.db.
