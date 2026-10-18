@@ -1,3 +1,9 @@
+// LOCKED: the lead, the prosecutor and the judge. The owner locked them on
+// 2026-10-17 (ask `a92f276635e`, commit `b27a9471b`), with one touch-up he
+// named: the prosecutor's shoe light runs up the lit edge and leaves the sole
+// dark. Their shapes, proportions, papers and faces (here, the three rigs,
+// `papers.ts`, `shapes.ts`) change only on his word, asked for first.
+
 // The heads of RBF's court as the kept concept (`cold-34`) cuts them, traced
 // from it: each the inner edge of its ink (the head's paper, hair and ear
 // together, the outline `silhouette` inks round), and the hair inside it (the

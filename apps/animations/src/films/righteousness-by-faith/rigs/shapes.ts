@@ -88,6 +88,52 @@ export const shoeOutline = (w: number, h: number, toe: -1 | 1): Pt[] => {
   return toe < 0 ? pts : pts.reverse();
 };
 
+/** How much of a lit edge's run, from its far end, narrows to nothing, as the concept's light fades toward the crease. */
+const FADE = 0.4;
+
+/**
+ * The light down a shoe's lit edge (`shoeOutline`, the same `w`, `h` and
+ * `toe`), as cold-34 lays it: a band `width` units deep inside the outline
+ * along `SHOE`'s points `from` to `to`, whole for most of the run and
+ * narrowing to nothing over its last `FADE`. It starts at the sole's
+ * corner and runs up, never along the sole, so the sole stays dark. The
+ * band reaches 2 units out past the outline, so its piece's clip, not its
+ * own edge, draws its outer side.
+ */
+export const shoeLight = (
+  w: number,
+  h: number,
+  toe: -1 | 1,
+  from: number,
+  to: number,
+  width: number,
+): Pt[] => {
+  const outline = SHOE.map(([x, y]): Pt => [-toe * x * (w / 2), y * h]);
+  const cx = outline.reduce((a, p) => a + p[0], 0) / outline.length;
+  const cy = outline.reduce((a, p) => a + p[1], 0) / outline.length;
+  const run = Array.from(
+    { length: Math.abs(to - from) + 1 },
+    (_, k) => from + Math.sign(to - from) * k,
+  );
+  const outer: Pt[] = [];
+  const inner: Pt[] = [];
+  run.forEach((i, k) => {
+    const p = outline[i] ?? [0, 0];
+    const prev = outline[i - 1] ?? p;
+    const next = outline[i + 1] ?? p;
+    const tx = next[0] - prev[0];
+    const ty = next[1] - prev[1];
+    const len = Math.hypot(tx, ty) || 1;
+    const facing = -ty * (cx - p[0]) + tx * (cy - p[1]) < 0 ? -1 : 1;
+    const [nx, ny] = [(-ty / len) * facing, (tx / len) * facing];
+    const share = k / (run.length - 1);
+    const reach = width * Math.min(1, (1 - share) / FADE);
+    outer.push([p[0] - nx * 2, p[1] - ny * 2]);
+    inner.push([p[0] + nx * reach, p[1] + ny * reach]);
+  });
+  return [...outer, ...inner.reverse()];
+};
+
 /** `pts` moved by (`dx`, `dy`). */
 export const shifted = (pts: ReadonlyArray<Pt>, dx: number, dy: number): Pt[] =>
   pts.map(([x, y]): Pt => [x + dx, y + dy]);

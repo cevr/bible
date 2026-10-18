@@ -33,7 +33,7 @@ import {
 } from '../../cold-studies/looks/rive/parts.ts';
 import { el } from '../../cold-studies/looks/rive/rml.ts';
 import { PAPERS, looked } from './papers.ts';
-import { roundedPolygon, shifted, shoeOutline } from './shapes.ts';
+import { roundedPolygon, shifted, shoeLight, shoeOutline } from './shapes.ts';
 import { PROSECUTOR_HEAD, PROSECUTOR_HAIR } from './traced.ts';
 
 /**
@@ -135,6 +135,20 @@ export const ROBE = roundedPolygon(
 /** His shoes, as cold-34 cuts them: 0.49 of his head's width across under their ink, set under the hem's corners, the toes out. */
 const SHOE = { x: 60, w: 58, h: 28 } as const;
 
+/**
+ * The light down each shoe's left edge, as cold-34 lays it, each 6 px
+ * across there and #9d7559 on the near shoe, 4 to 6 px and #6a4f44 on the
+ * far one: the near shoe's up its toe's curve from just over the sole to
+ * two fifths across (`SHOE`'s points 0 to 7), the far shoe's up its steep
+ * side (its points 16 to 11). The depths (6 and 5 units) give those widths
+ * across, the band lying at a slant there. The sole stays dark.
+ */
+const SHOE_LIGHT = { near: '#9d7559', far: '#6a4f44' } as const;
+const shoeTones = (x: number) =>
+  x < 0
+    ? [{ pts: shifted(shoeLight(SHOE.w, SHOE.h, -1, 0, 7, 6), x, 0), color: SHOE_LIGHT.near }]
+    : [{ pts: shifted(shoeLight(SHOE.w, SHOE.h, 1, 16, 11, 5), x, 0), color: SHOE_LIGHT.far }];
+
 /** The light on his tuft, where the window catches it in cold-34 (#5e4a47 there): soft, fading into the black. */
 const TUFT = [{ pts: ellipse(-46, -63, 12, 7, 14), color: '#5e4a47', soft: true }] as const;
 
@@ -214,7 +228,7 @@ export const prosecutorRig = (fig: Figure) => {
         fig,
         `shoe${x < 0 ? 'L' : 'R'}`,
         shifted(shoeOutline(SHOE.w, SHOE.h, x < 0 ? -1 : 1), x, 0),
-        looked(x < 0 ? PAPERS.shoe : PAPERS.farShoe),
+        looked(x < 0 ? PAPERS.shoe : PAPERS.farShoe, { tones: shoeTones(x) }),
         {
           boil: 0.6,
         },

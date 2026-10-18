@@ -58,7 +58,6 @@ const TURN = {
   sheet: { at: 0.64, crescent: 0.45 },
   leadHead: { at: 0.648, soft: 0.037, toward: 0.464 },
   shoe: { at: 0.4, soft: 0.04, toward: -0.7 },
-  farShoe: { at: 0.3, soft: 0.04, toward: -0.7 },
   whiteRobe: { at: 0.72, soft: 0.02, toward: 0.2 },
 } as const satisfies Record<string, Crease>;
 
@@ -131,12 +130,13 @@ export const PAPERS = {
   /**
    * Shoes, as cold-34 paints the prosecutor's: a warm brown leather lit on
    * its left, toward the window (#765949 there), the rest a deeper brown
-   * (#5c463e); the near shoe lit over two fifths of it, a 6 px rim of
-   * #9d7559 down its left curve; the far one all in the deeper brown, lit
-   * only by a fainter rim at its left edge (#6a4f44, 4 px).
+   * (#5c463e); the near shoe lit over two fifths of it, the far one all in
+   * the deeper brown. Their light runs down the lit edge only and the sole
+   * stays dark, so the rig lays it as a tone (`SHOE_LIGHT`); a rim of no
+   * width keeps the paper's own light line off the sole.
    */
-  shoe: { color: '#765949', shade: '#5c463e', light: '#9d7559', crease: TURN.shoe, rim: RIM },
-  farShoe: { color: '#5c463e', shade: '#5c463e', light: '#6a4f44', crease: TURN.farShoe, rim: 4 },
+  shoe: { color: '#765949', shade: '#5c463e', light: '#765949', crease: TURN.shoe, rim: 0 },
+  farShoe: { color: '#5c463e', light: '#5c463e', rim: 0 },
   /** The judge's bands: a warm white linen, flat (cold-34 samples #fcf4ec), no rim. */
   bands: { color: '#fcf4ec', light: '#fcf4ec' },
 } as const satisfies Record<string, Paper>;
