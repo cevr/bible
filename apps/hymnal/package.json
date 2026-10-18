@@ -14,7 +14,8 @@
     "test": "bun run test:infra",
     "test:infra": "bun test infra",
     "plan": "alchemy plan alchemy.run.ts --stage prod",
-    "deploy": "alchemy deploy alchemy.run.ts --stage prod"
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod",
+    "audio:copy": "bun infra/audio/copy.ts"
   },
   "dependencies": {
     "@effect/atom-react": "catalog:",
