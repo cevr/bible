@@ -6,8 +6,10 @@
 // on, by the catalogue's names (`LAB_EVENTS`) and a film. The files are the
 // record, so a change the page makes, one a terminal's `film lab` makes, and
 // one an agent makes through the lab's MCP are all seen alike, and nothing
-// writes twice: the feed only reads. What a change is, said from two reads
-// of a file, is `core/lab-events.ts`.
+// writes twice: the feed only reads. A set or a render it sees drops the
+// review's index (`Review.written`) before its event is told, so the page
+// and an ask read what another process wrote. What a change is, said from
+// two reads of a file, is `core/lab-events.ts`.
 //
 // The first read is the baseline: the feed tells only what changed after
 // the lab started. A cursor is `<epoch>.<seq>`; the epoch is this run's, so
@@ -364,6 +366,11 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
       Effect.gen(function* () {
         const drafts = yield* read;
         if (drafts.length === 0) return;
+        // A set or a render another process wrote: the review's index drops
+        // what it read before, so a reader that hears the event and reads
+        // the review (an ask about the set, the page) finds it.
+        if (drafts.some((d) => d.kind.startsWith('set.') || d.kind.startsWith('render.')))
+          yield* review.written;
         const at = DateTime.formatIso(yield* DateTime.now);
         yield* SubscriptionRef.update(journal, (j) => {
           const made = drafts.map((draft, i) => changeOf(draft, j.seq + i + 1, at, options.links));

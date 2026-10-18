@@ -39,7 +39,7 @@ import {
   keptOn,
   typingProblems,
 } from '../core/review-record.ts';
-import { docAt, videoAt } from '../core/review.ts';
+import { type ReviewIndex, docAt, videoAt } from '../core/review.ts';
 import { Segment } from '../core/segment.ts';
 import { decodeComponent } from '@bible/url-state';
 import { BoardStore } from './board-store.ts';
@@ -129,6 +129,19 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
           Effect.mapError(() => `${where}: the lab has no film ${name}`),
         );
 
+      /**
+       * What `find` finds in the review's index: as it stands, or read again
+       * once when it does not, so a set another process wrote since the
+       * index was read (a terminal's `publish_set`) is found, as the review's
+       * own `listed` finds it.
+       */
+      const indexed = <A>(find: (index: ReviewIndex) => Option.Option<A>) =>
+        Effect.gen(function* () {
+          const had = find(yield* review.index(false));
+          if (Option.isSome(had)) return had;
+          return find(yield* review.index(true));
+        });
+
       /** A read's failure as the problem `what` cannot be read. */
       const unread =
         (where: string, what: string) =>
@@ -144,8 +157,7 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
         switch (block.kind) {
           case 'document':
             return Effect.gen(function* () {
-              const index = yield* review.index(false);
-              if (Option.isNone(docAt(index, block.ref)))
+              if (Option.isNone(yield* indexed((index) => docAt(index, block.ref))))
                 return [
                   `${where}: no document ${block.ref} is listed by the review (a set's Markdown, as \`sets\` lists it)`,
                 ];
@@ -154,8 +166,7 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
             });
           case 'video':
             return Effect.gen(function* () {
-              const index = yield* review.index(false);
-              if (Option.isNone(videoAt(index, block.ref)))
+              if (Option.isNone(yield* indexed((index) => videoAt(index, block.ref))))
                 return [
                   `${where}: no video ${block.ref} is listed by the review (a set's video, as \`sets\` lists it)`,
                 ];
@@ -271,7 +282,11 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
               Option.fromNullishOr(url.searchParams.get('ref')),
               () => url.pathname === FRAME,
             ),
-            (ref) => Effect.map(review.index(false), (index) => Option.isSome(videoAt(index, ref))),
+            (ref) =>
+              Effect.map(
+                indexed((index) => videoAt(index, ref)),
+                Option.isSome,
+              ),
           ),
         ];
         return Option.match(Option.firstSomeOf(reads), {

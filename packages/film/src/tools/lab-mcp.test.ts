@@ -1204,6 +1204,88 @@ describe('film lab events', () => {
   );
 });
 
+describe('a set a terminal published', () => {
+  /** `film …args` in a terminal of its own: its own review (a layer of its own, so built anew), as another process has, beside the lab's. */
+  const elsewhere = (lab: LabFetch, args: ReadonlyArray<string>) =>
+    filmCli((request) => lab(request, mcpBound), args).pipe(Effect.provide(reviewAt([])));
+
+  const publishNotes = (lab: LabFetch) =>
+    Effect.gen(function* () {
+      yield* (yield* FileSystem.FileSystem).writeFileString('/work/notes.md', '# The judge\n');
+      return yield* elsewhere(lab, [
+        'lab',
+        'publish_set',
+        '--name',
+        'judge-notes',
+        '--files',
+        writeJson([{ from: '/work/notes.md', to: 'notes.md' }]),
+        '--manifest',
+        writeJson({ title: 'Judge notes', docs: ['notes.md'] }),
+      ]);
+    });
+
+  it.effect(
+    'an ask about it right after, in another terminal, is taken: the lab reads its index again',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab } = yield* labWithMcp;
+          // The lab has read its index, and keeps it.
+          expect((yield* (yield* Review).index(false)).folders).toEqual([]);
+          expect((yield* publishNotes(lab)).failed).toBe('');
+          const blocks: Schema.Json = [
+            { kind: 'document', ref: 'spare/judge-notes/notes.md' },
+            {
+              kind: 'choose',
+              id: 'keep',
+              label: 'Keep the notes?',
+              options: [
+                { value: 'yes', label: 'Yes', recommended: true, why: 'they read' },
+                { value: 'no', label: 'No' },
+              ],
+            },
+          ];
+          const asked = yield* filmCli(
+            (request) => lab(request, mcpBound),
+            [
+              'lab',
+              'ask',
+              '--title',
+              'The notes?',
+              '--why',
+              'they go with the board',
+              '--by',
+              'agent',
+              '--blocks',
+              writeJson(blocks),
+            ],
+          );
+          expect(asked.failed).toBe('');
+          expect(asked.lines[0]).toMatch(/^asked a[0-9a-f]+/);
+        }),
+      ),
+  );
+
+  it.effect(
+    'the lab drops its index once its feed sees the set, so the page lists it at its next read',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          const review = yield* Review;
+          const listed = Effect.map(review.index(false), (index) =>
+            index.folders.map((f) => f.ref),
+          );
+          expect(yield* listed).toEqual([]);
+          expect((yield* publishNotes(lab)).failed).toBe('');
+          yield* events.look;
+          expect((yield* events.since(Option.none())).cursor).toMatch(/\.1$/);
+          expect(yield* listed).toEqual(['spare/judge-notes']);
+        }),
+      ),
+  );
+});
+
 describe('film lab ask', () => {
   it.effect(
     'asks the running lab from its blocks, filed on the timeline with its choice, and prints its links',
