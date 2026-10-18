@@ -27,6 +27,7 @@ import {
   resolveSound,
   resolveUse,
   seedSources,
+  keptFit,
   soundCredits,
   soundState,
   sourceLabel,
@@ -510,5 +511,22 @@ describe('code kept from a recording', () => {
     const decoded = (changed: boolean) => Schema.decodeUnknownResult(LibraryEntry)(entry(changed));
     expect(Result.isSuccess(decoded(true))).toBe(true);
     expect(Result.isFailure(decoded(false))).toBe(true);
+  });
+});
+
+describe('a kept fit', () => {
+  const fit = {
+    sound: { play: room({ secs: 8 }) },
+    variants: 3,
+    from: { file: 'public/amb.hall.flac', sha256: 'ab' },
+    earshot: 'c0ffee',
+    size: 'small',
+    left: [],
+  };
+
+  test('is its fit file’s sound and seeds, which a code entry plays with the recording’s licence', () => {
+    const kept = keptFit(fit);
+    expect(kept).toEqual({ sound: fit.sound, variants: 3 });
+    expect(() => keptFit({ sound: fit.sound })).toThrow();
   });
 });

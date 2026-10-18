@@ -137,7 +137,9 @@ sound and ElevenLabs only the realism code cannot (the owner's rule): a
 paid for, and a generated sound says `why` it needs ElevenLabs. A
 `recorded` sound is a CC0 or CC BY recording under `sounds/public/`
 (`sfx import`); a film that places a CC BY one gives its line on the
-credit roll, or `check` fails it (`SoundCreditMissing`). How to
+credit roll, or `check` fails it (`SoundCreditMissing`). A recording's fit
+the owner kept (`sfx fit`) is a `code` sound that keeps the recording's
+licence (`keptBed`, `keptOneShot`), so it owes the same line. How to
 write one, judge it without listening, and put a swap to the owner is the
 film skill's [sound reference](../../.claude/skills/film/reference/sound.md).
 How to word a generated

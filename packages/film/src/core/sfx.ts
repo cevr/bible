@@ -9,7 +9,7 @@
 // placement plays and its jitter, the level arithmetic the mix gains a sound
 // by, and the credit lines a film owes for the CC BY recordings it places.
 
-import { Array as Arr, Match, Option, Result, Schema } from 'effect';
+import { Array as Arr, Match, Option, Result, Schema, flow } from 'effect';
 import type { Pcm } from './audio.ts';
 import { SoundUseMismatch, UnknownSound } from './errors.ts';
 import { hashText } from './narration.ts';
@@ -151,6 +151,19 @@ export type SoundFit = typeof SoundFit.Type;
 
 /** A fit as its file holds it: two-space JSON and a final newline (`repoJson`). */
 export const SoundFitJson = repoJson(SoundFit);
+
+/**
+ * A fit the owner kept, as a library declares its code: the fit file's JSON,
+ * imported beside `library.ts` (`import fit from './fits/<name>.json' with
+ * { type: 'json' }`), decoded to its sound and its seeds. The entry swaps to
+ * `kind: 'code'` with this and the recording's `licence`; the fit file stays
+ * the one source of the sound and of where it came from. A file that is not
+ * a fit throws, and the library's load names it.
+ */
+export const keptFit = flow(
+  Schema.decodeUnknownSync(SoundFit),
+  ({ sound, variants }): CodeTrial => ({ sound, variants }),
+);
 
 export const Generated = Schema.Struct({
   kind: Schema.Literal('generated'),

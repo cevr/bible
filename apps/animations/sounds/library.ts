@@ -16,10 +16,14 @@
 // shape with a few settings, so a shape is tuned in one place. A recorded
 // sound is CC0 or CC BY, under `public/` (`sfx import`), its licence naming
 // its title, author and page: a CC BY one owes a credit line on the roll of
-// every film that places it, which `film check` holds the film to.
+// every film that places it, which `film check` holds the film to. A
+// recording's fit (`sfx fit`, `fits/<name>.json`) is its code trial; one the
+// owner kept is the entry's code (`keptFit`, imported from its file), which
+// keeps the recording's licence, so a CC BY one owes the same line.
 //
-// The library: 19 generated one-shots, 3 generated beds, 12 code one-shots,
-// 4 code beds, 4 recorded one-shots and 4 recorded beds. The lock keeps a
+// The library: 19 generated one-shots, 3 generated beds, 13 code one-shots
+// (one kept from a fit), 7 code beds (three kept from fits), 3 recorded
+// one-shots and 1 recorded bed. The lock keeps a
 // recorded sound's generated takes, if it had any, as candidates, never
 // offered again, and the seconds its file was cut from. Prompts are concrete, close and dry: a
 // film's cue places them, the mix sets their level against the voice. How to
@@ -39,6 +43,7 @@ import {
   drain,
   drone,
   hiss,
+  keptFit,
   knock,
   notes,
   rain,
@@ -48,6 +53,10 @@ import {
   thump,
   whoosh,
 } from '@bible/film/core';
+import dawnFit from './fits/amb.dawn.json' with { type: 'json' };
+import hallFit from './fits/amb.hall.json' with { type: 'json' };
+import houseFit from './fits/amb.house.json' with { type: 'json' };
+import clothFit from './fits/cloth.lift.json' with { type: 'json' };
 
 /** A bed's length when it names none: long enough that its loop point is rarely heard. */
 const BED_SECS = 22;
@@ -101,6 +110,22 @@ const recordedBed = (licence: RecordedLicence) =>
 const recordedOneShot = (secs: number, licence: RecordedLicence) =>
   ({ kind: 'recorded', licence, use: 'one-shot', secs }) as const;
 
+/** The licence code kept from a recording's fit keeps: the recording's, a CC BY one `changed`. */
+type KeptLicence = NonNullable<
+  Extract<Entries[keyof Entries], { readonly kind: 'code' }>['licence']
+>;
+
+/** A fit file's code and seeds, as `keptFit` reads it. */
+type KeptFit = ReturnType<typeof keptFit>;
+
+/** A recording's fit the owner kept (`keptFit`), as a bed: its code and seeds, the recording's licence, every bed's level. */
+const keptBed = (fit: KeptFit, licence: KeptLicence) =>
+  ({ kind: 'code', ...fit, licence, use: 'bed', level: BED_LEVEL }) as const;
+
+/** A recording's fit the owner kept (`keptFit`), as a one-shot: its code and seeds, the recording's licence. */
+const keptOneShot = (fit: KeptFit, licence: KeptLicence) =>
+  ({ kind: 'code', ...fit, licence, use: 'one-shot' }) as const;
+
 export const library = defineLibrary({
   // Beds -------------------------------------------------------------------
   // The paper room's air: 8 s a loop.
@@ -131,8 +156,9 @@ export const library = defineLibrary({
       influence: 0.6,
     },
   ),
-  // An audience murmuring in a hall, cut from the recording's HQ preview.
-  'amb.hall': recordedBed({
+  // An audience murmuring in a hall: the code kept from the fit of a cut of
+  // the recording's HQ preview.
+  'amb.hall': keptBed(keptFit(hallFit), {
     id: 'CC-BY-4.0',
     title: 'M Murmer long loop.wav',
     author: 'Processaurus',
@@ -141,8 +167,9 @@ export const library = defineLibrary({
     openverse: 'f7e999a4-bb3d-4dae-9e77-8a53a9d27e48',
     changed: true,
   }),
-  // People murmuring close together indoors, cut from the recording's HQ preview.
-  'amb.house': recordedBed({
+  // People murmuring close together indoors: the code kept from the fit of a
+  // cut of the recording's HQ preview.
+  'amb.house': keptBed(keptFit(houseFit), {
     id: 'CC0-1.0',
     title: 'G28-10-Indoor Crowd Murmur - Constant.wav',
     author: 'craigsmith',
@@ -183,8 +210,9 @@ export const library = defineLibrary({
     openverse: '3bdb3b4b-c840-4fba-8033-48477bf14dee',
     changed: true,
   }),
-  // Birds singing at dawn, cut from the recording's HQ preview.
-  'amb.dawn': recordedBed({
+  // Birds singing at dawn: the code kept from the fit of a cut of the
+  // recording's HQ preview.
+  'amb.dawn': keptBed(keptFit(dawnFit), {
     id: 'CC0-1.0',
     title: 'dawn chorus.wav',
     author: 'squashy555',
@@ -375,8 +403,9 @@ export const library = defineLibrary({
     variants: 3,
     use: 'one-shot',
   },
-  // Clothing moved once, cut from the recording's HQ preview.
-  'cloth.lift': recordedOneShot(1.2, {
+  // Clothing moved once: the code kept from the fit of a cut of the
+  // recording's HQ preview.
+  'cloth.lift': keptOneShot(keptFit(clothFit), {
     id: 'CC0-1.0',
     title: 'clothing movement',
     author: 'Kodack',

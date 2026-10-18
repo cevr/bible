@@ -152,9 +152,11 @@ the code leaves out (`SoundFit`). The library reads each fit as its
 recording's trial (`codeTrialOf`), so `render --trial`, `compare`, `check`
 and `ab` hear it as they hear a generated sound's; a fit for a name that is
 not a recording, or code kept from one, is refused (`FitUnmatched`), and a
-fit file that does not decode, `FitUnreadable`. Code kept from a fit names
-the recording's licence (a CC BY one `changed: true`), so `soundCredits`
-owes the same line for the code as for the recording. `fit`
+fit file that does not decode, `FitUnreadable`. A fit the owner keeps is the
+entry's code: `library.ts` imports the fit file and declares
+`{ kind: 'code', ...keptFit(fit), licence }`, the recording's licence kept
+(a CC BY one `changed: true`), so `soundCredits` owes the same line for the
+code as for the recording, and the fit file stays its one source. `fit`
 refuses a generated or code sound, and code kept from a fit (`FitRefused`):
 a generated take stays private. earshot is downloaded code,
 so it runs as an external tool, trusted with nothing: pinned at one commit
