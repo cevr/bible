@@ -36,6 +36,8 @@ export const PLACE = {
   prosecutor: [748, 800],
   /** The judge's head's centre, behind the bench. */
   judge: [1312, 196],
+  /** Christ's feet, beside the lead in the dock (`court.beside`). */
+  christ: [471, 746],
 } as const satisfies Record<string, Pt>;
 
 /** The ink's weight on the set, in the Board's pixels: a little under the figures' silhouette line. */
@@ -363,6 +365,9 @@ const CRACK: ReadonlyArray<Pt> = [
   [590, 1010],
 ];
 
+/** Where the blade comes up through the crack (`court.seed`): on its first run, just past the dock's foot. */
+export const BLADE_AT: Pt = [372, 845];
+
 /** The floor: pale lilac, the crack, and the beams' warmth on it. */
 export const floor = (ctx: CanvasRenderingContext2D) => {
   const g = ctx.createLinearGradient(0, ROOM.floor, 0, ROOM.bottom);
@@ -446,6 +451,62 @@ export const bench = (ctx: CanvasRenderingContext2D) => {
 
 /** The bench's top, where the judge's hands rest and the gavel lies. */
 export const BENCH_TOP = BENCH.top;
+
+/** The bench's glow (`court.how`): its face's gold, its rim's, and the warm it throws across the floor. */
+const GLOW = { face: '#fec652', bright: '#fdf08a', rim: '#fed45a', floor: '#fff0bf' } as const;
+
+/**
+ * The bench glowing warm at `amount` (0 none): its face and its panel lit
+ * gold from within, brightest at the panel's middle, its top rim gold, and
+ * the warm laid across the floor from its foot to the dock.
+ */
+export const benchGlow = (ctx: CanvasRenderingContext2D, amount: number) => {
+  if (amount <= 0) return;
+  const { x0, x1, top, foot } = BENCH;
+  const a = Math.min(1, amount);
+  ctx.save();
+  // The floor's warm, from the bench's foot toward the dock, fading away from it.
+  ctx.globalCompositeOperation = 'lighter';
+  const wash = ctx.createLinearGradient(x0, foot, DOCK.x0, foot + 140);
+  wash.addColorStop(0, `${GLOW.floor}66`);
+  wash.addColorStop(1, `${GLOW.floor}00`);
+  ctx.globalAlpha = a;
+  ctx.fillStyle = wash;
+  trace(ctx, [
+    [x0, foot - 10],
+    [x1, foot - 10],
+    [x1, foot + 260],
+    [DOCK.x0, foot + 160],
+    [DOCK.x0, foot + 20],
+  ]);
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.globalAlpha = a;
+  const mid = (x0 + x1) / 2;
+  const face = ctx.createRadialGradient(mid, (top + foot) / 2, 20, mid, (top + foot) / 2, 420);
+  face.addColorStop(0, GLOW.bright);
+  face.addColorStop(0.45, GLOW.face);
+  face.addColorStop(1, `${GLOW.face}d0`);
+  ctx.fillStyle = face;
+  trace(ctx, box(x0 + 10, top + 30, x1 - x0 - 10, foot - top - 30));
+  ctx.fill();
+  ctx.fillStyle = GLOW.rim;
+  trace(ctx, box(x0, top, x1 - x0, 36));
+  ctx.fill();
+  // The face's panel and edges keep their ink over the light.
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = LINE_SMALL;
+  ctx.strokeStyle = C.outline;
+  trace(ctx, box(x0 + 100, top + 80, x1 - x0 - 200, foot - top - 130));
+  unprobed(ctx, () => ctx.stroke());
+  ctx.lineWidth = LINE;
+  trace(ctx, box(x0, top, x1 - x0, 36));
+  unprobed(ctx, () => ctx.stroke());
+  trace(ctx, box(x0 + 10, top + 30, x1 - x0 - 10, foot - top - 30));
+  unprobed(ctx, () => ctx.stroke());
+  ctx.restore();
+};
 
 /** The judge's chair: its red back over his shoulders, behind him. */
 export const chair = (ctx: CanvasRenderingContext2D) => {

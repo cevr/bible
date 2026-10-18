@@ -14,10 +14,11 @@ import { lightOf } from '../light.ts';
 import { fonts } from '../palette.ts';
 import { script } from '../script.ts';
 import { cold } from './cold.ts';
+import { court } from './court.ts';
 import { title } from './title.ts';
 
 export const scenes: SceneSpec[] = scenesOf(script, {
-  drawings: { cold, title },
+  drawings: { cold, court, title },
   light: lightOf,
   card: { brief: fonts.display, label: fonts.body },
 });

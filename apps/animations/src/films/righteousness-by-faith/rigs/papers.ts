@@ -58,7 +58,8 @@ const TURN = {
   sheet: { at: 0.64, crescent: 0.45 },
   leadHead: { at: 0.648, soft: 0.037, toward: 0.464 },
   shoe: { at: 0.4, soft: 0.04, toward: -0.7 },
-  whiteRobe: { at: 0.72, soft: 0.02, toward: 0.2 },
+  whiteRobe: { at: 0.82, soft: 0.02, toward: 0.2 },
+  christFace: { at: 0.65, soft: 0.04, toward: 0.3 },
 } as const satisfies Record<string, Crease>;
 
 /** The figures' papers, by what each is. */
@@ -94,7 +95,7 @@ export const PAPERS = {
   /** An ear: flat skin, a touch deeper than the lit face, no crease and no rim (cold-34 samples it #f4a880 to #f7b386). */
   ear: { color: '#f4aa80', light: '#f4aa80' },
   /** Christ's ear, on his head's far side: flat, in the shade's warmth (court-12). */
-  christEar: { color: '#e9976f', light: '#e9976f' },
+  christEar: { color: '#c97a58', light: '#c97a58' },
   /** Skin on a hand: the same peach, shaded only at its far edge. */
   skinHand: { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6', crease: TURN.hand, rim: RIM },
   /** The judge's robe: a plum that darkens toward violet across its width. */
@@ -111,12 +112,22 @@ export const PAPERS = {
   olive: { color: '#847456', shade: '#645b46', light: '#9a8763', crease: TURN.robe, rim: RIM },
   /** The prosecutor's short black hair: a warm black, its back darker. */
   darkHair: { color: '#433736', shade: '#2e2a2c', light: '#5a4846', crease: TURN.face },
-  /** Christ's skin, as court-12 paints it: a warmer peach than the court's, its shade toward rose. */
-  christSkin: { color: '#f8a874', shade: '#ea9470', light: '#fbc49a', crease: TURN.face, rim: RIM },
+  /**
+   * Christ's skin, as court-12 paints it: a warmer peach than the court's,
+   * its shade toward rose down the far side of His face by His hair, its
+   * light the pale band inside His near cheek's line.
+   */
+  christSkin: {
+    color: '#f9aa76',
+    shade: '#e48c6c',
+    light: '#f9d5a6',
+    crease: TURN.christFace,
+    rim: RIM,
+  },
   /** Christ's long brown hair: a warm brown, its back darker. */
   brownHair: { color: '#5f3d2c', shade: '#4a3027', light: '#7f5237', crease: TURN.face },
-  /** His beard: the hair's brown, a little deeper. */
-  beard: { color: '#583828', shade: '#4c3024', light: '#6e4632', crease: TURN.face },
+  /** His beard: the hair's brown, a little deeper, its far side and under His chin near black-brown (court-12). */
+  beard: { color: '#5f3d2a', shade: '#3e271b', light: '#7a4c32', crease: TURN.face },
   /** Christ's white robe: a warm white, its far side a lilac (court-12). */
   whiteRobe: {
     color: '#f7e9d9',

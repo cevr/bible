@@ -6,11 +6,13 @@
 // project file, the same text for the same code.
 
 import { DIRECTION, figure, fragment, ids } from '@bible/film/style/rig';
+import { CHRIST, CHRIST_KNOBS } from './christ-rig.ts';
 import { handRig } from './hand-rig.ts';
 import { judgeRig } from './judge-rig.ts';
 import { leadRig } from './lead-rig.ts';
 import { PAPERS } from './papers.ts';
 import { prosecutorRig } from './prosecutor-rig.ts';
+import { robedRig } from './robed-rig.ts';
 
 /** The artboards, by name: what a prop asks the file for. */
 export const ARTBOARDS = {
@@ -19,6 +21,8 @@ export const ARTBOARDS = {
   judge: 'Judge',
   prosecutor: 'Prosecutor',
   skinHand: 'SkinHand',
+  christ: 'Christ',
+  christHand: 'ChristHand',
 } as const;
 
 /**
@@ -37,5 +41,11 @@ export const figuresRml = (): string => {
     ...judgeRig(figure(next, ARTBOARDS.judge, 2303, 520, d)),
     ...prosecutorRig(figure(next, ARTBOARDS.prosecutor, 2304, 1020, d)),
     ...handRig(figure(next, ARTBOARDS.skinHand, 2305, 1420, d), { ...PAPERS.skinHand, rim: 4 }),
+    ...robedRig(figure(next, ARTBOARDS.christ, 2306, 1540, d), CHRIST, CHRIST_KNOBS),
+    ...handRig(figure(next, ARTBOARDS.christHand, 2307, 1860, d), {
+      ...PAPERS.christSkin,
+      crease: PAPERS.skinHand.crease,
+      rim: 4,
+    }),
   ]);
 };

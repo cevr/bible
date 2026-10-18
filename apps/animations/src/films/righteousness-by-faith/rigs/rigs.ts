@@ -7,6 +7,7 @@ import type { RivePropSpec } from '@bible/film/rive';
 import { Record as Rec } from 'effect';
 import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
+import { CHRIST, CHRIST_KNOBS } from './christ-rig.ts';
 import { HAND_ART } from './hand-rig.ts';
 import {
   JUDGE_ART,
@@ -29,6 +30,12 @@ import {
   PROSECUTOR_TIMELINES,
   type ProsecutorTimeline,
 } from './prosecutor-rig.ts';
+import {
+  ROBED_TIMELINES,
+  type RobedKnob,
+  type RobedTimeline,
+  robedFaceCheck,
+} from './robed-rig.ts';
 
 /** The plain lead: his feet at our origin. */
 export const leadProp: RivePropSpec<LeadTimeline, keyof typeof LEAD_KNOBS> = {
@@ -87,6 +94,25 @@ export const prosecutorProp: RivePropSpec<ProsecutorTimeline, keyof typeof PROSE
   },
 };
 
+/** Christ: His feet at our origin. */
+export const christProp: RivePropSpec<RobedTimeline, RobedKnob> = {
+  source: {
+    riv: figuresRiv,
+    artboard: ARTBOARDS.christ,
+    timelines: Rec.keys(ROBED_TIMELINES),
+    numbers: Rec.keys(CHRIST_KNOBS),
+  },
+  engine: 'canvas',
+  key: 'righteousness-by-faith/christ',
+  origin: CHRIST.art.feet,
+  face: robedFaceCheck(CHRIST),
+  // `film match`'s concept: Christ beside the accused in court.12, the kept concept His head and face are traced from.
+  concept: {
+    image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/5-court-12.png' },
+    box: [370, 270, 575, 760],
+  },
+};
+
 /** A circle hand of `artboard`, its centre at our origin: no view model, only its paper's crawl. */
 const handProp = (artboard: string, key: string): RivePropSpec<'boil', never> => ({
   source: { riv: figuresRiv, artboard, timelines: ['boil'], numbers: [] },
@@ -100,3 +126,6 @@ export const leadHandProp = handProp(ARTBOARDS.leadHand, 'lead-hand');
 
 /** A hand in the house look's skin: the judge's and the prosecutor's. */
 export const skinHandProp = handProp(ARTBOARDS.skinHand, 'skin-hand');
+
+/** Christ's hand, in His skin. */
+export const christHandProp = handProp(ARTBOARDS.christHand, 'christ-hand');

@@ -27,10 +27,20 @@ import {
   tableShadow,
 } from './court-set.ts';
 import { C } from './kit.ts';
+import { type SeedPose, noSeed, seed as seedProp } from './props.ts';
+import { CHRIST_KNOBS } from './rigs/christ-rig.ts';
 import { JUDGE_KNOBS } from './rigs/judge-rig.ts';
 import { LEAD, LEAD_KNOBS } from './rigs/lead-rig.ts';
 import { PROSECUTOR_KNOBS } from './rigs/prosecutor-rig.ts';
-import { judgeProp, leadHandProp, leadProp, prosecutorProp, skinHandProp } from './rigs/rigs.ts';
+import {
+  christHandProp,
+  christProp,
+  judgeProp,
+  leadHandProp,
+  leadProp,
+  prosecutorProp,
+  skinHandProp,
+} from './rigs/rigs.ts';
 
 /** The rigs a court scene declares (`drawing({ rigs: COURT_RIGS })`). */
 export const COURT_RIGS = {
@@ -39,6 +49,13 @@ export const COURT_RIGS = {
   judge: judgeProp,
   prosecutor: prosecutorProp,
   skinHand: skinHandProp,
+} as const;
+
+/** The rigs the landing's court declares: the court's, and Christ beside the accused. */
+export const LANDING_RIGS = {
+  ...COURT_RIGS,
+  christ: christProp,
+  christHand: christHandProp,
 } as const;
 
 /** What drawing the court needs of a frame: its context, its boil tick and its seconds, and the rigs. */
@@ -55,12 +72,17 @@ export interface CourtFrame {
     name: 'prosecutor',
     pose: { timelines: Timelines<'breath' | 'boil'>; numbers: ProsecutorNumbers },
   ): void;
-  rive(name: 'leadHand' | 'skinHand', pose: { timelines: Timelines<'boil'> }): void;
+  rive(
+    name: 'christ',
+    pose: { timelines: Timelines<'breath' | 'boil'>; numbers: ChristNumbers },
+  ): void;
+  rive(name: 'leadHand' | 'skinHand' | 'christHand', pose: { timelines: Timelines<'boil'> }): void;
 }
 type Timelines<T extends string> = ReadonlyArray<readonly [T, number]>;
 type LeadNumbers = Record<keyof typeof LEAD_KNOBS, number>;
 type JudgeNumbers = Record<keyof typeof JUDGE_KNOBS, number>;
 type ProsecutorNumbers = Record<keyof typeof PROSECUTOR_KNOBS, number>;
+type ChristNumbers = Record<keyof typeof CHRIST_KNOBS, number>;
 
 /** The seal: where it is (its centre, Board pixels), its turn, its size, and how far it shows. */
 export interface SealPose {
@@ -73,13 +95,41 @@ export interface SealPose {
   glint: number;
 }
 
-/** One frame of the court: every figure's numbers and hands, the gavel, the evidence and the seal. */
+/**
+ * One frame of the court: every figure's numbers and hands, the gavel, the
+ * evidence and the seal; in the landing, Christ beside the accused and the
+ * seeds in their hands.
+ */
 export interface CourtPose {
-  readonly lead: { numbers: LeadNumbers; hands: [Pt, Pt]; seal: SealPose };
-  readonly prosecutor: { numbers: ProsecutorNumbers; hands: [Pt, Pt]; carried: CarriedSheet };
+  readonly lead: {
+    numbers: LeadNumbers;
+    hands: [Pt, Pt];
+    seal: SealPose;
+    /** How far he stands off his place in the dock, Board pixels (the landing makes room beside him). */
+    dx: number;
+    seed: SeedPose;
+  };
+  readonly prosecutor: {
+    numbers: ProsecutorNumbers;
+    hands: [Pt, Pt];
+    carried: CarriedSheet;
+    /** Whether he stands at his table: 0 his place empty. */
+    shown: number;
+  };
   readonly judge: { numbers: JudgeNumbers; hands: [Pt, Pt]; grip: [number, number]; rot: number };
+  readonly christ: {
+    numbers: ChristNumbers;
+    hands: [Pt, Pt];
+    /** Whether He stands beside the accused: 0 not there. */
+    shown: number;
+    /** His near hand's size against its rest, as He holds it out toward us. */
+    reach: number;
+    seed: SeedPose;
+  };
   /** How many sheets lie on the stack (its last may be partway down, the fraction). */
   stack: number;
+  /** Whether the two laid sheets lie on the table. */
+  laid: number;
 }
 
 /** A sheet in the prosecutor's hand: where it is, its turn, and whether he holds one. */
@@ -104,6 +154,11 @@ export const HANDS = {
     [1192, BENCH_TOP - 6],
     [1360, BENCH_TOP - 6],
   ],
+  /** Christ's, on the dock's rail beside the lead, where court-12 sets them. */
+  christ: [
+    [390, 576],
+    [546, 573],
+  ],
 } as const satisfies Record<string, readonly [Pt, Pt]>;
 
 /** The gavel lying on the bench: its grip, and its turn (its head up and to the left). */
@@ -118,11 +173,14 @@ export const restPose = (): CourtPose => ({
     numbers: { ...LEAD_KNOBS },
     hands: [[...HANDS.lead[0]], [...HANDS.lead[1]]],
     seal: { x: 0, y: 0, rot: 0, scale: 1, shown: 0, glint: 0 },
+    dx: 0,
+    seed: noSeed(),
   },
   prosecutor: {
     numbers: { ...PROSECUTOR_KNOBS },
     hands: [[...HANDS.prosecutor[0]], [...HANDS.prosecutor[1]]],
     carried: { x: 0, y: 0, rot: 0, shown: 0 },
+    shown: 1,
   },
   judge: {
     numbers: { ...JUDGE_KNOBS },
@@ -130,7 +188,15 @@ export const restPose = (): CourtPose => ({
     grip: [GAVEL_REST.grip[0], GAVEL_REST.grip[1]],
     rot: GAVEL_REST.rot,
   },
+  christ: {
+    numbers: { ...CHRIST_KNOBS },
+    hands: [[...HANDS.christ[0]], [...HANDS.christ[1]]],
+    shown: 0,
+    reach: 1,
+    seed: noSeed(),
+  },
   stack: 6,
+  laid: 1,
 });
 
 /** Where the stain's middle is on the lead as he leans `lean`, Board pixels: where the seal presses. */
@@ -242,7 +308,7 @@ export const seal = (ctx: CanvasRenderingContext2D, s: SealPose) => {
 };
 
 /** A circle hand of `rig` at `p`, `scale` times its size. */
-const handAt = (f: CourtFrame, rig: 'leadHand' | 'skinHand', p: Pt, scale = 1) =>
+const handAt = (f: CourtFrame, rig: 'leadHand' | 'skinHand' | 'christHand', p: Pt, scale = 1) =>
   at(f.ctx, { x: p[0], y: p[1], scale }, () =>
     f.rive(rig, { timelines: [['boil', boilTime(f.boil)]] }),
   );
@@ -259,7 +325,7 @@ const living = (f: CourtFrame, period: number, offset: number) =>
  * its head's width the concept draws: the judge's 0.45, the prosecutor's
  * 0.44, the lead's 0.34.
  */
-const HAND = { judge: 1.23, prosecutor: 1.14, lead: 1.08 } as const;
+const HAND = { judge: 1.23, prosecutor: 1.14, lead: 1.08, christ: 1.08 } as const;
 
 /** The bench and the judge behind it: his chair, the block and the gavel, his hands on the bench. */
 const judgeGroup = (f: CourtFrame, p: CourtPose) => {
@@ -277,12 +343,15 @@ const judgeGroup = (f: CourtFrame, p: CourtPose) => {
 /** The table and the prosecutor behind it: the evidence on it, the sheet in his hand, his hands. */
 const prosecutorGroup = (f: CourtFrame, p: CourtPose) => {
   const { ctx } = f;
-  contact(ctx, PLACE.prosecutor[0], PLACE.prosecutor[1] + 2, 130);
-  at(ctx, { x: PLACE.prosecutor[0], y: PLACE.prosecutor[1] }, () =>
-    f.rive('prosecutor', { timelines: living(f, 4.5, 0.4), numbers: p.prosecutor.numbers }),
-  );
+  const here = p.prosecutor.shown > 0;
+  if (here) {
+    contact(ctx, PLACE.prosecutor[0], PLACE.prosecutor[1] + 2, 130);
+    at(ctx, { x: PLACE.prosecutor[0], y: PLACE.prosecutor[1] }, () =>
+      f.rive('prosecutor', { timelines: living(f, 4.5, 0.4), numbers: p.prosecutor.numbers }),
+    );
+  }
   table(ctx);
-  for (const [i, s] of LAID_SHEETS.entries()) sheet(ctx, s, 31 + i);
+  if (p.laid > 0) for (const [i, s] of LAID_SHEETS.entries()) sheet(ctx, s, 31 + i);
   const whole = Math.floor(p.stack);
   for (const [i, s] of STACK_SHEETS.entries()) {
     if (i >= Math.ceil(p.stack)) break;
@@ -292,19 +361,37 @@ const prosecutorGroup = (f: CourtFrame, p: CourtPose) => {
   }
   const c = p.prosecutor.carried;
   if (c.shown > 0) sheet(ctx, c, 97, 0.55);
-  for (const h of p.prosecutor.hands) handAt(f, 'skinHand', h, HAND.prosecutor);
+  if (here) for (const h of p.prosecutor.hands) handAt(f, 'skinHand', h, HAND.prosecutor);
 };
 
-/** The dock and the lead behind it: the seal over his stain, his hands on the rail. */
+/**
+ * The dock and who stands behind it: Christ beside the lead when He is
+ * there, the lead in front of Him; the seal over the lead's stain; their
+ * hands on the rail, and the seeds in their hands.
+ */
 const leadGroup = (f: CourtFrame, p: CourtPose) => {
   const { ctx } = f;
-  contact(ctx, PLACE.lead[0], PLACE.lead[1] + 2, 95);
-  at(ctx, { x: PLACE.lead[0], y: PLACE.lead[1] }, () =>
+  const christ = p.christ.shown > 0;
+  if (christ) {
+    contact(ctx, PLACE.christ[0], PLACE.christ[1] + 2, 100);
+    at(ctx, { x: PLACE.christ[0], y: PLACE.christ[1] }, () =>
+      f.rive('christ', { timelines: living(f, 5, 3.4), numbers: p.christ.numbers }),
+    );
+  }
+  const lx = PLACE.lead[0] + p.lead.dx;
+  contact(ctx, lx, PLACE.lead[1] + 2, 95);
+  at(ctx, { x: lx, y: PLACE.lead[1] }, () =>
     f.rive('lead', { timelines: living(f, 4, 2.1), numbers: p.lead.numbers }),
   );
   seal(ctx, p.lead.seal);
   dock(ctx);
   for (const h of p.lead.hands) handAt(f, 'leadHand', h, HAND.lead);
+  seedProp(ctx, p.lead.seed);
+  if (!christ) return;
+  const [near, far] = p.christ.hands;
+  handAt(f, 'christHand', far, HAND.christ);
+  handAt(f, 'christHand', near, HAND.christ * p.christ.reach);
+  seedProp(ctx, p.christ.seed);
 };
 
 /**
