@@ -32,8 +32,7 @@ import {
   wash,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { keyLight, shading, smooth } from '@bible/film/style';
-import { type Crease, boxOf, creaseOf } from '@bible/film/style/rig';
+import { type Crease, boxOf, creaseOf, keyLight, shading, smooth } from '@bible/film/style';
 import { box, cut } from './court-set.ts';
 import { C, piece } from './kit.ts';
 import { type CamperName, type CamperPose, bodyOf, stand } from './look-props.ts';

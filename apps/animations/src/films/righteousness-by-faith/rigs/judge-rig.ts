@@ -35,9 +35,10 @@ import {
   Robe,
   Stance,
   Stature,
+  ellipse,
   figure,
+  shifted,
 } from '@bible/film/style';
-import { ellipse, shifted } from '@bible/film/style/rig';
 import JUDGE_LOCK from './judge.lock.json' with { type: 'json' };
 import { PAPERS } from './papers.ts';
 import { JUDGE_HAIR, JUDGE_HEAD } from './traced.ts';

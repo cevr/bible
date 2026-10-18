@@ -20,7 +20,6 @@
     "./stand-in": "./src/canvas/fixtures/stand-in.ts",
     "./rive": "./src/canvas/rive.ts",
     "./style": "./src/style/index.ts",
-    "./style/rig": "./src/style/rig/index.ts",
     "./style/build": "./src/style/build.ts"
   },
   "scripts": {

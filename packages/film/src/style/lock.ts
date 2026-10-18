@@ -2,9 +2,10 @@
 // its composition (`<item>.lock.json`), which the composition carries
 // (`figure`'s `lock`): the item, its version (one more each time he keeps a
 // changed one), the sha256 of its print as he kept it (its artboard and its
-// hands', as its film draws them alone: ids of their own, at the stage's
-// start), the ask he kept it in, the time the production's ledger filed his
-// decision, and the still he saw it in. The print is what the house draws of
+// hands', as the house prints them alone from his film's figures file,
+// `lockedPrints`: ids of their own, at the stage's start), the ask he kept
+// it in, the time the production's ledger filed his decision, and the still
+// he saw it in. The print is what the house draws of
 // him, so a change to a part, to how the house draws one, or to his place in
 // his film's file (his artboard's name, his boil's seed) moves it; a slot the
 // house draws nothing from (his concept, his stature, his hands' share) does

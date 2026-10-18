@@ -35,10 +35,11 @@ import {
   Sandals,
   Stance,
   Stature,
+  ellipse,
   figure,
+  roundedPolygon,
   tracedKit,
 } from '@bible/film/style';
-import { ellipse, roundedPolygon } from '@bible/film/style/rig';
 import {
   FRONT_BEARD,
   FRONT_BEARD_LIT,

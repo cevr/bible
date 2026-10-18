@@ -101,14 +101,14 @@ describe('silhouette', () => {
     expect(papers).toHaveLength(3);
     for (const paper of papers) expect(named(paper, 'Fill').length).toBeGreaterThan(0);
   });
-  test('rims only the backmost part: a part laid inside the outline gets no light border', () => {
+  test("lays each part's rim as it is given: which part has one is held where it is composed (InnerRim)", () => {
     const rimmed = { ...look, rim: 5 };
     const cut = silhouette(figure(ids(), 'Test', 7, 0, DIRECTION), 'headCut', [
       { key: 'ear', pts: ellipse(50, 20, 10, 16, 12), look: rimmed },
-      { key: 'hair', pts: ellipse(0, -30, 60, 40, 24), look: rimmed },
+      { key: 'hair', pts: ellipse(0, -30, 60, 40, 24), look },
       { key: 'face', pts: ellipse(0, 0, 55, 70, 24), look: rimmed },
     ]);
-    expect(called(cut, 'earRim')).toHaveLength(0);
+    expect(called(cut, 'earRim')).toHaveLength(1);
     expect(called(cut, 'hairRim')).toHaveLength(0);
     expect(called(cut, 'faceRim')).toHaveLength(1);
   });

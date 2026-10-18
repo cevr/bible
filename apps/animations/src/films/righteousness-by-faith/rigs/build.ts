@@ -1,8 +1,9 @@
-// Build RBF's figure rigs (`figures.ts`) into `figures.riv` beside this file,
-// where `rigs.ts` imports it, with the stamp of what it was built from
-// (`figures.stamp.json`): the generated project (`project/`) compiled by the
-// house's `compile` (`@bible/film/style/build`: the Rive CLI, offline and
-// unsigned). It builds nothing while an override on a figure cites words or
+// Build RBF's figures file (`FIGURES`, `figures.ts`) into `figures.riv`
+// beside this file, where `rigs.ts` imports it, with the stamp of what it was
+// built from (`figures.stamp.json`): the project the house prints from the
+// file (`figuresRml`, `@bible/film/style`), generated (`project/`) and
+// compiled by the house's `compile` (`@bible/film/style/build`: the Rive CLI,
+// offline and unsigned). It builds nothing while an override on a figure cites words or
 // a pick that are not the owner's on RBF's ledger (`unsaid`, `LEDGER`), nor
 // while a locked figure's print is not the one its lock holds (`unlocked`),
 // unless an override citing his words or his pick frees that print, which it
@@ -18,9 +19,9 @@
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Console, Effect, FileSystem, Schema } from 'effect';
-import { citedBy } from '@bible/film/style';
+import { citedBy, figureOverrides, figuresRml, lockedPrints } from '@bible/film/style';
 import { compile, unbuilt, unlocked, unsaid } from '@bible/film/style/build';
-import { ARTBOARDS, figureOverrides, figuresRml, lockedPrints } from './figures.ts';
+import { ARTBOARDS, FIGURES } from './figures.ts';
 
 const here = import.meta.dir;
 
@@ -62,10 +63,10 @@ const committed = { riv: `${here}/figures.riv`, stamp: `${here}/figures.stamp.js
 
 const build = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const unbacked = yield* unsaid(LEDGER, figureOverrides());
+  const unbacked = yield* unsaid(LEDGER, figureOverrides(FIGURES));
   if (unbacked.length > 0)
     return yield* OverridesUnsaid.make({ unsaid: unbacked.map((u) => u.why) });
-  const locks = yield* unlocked(lockedPrints());
+  const locks = yield* unlocked(lockedPrints(FIGURES));
   yield* Effect.forEach(locks.overridden, ({ item, override }) =>
     Console.log(
       `overridden: ${item}'s lock (FigureLock): ${override.reason} (${citedBy(override)})`,
@@ -73,7 +74,7 @@ const build = Effect.gen(function* () {
   );
   if (locks.broken.length > 0)
     return yield* LocksBroken.make({ broken: locks.broken.map((b) => b.why) });
-  const rml = figuresRml();
+  const rml = figuresRml(FIGURES);
   const stale = yield* unbuilt({ ...committed, rml, main: ARTBOARDS.lead });
   if (stale.length === 0)
     return yield* Console.log('figures.riv is the build of the rigs: nothing to build');

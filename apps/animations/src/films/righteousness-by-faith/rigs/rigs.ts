@@ -4,7 +4,7 @@
 // stands. Canvas 2D is the engine, and every scene draws them the same way.
 
 import type { RivePropSpec } from '@bible/film/rive';
-import { HAND_ART } from '@bible/film/style/rig';
+import { HAND_ART } from '@bible/film/style';
 import { Record as Rec } from 'effect';
 import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };

@@ -381,6 +381,23 @@ describe('a bearded head, and the parts of a head turned and of bare feet', () =
     );
   });
 
+  test("a traced head's rim is its own paper's alone: every part cut in it is drawn with none", () => {
+    const rimmed = paper({ color: '#ece7fa', shade: '#c9bcf2', light: '#fffffb', rim: 4 }, 'skin');
+    const { _tag, ...traced } = standingOf().head;
+    const ears = Ear.Both({
+      near: ellipse(-45, 10, 6, 10, 10),
+      far: ellipse(45, 10, 6, 10, 10),
+      paper: FLAT,
+    });
+    for (const cut of [{ beard, headcloth, ear: ears }, {}]) {
+      const rml = drawnOf(
+        figure({ ...standingOf(), head: Head.Traced({ ...traced, paper: rimmed }), ...cut }),
+      );
+      const head = rml.slice(rml.indexOf('name="headCut"'), rml.indexOf('name="headCutInk"'));
+      expect(Array.from(head.matchAll(/name="(\w+)Rim"/g), (m) => m[1])).toEqual(['headPaper']);
+    }
+  });
+
   test('a head with no beard lays its papers as they are cut, untucked', () => {
     const rml = drawnOf(figure(standingOf()));
     expect(printed(rml, 'hair')).toEqual(toMillionth(ellipse(0, -40, 50, 25, 12)));

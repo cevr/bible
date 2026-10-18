@@ -260,10 +260,10 @@ const headPaperOf = (head: TracedHead): Cut => ({
 
 /**
  * `papers`, front first, each tucked under those laid over it (`tucked`);
- * the backmost, when it draws a rim (it alone does, `silhouette`), its
- * rim's width and more under their seams (`tuckedRimmed`). So no sliver of
- * a paper behind shows at a seam, or round the silhouette, as their
- * outlines crawl.
+ * the backmost, when it draws a rim (it alone may: a paper laid over it has
+ * none, InnerRim), its rim's width and more under their seams
+ * (`tuckedRimmed`). So no sliver of a paper behind shows at a seam, or round
+ * the silhouette, as their outlines crawl.
  */
 const tuckedUnder = (papers: ReadonlyArray<Cut>): Cut[] => {
   const base = papers.length - 1;

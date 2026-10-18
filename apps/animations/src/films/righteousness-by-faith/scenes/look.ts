@@ -53,8 +53,15 @@ import {
   shotPath,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { EASE, type Expression, type Pt, acted, boilTime, reachAbout } from '@bible/film/style';
-import { HAND_ART } from '@bible/film/style/rig';
+import {
+  EASE,
+  type Expression,
+  HAND_ART,
+  type Pt,
+  acted,
+  boilTime,
+  reachAbout,
+} from '@bible/film/style';
 import { CARD_STYLE } from '../card.ts';
 import { COURT_RIGS, living } from '../court-cast.ts';
 import { contact } from '../court-set.ts';

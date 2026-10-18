@@ -8,8 +8,7 @@
 // the house's (`@bible/film/style`). Pure.
 
 import type { Hex } from '@bible/film/canvas';
-import { RIM, papers, rampedPaper } from '@bible/film/style';
-import type { Crease } from '@bible/film/style/rig';
+import { type Crease, RIM, papers, rampedPaper } from '@bible/film/style';
 
 /**
  * The concept's turns, sampled on its pieces: a face shades only its far

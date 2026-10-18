@@ -35,9 +35,10 @@ import {
   Shoes,
   Stance,
   Stature,
+  ellipse,
   figure,
+  shifted,
 } from '@bible/film/style';
-import { ellipse, shifted } from '@bible/film/style/rig';
 import PROSECUTOR_LOCK from './prosecutor.lock.json' with { type: 'json' };
 import { PAPERS } from './papers.ts';
 import { PROSECUTOR_HAIR, PROSECUTOR_HEAD } from './traced.ts';

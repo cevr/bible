@@ -33,8 +33,7 @@ import {
   wash,
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
-import { keyLight, shading } from '@bible/film/style';
-import { type Crease, boxOf, creaseOf } from '@bible/film/style/rig';
+import { type Crease, boxOf, creaseOf, keyLight, shading } from '@bible/film/style';
 import { contact, cut } from './court-set.ts';
 import { C } from './kit.ts';
 import { GOLD_GLOW, type Paper, cast, paper } from './page-set.ts';

@@ -669,7 +669,6 @@
                   "**/style/**",
                   "**/style",
                   "@bible/film/style",
-                  "@bible/film/style/rig",
                   "@bible/film/style/build"
                 ],
                 "message": "the engine never imports the house look (src/style/): the look draws with the engine (packages/film/README.md, the purity rule)."
@@ -719,7 +718,6 @@
                   "**/style/**",
                   "**/style",
                   "@bible/film/style",
-                  "@bible/film/style/rig",
                   "@bible/film/style/build"
                 ],
                 "message": "the engine never imports the house look (src/style/): the look draws with the engine (packages/film/README.md, the purity rule)."
@@ -770,7 +768,6 @@
                   "**/style/**",
                   "**/style",
                   "@bible/film/style",
-                  "@bible/film/style/rig",
                   "@bible/film/style/build"
                 ],
                 "message": "the Rive loader and its runtimes never import the house look (src/style/): a film's rigs are built from it ahead of time, and the loader loads the built file (packages/film/README.md, the purity rule)."
