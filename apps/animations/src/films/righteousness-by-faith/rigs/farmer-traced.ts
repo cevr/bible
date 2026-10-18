@@ -78,23 +78,36 @@ export const CLOTH: Pt[] = [
 
 /**
  * The cloth's dark edge down his near cheek, from the band to his shoulder,
- * as narrow as the panel draws it (9 pixels at his eyes, 18 at his jaw):
- * laid on the cloth. Its sides carry points along their length so the smooth
- * path keeps to them.
+ * as the panel paints it: 9 pixels at his eyes, widening to his jaw beside
+ * the beard, then narrowing under the beard so that it and the head's ink
+ * read as the one dark band the panel draws down to the vest (19 pixels).
+ * A paper of its own over the cloth, its inner side 2 pixels past the
+ * cloth's edge, so the face tucks under it and no cloth shows between it
+ * and the ink. Its sides carry points along their length so the smooth path
+ * keeps to them.
  */
 export const CLOTH_EDGE: Pt[] = [
-  [377, 376],
-  [386, 372],
-  [386, 420],
-  [384, 460],
-  [385, 490],
-  [383, 520],
-  [381, 548],
-  [364, 548],
-  [365, 520],
-  [369, 490],
-  [372, 460],
-  [376, 420],
+  [374, 372],
+  [391, 356],
+  [390, 380],
+  [389, 420],
+  [388, 460],
+  [392, 480],
+  [393, 500],
+  [392, 520],
+  [391, 536],
+  [389, 548],
+  [384, 551],
+  [382, 550],
+  [382, 530],
+  [381, 512],
+  [376, 498],
+  [370, 485],
+  [369, 470],
+  [372, 450],
+  [374, 430],
+  [376, 410],
+  [377, 392],
 ];
 
 /** The band round his head, measured on the panel's columns: across his brow from the knot at his far temple, dropping steeply round his near side, thickening to its end at the back of his head. */
@@ -180,37 +193,61 @@ export const FACE: Pt[] = [
   [385, 350],
 ];
 
-/** The shade down the near side of his nose, the nose turned toward screen right: a crescent on his face. */
+/**
+ * The shade down the far side of his nose, the nose turned toward screen
+ * right: a chevron under his far eye, its point out toward his far cheek
+ * (the panel's: half an eye spacing below the eyes, half an eye spacing
+ * across). Laid on his face.
+ */
 export const NOSE: Pt[] = [
-  [486, 401],
-  [496, 410],
-  [504, 421.7],
-  [497, 432],
-  [486.4, 440],
-  [491, 429],
-  [495, 421],
-  [490, 411],
+  [494, 401],
+  [504, 409],
+  [512, 416],
+  [517, 424],
+  [511, 433],
+  [502, 441],
+  [494, 448],
+  [489, 444],
+  [497, 437],
+  [504, 431],
+  [507, 424],
+  [503, 418],
+  [497, 412],
+  [490, 405],
 ];
 
 /**
- * The shade down his near cheek, by the cloth's edge: narrow under the band,
- * widening down to his beard, its inner edge a slant (the panel's samples:
- * shade to x 397 at y 400, to 410 at 440, to 425 at 460). Laid on his face.
+ * The shade down his near cheek, against the cloth's edge: a wedge, 5
+ * pixels wide 15 under the band, 8 at his eyes, 16 at mid-nose and about
+ * 30 at the beard, its inner edge a slant (the panel's samples). Laid on
+ * his face; `CHEEK_SOFT`, a step between it and the lit skin, softens its
+ * inner edge.
  */
 export const CHEEK_SHADE: Pt[] = [
   [372, 378],
-  [386, 380],
-  [397, 386],
-  [399, 410],
-  [404, 432],
-  [414, 450],
-  [428, 464],
-  [440, 476],
-  [440, 500],
-  [400, 500],
-  [372, 486],
-  [372, 430],
+  [388, 381],
+  [391, 385],
+  [393, 392],
+  [395, 400],
+  [397, 408],
+  [400, 415],
+  [403, 421],
+  [406, 428],
+  [409, 436],
+  [412, 444],
+  [415, 452],
+  [418, 460],
+  [421, 468],
+  [424, 476],
+  [424, 500],
+  [372, 500],
+  [372, 440],
 ];
+
+/** The cheek shade's inner edge, 4 pixels wider: a half step from the shade to the lit skin, laid under it. */
+export const CHEEK_SOFT: Pt[] = CHEEK_SHADE.map(([x, y], i): Pt =>
+  i >= 1 && i <= 15 ? [x + 4, y + (i === 1 ? -1 : 0)] : [x, y],
+);
 
 /** His beard: round under his jaw, up his near cheek to the cloth, his moustache over his mouth. */
 export const BEARD: Pt[] = [
@@ -268,7 +305,7 @@ export const MARKS = {
       [497, 363],
     ],
   ],
-  brow: 6.5,
+  brow: 7.8,
   mouth: [
     [480, 472],
     [509, 468],
@@ -386,12 +423,12 @@ export const NECK: Pt[] = [
 ];
 
 /**
- * His hands' centres, free beside him as the cast's hands are, where the
- * panel draws them: the near one at his near side; the far one low at his
- * far side, raised to the panel's open hand as the rain comes on.
+ * His hands' centres, free circles as the cast's hands are: the near one
+ * over his near vest; the far one over his far vest at rest, clear of his
+ * outline, raised to the panel's open hand beside him as the rain comes on.
  */
 export const HANDS = {
   near: [330, 815],
-  far: [600, 830],
+  far: [522, 845],
   raised: [690, 655],
 } as const satisfies Record<string, Pt>;

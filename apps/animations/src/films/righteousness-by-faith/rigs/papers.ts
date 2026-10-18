@@ -63,6 +63,7 @@ const TURN = {
   farmerFace: { at: 0.78, soft: 0.04, toward: 0.3 },
   farmerHead: { at: 1 },
   linen: { at: 0.9, soft: 0.02, toward: 0.2 },
+  headcloth: { at: 0.6, soft: 0.04, toward: 1.3 },
 } as const satisfies Record<string, Crease>;
 
 /** The figures' papers, by what each is. */
@@ -158,17 +159,27 @@ export const PAPERS = {
    * The farmer's face, as rain.rain paints it, his head turned up and to
    * screen right: lit all across, its far side too; its shade, toward rose,
    * only low on his near cheek in the headcloth's shadow, laid there as a
-   * soft tone (`farmer-rig.ts`), never a cut across the face.
+   * soft tone (`farmer-rig.ts`), never a cut across the face. No rim: its
+   * lit side lies under the headcloth and its only silhouette is the far,
+   * shadow side, where rain.rain runs the skin to the ink.
    */
   farmerFace: {
     color: '#f6b373',
     shade: '#e3976a',
     light: '#f9d3a3',
     crease: TURN.farmerHead,
+  },
+  /**
+   * The farmer's headcloth, as rain.rain paints it: a near-white crown lit
+   * from above, its drape falling into a warm tan turned toward rose.
+   */
+  headcloth: {
+    color: '#fdeec6',
+    shade: '#dcb788',
+    light: '#fff3d8',
+    crease: TURN.headcloth,
     rim: RIM,
   },
-  /** The farmer's headcloth, as rain.rain paints it: a warm off-white, its shade a warm tan turned toward rose. */
-  headcloth: { color: '#fbe5b8', shade: '#e2bd8f', light: '#fff3d8', crease: TURN.linen, rim: RIM },
   /** The farmer's tunic, as rain.rain paints it: a warm tan, its shade turned toward rose, away from the sun. */
   linen: { color: '#e2b480', shade: '#c4916e', light: '#efca9a', crease: TURN.linen, rim: RIM },
   /** Sandals: a leather brown. */

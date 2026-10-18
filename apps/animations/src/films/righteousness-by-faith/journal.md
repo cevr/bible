@@ -205,3 +205,11 @@ going: with only the four pinned leaves curling, the last frame had four brown l
 ## 2026-10-18T06:02:18Z · word
 
 match at 31.6 (the level look): head outline within 0.008 of the concept's, hands and brows on it; the eye height 29% under the concept's is the look's heavy lids (eyes 0.7), and the body 13% narrow at 0.7 under the chin, feet 15% narrow and the shade's hue turn are the same flags as at mark:right and in cold, the rig's
+
+## 2026-10-18T06:28:48Z · rain
+
+r3 (critique round 2): with no rim on the farmer's face, the far edge reads skin to ink and the strip meets the cheek wedge; the strip as its own paper reads one dark run from the cloth to the neck at 19.49 (1:1, no cream pixel); the resting far hand sits clear inside the outline at 14.19; `film match` mouth width reads -26% while the mouth line to eye spacing is 0.60 as in r2 (pixels).
+
+## 2026-10-18T06:28:50Z · court
+
+r3: the near hair tip, blunt and as wide as the rim, hides the face rim beside it; the rim starts at the tip's foot at 16.51 and 20.01. The gaze knob cannot hold the features' slide apart from the eyes' (both follow one target and the features saturate first), so the near brow was moved in 2 units and Christ's turn cut to 0.5: brow to ink about 0.15 eye spacing at 16.51.

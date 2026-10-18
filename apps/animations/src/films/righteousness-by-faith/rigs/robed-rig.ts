@@ -34,7 +34,7 @@ import {
   silhouette,
   timeline,
 } from '@bible/film/style/rig';
-import { tucked } from './shapes.ts';
+import { tucked, tuckedRimmed } from './shapes.ts';
 
 /** One paper of a figure: its outline, units, and its paint. */
 export interface RobedPart {
@@ -49,6 +49,26 @@ export interface RobedPart {
 type FaceAt = Parameters<typeof faceKit>[1] & {
   /** The marks' turn on the head, radians: a face the concept draws tipped (a head turned up and aside). */
   readonly rotation?: number;
+  /** Each eye's lean past the marks' turn, radians (negative: its top toward screen left), as a turned head's concept leans them. */
+  readonly eyeLean?: number;
+};
+
+/** A Rive element as the generator writes it. */
+type Element = ReturnType<typeof el>;
+
+/** The face kit's eyes, by their shapes' names. */
+const EYES: ReadonlySet<unknown> = new Set(['eyeL', 'eyeR']);
+
+/** `node` with each eye shape in it leaned `lean` radians about its centre. */
+const leanEyes = (node: Element, lean: number): Element => {
+  const named = node.attrs.find(([k]) => k === 'name')?.[1];
+  const attrs = Object.fromEntries(node.attrs);
+  const own = node.name === 'Shape' && EYES.has(named);
+  return el(
+    node.name,
+    own ? { ...attrs, rotation: lean } : attrs,
+    node.children.map((c) => leanEyes(c, lean)),
+  );
 };
 type FaceMarks = NonNullable<Parameters<typeof faceKit>[2]>;
 
@@ -108,20 +128,25 @@ export const robedFaceCheck = (r: Robed) => {
 
 const KEY = { y: 14, rotation: 15 } as const;
 
-/** How far the head's paper lies under the papers over it past its rim's width, units. */
+/** How far the head's paper lies under the seams of the papers over it past its rim's width, units. */
 const TUCK_UNDER_RIM = 2;
 
 /**
  * The head's papers, front first, each tucked under those laid over it, the
- * head's own last: its rim's width deeper, as only it draws a rim.
+ * head's own last: when it draws a rim, its rim's width and more under their
+ * seams over it (`tuckedRimmed`), as only it draws one.
  */
 const tuckedHead = (r: Robed): RobedPart[] => {
   const parts = [...r.cut, { key: 'headPaper', pts: r.outline, look: r.skin }];
   const base = parts.length - 1;
   return parts.map((p, i) => {
     const fronts = parts.slice(0, i).map((q) => q.pts);
-    const depth = i === base ? TUCK_UNDER_RIM + (p.look.rim ?? 0) : undefined;
-    return { ...p, pts: tucked(p.pts, fronts, depth) };
+    const rim = p.look.rim ?? 0;
+    const pts =
+      i === base && rim > 0
+        ? tuckedRimmed(p.pts, fronts, TUCK_UNDER_RIM + rim)
+        : tucked(p.pts, fronts);
+    return { ...p, pts };
   });
 };
 
@@ -129,8 +154,9 @@ const tuckedHead = (r: Robed): RobedPart[] => {
 export const robedRig = (fig: Figure, r: Robed, knobs: Readonly<Record<RobedKnob, number>>) => {
   // The robe breathes about its hem.
   const hem = Math.max(...r.robe.map((p) => p[1]));
-  const { rotation, ...faceAt } = r.face;
-  const face = faceKit(fig, faceAt, r.marks);
+  const { rotation, eyeLean, ...faceAt } = r.face;
+  const kit = faceKit(fig, faceAt, r.marks);
+  const face = eyeLean === undefined ? kit : leanEyes(kit, eyeLean);
   const headNode = el('Node', { y: r.neck, name: 'neck', id: fig.idOf('neck') }, [
     el('Node', { name: 'head', id: fig.idOf('head') }, [
       fig.bind('tilt', KEY.rotation),

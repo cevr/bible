@@ -21,6 +21,7 @@ import {
   BAND_LIT,
   BEARD,
   CHEEK_SHADE,
+  CHEEK_SOFT,
   CLOTH,
   CLOTH_EDGE,
   FACE,
@@ -66,12 +67,17 @@ const BAND_TAN = '#d4965b';
 const CLOTH_DARK = '#35261c';
 /** The shade down his nose, toward rose. */
 const NOSE_SHADE = '#e3946a';
-/** His near cheek in the cloth's shadow, as the panel paints it, turned 10° toward rose (CRAFT rule 12). */
-const CHEEK_SKIN = '#e2906a';
+/** His near cheek in the cloth's shadow, as the panel paints it: turned 5° toward rose from the lit skin (CRAFT rule 12). */
+const CHEEK_SKIN = '#e39964';
+/** Half way from the lit skin to the cheek's shade: the shade's soft inner edge. */
+const CHEEK_HALF = '#eca66b';
 /** His beard: one flat brown, as the panel paints it, with no turn across it. */
 const BEARD_BROWN = '#5f412a';
 /** His neck in the tunic's V, in the beard's shadow. */
 const NECK_SKIN = '#e29662';
+
+/** His eyes' lean past the eye line's tip: the panel leans them 20° from upright, the line tips them 10°. */
+const EYE_LEAN = -0.175;
 
 /**
  * His face's marks, panel pixels to the face kit's frame: about the middle
@@ -96,7 +102,7 @@ const face = (() => {
   const at = fromHead(c);
   const r2 = (v: number) => +v.toFixed(2);
   return {
-    at: { x: at[0], y: at[1], scale: 1, rotation: r2(rotation) },
+    at: { x: at[0], y: at[1], scale: 1, rotation: r2(rotation), eyeLean: EYE_LEAN },
     marks: {
       eyes: [r2(eyeL[0]), r2(eyeR[0])],
       eyeY: r2((eyeL[1] + eyeR[1]) / 2),
@@ -158,6 +164,7 @@ export const FARMER: Robed = {
   skin: looked(PAPERS.farmerFace, {
     tones: [
       { pts: headParts(NOSE), color: NOSE_SHADE },
+      { pts: headParts(CHEEK_SOFT), color: CHEEK_HALF },
       { pts: headParts(CHEEK_SHADE), color: CHEEK_SKIN },
     ],
   }),
@@ -186,12 +193,11 @@ export const FARMER: Robed = {
       },
     },
     {
-      key: 'cloth',
-      pts: headParts(CLOTH),
-      look: looked(PAPERS.headcloth, {
-        tones: [{ pts: headParts(CLOTH_EDGE), color: CLOTH_DARK }],
-      }),
+      key: 'clothEdge',
+      pts: headParts(CLOTH_EDGE),
+      look: { color: CLOTH_DARK, light: CLOTH_DARK, ink: 'none', shadow: 0 },
     },
+    { key: 'cloth', pts: headParts(CLOTH), look: looked(PAPERS.headcloth) },
   ],
   robe: bodyParts(TUNIC),
   robeLook: looked(PAPERS.linen, {

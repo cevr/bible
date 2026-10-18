@@ -175,10 +175,15 @@ interface Walked {
   readonly cut: boolean;
 }
 
-/** The point of the closed outline `poly` nearest `p`, and the unit normal of the edge it lies on, pointing into `poly`. */
-const nearestEdge = (p: Pt, poly: ReadonlyArray<Pt>) => {
+/**
+ * The point of the closed outline `poly` nearest `p`, and the unit normal of
+ * the edge it lies on, pointing into `poly`; only the edges `only` keeps
+ * (by index, the edge from point i to point i + 1) when given.
+ */
+const nearestEdge = (p: Pt, poly: ReadonlyArray<Pt>, only?: ReadonlyArray<boolean>) => {
   let best: Nearest = { at: p, d: Infinity, n: [0, 0] };
   poly.forEach((a, i) => {
+    if (only !== undefined && only[i] !== true) return;
     const b = poly[(i + 1) % poly.length] ?? a;
     const [ex, ey] = [b[0] - a[0], b[1] - a[1]];
     const len2 = ex * ex + ey * ey;
@@ -218,34 +223,72 @@ const resampled = (pts: ReadonlyArray<Pt>, step: number) =>
  */
 const TUCK = { depth: 3.5, reach: 5, step: 3 } as const;
 
+/** One walked point of a paper, tucked under `fronts` (`tucked`): kept, moved, or dropped. */
+const tuckOne = ({ p, cut }: Walked, fronts: ReadonlyArray<ReadonlyArray<Pt>>): Pt[] => {
+  let best: { readonly to: Pt; readonly w: number } | undefined;
+  for (const front of fronts) {
+    const e = nearestEdge(p, front);
+    const under = inside(p, front) ? e.d : -e.d;
+    if (under >= TUCK.depth) return cut ? [p] : [];
+    if (under <= -TUCK.reach) continue;
+    const t = Math.max(0, Math.min(1, (under + TUCK.reach) / (TUCK.reach / 2)));
+    const w = t * t * (3 - 2 * t);
+    if (best !== undefined && best.w >= w) continue;
+    best = { to: [e.at[0] + e.n[0] * TUCK.depth, e.at[1] + e.n[1] * TUCK.depth], w };
+  }
+  if (best === undefined || best.w === 0) return cut ? [p] : [];
+  const { to, w } = best;
+  return [[+(p[0] + (to[0] - p[0]) * w).toFixed(2), +(p[1] + (to[1] - p[1]) * w).toFixed(2)]];
+};
+
 /**
  * `back` tucked under `fronts`: each point near a front paper's edge moved
  * `TUCK.depth` under it, so no sliver of `back` shows between them or round
- * the silhouette they share (see `TUCK`). A paper with a rim lies `deep`
- * under a front wherever it already lies under it, its rim's width further,
- * so the rim it draws along its whole outline shows only on the silhouette,
- * never at a seam; the points outside a front, on the silhouette, move
- * only `TUCK.depth`.
+ * the silhouette they share (see `TUCK`).
  */
-export const tucked = (
+export const tucked = (back: ReadonlyArray<Pt>, fronts: ReadonlyArray<ReadonlyArray<Pt>>): Pt[] =>
+  resampled(back, TUCK.step).flatMap((w) => tuckOne(w, fronts));
+
+/** How far inside `back` a front's edge lies to be a seam over it rather than its silhouette, units. */
+const SEAM = 1.5;
+
+/**
+ * Which edges of `front` are seams over `back`: those whose middle lies
+ * inside `back`, more than `SEAM` from its outline. The rest lie on the
+ * silhouette the two share, or past it.
+ */
+const seamsOf = (front: ReadonlyArray<Pt>, back: ReadonlyArray<Pt>) =>
+  front.map((a, i) => {
+    const b = front[(i + 1) % front.length] ?? a;
+    const mid: Pt = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    return inside(mid, back) && nearestEdge(mid, back).d > SEAM;
+  });
+
+/**
+ * A paper that draws a rim along its whole outline, tucked under `fronts`:
+ * where it lies under a front, `deep` under that front's seams over it (its
+ * rim's width and more), so its rim shows only on the silhouette, never at
+ * a seam. A point under a front too narrow to hold it `deep` from a seam (a
+ * lock's tip) stays where it is, on the silhouette under the front's outer
+ * edge, so the rim there tapers out under the tip. A point outside every
+ * front tucks as `tucked` tucks it.
+ */
+export const tuckedRimmed = (
   back: ReadonlyArray<Pt>,
   fronts: ReadonlyArray<ReadonlyArray<Pt>>,
-  deep: number = TUCK.depth,
-): Pt[] =>
-  resampled(back, TUCK.step).flatMap(({ p, cut }): Pt[] => {
-    let best: { readonly to: Pt; readonly w: number } | undefined;
-    for (const front of fronts) {
-      const e = nearestEdge(p, front);
-      const under = inside(p, front) ? e.d : -e.d;
-      const depth = under >= 0 ? deep : TUCK.depth;
-      if (under >= depth) return cut ? [p] : [];
-      if (under <= -TUCK.reach) continue;
-      const t = Math.max(0, Math.min(1, (under + TUCK.reach) / (TUCK.reach / 2)));
-      const w = t * t * (3 - 2 * t);
-      if (best !== undefined && best.w >= w) continue;
-      best = { to: [e.at[0] + e.n[0] * depth, e.at[1] + e.n[1] * depth], w };
-    }
-    if (best === undefined || best.w === 0) return cut ? [p] : [];
-    const { to, w } = best;
-    return [[+(p[0] + (to[0] - p[0]) * w).toFixed(2), +(p[1] + (to[1] - p[1]) * w).toFixed(2)]];
+  deep: number,
+): Pt[] => {
+  const seams = fronts.map((front) => seamsOf(front, back));
+  return resampled(back, TUCK.step).flatMap((walked): Pt[] => {
+    const { p, cut } = walked;
+    const keep = (): Pt[] => (cut ? [p] : []);
+    const under = fronts.findIndex((front) => inside(p, front));
+    const front = fronts[under];
+    if (front === undefined) return tuckOne(walked, fronts);
+    const e = nearestEdge(p, front, seams[under]);
+    if (e.d >= deep) return keep();
+    const to: Pt = [e.at[0] + e.n[0] * deep, e.at[1] + e.n[1] * deep];
+    if (!inside(to, front) || nearestEdge(to, front).d < TUCK.depth) return keep();
+    return [[+to[0].toFixed(2), +to[1].toFixed(2)]];
   });
+};
