@@ -51,6 +51,11 @@ plays) into R2. The code is in `infra/audio/`.
   size and MD5 is kept. A failed key does not stop the other keys. The run
   exits non-zero when any key failed or is missing, and a rerun copies only
   what is still missing.
+- Both R2 calls go through distilled's Cloudflare protocol, so they fail and
+  retry as distilled's own calls do: up to 8 retries with capped backoff, and
+  a transient auth blip (a 403 with code 10000 or 10001) is retried. A final
+  failure keeps Cloudflare's code and message. Each download and each upload
+  fails after 3 minutes without an answer, retries included.
 - `x-amz-meta-title` is not copied, because the REST upload has no custom
   metadata. Titles come from the hymnal's own data.
 
@@ -65,7 +70,8 @@ audio-copy dry-run s3=694/1574581124 github=1/2991377 missing=0 total=695/157757
 A real run ends with
 `audio-copy run … target=kept K uploaded U failed F verified V/695`.
 
-`bun run test` runs the copy job's tests against fake stores, with no network.
+`bun run test` runs the copy job's tests against fake stores, and the adapters'
+tests over a recording HTTP client. Neither uses the network.
 
 ### Deploy and copy
 
@@ -80,21 +86,38 @@ from the expected one:
 3. `cd ~/Developer/personal/bible-tools/apps/hymnal && bun run audio:copy`.
    Expected last line: `… uploaded 695 failed 0 verified 695/695`. Run it
    again. Expected: `kept 695 uploaded 0`.
-4. Probe (read-only, anyone can run it after step 3):
+4. `cf r2 objects list --bucket-name cvr-hymns --prefix audio/sdah/ --per-page 1000`
+   (read-only). Expected: the keys `audio/sdah/1.mp3` to `audio/sdah/695.mp3`.
+5. Probe (read-only, anyone can run it after step 3):
    `curl -sI https://hymns.cvr.im/audio/sdah/1.mp3` returns 200,
    `content-length: 2313865` and `content-type: audio/mpeg`.
    `curl -sI -H 'Origin: https://example.com' https://hymns.cvr.im/audio/sdah/388.mp3`
    returns `access-control-allow-origin`.
 
+If a key fails in step 3, run `bun run audio:copy` again first: it copies only
+what is still missing. If one key keeps failing, upload it by hand. Download
+its source to a file (`https://cvr-hymns.s3.amazonaws.com/<n>.mp3`, or the
+fill's raw URL for 388), then run
+`cf r2 objects put audio/sdah/<n>.mp3 --bucket-name cvr-hymns --content-type audio/mpeg --file <file>`.
+Type the key's slashes as they are, never as `%2F`. That upload sets no
+`cache-control`. Run `bun run audio:copy` once more to check every key.
+
 The owner's Alchemy Cloudflare profile must allow these writes:
 
 - R2 bucket write and R2 object write.
 - Zone and DNS write on `cvr.im`, for the custom domain.
+- The account listing (`memberships.read`), so that Alchemy can find the
+  account.
 
-If a step fails on scopes, the owner runs
-`! bunx alchemy profile edit --add Cloudflare` and chooses scopes that include
-them (All Scopes, or Custom with R2 write, `zone.read`, `dns.read` and
-`dns.write`).
+Every stack in this repo shares the profile, and Cloudflare is already
+connected to it. If a step fails on scopes, the owner runs
+`! bunx alchemy profile edit --reconfigure Cloudflare` and chooses All Scopes
+(recommended). With Custom, he chooses at least `memberships.read`,
+`zone.read`, `dns.read`, `dns.write`, `workers-r2.write` and
+`workers-r2-bucket-item.write`, plus the scopes that the other stacks
+(`apps/egw-search`, `apps/triedgold`, `apps/animations`) already use.
+`--add Cloudflare` is only for a profile that has no Cloudflare yet: on a
+connected profile, Alchemy refuses it ("already connected").
 
 The S3 bucket stays. The old Expo app still reads it, so its deletion is the
 owner's decision.
