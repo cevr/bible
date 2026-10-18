@@ -43,6 +43,7 @@ import {
   type SheetConcept,
   type SheetOptions,
   sheetLines,
+  standingOf,
   sheetOverlay,
   sheetTable,
   type Slot,
@@ -218,7 +219,12 @@ interface TryContext {
   /** The measure's options: the plan's, each kept concept measured and held to its views. */
   readonly options: SheetOptions;
   /** The underlay's file, and its drawing, run by each retry that sends it. */
-  readonly underlay: { readonly file: string; readonly drawn: Effect.Effect<void, PlatformError> };
+  readonly underlay: {
+    readonly file: string;
+    readonly drawn: Effect.Effect<void, PlatformError>;
+    /** Whether it draws any mannequin: a heads sheet's, or a pose sheet's with no standing view, draws none and is never sent. */
+    readonly shown: boolean;
+  };
 }
 
 /** A try's prompt and references: the brief, with each drift of the try it redraws named after it. */
@@ -391,7 +397,7 @@ const gatedTry = (ctx: TryContext, emit: (line: CastLine) => Effect.Effect<void>
       if (first.flags.length === 0) return Effect.succeed([first]);
       const slots = ctx.plan.options.slots ?? [];
       const drifts = first.flags.map((f) => driftOf(f.check, f.views, slots));
-      const underlay = first.flags.some((f) => UNDERLAID.has(f.check));
+      const underlay = ctx.underlay.shown && first.flags.some((f) => UNDERLAID.has(f.check));
       return Effect.map(drawTry(ctx, drifts, underlay, Option.some(first.n), emit), (second) => [
         first,
         second,
@@ -425,11 +431,20 @@ export const makeCastSheet = Effect.fn('Cast.make')(function* (
   const plan = yield* Effect.fromResult(castKindPlan(record, run.kind));
   const layout = Option.getOrElse(plan.layout, () => turnaroundLayout(record.who));
   const file = path.join(place.out, `underlay-${run.kind}.png`);
+  const slots = plan.options.slots ?? [];
+  // The mannequins stand: a heads sheet draws none, and a pose sheet only its standing views.
+  const shown =
+    (run.kind !== 'heads' &&
+      standingOf(
+        plan.options,
+        slots.map((_, k) => ({ view: k + 1 })),
+      )) ||
+    [];
   const profiles = (run.kind === 'turnaround' && [3, 5]) || [];
   // Drawn afresh by each retry that sends it (the slots may have changed since the last run), whole: a lane never reads half of one.
-  const drawn = Effect.sync(() =>
-    encodePng(mannequinUnderlay(plan.options.slots ?? [], profiles)),
-  ).pipe(Effect.flatMap((bytes) => store.writeFile(file, bytes)));
+  const drawn = Effect.sync(() => encodePng(mannequinUnderlay({ slots, profiles, shown }))).pipe(
+    Effect.flatMap((bytes) => store.writeFile(file, bytes)),
+  );
   const options: SheetOptions = { ...plan.options, concepts: yield* conceptsOf(place, plan) };
   const ctx: TryContext = {
     place,
@@ -439,7 +454,7 @@ export const makeCastSheet = Effect.fn('Cast.make')(function* (
     layout,
     plan,
     options,
-    underlay: { file, drawn },
+    underlay: { file, drawn, shown: shown.length > 0 },
   };
   // The brief is built once before any draw: a house block that moved stops the run, not each try.
   const first = yield* requestOf(ctx, [], false);

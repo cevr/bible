@@ -37,6 +37,8 @@ interface Pose {
   readonly x: number;
   readonly turn: number;
   readonly back: boolean;
+  /** Whether its column draws it: a pose that does not stand (lying, crouching) is left to the layout's words. */
+  readonly shown: boolean;
 }
 
 /** A slot as a mannequin turns: a three-quarter for left and right (a turnaround's profiles are its third and fifth views). */
@@ -139,6 +141,7 @@ const inFeet = (p: Pose, f: Frame, x: number, y: number) => {
 
 /** Whether (x, y) lies inside a mannequin: off its box at once, else its head, body, arms or feet. */
 const inside = (p: Pose, f: Frame, x: number, y: number, handShare: number) =>
+  p.shown &&
   y >= f.hcy - f.h &&
   y <= f.ground &&
   Math.abs(x - p.x) <= 1.2 * f.h &&
@@ -173,15 +176,21 @@ const edgeAt = (mask: Uint8Array, W: number, H: number, x: number, y: number) =>
   return false;
 };
 
+/** A sheet's views as its underlay draws them: each view's slot, left to right; the views turned to full profile (a turnaround's third and fifth); the views it draws (those that stand). */
+interface UnderlayViews {
+  readonly slots: ReadonlyArray<Slot>;
+  readonly profiles: ReadonlyArray<number>;
+  readonly shown: ReadonlyArray<number>;
+}
+
 /**
  * The underlay of a sheet whose views face `slots`, left to right: one
- * mannequin per view, evenly spaced, on one ground line. A turnaround's
- * third and fifth views (`profiles`) turn to full profile, its second and
- * sixth to three-quarter.
+ * mannequin per view shown, evenly spaced, on one ground line; a view not
+ * shown leaves its column empty. Views named in `profiles` turn to full
+ * profile, the rest of a side's to three-quarter.
  */
 export const mannequinUnderlay = (
-  slots: ReadonlyArray<Slot>,
-  profiles: ReadonlyArray<number>,
+  { slots, profiles, shown }: UnderlayViews,
   size: UnderlaySize = UNDERLAY_SIZE,
 ): Raster => {
   const { width: W, height: H } = size;
@@ -193,6 +202,7 @@ export const mannequinUnderlay = (
     x: step * (k + 0.5),
     turn: turnOf(slot, profiles.includes(k + 1)),
     back: slot === 'back',
+    shown: shown.includes(k + 1),
   }));
   const column = (x: number) => Math.min(poses.length - 1, Math.max(0, Math.floor(x / step)));
   const nearest = (x: number) => poses[column(x)]!;

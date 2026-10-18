@@ -48,6 +48,7 @@ const record: CastSheetRecord = {
       anchor: 1,
       layout: 'Standing, facing the viewer; walking to the left.',
       slots: ['front', 'left'],
+      standing: [1, 2],
       tries: [],
     },
   },
@@ -58,8 +59,9 @@ const castOver = (
   files: Map<string, Uint8Array>,
   calls: Array<ImageRequest>,
   draw: (r: ImageRequest) => Uint8Array,
+  held: CastSheetRecord = record,
 ) => {
-  files.set(`${FOLDER}/cast-sheet.json`, text(Schema.encodeSync(CastSheetJson)(record)));
+  files.set(`${FOLDER}/cast-sheet.json`, text(Schema.encodeSync(CastSheetJson)(held)));
   files.set(`${FOLDER}/look.md`, text('He wears a cream robe and a blue sash.'));
   const route = ImageRoute.fake((request) => {
     calls.push(request);
@@ -164,6 +166,30 @@ describe('a try drawn the wrong way', () => {
         ]);
         expect(calls).toHaveLength(2);
       }).pipe(Effect.provide(castOver(files, calls, () => wrong)));
+    },
+  );
+});
+
+describe('a sheet with no standing view', () => {
+  it.effect(
+    'is redrawn with its drift named but no underlay: a mannequin would stand a pose that lies',
+    () => {
+      const files = new Map<string, Uint8Array>();
+      const calls: Array<ImageRequest> = [];
+      const lying: CastSheetRecord = {
+        ...record,
+        sheets: { poses: { ...record.sheets.poses!, standing: [] } },
+      };
+      return Effect.gen(function* () {
+        const kept = yield* ran(files, []);
+        const tries = kept.sheets.poses?.tries ?? [];
+        expect(tries.map((t) => [t.n, t.underlay])).toEqual([
+          [1, false],
+          [2, false],
+        ]);
+        expect(calls[1]?.prompt).toContain("Figure 2 faces the viewer's left");
+        expect(calls.some(underlaid) || files.has(`${OUT}/underlay-poses.png`)).toBe(false);
+      }).pipe(Effect.provide(castOver(files, calls, () => wrong, lying)));
     },
   );
 });

@@ -10,7 +10,10 @@ import { mannequinUnderlay } from './cast-underlay.ts';
 
 const W = 768;
 const H = 512;
-const sheet = mannequinUnderlay(TURNAROUND_SLOTS, [3, 5], { width: W, height: H, hand: 0.33 });
+const sheet = mannequinUnderlay(
+  { slots: TURNAROUND_SLOTS, profiles: [3, 5], shown: [1, 2, 3, 4, 5, 6] },
+  { width: W, height: H, hand: 0.33 },
+);
 const step = W / 6;
 const rgbAt = (x: number, y: number) => {
   const i = (y * W + x) * 4;
@@ -85,5 +88,20 @@ describe("a turnaround's underlay", () => {
     const [l5, r5] = nose(4);
     expect(-l3).toBeGreaterThan(r3);
     expect(r5).toBeGreaterThan(-l5);
+  });
+});
+
+describe("a pose sheet's underlay", () => {
+  test('leaves the column of a pose that does not stand empty', () => {
+    const poses = mannequinUnderlay(
+      { slots: ['left', 'left'], profiles: [], shown: [1] },
+      { width: 256, height: 256, hand: 0.33 },
+    );
+    const inked = (x0: number, x1: number) =>
+      Array.from({ length: 256 * (x1 - x0) }, (_, i) => [
+        x0 + (i % (x1 - x0)),
+        Math.floor(i / (x1 - x0)),
+      ]).some(([x, y]) => poses.rgba[(y! * 256 + x!) * 4] === 120);
+    expect([inked(0, 128), inked(128, 256)]).toEqual([true, false]);
   });
 });

@@ -2915,10 +2915,11 @@ it draws again, the measure's flags and the anchor's squash. A flagged try
 is drawn once more with each drift named in a sentence; on `facing`,
 `sameWay`, `roll` or `squash` the retry also sends the underlay as its last
 reference (`mannequinUnderlay`, `core/cast-underlay.ts`, pure: a blank
-mannequin per view on one ground line, each the canon of its heads tall and
-turned to its slot by its eyes, its nose and its feet, each hand a circle at the end of its arm in its sleeve (a profile draws its near arm alone); a turnaround's
-profiles are its third and fifth views), written fresh as
-`underlay-<kind>.png`. A retry that still drifts is recorded with its flags,
+mannequin per standing view on one ground line, each the canon of its heads
+tall and turned to its slot by its eyes, its nose and its feet, each hand a circle at the end of its arm in its sleeve (a profile draws its near arm alone); a view that
+does not stand leaves its column empty; a turnaround's profiles are its
+third and fifth views), written fresh as `underlay-<kind>.png`. A sheet with
+no standing view, as every heads sheet, is redrawn with no underlay. A retry that still drifts is recorded with its flags,
 never dropped; a try that draws nothing is a line and the run goes on.
 `--dry-run` prints the prompt and the references and draws nothing.
 
