@@ -59,21 +59,33 @@ relative to the repository root: `--db`, `--midi`, `--out`, `--key`.
 
 The app reads a hymn through `@bible/hymnal/hymn`, which imports only
 `effect` and `@bible/hymnal/chord` (no Bun, Node or dictionary). A hymn holds
-its key, its meter, each stanza in order and its refrain once, sung after
-every stanza. The compiler reads the stanzas' order from the text's verse
-ids: stanzas 0, 1, … n − 1, at most one refrain with a negative id, and words
-in every verse. A text laid out any other way is refused (`VerseLayoutError`,
-counted as failed). The ids do not say where the print places the refrain:
-the compiler lays it after stanza 1 on the tune's first verse. Hymns 93, 121,
-133, 362 and 475 print it before stanza 1, and 172 sings its Alleluias only
-before stanza 1 and after stanza 4, so for these six the refrain's place and
-its chords are not checked against the score.
+its key, its meter, each stanza in order and its refrain once, with the
+order the hymnal sings it in: `after-each` (after every stanza),
+`first-and-after-each` (before stanza 1 and after every stanza, as a page
+that prints the refrain first and marks D.C. sings it) or `first-and-last`
+(before stanza 1 and after the last, as 172's Alleluias). No other order can
+be written. `sung(hymn)` gives the lines in the order they are sung, each
+with its stanza (or `refrain`), part and line.
+
+The compiler reads the stanzas' order from the text's verse ids: stanzas 0,
+1, … n − 1, at most one refrain with a negative id, and a letter in every
+verse. A text laid out any other way is refused (`VerseLayoutError`, counted
+as failed). The ids do not say where the refrain is sung, so
+`data/fixes/refrains.json` lists, read off the printed pages, the six hymns
+that sing it first: 93, 121, 133, 362 and 475 (`first-and-after-each`) and
+172 (`first-and-last`); every other refrain is `after-each`. The tune plays
+each verse as a stanza and the refrain after it (a refrain sung first is the
+intro), so the compiler lays the refrain after stanza 1 on the tune's first
+verse, or, for `first-and-last`, after the last stanza alone on the last
+verse, and keeps that one.
 
 Hymn 593 sings a different refrain ending after stanza 3 ("I'm very sure …
-My anchor"), which one refrain cannot hold. `data/fixes/593.json` keeps its
-row as the print lays it (each stanza, then the refrain sung after it), and
-`bun scripts/hymnal-593.ts [--db <hymnal.db>]` writes it into hymnal.db as
-three stanzas, each with its own refrain ending inline, and no refrain.
+My anchor"), which one refrain cannot hold. `data/fixes/593.json` is the
+printed page, each line with the system, row and bars it was read from:
+three stanzas, the refrain, and its two endings (after stanzas 1 and 2, and
+after stanza 3). `bun scripts/hymnal-593.ts [--db <hymnal.db>]` writes it
+into hymnal.db as three stanzas, each with the refrain and its own ending
+inline, and no refrain.
 Each part says how far its placement can be trusted:
 
 - `Sung` at `syllable`: the chords sit on the syllables they change on. The
@@ -89,7 +101,7 @@ Each part says how far its placement can be trusted:
 came from the phrase search, not exact repeats) and `reused` (the text has
 more stanzas than the file plays: the extra ones are laid on its last
 verse). The thresholds are constants in `src/compile.ts`; only the held
-list in `scripts/compile.ts` names hymns. The level is judged from the fit's
+list in `scripts/sources.ts` and the fixes in `data/fixes` name hymns. The level is judged from the fit's
 numbers alone, so it cannot see a line laid a note off: the key's section of
 the report shows `syllable` parts with lines that do not match the score.
 
@@ -125,8 +137,13 @@ on N notes and `text_0` for one sharing the note before. The compile reports
 how many lines lay exactly as the key says, in all and per level.
 
 The MIDI files, the hand charts, the key and the compiled set are tracked
-here (owner, 2026-10-18). The tests build their MIDI in code
-(`src/midi-fixture.ts`) and read no MIDI file, chart or key. They read
-hymnal.db, and one test reads the compiled set and `data/fixes`: every line
-of every hymn's text (its fix where one is kept) is sung in the compiled hymn,
-in the text's order.
+here (owner, 2026-10-18). Most tests build their MIDI in code
+(`src/midi-fixture.ts`); `src/score.test.ts` reads three files that carry no
+key signature (6, 162, 663). `src/fidelity.test.ts` compiles every hymn
+fresh from hymnal.db, `data/fixes` and its MIDI file, as `bun run compile`
+does, and checks that `sung` gives exactly the printed lines in the order the
+hymnal sings them: each stanza's lines, and the refrain where
+`refrains.json` (or the fix) places it, compared word for word with case and
+punctuation set aside. It builds the expected order from the text and the
+fixes alone, never from the compiler. The tests read no chart, key or
+compiled file.
