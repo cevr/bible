@@ -10,7 +10,11 @@
     "android": "one run:android",
     "build": "one build",
     "prebuild:native": "one prebuild",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.infra.json",
+    "test": "bun run test:infra",
+    "test:infra": "bun test infra",
+    "plan": "alchemy plan alchemy.run.ts --stage prod",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod"
   },
   "dependencies": {
     "@effect/atom-react": "catalog:",
@@ -27,8 +31,13 @@
     "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
+    "@distilled.cloud/cloudflare": "1.0.0-rc.15",
+    "@effect/platform-bun": "catalog:",
+    "@effect/platform-node": "catalog:",
     "@react-native-community/template": "0.88.0",
     "@types/react": "19.3.0",
+    "alchemy": "2.0.0-beta.83",
+    "effect-bun-test": "catalog:",
     "vite": "8.3.4"
   }
 }
