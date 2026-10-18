@@ -48,14 +48,17 @@ plays) into R2. The code is in `infra/audio/`.
   multipart ETag, their size), and R2's reply must carry that MD5 and size.
   At the end, the job lists R2 again and checks all 695 keys.
 - It is idempotent and resumable. A key that R2 already holds with the same
-  size and MD5 is kept. A failed key does not stop the other keys. The run
-  exits non-zero when any key failed or is missing, and a rerun copies only
-  what is still missing.
+  size and MD5 is kept. A failed key does not stop the other keys, also when
+  an answer breaks after its headers. The run exits non-zero when any key
+  failed or is missing, and a rerun copies only what is still missing.
 - Both R2 calls go through distilled's Cloudflare protocol, so they fail and
-  retry as distilled's own calls do: up to 8 retries with capped backoff, and
-  a transient auth blip (a 403 with code 10000 or 10001) is retried. A final
-  failure keeps Cloudflare's code and message. Each download and each upload
-  fails after 3 minutes without an answer, retries included.
+  retry as distilled's own calls do: up to 8 retries with capped backoff.
+  Distilled retries a 403 only when its message names a transient auth blip
+  (code 10000 "Authentication error", code 10001 "internal error" or "Unable
+  to authenticate request"). A permission denial, such as code 10001 "Method
+  not allowed for token", fails at once. A final failure keeps Cloudflare's
+  code and message. Each download, each upload and the R2 listing fail after
+  3 minutes without completing, retries included.
 - `x-amz-meta-title` is not copied, because the REST upload has no custom
   metadata. Titles come from the hymnal's own data.
 
@@ -75,32 +78,33 @@ tests over a recording HTTP client. Neither uses the network.
 
 ### Deploy and copy
 
-The orchestrator of the run that made this app runs these steps from the main
-checkout after the change merges. It stops at the first result that differs
-from the expected one:
+The orchestrator of the run that made this app runs these steps after the
+change merges, from its detached main worktree
+`~/Developer/personal/.rifts/bible-tools/hymnapp-main` (never the main
+checkout, which another agent edits), in this order. It stops at the first
+result that differs from the expected one:
 
-1. `cd ~/Developer/personal/bible-tools/apps/hymnal && bun run plan`. Expected
-   result: one create, a `Cloudflare.R2.Bucket` named `cvr-hymns` with the
-   domain `hymns.cvr.im` and the CORS rule. Nothing else.
-2. `cd ~/Developer/personal/bible-tools/apps/hymnal && bun run deploy`.
-3. `cd ~/Developer/personal/bible-tools/apps/hymnal && bun run audio:copy`.
+1. `cd ~/Developer/personal/.rifts/bible-tools/hymnapp-main/apps/hymnal && bun run plan`.
+   Expected result: one create, a `Cloudflare.R2.Bucket` named `cvr-hymns`
+   with the domain `hymns.cvr.im` and the CORS rule. Nothing else.
+2. `cd ~/Developer/personal/.rifts/bible-tools/hymnapp-main/apps/hymnal && bun run deploy`.
+3. `cd ~/Developer/personal/.rifts/bible-tools/hymnapp-main/apps/hymnal && bun run audio:copy`.
    Expected last line: `… uploaded 695 failed 0 verified 695/695`. Run it
    again. Expected: `kept 695 uploaded 0`.
-4. `cf r2 objects list --bucket-name cvr-hymns --prefix audio/sdah/ --per-page 1000`
-   (read-only). Expected: the keys `audio/sdah/1.mp3` to `audio/sdah/695.mp3`.
-5. Probe (read-only, anyone can run it after step 3):
+4. Probe (read-only; anyone can run it after step 3):
    `curl -sI https://hymns.cvr.im/audio/sdah/1.mp3` returns 200,
    `content-length: 2313865` and `content-type: audio/mpeg`.
    `curl -sI -H 'Origin: https://example.com' https://hymns.cvr.im/audio/sdah/388.mp3`
    returns `access-control-allow-origin`.
+5. Listing (read-only):
+   `cf r2 objects list --bucket-name cvr-hymns --prefix audio/sdah/ --per-page 1000`.
+   Expected: 695 keys under `audio/sdah/`, `audio/sdah/1.mp3` to
+   `audio/sdah/695.mp3`.
 
-If a key fails in step 3, run `bun run audio:copy` again first: it copies only
-what is still missing. If one key keeps failing, upload it by hand. Download
-its source to a file (`https://cvr-hymns.s3.amazonaws.com/<n>.mp3`, or the
-fill's raw URL for 388), then run
-`cf r2 objects put audio/sdah/<n>.mp3 --bucket-name cvr-hymns --content-type audio/mpeg --file <file>`.
-Type the key's slashes as they are, never as `%2F`. That upload sets no
-`cache-control`. Run `bun run audio:copy` once more to check every key.
+A key that fails in step 3 is retried by running step 3 again: the job copies
+only what is still missing, and its `failed <n>` line gives Cloudflare's code
+and message. Never upload a key with `cf r2 objects put`: it percent-encodes
+the key's slashes, so the object would not land at `audio/sdah/<n>.mp3`.
 
 The owner's Alchemy Cloudflare profile must allow these writes:
 
