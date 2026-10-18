@@ -58,6 +58,14 @@ describe('a drawn figure', () => {
     expect(plain.silhouette.feet).toBeDefined();
   });
 
+  test("with dark grained hair whose specks read as ink, reads the hair's whole height and its outline's top", () => {
+    const dark = measured({ ...PLAIN, darkHair: true });
+    expect(Math.abs(valueOf(dark, 'headHeight') - (2 * (PLAIN.ry + PLAIN.line)) / W)).toBeLessThan(
+      0.02,
+    );
+    for (const r of dark.silhouette.head) expect(Math.abs(r - 0.5)).toBeLessThan(0.06);
+  });
+
   test('behind a rail as wide as its body, its hem and its feet are hidden, not read off the rail', () => {
     const behind = measured({ ...PLAIN, rail: true });
     expect(whyMissing(behind, 'hem')).toEqual(

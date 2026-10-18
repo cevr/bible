@@ -2783,8 +2783,12 @@ an ear or the hair, where that edge is not the silhouette; the owner's
 rule is the concept's); the head's and the body's shading (each lit and
 shaded half's hue, saturation and value, the edge between them, colour or
 grey); and the outline (`FigureSilhouette`): the head's outer radius at 72
-angles from its centre, the body's sides row by row, the feet's box. A
-ratio the crop does not show is left out with why (`missing`: a hem behind
+angles from its centre, the body's sides row by row, the feet's box. The
+head's top and its outline are where the ground stops at its ink
+(`outerOf`): what the ground off the head, walled by the ink and the dark
+masses, does not reach, opened by a line and joined to the face, so dark
+hair whose grain specks it with ink (no region of its own) is the head's
+still. A ratio the crop does not show is left out with why (`missing`: a hem behind
 a rail, whose line runs on past the body; feet a rail hides; feet that would
 lie past the crop's edge). The line is the longest run of dark ink that
 holds half the ink of the most-inked run, and no longer than a twelfth of

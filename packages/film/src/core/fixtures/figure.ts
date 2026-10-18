@@ -3,9 +3,10 @@
 // fills inside one warm dark ink line, so every ratio is known from the
 // numbers it was drawn with. A circle head with its outline, a hair cap
 // (its own ink along the hair line, or none), an ear on the face (a light
-// rim inside its edge, or none), two upright oval eyes, a robe down to
-// a hem, two feet (or none), a round hand, a rail in front of the robe's
-// foot (or none), and a wall's thin lines behind it (or none). Tests only.
+// rim inside its edge, or none), the hair dark and grained (or light and
+// flat), two upright oval eyes, a robe down to a hem, two feet (or none),
+// a round hand, a rail in front of the robe's foot (or none), and a wall's
+// thin lines behind it (or none). Tests only.
 
 import type { Raster } from '../raster.ts';
 
@@ -16,6 +17,9 @@ const INK: Rgb = [58, 38, 28];
 const PAPER: Rgb = [238, 230, 214];
 const SKIN: Rgb = [226, 178, 146];
 const HAIR: Rgb = [170, 112, 64];
+/** Dark hair, lighter than the ink and greyer, and the grain's warm specks in it that read as ink one by one. */
+const HAIR_DARK: Rgb = [80, 62, 60];
+const HAIR_SPECK: Rgb = [74, 48, 30];
 const ROBE: Rgb = [92, 128, 170];
 const SHOE: Rgb = [128, 96, 72];
 const WOOD: Rgb = [150, 100, 60];
@@ -35,6 +39,8 @@ export interface FigureSpec {
   readonly hairAbove: number;
   /** Whether the hair line carries its own ink (the owner's rule: it never does). */
   readonly hairInk: boolean;
+  /** Whether the hair is dark and grained, a speck in every five pixels, each pixel beside one (as a paper's grain scatters them), rather than light and flat. */
+  readonly darkHair?: boolean;
   /** Each eye's fill's width and height, and the distance between their centres; their row below the head's centre. */
   readonly eyeW: number;
   readonly eyeH: number;
@@ -124,7 +130,10 @@ export const drawFigure = (spec: FigureSpec = PLAIN): Raster => {
   c.fill(ellipse(cx, cy, rx + line, ry + line), INK);
   c.fill(ellipse(cx, cy, rx, ry), SKIN);
   const hairLine = cy - spec.hairAbove;
-  c.fill((x, y) => ellipse(cx, cy, rx, ry)(x, y) && y < hairLine, HAIR);
+  const cap = (x: number, y: number) => ellipse(cx, cy, rx, ry)(x, y) && y < hairLine;
+  c.fill(cap, spec.darkHair === true ? HAIR_DARK : HAIR);
+  if (spec.darkHair === true)
+    c.fill((x, y) => cap(x, y) && (Math.floor(x) + 2 * Math.floor(y)) % 5 === 0, HAIR_SPECK);
   if (spec.hairInk)
     c.fill(
       (x, y) =>

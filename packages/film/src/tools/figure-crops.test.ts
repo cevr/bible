@@ -1,7 +1,8 @@
-// The figure measure on two real crops: the cold.34 concept's prosecutor
-// against the table measured by hand on the concept, and a round-3 scene
-// still of the judge whose hair carried its own line. The crops are PNGs,
-// so they are decoded here, past core.
+// The figure measure on real crops: the cold.34 concept's prosecutor
+// against the table measured by hand on the concept, RBF cold's prosecutor
+// at 3.87 s (his hair dark and grained) against his head measured by hand
+// on the frame, and a round-3 scene still of the judge whose hair carried
+// its own line. The crops are PNGs, so they are decoded here, past core.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -49,6 +50,16 @@ describe('a real crop', () => {
             off: true,
           });
         expect(valueOf(m, 'interiorInk')).toBe(0);
+      }),
+  );
+
+  it.effect(
+    "RBF cold's prosecutor at 3.87 s, his hair dark and grained, reads the head measured by hand on the frame",
+    () =>
+      Effect.gen(function* () {
+        const m = yield* measuredFixture('rbf-cold-prosecutor-head.png');
+        // By hand on the frame: the outline's outer edge from x 30 to 216, y 21 (the hair's top) to 241 (the chin's).
+        expect(Math.abs(valueOf(m, 'headHeight') / (221 / 187) - 1)).toBeLessThan(0.05);
       }),
   );
 

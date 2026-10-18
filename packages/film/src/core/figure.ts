@@ -996,7 +996,58 @@ interface Head {
   readonly cy: number;
   /** The head's line width in pixels, by coverage. */
   readonly outline: number;
+  /** The head inside its outline's outer edge (`outerOf`). */
+  readonly outer: Outer;
 }
+
+/** A head as a mask in a box of the crop: 1 inside its outline's outer edge. */
+interface Outer {
+  readonly x0: number;
+  readonly y0: number;
+  readonly bw: number;
+  readonly bh: number;
+  readonly mask: Uint8Array;
+}
+
+/**
+ * The head inside its outline's outer edge, in a box round the face `reach`
+ * pixels wide each way: what the ground off the head, walled by the ink and
+ * the masses, does not reach from the box's edge, opened by a line (so a
+ * line that runs on from the head, a neck's or a robe's, is not the head),
+ * and the part of it joined to the face. Its regions `ids` are the head; a
+ * dark fill the grain specks with ink is no region, but the ground cannot
+ * reach it past the outline, so it is the head too.
+ */
+const outerOf = (read: Read, face: Part, ids: ReadonlySet<number>, reach: number): Outer => {
+  const x0 = Math.max(0, Math.floor(face.x0 - reach));
+  const y0 = Math.max(0, Math.floor(face.y0 - reach));
+  const bw = Math.min(read.w, Math.ceil(face.x1 + reach) + 1) - x0;
+  const bh = Math.min(read.h, Math.ceil(face.y1 + reach) + 1) - y0;
+  const at = (i: number) => (y0 + Math.floor(i / bw)) * read.w + x0 + (i % bw);
+  const ground = (i: number) => {
+    const j = at(i);
+    return !ids.has(read.regions.labels[j]!) && read.ink[j] === 0 && read.mass[j] === 0;
+  };
+  const onBoxEdge = (i: number) => {
+    const [x, y] = [i % bw, Math.floor(i / bw)];
+    return x === 0 || y === 0 || x === bw - 1 || y === bh - 1;
+  };
+  const outside = reachFrom(bw, bh, (i) => ground(i) && onBoxEdge(i), ground);
+  const fromOutside = distanceTo(bw, bh, (i) => outside[i] === 1);
+  const deep = (i: number) => fromOutside[i]! > read.line * read.line;
+  const core = reachFrom(bw, bh, (i) => deep(i) && read.regions.labels[at(i)] === face.id, deep);
+  const fromCore = distanceTo(bw, bh, (i) => core[i] === 1);
+  const mask = new Uint8Array(bw * bh);
+  const near = (read.line + 1) * (read.line + 1);
+  for (let i = 0; i < bw * bh; i++) mask[i] = outside[i] === 0 && fromCore[i]! <= near ? 1 : 0;
+  return { x0, y0, bw, bh, mask };
+};
+
+/** The top row of a head's outer mask, in the crop's pixels. */
+const outerTop = (outer: Outer): number => {
+  const first = outer.mask.indexOf(1);
+  return outer.y0 + Math.floor(Math.max(0, first) / outer.bw);
+};
 
 /** Hair: the regions across one line from the face, above the eyes, within the head's reach. */
 const hairOf = (read: Read, face: Part, eyeY: number, span: number): Array<Part> => {
@@ -1050,7 +1101,8 @@ const headOf = (read: Read): Result.Result<Head, FigureUnread> => {
   const parts = [face, ...hair];
   const hx0 = sideOf(parts, masses, rim, (p) => p.x0, -1, Math.min);
   const hx1 = sideOf(parts, masses, rim, (p) => p.x1, 1, Math.max) + 1;
-  const hy0 = sideOf(parts, masses, rim, (p) => p.y0, -1, Math.min);
+  const outer = outerOf(read, face, new Set(parts.map((p) => p.id)), 1.2 * (hx1 - hx0));
+  const hy0 = outerTop(outer);
   const hy1 = face.y1 + rim + 1;
   const [cx, cy] = [(hx0 + hx1) / 2, (hy0 + hy1) / 2];
   return Result.succeed({
@@ -1073,6 +1125,7 @@ const headOf = (read: Read): Result.Result<Head, FigureUnread> => {
     cx,
     cy,
     outline: outlineOf(read, cx, eyeY, face),
+    outer,
   });
 };
 
@@ -1188,14 +1241,7 @@ const hairRatios = (read: Read, head: Head, sink: Sink): Array<number> => {
   // A light rim inside the edges of the head's inner parts (an ear, the hair): the concept paints none.
   const inner = innerParts(read, head);
   sink.put('innerRim', innerRim(read, inner, W) / W);
-  return headRadii(
-    read,
-    new Set([...head.headIds, ...inner.map((p) => p.id)]),
-    [head.cx, head.cy],
-    W,
-    read.seal + head.outline,
-    span,
-  );
+  return headRadii(head.outer, [head.cx, head.cy], W, span);
 };
 
 /** The fill most of the band under the chin is, -1 for none. */
@@ -1580,38 +1626,21 @@ const reachFrom = (
 
 /**
  * The head's outer radius at each of `HEAD_RADII` angles from its centre,
- * clockwise from straight up, as shares of its width `W`: the head is its
- * regions `ids` and what they close round (an eye, the mouth); out along
- * each ray, its last pixel before a run off it longer than two lines'
- * crossing (so a line inside the head is crossed, even aslant, and the
- * ground past the outline is not), and `edge` past it for the seal and the outline.
+ * clockwise from straight up, as shares of its width `W`: out along each ray
+ * through the head's outer mask (`outerOf`), its last pixel before a run off
+ * it longer than two lines' crossing (`span`), and half a pixel past it.
  */
 const headRadii = (
-  read: Read,
-  ids: ReadonlySet<number>,
+  outer: Outer,
   centre: readonly [number, number],
   W: number,
-  edge: number,
   span: number,
 ): Array<number> => {
   const [cx, cy] = centre;
+  const { x0, y0, bw, bh, mask } = outer;
   const reach = 1.2 * W;
-  // The head's box with room, so its holes need no whole frame.
-  const [x0, y0] = [Math.max(0, Math.floor(cx - reach)), Math.max(0, Math.floor(cy - reach))];
-  const [bw, bh] = [
-    Math.min(read.w, Math.ceil(cx + reach) + 1) - x0,
-    Math.min(read.h, Math.ceil(cy + reach) + 1) - y0,
-  ];
-  const off = (i: number) =>
-    !ids.has(read.regions.labels[(y0 + Math.floor(i / bw)) * read.w + x0 + (i % bw)]!);
-  const onBoxEdge = (i: number) => {
-    const [x, y] = [i % bw, Math.floor(i / bw)];
-    return x === 0 || y === 0 || x === bw - 1 || y === bh - 1;
-  };
-  // What the head closes round: off it, and not reached from the box's edge off it.
-  const outside = reachFrom(bw, bh, (i) => off(i) && onBoxEdge(i), off);
   const inHead = (x: number, y: number) =>
-    x >= 0 && y >= 0 && x < bw && y < bh && outside[y * bw + x] === 0;
+    x >= 0 && y >= 0 && x < bw && y < bh && mask[y * bw + x] === 1;
   return Array.from({ length: HEAD_RADII }, (_, k) => {
     const angle = (2 * Math.PI * k) / HEAD_RADII;
     const [dx, dy] = [Math.sin(angle), -Math.cos(angle)];
@@ -1620,7 +1649,7 @@ const headRadii = (
       if (inHead(Math.round(cx + dx * t) - x0, Math.round(cy + dy * t) - y0)) [last, gap] = [t, 0];
       else gap += 0.5;
     }
-    return (last + edge) / W;
+    return (last + 0.5) / W;
   });
 };
 
