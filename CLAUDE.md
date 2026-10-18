@@ -78,7 +78,7 @@ second development log directory or transport.
 
 ## Web UI
 
-New web UI loads the `ui`, `composition-patterns`, `react` (read as Solid), `effect` and `graphical-ui` skills, is built with Solid 2 and effect-machine, and reuses `@bible/atom-solid`, `@bible/url-state` and `@bible/ui` as egw-search does.
+New web UI loads the `ui`, `composition-patterns`, `react` (read as Solid), `effect` and `graphical-ui` skills, is built with Solid 2 and effect-machine, and reuses `@bible/atom-solid`, `@bible/url-state` and `@bible/ui` as egw-search does. The exception is `apps/hymnal`: it is React on One (React Native and web from one tree), with Effect atoms through `@effect/atom-react` (owner, 2026-10-17).
 
 ## Effect Best Practices
 

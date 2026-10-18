@@ -1,0 +1,19 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "app/**",
+        "src/**",
+        "public/**",
+        "vite.config.ts",
+        ".env*",
+        "tsconfig.json",
+        "../../tsconfig.json",
+        "package.json"
+      ],
+      "outputs": ["dist/**"]
+    }
+  }
+}

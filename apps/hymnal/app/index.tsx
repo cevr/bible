@@ -15,7 +15,7 @@ export default function Index() {
       }}
     >
       <Text>Chords</Text>
-      <Switch value={chords} onValueChange={setChords} />
+      <Switch accessibilityLabel="Chords" value={chords} onValueChange={setChords} />
     </View>
   );
 }
