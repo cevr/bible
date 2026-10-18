@@ -3,14 +3,15 @@
 // projects, and one's verdict never depends on another's (owner, 2026-10-18:
 // "should not ahve their tests and budgets entangled").
 //
-// The times are read beside the machine's load average before the first
-// workspace ran: what else was running, not the run's own (a workspace's run
-// lifts the average the next one would read). A machine busier than its cores
-// (a load average above its core count) times the other work as much as the
-// tests, so its run is not a measure: it says so, names the load, and passes,
-// and the merge step measures again on a quiet machine. At or below the core
-// count, a workspace over budget fails. A workspace whose tests fail fails the
-// run at any load.
+// The times are read beside the machine's 1- and 5-minute load averages
+// before the first workspace ran: what else was running, not the run's own (a
+// workspace's run lifts the average the next one would read). A machine busier
+// than its cores (either average above its core count) times the other work as
+// much as the tests, so its run is not a measure: it says so, names both
+// averages, and passes, and the merge step measures again on a quiet machine.
+// The 5-minute average keeps a lull of a minute in a busy period from
+// admitting the run. At or below the core count, a workspace over budget
+// fails. A workspace whose tests fail fails the run at any load.
 
 /** The budget, in milliseconds, for each workspace's `test`. */
 const BUDGET_MS = 10_000;
@@ -22,11 +23,17 @@ interface Workspace {
   readonly exitCode: number;
 }
 
-/** The workspaces as they were timed, one after another, with the load average before the first and the core count. */
+/** The workspaces as they were timed, one after another, with the load averages before the first and the core count. */
 interface Run {
   readonly workspaces: ReadonlyArray<Workspace>;
-  readonly load: number;
+  readonly load: Load;
   readonly cores: number;
+}
+
+/** The 1- and 5-minute load averages. */
+interface Load {
+  readonly one: number;
+  readonly five: number;
 }
 
 /** What the budget says of a run: the report to print, what to print as the failure, and the exit code. */
@@ -38,15 +45,21 @@ interface Judged {
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 
+const averages = (load: Load) =>
+  `${load.one.toFixed(1)} over 1 min and ${load.five.toFixed(1)} over 5 min`;
+
+/** Whether the machine was at or below its cores by both averages before the run. */
+const quiet = (run: Run) => run.load.one <= run.cores && run.load.five <= run.cores;
+
 /** The budget's verdict on `run`. */
 export const judge = (run: Run): Judged => {
   const workspaces = run.workspaces.toSorted((a, b) => b.ms - a.ms);
-  const measured = run.load <= run.cores;
+  const measured = quiet(run);
   const passed = workspaces.filter((workspace) => workspace.exitCode === 0);
   const over = passed.filter((workspace) => measured && workspace.ms >= BUDGET_MS);
   const report = [
     '',
-    `test:budget: each workspace alone, under ${seconds(BUDGET_MS)} (load average ${run.load.toFixed(1)} before them, on ${run.cores} cores)`,
+    `test:budget: each workspace alone, under ${seconds(BUDGET_MS)} (load average ${averages(run.load)} before them, on ${run.cores} cores)`,
     ...workspaces.map((workspace) => `  ${seconds(workspace.ms).padStart(7)}  ${workspace.name}`),
     ...notMeasured(run),
   ];
@@ -59,8 +72,8 @@ export const judge = (run: Run): Judged => {
 };
 
 const notMeasured = (run: Run): ReadonlyArray<string> => {
-  if (run.load <= run.cores) return [];
-  return [`test:budget: not measured (load ${run.load.toFixed(1)} on ${run.cores} cores)`];
+  if (quiet(run)) return [];
+  return [`test:budget: not measured (load average ${averages(run.load)}, on ${run.cores} cores)`];
 };
 
 const testsFailed = (workspaces: ReadonlyArray<Workspace>): ReadonlyArray<string> => {

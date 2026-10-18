@@ -4,8 +4,8 @@
 // measured alone; there is no budget on the sum (owner, 2026-10-18: "should
 // not ahve their tests and budgets entangled"). This runs each workspace's
 // `test` by itself, one after another, as `turbo run test --filter=<name>`
-// (never cached, so the build a workspace's `test` depends on runs first and
-// is not timed), reads that workspace's `test` span from turbo's run summary,
+// (the `test` task is never cached; a build it depends on runs, or replays
+// from turbo's cache, first and outside its span), reads that workspace's `test` span from turbo's run summary,
 // and fails when any one reaches the budget. Named workspaces are measured
 // alone and the rest are left out; with none named, every workspace that
 // `bun run test` runs is measured.
@@ -16,10 +16,13 @@
 // `--timeout` a workspace's `test` script names (`packages/film` also sets
 // the same number in a preload, for effect-bun-test's runners).
 //
-// The load average before the first workspace runs and the core count are
-// printed beside the times: read once, since each workspace's run lifts the
-// average the next would read. A machine busier than its cores measures
-// nothing: the run prints "not measured (load N on C cores)" and exits 0, so
+// The 1- and 5-minute load averages before the first workspace runs and the
+// core count are printed beside the times: read once, since each workspace's
+// run lifts the averages the next would read. A machine busier than its cores
+// by either average measures nothing (the 5-minute one keeps a lull of a
+// minute in a busy period from admitting the run): the run prints "not
+// measured (load average N over 1 min and M over 5 min, on C cores)" and
+// exits 0, so
 // the merge step measures again on a quiet machine; at or below the core
 // count, over budget fails (`test-budget/budget.ts`). A test that fails still
 // fails, at any load.
@@ -115,26 +118,35 @@ const measure = (root: string, name: string) =>
     );
     const wall = (yield* Clock.currentTimeMillis) - started;
     const written = [...(yield* summariesIn)].filter((file) => !before.has(file));
-    const summaries = yield* Effect.forEach(written, (file) =>
-      Effect.flatMap(
-        fs.readFileString(path.join(runs, file)),
-        Schema.decodeUnknownEffect(Schema.fromJsonString(RunSummary)),
+    // Only a new summary that names this workspace's `test` is this run's: one
+    // another writer left (a second budget run, a hand-run turbo) stays put.
+    const read = yield* Effect.forEach(written, (file) =>
+      fs.readFileString(path.join(runs, file)).pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(RunSummary))),
+        Effect.option,
+        Effect.map((summary) =>
+          Option.flatMap(summary, (each) =>
+            Option.map(
+              Arr.findFirst(each.tasks, (task) => task.taskId === `${name}#test`),
+              (task) => ({ file, ms: task.execution.endTime - task.execution.startTime }),
+            ),
+          ),
+        ),
       ),
     );
-    yield* Effect.forEach(written, (file) => fs.remove(path.join(runs, file)));
-    const span = Option.map(
-      Arr.findFirst(
-        summaries.flatMap((summary) => summary.tasks),
-        (each) => each.taskId === `${name}#test`,
-      ),
-      (task) => task.execution.endTime - task.execution.startTime,
-    );
+    const ours = Arr.getSomes(read);
+    if (ours.length > 1)
+      return yield* new SummaryMissing({
+        message: `test:budget: expected one new run summary naming ${name}#test in ${runs}, found ${ours.length}; another run wrote one too, so none is removed.`,
+      });
+    yield* Effect.forEach(ours, (summary) => fs.remove(path.join(runs, summary.file)));
+    const span = Option.map(Arr.head(ours), (summary) => summary.ms);
     // A run that failed is named for its exit code, and timed by its wall when turbo wrote no span.
     if (exitCode !== 0)
       return { name, ms: Option.getOrElse(span, () => wall), exitCode: Number(exitCode) };
-    if (written.length !== 1 || Option.isNone(span))
+    if (Option.isNone(span))
       return yield* new SummaryMissing({
-        message: `test:budget: expected one run summary naming ${name}#test in ${runs}, found ${written.length}.`,
+        message: `test:budget: expected one new run summary naming ${name}#test in ${runs}, found none.`,
       });
     return { name, ms: span.value, exitCode: 0 };
   });
@@ -165,9 +177,9 @@ const command = Command.make(
         onNonEmpty: (given) => Arr.dedupe(given),
       });
       // The machine's load before the run: what else was running, not the run's own.
-      const [load = 0] = loadavg();
+      const [one = 0, five = 0] = loadavg();
       const workspaces = yield* Effect.forEach(chosen, (name) => measure(root, name));
-      const judged = judge({ workspaces, load, cores: availableParallelism() });
+      const judged = judge({ workspaces, load: { one, five }, cores: availableParallelism() });
       yield* Console.log(judged.report.join('\n'));
       if (judged.failure.length > 0) yield* Console.error(judged.failure.join('\n'));
       yield* Effect.sync(() => {
