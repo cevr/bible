@@ -81,6 +81,15 @@ describe('Syllables.split', () => {
         'sus-tain',
         'mas-ter',
       ]);
+      // An R-coloured o opens inside a word; -est on a stem that is only a name is no ending;
+      // a plural -es keeps the cluster before it.
+      expect(cuts('adoration victory harvest courses changes')).toEqual([
+        'ad-o-ra-tion',
+        'vic-to-ry',
+        'har-vest',
+        'cours-es',
+        'chang-es',
+      ]);
       expect(cuts("heav'nly vict'ry whate'er th'eternal")).toEqual([
         "heav'n-ly",
         "vic-t'ry",

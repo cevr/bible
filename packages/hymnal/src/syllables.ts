@@ -230,18 +230,26 @@ const HIATUS = new Set(['ia', 'io', 'iu', 'ea', 'eo', 'ua', 'uo', 'ue', 'ui', 'i
 /** Endings printed as their own syllable when what is left is a word (reign-eth, sing-ing). */
 const SYLLABIC = ['ing', 'eth', 'est', 'ness', 'less', 'ful', 'ment', 'ly', 'er', 'ed'];
 
+/**
+ * Words whose ending is part of the word: the dictionary knows the stem only
+ * as a name (Harv, Temp), so the word divides by its vowels (har-vest).
+ */
+const ROOTED = new Set(['harvest', 'tempest']);
+
 /** Endings that add no syllable: they stay on the stem's last piece (crea-tures). */
 const SILENT = ["'s", 's', 'ed', 'st'];
 
 /**
  * Vowels that close their syllable over one consonant when stressed (ev-er,
  * moth-er, hon-or: a short o is AA spelled o), and R-coloured ones (for-ev-er).
+ * An R-coloured o closes only the word's first syllable: inside a word it
+ * stays open (ad-o-ra-tion, vic-to-ry).
  */
-const closes = (vowel: string | undefined, spelled: string) =>
+const closes = (vowel: string | undefined, spelled: string, first: boolean) =>
   vowel !== undefined &&
   (/^(?:AE|EH|IH|AH|UH)[12]$/.test(vowel) ||
     // The dictionary hears an unstressed a before r as R-coloured too (a-round).
-    (/^ER\d$/.test(vowel) && spelled !== 'a') ||
+    (/^ER\d$/.test(vowel) && spelled !== 'a' && (spelled !== 'o' || first)) ||
     (/^AA[12]$/.test(vowel) && spelled === 'o'));
 
 interface Nucleus {
@@ -323,14 +331,20 @@ const joinGroups = (groups: readonly Nucleus[], count: number): Nucleus[] => {
  * next syllable unless the vowel before is short and stressed; more divide
  * before an onset they can begin together, else before the last.
  */
-const boundary = (letters: string, left: Nucleus, right: Nucleus, vowel: string | undefined) => {
+const boundary = (
+  letters: string,
+  left: Nucleus,
+  right: Nucleus,
+  vowel: string | undefined,
+  first: boolean,
+) => {
   const between = letters.slice(left.end, right.start);
   if (between.length === 0) return right.start;
   // th, sh, ch, ph sound as one consonant (moth-er).
   if (between.length === 1 || /^[tscp]h$/.test(between)) {
     const closed = letters.slice(left.end - 2, left.end) === 'gh' || between === 'x';
     const spelled = letters.slice(left.start, left.end);
-    return closed || closes(vowel, spelled) ? left.end + between.length : left.end;
+    return closed || closes(vowel, spelled, first) ? left.end + between.length : left.end;
   }
   if (between === 'ck') return right.start;
   for (const size of [3, 2]) {
@@ -359,7 +373,7 @@ const byVowels = (word: string, count: number): string[] => {
   for (let i = 1; i < groups.length; i++) {
     const [left, right] = [groups[i - 1], groups[i]];
     if (left !== undefined && right !== undefined) {
-      cuts.push(boundary(letters, left, right, aligned?.[i - 1]));
+      cuts.push(boundary(letters, left, right, aligned?.[i - 1], i === 1));
     }
   }
   const at = (cut: number) => kept[cut] ?? word.length;
@@ -373,6 +387,14 @@ const byVowels = (word: string, count: number): string[] => {
 /** A word cut as its stem and an ending: the ending its own piece, or kept on the stem's last. */
 const byEnding = (word: string, count: number): string[] | undefined => {
   const lower = word.toLowerCase();
+  // A plural -es after a consonant cluster and a silent e is its own piece, the cluster kept
+  // whole before it (cours-es, chang-es).
+  if (/[^aeiouy]{2}es$/.test(lower)) {
+    const stem = lower.slice(0, -1);
+    if (isKnown(stem) && counts(stem).includes(count - 1)) {
+      return [...cut(word.slice(0, -2), count - 1), word.slice(-2)];
+    }
+  }
   for (const ending of SILENT) {
     const stem = lower.slice(0, -ending.length);
     if (
@@ -395,6 +417,7 @@ const byEnding = (word: string, count: number): string[] | undefined => {
       lower.endsWith(ending) &&
       stem.length >= 2 &&
       !cluster &&
+      !ROOTED.has(lower) &&
       isEnding(lower, stem) &&
       counts(stem).includes(count - 1)
     ) {
