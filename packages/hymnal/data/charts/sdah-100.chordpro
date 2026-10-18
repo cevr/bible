@@ -1,0 +1,63 @@
+{title: Great Is Thy Faithfulness}
+{subtitle: SDA Hymnal (1985) #100, FAITHFULNESS, William M. Runyan}
+{key: Db}
+{time: 3/4}
+{comment: Source: frazras 100.mid (intro = 8 bars, skipped), checked by eye against the owner's photo of bars 1-21 (2026-10-17).}
+{comment: Bar 6 "ow": the book's alto is C (Ab7/Eb); the MIDI has Db. The chart follows the book.}
+{comment: Bars 22-32 ("new mercies I see" to the end) are from the MIDI alone, which the owner accepted as the source (2026-10-17).}
+
+{start_of_verse: Verse 1 (full harmony)}
+[Db]Great is [Db+]Thy [Gbmaj7]faith-[Gb6]ful-ness, [Ab7]O God my [Gb/Db]Fa-[Db]ther, [Gb]There is no
+[Db/F]shad-[Ab7/Eb]ow [Db]of [Eb/Bb]turn-[Bb7]ing [Eb7]with [Ab]Thee;
+[Ab7]Thou chang-est [Db]not, Thy [Gb/Db]com-[Db]pas-[Ebm]sions, [Db/F]they [Gbmaj7]fail [Gb6]not;
+[Gdim7]As [C/G]Thou [Gdim7]hast [Db/Ab]been Thou for-ev-[Fm/Ab]er [Ab7]wilt [Db]be.
+{end_of_verse}
+
+{start_of_verse: Verse 2 (full harmony)}
+[Db]Sum-mer [Db+]and [Gbmaj7]win-[Gb6]ter, and [Ab7]spring-time and [Gb/Db]har-[Db]vest, [Gb]Sun, moon, and
+[Db/F]stars [Ab7/Eb]in [Db]their [Eb/Bb]cours-[Bb7]es [Eb7]a-[Ab]bove,
+[Ab7]Join with all [Db]na-ture [Gb/Db]in [Db]man-[Ebm]i-[Db/F]fold [Gbmaj7]wit-[Gb6]ness
+[Gdim7]To [C/G]Thy [Gdim7]great [Db/Ab]faith-ful-ness, mer-[Fm/Ab]cy, [Ab7]and [Db]love.
+{end_of_verse}
+
+{start_of_verse: Verse 3 (full harmony)}
+[Db]Par-don [Db+]for [Gbmaj7]sin [Gb6]and a [Ab7]peace that en-[Gb/Db]dur-[Db]eth, [Gb]Thy own dear
+[Db/F]pres-[Ab7/Eb]ence [Db]to [Eb/Bb]cheer [Bb7]and [Eb7]to [Ab]guide;
+[Ab7]Strength for to-[Db]day and [Gb/Db]bright [Db]hope [Ebm]for [Db/F]to-[Gbmaj7]mor-[Gb6]row,
+[Gdim7]Bless-[C/G]ings [Gdim7]all [Db/Ab]mine, with ten thou-[Fm/Ab]sand [Ab7]be-[Db]side.
+{end_of_verse}
+
+{start_of_chorus: Refrain (full harmony)}
+[Ab]Great is Thy [Gb/Db]faith-[Db]ful-ness! [Bb7]Great [Bb]is Thy [Abm/Eb]faith-[Ebm]ful-ness! [Ab7]Morn-ing by
+[Db]morn-ing [Dbm6]new [Ab/Eb]mer-[Db/Eb]cies [Eb7]I [Ab]see;
+[Ab7]All I have [Db]need-ed [Gb/Db]Thy [Db]hand [Ebm]hath [Db/F]pro-[Gbmaj7]vid-[Gb6]ed,
+[Gdim7]Great [C/G]is [Gdim7]Thy [Db/Ab]faith-ful-ness, Lord, [Ab7]un-to [Db]me!
+{end_of_chorus}
+
+{start_of_verse: Verse 1 (guitar)}
+[Db]Great is [Db+]Thy [Gb]faith-ful-ness, [Ab7]O God my [Gb]Fa-[Db]ther, [Gb]There is no
+[Db]shad-ow of [Eb]turn-[Bb7]ing [Eb7]with [Ab]Thee;
+[Ab7]Thou chang-est [Db]not, Thy com-pas-[Ebm]sions, [Db]they [Gb]fail not;
+[Gdim7]As Thou hast [Db]been Thou for-ev-er [Ab7]wilt [Db]be.
+{end_of_verse}
+
+{start_of_verse: Verse 2 (guitar)}
+[Db]Sum-mer [Db+]and [Gb]win-ter, and [Ab7]spring-time and [Gb]har-[Db]vest, [Gb]Sun, moon, and
+[Db]stars in their [Eb]cours-[Bb7]es [Eb7]a-[Ab]bove,
+[Ab7]Join with all [Db]na-ture in man-[Ebm]i-[Db]fold [Gb]wit-ness
+[Gdim7]To Thy great [Db]faith-ful-ness, mer-cy, [Ab7]and [Db]love.
+{end_of_verse}
+
+{start_of_verse: Verse 3 (guitar)}
+[Db]Par-don [Db+]for [Gb]sin and a [Ab7]peace that en-[Gb]dur-[Db]eth, [Gb]Thy own dear
+[Db]pres-ence to [Eb]cheer [Bb7]and [Eb7]to [Ab]guide;
+[Ab7]Strength for to-[Db]day and bright hope [Ebm]for [Db]to-[Gb]mor-row,
+[Gdim7]Bless-ings all [Db]mine, with ten thou-sand [Ab7]be-[Db]side.
+{end_of_verse}
+
+{start_of_chorus: Refrain (guitar)}
+[Ab]Great is Thy [Gb]faith-[Db]ful-ness! [Bb7]Great is Thy [Abm]faith-[Ebm]ful-ness! [Ab7]Morn-ing by
+[Db]morn-ing [Dbm6]new [Ab]mer-cies [Eb7]I [Ab]see;
+[Ab7]All I have [Db]need-ed Thy hand [Ebm]hath [Db]pro-[Gb]vid-ed,
+[Gdim7]Great is Thy [Db]faith-ful-ness, Lord, [Ab7]un-to [Db]me!
+{end_of_chorus}

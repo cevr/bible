@@ -1,0 +1,4 @@
+1 1 full 46 the bass under "ra" (bar 21) is Bb in the print and the MIDI; the chart dropped the slash
+100 1 full 16 MIDI alto Db where the book has C (bar 6, "ow"); the owner accepted the MIDI as the source
+100 2 full 16 the same bar in stanza 2 ("in")
+100 3 full 16 the same bar in stanza 3 ("ence")
