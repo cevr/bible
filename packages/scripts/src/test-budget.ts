@@ -16,10 +16,11 @@
 // `--timeout` a workspace's `test` script names (`packages/film` also sets
 // the same number in a preload, for effect-bun-test's runners).
 //
-// The load average before each workspace's run and the core count are printed
-// beside its time. A machine busier than its cores measures nothing: that
-// workspace is "not measured (load N on C cores)" and does not fail the run,
-// so the merge step measures it again on a quiet machine; at or below the core
+// The load average before the first workspace runs and the core count are
+// printed beside the times: read once, since each workspace's run lifts the
+// average the next would read. A machine busier than its cores measures
+// nothing: the run prints "not measured (load N on C cores)" and exits 0, so
+// the merge step measures again on a quiet machine; at or below the core
 // count, over budget fails (`test-budget/budget.ts`). A test that fails still
 // fails, at any load.
 
@@ -80,7 +81,7 @@ const workspacesOfTest = (root: string) =>
     ),
   );
 
-/** Runs one workspace's `test` alone and answers its time, the load before it and its exit code. */
+/** Runs one workspace's `test` alone and answers its time and its exit code. */
 const measure = (root: string, name: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -92,9 +93,7 @@ const measure = (root: string, name: string) =>
       (names) => new Set(names),
     );
     const before = yield* summariesIn;
-    // The machine's load before the run: what else was running, not the run's own.
-    const [load = 0] = loadavg();
-    yield* Console.log(`\ntest:budget: ${name} alone (load average ${load.toFixed(1)})`);
+    yield* Console.log(`\ntest:budget: ${name} alone`);
     const started = yield* Clock.currentTimeMillis;
     const exitCode = yield* Effect.scoped(
       Effect.flatMap(
@@ -132,12 +131,12 @@ const measure = (root: string, name: string) =>
     );
     // A run that failed is named for its exit code, and timed by its wall when turbo wrote no span.
     if (exitCode !== 0)
-      return { name, ms: Option.getOrElse(span, () => wall), load, exitCode: Number(exitCode) };
+      return { name, ms: Option.getOrElse(span, () => wall), exitCode: Number(exitCode) };
     if (written.length !== 1 || Option.isNone(span))
       return yield* new SummaryMissing({
         message: `test:budget: expected one run summary naming ${name}#test in ${runs}, found ${written.length}.`,
       });
-    return { name, ms: span.value, load, exitCode: 0 };
+    return { name, ms: span.value, exitCode: 0 };
   });
 
 const command = Command.make(
@@ -165,8 +164,10 @@ const command = Command.make(
         onEmpty: () => known,
         onNonEmpty: (given) => Arr.dedupe(given),
       });
+      // The machine's load before the run: what else was running, not the run's own.
+      const [load = 0] = loadavg();
       const workspaces = yield* Effect.forEach(chosen, (name) => measure(root, name));
-      const judged = judge({ workspaces, cores: availableParallelism() });
+      const judged = judge({ workspaces, load, cores: availableParallelism() });
       yield* Console.log(judged.report.join('\n'));
       if (judged.failure.length > 0) yield* Console.error(judged.failure.join('\n'));
       yield* Effect.sync(() => {
