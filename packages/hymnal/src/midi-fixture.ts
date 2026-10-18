@@ -15,7 +15,8 @@ export interface FixtureTrack {
 export interface Fixture {
   readonly ticksPerBeat?: number;
   readonly meter?: readonly [numerator: number, denominator: number];
-  readonly fifths?: number;
+  /** The key signature's sharps (flats below 0); `null` writes none, as 39 of the hymnal's files have none. */
+  readonly fifths?: number | null;
   readonly tracks: readonly FixtureTrack[];
 }
 
@@ -45,9 +46,13 @@ const trackBody = (events: Array<{ tick: number; order: number; bytes: number[] 
 export const write = (fixture: Fixture): Uint8Array => {
   const tpb = fixture.ticksPerBeat ?? 384;
   const [numerator, denominator] = fixture.meter ?? [4, 4];
+  const signature =
+    fixture.fifths === null
+      ? []
+      : [{ tick: 0, order: 0, bytes: [0xff, 0x59, 2, (fixture.fifths ?? 0) & 0xff, 0] }];
   const conductor = trackBody([
     { tick: 0, order: 0, bytes: [0xff, 0x58, 4, numerator, Math.log2(denominator), 24, 8] },
-    { tick: 0, order: 0, bytes: [0xff, 0x59, 2, (fixture.fifths ?? 0) & 0xff, 0] },
+    ...signature,
   ]);
   const tracks = fixture.tracks.map((track, i) => {
     const channel = i % 16;
