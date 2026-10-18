@@ -20,7 +20,7 @@ import { lerp } from '@bible/film/core';
 import { EASE, type Expression, type Pt, acted, reachAbout } from '@bible/film/style';
 import { CARD_STYLE } from '../card.ts';
 import { HANDS, LANDING_RIGS, courtFigures, courtShadows, restPose } from '../court-cast.ts';
-import { BLADE_AT, PLACE, REST, REST_POINT, backWall, benchGlow, floor } from '../court-set.ts';
+import { BLADE_AT, PLACE, REST, REST_POINT, backWall, benchWarm, floor } from '../court-set.ts';
 import { LIGHT } from '../light.ts';
 import { blade, figLeaf, glow } from '../props.ts';
 import { JUDGE_KNOBS } from '../rigs/judge-rig.ts';
@@ -288,6 +288,7 @@ export const court = drawing({
     jn.gazeX = JUDGE_KNOBS.gazeX;
     jn.gazeY = JUDGE_KNOBS.gazeY;
     jn.lean = -0.04 * shine;
+    p.judge.glow = shine;
 
     // ── the frame
     multiplane(
@@ -302,7 +303,7 @@ export const court = drawing({
           draw: () => {
             floor(ctx);
             courtShadows(ctx);
-            benchGlow(ctx, shine);
+            benchWarm(ctx, shine);
             courtFigures(f, p);
             if (here > 0)
               for (const [x, y, rot] of LEAVES)

@@ -60,6 +60,8 @@ const TURN = {
   shoe: { at: 0.4, soft: 0.04, toward: -0.7 },
   whiteRobe: { at: 0.82, soft: 0.02, toward: 0.2 },
   christFace: { at: 0.65, soft: 0.04, toward: 0.3 },
+  farmerFace: { at: 0.78, soft: 0.04, toward: 0.3 },
+  linen: { at: 0.9, soft: 0.02, toward: 0.2 },
 } as const satisfies Record<string, Crease>;
 
 /** The figures' papers, by what each is. */
@@ -136,6 +138,21 @@ export const PAPERS = {
     crease: TURN.whiteRobe,
     rim: RIM,
   },
+  /**
+   * The farmer's skin, as rain.rain's kept try paints it: a warm tan, its
+   * shade toward rose where his headcloth shadows his cheek.
+   */
+  farmerSkin: {
+    color: '#f6b373',
+    shade: '#e0956a',
+    light: '#f9d3a3',
+    crease: TURN.farmerFace,
+    rim: RIM,
+  },
+  /** A headcloth of undyed linen, the story-cloth's lightest (#f0ecdd its light), its shade a cool lilac. */
+  headcloth: { color: '#e8dfcc', shade: '#bdb3c2', light: '#f0ecdd', crease: TURN.linen, rim: RIM },
+  /** Undyed linen, the story-cloth's: a working man's tunic. */
+  linen: { color: '#d1c6b4', shade: '#ada5b3', light: '#f0ecdd', crease: TURN.linen, rim: RIM },
   /** Sandals: a leather brown. */
   sandal: { color: '#955b3a', shade: '#7c4a30', light: '#a86c48' },
   /**

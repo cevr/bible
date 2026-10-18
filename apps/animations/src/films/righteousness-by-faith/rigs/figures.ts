@@ -7,6 +7,7 @@
 
 import { DIRECTION, figure, fragment, ids } from '@bible/film/style/rig';
 import { CHRIST, CHRIST_KNOBS } from './christ-rig.ts';
+import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
 import { handRig } from './hand-rig.ts';
 import { judgeRig } from './judge-rig.ts';
 import { leadRig } from './lead-rig.ts';
@@ -23,6 +24,8 @@ export const ARTBOARDS = {
   skinHand: 'SkinHand',
   christ: 'Christ',
   christHand: 'ChristHand',
+  farmer: 'Farmer',
+  farmerHand: 'FarmerHand',
 } as const;
 
 /**
@@ -44,6 +47,12 @@ export const figuresRml = (): string => {
     ...robedRig(figure(next, ARTBOARDS.christ, 2306, 1540, d), CHRIST, CHRIST_KNOBS),
     ...handRig(figure(next, ARTBOARDS.christHand, 2307, 1860, d), {
       ...PAPERS.christSkin,
+      crease: PAPERS.skinHand.crease,
+      rim: 4,
+    }),
+    ...robedRig(figure(next, ARTBOARDS.farmer, 2308, 1960, d), FARMER, FARMER_KNOBS),
+    ...handRig(figure(next, ARTBOARDS.farmerHand, 2309, 2280, d), {
+      ...PAPERS.farmerSkin,
       crease: PAPERS.skinHand.crease,
       rim: 4,
     }),

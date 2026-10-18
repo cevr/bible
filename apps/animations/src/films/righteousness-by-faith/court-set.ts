@@ -456,21 +456,19 @@ export const BENCH_TOP = BENCH.top;
 const GLOW = { face: '#fec652', bright: '#fdf08a', rim: '#fed45a', floor: '#fff0bf' } as const;
 
 /**
- * The bench glowing warm at `amount` (0 none): its face and its panel lit
- * gold from within, brightest at the panel's middle, its top rim gold, and
- * the warm laid across the floor from its foot to the dock.
+ * The warm the glowing bench (`court.how`) throws across the floor at
+ * `amount` (0 none), from its foot toward the dock, fading away from it.
+ * Under the figures; the bench's own face is `benchLit`.
  */
-export const benchGlow = (ctx: CanvasRenderingContext2D, amount: number) => {
+export const benchWarm = (ctx: CanvasRenderingContext2D, amount: number) => {
   if (amount <= 0) return;
-  const { x0, x1, top, foot } = BENCH;
-  const a = Math.min(1, amount);
+  const { x0, x1, foot } = BENCH;
   ctx.save();
-  // The floor's warm, from the bench's foot toward the dock, fading away from it.
   ctx.globalCompositeOperation = 'lighter';
   const wash = ctx.createLinearGradient(x0, foot, DOCK.x0, foot + 140);
   wash.addColorStop(0, `${GLOW.floor}66`);
   wash.addColorStop(1, `${GLOW.floor}00`);
-  ctx.globalAlpha = a;
+  ctx.globalAlpha = Math.min(1, amount);
   ctx.fillStyle = wash;
   trace(ctx, [
     [x0, foot - 10],
@@ -481,8 +479,18 @@ export const benchGlow = (ctx: CanvasRenderingContext2D, amount: number) => {
   ]);
   ctx.fill();
   ctx.restore();
+};
+
+/**
+ * The bench lit gold from within at `amount` (0 none): its face and its
+ * panel brightest at the panel's middle, its top rim gold, its ink kept
+ * over the light. Drawn over the bench, under what lies on it.
+ */
+export const benchLit = (ctx: CanvasRenderingContext2D, amount: number) => {
+  if (amount <= 0) return;
+  const { x0, x1, top, foot } = BENCH;
   ctx.save();
-  ctx.globalAlpha = a;
+  ctx.globalAlpha = Math.min(1, amount);
   const mid = (x0 + x1) / 2;
   const face = ctx.createRadialGradient(mid, (top + foot) / 2, 20, mid, (top + foot) / 2, 420);
   face.addColorStop(0, GLOW.bright);
@@ -494,7 +502,6 @@ export const benchGlow = (ctx: CanvasRenderingContext2D, amount: number) => {
   ctx.fillStyle = GLOW.rim;
   trace(ctx, box(x0, top, x1 - x0, 36));
   ctx.fill();
-  // The face's panel and edges keep their ink over the light.
   ctx.lineJoin = 'round';
   ctx.lineWidth = LINE_SMALL;
   ctx.strokeStyle = C.outline;
@@ -506,6 +513,17 @@ export const benchGlow = (ctx: CanvasRenderingContext2D, amount: number) => {
   trace(ctx, box(x0 + 10, top + 30, x1 - x0 - 10, foot - top - 30));
   unprobed(ctx, () => ctx.stroke());
   ctx.restore();
+};
+
+/**
+ * Where the bench's light reaches over the table's sheets at `amount` (0..1,
+ * `rain.blot`): from past the table's right end to past its left, and how
+ * much of a sheet whose middle is at `x` it has run over.
+ */
+export const BENCH_BEAM = { from: TABLE.x1 + 80, to: TABLE.x0 - 90 } as const;
+export const blottedAt = (x: number, amount: number) => {
+  const front = lerp(BENCH_BEAM.from, BENCH_BEAM.to, amount);
+  return Math.max(0, Math.min(1, (x + 66 - front) / 132));
 };
 
 /** The judge's chair: its red back over his shoulders, behind him. */
@@ -535,12 +553,17 @@ export const gavel = (ctx: CanvasRenderingContext2D, grip: Pt, rot: number) => {
 
 // ─── the evidence ────────────────────────────────────────────────────────────
 
-/** One sheet of evidence, scribbled over in flat scarlet: no letters, no numbers, no drips. */
+/**
+ * One sheet of evidence, scribbled over in flat scarlet: no letters, no
+ * numbers, no drips. `blotted` (0..1) is how far the bench's light has run
+ * over it from its right edge: the scribble is gone, white, where it has.
+ */
 export const sheet = (
   ctx: CanvasRenderingContext2D,
   at: { readonly x: number; readonly y: number; readonly rot: number },
   seed: number,
   flat = 0.32,
+  blotted = 0,
 ) => {
   ctx.save();
   ctx.translate(at.x, at.y);
@@ -552,6 +575,11 @@ export const sheet = (
     flat: true,
   });
   const r = rng(seed);
+  if (blotted > 0) {
+    ctx.beginPath();
+    ctx.rect(-80, -60, 146 * (1 - Math.min(1, blotted)), 120);
+    ctx.clip();
+  }
   ctx.strokeStyle = C.scarlet;
   ctx.lineWidth = 4;
   ctx.lineJoin = 'round';

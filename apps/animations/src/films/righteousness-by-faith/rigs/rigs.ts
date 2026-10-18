@@ -8,6 +8,7 @@ import { Record as Rec } from 'effect';
 import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
 import { CHRIST, CHRIST_KNOBS } from './christ-rig.ts';
+import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
 import { HAND_ART } from './hand-rig.ts';
 import {
   JUDGE_ART,
@@ -113,6 +114,27 @@ export const christProp: RivePropSpec<RobedTimeline, RobedKnob> = {
   },
 };
 
+/** The farmer of the rain: his feet at our origin. */
+export const farmerProp: RivePropSpec<RobedTimeline, RobedKnob> = {
+  source: {
+    riv: figuresRiv,
+    artboard: ARTBOARDS.farmer,
+    timelines: Rec.keys(ROBED_TIMELINES),
+    numbers: Rec.keys(FARMER_KNOBS),
+  },
+  engine: 'canvas',
+  key: 'righteousness-by-faith/farmer',
+  origin: FARMER.art.feet,
+  face: robedFaceCheck(FARMER),
+  // `film match`'s concept: the farmer in rain.rain, the kept Board try his head is traced from, its
+  // ink closed under his beard and where his headcloth meets his mantle (the Board draws none there,
+  // so the face's fill ran into his body); cut at his chest, as the Board cuts him at his waist.
+  concept: {
+    image: { set: 'rbf-v3-cast-2026-10-18', file: 'aids/farmer-head-closed.png' },
+    box: [190, 280, 720, 760],
+  },
+};
+
 /** A circle hand of `artboard`, its centre at our origin: no view model, only its paper's crawl. */
 const handProp = (artboard: string, key: string): RivePropSpec<'boil', never> => ({
   source: { riv: figuresRiv, artboard, timelines: ['boil'], numbers: [] },
@@ -129,3 +151,6 @@ export const skinHandProp = handProp(ARTBOARDS.skinHand, 'skin-hand');
 
 /** Christ's hand, in His skin. */
 export const christHandProp = handProp(ARTBOARDS.christHand, 'christ-hand');
+
+/** The farmer's hand, in his skin. */
+export const farmerHandProp = handProp(ARTBOARDS.farmerHand, 'farmer-hand');

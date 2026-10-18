@@ -15,8 +15,10 @@ import {
   PLACE,
   STACK_SHEETS,
   bench,
+  benchLit,
   benchShadow,
   block,
+  blottedAt,
   chair,
   contact,
   dock,
@@ -116,7 +118,14 @@ export interface CourtPose {
     /** Whether he stands at his table: 0 his place empty. */
     shown: number;
   };
-  readonly judge: { numbers: JudgeNumbers; hands: [Pt, Pt]; grip: [number, number]; rot: number };
+  readonly judge: {
+    numbers: JudgeNumbers;
+    hands: [Pt, Pt];
+    grip: [number, number];
+    rot: number;
+    /** How bright the bench glows gold from within: 0 not at all. */
+    glow: number;
+  };
   readonly christ: {
     numbers: ChristNumbers;
     hands: [Pt, Pt];
@@ -130,6 +139,8 @@ export interface CourtPose {
   stack: number;
   /** Whether the two laid sheets lie on the table. */
   laid: number;
+  /** How far the bench's light has run over the sheets, blotting their scribble out (0..1). */
+  blot: number;
 }
 
 /** A sheet in the prosecutor's hand: where it is, its turn, and whether he holds one. */
@@ -187,6 +198,7 @@ export const restPose = (): CourtPose => ({
     hands: [[...HANDS.judge[0]], [...HANDS.judge[1]]],
     grip: [GAVEL_REST.grip[0], GAVEL_REST.grip[1]],
     rot: GAVEL_REST.rot,
+    glow: 0,
   },
   christ: {
     numbers: { ...CHRIST_KNOBS },
@@ -197,6 +209,7 @@ export const restPose = (): CourtPose => ({
   },
   stack: 6,
   laid: 1,
+  blot: 0,
 });
 
 /** Where the stain's middle is on the lead as he leans `lean`, Board pixels: where the seal presses. */
@@ -314,7 +327,7 @@ const handAt = (f: CourtFrame, rig: 'leadHand' | 'skinHand' | 'christHand', p: P
   );
 
 /** A figure's own timelines on this frame: its breath, offset so no two breathe as one, and its boil. */
-const living = (f: CourtFrame, period: number, offset: number) =>
+export const living = (f: CourtFrame, period: number, offset: number) =>
   [
     ['breath', (f.t + offset) % period],
     ['boil', boilTime(f.boil)],
@@ -335,6 +348,7 @@ const judgeGroup = (f: CourtFrame, p: CourtPose) => {
     f.rive('judge', { timelines: living(f, 5, 1.3), numbers: p.judge.numbers }),
   );
   bench(ctx);
+  benchLit(ctx, p.judge.glow);
   block(ctx);
   gavel(ctx, p.judge.grip, p.judge.rot);
   for (const h of p.judge.hands) handAt(f, 'skinHand', h, HAND.judge);
@@ -351,13 +365,20 @@ const prosecutorGroup = (f: CourtFrame, p: CourtPose) => {
     );
   }
   table(ctx);
-  if (p.laid > 0) for (const [i, s] of LAID_SHEETS.entries()) sheet(ctx, s, 31 + i);
+  if (p.laid > 0)
+    for (const [i, s] of LAID_SHEETS.entries()) sheet(ctx, s, 31 + i, 0.32, blottedAt(s.x, p.blot));
   const whole = Math.floor(p.stack);
   for (const [i, s] of STACK_SHEETS.entries()) {
     if (i >= Math.ceil(p.stack)) break;
     // The last sheet, partway down, settles from a little above.
     const fall = i === whole ? 1 - (p.stack - whole) : 0;
-    sheet(ctx, { x: s.x, y: s.y - 30 * fall, rot: s.rot + 0.2 * fall }, 11 + i);
+    sheet(
+      ctx,
+      { x: s.x, y: s.y - 30 * fall, rot: s.rot + 0.2 * fall },
+      11 + i,
+      0.32,
+      blottedAt(s.x, p.blot),
+    );
   }
   const c = p.prosecutor.carried;
   if (c.shown > 0) sheet(ctx, c, 97, 0.55);
