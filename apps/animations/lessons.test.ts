@@ -1,8 +1,11 @@
 // The lessons ledger (docs/lessons.md) holds each owner correction to its
 // guard: every entry carries its fields, every code guard names a file that
 // holds the name it cites, and every "judgement only" quotes a line its
-// carrying file holds word for word. A guard renamed or a skill line reworded
-// fails here, naming the entry.
+// carrying file holds word for word. In code, a name is held by its
+// declaration there (`const`, `function`, `class`, `type`, `interface`,
+// `enum`, a method or a field), and any other word by a line that is not a
+// comment, so a word left in a comment holds no guard. A guard renamed or a
+// skill line reworded fails here, naming the entry.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
@@ -42,6 +45,24 @@ const claimsOf = (guard: string): ReadonlyArray<Claim> => {
   ]);
 };
 
+/** A name a declaration can carry. */
+const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+
+/** Whether `text`, the file `file`, holds `holds` as a guard asks it to. */
+const holdsIn = (file: string, text: string, holds: string): boolean => {
+  if (!/\.tsx?$/.test(file)) return text.includes(holds);
+  const code = text
+    .split('\n')
+    .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+    .join('\n');
+  if (!IDENTIFIER.test(holds)) return code.includes(holds);
+  const declared = new RegExp(
+    `(\\b(const|let|function|class|type|interface|enum)\\s+${holds}\\b)|(^\\s*(readonly\\s+|static\\s+|async\\s+)*${holds}\\s*[(:=?])`,
+    'm',
+  );
+  return declared.test(code);
+};
+
 describe('the lessons ledger', () => {
   it.effect('holds every entry to a guard, or to judgement and the line that carries it', () =>
     Effect.gen(function* () {
@@ -67,7 +88,7 @@ describe('the lessons ledger', () => {
           Option.match(text, {
             onNone: () => problems.push(`${entry.id}: no file ${file}`),
             onSome: (t) => {
-              if (!t.includes(holds))
+              if (!holdsIn(file, t, holds))
                 problems.push(`${entry.id}: ${file} does not hold "${holds}"`);
             },
           });

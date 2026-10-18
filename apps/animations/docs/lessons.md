@@ -100,7 +100,7 @@ The form of an entry, each field on its own line:
 - **Source:** apps/animations/plans/film-flow-audit.md #75; memory feedback_reviews_via_counsel_review.md
 - **Wrong:** The film's taste and art judge was `okra counsel` (the other model family).
 - **Cause:** Not recorded.
-- **Guard:** `packages/film/src/tools/counsel.ts` `'opus'`; `packages/film/src/tools/critique.ts` `Counsel` (323108af6)
+- **Guard:** `packages/film/src/tools/counsel.ts` `'opus'`; `packages/film/src/tools/counsel.ts` `Counsel` (asked by `tools/critique.ts`; cec4b84a2)
 
 ### choices-not-visible
 
@@ -181,7 +181,7 @@ The form of an entry, each field on its own line:
 - **Source:** memory feedback_wait_on_asks.md
 - **Wrong:** Agents asked the owner to say "answered" after each ask.
 - **Cause:** Not recorded.
-- **Guard:** `packages/film/src/tools/ask-cli.ts` `film ask wait` (8db69f813; `--page` 76f991de4)
+- **Guard:** `packages/film/src/tools/ask-cli.ts` `wait` (`film ask wait`; 8db69f813; `--page` 76f991de4)
 
 ## The look
 
@@ -237,7 +237,7 @@ The form of an entry, each field on its own line:
 - **Source:** apps/animations/productions/look.json (Noted 2026-10-13); tmp/orchestrate/p5/headproto/log.md:1; apps/animations/plans/film-flow-audit.md #82
 - **Wrong:** Hair, hats, beards and headcloths read as separate pieces stitched onto the head.
 - **Cause:** The paper-cut figures' first rule gave every piece its own closed outline (tmp/orchestrate/p5/styleproto/log.md:71).
-- **Guard:** `packages/film/src/core/match.ts` `interiorInk` (ink on the hair/skin edge, the rule is none; 73c436c69)
+- **Guard:** `packages/film/src/core/match.ts` `'interiorInk'` (ink on the hair/skin edge, the rule is none; 73c436c69)
 
 ### k1-hair-and-ornaments
 
@@ -264,7 +264,7 @@ The form of an entry, each field on its own line:
 - **Source:** apps/animations/plans/film-flow-audit.md #101 (rbfscene Rive render of the cold open)
 - **Wrong:** The Rive render's eyes lacked the concept's white outline: the render was not held to its concept.
 - **Cause:** Not recorded.
-- **Guard:** `packages/film/src/core/critique.ts` `critiquePacket` (the face's features against the concept at 1:1); `packages/film/src/core/match.ts` `compareFigures` (323108af6)
+- **Guard:** `packages/film/src/core/critique.ts` `critiquePacket` (the face's features against the concept at 1:1); `packages/film/src/core/match.ts` `compareFigures` (cec4b84a2)
 
 ### concepts-in-locked-look
 
@@ -282,7 +282,7 @@ The form of an entry, each field on its own line:
 - **Source:** ask a669b9776fb (note); apps/animations/productions/righteousness-by-faith.json (2026-10-16 14:49)
 - **Wrong:** Round 3: hair carried its own ink line (a waved cap), heads faced front with no ear, and the shading was not the concept's.
 - **Cause:** The generator inked every piece on its own (the same cause as the stitched-on hair).
-- **Guard:** `packages/film/src/core/match.ts` `interiorInk` (73c436c69); `packages/film/src/core/match.ts` `facingRows` (a head faced otherwise than the concept's; 3467e02cc)
+- **Guard:** `packages/film/src/core/match.ts` `'interiorInk'` (73c436c69); `packages/film/src/core/match.ts` `facingRows` (a head faced otherwise than the concept's; 87e023029)
 
 ### no-inner-rim-on-ears
 
@@ -291,7 +291,7 @@ The form of an entry, each field on its own line:
 - **Source:** apps/animations/productions/righteousness-by-faith.json (Noted 2026-10-16 15:43); tmp/orchestrate/p5/p6-conceptmatch/log.md:1
 - **Wrong:** The ears carried a light rim of their own that the concept does not paint.
 - **Cause:** Round 4 gave every piece its own rim and tones in the generator (344316e72); inferred.
-- **Guard:** `packages/film/src/core/match.ts` `innerRim` (73c436c69)
+- **Guard:** `packages/film/src/core/match.ts` `'innerRim'` (73c436c69)
 
 ### christ-render-artifacts
 
@@ -300,16 +300,16 @@ The form of an entry, each field on its own line:
 - **Source:** ask aab16c0cb70 (christ: revise); apps/animations/productions/righteousness-by-faith.json (2026-10-17 22:58); tmp/orchestrate/p5/p6-lessons/spec.md
 - **Wrong:** Render artifacts on Christ, seen at 1:1: a light line between His hair and cheek, a ragged beard edge, a white point at His crown.
 - **Cause:** The orchestrator recommended locking on ratio rows and sampled colours; the artifacts show only at 1:1, and no 1:1 crop or fresh critique ran before the ask.
-- **Guard:** `packages/film/src/core/render-artifacts.ts` `headArtifacts` (a sliver read on Christ's hair edge at court 16.51 s; 3467e02cc); `packages/film/src/core/review-record.ts` `keptOn` and `packages/film/src/tools/ask-materials.ts` `evidence` (a typed keep is refused without a review record; 5816f1af8)
+- **Guard:** `packages/film/src/core/render-artifacts.ts` `headArtifacts` (a sliver read on Christ's hair edge at court 16.51 s; 051f07561); `packages/film/src/core/review-record.ts` `keptOn` and `packages/film/src/tools/ask-materials.ts` `evidence` (a typed keep of Him in court is refused without a review of Him there; 0c7db02db)
 
 ### farmer-not-like-concept
 
 - **Date:** 2026-10-17
 - **Said:** "theres some artifacts in the render, and the farmer looks nothing like the concept, face proportions and angles are off"
 - **Source:** ask aab16c0cb70 (farmer: revise); apps/animations/productions/righteousness-by-faith.json (2026-10-17 22:58); tmp/orchestrate/p5/p6-lessons/spec.md
-- **Wrong:** The farmer was a front face on robe.5's body with Christ's features, where rain.rain turns his head three-quarter and tilts it, one hand raised; a sliver of headcloth beside his face and rain over it.
+- **Wrong:** At rain 14.19 s the farmer's head was turned about as rain.rain turns it, a little more (turn 0.141 against the concept's 0.094, both to the viewer's right), but level where the concept tilts it up 12° (roll 0.4° against −11.7°); his face longer and flat at the chin, with Christ's features, on robe.5's body; his raised hand drawn low; a sliver of headcloth beside his face and rain over it.
 - **Cause:** A lock recommended on ratio rows and colours; the match read the farmer's head and body as one outline, and the head's angle and the pose were never compared.
-- **Guard:** `packages/film/src/core/match.ts` `facingRows` (turn and roll flagged on rain 14.19 s; 3467e02cc); `packages/film/src/core/render-artifacts.ts` `weather`; `packages/film/src/core/critique.ts` `critiquePacket` (the pose and the face: the critique names the raised hand, 323108af6); `packages/film/src/tools/ask-materials.ts` `evidence` (5816f1af8)
+- **Guard:** `packages/film/src/core/match.ts` `facingRows` (the roll flagged on rain 14.19 s, the turn read on his skin alone and not flagged; 87e023029); `packages/film/src/core/render-artifacts.ts` `ARTIFACT_KINDS` (its `weather`, rain across a face; 051f07561); `packages/film/src/core/critique.ts` `critiquePacket` (the pose and the face: the critique names the raised hand, cec4b84a2); `packages/film/src/core/review-record.ts` `evidenceProblems` (a keep of him needs a review of him in rain; 0c7db02db)
 
 ## Figures and the cast
 
@@ -391,7 +391,7 @@ The form of an entry, each field on its own line:
 - **Said:** "ok what is the gold coin in the first frames? is that blood?"
 - **Source:** apps/animations/productions/righteousness-by-faith.json (Noted 2026-10-16 09:35); then ask a389862e313
 - **Wrong:** In the cold open the scarlet stain read as blood and the seal as a gold coin.
-- **Cause:** Not recorded. The same misread was caught in the 2026-10-11 looks study (fixed per look in 2e2aed302, 63e6a06dc), but no rule was written then.
+- **Cause:** Not recorded. The same misread was caught in the 2026-10-11 looks study (fixed per look in 2e2aed302, and in the pixel look's pass 2 on the Workbox, tmp/orchestrate/p5/looks/log.md), but no rule was written then.
 - **Guard:** judgement only: what a mark reads as is meaning, read by eye. Carried by `.claude/skills/film/reference/character-design.md`: "**Scarlet moves.**"
 
 ### cut-and-we-all-need-the-answer
@@ -480,9 +480,9 @@ The form of an entry, each field on its own line:
 - **Date:** 2026-10-17
 - **Said:** "theres some artifacts in the render, and the farmer looks nothing like the concept, face proportions and angles are off"
 - **Source:** ask aab16c0cb70; tmp/orchestrate/p5/rbf-scenes-v3/report.md ("Farmer revision 1")
-- **Wrong:** The rough-heights rule was read past heights: a concept's three-quarter head was journalled as not borne out, and the farmer was drawn front and level.
+- **Wrong:** The rough-heights rule was read past heights: a concept's three-quarter head was journalled as not borne out, and the farmer's head was drawn level where his concept tilts it up 12°.
 - **Cause:** The scene-painter brief told a painter to journal a three-quarter head as not borne out (its match step), so a concept's angle read as a sketch's slip.
-- **Guard:** `packages/film/src/core/match.ts` `ANGLE_IS_DESIGN` (a differing turn or roll is a flag, never information; 3467e02cc)
+- **Guard:** `packages/film/src/core/match.ts` `ANGLE_IS_DESIGN` (a differing turn or roll is a flag, never information; 051f07561)
 
 ### bible-people-drawn-once
 

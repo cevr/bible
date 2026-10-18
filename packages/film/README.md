@@ -2842,7 +2842,9 @@ not stand for it.
 **Facing and artifacts.** The head's facing (`facing`): its `turn`, the
 eyes' midpoint off the middle of the face's opening on the cheek row just
 under them (a share of that opening, + to the viewer's right; the opening
-runs out to the hair, the ink or the head's edge), its `roll`, the eye
+is the skin, from between the eyes to its last pixel, lit or shaded, before
+the hair, the ink, the head's edge or a fill that is not skin, such as a
+headcloth: a light rim at the head's edge is the skin's own), its `roll`, the eye
 line's slope in degrees, and `eyes`, the eye line's length, which says how
 coarsely the roll was read. The render's artifacts on the head
 (`artifacts`, `core/render-artifacts.ts`), at 1:1 only: a pixel whose
