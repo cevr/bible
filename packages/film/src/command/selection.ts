@@ -17,6 +17,7 @@ import {
   type CompareView,
   Places,
   beatSelection,
+  panelSelection,
   pageHref,
   reviewFileUrl,
   selectedBeat,
@@ -61,6 +62,8 @@ export const Selection = Schema.TaggedUnion({
   Variant: { film: Schema.String, point: Schema.String, variant: Schema.String },
   /** A beat of the studio's script. */
   Beat: { beat: Schema.String },
+  /** A Board panel on the studio's timeline (`<beat>.<mark>`). */
+  Panel: { panel: Schema.String },
 });
 export type Selection = typeof Selection.Type;
 
@@ -212,6 +215,11 @@ export const citeOf = (selection: Selection, href: string): string => {
       () => pageHref.studio(film),
     );
   const studioOf = (s: Selection & { readonly film: string }) => onStudio(s.film);
+  // A beat or a panel cited from a film's studio is cited there, selected, at its playhead.
+  const onStudioSelecting = (sel: string) =>
+    Option.map(Place.decode(Places.studio, href), (v) =>
+      Place.href(Places.studio, { ...v, query: { ...v.query, sel, try: 0, note: '', words: '' } }),
+    );
   return Selection.match(selection, {
     Film: studioOf,
     Act: studioOf,
@@ -271,13 +279,16 @@ export const citeOf = (selection: Selection, href: string): string => {
     Variant: (s) => onStudio(s.film),
     // A beat in the lab's scene it is cited from, else in its own (a beat is a scene's take).
     Beat: (s) =>
-      inLab(
-        Option.getOrElse(
-          Option.flatMap(lab, (l) => l.scene),
-          () => s.beat,
+      Option.getOrElse(onStudioSelecting(beatSelection(s.beat)), () =>
+        inLab(
+          Option.getOrElse(
+            Option.flatMap(lab, (l) => l.scene),
+            () => s.beat,
+          ),
+          { beat: s.beat },
         ),
-        { beat: s.beat },
       ),
+    Panel: (s) => Option.getOrElse(onStudioSelecting(panelSelection(s.panel)), () => href),
   });
 };
 
@@ -296,6 +307,7 @@ export const selectionText = (selection: Selection): string =>
     },
     Mark: (s) => `mark ${s.name} in ${s.scene}`,
     Note: (s) => `note ${s.id}`,
+    Panel: (s) => `panel ${s.panel}`,
     Folder: (s) => `folder ${s.folder}`,
     Set: (s) => `set ${s.point}`,
     Version: (s) => `option ${s.version} of ${s.point}`,

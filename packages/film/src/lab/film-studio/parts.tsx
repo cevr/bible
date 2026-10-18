@@ -23,8 +23,10 @@ import {
   useContext,
 } from 'solid-js';
 import { PageLoad } from '../../browser/page-load.ts';
-import { Pointer, Surface } from '../../browser/pointer.ts';
+import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
 import { BY_BUTTON } from '../../command/command.ts';
+import { Selection } from '../../command/selection.ts';
+import { targetAttr } from '../../command/target.ts';
 import { Places, selectedBeat, studioPlace } from '../../core/api.ts';
 import type {
   BoardClip,
@@ -46,6 +48,8 @@ import { FilmsLink } from './page.tsx';
 import { pressed } from '../pressed.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { useStudio } from './context.tsx';
+import { Editing, useEditing } from './editing.tsx';
+import { scriptOf } from './ripple.ts';
 import { Inspector } from './inspector.tsx';
 import {
   NEXT_H,
@@ -369,6 +373,7 @@ const CardFrame = (props: {
 /** The frame at the playhead, 16:9: the drawn scene, else the Board panel or card, else the beat's empty frame. */
 const Viewer = () => {
   const { state, meta } = useStudio();
+  const editing = useEditing();
   const picture = state.picture;
   let scene = Option.none<HTMLElement>();
   createEffect(
@@ -453,6 +458,9 @@ const Viewer = () => {
           <i aria-hidden="true" />
           {tag()}
         </span>
+        <Show when={Option.isSome(editing.state.drawing())}>
+          <Editing.Ink />
+        </Show>
       </div>
     </section>
   );
@@ -464,9 +472,9 @@ const Viewer = () => {
 const Key = (props: {
   readonly id: string;
   readonly label: string;
-  readonly icon: 'start' | 'back' | 'play' | 'pause' | 'on' | 'end';
-  /** Its look: an end key (quieter), a beat key, or the play key. */
-  readonly look: 'edge' | 'step' | 'play';
+  readonly icon: 'start' | 'back' | 'play' | 'pause' | 'on' | 'end' | 'note';
+  /** Its look: an end key (quieter), a beat key, the play key, or the Note key (apart from the pill). */
+  readonly look: 'edge' | 'step' | 'play' | 'note';
   /** Whether it is pressed, for a key that toggles. */
   readonly pressed: Option.Option<boolean>;
 }) => {
@@ -541,6 +549,13 @@ const Transport = () => {
         <Key id="studio.on" label="Next beat" icon="on" look="step" pressed={Option.none()} />
         <Key id="studio.end" label="To the end" icon="end" look="edge" pressed={Option.none()} />
       </span>
+      <Key
+        id="studio.note"
+        label="Note on this frame"
+        icon="note"
+        look="note"
+        pressed={Option.none()}
+      />
       <p class="st-caption">{spoken()}</p>
     </section>
   );
@@ -555,6 +570,8 @@ interface Scale {
   readonly x: (T: number) => number;
   /** The film second at canvas x `px`. */
   readonly at: (px: number) => number;
+  /** The film second under the pointer of `e`, on the canvas. */
+  readonly under: (e: PointerEvent) => number;
 }
 
 const ScaleContext = createContext<Scale>();
@@ -574,6 +591,12 @@ const Clip = (props: {
   readonly picture: Option.Option<string>;
   /** The Board panel it is (`<beat>.<mark>`): a press selects the panel, and its beat. */
   readonly panel?: string;
+  /** What its context menu is about: its beat, or its Board panel. */
+  readonly target?: Selection;
+  /** A press on it, before its click: a Script clip's carry. */
+  readonly press?: (e: PointerEvent) => void;
+  /** Whether it is lifted, carried to another gap. */
+  readonly lifted?: boolean;
   readonly children?: JSX.Element;
 }) => {
   const { state, actions } = useStudio();
@@ -611,18 +634,28 @@ const Clip = (props: {
         ),
       }}
       data-panel={props.panel}
+      data-target={Option.getOrUndefined(
+        Option.map(Option.fromUndefinedOr(props.target), targetAttr),
+      )}
+      data-lifted={Option.getOrUndefined(Option.map(Option.fromUndefinedOr(props.lifted), pressed))}
+      onPointerDown={(e) => Option.map(Option.fromUndefinedOr(props.press), (press) => press(e))}
       onClick={() =>
-        Option.match(Option.fromUndefinedOr(props.panel), {
-          onSome: actions.selectPanel,
-          onNone: () =>
-            actions.select(
-              Option.orElse(props.beat, () =>
-                Option.map(
-                  Option.flatMap(state.timeline(), () => state.current()),
-                  (b) => b.beat,
+        // A carry or a trim just let go is no click.
+        Bool.match(carried.taken(), {
+          onTrue: () => {},
+          onFalse: () =>
+            Option.match(Option.fromUndefinedOr(props.panel), {
+              onSome: actions.selectPanel,
+              onNone: () =>
+                actions.select(
+                  Option.orElse(props.beat, () =>
+                    Option.map(
+                      Option.flatMap(state.timeline(), () => state.current()),
+                      (b) => b.beat,
+                    ),
+                  ),
                 ),
-              ),
-            ),
+            }),
         })
       }
     >
@@ -648,40 +681,163 @@ const LaneBox = (props: { readonly lane: Lane; readonly children: JSX.Element })
   </div>
 );
 
-/** The script's beats, the selected one's marks as diamonds in its bottom strip. */
+/**
+ * Whether a press just carried a clip or pulled an edge: the click its
+ * release makes is then no click (a carry is never a select). Read once.
+ */
+const carried = (() => {
+  let was = false;
+  return {
+    set: () => {
+      was = true;
+    },
+    clear: () => {
+      was = false;
+    },
+    taken: () => {
+      const now = was;
+      was = false;
+      return now;
+    },
+  };
+})();
+
+/** One carry of a Script clip at a time, and one pull of a beat's edge. */
+const carries = new Surface('a Script clip carried');
+const pulls = new Surface("a beat's edge pulled");
+
+/** The timeline section press `e` began in: off it, a carried clip is over no gap. */
+const timelineOf = (e: PointerEvent): Option.Option<Element> =>
+  Option.flatMap(
+    Option.filter(Option.fromNullishOr(e.target), (t): t is Element => t instanceof Element),
+    (el) => Option.fromNullishOr(el.closest('.st-timeline')),
+  );
+
+/** Whether pointer event `e` is over `box`'s rows. */
+const overTimeline = (e: PointerEvent, box: Option.Option<Element>): boolean =>
+  Option.exists(box, (b) => {
+    const r = b.getBoundingClientRect();
+    return e.clientY >= r.top && e.clientY <= r.bottom;
+  });
+
+/**
+ * The script's beats, the selected one's marks as diamonds in its bottom
+ * strip. On a laptop, on a version the lab can write, a beat is carried to
+ * another gap (lifted past a drag's first pixels, the drop line where it
+ * would land) and each edge pulled sets its hold, the readout beside it.
+ */
 const ScriptTrack = (props: { readonly clips: ReadonlyArray<ScriptClip> }) => {
-  const { state } = useStudio();
+  const { state, meta } = useStudio();
+  const editing = useEditing();
   const scale = useScale();
+  const phone = usePhone();
+  const editable = () => editing.state.editable() && !phone();
+  const run = Effect.runForkWith(meta.host);
+  /** A mouse's or a pen's press on beat `beat`: carried once it moves a drag's pixels. */
+  const carry = (beat: string) => (e: PointerEvent) => {
+    carried.clear();
+    if (e.button !== 0 || e.pointerType === 'touch' || !untrack(editable)) return;
+    const box = timelineOf(e);
+    run(
+      Pointer.use((pointer) =>
+        pointer.press(e, carries, () => {
+          let lifted = false;
+          return Option.some({
+            move: (ev: PointerEvent) => {
+              if (!lifted && Math.abs(ev.clientX - e.clientX) < DRAG_PX) return;
+              if (!lifted) editing.actions.lift(beat);
+              lifted = true;
+              editing.actions.over(
+                Option.liftPredicate(scale.under(ev), () => overTimeline(ev, box)),
+              );
+            },
+            end: (up: Option.Option<PointerEvent>) => {
+              if (!lifted) return;
+              carried.set();
+              Option.match(up, {
+                onSome: () => editing.actions.drop(),
+                onNone: () => editing.actions.cancel(),
+              });
+            },
+          });
+        }),
+      ),
+    );
+  };
+  /** A press on beat `beat`'s `edge`: pulled, its hold follows; let go, it is set. */
+  const pull = (beat: string, edge: 'lead' | 'tail') => (e: PointerEvent) => {
+    // The edge is the clip's: its press is never the clip's carry.
+    e.stopPropagation();
+    carried.clear();
+    if (e.button !== 0 || !untrack(editable)) return;
+    run(
+      Pointer.use((pointer) =>
+        pointer.press(e, pulls, () => {
+          editing.actions.grip(beat, edge);
+          return Option.some({
+            move: (ev: PointerEvent) =>
+              editing.actions.pull((ev.clientX - e.clientX) / untrack(scale.perSecond)),
+            end: (up: Option.Option<PointerEvent>) => {
+              carried.set();
+              Option.match(up, {
+                onSome: () => editing.actions.letGo(),
+                onNone: () => editing.actions.cancel(),
+              });
+            },
+          });
+        }),
+      ),
+    );
+  };
   return (
-    <For each={props.clips}>
+    <For each={props.clips} keyed={(clip) => clip.beat}>
       {(clip) => (
         <Clip
           kind="script"
-          start={clip.start}
-          dur={clip.dur}
-          beat={Option.some(clip.beat)}
-          label={clip.beat}
-          estimated={clip.clock === 'estimated'}
-          state={clip.state}
+          start={clip().start}
+          dur={clip().dur}
+          beat={Option.some(clip().beat)}
+          label={clip().beat}
+          estimated={clip().clock === 'estimated'}
+          state={clip().state}
           picture={Option.none()}
+          target={Selection.cases.Beat.make({ beat: clip().beat })}
+          press={carry(clip().beat)}
+          lifted={Option.contains(editing.state.lifted(), clip().beat)}
         >
           <Show
             when={
-              Option.exists(state.selected(), (sel) => sel.beat === clip.beat) &&
-              marksFit(clip.dur * scale.perSecond(), clip.marks.length)
+              Option.exists(state.selected(), (sel) => sel.beat === clip().beat) &&
+              marksFit(clip().dur * scale.perSecond(), clip().marks.length)
             }
           >
             <span class="st-marks" aria-hidden="true">
               <span class="st-marks-line" />
-              <For each={clip.marks}>
+              <For each={clip().marks}>
                 {(mark) => (
                   <i
-                    style={{ left: `${(mark.at - clip.start) * scale.perSecond()}px` }}
+                    style={{ left: `${(mark.at - clip().start) * scale.perSecond()}px` }}
                     title={mark.name}
                   />
                 )}
               </For>
             </span>
+          </Show>
+          <Show when={editable()}>
+            <span
+              class="st-grip"
+              data-edge="lead"
+              aria-hidden="true"
+              title="Pull to set the lead"
+              onPointerDown={pull(clip().beat, 'lead')}
+            />
+            <span
+              class="st-grip"
+              data-edge="tail"
+              aria-hidden="true"
+              title="Pull to set the tail"
+              onPointerDown={pull(clip().beat, 'tail')}
+            />
           </Show>
         </Clip>
       )}
@@ -693,21 +849,22 @@ const ScriptTrack = (props: { readonly clips: ReadonlyArray<ScriptClip> }) => {
 const BoardTrack = (props: { readonly clips: ReadonlyArray<BoardClip> }) => {
   const { meta } = useStudio();
   return (
-    <For each={props.clips}>
+    <For each={props.clips} keyed={(clip) => clip.panel}>
       {(clip) => (
         <Clip
           kind="board"
-          start={clip.start}
-          dur={clip.dur}
-          beat={Option.some(clip.beat)}
-          label={Bool.match(clip.card, {
+          start={clip().start}
+          dur={clip().dur}
+          beat={Option.some(clip().beat)}
+          label={Bool.match(clip().card, {
             onTrue: () => 'Card',
-            onFalse: () => `Board ${clip.panel}`,
+            onFalse: () => `Board ${clip().panel}`,
           })}
-          estimated={clip.clock === 'estimated'}
-          state={clip.state}
-          picture={Option.map(Option.fromUndefinedOr(clip.file), meta.boardUrl)}
-          panel={clip.panel}
+          estimated={clip().clock === 'estimated'}
+          state={clip().state}
+          picture={Option.map(Option.fromUndefinedOr(clip().file), meta.boardUrl)}
+          panel={clip().panel}
+          target={Selection.cases.Panel.make({ panel: clip().panel })}
         />
       )}
     </For>
@@ -716,20 +873,21 @@ const BoardTrack = (props: { readonly clips: ReadonlyArray<BoardClip> }) => {
 
 /** The voice: each beat's take over its speech, staging or the owner's. */
 const VoiceTrack = (props: { readonly clips: ReadonlyArray<VoiceClip> }) => (
-  <For each={props.clips}>
+  <For each={props.clips} keyed={(clip) => clip.beat}>
     {(clip) => (
       <Clip
         kind="voice"
-        start={clip.start}
-        dur={clip.dur}
-        beat={Option.some(clip.beat)}
-        label={`${clip.beat} · ${Match.value(clip.source).pipe(
+        start={clip().start}
+        dur={clip().dur}
+        beat={Option.some(clip().beat)}
+        label={`${clip().beat} · ${Match.value(clip().source).pipe(
           Match.when('owner', () => 'your take'),
           Match.orElse(() => 'staging'),
         )}`}
-        estimated={clip.clock === 'estimated'}
-        state={clip.state}
+        estimated={clip().clock === 'estimated'}
+        state={clip().state}
         picture={Option.none()}
+        target={Selection.cases.Beat.make({ beat: clip().beat })}
       />
     )}
   </For>
@@ -737,17 +895,18 @@ const VoiceTrack = (props: { readonly clips: ReadonlyArray<VoiceClip> }) => (
 
 /** The scenes drawn, each over its beat. */
 const SceneTrack = (props: { readonly clips: ReadonlyArray<SceneClip> }) => (
-  <For each={props.clips}>
+  <For each={props.clips} keyed={(clip) => clip.beat}>
     {(clip) => (
       <Clip
         kind="scenes"
-        start={clip.start}
-        dur={clip.dur}
-        beat={Option.some(clip.beat)}
-        label={clip.beat}
-        estimated={clip.clock === 'estimated'}
-        state={clip.state}
+        start={clip().start}
+        dur={clip().dur}
+        beat={Option.some(clip().beat)}
+        label={clip().beat}
+        estimated={clip().clock === 'estimated'}
+        state={clip().state}
         picture={Option.none()}
+        target={Selection.cases.Beat.make({ beat: clip().beat })}
       />
     )}
   </For>
@@ -789,18 +948,36 @@ const RenderTrack = (props: { readonly clips: ReadonlyArray<RenderClip> }) => (
   </For>
 );
 
-/** A lane's track, by its kind. */
+/** A lane's clips, when it is the track `on` names; none for another track's lane. */
+const clipsOn = <L extends Lane>(
+  lane: Lane,
+  on: (l: Lane) => l is L,
+): ReadonlyArray<L['clips'][number]> =>
+  Option.getOrElse(
+    Option.map(Option.liftPredicate(lane, on), (l): ReadonlyArray<L['clips'][number]> => l.clips),
+    () => [],
+  );
+
+/** Whether a lane is of `track`. */
+const onTrack =
+  <T extends Lane['track']>(track: T) =>
+  (l: Lane): l is Extract<Lane, { readonly track: T }> =>
+    l.track === track;
+
+/**
+ * A lane's track, by its kind: made once for its track (the lanes are keyed
+ * by it), its clips followed as an edit lays them, so a clip pressed keeps its element.
+ */
 const LaneTrack = (props: { readonly lane: Lane }) => (
   <LaneBox lane={props.lane}>
-    {Match.value(props.lane).pipe(
-      Match.discriminatorsExhaustive('track')({
-        script: (lane) => <ScriptTrack clips={lane.clips} />,
-        board: (lane) => <BoardTrack clips={lane.clips} />,
-        voice: (lane) => <VoiceTrack clips={lane.clips} />,
-        scenes: (lane) => <SceneTrack clips={lane.clips} />,
-        sound: (lane) => <SoundTrack clips={lane.clips} />,
-        render: (lane) => <RenderTrack clips={lane.clips} />,
-      }),
+    {Match.value(untrack(() => props.lane.track)).pipe(
+      Match.when('script', () => <ScriptTrack clips={clipsOn(props.lane, onTrack('script'))} />),
+      Match.when('board', () => <BoardTrack clips={clipsOn(props.lane, onTrack('board'))} />),
+      Match.when('voice', () => <VoiceTrack clips={clipsOn(props.lane, onTrack('voice'))} />),
+      Match.when('scenes', () => <SceneTrack clips={clipsOn(props.lane, onTrack('scenes'))} />),
+      Match.when('sound', () => <SoundTrack clips={clipsOn(props.lane, onTrack('sound'))} />),
+      Match.when('render', () => <RenderTrack clips={clipsOn(props.lane, onTrack('render'))} />),
+      Match.exhaustive,
     )}
   </LaneBox>
 );
@@ -963,14 +1140,19 @@ const ruler = new Surface('the ruler');
  */
 const Timeline = (props: { readonly timeline: FilmTimeline }) => {
   const { state, actions, meta } = useStudio();
+  const editing = useEditing();
   const phone = usePhone();
   const [width, setWidth] = createSignal(0, { ownedWrite: true });
-  const lanes = createMemo(() => lanesShown(props.timeline, phone()));
+  // The timeline as an edit in flight lays it; the scale stays the version's, so an edge pulled
+  // never moves the clock under the pointer.
+  const laid = () => Option.getOrElse(editing.state.laid(), () => props.timeline);
+  const lanes = createMemo(() => lanesShown(laid(), phone()));
   const perSecond = () => pxPerSecond(width(), props.timeline.duration, state.zoom());
   const scale: Scale = {
     perSecond,
     x: (T) => T * perSecond(),
     at: (px) => Bool.match(perSecond() > 0, { onTrue: () => px / perSecond(), onFalse: () => 0 }),
+    under: (e) => canvasAt(e),
   };
   let scroller = Option.none<HTMLElement>();
   const sized = new ResizeObserver((entries) => {
@@ -1064,6 +1246,15 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
     );
   };
   const next = () => Option.isSome(nextText(props.timeline));
+  const drop = () => Option.getOrElse(editing.state.drop(), () => 0);
+  // A trim's readout, over the middle of the beat as it is laid now.
+  const readout = () =>
+    Option.flatMap(editing.state.readout(), (r) =>
+      Option.map(
+        Arr.findFirst(scriptOf(laid()), (b) => b.beat === r.beat),
+        (b) => ({ text: r.text, at: b.start + b.dur / 2 }),
+      ),
+    );
   return (
     <section class="st-timeline" aria-label="Timeline">
       <ZoomCorner />
@@ -1099,16 +1290,38 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
         <ScaleContext value={scale}>
           <div
             class="st-canvas"
-            style={{ width: `${Math.max(width(), scale.x(props.timeline.duration))}px` }}
+            style={{ width: `${Math.max(width(), scale.x(laid().duration))}px` }}
           >
-            <Flags markers={props.timeline.markers} />
+            <Flags markers={laid().markers} />
             <div class="st-ruler" data-act="ruler" onPointerDown={scrub}>
               <Ruler duration={props.timeline.duration} />
             </div>
-            <Bands timeline={props.timeline} />
+            <Bands timeline={laid()} />
             <div class="st-lanes">
-              <For each={lanes()}>{(lane) => <LaneTrack lane={lane} />}</For>
+              <For each={lanes()} keyed={(lane) => lane.track}>
+                {(lane) => <LaneTrack lane={lane()} />}
+              </For>
               <NextRow timeline={props.timeline} />
+              <Show when={Option.getOrUndefined(readout())}>
+                {(r) => (
+                  <span
+                    class="st-readout"
+                    role="status"
+                    data-role="trim-readout"
+                    style={{ left: `${scale.x(r().at)}px` }}
+                  >
+                    {r().text}
+                  </span>
+                )}
+              </Show>
+              <Show when={Option.isSome(editing.state.drop())}>
+                <i
+                  class="st-drop"
+                  data-role="drop-line"
+                  aria-hidden="true"
+                  style={{ left: `${scale.x(drop())}px` }}
+                />
+              </Show>
             </div>
             <Playhead scrub={scrub} />
           </div>
@@ -1195,6 +1408,7 @@ const Status = () => {
  */
 const Layout = () => {
   const { state } = useStudio();
+  const editing = useEditing();
   const phone = usePhone();
   // The timeline's row is as tall as its lanes; the line that stands in for it before, one row.
   const timelineRow = () =>
@@ -1210,11 +1424,14 @@ const Layout = () => {
       style={{ '--st-tl-h': `${timelineRow()}px` }}
     >
       <Viewer />
-      <Transport />
+      <Show when={Option.isSome(editing.state.drawing())} fallback={<Transport />}>
+        <Editing.NoteBar />
+      </Show>
       <Shown>{(timeline) => <Timeline timeline={timeline()} />}</Shown>
       <Status />
       <Inspector />
       <Reading />
+      <Editing.MovePicker />
     </div>
   );
 };

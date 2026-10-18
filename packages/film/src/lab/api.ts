@@ -259,6 +259,8 @@ export interface NotesCalls {
   /** The user replies in a note's thread. */
   readonly reply: (id: string, text: string) => Effect.Effect<Note, LabFailure>;
   readonly resolve: (id: string) => Effect.Effect<Note, LabFailure>;
+  /** Withdraw a note no one has answered yet (`NoteAnswered` once one has): the note as it was. */
+  readonly withdraw: (id: string) => Effect.Effect<Note, LabFailure>;
 }
 
 export class NotesApi extends Context.Service<NotesApi, NotesCalls>()('@bible/film/lab/NotesApi') {}
@@ -367,6 +369,7 @@ const makeNotesApi = Effect.fn('lab.notes.make')(function* (film: string) {
     add: (note) => called(client.notes.add({ params: { film }, payload: note })),
     reply: (id, text) => called(client.notes.reply({ params: { film, id }, payload: { text } })),
     resolve: (id) => called(client.notes.resolve({ params: { film, id }, payload: {} })),
+    withdraw: (id) => called(client.notes.withdraw({ params: { film, id }, payload: {} })),
   };
   return api;
 });

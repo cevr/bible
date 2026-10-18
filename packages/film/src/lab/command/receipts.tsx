@@ -24,7 +24,7 @@
 import { Toast } from '@bible/ui/toast';
 import { For } from '@solidjs/web';
 import { Equal, Option, Schema } from 'effect';
-import { createEffect, createSignal, onCleanup, onSettled } from 'solid-js';
+import { createEffect, createSignal, onCleanup, onSettled, untrack } from 'solid-js';
 import { type StoreRuntime, keptJson } from '../../browser/storage.ts';
 import { BY_BUTTON, type Bound, Receipt, Unfit, unfit } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
@@ -49,13 +49,16 @@ const GaveKept = Schema.Struct({
   }),
 });
 
+/** A receipt bound to a note the page filed, by its id. */
+const NoteKept = Schema.Struct({ film: Schema.String, note: Schema.String });
+
 /** One receipt as a toast carries it, and as the tab keeps it across a reload. */
 const Kept = Schema.Struct({
   slot: Schema.String,
   said: Schema.String,
   undo: Schema.OptionFromOptionalKey(Schema.String),
   /** The change its Undo acts on, when it names one (`Receipt.Said.bound`). */
-  bound: Schema.OptionFromOptionalKey(Schema.Union([ChangeKept, GaveKept])),
+  bound: Schema.OptionFromOptionalKey(Schema.Union([ChangeKept, GaveKept, NoteKept])),
   tone: Schema.Literals(['done', 'refused', 'busy']),
   /** Its Undo was pressed when it could not act: why, said until it can. */
   held: Schema.OptionFromOptionalKey(Schema.String),
@@ -79,11 +82,15 @@ export const Receipts = (props: {
 }) => {
   const manager = Toast.createToastManager<Kept>();
   const showing = new Map<string, Kept>();
+  // The words each showing receipt's Undo was given, by slot.
+  const named = new Map<string, string>();
   // The held receipts showing: each waits for its Undo's command.
   const [held, setHeld] = createSignal<ReadonlyArray<Kept>>([], { ownedWrite: true });
   const changes = hubChanges(props.hub);
   const undoLabel = (id: string) =>
     Option.match(props.hub.commands.byId(id), { onNone: () => 'Undo', onSome: (c) => c.label });
+  /** The words `kept`'s Undo is given now: its command's label (none without one). */
+  const labelOf = (kept: Kept) => Option.match(kept.undo, { onNone: () => '', onSome: undoLabel });
   /**
    * Why command `id` cannot act for a receipt bound to `bound`: it cannot
    * take that change (`Command.fits`: for now, or never), else it is not
@@ -124,6 +131,7 @@ export const Receipts = (props: {
     });
   const show = (kept: Kept) => {
     showing.set(kept.slot, kept);
+    named.set(kept.slot, labelOf(kept));
     // A slot's next receipt supersedes the one held there.
     setHeld((all) => [
       ...all.filter((k) => k.slot !== kept.slot),
@@ -140,6 +148,7 @@ export const Receipts = (props: {
       onRemove: () => {
         if (showing.get(kept.slot) !== kept) return;
         showing.delete(kept.slot);
+        named.delete(kept.slot);
         setHeld((all) => all.filter((k) => k !== kept));
       },
       // Always given, so a receipt with no Undo takes the button of the one it replaces away.
@@ -171,24 +180,35 @@ export const Receipts = (props: {
   // A held receipt says again what it did once its Undo can act, why not in
   // fresh words when the reason changes (not available → a newer change first),
   // and is retired once it never can (the page has read a history without it).
+  // A receipt shown before its Undo's command was registered (one carried
+  // across a reload) is shown again once it is, its button named as it is.
   createEffect(
     () => {
       changes();
-      return held().map((kept) => ({
+      held();
+      return [...showing.values()].map((kept) => ({
         kept,
-        next: judged(
-          kept,
-          Option.flatMap(kept.undo, (id) => whyNot(id, kept.bound)),
-        ),
+        label: labelOf(kept),
+        next: Option.match(kept.held, {
+          onNone: () => kept,
+          onSome: () =>
+            judged(
+              kept,
+              Option.flatMap(kept.undo, (id) => whyNot(id, kept.bound)),
+            ),
+        }),
       }));
     },
-    (now) => {
-      for (const { kept, next } of now) {
-        if (showing.get(kept.slot) !== kept || Equal.equals(next, kept)) continue;
-        show(next);
-      }
-    },
+    (now) =>
+      untrack(() => {
+        for (const { kept, label, next } of now) {
+          if (showing.get(kept.slot) !== kept) continue;
+          if (Equal.equals(next, kept) && named.get(kept.slot) === label) continue;
+          show(next);
+        }
+      }),
   );
+
   onCleanup(
     props.hub.receipts((receipt, slot) =>
       Receipt.$match(receipt, {

@@ -10,7 +10,7 @@
 // the owner is said in his words (`movedWords`, `heldWords`), never a file.
 // Pure.
 
-import { Boolean as Bool, Option, Result } from 'effect';
+import { Array as Arr, Boolean as Bool, Option, Result } from 'effect';
 import { membersOf } from './acts.ts';
 import { DEFAULT_TAIL, MIN_LEAD } from './layout.ts';
 import { onTheMs } from './time.ts';
@@ -71,6 +71,16 @@ export const movedOrder = (
   });
 };
 
+/** Whether a drop of `beat` at gap `gap` (the index of the beat it would go before; `ids.length` for the end) moves it. */
+export const dropMoves = (ids: ReadonlyArray<string>, beat: string, gap: number): boolean => {
+  const at = ids.indexOf(beat);
+  return at >= 0 && gap !== at && gap !== at + 1;
+};
+
+/** The beat a drop at gap `gap` goes before: none at the end. */
+export const beforeGap = (ids: ReadonlyArray<string>, gap: number): MovedBefore =>
+  Arr.get(ids, gap);
+
 /** Each edge's floor in the layout. */
 const FLOOR = { lead: MIN_LEAD, tail: DEFAULT_TAIL } satisfies Record<HoldEdge, number>;
 
@@ -110,6 +120,10 @@ const signedSeconds = (s: number): string => {
   const shown = Math.abs(s).toFixed(1);
   return Bool.match(s < 0, { onTrue: () => `−${shown} s`, onFalse: () => `+${shown} s` });
 };
+
+/** A trim's live readout: the change, and the beat's length after it (`+3.0 s → 41.5 s`). */
+export const trimReadout = (change: number, length: number): string =>
+  `${signedSeconds(change)} → ${length.toFixed(1)} s`;
 
 /** What a hold set says to the owner. */
 export const heldWords = (beat: string, edge: HoldEdge, from: number, to: number): string =>

@@ -20,6 +20,7 @@ import type { FilmBody } from '../film-page.tsx';
 import { mountStudio } from '../page-client.tsx';
 import { Root, type StagedFilm } from './context.tsx';
 import { STUDIO_PAGE, studioPageOn } from './page.tsx';
+import { Editing } from './editing.tsx';
 import { Studio } from './parts.tsx';
 
 /**
@@ -77,7 +78,9 @@ const studioBody =
           return {
             default: () => (
               <Root film={film} host={host} hub={hub} client={client} staged={staged}>
-                <Studio.Page />
+                <Editing.Root>
+                  <Studio.Page />
+                </Editing.Root>
               </Root>
             ),
           };

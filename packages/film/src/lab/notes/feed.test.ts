@@ -59,6 +59,7 @@ const fake = (
     add: () => Effect.die('not asked'),
     reply: () => Effect.die('not asked'),
     resolve: () => Effect.die('not asked'),
+    withdraw: () => Effect.die('not asked'),
   };
   return { asked, layer: Layer.succeed(NotesApi, api) };
 };

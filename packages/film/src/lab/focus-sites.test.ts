@@ -39,6 +39,11 @@ const FOCUS_SITES: ReadonlyArray<readonly [file: string, call: string, reached: 
     "a Production's Move forward, its form opened: its first field",
   ],
   [
+    'film-studio/editing.tsx',
+    'focusFor(el',
+    "the studio's Note on this frame (N, the Note key, a clip's menu): its note bar's line, a text field",
+  ],
+  [
     'sketch/surface.tsx',
     'focusFor(el',
     "a Board panel's markup, its text tool: a text placed on the try, its field",

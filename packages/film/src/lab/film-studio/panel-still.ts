@@ -27,9 +27,20 @@ export const panelStill = (
   url: string,
   items: ReadonlyArray<SketchItem>,
   size: { readonly w: number; readonly h: number },
+): Effect.Effect<Uint8Array, string> => frameStill(Option.some(url), items, size);
+
+/**
+ * A frame's still: the picture at `url` (a try, a frame the player painted)
+ * covering the frame, else the board's paper, with `items` painted over it,
+ * `size` big, as PNG bytes.
+ */
+export const frameStill = (
+  url: Option.Option<string>,
+  items: ReadonlyArray<SketchItem>,
+  size: { readonly w: number; readonly h: number },
 ): Effect.Effect<Uint8Array, string> =>
   Effect.gen(function* () {
-    const img = yield* loaded(url);
+    const img = yield* Effect.transposeOption(Option.map(url, loaded));
     const canvas = document.createElement('canvas');
     canvas.width = size.w;
     canvas.height = size.h;
@@ -38,7 +49,7 @@ export const panelStill = (
     );
     ctx.fillStyle = BOARD_PAPER;
     ctx.fillRect(0, 0, size.w, size.h);
-    paintImage(ctx, img, size.w, size.h);
+    Option.map(img, (i) => paintImage(ctx, i, size.w, size.h));
     paintSketch(ctx, items, size.w, size.h);
     const blob = yield* Effect.callback<Option.Option<Blob>>((resume) =>
       canvas.toBlob((b) => resume(Effect.succeed(Option.fromNullishOr(b))), 'image/png'),

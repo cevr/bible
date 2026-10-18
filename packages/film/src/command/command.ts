@@ -54,7 +54,7 @@ export const Receipt = Data.taggedEnum<Receipt>();
  * an approve run's approvals, by its op and the scenes it gave one to
  * (`Project.gave`). Never by a name, a time, or one id spelled as another.
  */
-export type Bound = ChangeBound | GaveBound;
+export type Bound = ChangeBound | GaveBound | NoteBound;
 
 export interface ChangeBound {
   readonly film: string;
@@ -68,6 +68,19 @@ interface GaveBound {
     readonly of?: { readonly point: string; readonly version: string };
   };
 }
+
+/** A note the page filed for an agent, by its id (`n12`): its Withdraw takes it back while unanswered. */
+interface NoteBound {
+  readonly film: string;
+  readonly note: string;
+}
+
+/** The note `bound` names; none for a change or an approve. */
+export const boundNote = (bound: Bound): Option.Option<string> =>
+  Option.map(
+    Option.liftPredicate(bound, (b): b is NoteBound => 'note' in b),
+    (b) => b.note,
+  );
 
 /** The history's change `bound` names; none for an approve's. */
 export const boundChange = (bound: Bound): Option.Option<ChangeId> =>

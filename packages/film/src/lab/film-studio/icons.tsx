@@ -1,5 +1,5 @@
 // The studio's line icons: Films (the shell's), the transport's keys, the
-// version chip's caret, the inspector's close and the act transition's glyph. Each draws its
+// version chip's caret, the inspector's close, the Note key's pen and the act transition's glyph. Each draws its
 // strokes only when shown (an element made is a hydration key taken).
 
 import type { JSX } from '@solidjs/web';
@@ -14,7 +14,8 @@ type StudioIconName =
   | 'on'
   | 'end'
   | 'caret'
-  | 'close';
+  | 'close'
+  | 'note';
 
 const STROKES: Readonly<Record<StudioIconName, () => JSX.Element>> = {
   films: () => (
@@ -33,6 +34,7 @@ const STROKES: Readonly<Record<StudioIconName, () => JSX.Element>> = {
   end: () => <path d="M19 5v14M5 5l10 7-10 7z" />,
   caret: () => <path d="M7 10l5 5 5-5" />,
   close: () => <path d="M6 6l12 12M18 6L6 18" />,
+  note: () => <path d="M4 20l3-1 11-11-2-2L5 17zM14 6l2 2" />,
 };
 
 /** A line icon of the studio's, sized by its part's style. */

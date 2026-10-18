@@ -68,6 +68,7 @@ const fakes = (add: Effect.Effect<Note, LabFailure> = Effect.succeed(made)) => {
       }),
     reply: () => Effect.die('not asked'),
     resolve: () => Effect.die('not asked'),
+    withdraw: () => Effect.die('not asked'),
   };
   return {
     log,

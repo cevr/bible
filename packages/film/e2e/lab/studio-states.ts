@@ -566,8 +566,9 @@ export const STATES: ByPlace<State, AtRest> = {
       // its 13 seconds: 53 things (measured 2026-10-16). Two earn their place in most visits: the
       // Films link, the studio's way home that every visit that leaves the film takes, and the
       // probe's card panel, a Board clip as a film's narration cards are (CRAFT rule 1), most of an
-      // animatic's panels.
-      budget: most(30, 53),
+      // animatic's panels. The Note key is one more on each: the frame's
+      // note is the studio's one way to say what to change, so it stands in the transport.
+      budget: most(31, 54),
     },
     {
       name: 'Studio, a beat selected: the inspector open on its Words',

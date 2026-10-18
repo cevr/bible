@@ -303,10 +303,14 @@ const Body = (
   let first = true;
   const [T, setT] = createSignal(opened, { ownedWrite: true });
 
-  // `#t=`: followed every quarter second while it moves, at once as it settles or jumps.
+  // `#t=`: followed every quarter second while it moves, at once as it settles or jumps. Read off
+  // the clock, not `T`: a jump writes in the same batch that sets `T`, before `T` reads the new time.
   const writeT = (cause: 'play' | 'jump') =>
     Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) => {
-      const href = Place.href(Places.studio, { ...value, hash: { t: Option.some(onTheMs(T())) } });
+      const href = Place.href(Places.studio, {
+        ...value,
+        hash: { t: Option.some(onTheMs(clock.now())) },
+      });
       return Match.value(cause).pipe(
         Match.when('jump', () => address.go(href)),
         Match.orElse(() => address.follow(href)),

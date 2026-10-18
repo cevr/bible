@@ -354,6 +354,10 @@ const defaults: ReadonlyArray<FakeRoute> = [
     });
   }),
   route('GET', /^\/check$/, () => json({ findings: [] })),
+  // The film's history as the studio reads it: nothing to undo or redo.
+  route('GET', /^\/steps$/, () => json({})),
+  // The film's history as the studio reads it: nothing to undo or redo.
+  route('GET', /^\/steps$/, () => json({})),
   route('GET', /^\/studio\/beats$/, () => json({ film: PROBE, beats: [] })),
   route('GET', /^\/script$/, () => json(probeScript)),
   // The staging voice: nothing voiced, nothing spent (a case that hears a take serves its own).
