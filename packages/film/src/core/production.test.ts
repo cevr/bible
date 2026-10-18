@@ -12,6 +12,7 @@ import {
   currentOf,
   moveForward,
   newProduction,
+  ownerQuotes,
   productionsOf,
   unfiledOf,
   versionAt,
@@ -196,6 +197,33 @@ describe('a production’s history', () => {
     expect(history.versions.find((v) => v.n === 2)?.entries).toEqual([
       expect.objectContaining({ _tag: 'Said', said }),
     ]);
+  });
+
+  test('the owner’s words are his decisions’ and notes’ quotes, never a question’s', () => {
+    const word = (tag: Said['_tag'], at: number, quote: Option.Option<string>): Said => ({
+      _tag: tag,
+      at,
+      text: `${tag} at ${at}`,
+      quote,
+      set: Option.none(),
+      point: Option.none(),
+      variant: Option.none(),
+      ask: Option.some('a92f276635e'),
+      by: Option.none(),
+    });
+    const file = {
+      ...look(),
+      said: [
+        word('Asked', HOUR, Option.some('Keep and lock them?')),
+        word('Decided', 2 * HOUR, Option.some('lets lock in that style')),
+        // An ask answered by a pick alone files no words.
+        word('Decided', 3 * HOUR, Option.none()),
+        word('Noted', 4 * HOUR, Option.some('lock in a rig and a style')),
+      ],
+    };
+    expect(ownerQuotes(file)).toEqual(
+      new Set(['lets lock in that style', 'lock in a rig and a style']),
+    );
   });
 
   test('an ask waits on the owner until a pick in its choice or a later decision answers it', () => {

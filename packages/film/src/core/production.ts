@@ -362,6 +362,14 @@ export const decisionsIn = (file: ProductionFile, version: number): ReadonlyArra
     .toReversed();
 
 /**
+ * The owner's own words on the ledger: each decision's and note's quote,
+ * verbatim, filed from chat or by an ask he answered in words. A question
+ * (`Asked`) is an agent's, so its words are none of his.
+ */
+export const ownerQuotes = (file: ProductionFile): ReadonlySet<string> =>
+  new Set(Arr.getSomes(file.said.filter((s) => s._tag !== 'Asked').map((s) => s.quote)));
+
+/**
  * The move an agent makes on the owner's word: from version `after`, because
  * of the decision filed at `decision` in the version open now. Refused as
  * `moveForward` refuses when the production moved on (`VersionMoved`), when

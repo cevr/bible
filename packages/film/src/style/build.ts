@@ -4,14 +4,18 @@
 // problems and its stamp (what it was built from). A film's rig build
 // (`righteousness-by-faith/rigs/build.ts`) copies the file and its stamp
 // beside its rigs, and holds the committed file to its rigs through the stamp
-// (`unbuilt`), as the film's test does on a host with no CLI. Both hold each
-// locked figure's print to its lock first (`unlocked`, `lock.ts`). The CLI is
-// `rive` on the PATH, or the one `RIVE` names.
+// (`unbuilt`), as the film's test does on a host with no CLI. Both hold
+// first each override its figures carry to the owner's words on his
+// production's ledger (`unsaid`, `override.ts`), then each locked figure's
+// print to its lock (`unlocked`, `lock.ts`). The CLI is `rive` on the PATH,
+// or the one `RIVE` names.
 
 import { Config, Crypto, Effect, FileSystem, Schema, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { ProductionFile, ownerQuotes } from '../core/production.ts';
 import { repoJson } from '../core/schema.ts';
 import { type Lock, heldTo } from './lock.ts';
+import { type Laid, unquoted } from './override.ts';
 import { RULES } from './rules.ts';
 
 /** What the CLI reports as wrong with a project: kept as it prints it. */
@@ -172,4 +176,22 @@ export const unlocked = Effect.fn('unlocked')(function* (
       held._tag === 'Freed' ? [{ item, override: held.override }] : [],
     ),
   };
+});
+
+/** A production's ledger, as the repo keeps it (`core/production.ts`). */
+const LedgerJson = repoJson(ProductionFile);
+
+/**
+ * Which overrides laid on a film's figures (`overridesIn`) do not carry the
+ * owner's words: each whose quote is not, verbatim, a decision's or a
+ * note's on his production's ledger, the file `ledger` (`unquoted`). The
+ * ledger is the one committed with the film, as the override is: the
+ * words it carries are held to those filed beside it. While no override is
+ * laid it reads none.
+ */
+export const unsaid = Effect.fn('unsaid')(function* (ledger: string, laid: ReadonlyArray<Laid>) {
+  if (laid.length === 0) return [];
+  const fs = yield* FileSystem.FileSystem;
+  const file = yield* Schema.decodeEffect(LedgerJson)(yield* fs.readFileString(ledger));
+  return unquoted(laid, ownerQuotes(file));
 });

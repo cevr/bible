@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { DIRECTION } from './house.ts';
 import { figure } from './figure.ts';
+import { overridesIn } from './override.ts';
 import { paper } from './paper.ts';
 import { Robe, Tunic } from './parts/body.ts';
 import { Ear } from './parts/ear.ts';
@@ -359,6 +360,13 @@ describe('a lock', () => {
     expect(figure({ ...leadOf([]), lock: LOCK }).lock).toEqual(LOCK);
     const freed = { ...LOCK, override: OVERRIDE };
     expect(figure({ ...leadOf([]), lock: freed }).lock).toEqual(freed);
+  });
+
+  test("a figure's override is found where it lays it, and a figure with none has none", () => {
+    expect(overridesIn(figure(leadOf([])))).toEqual([]);
+    expect(overridesIn(figure({ ...leadOf([]), lock: { ...LOCK, override: OVERRIDE } }))).toEqual([
+      OVERRIDE,
+    ]);
   });
 
   test('an override that frees another figure is refused by FigureLock', () => {

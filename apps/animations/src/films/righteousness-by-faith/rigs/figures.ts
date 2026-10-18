@@ -8,11 +8,13 @@
 // head as the kept concept draws it (`WEIGHT`). Each artboard is laid in the
 // file by one table (`LAID`: its boil's seed, its place on the stage), so a
 // locked figure's print alone (`aloneRml`), which its lock holds
-// (`lockedPrints`), is drawn as the file draws it.
+// (`lockedPrints`), is drawn as the file draws it. Every override the
+// figures carry, whatever rule it frees, is listed with the artboard it is
+// laid on (`figureOverrides`), to be held to the owner's words.
 // Pure: `figuresRml()` is the whole project file, the same text for the
 // same code.
 
-import type { ComposedFigure } from '@bible/film/style';
+import { type ComposedFigure, overridesIn } from '@bible/film/style';
 import { DIRECTION, drawFigure, drawHand, figure, fragment, ids } from '@bible/film/style/rig';
 import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
 import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
@@ -142,3 +144,11 @@ export const lockedPrints = () =>
   COMPOSED.flatMap(({ item, figure: f, hand }) =>
     f.lock === undefined ? [] : [{ item, lock: f.lock, print: aloneRml(item, f, hand) }],
   );
+
+/**
+ * Every override the composed figures carry (`overridesIn`), with the
+ * artboard each is laid as: what the build and its test hold to the
+ * owner's words on RBF's ledger (`unsaid`, `@bible/film/style/build`).
+ */
+export const figureOverrides = () =>
+  COMPOSED.flatMap(({ item, figure: f }) => overridesIn(f).map((override) => ({ item, override })));
