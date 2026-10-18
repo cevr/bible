@@ -143,6 +143,35 @@ into `<video>.description.txt` after the chapters (`videoDescription`), and
 `film check` fails a film whose `credits.ts` roll does not give a line it
 owes (`SoundCreditMissing`).
 
+A recording's code trial is fitted, never written by hand: `sfx fit <name>
+[--size small|full] [--from model.json]` runs earshot (`tools/earshot.ts`
+`Earshot`) on its kept variant and writes the model it makes as code
+(`core/synth/fit` `fitSound`) into `sounds/fits/<name>.json`, the trial
+beside the file and hash it came from, the earshot commit, the size and what
+the code leaves out (`SoundFit`). The library reads each fit as its
+recording's trial (`codeTrialOf`), so `render --trial`, `compare`, `check`
+and `ab` hear it as they hear a generated sound's; a fit for a name that is
+not a recording is refused (`FitUnmatched`), and a fit file that does not
+decode, `FitUnreadable`. `fit` refuses a generated or code sound
+(`FitRefused`): a generated take stays private. earshot is downloaded code,
+so it runs as an external tool, trusted with nothing: pinned at one commit
+(`Earshot.pin`), its clone and virtualenv outside the repo (`EARSHOT_HOME`,
+else `~/.cache/bible-film/earshot`), its packages wheels only and none of
+the describer's, run as `python -I -B` with Hugging Face offline under
+macOS's sandbox with no network (`tools/sandbox.ts`, `offline`), reading its
+clone, its virtualenv, the interpreter and the recording's folder and
+writing only a scratch folder. A clone missing, off the pin or changed fails
+`EarshotMissing` with the lines that install it; a run that fails,
+`EarshotFailed`. It never runs in CI or the gate. The model it wrote is kept
+under `<FILMS_OUT>/sounds/fits/<name>.model.json`, and `--from` translates a
+model file in place of running earshot (`FitModelInvalid` when it does not
+decode). `small` writes a graph a person can read (modes closer than their
+bandwidth merged by their sum, the strongest 16 kept, noise bands merged by
+octave and each coloured by its slope, breakpoints thinned with their energy
+kept); `full` keeps every part that fits; either merges further until the
+render's work fits `MAX_CODE_WORK`. A bed is tilted so its loop seam is level,
+and a recording with little rumble under 30 Hz is high-passed there.
+
 `film footage` is the app's camera footage (`FootageLibrary`,
 `tools/footage.ts`, its schema in `core/footage.ts`), shared by its talks.
 `import <file> --as <name> [--take]` keeps an original whole under the

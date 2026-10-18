@@ -22,6 +22,7 @@ bun run sfx keep|reject <name> <n…>            # curate candidates; a rejected
 bun run sfx keep <name> <n…> --replace         # keep candidates in place of the kept variants (those wait again)
 bun run sfx unkeep <name> <n…>                 # stop playing kept variants (by audition number); they wait again
 bun run sfx import <file> <name> [--from s --to s]  # a CC0 or CC BY recording into a declared recorded sound (public/), cut to --from/--to or its secs
+bun run sfx fit <name> [--size small|full] [--from model.json]  # a recording's code trial, fitted by earshot (pinned, outside the repo, sandboxed) into sounds/fits/<name>.json (free)
 bun run sfx render <name> [--seed n] [--trial] [--sheet]  # a code sound's seeds (or a code trial's) as WAVs, each with its sheet as a PNG (free)
 bun run sfx compare <name>                     # a code trial's numbers beside what plays, and how far each film's placement would hear the hit move (free)
 bun run sfx audit                              # which generated sounds code can make, read from their prompts (free)

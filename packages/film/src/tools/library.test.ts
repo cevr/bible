@@ -27,8 +27,9 @@ import type { Pcm } from '../core/audio.ts';
 import { rng } from '../core/random.ts';
 import { Segment } from '../core/segment.ts';
 import type { Raster } from '../core/raster.ts';
-import { LockJson, pendingOf, requestKey, soundState } from '../core/sfx.ts';
+import { LockJson, SoundFitJson, pendingOf, requestKey, soundState } from '../core/sfx.ts';
 import { ContentStore } from './content-store.ts';
+import { Earshot } from './earshot.ts';
 import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
 import { ElevenLabsFailed } from '../core/refusals.ts';
 import { TALLY_HEADER, SoundLibrary, channelsFor, pcmFromS16, talliedCredits } from './library.ts';
@@ -176,8 +177,27 @@ class Fixture extends Context.Service<
     readonly sheets: Map<string, Raster>;
     /** Every card the library wrote, by its file: its picture and its sound. */
     readonly cards: Map<string, { readonly image: Raster; readonly pcm: Pcm }>;
+    /** Every recording the fake earshot was asked to fit. */
+    readonly fitted: Array<string>;
   }
 >()('test/Fixture') {}
+
+/** The model the fake earshot writes for every recording: one strike of two modes over three bands of noise. */
+const FIT_MODEL = `{
+  "kind": "modal",
+  "length_s": 0.4,
+  "strikes": [
+    { "t": 0.01, "ramp_ms": 0.5, "modes": [[420, 0.08, 0.3, 0.4], [1260, 0.04, 0.1, -1.2]] }
+  ],
+  "noise": {
+    "edges": [1000, 4000],
+    "env": [
+      [[0, -60], [0.02, -30], [0.3, -70]],
+      [[0, -60], [0.02, -34], [0.3, -72]],
+      [[0, -60], [0.02, -40], [0.3, -80]]
+    ]
+  }
+}`;
 
 /** A fixture library in a fresh temporary folder, its store beside it, and the service over it. */
 const fixture = Layer.unwrap(
@@ -190,6 +210,7 @@ const fixture = Layer.unwrap(
     yield* fs.makeDirectory(dir, { recursive: true });
     yield* fs.writeFileString(path.join(dir, 'library.ts'), LIBRARY.replace('STORE', storeDir));
     const calls: Array<SoundEffectRequest> = [];
+    const fitted: Array<string> = [];
     const tally = path.join(root, 'credits.tsv');
     const config = ConfigProvider.layer(
       ConfigProvider.fromUnknown({ FILMS_OUT: path.join(root, 'out'), HOME: root }),
@@ -210,10 +231,17 @@ const fixture = Layer.unwrap(
       }),
     ).pipe(Layer.provide(Media.layer));
     return SoundLibrary.layer(dir).pipe(
-      Layer.provide([ContentStore.layer, fakeSfx(calls), store, config, SoundRender.layer]),
+      Layer.provide([
+        ContentStore.layer,
+        fakeSfx(calls),
+        Earshot.layerTest(() => FIT_MODEL, fitted),
+        store,
+        config,
+        SoundRender.layer,
+      ]),
       Layer.provideMerge(media),
       Layer.merge(
-        Layer.succeed(Fixture, Fixture.of({ dir, storeDir, tally, calls, sheets, cards })),
+        Layer.succeed(Fixture, Fixture.of({ dir, storeDir, tally, calls, sheets, cards, fitted })),
       ),
     );
   }),
@@ -785,6 +813,96 @@ describe.concurrent('SoundLibrary', () => {
           expect(of('tone.chime')).toEqual([]);
         }),
       ),
+  );
+
+  it.effect.layer(fixture)(
+    'fits a recording into fits/<name>.json, which the library then plays as its code trial',
+    () =>
+      withLibrary(({ dir, fitted }) =>
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const library = yield* SoundLibrary;
+          const source = yield* recording(dir, 'knock.wav', 1, [[0.5, 0.05, 0.5]]);
+          const { variant } = yield* library.importFile(source, 'wood.knock', Option.none());
+          expect((yield* library.load).trials.has('wood.knock')).toBe(false);
+          const fit = yield* library.fit('wood.knock', { size: 'small', from: Option.none() });
+          // earshot fitted the kept variant, and its model is kept outside the library.
+          expect(fitted).toEqual([`${dir}/${variant.file}`]);
+          expect(fit.file).toBe(`${dir}/fits/wood.knock.json`);
+          expect(fit.model).toEndWith('/out/sounds/fits/wood.knock.model.json');
+          expect(yield* fs.readFileString(fit.model)).toBe(FIT_MODEL);
+          const kept = yield* Schema.decodeEffect(SoundFitJson)(yield* fs.readFileString(fit.file));
+          expect(kept).toMatchObject({
+            variants: 3,
+            from: { file: variant.file, sha256: variant.sha256 },
+            earshot: Earshot.pin,
+            size: 'small',
+          });
+          expect((yield* library.load).trials.get('wood.knock')?.variants).toBe(3);
+          const compared = yield* library.compare('wood.knock');
+          expect(compared.trial).toHaveLength(3);
+          expect(compared.plays).toHaveLength(1);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)(
+    'refuses to fit a generated sound by name, and a code sound, running nothing',
+    () =>
+      withLibrary(({ fitted }) =>
+        Effect.gen(function* () {
+          const library = yield* SoundLibrary;
+          const ask = (name: string) =>
+            Effect.flip(library.fit(name, { size: 'small', from: Option.none() }));
+          const generated = yield* ask('paper.slide');
+          expect(generated).toMatchObject({
+            _tag: 'FitRefused',
+            name: 'paper.slide',
+            kind: 'generated',
+          });
+          expect(generated.message).toContain('"paper.slide" is generated');
+          expect(yield* ask('tone.chime')).toMatchObject({ _tag: 'FitRefused', kind: 'code' });
+          expect((yield* ask('wood.tap'))._tag).toBe('SoundUnmade');
+          expect(fitted).toEqual([]);
+        }),
+      ),
+  );
+
+  it.effect.layer(fixture)('translates a model it is handed in place of running earshot', () =>
+    withLibrary(({ dir, fitted }) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const library = yield* SoundLibrary;
+        const source = yield* recording(dir, 'knock.wav', 1, [[0.5, 0.05, 0.5]]);
+        yield* library.importFile(source, 'wood.knock', Option.none());
+        const model = `${dir}/../model.json`;
+        yield* fs.writeFileString(model, FIT_MODEL);
+        const fit = yield* library.fit('wood.knock', { size: 'full', from: Option.some(model) });
+        expect(fitted).toEqual([]);
+        expect(fit.model).toBe(model);
+        expect(fit.fitted.modes).toBe(2);
+        yield* fs.writeFileString(model, '{"kind":"hybrid"}');
+        const invalid = yield* Effect.flip(
+          library.fit('wood.knock', { size: 'full', from: Option.some(model) }),
+        );
+        expect(invalid._tag).toBe('FitModelInvalid');
+      }),
+    ),
+  );
+
+  it.effect.layer(fixture)('refuses to load a fit file that is not a fit', () =>
+    withLibrary(({ dir }) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        yield* fs.makeDirectory(`${dir}/fits`);
+        yield* fs.writeFileString(`${dir}/fits/wood.knock.json`, '{"sound":1}');
+        const refused = yield* Effect.flip((yield* SoundLibrary).load);
+        expect(refused).toMatchObject({
+          _tag: 'FitUnreadable',
+          file: `${dir}/fits/wood.knock.json`,
+        });
+      }),
+    ),
   );
 
   it.effect.layer(fixture)('imports a recording, trimmed, into public/ under its licence', () =>

@@ -303,7 +303,54 @@ export class CodeTrialMissing extends Schema.TaggedError<CodeTrialMissing>()('Co
   kind: Schema.String,
 }) {
   override get message() {
-    return `sound "${this.name}" is ${this.kind} and has no code trial: a generated sound has one when it declares code: { sound, variants }`;
+    return `sound "${this.name}" is ${this.kind} and has no code trial: a generated sound has one when it declares code: { sound, variants }, a recorded one when \`sfx fit ${this.name}\` has fitted it`;
+  }
+}
+
+/**
+ * `sfx fit` asked of a sound that is not a recording: a generated take stays
+ * private, and a fit of it would publish a derivative of it; a code sound
+ * has no recording to fit.
+ */
+export class FitRefused extends Schema.TaggedError<FitRefused>()('FitRefused', {
+  name: Schema.String,
+  kind: Schema.Literals(['generated', 'code']),
+}) {
+  override get message() {
+    if (this.kind === 'generated')
+      return `sound "${this.name}" is generated: its takes stay private, and a fit would publish a derivative of one; only a recorded sound (CC0, or CC BY with its credit) is fitted`;
+    return `sound "${this.name}" is code: it has no recording to fit`;
+  }
+}
+
+/** A model `sfx fit` was handed (`--from`), or earshot wrote, that is not one the fit reads. */
+export class FitModelInvalid extends Schema.TaggedError<FitModelInvalid>()('FitModelInvalid', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} is not an earshot model the fit reads: ${this.reason}`;
+  }
+}
+
+/** earshot is not installed where `sfx fit` runs it, or not at its pin: how to install it. */
+export class EarshotMissing extends Schema.TaggedError<EarshotMissing>()('EarshotMissing', {
+  home: Schema.String,
+  reason: Schema.String,
+  install: Schema.String,
+}) {
+  override get message() {
+    return `earshot is not ready in ${this.home}: ${this.reason}\ninstall it (once, outside the repo):\n${this.install}`;
+  }
+}
+
+/** earshot ran and failed: what it printed last. */
+export class EarshotFailed extends Schema.TaggedError<EarshotFailed>()('EarshotFailed', {
+  source: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `earshot could not fit ${this.source}: ${this.reason}`;
   }
 }
 

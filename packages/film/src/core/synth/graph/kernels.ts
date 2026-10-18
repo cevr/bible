@@ -65,6 +65,24 @@ export const oscillate = (
 
 type Color = 'white' | 'pink' | 'brown';
 
+/** Brown noise: a leaky random walk, each step `STEP` of a white sample, divided by `LEAK`, read at `GAIN`. */
+const BROWN = { step: 0.02, leak: 1.02, gain: 3.5 } as const;
+
+/**
+ * Pink noise: Paul Kellet's economy filter over white noise, about −3 dB an
+ * octave: three leaky sums (each a pole and the white sample's weight into
+ * it) and the white sample at `direct`, read at `gain`.
+ */
+const PINK = {
+  sums: [
+    [0.99765, 0.099046],
+    [0.963, 0.2965164],
+    [0.57, 1.0526913],
+  ],
+  direct: 0.1848,
+  gain: 0.25,
+} as const;
+
 /** Noise from the stream `seed`, in order, so a longer noise keeps its first samples. */
 export const noise = (out: Float32Array, n: number, color: Color, seed: number): void => {
   const r = rng(seed);
@@ -73,25 +91,58 @@ export const noise = (out: Float32Array, n: number, color: Color, seed: number):
     return;
   }
   if (color === 'brown') {
-    // A leaky random walk.
     let last = 0;
     for (let i = 0; i < n; i++) {
-      last = (last + 0.02 * (r() * 2 - 1)) / 1.02;
-      out[i] = last * 3.5;
+      last = (last + BROWN.step * (r() * 2 - 1)) / BROWN.leak;
+      out[i] = last * BROWN.gain;
     }
     return;
   }
-  // Paul Kellet's economy filter over white noise: about −3 dB an octave.
+  const [[p0, w0], [p1, w1], [p2, w2]] = PINK.sums;
   let b0 = 0;
   let b1 = 0;
   let b2 = 0;
   for (let i = 0; i < n; i++) {
     const w = r() * 2 - 1;
-    b0 = 0.99765 * b0 + w * 0.099046;
-    b1 = 0.963 * b1 + w * 0.2965164;
-    b2 = 0.57 * b2 + w * 1.0526913;
-    out[i] = (b0 + b1 + b2 + w * 0.1848) * 0.25;
+    b0 = p0 * b0 + w * w0;
+    b1 = p1 * b1 + w * w1;
+    b2 = p2 * b2 + w * w2;
+    out[i] = (b0 + b1 + b2 + w * PINK.direct) * PINK.gain;
   }
+};
+
+/** A white sample's power: the variance of a uniform draw on [−1, 1). */
+const WHITE_POWER = 1 / 3;
+
+/** 1 / (1 − p·e^(−jw)) at `turns` of the rate, as its real and imaginary parts. */
+const onePole = (p: number, turns: number): readonly [number, number] => {
+  const re = 1 - p * cosTurn(turns);
+  const im = p * sinTurn(turns);
+  const d = re * re + im * im;
+  return [re / d, -im / d];
+};
+
+/**
+ * The power density of `color`'s noise at `hz`: its white sample's power
+ * through the colour's filter, so its mean from 0 to the Nyquist is the
+ * noise's power. What a fit levels a band of noise by.
+ */
+export const noisePower = (color: Color, hz: number): number => {
+  if (color === 'white') return WHITE_POWER;
+  const turns = hz / SYNTH_RATE;
+  if (color === 'brown') {
+    const [re, im] = onePole(1 / BROWN.leak, turns);
+    const g = (BROWN.gain * BROWN.step) / BROWN.leak;
+    return WHITE_POWER * g * g * (re * re + im * im);
+  }
+  let re = PINK.direct;
+  let im = 0;
+  for (const [pole, weight] of PINK.sums) {
+    const [r, i] = onePole(pole, turns);
+    re += weight * r;
+    im += weight * i;
+  }
+  return WHITE_POWER * PINK.gain * PINK.gain * (re * re + im * im);
 };
 
 /** A struck mode: its ratio to the pitch, its level, its decay's time constant in seconds. */
@@ -336,6 +387,30 @@ const design = (c: Coefficients, type: FilterType, hz: number, q: number, db: nu
     case 'highshelf':
       return shelf(c, false, cs, alpha, dbToGain(db / 2));
   }
+};
+
+/**
+ * A held `type` biquad at `hz`, `q` and `db`, as its power response: |H(f)|²
+ * at `at` Hz. What a fit levels a band of noise by.
+ */
+export const filterResponse = (
+  type: FilterType,
+  hz: number,
+  q: number,
+  db: number,
+): ((at: number) => number) => {
+  const c: Coefficients = { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
+  design(c, type, hz, q, db);
+  return (at) => {
+    const turns = at / SYNTH_RATE;
+    const [c1, s1] = [cosTurn(turns), sinTurn(turns)];
+    const [c2, s2] = [cosTurn(2 * turns), sinTurn(2 * turns)];
+    const bRe = c.b0 + c.b1 * c1 + c.b2 * c2;
+    const bIm = -(c.b1 * s1 + c.b2 * s2);
+    const aRe = 1 + c.a1 * c1 + c.a2 * c2;
+    const aIm = -(c.a1 * s1 + c.a2 * s2);
+    return (bRe * bRe + bIm * bIm) / (aRe * aRe + aIm * aIm);
+  };
 };
 
 /** What a filter reads each `CONTROL` frames: its frequency, Q and gain at that frame. */

@@ -29,6 +29,7 @@ import {
   Path,
   Record as Rec,
   Result,
+  Schema,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { type Pcm, concat, gain, silence, slice } from '../core/audio.ts';
@@ -50,6 +51,8 @@ import {
   type SoundUse,
   type Sounds,
   type Trial,
+  type SoundFit,
+  SoundFitJson,
   type Variant,
   type VariantTiming,
   creditsOf,
@@ -72,6 +75,8 @@ import {
 } from '../core/sfx.ts';
 import { describeSound } from '../core/synth/analyse.ts';
 import { type Profile, profileOf } from '../core/synth/compare.ts';
+import { type FitSize, type Fitted, fitSound } from '../core/synth/fit/fit.ts';
+import { EarshotModelJson } from '../core/synth/fit/model.ts';
 import { loudness } from '../core/synth/loudness.ts';
 import type { ResolvedSound } from '../core/synth/graph/plan.ts';
 import { type ResolvedTrial, resolveCode } from '../core/synth/resolve.ts';
@@ -81,13 +86,18 @@ import { TAKE_LEVEL } from '../core/recording.ts';
 import { toMs } from '../core/time.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { sha256Hex, sha256OfFile } from './digest.ts';
+import { Earshot } from './earshot.ts';
 import { ElevenLabs } from './elevenlabs.ts';
-import type { CodeError, UnknownSound } from '../core/errors.ts';
+import type { CodeError, CodeTooLong, UnknownSound } from '../core/errors.ts';
 import { ElevenLabsFailed, type MediaFailed, TakeUnknown } from '../core/refusals.ts';
 import {
   type ApiKeyMissing,
   CandidateMissing,
   CodeTrialMissing,
+  type EarshotFailed,
+  type EarshotMissing,
+  FitModelInvalid,
+  FitRefused,
   CreditsOverCap,
   type FilmModuleInvalid,
   LibraryMissing,
@@ -107,7 +117,7 @@ import {
   TrialInvalid,
   VariantMissing,
 } from './errors.ts';
-import { filmsOut, libraryModule, lockManifest } from './film-repo.ts';
+import { filmsOut, fitFile, fitsIn, libraryModule, lockManifest } from './film-repo.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
 import {
@@ -462,6 +472,22 @@ type MakeError =
   | MediaFailed
   | PlatformError;
 
+/** How `fit` fits: the size it writes to, and a model to translate in place of running earshot. */
+interface FitRequest {
+  readonly size: FitSize;
+  readonly from: Option.Option<string>;
+}
+
+/** What `fit` wrote: the fit's file, the model it was written from, and what the translation made of it. */
+interface Fit {
+  readonly file: string;
+  readonly model: string;
+  readonly fitted: Fitted;
+}
+
+/** How many seeds a fit plays: its noise drawn three ways, as the library's code beds are heard. */
+const FIT_SEEDS = 3;
+
 /** What `push` did: the files it copied, those the store already held, those it had nowhere, and the lock's total. */
 interface PushReport {
   readonly sent: ReadonlyArray<string>;
@@ -598,7 +624,8 @@ interface SoundLibraryService {
    * `<name>.code.mp4`), and both in one, `AB_BETWEEN` apart
    * (`<name>.now-then-code.mp4`), each beside its sheet as a PNG. A bed
    * plays `CLIP_BED_SECS` of each render. A sound with no code trial (a
-   * recording, a code sound) has only its `now` clip. The files written.
+   * code sound, a recording not fitted) has only its `now` clip. The files
+   * written.
    * Refused for a sound with nothing kept to play.
    */
   readonly ab: (
@@ -607,6 +634,31 @@ interface SoundLibraryService {
   ) => Effect.Effect<
     ReadonlyArray<string>,
     LibraryError | UnknownSound | SoundUnmade | MediaFailed | PlatformError
+  >;
+  /**
+   * A recording's code trial, fitted from its kept variant (free): earshot's
+   * model of it (`Earshot`, or the model file `from` names) written as code
+   * within `size` (core/synth/fit), high-passed under 30 Hz when the
+   * recording has little rumble, kept as `fits/<name>.json`, which the
+   * library then plays as the sound's trial. The model earshot wrote is kept
+   * under `<FILMS_OUT>/sounds/fits/`. Refused for a sound that is not
+   * recorded (`FitRefused`): a generated take stays private.
+   */
+  readonly fit: (
+    name: string,
+    request: FitRequest,
+  ) => Effect.Effect<
+    Fit,
+    | LibraryError
+    | UnknownSound
+    | FitRefused
+    | SoundUnmade
+    | FitModelInvalid
+    | CodeTooLong
+    | EarshotMissing
+    | EarshotFailed
+    | MediaFailed
+    | PlatformError
   >;
   /**
    * Each variant's onset and hit, measured from its file where the lock lacks
@@ -703,6 +755,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const store = yield* ContentStore;
         const media = yield* Media;
         const elevenLabs = yield* ElevenLabs;
+        const earshot = yield* Earshot;
         const privateStore = yield* PrivateStore;
         const made = yield* SoundRender;
         const outputs = yield* filmsOut;
@@ -722,7 +775,11 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
             return yield* LibraryMissing.make({ file: paths.module });
           const declared = yield* libraryModule(paths.module);
           const lock = yield* store.read(paths.lock);
-          const { code, trials } = yield* Effect.fromResult(resolveCode(declared.library));
+          const fits = yield* fitsIn(dir).pipe(
+            Effect.provideService(FileSystem.FileSystem, fs),
+            Effect.provideService(Path.Path, path),
+          );
+          const { code, trials } = yield* Effect.fromResult(resolveCode(declared.library, fits));
           const loaded: LoadedLibrary = { paths, library: declared.library, lock, code, trials };
           return loaded;
         });
@@ -1149,6 +1206,56 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           return out;
         });
 
+        const fit = Effect.fn('SoundLibrary.fit')(function* (name: string, request: FitRequest) {
+          const loaded = yield* load;
+          const entry = yield* entryOf(loaded, name);
+          if (entry.kind !== 'recorded') return yield* FitRefused.make({ name, kind: entry.kind });
+          const lockEntry = Option.fromUndefinedOr(loaded.lock[name]);
+          const kept = Option.flatMap(lockEntry, (e) => Arr.head(e.variants));
+          if (Option.isNone(kept))
+            return yield* SoundUnmade.make({
+              name,
+              candidates: pendingOf(entry, lockEntry).length,
+            });
+          const source = path.join(dir, kept.value.file);
+          const rumble = profileOf(yield* media.decode(source), entry.use).rumble;
+          const cache = path.join(paths.out, 'fits', `${name}.model.json`);
+          const model = Option.getOrElse(request.from, () => cache);
+          if (Option.isNone(request.from)) {
+            const text = yield* earshot.fit(source);
+            yield* fs.makeDirectory(path.dirname(cache), { recursive: true });
+            yield* fs.writeFileString(cache, text);
+          }
+          const decoded = yield* fs.readFileString(model).pipe(
+            Effect.flatMap(Schema.decodeEffect(EarshotModelJson)),
+            Effect.mapError((error) =>
+              FitModelInvalid.make({ file: model, reason: error.message }),
+            ),
+          );
+          const fitted = yield* Effect.fromResult(
+            fitSound(name, decoded, { size: request.size, use: entry.use, rumble }),
+          );
+          const record: SoundFit = {
+            sound: fitted.sound,
+            variants: FIT_SEEDS,
+            from: { file: kept.value.file, sha256: kept.value.sha256 },
+            earshot: earshot.commit,
+            size: request.size,
+            left: fitted.left,
+          };
+          const file = fitFile(dir, name);
+          yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+          yield* fs.writeFileString(
+            file,
+            yield* Schema.encodeEffect(SoundFitJson)(record).pipe(Effect.orDie),
+          );
+          yield* Effect.log(
+            `sfx.fit name=${name} kind=${fitted.kind} size=${request.size} modes=${fitted.modes} bands=${fitted.bands} work=${fitted.work} file=${file}`,
+          );
+          const done: Fit = { file, model, fitted };
+          return done;
+        });
+
         const ab = Effect.fn('SoundLibrary.ab')(function* (name: string, out: string) {
           const loaded = yield* load;
           const entry = yield* entryOf(loaded, name);
@@ -1573,6 +1680,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
           audition,
           render,
           compare,
+          fit,
           ab,
           check,
           describe,

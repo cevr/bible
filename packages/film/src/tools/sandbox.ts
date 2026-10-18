@@ -2,7 +2,7 @@
 // a Seatbelt profile the kernel enforces on it and on every process it
 // starts), where it reads only what it is handed of the user's. The profile
 // allows the system a program runs on and the network (the counsel needs the
-// internet), and closes every user's home, the system's temp folders and
+// internet; a plan that is `offline`, earshot's, closes it too), and closes every user's home, the system's temp folders and
 // every other volume to reading: the repo, the films' out folders (an
 // earlier judge's key among them), the caches and the owner's sessions are
 // unreadable there, not merely unlisted. What stays readable is the system's
@@ -26,6 +26,8 @@ export interface SandboxPlan {
   readonly reads: ReadonlyArray<string>;
   /** Opened to read and write: the program's own state and temp files. */
   readonly writes: ReadonlyArray<string>;
+  /** No network at all: for a program that needs none (downloaded code, run on the user's files). */
+  readonly offline?: boolean;
 }
 
 /** What is closed to reading but where a plan opens it: every home, the temp folders, other volumes. */
@@ -64,6 +66,7 @@ const profileOf = (plan: SandboxPlan): string =>
     ...rule('deny', 'file-read-data', CLOSED),
     ...rule('allow', 'file-read-data', [...plan.reads, ...plan.writes]),
     ...rule('allow', 'file-write*', plan.writes),
+    ...['(deny network*)'].filter(() => plan.offline === true),
   ].join('\n');
 
 /** The argv that runs `command` in `plan`'s sandbox. */

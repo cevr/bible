@@ -42,13 +42,15 @@ import {
   talkTakes,
   talkTranscripts,
 } from '../core/talk.ts';
-import type { CodeError } from '../core/errors.ts';
+import { type CodeError, FitUnreadable } from '../core/errors.ts';
 import {
   Library,
   type Lock,
   LockJson,
   type MeasuredSounds,
   NO_SOUNDS,
+  type SoundFit,
+  SoundFitJson,
   type Sounds,
 } from '../core/sfx.ts';
 import { resolveCode } from '../core/synth/resolve.ts';
@@ -301,6 +303,35 @@ export const lockManifest = (dir: string): Manifest<Lock> => ({
   file: `${dir}/library.lock.json`,
   codec: LockJson,
   empty: {},
+});
+
+/** A recording's fit in the library `dir` (`sfx fit`): `fits/<name>.json`. */
+export const fitFile = (dir: string, name: string): string => `${dir}/fits/${name}.json`;
+
+/**
+ * The fits in the library `dir`, each by the sound it fits (its file's name):
+ * none when it keeps no `fits/`. A file that is not a fit is refused
+ * (`FitUnreadable`), never skipped.
+ */
+export const fitsIn = Effect.fn('Library.fits')(function* (dir: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const folder = path.join(dir, 'fits');
+  const unreadable = (file: string) => (error: { readonly message: string }) =>
+    FitUnreadable.make({ file, reason: error.message });
+  if (!(yield* fs.exists(folder).pipe(Effect.mapError(unreadable(folder)))))
+    return new Map<string, SoundFit>();
+  const files = (yield* fs.readDirectory(folder).pipe(Effect.mapError(unreadable(folder))))
+    .filter((file) => file.endsWith('.json'))
+    .toSorted();
+  const fits = yield* Effect.forEach(files, (file) =>
+    fs.readFileString(path.join(folder, file)).pipe(
+      Effect.flatMap(Schema.decodeEffect(SoundFitJson)),
+      Effect.mapError(unreadable(fitFile(dir, file.slice(0, -'.json'.length)))),
+      Effect.map((fit) => [file.slice(0, -'.json'.length), fit] as const),
+    ),
+  );
+  return new Map<string, SoundFit>(fits);
 });
 
 /** Why a film does not lay out: each authoring error names its scene (`LayoutError`). */
@@ -648,7 +679,11 @@ export class FilmRepo extends Context.Service<FilmRepo, FilmRepoService>()(
           if (Option.isNone(sounds) || !(yield* fs.exists(file))) return NO_SOUNDS;
           const { library } = yield* libraryModule(file);
           const lock = yield* store.read(lockManifest(dir));
-          const { code, trials } = yield* Effect.fromResult(resolveCode(library));
+          const fits = yield* fitsIn(dir).pipe(
+            Effect.provideService(FileSystem.FileSystem, fs),
+            Effect.provideService(Path.Path, path),
+          );
+          const { code, trials } = yield* Effect.fromResult(resolveCode(library, fits));
           const loaded: Sounds = { library, lock, dir, code, trials };
           return loaded;
         });

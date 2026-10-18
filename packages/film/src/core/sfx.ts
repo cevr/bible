@@ -120,7 +120,27 @@ const Seeds = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 }));
  * choose.
  */
 const CodeTrial = Schema.Struct({ sound: CodeSound, variants: Seeds });
-type CodeTrial = typeof CodeTrial.Type;
+export type CodeTrial = typeof CodeTrial.Type;
+
+/**
+ * A recording's code trial, fitted from it (`sfx fit`), kept as
+ * `sounds/fits/<name>.json`: the trial, the recording it was fitted from (the
+ * kept variant's file and hash), the earshot commit that fitted it, the size
+ * it was written to, and what of the fit the code leaves out. Its entry keeps
+ * its licence and credit, and the trial plays only beside the recording
+ * until the owner keeps it as the entry's code.
+ */
+const SoundFit = Schema.Struct({
+  ...CodeTrial.fields,
+  from: Schema.Struct({ file: Schema.String, sha256: Schema.String }),
+  earshot: Schema.String,
+  size: Schema.Literals(['small', 'full']),
+  left: Schema.Array(Schema.String),
+});
+export type SoundFit = typeof SoundFit.Type;
+
+/** A fit as its file holds it: two-space JSON and a final newline (`repoJson`). */
+export const SoundFitJson = repoJson(SoundFit);
 
 export const Generated = Schema.Struct({
   kind: Schema.Literal('generated'),
@@ -186,10 +206,17 @@ export type LibraryEntry = typeof LibraryEntry.Type;
 /** Whether `entry` is rendered from its data (a code sound), so nothing of it is made, kept or paid for. */
 export const isDerived = (entry: LibraryEntry): entry is Code => entry.kind === 'code';
 
-/** A sound's code trial: a generated sound's `code`; none for any other kind. */
-export const codeTrialOf = (entry: LibraryEntry): Option.Option<CodeTrial> => {
-  if (entry.kind !== 'generated') return Option.none();
-  return Option.fromUndefinedOr(entry.code);
+/**
+ * A sound's code trial: a generated sound's `code`, a recording's `fit` (its
+ * `sounds/fits/<name>.json`); none for a code sound.
+ */
+export const codeTrialOf = (
+  entry: LibraryEntry,
+  fit: Option.Option<CodeTrial>,
+): Option.Option<CodeTrial> => {
+  if (entry.kind === 'generated') return Option.fromUndefinedOr(entry.code);
+  if (entry.kind === 'recorded') return fit;
+  return Option.none();
 };
 
 /** An app's sounds by name (`sounds/library.ts`). */

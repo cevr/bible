@@ -13,6 +13,7 @@
     "apps/selah/Sources/SelahApp/Resources/kjv.json",
     "apps/animations/src/films/*/board.json",
     "apps/animations/src/films/*/v*/board.json",
+    "apps/animations/sounds/fits/*.json",
     "apps/animations/series/*/scripts/*.md"
   ]
 }

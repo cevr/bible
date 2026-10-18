@@ -9,22 +9,25 @@
 // render may. A sampled sound renders on its own seed, so its stream names
 // are its own: they are checked with it, never with the sounds that sample it.
 //
-// Each entry's code trial (core/sfx.ts `codeTrialOf`) is walked the same way,
-// under its entry's name and "(trial)", and resolved beside the code sounds.
-// It is no code sound itself, so nothing can sample it.
+// Each entry's code trial (core/sfx.ts `codeTrialOf`: a generated sound's
+// `code`, a recording's fit) is walked the same way, under its entry's name
+// and "(trial)", and resolved beside the code sounds. It is no code sound
+// itself, so nothing can sample it. A fit for a name the library does not
+// declare as a recording is refused (`FitUnmatched`).
 
 import { Option, Predicate, Result, Schema } from 'effect';
 import {
   type CodeError,
   CodeTooLong,
   DegreeWithoutKey,
+  FitUnmatched,
   SampleCycle,
   SampleNotCode,
   SampleUnknown,
   StreamDuplicate,
 } from '../errors.ts';
 import { hashText } from '../narration.ts';
-import { type Library, codeTrialOf, soundEntry } from '../sfx.ts';
+import { type CodeTrial, type Library, codeTrialOf, soundEntry } from '../sfx.ts';
 import { type Bound, boundOf } from './graph/bound.ts';
 import {
   CodeSound,
@@ -191,8 +194,22 @@ interface ResolvedCode {
   readonly trials: ReadonlyMap<string, ResolvedTrial>;
 }
 
-/** Every code sound and code trial of `library` resolved, or the first refusal in the library's order. */
-export const resolveCode = (library: Library): Result.Result<ResolvedCode, CodeError> => {
+/**
+ * Every code sound and code trial of `library` resolved, its recordings'
+ * trials from `fits` (by name), or the first refusal: a fit no recording
+ * takes first, then in the library's order.
+ */
+export const resolveCode = (
+  library: Library,
+  fits: ReadonlyMap<string, CodeTrial> = new Map(),
+): Result.Result<ResolvedCode, CodeError> => {
+  for (const name of [...fits.keys()].toSorted()) {
+    const entry = soundEntry(library, name);
+    if (Option.isNone(entry))
+      return Result.fail(FitUnmatched.make({ sound: name, kind: 'undeclared' }));
+    if (entry.value.kind !== 'recorded')
+      return Result.fail(FitUnmatched.make({ sound: name, kind: entry.value.kind }));
+  }
   const walk: Walk = { library, done: new Map() };
   const code = new Map<string, ResolvedSound>();
   const trials = new Map<string, ResolvedTrial>();
@@ -204,7 +221,7 @@ export const resolveCode = (library: Library): Result.Result<ResolvedCode, CodeE
       if (Result.isFailure(walked)) return Result.fail(walked.failure);
       code.set(name, walked.success.sound);
     }
-    const trial = codeTrialOf(entry.value);
+    const trial = codeTrialOf(entry.value, Option.fromUndefinedOr(fits.get(name)));
     if (Option.isNone(trial)) continue;
     const walked = walkSound(walk, [], `${name} (trial)`, trial.value.sound);
     if (Result.isFailure(walked)) return Result.fail(walked.failure);

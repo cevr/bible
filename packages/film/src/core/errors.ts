@@ -447,6 +447,33 @@ export class StreamDuplicate extends Schema.TaggedError<StreamDuplicate>()('Stre
   }
 }
 
+/**
+ * A fit (`sounds/fits/<name>.json`, `sfx fit`) for a name the library does
+ * not declare as a recording: a fit is a recording's code trial, and a
+ * generated take stays private, so nothing may be fitted from one.
+ */
+export class FitUnmatched extends Schema.TaggedError<FitUnmatched>()('FitUnmatched', {
+  sound: Schema.String,
+  /** The entry's kind, or `undeclared` when the library does not declare the name. */
+  kind: Schema.Literals(['generated', 'code', 'undeclared']),
+}) {
+  override get message() {
+    if (this.kind === 'undeclared')
+      return `fits/${this.sound}.json fits a sound the library does not declare: remove the fit, or declare "${this.sound}" as recorded`;
+    return `fits/${this.sound}.json fits "${this.sound}", a ${this.kind} sound; only a recorded sound has a fit`;
+  }
+}
+
+/** A fit's file that is not JSON a fit holds. */
+export class FitUnreadable extends Schema.TaggedError<FitUnreadable>()('FitUnreadable', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} is not a fit: ${this.reason}`;
+  }
+}
+
 /** Why the library's code sounds do not resolve. */
 export type CodeError =
   | SampleUnknown
@@ -454,7 +481,9 @@ export type CodeError =
   | SampleCycle
   | CodeTooLong
   | DegreeWithoutKey
-  | StreamDuplicate;
+  | StreamDuplicate
+  | FitUnmatched
+  | FitUnreadable;
 
 /** A film's timings file is there, but the page could not fetch or read it. */
 export class NarrationUnreadable extends Schema.TaggedError<NarrationUnreadable>()(

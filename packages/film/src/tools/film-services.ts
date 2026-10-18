@@ -47,6 +47,7 @@ import { labHandler } from './lab.ts';
 import { LabEvents } from './lab-events.ts';
 import { type LabMcpNeeds, labMcp } from './lab-mcp.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
+import { Earshot } from './earshot.ts';
 import { SoundLibrary } from './library.ts';
 import { SoundRender } from './sound-render.ts';
 import { Media } from './media.ts';
@@ -176,8 +177,16 @@ export const filmServices = (spec: FilmServicesSpec) => {
     onNone: () => PrivateStore.layer(spec.sounds).pipe(Layer.provide(FetchHttpClient.layer)),
     onSome: (given) => given,
   }).pipe(Layer.provide(Platform));
+  // The library fits a recording with earshot, pinned outside the repo and run in its sandbox.
   const Library = SoundLibrary.layer(spec.sounds).pipe(
-    Layer.provide([Store, Tools, Private, Render, Platform]),
+    Layer.provide([
+      Store,
+      Tools,
+      Private,
+      Render,
+      Earshot.layer.pipe(Layer.provide(Platform)),
+      Platform,
+    ]),
   );
   // The footage library's originals sync with the same private store; its copies are made
   // over the media service's coders.

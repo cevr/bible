@@ -7,10 +7,11 @@
 // listening); `compare` prints a code trial's numbers beside what plays,
 // each render's and each side's median, how far apart they stand, and how
 // far each film's placement would hear the hit move; `audit` reads which
-// generated sounds code can make, from their prompts; `ab` writes a sound's
-// clips for an ask; `keep`, `reject` and `import` curate the lock; `pull`
-// and `push` sync the private `files/` (and the films' scores) with the
-// store; `push --from` sends from an older folder store too (the move to
+// generated sounds code can make, from their prompts; `fit` writes a
+// recording's code trial from earshot's model of it (core/synth/fit); `ab`
+// writes a sound's clips for an ask; `keep`, `reject` and `import` curate
+// the lock; `pull` and `push` sync the private `files/` (and the films'
+// scores) with the store; `push --from` sends from an older folder store too (the move to
 // R2). `make` is the one paid command: it prints its plan and cost, and
 // spends only with `--yes`, under `--cap` counting what `--tally` already
 // records.
@@ -25,6 +26,7 @@
 //   film sfx import <file> <name>
 //   film sfx render <name> [--seed n] [--trial] [--sheet]
 //   film sfx compare <name>        film sfx audit
+//   film sfx fit <name> [--size small|full] [--from model.json]
 //   film sfx ab <name> --out <dir>
 //   film sfx check [--json]      film sfx describe
 //   film sfx pull                  film sfx push [--from folder]
@@ -608,6 +610,41 @@ const audit = Command.make(
   ),
 );
 
+const fit = Command.make(
+  'fit',
+  {
+    name,
+    size: Flag.Literals('size', ['small', 'full']).pipe(
+      Flag.withDefault('small'),
+      Flag.withDescription(
+        'small: a graph a person can read (modes merged, bands an octave each); full: every part of the fit',
+      ),
+    ),
+    from: Flag.String('from').pipe(
+      Flag.optional,
+      Flag.withDescription('an earshot model to translate, in place of running earshot'),
+    ),
+  },
+  Effect.fn('film.sfx.fit')(function* (input) {
+    const done = yield* (yield* SoundLibrary).fit(input.name, {
+      size: input.size,
+      from: input.from,
+    });
+    const { fitted } = done;
+    let highpass = '';
+    if (fitted.highpass) highpass = '  high-passed <30Hz';
+    yield* Console.log(
+      `fitted  ${done.file}  ${fitted.kind}  ${input.size}  modes=${fitted.modes} tracks=${fitted.tracks} bands=${fitted.bands} points=${fitted.points} work=${fitted.work}s${highpass}`,
+    );
+    yield* Console.log(`model   ${done.model}`);
+    if (fitted.left.length > 0) yield* Console.log(`left out: ${fitted.left.join('; ')}`);
+  }),
+).pipe(
+  Command.withDescription(
+    "A recording's code trial, fitted from its kept take by earshot (pinned, outside the repo, sandboxed) and written as code to fits/<name>.json; refused for a generated sound, whose takes stay private (free; judge it with compare and ab)",
+  ),
+);
+
 const ab = Command.make(
   'ab',
   {
@@ -725,6 +762,7 @@ export const sfx = Command.make('sfx').pipe(
     render,
     compare,
     audit,
+    fit,
     ab,
     check,
     describe,

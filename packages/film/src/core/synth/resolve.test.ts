@@ -244,4 +244,40 @@ describe('the walk of the code trials', () => {
       kind: 'generated',
     });
   });
+
+  test('a recording’s fit is its trial; a fit for any other name is refused, whatever it plays', () => {
+    const fit = { sound: { play: noise(0.2) }, variants: 3 };
+    const library = defineLibrary({
+      'wood.knock': {
+        kind: 'recorded',
+        licence: { id: 'CC0-1.0', author: 'someone', source: 'https://freesound.org/s/1/' },
+        use: 'one-shot',
+      },
+      'paper.whoosh': trialled(noise(0.1)),
+      'tone.drop': code({ play: noise(0.1) }),
+    });
+    const walk = Result.getOrThrow(resolveCode(library, new Map([['wood.knock', fit]])));
+    expect([...walk.trials.keys()].toSorted()).toEqual(['paper.whoosh', 'wood.knock']);
+    expect(walk.trials.get('wood.knock')?.variants).toBe(3);
+    const refused = (name: string) =>
+      Result.match(resolveCode(library, new Map([[name, fit]])), {
+        onSuccess: () => undefined,
+        onFailure: (error) => error,
+      });
+    expect(refused('paper.whoosh')).toMatchObject({
+      _tag: 'FitUnmatched',
+      sound: 'paper.whoosh',
+      kind: 'generated',
+    });
+    expect(refused('tone.drop')).toMatchObject({
+      _tag: 'FitUnmatched',
+      sound: 'tone.drop',
+      kind: 'code',
+    });
+    expect(refused('amb.gone')).toMatchObject({
+      _tag: 'FitUnmatched',
+      sound: 'amb.gone',
+      kind: 'undeclared',
+    });
+  });
 });
