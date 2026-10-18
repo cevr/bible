@@ -77,6 +77,9 @@ const proof = (tries: ReadonlyArray<number>): Ask =>
               value: String(n),
               label: `Try ${n}`,
               image: { board: { film: 'f', panel: 'word.church', try: n } },
+              // A Board try kept: typed, and no scene, so the keep gate never asks a review of it.
+              outcome: 'keep',
+              keeps: { film: 'f', scenes: [] },
               ...Bool.match(i === 0, {
                 onFalse: () => ({}),
                 onTrue: () => ({ recommended: true }),

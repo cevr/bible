@@ -300,7 +300,7 @@ The form of an entry, each field on its own line:
 - **Source:** ask aab16c0cb70 (christ: revise); apps/animations/productions/righteousness-by-faith.json (2026-10-17 22:58); tmp/orchestrate/p5/p6-lessons/spec.md
 - **Wrong:** Render artifacts on Christ, seen at 1:1: a light line between His hair and cheek, a ragged beard edge, a white point at His crown.
 - **Cause:** The orchestrator recommended locking on ratio rows and sampled colours; the artifacts show only at 1:1, and no 1:1 crop or fresh critique ran before the ask.
-- **Guard:** `packages/film/src/core/render-artifacts.ts` `headArtifacts` (a sliver read on Christ's hair edge at court 16.51 s; 3467e02cc); `packages/film/src/core/review-record.ts` `keepRecommended` and `packages/film/src/tools/ask-materials.ts` `evidence` (a keep is refused without a review record; 5816f1af8)
+- **Guard:** `packages/film/src/core/render-artifacts.ts` `headArtifacts` (a sliver read on Christ's hair edge at court 16.51 s; 3467e02cc); `packages/film/src/core/review-record.ts` `keptOn` and `packages/film/src/tools/ask-materials.ts` `evidence` (a typed keep is refused without a review record; 5816f1af8)
 
 ### farmer-not-like-concept
 

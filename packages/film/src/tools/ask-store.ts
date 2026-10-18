@@ -284,6 +284,22 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
           );
         });
 
+      /** The film production `production`'s ledger names, as the keep gate takes it: none when it names none or is not kept. */
+      const productionFilmOf = (production: Option.Option<string>) =>
+        Option.match(production, {
+          onNone: () => Effect.succeed({}),
+          onSome: (p) =>
+            productions.read(p).pipe(
+              Effect.map((file) =>
+                Option.match(
+                  Option.flatMap(file, (f) => f.film),
+                  { onNone: () => ({}), onSome: (productionFilm) => ({ productionFilm }) },
+                ),
+              ),
+              Effect.orElseSucceed(() => ({})),
+            ),
+        });
+
       const make = Effect.fn('AskStore.make')(function* (draft: AskDraft) {
         yield* Effect.fromResult(
           aimedWord({
@@ -316,7 +332,10 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         const absent = [
           ...(yield* materials.problems(draft.ask)),
           ...missing,
-          ...(yield* materials.evidence(draft, draft.ask)),
+          ...(yield* materials.evidence(
+            { ...draft, ...(yield* productionFilmOf(Option.fromUndefinedOr(draft.production))) },
+            draft.ask,
+          )),
         ];
         if (absent.length > 0) return yield* AskInvalid.make({ problems: absent });
         return yield* making.withPermit(

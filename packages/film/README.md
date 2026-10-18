@@ -2864,7 +2864,7 @@ side), the body's past 0.05; feet the concept shows and the scene does not
 their tolerances, and a grey shade; the head's turn past 0.1 of the
 face's opening from the concept's, and its roll past 6° and the grain of
 each side's eye line (a concept's head angle is design, never information:
-owner, 2026-10-18, ask `aab16c0cb70`); and any seam, sliver or weather on
+owner, 2026-10-17, ask `aab16c0cb70`); and any seam, sliver or weather on
 the scene's head (the owner's rule is none; a concept is painted, so its
 side is not read). Two kinds of row are information,
 never flagged: the height in heads (a figure's height comes from the cast's
@@ -2907,15 +2907,22 @@ and artifacts, and reads the findings (`CritiqueFinding`
 
 - **Batched.** One counsel run answers every figure at the place.
 - **Cached.** The answer is kept at `out/<film>/critique/<hash>.json`, the
-  hash over the packet's version, the rule sections' words, and each
-  figure's name, flagged rows and crops' bytes: the same inputs are never
-  asked twice.
+  hash over the packet's words as sent (its place left out, which names the
+  build) and each crop's bytes: the same prompt over the same crops is never
+  asked twice, and a prompt reworded is asked again.
+- **Rules read once.** The rule sections are read when the critic is
+  built: a heading its file lacks fails the build (`CritiqueRuleMissing`),
+  as the judge's run does (`JudgeRuleMissing`). The app's
+  `apps/animations/rules.test.ts` holds every heading to its file.
 - **Fails open.** A counsel that fails, an answer with no `json` block or
-  one that does not decode, a rule section its file lacks, or crops that
-  cannot be read is a skip: logged (`critique.skipped scene= at= figures=
-  reason=`), said in each figure's file and in the answer's `skipped`,
-  never a failure. A critique logs `critique scene= at= figures= findings=
-  cached= ms=`.
+  one that is not `{"findings": [...]}`, crops that cannot be read, or a
+  defect is a skip: logged (`critique.skipped scene= at= figures= reason=`),
+  said in each figure's file and in the answer's `skipped`, never a
+  failure. Each finding is read on its own: one that does not read, or names
+  no figure asked about (names match in any case), is rejected and said in
+  the answer's `rejected` and the files, never dropped in silence. A
+  critique logs `critique scene= at= figures= findings= rejected= cached=
+  ms=`.
 - **Files.** Each figure's findings are written beside its match table, as
   `<stem>.critique.md`.
 
@@ -2927,28 +2934,51 @@ and its findings are what `film review` records before an owner look
 
 `film review <film> --set <name> --scene <id> --at <place> --at <place>
 [--figure <name>]` (`tools/review-cli.ts`, its record pure in
-`core/review-record.ts`) takes the evidence a keep is asked on. At each
-place (two or more) it matches and critiques the scene's figures, copies
-each figure's crops and side-by-side into the set
-(`review/crops/<scene>.<place>.<figure>.{concept,scene,side}.png`), and
-writes the record (`review/evidence.json`: the film, when, the scene and
-its source key as `film project` reads it, the crops, every finding and
-each skipped critique) and its page (`review/evidence.md`), both listed in
-the set's manifest. A finding the critique answers again word for word
-keeps what was done about it. `film review <film> --set <name> --done <n>
---did "<what>"` answers finding `n`: the fix made, or why it stands. Each
-writes `review.written set= film= crops= findings= open= skipped=`.
+`core/review-record.ts`) takes the evidence a keep is asked on. It reads the
+scene's source key as `film project` reads it, then at each place (two
+distinct or more, up to four at once) matches and critiques the scene's
+figures and copies each figure's crops and side-by-side into the set
+(`review/crops/<review>/<scene>.<place>.<figure>.{concept,scene,side}.png`),
+then reads the key again: a scene changed between the two reads is
+refused ("the scene changed during the review"). The run is appended to the
+record (`review/evidence.json`: a list of reviews, each its id `r<n>`, the
+film, the scene, its key, the figure it was narrowed to, when, its places,
+the crops, every finding and each skipped critique), never written over
+another, and the page (`review/evidence.md`, every review, newest first) is
+written from them all; both are listed in the set's manifest. A finding's id
+(`f` and eight hex digits) is the hash of its film, scene, place, figure,
+aspect and words, so a finding read again keeps what was done about it.
+`film review <film> --set <name> --done <id> --did "<what>"` answers finding
+`<id>`: the fix made, or why it stands. A record that does not read is
+refused, with its error. Each writes `review.written set= reviews= findings=
+open=`.
 
-The gate (`AskMaterials.evidence`, run by `AskStore.make`): an ask on a
-production whose recommended option keeps, locks or goes on (its value or
-label starts `lock`, `keep` or `go`: `keepRecommended`) is refused,
-`AskInvalid` naming why, unless its `set` lists `review/evidence.md` and
-the record beside it stands (`evidenceProblems`): every scene's key is the
-key `film project` reads now, it holds a crop, and every finding has what
-was done. The one way past is the ask's `override: {quote}`, the owner's
-own words verbatim, kept on the ask (`asks.evidence override
-production= chars=`). An ask off a production, or one recommending more
-work, is not gated.
+The gate (`AskMaterials.evidence`, run by `AskStore.make`) reads an ask on a
+production by its types, never its words (`core/review-record.ts`):
+
+- **Typed.** An ask that shows scenes or figures (a `video`, an `image`, a
+  `board`: `showsFigures`) gives every option an `outcome` (`keep`,
+  `revise` or `other`) and every keep its `keeps` (`{film, scenes: [{scene,
+  figures?}]}`, `scenes: []` for a script, a concept or a Board), or it is
+  refused naming what to add (`untypedKeeps`): leaving the types out lets
+  nothing by. A keep of another film than the production's ledger names is
+  refused (`typingProblems`).
+- **On the recommended way.** The keeps read are those on the way the
+  ask's recommendations take (`recommendedPath`: from its start, each
+  step's choices answered by their recommended options, on by the first way
+  whose guard holds), whose `outcome` is `keep` and whose `keeps` names a
+  scene (`keptOn`). A script keep, a revise and a keep only another answer
+  reaches are not gated.
+- **Evidence.** Each scene and figure kept needs, in the record its `set`
+  lists, the newest review of that film's scene that crops the figure (a
+  scene kept with no figures named: a review over every figure), its key
+  the key `film project` reads now, every finding on what is kept answered
+  (`evidenceProblems`). Otherwise the ask is refused, `AskInvalid` naming
+  each missing review by the `film review` that takes it.
+
+The one way past the evidence is the ask's `override: {quote}`, the owner's
+own words verbatim, kept on the ask (`asks.evidence override production=
+chars=`); it never passes an untyped ask.
 
 ### The judge: `film judge`
 

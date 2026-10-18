@@ -30,7 +30,8 @@ import {
   EVIDENCE_PAGE,
   ReviewRecordJson,
   evidenceProblems,
-  keepRecommended,
+  keptOn,
+  typingProblems,
 } from '../core/review-record.ts';
 import { docAt, videoAt } from '../core/review.ts';
 import { BoardStore } from './board-store.ts';
@@ -44,9 +45,13 @@ import type { StudioReadings } from './studio.ts';
 import { beatAttempts } from './studio.ts';
 import type { Takes } from './takes.ts';
 
-/** What an ask is aimed at, as the keep gate reads it: its production, its set, and the owner's override. */
+/**
+ * What an ask is aimed at, as the keep gate reads it: its production, the
+ * film its ledger names (`productionFilm`), its set, and the owner's override.
+ */
 interface Aimed {
   readonly production?: string;
+  readonly productionFilm?: string;
   readonly set?: string;
   readonly override?: { readonly quote: string };
 }
@@ -55,11 +60,14 @@ interface AskMaterialsService {
   /** What `ask` names that the lab cannot show, each as the agent fixes it; none when all is there. */
   readonly problems: (ask: Ask) => Effect.Effect<ReadonlyArray<string>>;
   /**
-   * Why `ask`, aimed at `aimed`, may not recommend a keep: on a production,
-   * a recommended option that keeps, locks or goes on needs its set's review
-   * record (`core/review-record.ts`) from the scenes as they stand now, every
-   * finding answered, unless the owner's own words override it. None when it
-   * may.
+   * Why `ask`, aimed at `aimed`, may not be made as it recommends: on a
+   * production, an ask that shows scenes or figures types each option's
+   * outcome and each keep's subject (`untypedKeeps`), and a keep on its
+   * recommended way that names a scene (`keeps.scenes`) needs its set's
+   * review of each scene and figure kept (`core/review-record.ts`), from the
+   * scene as it stands now, every finding on it answered, unless the owner's
+   * own words override it. A keep of no scene (a script, a concept, a Board)
+   * is never gated. None when it may.
    */
   readonly evidence: (aimed: Aimed, ask: Ask) => Effect.Effect<ReadonlyArray<string>>;
 }
@@ -235,44 +243,57 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
           );
         });
 
-      /** Why the keep `which` (a step's recommended option) may not be asked for `aimed`: none when it may. */
-      const evidenceFor = (aimed: Aimed & { readonly production: string }, which: string) =>
-        Effect.gen(function* () {
-          if (Predicate.isNotUndefined(aimed.override)) {
-            yield* Effect.log(
-              `asks.evidence override production=${aimed.production} chars=${aimed.override.quote.length}`,
-            );
-            return [];
-          }
-          if (Predicate.isUndefined(aimed.set))
-            return [
-              "name the set that holds the figures' review record (`set`), or override with the owner's own words",
-            ];
-          const record = yield* recordOf(aimed.set);
-          const project = yield* fresh
-            .project([record.film, '--json'])
-            .pipe(
-              Effect.mapError(
-                (error) => `${record.film}'s scenes cannot be read now: ${error.message}`,
-              ),
-            );
-          return evidenceProblems(record, new Map(project.scenes.map((s) => [s.scene, s.key])));
-        }).pipe(
-          Effect.catch((problem) => Effect.succeed([problem])),
-          Effect.map((problems) => problems.map((p) => `${which}: a keep needs evidence: ${p}`)),
+      /** Each scene's key in `film` as its sources stand now, or why they cannot be read. */
+      const keysNow = (film: string) =>
+        fresh.project([film, '--json']).pipe(
+          Effect.map((project) => new Map(project.scenes.map((s) => [s.scene, s.key]))),
+          Effect.mapError((error) => `${film}'s scenes cannot be read now: ${error.message}`),
         );
 
       const evidence = (aimed: Aimed, ask: Ask) =>
-        Option.match(
-          Option.all({
-            production: Option.fromUndefinedOr(aimed.production),
-            which: keepRecommended(ask),
-          }),
-          {
-            onNone: () => Effect.succeed([]),
-            onSome: ({ production, which }) => evidenceFor({ ...aimed, production }, which),
-          },
-        );
+        Option.match(Option.fromUndefinedOr(aimed.production), {
+          onNone: () => Effect.succeed([]),
+          onSome: (production) =>
+            Effect.gen(function* () {
+              const kept = keptOn(ask);
+              const typed = typingProblems(
+                ask,
+                production,
+                Option.fromUndefinedOr(aimed.productionFilm),
+              );
+              if (kept.length === 0) return typed;
+              if (Predicate.isNotUndefined(aimed.override)) {
+                yield* Effect.log(
+                  `asks.evidence override production=${production} chars=${aimed.override.quote.length}`,
+                );
+                return typed;
+              }
+              const needed = Effect.gen(function* () {
+                const set = yield* Effect.fromOption(Option.fromUndefinedOr(aimed.set)).pipe(
+                  Effect.mapError(
+                    () =>
+                      "name the set that holds the figures' review record (`set`), or override with the owner's own words",
+                  ),
+                );
+                const record = yield* recordOf(set);
+                return yield* Effect.forEach(kept, ({ which, keeps }) =>
+                  Effect.map(keysNow(keeps.film), (now) =>
+                    evidenceProblems(record, keeps, now).map(
+                      (p) => `${which}: a keep needs evidence: ${p}`,
+                    ),
+                  ).pipe(
+                    Effect.catch((p) => Effect.succeed([`${which}: a keep needs evidence: ${p}`])),
+                  ),
+                );
+              }).pipe(
+                Effect.map((each) => each.flat()),
+                Effect.catch((p) =>
+                  Effect.succeed(kept.map(({ which }) => `${which}: a keep needs evidence: ${p}`)),
+                ),
+              );
+              return [...typed, ...(yield* needed)];
+            }),
+        });
 
       return AskMaterials.of({ problems, evidence });
     }),

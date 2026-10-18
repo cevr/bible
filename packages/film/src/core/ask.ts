@@ -81,11 +81,39 @@ export const AskImage = Schema.Struct({
 });
 export type AskImage = typeof AskImage.Type;
 
+/** A film's, a series' or a draft's name: a folder's name, never a path. */
+const LabName = Schema.String.check(
+  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/, {
+    message: 'a name as the lab lists it (letters, digits, - _ .), never a path',
+  }),
+);
+
+/** What an option's answer does to what the ask shows: keeps it, sends it back for more work, or neither. */
+const OUTCOMES = ['keep', 'revise', 'other'] as const;
+
+/**
+ * What a keep keeps, typed: the film, and each scene with the figures kept
+ * in it (`figures` left out: every figure the scene draws with a concept).
+ * A keep of no scene (a script, a concept, a Board, a voice) names none.
+ */
+const AskKeeps = Schema.Struct({
+  film: LabName,
+  scenes: Schema.Array(
+    Schema.Struct({
+      scene: Text(80),
+      figures: Schema.optionalKey(Schema.Array(Text(80))),
+    }),
+  ),
+});
+export type AskKeeps = typeof AskKeeps.Type;
+
 /**
  * One option of a choice: the value its answer carries, its label, its
  * picture, and whether it is the asker's recommendation (`recommended`, at
  * most one per choice: the page lists it first and marks it), with the
  * reason for it (`why`, said under the options; only the recommended one).
+ * Its `outcome` says what the answer does (a keep, a revise, neither), and a
+ * keep's `keeps` what it keeps: the keep gate reads these two, never words.
  */
 const AskOption = Schema.Struct({
   value: Text(80),
@@ -96,6 +124,18 @@ const AskOption = Schema.Struct({
     Text(200).annotate({
       description:
         'Why the asker recommends this option, in one line: only on the recommended one.',
+    }),
+  ),
+  outcome: Schema.optionalKey(
+    Schema.Literals(OUTCOMES).annotate({
+      description:
+        "What the answer does: 'keep' (keeps, locks or goes on with what the ask shows), 'revise' (more work), 'other'.",
+    }),
+  ),
+  keeps: Schema.optionalKey(
+    AskKeeps.annotate({
+      description:
+        'On a keep: the film, and each scene with the figures it keeps (scenes: [] for a script, a concept or a Board).',
     }),
   ),
 });
@@ -144,13 +184,6 @@ const FreeText = Schema.Struct({
 // panel's id), never a path on the box; the lab finds it through the read its
 // own view makes (`tools/ask-materials.ts` when the ask is made, the view's
 // parts when it is shown).
-
-/** A film's, a series' or a draft's name: a folder's name, never a path. */
-const LabName = Schema.String.check(
-  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/, {
-    message: 'a name as the lab lists it (letters, digits, - _ .), never a path',
-  }),
-);
 
 /**
  * A file the review serves, by its ref: its root's label, then its path
@@ -845,6 +878,98 @@ const wayOn = (page: PageStep, answers: AskAnswers): Option.Option<AskName> =>
     ),
     (n) => n.to,
   );
+
+// ---------------------------------------------------------------------------
+// What an ask keeps, as the keep gate reads it (`tools/ask-materials.ts`)
+
+/** A choice's block. */
+const isChoose = (b: AskBlock): b is typeof Choose.Type => b.kind === 'choose';
+
+/** A choice's recommended option on the ask's recommended way, by the step that asks it. */
+interface Recommended {
+  readonly step: AskName;
+  readonly choose: string;
+  readonly option: AskOption;
+}
+
+/**
+ * The options `ask` recommends along the way its recommendations take: from
+ * its start, each step's choices answered by their recommended options, on
+ * by the first way whose guard then holds, to its end. A step that only
+ * another answer reaches is not on it.
+ */
+export const recommendedPath = (ask: Ask): ReadonlyArray<Recommended> => {
+  const walk = (
+    name: AskName,
+    answers: AskAnswers,
+    seen: ReadonlySet<AskName>,
+  ): ReadonlyArray<Recommended> =>
+    Option.match(
+      Option.filter(Option.flatMap(stepOf(ask, name), pageOf), () => !seen.has(name)),
+      {
+        onNone: () => [],
+        onSome: (page) => {
+          const here = page.blocks
+            .filter(isChoose)
+            .flatMap((c) =>
+              c.options
+                .filter((o) => o.recommended === true)
+                .map((option): Recommended => ({ step: name, choose: c.id, option })),
+            );
+          const next: AskAnswers = {
+            ...answers,
+            ...Object.fromEntries(
+              here.map((r): readonly [string, AskAnswer] => [
+                r.choose,
+                { kind: 'choose', value: r.option.value, label: r.option.label },
+              ]),
+            ),
+          };
+          return [
+            ...here,
+            ...Option.match(wayOn(page, next), {
+              onNone: () => [],
+              onSome: (to) => walk(to, next, new Set([...seen, name])),
+            }),
+          ];
+        },
+      },
+    );
+  return walk(ask.start, {}, new Set());
+};
+
+/** Whether `ask` shows a scene or a figure: a video, a Board, or an image (a still, a board try). */
+const showsFigures = (ask: Ask): boolean =>
+  imagesIn(ask).length > 0 ||
+  materialsIn(ask).some(({ block }) => block.kind === 'video' || block.kind === 'board');
+
+/**
+ * What `ask` leaves untyped that the keep gate needs, each as the agent adds
+ * it: an ask that shows a scene or a figure (`showsFigures`) types every
+ * option's `outcome`, and every keep's `keeps`, so leaving them out never
+ * lets a keep by. An ask that shows neither (a script, words) needs neither.
+ */
+export const untypedKeeps = (ask: Ask): ReadonlyArray<string> =>
+  Bool.match(showsFigures(ask), {
+    onFalse: () => [],
+    onTrue: () =>
+      Record.toEntries(ask.steps).flatMap(([name, step]) =>
+        askedIn(step)
+          .filter(isChoose)
+          .flatMap((c) =>
+            c.options.flatMap((o) => [
+              ...problemIf(
+                Predicate.isUndefined(o.outcome),
+                `step ${name}: ${c.id} option ${o.value} has no outcome: the ask shows scenes or figures (a video, an image, a Board), so give each option outcome: 'keep' | 'revise' | 'other'`,
+              ),
+              ...problemIf(
+                o.outcome === 'keep' && Predicate.isUndefined(o.keeps),
+                `step ${name}: ${c.id} option ${o.value} is a keep that names nothing kept: give it keeps: { film, scenes: [{ scene, figures }] } (scenes: [] for a script, a concept or a Board)`,
+              ),
+            ]),
+          ),
+      ),
+  });
 
 /** Where `state` (at step `step`, answered `values`, checked by `answerRefusal`) moves. */
 const answered = (
