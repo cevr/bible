@@ -273,3 +273,15 @@ match of the lead at tip@1 (life at zoom 2.5): head, outline, jaw and hand (+3%)
 ## 2026-10-18T14:13:48Z · seed
 
 the seed's ink at the seal's 3.45 units read thin beside his outline (about 5.6) once the seed stood 200 tall; grown with the rise to 5 it reads as his line at folded and life; with the seed alone on (870, 520) at foldedZoom 3.8 only the seed and the page show at folded, his near hand outside the frame
+
+## 2026-10-18T14:33:21Z · seed
+
+against folded.3 the blade read as one narrow leaf in an empty tan hollow: the far leaf's tip ran past the hollow's narrow top and the near leaf's tip past its right edge, so the clip hid most of the far leaf; with both leaves broad (21 and 26 units) and inside the hollow's edge, the far leaf darker and showing as a crescent up the near one's left side to its own tip, the two fill the hollow's upper part edge to edge with the S root under them; at alive the blade curled at 0.62 read as a small sprout, at 0.8 as the same two leaves, smaller
+
+## 2026-10-18T14:33:24Z · seed
+
+the cut face at 6 units with its lip and the hollow's edge both at 0.7 of the ink, the ring and the hollow each creased, read as three heavy ink lines a side and extra bands; at 4 units, the hollow's edge at 0.45 of the ink, ring and hollow each one tone, it reads as one ring per half as folded.3 draws it; leaves stopped 1.5 to 2 units short of the hollow's edge left a thin bright strip under the ink at life, which the leaves run to the edge to close
+
+## 2026-10-18T14:33:27Z · seed
+
+while the seed parts (open@0.25, open@0.5) the seam's top stood above the cleft as a faint dark smudge at 1:1, since the tip drew down into the cleft and the seam's top did not; with the seam's top following the tip down, the cleft is clean through the opening

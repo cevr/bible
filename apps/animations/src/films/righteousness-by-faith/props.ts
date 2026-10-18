@@ -177,7 +177,14 @@ const HUSK = { half: 43, notch: 10, cleft: 0.26 } as const;
  * tip to its foot: the lens's middle, its half-width opened full and its
  * half-height; and how far the cut face of the shell shows round it.
  */
-const HOLLOW = { x: 1.5, y: 2, half: 16.5, tall: 43, face: 6 } as const;
+const HOLLOW = { x: 1.5, y: 2, half: 16.5, tall: 43, face: 4 } as const;
+
+/**
+ * Its inner lines, as shares of its ink: each half's lip round the cut face,
+ * and the hollow's edge inside it, finer, so the cut face reads as one ring
+ * (`seed.folded`).
+ */
+const LINES = { lip: 0.7, hollow: 0.45 } as const;
 
 /**
  * Its heart, in the hollow where the leaves meet the root: where its light
@@ -210,13 +217,15 @@ interface Folded {
 }
 
 /**
- * The blade folded in the seed (`seed.folded`): its far leaf up the hollow,
- * its near leaf across it, and its root, thick and white, curled under them
- * in an S to a round tip.
+ * The blade folded in the seed (`seed.folded`): its two first leaves, broad,
+ * one behind the other, filling the upper two-thirds of the hollow, the far
+ * one standing taller up it and the near one across it, both inside its
+ * edge; and its root, thick and white, curled under them in an S to a round
+ * tip.
  */
 const EMBRYO: Folded = {
-  back: { foot: [-5, -2], tip: [7, -39], w: 13, bow: 2 },
-  front: { foot: [-7, 9], tip: [15, -25], w: 18, bow: -3 },
+  back: { foot: [-6, 10], tip: [0, -32], w: 21, bow: 0 },
+  front: { foot: [-8, 18], tip: [10, -23], w: 26, bow: 2.5 },
   root: {
     spine: [
       [5, 4],
@@ -233,7 +242,7 @@ const EMBRYO: Folded = {
 };
 
 /** How small the blade is, curled tight, before it swells: a share of its folded size. */
-const CURLED = 0.62;
+const CURLED = 0.8;
 
 /** The seal's ribbon's scrap at the seed's foot: one short, broad tail, forked at its end, hanging down a little to the left. */
 const SCRAP: ReadonlyArray<Pt> = [
@@ -247,8 +256,9 @@ const SCRAP: ReadonlyArray<Pt> = [
 /**
  * The opened seed's papers (`seed.folded`, `seed.life`): its husk, dull
  * before its light wakes and the seal's gold after; the cut face of its
- * shell, dull and lit; its hollow, dull and lit; its first leaves; its root;
- * the seal's ribbon; and the light in its heart.
+ * shell, dull and lit; its hollow, dull and lit; its first leaves, the near
+ * one and the far one behind it, darker; its root; the seal's ribbon; and
+ * the light in its heart.
  */
 const OPEN = {
   husk: paper('#c8994f', 0.6),
@@ -258,6 +268,7 @@ const OPEN = {
   hollow: paper('#e3c594', 0.5),
   lit: paper('#f4cf6a', 0.4),
   leaf: paper('#86a85a', 0.6),
+  leafBack: paper('#6b8f45', 0.6),
   root: paper('#f3ead8', 0.5),
   ribbon: paper(SEAL_GOLD.ribbon, 0.6),
   heart: GOLD_GLOW,
@@ -343,13 +354,11 @@ const trace = (ctx: CanvasRenderingContext2D, pts: ReadonlyArray<Pt>) => {
   ctx.closePath();
 };
 
-/** A leaf folded in the seed, from its foot, lined `line`. */
-const foldedLeaf = (ctx: CanvasRenderingContext2D, l: FoldedLeaf, line: number) => {
+/** A leaf folded in the seed, from its foot, in `p`, lined `line`. */
+const foldedLeaf = (ctx: CanvasRenderingContext2D, l: FoldedLeaf, p: Paper, line: number) => {
   ctx.save();
   ctx.translate(l.foot[0], l.foot[1]);
-  cut(ctx, bladeLeaf([l.tip[0] - l.foot[0], l.tip[1] - l.foot[1]], l.w, l.bow), OPEN.leaf, {
-    line,
-  });
+  cut(ctx, bladeLeaf([l.tip[0] - l.foot[0], l.tip[1] - l.foot[1]], l.w, l.bow), p, { line });
   ctx.restore();
 };
 
@@ -366,23 +375,27 @@ const embryo = (ctx: CanvasRenderingContext2D, grown: number, line: number) => {
   ctx.scale(g, g);
   ctx.translate(-bx, -by);
   const ink = line / g;
-  foldedLeaf(ctx, EMBRYO.back, ink);
+  foldedLeaf(ctx, EMBRYO.back, OPEN.leafBack, ink);
   const { spine, w, tip } = EMBRYO.root;
   cut(ctx, tube(spline(spine, 6), w, tip), OPEN.root, { line: ink });
-  foldedLeaf(ctx, EMBRYO.front, ink);
+  foldedLeaf(ctx, EMBRYO.front, OPEN.leaf, ink);
   ctx.restore();
 };
 
-/** The seam down the shut seed from its tip to its foot, in the ink at `alpha`: where it parts. */
-const seam = (ctx: CanvasRenderingContext2D, line: number, alpha: number) => {
-  if (alpha <= 0) return;
+/**
+ * The seam down the shut seed from its tip to its foot, in the ink, fading
+ * as it parts `open`: where it parts. Its top follows the tip down into the
+ * cleft, so it never stands above the husk.
+ */
+const seam = (ctx: CanvasRenderingContext2D, line: number, open: number) => {
+  if (open >= 1) return;
   ctx.save();
-  ctx.globalAlpha *= alpha;
+  ctx.globalAlpha *= 1 - open;
   ctx.lineCap = 'round';
   ctx.lineWidth = line;
   ctx.strokeStyle = C.outline;
   ctx.beginPath();
-  ctx.moveTo(0, 3 - SEED_TALL / 2);
+  ctx.moveTo(0, 3 - SEED_TALL / 2 + HUSK.notch * open);
   ctx.quadraticCurveTo(4, 0, 0, SEED_TALL / 2 - 4);
   unprobed(ctx, () => ctx.stroke());
   ctx.restore();
@@ -430,7 +443,7 @@ export const openSeed = (ctx: CanvasRenderingContext2D, s: OpenSeedPose) => {
   if (s.shown <= 0 || s.size <= 0) return;
   const k = s.size / SEED_TALL;
   const ink = s.line / k;
-  const inner = 0.7 * ink;
+  const inner = LINES.lip * ink;
   const lit = clamp(s.glow);
   const open = clamp(s.open);
   const husk = huskShape(open);
@@ -442,18 +455,20 @@ export const openSeed = (ctx: CanvasRenderingContext2D, s: OpenSeedPose) => {
   glow(ctx, HEART.x, HEART.y, HALO.r, GOLD_GLOW, HALO.share * s.glow);
   cut(ctx, SCRAP, OPEN.ribbon, { line: 0.8 * ink, flat: true });
   cut(ctx, husk, toward(OPEN.husk, OPEN.gold, lit), { line: ink });
-  seam(ctx, 0.6 * ink, 1 - open);
+  seam(ctx, 0.6 * ink, open);
   if (open > 0) {
     const { x, y, half, tall, face } = HOLLOW;
     const hollow = lens(x, y, half * open, tall);
-    // Inside the husk, so the cut face runs out to its edge in the cleft and at its foot.
+    // Inside the husk, so the cut face runs out to its edge in the cleft and at its foot:
+    // one ring of one tone round a hollow of one tone, so neither adds a crease's band.
     ctx.save();
     trace(ctx, husk);
     ctx.clip();
     cut(ctx, lens(x, y, (half + face) * open, tall + face), toward(OPEN.face, OPEN.faceLit, lit), {
       line: inner,
+      flat: true,
     });
-    cut(ctx, hollow, toward(OPEN.hollow, OPEN.lit, lit), { line: 0 });
+    cut(ctx, hollow, toward(OPEN.hollow, OPEN.lit, lit), { line: 0, flat: true });
     // The light in its heart, behind the blade, so the blade keeps its green and its ink.
     ctx.save();
     trace(ctx, hollow);
@@ -461,8 +476,8 @@ export const openSeed = (ctx: CanvasRenderingContext2D, s: OpenSeedPose) => {
     glow(ctx, HEART.x, HEART.y, HEART.r, OPEN.heart, HEART.share * s.glow);
     embryo(ctx, s.grown, inner);
     ctx.restore();
-    // The hollow's edge, over what lies in it.
-    inked(ctx, hollow, inner);
+    // The hollow's edge, over what lies in it, finer than the lip.
+    inked(ctx, hollow, LINES.hollow * ink);
     ctx.restore();
     // The husk's edge, over the cut face where it runs out to it.
     inked(ctx, husk, ink);

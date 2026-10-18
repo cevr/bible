@@ -207,6 +207,7 @@ export const script = defineScript([
   {
     id: 'seed',
     say: "{label}But when God says righteous, it isn't a {*}label on the outside. {/} {seed}Jesus said, “The seed is the {*}word of God.” {//1} A seed looks like {*}nothing. {/} {alive}But it's {*}alive. {/} {folded}The life of the whole plant is folded up inside. {/} {life}In the same way, every word God speaks carries His {*}own life. {/} Take in His word by faith, {/} and you take in His life.",
+    lead: 0.4,
     cite: ['Luke 8:11', "Ellen G. White, Christ's Object Lessons, 38"],
     picture: `IDEA: the dropped leaves blow aside and the camera pushes in on the gold wax seal on the accused's tunic, its R pressed into the wax, in \`cold\`'s shape and scale (CRAFT rule 8). On \`label\` it lifts off, its R to the front, flat as a sticker, nothing behind it; the stain is still there under where it was. On \`seed\` the verse's full-screen card: "The seed is the word of God.", "seed" large in gold; hard cut back on its last word, and the seal turns over in the air and its back opens: it is a seed, small and plain, its gold unlit: it looks like nothing. On \`alive\` it opens along its seam in cross-section, and on \`folded\` the blade shows curled inside, green, its root and first two leaves folded tight. On \`life\` a warm light wakes in the seed's heart and its gold glows; the accused, close, his face at a third of the frame, tips his head: interested, despite himself. ${CARDS} ${SEAL_R}`,
   },
