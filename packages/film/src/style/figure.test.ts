@@ -3,12 +3,14 @@ import { DIRECTION } from './house.ts';
 import { figure } from './figure.ts';
 import { overridesIn } from './override.ts';
 import { paper } from './paper.ts';
+import { Arm } from './parts/arm.ts';
 import { Beard } from './parts/beard.ts';
 import { Robe, Tunic } from './parts/body.ts';
 import { Ear } from './parts/ear.ts';
 import { Sandals, Shoes, StubLegs } from './parts/feet.ts';
 import { Hair } from './parts/hair.ts';
 import { Hands } from './parts/hands.ts';
+import { Headcloth } from './parts/headcloth.ts';
 import { Head } from './parts/head.ts';
 import { KitA, tracedKit } from './parts/kit.ts';
 import { OpenMouth } from './parts/mouth.ts';
@@ -96,9 +98,11 @@ describe('a composed figure', () => {
     expect(() => figure(leadOf([robe, robe]))).toThrow(/figure refused: .*laid twice/);
   });
 
-  test('an arm is refused by CircleHands', () => {
+  test('an arm is given in its sleeve by its side: a slot or a side the figure lacks is refused', () => {
     const armed = { ...leadOf([]), arm: { reach: 1 } };
-    expect(() => figure(armed)).toThrow(/figure refused by CircleHands/);
+    expect(() => figure(armed)).toThrow(/figure refused: [^]*at \["arm"\]/);
+    const sided = { ...leadOf([]), arms: { far: sleeve, left: sleeve } };
+    expect(() => figure(sided)).toThrow(/figure refused: [^]*at \["arms"\]\["left"\]/);
   });
 
   test('a part spread with a field its kind lacks is refused by its rule as the figure is composed', () => {
@@ -130,6 +134,49 @@ const shoes = Shoes({
 const BEARD = ellipse(0, 35, 40, 22, 12);
 const LIP = ellipse(0, 30, 9, 3, 8);
 const beard = Beard({ outline: BEARD, paper: HAIR, lip: { outline: LIP, paper: FLAT } });
+
+/** A headcloth cut in a traced head: the cloth over the crown, the band across the brow with its light, the edge down the near cheek. */
+const CLOTH = ellipse(0, -30, 56, 40, 12);
+const BAND: Pt[] = [
+  [-50, -22],
+  [50, -22],
+  [50, -12],
+  [-50, -12],
+];
+const BAND_LIT: Pt[] = [
+  [-50, -22],
+  [-30, -22],
+  [-30, -12],
+  [-50, -12],
+];
+const EDGE = ellipse(-46, 12, 6, 30, 10);
+const headcloth = Headcloth({
+  outline: CLOTH,
+  paper: WHITE,
+  band: { outline: BAND, paper: FLAT, tones: [{ pts: BAND_LIT, color: '#d4965b' }] },
+  edge: { outline: EDGE, paper: HAIR },
+});
+
+/** A far arm in its sleeve, traced raised: its pivot inside the robe, turned down 1.2 at rest, the light laid on it. */
+const SLEEVE: Pt[] = [
+  [20, -300],
+  [60, -320],
+  [120, -430],
+  [100, -440],
+  [10, -330],
+];
+const SLEEVE_LIT: Pt[] = [
+  [60, -320],
+  [120, -430],
+  [110, -435],
+];
+const sleeve = Arm({
+  pivot: [30, -290],
+  rest: 1.2,
+  outline: SLEEVE,
+  paper: FLAT,
+  tones: [{ pts: SLEEVE_LIT, color: '#efca9a' }],
+});
 
 /** Sandals: each bare foot cut from its corners, a strap across the near one. */
 const NEAR_FOOT: Pt[] = [
@@ -244,11 +291,11 @@ describe('a traced figure, standing or seated', () => {
     expect(rml).not.toContain('name="leanPivot"');
   });
 
-  test('a beard, hair, an ear or an open mouth on a round head is refused: each is cut inside a traced head', () => {
+  test('a beard, hair, a headcloth, an ear or an open mouth on a round head is refused: each is cut inside a traced head', () => {
     const { hair, ear, mouth } = standingOf();
-    for (const cut of [{ beard }, { hair }, { ear }, { mouth }])
+    for (const cut of [{ beard }, { hair }, { headcloth }, { ear }, { mouth }])
       expect(() => figure({ ...leadOf([]), ...cut })).toThrow(
-        /figure refused: .*a round head takes no beard, hair, ear or open mouth/,
+        /figure refused: .*a round head takes no beard, hair, headcloth, ear or open mouth/,
       );
   });
 
@@ -401,6 +448,73 @@ describe('a bearded head, and the parts of a head turned and of bare feet', () =
     ]);
   });
 
+  test('a headcloth is cut under a beard and an ear and over the hair: its band, then its edge, then its cloth, the band lit by its tones', () => {
+    const rml = drawnOf(figure({ ...standingOf(), beard, headcloth }));
+    const places = placesOf(rml, [
+      'lip',
+      'beard',
+      'ear',
+      'band',
+      'clothEdge',
+      'cloth',
+      'hair',
+      'headPaper',
+    ]);
+    expect(places.every((at) => at >= 0)).toBe(true);
+    expect(places).toEqual(places.toSorted((a, b) => a - b));
+    expect(printed(rml, 'bandTone0')).toEqual(BAND_LIT);
+    expect(rml).toMatch(/name="bandTone0"[^]*?colorValue="FFD4965B"/);
+  });
+
+  test("a kit's eyes lean inside its turn where the concept leans them, and no other mark of it does", () => {
+    const face = KitA({
+      x: -8,
+      y: 8,
+      scale: 1.3,
+      rotation: 0.3,
+      eyeLean: -0.175,
+      gaze: [-300, 40],
+    });
+    const rml = drawnOf(figure({ ...standingOf(), face }));
+    for (const eye of ['eyeL', 'eyeR'])
+      expect(rml).toMatch(new RegExp(`<Shape [^>]*name="${eye}" [^>]*rotation="-0.175"`));
+    expect(rml.match(/rotation="-0.175"/g)).toHaveLength(2);
+    expect(rml.indexOf('name="faceTurn"')).toBeLessThan(rml.indexOf('name="eyeL"'));
+    // A kit whose concept leans no eye leans none.
+    expect(drawnOf(figure(standingOf()))).not.toMatch(/<Shape [^>]*name="eyeL" [^>]*rotation=/);
+  });
+
+  test('a traced robe is cut as traced, its colour laid on it in order, and its trunk breathes from its hem', () => {
+    const outline: Pt[] = [
+      [-40, -330],
+      [40, -330],
+      [85, -20],
+      [0, -15],
+      [-85, -20],
+    ];
+    const vest: Pt[] = [
+      [-40, -330],
+      [-10, -330],
+      [-20, -100],
+      [-60, -100],
+    ];
+    const tunic = Robe.Traced({
+      outline,
+      hem: -15,
+      paper: SKIN,
+      tones: [{ pts: vest, color: '#714b38' }],
+    });
+    const rml = drawnOf(figure({ ...standingOf(), body: tunic }));
+    expect(printed(rml, 'robe')).toEqual(outline);
+    expect(printed(rml, 'robeTone0')).toEqual(vest);
+    expect(rml).toMatch(/name="robeTone0"[^]*?colorValue="FF714B38"/);
+    expect(rml).toContain('<Node y="-15" name="trunk"');
+    expect(rml).toContain('<Node y="15" name="robeSide">');
+    // Checked again as its kind when a figure takes it.
+    const inked = { ...tunic, ink: '#000000' };
+    expect(() => figure({ ...standingOf(), body: inked })).toThrow(/body refused by InteriorInk/);
+  });
+
   test('a cut robe lays its colour on it, clipped to it, in order', () => {
     const { _tag, ...cut } = standingOf().body;
     const sash: Pt[] = [
@@ -475,6 +589,53 @@ describe('a bearded head, and the parts of a head turned and of bare feet', () =
     expect([tipped.rotation, ...tipped.shape.eyes, tipped.shape.eyeY]).toEqual([
       0.46, -5.59, 5.59, 0,
     ]);
+  });
+});
+
+describe('an arm in its sleeve', () => {
+  test("adds its side's number after the stance's, at its rest", () => {
+    const armed = figure({ ...standingOf(), arms: { far: sleeve } });
+    expect(Object.keys(armed.knobs)).toEqual([
+      ...Object.keys(FACE),
+      'shout',
+      'lean',
+      'tilt',
+      'nod',
+      'farArm',
+    ]);
+    expect(armed.knobs.farArm).toBe(1.2);
+    const both = figure({ ...standingOf(), arms: { far: sleeve, near: sleeve } });
+    expect(Object.keys(both.knobs).slice(-2)).toEqual(['nearArm', 'farArm']);
+  });
+
+  test('lies behind its garment, cut in one outline with it, and turns about its pivot by its number', () => {
+    const rml = drawnOf(figure({ ...standingOf(), arms: { far: sleeve } }));
+    const places = placesOf(rml, ['robeCut', 'robe', 'farSleeveArm', 'farSleeve', 'robeCutInk']);
+    expect(places.every((at) => at >= 0)).toBe(true);
+    expect(places).toEqual(places.toSorted((a, b) => a - b));
+    expect(rml).toMatch(
+      /<Node x="30" y="-290" name="farSleeveArm" id="[^"]+">\s*<DataBindContext sourcePathIds="[^"]+" propertyKey="15"\/>\s*<Node x="-30" y="290" name="farSleeveAt">/,
+    );
+    const bound = rml.match(
+      /name="farSleeveArm"[^>]*>\s*<DataBindContext sourcePathIds="[^"-]+-([^"]+)"/,
+    );
+    const number = rml.match(/<ViewModelPropertyNumber name="farArm" id="([^"]+)"\/>/);
+    expect(number?.[1]).toBeDefined();
+    expect(bound?.[1]).toBe(number?.[1]);
+    expect(printed(rml, 'farSleeve')).toEqual(SLEEVE);
+    expect(printed(rml, 'farSleeveTone0')).toEqual(SLEEVE_LIT);
+    // The cut's line runs round the garment; the sleeve inks its own, hidden under the garment's paper inside it.
+    expect(rml).toContain('name="robeCutInkrobe.0"');
+    expect(rml).not.toContain('name="robeCutInkfarSleeve.0"');
+    expect(rml).toMatch(/<Shape name="farSleeve" id="[^"]+">[^]*?<Stroke [^>]*name="Ink">/);
+  });
+
+  test('the near arm lies in front of the far one, and a figure with none draws its garment uncut', () => {
+    const rml = drawnOf(figure({ ...standingOf(), arms: { far: sleeve, near: sleeve } }));
+    const places = placesOf(rml, ['nearSleeveArm', 'farSleeveArm']);
+    expect(places.every((at) => at >= 0)).toBe(true);
+    expect(places).toEqual(places.toSorted((a, b) => a - b));
+    expect(drawnOf(figure(standingOf()))).not.toContain('name="robeCut"');
   });
 });
 
@@ -553,6 +714,28 @@ describe('the parts', () => {
     );
     const inkedBeard = { outline: BEARD, paper: HAIR, ink: '#000000' };
     expect(() => Beard(inkedBeard)).toThrow(/Beard refused by InteriorInk/);
+  });
+
+  test('a headcloth, its band or its edge with a rim is refused by InnerRim, and with an ink of its own by InteriorInk', () => {
+    const { _tag, ...cloth } = headcloth;
+    expect(() => Headcloth({ ...cloth, paper: RIMMED })).toThrow(/Headcloth refused by InnerRim/);
+    expect(() => Headcloth({ ...cloth, band: { outline: BAND, paper: RIMMED } })).toThrow(
+      /Headcloth refused by InnerRim/,
+    );
+    expect(() => Headcloth({ ...cloth, edge: { outline: EDGE, paper: RIMMED } })).toThrow(
+      /Headcloth refused by InnerRim/,
+    );
+    const inked = { outline: EDGE, paper: HAIR, ink: '#000000' };
+    expect(() => Headcloth({ ...cloth, edge: inked })).toThrow(/Headcloth refused by InteriorInk/);
+  });
+
+  test('an arm with an ink of its own is refused by InteriorInk, as a figure takes it too', () => {
+    const { _tag, ...arm } = sleeve;
+    const inked = { ...arm, ink: '#000000' };
+    expect(() => Arm(inked)).toThrow(/Arm refused by InteriorInk/);
+    expect(() => figure({ ...standingOf(), arms: { far: { ...sleeve, ink: '#000000' } } })).toThrow(
+      /arms.far refused by InteriorInk/,
+    );
   });
 
   test('a sandal takes one radius, or one for each corner', () => {

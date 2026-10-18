@@ -151,17 +151,24 @@ export const PAPERS = papers({
   },
   /**
    * The farmer's headcloth, as rain.rain paints it: a near-white crown lit
-   * from above, its drape falling into a warm tan turned toward rose.
+   * from above, its drape falling into a warm tan turned toward rose. No
+   * rim: it is cut inside his head's outline.
    */
-  headcloth: {
-    color: '#fdeec6',
-    shade: '#dcb788',
-    light: '#fff3d8',
-    crease: TURN.headcloth,
-    rim: RIM,
-  },
+  headcloth: { color: '#fdeec6', shade: '#dcb788', light: '#fff3d8', crease: TURN.headcloth },
+  /** The headcloth's band: a brown a little warmer than his vest, flat. */
+  headclothBand: { color: '#7a5340', light: '#7a5340' },
+  /** The cloth's dark edge down his near cheek, as rain.rain paints it: near the ink, a warm black-brown at the beard, flat; browner above it, laid on it as tones (`farmer-rig.ts`). */
+  headclothEdge: { color: '#35261c', light: '#35261c' },
+  /** The farmer's beard: one flat brown, as rain.rain paints it, with no turn across it. */
+  farmerBeard: { color: '#5f412a', light: '#5f412a' },
+  /** His lower lip under his mouth in his beard: flat, deeper than his lit skin. */
+  farmerLip: { color: '#dd9262', light: '#dd9262' },
+  /** The farmer's hands: his skin (`farmerSkin`), shaded as a hand is, only at its far edge, its rim 4 units wide. */
+  farmerHand: { color: '#f6b373', shade: '#e0956a', light: '#f9d3a3', crease: TURN.hand, rim: 4 },
   /** The farmer's tunic, as rain.rain paints it: a warm tan, its shade turned toward rose, away from the sun. */
   linen: { color: '#e2b480', shade: '#c4916e', light: '#efca9a', crease: TURN.linen, rim: RIM },
+  /** His far sleeve, turned from the light, as rain.rain paints it: the tunic's shade, flat; its light and its cuff's shade laid on it as tones (`farmer-rig.ts`). */
+  farmerSleeve: { color: '#c1936e', light: '#c1936e' },
   /** Sandals: a leather brown. */
   sandal: { color: '#955b3a', shade: '#7c4a30', light: '#a86c48' },
   /**

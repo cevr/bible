@@ -2,11 +2,12 @@
 // constructor checked, put together and checked again as one (`figure`), so
 // a part spread with a field its kind lacks, or a paper copied with a grey
 // shade, is refused as the module that composes it loads, and so are parts
-// the house cannot draw together (hair or a beard on a round head, a given
-// robe over a cut robe). A figure stands on its feet, its origin, or sits,
+// the house cannot draw together (hair, a headcloth or a beard on a round
+// head, a given robe over a cut robe). A figure stands on its feet, its origin, or sits,
 // its head's centre its origin, the part of it above what hides its feet
-// drawn. Its view model's numbers are its parts', in one order, never listed
-// by hand (`knobsOf`). How it is drawn is the house's (`rig/draw.ts`). A
+// drawn; an arm that reaches past its garment is in its sleeve, cut in one
+// outline with the garment. Its view model's numbers are its parts', in one
+// order, never listed by hand (`knobsOf`). How it is drawn is the house's (`rig/draw.ts`). A
 // figure the owner locked carries its lock, checked here, and its film holds
 // its print to it (`lock.ts`). Pure.
 
@@ -14,12 +15,14 @@ import { Predicate, Schema } from 'effect';
 import { ConceptRef } from '../core/match.ts';
 import { decoder } from './decode.ts';
 import { type Lock, decodeLock } from './lock.ts';
+import { ARM_SIDES, type Arm, type ArmSide, decodeArm } from './parts/arm.ts';
 import { type Beard, decodeBeard } from './parts/beard.ts';
 import { type Garment, decodeGarment } from './parts/body.ts';
 import { type Ear, decodeEar } from './parts/ear.ts';
 import { type Feet, decodeFeet } from './parts/feet.ts';
 import { type Hair, decodeHair } from './parts/hair.ts';
 import { type Hands, decodeHands } from './parts/hands.ts';
+import { type Headcloth, decodeHeadcloth } from './parts/headcloth.ts';
 import { type Head, type RoundHead, decodeHead } from './parts/head.ts';
 import { type KitA, decodeKit } from './parts/kit.ts';
 import { Length, Point } from './parts/measure.ts';
@@ -36,6 +39,12 @@ const StandingArt = Schema.Struct({ width: Length, height: Length, feet: Point }
 /** A seated figure's artboard: its size, and where its head's centre sits on it (the rig's origin). */
 const SeatedArt = Schema.Struct({ width: Length, height: Length, head: Point });
 
+/** A figure's arms that reach past its garment, by side: the near one, the far one, or both. */
+interface Arms {
+  readonly near?: Arm;
+  readonly far?: Arm;
+}
+
 /** What every figure is composed of: the concept it is drawn from, and a part in each slot. */
 interface Composed {
   /** The owner's lock on it, when he kept it (its `<item>.lock.json`), and an override citing his words or his pick that frees one print of it. */
@@ -44,13 +53,16 @@ interface Composed {
   readonly concept: ConceptRef;
   readonly stature: Stature;
   readonly head: Head;
-  /** Cut inside a traced head's outline: its beard, its hair, its ear or ears, and a mouth thrown open. */
+  /** Cut inside a traced head's outline: its beard, its hair, its headcloth, its ear or ears, and a mouth thrown open. */
   readonly beard?: Beard;
   readonly hair?: Hair;
+  readonly headcloth?: Headcloth;
   readonly ear?: Ear;
   readonly face: KitA;
   readonly mouth?: OpenMouth;
   readonly body: Garment;
+  /** Its arms in their sleeves, each behind its garment's paper and cut in one outline with it (the farmer's far arm). */
+  readonly arms?: Arms;
   /** What lies on its garment with no line of its own (the judge's bands). */
   readonly over?: Over;
   /** What the story does to its garment, in any order: each kind once. */
@@ -84,19 +96,20 @@ const oncePerKind = Schema.makeFilter((states: ReadonlyArray<unknown>) => {
   return new Set(kinds).size === kinds.length ? true : 'a state of one kind is laid twice';
 });
 
-/** A beard, hair, an ear and an open mouth are cut inside a traced head's outline, so a round head takes none. */
+/** A beard, hair, a headcloth, an ear and an open mouth are cut inside a traced head's outline, so a round head takes none. */
 const cutInTracedHead = Schema.makeFilter(
   (s: {
     readonly head: unknown;
     readonly beard?: unknown;
     readonly hair?: unknown;
+    readonly headcloth?: unknown;
     readonly ear?: unknown;
     readonly mouth?: unknown;
   }) =>
     isPart(s.head) &&
     s.head._tag === 'RoundHead' &&
-    [s.beard, s.hair, s.ear, s.mouth].some((cut) => cut !== undefined)
-      ? 'a round head takes no beard, hair, ear or open mouth: each is cut inside a traced head (Head.Traced)'
+    [s.beard, s.hair, s.headcloth, s.ear, s.mouth].some((cut) => cut !== undefined)
+      ? 'a round head takes no beard, hair, headcloth, ear or open mouth: each is cut inside a traced head (Head.Traced)'
       : true,
 );
 
@@ -118,9 +131,9 @@ const headAtOrigin = Schema.makeFilter((s: { readonly head: unknown }) =>
 );
 
 /**
- * Every figure's slots: its concept and its states' kinds checked here, each
- * part and its lock as its kind's after (`figure`); a slot the figure lacks
- * is refused, an arm by CircleHands.
+ * Every figure's slots: its concept, its arms' sides and its states' kinds
+ * checked here, each part and its lock as its kind's after (`figure`); a
+ * slot or a side the figure lacks is refused.
  */
 const slots = {
   lock: Schema.optionalKey(Schema.Unknown),
@@ -129,10 +142,17 @@ const slots = {
   head: Schema.Unknown,
   beard: Schema.optionalKey(Schema.Unknown),
   hair: Schema.optionalKey(Schema.Unknown),
+  headcloth: Schema.optionalKey(Schema.Unknown),
   ear: Schema.optionalKey(Schema.Unknown),
   face: Schema.Unknown,
   mouth: Schema.optionalKey(Schema.Unknown),
   body: Schema.Unknown,
+  arms: Schema.optionalKey(
+    Schema.Struct({
+      near: Schema.optionalKey(Schema.Unknown),
+      far: Schema.optionalKey(Schema.Unknown),
+    }),
+  ),
   over: Schema.optionalKey(Schema.Unknown),
   states: Schema.optionalKey(Schema.Array(Schema.Unknown).check(oncePerKind)),
   hands: Schema.Unknown,
@@ -145,7 +165,7 @@ const StandingSlots = Schema.Struct({
   stance: Schema.Unknown,
   feet: Schema.Unknown,
 }).check(cutInTracedHead, robeOverTunic);
-const decodeStandingSlots = decoder(StandingSlots, { fields: { arm: 'CircleHands' } });
+const decodeStandingSlots = decoder(StandingSlots);
 
 /** A seated figure's slots: every figure's, its artboard and its stance; it has no feet. */
 const SeatedSlots = Schema.Struct({ ...slots, art: SeatedArt, stance: Schema.Unknown }).check(
@@ -153,7 +173,7 @@ const SeatedSlots = Schema.Struct({ ...slots, art: SeatedArt, stance: Schema.Unk
   robeOverTunic,
   headAtOrigin,
 );
-const decodeSeatedSlots = decoder(SeatedSlots, { fields: { arm: 'CircleHands' } });
+const decodeSeatedSlots = decoder(SeatedSlots);
 
 /** Every figure's parts, each checked as its kind's; its states by kind. */
 interface ComposedParts {
@@ -163,10 +183,12 @@ interface ComposedParts {
   readonly head: Head;
   readonly beard?: Beard;
   readonly hair?: Hair;
+  readonly headcloth?: Headcloth;
   readonly ear?: Ear;
   readonly face: KitA;
   readonly mouth?: OpenMouth;
   readonly body: Garment;
+  readonly arms: Arms;
   readonly over?: Over;
   readonly states: { readonly stain?: Stain; readonly robe?: GivenRobe };
   readonly hands: Hands;
@@ -208,13 +230,19 @@ type HeadKnob<H> = H extends RoundHead ? 'faceY' : never;
 /** The number each state adds. */
 type StateKnob<S> = S extends Stain ? 'stain' : S extends GivenRobe ? 'robe' : never;
 
+/** The number each arm adds, by its side: `nearArm`, `farArm`. */
+type ArmKnob<A> = {
+  readonly [Side in keyof A & ArmSide]-?: A[Side] extends Arm ? `${Side}Arm` : never;
+}[keyof A & ArmSide];
+
 /** The names of a figure's numbers (`knobsOf`'s, as types). */
 type KnobsOf<S extends FigureSpec> =
   | FaceKnob
   | keyof typeof STANCE
   | HeadKnob<S['head']>
   | (S extends { readonly mouth: OpenMouth } ? 'shout' : never)
-  | (S extends { readonly states: ReadonlyArray<infer T> } ? StateKnob<T> : never);
+  | (S extends { readonly states: ReadonlyArray<infer T> } ? StateKnob<T> : never)
+  | (S extends { readonly arms: infer A } ? ArmKnob<A> : never);
 
 /** The centre of `head`, units from the origin: where its face's gaze is measured from. */
 const centreOf = (head: Head) => [0, head.y] as const;
@@ -223,8 +251,9 @@ const centreOf = (head: Head) => [0, head.y] as const;
  * A figure's numbers at rest, in the house's order (the view model keeps
  * it, so the file keeps its bytes): the face kit's (`FACE`, its gaze first,
  * its rest where the figure's face differs), the open mouth's, the
- * stance's, the head's, the states' (the stain before the given robe). A
- * number set again keeps its place.
+ * stance's, the head's, the states' (the stain before the given robe), the
+ * arms' (each its turn at rest, the near one first). A number set again
+ * keeps its place.
  */
 const knobsOf = (f: Parts) => {
   const [x, y] = centreOf(f.head);
@@ -241,6 +270,10 @@ const knobsOf = (f: Parts) => {
   if (f.head._tag === 'RoundHead') knobs.set('faceY', 0);
   if (f.states.stain !== undefined) knobs.set('stain', 1);
   if (f.states.robe !== undefined) knobs.set('robe', 0);
+  for (const side of ARM_SIDES) {
+    const arm = f.arms[side];
+    if (arm !== undefined) knobs.set(`${side}Arm`, arm.rest);
+  }
   return Object.fromEntries(knobs);
 };
 
@@ -253,6 +286,12 @@ const statesOf = (states: ReadonlyArray<State>): ComposedParts['states'] => {
   };
 };
 
+/** Its arms by side, each checked as an arm. */
+const armsOf = (arms: Arms): Arms => ({
+  near: arms.near === undefined ? undefined : decodeArm(arms.near, 'arms.near'),
+  far: arms.far === undefined ? undefined : decodeArm(arms.far, 'arms.far'),
+});
+
 /** Every figure's parts of `spec`, each checked as its kind's, and its lock, under its checked `concept`. */
 const composedOf = (spec: FigureSpec, concept: ConceptRef): ComposedParts => ({
   lock: spec.lock === undefined ? undefined : decodeLock(spec.lock, 'lock'),
@@ -261,10 +300,13 @@ const composedOf = (spec: FigureSpec, concept: ConceptRef): ComposedParts => ({
   head: decodeHead(spec.head, 'head'),
   beard: spec.beard === undefined ? undefined : decodeBeard(spec.beard, 'beard'),
   hair: spec.hair === undefined ? undefined : decodeHair(spec.hair, 'hair'),
+  headcloth:
+    spec.headcloth === undefined ? undefined : decodeHeadcloth(spec.headcloth, 'headcloth'),
   ear: spec.ear === undefined ? undefined : decodeEar(spec.ear, 'ear'),
   face: decodeKit(spec.face, 'face'),
   mouth: spec.mouth === undefined ? undefined : decodeMouth(spec.mouth, 'mouth'),
   body: decodeGarment(spec.body, 'body'),
+  arms: armsOf(spec.arms ?? {}),
   over: spec.over === undefined ? undefined : decodeOver(spec.over, 'over'),
   states: statesOf(spec.states ?? []),
   hands: decodeHands(spec.hands, 'hands'),

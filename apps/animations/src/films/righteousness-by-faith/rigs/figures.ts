@@ -1,29 +1,26 @@
 // RBF's Rive project: every figure rig of the film in one file
 // (`figures.riv`, built by `build.ts`), each an artboard with its own view
-// model, all drawn on the house generator's parts (`@bible/film/style/rig`):
-// the composed lead, judge, prosecutor and Christ (each of His two views) by
+// model, all drawn by the house (`@bible/film/style/rig`): the composed lead,
+// judge, prosecutor, Christ (each of His two views) and farmer by
 // `drawFigure`, every circle hand by `drawHand` (Christ's held out to us at
-// each size it grows through, `hand-rig.ts`), the farmer by his own rig
-// (`robedRig`); in the house look's direction (K1, `DIRECTION`), their ink as
-// heavy against a head as the kept concept draws it (`WEIGHT`). Each artboard
-// is laid in the file by one table (`LAID`: its boil's seed, its place on the
-// stage), so a locked figure's print alone (`aloneRml`), which its lock
-// holds (`lockedPrints`), is drawn as the file draws it. Every override the
-// figures carry, whatever rule it frees, is listed with the artboard it is
-// laid on (`figureOverrides`), to be held to the owner's words.
-// Pure: `figuresRml()` is the whole project file, the same text for the
-// same code.
+// each size it grows through, `hand-rig.ts`); in the house look's direction
+// (K1, `DIRECTION`), their ink as heavy against a head as the kept concept
+// draws it (`WEIGHT`). Each artboard is laid in the file by one table
+// (`LAID`: its boil's seed, its place on the stage), so a locked figure's
+// print alone (`aloneRml`), which its lock holds (`lockedPrints`), is drawn
+// as the file draws it. Every override the figures carry, whatever rule it
+// frees, is listed with the artboard it is laid on (`figureOverrides`), to be
+// held to the owner's words. Pure: `figuresRml()` is the whole project file,
+// the same text for the same code.
 
 import { type ComposedFigure, overridesIn } from '@bible/film/style';
 import { DIRECTION, drawFigure, drawHand, figure, fragment, ids } from '@bible/film/style/rig';
 import { christ, christFront } from './christ-rig.ts';
-import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
+import { farmer } from './farmer-rig.ts';
 import { HAND_OUT_STEPS } from './hand-rig.ts';
 import { judge } from './judge-rig.ts';
 import { lead } from './lead-rig.ts';
-import { PAPERS } from './papers.ts';
 import { prosecutor } from './prosecutor-rig.ts';
-import { robedRig } from './robed-rig.ts';
 
 /** The artboards, by name: what a prop asks the file for. */
 export const ARTBOARDS = {
@@ -98,12 +95,8 @@ export const figuresRml = (): string => {
     ...drawFigure(board(next, 'christ'), christ),
     // Christ's hands, either view's: one artboard, of the paper He is composed with.
     ...drawHand(board(next, 'christHand'), christ.hands.paper),
-    ...robedRig(board(next, 'farmer'), FARMER, FARMER_KNOBS),
-    ...drawHand(board(next, 'farmerHand'), {
-      ...PAPERS.farmerSkin,
-      crease: PAPERS.skinHand.crease,
-      rim: 4,
-    }),
+    ...drawFigure(board(next, 'farmer'), farmer),
+    ...drawHand(board(next, 'farmerHand'), farmer.hands.paper),
     ...drawFigure(board(next, 'christFront'), christFront),
     // Christ's hand held out to us, a board for each size it grows through.
     ...HAND_OUT_BOARDS.flatMap((key, i) =>
@@ -133,6 +126,7 @@ const COMPOSED = [
   { item: 'prosecutor', figure: prosecutor, hand: 'skinHand' },
   { item: 'christ', figure: christ, hand: 'christHand' },
   { item: 'christFront', figure: christFront, hand: 'christHand' },
+  { item: 'farmer', figure: farmer, hand: 'farmerHand' },
 ] as const;
 
 /**

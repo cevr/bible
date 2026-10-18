@@ -15,11 +15,13 @@ import {
   isSeated,
 } from '../figure.ts';
 import { type Paper, looked, paper } from '../paper.ts';
+import { ARM_SIDES, type Arm, type ArmSide } from '../parts/arm.ts';
 import type { Beard } from '../parts/beard.ts';
 import type { Garment, Tunic } from '../parts/body.ts';
 import type { Ear } from '../parts/ear.ts';
 import type { Feet, Sandals, Shoes, StubLegs } from '../parts/feet.ts';
 import type { Hair } from '../parts/hair.ts';
+import type { Headcloth } from '../parts/headcloth.ts';
 import type { RoundHead, TracedHead } from '../parts/head.ts';
 import type { KitA } from '../parts/kit.ts';
 import type { OpenMouth } from '../parts/mouth.ts';
@@ -92,12 +94,29 @@ const TUCK_UNDER_RIM = 2;
  */
 const SOLE = { depth: 6.5, past: 4, under: 4 } as const;
 
+/** The face kit's eyes, by their shapes' names. */
+const EYES: ReadonlySet<unknown> = new Set(['eyeL', 'eyeR']);
+
+/** `node` with each eye shape in it leaned `lean` radians about its centre. */
+const leanEyes = (node: Element, lean: number): Element => {
+  const named = node.attrs.find(([k]) => k === 'name')?.[1];
+  const attrs = Object.fromEntries(node.attrs);
+  const own = node.name === 'Shape' && EYES.has(named);
+  return el(
+    node.name,
+    own ? { ...attrs, rotation: lean } : attrs,
+    node.children.map((c) => leanEyes(c, lean)),
+  );
+};
+
 /**
  * Kit A at its place on the head, its marks as the figure's sheet draws
- * them, turned about its place where the concept draws the face tipped.
+ * them, its eyes leaned where the concept leans them, turned about its
+ * place where the concept draws the face tipped.
  */
 const kitOf = (rig: Figure, face: KitA) => {
-  const kit = faceKit(rig, { x: face.x, y: face.y, scale: face.scale }, face.shape);
+  const drawn = faceKit(rig, { x: face.x, y: face.y, scale: face.scale }, face.shape);
+  const kit = face.eyeLean === undefined ? drawn : leanEyes(drawn, face.eyeLean);
   if (face.rotation === undefined) return kit;
   return el('Node', { x: face.x, y: face.y, rotation: face.rotation, name: 'faceTurn' }, [
     el('Node', { x: -face.x, y: -face.y, name: 'faceAt' }, [kit]),
@@ -197,10 +216,38 @@ const beardOf = (beard: Beard): Cut[] => [
   { key: 'beard', pts: beard.outline, look: looked(beard.paper, { tones: beard.tones ?? [] }) },
 ];
 
-/** What is cut inside a traced head's outline, front first: a beard and its lip, the ear or ears, the hair. */
+/** A headcloth, front first: the band bound round it, its edge down the cheek, the cloth; the colour on the band and the edge laid on each as tones. */
+const headclothOf = (cloth: Headcloth): Cut[] => [
+  ...(cloth.band === undefined
+    ? []
+    : [
+        {
+          key: 'band',
+          pts: cloth.band.outline,
+          look: looked(cloth.band.paper, { tones: cloth.band.tones ?? [] }),
+        },
+      ]),
+  ...(cloth.edge === undefined
+    ? []
+    : [
+        {
+          key: 'clothEdge',
+          pts: cloth.edge.outline,
+          look: looked(cloth.edge.paper, { tones: cloth.edge.tones ?? [] }),
+        },
+      ]),
+  { key: 'cloth', pts: cloth.outline, look: looked(cloth.paper) },
+];
+
+/**
+ * What is cut inside a traced head's outline, front first: a beard and its
+ * lip, the ear or ears, a headcloth, the hair. An ear given with a headcloth
+ * shows over it, and hair under it.
+ */
 const cutOf = (f: Parts): Cut[] => [
   ...(f.beard === undefined ? [] : beardOf(f.beard)),
   ...(f.ear === undefined ? [] : earsOf(f.ear)),
+  ...(f.headcloth === undefined ? [] : headclothOf(f.headcloth)),
   ...(f.hair === undefined ? [] : [hairOf(f.hair)]),
 ];
 
@@ -313,15 +360,23 @@ export const tunicOutline = (t: Tunic): Pt[] =>
     return k > 0 && k < 1 ? [x + Math.sign(x) * t.bow * Math.sin(Math.PI * k), y] : [x, y];
   });
 
-/** A garment's outline: a tunic cut from its neck and hem, a cut robe from its corners. */
-const garmentOutline = (g: Garment): Pt[] =>
-  g._tag === 'CutRobe' ? roundedPolygon(g.corners, g.radii) : tunicOutline(g);
+/** A garment's outline: a tunic cut from its neck and hem, a cut robe from its corners, a traced robe as traced. */
+const garmentOutline = (g: Garment): ReadonlyArray<Pt> => {
+  switch (g._tag) {
+    case 'Tunic':
+      return tunicOutline(g);
+    case 'CutRobe':
+      return roundedPolygon(g.corners, g.radii);
+    case 'TracedRobe':
+      return g.outline;
+  }
+};
 
 /** What a garment's piece is named, and its side's node after it. */
-const garmentKey = (g: Garment) => (g._tag === 'CutRobe' ? 'robe' : 'tunic');
+const garmentKey = (g: Garment) => (g._tag === 'Tunic' ? 'tunic' : 'robe');
 
-/** The colour laid on a garment, clipped to it: a cut robe's (a sash, a neckline's skin); a tunic lays none. */
-const tonesOn = (g: Garment) => (g._tag === 'CutRobe' ? (g.tones ?? []) : []);
+/** The colour laid on a garment, clipped to it: a robe's (a sash, a vest, a neckline's skin); a tunic lays none. */
+const tonesOn = (g: Garment) => (g._tag === 'Tunic' ? [] : (g.tones ?? []));
 
 /** The band on `side` of the bands' middle (-1 screen left), clockwise. */
 const bandOutline = (b: Bands, side: -1 | 1): Pt[] => {
@@ -351,10 +406,46 @@ const bandsOf = (rig: Figure, b: Bands) =>
   );
 
 /**
+ * An arm in its sleeve on its pivot, turned there by its side's number
+ * (`nearArm`, `farArm`): the sleeve's paper in the pose it is traced in,
+ * the colour on it laid on it as tones.
+ */
+const armOf = (rig: Figure, side: ArmSide, arm: Arm): Element => {
+  const key = `${side}Sleeve`;
+  return el(
+    'Node',
+    { x: arm.pivot[0], y: arm.pivot[1], name: `${key}Arm`, id: rig.idOf(`${key}Arm`) },
+    [
+      rig.bind(`${side}Arm`, KEY.rotation),
+      el('Node', { x: -arm.pivot[0], y: -arm.pivot[1], name: `${key}At` }, [
+        piece(rig, key, arm.outline, looked(arm.paper, { tones: arm.tones ?? [] })),
+      ]),
+    ],
+  );
+};
+
+/**
+ * A garment's own paper: with arms, the arms behind it, the near one first,
+ * cut in one outline with it (`silhouette`), so a sleeve grows out of the
+ * garment with no line where it leaves it. The arms are made before it.
+ */
+const garmentOf = (rig: Figure, f: Parts, outline: ReadonlyArray<Pt>): Element => {
+  const key = garmentKey(f.body);
+  const look = looked(f.body.paper, { tones: tonesOn(f.body) });
+  const arms = ARM_SIDES.flatMap((side) => {
+    const arm = f.arms[side];
+    return arm === undefined ? [] : [armOf(rig, side, arm)];
+  });
+  return arms.length === 0
+    ? piece(rig, key, outline, look)
+    : silhouette(rig, `${key}Cut`, [{ key, pts: outline, look }, ...arms]);
+};
+
+/**
  * What lies on a garment's side, front first: what lies on it with no line
  * of its own (`over`, made before the body), the given robe, the stain
- * (made before the head), and the garment's own paper. The given robe and
- * the garment's paper are made here, inside the side's node.
+ * (made before the head), and the garment's own paper with its arms. The
+ * given robe and the garment's paper are made here, inside the side's node.
  */
 const clothOf = (
   rig: Figure,
@@ -374,7 +465,7 @@ const clothOf = (
           ]),
         ]),
     ...stain,
-    piece(rig, garmentKey(f.body), outline, looked(f.body.paper, { tones: tonesOn(f.body) })),
+    garmentOf(rig, f, outline),
   ];
 };
 
@@ -578,7 +669,7 @@ const seatedBreath = (rig: Figure, stance: Seated, side: string, neck: number) =
  * A composed figure's artboard and view model. Rive draws a node's
  * children front first: the head over the garment, the garment over the
  * feet, and on the garment what lies on it with no line of its own, then the
- * given robe, the stain and the garment's own paper. The stain's node is
+ * given robe, the stain, the garment's own paper and its arms behind it. The stain's node is
  * made before the head's, what lies on the garment after it, and the gaze's
  * binds after the body.
  */

@@ -2,10 +2,10 @@
 // a mouth line, placed on the head and sized, each moved by the figure's view
 // model (`FACE`). A figure gives where its kit sits and how big, how far it
 // turns on the head where its concept draws the face tipped, the marks its
-// sheet draws otherwise than the kit, the face it wears at rest and where its
-// eyes look; a face of any other marks is refused (KitA). Marks traced in a
-// concept's pixels give the kit its place, turn and marks (`tracedKit`).
-// Pure.
+// sheet draws otherwise than the kit, how far its eyes lean where the concept
+// leans them, the face it wears at rest and where its eyes look; a face of
+// any other marks is refused (KitA). Marks traced in a concept's pixels give
+// the kit its place, turn and marks (`tracedKit`). Pure.
 
 import { Schema } from 'effect';
 import { decoder } from '../decode.ts';
@@ -48,6 +48,8 @@ const KitAPart = Schema.TaggedStruct('KitA', {
   scale: Length,
   /** Its turn on the head about its centre, radians, where the concept draws the face tipped (a head turned to us and tipped). */
   rotation: Schema.optionalKey(Units),
+  /** Each eye's lean past that turn, radians (negative: its top toward screen left), where the concept leans the eyes of a turned head. */
+  eyeLean: Schema.optionalKey(Units),
   shape: Schema.optionalKey(Shape),
   rest: Schema.optionalKey(Rest),
   /** Where the eyes look at rest, units from the head's centre. */

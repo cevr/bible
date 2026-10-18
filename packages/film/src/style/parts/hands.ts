@@ -1,8 +1,9 @@
 // A figure's hands: a circle of one paper, the share of its head's width its
-// concept draws, and nothing else: no thumb, no fingers, no arm, ever (K1,
-// owner 2026-10-12; ask a0590057595, "No arm"). A field a hand lacks is
-// refused by CircleHands, which nothing frees. The host draws each where it
-// works, from the hand's own artboard (`drawHand`). Pure.
+// concept draws, and nothing else: no thumb, no fingers, ever (K1, owner
+// 2026-10-12). A field a hand lacks is refused by CircleHands, which nothing
+// frees. The host draws each where it works, from the hand's own artboard
+// (`drawHand`): a hand at the end of an arm, at its sleeve's cuff (`arm.ts`;
+// the owner's sleeves, look ledger, 2026-10-18). Pure.
 
 import { Schema } from 'effect';
 import { decoder } from '../decode.ts';

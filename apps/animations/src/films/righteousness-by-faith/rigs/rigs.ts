@@ -18,7 +18,13 @@ import {
   christ,
   christFront,
 } from './christ-rig.ts';
-import { FARMER, FARMER_KNOBS, type FarmerKnob } from './farmer-rig.ts';
+import {
+  FARMER_FACE_CHECK,
+  FARMER_KNOBS,
+  FARMER_TIMELINES,
+  type FarmerTimeline,
+  farmer,
+} from './farmer-rig.ts';
 import { HAND_OUT_STEPS } from './hand-rig.ts';
 import {
   JUDGE_FACE_CHECK,
@@ -41,7 +47,6 @@ import {
   type ProsecutorTimeline,
   prosecutor,
 } from './prosecutor-rig.ts';
-import { ROBED_TIMELINES, type RobedTimeline, robedFaceCheck } from './robed-rig.ts';
 
 /** The plain lead: his feet at our origin. */
 export const leadProp: RivePropSpec<LeadTimeline, keyof typeof LEAD_KNOBS> = {
@@ -119,24 +124,18 @@ export const christFrontProp: RivePropSpec<ChristTimeline, keyof typeof CHRIST_F
 };
 
 /** The farmer of the rain: his feet at our origin. */
-export const farmerProp: RivePropSpec<RobedTimeline, FarmerKnob> = {
+export const farmerProp: RivePropSpec<FarmerTimeline, keyof typeof FARMER_KNOBS> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.farmer,
-    timelines: Rec.keys(ROBED_TIMELINES),
+    timelines: Rec.keys(FARMER_TIMELINES),
     numbers: Rec.keys(FARMER_KNOBS),
   },
   engine: 'canvas',
   key: 'righteousness-by-faith/farmer',
-  origin: FARMER.art.feet,
-  face: robedFaceCheck(FARMER),
-  // `film match`'s concept: the farmer in rain.rain, the kept Board try his head is traced from, its
-  // ink closed under his beard and where his headcloth meets his mantle (the Board draws none there,
-  // so the face's fill ran into his body); cut at his chest, as the Board cuts him at his waist.
-  concept: {
-    image: { set: 'rbf-v3-cast-2026-10-18', file: 'aids/farmer-head-closed.png' },
-    box: [190, 280, 720, 760],
-  },
+  origin: farmer.art.feet,
+  face: FARMER_FACE_CHECK,
+  concept: farmer.concept,
 };
 
 /** A circle hand of `artboard`, its centre at our origin: no view model, only its paper's crawl. */

@@ -22,7 +22,7 @@ export const RULES = {
   CircleHands: {
     says: 'a hand is a circle of one paper and a share of the head',
     source:
-      'character-design.md, K1: "no thumb, no fingers, no arm, ever" (owner, 2026-10-12); ask a0590057595: "No arm"',
+      'character-design.md, K1: "no thumb, no fingers" (owner, 2026-10-12); a hand ends its arm\'s sleeve (look ledger: "they have sleeves and like arms", owner, 2026-10-18)',
     way: 'none',
   },
   KitA: {

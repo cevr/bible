@@ -5,12 +5,12 @@
 // (`smooth`), and shades a paper of its own under the house's key light
 // (`keyLight`, `shading`, with `ramp` from `@bible/film/canvas`). A film's
 // papers are checked as its module loads (`papers`; `rampedPaper` for one
-// ramped from a base), laid on a piece by `looked`, rimmed `RIM` wide; a
-// film's canvas people and page read the house's two papers (`peoplePaper`,
-// `parchment`). A figure is composed of parts (`figure`: `Head`, `Beard`,
-// `Hair`, `Ear`, `KitA`, `OpenMouth`, `Tunic`, `Robe`, `Bands`, `Stain`,
-// `GivenRobe`, `StubLegs`, `Shoes`, `Sandals`, `Hands`, `Stance`,
-// `Stature`; `tracedKit` places Kit A by marks traced in a concept), each
+// ramped from a base), rimmed `RIM` wide; a film's canvas people and page
+// read the house's two papers (`peoplePaper`, `parchment`). A figure is
+// composed of parts (`figure`: `Head`, `Beard`, `Hair`, `Headcloth`, `Ear`,
+// `KitA`, `OpenMouth`, `Tunic`, `Robe`, `Arm`, `Bands`, `Stain`, `GivenRobe`,
+// `StubLegs`, `Shoes`, `Sandals`, `Hands`, `Stance`, `Stature`;
+// `tracedKit` places Kit A by marks traced in a concept), each
 // checked under the house's rules (`rules.ts`) as it is made; one the owner
 // locked carries its lock (`lock.ts`), and every override a figure carries,
 // whatever rule it frees, is found by `overridesIn` and says what it cites
@@ -23,13 +23,15 @@ export { EASE, type Expression, acted } from './face.ts';
 export { type ComposedFigure, figure } from './figure.ts';
 export { RIM, keyLight, parchment, peoplePaper, shading } from './house.ts';
 export { citedBy, overridesIn } from './override.ts';
-export { looked, papers, rampedPaper } from './paper.ts';
+export { papers, rampedPaper } from './paper.ts';
+export { Arm } from './parts/arm.ts';
 export { Beard } from './parts/beard.ts';
 export { Robe, Tunic } from './parts/body.ts';
 export { Ear } from './parts/ear.ts';
 export { Sandals, Shoes, StubLegs } from './parts/feet.ts';
 export { Hair } from './parts/hair.ts';
 export { Hands } from './parts/hands.ts';
+export { Headcloth } from './parts/headcloth.ts';
 export { Head } from './parts/head.ts';
 export { KitA, tracedKit } from './parts/kit.ts';
 export { OpenMouth } from './parts/mouth.ts';
