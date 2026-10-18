@@ -13,8 +13,8 @@
 // foot, 137), at the top of the cast's height band; the lead's head top meets
 // His eyes. His feet are the artboard's origin.
 
-import type { Pt } from '@bible/film/style';
-import { ellipse } from '@bible/film/style/rig';
+import { type Pt, looked } from '@bible/film/style';
+import { ellipse, roundedPolygon } from '@bible/film/style/rig';
 import {
   FRONT_BEARD,
   FRONT_BEARD_LIT,
@@ -41,9 +41,8 @@ import {
   CHRIST_LIT,
   CHRIST_REGION,
 } from './christ-traced.ts';
-import { PAPERS, looked } from './papers.ts';
+import { PAPERS } from './papers.ts';
 import { type Robed, robedKnobs, tracedFace } from './robed-rig.ts';
-import { roundedPolygon } from './shapes.ts';
 
 /** His head's centre from His feet, and the robe's top under His beard, units. */
 const HEAD = { x: -2, y: -390.5 } as const;

@@ -1,8 +1,8 @@
 // The house look's numbers, as the generator (`rig/parts.ts`) reads them:
 // K1, the owner's pick (2026-10-13,
 // `.claude/skills/film/reference/character-design.md`). The key light and
-// how a paper shades under it (CRAFT 12), the people's papers, the one
-// light's angle, and the figure's line: the edge of a cut and its ink, from
+// how a paper shades under it (CRAFT 12), the people's papers, the rim, the
+// one light's angle, and the figure's line: the edge of a cut and its ink, from
 // the RimWorld study's questions
 // (`.claude/skills/film/reference/rimworld-study.md` §3), A3 in B1.
 
@@ -37,14 +37,25 @@ export const shading: Shading = {
 /** The ramp of a base under the key light: its shade, the base and its light (CRAFT 12). */
 const shaded = (base: Hex): Ramp => ramp(base, keyLight, shading);
 
-/**
- * The papers a figure is cut from when its rig names none: the people's grey
- * paper, and the parchment sheet a cast falls on past the figure.
- */
+/** The people's grey paper: what a figure is cut from when its rig names none, and a film's canvas people. */
+export const peoplePaper: Hex = '#b7b2a8';
+
+/** The parchment: the sheet a cast falls on past the figure, and a film's page. */
+export const parchment: Hex = '#eeddc8';
+
+/** The ramps of the two house papers under the key light: the people's and the parchment. */
 export const ramps = {
-  figure: shaded('#b7b2a8'),
-  paper: shaded('#eeddc8'),
+  figure: shaded(peoplePaper),
+  paper: shaded(parchment),
 } as const satisfies Record<string, Ramp>;
+
+/**
+ * The rim, units at a head's scale: the light band just inside the outline
+ * on the side facing the light, about 0.04 of a head's width, as the kept
+ * concept `cold-34` lays it on its faces and robes (6 px wide, `#fbd0b3` on
+ * `#f8b48a` skin, `#96825e` on `#817154` olive).
+ */
+export const RIM = 5.5;
 
 /**
  * The one light, from the upper left: the direction a piece's paper darkens

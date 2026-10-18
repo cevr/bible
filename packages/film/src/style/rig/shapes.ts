@@ -1,11 +1,13 @@
-// The outlines RBF's figures are cut from, in the figure's units: a polygon
-// with its corners rounded (a tunic, a robe), a shoe, and a blot (the heads
-// are traced from the concept, `traced.ts`). Each is
-// a list of points the generator's `piece` runs a smooth path through, dense
-// enough along a straight edge that the edge stays straight. Pure.
+// The outlines a figure is cut from, in the figure's units: a polygon with
+// its corners rounded (a tunic, a robe), a shoe, and a blot (a head is traced
+// from its concept); and how one paper tucks under the papers laid over it
+// (`tucked`, and a paper rimmed all round deeper, under their seams,
+// `tuckedRimmed`). Each outline is a list of points the generator's `piece`
+// runs a smooth path through, dense enough along a straight edge that the
+// edge stays straight. Pure.
 
-import { rng } from '@bible/film/core';
-import type { Pt } from '@bible/film/style';
+import { rng } from '../../core/random.ts';
+import type { Pt } from './parts.ts';
 
 /** How far apart points lie along a straight edge, units, so a smooth path keeps it straight. */
 const STEP = 40;

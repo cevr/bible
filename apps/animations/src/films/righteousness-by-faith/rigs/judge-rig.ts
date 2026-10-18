@@ -22,7 +22,7 @@
 // bench), negative toward the dock; `tilt`, radians, his head about his neck;
 // `nod`, units, his head down. The rig keeps its `breath` and `boil`.
 
-import type { Pt } from '@bible/film/style';
+import { type Pt, looked } from '@bible/film/style';
 import {
   FACE,
   type Figure,
@@ -33,11 +33,12 @@ import {
   faceKit,
   gazeTarget,
   piece,
+  roundedPolygon,
+  shifted,
   silhouette,
   timeline,
 } from '@bible/film/style/rig';
-import { PAPERS, looked } from './papers.ts';
-import { roundedPolygon, shifted } from './shapes.ts';
+import { PAPERS } from './papers.ts';
 import { JUDGE_HAIR, JUDGE_HEAD } from './traced.ts';
 
 /** His measures from his head's centre, units: the head, his neck, where his lean pivots (the robe's foot). */

@@ -4,8 +4,8 @@
 // the table, the bench) or over the figure itself. One artboard a paper: the
 // lead's lilac grey, and the house look's peach skin.
 
+import { type Paper, looked } from '@bible/film/style';
 import { type Figure, artboard, boilTimeline, el, hand } from '@bible/film/style/rig';
-import { type Paper, looked } from './papers.ts';
 
 /** The artboard: the hand's centre at its centre, room round it for its outline. */
 export const HAND_ART = { width: 64, height: 64, r: 19 } as const;

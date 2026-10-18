@@ -4,38 +4,12 @@
 // light that rims the edge facing the light. Where and how softly each
 // paper turns is the concept's too (`crease`): a face turns gently and late,
 // a robe sharply. The plain lead keeps the shade his sheet names
-// (character-design 2.3). Pure.
+// (character-design 2.3). What a paper is, its ramp and the rim's width are
+// the house's (`@bible/film/style`). Pure.
 
-import { type Hex, ramp } from '@bible/film/canvas';
-import { keyLight, shading } from '@bible/film/style';
-import type { Crease, PieceLook } from '@bible/film/style/rig';
-
-/**
- * A paper as a piece takes it: its colour, its crease's far side, the light
- * on its edge; where it turns (`crease`) and how wide its rim is (`rim`,
- * units at a head's scale), when the concept says.
- */
-export interface Paper {
-  readonly color: Hex;
-  /** Its far side past the crease; none for a flat paper (an ear). */
-  readonly shade?: Hex;
-  readonly light: Hex;
-  readonly crease?: Crease;
-  readonly rim?: number;
-}
-
-/** `base`'s ramp under the court's key light, as a paper. */
-const paperOf = (base: Hex): Paper => {
-  const r = ramp(base, keyLight, shading);
-  return { color: r.base, shade: r.shade, light: r.light };
-};
-
-/**
- * The concept's rim, units: about 0.04 of a head's width, the light band
- * just inside the outline on the side facing the window (cold-34's faces
- * and robes: 6 px wide, #fbd0b3 on #f8b48a skin, #96825e on #817154 olive).
- */
-const RIM = 5.5;
+import type { Hex } from '@bible/film/canvas';
+import { type Paper, RIM, rampedPaper } from '@bible/film/style';
+import type { Crease } from '@bible/film/style/rig';
 
 /**
  * The concept's turns, sampled on its pieces: a face shades only its far
@@ -79,7 +53,7 @@ export const PAPERS = {
     rim: RIM,
   },
   /** The white tunic the lead is given (`court.back`). */
-  robe: { ...paperOf('#fcfbfc'), crease: TURN.sheet, rim: RIM },
+  robe: { ...rampedPaper('#fcfbfc'), crease: TURN.sheet, rim: RIM },
   /** Skin, as cold-34 paints the prosecutor's face: warm peach, its shade rosier and barely darker. */
   prosecutorSkin: {
     color: '#f7b284',
@@ -202,9 +176,3 @@ export const PAPERS = {
 
 /** The flat scarlet stain (Isa 1:18): one colour, no crease, no ink; the kept panels' soaked scarlet. */
 export const STAIN: Hex = '#cf4a44';
-
-/** `paper` as a piece's paint (`PieceLook`): its colours, crease and rim, and `extra` over them. */
-export const looked = (paper: Paper, extra: Partial<PieceLook> = {}): PieceLook => ({
-  ...paper,
-  ...extra,
-});

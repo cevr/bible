@@ -18,7 +18,8 @@
 // height (133), 0.96 of Christ's height, inside the cast's height band. His
 // feet are the artboard's origin.
 
-import type { Pt } from '@bible/film/style';
+import { type Pt, looked } from '@bible/film/style';
+import { roundedPolygon } from '@bible/film/style/rig';
 import {
   ARM_PIVOT,
   BAND,
@@ -47,9 +48,8 @@ import {
   VEST_FAR,
   VEST_NEAR,
 } from './farmer-traced.ts';
-import { PAPERS, looked } from './papers.ts';
+import { PAPERS } from './papers.ts';
 import { type Robed, robedKnobs } from './robed-rig.ts';
-import { roundedPolygon } from './shapes.ts';
 
 /** A panel point in canon units about `origin` (a panel point). */
 const canon =

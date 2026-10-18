@@ -14,6 +14,7 @@
 
 import { type Hex, mix } from '@bible/film/canvas';
 import type { Looks } from '@bible/film/core';
+import { parchment, peoplePaper } from '@bible/film/style';
 
 /**
  * The looks the film chooses between, at named levels. `ground`: how far the
@@ -47,8 +48,8 @@ const ground = (base: Hex, share = 1): Hex => mix(base, LIGHT_PAPER, LIFT * shar
 const SKY = 0.4;
 
 export const palette = {
-  // IDEA: the parchment page and its ink.
-  paper: '#eeddc8',
+  // IDEA: the parchment page (the house's) and its ink.
+  paper: parchment,
   paperTone: '#8c7f71',
   ink: '#332b23',
   inkSoft: '#665d52',
@@ -58,8 +59,8 @@ export const palette = {
   boardLight: ground('#c49a78'),
   boardShade: ground('#83644b', 0.55),
   boardDeep: ground('#423123', 0.4),
-  // The people.
-  figure: '#b7b2a8',
+  // The people: the house's grey paper.
+  figure: peoplePaper,
   figureShade: '#8f8a80',
   outline: '#2b2622',
   // Chipboard cut for what the people wear and carry (hair, headcloths, a

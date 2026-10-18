@@ -17,21 +17,22 @@
 //   laid over his own, 0..1.
 // The rig keeps its `breath` and the paper's `boil`.
 
-import type { Pt } from '@bible/film/style';
+import { type Pt, looked } from '@bible/film/style';
 import {
   FACE,
   type Figure,
   artboard,
+  blotOutline,
   boilTimeline,
   el,
   ellipse,
   faceKit,
   gazeTarget,
   piece,
+  roundedPolygon,
   timeline,
 } from '@bible/film/style/rig';
-import { PAPERS, STAIN, looked } from './papers.ts';
-import { blotOutline, roundedPolygon } from './shapes.ts';
+import { PAPERS, STAIN } from './papers.ts';
 
 /** His measures, units: height, head, neck (the tunic's top under the head), hem, legs. */
 export const LEAD = {

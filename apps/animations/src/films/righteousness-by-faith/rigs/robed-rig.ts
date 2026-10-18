@@ -33,8 +33,9 @@ import {
   piece,
   silhouette,
   timeline,
+  tucked,
+  tuckedRimmed,
 } from '@bible/film/style/rig';
-import { tucked, tuckedRimmed } from './shapes.ts';
 
 /** One paper of a figure: its outline, units, and its paint. */
 export interface RobedPart {

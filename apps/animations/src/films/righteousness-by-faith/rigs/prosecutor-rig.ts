@@ -19,6 +19,7 @@
 // toward his chest.
 // The rig keeps its `breath` and the paper's `boil`.
 
+import { looked } from '@bible/film/style';
 import {
   FACE,
   type Figure,
@@ -29,11 +30,14 @@ import {
   faceKit,
   gazeTarget,
   piece,
+  roundedPolygon,
+  shifted,
+  shoeLight,
+  shoeOutline,
   silhouette,
   timeline,
 } from '@bible/film/style/rig';
-import { PAPERS, looked } from './papers.ts';
-import { roundedPolygon, shifted, shoeLight, shoeOutline } from './shapes.ts';
+import { PAPERS } from './papers.ts';
 import { PROSECUTOR_HEAD, PROSECUTOR_HAIR } from './traced.ts';
 
 /**
