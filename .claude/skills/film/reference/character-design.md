@@ -361,6 +361,8 @@ Christ, the Father, the Spirit and the angels are in section 3.
 
 The people, beings and places of the Bible's own stories. They live in STORY scenes; the cast and the plain lead (2.3) never enter them ([ensemble.md](../../../../apps/animations/docs/ensemble.md)). The frame files' MUST NOTs bind every picture here: a picture teaches as loudly as a line.
 
+**Drawn once, kept for every film.** Every Bible person is a cast member, drawn once and kept in the library to be used again (owner, 2026-10-18: "all characters of the bible are cast members, if they are ever mentioned, they shoudl be drawn once and kept in the library to be used again"). The first film that names a person makes that person's concept, traces it and locks it. Every later film reuses that one figure. Age, dress for a role and expression are variants of the one figure, never a new drawing. One person keeps one figure under every name the text uses (Simon, Peter and Cephas; Saul and Paul). Unnamed people and parable roles are not Bible people: they come from the crowd kit (2.7) or the ensemble.
+
 ### 3.1 Dress: story cloth
 
 - **Simple period dress.** A tunic, a mantle, a girdle, a headcloth outdoors, sandals: two or three pieces per person, cut as flat shapes. Enough to say "then and there", never a museum reconstruction, and never the religious dress of a living group.
