@@ -500,7 +500,7 @@ const ask = Command.make(
       }),
     );
     yield* Console.log(
-      `then: its answers with the lab's MCP (ask_read ${asked.ask}); close_ask it once acted on`,
+      `then: bun cli.ts ask wait ${asked.ask} in the background (it exits once answered, with the answers); close_ask it once acted on`,
     );
   }),
 ).pipe(

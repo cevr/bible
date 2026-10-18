@@ -979,7 +979,7 @@ describe('film production ask', () => {
             `asked ${made.ask} on f: waits on its timeline at judge-faces, render:cold`,
             `local ${MCP_BASE}asks/${made.ask}`,
             `phone ${MCP_PHONE}asks/${made.ask}`,
-            `then: its answers with the lab's MCP (ask_read ${made.ask}); close_ask it once acted on`,
+            `then: bun cli.ts ask wait ${made.ask} in the background (it exits once answered, with the answers); close_ask it once acted on`,
           ]);
           // The page: a choice, and words beside it the owner may leave out.
           const record = yield* (yield* AskStore).read(made.ask);

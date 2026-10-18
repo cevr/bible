@@ -16,6 +16,7 @@
 //   film read …       (read-cli.ts)    the studio's reading, a cue, the scenes' sites, read fresh for the lab
 //   film lab                                                   the lab's server, every film (Ctrl-C stops it)
 //   film notes …      (notes-cli.ts)   the lab's notes, from the terminal
+//   film ask wait …   (ask-cli.ts)     wait on the owner's answer to an ask, in the background
 //
 // Each command's flags are its own `--help`.
 //
@@ -93,6 +94,7 @@ import { levelsOf, wedgeVariant } from '../core/easel.ts';
 import { filmServices, labPages, startLab } from './film-services.ts';
 import { fillBeside, ScriptVoices, stagingFill } from './script-voice.ts';
 import { SeriesDrafts, draftKey } from './series-drafts.ts';
+import { ask } from './ask-cli.ts';
 import { look, match } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
 import { production, publish } from './production-cli.ts';
@@ -1076,6 +1078,7 @@ export const runFilmCli = <E>({
       channel.pipe(Command.provide(FetchHttpClient.layer)),
       look(films),
       match(films),
+      ask,
       journal,
       production,
       publish,

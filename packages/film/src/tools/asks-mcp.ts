@@ -31,7 +31,7 @@ import { setsReads } from './sets-mcp.ts';
 // What the tools answer, and the tools
 
 /** An ask as an agent reads it: where its run is and what the owner answered, typed. */
-const AskRead = Schema.Struct({
+export const AskRead = Schema.Struct({
   ask: Schema.String,
   title: Schema.String,
   by: Schema.String,
@@ -50,6 +50,7 @@ const AskRead = Schema.Struct({
   point: Schema.optionalKey(Schema.String),
   links: LabLinks,
 });
+export type AskRead = typeof AskRead.Type;
 
 export const AskTool = Tool.make('ask', {
   description: [
@@ -57,7 +58,7 @@ export const AskTool = Tool.make('ask', {
     "Show the material in place, by reference, never prose that points elsewhere: `{kind: 'script', film}` or `{kind: 'script', series, draft}` (the Script reader, its staging takes playable and its delivery marks editable in place; `beats` for some), `{kind: 'board', film, panels?}` (the Board's panels, each with its kept try), `{kind: 'video', ref, at?}` (a set's or a render's video in the review's player, from `at` seconds), `{kind: 'audio', film, beat, attempt?}` (a recorded take, the kept one unless named), `{kind: 'document', ref}` (a set's Markdown). A script under review is a `script` block, never a `document` of its Markdown, and an ask shows one script (ask about the next in an ask of its own); a new script that is no film's yet is written as a series draft first (`series/<series>/scripts/<draft>.md`), then named in a `script` block. A `ref` is a file as `sets` lists it (`<root>/<folder>/<file>`). Each is found when the ask is made; one the lab cannot show is refused, named. Other blocks: a heading, prose (context only), an image (`{src}`, a lab URL `/api/…`, or `{board: {film, panel, try}}`), a choose, a free_text; each question names its answer by `id`. The machine is checked before anything is kept (every step reachable, no loops, guards on the step's own choices, every material found, one script, one recommendation per choose), and a refusal lists every problem.",
     'Ask with a `choose` (the cheap answer: the owner taps one) and mark your recommendation: `recommended: true` on exactly one option (a choose of two or more without one is refused); the page lists it first and marks it; say on it `why` (what makes it the one, said under the options; only the recommended option takes a `why`). Add an optional `free_text` for anything else rather than asking for words. A choose is always answered. A free_text is optional: the page marks it so (write no "(optional)" in its label), and left empty it is answered `{kind: \'skipped\'}`; `required: true` makes the owner write, and only a step with no choose may ask it.',
     'Say `why` (what the answer decides) and `by` (who you are); a `deadline` (ISO time) after which it takes no answer; `production` (and the `set` ref it is about, and the `point`, its choice) to file it on that timeline: it waits there until closed (or, with a `point`, a pick there).',
-    "Answers its links (`local` on this machine, `phone` from the owner's phone when the lab listens there): hand the owner the one he will open it on. Each section the owner sends is an `ask.step` change on `changes` (its answers typed), and `ask.answered` once the end is reached; read it with `ask_read`, and `close_ask` it once acted on.",
+    "Answers its links (`local` on this machine, `phone` from the owner's phone when the lab listens there): hand the owner the one he will open it on. Each section the owner sends is an `ask.step` change on `changes` (its answers typed), and `ask.answered` once the end is reached; read it with `ask_read`, and `close_ask` it once acted on. To wait for the answer, run `bun cli.ts ask wait <ask>` (from apps/animations) in the background: it exits once the owner has answered and prints the answers; act when it exits, and never ask the owner to say he answered.",
   ].join(' '),
   parameters: Schema.Struct({
     title: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(200)),
@@ -86,7 +87,7 @@ const AskReadTool = Tool.make('ask_read', {
   failure: LabRefused,
 }).annotate(Tool.Readonly, true);
 
-const AsksTool = Tool.make('asks', {
+export const AsksTool = Tool.make('asks', {
   description:
     'Every ask, the newest first: `status` narrows them (`asking`: what waits on the owner).',
   parameters: Schema.Struct({
@@ -227,7 +228,7 @@ const asksReads = Effect.fn('LabMcp.asksReads')(function* (options: LabMcpOption
 
   const linksOf = (at: string) => linksAt(options.links, at);
 
-  const askRead = (record: AskRecord): typeof AskRead.Type => ({
+  const askRead = (record: AskRecord): AskRead => ({
     ask: record.id,
     title: record.title,
     by: record.by,
