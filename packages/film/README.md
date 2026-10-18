@@ -47,7 +47,7 @@ argument. A short's id and an act's name are each declared once (`Shorts`,
 
 ## Tools
 
-`film narrate|takes import|script|score|mix|cues|check|render|lookbook|look|match|judge|journal|project|chapters|notes|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, `film sfx …` over the app's sound library, `tools/sfx-cli.ts`, and `film footage …` over its footage library, `tools/footage-cli.ts`, and `film talk words <talk>` over a talk's edit, `tools/talk-cli.ts`, and `film ask wait <ask>` (or `--page <ask>`, every ask on its page), which exits once the owner has answered an ask on the running lab, `tools/ask-cli.ts`) runs from the app that holds the
+`film narrate|takes import|script|score|mix|cues|check|render|lookbook|judge|project|chapters|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film lab <command>` (the lab's command set, its MCP tools: `notes`, `look`, `match`, `journal` and the rest, `tools/lab-cli.ts`), `film lab events` (the lab's events, a line each, `tools/events-cli.ts`), `film media …` over the private media store, `film sfx …` over the app's sound library, `tools/sfx-cli.ts`, and `film footage …` over its footage library, `tools/footage-cli.ts`, and `film talk words <talk>` over a talk's edit, `tools/talk-cli.ts`, and `film ask wait <ask>` (or `--page <ask>`, every ask on its page), which exits once the owner has answered an ask on the running lab, `tools/ask-cli.ts`) runs from the app that holds the
 films. The app owns the entry: it calls `runFilmCli({ films, sounds, footage, folders, previewServer, lab, self, judge })`
 with its films folder, its sound library folder, its footage library folder, its own `out` and `lab` folders
 (where a run writes renders and notes, whatever directory it starts in; `FILMS_OUT` and
@@ -2377,7 +2377,7 @@ them, and a correction's words to say instead.
 A note made, replied to or done arrives as an event (`note.added`,
 `note.replied`, `note.resolved`) on `film lab events --follow --film <film>
 --name 'note.*'`: run it under a Claude Code Monitor and each arrives as a
-notification (the Lab's events, `lab-stream.ts`). `film lab reply --film <film> --note <id>
+notification ("The lab's events", below). `film lab reply --film <film> --note <id>
 --text "…" [--still file.png]` answers as the agent (the still is copied to
 `stills/<id>.r<seq>.png` and the note becomes `replied`); `film lab resolve
 --film <film> --note <id>` closes it. An unknown id fails with `NoteNotFound`,
@@ -2466,6 +2466,45 @@ lab that answers another shape is refused (`LabAnswerUnread`) rather than
 misread. The test `tools/lab-command.test.ts` holds the two transports to one
 set: every tool the lab lists is a `film lab` subcommand with the same fields
 and the same required ones.
+
+### The lab's events: `film lab events` and MCP Events
+
+What happens in the lab is one catalogue of events (`LAB_EVENTS`,
+`core/lab-events.ts`: 21 names, `note.added` to `production.forwarded`), each
+with one payload (`LabChange`: what it is about, its words, a one-line
+summary, its links, and `read`, the lab command that reads its whole record),
+read off the lab's files by its change feed (`tools/lab-events.ts`). `changes`
+reads the feed by the catalogue (`name`, globs over its names; `film`).
+
+`film lab events` (`tools/events-cli.ts`) prints them from the running lab.
+With `--follow` it keeps running and prints one line per event as the lab sees
+it, so a Claude Code Monitor wakes on each without polling:
+
+```
+ask.answered cursor=k3x.12 at=… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1" link=http://…
+```
+
+`--name` (repeated) and `--film` narrow it, `--since <cursor>` reads on from a
+line's cursor, and `--json` prints `{"cursor":…,"event":…}` a line. What is
+not an event goes to stderr. The stream (`tools/lab-stream.ts`) is what
+`film ask wait` and `film channel` read too: a lab that stops answering is said
+once and asked again with backoff (250 ms doubling to 10 s), and the new
+session reads on from the last cursor seen, so nothing is skipped; a cursor the
+lab no longer knows comes back `reset`. Only `--gone-after <dur>`, or a refusal
+of the lab's, ends it.
+
+The lab's MCP serves the same catalogue as MCP Events (protocol 2026-07-28,
+OpenAI's MCP Events profile; `tools/mcp-events.ts`): `server/discover` says
+`events`, `events/list` lists the catalogue, `events/subscribe` takes a
+webhook and its `whsec_` secret, verifies the callback with a signed challenge
+it must echo, and posts each event to it as it happens, signed as Standard
+Webhooks signs, retried with the same `webhook-id`, until `events/unsubscribe`
+or its `refreshBefore`. The subscriptions are kept in one file in the lab's
+folder, each with its cursor, so a lab started again delivers on. Effect's McpServer serves none of this, so the lab serves it in a
+middleware in front of its MCP route; [plans/lab-mcp.md](../../apps/animations/plans/lab-mcp.md),
+"MCP Events", has the methods, codes and limits. ChatGPT reaches a server only
+over public HTTPS, and the lab provides no public route: a ChatGPT subscriber
+needs one made for it.
 
 ### The easel: `film lab look`
 

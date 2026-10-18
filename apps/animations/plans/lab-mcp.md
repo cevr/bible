@@ -174,32 +174,82 @@ its answers out and cuts its words, said as `trimmed: true`, and `read` has them
 catalogue: `name` (globs over its names, `ask.*`) and `film` keep only those; the cursor moves past every change
 either way.
 
-How an agent hears them:
+How an agent hears them. Every way below but the first reads one stream (`tools/lab-stream.ts`): a session of
+the lab's MCP, the feed long-polled past a cursor (50 s a call), and the cursor the stream's, not the session's.
+A lab that stops answering (restarted, the network dropped) is said once and asked again with backoff (250 ms
+doubling to 10 s); the new session reads on from the last cursor seen, so nothing that changed while it was away
+is skipped, and a cursor the lab no longer knows comes back `reset`.
 
 1. **`changes` with `wait`** — works in every client, session and subagent. Call it with the cursor from
    `overview`; it answers as soon as there is a change (within the feed's 2 s), or empty after `wait`.
-2. **The channel bridge, `film channel`** — a stdio server Claude Code spawns. It answers the handshake declaring
-   `experimental['claude/channel']`, then long-polls the lab's `changes` and sends each as
+2. **The stream, `film lab events`** (`tools/events-cli.ts`) — `film lab events --follow` keeps running and
+   prints one line per event as the lab sees it, so a Claude Code Monitor wakes on each without polling:
+   `ask.answered cursor=k3x.12 at=… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1" link=…`,
+   the event's name first, the cursor after it, what it is about, its summary, the command that reads its whole
+   record, and its link. `--name` (globs over the catalogue, repeated) and `--film` narrow it; `--since <cursor>`
+   reads on from a line's cursor; `--json` prints `{"cursor":…,"event":…}` a line, the event as the catalogue's
+   payload. Without `--follow` it prints the events past `--since` and `cursor=<c>`. What is not an event goes to
+   stderr (`lab events: following …`, `lost the lab (…); asking again`, `reconnected to …, reading on from …`,
+   the `reset` notice). `--gone-after <dur>` ends it, non-zero, once the lab has been silent that long; without
+   it, only a refusal of the lab's ends it.
+3. **The channel bridge, `film channel`** — a stdio server Claude Code spawns. It answers the handshake declaring
+   `experimental['claude/channel']`, then reads the stream and sends each change as
    `notifications/claude/channel` (`content`: summary, words, link; `meta`: kind, seq, film, note, panel, beat,
    try, variant, by, link). Claude Code shows it in the session as `<channel source="lab-events" kind="…" …>`.
-   It reconnects every 5 s when the lab is down and reads on from the last cursor it saw, so nothing that
-   changed while it was away is skipped; after a lab restart (that cursor unknown) it sends the newest 20 and a
-   line for the rest.
-3. **The latch, `film ask wait`** (`tools/ask-cli.ts`, `tools/ask-wait.ts`) — a command an agent runs in the
+   After a lab restart (its cursor unknown) it sends the newest 20 and a line for the rest.
+4. **The latch, `film ask wait`** (`tools/ask-cli.ts`, `tools/ask-wait.ts`) — a command an agent runs in the
    background (Bash `run_in_background`), which exits once the owner has answered, so the agent hears it as the
-   command's exit (interim, until Claude channels; owner, 2026-10-18: "a latch or something we can use that you
-   can wait on an answer instead of asking me"). `film ask wait <ask> [--step <id>]` ends once the ask is answered
-   to its end or closed (with `--step`, once that step is answered, or the ask can no longer reach it);
-   `film ask wait --page <ask>` once every ask on that ask's page is answered or closed, and
-   `film ask wait --any [--production <p>]` on the first ask answered after it began. It takes the cursor, then
-   reads the asks (`asks`): already answered, it ends at once; an ask the lab does not have is `AskUnknown`. Then
-   it long-polls `changes` (50 s a call) and reads the asks again on a change to that ask (`--page`: any ask
-   change, since a joiner may land on the page; `--any`: any `ask.answered`) or a `reset`. A lab that does not answer is asked again with backoff (250 ms doubling to 10 s),
-   logged `[ask] wait lab=unreachable` once a minute, and never ends the wait; the new session reads the asks
-   again, since a restarted lab saw an answer given while it was down as its baseline, not as a change. It
-   prints the ask as `ask_read` answers it (`ask <id> status=…`, `answered step=…`, `answer <id> choose
-   value=… label="…"` / `free_text text="…"` / `skipped`, `closed why="…"`, its links), or one JSON line with
-   `--json`, and exits 0; `--timeout <dur>` ends it with `AskWaitTimeout` (`ask.wait.timeout`), non-zero.
+   command's exit (owner, 2026-10-18: "a latch or something we can use that you can wait on an answer instead of
+   asking me"). `film ask wait <ask> [--step <id>]` ends once the ask is answered to its end or closed (with
+   `--step`, once that step is answered, or the ask can no longer reach it); `film ask wait --page <ask>` once
+   every ask on that ask's page is answered or closed, and `film ask wait --any [--production <p>]` on the first
+   ask answered after it began. It takes the cursor, then reads the asks (`asks`): already answered, it ends at
+   once; an ask the lab does not have is `AskUnknown`. Then it reads the stream and reads the asks again on a
+   change to that ask (`--page`: any ask change, since a joiner may land on the page; `--any`: any
+   `ask.answered`) or a `reset`, and on each new session, since a restarted lab saw an answer given while it was
+   down as its baseline, not as a change. A lost lab is logged `[ask] wait lab=unreachable` once and never ends
+   the wait. It prints the ask as `ask_read` answers it (`ask <id> status=…`, `answered step=…`, `answer <id>
+   choose value=… label="…"` / `free_text text="…"` / `skipped`, `closed why="…"`, its links), or one JSON line
+   with `--json`, and exits 0; `--timeout <dur>` ends it with `AskWaitTimeout` (`ask.wait.timeout`), non-zero.
+5. **MCP Events** (`core/mcp-events.ts`, `tools/mcp-events.ts`) — for a client that subscribes rather than
+   listens (protocol 2026-07-28, OpenAI's MCP Events profile). Below.
+
+### MCP Events
+
+Effect's McpServer answers `server/discover` with no `events` capability and none of the events methods
+(`events/list` answers MethodNotFound; measured on a spare lab, effect 4.0.2). The lab serves them itself, in a
+middleware in front of its MCP route (`eventsRoute`), after the gate has admitted the request: `server/discover`
+gains `capabilities.events`, and the three methods are answered there; every other request goes on to Effect's
+server. A request carries the 2026-07-28 headers (`mcp-protocol-version`, `mcp-method`) and `params._meta`.
+
+- **`events/list`** answers the catalogue: each of the 21 names with its description, `delivery: ['webhook']`,
+  its `inputSchema` (`{film?}`: only that film's events) and its `payloadSchema` (`LabChange`).
+- **`events/subscribe`** takes `name`, `arguments`, `delivery: {mode: 'webhook', url, secret}`, an optional
+  `cursor` and `ttlMs`. The secret is `whsec_` and base64 of 24 to 64 bytes; the URL http or https; arguments
+  the input schema's alone. A refusal is -32602 in its words (`no event note.*: the lab's are …`). Before it is
+  kept, the callback is verified: posted `{type: 'verification', challenge}`, signed, which it must echo in a
+  2xx, as text or `{challenge}` (compared in constant time); otherwise -32015, `CallbackEndpointError`, with
+  `data.reason` `challenge_failed`, `timeout` or `unreachable`. A verified callback stays verified 10 minutes. It answers `id`
+  (`sub_` and 24 hex of the digest of the URL, name and arguments, so the same subscribe again is the same
+  subscription, refreshed: its secret, cursor and expiry replaced), `refreshBefore` (an ISO time; `ttlMs` null
+  asks for none and answers null; left out, a day; at least a minute), `cursor` (where it reads on from) and
+  `truncated` (a cursor asked for whose history the feed no longer keeps).
+- **`events/unsubscribe`** takes `name`, `arguments` and `delivery: {mode, url}`, and answers `{}`.
+- **Delivery.** One POST per event: `{eventId, name, timestamp, data, cursor}`, `eventId` `evt_<cursor>`, the
+  body written once and at most 256 KiB (the payload's own bound, above; a body over it is skipped, logged
+  `outcome="too large"`). Headers `webhook-id` (the event id),
+  `webhook-timestamp`, `webhook-signature` (`v1,` and base64 HMAC-SHA256 of `<id>.<timestamp>.<body>`, keyed by
+  the secret's bytes: Standard Webhooks) and `x-mcp-subscription-id`; redirects are not followed. A 2xx is
+  delivered; a 410 drops the subscription; a 413 skips the event; anything else, or no answer within 10 s, is
+  tried again with the same id and body, a new timestamp and signature, 5 times from 1 s doubling, then logged
+  `mcp.events.delivery outcome="given up"` and passed.
+- **The store.** `lab/events/subscriptions.json`, new and the module's own: each subscription's id, name,
+  arguments, URL, secret, the cursor after the last event it was sent, `refreshBefore`, `made` and `refreshed`.
+  A lab that starts drops the ones expired and delivers the rest on from their cursors (a cursor of an earlier
+  run reads every change the new run has seen); a subscription that passes its `refreshBefore` is dropped.
+- **Not served.** Secret rotation with an overlap (signing with two secrets) is not served: a subscribe again
+  with a new secret replaces the old at once. The lab provides no public route: ChatGPT reaches a server only
+  over public HTTPS, so a ChatGPT subscriber needs one made for it.
 
 What reaches a Claude Code session (2.1.300, per its docs): tool results, always; `list_changed`, which only
 refreshes the lists; channel events, only from a stdio server, only in the main session, and only when Claude is

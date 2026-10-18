@@ -22,13 +22,15 @@
 // `retry` for anything but a 2xx, a 410 (the subscription is dropped) or a
 // 413 (the event is skipped). Its cursor is kept after each event, in
 // `lab/events/subscriptions.json` (this module's own file), so a lab
-// restarted delivers on from it; a subscribe with a cursor replays the
-// events past it the feed still keeps, `truncated` when it keeps no longer
-// all of them. The lab has no accounts, so a subscription is no one's: the
-// lab answers loopback and the owner's phone alone (`api-server.ts`). Any
-// callback URL is taken; ChatGPT's own limit, a public HTTPS callback, is
-// the subscriber's (a ChatGPT subscriber needs a public HTTPS route to the
-// lab, which the lab does not provide).
+// restarted delivers on from it (a cursor of an earlier run reads every
+// change the new run has seen: what changed while the lab was down is its
+// baseline, as on every reader of the feed). A subscribe with a cursor
+// replays the events past it the feed still keeps, `truncated` when it no
+// longer keeps all of them. The lab has no accounts, so a subscription is
+// no one's: the lab answers loopback and the owner's phone alone
+// (`api-server.ts`). Any http or https callback URL is taken. ChatGPT reaches a server only over
+// public HTTPS, and the lab provides no public route: a ChatGPT subscriber
+// needs one made for it.
 
 import {
   Array as Arr,
