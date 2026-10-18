@@ -170,6 +170,27 @@ describe('a try drawn the wrong way', () => {
   );
 });
 
+describe('a try whose head and papers drift from the anchor', () => {
+  it.effect(
+    "is drawn again held to the anchor's own numbers and colours, in words beside them",
+    () => {
+      const files = new Map<string, Uint8Array>();
+      const calls: Array<ImageRequest> = [];
+      const drifted = encodePng(
+        drawSheet([at(0), at(-14, { rx: 70, ry: 77, robeShade: [150, 60, 60] })]),
+      );
+      return Effect.gen(function* () {
+        yield* ran(files, []);
+        const retry = calls[1]?.prompt ?? '';
+        expect(retry).toMatch(
+          /Figure 2's head is as big as figure 1's: \d+ pixels tall on this sheet, [a-z ]+ the figure's whole height \(\d+ %\)\./,
+        );
+        expect(retry).toMatch(/Figure 2 wears the same papers as figure 1: [^;]*blue \(#3c4e96\)/);
+      }).pipe(Effect.provide(castOver(files, calls, () => drifted)));
+    },
+  );
+});
+
 describe('a sheet with no standing view', () => {
   it.effect(
     'is redrawn with its drift named but no underlay: a mannequin would stand a pose that lies',

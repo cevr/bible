@@ -1,4 +1,4 @@
-// A cast sheet's underlay: one mannequin per view on one ground line, each
+// A cast sheet's underlay: one mannequin per view, their soles on one row and no line under them, each
 // as tall as the others, its eyes and its nose showing the way its slot
 // faces (two eyes from the front, one in profile, none from behind; the nose
 // past the head on the side it faces), each hand at the end of its sleeve on
@@ -20,7 +20,7 @@ const rgbAt = (x: number, y: number) => {
   return [sheet.rgba[i], sheet.rgba[i + 1], sheet.rgba[i + 2]].join(',');
 };
 const INK = '120,98,84';
-const PAPER = new Set(['243,234,216', '226,212,188']);
+const PAPER = new Set(['243,234,216']);
 
 /** A view's column: its mannequin's rows, and the ink runs along a row. */
 const column = (k: number) => {
@@ -42,10 +42,19 @@ describe("a turnaround's underlay", () => {
   const h = Math.min((0.8 * H) / CANON_HEADS, step / 2.1);
   const eyeRow = (k: number) => Math.round(views[k]!.top + 0.52 * h);
 
-  test('stands six mannequins of one height on one ground line, each the canon of its heads tall', () => {
+  test('stands six mannequins of one height, their soles on one row, each the canon of its heads tall', () => {
     expect(new Set(views.map((v) => v.top)).size).toBe(1);
     expect(new Set(views.map((v) => v.bottom)).size).toBe(1);
     expect(views[0]!.bottom - views[0]!.top).toBeCloseTo(CANON_HEADS * h, -1);
+  });
+
+  test('draws no line under the soles: off the mannequins every pixel is paper', () => {
+    const colours = new Set(
+      Array.from({ length: W * H }, (_, i) => rgbAt(i % W, Math.floor(i / W))),
+    );
+    expect([...colours].filter((c) => !PAPER.has(c) && c !== INK && c !== '228,220,206')).toEqual(
+      [],
+    );
   });
 
   test('shows two eyes from the front and at three-quarters, one in profile and none from behind', () => {

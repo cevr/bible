@@ -1,6 +1,6 @@
 // A cast sheet's underlay: a layout picture the engine draws, never painted,
 // sent as a sheet try's last reference when a try faced the wrong way or
-// was drawn off the canon. Blank house mannequins on one ground line, each
+// was drawn off the canon. Blank house mannequins standing level, each
 // the cast's canon of its own heads tall (3.36), each turned to its view's
 // slot by where its eyes, nose and feet point, each arm hanging in its
 // sleeve down the body's side with its hand a circle at the sleeve's end,
@@ -9,7 +9,10 @@
 // float it, and `sleeveReach` would flag it. The image route takes facing and the
 // canon from a picture better than from words: in the prototype's first
 // round words alone faced 3 of 9 sheets right, and with this underlay 6 of 7.
-// Pure: slots in, RGBA out.
+// The ground is the mannequins' soles alone, no line under them: on one
+// Christ turnaround's retry the route copied a drawn line as a rule under
+// every figure (3 of 3 tries) and drew one with none 2 of 3 times, facing
+// held both ways (2026-10-18). Pure: slots in, RGBA out.
 
 import { CANON_HEADS, type Slot } from './cast-sheet.ts';
 import type { Raster } from './raster.ts';
@@ -17,7 +20,6 @@ import type { Raster } from './raster.ts';
 type Rgb = readonly [number, number, number];
 
 const GROUND_PAPER: Rgb = [243, 234, 216];
-const GROUND_LINE: Rgb = [226, 212, 188];
 const MANNEQUIN: Rgb = [228, 220, 206];
 const MANNEQUIN_INK: Rgb = [120, 98, 84];
 
@@ -185,7 +187,7 @@ interface UnderlayViews {
 
 /**
  * The underlay of a sheet whose views face `slots`, left to right: one
- * mannequin per view shown, evenly spaced, on one ground line; a view not
+ * mannequin per view shown, evenly spaced, their soles on one row; a view not
  * shown leaves its column empty. Views named in `profiles` turn to full
  * profile, the rest of a side's to three-quarter.
  */
@@ -216,7 +218,7 @@ export const mannequinUnderlay = (
       arms[y * W + x] = mask[y * W + x] === 1 && inArms(p, f, x, y, size.hand) ? 1 : 0;
     }
   const colourAt = (x: number, y: number): Rgb => {
-    if (mask[y * W + x] === 0) return y >= ground && y < ground + 3 ? GROUND_LINE : GROUND_PAPER;
+    if (mask[y * W + x] === 0) return GROUND_PAPER;
     const inked =
       edgeAt(mask, W, H, x, y) ||
       (arms[y * W + x] === 1 && edgeAt(arms, W, H, x, y)) ||

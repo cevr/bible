@@ -49,6 +49,7 @@ import {
   type Slot,
 } from '../core/cast-sheet.ts';
 import { sheetPreview } from '../core/cast-preview.ts';
+import { colourWords, hexOf } from '../core/cast-sheet-pixels.ts';
 import { mannequinUnderlay } from '../core/cast-underlay.ts';
 import { measureFigure } from '../core/figure.ts';
 import { cropRaster, type Raster } from '../core/raster.ts';
@@ -130,13 +131,73 @@ const facingWords = (slot: Option.Option<Slot>): string =>
     Match.orElse(() => 'as its pose says'),
   );
 
-/** One flag as the sentence a retry's prompt adds. */
-const driftOf = (
-  check: SheetCheck,
+/** What a retry's drifts are said against: the sheet's slots, and the anchor view of the try it redraws as measured. */
+interface Drifting {
+  readonly slots: ReadonlyArray<Slot>;
+  readonly anchor: Option.Option<SheetMeasure['views'][number]>;
+}
+
+/** A share in words, for a prompt beside its number: "about a third of". */
+const shareWords = (x: number): string =>
+  (x < 0.22 && 'under a quarter of') ||
+  (x < 0.29 && 'about a quarter of') ||
+  (x < 0.37 && 'about a third of') ||
+  (x < 0.45 && 'a little under half of') ||
+  (x < 0.55 && 'about half of') ||
+  'more than half of';
+
+/** A list in words: "a, b and c". */
+const listed = (xs: ReadonlyArray<string>): string =>
+  [xs.slice(0, -1).join(', '), ...xs.slice(-1)].filter((x) => x !== '').join(' and ');
+
+/** The anchor's head and hands, its papers, in words and numbers: what a head, hand or papers drift is held to. */
+const anchorSizes = (held: Drifting, views: ReadonlyArray<number>) =>
+  Option.map(held.anchor, (a) => {
+    const drifted = views.filter((v) => v !== a.view);
+    const head = Option.fromUndefinedOr(a.head);
+    const hand = Option.fromUndefinedOr(a.hand);
+    const papers = a.papers
+      .filter((p) => p.share >= 0.05)
+      .slice(0, 3)
+      .map((p) => `${colourWords(p.rgb)} (${hexOf(p.rgb)})`);
+    return {
+      who: `Figure ${((drifted.length > 0 && drifted) || views).join(' and ')}`,
+      anchor: a.view,
+      head: Option.map(
+        head,
+        (px) =>
+          `${Math.round(px)} pixels tall on this sheet, ${shareWords(px / a.height)} the figure's whole height (${Math.round((100 * px) / a.height)} %)`,
+      ),
+      hand: Option.map(hand, (share) => {
+        const px = Option.match(head, {
+          onNone: () => '',
+          onSome: (h) => `about ${Math.round(share * h)} pixels across, `,
+        });
+        return `each ${px}${shareWords(share)} the head's height (${share.toFixed(2)})`;
+      }),
+      papers: (papers.length > 0 && Option.some(listed(papers))) || Option.none<string>(),
+    };
+  });
+
+/** A drift said against the anchor's own number when the try measured one, else in words alone. */
+const heldTo = (
+  held: Drifting,
   views: ReadonlyArray<number>,
-  slots: ReadonlyArray<Slot>,
-): string => {
+  part: 'head' | 'hand' | 'papers',
+  said: (who: string, anchor: number, value: string) => string,
+  plain: string,
+): string =>
+  Option.getOrElse(
+    Option.flatMap(anchorSizes(held, views), (a) =>
+      Option.map(a[part], (value) => said(a.who, a.anchor, value)),
+    ),
+    () => plain,
+  );
+
+/** One flag as the sentence a retry's prompt adds. */
+const driftOf = (check: SheetCheck, views: ReadonlyArray<number>, held: Drifting): string => {
   const v = views.join(' and ');
+  const slots = held.slots;
   return Match.value(check).pipe(
     Match.when(
       'facing',
@@ -158,20 +219,38 @@ const driftOf = (
     Match.whenOr(
       'height',
       'ground',
-      () => `Figure ${v} stands as tall as the others, its soles on the one ground line.`,
+      () => `Figure ${v} stands as tall as the others, its soles level with theirs.`,
     ),
-    Match.when('head', () => `Figure ${v}'s head is the same size as the others'.`),
-    Match.when(
-      'hand',
-      () => `Figure ${v}'s hands are the same size as the others', as the kept concept draws them.`,
+    Match.when('head', () =>
+      heldTo(
+        held,
+        views,
+        'head',
+        (who, anchor, size) => `${who}'s head is as big as figure ${anchor}'s: ${size}.`,
+        `Figure ${v}'s head is the same size as the others'.`,
+      ),
+    ),
+    Match.when('hand', () =>
+      heldTo(
+        held,
+        views,
+        'hand',
+        (who, anchor, size) =>
+          `${who}'s round hands are as big as figure ${anchor}'s: ${size}, as the kept concept draws them.`,
+        `Figure ${v}'s hands are the same size as the others', as the kept concept draws them.`,
+      ),
     ),
     Match.when('width', () => `Figures ${v} are the same width.`),
     Match.when('hairFall', () => `Figure ${v}'s hair falls to the same place as in the others.`),
-    Match.whenOr(
-      'papers',
-      'grey',
-      () =>
+    Match.whenOr('papers', 'grey', () =>
+      heldTo(
+        held,
+        views,
+        'papers',
+        (who, anchor, papers) =>
+          `${who} wears the same papers as figure ${anchor}: ${papers}; its shade a deeper hue toward violet, never grey.`,
         `Figure ${v} wears the same papers as the others, its shade a deeper hue toward violet, never grey.`,
+      ),
     ),
     Match.when(
       'lit',
@@ -203,7 +282,7 @@ const referencesNote = (record: CastSheetRecord, underlay: boolean): string =>
     'Image 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does.',
     ...record.refs.map((r, k) => `Image ${k + 2} is ${r.why}.`),
     ...((underlay && [
-      `Image ${record.refs.length + 2} is a layout, never a look: blank figures on the ground line, each turned the way its figure on this sheet faces and each about three and a third of its own heads tall. Take each figure's facing, place and size from it, and nothing else.`,
+      `Image ${record.refs.length + 2} is a layout, never a look: blank figures standing level, each turned the way its figure on this sheet faces and each about three and a third of its own heads tall. Take each figure's facing, place and size from it, and nothing else.`,
     ]) ||
       []),
   ].join(' ');
@@ -351,7 +430,7 @@ const drawTry = Effect.fn('Cast.drawTry')(function* (
     }),
   );
   yield* emit({ _tag: 'Made', member: ctx.record.member, kind, tried, lines });
-  return tried;
+  return { tried, measure: Result.getSuccess(measured) };
 });
 
 /** A try that drew nothing: no tries made. */
@@ -393,15 +472,18 @@ export const conceptsOf = Effect.fn('Cast.concepts')(function* (
 /** One try and, when the measure flags it, its one retry: each drift in words, the underlay on facing or the canon. */
 const gatedTry = (ctx: TryContext, emit: (line: CastLine) => Effect.Effect<void>) =>
   drawTry(ctx, [], false, Option.none(), emit).pipe(
-    Effect.flatMap((first) => {
+    Effect.flatMap(({ tried: first, measure }) => {
       if (first.flags.length === 0) return Effect.succeed([first]);
-      const slots = ctx.plan.options.slots ?? [];
-      const drifts = first.flags.map((f) => driftOf(f.check, f.views, slots));
+      const held: Drifting = {
+        slots: ctx.plan.options.slots ?? [],
+        anchor: Option.flatMap(measure, (m) => Arr.findFirst(m.views, (v) => v.view === m.anchor)),
+      };
+      const drifts = first.flags.map((f) => driftOf(f.check, f.views, held));
       const underlay = ctx.underlay.shown && first.flags.some((f) => UNDERLAID.has(f.check));
-      return Effect.map(drawTry(ctx, drifts, underlay, Option.some(first.n), emit), (second) => [
-        first,
-        second,
-      ]);
+      return Effect.map(
+        drawTry(ctx, drifts, underlay, Option.some(first.n), emit),
+        ({ tried: second }) => [first, second],
+      );
     }),
     Effect.catch((e) =>
       Effect.as(

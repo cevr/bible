@@ -33,6 +33,59 @@ export const labOf = (c: Rgb): Rgb => {
 /** ΔE76: the distance of two Lab colours. */
 export const deltaE = (a: Rgb, b: Rgb): number => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
+/** A colour as a prompt writes it: `#rrggbb`. */
+export const hexOf = (rgb: ReadonlyArray<number>) =>
+  `#${rgb.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+
+/** The hue names a paper takes, each up to its hue's upper bound in degrees. */
+const HUES: ReadonlyArray<readonly [number, string]> = [
+  [15, 'red'],
+  [30, 'orange'],
+  [55, 'gold'],
+  [70, 'yellow'],
+  [165, 'green'],
+  [200, 'teal'],
+  [250, 'blue'],
+  [290, 'violet'],
+  [340, 'lilac'],
+  [360, 'red'],
+];
+
+/** A colour's hue in degrees, 0–360: its red, green and blue as shares, their largest, and its spread over the smallest. */
+const hueOf = (r: number, g: number, b: number, max: number, d: number): number =>
+  60 * (max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4);
+
+/** A hue's name at a lightness: a light warm is cream, a dark one brown, a light red pink; very light is pale, very dark deep. */
+const hueWords = (name: string, light: number): string => {
+  const warm = name === 'orange' || name === 'gold' || name === 'yellow';
+  if (warm && light > 0.85) return 'cream';
+  if ((warm || name === 'red') && light < 0.45) return 'brown';
+  const named = (name === 'red' && light > 0.7 && 'pink') || name;
+  return (light > 0.8 && `pale ${named}`) || (light < 0.35 && `deep ${named}`) || named;
+};
+
+/** A colour in plain words, for a prompt beside its hex: "cream", "gold", "pale lilac", "deep blue", "brown". */
+export const colourWords = (c: Rgb): string => {
+  const [r, g, b] = [c[0] / 255, c[1] / 255, c[2] / 255];
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const light = (max + min) / 2;
+  const d = max - min;
+  const saturation = d === 0 ? 0 : d / (1 - Math.abs(2 * light - 1));
+  if (saturation < 0.12)
+    return (
+      (light > 0.9 && 'white') ||
+      (light > 0.7 && 'pale grey') ||
+      (light > 0.3 && 'grey') ||
+      'near black'
+    );
+  const hue = hueOf(r, g, b, max, d);
+  return hueWords(
+    HUES.reduceRight((named, [upTo, word]) => (hue < upTo ? word : named), 'red'),
+    light,
+  );
+};
+
 /** A colour's saturation and value, each 0–1. */
 interface SaturationValue {
   readonly saturation: number;

@@ -42,6 +42,7 @@ import {
   figuresOf,
   firstLabelIn,
   firstLabelInside,
+  hexOf,
   inkByLuma,
   labOf,
   litSideOf,
@@ -1781,9 +1782,6 @@ export const sheetTable = (name: string, m: SheetMeasure): string => {
     '',
   ].join('\n');
 };
-
-const hexOf = (rgb: ReadonlyArray<number>) =>
-  `#${rgb.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 
 /** The sheet's measure as the CLI prints it: a line for the sheet, then one per flag. */
 export const sheetLines = (name: string, m: SheetMeasure): ReadonlyArray<string> => [

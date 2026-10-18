@@ -2912,11 +2912,16 @@ as the trace will make it, the canon's band across), and is recorded in `cast-sh
 the record's lock (`ContentStore.transact`): its prompt, its references (as
 the sheet's folder reaches them), whether the underlay rode along, the try
 it draws again, the measure's flags and the anchor's squash. A flagged try
-is drawn once more with each drift named in a sentence; on `facing`,
+is drawn once more with each drift named in a sentence (a head, hand or
+papers drift held to the anchor view as the try measured it, in numbers and
+words: its head's pixels and share of its height, its hand's share of the
+head, its papers' colours by name and hex, `colourWords` in
+`core/cast-sheet-pixels.ts`); on `facing`,
 `sameWay`, `roll` or `squash` the retry also sends the underlay as its last
 reference (`mannequinUnderlay`, `core/cast-underlay.ts`, pure: a blank
-mannequin per standing view on one ground line, each the canon of its heads
-tall and turned to its slot by its eyes, its nose and its feet, each hand a circle at the end of its arm in its sleeve (a profile draws its near arm alone); a view that
+mannequin per standing view, their soles on one row with no line drawn
+under them (a drawn line came back as a rule under every figure), each the
+canon of its heads tall and turned to its slot by its eyes, its nose and its feet, each hand a circle at the end of its arm in its sleeve (a profile draws its near arm alone); a view that
 does not stand leaves its column empty; a turnaround's profiles are its
 third and fifth views), written fresh as `underlay-<kind>.png`. A sheet with
 no standing view, as every heads sheet, is redrawn with no underlay. A retry that still drifts is recorded with its flags,
