@@ -86,6 +86,8 @@ import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
 import { labPhone } from './lab.ts';
+import { ExportsChanged, Relaunch, watchExports, workspaceRoot } from './exports-watch.ts';
+import { RelaunchBun } from './relaunch-bun.ts';
 import { channel } from './lab-channel.ts';
 import type { LabAt } from './api-server.ts';
 import { type LabPageSpec, PageBundler } from './lab-page.ts';
@@ -926,6 +928,9 @@ const chaptersCommand = Command.make(
   ),
 );
 
+/** Whether a failure is the lab's exports watch ending it. */
+const isExportsChanged = Schema.is(ExportsChanged);
+
 const lab = <E>(
   app: FilmApp<E>['lab'],
   films: string,
@@ -935,27 +940,38 @@ const lab = <E>(
   Command.make(
     'lab',
     {},
-    Effect.fn('film.lab')(function* () {
-      // The lab's whole API, for every film: what tweaks it and what reviews it.
-      const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
-      const known = yield* (yield* FilmFolder).names;
-      // The server lives in the command's scope: Ctrl-C stops it. It listens on loopback and,
-      // with FILM_LAB_PHONE_URL, on the owner's phone address too, behind the same gate.
-      // The lab is also an MCP server for agents at `/mcp` (`lab-mcp.ts`).
-      const links = yield* startLab(yield* app.at, yield* labPhone, Layer.empty, 'mcp');
-      const phone = Option.fromUndefinedOr(links.phone);
-      yield* Console.log(links.local);
-      for (const at of Option.toArray(phone)) yield* Console.log(at);
-      yield* Effect.log(
-        `lab.ready link=${links.local} phone=${Option.getOrElse(phone, () => 'none')} films=${known.join(',')} roots=${roots.join(',')}`,
-      );
-      yield* Effect.log(`lab.mcp url=${links.local}mcp`);
-      // Every spoken beat's staging take kept ready for the Script reader when
-      // FILM_STAGING_FILL=true, beside the lab: a fill that dies leaves the lab up.
-      if (yield* stagingFill) yield* fillBeside((yield* ScriptVoices).fill);
-      else yield* Effect.log('staging.fill off');
-      return yield* Effect.never;
-    }, Effect.scoped),
+    Effect.fn('film.lab')(
+      function* () {
+        // The lab's whole API, for every film: what tweaks it and what reviews it.
+        const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
+        const known = yield* (yield* FilmFolder).names;
+        // The server lives in the command's scope: Ctrl-C stops it. It listens on loopback and,
+        // with FILM_LAB_PHONE_URL, on the owner's phone address too, behind the same gate.
+        // The lab is also an MCP server for agents at `/mcp` (`lab-mcp.ts`).
+        const links = yield* startLab(yield* app.at, yield* labPhone, Layer.empty, 'mcp');
+        const phone = Option.fromUndefinedOr(links.phone);
+        yield* Console.log(links.local);
+        for (const at of Option.toArray(phone)) yield* Console.log(at);
+        yield* Effect.log(
+          `lab.ready link=${links.local} phone=${Option.getOrElse(phone, () => 'none')} films=${known.join(',')} roots=${roots.join(',')}`,
+        );
+        yield* Effect.log(`lab.mcp url=${links.local}mcp`);
+        // Every spoken beat's staging take kept ready for the Script reader when
+        // FILM_STAGING_FILL=true, beside the lab: a fill that dies leaves the lab up.
+        if (yield* stagingFill) yield* fillBeside((yield* ScriptVoices).fill);
+        else yield* Effect.log('staging.fill off');
+        // A package's exports changed by a merge while the lab runs: the lab ends, and starts again.
+        return yield* Option.match(yield* workspaceRoot('.'), {
+          onNone: () => Effect.never,
+          onSome: (root) => watchExports(root),
+        });
+      },
+      Effect.scoped,
+      Effect.catchIf(isExportsChanged, (changed) =>
+        Effect.flatMap(Relaunch, (r) => r.relaunch(changed.message)),
+      ),
+      Effect.provide(RelaunchBun),
+    ),
   ).pipe(
     // The pages, built from the app's entries and watched while the lab runs,
     // and the easel's warm pages over them, in this process's Chrome.

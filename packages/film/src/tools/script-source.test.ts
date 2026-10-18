@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import type { LineRead, Mark } from '../core/delivery.ts';
-import { editMarks, sayMissed } from './script-source.ts';
+import {
+  editHold,
+  editMarks,
+  editOrder,
+  holdMissed,
+  orderMissed,
+  sayMissed,
+} from './script-source.ts';
 
 const SCRIPT = `import { defineScript } from '@bible/film/core';
 
@@ -91,5 +98,67 @@ describe('a mark write of script.ts', () => {
     expect(Result.getOrThrow(sayMissed(after, SCRIPT, 'cold', marks.slice(1)))).toHaveLength(1);
     const reworded = after.replace('Not by works.', 'Not by deeds.');
     expect(Result.getOrThrow(sayMissed(reworded, SCRIPT, 'cold', marks))).toHaveLength(1);
+  });
+});
+
+const THREE = `export const script = [
+  // The open.
+  { id: 'cold', say: 'One.' },
+  {
+    id: 'look',
+    // He looks.
+    say: 'Two.',
+    tail: 1.6,
+  },
+  { id: 'end', min: 3 }, // the close
+];
+`;
+
+const ids = (source: string) => [...source.matchAll(/id: '(\w+)'/g)].map((m) => m[1]);
+
+describe('a move of script.ts', () => {
+  test('puts the beat before another, its comments with it, and reads back', () => {
+    const after = Result.getOrThrow(editOrder(THREE, 'end', Option.some('look')));
+    expect(ids(after)).toEqual(['cold', 'end', 'look']);
+    expect(after).toContain("// The open.\n  { id: 'cold'");
+    expect(after).toContain('// He looks.');
+    expect(Result.getOrThrow(orderMissed(after, THREE, 'end', Option.some('look')))).toEqual([]);
+  });
+
+  test('moves the first beat to the end and back again byte for byte', () => {
+    const moved = Result.getOrThrow(editOrder(THREE, 'cold', Option.none()));
+    expect(ids(moved)).toEqual(['look', 'end', 'cold']);
+    const back = Result.getOrThrow(editOrder(moved, 'cold', Option.some('look')));
+    expect(ids(back)).toEqual(['cold', 'look', 'end']);
+  });
+
+  test('says what a read-back misses, and refuses a beat it cannot name once', () => {
+    expect(Result.getOrThrow(orderMissed(THREE, THREE, 'end', Option.some('look')))).toEqual([
+      'the beats read cold, look, end, not cold, end, look',
+    ]);
+    const unknown = editOrder(THREE, 'nope', Option.none());
+    expect(Result.isFailure(unknown) && unknown.failure.reason).toContain('0 times');
+  });
+});
+
+describe('a hold of script.ts', () => {
+  test('replaces a number, adds a field, and takes one away', () => {
+    const longer = Result.getOrThrow(editHold(THREE, 'look', 'tail', Option.some(4.5)));
+    expect(longer).toContain('tail: 4.5,');
+    expect(Result.getOrThrow(holdMissed(longer, 'look', 'tail', Option.some(4.5)))).toEqual([]);
+    const led = Result.getOrThrow(editHold(THREE, 'cold', 'lead', Option.some(1)));
+    expect(Result.getOrThrow(holdMissed(led, 'cold', 'lead', Option.some(1)))).toEqual([]);
+    const gone = Result.getOrThrow(editHold(THREE, 'look', 'tail', Option.none()));
+    expect(gone).not.toContain('tail');
+    expect(Result.getOrThrow(holdMissed(gone, 'look', 'tail', Option.none()))).toEqual([]);
+    expect(Result.getOrThrow(holdMissed(gone, 'look', 'tail', Option.some(1.6)))).toEqual([
+      'beat "look" holds its tail as none, not 1.6',
+    ]);
+  });
+
+  test('refuses a hold the script computes', () => {
+    const computed = THREE.replace('tail: 1.6', 'tail: HOLD');
+    const refused = editHold(computed, 'look', 'tail', Option.some(2));
+    expect(Result.isFailure(refused) && refused.failure.reason).toContain('by no number');
   });
 });

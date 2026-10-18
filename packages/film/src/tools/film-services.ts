@@ -55,6 +55,7 @@ import { Mixer } from './mixer.ts';
 import { Narrator } from './narrator.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
+import { BeatEdits } from './beat-edits.ts';
 import { BoardStore } from './board-store.ts';
 import { PageRenderer } from './page-render.ts';
 import { PrivateStore } from './private-store.ts';
@@ -211,8 +212,11 @@ export const filmServices = (spec: FilmServicesSpec) => {
     Layer.provideMerge(Working.layer),
     Layer.provide(Asks),
   );
+  // The studio's edits of a version's script, judged on its timeline, written through the
+  // source writer the lab's other writes share, their work filed on the production's ledger.
+  const Edits = BeatEdits.layer.pipe(Layer.provideMerge(Timelines));
   // The Script reader's staging takes, over the studio's readings, the drafts and the narrator.
-  return Layer.mergeAll(ScriptVoices.layer, Asks, Timelines).pipe(
+  return Layer.mergeAll(ScriptVoices.layer, Asks, Edits).pipe(
     Layer.provideMerge(Layer.mergeAll(Choices.layer, StudioReadings.layer, Drafts)),
     // The review hears each option in the mix, and writes a pick through the source writer;
     // the lab's studio reads the film's script and voice fresh.

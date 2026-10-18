@@ -68,6 +68,8 @@ import { type CueWritten, SceneWriter } from './scene-writer.ts';
 import { type Follows, type Remade, SourceWriter, type Wrote } from './source-writer.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { stepsGroup, writeAnswer } from './steps-http.ts';
+import { editsGroup } from './edits-http.ts';
+import type { BeatEdits } from './beat-edits.ts';
 import { type StudioReadings, studioGroup } from './studio.ts';
 import type { Takes } from './takes.ts';
 import {
@@ -137,6 +139,14 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
         Effect.gen(function* () {
           const film = yield* filmNamed(params.film);
           return yield* (yield* NotesStore).resolve(film, params.id);
+        }),
+      ),
+    )
+    .handle('withdraw', ({ params }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          return yield* (yield* NotesStore).withdraw(film, params.id);
         }),
       ),
     )
@@ -643,7 +653,8 @@ export type LabContext =
   | Choices
   | LabPage
   | Easel
-  | FilmTimelines;
+  | FilmTimelines
+  | BeatEdits;
 
 /**
  * The lab's whole server as one web handler over the services the caller
@@ -665,6 +676,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         notesGroup,
         scenesGroup,
         stepsGroup,
+        editsGroup,
         talkGroup,
         Layer.provide(scriptGroup, Layer.succeedContext(reads)),
         seriesGroup,

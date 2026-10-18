@@ -39,7 +39,14 @@ const versions = [
 
 const scriptLane: Lane = {
   track: 'script',
-  clips: BEATS.map((b) => ({ ...made, beat: b.beat, start: b.start, dur: b.dur, marks: b.marks })),
+  clips: BEATS.map((b) => ({
+    ...made,
+    beat: b.beat,
+    start: b.start,
+    dur: b.dur,
+    marks: b.marks,
+    hold: { lead: 0.5, tail: 0.1, declared: [] },
+  })),
 };
 
 /** The card the probe's first beat cuts to from its `{fall}`: the line's words from there, `down` its payoff. */

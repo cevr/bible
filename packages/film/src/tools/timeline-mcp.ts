@@ -1,9 +1,14 @@
 // The lab MCP's studio tools (`lab-mcp.ts` serves them): a film's timeline
-// read as the studio page reads it (`timeline`, over `FilmTimelines`), and an
+// read as the studio page reads it (`timeline`, over `FilmTimelines`), an
 // agent's "doing now" line said on the studio's header (`working`, held in
-// the lab's memory by `Working`).
+// the lab's memory by `Working`), and the studio's edits of a version's
+// script (`beat_move`, `beat_hold`, and `undo` of the film's newest change),
+// made by `BeatEdits` as the page makes them: the owner and the agents step
+// one history.
 
 import { Duration, Effect, Layer, Option, Schema } from 'effect';
+import { ChangeId } from '../core/schema.ts';
+import { BeatEdits, type Edited } from './beat-edits.ts';
 import { McpServer, Tool, Toolkit } from 'effect/ai';
 import { onlyTracks } from '../core/film-timeline.ts';
 import { FilmTimeline, Track, WorkingLine } from '../core/timeline-schema.ts';
@@ -64,7 +69,80 @@ const WorkingTool = Tool.make('working', {
   failure: LabRefused,
 });
 
-const TimelineToolkit = Toolkit.make(TimelineTool, WorkingTool);
+/** An edit as an agent reads it: the change it made (the id `undo` takes), what it set, and what it says. */
+const EditRead = Schema.Struct({
+  change: Schema.optionalKey(ChangeId),
+  target: Schema.String,
+  said: Schema.String,
+});
+
+const VersionParam = Schema.optionalKey(
+  Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
+    description:
+      "The version whose script is edited, by its number (the production's open one when left out).",
+  }),
+);
+
+const ByParam = Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(80)).annotate({
+  description: 'Who you are: the work the edit files on the ledger names you.',
+});
+
+const BeatMoveTool = Tool.make('beat_move', {
+  description:
+    "Move a beat of a version's script before another beat, or to the end (`before` left out), as the studio's drag does: one write of the script's beats order through the lab's history (the owner's ⌘Z undoes it, and `undo` undoes his). Refused when the move is no move or would put an act or a score movement before the one declared ahead of it. The film follows on its next read (later beats, their Board panels, scenes and movements move with their beats); a film with a production gets \"re-time, re-check seams, re-render\" filed on its ledger while the move stands. Answers the change's id, what it set and what it says.",
+  parameters: Schema.Struct({
+    ...FilmParam.fields,
+    version: VersionParam,
+    beat: Schema.String.annotate({ description: 'The beat to move, by its id.' }),
+    before: Schema.optionalKey(
+      Schema.String.annotate({ description: 'The beat it goes before; the end when left out.' }),
+    ),
+    by: ByParam,
+  }),
+  success: EditRead,
+  failure: LabRefused,
+});
+
+const BeatHoldTool = Tool.make('beat_hold', {
+  description:
+    "Set a beat's hold, as the studio's trim of a clip's edge does: `lead` (the time before its words) or `tail` (the time after them) held `seconds`, snapped to 0.1 s and kept at or above its floor (lead 0.5 s, tail 0.1 s, or less when the beat already holds less); a tail on 0.1 s is the default and is written as none. One write of the script through the lab's history, filed on the ledger as `beat_move` is. Answers the change's id, what it set and what it says.",
+  parameters: Schema.Struct({
+    ...FilmParam.fields,
+    version: VersionParam,
+    beat: Schema.String.annotate({ description: 'The beat whose hold is set, by its id.' }),
+    edge: Schema.Literals(['lead', 'tail']),
+    seconds: Schema.Finite.annotate({ description: 'The hold, in seconds.' }),
+    by: ByParam,
+  }),
+  success: EditRead,
+  failure: LabRefused,
+});
+
+const UndoTool = Tool.make('undo', {
+  description:
+    "Undo the film's newest change in the lab's one history (the owner's edits on the studio page and the agents' alike), or, given `change` (an id an edit answered), that change only: refused when another change stands before it, so an older step is never undone past a newer one. Withdraws the work its edit filed on the ledger. Answers what it undid.",
+  parameters: Schema.Struct({
+    ...FilmParam.fields,
+    change: Schema.optionalKey(ChangeId),
+  }),
+  success: EditRead,
+  failure: LabRefused,
+});
+
+const TimelineToolkit = Toolkit.make(
+  TimelineTool,
+  WorkingTool,
+  BeatMoveTool,
+  BeatHoldTool,
+  UndoTool,
+);
+
+/** An edit as the tools answer it. */
+const editRead = (edited: Edited) => ({
+  ...Option.match(edited.change, { onNone: () => ({}), onSome: (c) => ({ change: c.id }) }),
+  target: edited.target,
+  said: edited.said,
+});
 
 /** What a line said with no words is refused with. */
 const NO_TEXT = LabRefused.make({
@@ -80,7 +158,52 @@ export const timelineMcp = (options: LabMcpOptions) =>
           const timelines = yield* FilmTimelines;
           const working = yield* Working;
           const films = yield* Effect.context<FilmFolder>();
+          const edits = yield* BeatEdits;
           return TimelineToolkit.of({
+            beat_move: logged('beat_move', ({ film, version, beat, before, by }) =>
+              refused(
+                Effect.map(
+                  edits.move({
+                    film,
+                    version: Option.fromUndefinedOr(version),
+                    beat,
+                    before: Option.fromUndefinedOr(before),
+                    by,
+                  }),
+                  editRead,
+                ),
+              ),
+            ),
+            beat_hold: logged('beat_hold', ({ film, version, beat, edge, seconds, by }) =>
+              refused(
+                Effect.map(
+                  edits.hold({
+                    film,
+                    version: Option.fromUndefinedOr(version),
+                    beat,
+                    edge,
+                    seconds,
+                    by,
+                  }),
+                  editRead,
+                ),
+              ),
+            ),
+            undo: logged('undo', ({ film, change }) =>
+              refused(
+                Effect.map(
+                  edits.step(
+                    'undo',
+                    film,
+                    Option.match(Option.fromUndefinedOr(change), {
+                      onNone: () => ({}),
+                      onSome: (c) => ({ change: c }),
+                    }),
+                  ),
+                  editRead,
+                ),
+              ),
+            ),
             timeline: logged('timeline', ({ film, version, tracks }) =>
               refused(
                 Effect.map(timelines.timeline(film, Option.fromUndefinedOr(version)), (read) => ({

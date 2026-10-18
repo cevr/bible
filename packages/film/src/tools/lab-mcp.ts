@@ -70,6 +70,7 @@ import type { Review } from './review.ts';
 import { SetRead, setsMcp, setsReads } from './sets-mcp.ts';
 import type { FilmTimelines } from './film-timeline.ts';
 import { timelineMcp } from './timeline-mcp.ts';
+import type { BeatEdits } from './beat-edits.ts';
 import type { Working } from './working.ts';
 
 /** Where the lab answers MCP. */
@@ -316,6 +317,7 @@ export type LabMcpNeeds =
   | Critic
   | FreshFilm
   | FilmTimelines
+  | BeatEdits
   | Working
   | FileSystem.FileSystem
   | Path.Path;

@@ -33,6 +33,12 @@
 // lock (`land`), so a narrate's sweep in another process, which takes it too,
 // never puts away a take an Undo is naming, and a refused one touches nothing.
 //
+// A change may file work for others where it lands (`Files`: the agents'
+// "re-time, re-check seams, re-render" on the production's ledger, for a
+// beat moved): filed once the write lands, withdrawn once its undo lands,
+// and filed again by its redo, so the work standing is always the work its
+// text asks for. A filing that fails is logged and leaves the text landed.
+//
 // Each change has an id no other has (`Change.id`), kept by its undo and its
 // redo. An Undo or a Redo asked for one change (a receipt's, by the id its
 // write answered) steps only that change: when another stands before it on
@@ -105,6 +111,16 @@ export interface Follows {
 }
 
 /**
+ * What a change files for others while it stands (the agents' work on the
+ * production's ledger): filed once it lands or its redo does, withdrawn
+ * once its undo does.
+ */
+export interface Files {
+  readonly file: Effect.Effect<void, StoreError>;
+  readonly withdraw: Effect.Effect<void, StoreError>;
+}
+
+/**
  * When what a remake made landed: the mtime its file took (the track a mix
  * renames into place, a new mtime each mix), so whoever hears that file
  * change can name this very landing and no later one. None when it landed
@@ -126,6 +142,8 @@ export interface Change {
   readonly after: string;
   /** What follows the text, which Undo and Redo keep in step with it; none for a text nothing follows. */
   readonly follows: Option.Option<Follows>;
+  /** What it files for others while it stands; none for a change that files nothing. */
+  readonly files: Option.Option<Files>;
 }
 
 /**
@@ -163,6 +181,8 @@ interface Rewrite<E, A = void> {
    * when nothing does.
    */
   readonly follows?: Follows;
+  /** What the change files for others while it stands (`Files`). */
+  readonly files?: Files;
 }
 
 export type RewriteError =
@@ -252,7 +272,7 @@ type StepVerb = 'undo' | 'redo';
 type Stepped = readonly [Change, Remade];
 
 /** Why a step did not land: nothing to take, not the change asked for, or the store. */
-type StepError = UndoUnavailable | RedoUnavailable | StepNotNewest | StoreError;
+export type StepError = UndoUnavailable | RedoUnavailable | StepNotNewest | StoreError;
 
 /** How many changes Undo can walk back, per film. Each holds its file's text before and after. */
 const UNDO_DEPTH = 50;
@@ -321,6 +341,7 @@ const STEPS = {
       after: c.before,
     }),
     changed: 'wrote',
+    files: 'withdraw',
     nothing: (film: string) => `the lab has made no change to ${film} to undo`,
     unavailable: (reason: string) => UndoUnavailable.make({ reason }),
   },
@@ -331,6 +352,7 @@ const STEPS = {
     to: (c: Change) => c.after,
     made: (c: Change): Change => ({ ...c, target: `redo ${c.target}` }),
     changed: 'undid',
+    files: 'file',
     nothing: (film: string) => `the lab has undone no change to ${film}`,
     unavailable: (reason: string) => RedoUnavailable.make({ reason }),
   },
@@ -458,6 +480,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               before,
               after,
               follows: Option.fromUndefinedOr(rewrite.follows),
+              files: Option.fromUndefinedOr(rewrite.files),
             };
             // Uninterruptible: the write may reload the page, which drops its
             // request; the file and the history must still agree once it lands.
@@ -466,6 +489,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 // Only over the very text the edit was made from.
                 yield* swap(rewrite.film, file, before, after, target);
                 yield* record(change, 'lab.write');
+                yield* filed(change, 'file');
                 // Made again from the text that landed, once the history names it.
                 const remade = yield* remake(change);
                 return [Option.some(change), checked, remade] as const;
@@ -515,6 +539,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 before,
                 after,
                 follows: Option.fromUndefinedOr(follows),
+                files: Option.none(),
               };
               yield* record(change, 'lab.write');
               return [done, Option.some(change)] as const;
@@ -536,6 +561,20 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                   ),
                 ),
               ),
+        });
+
+      /** What `c` files for others, filed (`file`) or withdrawn; a failure leaves the text landed, and is logged. */
+      const filed = (c: Change, way: keyof Files) =>
+        Option.match(c.files, {
+          onNone: () => Effect.void,
+          onSome: (files) =>
+            files[way].pipe(
+              Effect.catch((error) =>
+                Effect.logWarning(
+                  `lab.files.${way}.failed film=${c.film} target="${c.target}" reason=${error.message}`,
+                ),
+              ),
+            ),
         });
 
       /**
@@ -627,6 +666,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 yield* Effect.log(
                   `lab.${verb} film=${film}${sceneLog(c)} target="${c.target}" file=${shown(c)}`,
                 );
+                yield* filed(c, way.files);
                 const remade = yield* remake(c);
                 return [made, remade] as const;
               }),

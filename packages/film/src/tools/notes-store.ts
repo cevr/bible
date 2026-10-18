@@ -27,6 +27,7 @@ import {
   replyStill,
   replyToNote,
   resolveNote,
+  withdrawNote,
 } from '../core/notes.ts';
 import {
   type Note,
@@ -37,7 +38,7 @@ import {
   type NotesWait,
 } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { NoteNotFound } from '../core/refusals.ts';
+import { NoteAnswered, NoteNotFound } from '../core/refusals.ts';
 import type { FilmName } from './film-repo.ts';
 
 /** Where one film's notes live. A film is named by `filmNamed`, so no unchecked name reaches a path. */
@@ -72,6 +73,11 @@ interface NotesStoreService {
     reply: ReplyInput,
   ) => Effect.Effect<Note, NotesError | NoteNotFound>;
   readonly resolve: (film: FilmName, id: string) => Effect.Effect<Note, NotesError | NoteNotFound>;
+  /** Take back note `id` while it is unanswered (open, nothing in its thread): answers it as it was. */
+  readonly withdraw: (
+    film: FilmName,
+    id: string,
+  ) => Effect.Effect<Note, NotesError | NoteNotFound | NoteAnswered>;
   /**
    * The changes after `since`, as soon as there is one, or none once `timeout`
    * passes. A file reset below `since` (trashed or restored, even to an empty
@@ -193,6 +199,20 @@ export class NotesStore extends Context.Service<NotesStore, NotesStoreService>()
         return note;
       });
 
+      const withdraw = Effect.fn('NotesStore.withdraw')(function* (film: FilmName, id: string) {
+        const note = yield* store.transact(paths(film).notes, (current) =>
+          Effect.gen(function* () {
+            const was = yield* find(film, current, id);
+            const next = yield* Effect.fromOption(withdrawNote(current, id)).pipe(
+              Effect.mapError(() => NoteAnswered.make({ film, id, status: was.status })),
+            );
+            return [was, next] as const;
+          }),
+        );
+        yield* Effect.log(`notes.withdraw film=${film} id=${id}`);
+        return note;
+      });
+
       const wait = Effect.fn('NotesStore.wait')(function* (
         film: FilmName,
         since: number,
@@ -216,7 +236,7 @@ export class NotesStore extends Context.Service<NotesStore, NotesStoreService>()
         return Option.some(file);
       });
 
-      return NotesStore.of({ paths, read, add, reply, resolve, wait, still });
+      return NotesStore.of({ paths, read, add, reply, resolve, withdraw, wait, still });
     }),
   );
 }

@@ -113,6 +113,7 @@ import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
 import { FilmTimelines } from './film-timeline.ts';
+import { BeatEdits } from './beat-edits.ts';
 import { FreshFilm, type FreshFilmService, OptionsKept, SitesRead } from './fresh-film.ts';
 import { Working } from './working.ts';
 import { beatsOf, voicedOf } from './narrator.ts';
@@ -790,18 +791,25 @@ export const noScenes = Layer.mergeAll(
  * The scene source's services where a test calls none of its routes: the
  * lab's handler serves them too, so they only have to exist.
  */
-const noSource = Layer.mergeAll(
-  noScenes,
-  Layer.succeed(
-    SourceWriter,
-    SourceWriter.of({
-      write: () => unusedSource,
-      around: () => unusedSource,
-      step: () => unusedSource,
-      history: () => unusedSource,
-    }),
-  ),
+const noWrites = Layer.succeed(
+  SourceWriter,
+  SourceWriter.of({
+    write: () => unusedSource,
+    around: () => unusedSource,
+    step: () => unusedSource,
+    history: () => unusedSource,
+  }),
 );
+
+/** No film's source behind the lab: its scenes and its writer only have to exist. */
+const noSource = Layer.mergeAll(noScenes, noWrites);
+
+/**
+ * A real SourceWriter over a lab in memory (`labInMemory`'s `writes`), oxfmt
+ * leaving each text as it is (`formatAsIs`): the studio's edits land in the
+ * test's files and step back and on.
+ */
+export const writesInMemory = SourceWriter.layer.pipe(Layer.provide(formatAsIs));
 
 const unstaged = Effect.die('the staging takes are not called here');
 
@@ -1831,6 +1839,12 @@ interface LabInMemory {
   readonly mtimes?: ReadonlyMap<string, number>;
   /** The critic the lab's `critique` tool asks: none given, one that skips every critique (`noCritic`). */
   readonly critic?: Layer.Layer<Critic, never, FileSystem.FileSystem | Path.Path>;
+  /** What writes the films' source: none, unless given (`writesInMemory`). */
+  readonly writes?: Layer.Layer<
+    SourceWriter,
+    never,
+    FileSystem.FileSystem | Path.Path | FilmFolder | ContentStore
+  >;
 }
 
 /** A critic that skips every critique, as a counsel that cannot run does: the lab's tests that critique nothing. */
@@ -1850,14 +1864,22 @@ export const labInMemory = (
     mtimes = new Map(),
     asking = Layer.mergeAll(noStudio, noRenders),
     critic = noCritic,
+    writes = noWrites,
   }: LabInMemory = {},
-) => withTimelines(labStores(files, pages, { film, mtimes, asking, critic }));
+) => withTimelines(labStores(files, pages, { film, mtimes, asking, critic, writes }));
 
-/** `stores` with the films' timelines read over them (`FilmTimelines`), as the lab's handler reads them. */
+/**
+ * `stores` with the films' timelines read over them (`FilmTimelines`) and the
+ * studio's edits made on them (`BeatEdits`), as the lab's handler has them.
+ */
 export const withTimelines = <A, E, R>(stores: Layer.Layer<A, E, R>) =>
-  FilmTimelines.layer.pipe(
-    Layer.provide(RenderCatalogue.layer),
-    Layer.provideMerge(Working.layer),
+  BeatEdits.layer.pipe(
+    Layer.provideMerge(
+      FilmTimelines.layer.pipe(
+        Layer.provide(RenderCatalogue.layer),
+        Layer.provideMerge(Working.layer),
+      ),
+    ),
     Layer.provideMerge(stores),
   );
 
@@ -1865,10 +1887,11 @@ export const withTimelines = <A, E, R>(stores: Layer.Layer<A, E, R>) =>
 const labStores = (
   files: Map<string, Uint8Array>,
   pages: typeof echoPages,
-  { film, mtimes, asking, critic }: Required<LabInMemory>,
+  { film, mtimes, asking, critic, writes }: Required<LabInMemory>,
 ) =>
   Layer.mergeAll(
     critic,
+    writes.pipe(Layer.provide(FilmFolder.layer('/films'))),
     NotesStore.layer,
     ProductionStore.layer,
     BoardStore.layer.pipe(Layer.provide(FilmFolder.layer('/films'))),
@@ -1878,7 +1901,7 @@ const labStores = (
       Layer.provide(FilmFolder.layer('/films')),
     ),
     FilmFolder.layer('/films'),
-    noSource,
+    noScenes,
     noStudio,
     noReview,
     pages,
@@ -2280,6 +2303,7 @@ const reviewPickIn = (films: string): Change => ({
   before: "play: 'warm'",
   after: "play: 'bright'",
   follows: Option.none(),
+  files: Option.none(),
 });
 
 const reviewUnused = Effect.die('not used by the review routes');

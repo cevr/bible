@@ -4,6 +4,11 @@
       "id": "court",
       "start": 0,
       "dur": 9.16,
+      "hold": {
+        "lead": 0.5,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 0.5,
         "end": 9.06
@@ -33,6 +38,11 @@
       "id": "job",
       "start": 9.16,
       "dur": 5.37,
+      "hold": {
+        "lead": 0.5,
+        "tail": 1.4,
+        "declared": []
+      },
       "speech": {
         "start": 9.66,
         "end": 13.13

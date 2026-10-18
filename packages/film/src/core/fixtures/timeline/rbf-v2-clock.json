@@ -4,6 +4,11 @@
       "id": "cold",
       "start": 0,
       "dur": 25.19,
+      "hold": {
+        "lead": 0.5,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 0.5,
         "end": 25.09
@@ -61,6 +66,11 @@
       "id": "title",
       "start": 25.19,
       "dur": 3,
+      "hold": {
+        "lead": 0.5,
+        "tail": 2.5,
+        "declared": []
+      },
       "marks": [],
       "voice": "silent",
       "drawn": true
@@ -69,6 +79,11 @@
       "id": "word",
       "start": 28.19,
       "dur": 19.150000000000002,
+      "hold": {
+        "lead": 0.5,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 28.69,
         "end": 47.24
@@ -114,6 +129,11 @@
       "id": "mirror",
       "start": 47.34,
       "dur": 22.85,
+      "hold": {
+        "lead": 0.4,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 47.74,
         "end": 70.09
@@ -163,6 +183,11 @@
       "id": "message",
       "start": 70.19,
       "dur": 35.43,
+      "hold": {
+        "lead": 0.4,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 70.59,
         "end": 105.52000000000001
@@ -248,6 +273,11 @@
       "id": "roof",
       "start": 105.62,
       "dur": 41.98,
+      "hold": {
+        "lead": 0.4,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 106.02000000000001,
         "end": 147.5
@@ -313,6 +343,11 @@
       "id": "woman",
       "start": 147.6,
       "dur": 38.47,
+      "hold": {
+        "lead": 0.4,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 148,
         "end": 185.97
@@ -382,6 +417,11 @@
       "id": "spoke",
       "start": 186.07,
       "dur": 18.25,
+      "hold": {
+        "lead": 0.4,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 186.47,
         "end": 204.22
@@ -431,6 +471,11 @@
       "id": "centurion",
       "start": 204.32,
       "dur": 23.49,
+      "hold": {
+        "lead": 0.4,
+        "tail": 0.6,
+        "declared": []
+      },
       "speech": {
         "start": 204.72,
         "end": 227.21
@@ -480,6 +525,11 @@
       "id": "look",
       "start": 227.81,
       "dur": 25.41,
+      "hold": {
+        "lead": 0.5,
+        "tail": 2.8,
+        "declared": []
+      },
       "speech": {
         "start": 228.31,
         "end": 250.42000000000002
@@ -521,6 +571,11 @@
       "id": "declared",
       "start": 253.22,
       "dur": 24.12,
+      "hold": {
+        "lead": 0.5,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 253.72,
         "end": 277.24
@@ -578,6 +633,11 @@
       "id": "exchange",
       "start": 277.34,
       "dur": 24.58,
+      "hold": {
+        "lead": 0.4,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 277.73999999999995,
         "end": 301.81999999999994
@@ -623,6 +683,11 @@
       "id": "accuser",
       "start": 301.91999999999996,
       "dur": 26.57,
+      "hold": {
+        "lead": 0.4,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 302.31999999999994,
         "end": 328.38999999999993
@@ -676,6 +741,11 @@
       "id": "robe",
       "start": 328.48999999999995,
       "dur": 27.959999999999997,
+      "hold": {
+        "lead": 0.4,
+        "tail": 1.4,
+        "declared": []
+      },
       "speech": {
         "start": 328.88999999999993,
         "end": 355.04999999999995
@@ -741,6 +811,11 @@
       "id": "within",
       "start": 356.44999999999993,
       "dur": 26.19,
+      "hold": {
+        "lead": 0.5,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 356.94999999999993,
         "end": 382.5399999999999
@@ -794,6 +869,11 @@
       "id": "daily",
       "start": 382.63999999999993,
       "dur": 24.28,
+      "hold": {
+        "lead": 0.5,
+        "tail": 0.1,
+        "declared": []
+      },
       "speech": {
         "start": 383.13999999999993,
         "end": 406.81999999999994
@@ -839,6 +919,11 @@
       "id": "rain",
       "start": 406.91999999999996,
       "dur": 13.71,
+      "hold": {
+        "lead": 0.4,
+        "tail": 0.5,
+        "declared": []
+      },
       "speech": {
         "start": 407.31999999999994,
         "end": 420.12999999999994
@@ -868,6 +953,11 @@
       "id": "name",
       "start": 420.62999999999994,
       "dur": 24.95,
+      "hold": {
+        "lead": 0.4,
+        "tail": 2.0,
+        "declared": []
+      },
       "speech": {
         "start": 421.0299999999999,
         "end": 443.5799999999999
@@ -921,6 +1011,11 @@
       "id": "thesis",
       "start": 445.5799999999999,
       "dur": 30,
+      "hold": {
+        "lead": 0.5,
+        "tail": 27.54,
+        "declared": []
+      },
       "speech": {
         "start": 446.0799999999999,
         "end": 448.0399999999999
@@ -933,6 +1028,11 @@
       "id": "end",
       "start": 475.5799999999999,
       "dur": 30,
+      "hold": {
+        "lead": 0.5,
+        "tail": 29.5,
+        "declared": []
+      },
       "marks": [],
       "voice": "silent",
       "drawn": true

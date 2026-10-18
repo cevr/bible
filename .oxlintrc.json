@@ -217,8 +217,11 @@
       }
     },
     {
-      // Host adapters (the rule's exemption): the render's Worker spawn.
-      "files": ["**/packages/film/src/tools/page-render-bun.ts"],
+      // Host adapters (the rule's exemption): the render's Worker spawn, the lab's relaunch.
+      "files": [
+        "**/packages/film/src/tools/page-render-bun.ts",
+        "**/packages/film/src/tools/relaunch-bun.ts"
+      ],
       "rules": {
         "effect/noGlobals": "off"
       }

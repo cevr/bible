@@ -35,6 +35,7 @@ import {
   Match,
   Option,
   Order,
+  Predicate,
   Record,
   Result,
 } from 'effect';
@@ -141,6 +142,13 @@ export const filmClock = (
         id: p.spec.id,
         start: p.start,
         dur: p.dur,
+        hold: {
+          lead: p.speechStart,
+          tail: Math.max(0, p.dur - p.speechStart - p.voice.duration),
+          declared: (['lead', 'tail'] as const).filter((edge) =>
+            Predicate.isNotUndefined(p.spec[edge]),
+          ),
+        },
         ...Option.match(
           Option.liftPredicate(p.voice.duration, (d) => d > 0),
           {
@@ -307,6 +315,7 @@ const scriptLane = (clock: FilmClock, kept: boolean): ReadonlyArray<ScriptClip> 
       onSome: (speech) => ({ speech }),
     }),
     marks: b.marks,
+    hold: b.hold,
   }));
 
 /** Whether a panel is a card or a verse page the engine sets. */

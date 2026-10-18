@@ -167,6 +167,17 @@ export class MediaFailed extends Schema.TaggedError<MediaFailed>()('MediaFailed'
   }
 }
 
+/** A withdrawal of a note someone has answered (a reply in its thread) or done: it stands as the record of what was asked. */
+export class NoteAnswered extends Schema.TaggedError<NoteAnswered>()('NoteAnswered', {
+  film: Schema.String,
+  id: Schema.String,
+  status: Schema.String,
+}) {
+  override get message() {
+    return `film "${this.film}": note "${this.id}" is ${this.status}, so it stands; only an unanswered note is withdrawn`;
+  }
+}
+
 /** `film notes reply|resolve` named a note the film's lab does not have. */
 export class NoteNotFound extends Schema.TaggedError<NoteNotFound>()('NoteNotFound', {
   film: Schema.String,

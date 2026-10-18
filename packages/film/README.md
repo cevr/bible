@@ -1209,14 +1209,15 @@ The framework owns the routes (the lab API, below: `labHandler` in `lab.ts`,
 one web handler over NotesStore, the scene source, the studio, the review,
 the choices and the project, with the pages behind the same gate):
 
-| Route                                                 | What it does                                                         |
-| ----------------------------------------------------- | -------------------------------------------------------------------- |
-| `GET /api/films/<film>/notes`                         | the film's notes file; its `seq` is the cursor                       |
-| `POST /api/films/<film>/notes`                        | a new note: `NotePost`, a `NoteDraft` plus the frame as a base64 PNG |
-| `POST /api/films/<film>/notes/:id/reply`              | the user replies (`ReplyPost`); the note opens again                 |
-| `POST /api/films/<film>/notes/:id/resolve`            | resolves it (`{}`)                                                   |
-| `GET /api/films/<film>/notes/wait?since=<n>&timeout=` | the changes past cursor `n`, long-polled (at most 60 s)              |
-| `GET /api/films/<film>/stills/:name`                  | a still (`n3.png`, `n3.r5.png`); any other name is a 404             |
+| Route                                                 | What it does                                                           |
+| ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| `GET /api/films/<film>/notes`                         | the film's notes file; its `seq` is the cursor                         |
+| `POST /api/films/<film>/notes`                        | a new note: `NotePost`, a `NoteDraft` plus the frame as a base64 PNG   |
+| `POST /api/films/<film>/notes/:id/reply`              | the user replies (`ReplyPost`); the note opens again                   |
+| `POST /api/films/<film>/notes/:id/resolve`            | resolves it (`{}`)                                                     |
+| `POST /api/films/<film>/notes/:id/withdraw`           | takes it back while it is unanswered (`{}`); else a 409 `NoteAnswered` |
+| `GET /api/films/<film>/notes/wait?since=<n>&timeout=` | the changes past cursor `n`, long-polled (at most 60 s)                |
+| `GET /api/films/<film>/stills/:name`                  | a still (`n3.png`, `n3.r5.png`); any other name is a 404               |
 
 A bad body is a 400, an unknown note a 404 `NoteNotFound`, an unknown still
 a 404 `StillUnknown`, and every failure is logged.
@@ -2423,18 +2424,21 @@ rule, the address bar's dismissal (`addressOn(host).dismiss`, told by
 the entry before it is where the Close would write, so a time moved since is
 kept; else the URL follows to pick none).
 
-| Route                                              | What it does                                                                                                                                                                                                                                  |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`, and the `line` that writes each cue and knob                                                                                                |
-| `GET /api/films/<film>/scenes/:scene/code`         | the scene file's text now and, as `[start, end)` ranges of it, where each cue and knob is written and every call that reads a cue, a knob or a mark by name, and why a field lists none (`SceneCode`; read-only, the Source view's lit spans) |
-| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `untilOffset?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                                           |
-| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                                                                                                                     |
-| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`)                  |
-| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                                   |
-| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                                                                                                                              |
-| `GET /api/films/<film>/talk`                       | a talk's words (`TalkWords`): each section in play order, its take, every word from its first to its last with its text, whether the cut strikes it, when it is heard, and the section's marks; a film with no `talk.ts` a 422                |
-| `POST /api/films/<film>/talk/cut`, `/restore`      | `{ section, from, to }`: strike those words from the section's cut, or play them again, as one write of `talk.ts` judged by the cut (`LabWrite`; an edit the cut refuses a 422)                                                               |
-| `POST /api/films/<film>/talk/mark`                 | `{ section, word, name }`: mark that played word, as one write of `talk.ts` judged by the cut (`LabWrite`); a name the talk's decode would drop (`MarkName`) a 422, the mark read back from the talk decoded                                  |
+| Route                                              | What it does                                                                                                                                                                                                                                                    |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`, and the `line` that writes each cue and knob                                                                                                                  |
+| `GET /api/films/<film>/scenes/:scene/code`         | the scene file's text now and, as `[start, end)` ranges of it, where each cue and knob is written and every call that reads a cue, a knob or a mark by name, and why a field lists none (`SceneCode`; read-only, the Source view's lit spans)                   |
+| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `untilOffset?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                                                             |
+| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                                                                                                                                       |
+| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`)                                    |
+| `POST /api/films/<film>/beats/move`                | `{ version?, beat, before? }`: the beat moved before `before` (to the end when none) in the version's `script.ts`, one write through the history; a move that breaks the acts or the movements a 422 (`StudioEdit`: the change, its words, the steps, no check) |
+| `POST /api/films/<film>/beats/hold`                | `{ version?, beat, edge, seconds }`: the beat's `lead` or `tail` held, snapped to 0.1 s and kept at its floor, one write through the history (`StudioEdit`)                                                                                                     |
+| `POST /api/films/<film>/edits/undo`, `/redo`       | Undo and Redo as `/undo` and `/redo` do them, answered at once with the owner's words and the steps (`StudioEdit`), no check                                                                                                                                    |
+| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                                                     |
+| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                                                                                                                                                |
+| `GET /api/films/<film>/talk`                       | a talk's words (`TalkWords`): each section in play order, its take, every word from its first to its last with its text, whether the cut strikes it, when it is heard, and the section's marks; a film with no `talk.ts` a 422                                  |
+| `POST /api/films/<film>/talk/cut`, `/restore`      | `{ section, from, to }`: strike those words from the section's cut, or play them again, as one write of `talk.ts` judged by the cut (`LabWrite`; an edit the cut refuses a 422)                                                                                 |
+| `POST /api/films/<film>/talk/mark`                 | `{ section, word, name }`: mark that played word, as one write of `talk.ts` judged by the cut (`LabWrite`); a name the talk's decode would drop (`MarkName`) a 422, the mark read back from the talk decoded                                                    |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.

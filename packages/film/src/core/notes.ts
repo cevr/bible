@@ -188,6 +188,17 @@ export const replyToNote = (
 export const resolveNote = (file: NotesFile, id: string): NotesFile =>
   change(file, id, (note) => ({ ...note, status: 'resolved' }));
 
+/**
+ * Note `id` withdrawn as the next change: taken out of the file (its still
+ * stays on disk, named by no note). Only while it is unanswered: open, with
+ * nothing in its thread; else none. The caller checks that the note exists.
+ */
+export const withdrawNote = (file: NotesFile, id: string): Option.Option<NotesFile> =>
+  Option.map(
+    Arr.findFirst(file.notes, (n) => n.id === id && n.status === 'open' && n.thread.length === 0),
+    () => ({ ...file, seq: file.seq + 1, notes: file.notes.filter((n) => n.id !== id) }),
+  );
+
 /** Where to report from: `since`, or the start of a file reset below it. */
 const reportFrom = (file: NotesFile, since: number) => {
   if (file.seq < since) return 0;

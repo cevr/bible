@@ -243,6 +243,8 @@ describe('the lab as an MCP server', () => {
         const listed = yield* call('tools/list', {});
         expect(listed.tools.map((t: { name: string }) => t.name).toSorted()).toEqual(
           [
+            'beat_hold',
+            'beat_move',
             'board',
             'catalogue',
             'changes',
@@ -270,6 +272,7 @@ describe('the lab as an MCP server', () => {
             'match',
             'critique',
             'timeline',
+            'undo',
             'working',
           ].toSorted(),
         );

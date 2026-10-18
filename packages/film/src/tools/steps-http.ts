@@ -91,7 +91,7 @@ const stepped = (name: string, verb: 'undo' | 'redo', ask: StepAsk) =>
  * The film's latest change, what Undo and Redo would do, each named by its
  * file and target, and the steps that landed under a request's id, when any did.
  */
-const history = Effect.fn('lab.history')(function* (film: FilmName) {
+export const history = Effect.fn('lab.history')(function* (film: FilmName) {
   const relative = yield* relativeTo(film);
   const kept = yield* (yield* SourceWriter).history(film);
   const change = (c: Change) => changeNamed(relative, c);

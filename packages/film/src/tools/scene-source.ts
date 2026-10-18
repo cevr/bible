@@ -95,7 +95,7 @@ type TimingKey = keyof CuePatch;
  * rule `writtenPatch` applies to a cue write, so a cue's numbers come here
  * already rounded and print as judged.
  */
-const numberText = (v: number) => String(toMs(v));
+export const numberText = (v: number) => String(toMs(v));
 
 /** A single-quoted string literal. */
 export const stringText = (v: string) => `'${v.replace(/[\\']/g, (c) => `\\${c}`)}'`;
@@ -750,7 +750,7 @@ const replaceEnd = (
  * properties, or a property and its object's brace, which holds blanks,
  * comments and at most that one comma.
  */
-const commaBetween = (source: string, from: number, to: number): Option.Option<number> => {
+export const commaBetween = (source: string, from: number, to: number): Option.Option<number> => {
   let i = from;
   while (i < to) {
     if (source.charAt(i) === ',') return Option.some(i);
@@ -796,7 +796,7 @@ const onlySpace = (source: string, from: number, to: number) =>
  * it to its neighbour (the one after it, else the one before it), and
  * nothing else: a comment about it, or about a neighbour, stays.
  */
-const removal = (
+export const removal = (
   source: string,
   span: ObjectExpression,
   p: ObjectProperty,

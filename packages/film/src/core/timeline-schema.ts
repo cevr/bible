@@ -16,10 +16,22 @@ export type BeatVoice = typeof BeatVoice.Type;
 const TimedMark = Schema.Struct({ name: Schema.String, at: Schema.Finite });
 
 /** One beat on the clock: where it sits, where its words are heard, its marks, its voice and whether a scene draws it. */
+/**
+ * A beat's holds as laid out: the seconds before its words (`lead`) and
+ * after them to its end (`tail`), and which of them its script declares
+ * (the rest are the layout's defaults).
+ */
+const BeatHold = Schema.Struct({
+  lead: Schema.Finite,
+  tail: Schema.Finite,
+  declared: Schema.Array(Schema.Literals(['lead', 'tail'])),
+});
+
 const ClockBeat = Schema.Struct({
   id: Schema.String,
   start: Schema.Finite,
   dur: Schema.Finite,
+  hold: BeatHold,
   /** Where its words are heard, film seconds; none for a silent beat. */
   speech: Schema.optionalKey(Schema.Struct({ start: Schema.Finite, end: Schema.Finite })),
   /** Its `{mark}`s, film seconds. */
@@ -115,6 +127,8 @@ const ScriptClip = Schema.Struct({
   beat: Schema.String,
   speech: Schema.optionalKey(Schema.Struct({ start: Schema.Finite, end: Schema.Finite })),
   marks: Schema.Array(TimedMark),
+  /** Its holds, which a trim of its edges sets. */
+  hold: BeatHold,
 });
 export type ScriptClip = typeof ScriptClip.Type;
 

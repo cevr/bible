@@ -93,6 +93,7 @@ import {
   FreshProcessFailed,
   HeadUnavailable,
   MediaFailed,
+  NoteAnswered,
   NoteNotFound,
   AskRefused,
   AskUnknown,
@@ -222,6 +223,7 @@ const status = HttpApiSchema.status;
  */
 const Refusals = [
   NoteNotFound.pipe(status(404)),
+  NoteAnswered.pipe(status(409)),
   AskUnknown.pipe(status(404)),
   SceneNotLocated.pipe(status(404)),
   HeadUnavailable.pipe(status(404)),
@@ -347,6 +349,42 @@ export const Steps = Schema.Struct({
   landed: CheckReport.fields.landed,
 });
 export type Steps = typeof Steps.Type;
+
+/**
+ * `POST /api/films/<film>/beats/move`: beat `beat` of version `version` (the
+ * open one when none) moved before beat `before` (to the end when none).
+ */
+const BeatMovePost = Schema.Struct({
+  version: Schema.optionalKey(Schema.Int),
+  beat: Schema.String,
+  before: Schema.optionalKey(Schema.String),
+});
+
+/**
+ * `POST /api/films/<film>/beats/hold`: beat `beat`'s hold at `edge` (`lead`,
+ * before its words; `tail`, after them) set to `seconds`, snapped to a tenth
+ * and kept inside its floors.
+ */
+const BeatHoldPost = Schema.Struct({
+  version: Schema.optionalKey(Schema.Int),
+  beat: Schema.String,
+  edge: Schema.Literals(['lead', 'tail']),
+  seconds: Schema.Finite,
+});
+
+/**
+ * A studio edit as it answers (a move, a hold, an Undo or a Redo of one):
+ * the change it made (none when the script was already so), what it set,
+ * what it says to the owner (a receipt's words), and what Undo and Redo
+ * would step now. No check runs: the agents re-check what it leaves.
+ */
+export const StudioEdit = Schema.Struct({
+  change: Schema.optionalKey(ChangeId),
+  target: Schema.String,
+  said: Schema.String,
+  steps: Steps,
+});
+export type StudioEdit = typeof StudioEdit.Type;
 
 /** A word of a take, by its index into the take's transcript (`core/talk.ts`). */
 const TalkWordIndex = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
@@ -615,6 +653,13 @@ class NotesGroup extends HttpApiGroup.make('notes').add(
     success: Note,
     error: Refusals,
   }),
+  /** The note taken back while it is unanswered (a receipt's Undo): answers the note as it was. */
+  HttpApiEndpoint.post('withdraw', `${FILM}/notes/:id/withdraw`, {
+    params: { ...film, id: Schema.String },
+    payload: NoBody,
+    success: Note,
+    error: Refusals,
+  }),
   /** The changes past `since`, held open up to `timeout` s (`WaitTimeout`). */
   HttpApiEndpoint.get('wait', `${FILM}/notes/wait`, {
     params: film,
@@ -685,6 +730,34 @@ class StepsGroup extends HttpApiGroup.make('steps').add(
   HttpApiEndpoint.get('steps', `${FILM}/steps`, {
     params: film,
     success: Steps,
+    error: Refusals,
+  }),
+) {}
+
+/** The studio's edits of a version's script (a beat moved, a hold set), and Undo and Redo of the film's newest change, without the check. */
+class EditsGroup extends HttpApiGroup.make('edits').add(
+  HttpApiEndpoint.post('move', `${FILM}/beats/move`, {
+    params: film,
+    payload: BeatMovePost,
+    success: StudioEdit,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('hold', `${FILM}/beats/hold`, {
+    params: film,
+    payload: BeatHoldPost,
+    success: StudioEdit,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('undo', `${FILM}/edits/undo`, {
+    params: film,
+    payload: StepRequest,
+    success: StudioEdit,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.post('redo', `${FILM}/edits/redo`, {
+    params: film,
+    payload: StepRequest,
+    success: StudioEdit,
     error: Refusals,
   }),
 ) {}
@@ -1147,6 +1220,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(NotesGroup)
   .add(ScenesGroup)
   .add(StepsGroup)
+  .add(EditsGroup)
   .add(TalkGroup)
   .add(ScriptGroup)
   .add(SeriesGroup)

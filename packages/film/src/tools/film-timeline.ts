@@ -34,7 +34,7 @@ import { ProductionStore } from './production-store.ts';
 import { Working } from './working.ts';
 
 /** Why a timeline does not read: the film or the version is not there, or a source does not read. */
-type TimelineError =
+export type TimelineError =
   | FilmUnknown
   | FilmVersionUnknown
   | FilmVersionUnkept
