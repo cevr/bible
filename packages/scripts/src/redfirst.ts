@@ -18,7 +18,10 @@
 // its old one; a changed test file it does not run (a browser tier, a
 // deleted file) is named with why. Exits non-zero when git or the install
 // exits non-zero, or a test run writes no junit report: a report printed
-// is one every step of which ran.
+// is one every step of which ran. Each run carries a probe case beside the
+// package's files, so a run none of whose files loads on the base (a new
+// test of a new module) still writes its report, and those files are named
+// red whole.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
@@ -114,6 +117,15 @@ const packageOf = Effect.fn('redfirst.packageOf')(function* (root: string, file:
   return '';
 });
 
+/**
+ * The probe run beside each package's files: one case that always loads, for
+ * Bun writes no report when no file of a run loads.
+ */
+const PROBE = {
+  file: 'redfirst-probe.test.ts',
+  text: "import { test } from 'bun:test';\n\ntest('probe', () => {});\n",
+};
+
 /** The cases of `files` (repo paths in the package `prefix` names) run in `tree`. */
 const casesIn = Effect.fn('redfirst.casesIn')(function* (
   tree: string,
@@ -122,7 +134,10 @@ const casesIn = Effect.fn('redfirst.casesIn')(function* (
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const report = path.join(yield* fs.makeTempDirectoryScoped({ prefix: 'redfirst-' }), 'junit.xml');
+  const scratch = yield* fs.makeTempDirectoryScoped({ prefix: 'redfirst-' });
+  const report = path.join(scratch, 'junit.xml');
+  const probe = path.join(scratch, PROBE.file);
+  yield* fs.writeFileString(probe, PROBE.text);
   const relative = files.map((file) => file.slice(prefix.length));
   const args = [
     'test',
@@ -131,13 +146,15 @@ const casesIn = Effect.fn('redfirst.casesIn')(function* (
     '--reporter=junit',
     `--reporter-outfile=${report}`,
     ...relative,
+    probe,
   ];
   const ran = yield* exec('bun', args, path.join(tree, prefix));
-  // A run exits 1 on a red case; it ran only if it wrote its report.
+  // A run exits 1 on a red case, a file that does not load among them; with
+  // the probe beside them, it ran only if it wrote its report.
   const junit = yield* Effect.option(fs.readFileString(report));
   if (ran.code > 1 || Option.isNone(junit))
     return yield* failed('bun', args, ran.code, `${ran.stderr}${ran.stdout}`.slice(-4000));
-  return casesOf(junit.value, prefix);
+  return casesOf(junit.value, prefix).filter((c) => !c.file.endsWith(PROBE.file));
 });
 
 /** Every case of `files` run in `tree`, package by package. */
