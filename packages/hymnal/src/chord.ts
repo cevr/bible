@@ -73,7 +73,13 @@ const INTERVALS: Table = [
 const READINGS: Table = COMPLETE.filter(([quality]) => !quality.includes('sus'));
 
 const mod12 = (n: number) => ((n % 12) + 12) % 12;
-const setKey = (pcs: Iterable<number>) => [...new Set(pcs)].sort((a, b) => a - b).join(',');
+
+/** A set of pitch classes as twelve bits, bit n for pitch class n: equal sets, equal masks. */
+const maskOf = (pitches: Iterable<number>, above = 0) => {
+  let mask = 0;
+  for (const pitch of pitches) mask |= 1 << mod12(above + pitch);
+  return mask;
+};
 
 /**
  * Names the chord four voices sound: pitch classes (0 = C) and the lowest,
@@ -94,11 +100,11 @@ const named = (
   table: Table,
 ): Chord | undefined => {
   const pcs = [...new Set([...pitchClasses].map(mod12))];
-  const key = setKey(pcs);
+  const key = maskOf(pcs);
   const roots = [mod12(bass), ...pcs.filter((pc) => pc !== mod12(bass))];
   for (const root of roots) {
     for (const [quality, intervals] of table) {
-      if (setKey(intervals.map((i) => root + i).map(mod12)) !== key) continue;
+      if (maskOf(intervals, root) !== key) continue;
       const chord: Chord = { root: mod12(root - tonic), quality };
       return root === mod12(bass) ? chord : { ...chord, bass: mod12(bass - tonic) };
     }

@@ -31,12 +31,14 @@ interface Sampled extends Span {
  * chord sounding.
  */
 const sample = (score: Score, from: number, to: number): Sampled[] => {
+  // The notes sounding at some point in [from, to), in the score's order.
+  const near = score.harmony.filter((note) => note.start < to && note.end > from);
   const onsets = [
-    ...new Set([from, ...score.harmony.map((n) => n.start).filter((t) => t > from && t < to)]),
+    ...new Set([from, ...near.map((n) => n.start).filter((t) => t > from && t < to)]),
   ].sort((a, b) => a - b);
   const spans: Sampled[] = [];
   onsets.forEach((tick, i) => {
-    const sounding = score.harmony.filter((note) => note.start <= tick && note.end > tick);
+    const sounding = near.filter((note) => note.start <= tick && note.end > tick);
     const end = onsets[i + 1] ?? to;
     if (sounding.length === 0) return;
     const last = spans.at(-1);

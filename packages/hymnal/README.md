@@ -159,7 +159,8 @@ here (owner, 2026-10-18). Most tests build their MIDI in code
 (`src/midi-fixture.ts`); `src/score.test.ts` reads three files that carry no
 key signature (6, 162, 663). `src/fidelity.test.ts` compiles every hymn
 fresh from hymnal.db, `data/fixes` and its MIDI file, as `bun run compile`
-does, and checks that `sung` gives exactly the printed lines in the order the
+does (in four workers, `src/fidelity-worker.ts`, so the compiles share the
+cores), and checks that `sung` gives exactly the printed lines in the order the
 hymnal sings them: each stanza's lines, and the refrain where
 `refrains.json` places it (a fix's varying refrain after each stanza),
 compared word for word with case and punctuation set aside. It builds the

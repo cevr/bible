@@ -1,7 +1,7 @@
 /**
  * Text fidelity, the class property: every hymn 1-695, compiled fresh from
- * its hymnal.db row and its MIDI file (the source the compile script builds),
- * sings exactly its printed text in the order the hymnal sings it, line for
+ * its hymnal.db row and its MIDI file (the source the compile script builds,
+ * compiled in `fidelity-worker.ts` off this thread), sings exactly its printed text in the order the hymnal sings it, line for
  * line: nothing missing, nothing extra, nothing moved. A line is compared as
  * the golden compares a syllable: case and punctuation ignored (each word's
  * letters and digits, the words in order).
@@ -19,12 +19,22 @@
 
 import { HymnalService, HymnId } from '@bible/core/hymnal';
 import { layerHymnalBun } from '@bible/core/hymnal/bun';
+import { BunWorker } from '@effect/platform-bun';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Array as Arr, ConfigProvider, Effect, FileSystem, Layer, Result, Schema } from 'effect';
+import {
+  Array as Arr,
+  Cause,
+  ConfigProvider,
+  Deferred,
+  Effect,
+  FileSystem,
+  Layer,
+  Result,
+  Schema,
+} from 'effect';
+import * as Worker from 'effect/workers/Worker';
 import { describe, expect, it } from 'effect-bun-test';
 
-import { decodeOrders, sourceOf } from '../scripts/sources.js';
-import { compile } from './compile.js';
 import { type Hymn, type Part, sung } from './hymn.js';
 
 const data = (file: string) => new URL(`../data/${file}`, import.meta.url).pathname;
@@ -194,7 +204,7 @@ interface Compiled {
   readonly hymn: Result.Result<Hymn, string>;
 }
 
-/** Where each listed refrain is sung: read by the oracle's own schema, and as the compile script reads it. */
+/** Where each listed refrain is sung, read by the oracle's own schema. */
 const orders = Effect.runSync(
   Effect.cached(
     Effect.gen(function* () {
@@ -202,10 +212,90 @@ const orders = Effect.runSync(
         data('fixes/refrains.json'),
       );
       const listed = yield* Schema.decodeEffect(Refrains)(text);
-      return {
-        printed: new Map(listed.hymns.map((hymn) => [hymn.number, hymn.order])),
-        source: yield* decodeOrders(text),
-      };
+      return { printed: new Map(listed.hymns.map((hymn) => [hymn.number, hymn.order])) };
+    }),
+  ),
+);
+
+const ALL = Arr.range(1, 695);
+
+/** One hymn compiled, or why it failed: what `fidelity-worker.ts` sends. */
+type Done =
+  | { readonly number: number; readonly hymn: Hymn }
+  | { readonly number: number; readonly failure: string };
+
+/** The workers that compile the hymns: a few, so the compiles share the cores. */
+const WORKERS = 4;
+
+const workers = BunWorker.layer(
+  // oxlint-disable-next-line effect/noGlobals -- the host's Worker, spawned only through Effect's BunWorker
+  () => new globalThis.Worker(new URL('./fidelity-worker.ts', import.meta.url)),
+);
+
+/**
+ * Worker k compiles `numbers` and settles each one's place in `waiting` as
+ * it is sent, then closes; a worker that fails settles every place it has
+ * left with why.
+ */
+const compileIn = (
+  k: number,
+  numbers: readonly number[],
+  waiting: ReadonlyMap<number, Deferred.Deferred<Hymn, string>>,
+) =>
+  Effect.gen(function* () {
+    const worker = yield* (yield* Worker.WorkerPlatform).spawn<Done, readonly number[]>(k);
+    const over = yield* Deferred.make<void>();
+    const settled = new Set<number>();
+    const settle = (done: Done) =>
+      Effect.gen(function* () {
+        const place = waiting.get(done.number);
+        if (place !== undefined)
+          yield* 'hymn' in done
+            ? Deferred.succeed(place, done.hymn)
+            : Deferred.fail(place, done.failure);
+        settled.add(done.number);
+        if (settled.size === numbers.length) yield* Deferred.succeed(over, undefined);
+      });
+    yield* worker.send(numbers);
+    yield* Effect.raceFirst(worker.run(settle), Deferred.await(over));
+  }).pipe(
+    Effect.catchCause((cause) =>
+      Effect.forEach(
+        numbers,
+        (n) => {
+          const place = waiting.get(n);
+          return place === undefined
+            ? Effect.void
+            : Deferred.fail(place, `worker ${k} stopped: ${Cause.pretty(cause)}`);
+        },
+        { discard: true },
+      ),
+    ),
+  );
+
+/**
+ * Each hymn's compile, as a place `fidelity-worker.ts` settles. The workers
+ * start on the first hymn asked for, in a runtime of their own (a test's
+ * clock is not theirs); worker k takes every WORKERS-th hymn from the k-th,
+ * so each chunk's hymns are done early.
+ */
+const compiles = Effect.runSync(
+  Effect.cached(
+    Effect.sync(() => {
+      const waiting = new Map(ALL.map((n) => [n, Deferred.makeUnsafe<Hymn, string>()]));
+      Effect.runFork(
+        Effect.forEach(
+          Arr.range(0, WORKERS - 1),
+          (k) =>
+            compileIn(
+              k,
+              ALL.filter((_, i) => i % WORKERS === k),
+              waiting,
+            ),
+          { concurrency: WORKERS, discard: true },
+        ).pipe(Effect.provide(workers)),
+      );
+      return waiting;
     }),
   ),
 );
@@ -216,20 +306,15 @@ const memo = new Map<number, Compiled>();
 const compileOne = (n: number) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const { printed: order, source } = yield* orders;
-    const name = String(n).padStart(3, '0');
+    const { printed: order } = yield* orders;
     const row = yield* (yield* HymnalService).getHymn(HymnId.make(n));
-    const fix = data(`fixes/${name}.json`);
+    const fix = data(`fixes/${String(n).padStart(3, '0')}.json`);
     const printed = (yield* fs.exists(fix))
       ? yield* fromPrint(yield* fs.readFileString(fix), order.get(n))
       : fromRow(row.verses, order.get(n));
-    const midi = yield* fs.readFile(data(`midi/${name}.mid`));
-    const result = yield* Effect.result(
-      sourceOf({ number: n, name: row.name, verses: row.verses }, midi, source).pipe(
-        Effect.flatMap(compile),
-      ),
-    );
-    const hymn = Result.mapError(result, (error) => `compile failed: ${error._tag}`);
+    const place = (yield* compiles).get(n);
+    if (place === undefined) return yield* Effect.die(`no worker compiles hymn ${n}`);
+    const hymn = yield* Effect.result(Deferred.await(place));
     const one: Compiled = { number: n, printed, hymn };
     memo.set(n, one);
     return one;
@@ -241,8 +326,6 @@ const compiledOf = (numbers: readonly number[]) =>
     const known = memo.get(n);
     return known === undefined ? compileOne(n) : Effect.succeed(known);
   });
-
-const ALL = Arr.range(1, 695);
 
 /** The hymns whose sung lines are not their printed lines in sung order, each with its first difference. */
 const unfaithful = (hymns: readonly Compiled[]): string[] =>
