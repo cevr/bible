@@ -90,6 +90,49 @@ describe("the studio's edit machine", () => {
     }).pipe(Effect.scoped);
   });
 
+  it.effect(
+    'a trim let go where it began asks nothing, also from a hold the timeline lays off the 0.1 s grid',
+    () => {
+      const asked: Array<StudioAsk> = [];
+      return Effect.gen(function* () {
+        const actor = yield* spawnEdit(lab(asked));
+        // RBF's thesis lays its tail at 26.67 under its min; most of its beats lay a tail of
+        // 0.1 with float noise. Each is pulled along no time, or out and back, then let go.
+        for (const from of [26.67, 0.10000000000000142, 1.6000000000000014]) {
+          yield* actor.send(EditEvent.Grip({ beat: 'thesis', edge: 'tail', from }));
+          yield* actor.send(EditEvent.Let);
+          yield* actor.waitFor((s) => s._tag === 'Idle');
+          yield* actor.send(EditEvent.Grip({ beat: 'thesis', edge: 'tail', from }));
+          yield* actor.send(EditEvent.Pull({ to: from }));
+          const held = yield* actor.waitFor((s) => s._tag === 'Trimming' && s.from === from);
+          // A trim at its start shows the hold as it stood: nothing moved.
+          expect(previewOf(held)).toEqual(
+            Option.some({ _tag: 'Hold', beat: 'thesis', edge: 'tail', from, to: from }),
+          );
+          yield* actor.send(EditEvent.Pull({ to: from + 2 }));
+          yield* actor.send(EditEvent.Pull({ to: from + 0.02 }));
+          yield* actor.send(EditEvent.Let);
+          yield* actor.waitFor((s) => s._tag === 'Idle');
+        }
+        expect(asked).toEqual([]);
+      }).pipe(Effect.scoped);
+    },
+  );
+
+  it.effect('a trim from an off-grid hold asks the hold let go, on the grid', () => {
+    const asked: Array<StudioAsk> = [];
+    return Effect.gen(function* () {
+      const actor = yield* spawnEdit(lab(asked));
+      yield* actor.send(EditEvent.Grip({ beat: 'thesis', edge: 'tail', from: 26.67 }));
+      yield* actor.send(EditEvent.Pull({ to: 27.71 }));
+      yield* actor.send(EditEvent.Let);
+      yield* actor.waitFor((s) => s._tag === 'Landed');
+      expect(asked).toEqual([
+        { _tag: 'Hold', beat: 'thesis', edge: 'tail', from: 26.67, seconds: 27.7 },
+      ]);
+    }).pipe(Effect.scoped);
+  });
+
   it.effect('takes one write at a time, and says why one was refused', () => {
     const asked: Array<StudioAsk> = [];
     return Effect.gen(function* () {

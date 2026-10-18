@@ -1,8 +1,9 @@
 // The studio's one edit in flight, as a machine: a Script clip lifted and
 // carried over the gaps between the beats (a drop on a gap that moves it is
 // a move, any other is none), a clip's edge gripped and pulled (its hold
-// snapped and kept inside its floors as it is pulled; let go anywhere but
-// where it began is a hold), and an ask from a key, a menu or a receipt (a
+// snapped and kept inside its floors as it is pulled, from its start: the
+// hold as it stood, on the 0.1 s grid; let go anywhere but its start is a
+// hold), and an ask from a key, a menu or a receipt (a
 // move before a beat picked, an Undo or a Redo of the film's history). One
 // write at a time: an ask while one is on its way, or while the version
 // is read again after one landed, is not taken, and a press then lifts
@@ -11,8 +12,8 @@
 //
 //   Idle | Done | Failed ─Lift→ Dragging ─Over→ Dragging ─Drop (a gap that moves it)→ Sending{Move}
 //                                         ─Drop (no move) | Cancel→ Idle
-//   Idle | Done | Failed ─Grip→ Trimming ─Pull→ Trimming ─Let (moved)→ Sending{Hold}
-//                                         ─Let (where it began) | Cancel→ Idle
+//   Idle | Done | Failed ─Grip→ Trimming ─Pull→ Trimming ─Let (off its start)→ Sending{Hold}
+//                                         ─Let (on its start) | Cancel→ Idle
 //   Idle | Done | Failed ─Ask→ Sending
 //   Sending ─Landed (a change)→ Landed ─Read→ Done
 //   Sending ─Landed (nothing changed)→ Done ; Sending ─Refused→ Failed
@@ -23,7 +24,7 @@
 // `ripple.ts`. Nothing here touches the DOM or the lab: the
 // write is the provider's effect, faked in tests.
 
-import { Effect, Match, Option, Predicate, Schema } from 'effect';
+import { Boolean as Bool, Effect, Match, Option, Predicate, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { StudioEdit } from '../../core/api.ts';
 import { beforeGap, dropMoves, heldWithin } from '../../core/beat-edit.ts';
@@ -58,8 +59,18 @@ export const EditState = State({
     ids: Schema.Array(Schema.String),
     gap: Schema.Option(Schema.Int),
   },
-  /** Beat `beat`'s `edge` gripped: its hold `from` as it stood, `to` as it is pulled. */
-  Trimming: { beat: Schema.String, edge: Edge, from: Schema.Finite, to: Schema.Finite },
+  /**
+   * Beat `beat`'s `edge` gripped: its hold `from` as the timeline lays it,
+   * `start` that hold as a trim writes it (on the grid, `heldWithin`), and
+   * `to` as it is pulled.
+   */
+  Trimming: {
+    beat: Schema.String,
+    edge: Edge,
+    from: Schema.Finite,
+    start: Schema.Finite,
+    to: Schema.Finite,
+  },
   /** `ask` is on its way. */
   Sending: { ask: StudioAsk },
   /** `ask` was written: what the lab answered, shown until the version is read again. */
@@ -116,15 +127,22 @@ const editMachine = <R>(send: (ask: StudioAsk) => Effect.Effect<StudioEdit, stri
         },
       ),
     )
-    .on(READY, EditEvent.Grip, ({ event }) =>
-      EditState.Trimming({ beat: event.beat, edge: event.edge, from: event.from, to: event.from }),
-    )
+    .on(READY, EditEvent.Grip, ({ event }) => {
+      const start = heldWithin(event.edge, event.from, event.from);
+      return EditState.Trimming({
+        beat: event.beat,
+        edge: event.edge,
+        from: event.from,
+        start,
+        to: start,
+      });
+    })
     .on(EditState.Trimming, EditEvent.Pull, ({ state, event }) =>
       EditState.Trimming({ ...state, to: heldWithin(state.edge, event.to, state.from) }),
     )
     .on(EditState.Trimming, EditEvent.Let, ({ state }) =>
       Option.match(
-        Option.liftPredicate(state, (s) => s.to !== s.from),
+        Option.liftPredicate(state, (s) => s.to !== s.start),
         {
           onNone: (): EditState => EditState.Idle,
           onSome: (s) =>
@@ -192,8 +210,15 @@ export const previewOf = (state: EditState): Option.Option<Preview> =>
     Match.tagsExhaustive({
       Idle: () => Option.none<Preview>(),
       Dragging: () => Option.none<Preview>(),
+      // At its start a trim shows the hold as it stood: nothing moved.
       Trimming: (t): Option.Option<Preview> =>
-        Option.some({ _tag: 'Hold', beat: t.beat, edge: t.edge, from: t.from, to: t.to }),
+        Option.some({
+          _tag: 'Hold',
+          beat: t.beat,
+          edge: t.edge,
+          from: t.from,
+          to: Bool.match(t.to === t.start, { onTrue: () => t.from, onFalse: () => t.to }),
+        }),
       Sending: (s) => askPreview(s.ask),
       Landed: (l) => askPreview(l.ask),
       Done: () => Option.none<Preview>(),

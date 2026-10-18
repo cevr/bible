@@ -123,6 +123,8 @@ interface StudioState {
   readonly reading: Accessor<boolean>;
   /** Why the timeline could not be read. */
   readonly why: Accessor<string>;
+  /** Why the version shown could not be read again after a write, when it could not. */
+  readonly missed: Accessor<Option.Option<string>>;
   /** Whether reading again can change why it could not be read (the lab did not answer, or failed). */
   readonly retryable: Accessor<boolean>;
   /** The version the page reads or shows (0: the open one). */
@@ -766,6 +768,11 @@ const Body = (
         Match.value(read()).pipe(
           Match.tag('Unreadable', (u) => u.why),
           Match.orElse(() => ''),
+        ),
+      missed: () =>
+        Match.value(read()).pipe(
+          Match.tag('Shown', (s) => Option.fromUndefinedOr(s.missed)),
+          Match.orElse(() => Option.none<string>()),
         ),
       retryable: () =>
         Match.value(read()).pipe(

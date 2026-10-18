@@ -374,6 +374,19 @@ describe('beat_hold on a beat a hold cannot change', () => {
             expect(tail.target).toBe('hold thesis tail');
             const words = led.speech.end - led.speech.start;
             expect((yield* thesis()).dur).toBeCloseTo(2 + words + 27, 3);
+            // Back to 1 s, its min takes some of the change: the receipt says what plays.
+            const back = yield* tool('beat_hold', {
+              film: 'f',
+              beat: 'thesis',
+              edge: 'tail',
+              seconds: 1,
+              by: 'painter',
+            });
+            const plays = (28 - 2 - words - 27).toFixed(1);
+            expect(back.said).toBe(
+              `Held thesis −${plays.replace('-', '')} s after its words. Agents re-time and re-check.`,
+            );
+            expect((yield* thesis()).dur).toBe(28);
           }),
         LIKE_RBF,
       ),

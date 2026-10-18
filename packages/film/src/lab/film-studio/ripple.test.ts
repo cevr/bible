@@ -172,6 +172,34 @@ describe('a hold laid by the layout’s own rule', () => {
     expect(beats(hold('thesis', 'lead', 2))).toEqual(beats(written('thesis', 'lead', 2)));
     expect(beats(hold('cold', 'lead', 2))).toEqual(beats(written('cold', 'lead', 2)));
   });
+
+  test('a lead pulled from none moves the words that began on the beat’s start', () => {
+    const none = laidOut(
+      specs.map((x) =>
+        Option.getOrElse(
+          Option.map(
+            Option.liftPredicate(x, (y) => y.id === 'cold'),
+            (y) => ({ ...y, lead: 0 }),
+          ),
+          () => x,
+        ),
+      ),
+    );
+    const cold = Option.getOrThrow(
+      Option.fromUndefinedOr(scriptOf(none).find((b) => b.beat === 'cold')),
+    );
+    const held = rippled(none, {
+      _tag: 'Hold',
+      beat: 'cold',
+      edge: 'lead',
+      from: cold.hold.lead,
+      to: 4.6,
+    });
+    expect(beats(held)).toEqual(beats(written('cold', 'lead', 4.6)));
+    expect(scriptOf(held)[0]?.marks.map((m) => onTheMs(m.at))).toEqual(
+      scriptOf(written('cold', 'lead', 4.6))[0]?.marks.map((m) => onTheMs(m.at)),
+    );
+  });
 });
 
 describe('the playhead through an edit', () => {

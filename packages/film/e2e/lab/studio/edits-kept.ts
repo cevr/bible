@@ -48,6 +48,7 @@ import {
   madeBy,
   refused,
   route,
+  text,
 } from '../../../src/lab/fixtures/harness.ts';
 import { probeTimeline } from '../../../src/lab/fixtures/probe-timeline.ts';
 import { holdTarget, moveTarget } from '../../../src/tools/script-source.ts';
@@ -265,14 +266,18 @@ const held =
 /**
  * The lab's edit routes over the first version, and the case's hands on
  * them: `now` the timeline as the lab reads it, `agent` a hold an agent
- * makes through its tool (a change on the same history), and `holdReads`
- * the timeline's reads held until the effect it answers runs.
+ * makes through its tool (a change on the same history), `holdReads`
+ * the timeline's reads held until the effect it answers runs (`holdHistory`
+ * the history's), and `failReads` the timeline's reads failed from then on
+ * (the lab answers 503).
  */
 export const editsLab = () => {
   let done: ReadonlyArray<Change> = [];
   let undone: ReadonlyArray<Change> = [];
   let made = 0;
   let gate = Option.none<Deferred.Deferred<void>>();
+  let failing = false;
+  let history = Option.none<Deferred.Deferred<void>>();
   const now = (): FilmTimeline => timelineOf(done.reduce((s, c) => c.apply(s), FIRST));
   const stepOf = (c: Change) => ({ file: 'v1/script.ts', target: c.target, change: c.id });
   const steps = () => ({
@@ -357,10 +362,14 @@ export const editsLab = () => {
   };
   const routes: ReadonlyArray<FakeRoute> = [
     route('GET', /^\/timeline(\?|$)/, () => {
+      if (failing) return text('the lab is starting', 503);
       const read = madeBy(Effect.sync(() => json(now())));
       return Option.match(gate, { onNone: () => read, onSome: (g) => later(g, read) });
     }),
-    route('GET', /^\/steps$/, () => json(steps())),
+    route('GET', /^\/steps$/, () => {
+      const read = madeBy(Effect.sync(() => json(steps())));
+      return Option.match(history, { onNone: () => read, onSome: (g) => later(g, read) });
+    }),
     route('POST', /^\/beats\/move$/, (asked) => {
       const sent = sentOf(asked.body);
       const beat = sent.beat ?? '';
@@ -384,6 +393,17 @@ export const editsLab = () => {
     /** An agent holds `beat`'s `edge` through its tool: a change on the same history, which the page does not see. */
     agent: (beat: string, edge: HoldEdge, seconds: number) =>
       Effect.sync(() => land(...hold(beat, edge, seconds)).id),
+    /** The history's reads held from now; the effect answered lets them land. */
+    holdHistory: Effect.map(Deferred.make<void>(), (g) => {
+      history = Option.some(g);
+      return Effect.sync(() => {
+        history = Option.none();
+      }).pipe(Effect.andThen(Deferred.done(g, Exit.void)), Effect.asVoid);
+    }),
+    /** The timeline's reads failed from now. */
+    failReads: Effect.sync(() => {
+      failing = true;
+    }),
     /** The timeline's reads held from now; the effect answered lets them land. */
     holdReads: Effect.map(Deferred.make<void>(), (g) => {
       gate = Option.some(g);

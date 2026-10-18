@@ -767,7 +767,11 @@ const ScriptTrack = (props: { readonly clips: ReadonlyArray<ScriptClip> }) => {
       ),
     );
   };
-  /** A press on beat `beat`'s `edge`: pulled, its hold follows; let go, it is set. */
+  /**
+   * A press on beat `beat`'s `edge`: pulled past a tap's reach along time
+   * (`DRAG_PX`), its hold follows; let go, it is set. A press that never
+   * goes that far is a tap, and sets nothing.
+   */
   const pull = (beat: string, edge: 'lead' | 'tail') => (e: PointerEvent) => {
     // The edge is the clip's: its press is never the clip's carry.
     e.stopPropagation();
@@ -777,9 +781,13 @@ const ScriptTrack = (props: { readonly clips: ReadonlyArray<ScriptClip> }) => {
       Pointer.use((pointer) =>
         pointer.press(e, pulls, () => {
           editing.actions.grip(beat, edge);
+          let pulling = false;
           return Option.some({
-            move: (ev: PointerEvent) =>
-              editing.actions.pull((ev.clientX - e.clientX) / untrack(scale.perSecond)),
+            move: (ev: PointerEvent) => {
+              if (!pulling && Math.abs(ev.clientX - e.clientX) < DRAG_PX) return;
+              pulling = true;
+              editing.actions.pull((ev.clientX - e.clientX) / untrack(scale.perSecond));
+            },
             end: (up: Option.Option<PointerEvent>) => {
               carried.set();
               Option.match(up, {

@@ -75,7 +75,7 @@ const EditRead = Schema.Struct({
   change: Schema.optionalKey(ChangeId),
   target: Schema.String,
   said: Schema.String,
-  /** A hold's: the seams into and out of its beat as the version reads after it, seconds from one beat's words to the next's. */
+  /** A hold's: the seams into and out of its beat as the version reads after it, seconds from the end of one beat's take to the next's words (a take that ends in silence is heard as a longer pause). */
   seams: Schema.optionalKey(
     Schema.Array(Schema.Struct({ from: Schema.String, to: Schema.String, seconds: Schema.Finite })),
   ),
@@ -110,7 +110,7 @@ const BeatMoveTool = Tool.make('beat_move', {
 
 const BeatHoldTool = Tool.make('beat_hold', {
   description:
-    "Set a beat's hold, as the studio's trim of a clip's edge does: `lead` (the time before its words) or `tail` (the time after them) held `seconds`, snapped to 0.1 s and kept at or above its floor (lead 0.5 s, tail 0.1 s, or less when the beat already holds less); a tail on 0.1 s is the default and is written as none. Refused when it would change nothing the film plays: a beat with no words, or a tail its `min` absorbs. One write of the script through the lab's history, filed on the ledger as `beat_move` is. Answers the change's id, what it set, what it says, and the seams into and out of the beat as the version reads after it.",
+    "Set a beat's hold, as the studio's trim of a clip's edge does: `lead` (the time before its words) or `tail` (the time after them) held `seconds`, snapped to 0.1 s and kept at or above its floor (lead 0.5 s, tail 0.1 s, or less when the beat already holds less); a tail on 0.1 s is the default and is written as none. Refused when it would change nothing the film plays: a beat with no words, or a tail its `min` absorbs. One write of the script through the lab's history, filed on the ledger as `beat_move` is. Answers the change's id, what it set, what it says, and the seams into and out of the beat as the version reads after it, each from the end of a beat's take to the next beat's words (`film check` measures a seam from the last word heard).",
   parameters: Schema.Struct({
     ...FilmParam.fields,
     version: VersionParam,

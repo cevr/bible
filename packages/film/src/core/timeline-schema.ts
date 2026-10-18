@@ -15,13 +15,11 @@ export type BeatVoice = typeof BeatVoice.Type;
 /** A named moment, in film seconds. */
 const TimedMark = Schema.Struct({ name: Schema.String, at: Schema.Finite });
 
-/** One beat on the clock: where it sits, where its words are heard, its marks, its voice and whether a scene draws it. */
 /**
  * A beat's holds as laid out: the seconds before its words (`lead`) and
- * after them to its end (`tail`), and which of them its script declares
- * (the rest are the layout's defaults).
+ * after them to its end (`tail`), which of them its script declares (the
+ * rest are the layout's defaults), and what its tail asks and its `min`.
  */
-/** A beat's holds as the layout laid them. */
 const BeatHold = Schema.Struct({
   /** Seconds before its words: 0 for a silent beat. */
   lead: Schema.Finite,
@@ -36,6 +34,7 @@ const BeatHold = Schema.Struct({
 });
 export type BeatHold = typeof BeatHold.Type;
 
+/** One beat on the clock: where it sits, where its words are heard, its marks, its voice and whether a scene draws it. */
 const ClockBeat = Schema.Struct({
   id: Schema.String,
   start: Schema.Finite,

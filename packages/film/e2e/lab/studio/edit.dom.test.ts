@@ -9,9 +9,11 @@
 // a note, and the receipt's Withdraw takes it back; a beat's menu files a
 // split at the playhead for an agent, the page writing nothing to the film.
 // A ⌘Z refused because an agent's change stands on top reads the history
-// again, and the next ⌘Z undoes the agent's change. A trim right after a
+// again, and the next ⌘Z, pressed while it is read, waits for it and undoes
+// the agent's change. A trim right after a
 // landed write, or right after a reorder, waits for the version's read and
-// starts from it: its readout and its receipt agree. The lab's routes are
+// starts from it: its readout and its receipt agree; a write whose version
+// cannot be read again says so on its receipt. The lab's routes are
 // faked (`edits-kept.ts`) over the version's script, its timeline laid again
 // from the script each change leaves; every wait is on what the page shows,
 // never on time.
@@ -341,6 +343,43 @@ describe('the studio’s edits on a laptop', () => {
 
 describe('the studio’s edits beside an agent’s, and in the read’s window', () => {
   it.live(
+    'a grip pressed and let go within a tap’s reach, or pulled out and back, writes nothing',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* studioAt(DESK, V1, editsKept());
+        const grip = `${clip('one')} .st-grip[data-edge="tail"]`;
+        const at = yield* middleOf(page, grip);
+        // 1 px, and 5 px (under DRAG_PX, 6): a tap, whatever a pixel is worth on the clock.
+        // The readout says the hold as it stood.
+        for (const px of [1, 5]) {
+          yield* page.mouse.move(at.x, at.y);
+          yield* page.mouse.down;
+          yield* page.mouse.move(at.x + px, at.y, 2);
+          yield* textHas(page, '[data-role="trim-readout"]', 'hold +0.0 s');
+          yield* page.mouse.up;
+          yield* countIs(page, '[data-role="trim-readout"]', 0);
+        }
+        // Out past a tap and back to where it began: the hold it started from.
+        yield* page.mouse.move(at.x, at.y);
+        yield* page.mouse.down;
+        yield* page.mouse.move(at.x + 60, at.y, 6);
+        yield* waitFor(page, '[data-role="trim-readout"]');
+        yield* page.mouse.move(at.x, at.y, 6);
+        yield* textHas(page, '[data-role="trim-readout"]', 'hold +0.0 s');
+        yield* page.mouse.up;
+        yield* countIs(page, '[data-role="trim-readout"]', 0);
+        // A pull that sets a hold after them: it is the one hold asked.
+        yield* pull(page, 'one', 'tail', 3, 'hold +3.0 s · 7.7 s long');
+        yield* textHas(page, RECEIPT, `Held one +3.0 s after its words. ${AGENTS_AFTER}`);
+        expect(posted(asked, '/beats/hold')).toEqual([
+          Option.some({ version: 1, beat: 'one', edge: 'tail', seconds: 3.1 }),
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a ⌘Z refused under an agent's newer change reads the history again, and the next ⌘Z undoes the agent's",
     () =>
       Effect.gen(function* () {
@@ -350,9 +389,13 @@ describe('the studio’s edits beside an agent’s, and in the read’s window',
         yield* textHas(page, RECEIPT, 'Moved three before two.');
         // An agent holds one through its tool: the page's history still names the move.
         const agents = yield* lab.agent('one', 'tail', 1.1);
+        // The history read again after the refusal is held: a ⌘Z pressed in its window waits for it.
+        const release = yield* lab.holdHistory;
         yield* page.press('Control+z');
         yield* textHas(page, RECEIPT, 'hold one tail came after it');
         yield* page.press('Control+z');
+        yield* textHas(page, RECEIPT, 'Reading the film’s history…');
+        yield* release;
         yield* textHas(page, RECEIPT, 'Undone: Held one +1.0 s after its words.');
         expect(posted(asked, '/edits/undo')).toEqual([
           Option.some({ change: 'c1' }),
@@ -397,6 +440,26 @@ describe('the studio’s edits beside an agent’s, and in the read’s window',
           Option.some({ version: 1, beat: 'one', edge: 'tail', seconds: 4.1 }),
         ]);
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a write whose version cannot be read again says so on its receipt, which keeps its Undo',
+    () =>
+      Effect.gen(function* () {
+        const lab = editsLab();
+        const { page, asked } = yield* studioAt(DESK, V1, lab.routes);
+        yield* lab.failReads;
+        yield* pull(page, 'one', 'tail', 3, 'hold +3.0 s · 7.7 s long');
+        yield* textHas(page, RECEIPT, 'Held one +3.0 s after its words.');
+        yield* textHas(page, RECEIPT, 'The page could not read it again');
+        yield* countIs(page, RECEIPT_BUTTON, 1);
+        // The clip shows the beat from before the write, as the receipt says.
+        yield* attributeIs(page, clip('one'), 'title', /–0:04\.7$/);
+        expect(posted(asked, '/beats/hold')).toEqual([
+          Option.some({ version: 1, beat: 'one', edge: 'tail', seconds: 3.1 }),
+        ]);
       }).pipe(Effect.scoped),
     SLOW,
   );

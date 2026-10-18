@@ -10,10 +10,9 @@
 // of the version's timeline as the lab reads it now (`FilmTimelines`) kept in
 // their declared order. A hold starts from each beat's holds as laid out
 // (`heldWithin`), and one that would change nothing the film plays is
-// refused (`holdUnchanged`). The rest
-// of the film follows the script on its next read: every later beat, its
-// Board panels, its scene and the movements that start on it play where the
-// new order and holds lay them.
+// refused (`holdUnchanged`). The rest of the film follows the script on its
+// next read: every later beat, its Board panels, its scene and the movements
+// that start on it play where the new order and holds lay them.
 //
 // An edit of a film with a production files the agents' work on its ledger
 // ("re-time, re-check seams, re-render") while it stands: once it lands, and
@@ -26,6 +25,7 @@ import {
   type HoldEdge,
   type MovedBefore,
   heldAlready,
+  heldTo,
   heldWithin,
   heldWords,
   holdUnchanged,
@@ -327,7 +327,8 @@ export class BeatEdits extends Context.Service<BeatEdits, BeatEditsService>()(
             file,
             beat: ask.beat,
             target,
-            said: heldWords(ask.beat, ask.edge, now, value),
+            // What plays: a min may take some of a tail's change.
+            said: heldWords(ask.beat, ask.edge, now, heldTo(clip, ask.edge, value).hold[ask.edge]),
             already: heldAlready(ask.beat, ask.edge, value),
             by: ask.by,
           },

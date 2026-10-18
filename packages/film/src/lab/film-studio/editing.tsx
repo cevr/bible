@@ -56,7 +56,7 @@ import { type Steps, type StudioEdit } from '../../core/api.ts';
 import { trimReadout } from '../../core/beat-edit.ts';
 import type { NoteDraft, NoteBox } from '../../core/schema.ts';
 import type { SketchItem } from '../../core/sketch.ts';
-import { FILM_FPS } from '../../core/time.ts';
+import { FILM_FPS, onTheMs } from '../../core/time.ts';
 import type { FilmTimeline, ScriptClip } from '../../core/timeline-schema.ts';
 import { Actor } from '../actor.tsx';
 import { registerWhile } from '../command/changes.ts';
@@ -275,21 +275,46 @@ const Body = (
   );
 
   // The film's history as the lab has it now: a refused Undo or Redo reads it again, so the
-  // next one names the newest step.
-  const historyAgain = () =>
+  // next one names the newest step. A ⌘Z or ⇧⌘Z pressed while it is read waits for it
+  // (`afterHistory`), and then steps the newest.
+  let readingHistory = false;
+  let afterHistory = Option.none<StepVerb>();
+  const historyAgain = () => {
+    readingHistory = true;
     Effect.runForkWith(meta.host)(
       LabClient.use((client) => called(client.steps.steps({ params: { film: meta.film } }))).pipe(
-        Effect.match({ onSuccess: props.setSteps, onFailure: () => {} }),
+        Effect.match({
+          onSuccess: (steps) => {
+            props.setSteps(steps);
+            return Option.some(steps);
+          },
+          onFailure: () => Option.none<Steps>(),
+        }),
+        // The steps as read, not the signal's: a signal set here reads its old value until it flushes.
+        Effect.map((read) => {
+          readingHistory = false;
+          const waiting = afterHistory;
+          afterHistory = Option.none();
+          Option.map(
+            Option.filter(waiting, () => atRest(untrack(edit))),
+            (verb) =>
+              stepNewest(
+                verb,
+                Option.orElse(read, () => untrack(props.steps)),
+              ),
+          );
+        }),
         Effect.provide(meta.client),
       ),
     );
+  };
 
   // The timeline a landed write was answered over, and whether its read has begun since.
   let over = Option.none<FilmTimeline>();
   let reread = false;
 
-  /** A landed write's receipt, its Undo or Redo bound to its change. */
-  const receipt = (ask: StudioAsk, answer: StudioEdit) => {
+  /** A landed write's receipt, its Undo or Redo bound to its change; `after`, said after its words. */
+  const receipt = (ask: StudioAsk, answer: StudioEdit, after = '') => {
     props.setSteps(stepsOf(answer));
     const undoing = Match.value(ask).pipe(
       Match.tag('Step', (st) =>
@@ -302,7 +327,7 @@ const Body = (
     );
     meta.hub.announce(
       said(
-        answer.said,
+        `${answer.said}${after}`,
         Option.map(Option.fromUndefinedOr(answer.change), (change) => ({
           command: undoing,
           bound: { film: meta.film, change },
@@ -371,18 +396,27 @@ const Body = (
 
   // The read that holds a landed write, once it has begun and ended: the playhead back on its
   // moment, the edit at rest, and a version the staged film draws loaded again there so the
-  // film plays the new order. A read that failed keeps the timeline shown, and the edit rests.
+  // film plays the new order. A read that failed keeps the timeline shown, the receipt says
+  // so (the clips show the film from before the write), and the edit rests.
   createEffect(
     () => ({ landed: edit()._tag === 'Landed', reading: studio.reading() }),
     (now) =>
       untrack(() => {
-        if (!now.landed) return;
+        const landed = edit();
+        if (landed._tag !== 'Landed') return;
         if (now.reading) {
           reread = true;
           return;
         }
         if (!reread) return;
         reread = false;
+        Option.map(studio.missed(), (why) =>
+          receipt(
+            landed.ask,
+            landed.answer,
+            ` The page could not read it again (${why}): the timeline shows the film from before it.`,
+          ),
+        );
         const shown = studio.timeline();
         Option.map(
           Option.filter(shown, (t) => Option.exists(over, (was) => was !== t)),
@@ -411,6 +445,19 @@ const Body = (
     },
   );
 
+  /** The newest step of `verb` in `steps`, asked once the history read again has landed. */
+  const stepNewest = (verb: StepVerb, steps: Option.Option<Steps>) =>
+    send(
+      EditEvent.Ask({
+        ask: StudioAsk.cases.Step.make({
+          verb,
+          change: Option.map(
+            Option.flatMap(steps, (s) => Option.fromUndefinedOr(s[verb])),
+            (s) => s.change,
+          ),
+        }),
+      }),
+    );
   const top = (verb: StepVerb) =>
     Option.flatMap(props.steps(), (s) => Option.fromUndefinedOr(s[verb]));
   const notNow = (): Option.Option<string> =>
@@ -435,14 +482,17 @@ const Body = (
         Option.match(notNow(), {
           onSome: (why) => refused(`${label} not taken: ${why}`),
           onNone: () => {
+            const bound = Option.flatMap(Option.fromUndefinedOr(how.bound), boundChange);
+            // A key's step while the history is read again waits to step the newest.
+            if (Option.isNone(bound) && readingHistory) {
+              afterHistory = Option.some(verb);
+              return busy('Reading the film’s history…');
+            }
             send(
               EditEvent.Ask({
                 ask: StudioAsk.cases.Step.make({
                   verb,
-                  change: Option.orElse(
-                    Option.flatMap(Option.fromUndefinedOr(how.bound), boundChange),
-                    () => Option.map(top(verb), (s) => s.change),
-                  ),
+                  change: Option.orElse(bound, () => Option.map(top(verb), (s) => s.change)),
                 }),
               }),
             );
@@ -778,8 +828,9 @@ const Body = (
             Option.map(beatOf(t.beat), (b) => ({
               beat: t.beat,
               edge: t.edge,
-              // The beat as the lanes lay it with the trim: the layout's own length.
-              text: trimReadout(t.to - t.from, b.dur),
+              // The beat as the lanes lay it with the trim, by the layout's own rule: the hold
+              // it plays (a min may take some of a tail's change) and its length.
+              text: trimReadout(onTheMs(b.hold[t.edge] - t.from), b.dur),
             })),
           ),
           Match.orElse(() => Option.none<TrimReadout>()),

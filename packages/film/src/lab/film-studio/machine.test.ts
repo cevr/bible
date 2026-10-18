@@ -2,12 +2,14 @@
 // version the address names, reads again when the owner opens another, keeps
 // what it shows when the same version is asked again, and says why a read
 // failed until a retry (of a failure that can pass) or another version
-// reads again; a Refresh while it reads again starts that read again. A read answers for
+// reads again; a Refresh while it reads again starts that read again, and an answer to
+// the read it started again is not shown; a read again that fails keeps the timeline
+// shown and says why. A read answers for
 // its own version: one the owner left while it was in flight never shows,
 // whether he picked another or went Back. The transport machine
 // plays and pauses, and a scrub holds it, remembering whether it cut play off.
 
-import { Boolean as Bool, Deferred, Effect, Exit, Option, SubscriptionRef } from 'effect';
+import { Boolean as Bool, Deferred, Effect, Exit, Match, Option, SubscriptionRef } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { probeTimeline } from '../fixtures/probe-timeline.ts';
 import {
@@ -123,7 +125,9 @@ describe("the studio's timeline machine", () => {
       yield* actor.waitFor(shownAt(1));
       yield* actor.send(TimelineEvent.Refresh);
       const refreshing = yield* actor.waitFor((s) => s._tag === 'Refreshing');
-      expect(refreshing).toEqual(TimelineState.Refreshing({ v: 1, timeline: probeTimeline(1) }));
+      expect(refreshing).toEqual(
+        TimelineState.Refreshing({ v: 1, timeline: probeTimeline(1), n: 1 }),
+      );
       yield* actor.waitFor((s) => s._tag === 'Shown' && asked.length === 2);
       expect(asked).toEqual([1, 1]);
     }).pipe(Effect.scoped);
@@ -152,6 +156,41 @@ describe("the studio's timeline machine", () => {
     }).pipe(Effect.scoped);
   });
 
+  it.effect('a read again that answered before a second write landed is not shown', () => {
+    let reads = 0;
+    const third = Deferred.makeUnsafe<void>();
+    // Read 2 (after the first write) answers through the event below; read 3 (after the
+    // second) is held until that answer is in.
+    const read = (_v: number) =>
+      Effect.suspend(() => {
+        reads += 1;
+        const n = reads;
+        const timeline = { ...probeTimeline(1), duration: n };
+        return Match.value(n).pipe(
+          Match.when(2, () => Effect.never),
+          Match.when(3, () => Effect.as(Deferred.await(third), timeline)),
+          Match.orElse(() => Effect.succeed(timeline)),
+        );
+      });
+    return Effect.gen(function* () {
+      const actor = yield* spawnTimeline(read, 1);
+      yield* actor.waitFor(shownAt(1));
+      yield* actor.send(TimelineEvent.Refresh);
+      yield* actor.waitFor((s) => s._tag === 'Refreshing' && reads === 2);
+      // The second write's Refresh, then read 2's answer, queued before the Refresh started
+      // read 3 (the answer and the write met in one turn).
+      yield* actor.send(TimelineEvent.Refresh);
+      yield* actor.send(
+        TimelineEvent.Read({ v: 1, timeline: { ...probeTimeline(1), duration: 2 }, n: 1 }),
+      );
+      yield* actor.waitFor((s) => s._tag === 'Refreshing' && reads === 3);
+      expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Refreshing');
+      yield* Deferred.done(third, Exit.void);
+      const shown = yield* actor.waitFor(shownAt(1));
+      expect(shown._tag === 'Shown' && shown.timeline.duration).toBe(3);
+    }).pipe(Effect.scoped);
+  });
+
   it.effect(
     'keeps the timeline shown when a Refresh cannot read, and goes to another version asked',
     () => {
@@ -172,7 +211,11 @@ describe("the studio's timeline machine", () => {
         yield* actor.send(TimelineEvent.Refresh);
         yield* actor.waitFor((s) => s._tag === 'Shown' && asked.length === 2);
         expect(yield* SubscriptionRef.get(actor.state)).toEqual(
-          TimelineState.Shown({ v: 1, timeline: probeTimeline(1) }),
+          TimelineState.Shown({
+            v: 1,
+            timeline: probeTimeline(1),
+            missed: 'the lab did not answer',
+          }),
         );
         yield* actor.send(TimelineEvent.Refresh);
         yield* actor.send(TimelineEvent.Version({ v: 2 }));

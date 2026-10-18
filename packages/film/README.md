@@ -1142,9 +1142,10 @@ scene edited by hand or by an agent is on screen with no hand on the page.
 The bundler resolves a workspace package's subpaths by the `exports` maps the
 process read at start, so the lab reads every workspace `package.json`'s
 `exports` as it starts and every 3 s after (`tools/exports-watch.ts`): once
-one changes (a merge adds a subpath), the lab closes its servers, its pages
-and their Chrome, and starts itself again in the same process with the same
-command line (`relaunchOnExportsChange`, `tools/relaunch-bun.ts`); an open
+one changes (a merge adds a subpath), the lab closes its servers and its
+pages, ends their Chrome (`Bun.WebView.closeAll()`), and starts itself again
+in the same process with the same command line (`relaunchOnExportsChange`,
+`tools/relaunch-bun.ts`); an open
 page sees another server answer and loads again at its place.
 The review does not reload itself (a playing set
 is not interrupted); its next load is the new code. A page that does not
@@ -1445,8 +1446,10 @@ film's registered files):
   `trimReadout`, sized by the layout's own rule, `beatLength`, so a beat its
   `min` holds keeps its length). The hold snaps to 0.1 s and stays between its floor
   (`MIN_LEAD`, `DEFAULT_TAIL`, or the beat's own when it already holds
-  less) and 30 s (`heldWithin`); a tail on `DEFAULT_TAIL` is written as
-  none. Let go where it began, it writes nothing. The page posts
+  less, kept as it is) and 30 s (`heldWithin`); a tail on `DEFAULT_TAIL` is
+  written as none. The grip follows only once pulled past a tap's reach
+  (`DRAG_PX`), from the hold as it stood on the 0.1 s grid; let go there,
+  it writes nothing. The page posts
   `POST /api/films/<film>/beats/hold`; a hold that would change nothing the
   film plays (a beat with no words, a tail its `min` absorbs) is refused
   with `HoldUnchanged`, said in words (`holdUnchanged`). The phone has no
@@ -1466,7 +1469,8 @@ at its place, its new order drawn. One edit is in flight at a time
 `Landed`, `Done`, `Failed`): a write that changed the script is `Landed`
 until the version's read holds it, and an ask, a carry or a trim while one
 is on its way or unread is not taken (its grips say so,
-`data-waiting`). Its receipt
+`data-waiting`); a read that fails then keeps the timeline shown, and the
+receipt says so. Its receipt
 says what it did in the owner's words (`Moved two before one.`, `Held two
 +3.0 s before its words.`), its Undo bound to the change it made. An edit
 of a film with a production files the agents' work on its ledger while it
@@ -1481,7 +1485,8 @@ step too: the owner's edits and the agents' (a scene written, a voice kept,
 an edit through the MCP tools) on one stack, each step its own. A
 receipt's Undo steps only the change it names, while it is the newest
 (`StepNotNewest` otherwise); a refused step reads the steps again, so the
-next ⌘Z steps the newest change the page now knows.
+next ⌘Z steps the newest change the page now knows. A ⌘Z or ⇧⌘Z pressed
+while they are read waits for them (`Reading the film’s history…`).
 
 **Notes for an agent.** What the page cannot write exactly it files as a
 note, through the inspector's note machine (`note-save.ts`); none of them

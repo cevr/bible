@@ -4,9 +4,9 @@
 // start: one a merge adds while the lab runs would fail every page ("Could
 // not resolve"). So the lab reads each workspace `package.json`'s `exports`
 // map as it starts, and again every few seconds, and when one changes it ends
-// (`ExportsChanged`): `relaunchOnExportsChange` closes everything the lab
-// holds (its servers, its pages and their Chrome), then starts `film lab`
-// again in the same process (`Relaunch`, made in `relaunch-bun.ts`), which
+// (`ExportsChanged`): `relaunchOnExportsChange` closes what the lab holds
+// (its servers, then its pages), then `Relaunch` (made in `relaunch-bun.ts`)
+// ends their Chrome and starts `film lab` again in the same process, which
 // reads the new maps.
 
 import {
@@ -45,15 +45,37 @@ const PackageJson = Schema.fromJsonString(
 const readPackage = Schema.decodeUnknownOption(PackageJson);
 const writeJson = Schema.encodeUnknownOption(Schema.fromJsonString(Schema.Json));
 
-/** The `exports` map of a package.json's text, as text a change is seen in: none when it has none or does not read. */
-const exportsOf = (text: string): Option.Option<string> =>
-  Option.flatMap(
-    Option.flatMap(readPackage(text), (p) => Option.fromUndefinedOr(p.exports)),
-    writeJson,
+/** The `exports` map of a package.json's text, as text a change is seen in: none when it has none. */
+const exportsOf = (pkg: { readonly exports?: Schema.Json }): Option.Option<string> =>
+  Option.flatMap(Option.fromUndefinedOr(pkg.exports), writeJson);
+
+/** What the watch holds each read to: each package.json's `exports`, by its file. */
+type Exports = ReadonlyMap<string, Option.Option<string>>;
+
+/** How long the watch waits to read a package.json again that did not read or parse. */
+const AGAIN = Duration.millis(250);
+
+/**
+ * A package.json's `exports` as it reads now: none when the file does not
+ * read or does not parse (a checkout may be between its unlink and its write),
+ * some none when it names no exports.
+ */
+const readOne = (file: string) =>
+  Effect.flatMap(FileSystem.FileSystem, (fs) =>
+    fs.readFileString(file).pipe(
+      Effect.map((text) => Option.map(readPackage(text), exportsOf)),
+      Effect.orElseSucceed(() => Option.none<Option.Option<string>>()),
+    ),
   );
 
-/** What the watch reads: each package.json's `exports`, by its file. */
-type Exports = ReadonlyMap<string, Option.Option<string>>;
+/** `readOne`, read once more after `AGAIN` when it does not read. */
+const readSettled = (file: string) =>
+  Effect.flatMap(readOne(file), (read) =>
+    Option.match(read, {
+      onSome: () => Effect.succeed(read),
+      onNone: () => Effect.andThen(Effect.sleep(AGAIN), readOne(file)),
+    }),
+  );
 
 /**
  * The workspace's package.json files under `root`: its own, and each one its
@@ -83,26 +105,28 @@ const workspacePackages = Effect.fn('exports.packages')(function* (root: string)
   return [own, ...files];
 });
 
-/** Each of `files`' exports as it reads now: none for a file that does not read. */
+/** Each of `files`' exports as it reads now: none for a file that does not read, twice. */
 const readExports = (files: ReadonlyArray<string>) =>
-  Effect.flatMap(FileSystem.FileSystem, (fs) =>
-    Effect.map(
-      Effect.forEach(files, (file) =>
-        fs.readFileString(file).pipe(
-          Effect.map((text) => [file, exportsOf(text)] as const),
-          Effect.orElseSucceed(() => [file, Option.none<string>()] as const),
-        ),
-      ),
-      (read): Exports => new Map(read),
-    ),
+  Effect.map(
+    Effect.forEach(files, (file) => Effect.map(readSettled(file), (read) => [file, read] as const)),
+    (read) => new Map(read),
   );
 
-/** The files whose exports differ between `was` and `now`. */
-const changedIn = (was: Exports, now: Exports): ReadonlyArray<string> =>
+/**
+ * The files whose exports read now and differ from `was`. A file that does
+ * not read keeps what it said: a checkout writing it changes nothing.
+ */
+const changedIn = (
+  was: Exports,
+  now: ReadonlyMap<string, Option.Option<Option.Option<string>>>,
+): ReadonlyArray<string> =>
   Arr.filter([...now.keys()], (file) => {
-    const said = (m: Exports) =>
-      Option.getOrElse(Option.flatten(Option.fromUndefinedOr(m.get(file))), () => '');
-    return said(was) !== said(now);
+    const said = (exports: Option.Option<string>) => Option.getOrElse(exports, () => '');
+    const before = said(Option.flatten(Option.fromUndefinedOr(was.get(file))));
+    return Option.exists(
+      Option.flatten(Option.fromUndefinedOr(now.get(file))),
+      (read) => said(read) !== before,
+    );
   });
 
 /** A workspace's exports as read once: its root, its package.json files, and each one's exports then. */
@@ -115,7 +139,9 @@ interface ExportsRead {
 /** Read the exports of the workspace under `root` now: what `watchExports` holds each later read to. */
 export const exportsNow = Effect.fn('exports.now')(function* (root: string) {
   const files = yield* workspacePackages(root);
-  const first = yield* readExports(files);
+  // A file that does not read at start holds no exports: what the bundler resolved by.
+  const read = yield* readExports(files);
+  const first: Exports = new Map(Arr.map([...read], ([file, r]) => [file, Option.flatten(r)]));
   yield* Effect.log(`[lab] exports.watch files=${files.length}`);
   return { root, files, first } satisfies ExportsRead;
 });
@@ -175,9 +201,10 @@ export class Relaunch extends Context.Service<Relaunch, RelaunchService>()(
 const isExportsChanged = Schema.is(ExportsChanged);
 
 /**
- * `lab` with `held` (what it holds for its run: its pages, their Chrome)
- * built for it alone. Once its exports watch ends it, the scope `lab` opened
- * and `held` are closed, and then `Relaunch` starts the command again.
+ * `lab` with `held` (what it holds for its run: its pages) built for it
+ * alone. Once its exports watch ends it, the scope `lab` opened and `held`
+ * are closed, and then `Relaunch` ends their Chrome and starts the command
+ * again.
  */
 export const relaunchOnExportsChange = <A, E, R, ROut, E2, RIn>(
   lab: Effect.Effect<A, E | ExportsChanged, R>,

@@ -95,13 +95,15 @@ const SIDE = { lead: 'before', tail: 'after' } satisfies Record<HoldEdge, string
 const holdFloor = (edge: HoldEdge, now: number): number => Math.min(FLOOR[edge], onTheMs(now));
 
 /**
- * The hold a trim asks for, as it is written: snapped to `HOLD_STEP`, held
- * between its floor (`holdFloor` of `now`, the beat's hold now) and
- * `MAX_HOLD`.
+ * The hold a trim asks for, as it is written: its floor (`holdFloor` of
+ * `now`, the beat's hold now) when it asks that or less, even off the grid;
+ * else snapped to `HOLD_STEP`, at or above the floor and at most `MAX_HOLD`.
  */
 export const heldWithin = (edge: HoldEdge, asked: number, now: number): number => {
+  const floor = holdFloor(edge, now);
+  if (onTheMs(asked) <= floor) return floor;
   const snapped = onTheMs(Math.round(asked / HOLD_STEP) * HOLD_STEP);
-  return onTheMs(Math.min(MAX_HOLD, Math.max(holdFloor(edge, now), snapped)));
+  return onTheMs(Math.min(MAX_HOLD, Math.max(floor, snapped)));
 };
 
 /**

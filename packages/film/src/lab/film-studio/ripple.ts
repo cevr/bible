@@ -103,11 +103,20 @@ const landings = (beats: ReadonlyArray<ScriptClip>, preview: Preview): Landings 
   return laid;
 };
 
-/** Film second `t` of beat `l` as it was, where it falls once the beat has landed; `end` for a span's end at the beat's end. */
-const remap = (l: Landed, t: number, end: boolean): number => {
+/**
+ * What a second remapped is: a clip's `start` (one on the beat's start stays
+ * there), a clip's `end` (one on the beat's end stays there), or a `word`'s
+ * time (its words, its marks), which moves with the lead from the beat's start
+ * too when the beat has none.
+ */
+type Remapped = 'start' | 'end' | 'word';
+
+/** Film second `t` of beat `l` as it was, where it falls once the beat has landed. */
+const remap = (l: Landed, t: number, what: Remapped): number => {
   const local = t - l.was.start;
-  if (end && Math.abs(t - (l.was.start + l.was.dur)) < CLOCK_EPSILON) return ms(l.start + l.dur);
-  const words = local + CLOCK_EPSILON >= l.was.hold.lead && local > 0;
+  if (what === 'end' && Math.abs(t - (l.was.start + l.was.dur)) < CLOCK_EPSILON)
+    return ms(l.start + l.dur);
+  const words = local + CLOCK_EPSILON >= l.was.hold.lead && (what === 'word' || local > 0);
   const moved = l.start + local + Bool.match(words, { onTrue: () => l.inner, onFalse: () => 0 });
   return ms(Math.min(l.start + l.dur, Math.max(l.start, moved)));
 };
@@ -146,8 +155,8 @@ const spanOf = (
   Option.match(Option.fromUndefinedOr(by.get(beat)), {
     onNone: () => ({ start: clip.start, dur: clip.dur }),
     onSome: (l) => {
-      const start = remap(l, clip.start, false);
-      return { start, dur: ms(remap(l, clip.start + clip.dur, true) - start) };
+      const start = remap(l, clip.start, 'start');
+      return { start, dur: ms(remap(l, clip.start + clip.dur, 'end') - start) };
     },
   });
 
@@ -180,13 +189,13 @@ export const rippled = (timeline: FilmTimeline, preview: Preview): FilmTimeline 
                   ...c,
                   start: landed.start,
                   dur: landed.dur,
-                  marks: c.marks.map((m) => ({ ...m, at: remap(landed, m.at, false) })),
+                  marks: c.marks.map((m) => ({ ...m, at: remap(landed, m.at, 'word') })),
                   ...Option.match(Option.fromUndefinedOr(c.speech), {
                     onNone: () => ({}),
                     onSome: (s) => ({
                       speech: {
-                        start: remap(landed, s.start, false),
-                        end: remap(landed, s.end, false),
+                        start: remap(landed, s.start, 'word'),
+                        end: remap(landed, s.end, 'word'),
                       },
                     }),
                   }),
@@ -204,7 +213,7 @@ export const rippled = (timeline: FilmTimeline, preview: Preview): FilmTimeline 
               ...spanOf(by, c.beat, c),
               markAt: Option.match(Option.fromUndefinedOr(by.get(c.beat)), {
                 onNone: () => c.markAt,
-                onSome: (landed) => remap(landed, c.markAt, false),
+                onSome: (landed) => remap(landed, c.markAt, 'word'),
               }),
             })),
           ),
@@ -238,7 +247,7 @@ export const rippled = (timeline: FilmTimeline, preview: Preview): FilmTimeline 
             ...n,
             at: Option.match(Option.fromUndefinedOr(by.get(n.beat)), {
               onNone: () => n.at,
-              onSome: (landed) => remap(landed, n.at, false),
+              onSome: (landed) => remap(landed, n.at, 'start'),
             }),
           }),
         }),

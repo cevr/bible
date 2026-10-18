@@ -60,6 +60,13 @@ describe('a hold trimmed', () => {
     expect(heldWithin('tail', 99, 1)).toBe(30);
   });
 
+  test('a floor off the grid holds itself: a trim at or under it asks the floor, not the step above', () => {
+    expect(heldWithin('tail', 0.05, 0.05)).toBe(0.05);
+    expect(heldWithin('tail', 0.01, 0.05)).toBe(0.05);
+    expect(heldWithin('lead', 0.45, 0.45)).toBe(0.45);
+    expect(heldWithin('lead', 0.47, 0.45)).toBe(0.5);
+  });
+
   test('a tail on its default is written as none; a lead always', () => {
     expect(holdWritten('tail', 0.1)).toEqual(Option.none());
     expect(holdWritten('tail', 1.6)).toEqual(Option.some(1.6));

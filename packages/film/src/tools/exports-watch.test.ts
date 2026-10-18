@@ -3,7 +3,8 @@
 // name; a change to a package's other fields goes unseen; an `exports` map
 // changed (a subpath added by a merge) ends the watch with `ExportsChanged`,
 // naming the package, on the next read, held to the maps read before the
-// watch began; the root is found above a workspace's folder; and the lab the
+// watch began; a package.json caught mid-write (empty, cut off, gone) is read
+// again once and otherwise keeps what it said; the root is found above a workspace's folder; and the lab the
 // watch ends closes its scope and what it holds before it is started again.
 
 import { describe, expect, it } from 'effect-bun-test';
@@ -83,6 +84,47 @@ describe('the exports watch', () => {
       expect(changed(failed)).toEqual(FILM_CHANGED);
     }).pipe(Effect.provide(inMemory(files)));
   });
+
+  it.effect('a package.json caught mid-write, or gone a moment, ends nothing', () => {
+    const files = workspace();
+    return Effect.gen(function* () {
+      const watch = yield* Effect.forkChild(watchExports(yield* exportsNow('/w'), EVERY));
+      // A checkout between its unlink and its write: empty, then cut off, then gone.
+      for (const caught of ['', '{ "name": "@w/film", "exp']) {
+        files.set('/w/packages/film/package.json', text(caught));
+        yield* TestClock.adjust(EVERY);
+        expect(watch.pollUnsafe()).toBeUndefined();
+      }
+      files.delete('/w/packages/film/package.json');
+      yield* TestClock.adjust(EVERY);
+      expect(watch.pollUnsafe()).toBeUndefined();
+      // Written again with its exports as they were (a dependency bumped).
+      files.set('/w/packages/film/package.json', text(FILM('{ ".": "./src/index.ts" }')));
+      yield* TestClock.adjust(EVERY);
+      expect(watch.pollUnsafe()).toBeUndefined();
+    }).pipe(Effect.provide(inMemory(files)));
+  });
+
+  it.effect(
+    'a package.json caught mid-write is read again, and a change seen then ends the watch',
+    () => {
+      const files = workspace();
+      return Effect.gen(function* () {
+        const read = yield* exportsNow('/w');
+        // The watch's first pass catches the merge mid-write; the merge has written it by its second read.
+        files.set('/w/packages/film/package.json', text(''));
+        const watch = yield* Effect.forkChild(watchExports(read, EVERY));
+        yield* Effect.yieldNow;
+        files.set(
+          '/w/packages/film/package.json',
+          text(FILM('{ ".": "./src/index.ts", "./style": "./src/style/index.ts" }')),
+        );
+        yield* TestClock.adjust('250 millis');
+        const failed = yield* Effect.flip(Fiber.join(watch));
+        expect(changed(failed)).toEqual(FILM_CHANGED);
+      }).pipe(Effect.provide(inMemory(files)));
+    },
+  );
 
   it.effect('holds the watch to the maps read before it began', () => {
     const files = workspace();
