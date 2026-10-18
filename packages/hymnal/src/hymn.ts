@@ -1,5 +1,6 @@
 /**
- * A compiled hymn, as the app reads it: each stanza and the refrain as lines
+ * A compiled hymn, as the app reads it: each stanza and the refrain (stored
+ * once, with where it is sung; `sung` gives the lines in sung order) as lines
  * of sung syllables, a chord placed on the syllable where the harmony
  * changes, at two levels (`full`, the four parts' harmony, and `guitar`).
  * Chords are degrees above the hymn's key, so transposing changes the key
@@ -92,6 +93,18 @@ export type Plain = typeof Plain.Type;
 const Part = Schema.Union([Sung, Plain]);
 export type Part = typeof Part.Type;
 
+/**
+ * Where the hymnal sings the refrain: `after-each` stanza (its usual
+ * print); `first-and-after-each`, printed above stanza 1, so sung first and
+ * then after every stanza (D.C. al Fine); `first-and-last`, sung before
+ * stanza 1 and after the last stanza only (172's Alleluias).
+ */
+export const Order = Schema.Literals(['after-each', 'first-and-after-each', 'first-and-last']);
+export type Order = typeof Order.Type;
+
+/** The refrain, stored once, and where it is sung. */
+const Refrain = Schema.Struct({ order: Order, part: Part });
+
 export const Hymn = Schema.Struct({
   version: Schema.Literal(1),
   book: Schema.Literals(['sdah-1985']),
@@ -104,10 +117,54 @@ export const Hymn = Schema.Struct({
   verses: Schema.Struct({ text: Schema.Int, midi: Schema.Int, exact: Schema.Boolean }),
   /** In order: stanza n is `stanzas[n - 1]`. */
   stanzas: Schema.NonEmptyArray(Part),
-  /** Sung after every stanza, stored once. */
-  refrain: Schema.optionalKey(Part),
+  refrain: Schema.optionalKey(Refrain),
 });
 export type Hymn = typeof Hymn.Type;
+
+/** One line as it is sung. */
+interface Line {
+  /** Stanza n (from 1), or the refrain. */
+  readonly verse: number | 'refrain';
+  /** The part it belongs to, and its place there: `part.lines[line]`. */
+  readonly part: Part;
+  readonly line: number;
+  /** Its words: a sung line's syllables joined within a word and spaced between words; a plain line as printed. */
+  readonly text: string;
+}
+
+const linesOf = (part: Part, verse: Line['verse']): Line[] =>
+  part._tag === 'Plain'
+    ? part.lines.map((text, line) => ({ verse, part, line, text }))
+    : part.lines.map((syllables, line) => ({
+        verse,
+        part,
+        line,
+        text: syllables
+          .map((s, k) => `${k === 0 ? '' : syllables[k - 1]?.word === s.word ? '' : ' '}${s.text}`)
+          .join(''),
+      }));
+
+/**
+ * The hymn's lines in the order they are sung: each stanza, and the refrain
+ * where its order places it (after each stanza; first and after each
+ * stanza; or first and after the last stanza).
+ */
+export const sung = (hymn: Hymn): Line[] => {
+  const stanzas = hymn.stanzas.map((part, n) => linesOf(part, n + 1));
+  const all = stanzas.flat();
+  const refrain = hymn.refrain;
+  if (refrain === undefined) return all;
+  const chorus = linesOf(refrain.part, 'refrain');
+  const each = stanzas.flatMap((lines) => [...lines, ...chorus]);
+  switch (refrain.order) {
+    case 'after-each':
+      return each;
+    case 'first-and-after-each':
+      return [...chorus, ...each];
+    case 'first-and-last':
+      return [...chorus, ...all, ...chorus];
+  }
+};
 
 export const Index = Schema.Struct({
   version: Schema.Literal(1),

@@ -7,11 +7,13 @@
  * It writes `<out>/NNN.json` (one hymn each) and `<out>/index.json`, decodes
  * each file back through the schema, and writes the report beside the
  * folder (`<out>.report.md`): the hymns and parts by level, the reasons,
- * the inexact and count-mismatched files, the held list, the alignment
- * key's comparison and the time taken. Paths default to the repository's
- * (`packages/core/data/hymnal.db`, `packages/hymnal/data/midi`,
- * `packages/hymnal/data/sdah-1985`, `packages/hymnal/data/key`). The same
- * inputs give byte-identical hymn files.
+ * the inexact and count-mismatched files, the held list, the refrains by
+ * order (each sung otherwise than after each stanza in its sung order), the
+ * alignment key's comparison and the time taken. Paths default to the
+ * repository's (`packages/core/data/hymnal.db`, `packages/hymnal/data/midi`,
+ * `packages/hymnal/data/sdah-1985`, `packages/hymnal/data/key`); where a
+ * refrain is sung comes from `data/fixes/refrains.json` (`./sources.ts`).
+ * The same inputs give byte-identical hymn files.
  */
 
 import * as BunServices from '@effect/platform-bun/BunServices';
@@ -22,19 +24,12 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 import { compile } from '../src/compile.js';
-import { Hymn, Index, type Level, type Part, type Reason } from '../src/hymn.js';
+import { Hymn, Index, type Level, type Order, type Part, type Reason, sung } from '../src/hymn.js';
+import { decodeOrders, HELD, sourceOf } from './sources.js';
 
 const ROOT = path.resolve(import.meta.dir, '../../..');
 const FIRST = 1;
 const LAST = 695;
-
-/** Hymns held back as plain text, each with its reason. */
-const HELD: ReadonlyMap<number, string> = new Map(
-  [126, 225, 262, 292, 403, 453, 580].map((n) => [
-    n,
-    'verse split misplaced, spot check 2026-10-17',
-  ]),
-);
 
 const args = process.argv.slice(2);
 const flag = (name: string, fallback: string) => {
@@ -46,12 +41,38 @@ const midiDir = flag('--midi', 'packages/hymnal/data/midi');
 const out = flag('--out', 'packages/hymnal/data/sdah-1985');
 const keyDir = flag('--key', 'packages/hymnal/data/key');
 
+/** Where the hymnal sings a refrain otherwise than after each stanza, read off the engravings. */
+const REFRAINS = path.resolve(import.meta.dir, '../data/fixes/refrains.json');
+
 const pad = (n: number) => String(n).padStart(3, '0');
+
+/**
+ * The refrains by order, and each hymn sung otherwise than after each stanza
+ * with its verses in sung order (`R` the refrain): `93: R 1 R 2 R 3 R 4 R`.
+ */
+const refrainsOf = (compiled: readonly Hymn[]) => {
+  const withRefrain = compiled.flatMap((hymn) =>
+    hymn.refrain === undefined ? [] : [{ hymn, order: hymn.refrain.order }],
+  );
+  const orders: readonly Order[] = ['after-each', 'first-and-after-each', 'first-and-last'];
+  const outline = (hymn: Hymn) =>
+    sung(hymn)
+      .filter((line) => line.line === 0)
+      .map((line) => (line.verse === 'refrain' ? 'R' : String(line.verse)))
+      .join(' ');
+  return [
+    ...orders.map((order) => `- ${order}: ${withRefrain.filter((r) => r.order === order).length}`),
+    '',
+    ...withRefrain
+      .filter((r) => r.order !== 'after-each')
+      .map((r) => `- ${r.hymn.number} (${r.order}): ${outline(r.hymn)}`),
+  ];
+};
 const RANK: Record<Level, number> = { text: 0, line: 1, syllable: 2 };
 const levelOf = (part: Part): Level => (part._tag === 'Plain' ? 'text' : part.level);
 const partsOf = (hymn: Hymn): Part[] => [
   ...hymn.stanzas,
-  ...(hymn.refrain === undefined ? [] : [hymn.refrain]),
+  ...(hymn.refrain === undefined ? [] : [hymn.refrain.part]),
 ];
 const lowest = (hymn: Hymn): Level =>
   partsOf(hymn)
@@ -92,7 +113,7 @@ const compareKey = (hymn: Hymn, key: ReturnType<typeof readKey>): KeyResult => {
   const first = hymn.stanzas[0];
   const sung: ReadonlyArray<ReadonlyArray<{ readonly text: string; readonly notes: number }>> = [
     first,
-    ...(hymn.refrain === undefined ? [] : [hymn.refrain]),
+    ...(hymn.refrain === undefined ? [] : [hymn.refrain.part]),
   ].flatMap(
     (part): ReadonlyArray<ReadonlyArray<{ readonly text: string; readonly notes: number }>> =>
       part._tag === 'Sung' ? part.lines : part.lines.map(() => []),
@@ -119,7 +140,7 @@ const compareKey = (hymn: Hymn, key: ReturnType<typeof readKey>): KeyResult => {
 class Failed extends Data.TaggedError('Failed')<{ readonly why: string }> {}
 
 /** Compiles hymn n and writes its file. */
-const compileOne = (n: number) =>
+const compileOne = (n: number, orders: ReadonlyMap<number, Order>) =>
   Effect.gen(function* () {
     const text = yield* (yield* HymnalService)
       .getHymn(HymnId.make(n))
@@ -129,14 +150,8 @@ const compileOne = (n: number) =>
       return yield* new Failed({ why: `${n}: no MIDI file` });
     }
     const midi = yield* Effect.promise(() => file.bytes());
-    const source = {
-      book: 'sdah-1985' as const,
-      number: n,
-      title: text.name,
-      verses: text.verses,
-      midi,
-    };
-    const hymn = yield* compile({ ...source, held: HELD.get(n) }).pipe(
+    const source = sourceOf({ number: n, name: text.name, verses: text.verses }, midi, orders);
+    const hymn = yield* compile(source).pipe(
       Effect.mapError(
         (e) =>
           new Failed({
@@ -258,6 +273,10 @@ const reportOf = ({ summary, compiled, failed, counts, keys, keyLine, seconds }:
     '',
     ...[...HELD].map(([n, why]) => `- ${n}: ${why}`),
     '',
+    '## Refrains',
+    '',
+    ...refrainsOf(compiled),
+    '',
     '## Failed',
     '',
     ...(failed.length === 0 ? ['none'] : failed.map((line) => `- ${line}`)),
@@ -283,9 +302,10 @@ const reportOf = ({ summary, compiled, failed, counts, keys, keyLine, seconds }:
 const program = Effect.gen(function* () {
   const started = performance.now();
   yield* Effect.promise(() => mkdir(out, { recursive: true }));
+  const orders = yield* decodeOrders(yield* Effect.promise(() => Bun.file(REFRAINS).text()));
   const results = yield* Effect.forEach(
     Array.from({ length: LAST - FIRST + 1 }, (_, i) => FIRST + i),
-    (n) => Effect.result(compileOne(n)),
+    (n) => Effect.result(compileOne(n, orders)),
   );
   const compiled = results.filter(Result.isSuccess).map((r) => r.success);
   const failed = results.filter(Result.isFailure).map((r) => r.failure.why);

@@ -1,0 +1,35 @@
+{
+  "print": "Where a hymn's refrain is sung, read off its engraving (github.com/adventHymnals/SDAHImages, docs/seventh-day-adventist-hymnal/SDAHimages/NNN.png) on 2026-10-18. hymnal.db cannot say it: it gives the refrain of 93, 121, 133, 172 and 475 the id -2 and the refrain of 362 the id -1, and 172's id is the same as the others'. A hymn with a refrain that is not listed here sings it after each stanza, as the hymnal prints most.",
+  "hymns": [
+    {
+      "number": 93,
+      "order": "first-and-after-each",
+      "from": "the refrain is printed first, as stanza 1 (bars 1-8, Fine); stanzas 2-5 follow (bars 9-18), D.C. al Fine"
+    },
+    {
+      "number": 121,
+      "order": "first-and-after-each",
+      "from": "the refrain is printed first (bars 1-8, marked Refrain, Fine); stanzas 1-3 follow (bars 9-18), D.C. al Fine"
+    },
+    {
+      "number": 133,
+      "order": "first-and-after-each",
+      "from": "the refrain is printed first (bars 1-8, marked Refrain, Fine); stanzas 1-2 follow (bars 9-16), D.C. al Fine"
+    },
+    {
+      "number": 172,
+      "order": "first-and-last",
+      "from": "the Alleluias are printed first (bars 1-7); the footnote reads: These Alleluias to be sung before stanza 1 and after stanza 4"
+    },
+    {
+      "number": 362,
+      "order": "first-and-after-each",
+      "from": "the refrain is printed first (bars 1-8); stanzas 1-5 follow (bars 9-16), D.C."
+    },
+    {
+      "number": 475,
+      "order": "first-and-after-each",
+      "from": "the refrain is printed first (bars 1-10, Fine); stanzas 1-2 follow (bars 11-20), D.C. al Fine"
+    }
+  ]
+}

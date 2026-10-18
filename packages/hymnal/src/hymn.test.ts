@@ -2,7 +2,7 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { Effect, FileSystem, Result, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
-import { Hymn } from './hymn.js';
+import { Hymn, sung } from './hymn.js';
 
 const fit = {
   notes: 4,
@@ -12,7 +12,7 @@ const fit = {
   cost: 0.5,
 };
 
-const sung = {
+const holy = {
   _tag: 'Sung',
   level: 'syllable',
   lines: [
@@ -50,13 +50,13 @@ const hymn: Hymn = {
   key: { tonic: 'Eb', minor: false },
   meter: { numerator: 3, denominator: 4 },
   verses: { text: 2, midi: 2, exact: true },
-  stanzas: [sung, { _tag: 'Plain', lines: ['Holy, holy'], fit, why: ['notes', 'inexact'] }],
-  refrain: { _tag: 'Plain', lines: ['Amen'], why: ['held'] },
+  stanzas: [holy, { _tag: 'Plain', lines: ['Holy, holy'], fit, why: ['notes', 'inexact'] }],
+  refrain: { order: 'after-each', part: { _tag: 'Plain', lines: ['Amen'], why: ['held'] } },
 };
 
 const json = Schema.fromJsonString(Hymn);
 const decode = Schema.decodeUnknownEffect(Hymn);
-const { level: _, ...noLevel } = sung;
+const { level: _, ...noLevel } = holy;
 
 describe('Hymn', () => {
   it.effect('round-trips through the schema as JSON', () =>
@@ -71,7 +71,7 @@ describe('Hymn', () => {
     () =>
       Effect.gen(function* () {
         const refused = [
-          { ...hymn, stanzas: [{ ...sung, _tag: 'Plain', why: ['notes'] }] },
+          { ...hymn, stanzas: [{ ...holy, _tag: 'Plain', why: ['notes'] }] },
           { ...hymn, stanzas: [noLevel] },
           { ...hymn, stanzas: [{ _tag: 'Plain', lines: ['Holy'], why: [] }] },
         ];
@@ -90,6 +90,49 @@ describe('Hymn', () => {
         const chorded = { ...hymn, stanzas: [{ ...plain, [level]: chord }] };
         expect(Result.isFailure(yield* Effect.result(decode(chorded)))).toBe(true);
       }
+    }),
+  );
+
+  it.effect('refuses a refrain without its order, or with an order the hymnal does not use', () =>
+    Effect.gen(function* () {
+      const part = { _tag: 'Plain', lines: ['Amen'], why: ['held'] } as const;
+      const refused = [
+        { ...hymn, refrain: part },
+        { ...hymn, refrain: { part } },
+        { ...hymn, refrain: { order: 'twice', part } },
+        { ...hymn, refrain: { order: 'last', part } },
+      ];
+      for (const value of refused) {
+        expect(Result.isFailure(yield* Effect.result(decode(value)))).toBe(true);
+      }
+    }),
+  );
+
+  it.effect('sings each stanza, and the refrain where its order places it', () =>
+    Effect.sync(() => {
+      const plain = (text: string) => ({ _tag: 'Plain', lines: [text], why: ['notes'] }) as const;
+      const two: Hymn = { ...hymn, stanzas: [plain('one'), holy] };
+      const { refrain: _none, ...bare } = two;
+      const outline = (value: Hymn) => sung(value).map((line) => `${line.verse}:${line.text}`);
+      const chorus = plain('Amen');
+      expect(outline(bare)).toEqual(['1:one', '2:Holy, ho']);
+      expect(outline({ ...two, refrain: { order: 'after-each', part: chorus } })).toEqual([
+        '1:one',
+        'refrain:Amen',
+        '2:Holy, ho',
+        'refrain:Amen',
+      ]);
+      expect(outline({ ...two, refrain: { order: 'first-and-after-each', part: chorus } })).toEqual(
+        ['refrain:Amen', '1:one', 'refrain:Amen', '2:Holy, ho', 'refrain:Amen'],
+      );
+      expect(outline({ ...two, refrain: { order: 'first-and-last', part: chorus } })).toEqual([
+        'refrain:Amen',
+        '1:one',
+        '2:Holy, ho',
+        'refrain:Amen',
+      ]);
+      const [, second] = sung(bare);
+      expect(second).toMatchObject({ verse: 2, line: 0, part: holy });
     }),
   );
 

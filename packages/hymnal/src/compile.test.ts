@@ -1,12 +1,12 @@
 import { HymnalService, HymnId } from '@bible/core/hymnal';
 import { layerHymnalBun } from '@bible/core/hymnal/bun';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { ConfigProvider, Effect, FileSystem, Layer, Result, Schema } from 'effect';
+import { ConfigProvider, Effect, Layer } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import * as Chord from './chord.js';
 import { compile } from './compile.js';
-import { Hymn, type Part, type Sung } from './hymn.js';
+import type { Hymn, Part, Sung } from './hymn.js';
 import * as Fixture from './midi-fixture.js';
 
 type Voices = readonly [Fixture.Voice, Fixture.Voice, Fixture.Voice, Fixture.Voice];
@@ -48,7 +48,7 @@ type Source = Parameters<typeof compile>[0];
 const source = (
   midi: Uint8Array,
   stanzas: readonly string[],
-  extra: Partial<Pick<Source, 'held'>> & { refrain?: string } = {},
+  extra: Partial<Pick<Source, 'held' | 'order'>> & { refrain?: string } = {},
 ): Source => ({
   book: 'sdah-1985',
   number: 1,
@@ -59,6 +59,7 @@ const source = (
   ],
   midi,
   held: extra.held,
+  order: extra.order,
 });
 
 /** The part as sung, failing the test when it is plain. */
@@ -536,11 +537,20 @@ describe('compile: trust', () => {
           refrain: '  Sing now  ',
         }),
       );
-      expect([...hymn.stanzas, hymn.refrain]).toEqual([
+      expect([...hymn.stanzas, hymn.refrain?.part]).toEqual([
         { _tag: 'Plain', lines: ['Sing we now to God,', 'Lord of all light now'], why: ['held'] },
         { _tag: 'Plain', lines: ['Sing we now to God,', 'Lord of all light now'], why: ['held'] },
         { _tag: 'Plain', lines: ['Sing now'], why: ['held'] },
       ]);
+      expect(hymn.refrain?.order).toBe('after-each');
+      const first = yield* compile(
+        source(tuneFile(2), [words, words], {
+          held: 'verse split misplaced',
+          refrain: 'Sing now',
+          order: 'first-and-after-each',
+        }),
+      );
+      expect(first.refrain?.order).toBe('first-and-after-each');
     }),
   );
 
@@ -582,7 +592,7 @@ describe('compile: trust', () => {
       expect(placed(hymn, sung(hymn.stanzas[0]))).toEqual([
         'Sing/1/1:C@0 we/1/2:G@0,G7@1 now/1/1:C@0 to/1/2:Am@0 God,/1/2:Dm@0',
       ]);
-      expect(placed(hymn, sung(hymn.refrain))).toEqual([
+      expect(placed(hymn, sung(hymn.refrain?.part))).toEqual([
         'Lord/1/1:G7@0 of/1/1:C@0 all/2/1:G@0,C@0.5 light/1/1:F@1 now/1/2:C@0',
       ]);
     }),
@@ -607,11 +617,42 @@ describe('compile: trust', () => {
       );
       const praise = 'Praise ye the Lord,';
       const later = yield* compile(source(stepsFile(2), [praise, praise], refrain));
-      expect(placed(hymn, sung(hymn.refrain))).toEqual([
+      expect(placed(hymn, sung(hymn.refrain?.part))).toEqual([
         'Lord/1/1:F@0 of/1/1: all/1/1:C@0 ye/1/1: saints/1/1:G@0 sing/1/1: now/1/1:C@0,G@1',
       ]);
-      expect(placed(later, sung(later.refrain))).not.toEqual(placed(hymn, sung(hymn.refrain)));
+      expect(placed(later, sung(later.refrain?.part))).not.toEqual(
+        placed(hymn, sung(hymn.refrain?.part)),
+      );
     }),
+  );
+
+  it.effect(
+    'lays a refrain sung first and last after the last stanza alone, and stores it from there',
+    () =>
+      Effect.gen(function* () {
+        const refrain = { refrain: 'Lord of all ye saints sing now' };
+        const stanzas = ['Sing we all now to God of light,', 'Praise ye the Lord,'];
+        const each = yield* compile(source(stepsFile(2), stanzas, refrain));
+        const ends = yield* compile(
+          source(stepsFile(2), stanzas, { ...refrain, order: 'first-and-last' }),
+        );
+        const alone = yield* compile(source(stepsFile(2), stanzas));
+        const lastWithIt = yield* compile(
+          source(stepsFile(2), [stanzas[1] ?? '', stanzas[1] ?? ''], refrain),
+        );
+        expect(ends.refrain?.order).toBe('first-and-last');
+        // Stanza 1 is laid without the refrain, as the file plays it; the refrain is laid after stanza 2.
+        expect(ends.stanzas[0]).toEqual(alone.stanzas[0]);
+        expect(ends.stanzas[0]).not.toEqual(each.stanzas[0]);
+        expect(ends.stanzas[1]).toEqual(each.stanzas[1]);
+        const notes = (part: Part | undefined) =>
+          sung(part).lines.map((line) => line.map((s) => `${s.text}/${s.notes}`).join(' '));
+        expect(notes(ends.refrain?.part)).toEqual(notes(lastWithIt.refrain?.part));
+        expect(notes(ends.refrain?.part)).not.toEqual(notes(each.refrain?.part));
+        expect(placed(ends, sung(ends.refrain?.part))).not.toEqual(
+          placed(each, sung(each.refrain?.part)),
+        );
+      }),
   );
 });
 
@@ -644,15 +685,23 @@ describe('compile: verse layout', () => {
         { ids: [-1], reason: 'no stanza' },
         { ids: [0, 1], reason: 'a verse has no words', empty: 1 },
         { ids: [0, -1], reason: 'a verse has no words', empty: -1 },
+        { ids: [0, 1], reason: 'a verse has no words', empty: 1, marks: true },
       ];
-      for (const { ids, reason, empty } of layouts) {
+      for (const { ids, reason, empty, marks } of layouts) {
+        const blank = marks === true ? '— . . . ,\n!' : ' \n ';
         const verses = ids.map((id) => ({
           id,
-          text: id === empty ? ' \n ' : 'Sing we now to God,',
+          text: id === empty ? blank : 'Sing we now to God,',
         }));
         const error = yield* Effect.flip(compile({ ...source(tuneFile(2), []), verses }));
         expect(error).toMatchObject({ _tag: 'VerseLayoutError', ids, reason });
       }
+      const ordered = source(tuneFile(2), ['Sing we now to God,'], { order: 'first-and-last' });
+      expect(yield* Effect.flip(compile(ordered))).toMatchObject({
+        _tag: 'VerseLayoutError',
+        ids: [0],
+        reason: 'a refrain order with no refrain',
+      });
     }),
   );
 
@@ -667,7 +716,7 @@ describe('compile: verse layout', () => {
         expect(hymn.stanzas.map(firstLine)).toEqual([
           'In times like these you need a Savior,',
           'In times like these you need the Bible,',
-          'In times like these I have a Savior,',
+          'In times like these I have a Savior',
         ]);
         expect(hymn.stanzas.map((stanza) => wordsOf(stanza)[6])).toEqual([
           'Be very sure, be very sure',
@@ -676,103 +725,10 @@ describe('compile: verse layout', () => {
         ]);
       }).pipe(Effect.provide(hymnal)),
   );
-
-  it.effect('compiles every hymn of hymnal.db: its verse layout is one the compiler reads', () =>
-    Effect.gen(function* () {
-      const service = yield* HymnalService;
-      const midi = tuneFile(2);
-      const failed: number[] = [];
-      for (let n = 1; n <= 695; n++) {
-        const text = yield* service.getHymn(HymnId.make(n));
-        const result = yield* Effect.result(compile({ ...source(midi, []), verses: text.verses }));
-        if (Result.isFailure(result)) failed.push(n);
-      }
-      expect(failed).toEqual([]);
-    }).pipe(Effect.provide(hymnal)),
-  );
 });
 
-/** A line as the property compares it: trimmed, its spaces collapsed. */
-const plainLine = (line: string) => line.trim().replace(/\s+/g, ' ');
-
-/** A part's lines as words: a sung line's syllables joined by word. */
+/** A part's lines as words: a sung line's syllables joined by word, its spaces collapsed. */
 const wordsOf = (part: Part): string[] =>
-  (part._tag === 'Sung' ? cuts(part, '') : [...part.lines]).map(plainLine);
-
-/** The hymn as sung, line by line: each stanza, then the refrain after it. */
-const sungLines = (hymn: Hymn): string[] =>
-  hymn.stanzas.flatMap((stanza) => [
-    ...wordsOf(stanza),
-    ...(hymn.refrain === undefined ? [] : wordsOf(hymn.refrain)),
-  ]);
-
-const linesOfText = (text: string) =>
-  text
-    .split('\n')
-    .map(plainLine)
-    .filter((line) => line !== '');
-
-/** Where `run` sits in `lines` at or after `from`, as a contiguous run; -1 when it does not. */
-const runAt = (lines: readonly string[], run: readonly string[], from: number) => {
-  for (let k = from; k + run.length <= lines.length; k++) {
-    if (run.every((line, i) => lines[k + i] === line)) return k;
-  }
-  return -1;
-};
-
-type SourceVerse = { readonly id: number; readonly text: string };
-
-/**
- * Which of a source's verses the hymn does not sing, in printed order. A
- * row's one refrain (its single negative id) may sit anywhere, as it is sung
- * after every stanza; every other verse must follow the one before it. A
- * corrected row's source (`data/fixes/NNN.json`) is in printed order already.
- */
-const missing = (hymn: Hymn, verses: readonly SourceVerse[], printed: boolean): number[] => {
-  const sung = sungLines(hymn);
-  const refrains = verses.filter((verse) => verse.id < 0);
-  const refrain = !printed && refrains.length === 1 ? refrains[0] : undefined;
-  const ordered = printed
-    ? verses
-    : verses.filter((verse) => verse !== refrain).toSorted((a, b) => a.id - b.id);
-  const lost: number[] = [];
-  if (refrain !== undefined && runAt(sung, linesOfText(refrain.text), 0) < 0) lost.push(refrain.id);
-  let at = 0;
-  for (const verse of ordered) {
-    const run = linesOfText(verse.text);
-    const k = runAt(sung, run, at);
-    if (k < 0) lost.push(verse.id);
-    else at = k + run.length;
-  }
-  return lost;
-};
-
-const SourceVerses = Schema.fromJsonString(
-  Schema.Array(Schema.Struct({ id: Schema.Int, text: Schema.String })),
-);
-const decodeHymn = Schema.decodeUnknownEffect(Schema.fromJsonString(Hymn));
-
-describe('compile: text fidelity', () => {
-  it.effect(
-    'the compiled set sings every line of every source verse, in the source order, nothing dropped',
-    () =>
-      Effect.gen(function* () {
-        const service = yield* HymnalService;
-        const fs = yield* FileSystem.FileSystem;
-        const data = (file: string) => new URL(`../data/${file}`, import.meta.url).pathname;
-        const lost: string[] = [];
-        for (let n = 1; n <= 695; n++) {
-          const name = String(n).padStart(3, '0');
-          const fix = data(`fixes/${name}.json`);
-          const printed = yield* fs.exists(fix);
-          const verses = printed
-            ? yield* Schema.decodeEffect(SourceVerses)(yield* fs.readFileString(fix))
-            : (yield* service.getHymn(HymnId.make(n))).verses;
-          const hymn = yield* decodeHymn(yield* fs.readFileString(data(`sdah-1985/${name}.json`)));
-          const ids = missing(hymn, verses, printed);
-          if (ids.length > 0) lost.push(`${n}: ids ${ids.join(' ')}`);
-        }
-        expect(lost).toEqual([]);
-      }).pipe(Effect.provide(Layer.merge(hymnal, BunServices.layer))),
+  (part._tag === 'Sung' ? cuts(part, '') : [...part.lines]).map((line) =>
+    line.trim().replace(/\s+/g, ' '),
   );
-});

@@ -88,7 +88,7 @@ const program = Effect.gen(function* () {
     for (const section of sections.filter((s) => s.level === at)) {
       parts += 1;
       const name = String(section.part);
-      const part = section.part === 'refrain' ? hymn.refrain : hymn.stanzas[section.part - 1];
+      const part = section.part === 'refrain' ? hymn.refrain?.part : hymn.stanzas[section.part - 1];
       const compiled = part?._tag === 'Sung' ? part.lines.flat() : [];
       const charted = section.lines.flat();
       if (compiled.length !== charted.length) {
