@@ -149,10 +149,10 @@ export const PAPERS = {
     crease: TURN.farmerFace,
     rim: RIM,
   },
-  /** A headcloth of undyed linen, the story-cloth's lightest (#f0ecdd its light), its shade a cool lilac. */
-  headcloth: { color: '#e8dfcc', shade: '#bdb3c2', light: '#f0ecdd', crease: TURN.linen, rim: RIM },
-  /** Undyed linen, the story-cloth's: a working man's tunic. */
-  linen: { color: '#d1c6b4', shade: '#ada5b3', light: '#f0ecdd', crease: TURN.linen, rim: RIM },
+  /** The farmer's headcloth, as rain.rain paints it: a warm off-white, its shade a warm tan turned toward rose. */
+  headcloth: { color: '#fbe5b8', shade: '#e2bd8f', light: '#fff3d8', crease: TURN.linen, rim: RIM },
+  /** The farmer's tunic, as rain.rain paints it: a warm tan, its shade turned toward rose, away from the sun. */
+  linen: { color: '#e2b480', shade: '#c4916e', light: '#efca9a', crease: TURN.linen, rim: RIM },
   /** Sandals: a leather brown. */
   sandal: { color: '#955b3a', shade: '#7c4a30', light: '#a86c48' },
   /**

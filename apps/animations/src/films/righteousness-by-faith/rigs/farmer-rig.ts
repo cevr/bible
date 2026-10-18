@@ -1,7 +1,7 @@
 // The farmer of James 5:7, who waits for the early and the latter rain: one
-// cast member, a robed figure (`robed-rig.ts`) in the story-cloth's dress, a
-// linen tunic under a walnut mantle and a linen headcloth bound with a
-// walnut band. His head, headcloth and beard are rain.rain's, the kept
+// cast member, a robed figure (`robed-rig.ts`) in rain.rain's dress: a tan
+// tunic under a brown vest, and an off-white headcloth bound with a brown
+// band. His head, headcloth and beard are rain.rain's, the kept
 // Board try (`farmer-traced.ts`), his face lifted toward screen right. No
 // kept frame shows him whole, so his body below the beard is robe-5's middle
 // figure, the nearest kept full figure, drawn to the cast's canon: 0.705
@@ -28,9 +28,11 @@ import { roundedPolygon } from './shapes.ts';
 const HEAD = { x: -11, y: -379.8 } as const;
 const NECK = -313;
 
-/** The story-cloth's walnut wool: his mantle and his headcloth's band, its shade toward rose. */
-const WALNUT = '#ab8163';
-const WALNUT_SHADE = '#8a6262';
+/** His vest, as rain.rain paints it: a dark brown wool, its shade turned toward rose. */
+const WALNUT = '#7a5039';
+const WALNUT_SHADE = '#6c4445';
+/** His headcloth's band across his brow: a lighter brown than the vest. */
+const BAND = '#8a5f45';
 
 /**
  * His tunic, as robe-5's middle figure cuts it: from under his beard the
@@ -93,7 +95,7 @@ const mantle = (side: 1 | -1): Pt[] =>
     ] as const
   ).map(([x, y]): Pt => [side * x, y]);
 
-/** The tunic's shade: its far half, from his middle out, a cool lilac (the story-cloth's linen shade). */
+/** The tunic's shade: its far half, from his middle out, its tan turned toward rose. */
 const TUNIC_SHADE: Pt[] = [
   [8, -340],
   [12, -10],
@@ -192,7 +194,7 @@ export const FARMER: Robed = {
     {
       key: 'band',
       pts: FARMER_BAND,
-      look: { color: WALNUT, light: WALNUT, ink: 'none', shadow: 0 },
+      look: { color: BAND, light: BAND, ink: 'none', shadow: 0 },
     },
     { key: 'cloth', pts: FARMER_CLOTH, look: looked(PAPERS.headcloth) },
   ],

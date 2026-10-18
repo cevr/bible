@@ -36,8 +36,13 @@ export const PLACE = {
   prosecutor: [748, 800],
   /** The judge's head's centre, behind the bench. */
   judge: [1312, 196],
-  /** Christ's feet, beside the lead in the dock (`court.beside`). */
-  christ: [471, 746],
+  /**
+   * Christ's feet, beside the lead in the dock (`court.beside`): the lead's
+   * head top at the foot of His eyes, as court-12 sets it (the eyes' centre
+   * 9 px above it). The lead stands where cold-34 sets him, so Christ stands
+   * 13 px higher than court-12's soles; the rail hides His feet.
+   */
+  christ: [471, 733],
 } as const satisfies Record<string, Pt>;
 
 /** The ink's weight on the set, in the Board's pixels: a little under the figures' silhouette line. */
