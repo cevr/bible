@@ -6,11 +6,12 @@
 // made by `BeatEdits` as the page makes them: the owner and the agents step
 // one history.
 
-import { Duration, Effect, Layer, Option, Schema } from 'effect';
+import { Duration, Effect, Layer, Match, Option, Schema } from 'effect';
 import { ChangeId } from '../core/schema.ts';
 import { BeatEdits, type Edited } from './beat-edits.ts';
 import { McpServer, Tool, Toolkit } from 'effect/ai';
 import { onlyTracks } from '../core/film-timeline.ts';
+import { seamsAround } from '../core/beat-edit.ts';
 import { FilmTimeline, Track, WorkingLine } from '../core/timeline-schema.ts';
 import { LabLinks } from '../core/lab-events.ts';
 import { type FilmFolder, filmNamed } from './film-repo.ts';
@@ -74,6 +75,10 @@ const EditRead = Schema.Struct({
   change: Schema.optionalKey(ChangeId),
   target: Schema.String,
   said: Schema.String,
+  /** A hold's: the seams into and out of its beat as the version reads after it, seconds from one beat's words to the next's. */
+  seams: Schema.optionalKey(
+    Schema.Array(Schema.Struct({ from: Schema.String, to: Schema.String, seconds: Schema.Finite })),
+  ),
 });
 
 const VersionParam = Schema.optionalKey(
@@ -105,7 +110,7 @@ const BeatMoveTool = Tool.make('beat_move', {
 
 const BeatHoldTool = Tool.make('beat_hold', {
   description:
-    "Set a beat's hold, as the studio's trim of a clip's edge does: `lead` (the time before its words) or `tail` (the time after them) held `seconds`, snapped to 0.1 s and kept at or above its floor (lead 0.5 s, tail 0.1 s, or less when the beat already holds less); a tail on 0.1 s is the default and is written as none. One write of the script through the lab's history, filed on the ledger as `beat_move` is. Answers the change's id, what it set and what it says.",
+    "Set a beat's hold, as the studio's trim of a clip's edge does: `lead` (the time before its words) or `tail` (the time after them) held `seconds`, snapped to 0.1 s and kept at or above its floor (lead 0.5 s, tail 0.1 s, or less when the beat already holds less); a tail on 0.1 s is the default and is written as none. Refused when it would change nothing the film plays: a beat with no words, or a tail its `min` absorbs. One write of the script through the lab's history, filed on the ledger as `beat_move` is. Answers the change's id, what it set, what it says, and the seams into and out of the beat as the version reads after it.",
   parameters: Schema.Struct({
     ...FilmParam.fields,
     version: VersionParam,
@@ -144,6 +149,15 @@ const editRead = (edited: Edited) => ({
   said: edited.said,
 });
 
+/** The script lane's clips of `timeline`: its beats in film order. */
+const scriptLane = (timeline: FilmTimeline) =>
+  timeline.lanes.flatMap((lane) =>
+    Match.value(lane).pipe(
+      Match.when({ track: 'script' }, (l) => l.clips),
+      Match.orElse(() => []),
+    ),
+  );
+
 /** What a line said with no words is refused with. */
 const NO_TEXT = LabRefused.make({
   reason: 'say `text` (what you are doing now), or `done: true` to clear your line',
@@ -176,17 +190,19 @@ export const timelineMcp = (options: LabMcpOptions) =>
             ),
             beat_hold: logged('beat_hold', ({ film, version, beat, edge, seconds, by }) =>
               refused(
-                Effect.map(
-                  edits.hold({
+                Effect.gen(function* () {
+                  const held = yield* edits.hold({
                     film,
                     version: Option.fromUndefinedOr(version),
                     beat,
                     edge,
                     seconds,
                     by,
-                  }),
-                  editRead,
-                ),
+                  });
+                  // The version read again after the write: the seams the hold moved.
+                  const after = yield* timelines.timeline(film, Option.fromUndefinedOr(version));
+                  return { ...editRead(held), seams: seamsAround(scriptLane(after), beat) };
+                }),
               ),
             ),
             undo: logged('undo', ({ film, change }) =>

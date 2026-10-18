@@ -31,7 +31,7 @@ const provided = <A, E, R>(self: Effect.Effect<A, E, R>) =>
                   id: 'seed',
                   start: 0,
                   dur: 8,
-                  hold: { lead: 0.5, tail: 0.1, declared: [] },
+                  hold: { lead: 0.5, tail: 0.1, declared: [], asked: 0.1, min: 0 },
                   speech: { start: 0.5, end: 7.9 },
                   marks: [],
                   voice: 'estimated',

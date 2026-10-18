@@ -119,6 +119,8 @@ interface StudioState {
   /** Where the read is: reading, shown (read again behind it, too), or unreadable. */
   readonly phase: Accessor<Exclude<TimelineState['_tag'], 'Refreshing'>>;
   readonly timeline: Accessor<Option.Option<FilmTimeline>>;
+  /** Whether a read of the timeline is on its way: a version's first, or the one shown read again. */
+  readonly reading: Accessor<boolean>;
   /** Why the timeline could not be read. */
   readonly why: Accessor<string>;
   /** Whether reading again can change why it could not be read (the lab did not answer, or failed). */
@@ -759,6 +761,7 @@ const Body = (
           Match.orElse((r) => r._tag),
         ),
       timeline,
+      reading: () => read()._tag === 'Reading' || read()._tag === 'Refreshing',
       why: () =>
         Match.value(read()).pipe(
           Match.tag('Unreadable', (u) => u.why),

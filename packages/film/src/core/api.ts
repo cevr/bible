@@ -103,6 +103,7 @@ import {
   SceneNotLocated,
   SceneNotRendered,
   SourceChanged,
+  HoldUnchanged,
   SourceRefused,
   SourceShared,
   StepNotNewest,
@@ -258,6 +259,7 @@ const Refusals = [
   WriteNotJson.pipe(status(415)),
   RecordingLossy.pipe(status(415)),
   SourceRefused.pipe(status(422)),
+  HoldUnchanged.pipe(status(422)),
   DraftUnread.pipe(status(422)),
   BoardRefused.pipe(status(422)),
   SourceShared.pipe(status(422)),
@@ -1391,7 +1393,7 @@ const Replaced = {
     query: ScriptOpen,
     hash: At,
   }),
-  /** A film's Lab: the studio's timeline plays and edits the film now. */
+  /** A film's Lab: sent on to the studio, whose timeline plays and edits the film. */
   lab: Place.make({ path: '/films/:film/lab', params: filmParams, query: NoteOpen, hash: At }),
   /** A scene's Lab: the studio's inspector on its beat. */
   labScene: Place.make({

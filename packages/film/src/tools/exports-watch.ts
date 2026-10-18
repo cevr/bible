@@ -3,10 +3,11 @@
 // subpaths (`@bible/film/style`) by the `exports` map the process read at
 // start: one a merge adds while the lab runs would fail every page ("Could
 // not resolve"). So the lab reads each workspace `package.json`'s `exports`
-// map every few seconds, and when one changes it ends (`ExportsChanged`):
-// its scope closes (the servers, the easel's Chrome), and `film lab` starts
-// itself again in the same process (`Relaunch`, made in `relaunch-bun.ts`),
-// reading the new maps.
+// map as it starts, and again every few seconds, and when one changes it ends
+// (`ExportsChanged`): `relaunchOnExportsChange` closes everything the lab
+// holds (its servers, its pages and their Chrome), then starts `film lab`
+// again in the same process (`Relaunch`, made in `relaunch-bun.ts`), which
+// reads the new maps.
 
 import {
   Array as Arr,
@@ -14,6 +15,7 @@ import {
   Duration,
   Effect,
   FileSystem,
+  type Layer,
   Option,
   Path,
   Schedule,
@@ -21,7 +23,7 @@ import {
 } from 'effect';
 
 /** A workspace package's `exports` map changed while the lab ran: the lab starts again to resolve it. */
-export class ExportsChanged extends Schema.TaggedError<ExportsChanged>()('ExportsChanged', {
+class ExportsChanged extends Schema.TaggedError<ExportsChanged>()('ExportsChanged', {
   /** The `package.json` files whose `exports` changed, relative to the workspace's root. */
   files: Schema.Array(Schema.String),
 }) {
@@ -103,23 +105,36 @@ const changedIn = (was: Exports, now: Exports): ReadonlyArray<string> =>
     return said(was) !== said(now);
   });
 
-/**
- * Read the exports of the workspace under `root` every `every`, and fail
- * with `ExportsChanged` once one differs from what it read first. Never
- * succeeds: run beside the lab, it ends it.
- */
-export const watchExports = Effect.fn('exports.watch')(function* (
-  root: string,
-  every: Duration.Input = EXPORTS_EVERY,
-) {
-  const path = yield* Path.Path;
+/** A workspace's exports as read once: its root, its package.json files, and each one's exports then. */
+interface ExportsRead {
+  readonly root: string;
+  readonly files: ReadonlyArray<string>;
+  readonly first: Exports;
+}
+
+/** Read the exports of the workspace under `root` now: what `watchExports` holds each later read to. */
+export const exportsNow = Effect.fn('exports.now')(function* (root: string) {
   const files = yield* workspacePackages(root);
   const first = yield* readExports(files);
   yield* Effect.log(`[lab] exports.watch files=${files.length}`);
+  return { root, files, first } satisfies ExportsRead;
+});
+
+/**
+ * Read the exports `read` names every `every`, and fail with
+ * `ExportsChanged` once one differs from what `read` holds. Never succeeds:
+ * run beside the lab, it ends it. `read` taken before the lab starts, a
+ * merge that lands while it starts is seen.
+ */
+export const watchExports = Effect.fn('exports.watch')(function* (
+  read: ExportsRead,
+  every: Duration.Input = EXPORTS_EVERY,
+) {
+  const path = yield* Path.Path;
   const pass = Effect.gen(function* () {
-    const changed = changedIn(first, yield* readExports(files));
+    const changed = changedIn(read.first, yield* readExports(read.files));
     if (changed.length === 0) return;
-    return yield* ExportsChanged.make({ files: changed.map((f) => path.relative(root, f)) });
+    return yield* ExportsChanged.make({ files: changed.map((f) => path.relative(read.root, f)) });
   });
   return yield* pass.pipe(Effect.repeat(Schedule.spaced(every)), Effect.andThen(Effect.never));
 });
@@ -155,3 +170,23 @@ interface RelaunchService {
 export class Relaunch extends Context.Service<Relaunch, RelaunchService>()(
   '@bible/film/tools/Relaunch',
 ) {}
+
+/** Whether a failure is the exports watch ending the lab. */
+const isExportsChanged = Schema.is(ExportsChanged);
+
+/**
+ * `lab` with `held` (what it holds for its run: its pages, their Chrome)
+ * built for it alone. Once its exports watch ends it, the scope `lab` opened
+ * and `held` are closed, and then `Relaunch` starts the command again.
+ */
+export const relaunchOnExportsChange = <A, E, R, ROut, E2, RIn>(
+  lab: Effect.Effect<A, E | ExportsChanged, R>,
+  held: Layer.Layer<ROut, E2, RIn>,
+) =>
+  lab.pipe(
+    Effect.scoped,
+    Effect.provide(held),
+    Effect.catchIf(isExportsChanged, (changed) =>
+      Effect.flatMap(Relaunch, (r) => r.relaunch(changed.message)),
+    ),
+  );

@@ -137,7 +137,32 @@ describe('a move of script.ts', () => {
       'the beats read cold, look, end, not cold, end, look',
     ]);
     const unknown = editOrder(THREE, 'nope', Option.none());
-    expect(Result.isFailure(unknown) && unknown.failure.reason).toContain('0 times');
+    expect(Result.isFailure(unknown) && unknown.failure.reason).toBe(
+      'the script has no beat "nope"',
+    );
+    const twice = editOrder(THREE.replace("id: 'end'", "id: 'cold'"), 'cold', Option.none());
+    expect(Result.isFailure(twice) && twice.failure.reason).toContain('2 times');
+  });
+
+  test('judges the move on the order the script holds as it is written, its parts kept', () => {
+    // The acts as declared: the close begins on end, after the open on cold.
+    const acts = [
+      [
+        { from: 'cold', name: 'open' },
+        { from: 'end', name: 'close' },
+      ],
+    ];
+    const broken = editOrder(THREE, 'end', Option.some('cold'), acts);
+    expect(Result.isFailure(broken) && broken.failure.reason).toContain(
+      "the move would break the film's parts",
+    );
+    const none = editOrder(THREE, 'look', Option.some('end'), acts);
+    expect(Result.isFailure(none) && none.failure.reason).toContain('"look" is already there');
+    expect(ids(Result.getOrThrow(editOrder(THREE, 'look', Option.none(), acts)))).toEqual([
+      'cold',
+      'end',
+      'look',
+    ]);
   });
 });
 

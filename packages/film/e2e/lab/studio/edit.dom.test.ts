@@ -8,10 +8,15 @@
 // one history, each step alone. A frame drawn on in red with one line files
 // a note, and the receipt's Withdraw takes it back; a beat's menu files a
 // split at the playhead for an agent, the page writing nothing to the film.
-// The lab's routes are faked (`edits-kept.ts`) over the version's timeline as each edit
-// lays it (`ripple.ts`); every wait is on what the page shows, never on time.
+// A ⌘Z refused because an agent's change stands on top reads the history
+// again, and the next ⌘Z undoes the agent's change. A trim right after a
+// landed write, or right after a reorder, waits for the version's read and
+// starts from it: its readout and its receipt agree. The lab's routes are
+// faked (`edits-kept.ts`) over the version's script, its timeline laid again
+// from the script each change leaves; every wait is on what the page shows,
+// never on time.
 
-import { Boolean as Bool, Effect, Option } from 'effect';
+import { Effect, Match, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { AGENTS_AFTER } from '../../../src/core/beat-edit.ts';
 import { pageHref } from '../../../src/core/api.ts';
@@ -31,12 +36,14 @@ import {
 } from '../../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../../src/lab/fixtures/probe-film.ts';
 import { probeTimeline } from '../../../src/lab/fixtures/probe-timeline.ts';
-import { type Sent, editsKept, sentOf } from './edits-kept.ts';
+import type { FilmTimeline } from '../../../src/core/timeline-schema.ts';
+import { type Sent, editsKept, editsLab, sentOf } from './edits-kept.ts';
 import {
   attributeIs,
   countIs,
   evaluates,
   textHas,
+  textIs,
   waitFor,
 } from '../../../src/lab/fixtures/settled.ts';
 
@@ -119,19 +126,41 @@ const middleOf = (page: Page, selector: string) =>
 /**
  * Carry Script clip `beat` with the mouse to `x` (a page x, on its lane),
  * and assert what the carry shows on the way before letting it go: the clip
- * lifted, and the drop line standing where the drop moves the beat (`moves`)
- * or none where it does not.
+ * lifted, the playhead stepped aside, and the drop line standing whole where
+ * the drop moves the beat, its tag saying what `lands` there, or none where
+ * it does not.
  */
-const carry = (page: Page, beat: string, x: number, moves = true) =>
+const carry = (page: Page, beat: string, x: number, lands: Option.Option<string>) =>
   Effect.gen(function* () {
     const from = yield* middleOf(page, clip(beat));
     yield* page.mouse.move(from.x, from.y);
     yield* page.mouse.down;
     yield* page.mouse.move(x, from.y, 10);
     yield* attributeIs(page, clip(beat), 'data-lifted', 'true');
-    yield* Bool.match(moves, {
-      onTrue: () => waitFor(page, '[data-role="drop-line"]'),
-      onFalse: () => countIs(page, '[data-role="drop-line"]', 0),
+    yield* Option.match(lands, {
+      onSome: (tag) =>
+        Effect.gen(function* () {
+          yield* waitFor(page, '[data-role="drop-line"]');
+          // The line runs through every lane, not the Script lane alone, and shows whole inside them.
+          const line = yield* page.box('[data-role="drop-line"]');
+          const lifted = yield* page.box(clip(beat));
+          const lanes = yield* page.box('.st-scroller');
+          expect(line.height).toBeGreaterThan(lifted.height * 2);
+          expect(line.x).toBeGreaterThanOrEqual(lanes.x);
+          yield* textIs(page, '[data-role="drop-tag"]', tag);
+          // The carried clip shows no grips, and the playhead steps aside for the line.
+          yield* evaluates(
+            page,
+            `[...document.querySelectorAll('${clip(beat)} .st-grip')].every((g) => getComputedStyle(g).display === 'none')`,
+            true,
+          );
+          yield* evaluates(
+            page,
+            `getComputedStyle(document.querySelector('.st-playhead')).visibility`,
+            'hidden',
+          );
+        }),
+      onNone: () => countIs(page, '[data-role="drop-line"]', 0),
     });
     yield* page.mouse.up;
   });
@@ -139,27 +168,50 @@ const carry = (page: Page, beat: string, x: number, moves = true) =>
 /** The page x just inside the start of Script clip `beat`. */
 const startOf = (page: Page, beat: string) => Effect.map(page.box(clip(beat)), (b) => b.x + 3);
 
-/** Pull beat `beat`'s `edge` along by `seconds` on the clock, showing its readout before it is let go. */
-const pull = (page: Page, beat: string, edge: 'lead' | 'tail', seconds: number, readout: string) =>
+/** The page pixels a second of beat `beat` spans, as `shown` (the timeline the page shows) lays it. */
+const pixelsPerSecond = (page: Page, beat: string, shown: FilmTimeline) =>
+  Effect.map(
+    page.box(clip(beat)),
+    (b) =>
+      b.width /
+      Option.getOrElse(
+        Option.map(
+          Option.fromUndefinedOr(scriptOf(shown).find((c) => c.beat === beat)),
+          (c) => c.dur,
+        ),
+        () => 1,
+      ),
+  );
+
+/** Pull beat `beat`'s `edge` along by `seconds` on the clock, showing its readout before it is let go; `shown` is the timeline the page shows. */
+const pull = (
+  page: Page,
+  beat: string,
+  edge: 'lead' | 'tail',
+  seconds: number,
+  readout: string,
+  shown: FilmTimeline = probeTimeline(1),
+) =>
   Effect.gen(function* () {
     const grip = `${clip(beat)} .st-grip[data-edge="${edge}"]`;
     const at = yield* middleOf(page, grip);
-    const perSecond = yield* Effect.map(
-      page.box(clip(beat)),
-      (b) =>
-        b.width /
-        Option.getOrElse(
-          Option.map(
-            Option.fromUndefinedOr(scriptOf(probeTimeline(1)).find((c) => c.beat === beat)),
-            (c) => c.dur,
-          ),
-          () => 1,
-        ),
-    );
+    const perSecond = yield* pixelsPerSecond(page, beat, shown);
     yield* page.mouse.move(at.x, at.y);
     yield* page.mouse.down;
     yield* page.mouse.move(at.x + seconds * perSecond, at.y, 10);
     yield* textHas(page, '[data-role="trim-readout"]', readout);
+    // The readout stands over the edge in the hand: a lead's left on it, a tail's right.
+    const said = yield* page.box('[data-role="trim-readout"]');
+    const pulled = yield* page.box(grip);
+    expect(
+      Math.abs(
+        Match.value(edge).pipe(
+          Match.when('lead', () => said.x - pulled.x),
+          Match.when('tail', () => said.x + said.width - (pulled.x + pulled.width)),
+          Match.exhaustive,
+        ),
+      ),
+    ).toBeLessThan(3);
     yield* page.mouse.up;
     yield* countIs(page, '[data-role="trim-readout"]', 0);
   });
@@ -176,6 +228,13 @@ const fromMenu = (page: Page, selector: string, command: string) =>
 const moveFromMenu = (page: Page, beat: string, to: Option.Option<string>) =>
   Effect.gen(function* () {
     yield* fromMenu(page, clip(beat), 'studio.move-before');
+    // Each row says where the beat goes.
+    yield* Option.match(to, {
+      onNone: () =>
+        textIs(page, '[data-role="move-picker"] .st-picker-row[data-end]', 'To the end'),
+      onSome: (b) =>
+        textIs(page, `[data-role="move-picker"] .st-picker-row[data-to="${b}"]`, `Before ${b}`),
+    });
     yield* page.click(
       Option.match(to, {
         onNone: () => '[data-role="move-picker"] .st-picker-row[data-end]',
@@ -197,12 +256,12 @@ describe('the studio’s edits on a laptop', () => {
         const { page, asked, errors } = yield* studioAt(DESK, `${V1}#t=9.26`, editsKept());
         yield* evaluates(page, ORDER, 'one two three');
         // Dropped on itself, nothing is asked.
-        yield* carry(page, 'two', (yield* startOf(page, 'two')) + 12, false);
+        yield* carry(page, 'two', (yield* startOf(page, 'two')) + 12, Option.none());
         yield* countIs(page, '[data-role="drop-line"]', 0);
         yield* countIs(page, `${SCRIPT} .st-clip[data-lifted="true"]`, 0);
         expect(posted(asked, '/beats/move')).toEqual([]);
         // Carried just inside two, three lands before it.
-        yield* carry(page, 'three', yield* startOf(page, 'two'));
+        yield* carry(page, 'three', yield* startOf(page, 'two'), Option.some('three before two'));
         yield* evaluates(page, ORDER, 'one three two');
         yield* textHas(page, RECEIPT, `Moved three before two. ${AGENTS_AFTER}`);
         expect(posted(asked, '/beats/move')).toEqual([
@@ -211,7 +270,7 @@ describe('the studio’s edits on a laptop', () => {
         yield* evaluates(page, 'location.hash', '#t=5.715');
         yield* page.press('Control+z');
         yield* evaluates(page, ORDER, 'one two three');
-        yield* textHas(page, RECEIPT, 'Undid: Moved three before two.');
+        yield* textHas(page, RECEIPT, 'Undone: Moved three before two.');
         yield* textHas(page, RECEIPT_BUTTON, 'Redo');
         yield* evaluates(page, 'location.hash', '#t=9.26');
         expect(posted(asked, '/edits/undo')).toEqual([Option.some({ change: 'c1' })]);
@@ -227,7 +286,7 @@ describe('the studio’s edits on a laptop', () => {
         const { page, asked, errors } = yield* studioAt(DESK, V1, editsKept());
         const width = `document.querySelector('${clip('one')}').getBoundingClientRect().width`;
         const before = yield* page.evaluate<number>(width);
-        yield* pull(page, 'one', 'tail', 3, '+3.0 s → 7.7 s');
+        yield* pull(page, 'one', 'tail', 3, 'hold +3.0 s · 7.7 s long');
         yield* textHas(page, RECEIPT, `Held one +3.0 s after its words. ${AGENTS_AFTER}`);
         expect(posted(asked, '/beats/hold')).toEqual([
           Option.some({ version: 1, beat: 'one', edge: 'tail', seconds: 3.1 }),
@@ -242,7 +301,7 @@ describe('the studio’s edits on a laptop', () => {
           true,
         );
         yield* page.click(RECEIPT_BUTTON);
-        yield* textHas(page, RECEIPT, 'Undid: Held one +3.0 s after its words.');
+        yield* textHas(page, RECEIPT, 'Undone: Held one +3.0 s after its words.');
         yield* attributeIs(page, clip('one'), 'title', /–0:04\.7$/);
         yield* evaluates(page, `Math.abs(${width} - ${before}) < 1`, true);
         expect(errors).toEqual([]);
@@ -255,18 +314,18 @@ describe('the studio’s edits on a laptop', () => {
     () =>
       Effect.gen(function* () {
         const { page, asked, errors } = yield* studioAt(DESK, V1, editsKept());
-        yield* carry(page, 'three', yield* startOf(page, 'one'));
+        yield* carry(page, 'three', yield* startOf(page, 'one'), Option.some('three before one'));
         yield* evaluates(page, ORDER, 'three one two');
         yield* textHas(page, RECEIPT, 'Moved three before one.');
-        yield* carry(page, 'two', yield* startOf(page, 'one'));
+        yield* carry(page, 'two', yield* startOf(page, 'one'), Option.some('two before one'));
         yield* evaluates(page, ORDER, 'three two one');
         yield* textHas(page, RECEIPT, 'Moved two before one.');
         yield* page.press('Control+z');
         yield* evaluates(page, ORDER, 'three one two');
-        yield* textHas(page, RECEIPT, 'Undid: Moved two before one.');
+        yield* textHas(page, RECEIPT, 'Undone: Moved two before one.');
         yield* page.press('Control+z');
         yield* evaluates(page, ORDER, 'one two three');
-        yield* textHas(page, RECEIPT, 'Undid: Moved three before one.');
+        yield* textHas(page, RECEIPT, 'Undone: Moved three before one.');
         expect(posted(asked, '/edits/undo')).toEqual([
           Option.some({ change: 'c2' }),
           Option.some({ change: 'c1' }),
@@ -274,6 +333,104 @@ describe('the studio’s edits on a laptop', () => {
         yield* page.press('Control+Shift+Z');
         yield* evaluates(page, ORDER, 'three one two');
         expect(posted(asked, '/edits/redo')).toEqual([Option.some({ change: 'c1' })]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe('the studio’s edits beside an agent’s, and in the read’s window', () => {
+  it.live(
+    "a ⌘Z refused under an agent's newer change reads the history again, and the next ⌘Z undoes the agent's",
+    () =>
+      Effect.gen(function* () {
+        const lab = editsLab();
+        const { page, asked, errors } = yield* studioAt(DESK, V1, lab.routes);
+        yield* carry(page, 'three', yield* startOf(page, 'two'), Option.some('three before two'));
+        yield* textHas(page, RECEIPT, 'Moved three before two.');
+        // An agent holds one through its tool: the page's history still names the move.
+        const agents = yield* lab.agent('one', 'tail', 1.1);
+        yield* page.press('Control+z');
+        yield* textHas(page, RECEIPT, 'hold one tail came after it');
+        yield* page.press('Control+z');
+        yield* textHas(page, RECEIPT, 'Undone: Held one +1.0 s after its words.');
+        expect(posted(asked, '/edits/undo')).toEqual([
+          Option.some({ change: 'c1' }),
+          Option.some({ change: agents }),
+        ]);
+        // The page read the history again between the two.
+        expect(
+          asked.filter((a) => a.method === 'GET' && a.path === '/steps').length,
+        ).toBeGreaterThan(0);
+        yield* evaluates(page, ORDER, 'one three two');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a second trim on the same edge right after a landed write waits for the read, and starts from it',
+    () =>
+      Effect.gen(function* () {
+        const lab = editsLab();
+        const { page, asked, errors } = yield* studioAt(DESK, V1, lab.routes);
+        const release = yield* lab.holdReads;
+        yield* pull(page, 'one', 'tail', 3, 'hold +3.0 s · 7.7 s long');
+        yield* textHas(page, RECEIPT, 'Held one +3.0 s after its words.');
+        // The read is held: a grip pulled in its window shows no readout and asks nothing.
+        const grip = `${clip('one')} .st-grip[data-edge="tail"]`;
+        const at = yield* middleOf(page, grip);
+        yield* page.mouse.move(at.x, at.y);
+        yield* page.mouse.down;
+        yield* page.mouse.move(at.x + 40, at.y, 5);
+        yield* countIs(page, '[data-role="trim-readout"]', 0);
+        yield* attributeIs(page, grip, 'data-waiting', 'true');
+        yield* page.mouse.up;
+        yield* release;
+        // The version read again, the edge is the hand's again.
+        yield* attributeIs(page, grip, 'data-waiting', 'false');
+        yield* attributeIs(page, clip('one'), 'title', /–0:07\.7$/);
+        yield* pull(page, 'one', 'tail', 1, 'hold +1.0 s · 8.7 s long', lab.now());
+        yield* textHas(page, RECEIPT, `Held one +1.0 s after its words. ${AGENTS_AFTER}`);
+        expect(posted(asked, '/beats/hold')).toEqual([
+          Option.some({ version: 1, beat: 'one', edge: 'tail', seconds: 3.1 }),
+          Option.some({ version: 1, beat: 'one', edge: 'tail', seconds: 4.1 }),
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a trim started right after a reorder waits for its read; neither edit is lost',
+    () =>
+      Effect.gen(function* () {
+        const lab = editsLab();
+        const { page, asked, errors } = yield* studioAt(DESK, V1, lab.routes);
+        const release = yield* lab.holdReads;
+        yield* carry(page, 'three', yield* startOf(page, 'two'), Option.some('three before two'));
+        yield* textHas(page, RECEIPT, 'Moved three before two.');
+        const grip = `${clip('three')} .st-grip[data-edge="tail"]`;
+        const at = yield* middleOf(page, grip);
+        yield* page.mouse.move(at.x, at.y);
+        yield* page.mouse.down;
+        yield* page.mouse.move(at.x + 40, at.y, 5);
+        yield* countIs(page, '[data-role="trim-readout"]', 0);
+        yield* attributeIs(page, grip, 'data-waiting', 'true');
+        yield* page.mouse.up;
+        yield* release;
+        // The version read again, the edge is the hand's again.
+        yield* attributeIs(page, grip, 'data-waiting', 'false');
+        yield* evaluates(page, ORDER, 'one three two');
+        yield* pull(page, 'three', 'tail', 1, 'hold +1.0 s · 5.1 s long', lab.now());
+        yield* textHas(page, RECEIPT, `Held three +1.0 s after its words. ${AGENTS_AFTER}`);
+        yield* evaluates(page, ORDER, 'one three two');
+        expect(posted(asked, '/beats/move')).toEqual([
+          Option.some({ version: 1, beat: 'three', before: 'two' }),
+        ]);
+        expect(posted(asked, '/beats/hold')).toEqual([
+          Option.some({ version: 1, beat: 'three', edge: 'tail', seconds: 1.1 }),
+        ]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -359,6 +516,13 @@ for (const size of SIZES)
           yield* page.click('[data-act="studio.note"]');
           yield* waitFor(page, '[data-role="note-bar"] [data-role="note-text"]');
           yield* countIs(page, '.st-transport', 0);
+          // The frame says it takes a drawing: a crosshair over it, and its tag.
+          yield* evaluates(
+            page,
+            `getComputedStyle(document.querySelector('.st-draw-over')).cursor`,
+            'crosshair',
+          );
+          yield* textHas(page, '.st-frame .st-tag', 'Draw here · ');
           yield* strokeOver(page, size.viewport, '.st-draw-over');
           yield* waitFor(page, '.st-draw-over .lab-sketch-item');
           yield* attributeIs(page, '[data-act="file-note"]', 'disabled', '');

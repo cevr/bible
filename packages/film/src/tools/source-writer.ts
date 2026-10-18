@@ -275,7 +275,7 @@ type Stepped = readonly [Change, Remade];
 export type StepError = UndoUnavailable | RedoUnavailable | StepNotNewest | StoreError;
 
 /** How many changes Undo can walk back, per film. Each holds its file's text before and after. */
-const UNDO_DEPTH = 50;
+export const UNDO_DEPTH = 50;
 
 const emptyHistory: History = {
   undos: [],

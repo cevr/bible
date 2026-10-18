@@ -361,18 +361,33 @@ export const INSPECTOR_CSS = `
 .st-grip[data-edge="lead"]::after { left: 2px; }
 .st-grip[data-edge="tail"]::after { right: 2px; }
 .st-clip:hover > .st-grip::after, .st-clip[data-linked="true"] > .st-grip::after { opacity: 1; }
-.st-drop { position: absolute; top: 2px; height: calc(var(--st-text-h) - 4px); width: 3px; margin-left: -1.5px; border-radius: var(--r-0); background: var(--on-picture); box-shadow: 0 0 10px var(--on-picture); z-index: 9; pointer-events: none; }
-.st-readout { position: absolute; top: -26px; translate: -50% 0; padding: 3px 7px; border-radius: var(--r-1); background: var(--surface-2); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); font-variant-numeric: tabular-nums; color: var(--text-1); white-space: nowrap; z-index: 10; pointer-events: none; }
+/* While a clip is carried the playhead steps aside, so the drop line is the one line over the lanes. */
+.st-canvas[data-carrying="true"] .st-playhead { visibility: hidden; }
+/* The drop line runs through every lane in the accent, so the gap a carried clip lands in reads at once; its tag, over it on the band, says what lands where. */
+.st-drop { position: absolute; top: 0; bottom: 0; width: 4px; margin-left: -2px; border-radius: var(--r-0); background: var(--accent); box-shadow: 0 0 0 1px var(--surface-0), 0 0 12px var(--accent); z-index: 9; pointer-events: none; }
+/* A clip carried shows no grips: it moves, it is not trimmed. */
+.st-clip[data-lifted="true"] > .st-grip { display: none; }
+/* While an edit is on its way no edge is pulled: the grip says so, and takes the edge once the version is read again. */
+.st-grip[data-waiting="true"] { cursor: progress; }
+.st-grip[data-waiting="true"]::after { opacity: 0.3; }
+/* The readout stands over the edge in the hand (or the drop line): a lead's at its left, a tail's at its right. */
+.st-readout { position: absolute; top: -26px; padding: 3px 7px; border-radius: var(--r-1); background: var(--surface-2); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); font-variant-numeric: tabular-nums; color: var(--text-1); white-space: nowrap; z-index: 10; pointer-events: none; }
+.st-readout[data-edge="lead"] { translate: 0 0; }
+.st-readout[data-edge="tail"] { translate: -100% 0; }
+.st-readout[data-role="drop-tag"] { border-color: var(--accent); color: var(--accent); }
 .st-app .st-key[data-look="note"] { flex: none; width: auto; padding: 0 var(--s-3); gap: var(--s-1); display: inline-flex; border: var(--border); border-radius: var(--r-pill); }
 /* Drawing on the frame: the red ink over the viewer; the note bar in the transport's row. */
 .st-draw-over { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 3; }
-.st-frame:has(.st-draw-over) .st-tag { display: none; }
+/* While the frame is drawn on: a crosshair and a ring in the note's colour say it takes a drawing; the tag says so over it. */
+.st-draw-over { cursor: crosshair; box-shadow: inset 0 0 0 2px var(--state-note); }
+.st-frame:has(.st-draw-over) .st-tag { z-index: 4; pointer-events: none; }
+.st-frame:has(.st-draw-over) .st-tag i { background: var(--state-note); }
 .st-notebar { grid-area: transport; display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--st-gutter); min-width: 0; }
 .st-notebar-text { flex: 1; min-width: 0; height: var(--s-8); padding: 0 var(--s-2); }
 /* Move…: the beats to pick, a finger's height each. */
 .st-picker { position: fixed; z-index: 41; top: 50%; left: 50%; translate: -50% -50%; width: min(400px, calc(100vw - 2 * var(--st-gutter))); max-height: calc(100dvh - 2 * var(--st-gutter)); overflow-y: auto; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3); border-radius: var(--r-panel); border: var(--border); background: var(--surface-1); box-shadow: var(--shadow-pop); color: var(--text-1); }
 .st-picker-list { display: flex; flex-direction: column; }
-.st-app .st-picker-row, .st-picker .st-picker-row { min-height: 44px; padding: 0 var(--s-3); border-radius: var(--r-1); text-align: start; font: inherit; font-family: var(--font-mono); background: none; border: 0; color: var(--text-1); cursor: pointer; }
+.st-app .st-picker-row, .st-picker .st-picker-row { min-height: 44px; padding: 0 var(--s-3); border-radius: var(--r-1); text-align: start; font: inherit; background: none; border: 0; color: var(--text-1); cursor: pointer; }
 .st-picker .st-picker-row:hover { background: var(--surface-3); }
 .st-picker .st-picker-close { align-self: flex-end; }
 .st-record-backdrop { position: fixed; inset: 0; z-index: 40; background: var(--backdrop); pointer-events: auto; }

@@ -1139,6 +1139,13 @@ a restart); a film's studio loads again at its place when a later build or
 another server answers (`reloadOnRebuild`, `lab/rebuilt.ts`), once no edit
 is in hand, no frame is drawn on and the recorder is not over the page, so a
 scene edited by hand or by an agent is on screen with no hand on the page.
+The bundler resolves a workspace package's subpaths by the `exports` maps the
+process read at start, so the lab reads every workspace `package.json`'s
+`exports` as it starts and every 3 s after (`tools/exports-watch.ts`): once
+one changes (a merge adds a subpath), the lab closes its servers, its pages
+and their Chrome, and starts itself again in the same process with the same
+command line (`relaunchOnExportsChange`, `tools/relaunch-bun.ts`); an open
+page sees another server answer and loads again at its place.
 The review does not reload itself (a playing set
 is not interrupted); its next load is the new code. A page that does not
 build answers 500 with the bundler's words and reloads once a later build
@@ -1420,23 +1427,30 @@ by too), on a version whose files the lab holds (its own folder, or the
 film's registered files):
 
 - **Reorder.** On a laptop a Script clip dragged past a drag's first pixels
-  is lifted (at 60% opacity) and carried over the gaps between the beats; a
-  white drop line stands where it would land. A drop on a gap that moves it
+  is lifted (at 60% opacity, its grips hidden) and carried over the gaps
+  between the beats; the playhead steps aside, and a drop line in the
+  accent runs through the lanes where it would land, its tag on the band
+  saying what lands where (`three before one`). A drop on a gap that moves it
   moves its beat there; any other drop, or Escape, moves nothing. A move
   keeps every act and score movement on the beat it begins on, and one that
   would put a part before the part declared ahead of it is refused in words
   (`movedOrder`). On a phone a long-press on a clip opens its menu, whose
-  Move before… lists the beats it can go before, and To the end. The page
+  Move before… lists a row for each beat it can go before (`Before two`), and
+  To the end. The page
   posts `POST /api/films/<film>/beats/move`.
-- **Trim.** On a laptop each edge of a Script clip is a grip: pulled, it
-  sets that beat's hold (`lead`, the time before its words, at the left
+- **Trim.** On a laptop each edge of a Script clip with words is a grip
+  (a beat with none has no hold to pull): pulled, it sets that beat's hold (`lead`, the time before its words, at the left
   edge; `tail`, the time after them, at the right), with a live readout
-  beside it (`+3.0 s → 7.7 s`: the change and the beat's length after it,
-  `trimReadout`). The hold snaps to 0.1 s and stays between its floor
+  over that edge (`hold +3.0 s · 7.7 s long`: the change and the beat's length after it,
+  `trimReadout`, sized by the layout's own rule, `beatLength`, so a beat its
+  `min` holds keeps its length). The hold snaps to 0.1 s and stays between its floor
   (`MIN_LEAD`, `DEFAULT_TAIL`, or the beat's own when it already holds
   less) and 30 s (`heldWithin`); a tail on `DEFAULT_TAIL` is written as
   none. Let go where it began, it writes nothing. The page posts
-  `POST /api/films/<film>/beats/hold`. The phone has no trim.
+  `POST /api/films/<film>/beats/hold`; a hold that would change nothing the
+  film plays (a beat with no words, a tail its `min` absorbs) is refused
+  with `HoldUnchanged`, said in words (`holdUnchanged`). The phone has no
+  trim.
 
 Each edit is one write of the version's `script.ts` through the
 SourceWriter (`tools/source-writer.ts`), made by `BeatEdits`
@@ -1449,7 +1463,10 @@ edit, and the playhead comes back to the same moment of the same beat
 (`anchorOf`, `anchoredT`). A version the staged film draws then loads again
 at its place, its new order drawn. One edit is in flight at a time
 (`lab/film-studio/edit.ts`: `Idle`, `Dragging`, `Trimming`, `Sending`,
-`Done`, `Failed`): an ask while one is on its way is not taken. Its receipt
+`Landed`, `Done`, `Failed`): a write that changed the script is `Landed`
+until the version's read holds it, and an ask, a carry or a trim while one
+is on its way or unread is not taken (its grips say so,
+`data-waiting`). Its receipt
 says what it did in the owner's words (`Moved two before one.`, `Held two
 +3.0 s before its words.`), its Undo bound to the change it made. An edit
 of a film with a production files the agents' work on its ledger while it
@@ -1463,7 +1480,8 @@ steps, no check. It is the history the steps' `POST …/undo` and `/redo`
 step too: the owner's edits and the agents' (a scene written, a voice kept,
 an edit through the MCP tools) on one stack, each step its own. A
 receipt's Undo steps only the change it names, while it is the newest
-(`StepNotNewest` otherwise).
+(`StepNotNewest` otherwise); a refused step reads the steps again, so the
+next ⌘Z steps the newest change the page now knows.
 
 **Notes for an agent.** What the page cannot write exactly it files as a
 note, through the inspector's note machine (`note-save.ts`); none of them
@@ -1472,8 +1490,9 @@ writes the film:
 - **Draw on a frame.** N, the transport's Note on this frame, or that row
   on a clip's or the page's context menu pauses the film and lays red ink
   over the viewer (`Editing.Ink`, on the markup surface
-  `lab/sketch/surface.tsx`). The note bar takes the transport's place: one
-  line, File note and Cancel. File note files the line with the frame drawn
+  `lab/sketch/surface.tsx`), the frame ringed in the note's colour under a
+  crosshair and its tag saying `Draw here`. The note bar takes the transport's place: one
+  line (`Say what to change`), File note and Cancel. File note files the line with the frame drawn
   on as its still (`frameStill`, `panel-still.ts`).
 - **Split at the playhead**, on a beat's context menu while the playhead is
   inside it, files a note asking for the beat to be split there.
@@ -1486,7 +1505,9 @@ has answered it (`POST /api/films/<film>/notes/:id/withdraw`).
 **The MCP tools.** The lab MCP serves the same edits to agents
 (`tools/timeline-mcp.ts`): `beat_move`, `beat_hold`, and `undo` of the
 film's newest change (or, given `change`, that change alone, refused while
-another stands before it). `BeatEdits` makes them as the page makes them,
+another stands before it); `beat_hold` answers the seams into and out of
+its beat as the version reads after it (`seamsAround`: from the end of a
+beat's take to the next beat's words). `BeatEdits` makes them as the page makes them,
 so the owner and the agents step one history.
 
 **A newer build.** The studio loads again at its place onto new code when

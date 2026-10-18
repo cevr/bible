@@ -5,10 +5,12 @@
 // read), so the owner's edits and the agents' share one history; and Undo
 // and Redo of the film's newest change, any writer's.
 //
-// Each edit is judged on the version's timeline as the lab reads it now
-// (`FilmTimelines`): its beats in order, its acts and its score's movements,
-// which a move must keep in their declared order (`movedOrder`), and each
-// beat's holds as laid out, which a trim starts from (`heldWithin`). The rest
+// A move is judged on the script as the writer's lock holds it (`editOrder`
+// over `movedOrder`): its beats in order, the acts and the score's movements
+// of the version's timeline as the lab reads it now (`FilmTimelines`) kept in
+// their declared order. A hold starts from each beat's holds as laid out
+// (`heldWithin`), and one that would change nothing the film plays is
+// refused (`holdUnchanged`). The rest
 // of the film follows the script on its next read: every later beat, its
 // Board panels, its scene and the movements that start on it play where the
 // new order and holds lay them.
@@ -26,13 +28,14 @@ import {
   heldAlready,
   heldWithin,
   heldWords,
+  holdUnchanged,
   holdWritten,
-  movedOrder,
   movedWords,
+  stepped,
   workFiled,
 } from '../core/beat-edit.ts';
 import type { Said } from '../core/production.ts';
-import { SourceRefused } from '../core/refusals.ts';
+import { HoldUnchanged, SourceRefused } from '../core/refusals.ts';
 import type { FilmTimeline, FilmVersion } from '../core/timeline-schema.ts';
 import { onTheMs } from '../core/time.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
@@ -54,6 +57,7 @@ import {
   type StepAsk,
   type StepError,
   SourceWriter,
+  UNDO_DEPTH,
 } from './source-writer.ts';
 
 /** A move as it is asked: `beat` of version `version` (the open one when none) before `before` (the end when none), by `by`. */
@@ -84,7 +88,7 @@ export interface Edited {
 }
 
 /** Why an edit did not land: the film, the version or its timeline does not read, the edit is refused, or the write is. */
-type EditError = TimelineError | RewriteError | SourceRefused;
+type EditError = TimelineError | RewriteError | SourceRefused | HoldUnchanged;
 
 interface BeatEditsService {
   readonly move: (ask: MoveAsk) => Effect.Effect<Edited, EditError>;
@@ -137,11 +141,21 @@ const partsOf = (timeline: FilmTimeline) => [
     .map((c) => ({ from: c.from, name: c.movement })),
 ];
 
-/** How a step's words begin. */
-const STEPPED = { undo: 'Undone', redo: 'Redone' } as const;
+/** What each film's studio changes said, by the change's id, oldest first. */
+type Words = ReadonlyMap<string, ReadonlyMap<string, string>>;
 
-/** A step's change as the owner's words name it: the words its edit said, or what it set. */
-const stepped = (verb: 'undo' | 'redo', words: string) => `${STEPPED[verb]}: ${words}`;
+/**
+ * `all` with `film`'s change `id` saying `said`. A film keeps the words of its
+ * newest UNDO_DEPTH changes: an older one has as many newer changes above it,
+ * so its history no longer holds it.
+ */
+const wordsKept = (all: Words, film: string, id: string, said: string): Words => {
+  const own = Option.getOrElse(
+    Option.fromUndefinedOr(all.get(film)),
+    (): ReadonlyMap<string, string> => new Map(),
+  );
+  return new Map([...all, [film, new Map([...own, [id, said] as const].slice(-UNDO_DEPTH))]]);
+};
 
 /** What a step's change set, without the step's own `undo `/`redo `. */
 const setBy = (target: string) => target.replace(/^(undo|redo) /, '');
@@ -158,8 +172,8 @@ export class BeatEdits extends Context.Service<BeatEdits, BeatEditsService>()(
       const writer = yield* SourceWriter;
       const productions = yield* ProductionStore;
       const films = yield* Effect.context<FilmFolder>();
-      // What each change of the studio's said, by its id: what its Undo and Redo say it undid.
-      const words = yield* Ref.make(new Map<string, string>());
+      // What each change of the studio's said, by its film and its id: what its Undo and Redo say.
+      const words = yield* Ref.make<Words>(new Map());
 
       /**
        * The agents' work `said` asks for, on `production`'s ledger while the
@@ -248,7 +262,7 @@ export class BeatEdits extends Context.Service<BeatEdits, BeatEditsService>()(
         });
         yield* Option.match(change, {
           onNone: () => Effect.void,
-          onSome: (c) => Ref.update(words, (all) => new Map([...all, [c.id, at.said]])),
+          onSome: (c) => Ref.update(words, (all) => wordsKept(all, film, c.id, at.said)),
         });
         yield* Effect.logInfo(
           `[studio] edit film=${film} target="${at.target}" by="${at.by}" landed=${Option.isSome(change)}`,
@@ -264,12 +278,7 @@ export class BeatEdits extends Context.Service<BeatEdits, BeatEditsService>()(
         const film = yield* filmNamed(ask.film).pipe(Effect.provideContext(films));
         const target = moveTarget(ask.beat, ask.before);
         const { timeline, file } = yield* versionOf(film, ask.version, target);
-        const ids = scriptClips(timeline).map((c) => c.beat);
-        yield* Effect.fromResult(
-          Result.mapError(movedOrder(ids, ask.beat, ask.before, partsOf(timeline)), (reason) =>
-            SourceRefused.make({ file: SCRIPT_FILE, target, reason }),
-          ),
-        );
+        const parts = partsOf(timeline);
         return yield* written(
           film,
           timeline,
@@ -281,7 +290,8 @@ export class BeatEdits extends Context.Service<BeatEdits, BeatEditsService>()(
             already: `${ask.beat} is already there.`,
             by: ask.by,
           },
-          (source) => editOrder(source, ask.beat, ask.before),
+          // Judged on the script as the writer's lock holds it, its parts kept.
+          (source) => editOrder(source, ask.beat, ask.before, parts),
           (after, before) => orderMissed(after, before, ask.beat, ask.before),
         );
       });
@@ -303,6 +313,10 @@ export class BeatEdits extends Context.Service<BeatEdits, BeatEditsService>()(
         );
         const now = onTheMs(clip.hold[ask.edge]);
         const value = heldWithin(ask.edge, ask.seconds, now);
+        yield* Option.match(holdUnchanged(clip, ask.edge, value), {
+          onNone: () => Effect.void,
+          onSome: (reason) => HoldUnchanged.make({ beat: ask.beat, edge: ask.edge, reason }),
+        });
         const as = holdWritten(ask.edge, value);
         // A hold laid out where it is asked, and not declared, is already so: nothing to write.
         const already = value === now && !clip.hold.declared.includes(ask.edge);
@@ -337,11 +351,11 @@ export class BeatEdits extends Context.Service<BeatEdits, BeatEditsService>()(
       ) {
         const film = yield* filmNamed(name).pipe(Effect.provideContext(films));
         const [change] = yield* writer.step(verb, film, ask);
-        const kept = (yield* Ref.get(words)).get(change.id);
-        const said = Option.getOrElse(
-          Option.fromUndefinedOr(kept),
-          () => `${setBy(change.target)}.`,
+        const kept = Option.flatMap(
+          Option.fromUndefinedOr((yield* Ref.get(words)).get(film)),
+          (own) => Option.fromUndefinedOr(own.get(change.id)),
         );
+        const said = Option.getOrElse(kept, () => `${setBy(change.target)}.`);
         yield* Effect.logInfo(`[studio] ${verb} film=${film} target="${change.target}"`);
         return {
           change: Option.some(change),

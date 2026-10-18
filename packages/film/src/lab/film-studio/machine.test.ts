@@ -2,7 +2,7 @@
 // version the address names, reads again when the owner opens another, keeps
 // what it shows when the same version is asked again, and says why a read
 // failed until a retry (of a failure that can pass) or another version
-// reads again. A read answers for
+// reads again; a Refresh while it reads again starts that read again. A read answers for
 // its own version: one the owner left while it was in flight never shows,
 // whether he picked another or went Back. The transport machine
 // plays and pauses, and a scrub holds it, remembering whether it cut play off.
@@ -126,6 +126,29 @@ describe("the studio's timeline machine", () => {
       expect(refreshing).toEqual(TimelineState.Refreshing({ v: 1, timeline: probeTimeline(1) }));
       yield* actor.waitFor((s) => s._tag === 'Shown' && asked.length === 2);
       expect(asked).toEqual([1, 1]);
+    }).pipe(Effect.scoped);
+  });
+
+  it.effect('a Refresh while the version is read again starts its read again', () => {
+    let reads = 0;
+    // The first read again never answers: it began before a second write landed.
+    const read = (_v: number) =>
+      Effect.suspend(() => {
+        reads += 1;
+        const n = reads;
+        return Bool.match(n === 2, {
+          onTrue: () => Effect.never,
+          onFalse: () => Effect.succeed({ ...probeTimeline(1), duration: n }),
+        });
+      });
+    return Effect.gen(function* () {
+      const actor = yield* spawnTimeline(read, 1);
+      yield* actor.waitFor(shownAt(1));
+      yield* actor.send(TimelineEvent.Refresh);
+      yield* actor.waitFor((s) => s._tag === 'Refreshing' && reads === 2);
+      yield* actor.send(TimelineEvent.Refresh);
+      const shown = yield* actor.waitFor(shownAt(1));
+      expect(shown._tag === 'Shown' && shown.timeline.duration).toBe(3);
     }).pipe(Effect.scoped);
   });
 

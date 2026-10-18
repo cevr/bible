@@ -4,20 +4,23 @@
 // snapped and kept inside its floors as it is pulled; let go anywhere but
 // where it began is a hold), and an ask from a key, a menu or a receipt (a
 // move before a beat picked, an Undo or a Redo of the film's history). One
-// write at a time: an ask while one is on its way is not taken, and a
-// press then lifts nothing. A landed write names what it did; a refused one
-// says why, until the next edit.
+// write at a time: an ask while one is on its way, or while the version
+// is read again after one landed, is not taken, and a press then lifts
+// nothing. A landed write names what it did; a refused one says why, until
+// the next edit.
 //
 //   Idle | Done | Failed ─Lift→ Dragging ─Over→ Dragging ─Drop (a gap that moves it)→ Sending{Move}
 //                                         ─Drop (no move) | Cancel→ Idle
 //   Idle | Done | Failed ─Grip→ Trimming ─Pull→ Trimming ─Let (moved)→ Sending{Hold}
 //                                         ─Let (where it began) | Cancel→ Idle
 //   Idle | Done | Failed ─Ask→ Sending
-//   Sending ─Landed→ Done ; Sending ─Refused→ Failed
+//   Sending ─Landed (a change)→ Landed ─Read→ Done
+//   Sending ─Landed (nothing changed)→ Done ; Sending ─Refused→ Failed
 //
 // What an edit shows before the lab has read the version again
-// (`previewOf`): a trim as it is pulled and any write on its way, laid on
-// the timeline by `ripple.ts`. Nothing here touches the DOM or the lab: the
+// (`previewOf`): a trim as it is pulled, a write on its way, and a write
+// landed until the version's read holds it, laid on the timeline by
+// `ripple.ts`. Nothing here touches the DOM or the lab: the
 // write is the provider's effect, faked in tests.
 
 import { Effect, Match, Option, Predicate, Schema } from 'effect';
@@ -59,7 +62,9 @@ export const EditState = State({
   Trimming: { beat: Schema.String, edge: Edge, from: Schema.Finite, to: Schema.Finite },
   /** `ask` is on its way. */
   Sending: { ask: StudioAsk },
-  /** `ask` landed: what the lab answered. */
+  /** `ask` was written: what the lab answered, shown until the version is read again. */
+  Landed: { ask: StudioAsk, answer: StudioEdit },
+  /** `ask` landed and the version was read again, or it changed nothing: what the lab answered. */
   Done: { ask: StudioAsk, answer: StudioEdit },
   /** `ask` was refused: the lab's words. */
   Failed: { ask: StudioAsk, reason: Schema.String },
@@ -79,6 +84,8 @@ export const EditEvent = Event({
   Ask: { ask: StudioAsk },
   Landed: { answer: StudioEdit },
   Refused: { reason: Schema.String },
+  /** The version was read again after a write landed (or the read failed, the timeline shown kept). */
+  Read: {},
 });
 export type EditEvent = typeof EditEvent.Type;
 
@@ -144,7 +151,13 @@ const editMachine = <R>(send: (ask: StudioAsk) => Effect.Effect<StudioEdit, stri
       { onSuccess: (event) => event },
     )
     .on(EditState.Sending, EditEvent.Landed, ({ state, event }) =>
-      EditState.Done({ ask: state.ask, answer: event.answer }),
+      Option.match(Option.fromUndefinedOr(event.answer.change), {
+        onNone: (): EditState => EditState.Done({ ask: state.ask, answer: event.answer }),
+        onSome: () => EditState.Landed({ ask: state.ask, answer: event.answer }),
+      }),
+    )
+    .on(EditState.Landed, EditEvent.Read, ({ state }) =>
+      EditState.Done({ ask: state.ask, answer: state.answer }),
     )
     .on(EditState.Sending, EditEvent.Refused, ({ state, event }) =>
       EditState.Failed({ ask: state.ask, reason: event.reason }),
@@ -170,9 +183,9 @@ const askPreview = (ask: StudioAsk): Option.Option<Preview> =>
 
 /**
  * What the edit in `state` shows before the lab reads the version again: a
- * trim as it is pulled, a write on its way, a write landed (until the read
- * that holds it replaces it, the page's to judge); none at rest or while a
- * clip is carried (its drop line shows where it would go).
+ * trim as it is pulled, a write on its way, a write landed until the read
+ * that holds it; none at rest or while a clip is carried (its drop line
+ * shows where it would go).
  */
 export const previewOf = (state: EditState): Option.Option<Preview> =>
   Match.value(state).pipe(
@@ -182,15 +195,13 @@ export const previewOf = (state: EditState): Option.Option<Preview> =>
       Trimming: (t): Option.Option<Preview> =>
         Option.some({ _tag: 'Hold', beat: t.beat, edge: t.edge, from: t.from, to: t.to }),
       Sending: (s) => askPreview(s.ask),
-      Done: (d) =>
-        Option.filter(askPreview(d.ask), () =>
-          Option.isSome(Option.fromUndefinedOr(d.answer.change)),
-        ),
+      Landed: (l) => askPreview(l.ask),
+      Done: () => Option.none<Preview>(),
       Failed: () => Option.none<Preview>(),
     }),
   );
 
-/** Whether an edit can start in `state`: none is on its way or in hand. */
+/** Whether an edit can start in `state`: none is in hand, on its way, or landed and not yet read again. */
 export const atRest: (state: EditState) => boolean = Predicate.or(
   Predicate.isTagged('Idle'),
   Predicate.or(Predicate.isTagged('Done'), Predicate.isTagged('Failed')),

@@ -7,7 +7,9 @@
       "hold": {
         "lead": 0.5,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 0.5,
@@ -41,7 +43,9 @@
       "hold": {
         "lead": 0.5,
         "tail": 1.4,
-        "declared": []
+        "declared": [],
+        "asked": 1.4,
+        "min": 0
       },
       "speech": {
         "start": 9.66,

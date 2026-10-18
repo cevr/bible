@@ -106,16 +106,31 @@ interface Filing {
   readonly what: string;
 }
 
+/** The drop line: the film second it stands at, and what it says lands there (`job before court`). */
+interface DropLine {
+  readonly at: number;
+  readonly text: string;
+}
+
+/** A trim's live readout: the beat trimmed, the edge pulled, and what it says. */
+interface TrimReadout {
+  readonly beat: string;
+  readonly edge: 'lead' | 'tail';
+  readonly text: string;
+}
+
 interface EditingState {
   readonly edit: Accessor<EditState>;
   /** The timeline the lanes draw: the version's, with the edit in flight rippled through it. */
   readonly laid: Accessor<Option.Option<FilmTimeline>>;
-  /** The film second the drop line stands at, while a clip is carried over a gap that moves it. */
-  readonly drop: Accessor<Option.Option<number>>;
+  /** Where a carried clip lands, while it is over a gap that moves it: the line's film second and its tag. */
+  readonly drop: Accessor<Option.Option<DropLine>>;
   /** The beat lifted, while it is carried. */
   readonly lifted: Accessor<Option.Option<string>>;
-  /** A trim's live readout, on the beat trimmed: `+3.0 s → 41.5 s`. */
-  readonly readout: Accessor<Option.Option<{ readonly beat: string; readonly text: string }>>;
+  /** A trim's live readout, on the beat trimmed and the edge pulled: `hold +3.0 s · 41.5 s long`. */
+  readonly readout: Accessor<Option.Option<TrimReadout>>;
+  /** Whether an edit is on its way: sent, or written and its version not yet read again. No clip is carried or trimmed until it lands. */
+  readonly waiting: Accessor<boolean>;
   /** Whether the version shown can be edited: it has files the lab writes. */
   readonly editable: Accessor<boolean>;
   readonly drawing: Accessor<Option.Option<Drawing>>;
@@ -233,28 +248,19 @@ const Body = (
   const [ink, setInk] = createSignal<SketchState>(sketchOf(), { ownedWrite: true });
   const [line, setLine] = createSignal('', { ownedWrite: true });
   const editable = () => Option.exists(studio.timeline(), (t) => t.version.files !== 'none');
-  const ids = () =>
-    Option.match(studio.timeline(), {
-      onNone: () => [],
-      onSome: (t) => scriptOf(t).map((b) => b.beat),
-    });
 
-  // The timeline a landed write was answered over: its preview shows until a read past it.
-  const [landedOver, setLandedOver] = createSignal(Option.none<FilmTimeline>(), {
-    ownedWrite: true,
-  });
-  const preview = createMemo(() => {
-    const now = edit();
-    if (now._tag !== 'Done') return previewOf(now);
-    return Option.filter(previewOf(now), () =>
-      Option.exists(landedOver(), (t) => Option.exists(studio.timeline(), (shown) => shown === t)),
-    );
-  });
+  // The timeline as the lanes show it: the version as read, an edit's preview laid on it.
+  const preview = createMemo(() => previewOf(edit()));
   const laid = createMemo(() =>
     Option.map(studio.timeline(), (t) =>
       Option.match(preview(), { onNone: () => t, onSome: (p) => rippled(t, p) }),
     ),
   );
+  const ids = () =>
+    Option.match(laid(), {
+      onNone: () => [],
+      onSome: (t) => scriptOf(t).map((b) => b.beat),
+    });
 
   // Where the playhead stood as an edit went out: it comes back there once the lab's read holds it.
   let anchor = Option.none<{ readonly at: Anchor; readonly T: number }>();
@@ -268,7 +274,46 @@ const Body = (
     },
   );
 
-  // An edit's receipt, once, in the edit's slot: on its way, done (its Undo or Redo bound to its change), or refused.
+  // The film's history as the lab has it now: a refused Undo or Redo reads it again, so the
+  // next one names the newest step.
+  const historyAgain = () =>
+    Effect.runForkWith(meta.host)(
+      LabClient.use((client) => called(client.steps.steps({ params: { film: meta.film } }))).pipe(
+        Effect.match({ onSuccess: props.setSteps, onFailure: () => {} }),
+        Effect.provide(meta.client),
+      ),
+    );
+
+  // The timeline a landed write was answered over, and whether its read has begun since.
+  let over = Option.none<FilmTimeline>();
+  let reread = false;
+
+  /** A landed write's receipt, its Undo or Redo bound to its change. */
+  const receipt = (ask: StudioAsk, answer: StudioEdit) => {
+    props.setSteps(stepsOf(answer));
+    const undoing = Match.value(ask).pipe(
+      Match.tag('Step', (st) =>
+        Bool.match(st.verb === 'undo', {
+          onTrue: () => 'edit.redo',
+          onFalse: () => 'edit.undo',
+        }),
+      ),
+      Match.orElse(() => 'edit.undo'),
+    );
+    meta.hub.announce(
+      said(
+        answer.said,
+        Option.map(Option.fromUndefinedOr(answer.change), (change) => ({
+          command: undoing,
+          bound: { film: meta.film, change },
+        })),
+      ),
+      EDIT_SLOT,
+    );
+  };
+
+  // An edit's receipt, once, in the edit's slot: on its way, landed (its Undo or Redo bound to
+  // its change, the version read again), answered with nothing changed, or refused.
   createEffect(edit, (now) =>
     untrack(() =>
       Match.value(now).pipe(
@@ -290,70 +335,73 @@ const Body = (
             EDIT_SLOT,
           ),
         ),
-        Match.tag('Done', (d) => {
-          props.setSteps(stepsOf(d.answer));
-          const undoing = Match.value(d.ask).pipe(
-            Match.tag('Step', (st) =>
-              Bool.match(st.verb === 'undo', {
-                onTrue: () => 'edit.redo',
-                onFalse: () => 'edit.undo',
-              }),
-            ),
-            Match.orElse(() => 'edit.undo'),
-          );
-          meta.hub.announce(
-            said(
-              d.answer.said,
-              Option.map(Option.fromUndefinedOr(d.answer.change), (change) => ({
-                command: undoing,
-                bound: { film: meta.film, change },
-              })),
-            ),
-            EDIT_SLOT,
-          );
-          // Written: the version is read again, its preview held over the read it was answered on.
-          if (Option.isSome(Option.fromUndefinedOr(d.answer.change))) {
-            setLandedOver(untrack(studio.timeline));
-            studioActions.refresh();
-          }
+        Match.tag('Landed', (l) => {
+          receipt(l.ask, l.answer);
+          over = untrack(studio.timeline);
+          reread = false;
+          studioActions.refresh();
         }),
-        Match.tag('Failed', (f) => meta.hub.announce(refused(f.reason), EDIT_SLOT)),
+        // Done after Landed was announced there; Done with no change is announced here.
+        Match.tag('Done', (d) =>
+          Option.match(Option.fromUndefinedOr(d.answer.change), {
+            onNone: () => receipt(d.ask, d.answer),
+            onSome: () => {},
+          }),
+        ),
+        Match.tag('Failed', (f) => {
+          meta.hub.announce(refused(f.reason), EDIT_SLOT);
+          if (f.ask._tag === 'Step') historyAgain();
+        }),
         Match.orElse(() => {}),
       ),
     ),
   );
 
-  // The read that holds a landed write: the playhead back on its moment; a version the staged
-  // film draws loads again there, so the film plays the new order.
-  createEffect(
-    () => studio.timeline(),
-    (shown) =>
-      untrack(() => {
-        const was = landedOver();
-        if (Option.isNone(was) || Option.isNone(shown) || shown.value === was.value) return;
-        setLandedOver(Option.none());
-        Option.map(anchor, ({ at, T }) => studioActions.seek(anchoredT(shown.value, at, T)));
-        anchor = Option.none();
-        if (keptInFilm(shown.value) && Option.isSome(meta.player()))
-          Effect.runForkWith(meta.host)(reloadAtAddress);
-      }),
-  );
-
-  // The server rebuilt the pages (a source changed): the page loads again at its place onto
-  // the new code, once no edit is in hand and the recorder is not over the page.
-  const [rebuilt, setRebuilt] = createSignal(false, { ownedWrite: true });
+  // A reload waits (the server rebuilt the pages, or a version the staged film draws was read
+  // again after a write): it runs once no edit is in hand or unread, nothing is drawn on the
+  // frame and the recorder is not over the page.
+  const [reloading, setReloading] = createSignal(false, { ownedWrite: true });
   const awaiting = Effect.runForkWith(meta.host)(
     reloadOnRebuild(
       meta.film,
-      Effect.sync(() => setRebuilt(true)),
+      Effect.sync(() => setReloading(true)),
     ).pipe(Effect.provide(meta.client)),
   );
   onCleanup(() => Effect.runFork(Fiber.interrupt(awaiting)));
+
+  // The read that holds a landed write, once it has begun and ended: the playhead back on its
+  // moment, the edit at rest, and a version the staged film draws loaded again there so the
+  // film plays the new order. A read that failed keeps the timeline shown, and the edit rests.
   createEffect(
-    () => rebuilt() && atRest(edit()) && Option.isNone(drawing()) && !studio.recording(),
+    () => ({ landed: edit()._tag === 'Landed', reading: studio.reading() }),
+    (now) =>
+      untrack(() => {
+        if (!now.landed) return;
+        if (now.reading) {
+          reread = true;
+          return;
+        }
+        if (!reread) return;
+        reread = false;
+        const shown = studio.timeline();
+        Option.map(
+          Option.filter(shown, (t) => Option.exists(over, (was) => was !== t)),
+          (t) => {
+            Option.map(anchor, ({ at, T }) => studioActions.seek(anchoredT(t, at, T)));
+            if (keptInFilm(t) && Option.isSome(meta.player())) setReloading(true);
+          },
+        );
+        anchor = Option.none();
+        over = Option.none();
+        send(EditEvent.Read);
+      }),
+  );
+
+  createEffect(
+    () => reloading() && atRest(edit()) && Option.isNone(drawing()) && !studio.recording(),
     (now) => {
       if (!now) return;
-      setRebuilt(false);
+      setReloading(false);
       Effect.runFork(
         Option.match(untrack(meta.player), {
           onSome: (shown) => reloadHere(shown.player, meta.host),
@@ -457,7 +505,8 @@ const Body = (
 
   /** The beat at the playhead, on the version shown. */
   const atPlayhead = () => Option.flatMap(studio.timeline(), (t) => beatAt(t, studio.T()));
-  const beatOf = (id: string) => Option.flatMap(studio.timeline(), (t) => beatNamed(t, id));
+  /** Beat `id` as the lanes show it. */
+  const beatOf = (id: string) => Option.flatMap(laid(), (t) => beatNamed(t, id));
 
   const actions: EditingActions = {
     lift: (beat) =>
@@ -469,7 +518,7 @@ const Body = (
       send(
         EditEvent.Over({
           gap: Option.map(T, (at) => {
-            const beats = Option.match(studio.timeline(), { onNone: () => [], onSome: scriptOf });
+            const beats = Option.match(laid(), { onNone: () => [], onSome: scriptOf });
             return beats.filter((b) => b.start + b.dur / 2 < at).length;
           }),
         }),
@@ -703,20 +752,20 @@ const Body = (
         Match.value(edit()).pipe(
           Match.tag('Dragging', (d) =>
             Option.flatMap(d.gap, (gap) =>
-              Option.flatMap(studio.timeline(), (t) => {
+              Option.flatMap(laid(), (t) => {
                 const beats = scriptOf(t);
                 const at = d.ids.indexOf(d.beat);
                 if (gap === at || gap === at + 1) return Option.none();
                 return Option.some(
                   Option.match(Arr.get(beats, gap), {
-                    onSome: (b) => b.start,
-                    onNone: () => t.duration,
+                    onSome: (b): DropLine => ({ at: b.start, text: `${d.beat} before ${b.beat}` }),
+                    onNone: (): DropLine => ({ at: t.duration, text: `${d.beat} to the end` }),
                   }),
                 );
               }),
             ),
           ),
-          Match.orElse(() => Option.none<number>()),
+          Match.orElse(() => Option.none<DropLine>()),
         ),
       lifted: () =>
         Match.value(edit()).pipe(
@@ -728,11 +777,14 @@ const Body = (
           Match.tag('Trimming', (t) =>
             Option.map(beatOf(t.beat), (b) => ({
               beat: t.beat,
-              text: trimReadout(t.to - t.from, b.dur + t.to - t.from),
+              edge: t.edge,
+              // The beat as the lanes lay it with the trim: the layout's own length.
+              text: trimReadout(t.to - t.from, b.dur),
             })),
           ),
-          Match.orElse(() => Option.none<{ readonly beat: string; readonly text: string }>()),
+          Match.orElse(() => Option.none<TrimReadout>()),
         ),
+      waiting: () => edit()._tag === 'Sending' || edit()._tag === 'Landed',
       editable,
       drawing,
       picking,
@@ -910,7 +962,7 @@ const NoteBar = () => {
         type="text"
         data-role="note-text"
         aria-label="What to change on this frame"
-        placeholder="What to change"
+        placeholder="Say what to change"
         autocomplete="off"
         disabled={state.filing()}
         value={state.line()}
@@ -950,8 +1002,8 @@ const MovePicker = () => {
       onNone: () => '',
       onSome: (p) =>
         Match.value(p).pipe(
-          Match.tag('Beat', (b) => `Move ${b.beat} before…`),
-          Match.tag('Panel', (pl) => `Move ${pl.panel} to…`),
+          Match.tag('Beat', (b) => `Move ${b.beat}`),
+          Match.tag('Panel', (pl) => `Move ${pl.panel}`),
           Match.exhaustive,
         ),
     });
@@ -966,7 +1018,7 @@ const MovePicker = () => {
             return [
               ...all
                 .filter((id, i) => id !== b.beat && i !== at + 1)
-                .map((id) => ({ to: Option.some(id), label: id })),
+                .map((id) => ({ to: Option.some(id), label: `Before ${id}` })),
               ...Bool.match(at === all.length - 1, {
                 onTrue: () => [],
                 onFalse: () => [{ to: Option.none<string>(), label: 'To the end' }],
@@ -976,7 +1028,7 @@ const MovePicker = () => {
           Match.tag('Panel', (pl) =>
             beats()
               .filter((x) => x.beat !== pl.beat)
-              .map((x) => ({ to: Option.some(x.beat), label: x.beat })),
+              .map((x) => ({ to: Option.some(x.beat), label: `To ${x.beat}` })),
           ),
           Match.exhaustive,
         ),

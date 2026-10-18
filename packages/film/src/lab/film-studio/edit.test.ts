@@ -1,9 +1,10 @@
 // The studio's edit machine, with no page: a clip carried and dropped on a
 // gap that moves it asks the lab for that move, and dropped on itself (or
 // just after itself) asks nothing; an edge pulled snaps and keeps inside its
-// floors, and let go where it began asks nothing; one write at a time; a
-// landed write names what it did, a refused one says why; and what an edit
-// shows on the timeline before the lab reads the version again.
+// floors, and let go where it began asks nothing; one write at a time, and
+// none while a landed write waits for the version's read; a landed write
+// names what it did, a refused one says why; and what an edit shows on the
+// timeline before the lab reads the version again.
 
 import { Deferred, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -47,8 +48,8 @@ describe("the studio's edit machine", () => {
       const over = yield* actor.waitFor((s) => s._tag === 'Dragging' && Option.isSome(s.gap));
       expect(previewOf(over)).toEqual(Option.none());
       yield* actor.send(EditEvent.Drop);
-      const done = yield* actor.waitFor((s) => s._tag === 'Done');
-      expect(done._tag === 'Done' && done.answer.said).toBe('Move');
+      const done = yield* actor.waitFor((s) => s._tag === 'Landed');
+      expect(done._tag === 'Landed' && done.answer.said).toBe('Move');
       expect(asked).toEqual([{ _tag: 'Move', beat: 'look', before: Option.some('title') }]);
     }).pipe(Effect.scoped);
   });
@@ -84,7 +85,7 @@ describe("the studio's edit machine", () => {
         Option.some({ _tag: 'Hold', beat: 'cold', edge: 'tail', from: 0.1, to: 3 }),
       );
       yield* actor.send(EditEvent.Let);
-      yield* actor.waitFor((s) => s._tag === 'Done');
+      yield* actor.waitFor((s) => s._tag === 'Landed');
       expect(asked).toEqual([{ _tag: 'Hold', beat: 'cold', edge: 'tail', from: 0.1, seconds: 3 }]);
     }).pipe(Effect.scoped);
   });
@@ -102,6 +103,8 @@ describe("the studio's edit machine", () => {
       yield* actor.send(EditEvent.Lift({ beat: 'look', ids: IDS }));
       yield* actor.waitFor((s) => s._tag === 'Sending');
       yield* Deferred.done(held, Exit.void);
+      yield* actor.waitFor((s) => s._tag === 'Landed');
+      yield* actor.send(EditEvent.Read);
       yield* actor.waitFor((s) => s._tag === 'Done');
       expect(asked).toEqual([undo]);
       yield* actor.send(
@@ -112,4 +115,79 @@ describe("the studio's edit machine", () => {
       expect(atRest(failed)).toBe(true);
     }).pipe(Effect.scoped);
   });
+
+  it.effect(
+    'a second trim on the same edge right after a landed write waits for the read, and starts from it',
+    () => {
+      const asked: Array<StudioAsk> = [];
+      return Effect.gen(function* () {
+        const actor = yield* spawnEdit(lab(asked));
+        yield* actor.send(EditEvent.Grip({ beat: 'cold', edge: 'tail', from: 0.1 }));
+        yield* actor.send(EditEvent.Pull({ to: 3 }));
+        yield* actor.send(EditEvent.Let);
+        const landed = yield* actor.waitFor((s) => s._tag === 'Landed');
+        // Its ripple shows until the read, and no edit is taken meanwhile.
+        expect(previewOf(landed)).toEqual(
+          Option.some({ _tag: 'Hold', beat: 'cold', edge: 'tail', from: 0.1, to: 3 }),
+        );
+        expect(atRest(landed)).toBe(false);
+        yield* actor.send(EditEvent.Grip({ beat: 'cold', edge: 'tail', from: 0.1 }));
+        yield* actor.send(EditEvent.Pull({ to: 5 }));
+        yield* actor.send(EditEvent.Let);
+        yield* actor.send(EditEvent.Read);
+        const read = yield* actor.waitFor((s) => s._tag === 'Done');
+        expect(previewOf(read)).toEqual(Option.none());
+        expect(atRest(read)).toBe(true);
+        // From the hold the read shows: the second trim asks from 3 s.
+        yield* actor.send(EditEvent.Grip({ beat: 'cold', edge: 'tail', from: 3 }));
+        yield* actor.send(EditEvent.Pull({ to: 5 }));
+        yield* actor.send(EditEvent.Let);
+        yield* actor.waitFor((s) => s._tag === 'Landed');
+        expect(asked).toEqual([
+          { _tag: 'Hold', beat: 'cold', edge: 'tail', from: 0.1, seconds: 3 },
+          { _tag: 'Hold', beat: 'cold', edge: 'tail', from: 3, seconds: 5 },
+        ]);
+      }).pipe(Effect.scoped);
+    },
+  );
+
+  it.effect('a trim started right after a reorder waits for its read; no edit is lost', () => {
+    const asked: Array<StudioAsk> = [];
+    return Effect.gen(function* () {
+      const actor = yield* spawnEdit(lab(asked));
+      yield* actor.send(EditEvent.Lift({ beat: 'look', ids: IDS }));
+      yield* actor.send(EditEvent.Over({ gap: Option.some(0) }));
+      yield* actor.send(EditEvent.Drop);
+      yield* actor.waitFor((s) => s._tag === 'Landed');
+      // A grip in the read's window lifts nothing: the press asks again once the read is in.
+      yield* actor.send(EditEvent.Grip({ beat: 'look', edge: 'lead', from: 0.5 }));
+      const still = yield* actor.waitFor((s) => s._tag === 'Landed');
+      expect(still._tag).toBe('Landed');
+      yield* actor.send(EditEvent.Read);
+      yield* actor.waitFor((s) => s._tag === 'Done');
+      yield* actor.send(EditEvent.Grip({ beat: 'look', edge: 'lead', from: 0.5 }));
+      yield* actor.send(EditEvent.Pull({ to: 1.5 }));
+      yield* actor.send(EditEvent.Let);
+      const landed = yield* actor.waitFor((s) => s._tag === 'Landed');
+      expect(landed._tag === 'Landed' && landed.answer.said).toBe('Hold');
+      expect(asked).toEqual([
+        { _tag: 'Move', beat: 'look', before: Option.some('cold') },
+        { _tag: 'Hold', beat: 'look', edge: 'lead', from: 0.5, seconds: 1.5 },
+      ]);
+    }).pipe(Effect.scoped);
+  });
+
+  it.effect('an answer that changed nothing is done at once, with nothing to read', () =>
+    Effect.gen(function* () {
+      const actor = yield* spawnEdit(() =>
+        Effect.succeed<StudioEdit>({ target: 'script.ts', said: 'already so', steps: {} }),
+      );
+      yield* actor.send(
+        EditEvent.Ask({ ask: { _tag: 'Move', beat: 'look', before: Option.none() } }),
+      );
+      const done = yield* actor.waitFor((s) => s._tag === 'Done');
+      expect(atRest(done)).toBe(true);
+      expect(previewOf(done)).toEqual(Option.none());
+    }).pipe(Effect.scoped),
+  );
 });

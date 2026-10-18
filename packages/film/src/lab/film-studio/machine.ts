@@ -10,10 +10,13 @@
 //              Reading ─Version (another)→ Reading, its read started again
 //              Shown ─Version (the one shown)→ Shown
 //              Shown ─Refresh→ Refreshing ─Read | Unread→ Shown
+//              Refreshing ─Refresh→ Refreshing, its read started again
 //   A read's answer names its version: Reading hears only its own, so a
 //   read the owner left while it was in flight never shows. Refreshing
 //   shows the timeline it had while the version is read again (a write
-//   landed: a try kept, a beat approved), and keeps it when the read fails.
+//   landed: a try kept, a beat approved), and keeps it when the read fails;
+//   a write that lands while it reads starts the read again, so the read
+//   that ends holds it.
 //   Transport: Paused ─Played→ Playing ─Paused→ Paused
 //              Paused | Playing ─Grab→ Scrubbing{resume} ─Release→ Paused
 //              Scrubbing hears no Played or Paused: the scrub holds the clock.
@@ -140,6 +143,9 @@ const timelineMachine = <R>(
           ),
         ),
       { onSuccess: (event) => event },
+    )
+    .reenter(TimelineState.Refreshing, TimelineEvent.Refresh, ({ state }) =>
+      TimelineState.Refreshing({ v: state.v, timeline: state.timeline }),
     )
     .on(TimelineState.Refreshing, TimelineEvent.Read, ({ state, event }) =>
       TimelineState.Shown({ v: state.v, timeline: event.timeline }),

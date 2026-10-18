@@ -1,7 +1,8 @@
 // The host adapter that starts the lab again in its own process: `execve` of
-// the command line it was started with, keeping its process id and its
-// environment. The exports watch (`exports-watch.ts`) ends the lab's scope
-// first, so its servers and the easel's Chrome are closed before it runs.
+// the command line it was started with (the runtime's own flags, then the
+// script and its arguments), keeping its process id and its environment.
+// `relaunchOnExportsChange` (`exports-watch.ts`) calls it only once the lab's
+// servers, its pages and their Chrome are closed.
 
 import { Effect, Layer, Option } from 'effect';
 import { Relaunch } from './exports-watch.ts';
@@ -18,7 +19,11 @@ export const RelaunchBun = Layer.succeed(
             // The environment is the process's own: execve keeps it when none is given.
             onSome: (execve) =>
               Effect.sync(() =>
-                execve(process.execPath, [process.execPath, ...process.argv.slice(1)]),
+                execve(process.execPath, [
+                  process.execPath,
+                  ...process.execArgv,
+                  ...process.argv.slice(1),
+                ]),
               ),
           }),
         ),

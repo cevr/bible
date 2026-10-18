@@ -2,13 +2,20 @@
 // the test clock: it reads the root's package.json and each its workspaces
 // name; a change to a package's other fields goes unseen; an `exports` map
 // changed (a subpath added by a merge) ends the watch with `ExportsChanged`,
-// naming the package, on the next read; and the root is found above a
-// workspace's folder.
+// naming the package, on the next read, held to the maps read before the
+// watch began; the root is found above a workspace's folder; and the lab the
+// watch ends closes its scope and what it holds before it is started again.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Fiber, Layer, Option, Path } from 'effect';
+import { Context, Effect, Exit, Fiber, Layer, Option, Path } from 'effect';
 import { TestClock } from 'effect/testing';
-import { ExportsChanged, watchExports, workspaceRoot } from './exports-watch.ts';
+import {
+  Relaunch,
+  exportsNow,
+  relaunchOnExportsChange,
+  watchExports,
+  workspaceRoot,
+} from './exports-watch.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
 /** How often the test's watch reads. */
@@ -32,6 +39,14 @@ const inMemory = (files: Map<string, Uint8Array>) =>
     Path.layer,
   );
 
+/** What a watch's failure says: its tag and the files it names. */
+const changed = (e: { readonly _tag: string; readonly files: ReadonlyArray<string> }) => ({
+  _tag: e._tag,
+  files: e.files,
+});
+
+const FILM_CHANGED = { _tag: 'ExportsChanged', files: ['packages/film/package.json'] };
+
 describe('the exports watch', () => {
   it.effect('finds the root above an app, and none above the workspace', () => {
     const files = workspace();
@@ -44,7 +59,7 @@ describe('the exports watch', () => {
   it.effect('ends with ExportsChanged once an exports map changes, and not before', () => {
     const files = workspace();
     return Effect.gen(function* () {
-      const watch = yield* Effect.forkChild(watchExports('/w', EVERY));
+      const watch = yield* Effect.forkChild(watchExports(yield* exportsNow('/w'), EVERY));
       yield* TestClock.adjust(EVERY);
       // An app's package.json, read under the workspaces' `apps/*`, that does not read.
       files.set('/w/apps/animations/package.json', text('{ not json'));
@@ -65,7 +80,72 @@ describe('the exports watch', () => {
       );
       yield* TestClock.adjust(EVERY);
       const failed = yield* Effect.flip(Fiber.join(watch));
-      expect(failed).toEqual(ExportsChanged.make({ files: ['packages/film/package.json'] }));
+      expect(changed(failed)).toEqual(FILM_CHANGED);
     }).pipe(Effect.provide(inMemory(files)));
+  });
+
+  it.effect('holds the watch to the maps read before it began', () => {
+    const files = workspace();
+    return Effect.gen(function* () {
+      const read = yield* exportsNow('/w');
+      // A merge lands while the lab starts, before the watch's first pass.
+      files.set(
+        '/w/packages/film/package.json',
+        text(FILM('{ ".": "./src/index.ts", "./style": "./src/style/index.ts" }')),
+      );
+      const watch = yield* Effect.forkChild(watchExports(read, EVERY));
+      yield* TestClock.adjust(EVERY);
+      const failed = yield* Effect.flip(Fiber.join(watch));
+      expect(changed(failed)).toEqual(FILM_CHANGED);
+    }).pipe(Effect.provide(inMemory(files)));
+  });
+
+  it.effect('closes the lab and what it holds, then starts it again', () => {
+    const files = workspace();
+    const seen: Array<string> = [];
+    class Pages extends Context.Service<Pages, { readonly at: string }>()('test/Pages') {}
+    const held = Layer.effect(
+      Pages,
+      Effect.acquireRelease(
+        Effect.sync(() => Pages.of({ at: 'chrome' })),
+        () => Effect.sync(() => seen.push('pages closed')),
+      ),
+    );
+    // The lab as `film lab` runs it: its exports read, its servers up, then its watch.
+    const lab = Effect.gen(function* () {
+      const read = yield* exportsNow('/w');
+      const pages = yield* Pages;
+      yield* Effect.addFinalizer(() => Effect.sync(() => seen.push('servers closed')));
+      seen.push(`lab up over ${pages.at}`);
+      return yield* watchExports(read, EVERY);
+    });
+    const relaunch = Layer.succeed(
+      Relaunch,
+      Relaunch.of({
+        relaunch: (why) =>
+          Effect.andThen(
+            Effect.sync(() => seen.push(`relaunch: ${why}`)),
+            Effect.die('started again'),
+          ),
+      }),
+    );
+    return Effect.gen(function* () {
+      const running = yield* Effect.forkChild(Effect.exit(relaunchOnExportsChange(lab, held)));
+      yield* TestClock.adjust(EVERY);
+      expect(seen).toEqual(['lab up over chrome']);
+      files.set(
+        '/w/packages/film/package.json',
+        text(FILM('{ ".": "./src/index.ts", "./style": "./src/style/index.ts" }')),
+      );
+      yield* TestClock.adjust(EVERY);
+      const ended = yield* Fiber.join(running);
+      expect(Exit.isFailure(ended)).toBe(true);
+      expect(seen).toEqual([
+        'lab up over chrome',
+        'servers closed',
+        'pages closed',
+        'relaunch: the exports of packages/film/package.json changed: the lab starts again to resolve them',
+      ]);
+    }).pipe(Effect.provide(Layer.merge(relaunch, inMemory(files))));
   });
 });

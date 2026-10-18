@@ -27,7 +27,7 @@ import type {
   ObjectProperty,
   StringLiteral,
 } from 'oxc-parser';
-import type { HoldEdge, MovedBefore } from '../core/beat-edit.ts';
+import { type HoldEdge, type MovedBefore, type PartOn, movedOrder } from '../core/beat-edit.ts';
 import { type LineRead, type Mark, marksRefusal } from '../core/delivery.ts';
 import { parse, withDelivery } from '../core/narration.ts';
 import { SourceRefused } from '../core/refusals.ts';
@@ -298,25 +298,35 @@ const elementsOf = (source: string, target: string) =>
 /**
  * `source` with beat `beat` moved before beat `before` (to the end when
  * none): each element's text, with the comments and blanks that lead it,
- * put in its new place, and nothing else changed. Refused when either beat
- * is not one object literal the script names once.
+ * put in its new place, and nothing else changed. Refused when the script
+ * names either beat more than once, or when `movedOrder`
+ * refuses the move on the order `source` holds, `parts` (the acts, the
+ * score's movements) kept: judged on the text the writer's lock holds.
  */
 export const editOrder = (
   source: string,
   beat: string,
   before: MovedBefore,
+  parts: ReadonlyArray<ReadonlyArray<PartOn>> = [],
 ): Result.Result<string, SourceRefused> => {
   const target = moveTarget(beat, before);
   return Result.flatMap(elementsOf(source, target), ({ array, elements, tail }) => {
     const index = (id: string) => elements.findIndex((e) => Option.contains(e.id, id));
     const named = (id: string) => elements.filter((e) => Option.contains(e.id, id)).length;
     for (const id of [beat, ...Option.toArray(before)])
-      if (named(id) !== 1)
+      if (named(id) > 1)
         return refuse<string>(
           SCRIPT_FILE,
           target,
           `the script names beat "${id}" ${named(id)} times`,
         );
+    const judged = movedOrder(
+      elements.map((e) => Option.getOrElse(e.id, () => '')),
+      beat,
+      before,
+      parts,
+    );
+    if (Result.isFailure(judged)) return refuse<string>(SCRIPT_FILE, target, judged.failure);
     const moving = Arr.getUnsafe(elements, index(beat));
     const rest = elements.filter((e) => e !== moving);
     const at = Option.match(before, {

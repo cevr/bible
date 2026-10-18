@@ -3,10 +3,16 @@
 // panels, take and scene with it, the act bands and score movements on the
 // beats they begin on; a hold grows its beat and pushes every later beat,
 // a lead moving the beat's words and marks with it; and the playhead comes
-// back to the same moment of the same beat.
+// back to the same moment of the same beat. A hold's preview lays its beat
+// as the layout itself would once the hold is written: a silent beat and a
+// beat its `min` holds keep their length.
 
 import { describe, expect, test } from 'bun:test';
-import { Match, Option } from 'effect';
+import { Match, Option, Result } from 'effect';
+import { filmClock } from '../../core/film-timeline.ts';
+import { layout } from '../../core/layout.ts';
+import type { Timed } from '../../core/schema.ts';
+import { onTheMs } from '../../core/time.ts';
 import type { FilmTimeline, Lane } from '../../core/timeline-schema.ts';
 import { probeTimeline } from '../fixtures/probe-timeline.ts';
 import { anchorOf, anchoredT, rippled, scriptOf } from './ripple.ts';
@@ -89,6 +95,82 @@ describe('a hold set, before the lab reads it again', () => {
     expect(scriptOf(held)[0]?.marks.map((m) => m.at)).toEqual([2.2, 3.6]);
     const fall = clipsOf(held, 'board').find((c) => c.name === 'one.fall');
     expect(fall?.start).toBe(3.6);
+  });
+});
+
+describe('a hold laid by the layout’s own rule', () => {
+  // RBF's shape: a voiced beat, a silent title, and a thesis its `min` holds at 28 s.
+  const specs: ReadonlyArray<Timed> = [
+    { id: 'cold', say: 'one two three four five six' },
+    { id: 'title' },
+    { id: 'thesis', say: 'seven eight', min: 28 },
+  ];
+  /** The probe's timeline with `scenes` laid out as its script lane. */
+  const laidOut = (scenes: ReadonlyArray<Timed>): FilmTimeline => {
+    const placed = Result.getOrThrow(layout(scenes, { voice: '', scenes: {} }));
+    const clock = Result.getOrThrow(
+      filmClock(placed, { acts: [], movements: [], drawn: () => true }),
+    );
+    const clips = clock.beats.map((b) => ({
+      start: b.start,
+      dur: b.dur,
+      state: 'made' as const,
+      clock: 'estimated' as const,
+      beat: b.id,
+      ...Option.match(Option.fromUndefinedOr(b.speech), {
+        onNone: () => ({}),
+        onSome: (speech) => ({ speech }),
+      }),
+      marks: b.marks,
+      hold: b.hold,
+    }));
+    return {
+      ...probe,
+      duration: placed.reduce((at, p) => at + p.dur, 0),
+      bands: [],
+      markers: [],
+      lanes: [{ track: 'script', clips }],
+    };
+  };
+  /** Each beat as `t` lays it, on the millisecond: its span, and where its words are heard. */
+  const beats = (t: FilmTimeline) =>
+    scriptOf(t).map((b) => [
+      b.beat,
+      ...[b.start, b.dur, b.speech?.start ?? -1, b.speech?.end ?? -1].map(onTheMs),
+    ]);
+  const shown = laidOut(specs);
+  const hold = (beat: string, edge: 'lead' | 'tail', to: number) =>
+    Option.match(Option.fromUndefinedOr(scriptOf(shown).find((b) => b.beat === beat)), {
+      onNone: () => shown,
+      onSome: (b) => rippled(shown, { _tag: 'Hold', beat, edge, from: b.hold[edge], to }),
+    });
+  const written = (beat: string, edge: 'lead' | 'tail', to: number) =>
+    laidOut(
+      specs.map((s) =>
+        Option.match(
+          Option.liftPredicate(s, (x) => x.id === beat),
+          {
+            onNone: () => s,
+            onSome: (x) => ({ ...x, [edge]: to }),
+          },
+        ),
+      ),
+    );
+
+  test('a silent beat keeps its length', () => {
+    expect(beats(hold('title', 'tail', 5))).toEqual(beats(written('title', 'tail', 5)));
+    expect(beats(hold('title', 'tail', 5))).toEqual(beats(shown));
+  });
+
+  test('a tail its min absorbs changes nothing; past it the beat grows as the layout lays it', () => {
+    expect(beats(hold('thesis', 'tail', 1))).toEqual(beats(written('thesis', 'tail', 1)));
+    expect(beats(hold('thesis', 'tail', 1))).toEqual(beats(shown));
+    expect(beats(hold('thesis', 'tail', 29))).toEqual(beats(written('thesis', 'tail', 29)));
+  });
+
+  test('a lead moves the words inside the length its min holds', () => {
+    expect(beats(hold('thesis', 'lead', 2))).toEqual(beats(written('thesis', 'lead', 2)));
+    expect(beats(hold('cold', 'lead', 2))).toEqual(beats(written('cold', 'lead', 2)));
   });
 });
 

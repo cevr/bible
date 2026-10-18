@@ -1,8 +1,8 @@
 // An edit's ripple on the timeline the studio shows, before the lab has
 // read the version again: a beat moved (the beats laid end to end in the
-// new order) or a beat's hold set (its length grows or shrinks by the
-// change, and a lead moves its words and marks with it), every later beat
-// following. Each clip that names a beat moves with that beat (Board panels,
+// new order) or a beat's hold set (its length as the layout lays it,
+// `heldTo`: a lead moves its words and marks with it, a silent beat and a
+// beat its `min` holds keep theirs), every later beat following. Each clip that names a beat moves with that beat (Board panels,
 // takes, scenes, notes), a score movement and an act band with the beat they
 // begin on (`from`), each ending where the next begins; a render is of the
 // cut it was made from, and stays. The lab's own read of the version
@@ -15,7 +15,13 @@
 // moved or its lead has changed. Pure.
 
 import { Array as Arr, Boolean as Bool, Match, Option, Result } from 'effect';
-import { movedOrder, type HoldEdge, type MovedBefore } from '../../core/beat-edit.ts';
+import {
+  type Held,
+  type HoldEdge,
+  type MovedBefore,
+  heldTo,
+  movedOrder,
+} from '../../core/beat-edit.ts';
 import { CLOCK_EPSILON, justBefore, onTheMs } from '../../core/time.ts';
 import type { ClockPart, FilmTimeline, Lane, ScriptClip } from '../../core/timeline-schema.ts';
 
@@ -42,11 +48,12 @@ export const scriptOf = (timeline: FilmTimeline): ReadonlyArray<ScriptClip> =>
     ),
   );
 
-/** How one beat lands: where it began and begins now, its length then and now, and how far its words moved inside it. */
+/** How one beat lands: where it began and begins now, its length and holds then and now, and how far its words moved inside it. */
 interface Landed {
   readonly was: ScriptClip;
   readonly start: number;
   readonly dur: number;
+  readonly hold: ScriptClip['hold'];
   /** Seconds its words (and marks) moved inside it: a lead's change. */
   readonly inner: number;
 }
@@ -78,17 +85,18 @@ const landings = (beats: ReadonlyArray<ScriptClip>, preview: Preview): Landings 
   let at = first;
   for (const id of order)
     Option.map(Option.fromUndefinedOr(named.get(id)), (was) => {
-      const delta = Option.match(change(id), { onNone: () => 0, onSome: (h) => h.to - h.from });
-      const inner = Option.match(change(id), {
-        onNone: () => 0,
-        onSome: (h) =>
-          Match.value(h.edge).pipe(
-            Match.when('lead', () => delta),
-            Match.orElse(() => 0),
-          ),
+      const held = Option.match(change(id), {
+        onNone: (): Held => ({ dur: was.dur, hold: was.hold }),
+        onSome: (h) => heldTo(was, h.edge, h.to),
       });
-      const dur = ms(Math.max(0, was.dur + delta));
-      by.set(id, { was, start: ms(at), dur, inner });
+      const dur = ms(held.dur);
+      by.set(id, {
+        was,
+        start: ms(at),
+        dur,
+        hold: held.hold,
+        inner: held.hold.lead - was.hold.lead,
+      });
       at += dur;
     });
   const laid: Landings = { by, duration: ms(at) };
@@ -182,15 +190,7 @@ export const rippled = (timeline: FilmTimeline, preview: Preview): FilmTimeline 
                       },
                     }),
                   }),
-                  hold: Match.value(preview).pipe(
-                    Match.tag('Hold', (h) =>
-                      Bool.match(h.beat === c.beat, {
-                        onTrue: () => ({ ...c.hold, [h.edge]: h.to }),
-                        onFalse: () => c.hold,
-                      }),
-                    ),
-                    Match.orElse(() => c.hold),
-                  ),
+                  hold: landed.hold,
                 }),
               }),
             ),

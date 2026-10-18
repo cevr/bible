@@ -456,7 +456,10 @@ const Viewer = () => {
         </Show>
         <span class="st-tag" data-kind={TAG_KIND[picture()._tag]}>
           <i aria-hidden="true" />
-          {tag()}
+          {Bool.match(Option.isSome(editing.state.drawing()), {
+            onFalse: tag,
+            onTrue: () => `Draw here · ${tag()}`,
+          })}
         </span>
         <Show when={Option.isSome(editing.state.drawing())}>
           <Editing.Ink />
@@ -823,10 +826,12 @@ const ScriptTrack = (props: { readonly clips: ReadonlyArray<ScriptClip> }) => {
               </For>
             </span>
           </Show>
-          <Show when={editable()}>
+          {/* A beat with no words has no hold to pull: its length is the silent beat's, or its min. */}
+          <Show when={editable() && Option.isSome(Option.fromUndefinedOr(clip().speech))}>
             <span
               class="st-grip"
               data-edge="lead"
+              data-waiting={pressed(editing.state.waiting())}
               aria-hidden="true"
               title="Pull to set the lead"
               onPointerDown={pull(clip().beat, 'lead')}
@@ -834,6 +839,7 @@ const ScriptTrack = (props: { readonly clips: ReadonlyArray<ScriptClip> }) => {
             <span
               class="st-grip"
               data-edge="tail"
+              data-waiting={pressed(editing.state.waiting())}
               aria-hidden="true"
               title="Pull to set the tail"
               onPointerDown={pull(clip().beat, 'tail')}
@@ -1132,6 +1138,9 @@ const ZoomCorner = () => {
 /** The scrub surface: one press at a time, on the ruler or the playhead's head. */
 const ruler = new Surface('the ruler');
 
+/** Half the drop line's width (`.st-drop`): the least x it stands at, so at 0:00 it shows whole. */
+const DROP_INSET = 2;
+
 /**
  * The timeline: the zoom's corner and the lane heads (laptop), the flag
  * strip, the ruler, the act bands, each lane shown and the Next row, the
@@ -1246,13 +1255,22 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
     );
   };
   const next = () => Option.isSome(nextText(props.timeline));
-  const drop = () => Option.getOrElse(editing.state.drop(), () => 0);
-  // A trim's readout, over the middle of the beat as it is laid now.
+  // The drop line's x, kept inside the lanes so its whole width shows at the film's start.
+  const dropX = (at: number) => Math.max(scale.x(at), DROP_INSET);
+  // A trim's readout, over the edge pulled, as the beat is laid now.
   const readout = () =>
     Option.flatMap(editing.state.readout(), (r) =>
       Option.map(
         Arr.findFirst(scriptOf(laid()), (b) => b.beat === r.beat),
-        (b) => ({ text: r.text, at: b.start + b.dur / 2 }),
+        (b) => ({
+          text: r.text,
+          edge: r.edge,
+          at: Match.value(r.edge).pipe(
+            Match.when('lead', () => b.start),
+            Match.when('tail', () => b.start + b.dur),
+            Match.exhaustive,
+          ),
+        }),
       ),
     );
   return (
@@ -1290,6 +1308,7 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
         <ScaleContext value={scale}>
           <div
             class="st-canvas"
+            data-carrying={pressed(Option.isSome(editing.state.lifted()))}
             style={{ width: `${Math.max(width(), scale.x(laid().duration))}px` }}
           >
             <Flags markers={laid().markers} />
@@ -1308,19 +1327,36 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
                     class="st-readout"
                     role="status"
                     data-role="trim-readout"
+                    data-edge={r().edge}
                     style={{ left: `${scale.x(r().at)}px` }}
                   >
                     {r().text}
                   </span>
                 )}
               </Show>
-              <Show when={Option.isSome(editing.state.drop())}>
-                <i
-                  class="st-drop"
-                  data-role="drop-line"
-                  aria-hidden="true"
-                  style={{ left: `${scale.x(drop())}px` }}
-                />
+              <Show when={Option.getOrUndefined(editing.state.drop())}>
+                {(d) => (
+                  <>
+                    <i
+                      class="st-drop"
+                      data-role="drop-line"
+                      aria-hidden="true"
+                      style={{ left: `${dropX(d().at)}px` }}
+                    />
+                    <span
+                      class="st-readout"
+                      role="status"
+                      data-role="drop-tag"
+                      data-edge={Bool.match(d().at >= laid().duration, {
+                        onTrue: () => 'tail',
+                        onFalse: () => 'lead',
+                      })}
+                      style={{ left: `${dropX(d().at)}px` }}
+                    >
+                      {d().text}
+                    </span>
+                  </>
+                )}
               </Show>
             </div>
             <Playhead scrub={scrub} />

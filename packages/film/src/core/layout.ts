@@ -24,6 +24,10 @@ export interface Placed<S extends Timed = Timed> {
   readonly voice: SceneVoice;
   /** Scene-local time the voice starts. */
   readonly speechStart: number;
+  /** The time after its words it asks for (its `tail`, else `DEFAULT_TAIL`), before its `min` holds it longer. */
+  readonly tail: number;
+  /** The length its `min` holds it to at least: 0 when it declares none. */
+  readonly min: number;
   /** The scene's named cues, scene-local. */
   readonly cues: ReadonlyMap<string, ResolvedCue>;
   /** The scene's knobs, as its drawing declares them. */
@@ -61,6 +65,25 @@ export const MIN_LEAD = 0.5;
 /** The time after a scene's last word, unless it declares a `tail`. */
 export const DEFAULT_TAIL = 0.1;
 
+/** A silent beat's length, unless its `min` holds it longer. */
+const SILENT_LENGTH = 3;
+
+/** What a beat's length is laid from: its words' seconds (0 when silent), its lead and tail, and its `min`. */
+interface BeatSpan {
+  readonly words: number;
+  readonly lead: number;
+  readonly tail: number;
+  readonly min: number;
+}
+
+/**
+ * A beat's length, the layout's one rule: its words between its lead and
+ * tail, `SILENT_LENGTH` when it has none, never under its `min`. The studio's
+ * trims preview a hold by it before the lab lays the script again. Pure.
+ */
+export const beatLength = (b: BeatSpan): number =>
+  Math.max(b.min, b.words > 0 ? b.lead + b.words + b.tail : SILENT_LENGTH);
+
 /** Why a film does not lay out: two scenes with one id, a line that does not parse, or a timeline that does not resolve. */
 export type LayoutError = DuplicateScene | LineError | TimelineError;
 
@@ -83,12 +106,13 @@ export const layout = <S extends Timed>(
     // MIN_LEAD + DEFAULT_TAIL = 0.6 s (the film skill's CRAFT rule 9); a meant
     // pause sets `tail`.
     const tail = spec.tail ?? DEFAULT_TAIL;
-    const dur = Math.max(spec.min ?? 0, voice.duration > 0 ? lead + voice.duration + tail : 3);
+    const min = spec.min ?? 0;
+    const dur = beatLength({ words: voice.duration, lead, tail, min });
     const speechStart = voice.duration > 0 ? lead : 0;
     const cues = resolveTimeline(spec.timeline, clockOf(spec.id, voice, speechStart, dur));
     if (Result.isFailure(cues)) return Result.fail(cues.failure);
     const knobs = new Map(Object.entries(spec.knobs ?? {}));
-    out.push({ spec, index, start, dur, voice, speechStart, cues: cues.success, knobs });
+    out.push({ spec, index, start, dur, voice, speechStart, tail, min, cues: cues.success, knobs });
     start += dur;
   }
   return Result.succeed(out);

@@ -311,7 +311,7 @@ describe('lab pages', () => {
         '/films/f/scenes': '/films/f/studio',
         '/films/f/scenes/hand': '/films/f/studio?sel=beat%3Ahand',
         '/films/f/project': '/films/f/studio',
-        // The film's Lab is the studio now (the browser keeps the link's `#t=`, film time on
+        // The film's Lab lands on the studio (the browser keeps the link's `#t=`, film time on
         // both); a scene's Lab lands on its beat, at the beat's start, its note kept.
         '/films/f/lab': '/films/f/studio',
         '/films/f/lab?note=n1': '/films/f/studio?note=n1',

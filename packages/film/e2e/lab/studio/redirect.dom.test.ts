@@ -11,6 +11,7 @@ import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { scriptOf } from '../../../src/lab/film-studio/ripple.ts';
+import { timecode } from '../../../src/lab/film-studio/view-state.ts';
 import { DESK, PHONE, openPlayer } from '../../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../../src/lab/fixtures/probe-film.ts';
 import { probeTimeline } from '../../../src/lab/fixtures/probe-timeline.ts';
@@ -24,13 +25,15 @@ const READY = '.st-timeline .st-clip';
 /** Where the page landed: its path, its query and its hash. */
 const LANDED = 'location.pathname + location.search + location.hash';
 
-/** Where beat two starts on the open version's clock, as the studio's timecode prints it. */
-const TWO = Option.getOrElse(
-  Option.map(
-    Option.fromUndefinedOr(scriptOf(probeTimeline(2)).find((b) => b.beat === 'two')),
-    (b) => b.start,
-  ),
-  () => Number.NaN,
+/** Where beat two starts on the open version's clock, as the studio's timecode prints it, read from its start. */
+const TWO = new RegExp(
+  `^${Option.getOrElse(
+    Option.map(
+      Option.fromUndefinedOr(scriptOf(probeTimeline(2)).find((b) => b.beat === 'two')),
+      (b) => timecode(b.start),
+    ),
+    () => 'no beat two',
+  ).replace('.', '\\.')}`,
 );
 
 const SIZES = [
@@ -69,7 +72,27 @@ for (const size of SIZES)
             pageHref.studio(PROBE, { sel: 'beat:two' }),
           );
           yield* waitFor(page, '.st-pane[data-beat="two"]');
-          yield* textIs(page, '.st-tc', new RegExp(`^0:0${TWO.toFixed(1).replace('.', '\\.')}`));
+          yield* textIs(page, '.st-tc', TWO);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    it.live(
+      "a scene's Lab with a note open keeps the note on the studio",
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* openPlayer(
+            { href: `/films/${PROBE}/lab/two?note=n4#t=1.5`, viewport: size.viewport },
+            READY,
+          );
+          yield* evaluates(
+            page,
+            'location.pathname + location.search',
+            pageHref.studio(PROBE, { sel: 'beat:two', note: 'n4' }),
+          );
+          yield* waitFor(page, '.st-pane[data-beat="two"]');
+          yield* textIs(page, '.st-tc', TWO);
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,

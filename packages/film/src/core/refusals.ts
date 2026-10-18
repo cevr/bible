@@ -475,6 +475,21 @@ export class StepNotNewest extends Schema.TaggedError<StepNotNewest>()('StepNotN
 export const newerFirst = (verb: 'undo' | 'redo', top: string): string =>
   `${top} ${{ undo: 'came after it', redo: 'was undone after it' }[verb]}: ${verb} that first`;
 
+/**
+ * A hold the studio will not write, because the film would play no
+ * differently: the beat has no words for a hold to stand before or after, or
+ * its `min` holds it at its length whatever the tail asks. Nothing is written.
+ */
+export class HoldUnchanged extends Schema.TaggedError<HoldUnchanged>()('HoldUnchanged', {
+  beat: Schema.String,
+  edge: Schema.Literals(['lead', 'tail']),
+  reason: Schema.String,
+}) {
+  override get message() {
+    return this.reason;
+  }
+}
+
 /** A production moved forward past the version the mover saw. */
 export class VersionMoved extends Schema.TaggedError<VersionMoved>()('VersionMoved', {
   production: Schema.String,

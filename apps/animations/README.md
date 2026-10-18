@@ -225,7 +225,7 @@ a render cleanly: every page, the browser and the server close. Player keys: spa
 `c` captions. In the film's studio (`bun run lab`, `/films/<film>/studio`; the old
 `/films/<film>/lab[/<scene>]` links land there) the timeline holds the film's lanes,
 the Script's beats a clip each. Drag a Script clip to another gap and its beat moves;
-pull a clip's edge and its hold changes: each writes the scene's TypeScript through
+pull a clip's edge and its hold changes: each writes the version's `script.ts` through
 the lab's `beats/move` and `beats/hold`, ripples on the timeline at once, and the
 page comes back to the same moment of the same beat once the lab has read it
 (`packages/film/src/lab/film-studio/editing.tsx`). ⌘Z and ⇧⌘Z, and a receipt's

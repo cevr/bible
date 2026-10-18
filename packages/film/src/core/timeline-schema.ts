@@ -21,11 +21,20 @@ const TimedMark = Schema.Struct({ name: Schema.String, at: Schema.Finite });
  * after them to its end (`tail`), and which of them its script declares
  * (the rest are the layout's defaults).
  */
+/** A beat's holds as the layout laid them. */
 const BeatHold = Schema.Struct({
+  /** Seconds before its words: 0 for a silent beat. */
   lead: Schema.Finite,
+  /** Seconds from its words' end to its end: its `min`'s share in it too (all of it for a silent beat). */
   tail: Schema.Finite,
+  /** The holds its script declares. */
   declared: Schema.Array(Schema.Literals(['lead', 'tail'])),
+  /** The tail it asks for (its own, else the default), before its `min` holds it longer. */
+  asked: Schema.Finite,
+  /** The length its `min` holds it to at least: 0 when it declares none. */
+  min: Schema.Finite,
 });
+export type BeatHold = typeof BeatHold.Type;
 
 const ClockBeat = Schema.Struct({
   id: Schema.String,

@@ -67,7 +67,7 @@ describe('a hold trimmed', () => {
   });
 
   test('reads out the change and the length', () => {
-    expect(trimReadout(3, 41.5)).toBe('+3.0 s → 41.5 s');
-    expect(trimReadout(-0.4, 2)).toBe('−0.4 s → 2.0 s');
+    expect(trimReadout(3, 41.5)).toBe('hold +3.0 s · 41.5 s long');
+    expect(trimReadout(-0.4, 2)).toBe('hold −0.4 s · 2.0 s long');
   });
 });

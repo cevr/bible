@@ -148,6 +148,8 @@ export const filmClock = (
           declared: (['lead', 'tail'] as const).filter((edge) =>
             Predicate.isNotUndefined(p.spec[edge]),
           ),
+          asked: p.tail,
+          min: p.min,
         },
         ...Option.match(
           Option.liftPredicate(p.voice.duration, (d) => d > 0),

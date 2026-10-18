@@ -44,8 +44,10 @@ const scriptLane: Lane = {
     beat: b.beat,
     start: b.start,
     dur: b.dur,
+    // Its words from its lead to its tail, the layout's defaults.
+    speech: { start: b.start + 0.5, end: Math.round((b.start + b.dur - 0.1) * 1000) / 1000 },
     marks: b.marks,
-    hold: { lead: 0.5, tail: 0.1, declared: [] },
+    hold: { lead: 0.5, tail: 0.1, declared: [], asked: 0.1, min: 0 },
   })),
 };
 

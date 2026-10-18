@@ -7,7 +7,9 @@
       "hold": {
         "lead": 0.5,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 0.5,
@@ -67,9 +69,11 @@
       "start": 25.19,
       "dur": 3,
       "hold": {
-        "lead": 0.5,
-        "tail": 2.5,
-        "declared": []
+        "lead": 0,
+        "tail": 3,
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "marks": [],
       "voice": "silent",
@@ -82,7 +86,9 @@
       "hold": {
         "lead": 0.5,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 28.69,
@@ -132,7 +138,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 47.74,
@@ -186,7 +194,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 70.59,
@@ -276,7 +286,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 106.02000000000001,
@@ -346,7 +358,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 148,
@@ -420,7 +434,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 186.47,
@@ -474,7 +490,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 0.6,
-        "declared": []
+        "declared": [],
+        "asked": 0.6,
+        "min": 0
       },
       "speech": {
         "start": 204.72,
@@ -528,7 +546,9 @@
       "hold": {
         "lead": 0.5,
         "tail": 2.8,
-        "declared": []
+        "declared": [],
+        "asked": 2.8,
+        "min": 0
       },
       "speech": {
         "start": 228.31,
@@ -574,7 +594,9 @@
       "hold": {
         "lead": 0.5,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 253.72,
@@ -636,7 +658,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 277.73999999999995,
@@ -686,7 +710,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 302.31999999999994,
@@ -744,7 +770,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 1.4,
-        "declared": []
+        "declared": [],
+        "asked": 1.4,
+        "min": 0
       },
       "speech": {
         "start": 328.88999999999993,
@@ -814,7 +842,9 @@
       "hold": {
         "lead": 0.5,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 356.94999999999993,
@@ -872,7 +902,9 @@
       "hold": {
         "lead": 0.5,
         "tail": 0.1,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 0
       },
       "speech": {
         "start": 383.13999999999993,
@@ -922,7 +954,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 0.5,
-        "declared": []
+        "declared": [],
+        "asked": 0.5,
+        "min": 0
       },
       "speech": {
         "start": 407.31999999999994,
@@ -956,7 +990,9 @@
       "hold": {
         "lead": 0.4,
         "tail": 2.0,
-        "declared": []
+        "declared": [],
+        "asked": 2.0,
+        "min": 0
       },
       "speech": {
         "start": 421.0299999999999,
@@ -1014,7 +1050,9 @@
       "hold": {
         "lead": 0.5,
         "tail": 27.54,
-        "declared": []
+        "declared": [],
+        "asked": 0.1,
+        "min": 30
       },
       "speech": {
         "start": 446.0799999999999,
@@ -1029,9 +1067,11 @@
       "start": 475.5799999999999,
       "dur": 30,
       "hold": {
-        "lead": 0.5,
-        "tail": 29.5,
-        "declared": []
+        "lead": 0,
+        "tail": 30,
+        "declared": [],
+        "asked": 0.1,
+        "min": 30
       },
       "marks": [],
       "voice": "silent",

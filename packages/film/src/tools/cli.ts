@@ -86,7 +86,12 @@ import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
 import { labPhone } from './lab.ts';
-import { ExportsChanged, Relaunch, watchExports, workspaceRoot } from './exports-watch.ts';
+import {
+  exportsNow,
+  relaunchOnExportsChange,
+  watchExports,
+  workspaceRoot,
+} from './exports-watch.ts';
 import { RelaunchBun } from './relaunch-bun.ts';
 import { channel } from './lab-channel.ts';
 import type { LabAt } from './api-server.ts';
@@ -928,9 +933,6 @@ const chaptersCommand = Command.make(
   ),
 );
 
-/** Whether a failure is the lab's exports watch ending it. */
-const isExportsChanged = Schema.is(ExportsChanged);
-
 const lab = <E>(
   app: FilmApp<E>['lab'],
   films: string,
@@ -942,6 +944,11 @@ const lab = <E>(
     {},
     Effect.fn('film.lab')(
       function* () {
+        // The workspace's exports read before the lab starts: a merge that changes one while it
+        // starts, or while it runs, ends the lab, and it starts again.
+        const exportsRead = yield* Effect.transposeOption(
+          Option.map(yield* workspaceRoot('.'), exportsNow),
+        );
         // The lab's whole API, for every film: what tweaks it and what reviews it.
         const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
         const known = yield* (yield* FilmFolder).names;
@@ -960,32 +967,29 @@ const lab = <E>(
         // FILM_STAGING_FILL=true, beside the lab: a fill that dies leaves the lab up.
         if (yield* stagingFill) yield* fillBeside((yield* ScriptVoices).fill);
         else yield* Effect.log('staging.fill off');
-        // A package's exports changed by a merge while the lab runs: the lab ends, and starts again.
-        return yield* Option.match(yield* workspaceRoot('.'), {
+        return yield* Option.match(exportsRead, {
           onNone: () => Effect.never,
-          onSome: (root) => watchExports(root),
+          onSome: (read) => watchExports(read),
         });
       },
-      Effect.scoped,
-      Effect.catchIf(isExportsChanged, (changed) =>
-        Effect.flatMap(Relaunch, (r) => r.relaunch(changed.message)),
-      ),
+      (lab) =>
+        relaunchOnExportsChange(
+          lab,
+          // The pages, built from the app's entries and watched while the lab runs,
+          // and the easel's warm pages over them, in this process's Chrome; the
+          // `critique` tool's critic, asking a fresh Claude per place.
+          Layer.mergeAll(
+            Layer.unwrap(
+              Effect.map(filmsOut, (out) =>
+                labPages({ ...app.pages, films, footage: { dir: footage, out } }),
+              ),
+            ),
+            Critic.layer(critiqueRules).pipe(Layer.provide(Counsel.layer)),
+          ),
+        ),
       Effect.provide(RelaunchBun),
     ),
   ).pipe(
-    // The pages, built from the app's entries and watched while the lab runs,
-    // and the easel's warm pages over them, in this process's Chrome.
-    Command.provide(
-      Layer.mergeAll(
-        Layer.unwrap(
-          Effect.map(filmsOut, (out) =>
-            labPages({ ...app.pages, films, footage: { dir: footage, out } }),
-          ),
-        ),
-        // The `critique` tool's critic, asking a fresh Claude per place.
-        Critic.layer(critiqueRules).pipe(Layer.provide(Counsel.layer)),
-      ),
-    ),
     Command.withDescription(
       "Serve the lab for every film: the player with notes on frames, cues and knobs that write back to the scene files and the studio, beside every render under the roots, compared in sync, and each film's choices and scenes to approve (Ctrl-C stops it)",
     ),
