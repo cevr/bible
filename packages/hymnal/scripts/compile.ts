@@ -137,7 +137,15 @@ const compileOne = (n: number) =>
       midi,
     };
     const hymn = yield* compile({ ...source, held: HELD.get(n) }).pipe(
-      Effect.mapError((e) => new Failed({ why: `${n}: ${e.reason} at byte ${e.offset}` })),
+      Effect.mapError(
+        (e) =>
+          new Failed({
+            why:
+              e._tag === 'MidiParseError'
+                ? `${n}: ${e.reason} at byte ${e.offset}`
+                : `${n}: verse layout refused (${e.reason}; ids ${e.ids.join(' ')})`,
+          }),
+      ),
     );
     yield* Effect.promise(() =>
       Bun.write(path.join(out, `${pad(n)}.json`), `${JSON.stringify(encodeHymn(hymn))}\n`),
@@ -257,6 +265,8 @@ const reportOf = ({ summary, compiled, failed, counts, keys, keyLine, seconds }:
     '## Alignment key',
     '',
     `\`${keyLine}\``,
+    '',
+    'The level is judged from the fit alone: a hymn at `syllable` with lines below exact has lines laid a note off that no threshold sees.',
     '',
     '| hymn | level | lines | exact | cut differences |',
     '| --- | --- | --- | --- | --- |',

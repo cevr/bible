@@ -1,4 +1,7 @@
-import { Effect } from 'effect';
+import { HymnalService, HymnId } from '@bible/core/hymnal';
+import { layerHymnalBun } from '@bible/core/hymnal/bun';
+import * as BunServices from '@effect/platform-bun/BunServices';
+import { ConfigProvider, Effect, Layer } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import * as Chord from './chord.js';
@@ -330,6 +333,71 @@ const tune: Voices = [
 
 const tuneFile = (verses: number) => file(tune, { verses, intro: 4, meter: [4, 4], fifths: 0 });
 
+/** Twelve ticks: less than the few ticks the files strike a chord's notes off the tune's. */
+const early = 1 / 32;
+
+/**
+ * Two lines of a note a syllable (beats 0-8 and 8-16), a chord each two
+ * beats: C F G C, F C G C. The voices below change to F `early` before the
+ * tune's third note, over a C the tune holds that F contains. The tune ends
+ * a beat early, and the voices below play G in that last rest.
+ */
+const steps: Voices = [
+  [
+    [60, 1],
+    [72, 1],
+    [69, 1],
+    [65, 1],
+    [67, 1],
+    [71, 1],
+    [72, 1],
+    [67, 1],
+    [65, 1],
+    [69, 1],
+    [64, 1],
+    [67, 1],
+    [62, 1],
+    [59, 1],
+    [64, 1],
+    [0, 1],
+  ],
+  [
+    [55, 2 - early],
+    [60, 2 + early],
+    [62, 2],
+    [64, 2],
+    [60, 2],
+    [55, 2],
+    [62, 2],
+    [55, 1],
+    [59, 1],
+  ],
+  [
+    [52, 2 - early],
+    [57, 2 + early],
+    [59, 2],
+    [55, 2],
+    [57, 2],
+    [52, 2],
+    [59, 2],
+    [52, 1],
+    [55, 1],
+  ],
+  [
+    [48, 2 - early],
+    [41, 2 + early],
+    [43, 2],
+    [48, 2],
+    [41, 2],
+    [48, 2],
+    [43, 2],
+    [48, 1],
+    [43, 1],
+  ],
+];
+
+const stepsFile = (verses: number) => file(steps, { verses, intro: 4, meter: [4, 4], fifths: 0 });
+
 /** Each syllable as `text/notes/beats:` and its full chords, each `chord@at`. */
 const placed = (hymn: Hymn, part: Sung) =>
   part.lines.map((line) =>
@@ -424,6 +492,26 @@ describe('compile: where a chord goes', () => {
       );
     }),
   );
+
+  it.effect('gives a chord struck a few ticks before a note to that note, not the one before', () =>
+    Effect.gen(function* () {
+      const words = 'Sing we all now to God of light,\nLord of all ye saints sing now';
+      const hymn = yield* compile(source(stepsFile(2), [words, words]));
+      expect(placed(hymn, sung(hymn.stanzas[0]))[0]).toBe(
+        'Sing/1/1:C@0 we/1/1: all/1/1:F@0 now/1/1: to/1/1:G@0 God/1/1: of/1/1:C@0 light,/1/1:',
+      );
+    }),
+  );
+
+  it.effect("gives a change in the rest that ends a verse to the verse's last syllable", () =>
+    Effect.gen(function* () {
+      const words = 'Sing we all now to God of light,\nLord of all ye saints sing now';
+      const hymn = yield* compile(source(stepsFile(2), [words, words]));
+      expect(placed(hymn, sung(hymn.stanzas[0]))[1]).toBe(
+        'Lord/1/1:F@0 of/1/1: all/1/1:C@0 ye/1/1: saints/1/1:G@0 sing/1/1: now/1/1:C@0,G@1',
+      );
+    }),
+  );
 });
 
 describe('compile: trust', () => {
@@ -498,5 +586,98 @@ describe('compile: trust', () => {
         'Lord/1/1:G7@0 of/1/1:C@0 all/2/1:G@0,C@0.5 light/1/1:F@1 now/1/2:C@0',
       ]);
     }),
+  );
+
+  it.effect('shows chords per line when the syllables hold many notes', () =>
+    Effect.gen(function* () {
+      const words = 'Sing now to God of light,\nLord of saints now';
+      const hymn = yield* compile(source(stepsFile(2), [words, words]));
+      const stanza = sung(hymn.stanzas[0]);
+      expect(stanza.fit).toMatchObject({ notes: 15, syllables: 10, shared: { acrossWords: 0 } });
+      expect(stanza.fit.cost / stanza.fit.syllables).toBeLessThan(0.25);
+      expect([stanza.level, stanza.why]).toEqual(['line', ['melismas']]);
+    }),
+  );
+
+  it.effect('lays the refrain as stanza 1 sings it, though a later stanza lays it otherwise', () =>
+    Effect.gen(function* () {
+      const refrain = { refrain: 'Lord of all ye saints sing now' };
+      const hymn = yield* compile(
+        source(stepsFile(2), ['Sing we all now to God of light,', 'Praise ye the Lord,'], refrain),
+      );
+      const praise = 'Praise ye the Lord,';
+      const later = yield* compile(source(stepsFile(2), [praise, praise], refrain));
+      expect(placed(hymn, sung(hymn.refrain))).toEqual([
+        'Lord/1/1:F@0 of/1/1: all/1/1:C@0 ye/1/1: saints/1/1:G@0 sing/1/1: now/1/1:C@0,G@1',
+      ]);
+      expect(placed(later, sung(later.refrain))).not.toEqual(placed(hymn, sung(hymn.refrain)));
+    }),
+  );
+});
+
+/** The tracked hymnal.db, read as the compile script reads it. */
+const hymnal = layerHymnalBun.pipe(
+  Layer.provide(BunServices.layer),
+  Layer.provide(
+    ConfigProvider.layer(
+      ConfigProvider.fromEnv({
+        env: {
+          HOME: '/',
+          HYMNAL_DB_PATH: new URL('../../core/data/hymnal.db', import.meta.url).pathname,
+        },
+      }),
+    ),
+  ),
+);
+
+/** A part's first line as sung or printed. */
+const firstLine = (part: Part | undefined) =>
+  part?._tag === 'Sung' ? cuts(part, '')[0] : part?.lines[0];
+
+describe('compile: verse layout', () => {
+  it.effect('refuses a text whose stanzas and refrain it cannot read in printed order', () =>
+    Effect.gen(function* () {
+      const layouts = [
+        { ids: [-3, -2, -1, 0, 1, 2], reason: 'more than one refrain' },
+        { ids: [0, 2], reason: 'stanza ids are not 0, 1, … n - 1' },
+        { ids: [1, 2], reason: 'stanza ids are not 0, 1, … n - 1' },
+        { ids: [-1], reason: 'no stanza' },
+      ];
+      for (const { ids, reason } of layouts) {
+        const verses = ids.map((id) => ({ id, text: 'Sing we now to God,' }));
+        const error = yield* Effect.flip(compile({ ...source(tuneFile(2), []), verses }));
+        expect(error).toMatchObject({ _tag: 'VerseLayoutError', ids, reason });
+      }
+    }),
+  );
+
+  it.effect(
+    'reads hymn 593 from hymnal.db with its three stanzas in order and its refrain once',
+    () =>
+      Effect.gen(function* () {
+        const text = yield* (yield* HymnalService).getHymn(HymnId.make(593));
+        const hymn = yield* compile({ ...source(tuneFile(3), []), verses: text.verses });
+        expect([...hymn.stanzas, hymn.refrain].map(firstLine)).toEqual([
+          'In times like these you need a Savior,',
+          'In times like these you need the Bible,',
+          'In times like these I have a Savior,',
+          "This Rock is Jesus, Yes, He's the One,",
+        ]);
+      }).pipe(Effect.provide(hymnal)),
+  );
+
+  it.effect('reads the verse layout of every hymn in hymnal.db', () =>
+    Effect.gen(function* () {
+      const service = yield* HymnalService;
+      const refused: number[] = [];
+      for (let n = 1; n <= 695; n++) {
+        const text = yield* service.getHymn(HymnId.make(n));
+        const error = yield* Effect.flip(
+          compile({ ...source(new Uint8Array(), []), verses: text.verses }),
+        );
+        if (error._tag === 'VerseLayoutError') refused.push(n);
+      }
+      expect(refused).toEqual([]);
+    }).pipe(Effect.provide(hymnal)),
   );
 });

@@ -24,7 +24,7 @@
  * Pure: no file, Bun or Node access.
  */
 
-import { Array as Arr, Effect } from 'effect';
+import { Array as Arr, Effect, Schema } from 'effect';
 import type { Mutable } from 'effect/Types';
 
 import * as Align from './align.js';
@@ -233,16 +233,38 @@ const held = (lines: readonly string[]): Part => ({
   why: ['held'],
 });
 
+/** A text whose verses the compiler cannot read in printed order. */
+class VerseLayoutError extends Schema.TaggedError<VerseLayoutError>()('VerseLayoutError', {
+  ids: Schema.Array(Schema.Int),
+  reason: Schema.String,
+}) {}
+
+/**
+ * The text's stanzas in printed order and its refrain. The order is known
+ * only when the stanzas' ids are 0, 1, … n - 1 and at most one verse, the
+ * refrain, has a negative id: any other layout is refused.
+ */
+const versesOf = (source: Source) => {
+  const ids = source.verses.map((verse) => verse.id);
+  const stanzas = source.verses.filter((verse) => verse.id >= 0).toSorted((a, b) => a.id - b.id);
+  const choruses = source.verses.filter((verse) => verse.id < 0);
+  const refuse = (reason: string) => Effect.fail(VerseLayoutError.make({ ids, reason }));
+  if (!Arr.isArrayNonEmpty(stanzas)) return refuse('no stanza');
+  if (stanzas.some((verse, n) => verse.id !== n)) return refuse('stanza ids are not 0, 1, … n - 1');
+  if (choruses.length > 1) return refuse('more than one refrain');
+  const chorus = choruses[0];
+  return Effect.succeed({
+    stanzas: Arr.map(stanzas, (verse) => linesOf(verse.text)),
+    refrain: chorus === undefined ? undefined : linesOf(chorus.text),
+  });
+};
+
 /** Compiles a hymn from its text and its MIDI file. */
-export const compile = (source: Source): Effect.Effect<Hymn, Midi.MidiParseError> =>
+export const compile = (
+  source: Source,
+): Effect.Effect<Hymn, Midi.MidiParseError | VerseLayoutError> =>
   Effect.gen(function* () {
-    const stanzas = source.verses
-      .filter((verse) => verse.id >= 0)
-      .toSorted((a, b) => a.id - b.id)
-      .map((verse) => linesOf(verse.text));
-    // The refrain: the negative id nearest zero (a few texts keep more than one).
-    const chorus = source.verses.filter((verse) => verse.id < 0).toSorted((a, b) => b.id - a.id)[0];
-    const refrain = chorus === undefined ? undefined : linesOf(chorus.text);
+    const { stanzas, refrain } = yield* versesOf(source);
     const score = Score.fromMidi(yield* Midi.parse(source.midi), stanzas.length);
     const head = {
       version: 1,
@@ -257,9 +279,6 @@ export const compile = (source: Source): Effect.Effect<Hymn, Midi.MidiParseError
         exact: score.verses.exact,
       },
     } as const;
-    if (!Arr.isArrayNonEmpty(stanzas)) {
-      return yield* Effect.die(new Error(`hymn ${source.number} has no stanza`));
-    }
     if (source.held !== undefined) {
       const plain: Mutable<Hymn> = { ...head, stanzas: Arr.map(stanzas, held) };
       if (refrain !== undefined) plain.refrain = held(refrain);
