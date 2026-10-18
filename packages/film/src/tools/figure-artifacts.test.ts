@@ -9,7 +9,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Result } from 'effect';
+import { Effect, FileSystem, Option, Result } from 'effect';
 import { measureFigure } from '../core/figure.ts';
 import { compareFigures } from '../core/match.ts';
 import { decodePng } from './png.ts';
@@ -25,15 +25,38 @@ const measured = (name: string) =>
 
 const kindsOf = (name: string) => Effect.map(measured(name), (m) => m.artifacts.map((a) => a.kind));
 
-/** The facing rows of the concept `concept` against the scene `scene`, by name, flagged or not. */
-const facingFlags = (concept: string, scene: string) =>
+/** How finely each facing row is read back: a turn to three places, a roll to a tenth of a degree. */
+const PLACES = new Map([
+  ['turn', 1000],
+  ['roll', 10],
+]);
+
+/** The facing rows of the concept `concept` against the scene `scene`, by name: each side's value, rounded, and whether it flags. */
+const facingRows = (concept: string, scene: string) =>
   Effect.map(Effect.all([measured(concept), measured(scene)]), ([c, s]) =>
     Object.fromEntries(
       compareFigures(c, s)
         .filter((row) => row.name.startsWith('head: turn') || row.name.startsWith('head: roll'))
-        .map((row) => [row.name.slice(0, 10), row.flagged]),
+        .map((row) => {
+          const name = row.name.slice(6, 10);
+          const by = PLACES.get(name) ?? 1;
+          const round = (v: Option.Option<number>) =>
+            Math.round(Option.getOrElse(v, () => Number.NaN) * by) / by;
+          return [
+            name,
+            {
+              concept: round(Option.fromUndefinedOr(row.concept)),
+              scene: round(Option.fromUndefinedOr(row.scene)),
+              flagged: row.flagged,
+            },
+          ];
+        }),
     ),
   );
+
+/** Whether the rows flag, by name. */
+const flagsOf = (rows: Readonly<Record<string, { readonly flagged: boolean }>>) =>
+  Object.fromEntries(Object.entries(rows).map(([name, row]) => [name, row.flagged]));
 
 describe('render artifacts on RBF frames', () => {
   it.effect(
@@ -82,24 +105,27 @@ describe('render artifacts on RBF frames', () => {
 
 describe("a head's facing against its concept", () => {
   it.effect(
-    'the farmer, drawn level and front from a concept turned and tilted up: the turn and the roll flag',
+    'the farmer at rain 14.19 s, turned as his concept is (a little more) and level where it tilts up 12°: the roll flags, the turn does not',
     () =>
       Effect.gen(function* () {
-        expect(
-          yield* facingFlags('rain-rain-farmer-concept.png', 'rbf-rain-farmer-1419.png'),
-        ).toEqual({ 'head: turn': true, 'head: roll': true });
+        const rows = yield* facingRows('rain-rain-farmer-concept.png', 'rbf-rain-farmer-1419.png');
+        // His skin alone: the headcloth beside his cheek, with no ink between, is no face.
+        expect(rows).toEqual({
+          turn: { concept: 0.094, scene: 0.141, flagged: false },
+          roll: { concept: -11.7, scene: 0.4, flagged: true },
+        });
       }),
   );
 
   it.effect("Christ and cold's prosecutor, drawn in their concepts' facing: neither flags", () =>
     Effect.gen(function* () {
       const [christ, prosecutor] = yield* Effect.all([
-        facingFlags('court-12-christ-concept.png', 'rbf-court-christ-head-1651.png'),
-        facingFlags('cold-34-prosecutor.png', 'rbf-cold-prosecutor-head.png'),
+        facingRows('court-12-christ-concept.png', 'rbf-court-christ-head-1651.png'),
+        facingRows('cold-34-prosecutor.png', 'rbf-cold-prosecutor-head.png'),
       ]);
-      expect({ christ, prosecutor }).toEqual({
-        christ: { 'head: turn': false, 'head: roll': false },
-        prosecutor: { 'head: turn': false, 'head: roll': false },
+      expect({ christ: flagsOf(christ), prosecutor: flagsOf(prosecutor) }).toEqual({
+        christ: { turn: false, roll: false },
+        prosecutor: { turn: false, roll: false },
       });
     }),
   );

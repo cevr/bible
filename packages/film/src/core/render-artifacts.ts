@@ -1,6 +1,6 @@
 // A figure's render artifacts, read from its head's pixels (`film match`):
 // the marks a drawn figure shows that no part of it draws, each a thin line
-// of a third colour, at 1:1 only (owner, 2026-10-18, on the RBF v3 cast:
+// of a third colour, at 1:1 only (owner, 2026-10-17, his local day, on the RBF v3 cast:
 // "theres some artifacts in the render"). Pure: RGBA and the head's masks
 // in, marks out.
 //
@@ -18,10 +18,10 @@
 // - `weather`: one fill both sides, over the face (rain or a stroke laid
 //   across it).
 //
-// No spike past the outline is read: on RBF's frames the light point the
-// owner saw at Christ's crown is a sliver inside the outline (read as one),
-// and the one line a spike leg read past an outline was the wall's dado
-// running behind cold's prosecutor (measured, 2026-10-18).
+// Only the head's own pixels, inside its outline, are read: past the outline
+// lies the set (a wall, a dado, a chair) and its edges, which no figure
+// draws. A light point at a crown reads where it lies, inside the outline,
+// as a sliver.
 //
 // The pixels of one class join into marks (8-connected); a mark shorter than
 // `MARK_SHORTEST` lines is grain or an antialiasing step and is dropped. A
@@ -46,7 +46,7 @@ export type ArtifactMark = typeof ArtifactMark.Type;
 /** What the read needs of a head: its crop, the ink (lines, marks and masses), its outline's mask in a box of the crop, and its line's width. */
 interface HeadPixels {
   readonly raster: Raster;
-  /** 1 where ink: a line, a mark or a mass (a fill as dark as the ink). */
+  /** 1 where the ink's own colour lies: the outline, a mark, or a mass as dark as the ink; a dark fill of another colour (brown hair, a beard) is a fill. */
   readonly ink: Uint8Array;
   /** The head inside its outline's outer edge, 1 inside, in the box at (`x0`, `y0`), `bw` × `bh`. */
   readonly head: {
@@ -72,9 +72,13 @@ const OFF_BLEND = 30;
 
 /**
  * A pixel beside the ink is a sliver only when its luma is this far from
- * the fill's on its other side: the house rim is the fill lifted 20 to 35
- * (measured on RBF's lead, prosecutor and judge), a fill showing in a gap
- * far more.
+ * the fill's on its other side: the house rim is the fill lifted, a fill
+ * showing in a gap far more. Tuned on RBF's papers (`righteousness-by-faith/
+ * papers.ts`): their rimmed head papers lift 13 to 31 luma over their colour,
+ * read on its lead, prosecutor and judge as 20 to 35, and the rim fades
+ * out before the shade's crease (`style/rig/parts.ts` `rimOf`), so it never
+ * lies over a shade. A film whose rim lifts more than 45 over its paper
+ * reads its own rim as a sliver: measure its papers against this first.
  */
 const RIM_MOST = 45;
 

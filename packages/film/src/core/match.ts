@@ -230,18 +230,21 @@ const INNER_RIM_MORE = 0.1;
 const SILHOUETTE_TOLERANCE = { head: 0.03, body: 0.05 } as const;
 
 /**
- * A head's turn past this (the eyes' offset in the face's opening, a share of
- * it) is flagged: RBF's farmer, a front face drawn from a three-quarter
- * concept, differs by 0.17; Christ and cold's prosecutor, drawn in their
- * concepts' turn, by 0.05 and 0.002 (measured, 2026-10-18).
+ * A head's turn past this (the eyes' offset in the face's skin on the cheek
+ * row, a share of it) is flagged. RBF's figures drawn in their concepts' turn
+ * differ by 0.05 at most: Christ by −0.052, the farmer at rain 14.19 s by
+ * 0.047, cold's prosecutor by −0.002 (measured, 2026-10-18). A three-quarter
+ * concept drawn front (Christ's −0.142 drawn 0) would differ by 0.14.
  */
 const TURN_TOLERANCE = 0.1;
 
 /**
  * A head's roll past this many degrees, beside what a pixel either way at
  * each eye makes of the eye line (a small concept's eyes are read coarsely),
- * is flagged: RBF's farmer, tilted up 12° in his concept and level in the
- * scene, is; Christ (a 26-pixel eye line in his concept) is not.
+ * is flagged. RBF's farmer reads −11.7° in his concept and 0.4° at rain
+ * 14.19 s: 12.1° past his 9.8°, flagged. Christ reads +5.0° in his concept
+ * (a 28.6-pixel eye line) and −5.3° at court 16.51 s: 10.3° under his 11.5°
+ * (measured, 2026-10-18).
  */
 const ROLL_TOLERANCE = 6;
 
@@ -505,7 +508,7 @@ const informing = (row: MatchRow, why: string): MatchRow => ({
   note: [...Option.toArray(Option.fromUndefinedOr(row.note)), why].join('; '),
 });
 
-/** Why a figure's height in heads is information (owner, 2026-10-18; `character-design.md`, "One height band for the cast"). */
+/** Why a figure's height in heads is information (owner, 2026-10-17; `character-design.md`, "One height band for the cast"). */
 const HEIGHT_IS_THE_BAND =
   "information: a figure's height comes from the cast's height band, and a concept is a design sketch";
 
@@ -590,7 +593,7 @@ const ratioRows = (concept: FigureMeasure, scene: FigureMeasure): ReadonlyArray<
   ];
 };
 
-/** Why a turn or a roll that differs is flagged, never information (owner, 2026-10-18, on the RBF v3 cast; `character-design.md`). */
+/** Why a turn or a roll that differs is flagged, never information (owner, 2026-10-17, on the RBF v3 cast; `character-design.md`). */
 const ANGLE_IS_DESIGN = "a concept's head angle is design, not a sketch's slip: draw the concept's";
 
 /** The head's facing: its turn and its roll against the concept's, each flagged past its tolerance. */
@@ -633,7 +636,7 @@ const BOXES_LISTED = 4;
 
 /**
  * A row per artifact kind: the scene's marks' length in head widths, flagged
- * where it has any (the owner's rule is none, 2026-10-18: "theres some
+ * where it has any (the owner's rule is none, 2026-10-17: "theres some
  * artifacts in the render"), its boxes in the scene crop's pixels listed. A
  * concept is painted, so its side is not read.
  */

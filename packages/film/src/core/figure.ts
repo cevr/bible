@@ -197,7 +197,7 @@ export const FigureMeasure = Schema.Struct({
   mouth: Schema.optionalKey(MouthPose),
   /** Which way the head faces (`Facing`). */
   facing: Facing,
-  /** The head's render artifacts (`render-artifacts.ts`): thin lines of a third colour on it or past its outline. */
+  /** The head's render artifacts (`render-artifacts.ts`): thin lines of a third colour inside its outline. */
   artifacts: Schema.Array(ArtifactMark),
   missing: Schema.Array(Unmeasured),
 });
@@ -1259,7 +1259,9 @@ const facingOf = (read: Read, head: Head): Facing => {
   const { a, b, outer } = head;
   const eyesX = (cxOf(a) + cxOf(b)) / 2;
   // The face's opening on the cheek row just under the eyes: from between the
-  // eyes out to the hair, the ink or the head's edge either side.
+  // eyes out to the last skin before the hair, the ink, the head's edge, or a
+  // fill that is not skin (a headcloth, a veil, a hood the house look draws
+  // with no ink between it and the face) either side.
   const y = Math.min(read.h - 1, Math.round(Math.max(a.y1, b.y1) + 0.5 * heightOf(a)));
   const hairIds = new Set(head.hair.map((p) => p.id));
   const open = (x: number) => {
@@ -1275,12 +1277,64 @@ const facingOf = (read: Read, head: Head): Facing => {
     const i = y * read.w + x;
     return read.ink[i] === 0 && read.mass[i] === 0 && !hairIds.has(read.regions.labels[i]!);
   };
-  let [lo, hi] = [Math.round(eyesX), Math.round(eyesX)];
-  while (lo > 0 && open(lo - 1)) lo--;
-  while (hi < read.w - 1 && open(hi + 1)) hi++;
+  const skin = skinOf(read, head);
+  // A run of non-skin as wide as the line ends the skin: one shorter is the paper's grain.
+  const ends = Math.max(2, Math.round(read.line));
+  // The skin's edge on a side: the last skin before a run of non-skin, or the
+  // opening's own end when what lies past the skin is narrower than a light
+  // rim (`RIM_MOST_OF_HEAD`), which is the face's own paper lit at its edge.
+  const edge = (step: 1 | -1) => {
+    let [at, x, onSkin] = [Math.round(eyesX), Math.round(eyesX), true];
+    while (x + step >= 0 && x + step < read.w && open(x + step)) {
+      x += step;
+      if (onSkin && skin(rgbAt(read.r, y * read.w + x))) at = x;
+      else if (onSkin && Math.abs(x - at) >= ends) onSkin = false;
+    }
+    return Math.abs(x - at) <= RIM_MOST_OF_HEAD * head.W ? x : at;
+  };
+  const [lo, hi] = [edge(-1), edge(1)];
   const turn = hi > lo ? (eyesX - (lo + hi + 1) / 2) / (hi - lo + 1) : 0;
   const roll = (Math.atan2(cyOf(b) - cyOf(a), cxOf(b) - cxOf(a)) * 180) / Math.PI;
   return { turn, roll, eyes: Math.hypot(cxOf(b) - cxOf(a), cyOf(b) - cyOf(a)) };
+};
+
+/** How far a colour may lie from the lit skin and still be it: the paper's grain. */
+const SKIN_LIT = 36;
+/** The widest light rim along a face's edge, as a share of the head's width: what lies past the skin and is narrower is the rim. */
+const RIM_MOST_OF_HEAD = 0.1;
+/** How far a face's shade may lie from its lit skin: the house shade turns the hue and darkens it this far at most. */
+const SKIN_SHADE = 90;
+
+/**
+ * Whether a colour is the face's skin: the lit skin (the face's colour
+ * between the eyes, where nothing but skin lies) give or take its grain
+ * (`SKIN_LIT`), or a shade of it, darker and near it (`SKIN_SHADE`). A
+ * headcloth or a veil lighter than the skin, or far from it, is not; on the
+ * RBF farmer the cream cloth lies 60 from his skin and lighter. A light rim
+ * at the face's edge is not skin by colour; `facingOf` takes it by its width.
+ */
+const skinOf = (read: Read, head: Head): ((c: Rgb) => boolean) => {
+  const { a, b, face } = head;
+  const [x0, x1] = [Math.min(a.x1, b.x1) + 1, Math.max(a.x0, b.x0) - 1];
+  const [y0, y1] = [Math.max(a.y0, b.y0), Math.min(a.y1, b.y1)];
+  const between: Array<Rgb> = [];
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
+      const i = y * read.w + x;
+      if (read.regions.labels[i] === face.id && read.ink[i] === 0 && read.mass[i] === 0)
+        between.push(rgbAt(read.r, i));
+    }
+  // Eyes that touch leave nothing between them: the face's colour on the eye line is the skin then.
+  const lit = medianRgb(
+    between.length > 0
+      ? between
+      : pixelsOf(read, new Set([face.id]), head.eyeY, head.eyeY + 0.1 * head.W).map((p) => p.c),
+  );
+  const luma = lumaOf(lit);
+  return (c) => {
+    const d = dist(c, lit);
+    return d <= SKIN_LIT || (d <= SKIN_SHADE && lumaOf(c) < luma - 8);
+  };
 };
 
 /**
@@ -1638,12 +1692,12 @@ export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, Figure
     const mouth = faceRatios(read, head, sink);
     const radii = hairRatios(read, head, sink);
     // The outline's own colour only: a dark brown fill (hair, a beard) is a fill here, so a gap between it and the line shows.
-    const inkOrMass = new Uint8Array(read.ink.length);
-    for (let i = 0; i < inkOrMass.length; i++)
-      inkOrMass[i] = dist(rgbAt(read.r, i), read.inkColour) < INK_NEAR ? 1 : 0;
+    const inkColoured = new Uint8Array(read.ink.length);
+    for (let i = 0; i < inkColoured.length; i++)
+      inkColoured[i] = dist(rgbAt(read.r, i), read.inkColour) < INK_NEAR ? 1 : 0;
     const artifacts = headArtifacts({
       raster: read.r,
-      ink: inkOrMass,
+      ink: inkColoured,
       head: head.outer,
       face: faceBoxOf(head),
       line: read.line,
