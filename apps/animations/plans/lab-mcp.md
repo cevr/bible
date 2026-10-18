@@ -50,9 +50,9 @@ when `FILM_LAB_HOSTS` names one).
 | `request_tweak` | a tweak note on a board panel, its still the try shown (as the Board's Tweak writes one)                                |
 | `publish_set`   | copies files into `out/<name>/` and merges keys into its `review.json` (validated as a manifest)                        |
 | `record_render` | records a render in a film's project catalogue (`RenderCatalogue.record`)                                               |
-| `ask`           | makes an ask (a decision page) from `blocks` or a `machine`; answers its links (see [Asks](#asks))                      |
-| `ask_read`      | an ask: where its run is, every answer so far (typed), each step answered, its links                                    |
-| `asks`          | every ask, newest first, narrowed by `status` (`asking`, `answered`, `closed`)                                          |
+| `ask`           | makes an ask from `blocks` or a `machine`, on a page of asks; answers its and its page's links ([Asks](#asks))          |
+| `ask_read`      | an ask: where its run is, every answer so far (typed), each step answered, its links, its page                          |
+| `asks`          | every ask, newest first, each with its page, narrowed by `status` (`asking`, `answered`, `closed`)                      |
 | `close_ask`     | closes an ask with `why`; with a production, files `Decided` (answered) or `Noted` (withdrawn), once, by ask id         |
 | `decide`        | files on a production's timeline a decision the owner made in chat, his words verbatim as `quote`                       |
 | `note`          | files the owner's feedback from chat on a production's timeline the same way: it decides nothing                        |
@@ -165,10 +165,11 @@ How an agent hears them:
    command's exit (interim, until Claude channels; owner, 2026-10-18: "a latch or something we can use that you
    can wait on an answer instead of asking me"). `film ask wait <ask> [--step <id>]` ends once the ask is answered
    to its end or closed (with `--step`, once that step is answered, or the ask can no longer reach it);
+   `film ask wait --page <ask>` once every ask on that ask's page is answered or closed, and
    `film ask wait --any [--production <p>]` on the first ask answered after it began. It takes the cursor, then
    reads the asks (`asks`): already answered, it ends at once; an ask the lab does not have is `AskUnknown`. Then
-   it long-polls `changes` (50 s a call) and reads the asks again on a change to that ask (`--any`: any
-   `ask.answered`) or a `reset`. A lab that does not answer is asked again with backoff (250 ms doubling to 10 s),
+   it long-polls `changes` (50 s a call) and reads the asks again on a change to that ask (`--page`: any ask
+   change, since a joiner may land on the page; `--any`: any `ask.answered`) or a `reset`. A lab that does not answer is asked again with backoff (250 ms doubling to 10 s),
    logged `[ask] wait lab=unreachable` once a minute, and never ends the wait; the new session reads the asks
    again, since a restarted lab saw an answer given while it was down as its baseline, not as a change. It
    prints the ask as `ask_read` answers it (`ask <id> status=…`, `answered step=…`, `answer <id> choose
@@ -225,7 +226,8 @@ terminal; learn of a pick when told. Now:
 4. `changes {since, wait: 60}` in a loop (a subagent can too), or the channel in the main session: the owner's
    note, pick or approval arrives with its film, panel or render, words and link.
 5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run production ask`),
-   give the owner its link, wait on it in the background (`bun cli.ts ask wait <ask>`; never ask him to say he
+   give the owner its page's link (`page.links`: asks made in a row join one page, so hand it once), wait on it
+   in the background (`bun cli.ts ask wait <ask>`, or `--page <ask>` for the whole page; never ask him to say he
    answered) or hear the answers on `changes`, act, and `close_ask`. What he has already decided in
    chat is filed with `decide` (feedback, `note`), his words verbatim as `quote`: what is still his to choose is
    an ask, never a `decide`.
@@ -375,9 +377,34 @@ an end (`thanks`, if given). So the one-question ask is
   id under the ledger's lock: closing again with the same `why` answers the ask as it is and files only what a
   failed filing left out (the `Asked` among it), and two closes at once file one word.
 
+### Pages of asks
+
+The owner (2026-10-17): "also we should make it so asks get grouped into pages when made sequentially". An ask
+made while an earlier ask from the same `by` is still asking joins that ask's page; otherwise it opens a page of
+its own. `page` on the `ask` tool (and `--page` on `film production ask`) names an ask whose page to join, any
+ask on it, refused (`AskRefused`) when nothing there still asks; `page: "new"` opens a new one. Each ask stays its
+own record, answered, heard and closed alone.
+
+- **Stored** as one optional key: a joiner's record names its page (`page: <ask>`), and a page's id is its first
+  ask's id (`pageIdOf`). There is no page file to keep in step: a page is the asks that name it, read when asked
+  (`AskStore.page`, `GET /api/asks/<ask>/page`), so an ask on disk from before pages is a page of one. Makes are
+  taken one at a time (a semaphore in `AskStore`), so two asks made at once never both open a page.
+- **Linked**: `ask` answers `page: {id, links}` beside the ask's own links and says `onPage` ("joined page
+  a…, 2 asks" or "opened page a…"); `ask_read` and `asks` name each ask's page. `/asks/page/<id>` is the page;
+  `/asks/<ask>` still works and shows the ask's page, taken to that ask.
+- **Waited on** with `film ask wait --page <ask>`: it ends once every ask on the page is answered or closed, and
+  prints each.
+
 ### The page
 
-`/asks/<id>`, a place of the review's page (it opens on a phone at once). The page is composed, not configured:
+`/asks/<id>`, a place of the review's page (it opens on a phone at once), and `/asks/page/<id>`, the page of asks
+it is on. A page of one ask is the ask's own page, as before. A page of more stacks its asks in the order made,
+each its own part with its own Send, under one header that counts them ("1 of 3 answered"; an ask withdrawn
+unanswered is not counted). An ask answered or closed folds to one line, its title and its answers, opened for
+the whole outcome; the page takes the owner to the next ask still asking (scrolled to it, unless it already starts in
+view, so the head and its count stay on screen). After each answer it reads the page again, so
+the count moves and an ask that joined since shows. Each part's fields and steps are found within its own
+`article.ak[data-ask]`, so two asks with the same step or block ids never meet. The page is composed, not configured:
 
 - `lab/ask/machine.ts`, the page's own machine: Reading → Open → Sending → Open; Refused → Reading (said);
   Unreadable. The send is the state's task, so one answer is out at a time; a draft is checked as the lab will
