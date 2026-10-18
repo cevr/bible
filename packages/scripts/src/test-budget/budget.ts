@@ -1,17 +1,18 @@
 // The tests' time budget, judged: each workspace's `test`, run alone, under
-// 10 seconds wall. There is no budget on the sum: the workspaces are separate
-// projects, and one's verdict never depends on another's (owner, 2026-10-18:
-// "should not ahve their tests and budgets entangled").
+// 10 seconds wall: 10,000 ms or more is over. There is no budget on the sum:
+// the workspaces are separate projects, and one's verdict never depends on
+// another's (owner, 2026-10-18: "should not ahve their tests and budgets
+// entangled").
 //
 // The times are read beside the machine's 1- and 5-minute load averages
 // before the first workspace ran: what else was running, not the run's own (a
-// workspace's run lifts the average the next one would read). A machine busier
-// than its cores (either average above its core count) times the other work as
-// much as the tests, so its run is not a measure: it says so, names both
-// averages, and passes, and the merge step measures again on a quiet machine.
-// The 5-minute average keeps a lull of a minute in a busy period from
-// admitting the run. At or below the core count, a workspace over budget
-// fails. A workspace whose tests fail fails the run at any load.
+// workspace's run lifts the average the next one would read). A machine
+// busier than its cores (either average above its core count) times the other
+// work as much as the tests, so its run is not a measure: it says so, names
+// both averages, and passes; nothing measures it again. The 5-minute average
+// keeps a lull of a minute in a busy period from admitting the run. At or
+// below the core count, a workspace over budget fails. A workspace whose
+// tests fail fails the run at any load.
 
 /** The budget, in milliseconds, for each workspace's `test`. */
 const BUDGET_MS = 10_000;

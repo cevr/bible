@@ -40,6 +40,19 @@ describe("the tests' time budget, each workspace alone", () => {
     }
   });
 
+  test('a workspace at exactly 10,000 ms is over budget: the budget is under 10 s', () => {
+    const judged = judge({
+      workspaces: [
+        { name: '@bible/core', ms: 9_999, exitCode: 0 },
+        { name: '@bible/film', ms: 10_000, exitCode: 0 },
+      ],
+      load: quiet,
+      cores,
+    });
+    expect(judged.code).toBe(1);
+    expect(judged.failure[0]).toBe('test:budget: over budget: @bible/film 10.0 s.');
+  });
+
   test('workspaces whose times sum past the budget, each under it, pass: the run states no total', () => {
     const judged = judge({
       workspaces: [
