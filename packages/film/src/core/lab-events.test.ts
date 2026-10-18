@@ -1,23 +1,33 @@
 // What the lab's change feed says of two reads of a file: a board's tries
 // added and kept, a beat approved and withdrawn; a catalogue's comment,
 // approval and render; a set published, then written again; an ask's steps
-// answered, its end reached, and its close; a note's own changes. Each with
-// the film, panel, render, note or ask it is about and the lab path it opens on.
+// answered, its end reached, and its close; a note's own changes; a
+// production's words filed and versions opened. Each with the film, panel,
+// render, note, ask or production it is about and the lab path it opens on.
+// And the catalogue every change is an event of: each name once, one payload
+// schema, the read of its whole record, and the bound a payload keeps.
 
 import { describe, expect, it } from 'bun:test';
-import { Option, Schema } from 'effect';
+import { Option, Record, Result, Schema } from 'effect';
 import { AskName, AskRecord, AskState } from './ask.ts';
 import { type BoardFile, BoardName } from './board.ts';
 import { Catalogue, emptyCatalogue } from './catalogue.ts';
 import {
+  LAB_EVENTS,
+  LabChange,
+  type LabChangeDraft,
   askChanges,
   boardChanges,
   catalogueChanges,
+  changeOf,
   gist,
+  namesMatch,
   noteChanges,
   notePath,
+  productionChanges,
   setChanges,
 } from './lab-events.ts';
+import { Said, moveForward, newProduction } from './production.ts';
 import type { Note } from './schema.ts';
 import { Segment } from './segment.ts';
 
@@ -334,5 +344,146 @@ describe('askChanges', () => {
     };
     expect(askChanges(Option.some(picked), withdrawn).map((c) => c.kind)).toEqual(['ask.closed']);
     expect(askChanges(Option.some(withdrawn), withdrawn)).toEqual([]);
+  });
+});
+
+describe('the catalogue', () => {
+  const kinds = Record.keys(LAB_EVENTS);
+  const draft = (
+    kind: LabChangeDraft['kind'],
+    more: Partial<LabChangeDraft> = {},
+  ): LabChangeDraft => ({
+    kind,
+    summary: `${kind} said`,
+    path: '/films/f/studio',
+    ...more,
+  });
+  const links = { local: 'http://localhost:8229/', phone: 'http://100.64.0.9:8230/' };
+  const encode = Schema.encodeSync(LabChange);
+  const decode = Schema.decodeUnknownSync(LabChange);
+
+  it('names every event once, each said, the payload one schema for all', () => {
+    expect(new Set(kinds).size).toBe(kinds.length);
+    expect(kinds).toContain('ask.answered');
+    expect(kinds).toContain('production.decided');
+    for (const kind of kinds) {
+      expect(LAB_EVENTS[kind].description.length).toBeGreaterThan(10);
+      const change = changeOf(
+        draft(kind, { film: 'f', ask: 'a1', set: 'p5/s', beat: 'cold' }),
+        1,
+        'T',
+        links,
+      );
+      expect(decode(encode(change))).toEqual(change);
+    }
+    expect(kinds).not.toContain('note.created');
+  });
+
+  it("answers each event's read as the lab command that reads its record, and its terminal line", () => {
+    const read = (kind: LabChangeDraft['kind'], more: Partial<LabChangeDraft>) =>
+      changeOf(draft(kind, more), 1, 'T', links).read;
+    expect(read('ask.step', { ask: 'a1f' })).toEqual({
+      tool: { name: 'ask_read', arguments: { ask: 'a1f' } },
+      cli: 'bun cli.ts lab ask_read --ask a1f',
+    });
+    expect(read('note.added', { film: 'f', note: 'n3' })).toEqual({
+      tool: { name: 'notes', arguments: { film: 'f', status: 'all' } },
+      cli: 'bun cli.ts lab notes --film f --status all',
+    });
+    expect(read('beat.approved', { film: 'f', beat: 'cold' }).cli).toBe(
+      'bun cli.ts lab board --film f --beat cold',
+    );
+    expect(read('render.recorded', { film: 'f', set: 'p5/f' }).cli).toBe(
+      'bun cli.ts lab catalogue --set p5/f',
+    );
+    expect(read('set.published', { set: "p5/it's" }).cli).toBe(
+      `bun cli.ts lab set --set 'p5/it'\\''s'`,
+    );
+    expect(read('production.decided', { production: 'f', film: 'f' }).cli).toBe(
+      'bun cli.ts lab timeline --film f',
+    );
+    expect(read('production.forwarded', { production: 'look' })).toEqual({
+      cli: 'bun cli.ts production show look',
+    });
+  });
+
+  it('keeps a payload within its bound: the answers left out and the words cut, said as trimmed', () => {
+    const long = 'word '.repeat(80_000);
+    const change = changeOf(
+      draft('ask.answered', {
+        ask: 'a1',
+        text: long,
+        answers: { why: { kind: 'free_text', text: long } },
+      }),
+      1,
+      'T',
+      links,
+    );
+    expect(change.trimmed).toBe(true);
+    expect(change.answers).toBeUndefined();
+    expect(change.text?.length).toBeLessThanOrEqual(2000);
+    expect(change.read.cli).toBe('bun cli.ts lab ask_read --ask a1');
+    expect(
+      new TextEncoder().encode(Schema.encodeSync(Schema.fromJsonString(LabChange))(change)).length,
+    ).toBeLessThanOrEqual(256 * 1024);
+    const small = changeOf(draft('note.added', { text: 'short' }), 1, 'T', links);
+    expect(small.trimmed).toBeUndefined();
+    expect(small.links.local).toBe('http://localhost:8229/films/f/studio');
+  });
+
+  it('matches names by globs: none is every one', () => {
+    expect(namesMatch([], 'ask.step')).toBe(true);
+    expect(namesMatch(['ask.*'], 'ask.step')).toBe(true);
+    expect(namesMatch(['ask.*'], 'task.step')).toBe(false);
+    expect(namesMatch(['*.approved', 'note.added'], 'beat.approved')).toBe(true);
+    expect(namesMatch(['ask.step'], 'ask.stepped')).toBe(false);
+  });
+});
+
+describe('productionChanges', () => {
+  const first = newProduction('rbf', 'RBF', 1, Option.some('righteousness-by-faith'));
+  const word = (_tag: 'Decided' | 'Noted' | 'Asked', at: number, text: string) =>
+    Said.cases[_tag].make({
+      at,
+      text,
+      quote: Option.none(),
+      set: Option.some('rbf-rive'),
+      point: Option.none(),
+      variant: Option.none(),
+      ask: Option.none(),
+      by: Option.none(),
+    });
+
+  it('tells each word filed and each version opened since, not a ledger first seen', () => {
+    expect(productionChanges(Option.none(), first)).toEqual([]);
+    const said = {
+      ...first,
+      said: [word('Decided', 2, '9005 over 9006'), word('Asked', 3, 'which?')],
+    };
+    expect(
+      productionChanges(Option.some(first), said).map((c) => [c.kind, c.by, c.text, c.set]),
+    ).toEqual([
+      ['production.decided', 'owner', '9005 over 9006', 'rbf-rive'],
+      ['production.asked', 'agent', 'which?', 'rbf-rive'],
+    ]);
+    // A word filed with an earlier time lands among them, and is told.
+    const noted = { ...said, said: [word('Noted', 1.5, 'try the one line'), ...said.said] };
+    expect(productionChanges(Option.some(said), noted).map((c) => c.kind)).toEqual([
+      'production.noted',
+    ]);
+    const moved = Result.getOrThrow(
+      moveForward(noted, { after: 1, title: 'One Line', because: Option.some('9005') }, 4),
+    );
+    expect(productionChanges(Option.some(noted), moved)).toEqual([
+      {
+        production: 'rbf',
+        film: 'righteousness-by-faith',
+        kind: 'production.forwarded',
+        version: 2,
+        text: 'One Line',
+        summary: 'rbf v2: One Line',
+        path: '/productions/rbf?v=2',
+      },
+    ]);
   });
 });

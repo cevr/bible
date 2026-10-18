@@ -17,10 +17,10 @@
 //   (`look`, `match`, `critique`: the warm page and the critic beside it). A
 //   terminal calls it on the lab at `FILM_LAB_URL` (`lab-client.ts`).
 
-import { Duration, Effect, type FileSystem, Option, type Path, Schema } from 'effect';
+import { Duration, Effect, type FileSystem, Option, type Path, Record, Schema } from 'effect';
 import { Tool } from 'effect/ai';
 import { pageHref } from '../core/api.ts';
-import { LabLinks, linksAt } from '../core/lab-events.ts';
+import { LAB_EVENTS, LabLinks, linksAt } from '../core/lab-events.ts';
 import { unresolved } from '../core/notes.ts';
 import type { AskStore } from './ask-store.ts';
 import type { BeatEdits } from './beat-edits.ts';
@@ -79,11 +79,21 @@ const Overview = Tool.make('overview', {
 }).annotate(Tool.Readonly, true);
 
 export const Changes = Tool.make('changes', {
-  description: `What changed in the lab past \`since\` (a cursor from \`overview\` or an earlier \`changes\`): notes, replies and notes done, tweaks asked, tries kept and beats approved or withdrawn on a board, comments, approvals and withdrawals on renders, renders recorded, sets published or updated, and each step of an ask answered (\`ask.step\`, its answers typed), an ask answered to its end (\`ask.answered\`) or closed. Each change names its film, panel, render or set, its words, and its lab link. With \`wait\` (seconds, at most ${MAX_WAIT_S}) it answers as soon as there is one, else with none when the time is up: call it again with the cursor it answers to keep listening. With no \`since\`, it answers no changes and the cursor now. \`reset\` means the cursor was from an earlier run of the lab: the changes are all this run kept.`,
+  description: `What changed in the lab past \`since\` (a cursor from \`overview\` or an earlier \`changes\`), each change an event of the lab's catalogue by its name (\`kind\`): notes, replies and notes done, tweaks asked, tries kept and beats approved or withdrawn on a board, comments, approvals and withdrawals on renders, renders recorded, sets published or updated, each step of an ask answered (\`ask.step\`, its answers typed), an ask answered to its end (\`ask.answered\`) or closed, and the owner's words and moves on a production's timeline (\`production.*\`). Each change names its film, panel, render, set or production, its words, its lab link, and \`read\`: the lab command that reads its whole record. \`name\` (globs, \`ask.*\`) and \`film\` keep only those. With \`wait\` (seconds, at most ${MAX_WAIT_S}) it answers as soon as there is one, else with none when the time is up: call it again with the cursor it answers to keep listening. With no \`since\`, it answers no changes and the cursor now. \`reset\` means the cursor was from an earlier run of the lab: the changes are all this run kept.`,
   parameters: Schema.Struct({
     since: Schema.optionalKey(Schema.String),
     wait: Schema.optionalKey(
       Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: MAX_WAIT_S })),
+    ),
+    name: Schema.optionalKey(
+      Schema.Array(Schema.String).annotate({
+        description: `Only the events of these names, each a glob over the catalogue (\`ask.*\`, \`*.approved\`; its names: ${Record.keys(LAB_EVENTS).join(', ')}); every one when left out`,
+      }),
+    ),
+    film: Schema.optionalKey(
+      Schema.String.annotate({
+        description: "Only the events about this film; every film's when left out",
+      }),
     ),
   }),
   success: LabChanges,
@@ -134,10 +144,19 @@ export const overviewRead = Effect.gen(function* () {
 const labCommands = [
   labCommand(Overview, { run: () => overviewRead }),
   labCommand(Changes, {
-    run: ({ since, wait }) =>
+    run: ({ since, wait, name, film }) =>
       Effect.gen(function* () {
         const events = yield* LabEvents;
-        return yield* events.wait(Option.fromUndefinedOr(since), Duration.seconds(wait ?? 0));
+        return yield* events.wait(Option.fromUndefinedOr(since), Duration.seconds(wait ?? 0), {
+          ...Option.match(Option.fromUndefinedOr(name), {
+            onNone: () => ({}),
+            onSome: (names) => ({ names }),
+          }),
+          ...Option.match(Option.fromUndefinedOr(film), {
+            onNone: () => ({}),
+            onSome: (one) => ({ film: one }),
+          }),
+        });
       }),
   }),
 ];

@@ -46,6 +46,7 @@ const change = (ask: string, kind: LabChange['kind']): LabChange => ({
   ask,
   summary: `${kind} ${ask}`,
   links: { local: 'http://127.0.0.1:8229/' },
+  read: { cli: `bun cli.ts lab ask_read --ask ${ask}` },
 });
 
 const ok = Result.succeed;

@@ -1,10 +1,11 @@
 // The lab's change feed: what changed in the files the lab keeps (each
 // film's notes and board, each project folder's catalogue, each set's
-// `review.json`, each agent's ask), read off the files themselves every few seconds, numbered
-// in the order the lab saw it, and kept (the newest `KEPT`) for a reader to
-// ask past a cursor or to wait on. The files are the record, so a change the
-// page makes, one a terminal's `film notes` or `film board` makes, and one
-// an agent makes through the lab's MCP are all seen alike, and nothing
+// `review.json`, each agent's ask, each production's ledger), read off the
+// files themselves every few seconds, numbered in the order the lab saw it,
+// and kept (the newest `KEPT`) for a reader to ask past a cursor or to wait
+// on, by the catalogue's names (`LAB_EVENTS`) and a film. The files are the
+// record, so a change the page makes, one a terminal's `film lab` makes, and
+// one an agent makes through the lab's MCP are all seen alike, and nothing
 // writes twice: the feed only reads. What a change is, said from two reads
 // of a file, is `core/lab-events.ts`.
 //
@@ -37,15 +38,18 @@ import { type BoardFile, emptyBoard } from '../core/board.ts';
 import {
   LabChange,
   type LabLinks,
-  linksAt,
   type LabChangeDraft,
+  changeOf,
   type SetSeen,
   askChanges,
   boardChanges,
   catalogueChanges,
+  namesMatch,
   noteChanges,
+  productionChanges,
   setChanges,
 } from '../core/lab-events.ts';
+import type { ProductionFile } from '../core/production.ts';
 import { eventsSince } from '../core/notes.ts';
 import { ReviewManifestJson } from '../core/review.ts';
 import type { AskRecord } from '../core/ask.ts';
@@ -56,6 +60,7 @@ import { ContentStore } from './content-store.ts';
 import { sha256Hex } from './digest.ts';
 import { FilmFolder, filmNamed } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
+import { ProductionStore } from './production-store.ts';
 import { Review, recordsUnder } from './review.ts';
 
 /** What a reader is answered: the changes past its cursor, in order, and the cursor to ask past next. */
@@ -86,6 +91,7 @@ interface Seen {
   readonly catalogues: Map<string, { readonly stamp: Stamp; readonly catalogue: Catalogue }>;
   sets: ReadonlyMap<string, SetSeen>;
   readonly asks: Map<string, { readonly stamp: Stamp; readonly record: AskRecord }>;
+  readonly productions: Map<string, ProductionFile>;
 }
 
 interface Journal {
@@ -97,14 +103,31 @@ interface Journal {
 interface LabEventsService {
   /** Read every watched file once and add what changed since the last read to the feed. */
   readonly look: Effect.Effect<void>;
-  /** The changes past `cursor` (none: no changes, the cursor now). */
-  readonly since: (cursor: Option.Option<string>) => Effect.Effect<LabChanges>;
-  /** `since`, as soon as there is a change past `cursor`, or none once `timeout` passes. */
+  /** The changes past `cursor` that `of` keeps (none: no changes, the cursor now). */
+  readonly since: (cursor: Option.Option<string>, of?: Of) => Effect.Effect<LabChanges>;
+  /** `since`, as soon as there is a change past `cursor` that `of` keeps, or none once `timeout` passes. */
   readonly wait: (
     cursor: Option.Option<string>,
     timeout: Duration.Input,
+    of?: Of,
   ) => Effect.Effect<LabChanges>;
 }
+
+/** Which changes a reader asks for: their names (globs over the catalogue's, `ask.*`; none is every one) and their film. */
+interface Of {
+  readonly names?: ReadonlyArray<string>;
+  readonly film?: string;
+}
+
+/** Whether `change` is one `of` asks for. Pure. */
+const kept =
+  (of: Of = {}) =>
+  (change: LabChange): boolean =>
+    namesMatch(of.names ?? [], change.kind) &&
+    Option.match(Option.fromUndefinedOr(of.film), {
+      onNone: () => true,
+      onSome: (film) => change.film === film,
+    });
 
 /** What the feed needs: where its links point (the lab's own links, local and the phone's). */
 interface FeedOptions {
@@ -131,6 +154,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
     const review = yield* Review;
     const store = yield* ContentStore;
     const asks = yield* AskStore;
+    const productions = yield* ProductionStore;
     const films = yield* Effect.context<FilmFolder>();
     const platform = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
     const epoch = (yield* Random.nextIntBetween(0, 2 ** 31)).toString(36);
@@ -142,6 +166,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
       catalogues: new Map(),
       sets: new Map(),
       asks: new Map(),
+      productions: new Map(),
     };
     /** Whether the next read is the first: the baseline, which tells nothing. */
     const first = yield* Ref.make(true);
@@ -256,6 +281,18 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
         return Arr.flatten(told);
       });
 
+    /** Every production's ledger, read whole each look (a ledger is small): each word filed and version opened since. */
+    const lookProductions = (baseline: boolean) =>
+      Effect.gen(function* () {
+        const ledgers = yield* productions.list;
+        return ledgers.flatMap((ledger) => {
+          const was = Option.fromUndefinedOr(seen.productions.get(ledger.production));
+          seen.productions.set(ledger.production, ledger);
+          if (baseline) return [];
+          return productionChanges(was, ledger);
+        });
+      }).pipe(Effect.catch(unread('productions')));
+
     /** The set a folder's manifest makes, when it has one: its title and its bytes' digest. */
     const setAt = (dir: string) =>
       Effect.gen(function* () {
@@ -303,7 +340,14 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
       });
       seen.sets = sets;
       const asked = yield* lookAsks(baseline);
-      return [...Arr.flatten(filmChanges), ...Arr.flatten(catalogued), ...published, ...asked];
+      const filed = yield* lookProductions(baseline);
+      return [
+        ...Arr.flatten(filmChanges),
+        ...Arr.flatten(catalogued),
+        ...published,
+        ...asked,
+        ...filed,
+      ];
     });
 
     const look = one.withPermits(1)(
@@ -312,12 +356,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
         if (drafts.length === 0) return;
         const at = DateTime.formatIso(yield* DateTime.now);
         yield* SubscriptionRef.update(journal, (j) => {
-          const made = drafts.map(({ path: place, ...draft }, i): LabChange => ({
-            ...draft,
-            seq: j.seq + i + 1,
-            at,
-            links: linksAt(options.links, place),
-          }));
+          const made = drafts.map((draft, i) => changeOf(draft, j.seq + i + 1, at, options.links));
           return { seq: j.seq + made.length, kept: [...j.kept, ...made].slice(-KEPT) };
         });
         yield* Effect.log(`lab.events.seen count=${drafts.length}`);
@@ -326,7 +365,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
 
     /** What a reader past `cursor` is answered from journal `j`. Pure. */
     const answerOf =
-      (cursor: Option.Option<string>) =>
+      (cursor: Option.Option<string>, of?: Of) =>
       (j: Journal): LabChanges => {
         const now = `${epoch}.${j.seq}`;
         if (Option.isNone(cursor)) return { cursor: now, changes: [], reset: false };
@@ -339,22 +378,22 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
           onSome: (c) => c.seq,
         });
         return Option.match(asked, {
-          onNone: () => ({ cursor: now, changes: j.kept, reset: true }),
+          onNone: () => ({ cursor: now, changes: j.kept.filter(kept(of)), reset: true }),
           onSome: (c) => ({
             cursor: now,
-            changes: j.kept.filter((change) => change.seq > c.seq),
+            changes: j.kept.filter((change) => change.seq > c.seq && kept(of)(change)),
             reset: c.seq + 1 < oldest,
           }),
         });
       };
 
-    const since = (cursor: Option.Option<string>) =>
-      Effect.map(SubscriptionRef.get(journal), answerOf(cursor));
+    const since = (cursor: Option.Option<string>, of?: Of) =>
+      Effect.map(SubscriptionRef.get(journal), answerOf(cursor, of));
 
     // The journal as it stands, then each change to it: the first answer with news ends the wait.
-    const wait = (cursor: Option.Option<string>, timeout: Duration.Input) =>
+    const wait = (cursor: Option.Option<string>, timeout: Duration.Input, of?: Of) =>
       SubscriptionRef.changes(journal).pipe(
-        Stream.map(answerOf(cursor)),
+        Stream.map(answerOf(cursor, of)),
         Stream.filter(
           (answer) => answer.changes.length > 0 || answer.reset || Option.isNone(cursor),
         ),
@@ -362,7 +401,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
         Effect.timeoutOption(timeout),
         Effect.flatMap((heard) =>
           Option.match(Option.flatten(heard), {
-            onNone: () => since(cursor),
+            onNone: () => since(cursor, of),
             onSome: Effect.succeed,
           }),
         ),

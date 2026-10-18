@@ -882,7 +882,8 @@ describe('asks through the MCP', () => {
           expect(picked.status).toBe(200);
           expect((yield* ownerAnswers(lab, made.ask, 'pick', { try: '1' })).status).toBe(409);
           yield* events.look;
-          const heard = yield* tool('changes', { since: cursor });
+          // The ask's own events: its filing on the timeline is a `production.asked` beside them.
+          const heard = yield* tool('changes', { since: cursor, name: ['ask.*'] });
           expect(
             heard.changes.map(
               (c: {
@@ -961,7 +962,11 @@ describe('asks through the MCP', () => {
             (yield* tool('changes', { since: ended.cursor })).changes.map(
               (c: { kind: string; text: string }) => [c.kind, c.text],
             ),
-          ).toEqual([['ask.closed', 'kept the calmer judge']]);
+          ).toEqual([
+            ['ask.closed', 'kept the calmer judge'],
+            // Its filing, heard on the timeline.
+            ['production.decided', `Which judge? (ask ${made.ask}): try: Calmer · why: he listens`],
+          ]);
           // An ask withdrawn unanswered files a note naming it, which closes its question.
           const other = yield* tool('ask', {
             title: 'Name the judge?',

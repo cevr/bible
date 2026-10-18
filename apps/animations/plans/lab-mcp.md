@@ -144,8 +144,9 @@ tools are `film lab look|match|critique|cues|check|journal|journal_note` from a 
 ## Events
 
 One change feed, `LabEvents` (`tools/lab-events.ts`), read off the files themselves every 2 s: each film's
-`notes.json` and `board.json`, each project folder's `catalogue.json`, each set's `review.json`. A change the page
-makes, a terminal's `film notes`/`film board`, and an agent's MCP call are seen alike, and nothing writes twice.
+`notes.json` and `board.json`, each project folder's `catalogue.json`, each set's `review.json`, each ask, each
+production's ledger. A change the page makes, a terminal's `film lab`, and an agent's MCP call are seen alike, and
+nothing writes twice.
 What changed between two reads is pure (`core/lab-events.ts`). The first read is the baseline: only what happens
 after the lab starts is news. A cursor is `<epoch>.<seq>`; one from another run (the lab restarted) answers every
 change kept, flagged `reset`.
@@ -159,9 +160,19 @@ change kept, flagged `reset`.
 | `render.commented`, `render.approved`, `render.withdrawn`, `render.recorded` | the catalogue's say and renders                 |
 | `set.published`, `set.updated`                                               | a set's `review.json` new, or changed           |
 | `ask.step`, `ask.answered`, `ask.closed`                                     | a step answered; the ask's end; closed by agent |
+| `production.decided`, `production.noted`, `production.asked`                 | a word filed on a production's timeline         |
+| `production.forwarded`                                                       | a production moved into its next version        |
 
-Each carries `film`, `set`, `note`, `panel`, `beat`, `try`, `address`, `variant`, `ask`, `step` as they apply,
-`by`, the words (`text`), an ask's typed `answers`, a one-line `summary` and the lab `link`.
+The kinds are one catalogue, `LAB_EVENTS` (`core/lab-events.ts`): each name, what it says, and how its record is
+read. Every event has one payload, `LabChange`: `film`, `set`, `note`, `panel`, `beat`, `try`, `address`,
+`variant`, `production`, `version`, `ask`, `step` as they apply, `by`, the words (`text`), an ask's typed
+`answers`, a one-line `summary`, the lab `links`, and `read`: the lab command that reads its whole record (the
+MCP tool and its arguments, `{name: 'ask_read', arguments: {ask}}`, and its terminal line, `bun cli.ts lab
+ask_read --ask a…`; a track's ledger, which no lab command reads, `bun cli.ts production show <p>` alone). A
+payload stays under 240 KiB of JSON, so a webhook body with its envelope stays under 256 KiB: one over it leaves
+its answers out and cuts its words, said as `trimmed: true`, and `read` has them. `changes` reads the feed by the
+catalogue: `name` (globs over its names, `ask.*`) and `film` keep only those; the cursor moves past every change
+either way.
 
 How an agent hears them:
 

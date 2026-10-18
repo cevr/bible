@@ -22,6 +22,7 @@ import { beatSelection, pageHref, panelSelection } from './api.ts';
 import type { BoardFile, Panel } from './board.ts';
 import type { Catalogue } from './catalogue.ts';
 import { type PointRef, pointIdOf } from './point.ts';
+import type { ProductionFile } from './production.ts';
 import type { Note, NoteEvent } from './schema.ts';
 
 /**
@@ -44,44 +45,160 @@ export const linksAt = (links: LabLinks, at: string): LabLinks => ({
   }),
 });
 
-/** What happened. */
-const LabChangeKind = Schema.Literals([
-  /** A note written on a frame, a line's words or a panel. */
-  'note.added',
-  /** A reply in a note's thread. */
-  'note.replied',
-  /** A note marked done. */
-  'note.resolved',
-  /** A note on a panel that asks for it to be made again (`film board tweak`). */
-  'tweak.requested',
-  /** A panel's try kept (or a different one kept). */
-  'board.kept',
-  /** A try added to a panel. */
-  'board.tried',
-  /** A beat's board approved as it stands. */
-  'beat.approved',
-  /** A beat's board approval withdrawn. */
-  'beat.withdrawn',
-  /** A comment on a render's version. */
-  'render.commented',
-  /** A render's version approved. */
-  'render.approved',
-  /** A render's approval withdrawn. */
-  'render.withdrawn',
-  /** A render recorded in a project folder's catalogue. */
-  'render.recorded',
-  /** A set (a folder with a `review.json`) that was not there before. */
-  'set.published',
-  /** A set's `review.json` written again. */
-  'set.updated',
-  /** A step of an agent's ask answered by the owner: that step's answers, typed. */
-  'ask.step',
-  /** An ask answered to its end: every answer, typed. */
-  'ask.answered',
-  /** An ask closed by its agent. */
-  'ask.closed',
-]);
-type LabChangeKind = typeof LabChangeKind.Type;
+/**
+ * The lab command that reads an event's whole record: the MCP tool and its
+ * arguments (also `film lab <tool>`, `tool`), and the line a terminal in
+ * `apps/animations` runs for it (`cli`). A record no lab command reads (a
+ * track's ledger) has its CLI line alone.
+ */
+const ReadCommand = Schema.Struct({
+  tool: Schema.optionalKey(
+    Schema.Struct({
+      name: Schema.String,
+      arguments: Schema.Record(Schema.String, Schema.String),
+    }),
+  ),
+  cli: Schema.String,
+});
+type ReadCommand = typeof ReadCommand.Type;
+
+/** What an event's read is made from: the fields its change names. */
+interface ReadFrom {
+  readonly film?: string;
+  readonly beat?: string;
+  readonly set?: string;
+  readonly ask?: string;
+  readonly production?: string;
+}
+
+const BARE_WORD = /^[A-Za-z0-9_./:@%+=,-]+$/;
+
+/** A word as a POSIX shell reads it back unchanged: bare when it can be, else single-quoted. Pure. */
+const shellWord = (word: string): string =>
+  Bool.match(BARE_WORD.test(word), {
+    onTrue: () => word,
+    onFalse: () => `'${word.replaceAll("'", `'\\''`)}'`,
+  });
+
+/** The read of `tool` over `args`: the MCP call, and its `film lab` line. Pure. */
+const labRead = (tool: string, args: ReadonlyArray<readonly [string, string]>): ReadCommand => ({
+  tool: { name: tool, arguments: Object.fromEntries(args) },
+  cli: ['bun cli.ts lab', tool, ...args.map(([key, value]) => `--${key} ${shellWord(value)}`)].join(
+    ' ',
+  ),
+});
+
+/** The fields of `from` that are given, as a read's arguments, in `keys`' order. Pure. */
+const given = (
+  from: ReadFrom,
+  keys: ReadonlyArray<keyof ReadFrom>,
+): ReadonlyArray<readonly [string, string]> =>
+  keys.flatMap((key) =>
+    Option.toArray(Option.map(Option.fromUndefinedOr(from[key]), (value) => [key, value] as const)),
+  );
+
+const notesRead = (from: ReadFrom) =>
+  labRead('notes', [...given(from, ['film']), ['status', 'all']]);
+const boardRead = (from: ReadFrom) => labRead('board', given(from, ['film', 'beat']));
+const catalogueRead = (from: ReadFrom) => labRead('catalogue', given(from, ['set']));
+const setRead = (from: ReadFrom) => labRead('set', given(from, ['set']));
+const askRead = (from: ReadFrom) => labRead('ask_read', given(from, ['ask']));
+/** A film's ledger reads as its timeline; a track's (no film) by the production CLI alone. */
+const productionRead = (from: ReadFrom): ReadCommand =>
+  Option.match(Option.fromUndefinedOr(from.film), {
+    onSome: (film) => labRead('timeline', [['film', film]]),
+    onNone: () => ({
+      cli: `bun cli.ts production show ${shellWord(from.production ?? '')}`,
+    }),
+  });
+
+/** One event of the lab's: what it says, and the read of its whole record. */
+interface LabEventDefinition {
+  readonly description: string;
+  readonly read: (from: ReadFrom) => ReadCommand;
+}
+
+/**
+ * The lab's events, by name: the one list the change feed (`changes`), the
+ * terminal's stream (`film lab events`) and MCP Events (`events/list`) all
+ * read. Every event carries one payload (`LabChange`): its summary, the
+ * fields it is about, its link and its read.
+ */
+export const LAB_EVENTS = {
+  'note.added': {
+    description: "A note written on a frame, a line's words or a panel.",
+    read: notesRead,
+  },
+  'note.replied': { description: "A reply in a note's thread.", read: notesRead },
+  'note.resolved': { description: 'A note marked done.', read: notesRead },
+  'tweak.requested': {
+    description: 'A note on a panel that asks for it to be made again (`film board tweak`).',
+    read: notesRead,
+  },
+  'board.kept': { description: "A panel's try kept (or a different one kept).", read: boardRead },
+  'board.tried': { description: 'A try added to a panel.', read: boardRead },
+  'beat.approved': { description: "A beat's board approved as it stands.", read: boardRead },
+  'beat.withdrawn': { description: "A beat's board approval withdrawn.", read: boardRead },
+  'render.commented': { description: "A comment on a render's version.", read: catalogueRead },
+  'render.approved': { description: "A render's version approved.", read: catalogueRead },
+  'render.withdrawn': { description: "A render's approval withdrawn.", read: catalogueRead },
+  'render.recorded': {
+    description: "A render recorded in a project folder's catalogue.",
+    read: catalogueRead,
+  },
+  'set.published': {
+    description: 'A set (a folder with a `review.json`) that was not there before.',
+    read: setRead,
+  },
+  'set.updated': { description: "A set's `review.json` written again.", read: setRead },
+  'ask.step': {
+    description: "A step of an agent's ask answered by the owner: that step's answers, typed.",
+    read: askRead,
+  },
+  'ask.answered': {
+    description: 'An ask answered to its end: every answer, typed.',
+    read: askRead,
+  },
+  'ask.closed': { description: 'An ask closed by its agent.', read: askRead },
+  'production.decided': {
+    description:
+      "The owner's decision filed on a production's timeline (from chat, or by an ask he answered).",
+    read: productionRead,
+  },
+  'production.noted': {
+    description: "The owner's feedback filed on a production's timeline.",
+    read: productionRead,
+  },
+  'production.asked': {
+    description: "A question an agent's ask put on a production's timeline.",
+    read: productionRead,
+  },
+  'production.forwarded': {
+    description: 'A production moved into its next version.',
+    read: productionRead,
+  },
+} satisfies Record<string, LabEventDefinition>;
+
+/** An event's name: one of the catalogue's. */
+const LabEventName = Schema.Literals(Record.keys(LAB_EVENTS));
+
+/** Whether `name` matches one of `globs` (`ask.*`, `*.approved`; `*` any run of characters), or none is given. Pure. */
+export const namesMatch = (globs: ReadonlyArray<string>, name: string): boolean =>
+  Arr.match(globs, {
+    onEmpty: () => true,
+    onNonEmpty: (all) =>
+      all.some((glob) =>
+        new RegExp(
+          `^${glob
+            .split('*')
+            .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+            .join('.*')}$`,
+        ).test(name),
+      ),
+  });
+
+/** The most bytes an event's payload takes as JSON: an MCP Events delivery body is at most 256 KiB, with room for its envelope. */
+const PAYLOAD_MAX_BYTES = 240 * 1024;
 
 /** Who made a change, when the record says: the owner (`user` in a note) or an agent. */
 const LabActor = Schema.Literals(['owner', 'agent']);
@@ -97,7 +214,7 @@ export const LabChange = Schema.Struct({
   seq: Schema.Int,
   /** ISO time the lab read it. */
   at: Schema.String,
-  kind: LabChangeKind,
+  kind: LabEventName,
   by: Schema.optionalKey(LabActor),
   film: Schema.optionalKey(Schema.String),
   /** The set (a review folder's ref, `p5/storyboard-2026-10-14`). */
@@ -113,6 +230,9 @@ export const LabChange = Schema.Struct({
   variant: Schema.optionalKey(Schema.String),
   /** The words: the note's, the reply's, the comment's, why a try was kept, why an ask was closed. */
   text: Schema.optionalKey(Schema.String),
+  /** The production whose timeline it is on, and the version it opened (`production.forwarded`). */
+  production: Schema.optionalKey(Schema.String),
+  version: Schema.optionalKey(Schema.Int),
   /** The ask (`a1f…`) and its step answered. */
   ask: Schema.optionalKey(Schema.String),
   step: Schema.optionalKey(Schema.String),
@@ -122,11 +242,15 @@ export const LabChange = Schema.Struct({
   summary: Schema.String,
   /** The lab page it is on, local and on the phone. */
   links: LabLinks,
+  /** The lab command that reads its whole record. */
+  read: ReadCommand,
+  /** Its words or answers were left out to keep it under `PAYLOAD_MAX_BYTES`: `read` has them. */
+  trimmed: Schema.optionalKey(Schema.Boolean),
 });
 export type LabChange = typeof LabChange.Type;
 
 /** A change as it is read, before the feed numbers it, dates it and makes its links. */
-export type LabChangeDraft = Omit<LabChange, 'seq' | 'at' | 'links'> & {
+export type LabChangeDraft = Omit<LabChange, 'seq' | 'at' | 'links' | 'read' | 'trimmed'> & {
   /** The lab path it is on (`/films/f/studio?sel=panel:cold.judge`). */
   readonly path: string;
 };
@@ -493,3 +617,86 @@ export const askChanges = (
   );
   return [...steps, ...answered, ...Arr.filter(closed, () => !held(isClosed))];
 };
+
+/** What is new on a production's ledger between two reads: each word filed, each version opened. */
+export const productionChanges = (
+  before: Option.Option<ProductionFile>,
+  after: ProductionFile,
+): ReadonlyArray<LabChangeDraft> => {
+  const of = {
+    production: after.production,
+    ...Option.match(after.film, { onNone: () => ({}), onSome: (film) => ({ film }) }),
+  };
+  // Words are kept in time order, so one filed with an earlier time lands among them: known by what it is.
+  const wordKey = (word: ProductionFile['said'][number]) => `${word._tag} ${word.at} ${word.text}`;
+  const known = new Set(
+    Option.match(before, { onNone: () => [], onSome: (b) => b.said.map(wordKey) }),
+  );
+  const versions = Option.match(before, { onNone: () => 0, onSome: (b) => b.versions.length });
+  const kinds = {
+    Decided: 'production.decided',
+    Noted: 'production.noted',
+    Asked: 'production.asked',
+  } as const;
+  const verbs = { Decided: 'decided', Noted: 'noted', Asked: 'asked' } as const;
+  const said = after.said
+    .filter((word) => !known.has(wordKey(word)))
+    .map((word): LabChangeDraft => ({
+      ...of,
+      kind: kinds[word._tag],
+      by: Bool.match(word._tag === 'Asked', { onTrue: () => 'agent', onFalse: () => 'owner' }),
+      text: word.text,
+      ...Option.match(word.set, { onNone: () => ({}), onSome: (set) => ({ set }) }),
+      ...Option.match(word.ask, { onNone: () => ({}), onSome: (ask) => ({ ask }) }),
+      summary: `${after.production} ${verbs[word._tag]}: ${gist(word.text)}`,
+      path: pageHref.production(after.production),
+    }));
+  const opened = after.versions.slice(versions).map((version, i): LabChangeDraft => {
+    const number = versions + i + 1;
+    return {
+      ...of,
+      kind: 'production.forwarded',
+      version: number,
+      text: version.title,
+      summary: `${after.production} v${number}: ${gist(version.title)}`,
+      path: pageHref.production(after.production, number),
+    };
+  });
+  // A ledger first seen is its first version: news only past it.
+  return [...said, ...Arr.filter(opened, () => Option.isSome(before))];
+};
+
+const jsonBytes = (change: LabChange) =>
+  new TextEncoder().encode(Schema.encodeSync(Schema.fromJsonString(LabChange))(change)).length;
+
+/** `change` within `PAYLOAD_MAX_BYTES`: its answers left out and its words cut, said as `trimmed`, when it is over. Pure. */
+const bounded = (change: LabChange): LabChange =>
+  Bool.match(jsonBytes(change) <= PAYLOAD_MAX_BYTES, {
+    onTrue: () => change,
+    onFalse: () => {
+      const { answers: _answers, text, ...rest } = change;
+      return {
+        ...rest,
+        ...Option.match(Option.fromUndefinedOr(text), {
+          onNone: () => ({}),
+          onSome: (words) => ({ text: gist(words, 2000) }),
+        }),
+        trimmed: true,
+      };
+    },
+  });
+
+/** A draft as the feed keeps it: numbered, dated, linked under the lab's `links`, its read named, within its bound. Pure. */
+export const changeOf = (
+  { path: place, ...draft }: LabChangeDraft,
+  seq: number,
+  at: string,
+  links: LabLinks,
+): LabChange =>
+  bounded({
+    ...draft,
+    seq,
+    at,
+    links: linksAt(links, place),
+    read: LAB_EVENTS[draft.kind].read(draft),
+  });
