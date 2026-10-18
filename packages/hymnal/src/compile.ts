@@ -233,25 +233,37 @@ const held = (lines: readonly string[]): Part => ({
   why: ['held'],
 });
 
+/** Why a text's verses cannot be read in printed order. */
+const VerseLayoutReason = Schema.Literals([
+  'no stanza',
+  'stanza ids are not 0, 1, … n - 1',
+  'more than one refrain',
+  'a verse has no words',
+]);
+type VerseLayoutReason = typeof VerseLayoutReason.Type;
+
 /** A text whose verses the compiler cannot read in printed order. */
 class VerseLayoutError extends Schema.TaggedError<VerseLayoutError>()('VerseLayoutError', {
   ids: Schema.Array(Schema.Int),
-  reason: Schema.String,
+  reason: VerseLayoutReason,
 }) {}
 
 /**
  * The text's stanzas in printed order and its refrain. The order is known
  * only when the stanzas' ids are 0, 1, … n - 1 and at most one verse, the
- * refrain, has a negative id: any other layout is refused.
+ * refrain, has a negative id, and every verse has words: any other layout
+ * is refused.
  */
 const versesOf = (source: Source) => {
   const ids = source.verses.map((verse) => verse.id);
   const stanzas = source.verses.filter((verse) => verse.id >= 0).toSorted((a, b) => a.id - b.id);
   const choruses = source.verses.filter((verse) => verse.id < 0);
-  const refuse = (reason: string) => Effect.fail(VerseLayoutError.make({ ids, reason }));
+  const refuse = (reason: VerseLayoutReason) => Effect.fail(VerseLayoutError.make({ ids, reason }));
   if (!Arr.isArrayNonEmpty(stanzas)) return refuse('no stanza');
   if (stanzas.some((verse, n) => verse.id !== n)) return refuse('stanza ids are not 0, 1, … n - 1');
   if (choruses.length > 1) return refuse('more than one refrain');
+  if (source.verses.some((verse) => verse.text.trim() === ''))
+    return refuse('a verse has no words');
   const chorus = choruses[0];
   return Effect.succeed({
     stanzas: Arr.map(stanzas, (verse) => linesOf(verse.text)),

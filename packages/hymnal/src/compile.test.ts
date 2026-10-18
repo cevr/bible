@@ -642,9 +642,14 @@ describe('compile: verse layout', () => {
         { ids: [0, 2], reason: 'stanza ids are not 0, 1, … n - 1' },
         { ids: [1, 2], reason: 'stanza ids are not 0, 1, … n - 1' },
         { ids: [-1], reason: 'no stanza' },
+        { ids: [0, 1], reason: 'a verse has no words', empty: 1 },
+        { ids: [0, -1], reason: 'a verse has no words', empty: -1 },
       ];
-      for (const { ids, reason } of layouts) {
-        const verses = ids.map((id) => ({ id, text: 'Sing we now to God,' }));
+      for (const { ids, reason, empty } of layouts) {
+        const verses = ids.map((id) => ({
+          id,
+          text: id === empty ? ' \n ' : 'Sing we now to God,',
+        }));
         const error = yield* Effect.flip(compile({ ...source(tuneFile(2), []), verses }));
         expect(error).toMatchObject({ _tag: 'VerseLayoutError', ids, reason });
       }
