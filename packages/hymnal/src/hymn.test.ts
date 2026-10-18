@@ -71,7 +71,7 @@ describe('Hymn', () => {
     () =>
       Effect.gen(function* () {
         const refused = [
-          { ...hymn, stanzas: [{ ...sung, _tag: 'Plain' }] },
+          { ...hymn, stanzas: [{ ...sung, _tag: 'Plain', why: ['notes'] }] },
           { ...hymn, stanzas: [noLevel] },
           { ...hymn, stanzas: [{ _tag: 'Plain', lines: ['Holy'], why: [] }] },
         ];
@@ -81,23 +81,15 @@ describe('Hymn', () => {
       }),
   );
 
-  it.effect('keeps no chord beside a plain part: decoding drops it, or refuses it when asked', () =>
+  it.effect('refuses a plain part that carries chords at either level', () =>
     Effect.gen(function* () {
-      const chorded = {
-        ...hymn,
-        stanzas: [
-          {
-            _tag: 'Plain',
-            lines: ['Holy'],
-            why: ['notes'],
-            full: [{ chord: { root: 0, quality: '' }, at: 0 }],
-          },
-        ],
-      };
-      const read = yield* decode(chorded);
-      expect(read.stanzas[0]).toEqual({ _tag: 'Plain', lines: ['Holy'], why: ['notes'] });
-      const strict = decode(chorded, { onExcessProperty: 'error' });
-      expect(Result.isFailure(yield* Effect.result(strict))).toBe(true);
+      const chord = [{ chord: { root: 0, quality: '' }, at: 0 }];
+      const plain = { _tag: 'Plain', lines: ['Holy'], why: ['notes'] } as const;
+      expect((yield* decode({ ...hymn, stanzas: [plain] })).stanzas[0]).toEqual(plain);
+      for (const level of ['full', 'guitar']) {
+        const chorded = { ...hymn, stanzas: [{ ...plain, [level]: chord }] };
+        expect(Result.isFailure(yield* Effect.result(decode(chorded)))).toBe(true);
+      }
     }),
   );
 

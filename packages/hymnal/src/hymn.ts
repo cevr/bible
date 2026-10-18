@@ -79,10 +79,13 @@ const Sung = Schema.TaggedStruct('Sung', {
 });
 export type Sung = typeof Sung.Type;
 
+/** The words alone: a `full` or `guitar` key beside them is refused, never dropped. */
 const Plain = Schema.TaggedStruct('Plain', {
   lines: Schema.NonEmptyArray(Schema.String),
   fit: Schema.optionalKey(Fit),
   why: Schema.NonEmptyArray(Reason),
+  full: Schema.optionalKey(Schema.Never),
+  guitar: Schema.optionalKey(Schema.Never),
 });
 export type Plain = typeof Plain.Type;
 
