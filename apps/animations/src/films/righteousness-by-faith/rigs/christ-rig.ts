@@ -18,9 +18,11 @@ import { ellipse } from '@bible/film/style/rig';
 import {
   FRONT_BEARD,
   FRONT_BEARD_LIT,
+  FRONT_BEARD_SHADOW,
   FRONT_EARS,
   FRONT_HAIR,
   FRONT_LIP,
+  FRONT_LIT,
   FRONT_LOCKS,
   FRONT_MARKS,
   FRONT_NECK,
@@ -31,7 +33,14 @@ import {
   FRONT_SASH,
   FRONT_SHEEN,
 } from './christ-front-traced.ts';
-import { CHRIST_BEARD, CHRIST_EAR, CHRIST_HAIR, CHRIST_REGION } from './christ-traced.ts';
+import {
+  CHRIST_BEARD,
+  CHRIST_BEARD_SHADOW,
+  CHRIST_EAR,
+  CHRIST_HAIR,
+  CHRIST_LIT,
+  CHRIST_REGION,
+} from './christ-traced.ts';
 import { PAPERS, looked } from './papers.ts';
 import { type Robed, robedKnobs, tracedFace } from './robed-rig.ts';
 import { roundedPolygon } from './shapes.ts';
@@ -53,8 +62,24 @@ const LIP = roundedPolygon(
   2,
 );
 
-/** The light where the window catches His hair over the parting (court-12 #a0653f), soft. */
-const SHEEN = [{ pts: ellipse(-30, -52, 16, 7, 14), color: '#8f5c3a', soft: true }] as const;
+/**
+ * The shade the beard lays on the hair beside it, the dark band both concepts
+ * paint between the beard and the locks (court-12 and court.you, 0.13 to
+ * 0.18 in value): a saturated brown at 0.16 (the ink's value, never its
+ * grey), a step under each lock, so the beard's edge reads against the hair.
+ */
+const BEARD_SHADOW = '#29190f';
+
+/**
+ * His hair's tones (court-12): the window's soft light over the parting
+ * (#a0653f), the lit chestnut cut just inside the ink over the fringe
+ * (#ae6a41), and the beard's shade on the lock behind it.
+ */
+const HAIR_TONES = [
+  { pts: ellipse(-30, -52, 16, 7, 14), color: '#8f5c3a', soft: true },
+  { pts: CHRIST_LIT, color: '#a86640' },
+  { pts: CHRIST_BEARD_SHADOW, color: BEARD_SHADOW },
+] as const;
 
 /**
  * His robe, as robe-5 cuts it on the court's canon: from under His beard
@@ -242,7 +267,7 @@ export const CHRIST: Robed = {
     { key: 'lip', pts: LIP, look: { color: '#dc8e64', light: '#dc8e64', ink: 'none', shadow: 0 } },
     { key: 'beard', pts: CHRIST_BEARD, look: looked(PAPERS.beard) },
     { key: 'ear', pts: CHRIST_EAR, look: looked(PAPERS.christEar), boil: 0.6 },
-    { key: 'hair', pts: CHRIST_HAIR, look: looked(PAPERS.brownHair, { tones: SHEEN }) },
+    { key: 'hair', pts: CHRIST_HAIR, look: looked(PAPERS.brownHair, { tones: HAIR_TONES }) },
   ],
   robe: ROBE,
   robeLook: looked(PAPERS.whiteRobe, { tones: ROBE_TONES }),
@@ -333,8 +358,12 @@ const FRONT_ROBE_TONES = [
   { pts: [...FRONT_SASH_LEFT, ...[...FRONT_SASH_RIGHT].reverse()], color: SASH_TONES[0].color },
   { pts: sashShade(FRONT_SASH_RIGHT), color: SASH_TONES[1].color },
 ];
-/** The locks beside the beard: court.you's dark brown a shade deeper, so the beard's shaded side still steps 0.08 in value above them. */
-const LOCK_DARK = '#3a241c';
+/**
+ * The locks beside the beard, as court.you paints them: the far one in the
+ * shade (0.23 in value), the near one toward the window a step lighter
+ * (0.30); the beard's shade band lies between each and the beard.
+ */
+const LOCK = { near: '#4c2e1e', far: '#3a241c' } as const;
 const FRONT_FACE = tracedFace(FRONT_MARKS, FRONT_PANEL, 0.5);
 
 /**
@@ -371,8 +400,11 @@ export const CHRIST_FRONT: Robed = {
       look: looked(PAPERS.brownHair, {
         tones: [
           { pts: front(FRONT_SHEEN), color: '#8d4f29', soft: true },
-          { pts: front(FRONT_LOCKS.near), color: LOCK_DARK },
-          { pts: front(FRONT_LOCKS.far), color: LOCK_DARK },
+          { pts: front(FRONT_LIT), color: '#d08445' },
+          { pts: front(FRONT_LOCKS.near), color: LOCK.near },
+          { pts: front(FRONT_LOCKS.far), color: LOCK.far },
+          { pts: front(FRONT_BEARD_SHADOW.near), color: BEARD_SHADOW },
+          { pts: front(FRONT_BEARD_SHADOW.far), color: BEARD_SHADOW },
         ],
       }),
     },

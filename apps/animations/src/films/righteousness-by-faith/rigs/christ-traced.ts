@@ -49,6 +49,12 @@ export const CHRIST_REGION: Pt[] = [
   [-34.8, -61.3],
   [-29.4, -64.9],
 ];
+/**
+ * His hair: the crown, the parting and the hair down behind His ear, and
+ * under the jaw behind the beard (the lock court-12 hangs there, 0.27 to
+ * 0.31 in value), its inner edge under the beard and the ear, which lie
+ * over it.
+ */
 export const CHRIST_HAIR: Pt[] = [
   [-15.6, -69.1],
   [1, -69.5],
@@ -67,8 +73,12 @@ export const CHRIST_HAIR: Pt[] = [
   [51.8, 57.3],
   [45.8, 61.9],
   [37.8, 57.7],
-  [37.6, 56.1],
-  [46.2, 29.7],
+  [29, 54.5],
+  [23, 51],
+  [26, 44],
+  [31, 36],
+  [36, 29],
+  [40, 22],
   [46.6, 24.1],
   [48.4, 20.9],
   [50, 14.5],
@@ -104,20 +114,22 @@ export const CHRIST_HAIR: Pt[] = [
   [-34.8, -61.3],
   [-29.4, -64.9],
 ];
+/**
+ * His beard from cheek to cheek round His chin: its back edge where court-12
+ * ends it, at the dark band under His ear (499,386 down to 486,410), not
+ * the lock behind it.
+ */
 export const CHRIST_BEARD: Pt[] = [
   [22.4, 24.9],
   [29, 25.2],
   [34.4, 29.6],
   [35.6, 31.6],
-  [39.4, 31.4],
-  [43.4, 29.2],
-  [46.4, 26.6],
-  [48.4, 27.4],
-  [38.4, 54.9],
-  [37.2, 56.7],
-  [34.6, 56.9],
-  [28.4, 54.1],
-  [20.6, 52.1],
+  [34.2, 33.6],
+  [32.6, 37],
+  [30.8, 41],
+  [28.8, 45],
+  [26.4, 49],
+  [22.4, 52.1],
   [16.4, 53.9],
   [7.8, 61.3],
   [-1.8, 66.7],
@@ -157,4 +169,58 @@ export const CHRIST_EAR: Pt[] = [
   [34.4, 25],
   [36, 16.5],
   [38.2, 9.4],
+];
+
+/**
+ * The hair's lit chestnut, cut: the band court-12 paints just inside the ink
+ * over the fringe, from the parting's top (457,289) down the brow's side to
+ * (412,313), 4 to 11 pixels wide, #ae6a41 at its peak; the soft sheen falls
+ * off inside it. Clipped to the hair.
+ */
+export const CHRIST_LIT: Pt[] = [
+  [-3, -72],
+  [-20, -72],
+  [-29, -68],
+  [-35, -63],
+  [-42, -60],
+  [-48, -56],
+  [-52, -52],
+  [-56, -47],
+  [-57, -42],
+  [-50, -41],
+  [-48, -44],
+  [-46, -47],
+  [-42, -50],
+  [-34, -53],
+  [-30, -56],
+  [-26, -59],
+  [-21, -62],
+  [-15, -65],
+  [-6, -68],
+  [-3, -69],
+];
+
+/**
+ * The shade the beard lays on the lock behind it: court-12's dark band
+ * between the beard's back edge and the lock (0.13 to 0.18 in value, 4 to 8
+ * pixels wide), from under His ear to the jaw's ink. Its front edge runs
+ * under the beard, which covers it; clipped to the hair.
+ */
+export const CHRIST_BEARD_SHADOW: Pt[] = [
+  [34.5, 29],
+  [32, 33.5],
+  [30.5, 37],
+  [28.6, 41],
+  [26.6, 45],
+  [24.2, 49],
+  [20, 53],
+  [26, 56],
+  [34, 57],
+  [35, 52],
+  [33.5, 49],
+  [35.5, 45],
+  [37.5, 41],
+  [38.5, 37],
+  [38.5, 33],
+  [38, 29.5],
 ];

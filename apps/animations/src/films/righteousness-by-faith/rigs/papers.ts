@@ -132,10 +132,12 @@ export const PAPERS = {
   brownHair: { color: '#5f3d2c', shade: '#4a3027', light: '#7f5237', crease: TURN.face },
   /**
    * His beard: the hair's brown, a little deeper, its far side and under His
-   * chin a deep brown turned 13° toward rose (court-12), never so dark it
+   * chin a deep brown turned 4° toward rose, as both concepts paint it
+   * (court-12 #4b2f24, court.you #462d22, h17 to 18, 0.27 to 0.29 in value):
+   * a brown with the hair's hue, never a red patch, and never so dark it
    * reads as ink inside the outline.
    */
-  beard: { color: '#5f3d2a', shade: '#4f2c26', light: '#7a4c32', crease: TURN.face },
+  beard: { color: '#5f3d2a', shade: '#4a2e23', light: '#7a4c32', crease: TURN.face },
   /** Christ's white robe: a warm white, its far side a lilac (court-12). */
   whiteRobe: {
     color: '#f7e9d9',

@@ -405,3 +405,7 @@ lead at 40.45: match flags the rig's own body width at 0.7 (-12%), feet (-25%), 
 ## 2026-10-18T19:14:52Z · look
 
 check of look: 0 errors; toClimber and heal end on marks now (DurOnWord cleared); the low knob sat on rain's (768,760) by chance (KnobRepeated) and is (768,772); SeamLong woman→look 0.62 s stays, the script's
+
+## 2026-10-18T19:20:46Z · court
+
+christ-front at 20.01, match with and without the crown's lit chestnut band (all else equal): without it every row is as at r4 (head height/width 1.245, hair/skin ink 0.000, outline gap 0.026); with it match sets the head's left at 321 (the ink starts at 328), reads no face shade and counts 0.352 of hair/skin ink, though the frame gains no dark pixel there: the band (#d08445) is read as skin beside the silhouette's ink. The beard's shade bands change no row. A fresh critique at 16.51 saw the beard's far side as a red-brown patch (#4f2c26, h9); both concepts paint it h17-18 (#4b2f24, #462d22), and at #4a2e23 it now samples #4a2d21-#4a2e21.

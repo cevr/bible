@@ -287,8 +287,100 @@ export const FRONT_SHEEN: Pt[] = [
 ];
 
 /**
- * The locks beside the beard, a darker brown than the hair so the beard reads
- * as a U inside them by value alone (hair has no ink of its own): each runs
+ * The hair's lit chestnut, cut: the band court.you paints just inside the
+ * ink on the crown's left and down the near side to the ear's top
+ * (878,100 to 727,280), 35 pixels wide on the crown and 10 down the side,
+ * #d08445 at its peak (0.82 in value); FRONT_SHEEN's soft light falls off
+ * inside it. Clipped to the hair.
+ */
+export const FRONT_LIT: Pt[] = [
+  [860, 94],
+  [838, 103],
+  [806, 113],
+  [783, 124],
+  [767, 134],
+  [756, 145],
+  [748, 156],
+  [742, 167],
+  [737, 178],
+  [734, 190],
+  [733, 200],
+  [732, 240],
+  [728, 250],
+  [722, 262],
+  [720, 284],
+  [731, 284],
+  [735, 270],
+  [741, 260],
+  [747, 250],
+  [749, 240],
+  [748, 225],
+  [750, 210],
+  [753, 200],
+  [757, 190],
+  [762, 180],
+  [775, 170],
+  [787, 160],
+  [789, 150],
+  [803, 140],
+  [828, 130],
+  [845, 120],
+  [859, 110],
+  [878, 100],
+  [882, 94],
+];
+
+/**
+ * The shade the beard lays on the locks beside it: court.you's dark band
+ * between the beard's edge and each lock (0.13 to 0.17 in value, about 12
+ * pixels wide), near from 798,404 down to the jaw's ink and far from 1017,378
+ * down to it, both starting clear of the ears and the cheeks' skin. Each band's inner edge runs under the
+ * beard, which covers it; clipped to the hair.
+ */
+export const FRONT_BEARD_SHADOW = {
+  near: [
+    [798, 404],
+    [803, 412],
+    [812, 430],
+    [820, 441],
+    [832, 451],
+    [842, 462],
+    [848, 482],
+    [838, 482],
+    [828, 470],
+    [818, 460],
+    [810, 450],
+    [803, 440],
+    [797, 429],
+    [792, 418],
+  ],
+  far: [
+    [1017, 378],
+    [1013, 386],
+    [1012, 392],
+    [1008, 405],
+    [1000, 420],
+    [988, 440],
+    [982, 452],
+    [978, 470],
+    [960, 478],
+    [972, 480],
+    [990, 466],
+    [998, 452],
+    [1006, 440],
+    [1014, 430],
+    [1019, 420],
+    [1023, 410],
+    [1026, 400],
+    [1029, 390],
+    [1027, 382],
+  ],
+} satisfies Record<'near' | 'far', Pt[]>;
+
+/**
+ * The locks beside the beard, a darker brown than the hair, the beard's shade
+ * band (FRONT_BEARD_SHADOW) between each and the beard, so the beard reads as
+ * a U inside them by value (hair has no ink of its own): each runs
  * from the silhouette to the beard's edge; the beard, laid over the hair,
  * covers what lies past its edge.
  */
