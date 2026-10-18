@@ -2919,7 +2919,36 @@ and artifacts, and reads the findings (`CritiqueFinding`
 - **Files.** Each figure's findings are written beside its match table, as
   `<stem>.critique.md`.
 
-The critique is the scene painter's step before a figure is called done.
+The critique is the scene painter's step before a figure is called done,
+and its findings are what `film review` records before an owner look
+(`.claude/skills/film/SKILL.md`, the review gate).
+
+### The review: `film review`, and keep needs evidence
+
+`film review <film> --set <name> --scene <id> --at <place> --at <place>
+[--figure <name>]` (`tools/review-cli.ts`, its record pure in
+`core/review-record.ts`) takes the evidence a keep is asked on. At each
+place (two or more) it matches and critiques the scene's figures, copies
+each figure's crops and side-by-side into the set
+(`review/crops/<scene>.<place>.<figure>.{concept,scene,side}.png`), and
+writes the record (`review/evidence.json`: the film, when, the scene and
+its source key as `film project` reads it, the crops, every finding and
+each skipped critique) and its page (`review/evidence.md`), both listed in
+the set's manifest. A finding the critique answers again word for word
+keeps what was done about it. `film review <film> --set <name> --done <n>
+--did "<what>"` answers finding `n`: the fix made, or why it stands. Each
+writes `review.written set= film= crops= findings= open= skipped=`.
+
+The gate (`AskMaterials.evidence`, run by `AskStore.make`): an ask on a
+production whose recommended option keeps, locks or goes on (its value or
+label starts `lock`, `keep` or `go`: `keepRecommended`) is refused,
+`AskInvalid` naming why, unless its `set` lists `review/evidence.md` and
+the record beside it stands (`evidenceProblems`): every scene's key is the
+key `film project` reads now, it holds a crop, and every finding has what
+was done. The one way past is the ask's `override: {quote}`, the owner's
+own words verbatim, kept on the ask (`asks.evidence override
+production= chars=`). An ask off a production, or one recommending more
+work, is not gated.
 
 ### The judge: `film judge`
 

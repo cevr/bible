@@ -88,6 +88,8 @@ interface AskDraft {
   readonly production?: string;
   readonly set?: string;
   readonly point?: string;
+  /** The owner's own words, verbatim, that let a keep be asked without the set's review record. */
+  readonly override?: { readonly quote: string };
   readonly deadline?: string;
   /** The page it goes on: an ask's id (the page that ask is on, which must still ask), or `new`; none: the asker's open page, else a new one. */
   readonly page?: string;
@@ -311,7 +313,11 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         if (problems.length > 0) return yield* AskInvalid.make({ problems });
         // What it shows is found as its views find it: nothing kept may fail to render.
         const { ask, missing } = yield* located(draft.ask);
-        const absent = [...(yield* materials.problems(draft.ask)), ...missing];
+        const absent = [
+          ...(yield* materials.problems(draft.ask)),
+          ...missing,
+          ...(yield* materials.evidence(draft, draft.ask)),
+        ];
         if (absent.length > 0) return yield* AskInvalid.make({ problems: absent });
         return yield* making.withPermit(
           Effect.gen(function* () {
@@ -350,6 +356,10 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
             ...Option.match(Option.fromUndefinedOr(draft.point), {
               onNone: () => ({}),
               onSome: (point) => ({ point }),
+            }),
+            ...Option.match(Option.fromUndefinedOr(draft.override), {
+              onNone: () => ({}),
+              onSome: (override) => ({ override }),
             }),
             ...Option.match(page, { onNone: () => ({}), onSome: (p) => ({ page: p }) }),
             created: yield* now,

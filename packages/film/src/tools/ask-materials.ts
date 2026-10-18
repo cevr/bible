@@ -12,9 +12,26 @@
 // is a ref, never a path: the review finds it among the files it lists, or
 // it is not there.
 
-import { Boolean as Bool, Context, Effect, Layer, Option, Predicate } from 'effect';
+import {
+  Boolean as Bool,
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Predicate,
+  Schema,
+} from 'effect';
 import { type Ask, type Material, materialsIn, scriptSource } from '../core/ask.ts';
 import { panelById } from '../core/board.ts';
+import {
+  EVIDENCE_FILE,
+  EVIDENCE_PAGE,
+  ReviewRecordJson,
+  evidenceProblems,
+  keepRecommended,
+} from '../core/review-record.ts';
 import { docAt, videoAt } from '../core/review.ts';
 import { BoardStore } from './board-store.ts';
 import type { ContentStore } from './content-store.ts';
@@ -27,9 +44,24 @@ import type { StudioReadings } from './studio.ts';
 import { beatAttempts } from './studio.ts';
 import type { Takes } from './takes.ts';
 
+/** What an ask is aimed at, as the keep gate reads it: its production, its set, and the owner's override. */
+interface Aimed {
+  readonly production?: string;
+  readonly set?: string;
+  readonly override?: { readonly quote: string };
+}
+
 interface AskMaterialsService {
   /** What `ask` names that the lab cannot show, each as the agent fixes it; none when all is there. */
   readonly problems: (ask: Ask) => Effect.Effect<ReadonlyArray<string>>;
+  /**
+   * Why `ask`, aimed at `aimed`, may not recommend a keep: on a production,
+   * a recommended option that keeps, locks or goes on needs its set's review
+   * record (`core/review-record.ts`) from the scenes as they stand now, every
+   * finding answered, unless the owner's own words override it. None when it
+   * may.
+   */
+  readonly evidence: (aimed: Aimed, ask: Ask) => Effect.Effect<ReadonlyArray<string>>;
 }
 
 /** `problem` when `wrong` holds, else nothing. */
@@ -54,6 +86,8 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
     Effect.gen(function* () {
       const review = yield* Review;
       const fresh = yield* FreshFilm;
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
       const drafts = yield* SeriesDrafts;
       const boards = yield* BoardStore;
       const films = yield* Effect.context<FilmFolder>();
@@ -177,7 +211,70 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
           (each) => each.flat(),
         );
 
-      return AskMaterials.of({ problems });
+      /** The set's review record, as the set lists it, decoded; or why there is none. */
+      const recordOf = (set: string) =>
+        Effect.gen(function* () {
+          const page = yield* review
+            .resolve(`${set}/${EVIDENCE_PAGE}`)
+            .pipe(
+              Effect.mapError(
+                () =>
+                  `set ${set} holds no review record (${EVIDENCE_PAGE}): run film review <film> --set <name> --scene <id> --at <place> --at <place> before asking to keep`,
+              ),
+            );
+          const file = path.join(path.dirname(path.dirname(page)), EVIDENCE_FILE);
+          const text = yield* fs
+            .readFileString(file)
+            .pipe(
+              Effect.mapError(
+                () => `set ${set} lists ${EVIDENCE_PAGE} but has no ${EVIDENCE_FILE}`,
+              ),
+            );
+          return yield* Schema.decodeEffect(ReviewRecordJson)(text).pipe(
+            Effect.mapError((error) => `${file} does not read: ${error.message}`),
+          );
+        });
+
+      /** Why the keep `which` (a step's recommended option) may not be asked for `aimed`: none when it may. */
+      const evidenceFor = (aimed: Aimed & { readonly production: string }, which: string) =>
+        Effect.gen(function* () {
+          if (Predicate.isNotUndefined(aimed.override)) {
+            yield* Effect.log(
+              `asks.evidence override production=${aimed.production} chars=${aimed.override.quote.length}`,
+            );
+            return [];
+          }
+          if (Predicate.isUndefined(aimed.set))
+            return [
+              "name the set that holds the figures' review record (`set`), or override with the owner's own words",
+            ];
+          const record = yield* recordOf(aimed.set);
+          const project = yield* fresh
+            .project([record.film, '--json'])
+            .pipe(
+              Effect.mapError(
+                (error) => `${record.film}'s scenes cannot be read now: ${error.message}`,
+              ),
+            );
+          return evidenceProblems(record, new Map(project.scenes.map((s) => [s.scene, s.key])));
+        }).pipe(
+          Effect.catch((problem) => Effect.succeed([problem])),
+          Effect.map((problems) => problems.map((p) => `${which}: a keep needs evidence: ${p}`)),
+        );
+
+      const evidence = (aimed: Aimed, ask: Ask) =>
+        Option.match(
+          Option.all({
+            production: Option.fromUndefinedOr(aimed.production),
+            which: keepRecommended(ask),
+          }),
+          {
+            onNone: () => Effect.succeed([]),
+            onSome: ({ production, which }) => evidenceFor({ ...aimed, production }, which),
+          },
+        );
+
+      return AskMaterials.of({ problems, evidence });
     }),
   );
 }

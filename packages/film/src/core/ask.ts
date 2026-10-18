@@ -1056,6 +1056,11 @@ export const AskRecord = Schema.Struct({
   /** The choice in that set it is about: a pick there answers it on the timeline too. */
   point: Schema.optionalKey(Schema.String),
   /**
+   * The owner's own words that let a keep be asked without the set's review
+   * record (`core/review-record.ts`), verbatim: the gate's one way past.
+   */
+  override: Schema.optionalKey(Schema.Struct({ quote: Text(4000) })),
+  /**
    * The ask whose page this one joined (made while that page still asked),
    * by its id; none: it opened its own page. An ask kept before pages is a
    * page of one.

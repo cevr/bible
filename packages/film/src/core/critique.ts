@@ -25,7 +25,7 @@ export interface QuotedSection {
 }
 
 /** What a finding is about: the head's angle and turn, the face's shape and features, the pose, a proportion, the palette, an artifact. */
-const CRITIQUE_ASPECTS = [
+export const CRITIQUE_ASPECTS = [
   'head angle',
   'face',
   'pose',

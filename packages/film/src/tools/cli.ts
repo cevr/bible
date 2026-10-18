@@ -96,6 +96,7 @@ import { fillBeside, ScriptVoices, stagingFill } from './script-voice.ts';
 import { SeriesDrafts, draftKey } from './series-drafts.ts';
 import { ask } from './ask-cli.ts';
 import { critique, look, match } from './easel-cli.ts';
+import { review } from './review-cli.ts';
 import { Counsel } from './counsel.ts';
 import { Critic } from './critique.ts';
 import { journal } from './journal-cli.ts';
@@ -1098,6 +1099,7 @@ export const runFilmCli = <E>({
       look(films),
       match(films),
       critique(films, critiquing.rules),
+      review(films, critiquing.rules),
       ask,
       journal,
       production,

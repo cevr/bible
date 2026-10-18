@@ -206,7 +206,7 @@ const matchedJson = Schema.encodeSync(Schema.fromJsonString(MatchTaken));
  * when the request cannot be sent, or `LabDown` when no lab answered, or one
  * answered with no match (a lab older than the asker).
  */
-const takeMatch = (url: string, film: string, post: MatchPost) =>
+export const takeMatch = (url: string, film: string, post: MatchPost) =>
   Schema.encodeEffect(MatchPost)(post).pipe(
     Effect.mapError((error) => LookInvalid.make({ reason: error.message })),
     Effect.andThen(HttpApiClient.make(LabHttpApi, { baseUrl: url })),
