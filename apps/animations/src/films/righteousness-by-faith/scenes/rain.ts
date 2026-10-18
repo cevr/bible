@@ -17,31 +17,27 @@ import { EASE, type Expression, type Pt, acted, boilTime } from '@bible/film/sty
 import { LANDING_RIGS, courtFigures, courtShadows, living, restPose } from '../court-cast.ts';
 import { BENCH_BEAM, REST_POINT, backWall, benchWarm, floor } from '../court-set.ts';
 import { FIELD_REST, farField, nearField, nearPlants, rain as rainFlecks } from '../fields.ts';
-import { FARMER_KNOBS } from '../rigs/farmer-rig.ts';
+import { FARMER_HANDS, FARMER_KNOBS } from '../rigs/farmer-rig.ts';
+import { PANEL } from '../rigs/farmer-traced.ts';
 import { farmerHandProp, farmerProp } from '../rigs/rigs.ts';
 
 // ─── the farmer ──────────────────────────────────────────────────────────────
 
-/** Waiting at the field's edge: easy, the start of a smile. */
-const WAITING: Expression = { ...EASE, browY: -0.6, browTilt: 0.08, mouth: 1.2 };
-/** His face lifted to the rain: the brows up, glad. */
+/** Waiting at the field's edge: easy, hopeful, the start of a smile. */
+const WAITING: Expression = { ...EASE, browY: -0.6, browTilt: 0.18, mouth: 1.2 };
+/** His face lifted to the rain, as rain.rain draws it: the brows up and in, glad. */
 const LIFTED: Expression = {
   ...EASE,
   browY: -2.4,
-  browTilt: 0.12,
+  browTilt: 0.3,
   mouth: 2.8,
 };
 
-/** His feet and his size in the field, as rain.rain stands him: his face at a third of the frame, cut at his waist. */
-const FARMER_AT: Pt = [439, 1079];
-const FARMER_SCALE = 1.75;
-/** His hands' size against the hand rig's, as Christ's are (his head 0.96 of His). */
-const HAND = 1.04;
-/** His hands at rest, from his feet in his units, and his far hand opened out to the rain. */
-const HANDS = { near: [-64, -168], far: [78, -168], open: [114, -226] } as const satisfies Record<
-  string,
-  Pt
->;
+/** His feet and his size in the field: rain.rain's own, his face at a third of the frame, cut at his knees. */
+const FARMER_AT: Pt = [PANEL.feet[0], PANEL.feet[1]];
+const FARMER_SCALE = 1 / PANEL.scale;
+/** His hands' size against the hand rig's: rain.rain's, 66 panel pixels across inside their ink. */
+const HAND = 0.96;
 /** Where he looks, from his feet in his units: across the field, then up into the rain. */
 const GAZE = { field: [320, -380], up: [230, -640] } as const satisfies Record<string, Pt>;
 
@@ -164,8 +160,8 @@ export const rain = drawing({
     FN.tilt = 0.03 * up + 0.015 * Math.sin(f.t * 0.6);
     const open = f.at('open');
     const far: Pt = [
-      lerp(HANDS.far[0], HANDS.open[0], open),
-      lerp(HANDS.far[1], HANDS.open[1], open),
+      lerp(FARMER_HANDS.far[0], FARMER_HANDS.raised[0], open),
+      lerp(FARMER_HANDS.far[1], FARMER_HANDS.raised[1], open),
     ];
     const hand = (p: Pt) =>
       at(
@@ -191,17 +187,21 @@ export const rain = drawing({
             nearField(ctx, field);
             if (farmer) {
               nearPlants(ctx, field, -Infinity, 600);
+              // The rain falls behind him, as rain.rain lets it: none crosses his face.
+              rainFlecks(ctx, f.t, count);
               at(ctx, { x: FARMER_AT[0], y: FARMER_AT[1], scale: FARMER_SCALE }, () =>
                 f.rive('farmer', {
                   timelines: living(f, 5, 1.1),
                   numbers: FN,
                 }),
               );
-              hand(HANDS.near);
+              hand(FARMER_HANDS.near);
               hand(far);
               nearPlants(ctx, field, 600);
-            } else nearPlants(ctx, field);
-            rainFlecks(ctx, f.t, count);
+            } else {
+              nearPlants(ctx, field);
+              rainFlecks(ctx, f.t, count);
+            }
           },
         },
       ],

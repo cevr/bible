@@ -1,153 +1,139 @@
 // The farmer of James 5:7, who waits for the early and the latter rain: one
-// cast member, a robed figure (`robed-rig.ts`) in rain.rain's dress: a tan
-// tunic under a brown vest, and an off-white headcloth bound with a brown
-// band. His head, headcloth and beard are rain.rain's, the kept
-// Board try (`farmer-traced.ts`), his face lifted toward screen right. No
-// kept frame shows him whole, so his body below the beard is robe-5's middle
-// figure, the nearest kept full figure, drawn to the cast's canon: 0.705
-// across, as Christ's body is from the same concept, and 0.667 down, his
-// shoulders to his soles.
+// cast member, a robed figure (`robed-rig.ts`) drawn whole from rain.rain's
+// kept try (try 2, `farmer-traced.ts`): his head turned three-quarters to
+// his left and tipped up to the rain, a round face, full cheeks, his eyes
+// set wide and his nose turned toward screen right, a round beard; an
+// off-white headcloth bound with a brown band, its flap over his near
+// shoulder; a tan tunic under a brown vest, his shoulders turned with his
+// head; his hands free beside him, as every hand in the cast is. His
+// face's marks are the face kit's, set and tipped where the panel draws
+// them. The panel cuts him at his knees; below it his tunic runs straight
+// on to its hem and his feet stand under it.
 //
-// Units are the Board's pixels at the canon: he stands 450 tall from his
-// headcloth to his soles, 3.4 times his head's height (133), 0.96 of Christ's
-// height, inside the cast's height band. His feet are the artboard's origin.
+// Units are the cast's canon, the panel's pixels times 0.555 (`PANEL`): he
+// stands 450 tall from his headcloth to his soles, 3.4 times his head's
+// height (133), 0.96 of Christ's height, inside the cast's height band. His
+// feet are the artboard's origin.
 
 import type { Pt } from '@bible/film/style';
 import {
-  FARMER_BAND,
-  FARMER_BEARD,
-  FARMER_CLOTH,
-  FARMER_HEAD,
-  FARMER_LIP,
+  BAND,
+  BAND_LIT,
+  BEARD,
+  CHEEK_SHADE,
+  CLOTH,
+  CLOTH_EDGE,
+  FACE,
+  HANDS,
+  LIP,
+  MARKS,
+  NECK,
+  NOSE,
+  PANEL,
+  TUNIC,
+  TUNIC_FOLD,
+  VEST_FAR,
+  VEST_NEAR,
 } from './farmer-traced.ts';
 import { PAPERS, looked } from './papers.ts';
 import { type Robed, robedKnobs } from './robed-rig.ts';
 import { roundedPolygon } from './shapes.ts';
 
-/** His head's centre from his feet, and the robe's top under his beard, units. */
-const HEAD = { x: -11, y: -379.8 } as const;
-const NECK = -313;
+/** A panel point in canon units about `origin` (a panel point). */
+const canon =
+  (origin: Pt) =>
+  ([x, y]: Pt): Pt => [
+    +((x - origin[0]) * PANEL.scale).toFixed(2),
+    +((y - origin[1]) * PANEL.scale).toFixed(2),
+  ];
+const fromHead = canon(PANEL.head);
+const fromFeet = canon(PANEL.feet);
+const headParts = (pts: ReadonlyArray<Pt>) => pts.map(fromHead);
+const bodyParts = (pts: ReadonlyArray<Pt>) => pts.map(fromFeet);
 
-/** His vest, as rain.rain paints it: a dark brown wool, its shade turned toward rose. */
-const WALNUT = '#7a5039';
-const WALNUT_SHADE = '#6c4445';
-/** His headcloth's band across his brow: a lighter brown than the vest. */
-const BAND = '#8a5f45';
+/** His head's centre from his feet, and the tunic's top under his beard, units. */
+const HEAD = { x: fromFeet(PANEL.head)[0], y: fromFeet(PANEL.head)[1] } as const;
+const NECK_Y = fromFeet([0, 540])[1];
 
-/**
- * His tunic, as robe-5's middle figure cuts it: from under his beard the
- * shoulders fall to the sleeves' ends at his hands, the tunic narrower below
- * them and flaring a little to a hem that sags at its middle.
- */
-const TUNIC = roundedPolygon(
-  [
-    [-28, -325],
-    [28, -325],
-    [48, -311],
-    [55.3, -298],
-    [61.7, -278],
-    [68.7, -251.3],
-    [75.1, -224.6],
-    [81.4, -198],
-    [87, -187],
-    [69.4, -150],
-    [73, -117.9],
-    [78.6, -64.5],
-    [81.4, -37.9],
-    [85.7, -23.2],
-    [0, -19],
-    [-89.2, -23.2],
-    [-82.8, -37.9],
-    [-79.3, -64.5],
-    [-70.9, -117.9],
-    [-66.6, -150],
-    [-89, -187],
-    [-83.5, -198],
-    [-77.9, -224.6],
-    [-70.9, -251.3],
-    [-62.4, -278],
-    [-54.6, -298],
-    [-48, -311],
-  ],
-  [18, 18, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 6, 60, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 6],
-);
+/** His vest, as rain.rain paints it (sampled): a dark brown wool, its far front turned toward rose. */
+const WALNUT = '#714b38';
+const WALNUT_SHADE = '#7a4d3f';
+/** His headcloth's band: a brown a little warmer than the vest. */
+const BAND_BROWN = '#7a5340';
+/** The band's near end in the light: a tan. */
+const BAND_TAN = '#d4965b';
+/** The cloth's dark edge down his near cheek, as the panel paints it: near the ink, a warm black-brown. */
+const CLOTH_DARK = '#35261c';
+/** The shade down his nose, toward rose. */
+const NOSE_SHADE = '#e3946a';
+/** His near cheek in the cloth's shadow, as the panel paints it, turned 10° toward rose (CRAFT rule 12). */
+const CHEEK_SKIN = '#e2906a';
+/** His beard: one flat brown, as the panel paints it, with no turn across it. */
+const BEARD_BROWN = '#5f412a';
+/** His neck in the tunic's V, in the beard's shadow. */
+const NECK_SKIN = '#e29662';
 
 /**
- * The mantle's two fronts, open down his middle over the tunic (rain.rain:
- * about 30 units of tunic each side of his middle), their outer edges inside
- * his sleeves down to his hands and out past the tunic's sides below them,
- * where the tunic's outline cuts them.
+ * His face's marks, panel pixels to the face kit's frame: about the middle
+ * of his eyes, turned back by the tip of his head (the line through his
+ * eyes, which the brows' follows), in canon units.
  */
-const mantle = (side: 1 | -1): Pt[] =>
-  (
-    [
-      [27, -335],
-      [44, -335],
-      [46, -290],
-      [50, -240],
-      [54, -190],
-      [56, -160],
-      [120, -150],
-      [120, -10],
-      [36, -10],
-      [32, -150],
-      [29, -250],
-    ] as const
-  ).map(([x, y]): Pt => [side * x, y]);
-
-/** The tunic's shade: its far half, from his middle out, its tan turned toward rose. */
-const TUNIC_SHADE: Pt[] = [
-  [8, -340],
-  [12, -10],
-  [140, -10],
-  [140, -340],
-];
-
-/** The neckline: his skin in the tunic's V under the beard, its top in the beard's shadow. */
-const NECKLINE = roundedPolygon(
-  [
-    [-27, -326],
-    [27, -326],
-    [4, -272],
-  ],
-  4,
-);
-const NECK_SHADE: Pt[] = [
-  [-27, -326],
-  [27, -326],
-  [19, -308],
-  [-19, -308],
-];
-
-const TUNIC_TONES = [
-  { pts: TUNIC_SHADE, color: PAPERS.linen.shade },
-  { pts: mantle(-1), color: WALNUT },
-  { pts: mantle(1), color: WALNUT_SHADE },
-  { pts: NECKLINE, color: '#f0ad70' },
-  { pts: NECK_SHADE, color: '#d98d68' },
-] as const;
+const face = (() => {
+  const [l, r] = MARKS.eyes;
+  const c: Pt = [(l[0] + r[0]) / 2, (l[1] + r[1]) / 2];
+  const rotation = Math.atan2(r[1] - l[1], r[0] - l[0]);
+  const [cos, sin] = [Math.cos(-rotation), Math.sin(-rotation)];
+  const local = ([x, y]: Pt): Pt => {
+    const [dx, dy] = [x - c[0], y - c[1]];
+    return [(dx * cos - dy * sin) * PANEL.scale, (dx * sin + dy * cos) * PANEL.scale];
+  };
+  const mid = (a: Pt, b: Pt): Pt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const half = (a: Pt, b: Pt) => (Math.hypot(b[0] - a[0], b[1] - a[1]) / 2) * PANEL.scale;
+  const [eyeL, eyeR] = [local(l), local(r)];
+  const [browL, browR] = MARKS.brows.map(([a, b]) => local(mid(a, b)));
+  const [mouthL, mouthR] = MARKS.mouth;
+  const mouth = local(mid(mouthL, mouthR));
+  const at = fromHead(c);
+  const r2 = (v: number) => +v.toFixed(2);
+  return {
+    at: { x: at[0], y: at[1], scale: 1, rotation: r2(rotation) },
+    marks: {
+      eyes: [r2(eyeL[0]), r2(eyeR[0])],
+      eyeY: r2((eyeL[1] + eyeR[1]) / 2),
+      eye: [r2(MARKS.eye[0] * PANEL.scale), r2(MARKS.eye[1] * PANEL.scale)],
+      turn: 1.5,
+      brows: [r2(browL?.[0] ?? 0), r2(browR?.[0] ?? 0)],
+      browY: r2(((browL?.[1] ?? 0) + (browR?.[1] ?? 0)) / 2),
+      browHalf: r2(half(...MARKS.brows[1])),
+      brow: r2(MARKS.brow * PANEL.scale),
+      mouth: [r2(mouth[0]), r2(mouth[1])],
+      mouthHalf: r2(half(mouthL, mouthR)),
+      mouthLine: r2(MARKS.mouthLine * PANEL.scale),
+    },
+  } as const;
+})();
 
 /** A sandal's sole under a foot: its last 6.5 units, a dark leather. */
 const SOLE = '#43291c';
 
-/** His feet under the hem, as robe-5's middle figure sets them, the toes out. */
+/** His feet under the hem, the toes out, as wide apart as his tunic is wide. */
 const NEAR_FOOT = roundedPolygon(
   [
-    [-80, -1],
-    [-80, -8],
-    [-68, -17],
-    [-34, -18],
-    [-33, -1],
+    [-88, -1],
+    [-88, -8],
+    [-76, -17],
+    [-40, -18],
+    [-39, -1],
   ],
   [3, 5, 10, 2, 2],
 );
 const FAR_FOOT = roundedPolygon(
   [
-    [27, -1],
-    [27, -18],
-    [60, -17],
-    [90, -6],
-    [90, -1],
+    [30, -1],
+    [30, -18],
+    [64, -17],
+    [94, -6],
+    [94, -1],
   ],
   [2, 2, 12, 5, 3],
 );
@@ -158,48 +144,64 @@ const soleOf = (x0: number, x1: number): Pt[] => [
   [x0 - 4, 4],
 ];
 const STRAP: Pt[] = [
-  [-62, -18],
-  [-51, -18],
-  [-40, -6],
+  [-70, -18],
+  [-59, -18],
   [-48, -6],
+  [-56, -6],
 ];
 
 export const FARMER: Robed = {
-  art: { width: 300, height: 500, feet: [150, 475] },
+  art: { width: 360, height: 520, feet: [160, 495] },
   head: HEAD,
-  neck: NECK,
-  outline: FARMER_HEAD,
-  skin: looked(PAPERS.farmerSkin),
-  face: { x: 0, y: 0, scale: 1 },
-  marks: {
-    eyes: [13.1, 42.5],
-    eyeY: -7.1,
-    eye: [6.8, 12.5],
-    turn: 1.5,
-    brows: [3.1, 36.7],
-    browY: -25.7,
-    browHalf: 5.8,
-    brow: 4.4,
-    mouth: [41.7, 32.3],
-    mouthHalf: 5,
-    mouthLine: 3,
-  },
+  neck: NECK_Y,
+  outline: headParts(FACE),
+  skin: looked(PAPERS.farmerFace, {
+    tones: [
+      { pts: headParts(NOSE), color: NOSE_SHADE },
+      { pts: headParts(CHEEK_SHADE), color: CHEEK_SKIN },
+    ],
+  }),
+  face: face.at,
+  marks: face.marks,
   cut: [
     {
       key: 'lip',
-      pts: FARMER_LIP,
+      pts: headParts(LIP),
       look: { color: '#dd9262', light: '#dd9262', ink: 'none', shadow: 0 },
     },
-    { key: 'beard', pts: FARMER_BEARD, look: looked(PAPERS.beard) },
+    {
+      key: 'beard',
+      pts: headParts(BEARD),
+      look: { color: BEARD_BROWN, light: BEARD_BROWN, ink: 'none', shadow: 0 },
+    },
     {
       key: 'band',
-      pts: FARMER_BAND,
-      look: { color: BAND, light: BAND, ink: 'none', shadow: 0 },
+      pts: headParts(BAND),
+      look: {
+        color: BAND_BROWN,
+        light: BAND_BROWN,
+        ink: 'none',
+        shadow: 0,
+        tones: [{ pts: headParts(BAND_LIT), color: BAND_TAN }],
+      },
     },
-    { key: 'cloth', pts: FARMER_CLOTH, look: looked(PAPERS.headcloth) },
+    {
+      key: 'cloth',
+      pts: headParts(CLOTH),
+      look: looked(PAPERS.headcloth, {
+        tones: [{ pts: headParts(CLOTH_EDGE), color: CLOTH_DARK }],
+      }),
+    },
   ],
-  robe: TUNIC,
-  robeLook: looked(PAPERS.linen, { tones: TUNIC_TONES }),
+  robe: bodyParts(TUNIC),
+  robeLook: looked(PAPERS.linen, {
+    tones: [
+      { pts: bodyParts(TUNIC_FOLD), color: PAPERS.linen.shade },
+      { pts: bodyParts(VEST_NEAR), color: WALNUT },
+      { pts: bodyParts(VEST_FAR), color: WALNUT_SHADE },
+      { pts: bodyParts(NECK), color: NECK_SKIN },
+    ],
+  }),
   feet: [
     {
       key: 'footNear',
@@ -207,18 +209,25 @@ export const FARMER: Robed = {
       look: looked(PAPERS.farmerSkin, {
         tones: [
           { pts: STRAP, color: '#6b4430' },
-          { pts: soleOf(-80, -33), color: SOLE },
+          { pts: soleOf(-88, -39), color: SOLE },
         ],
       }),
     },
     {
       key: 'footFar',
       pts: FAR_FOOT,
-      look: looked(PAPERS.farmerSkin, { tones: [{ pts: soleOf(27, 90), color: SOLE }] }),
+      look: looked(PAPERS.farmerSkin, { tones: [{ pts: soleOf(30, 94), color: SOLE }] }),
     },
   ],
   breath: 5,
 };
 
+/** His hands' centres from his feet, units: the near one down, the far one at rest and raised (`HANDS`). */
+export const FARMER_HANDS = {
+  near: fromFeet(HANDS.near),
+  far: fromFeet(HANDS.far),
+  raised: fromFeet(HANDS.raised),
+} as const;
+
 /** His numbers at rest: his face lifted to the rain at screen right, the smile rain.rain draws. */
-export const FARMER_KNOBS = robedKnobs([260, HEAD.y - 160], { mouth: 2.5 });
+export const FARMER_KNOBS = robedKnobs([260, HEAD.y - 160], { mouth: 2.5, browTilt: 0.25 });

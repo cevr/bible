@@ -335,9 +335,10 @@ export const cold = drawing({
       [OUTRAGE, thrown],
     ]);
     pn.shout = thrown;
-    // His eyes on the lead while he makes his case; to the judge on the verdict; back to the lead.
-    pn.gazeX = lerp(pn.gazeX, 560, f.at('lean') * (1 - f.at('throw')));
-    pn.gazeY = lerp(pn.gazeY, -560, f.at('lean') * (1 - f.at('throw')));
+    // His eyes on the lead while he makes his case; to the judge on the verdict, and on the judge
+    // still as he throws up his hands (cold.cover). Each frame starts from his rest gaze.
+    pn.gazeX = lerp(PROSECUTOR_KNOBS.gazeX, 560, f.at('lean'));
+    pn.gazeY = lerp(PROSECUTOR_KNOBS.gazeY, -560, f.at('lean'));
     pn.lean = -0.05 * accuse - 0.04 * thrown;
     pn.tilt = -0.05 * accuse + 0.06 * thrown;
     pn.nod = 2 * accuse * (1 - thrown);

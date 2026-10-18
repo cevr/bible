@@ -148,3 +148,104 @@ export const blotOutline = (rx: number, ry: number, wander: number, seed: number
     return [Math.cos(a) * rx * k, Math.sin(a) * ry * k];
   });
 };
+
+// ─── tucking one paper under another ─────────────────────────────────────────
+
+/** Whether `p` lies inside the closed outline `poly`. */
+const inside = (p: Pt, poly: ReadonlyArray<Pt>) => {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i] ?? p;
+    const [xj, yj] = poly[j] ?? p;
+    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+};
+
+/** A point on an outline, its distance from the point it is nearest, and the inward normal of its edge. */
+interface Nearest {
+  readonly at: Pt;
+  readonly d: number;
+  readonly n: Pt;
+}
+
+/** A point walked along an outline, and whether it was one of the outline's own. */
+interface Walked {
+  readonly p: Pt;
+  readonly cut: boolean;
+}
+
+/** The point of the closed outline `poly` nearest `p`, and the unit normal of the edge it lies on, pointing into `poly`. */
+const nearestEdge = (p: Pt, poly: ReadonlyArray<Pt>) => {
+  let best: Nearest = { at: p, d: Infinity, n: [0, 0] };
+  poly.forEach((a, i) => {
+    const b = poly[(i + 1) % poly.length] ?? a;
+    const [ex, ey] = [b[0] - a[0], b[1] - a[1]];
+    const len2 = ex * ex + ey * ey;
+    if (len2 === 0) return;
+    const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * ex + (p[1] - a[1]) * ey) / len2));
+    const at: Pt = [a[0] + ex * t, a[1] + ey * t];
+    const d = Math.hypot(p[0] - at[0], p[1] - at[1]);
+    if (d >= best.d) return;
+    const len = Math.sqrt(len2);
+    const n: Pt = [-ey / len, ex / len];
+    const into = inside([at[0] + n[0] * 0.5, at[1] + n[1] * 0.5], poly) ? 1 : -1;
+    best = { at, d, n: [n[0] * into, n[1] * into] };
+  });
+  return best;
+};
+
+/** `pts` (closed) with points added along each edge so none is longer than `step`; each says whether it was one of `pts`. */
+const resampled = (pts: ReadonlyArray<Pt>, step: number) =>
+  pts.flatMap((a, i) => {
+    const b = pts[(i + 1) % pts.length] ?? a;
+    const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / step));
+    return Array.from({ length: n }, (_, k): Walked => ({
+      p: [a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n],
+      cut: k === 0,
+    }));
+  });
+
+/**
+ * How a paper tucks under the papers laid over it: `depth` units under
+ * their edge, for the points of its outline that come within `reach` of
+ * that edge (outside it, or inside by less than `depth`), easing out over
+ * the last half of `reach`; the outline is walked every `step` units, and
+ * a walked point stays only where it moved. Each piece's outline crawls on
+ * the boil on its own, and the smooth path bows between points: two papers
+ * whose edges meet show the one behind in a sliver, so the paper behind
+ * lies well under the one in front wherever they meet.
+ */
+const TUCK = { depth: 3.5, reach: 5, step: 3 } as const;
+
+/**
+ * `back` tucked under `fronts`: each point near a front paper's edge moved
+ * `TUCK.depth` under it, so no sliver of `back` shows between them or round
+ * the silhouette they share (see `TUCK`). A paper with a rim lies `deep`
+ * under a front wherever it already lies under it, its rim's width further,
+ * so the rim it draws along its whole outline shows only on the silhouette,
+ * never at a seam; the points outside a front, on the silhouette, move
+ * only `TUCK.depth`.
+ */
+export const tucked = (
+  back: ReadonlyArray<Pt>,
+  fronts: ReadonlyArray<ReadonlyArray<Pt>>,
+  deep: number = TUCK.depth,
+): Pt[] =>
+  resampled(back, TUCK.step).flatMap(({ p, cut }): Pt[] => {
+    let best: { readonly to: Pt; readonly w: number } | undefined;
+    for (const front of fronts) {
+      const e = nearestEdge(p, front);
+      const under = inside(p, front) ? e.d : -e.d;
+      const depth = under >= 0 ? deep : TUCK.depth;
+      if (under >= depth) return cut ? [p] : [];
+      if (under <= -TUCK.reach) continue;
+      const t = Math.max(0, Math.min(1, (under + TUCK.reach) / (TUCK.reach / 2)));
+      const w = t * t * (3 - 2 * t);
+      if (best !== undefined && best.w >= w) continue;
+      best = { to: [e.at[0] + e.n[0] * depth, e.at[1] + e.n[1] * depth], w };
+    }
+    if (best === undefined || best.w === 0) return cut ? [p] : [];
+    const { to, w } = best;
+    return [[+(p[0] + (to[0] - p[0]) * w).toFixed(2), +(p[1] + (to[1] - p[1]) * w).toFixed(2)]];
+  });
