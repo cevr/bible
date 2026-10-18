@@ -5,31 +5,47 @@
 // not ahve their tests and budgets entangled"). This runs each workspace's
 // `test` by itself, one after another, as `turbo run test --filter=<name>`
 // (the `test` task is never cached; a build it depends on runs, or replays
-// from turbo's cache, first and outside its span), reads that workspace's `test` span from turbo's run summary,
-// and fails when any one reaches the budget. Named workspaces are measured
-// alone and the rest are left out; with none named, every workspace that
-// `bun run test` runs is measured.
+// from turbo's cache, first and outside its span), reads that workspace's
+// `test` span from turbo's run summary, and fails when any one reaches the
+// budget. Named workspaces are measured alone and the rest are left out; with
+// none named, every workspace that `bun run test` runs is measured.
 //
-// Local only, like `test:perf`: CI's runners are smaller
-// and shared, so a wall-clock budget there would fail on the runner, not on
-// the code. In CI the guard is each test's own timeout: bun's 5 s, or the
-// `--timeout` a workspace's `test` script names (`packages/film` also sets
-// the same number in a preload, for effect-bun-test's runners).
+// A run reads only the summary its own turbo names on its `Summary:` line,
+// and removes only that file: another run's summary in the same
+// `.turbo/runs` is never read or removed. When turbo exits 0 and names no
+// summary, or one that does not decode or names no `<ws>#test`, the run stops
+// and removes nothing.
+//
+// Local only, like `test:perf`: CI's runners are smaller and shared, so a
+// wall-clock budget there would fail on the runner, not on the code. In CI
+// the guard is each test's own timeout: bun's 5 s, or the `--timeout` a
+// workspace's `test` script names (`packages/film` also sets the same number
+// in a preload, for effect-bun-test's runners).
 //
 // The 1- and 5-minute load averages before the first workspace runs and the
 // core count are printed beside the times: read once, since each workspace's
 // run lifts the averages the next would read. A machine busier than its cores
 // by either average measures nothing (the 5-minute one keeps a lull of a
 // minute in a busy period from admitting the run): the run prints "not
-// measured (load average N over 1 min and M over 5 min, on C cores)" and
-// exits 0, so
-// the merge step measures again on a quiet machine; at or below the core
-// count, over budget fails (`test-budget/budget.ts`). A test that fails still
-// fails, at any load.
+// measured (load average N over 1 min and M over 5 min, on C cores)" as its
+// last line and exits 0, and nothing measures it again. At or below the core
+// count, a workspace at or over the budget fails (`test-budget/budget.ts`). A
+// test that fails still fails, at any load.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Array as Arr, Clock, Console, Effect, FileSystem, Option, Path, Schema } from 'effect';
+import {
+  Array as Arr,
+  Clock,
+  Console,
+  Effect,
+  FileSystem,
+  Option,
+  Path,
+  Result,
+  Schema,
+  Stream,
+} from 'effect';
 import { Argument, Command } from 'effect/cli';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
@@ -58,10 +74,13 @@ class UnknownWorkspace extends Schema.TaggedError<UnknownWorkspace>()('UnknownWo
   message: Schema.String,
 }) {}
 
-/** turbo's run summaries left after a run that did not write exactly one. */
-class SummaryMissing extends Schema.TaggedError<SummaryMissing>()('SummaryMissing', {
+/** A run whose own turbo left no summary this can read: no path printed, or a file that does not decode or names no `<ws>#test`. */
+class SummaryUnreadable extends Schema.TaggedError<SummaryUnreadable>()('SummaryUnreadable', {
   message: Schema.String,
 }) {}
+
+/** turbo's line naming the summary it wrote: `Summary:    <root>/.turbo/runs/<id>.json`. */
+const SUMMARY_LINE = /^Summary:\s+(\S.*\.json)\s*$/;
 
 /** The workspaces `bun run test` runs a `test` in, by turbo's own dry run. */
 const workspacesOfTest = (root: string) =>
@@ -84,71 +103,95 @@ const workspacesOfTest = (root: string) =>
     ),
   );
 
+/**
+ * This run's own summary, by the path its own turbo printed: the file, and the
+ * span of `<name>#test` in it. Nothing else in `.turbo/runs` is read, so a
+ * summary another writer left there (a second budget run, a hand-run turbo)
+ * is never taken for this one.
+ */
+const ownSummary = (runs: string, name: string, printed: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const unreadable = (why: string) =>
+      new SummaryUnreadable({
+        message: `test:budget: ${name}: ${why}; nothing is measured or removed.`,
+      });
+    const only = Arr.head(printed);
+    if (Option.isNone(only) || printed.length > 1)
+      return yield* unreadable(`turbo printed ${printed.length} summary paths, not one`);
+    const file = only.value;
+    const inRuns = yield* Effect.all([fs.realPath(path.dirname(file)), fs.realPath(runs)]).pipe(
+      Effect.map(([dir, expected]) => dir === expected),
+      Effect.orElseSucceed(() => false),
+    );
+    if (!inRuns) return yield* unreadable(`turbo's summary ${file} is not in ${runs}`);
+    const summary = yield* fs.readFileString(file).pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(RunSummary))),
+      Effect.mapError((error) =>
+        unreadable(`turbo's summary ${file} does not read: ${error.message}`),
+      ),
+    );
+    const task = Arr.findFirst(summary.tasks, (each) => each.taskId === `${name}#test`);
+    if (Option.isNone(task))
+      return yield* unreadable(`turbo's summary ${file} names no ${name}#test`);
+    return { file, ms: task.value.execution.endTime - task.value.execution.startTime };
+  });
+
 /** Runs one workspace's `test` alone and answers its time and its exit code. */
 const measure = (root: string, name: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const spawner = yield* ChildProcessSpawner;
-    const runs = path.join(root, '.turbo', 'runs');
-    const summariesIn = Effect.map(
-      Effect.orElseSucceed(fs.readDirectory(runs), (): ReadonlyArray<string> => []),
-      (names) => new Set(names),
-    );
-    const before = yield* summariesIn;
     yield* Console.log(`\ntest:budget: ${name} alone`);
     const started = yield* Clock.currentTimeMillis;
-    const exitCode = yield* Effect.scoped(
+    // turbo's output is passed on line by line, and its `Summary:` line kept:
+    // the path of the one summary this run wrote.
+    const [exitCode, printed] = yield* Effect.scoped(
       Effect.flatMap(
         spawner.spawn(
           ChildProcess.make(
             'turbo',
-            ['run', 'test', `--filter=${name}`, '--summarize', '--ui=stream'],
+            ['run', 'test', `--filter=${name}`, '--summarize', '--ui=stream', '--no-color'],
             {
               cwd: root,
               stdin: 'inherit',
-              stdout: 'inherit',
               stderr: 'inherit',
               forceKillAfter: '5 seconds',
             },
           ),
         ),
-        (child) => child.exitCode,
+        (child) =>
+          Effect.all(
+            [
+              child.exitCode,
+              child.stdout.pipe(
+                Stream.decodeText,
+                Stream.splitLines,
+                Stream.tap((line) => Console.log(line)),
+                Stream.filter((line) => SUMMARY_LINE.test(line)),
+                Stream.map((line) => line.replace(SUMMARY_LINE, '$1')),
+                Stream.runCollect,
+              ),
+            ],
+            { concurrency: 2 },
+          ),
       ),
     );
     const wall = (yield* Clock.currentTimeMillis) - started;
-    const written = [...(yield* summariesIn)].filter((file) => !before.has(file));
-    // Only a new summary that names this workspace's `test` is this run's: one
-    // another writer left (a second budget run, a hand-run turbo) stays put.
-    const read = yield* Effect.forEach(written, (file) =>
-      fs.readFileString(path.join(runs, file)).pipe(
-        Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(RunSummary))),
-        Effect.option,
-        Effect.map((summary) =>
-          Option.flatMap(summary, (each) =>
-            Option.map(
-              Arr.findFirst(each.tasks, (task) => task.taskId === `${name}#test`),
-              (task) => ({ file, ms: task.execution.endTime - task.execution.startTime }),
-            ),
-          ),
-        ),
-      ),
-    );
-    const ours = Arr.getSomes(read);
-    if (ours.length > 1)
-      return yield* new SummaryMissing({
-        message: `test:budget: expected one new run summary naming ${name}#test in ${runs}, found ${ours.length}; another run wrote one too, so none is removed.`,
-      });
-    yield* Effect.forEach(ours, (summary) => fs.remove(path.join(runs, summary.file)));
-    const span = Option.map(Arr.head(ours), (summary) => summary.ms);
-    // A run that failed is named for its exit code, and timed by its wall when turbo wrote no span.
+    const own = yield* Effect.result(ownSummary(path.join(root, '.turbo', 'runs'), name, printed));
+    // Only the summary this run read is removed; `force` lets one another hand removed first pass.
+    if (Result.isSuccess(own)) yield* fs.remove(own.success.file, { force: true });
+    // A run that failed is named for its exit code, and timed by its wall when its summary does not read.
     if (exitCode !== 0)
-      return { name, ms: Option.getOrElse(span, () => wall), exitCode: Number(exitCode) };
-    if (Option.isNone(span))
-      return yield* new SummaryMissing({
-        message: `test:budget: expected one new run summary naming ${name}#test in ${runs}, found none.`,
-      });
-    return { name, ms: span.value, exitCode: 0 };
+      return {
+        name,
+        ms: Result.match(own, { onSuccess: (summary) => summary.ms, onFailure: () => wall }),
+        exitCode: Number(exitCode),
+      };
+    if (Result.isFailure(own)) return yield* own.failure;
+    return { name, ms: own.success.ms, exitCode: 0 };
   });
 
 const command = Command.make(
@@ -186,7 +229,7 @@ const command = Command.make(
         process.exitCode = judged.code;
       });
     }).pipe(
-      Effect.catchTag(['UnknownWorkspace', 'SummaryMissing'], (error) =>
+      Effect.catchTag(['UnknownWorkspace', 'SummaryUnreadable'], (error) =>
         Effect.andThen(
           Console.error(error.message),
           Effect.sync(() => {
