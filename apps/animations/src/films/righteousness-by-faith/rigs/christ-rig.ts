@@ -15,9 +15,19 @@
 
 import type { Pt } from '@bible/film/style';
 import { ellipse } from '@bible/film/style/rig';
+import {
+  FRONT_BEARD,
+  FRONT_EARS,
+  FRONT_HAIR,
+  FRONT_LIP,
+  FRONT_MARKS,
+  FRONT_PANEL,
+  FRONT_REGION,
+  FRONT_SHEEN,
+} from './christ-front-traced.ts';
 import { CHRIST_BEARD, CHRIST_EAR, CHRIST_HAIR, CHRIST_REGION } from './christ-traced.ts';
 import { PAPERS, looked } from './papers.ts';
-import { type Robed, robedKnobs } from './robed-rig.ts';
+import { type Robed, robedKnobs, tracedFace } from './robed-rig.ts';
 import { roundedPolygon } from './shapes.ts';
 
 /** His head's centre from His feet, and the robe's top under His beard, units. */
@@ -240,3 +250,44 @@ export const CHRIST: Robed = {
 
 /** His numbers at rest: His eyes on the accused at His right (screen left), the smile court-12 draws. */
 export const CHRIST_KNOBS = robedKnobs([-300, HEAD.y], { mouth: 3 });
+
+/** court.you's pixels to units about His head's centre. */
+const fromFront = ([x, y]: Pt): Pt => [
+  +((x - FRONT_PANEL.head[0]) * FRONT_PANEL.scale).toFixed(2),
+  +((y - FRONT_PANEL.head[1]) * FRONT_PANEL.scale).toFixed(2),
+];
+const front = (pts: ReadonlyArray<Pt>) => pts.map(fromFront);
+const FRONT_FACE = tracedFace(FRONT_MARKS, FRONT_PANEL, 0.5);
+
+/**
+ * Christ turned to us (`court.you`, the kept try 2): the same figure, body
+ * and robe, His head as court.you draws it facing the viewer
+ * (`christ-front-traced.ts`), both ears in His hair, His mouth open in the
+ * smile. The scene turns Him by showing this artboard in place of `CHRIST`.
+ */
+export const CHRIST_FRONT: Robed = {
+  ...CHRIST,
+  outline: front(FRONT_REGION),
+  face: FRONT_FACE.at,
+  marks: FRONT_FACE.marks,
+  cut: [
+    {
+      key: 'lip',
+      pts: front(FRONT_LIP),
+      look: { color: '#dc8e64', light: '#dc8e64', ink: 'none', shadow: 0 },
+    },
+    { key: 'beard', pts: front(FRONT_BEARD), look: looked(PAPERS.beard) },
+    { key: 'earNear', pts: front(FRONT_EARS.near), look: looked(PAPERS.christEar), boil: 0.6 },
+    { key: 'earFar', pts: front(FRONT_EARS.far), look: looked(PAPERS.christEar), boil: 0.6 },
+    {
+      key: 'hair',
+      pts: front(FRONT_HAIR),
+      look: looked(PAPERS.brownHair, {
+        tones: [{ pts: front(FRONT_SHEEN), color: '#8f5c3a', soft: true }],
+      }),
+    },
+  ],
+};
+
+/** His numbers turned to us: His eyes on the viewer, the smile court.you draws. */
+export const CHRIST_FRONT_KNOBS = robedKnobs([0, HEAD.y + 40], { mouth: 3 });

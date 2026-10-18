@@ -7,7 +7,7 @@ import type { RivePropSpec } from '@bible/film/rive';
 import { Record as Rec } from 'effect';
 import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
-import { CHRIST, CHRIST_KNOBS } from './christ-rig.ts';
+import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
 import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
 import { HAND_ART } from './hand-rig.ts';
 import {
@@ -111,6 +111,25 @@ export const christProp: RivePropSpec<RobedTimeline, RobedKnob> = {
   concept: {
     image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/5-court-12.png' },
     box: [370, 270, 575, 760],
+  },
+};
+
+/** Christ turned to us (court.you): His feet at our origin, where `christProp`'s are. */
+export const christFrontProp: RivePropSpec<RobedTimeline, RobedKnob> = {
+  source: {
+    riv: figuresRiv,
+    artboard: ARTBOARDS.christFront,
+    timelines: Rec.keys(ROBED_TIMELINES),
+    numbers: Rec.keys(CHRIST_FRONT_KNOBS),
+  },
+  engine: 'canvas',
+  key: 'righteousness-by-faith/christ-front',
+  origin: CHRIST_FRONT.art.feet,
+  face: robedFaceCheck(CHRIST_FRONT),
+  // `film match`'s concept: court.you's kept try 2, His head turned to us.
+  concept: {
+    image: { set: 'rbf-v3-cast-2026-10-18', file: 'aids/court-you-2.png' },
+    box: [700, 70, 1080, 760],
   },
 };
 

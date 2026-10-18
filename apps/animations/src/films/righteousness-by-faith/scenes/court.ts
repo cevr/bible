@@ -179,9 +179,9 @@ export const court = drawing({
     // Close on his face, the seed in his hand below it.
     face: [320, 470],
     faceZoom: 2.5,
-    // Christ to us (`court.you`): His face large, the accused at His side.
-    you: [416, 458],
-    youZoom: 3.3,
+    // Christ to us (`court.you`): His whole head large, His eyes at 29% of the frame's height, the accused a pace back at His side.
+    you: [426, 421],
+    youZoom: 2.85,
     // The accused whole, from his head to the blade at his feet.
     three: [330, 640],
     threeZoom: 1.9,
@@ -240,6 +240,10 @@ export const court = drawing({
     const cn = p.christ.numbers;
     const turn = f.at('turn') * (1 - f.at('withdraw'));
     acted(cn, KIND, [[OFFER, turn]]);
+    // He turns to us half way through His turn: court.you's head, facing the viewer.
+    p.christ.front = turn >= 0.5 ? 1 : 0;
+    // The accused steps a pace back behind Him while the camera comes to court.you, and up again after.
+    p.lead.back = f.at('toYou') * (1 - f.at('toThree'));
     cn.gazeX = lerp(CHRIST_GAZE.lead[0], CHRIST_GAZE.us[0], turn);
     cn.gazeY = lerp(CHRIST_GAZE.lead[1], CHRIST_GAZE.us[1], turn);
     cn.tilt = -0.04 * (1 - turn) + 0.02 * Math.sin(f.t * 0.7);

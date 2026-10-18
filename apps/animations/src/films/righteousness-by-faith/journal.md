@@ -213,3 +213,7 @@ r3 (critique round 2): with no rim on the farmer's face, the far edge reads skin
 ## 2026-10-18T06:28:50Z · court
 
 r3: the near hair tip, blunt and as wide as the rim, hides the face rim beside it; the rim starts at the tip's foot at 16.51 and 20.01. The gaze knob cannot hold the features' slide apart from the eyes' (both follow one target and the features saturate first), so the near brow was moved in 2 units and Christ's turn cut to 0.5: brow to ink about 0.15 eye spacing at 16.51.
+
+## 2026-10-18T06:47:15Z · court
+
+onYou (C3): Christ's head turned to us (ChristFront, traced from court.you try 2) swaps in at the turn's middle, during the camera move; at 20.01 His eyes sit at 29% of the frame height with the hair whole in frame, and the lead stands a pace back behind Him at 0.72 of his size. The hair and the beard's foot traced on the region alone left a 1-3 px light line of the face under the ink; run 2% past the region they close it. film match flags the head turn at +0.31 against -0.01 while the eyes sit centred between the hair's edges (pixels); the face's shade band on the far side is twice court.you's value drop.

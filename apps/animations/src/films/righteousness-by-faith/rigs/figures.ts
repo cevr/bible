@@ -6,7 +6,7 @@
 // project file, the same text for the same code.
 
 import { DIRECTION, figure, fragment, ids } from '@bible/film/style/rig';
-import { CHRIST, CHRIST_KNOBS } from './christ-rig.ts';
+import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
 import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
 import { handRig } from './hand-rig.ts';
 import { judgeRig } from './judge-rig.ts';
@@ -23,6 +23,7 @@ export const ARTBOARDS = {
   prosecutor: 'Prosecutor',
   skinHand: 'SkinHand',
   christ: 'Christ',
+  christFront: 'ChristFront',
   christHand: 'ChristHand',
   farmer: 'Farmer',
   farmerHand: 'FarmerHand',
@@ -56,5 +57,10 @@ export const figuresRml = (): string => {
       crease: PAPERS.skinHand.crease,
       rim: 4,
     }),
+    ...robedRig(
+      figure(next, ARTBOARDS.christFront, 2310, 2400, d),
+      CHRIST_FRONT,
+      CHRIST_FRONT_KNOBS,
+    ),
   ]);
 };

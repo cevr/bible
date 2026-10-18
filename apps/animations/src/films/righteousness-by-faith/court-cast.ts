@@ -35,6 +35,7 @@ import { JUDGE_KNOBS } from './rigs/judge-rig.ts';
 import { LEAD, LEAD_KNOBS } from './rigs/lead-rig.ts';
 import { PROSECUTOR_KNOBS } from './rigs/prosecutor-rig.ts';
 import {
+  christFrontProp,
   christHandProp,
   christProp,
   judgeProp,
@@ -57,6 +58,7 @@ export const COURT_RIGS = {
 export const LANDING_RIGS = {
   ...COURT_RIGS,
   christ: christProp,
+  christFront: christFrontProp,
   christHand: christHandProp,
 } as const;
 
@@ -75,7 +77,7 @@ export interface CourtFrame {
     pose: { timelines: Timelines<'breath' | 'boil'>; numbers: ProsecutorNumbers },
   ): void;
   rive(
-    name: 'christ',
+    name: 'christ' | 'christFront',
     pose: { timelines: Timelines<'breath' | 'boil'>; numbers: ChristNumbers },
   ): void;
   rive(name: 'leadHand' | 'skinHand' | 'christHand', pose: { timelines: Timelines<'boil'> }): void;
@@ -109,6 +111,8 @@ export interface CourtPose {
     seal: SealPose;
     /** How far he stands off his place in the dock, Board pixels (the landing makes room beside him). */
     dx: number;
+    /** How far he stands back behind Christ, as court.you sets him (0: beside Him; 1: a pace back, smaller and behind Him). */
+    back: number;
     seed: SeedPose;
   };
   readonly prosecutor: {
@@ -131,6 +135,8 @@ export interface CourtPose {
     hands: [Pt, Pt];
     /** Whether He stands beside the accused: 0 not there. */
     shown: number;
+    /** Whether He has turned to us (court.you): 1 His head as court.you draws it, facing the viewer. */
+    front: number;
     /** His near hand's size against its rest, as He holds it out toward us. */
     reach: number;
     seed: SeedPose;
@@ -185,6 +191,7 @@ export const restPose = (): CourtPose => ({
     hands: [[...HANDS.lead[0]], [...HANDS.lead[1]]],
     seal: { x: 0, y: 0, rot: 0, scale: 1, shown: 0, glint: 0 },
     dx: 0,
+    back: 0,
     seed: noSeed(),
   },
   prosecutor: {
@@ -204,6 +211,7 @@ export const restPose = (): CourtPose => ({
     numbers: { ...CHRIST_KNOBS },
     hands: [[...HANDS.christ[0]], [...HANDS.christ[1]]],
     shown: 0,
+    front: 0,
     reach: 1,
     seed: noSeed(),
   },
@@ -385,29 +393,62 @@ const prosecutorGroup = (f: CourtFrame, p: CourtPose) => {
   if (here) for (const h of p.prosecutor.hands) handAt(f, 'skinHand', h, HAND.prosecutor);
 };
 
+/** The lead a pace back (`back` 1): how much smaller he stands, and how far up the floor his feet go, Board pixels. */
+const BACK = { scale: 0.28, rise: 36 } as const;
+
 /**
  * The dock and who stands behind it: Christ beside the lead when He is
- * there, the lead in front of Him; the seal over the lead's stain; their
- * hands on the rail, and the seeds in their hands.
+ * there, the lead in front of Him, or a pace behind Him when he is set
+ * back (`back`); the seal over the lead's stain; their hands on the rail,
+ * and the seeds in their hands.
  */
 const leadGroup = (f: CourtFrame, p: CourtPose) => {
   const { ctx } = f;
   const christ = p.christ.shown > 0;
-  if (christ) {
+  const behind = p.lead.back > 0;
+  const lx = PLACE.lead[0] + p.lead.dx;
+  const ly = PLACE.lead[1];
+  // Set back, he stands a pace behind Christ: smaller, about a point up the floor from his feet.
+  const s = 1 - BACK.scale * p.lead.back;
+  const asLead = (draw: () => void) => {
+    ctx.save();
+    ctx.translate(lx, ly - BACK.rise * p.lead.back);
+    ctx.scale(s, s);
+    ctx.translate(-lx, -ly);
+    draw();
+    ctx.restore();
+  };
+  const leadFigure = () =>
+    asLead(() => {
+      contact(ctx, lx, ly + 2, 95);
+      at(ctx, { x: lx, y: ly }, () =>
+        f.rive('lead', { timelines: living(f, 4, 2.1), numbers: p.lead.numbers }),
+      );
+      seal(ctx, p.lead.seal);
+    });
+  const christFigure = () => {
+    if (!christ) return;
     contact(ctx, PLACE.christ[0], PLACE.christ[1] + 2, 100);
     at(ctx, { x: PLACE.christ[0], y: PLACE.christ[1] }, () =>
-      f.rive('christ', { timelines: living(f, 5, 3.4), numbers: p.christ.numbers }),
+      f.rive(p.christ.front >= 0.5 ? 'christFront' : 'christ', {
+        timelines: living(f, 5, 3.4),
+        numbers: p.christ.numbers,
+      }),
     );
+  };
+  // Beside Him the lead stands in front of Christ; set back, behind Him.
+  if (behind) {
+    leadFigure();
+    christFigure();
+  } else {
+    christFigure();
+    leadFigure();
   }
-  const lx = PLACE.lead[0] + p.lead.dx;
-  contact(ctx, lx, PLACE.lead[1] + 2, 95);
-  at(ctx, { x: lx, y: PLACE.lead[1] }, () =>
-    f.rive('lead', { timelines: living(f, 4, 2.1), numbers: p.lead.numbers }),
-  );
-  seal(ctx, p.lead.seal);
   dock(ctx);
-  for (const h of p.lead.hands) handAt(f, 'leadHand', h, HAND.lead);
-  seedProp(ctx, p.lead.seed);
+  asLead(() => {
+    for (const h of p.lead.hands) handAt(f, 'leadHand', h, HAND.lead);
+    seedProp(ctx, p.lead.seed);
+  });
   if (!christ) return;
   const [near, far] = p.christ.hands;
   handAt(f, 'christHand', far, HAND.christ);
