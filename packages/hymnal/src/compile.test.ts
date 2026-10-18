@@ -1,12 +1,12 @@
 import { HymnalService, HymnId } from '@bible/core/hymnal';
 import { layerHymnalBun } from '@bible/core/hymnal/bun';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { ConfigProvider, Effect, Layer } from 'effect';
+import { ConfigProvider, Effect, FileSystem, Layer, Result, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import * as Chord from './chord.js';
 import { compile } from './compile.js';
-import type { Hymn, Part, Sung } from './hymn.js';
+import { Hymn, type Part, type Sung } from './hymn.js';
 import * as Fixture from './midi-fixture.js';
 
 type Voices = readonly [Fixture.Voice, Fixture.Voice, Fixture.Voice, Fixture.Voice];
@@ -652,32 +652,122 @@ describe('compile: verse layout', () => {
   );
 
   it.effect(
-    'reads hymn 593 from hymnal.db with its three stanzas in order and its refrain once',
+    'reads hymn 593 from hymnal.db as three stanzas, each with the refrain ending the print sings after it',
     () =>
       Effect.gen(function* () {
         const text = yield* (yield* HymnalService).getHymn(HymnId.make(593));
         const hymn = yield* compile({ ...source(tuneFile(3), []), verses: text.verses });
-        expect([...hymn.stanzas, hymn.refrain].map(firstLine)).toEqual([
+        expect(hymn.refrain).toBeUndefined();
+        expect(hymn.stanzas.map((stanza) => wordsOf(stanza).length)).toEqual([8, 8, 8]);
+        expect(hymn.stanzas.map(firstLine)).toEqual([
           'In times like these you need a Savior,',
           'In times like these you need the Bible,',
           'In times like these I have a Savior,',
-          "This Rock is Jesus, Yes, He's the One,",
+        ]);
+        expect(hymn.stanzas.map((stanza) => wordsOf(stanza)[6])).toEqual([
+          'Be very sure, be very sure',
+          'Be very sure, be very sure',
+          "I'm very sure, I'm very sure",
         ]);
       }).pipe(Effect.provide(hymnal)),
   );
 
-  it.effect('reads the verse layout of every hymn in hymnal.db', () =>
+  it.effect('compiles every hymn of hymnal.db: its verse layout is one the compiler reads', () =>
     Effect.gen(function* () {
       const service = yield* HymnalService;
-      const refused: number[] = [];
+      const midi = tuneFile(2);
+      const failed: number[] = [];
       for (let n = 1; n <= 695; n++) {
         const text = yield* service.getHymn(HymnId.make(n));
-        const error = yield* Effect.flip(
-          compile({ ...source(new Uint8Array(), []), verses: text.verses }),
-        );
-        if (error._tag === 'VerseLayoutError') refused.push(n);
+        const result = yield* Effect.result(compile({ ...source(midi, []), verses: text.verses }));
+        if (Result.isFailure(result)) failed.push(n);
       }
-      expect(refused).toEqual([]);
+      expect(failed).toEqual([]);
     }).pipe(Effect.provide(hymnal)),
+  );
+});
+
+/** A line as the property compares it: trimmed, its spaces collapsed. */
+const plainLine = (line: string) => line.trim().replace(/\s+/g, ' ');
+
+/** A part's lines as words: a sung line's syllables joined by word. */
+const wordsOf = (part: Part): string[] =>
+  (part._tag === 'Sung' ? cuts(part, '') : [...part.lines]).map(plainLine);
+
+/** The hymn as sung, line by line: each stanza, then the refrain after it. */
+const sungLines = (hymn: Hymn): string[] =>
+  hymn.stanzas.flatMap((stanza) => [
+    ...wordsOf(stanza),
+    ...(hymn.refrain === undefined ? [] : wordsOf(hymn.refrain)),
+  ]);
+
+const linesOfText = (text: string) =>
+  text
+    .split('\n')
+    .map(plainLine)
+    .filter((line) => line !== '');
+
+/** Where `run` sits in `lines` at or after `from`, as a contiguous run; -1 when it does not. */
+const runAt = (lines: readonly string[], run: readonly string[], from: number) => {
+  for (let k = from; k + run.length <= lines.length; k++) {
+    if (run.every((line, i) => lines[k + i] === line)) return k;
+  }
+  return -1;
+};
+
+type SourceVerse = { readonly id: number; readonly text: string };
+
+/**
+ * Which of a source's verses the hymn does not sing, in printed order. A
+ * row's one refrain (its single negative id) may sit anywhere, as it is sung
+ * after every stanza; every other verse must follow the one before it. A
+ * corrected row's source (`data/fixes/NNN.json`) is in printed order already.
+ */
+const missing = (hymn: Hymn, verses: readonly SourceVerse[], printed: boolean): number[] => {
+  const sung = sungLines(hymn);
+  const refrains = verses.filter((verse) => verse.id < 0);
+  const refrain = !printed && refrains.length === 1 ? refrains[0] : undefined;
+  const ordered = printed
+    ? verses
+    : verses.filter((verse) => verse !== refrain).toSorted((a, b) => a.id - b.id);
+  const lost: number[] = [];
+  if (refrain !== undefined && runAt(sung, linesOfText(refrain.text), 0) < 0) lost.push(refrain.id);
+  let at = 0;
+  for (const verse of ordered) {
+    const run = linesOfText(verse.text);
+    const k = runAt(sung, run, at);
+    if (k < 0) lost.push(verse.id);
+    else at = k + run.length;
+  }
+  return lost;
+};
+
+const SourceVerses = Schema.fromJsonString(
+  Schema.Array(Schema.Struct({ id: Schema.Int, text: Schema.String })),
+);
+const decodeHymn = Schema.decodeUnknownEffect(Schema.fromJsonString(Hymn));
+
+describe('compile: text fidelity', () => {
+  it.effect(
+    'the compiled set sings every line of every source verse, in the source order, nothing dropped',
+    () =>
+      Effect.gen(function* () {
+        const service = yield* HymnalService;
+        const fs = yield* FileSystem.FileSystem;
+        const data = (file: string) => new URL(`../data/${file}`, import.meta.url).pathname;
+        const lost: string[] = [];
+        for (let n = 1; n <= 695; n++) {
+          const name = String(n).padStart(3, '0');
+          const fix = data(`fixes/${name}.json`);
+          const printed = yield* fs.exists(fix);
+          const verses = printed
+            ? yield* Schema.decodeEffect(SourceVerses)(yield* fs.readFileString(fix))
+            : (yield* service.getHymn(HymnId.make(n))).verses;
+          const hymn = yield* decodeHymn(yield* fs.readFileString(data(`sdah-1985/${name}.json`)));
+          const ids = missing(hymn, verses, printed);
+          if (ids.length > 0) lost.push(`${n}: ids ${ids.join(' ')}`);
+        }
+        expect(lost).toEqual([]);
+      }).pipe(Effect.provide(Layer.merge(hymnal, BunServices.layer))),
   );
 });

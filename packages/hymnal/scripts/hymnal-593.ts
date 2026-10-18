@@ -1,70 +1,56 @@
 /**
- * Rewrites hymn 593 ("In Times Like These") in hymnal.db to the layout every
- * other hymn keeps: its stanzas as verse ids 0, 1, 2 in printed order, and
- * its refrain once, as id -1, ahead of them.
+ * Writes hymn 593 ("In Times Like These") into hymnal.db in the layout the
+ * compiler reads, every printed word kept:
  *
  *   bun packages/hymnal/scripts/hymnal-593.ts [--db <hymnal.db>]
  *
- * The row came in interleaved: ids -3, -1 and 1 are stanzas 1 to 3, and ids
- * -2, 0 and 2 the refrain after each. The refrain is kept from id -2, as it
- * follows stanzas 1 and 2; the last one's "I'm very sure ... My anchor"
- * wording (id 2) has no place in a refrain stored once, and the script says
- * so when it drops it. Rerunning it on the fixed row changes nothing; any
- * other layout is refused.
+ * Its source is `data/fixes/593.json`, the row as hymnal.db first held it:
+ * stanzas 1 to 3 at ids -3, -1 and 1, each followed by the refrain the print
+ * sings after it (ids -2, 0 and 2). The refrain's last two lines change
+ * after stanza 3 ("I'm very sure ... My anchor"), so no single refrain fits
+ * all three: each stanza is written with its own refrain after it, as ids
+ * 0, 1 and 2, and the hymn has no refrain of its own. The output depends on
+ * the source alone, so a rerun writes the same row. `--db` is read against
+ * the working directory; a missing file is refused, never created.
  */
 
 import { Database } from 'bun:sqlite';
+import { Schema } from 'effect';
 import path from 'node:path';
 
 const NUMBER = 593;
-const BROKEN = [-3, -2, -1, 0, 1, 2];
-const FIXED = [-1, 0, 1, 2];
+const LAYOUT = '-3 -2 -1 0 1 2';
 
-interface Verse {
-  readonly id: number;
-  readonly text: string;
-}
-
-const args = process.argv.slice(2);
-const at = args.indexOf('--db');
-const file = path.resolve(
-  import.meta.dir,
-  '../../..',
-  at < 0 ? 'packages/core/data/hymnal.db' : (args[at + 1] ?? ''),
+const Verses = Schema.fromJsonString(
+  Schema.Array(Schema.Struct({ id: Schema.Int, text: Schema.String })),
 );
+type Verses = typeof Verses.Type;
 
-const db = new Database(file);
-const row = db.query('SELECT verses FROM hymns WHERE id = ?').get(NUMBER) as {
-  verses: string;
-} | null;
-if (row === null) throw new Error(`hymn ${NUMBER} is not in ${file}`);
-const verses = JSON.parse(row.verses) as Verse[];
-const ids = verses.map((verse) => verse.id).join(' ');
-const text = (id: number) => {
-  const verse = verses.find((v) => v.id === id);
-  if (verse === undefined) throw new Error(`hymn ${NUMBER} has no verse ${id}`);
-  return verse.text;
+/** The row's verses as the compiler reads them: each stanza, ids 0, 1, 2, with the refrain sung after it. */
+export const inline = (source: Verses): Verses => {
+  const ids = source.map((verse) => verse.id).join(' ');
+  if (ids !== LAYOUT) throw new Error(`hymn ${NUMBER}: source ids ${ids}, not ${LAYOUT}`);
+  return [0, 1, 2].map((n) => ({
+    id: n,
+    text: `${source[2 * n]?.text ?? ''}\n${source[2 * n + 1]?.text ?? ''}`,
+  }));
 };
 
-if (ids === FIXED.join(' ')) {
-  console.log(`hymnal-593 already fixed in ${file}`);
-} else if (ids === BROKEN.join(' ')) {
-  if (text(0) !== text(-2))
-    throw new Error(`hymn ${NUMBER}: the refrains after stanzas 1 and 2 differ`);
-  const fixed: Verse[] = [
-    { id: -1, text: text(-2) },
-    { id: 0, text: text(-3) },
-    { id: 1, text: text(-1) },
-    { id: 2, text: text(1) },
-  ];
-  db.query('UPDATE hymns SET verses = ? WHERE id = ?').run(JSON.stringify(fixed), NUMBER);
-  if (text(2) !== text(-2)) {
-    console.log(`hymnal-593 dropped the last refrain's own wording: ${JSON.stringify(text(2))}`);
-  }
-  console.log(`hymnal-593 fixed in ${file}: ids ${ids} -> ${FIXED.join(' ')}`);
-} else {
-  throw new Error(
-    `hymn ${NUMBER} has verse ids ${ids}, neither the broken layout nor the fixed one`,
+if (import.meta.main) {
+  const args = process.argv.slice(2);
+  const at = args.indexOf('--db');
+  const file =
+    at < 0
+      ? path.resolve(import.meta.dir, '../../core/data/hymnal.db')
+      : path.resolve(args[at + 1] ?? '');
+  const source = Schema.decodeSync(Verses)(
+    await Bun.file(path.resolve(import.meta.dir, '../data/fixes/593.json')).text(),
   );
+  const db = new Database(file, { create: false, readwrite: true });
+  const before = db.query('SELECT verses FROM hymns WHERE id = ?').get(NUMBER);
+  if (before === null) throw new Error(`hymn ${NUMBER} is not in ${file}`);
+  const verses = Schema.encodeSync(Verses)(inline(source));
+  db.query('UPDATE hymns SET verses = ? WHERE id = ?').run(verses, NUMBER);
+  db.close();
+  console.log(`hymnal-593 wrote ids 0 1 2 (each stanza with its refrain) into ${file}`);
 }
-db.close();
