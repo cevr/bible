@@ -3,13 +3,15 @@
  * stanza, each syllable with the chords that change while it is sung, and
  * each part judged for how far its placement can be trusted.
  *
- * Stanza n is laid, with the refrain's lines after it as it is sung, on the
- * file's verse n (its last verse when the file plays fewer). The files play
- * each verse as its stanza and the refrain after it, a refrain printed first
- * included (its first singing is in the intro). The refrain is stored once,
- * with where it is sung (`order`), from stanza 1's placement; a refrain sung
- * only first and last is laid after the last stanza alone, where the file
- * plays it, and stored from there.
+ * Stanza n is laid, with the refrain's lines after it where the file plays
+ * them, on the file's verse n (its last verse when the file plays fewer). The
+ * files play each verse as its stanza and the refrain after it, a refrain
+ * printed first or before each stanza included (its first singing is in the
+ * intro). The refrain is stored once, with where the page sings it
+ * (`order`, required: a refrain has no default place), from stanza 1's
+ * placement; a refrain sung after the last stanza alone (`first-and-last`,
+ * `after-last`) is laid after the last stanza only, where the file plays it,
+ * and stored from there.
  *
  * Where a chord goes, at both levels:
  * - A change belongs to the syllable sung when it comes: a syllable owns the
@@ -47,7 +49,7 @@ interface Source {
   readonly midi: Uint8Array;
   /** Why the hymn is held back: every part is then plain text. */
   readonly held?: string | undefined;
-  /** Where the refrain is sung when the hymnal sings it otherwise than after each stanza. */
+  /** Where the page sings the refrain: given for a hymn with a refrain, and only then. */
   readonly order?: Order | undefined;
 }
 
@@ -246,6 +248,7 @@ const VerseLayoutReason = Schema.Literals([
   'more than one refrain',
   'a verse has no words',
   'a refrain order with no refrain',
+  'a refrain with no order',
 ]);
 type VerseLayoutReason = typeof VerseLayoutReason.Type;
 
@@ -258,8 +261,9 @@ class VerseLayoutError extends Schema.TaggedError<VerseLayoutError>()('VerseLayo
 /**
  * The text's stanzas in printed order and its refrain. The order is known
  * only when the stanzas' ids are 0, 1, … n - 1 and at most one verse, the
- * refrain, has a negative id, and every verse has a letter; an order is
- * given only for a refrain: any other layout is refused.
+ * refrain, has a negative id, and every verse has a letter; a refrain comes
+ * with the order its page sings it in, and an order only with a refrain: any
+ * other layout is refused.
  */
 const versesOf = (source: Source) => {
   const ids = source.verses.map((verse) => verse.id);
@@ -272,11 +276,15 @@ const versesOf = (source: Source) => {
   if (source.verses.some((verse) => !/\p{L}/u.test(verse.text)))
     return refuse('a verse has no words');
   const chorus = choruses[0];
-  if (chorus === undefined && source.order !== undefined)
-    return refuse('a refrain order with no refrain');
+  const order = source.order;
+  if (chorus === undefined && order !== undefined) return refuse('a refrain order with no refrain');
+  if (chorus !== undefined && order === undefined) return refuse('a refrain with no order');
   return Effect.succeed({
     stanzas: Arr.map(stanzas, (verse) => linesOf(verse.text)),
-    refrain: chorus === undefined ? undefined : linesOf(chorus.text),
+    refrain:
+      chorus === undefined || order === undefined
+        ? undefined
+        : { order, lines: linesOf(chorus.text) },
   });
 };
 
@@ -300,16 +308,17 @@ export const compile = (
         exact: score.verses.exact,
       },
     } as const;
-    const order = source.order ?? 'after-each';
     if (source.held !== undefined) {
       const plain: Mutable<Hymn> = { ...head, stanzas: Arr.map(stanzas, held) };
-      if (refrain !== undefined) plain.refrain = { order, part: held(refrain) };
+      if (refrain !== undefined)
+        plain.refrain = { order: refrain.order, part: held(refrain.lines) };
       return plain;
     }
-    // The stanza the refrain is stored from: the last when it is sung only first and last.
-    const from = refrain !== undefined && order === 'first-and-last' ? stanzas.length - 1 : 0;
+    // The stanza the refrain is laid after and stored from: the last alone when it is sung after the last only.
+    const lastOnly = refrain?.order === 'first-and-last' || refrain?.order === 'after-last';
+    const from = lastOnly ? stanzas.length - 1 : 0;
     const tail = (n: number) =>
-      refrain === undefined || (order === 'first-and-last' && n !== from) ? [] : refrain;
+      refrain === undefined || (lastOnly && n !== from) ? [] : refrain.lines;
     const laid = Arr.map(stanzas, (lines, n) => lay(score, n, [...lines, ...tail(n)]));
     const parts = Arr.map(laid, (one, n) => {
       const lines = stanzas[n] ?? [];
@@ -319,7 +328,8 @@ export const compile = (
     const stored = laid[from];
     const start = stanzas[from]?.length ?? 0;
     if (refrain !== undefined && stored !== undefined) {
-      hymn.refrain = { order, part: partOf(stored, refrain, start, start + refrain.length) };
+      const part = partOf(stored, refrain.lines, start, start + refrain.lines.length);
+      hymn.refrain = { order: refrain.order, part };
     }
     return hymn;
   });

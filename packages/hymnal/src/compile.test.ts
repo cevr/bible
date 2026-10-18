@@ -4,6 +4,7 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { ConfigProvider, Effect, Layer } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
+import { sourceOf } from '../scripts/sources.js';
 import * as Chord from './chord.js';
 import { compile } from './compile.js';
 import type { Hymn, Part, Sung } from './hymn.js';
@@ -59,7 +60,8 @@ const source = (
   ],
   midi,
   held: extra.held,
-  order: extra.order,
+  // A case's refrain is sung after each stanza unless the case names its order.
+  order: extra.order ?? (extra.refrain === undefined ? undefined : 'after-each'),
 });
 
 /** The part as sung, failing the test when it is plain. */
@@ -652,6 +654,23 @@ describe('compile: trust', () => {
         expect(placed(ends, sung(ends.refrain?.part))).not.toEqual(
           placed(each, sung(each.refrain?.part)),
         );
+        // Sung after the last stanza alone (1 2 R): laid as first and last; before each: as after each.
+        const last = yield* compile(
+          source(stepsFile(2), stanzas, { ...refrain, order: 'after-last' }),
+        );
+        expect(last.refrain?.order).toBe('after-last');
+        expect({ ...last, refrain: last.refrain?.part }).toEqual({
+          ...ends,
+          refrain: ends.refrain?.part,
+        });
+        const before = yield* compile(
+          source(stepsFile(2), stanzas, { ...refrain, order: 'before-each' }),
+        );
+        expect(before.refrain?.order).toBe('before-each');
+        expect({ ...before, refrain: before.refrain?.part }).toEqual({
+          ...each,
+          refrain: each.refrain?.part,
+        });
       }),
   );
 });
@@ -702,7 +721,35 @@ describe('compile: verse layout', () => {
         ids: [0],
         reason: 'a refrain order with no refrain',
       });
+      const unplaced = {
+        ...source(tuneFile(2), ['Sing we now to God,'], { refrain: 'Lord of all' }),
+        order: undefined,
+      };
+      expect(yield* Effect.flip(compile(unplaced))).toMatchObject({
+        _tag: 'VerseLayoutError',
+        ids: [0, -1],
+        reason: 'a refrain with no order',
+      });
     }),
+  );
+
+  it.effect(
+    'builds no source for a refrain refrains.json does not place, nor a place for a hymn with none',
+    () =>
+      Effect.gen(function* () {
+        const row = (verses: Source['verses']) => ({ number: 7, name: 'Test', verses });
+        const stanza = { id: 0, text: 'Sing we now to God,' };
+        const refrain = { id: -1, text: 'Lord of all' };
+        const midi = tuneFile(2);
+        expect(yield* Effect.flip(sourceOf(row([stanza, refrain]), midi, new Map()))).toEqual(
+          expect.objectContaining({ number: 7, reason: 'a refrain with no place' }),
+        );
+        expect(
+          yield* Effect.flip(sourceOf(row([stanza]), midi, new Map([[7, 'after-each']]))),
+        ).toEqual(expect.objectContaining({ number: 7, reason: 'a place with no refrain' }));
+        const placed = yield* sourceOf(row([stanza, refrain]), midi, new Map([[7, 'after-last']]));
+        expect(placed.order).toBe('after-last');
+      }),
   );
 
   it.effect(

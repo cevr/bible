@@ -200,7 +200,9 @@ const compileOne = (n: number) =>
       : fromRow(row.verses, order.get(n));
     const midi = yield* fs.readFile(data(`midi/${name}.mid`));
     const result = yield* Effect.result(
-      compile(sourceOf({ number: n, name: row.name, verses: row.verses }, midi, source)),
+      sourceOf({ number: n, name: row.name, verses: row.verses }, midi, source).pipe(
+        Effect.flatMap(compile),
+      ),
     );
     const hymn = Result.mapError(result, (error) => `compile failed: ${error._tag}`);
     const one: Compiled = { number: n, printed, hymn };

@@ -24,7 +24,7 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 import { compile } from '../src/compile.js';
-import { Hymn, Index, type Level, type Order, type Part, type Reason, sung } from '../src/hymn.js';
+import { Hymn, Index, type Level, Order, type Part, type Reason, sung } from '../src/hymn.js';
 import { decodeOrders, HELD, sourceOf } from './sources.js';
 
 const ROOT = path.resolve(import.meta.dir, '../../..');
@@ -41,7 +41,7 @@ const midiDir = flag('--midi', 'packages/hymnal/data/midi');
 const out = flag('--out', 'packages/hymnal/data/sdah-1985');
 const keyDir = flag('--key', 'packages/hymnal/data/key');
 
-/** Where the hymnal sings a refrain otherwise than after each stanza, read off the engravings. */
+/** Where the hymnal sings each refrain, read off its page. */
 const REFRAINS = path.resolve(import.meta.dir, '../data/fixes/refrains.json');
 
 const pad = (n: number) => String(n).padStart(3, '0');
@@ -54,7 +54,7 @@ const refrainsOf = (compiled: readonly Hymn[]) => {
   const withRefrain = compiled.flatMap((hymn) =>
     hymn.refrain === undefined ? [] : [{ hymn, order: hymn.refrain.order }],
   );
-  const orders: readonly Order[] = ['after-each', 'first-and-after-each', 'first-and-last'];
+  const orders: readonly Order[] = Order.literals;
   const outline = (hymn: Hymn) =>
     sung(hymn)
       .filter((line) => line.line === 0)
@@ -150,7 +150,11 @@ const compileOne = (n: number, orders: ReadonlyMap<number, Order>) =>
       return yield* new Failed({ why: `${n}: no MIDI file` });
     }
     const midi = yield* Effect.promise(() => file.bytes());
-    const source = sourceOf({ number: n, name: text.name, verses: text.verses }, midi, orders);
+    const source = yield* sourceOf(
+      { number: n, name: text.name, verses: text.verses },
+      midi,
+      orders,
+    ).pipe(Effect.mapError((e) => new Failed({ why: `${n}: ${e.reason} in refrains.json` })));
     const hymn = yield* compile(source).pipe(
       Effect.mapError(
         (e) =>

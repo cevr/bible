@@ -94,12 +94,22 @@ const Part = Schema.Union([Sung, Plain]);
 export type Part = typeof Part.Type;
 
 /**
- * Where the hymnal sings the refrain: `after-each` stanza (its usual
- * print); `first-and-after-each`, printed above stanza 1, so sung first and
- * then after every stanza (D.C. al Fine); `first-and-last`, sung before
- * stanza 1 and after the last stanza only (172's Alleluias).
+ * Where the hymnal sings the refrain, as its page prints it: `after-each`
+ * stanza (its usual print, 1 R 2 R 3 R); `first-and-after-each`, printed
+ * above stanza 1 and returned to (D.C. al Fine), so sung first and then after
+ * every stanza (R 1 R 2 R 3 R); `before-each`, printed above the stanzas with
+ * no return, so sung before each stanza (R 1 R 2 R 3, 349); `first-and-last`,
+ * sung before stanza 1 and after the last stanza only (R 1 2 3 4 R, 172's
+ * Alleluias); `after-last`, the stanzas under one repeat and the refrain
+ * printed once after them (1 2 R, 262).
  */
-export const Order = Schema.Literals(['after-each', 'first-and-after-each', 'first-and-last']);
+export const Order = Schema.Literals([
+  'after-each',
+  'first-and-after-each',
+  'before-each',
+  'first-and-last',
+  'after-last',
+]);
 export type Order = typeof Order.Type;
 
 /** The refrain, stored once, and where it is sung. */
@@ -147,7 +157,8 @@ const linesOf = (part: Part, verse: Line['verse']): Line[] =>
 /**
  * The hymn's lines in the order they are sung: each stanza, and the refrain
  * where its order places it (after each stanza; first and after each
- * stanza; or first and after the last stanza).
+ * stanza; before each stanza; first and after the last stanza; or after the
+ * last stanza alone).
  */
 export const sung = (hymn: Hymn): Line[] => {
   const stanzas = hymn.stanzas.map((part, n) => linesOf(part, n + 1));
@@ -161,8 +172,12 @@ export const sung = (hymn: Hymn): Line[] => {
       return each;
     case 'first-and-after-each':
       return [...chorus, ...each];
+    case 'before-each':
+      return stanzas.flatMap((lines) => [...chorus, ...lines]);
     case 'first-and-last':
       return [...chorus, ...all, ...chorus];
+    case 'after-last':
+      return [...all, ...chorus];
   }
 };
 

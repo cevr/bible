@@ -1,10 +1,110 @@
 {
-  "print": "Where a hymn's refrain is sung, read off its engraving (github.com/adventHymnals/SDAHImages, docs/seventh-day-adventist-hymnal/SDAHimages/NNN.png) on 2026-10-18. hymnal.db cannot say it: it gives the refrain of 93, 121, 133, 172 and 475 the id -2 and the refrain of 362 the id -1, and 172's id is the same as the others'. A hymn with a refrain that is not listed here sings it after each stanza, as the hymnal prints most.",
+  "print": "Where each refrain hymn of hymnal.db sings its refrain, read off its page on 2026-10-18: the engraving github.com/adventHymnals/SDAHImages, docs/seventh-day-adventist-hymnal/SDAHimages/NNN.png, unless `from` names another source. hymnal.db cannot say it: its refrain ids (-1, -2) do not tell the orders apart. Every hymn whose row has a refrain is listed, and only those: the compiler refuses a refrain with no entry, and an entry for a hymn with no refrain. A hymn whose printed fix writes each stanza with its own refrain (data/fixes/<n>.json) has no refrain in its row and is not listed.",
   "hymns": [
+    {
+      "number": 2,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-10; the refrain (marked Refrain, bars 11-17) follows a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 24,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-12) follows a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 27,
+      "order": "after-each",
+      "from": "stanzas 1-5 printed under bars 1-8 and the refrain (marked Refrain, bars 9-13) follows, ending in a '1, 2, 3.' ending with a repeat back to the start, so each stanza is followed by the refrain; the '4.' ending (bar 14, 'Optional ending for verse 5') leads through a wordless interlude (bars 15-18) to stanza 5 printed again in G (bars 19-27) and the refrain in G (bars 28-32, final barline)"
+    },
+    {
+      "number": 34,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16; the refrain (marked Refrain, bars 17-25) follows a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 46,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-12; the refrain (marked Refrain, bars 13-21) follows a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 51,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-10; the refrain (marked Refrain, bars 11-20) follows a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 65,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; the refrain (marked Refrain, bars 9-17) follows a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 68,
+      "order": "after-each",
+      "from": "stanzas 1-2 printed under bars 1-17; the refrain (marked Refrain, bars 18-25) follows a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 74,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16; the refrain (marked Refrain, bars 17-24) follows a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 75,
+      "order": "after-each",
+      "from": "stanzas 1-2 printed under bars 1-16; the refrain (marked Refrain, bars 17-33) follows a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 78,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-4, which close with a double barline; the refrain (marked Refrain, bars 5-9) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 86,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8 with the refrain (marked Refrain) after them to bar 17, where a \"1, 2.\" ending repeats back to the start; a \"3.\" ending on page 2, marked \"Optional ending for verse 4\", modulates into stanza 4 printed again in a new key (bars 20-28) followed by the refrain to the final barline at bar 37, so each stanza is followed by the refrain"
+    },
+    {
+      "number": 91,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-10, which close with a double barline; a single unnumbered row of five Alleluias under bars 11-17 follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
     {
       "number": 93,
       "order": "first-and-after-each",
       "from": "the refrain is printed first, as stanza 1 (bars 1-8, Fine); stanzas 2-5 follow (bars 9-18), D.C. al Fine"
+    },
+    {
+      "number": 99,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, which close with a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 100,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16, which close with a double barline; the refrain (marked Refrain, bars 17-32) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 109,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16, which close with a double barline; the refrain (marked Refrain, bars 17-32) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 111,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, which close with a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 112,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-4; a single unnumbered row 'For His mercies shall endure, Ever faithful, ever sure.' under bars 5-8 follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 115,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-12, which close with a double barline; the refrain (marked Refrain, bars 13-20) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 118,
+      "order": "after-each",
+      "from": "stanzas 1-5 printed under the pickup and bars 1-16; the refrain (marked Refrain, bars 17-25) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
     },
     {
       "number": 121,
@@ -12,9 +112,64 @@
       "from": "the refrain is printed first (bars 1-8, marked Refrain, Fine); stanzas 1-3 follow (bars 9-18), D.C. al Fine"
     },
     {
+      "number": 122,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16; the refrain (marked Refrain, bars 17-20) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 132,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-12 (ending 'born the King of angels!'); the refrain (marked Refrain, bars 13-21) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
       "number": 133,
       "order": "first-and-after-each",
       "from": "the refrain is printed first (bars 1-8, marked Refrain, Fine); stanzas 1-2 follow (bars 9-16), D.C. al Fine"
+    },
+    {
+      "number": 137,
+      "order": "after-each",
+      "from": "stanzas 1-5 printed under bars 1-15; the refrain (marked Refrain, bars 16-31) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 138,
+      "order": "after-each",
+      "from": "stanzas 1-2 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-24) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 141,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-16) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 142,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; the refrain (marked Refrain, bars 9-21) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 150,
+      "order": "after-each",
+      "from": "stanzas 1-7 printed under bars 1-4, then one unnumbered row under bars 5-9 sung with every stanza; the refrain (marked Refrain, bars 10-21) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 152,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16, which end at a double barline; the refrain (marked Refrain, bars 17-24) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 159,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8; the refrain (marked Refrain) starts after the double barline in bar 8 and runs to the final barline at bar 17; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 163,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-9, which end at a double barline; the refrain (marked Refrain, bars 10-18) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 171,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16, which end at a double barline; the refrain (marked Refrain, bars 17-24) follows and ends at the final barline; no repeat, D.C. or Fine"
     },
     {
       "number": 172,
@@ -22,14 +177,809 @@
       "from": "the Alleluias are printed first (bars 1-7); the footnote reads: These Alleluias to be sung before stanza 1 and after stanza 4"
     },
     {
+      "number": 173,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-12, which end at a double barline; the refrain (marked Refrain, bars 13-18, 'Al-le-lu-ia!' three times) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 178,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-20) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 180,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-12, which end at a double barline; the refrain (marked Refrain, bars 13-24) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 181,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-9, which end at a double barline; the refrain (marked Refrain, bars 10-19) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 183,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 184,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, ending at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 187,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, ending at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 189,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, ending at a double barline; the refrain (marked Refrain, bars 9-16, with the echo \"(to me;)\" in bar 12) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 190,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, ending at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 195,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; bars 9-16 carry one row of words (Showers of blessing ... But for the showers we plead) common to every stanza and end at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 196,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16, ending at a double barline; the refrain (marked Refrain, bars 17-24) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 198,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-24; the refrain (marked Refrain, bars 25-33, starting on a pickup after the double barline) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 200,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, ending at a fermata and a double barline; the refrain (marked Refrain, bars 9-15, starting on a pickup) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 202,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, ending at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 203,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, ending at a double barline; the refrain (marked Refrain, bars 9-13) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 205,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-9, closed by a double barline; the refrain (marked Refrain, bars 10-18) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 206,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 207,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-15, closed by a double barline; the refrain (marked Refrain, bars 16-27) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 208,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-9, closed by a double barline; the refrain (marked Refrain, bars 10-18) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 212,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 213,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-12) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 216,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 218,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-18) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 220,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-17) follows across page 2 and ends at the final barline at bar 17; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 245,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 246,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 248,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-9, closed by a double barline; the refrain (marked Refrain, bars 10-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 249,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-24, closed by a double barline; the refrain (marked Refrain, bars 25-32) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 251,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-16 on page 1, closed by a double barline; the refrain (marked Refrain, bars 17-33) is on page 2 and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 253,
+      "order": "after-each",
+      "from": "stanzas 1-5 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 254,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-9, closed by a double barline; the refrain (marked Refrain, bars 10-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 260,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 262,
+      "order": "after-last",
+      "from": "stanza 1 and stanza 2 sit under the repeat (bars 1-8) with a 1st ending (bars 7-8, which carries \"There are\", the start of stanza 2) and a 2nd ending (bars 9-10); the refrain (marked Refrain, bars 11-27) is printed once after the 2nd ending and ends at the final barline"
+    },
+    {
+      "number": 272,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 279,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-9, closed by a double barline; the refrain (marked Refrain, bars 10-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 280,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 282,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the first two systems; the refrain (marked Refrain, systems 3-4, 'I am coming, Lord! ... That flowed on Calvary') follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 284,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-16, closed by a double barline; the refrain (marked Refrain, bars 17-25) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 286,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-12, closed by a double barline; the refrain (marked Refrain, bars 13-20) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 287,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 289,
+      "order": "after-each",
+      "from": "stanzas 1-2 printed under the pickup and bars 1-16, closed by a double barline; the refrain (marked Refrain, bars 17-32) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 290,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-16, closed by a double barline; the refrain (marked Refrain, bars 17-32) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 294,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 296,
+      "order": "after-each",
+      "from": "stanzas 1-5 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 302,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 305,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C., D.S. or Fine"
+    },
+    {
+      "number": 306,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8 up to a double barline in bar 8; the refrain (marked Refrain) starts on the pickup after that barline and runs to the final barline at bar 17; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 307,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-18) follows and ends at the final barline; no repeat, D.C., D.S. or Fine"
+    },
+    {
+      "number": 308,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-9, closed by a double barline; the refrain (marked Refrain, bars 10-19) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 309,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C., D.S. or Fine"
+    },
+    {
+      "number": 310,
+      "order": "after-each",
+      "from": "hymnary.org's scan of the 1985 page (SDAHImages 310.png is another hymn): stanzas 1-3 under the music, then a section marked Refrain that ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 311,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 312,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C., D.S. or Fine"
+    },
+    {
+      "number": 317,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C., D.S. or Fine"
+    },
+    {
+      "number": 318,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-12, each ending with the one shared line under bars 13-17 and a double barline; the refrain (marked Refrain, bars 18-25) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 322,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, closed by a double bar; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 327,
+      "order": "after-each",
+      "from": "hymnary.org's scan of the 1985 pages (SDAHImages has no 327.png page 1): stanzas 1-3 under the first three systems, then a section marked Refrain that ends at the final barline on the second page; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 329,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, closed by a double bar; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 332,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-9, closed by a double bar; the refrain (marked Refrain, bars 10-19) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 335,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, closed by a double bar; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 337,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, closed by a double bar; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 338,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, closed by a double bar; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 341,
+      "order": "after-each",
+      "from": "stanzas 1-3 under bars 1-16, the refrain (marked Refrain, bars 17-33) after them, a repeat to the start with endings 1, 2. and 3.; the 3. ending leads through a wordless modulation to stanza 3 and the refrain printed again in A-flat, the optional ending that 27, 86 and 530 label so; the MIDI file plays three passes"
+    },
+    {
+      "number": 343,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, closed by a double bar; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 349,
+      "order": "before-each",
+      "from": "the refrain (marked Refrain, bars 1-4) is printed first and closed by a double bar, stanzas 1-3 follow under bars 5-20, and the music ends at the final barline after the stanzas with no D.C. or Fine"
+    },
+    {
+      "number": 358,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16, which end at a double barline; the refrain (marked Refrain, bars 17-32) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 361,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
       "number": 362,
       "order": "first-and-after-each",
       "from": "the refrain is printed first (bars 1-8); stanzas 1-5 follow (bars 9-16), D.C."
     },
     {
+      "number": 365,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-16, which end at a double barline; the refrain (marked Refrain, bars 17-24) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 366,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 367,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-12) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 368,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 369,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 371,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-19 on page 1, which end at a double barline; the refrain (marked Refrain, bars 20-29) follows on page 2 and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 373,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-14) follows and is sung twice inside its own repeat (|: bar 9, 1st ending bar 13 :|, 2nd ending bar 14) with its two word rows, ending at the final barline; the repeat lies inside the refrain, not over the stanzas"
+    },
+    {
+      "number": 381,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 385,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-12) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 388,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16, closed by a double barline; the refrain (marked Refrain, bars 17-24) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 403,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-9, closed by a double barline; the refrain (marked Refrain, bars 10-18) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 412,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 416,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-16, closed by a double barline; the refrain (marked Refrain, bars 17-32) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 422,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-12, closed by a double barline; one row of shared words (bars 13-21, unlabelled) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 425,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-11 on page 1, closed by a double barline; the refrain (marked Refrain, bars 12-19) follows on page 2 and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 426,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 427,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, closed by a double barline; the refrain (marked Refrain, bars 9-18) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 428,
+      "order": "after-each",
+      "from": "no page image: SDAHImages 428.png is another hymn and hymnary.org links 428 to 426's page; the chord chart of the hymnal's earlier app prints stanza 1 and then the refrain In the sweet by and by"
+    },
+    {
+      "number": 430,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 431,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-24) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 432,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 435,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8 (closing on a fermata and a double barline); the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 437,
+      "order": "after-each",
+      "from": "the music (pickup and bars 1-8) carries stanza rows 1-3 and a fourth row marked Ref.; \"D.C.\" at the final barline sends each pass back to the start, where the same music is sung to the Ref. row, so each stanza is followed by the refrain"
+    },
+    {
+      "number": 438,
+      "order": "after-each",
+      "from": "stanzas 1-5 printed under a pickup and bars 1-8; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 442,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under a pickup and bars 1-8; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 444,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under a pickup and bars 1-8; the refrain (marked Refrain, bars 9-13) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 446,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under a pickup and bars 1-16 on page 1; the refrain (marked Refrain, bars 17-32) follows on page 2 and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 448,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-16; the refrain (marked Refrain, bars 17-25) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 449,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-26) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 451,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; the refrain (marked Refrain, bars 9-17) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 454,
+      "order": "after-each",
+      "from": "each stanza's two text rows are sung under bars 1-4 through the end-repeat at bar 4 (row 1, repeat, row 2); the refrain (marked Refrain, bars 5-9) follows and ends at the final barline; no D.C. or Fine"
+    },
+    {
+      "number": 457,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-16; the refrain (marked Refrain, bars 17-25) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 462,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-17) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 466,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; the refrain (marked Refrain, bars 9-17) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 468,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-16; the refrain (marked Refrain, bars 17-25) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 469,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-16) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 470,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; a single-row section with no label (bars 9-17) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 472,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-16, which end at a double barline; the refrain (marked Refrain, bars 17-25) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 474,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-18) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
       "number": 475,
       "order": "first-and-after-each",
       "from": "the refrain is printed first (bars 1-10, Fine); stanzas 1-2 follow (bars 11-20), D.C. al Fine"
+    },
+    {
+      "number": 476,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 479,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-9, which end at a double barline; the refrain (marked Refrain, bars 10-19) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 483,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 485,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8 up to a double barline inside bar 8; the refrain (marked Refrain) starts there and ends at the final barline at bar 17; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 487,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 492,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 493,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8 up to a double barline inside bar 8; the refrain (marked Refrain) starts there and ends at the final barline at bar 17; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 495,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 501,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-16, which end at a double barline; the refrain (marked Refrain, bars 17-25) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 505,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-9, which end at a double barline; the refrain (marked Refrain, bars 10-19) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 507,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-16, which end at a double barline; the refrain (marked Refrain, bars 17-32) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 508,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16, which end at a double barline; the refrain (marked Refrain, bars 17-24) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 511,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-18) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 512,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8, which end at a double barline with a change to 6/8; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 515,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the music of the scanned page 1, which ends at a double barline; the refrain (marked Refrain, bars 17-33) follows on page 2 and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 518,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 520,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8, which end at a double barline; the refrain (marked Refrain, bars 9-19) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 522,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-15) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 523,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 524,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 525,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-16; the refrain (marked Refrain, bars 17-24) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 526,
+      "order": "after-each",
+      "from": "stanzas 1-2 printed under the pickup and bars 1-16; the refrain (marked Refrain, bars 17-33) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 528,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 529,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 530,
+      "order": "after-each",
+      "from": "stanzas 1-3 under bars 1-14 are each followed by the refrain (bars 15-22) inside a repeat whose 1st ending (bars 20-22) returns to the start; the 2nd ending (bars 23-25, 'Optional ending for verse 3') leads through a modulation to stanza 3 reprinted in D-flat (bars 34-48) and its refrain (bars 49-56, final barline)"
+    },
+    {
+      "number": 531,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-9; the refrain (marked Refrain, bars 10-18) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 534,
+      "order": "after-each",
+      "from": "stanzas 1-5 printed under the pickup and bars 1-9; the refrain (marked Refrain, bars 10-17) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 537,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-9; the refrain (marked Refrain, bars 10-19) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 539,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-9; the refrain (marked Refrain, bars 10-19) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 561,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16; the refrain (marked Refrain, bars 17-24) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 569,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 572,
+      "order": "after-each",
+      "from": "stanzas 1-3 are sung under bars 1-16 (rows 1-3 under bars 1-8, then bars 9-16), and D.C. al Fine at bar 16 returns to bar 1 where the 4th row, labelled Refrain, is sung to the Fine at bar 8, so each stanza is followed by the refrain"
+    },
+    {
+      "number": 573,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16 across both pages; the refrain (marked Refrain, bars 17-25 on page 2) follows the double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 579,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-24) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 590,
+      "order": "after-each",
+      "from": "hymnary.org's scan of the 1985 page (SDAHImages 590.png is another hymn): stanzas 1-5 under the music, then a section marked Refrain that ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 595,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-9; the refrain (marked Refrain, bars 10-19) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 596,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-16) follows and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 598,
+      "order": "after-each",
+      "from": "stanzas 1-5 printed under bars 1-8; the refrain (marked Refrain, bars 9-20) follows and ends at the final barline at bar 20; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 600,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-16; the refrain (marked Refrain, bars 17-33) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 604,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-16; the refrain (marked Refrain, bars 17-33) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 608,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-16; the refrain (marked Refrain, bars 17-24) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 610,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-12, with one shared line under bars 13-17; the refrain (marked Refrain, bars 18-25) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 612,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-16; the refrain (marked Refrain, bars 17-24) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 614,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-8; the refrain (marked Refrain, bars 9-16) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 620,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-17) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 623,
+      "order": "after-each",
+      "from": "stanzas 1-5 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-18) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 625,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-17) follows after a double barline and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 626,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-17) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 628,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-16) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 632,
+      "order": "after-each",
+      "from": "stanzas 1-2 printed under the pickup and bars 1-16; the refrain (marked Refrain, bars 17-33) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 633,
+      "order": "after-each",
+      "from": "stanzas 1-4 printed under bars 1-8; the refrain (marked Refrain, bars 9-17) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 647,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under the pickup and bars 1-8; the refrain (marked Refrain, bars 9-16) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
+    },
+    {
+      "number": 652,
+      "order": "after-each",
+      "from": "stanzas 1-3 printed under bars 1-16; the refrain (marked Refrain, bars 17-24) follows after a double bar and ends at the final barline; no repeat, D.C. or Fine"
     }
   ]
 }

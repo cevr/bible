@@ -131,6 +131,17 @@ describe('Hymn', () => {
         '2:Holy, ho',
         'refrain:Amen',
       ]);
+      expect(outline({ ...two, refrain: { order: 'before-each', part: chorus } })).toEqual([
+        'refrain:Amen',
+        '1:one',
+        'refrain:Amen',
+        '2:Holy, ho',
+      ]);
+      expect(outline({ ...two, refrain: { order: 'after-last', part: chorus } })).toEqual([
+        '1:one',
+        '2:Holy, ho',
+        'refrain:Amen',
+      ]);
       const [, second] = sung(bare);
       expect(second).toMatchObject({ verse: 2, line: 0, part: holy });
     }),
