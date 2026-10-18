@@ -44,7 +44,7 @@ argument. A short's id and an act's name are each declared once (`Shorts`,
 
 ## Tools
 
-`film narrate|takes import|script|score|mix|cues|check|render|lookbook|look|match|judge|journal|project|chapters|notes|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, `film sfx …` over the app's sound library, `tools/sfx-cli.ts`, and `film footage …` over its footage library, `tools/footage-cli.ts`, and `film talk words <talk>` over a talk's edit, `tools/talk-cli.ts`) runs from the app that holds the
+`film narrate|takes import|script|score|mix|cues|check|render|lookbook|look|match|judge|journal|project|chapters|notes|options|read <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, `film sfx …` over the app's sound library, `tools/sfx-cli.ts`, and `film footage …` over its footage library, `tools/footage-cli.ts`, and `film talk words <talk>` over a talk's edit, `tools/talk-cli.ts`, and `film ask wait <ask>`, which exits once the owner has answered an ask on the running lab, `tools/ask-cli.ts`) runs from the app that holds the
 films. The app owns the entry: it calls `runFilmCli({ films, sounds, footage, folders, previewServer, lab, self, judge })`
 with its films folder, its sound library folder, its footage library folder, its own `out` and `lab` folders
 (where a run writes renders and notes, whatever directory it starts in; `FILMS_OUT` and

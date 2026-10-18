@@ -14,10 +14,11 @@ does, while the lab runs.
   `2025-03-26` and `2026-07-28`.
 - Effect's HTTP transport takes a `POST` for every message, and here a `DELETE` to end a session (below); it
   has no standalone GET stream, so the server cannot push a notification outside a request, and it advertises
-  no resource subscriptions over HTTP. Events therefore come two ways (see [Events](#events)): a long-poll tool
-  every session can use, and a stdio bridge for Claude Code's channels.
+  no resource subscriptions over HTTP. Events therefore come three ways (see [Events](#events)): a long-poll tool
+  every session can use, a stdio bridge for Claude Code's channels, and a command that exits once an ask is
+  answered.
 - **One client** of it in this checkout, `tools/lab-client.ts`, for the commands that work through the running
-  lab (`film channel`'s feed, `film production ask`): a session (`initialize`, `notifications/initialized`, the
+  lab (`film channel`'s feed, `film production ask`, `film ask wait`): a session (`initialize`, `notifications/initialized`, the
   id from `Mcp-Session-Id`), then `tools/call` typed by the lab's own tool (its parameters encode the arguments,
   its success decodes `structuredContent`), at `FILM_LAB_URL` (else 8229). No lab answering, or one answering in a
   shape this checkout does not read (an older lab), is `LabUnanswered`, which says to start one; a tool's refusal
@@ -159,6 +160,20 @@ How an agent hears them:
    It reconnects every 5 s when the lab is down and reads on from the last cursor it saw, so nothing that
    changed while it was away is skipped; after a lab restart (that cursor unknown) it sends the newest 20 and a
    line for the rest.
+3. **The latch, `film ask wait`** (`tools/ask-cli.ts`, `tools/ask-wait.ts`) — a command an agent runs in the
+   background (Bash `run_in_background`), which exits once the owner has answered, so the agent hears it as the
+   command's exit (interim, until Claude channels; owner, 2026-10-18: "a latch or something we can use that you
+   can wait on an answer instead of asking me"). `film ask wait <ask> [--step <id>]` ends once the ask is answered
+   to its end or closed (with `--step`, once that step is answered, or the ask can no longer reach it);
+   `film ask wait --any [--production <p>]` on the first ask answered after it began. It takes the cursor, then
+   reads the asks (`asks`): already answered, it ends at once; an ask the lab does not have is `AskUnknown`. Then
+   it long-polls `changes` (50 s a call) and reads the asks again on a change to that ask (`--any`: any
+   `ask.answered`) or a `reset`. A lab that does not answer is asked again with backoff (250 ms doubling to 10 s),
+   logged `[ask] wait lab=unreachable` once a minute, and never ends the wait; the new session reads the asks
+   again, since a restarted lab saw an answer given while it was down as its baseline, not as a change. It
+   prints the ask as `ask_read` answers it (`ask <id> status=…`, `answered step=…`, `answer <id> choose
+   value=… label="…"` / `free_text text="…"` / `skipped`, `closed why="…"`, its links), or one JSON line with
+   `--json`, and exits 0; `--timeout <dur>` ends it with `AskWaitTimeout` (`ask.wait.timeout`), non-zero.
 
 What reaches a Claude Code session (2.1.300, per its docs): tool results, always; `list_changed`, which only
 refreshes the lists; channel events, only from a stdio server, only in the main session, and only when Claude is
@@ -210,7 +225,8 @@ terminal; learn of a pick when told. Now:
 4. `changes {since, wait: 60}` in a loop (a subagent can too), or the channel in the main session: the owner's
    note, pick or approval arrives with its film, panel or render, words and link.
 5. A decision that is the owner's ("Needs you"): `ask` it as a page (or, from a terminal, `bun run production ask`),
-   give the owner its link, hear the answers on `changes`, act, and `close_ask`. What he has already decided in
+   give the owner its link, wait on it in the background (`bun cli.ts ask wait <ask>`; never ask him to say he
+   answered) or hear the answers on `changes`, act, and `close_ask`. What he has already decided in
    chat is filed with `decide` (feedback, `note`), his words verbatim as `quote`: what is still his to choose is
    an ask, never a `decide`.
 6. A scene painted, by the scene painter (`subagent_type: scene-painter`; any other agent reads
