@@ -62,9 +62,11 @@ describe('Chord.overBass and Chord.withoutOne', () => {
   it.effect('leaves two one-note-out readings unnamed, unless one is already sounding', () =>
     Effect.sync(() => {
       const C = { tonic: 'C', minor: false };
-      // C3 C4 D4 E4 G4: C with D out, or Csus2 with E out.
-      expect(without([48, 60, 62, 64, 67], C)).toBeUndefined();
-      expect(without([48, 60, 62, 64, 67], C, { root: 0, quality: '' })).toBe('C');
+      // C3 G3 Eb4 E4: C with E-flat out, or C minor with E out.
+      expect(without([48, 55, 63, 64], C)).toBeUndefined();
+      expect(without([48, 55, 63, 64], C, { root: 0, quality: 'm' })).toBe('Cm');
+      // Gb3 Ab3 Db4 C5 (hymn 100, bar 5): a suspension is no reading, so G-flat keeps sounding.
+      expect(without([54, 56, 61, 72], Db)).toBeUndefined();
     }),
   );
 });

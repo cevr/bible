@@ -65,6 +65,13 @@ const INTERVALS: Table = [
   ['', [0, 7]],
 ];
 
+/**
+ * The readings of a set no chord names: complete chords, and no suspension.
+ * A set that names a chord only with a note left out already holds a passing
+ * tone; reading the rest as a suspension would name the passing tone.
+ */
+const READINGS: Table = COMPLETE.filter(([quality]) => !quality.includes('sus'));
+
 const mod12 = (n: number) => ((n % 12) + 12) % 12;
 const setKey = (pcs: Iterable<number>) => [...new Set(pcs)].sort((a, b) => a - b).join(',');
 
@@ -101,7 +108,7 @@ const named = (
 
 /**
  * Names a set of keys (MIDI note numbers) by the chord its notes above the
- * bass make, when that is a complete chord the bass is not in: the chord
+ * bass make, when that is a complete chord (no suspension) the bass is not in: the chord
  * over the bass (D-flat over E-flat). Undefined otherwise.
  */
 export const overBass = (keys: readonly number[], tonic: number): Chord | undefined => {
@@ -109,14 +116,14 @@ export const overBass = (keys: readonly number[], tonic: number): Chord | undefi
   const above = keys.filter((key) => key !== bass);
   const upper = [...new Set(above.map(mod12))];
   if (upper.length < 3 || upper.includes(mod12(bass))) return undefined;
-  const chord = named(upper, Math.min(...above), tonic, COMPLETE);
+  const chord = named(upper, Math.min(...above), tonic, READINGS);
   return chord === undefined
     ? undefined
     : { root: chord.root, quality: chord.quality, bass: mod12(bass - tonic) };
 };
 
 /**
- * Names a set of keys by the complete chord it makes with one note other
+ * Names a set of keys by the complete chord (no suspension) it makes with one note other
  * than the bass left out (a passing tone over a held chord), when exactly
  * one such chord exists; of several, the chord `sounding` before, when it is
  * one of them. Undefined otherwise.
@@ -131,7 +138,7 @@ export const withoutOne = (
   const found: Chord[] = [];
   for (const left of pcs.filter((pc) => pc !== mod12(bass))) {
     const rest = pcs.filter((pc) => pc !== left);
-    const chord = rest.length >= 3 ? named(rest, bass, tonic, COMPLETE) : undefined;
+    const chord = rest.length >= 3 ? named(rest, bass, tonic, READINGS) : undefined;
     if (chord !== undefined && !found.some((c) => equals(c, chord))) found.push(chord);
   }
   if (found.length === 1) return found[0];
