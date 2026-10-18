@@ -2648,6 +2648,48 @@ The critique is the scene painter's step before a figure is called done,
 and its findings are what `film review` records before an owner look
 (`.claude/skills/film/SKILL.md`, the review gate).
 
+### The cast sheet's measure: `film concept`
+
+A cast sheet is one painted image of a cast member in the house look: a
+turnaround (six views, left to right: front, three-quarter and profile to
+the viewer's left, the back, profile and three-quarter to the right), a
+pose sheet or a heads sheet. `film concept brief --look <file> --references
+<file> (--turnaround <who> | --layout <file>) [--house <file>]` prints the
+prompt one try is painted from (`tools/cast-sheet-brief.ts`): the house
+block made a sheet's by two swaps (a model sheet, no place behind), each
+refused as `HouseBlockMoved` when the block no longer says its phrase, then
+the references' note, the member's look, the layout and the sheet rules (the
+canon, one outline with no inner ink, the hair a shape behind the head and
+the beard parted from it, circle hands, a sleeve at rest only and never a
+bare arm, the glide, no lettering).
+
+`film concept measure <try.png> --kind turnaround|poses|heads --count <n>
+--anchor <view> [--slot <slot> ...] [--standing <view> ...] [--headgear]
+[--concept <crop.png>:<view> ...] [--out <dir>]` measures a try
+(`measureSheet`, `core/cast-sheet.ts`, pure; its pixel reads in
+`core/cast-sheet-pixels.ts`). It finds the `count` figures (ink rings at
+least 0.15 of the largest's box, each with its hands and feet), reads each
+view's face with `measureFigure`, and checks, facing first:
+
+| Check                                                   | Flags                                                                                                                                                                                                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `facing`, `sameWay`, `roll`                             | a head that does not face its slot (a turn past 0.06 off the front, or under 0.04 toward its side); a pair of partner views that face one way; a turnaround head tipped past 5°                                    |
+| `squash`                                                | the anchor's trace to the canon (3.36 heads) would squash or stretch the body past 10 %; not read on a heads sheet, nor under headgear (the canon is read on the lock)                                             |
+| `height`, `head`, `hand`, `width`, `hairFall`, `ground` | a standing view's height, any view's head or hand (in head heights) off the anchor's past 5 %; partners' widths past 5 %; the hair's fall past 0.1 head; soles off the anchor's ground line past 2 % of its height |
+| `papers`, `grey`, `lit`                                 | a paper farther than ΔE 12 from the anchor's; a grey paper (CRAFT 12); a view lit on its right (the key light is upper left)                                                                                       |
+| `mirror`                                                | a partner view that is the other flipped (a mean difference under 6)                                                                                                                                               |
+| `sleeveReach`, `bareArm`                                | a garment joined to a hand held out across more than 0.1 of its diameter; skin below the neck that is not a round hand (the owner, 2026-10-18: "A sleeve may hang at rest, but never reach toward a hand")         |
+| `hairBeard`                                             | a beard that runs into the hair with no line between them (the owner, 2026-10-18, on Christ's render)                                                                                                              |
+
+A view with no face (the back) is unmeasured for facing, the sleeve, the
+bare arm and the beard, and says so, as a heads sheet does for the canon.
+Each `--concept` crop is held to its view by `compareFigures`. It prints a
+line for the sheet and one per flag, and writes `<stem>.measure.md`,
+`<stem>.measure.json` (`SheetMeasure`) and `<stem>.overlay.png` (each view's
+box, the anchor's top and sole, and where the canon puts a figure's top).
+It guides the retry and the ask, as the match does; it keeps or drops
+nothing.
+
 ### The review: `film review`, and keep needs evidence
 
 `film review <film> --set <name> --scene <id> --at <place> --at <place>

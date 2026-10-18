@@ -406,6 +406,7 @@
         "**/packages/film/src/core/figure.ts",
         "**/packages/film/src/core/render-artifacts.ts",
         "**/packages/film/src/core/raster.ts",
+        "**/packages/film/src/core/cast-sheet-pixels.ts",
         "**/packages/film/src/core/fixtures/figure.ts"
       ],
       "rules": {

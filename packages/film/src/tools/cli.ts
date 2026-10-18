@@ -17,6 +17,7 @@
 //   film lab                                                   the lab's server, every film (Ctrl-C stops it)
 //   film notes …      (notes-cli.ts)   the lab's notes, from the terminal
 //   film ask wait …   (ask-cli.ts)     wait on the owner's answer to an ask, in the background
+//   film concept …    (concept-cli.ts) a cast member's sheet: its brief, and a try measured
 //
 // Each command's flags are its own `--help`.
 //
@@ -102,6 +103,7 @@ import { filmServices, labPages, startLab } from './film-services.ts';
 import { fillBeside, ScriptVoices, stagingFill } from './script-voice.ts';
 import { SeriesDrafts, draftKey } from './series-drafts.ts';
 import { ask } from './ask-cli.ts';
+import { concept } from './concept-cli.ts';
 import { critique, look, match } from './easel-cli.ts';
 import { review } from './review-cli.ts';
 import { Counsel } from './counsel.ts';
@@ -1120,6 +1122,7 @@ export const runFilmCli = <E>({
       match(films),
       critique(films, critiquing.rules),
       review(films, critiquing.rules),
+      concept,
       ask,
       journal,
       production,

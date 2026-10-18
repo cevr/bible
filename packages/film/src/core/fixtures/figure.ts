@@ -7,7 +7,13 @@
 // flat), two upright oval eyes, a mouth under them (open, or a closed
 // line, or none), a robe down to a hem, two feet (or none), a round hand, a
 // rail in front of the robe's foot (or none), and a wall's thin lines behind
-// it (or none). Tests only.
+// it (or none). For a cast sheet's tests (`cast-sheet.test.ts`): the eyes
+// turned off the face's middle, long dark hair down the head's sides and a
+// beard (parted from the hair by a line, or running into it), a sleeve
+// hanging at rest or reaching to the hand, a bare arm, a head tipped, a robe
+// of another colour, the robe lit on its right (so a view drawn facing left
+// and flipped is lit as the house lights), a view flipped, and figures side
+// by side on one sheet. Tests only.
 
 import type { Raster } from '../raster.ts';
 
@@ -26,6 +32,8 @@ const SHOE: Rgb = [128, 96, 72];
 const WOOD: Rgb = [150, 100, 60];
 /** The rig's rim light on skin (papers.ts `skin.light`). */
 const SKIN_LIGHT: Rgb = [251, 210, 182];
+/** Long hair and a beard: a dark warm brown, dark as a fill and far from the ink (more than 44 from it). */
+const LOCKS: Rgb = [112, 66, 40];
 
 /** How a drawn figure is drawn: its head, its line, its hair and its robe, in pixels. */
 export interface FigureSpec {
@@ -63,6 +71,25 @@ export interface FigureSpec {
   readonly rail?: boolean;
   /** Eight 3 px lines of ink across the paper behind the figure (a panelled wall): more runs of thin line than the figure's own. */
   readonly wall?: boolean;
+  /** How far the eyes sit right of the face's middle, in pixels (a head turned to the viewer's right; negative, to the left). */
+  readonly eyeShift?: number;
+  /** Long dark hair: the cap and a lock down each side of the face to the chin, 14 px wide inside the head's line. */
+  readonly longHair?: boolean;
+  /** A dark beard over the lower face between the locks, the mouth inside it: parted from the locks by a line, or running into them. */
+  readonly beard?: { readonly parted: boolean };
+  /**
+   * What lies between the robe and the hand: a sleeve hanging at rest down
+   * the robe's side (8 px wide), a sleeve reaching out from the side to the
+   * hand held out, or a bare arm of skin out to it, the hand at its end with
+   * no line between them. The hand floats beside the robe when left out.
+   */
+  readonly arm?: 'sleeveAtRest' | 'sleeveReach' | 'bare';
+  /** The robe's colour, when not the house blue: a paper of another cloth. */
+  readonly robe?: Rgb;
+  /** A head tipped: the right eye this many pixels lower than the left. */
+  readonly roll?: number;
+  /** The robe's lit half, the light's side, when it is shaded: its `left` (the shade on the right, as the house lights) or its `right`. */
+  readonly lit?: 'left' | 'right';
 }
 
 /** A plain figure: a head 120 px wide inside its line, a 6 px line, light hair with no ink of its own. */
@@ -99,88 +126,185 @@ const canvasOf = (width: number, height: number) => {
 const ellipse = (cx: number, cy: number, rx: number, ry: number) => (x: number, y: number) =>
   ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
 
-/** A drawn figure, 400 × 640, on paper. */
-export const drawFigure = (spec: FigureSpec = PLAIN): Raster => {
-  const c = canvasOf(400, 640);
-  const { cx, cy, rx, ry, line } = spec;
-  const chin = cy + ry;
+type Canvas = ReturnType<typeof canvasOf>;
+
+/** Where a drawn figure's parts fall: its chin, its hem, its robe's half width at a row, and the robe's fill. */
+const frameOf = (spec: FigureSpec) => {
+  const chin = spec.cy + spec.ry;
   const hem = chin + spec.robeDepth;
   // The robe: a trapezoid from under the chin to the hem, inside its line.
   const halfAt = (y: number) =>
     spec.robeTop / 2 + ((spec.robeHem - spec.robeTop) / 2) * ((y - chin) / spec.robeDepth);
   const robe = (pad: number) => (x: number, y: number) =>
-    y >= chin - ry / 2 - pad &&
+    y >= chin - spec.ry / 2 - pad &&
     y <= hem + pad &&
-    Math.abs(x - cx) <= halfAt(Math.max(chin, y)) + pad;
-  // The wall's lines, behind everything.
-  for (const k of spec.wall === true ? Array.from({ length: 8 }, (_, i) => i) : [])
-    c.fill((_, y) => y >= 260 + 32 * k && y < 263 + 32 * k, INK);
-  // The feet, under the hem; the hand, a circle beside the robe.
-  for (const dx of spec.feet === false ? [] : [-40, 40]) {
-    c.fill(ellipse(cx + dx, hem + 12, 24 + line, 10 + line), INK);
-    c.fill(ellipse(cx + dx, hem + 12, 24, 10), SHOE);
+    Math.abs(x - spec.cx) <= halfAt(Math.max(chin, y)) + pad;
+  const out = spec.arm === 'sleeveReach' || spec.arm === 'bare';
+  const hand = out
+    ? { x: spec.cx + spec.robeHem / 2 + 40, y: chin + 0.4 * spec.robeDepth, r: 22 }
+    : { x: spec.cx + spec.robeHem / 2 + 30, y: chin + 0.6 * spec.robeDepth, r: 22 };
+  return { chin, hem, halfAt, robe, hand };
+};
+type Frame = ReturnType<typeof frameOf>;
+
+/** The robe's fill and its shaded right half. */
+const drawRobeFill = (c: Canvas, spec: FigureSpec, f: Frame) => {
+  c.fill(f.robe(0), spec.robe ?? ROBE);
+  const shade = spec.robeShade;
+  const right = spec.lit !== 'right';
+  const shaded = (x: number) => (right && x > spec.cx + 6) || (!right && x < spec.cx - 6);
+  if (shade !== undefined) c.fill((x, y) => f.robe(0)(x, y) && shaded(x), shade);
+};
+
+/** The arm and the hand: a sleeve at rest down the side, a sleeve or bare skin out to the hand, then the hand. */
+const drawArm = (c: Canvas, spec: FigureSpec, f: Frame) => {
+  const { cx, line } = spec;
+  const { hand } = f;
+  if (spec.arm === 'sleeveAtRest') {
+    const band = (pad: number) => (x: number, y: number) =>
+      y >= f.chin + 0.1 * spec.robeDepth - pad &&
+      y <= f.chin + 0.55 * spec.robeDepth + pad &&
+      x >= cx &&
+      x <= cx + f.halfAt(y) + 8 + pad;
+    c.fill(band(line), INK);
+    c.fill(band(0), spec.robe ?? ROBE);
   }
-  c.fill(robe(line), INK);
-  c.fill(robe(0), ROBE);
-  if (spec.robeShade !== undefined) {
-    const shade = spec.robeShade;
-    c.fill((x, y) => robe(0)(x, y) && x > cx + 6, shade);
+  const reach = (pad: number) => (x: number, y: number) =>
+    Math.abs(y - hand.y) <= 16 + pad && x >= cx && x <= hand.x;
+  if (spec.arm === 'sleeveReach') {
+    c.fill(reach(line), INK);
+    c.fill(reach(0), spec.robe ?? ROBE);
   }
-  const hand = { x: cx + spec.robeHem / 2 + 30, y: chin + 0.6 * spec.robeDepth, r: 22 };
+  if (spec.arm === 'bare') c.fill(reach(line), INK);
   c.fill(ellipse(hand.x, hand.y, hand.r + line, hand.r + line), INK);
+  if (spec.arm === 'bare') c.fill(reach(0), SKIN);
   c.fill(ellipse(hand.x, hand.y, hand.r, hand.r), SKIN);
-  // The head over the robe's top: its line, its skin, its hair cap.
-  c.fill(ellipse(cx, cy, rx + line, ry + line), INK);
-  c.fill(ellipse(cx, cy, rx, ry), SKIN);
+  // The robe over the arm's root, so the arm leaves from its side.
+  if (spec.arm !== undefined) drawRobeFill(c, spec, f);
+};
+
+/** The hair: a cap above the hair line, long locks down the face's sides, a beard, its grain and its own ink. */
+const drawHair = (c: Canvas, spec: FigureSpec) => {
+  const { cx, cy, rx, ry, line } = spec;
+  const head = ellipse(cx, cy, rx, ry);
   const hairLine = cy - spec.hairAbove;
-  const cap = (x: number, y: number) => ellipse(cx, cy, rx, ry)(x, y) && y < hairLine;
-  c.fill(cap, spec.darkHair === true ? HAIR_DARK : HAIR);
+  const cap = (x: number, y: number) => head(x, y) && y < hairLine;
+  const short = (spec.darkHair === true && HAIR_DARK) || HAIR;
+  c.fill(cap, (spec.longHair === true && LOCKS) || short);
+  const inLock = (x: number, y: number) =>
+    head(x, y) && y >= hairLine && Math.abs(x - cx) > rx - 14;
+  if (spec.longHair === true) c.fill(inLock, LOCKS);
+  if (spec.beard !== undefined) {
+    const beardTop = cy + spec.eyeBelow + 16;
+    c.fill((x, y) => head(x, y) && y >= beardTop && !inLock(x, y), LOCKS);
+    const seam = (x: number, y: number) =>
+      head(x, y) &&
+      y >= beardTop &&
+      Math.abs(x - cx) > rx - 14 - line &&
+      Math.abs(x - cx) <= rx - 14;
+    if (spec.beard.parted) c.fill(seam, INK);
+  }
   if (spec.darkHair === true)
     c.fill((x, y) => cap(x, y) && (Math.floor(x) + 2 * Math.floor(y)) % 5 === 0, HAIR_SPECK);
   if (spec.hairInk)
+    c.fill((x, y) => head(x, y) && y >= hairLine - line / 2 && y < hairLine + line / 2, INK);
+};
+
+/** The ear, on the face at its right side: its line, its skin, and its rim when it has one. */
+const drawEar = (c: Canvas, spec: FigureSpec) => {
+  if (spec.ear === undefined) return;
+  const ear = { x: spec.cx + 38, y: spec.cy + 8, rx: 10, ry: 18 };
+  c.fill(ellipse(ear.x, ear.y, ear.rx + spec.line, ear.ry + spec.line), INK);
+  c.fill(ellipse(ear.x, ear.y, ear.rx, ear.ry), SKIN);
+  const rim = (x: number, y: number) =>
+    ellipse(ear.x, ear.y, ear.rx, ear.ry)(x, y) &&
+    !ellipse(ear.x, ear.y, ear.rx - 5, ear.ry - 5)(x, y);
+  if (spec.ear.rim) c.fill(rim, SKIN_LIGHT);
+};
+
+/** The eyes, two upright ink ovals on one row, and the mouth under them: an open oval, or a closed line. */
+const drawFace = (c: Canvas, spec: FigureSpec) => {
+  const { cy } = spec;
+  const eyeX = spec.cx + (spec.eyeShift ?? 0);
+  // A head tipped `roll` px: the right eye that much lower than the left.
+  const tip = spec.roll ?? 0;
+  for (const side of [-1, 1])
     c.fill(
-      (x, y) =>
-        ellipse(cx, cy, rx, ry)(x, y) && y >= hairLine - line / 2 && y < hairLine + line / 2,
+      ellipse(
+        eyeX + (side * spec.eyeGap) / 2,
+        cy + spec.eyeBelow + (side * tip) / 2,
+        spec.eyeW / 2,
+        spec.eyeH / 2,
+      ),
       INK,
     );
-  // The ear, on the face at its right side: its line, its skin, and its rim when it has one.
-  if (spec.ear !== undefined) {
-    const ear = { x: cx + 38, y: cy + 8, rx: 10, ry: 18 };
-    c.fill(ellipse(ear.x, ear.y, ear.rx + line, ear.ry + line), INK);
-    c.fill(ellipse(ear.x, ear.y, ear.rx, ear.ry), SKIN);
-    if (spec.ear.rim)
-      c.fill(
-        (x, y) =>
-          ellipse(ear.x, ear.y, ear.rx, ear.ry)(x, y) &&
-          !ellipse(ear.x, ear.y, ear.rx - 5, ear.ry - 5)(x, y),
-        SKIN_LIGHT,
-      );
+  if (spec.mouth === undefined) return;
+  const { open, width } = spec.mouth;
+  const y = cy + spec.eyeBelow + 25;
+  c.fill(
+    (open && ellipse(eyeX, y, width / 2, width / 4)) ||
+      ((x, yy) => Math.abs(x - eyeX) <= width / 2 && Math.abs(yy - y) <= 1.5),
+    INK,
+  );
+};
+
+/** A drawn figure, 400 × 640, on paper. */
+export const drawFigure = (spec: FigureSpec = PLAIN): Raster => {
+  const c = canvasOf(400, 640);
+  const { cx, cy, rx, ry, line } = spec;
+  const f = frameOf(spec);
+  // The wall's lines, behind everything.
+  for (const k of (spec.wall === true && Array.from({ length: 8 }, (_, i) => i)) || [])
+    c.fill((_, y) => y >= 260 + 32 * k && y < 263 + 32 * k, INK);
+  // The feet, under the hem.
+  for (const dx of (spec.feet === false && []) || [-40, 40]) {
+    c.fill(ellipse(cx + dx, f.hem + 12, 24 + line, 10 + line), INK);
+    c.fill(ellipse(cx + dx, f.hem + 12, 24, 10), SHOE);
   }
+  c.fill(f.robe(line), INK);
+  drawRobeFill(c, spec, f);
+  drawArm(c, spec, f);
+  // The head over the robe's top: its line and its skin, then its hair.
+  c.fill(ellipse(cx, cy, rx + line, ry + line), INK);
+  c.fill(ellipse(cx, cy, rx, ry), SKIN);
+  drawHair(c, spec);
+  drawEar(c, spec);
   // The rail, in front of the robe's foot: its line, its wood.
   if (spec.rail === true) {
     const bar = (pad: number) => (x: number, y: number) =>
-      x >= 40 - pad && x <= 360 + pad && y >= hem - 30 - pad && y <= hem + 40 + pad;
+      x >= 40 - pad && x <= 360 + pad && y >= f.hem - 30 - pad && y <= f.hem + 40 + pad;
     c.fill(bar(line), INK);
     c.fill(bar(0), WOOD);
   }
-  // The eyes: two upright ink ovals on one row.
-  for (const side of [-1, 1])
-    c.fill(
-      ellipse(cx + (side * spec.eyeGap) / 2, cy + spec.eyeBelow, spec.eyeW / 2, spec.eyeH / 2),
-      INK,
-    );
-  // The mouth, under the eyes: an open oval, or a closed line.
-  if (spec.mouth !== undefined) {
-    const { open, width } = spec.mouth;
-    const y = cy + spec.eyeBelow + 25;
-    c.fill(
-      open
-        ? ellipse(cx, y, width / 2, width / 4)
-        : (x, yy) => Math.abs(x - cx) <= width / 2 && Math.abs(yy - y) <= 1.5,
-      INK,
-    );
-  }
+  drawFace(c, spec);
   return c.raster();
+};
+
+/** `r` flipped left to right: a view drawn as the mirror of another. */
+export const flipRaster = (r: Raster): Raster => {
+  const rgba = new Uint8Array(r.rgba.length);
+  for (let y = 0; y < r.height; y++)
+    for (let x = 0; x < r.width; x++)
+      rgba.set(
+        r.rgba.subarray((y * r.width + x) * 4, (y * r.width + x) * 4 + 4),
+        (y * r.width + (r.width - 1 - x)) * 4,
+      );
+  return { width: r.width, height: r.height, rgba };
+};
+
+/** Pictures side by side on one sheet of paper, each 400 × 640 (`drawFigure`), so their soles share one ground line. */
+export const drawSheet = (views: ReadonlyArray<Raster>): Raster => {
+  const height = Math.max(...views.map((v) => v.height));
+  const width = views.reduce((s, v) => s + v.width, 0);
+  const rgba = new Uint8Array(width * height * 4);
+  for (let i = 0; i < width * height; i++) rgba.set([...PAPER, 255], i * 4);
+  let left = 0;
+  for (const v of views) {
+    for (let y = 0; y < v.height; y++)
+      rgba.set(v.rgba.subarray(y * v.width * 4, (y + 1) * v.width * 4), (y * width + left) * 4);
+    left += v.width;
+  }
+  return { width, height, rgba };
 };
 
 /** The head's outer width, its line in: what every ratio is a share of. */
