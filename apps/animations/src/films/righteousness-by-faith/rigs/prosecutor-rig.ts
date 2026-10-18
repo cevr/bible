@@ -75,28 +75,29 @@ const SKIN_TONES = [
 const TUFT = [{ pts: ellipse(-46, -63, 12, 7, 14), color: '#5e4a47', soft: true }] as const;
 
 /**
- * The prosecutor. His head sits on his robe as cold-34 sets it: canted
- * 0.22 radians, its crown toward screen right and its chin toward the dock
- * (the slope of its eyes there), and carried 8 units right of the robe's
- * middle, so the chin sits over the robe's top; his ear behind his features
- * on the far side, where cold-34 cuts it. His face is Kit A's marks where
- * cold-34 draws them once his eyes are on the dock: eyes 0.07 across and
- * 0.11 high, 0.18 apart; heavy brows 0.12 above them, the far one nearer
- * the middle; the mouth 0.25 below them; at rest stern, his eyes on the
- * dock (screen left). His shout is a quarter of his head across. His robe
- * is long and narrow, widening fast below the chin and slower to the hem,
- * the hem's corners tight and its edge sagging a little in the middle, as
- * cold-34 cuts it. His shoes are 0.49 of his head's width across under
- * their ink, set under the hem's corners, the toes out; the light down
- * each one's left edge as cold-34 lays it, each 6 px across there and
- * #9d7559 on the near shoe, 4 to 6 px and #6a4f44 on the far one: the near
- * shoe's up its toe's curve from just over the sole to two fifths across
- * (the shoe's points 0 to 7), the far shoe's up its steep side (its points
- * 16 to 11), the depths (6 and 5 units) giving those widths across, the
- * band lying at a slant there; the sole stays dark. His hands are 0.44 of
- * his head across, as the concept draws them.
+ * The prosecutor's parts, as `figure` composes them; his film's test
+ * composes them again with one changed. His head sits on his robe as
+ * cold-34 sets it: canted 0.22 radians, its crown toward screen right and
+ * its chin toward the dock (the slope of its eyes there), and carried 8
+ * units right of the robe's middle, so the chin sits over the robe's top;
+ * his ear behind his features on the far side, where cold-34 cuts it. His
+ * face is Kit A's marks where cold-34 draws them once his eyes are on the
+ * dock: eyes 0.07 across and 0.11 high, 0.18 apart; heavy brows 0.12 above
+ * them, the far one nearer the middle; the mouth 0.25 below them; at rest
+ * stern, his eyes on the dock (screen left). His shout is a quarter of his
+ * head across. His robe is long and narrow, widening fast below the chin
+ * and slower to the hem, the hem's corners tight and its edge sagging a
+ * little in the middle, as cold-34 cuts it. His shoes are 0.49 of his
+ * head's width across under their ink, set under the hem's corners, the
+ * toes out; the light down each one's left edge as cold-34 lays it, each 6
+ * px across there and #9d7559 on the near shoe, 4 to 6 px and #6a4f44 on
+ * the far one: the near shoe's up its toe's curve from just over the sole
+ * to two fifths across (the shoe's points 0 to 7), the far shoe's up its
+ * steep side (its points 16 to 11), the depths (6 and 5 units) giving those
+ * widths across, the band lying at a slant there; the sole stays dark. His
+ * hands are 0.44 of his head across, as the concept draws them.
  */
-export const prosecutor = figure({
+export const PROSECUTOR_SPEC = {
   // The owner locked him (ask `a92f276635e`): his print is the one this lock holds.
   lock: PROSECUTOR_LOCK,
   // `film match`'s concept: the prosecutor pointing in cold.34, the kept concept.
@@ -158,7 +159,10 @@ export const prosecutor = figure({
     far: { paper: PAPERS.farShoe, light: { color: '#6a4f44', from: 16, to: 11, depth: 5 } },
   }),
   hands: Hands({ paper: PAPERS.skinHand, share: 0.44 }),
-});
+} as const;
+
+/** The prosecutor, composed of his parts. */
+export const prosecutor = figure(PROSECUTOR_SPEC);
 
 /** The view model's numbers at rest: the face kit's, stern, his eyes on the dock (screen left), upright. */
 export const PROSECUTOR_KNOBS = prosecutor.knobs;

@@ -3,13 +3,16 @@
 // a part spread with a field its kind lacks, or a paper copied with a grey
 // shade, is refused as the module that composes it loads, and so are parts
 // the house cannot draw together (hair, a headcloth or a beard on a round
-// head, a given robe over a cut robe). A figure stands on its feet, its origin, or sits,
-// its head's centre its origin, the part of it above what hides its feet
-// drawn; an arm that reaches past its garment is in its sleeve, cut in one
-// outline with the garment. Its view model's numbers are its parts', in one
-// order, never listed by hand (`knobsOf`). How it is drawn is the house's (`rig/draw.ts`). A
-// figure the owner locked carries its lock, checked here, and its film holds
-// its print to it (`lock.ts`). Pure.
+// head, a given robe over a cut robe). Only a figure `figure` returned is
+// one a film's figures file lays (`isComposed`): a copy of it with a part
+// changed was never checked, so a change is composed from the figure's
+// spec again. A figure stands on its feet, its origin, or sits, its head's
+// centre its origin, the part of it above what hides its feet drawn; an arm
+// that reaches past its garment is in its sleeve, cut in one outline with
+// the garment. Its view model's numbers are its parts', in one order, never
+// listed by hand (`knobsOf`). How it is drawn is the house's
+// (`rig/draw.ts`). A figure the owner locked carries its lock, checked here,
+// and its film holds its print to it (`lock.ts`). Pure.
 
 import { Predicate, Schema } from 'effect';
 import { ConceptRef } from '../core/match.ts';
@@ -215,6 +218,13 @@ export type ComposedFigure<K extends string, P extends Parts = Parts> = P & {
   readonly knobs: Readonly<Record<K, number>>;
 };
 
+/** The figures `figure` returned, each as it returned it. */
+const composed = new WeakSet<object>();
+
+/** Whether `u` is a figure `figure` returned, not a copy of one: only such a figure has had its parts checked. */
+export const isComposed = (u: unknown): u is ComposedFigure<string> =>
+  Predicate.isObject(u) && composed.has(u);
+
 /** Whether `f` sits. */
 export const isSeated = (f: Parts): f is SeatedParts => f.stance._tag === 'Seated';
 
@@ -332,6 +342,7 @@ const partsOf = (spec: FigureSpec): Parts => {
  * stray field, a paper's grey shade) and together (a beard on a round head),
  * refused naming the rule it breaks; and its view model's numbers, the
  * parts' own (`knobsOf`), their names as `KnobsOf` reads them off the spec.
+ * Only the figure it returns is one a figures file lays (`isComposed`).
  */
 export function figure<const S extends StandingSpec>(
   spec: S,
@@ -341,5 +352,7 @@ export function figure<const S extends SeatedSpec>(
 ): ComposedFigure<KnobsOf<S>, SeatedParts>;
 export function figure(spec: FigureSpec): ComposedFigure<string> {
   const parts = partsOf(spec);
-  return { ...parts, knobs: knobsOf(parts) };
+  const f = { ...parts, knobs: knobsOf(parts) };
+  composed.add(f);
+  return f;
 }

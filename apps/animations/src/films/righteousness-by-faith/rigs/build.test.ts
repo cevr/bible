@@ -19,14 +19,21 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect } from 'effect';
-import { Ear, figureOverrides, figuresFile, figuresRml, lockedPrints } from '@bible/film/style';
+import {
+  Ear,
+  figure,
+  figureOverrides,
+  figuresFile,
+  figuresRml,
+  lockedPrints,
+} from '@bible/film/style';
 import { unbuilt, unlocked, unsaid } from '@bible/film/style/build';
 import { LEDGER } from './build.ts';
 import { christ, christFront } from './christ-rig.ts';
 import { ARTBOARDS, FIGURES } from './figures.ts';
 import { judge } from './judge-rig.ts';
 import { PAPERS } from './papers.ts';
-import { prosecutor } from './prosecutor-rig.ts';
+import { PROSECUTOR_SPEC, prosecutor } from './prosecutor-rig.ts';
 import PROSECUTOR_LOCK from './prosecutor.lock.json' with { type: 'json' };
 
 const here = import.meta.dir;
@@ -59,10 +66,12 @@ describe("RBF's figures", () => {
   it.effect.layer(BunServices.layer)('a part of a locked figure moved breaks his lock', () =>
     Effect.gen(function* () {
       // RBF's figures with the prosecutor's ear a unit further back.
-      const moved = laid({
-        ...prosecutor,
-        ear: Ear.Round({ at: [54, 17.5], r: [10, 16.5], paper: PAPERS.ear }),
-      });
+      const moved = laid(
+        figure({
+          ...PROSECUTOR_SPEC,
+          ear: Ear.Round({ at: [54, 17.5], r: [10, 16.5], paper: PAPERS.ear }),
+        }),
+      );
       const changed = yield* unlocked(lockedPrints(moved));
       expect(changed.broken.map((b) => b.item)).toEqual(['prosecutor']);
       expect(changed.overridden).toEqual([]);
@@ -119,11 +128,11 @@ describe("RBF's figures", () => {
   );
 });
 
-/** RBF's figures file with `prosecutor` laid in the prosecutor's place. */
-const laid = (figure: typeof prosecutor) =>
+/** RBF's figures file with `him` laid in the prosecutor's place: a figure `figure` composed of his parts with one changed (`PROSECUTOR_SPEC`), since the file lays no copy of a composed one. */
+const laid = (him: typeof prosecutor) =>
   figuresFile({
     weight: FIGURES.weight,
-    boards: { ...FIGURES.boards, prosecutor: { ...FIGURES.boards.prosecutor, figure } },
+    boards: { ...FIGURES.boards, prosecutor: { ...FIGURES.boards.prosecutor, figure: him } },
   });
 
 /** The overrides of RBF's figures with the prosecutor's lock carrying one citing `cited` that frees a changed print of him. */
@@ -139,17 +148,19 @@ const freed = (
       },
 ) =>
   figureOverrides(
-    laid({
-      ...prosecutor,
-      lock: {
-        ...PROSECUTOR_LOCK,
-        override: {
-          rule: 'FigureLock',
-          place: 'prosecutor',
-          reason: 'his ear a unit back',
-          ...cited,
-          frees: 'b'.repeat(64),
+    laid(
+      figure({
+        ...PROSECUTOR_SPEC,
+        lock: {
+          ...PROSECUTOR_LOCK,
+          override: {
+            rule: 'FigureLock',
+            place: 'prosecutor',
+            reason: 'his ear a unit back',
+            ...cited,
+            frees: 'b'.repeat(64),
+          },
         },
-      },
-    }),
+      }),
+    ),
   );

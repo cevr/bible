@@ -4,6 +4,7 @@ import { figureOverrides, figuresFile, figuresRml, lockedPrints } from './figure
 import { paper } from './paper.ts';
 import { Tunic } from './parts/body.ts';
 import { StubLegs } from './parts/feet.ts';
+import { Hair } from './parts/hair.ts';
 import { Hands } from './parts/hands.ts';
 import { Head } from './parts/head.ts';
 import { KitA } from './parts/kit.ts';
@@ -11,9 +12,10 @@ import { Stance } from './parts/stance.ts';
 import { Stature } from './parts/stature.ts';
 
 // A film's figures file, laid as the film lays it and printed by the house:
-// its artboards in its keys' order with one id counter, each locked figure's
-// print alone the same wherever the file lays it, and every override its
-// figures carry by the artboard it is laid on.
+// only figures `figure` returned, its artboards in its keys' order with one
+// id counter, each locked figure's print alone the same wherever the file
+// lays it, and every override its figures carry by the artboard it is laid
+// on.
 
 const SKIN = paper({ color: '#ece7fa', shade: '#c9bcf2', light: '#fffffb' }, 'skin');
 const WHITE = paper({ color: '#fcfbfc', shade: '#dcd9ec', light: '#ffffff' }, 'white');
@@ -136,6 +138,42 @@ describe("a film's figures file", () => {
         },
       }),
     ).toThrow(/figuresFile refused: .*lead's hands are laid on otherHand, a hand of another paper/);
+  });
+
+  test('a copy of a composed figure is refused, a part changed in it or not: its parts were never checked', () => {
+    const ear = { _tag: 'RoundEar', at: [40, 0], r: [8, 12] } as const;
+    const copies = {
+      // An ear on a round head, its paper greyed (GreyShade) or rimmed (InnerRim): each `figure` refuses.
+      grey: { ...lead, ear: { ...ear, paper: { ...SKIN, shade: '#808080' as const } } },
+      rimmed: { ...lead, ear: { ...ear, paper: { ...SKIN, rim: 3 } } },
+      // Hair on a round head, which the house cannot draw.
+      haired: {
+        ...lead,
+        hair: Hair.Traced({
+          outline: [
+            [-40, -20],
+            [0, -60],
+            [40, -20],
+          ],
+          paper: SKIN,
+        }),
+      },
+      same: { ...lead },
+    };
+    for (const copy of Object.values(copies))
+      expect(() =>
+        figuresFile({
+          weight: 1,
+          boards: { ...FILE.boards, lead: { ...FILE.boards.lead, figure: copy } },
+        }),
+      ).toThrow(/figuresFile refused: .*a figure `figure` returned, not a copy of one/);
+    // Nor does the house draw one in a file `figuresFile` did not lay.
+    expect(() =>
+      figuresRml({
+        weight: 1,
+        boards: { ...FILE.boards, lead: { ...FILE.boards.lead, figure: copies.grey } },
+      }),
+    ).toThrow(/Lead refused: .*a figure `figure` returned, not a copy of one/);
   });
 
   test('prints each locked figure alone, with its hands: the same wherever the file lays them and whatever it draws before them', () => {

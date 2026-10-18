@@ -4,17 +4,19 @@
 // seed its paper's boil crawls by and its place on the editor's stage, and
 // draws a composed figure (`figure`, with the artboard its hands are drawn
 // on) or a circle hand of a paper at a size. The figures' ink is the house
-// look's line at the film's weight. A file that names one artboard twice, or
-// lays a figure's hands on a hand of another paper, is refused as the module
-// that lays it loads. The house prints the file (`figuresRml`: one id
-// counter for it), each locked figure's print alone, which its lock holds
+// look's line at the film's weight. A file that names one artboard twice,
+// lays a figure's hands on a hand of another paper, or lays a figure
+// `figure` did not return (a copy of one with a part changed, its parts
+// never checked), is refused as the module that lays it loads, and the
+// house draws no such figure. The house prints the file (`figuresRml`: one
+// id counter for it), each locked figure's print alone, which its lock holds
 // (`lockedPrints`), and every override its figures carry, with the artboard
 // each is laid on (`figureOverrides`). A film lays its file, and writes no
 // RML. Pure.
 
-import { Predicate, Record as Rec, Schema } from 'effect';
+import { Record as Rec, Schema } from 'effect';
 import { decoder } from './decode.ts';
-import type { ComposedFigure } from './figure.ts';
+import { type ComposedFigure, isComposed } from './figure.ts';
 import { DIRECTION, type Direction } from './house.ts';
 import { type Laid, overridesIn } from './override.ts';
 import { Paper } from './paper.ts';
@@ -73,11 +75,10 @@ const PlacedFields = {
   stage: Schema.Finite,
 };
 
-/** A composed figure, checked as `figure` composed it. */
-const Composed = Schema.declare(
-  (u: unknown): u is ComposedFigure<string> =>
-    Predicate.hasProperty(u, 'knobs') && Predicate.hasProperty(u, 'hands'),
-);
+/** A figure `figure` returned (`isComposed`): a copy of one, a part changed in it, was never checked. */
+const Composed = Schema.declare(isComposed, {
+  expected: 'a figure `figure` returned, not a copy of one: compose a change from its spec',
+});
 
 const FigureBoardFields = Schema.Struct({
   ...PlacedFields,
@@ -149,9 +150,14 @@ const lineOf = (file: LaidFile): Direction => ({ ...DIRECTION, weight: file.weig
 const rigOfBoard = (next: () => string, board: Board, line: Direction, stage = board.stage) =>
   rigOf(next, board.name, board.seed, stage, line);
 
+/** A figure as the house draws it: one `figure` returned, so a file `figuresFile` did not lay draws none it did not check. */
+const checkComposed = decoder(Composed);
+
 /** What `board` draws on `rig`: its figure, or its hand at its size. */
 const drawn = (rig: Figure, board: Board): Element[] =>
-  isFigureBoard(board) ? drawFigure(rig, board.figure) : drawHand(rig, board.hand, board.size);
+  isFigureBoard(board)
+    ? drawFigure(rig, checkComposed(board.figure, board.name))
+    : drawHand(rig, board.hand, board.size);
 
 /** The whole project file: each artboard in the file's order, then its view model; one id counter for the file. */
 export const figuresRml = (file: LaidFile): string => {
