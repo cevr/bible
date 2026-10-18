@@ -1,16 +1,19 @@
 // RBF's Rive project: every figure rig of the film in one file
 // (`figures.riv`, built by `build.ts`), each an artboard with its own view
-// model, all made from the house generator's parts (`@bible/film/style/rig`)
-// in the house look's direction (K1, `DIRECTION`), their ink as heavy against a head as
-// the kept concept draws it (`WEIGHT`). Pure: `figuresRml()` is the whole
-// project file, the same text for the same code.
+// model, all drawn on the house generator's parts (`@bible/film/style/rig`):
+// the composed lead by `drawFigure`, every circle hand by `drawHand` (Christ's
+// held out to us at each size it grows through, `hand-rig.ts`), the others
+// by their own rigs; in the house look's direction (K1, `DIRECTION`), their
+// ink as heavy against a head as the kept concept draws it (`WEIGHT`).
+// Pure: `figuresRml()` is the whole project file, the same text for the
+// same code.
 
-import { DIRECTION, figure, fragment, ids } from '@bible/film/style/rig';
+import { DIRECTION, drawFigure, drawHand, figure, fragment, ids } from '@bible/film/style/rig';
 import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
 import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
-import { HAND_OUT_STEPS, handRig } from './hand-rig.ts';
+import { HAND_OUT_STEPS } from './hand-rig.ts';
 import { judgeRig } from './judge-rig.ts';
-import { leadRig } from './lead-rig.ts';
+import { lead } from './lead-rig.ts';
 import { PAPERS } from './papers.ts';
 import { prosecutorRig } from './prosecutor-rig.ts';
 import { robedRig } from './robed-rig.ts';
@@ -44,19 +47,19 @@ export const figuresRml = (): string => {
   const next = ids();
   const d = { ...DIRECTION, weight: WEIGHT };
   return fragment([
-    ...leadRig(figure(next, ARTBOARDS.lead, 2301, 0, d)),
-    ...handRig(figure(next, ARTBOARDS.leadHand, 2302, 400, d), { ...PAPERS.lead, rim: 3.5 }),
+    ...drawFigure(figure(next, ARTBOARDS.lead, 2301, 0, d), lead),
+    ...drawHand(figure(next, ARTBOARDS.leadHand, 2302, 400, d), lead.hands.paper),
     ...judgeRig(figure(next, ARTBOARDS.judge, 2303, 520, d)),
     ...prosecutorRig(figure(next, ARTBOARDS.prosecutor, 2304, 1020, d)),
-    ...handRig(figure(next, ARTBOARDS.skinHand, 2305, 1420, d), { ...PAPERS.skinHand, rim: 4 }),
+    ...drawHand(figure(next, ARTBOARDS.skinHand, 2305, 1420, d), { ...PAPERS.skinHand, rim: 4 }),
     ...robedRig(figure(next, ARTBOARDS.christ, 2306, 1540, d), CHRIST, CHRIST_KNOBS),
-    ...handRig(figure(next, ARTBOARDS.christHand, 2307, 1860, d), {
+    ...drawHand(figure(next, ARTBOARDS.christHand, 2307, 1860, d), {
       ...PAPERS.christSkin,
       crease: PAPERS.skinHand.crease,
       rim: 4,
     }),
     ...robedRig(figure(next, ARTBOARDS.farmer, 2308, 1960, d), FARMER, FARMER_KNOBS),
-    ...handRig(figure(next, ARTBOARDS.farmerHand, 2309, 2280, d), {
+    ...drawHand(figure(next, ARTBOARDS.farmerHand, 2309, 2280, d), {
       ...PAPERS.farmerSkin,
       crease: PAPERS.skinHand.crease,
       rim: 4,
@@ -74,7 +77,7 @@ export const figuresRml = (): string => {
         [ARTBOARDS.christHandOut4, 2314, 3020],
       ] as const
     ).flatMap(([name, id, y], i) =>
-      handRig(
+      drawHand(
         figure(next, name, id, y, d),
         { ...PAPERS.christSkin, crease: PAPERS.skinHand.crease, rim: 4 },
         HAND_OUT_STEPS[i],

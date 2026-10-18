@@ -8,8 +8,8 @@
 // skin, a dark purple
 // robe broad at the shoulders with white bands; the face kit at his size,
 // its marks large on the head. He sits behind the bench,
-// so the rig is the part of him above it. His circle hands are the hand
-// rig's (`hand-rig.ts`), drawn by the host over the bench (resting on it,
+// so the rig is the part of him above it. His circle hands are the house's
+// (`drawHand`), drawn by the host over the bench (resting on it,
 // taking up the gavel). The cold-studies judge (frozen in its
 // `figures.riv`) is another figure (bald, indigo, the cold-studies court's
 // geometry): this one is drawn to RBF's Board.

@@ -4,7 +4,14 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
-import { type FigureMeasure, HEAD_RADII, measureFigure, type Ratio } from './figure.ts';
+import {
+  type FigureMeasure,
+  HEAD_RADII,
+  hsvOf,
+  measureFigure,
+  type Ratio,
+  shadeKind,
+} from './figure.ts';
 import { drawFigure, type FigureSpec, headWidth, PLAIN } from './fixtures/figure.ts';
 import { cropRaster, type Raster } from './raster.ts';
 
@@ -132,5 +139,22 @@ describe('a drawn figure', () => {
     const blank: Raster = { width: 40, height: 40, rgba: new Uint8Array(40 * 40 * 4).fill(240) };
     const m = measureFigure(blank);
     expect(Result.isFailure(m) && m.failure.reason).toBe('no dark warm ink in it');
+  });
+});
+
+describe("a shade against its fill's lit colour", () => {
+  const peach = hsvOf([247, 178, 132]);
+
+  test('a shade with no hue to turn, black or a grey, is grey whatever hue its fill has', () => {
+    for (const shade of [
+      [0, 0, 0],
+      [128, 128, 128],
+      [129, 128, 128],
+    ] as const)
+      expect(shadeKind(peach, hsvOf(shade))).toBe('grey');
+  });
+
+  test("a shade cooled toward the light's complement keeps a hue: a colour, however drained", () => {
+    expect(shadeKind(peach, hsvOf([92, 98, 120]))).toBe('colour');
   });
 });

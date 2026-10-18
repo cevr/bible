@@ -54,6 +54,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp } from '@bible/film/core';
 import { EASE, type Expression, type Pt, acted, boilTime, reachAbout } from '@bible/film/style';
+import { HAND_ART } from '@bible/film/style/rig';
 import { CARD_STYLE } from '../card.ts';
 import { COURT_RIGS, living } from '../court-cast.ts';
 import { contact } from '../court-set.ts';
@@ -87,7 +88,6 @@ import {
 } from '../look-props.ts';
 import { GOLD_GLOW, PAGE, cast, shafts } from '../page-set.ts';
 import { type OpenSeedPose, glow as shine, openSeed } from '../props.ts';
-import { HAND_ART } from '../rigs/hand-rig.ts';
 import { LEAD, LEAD_KNOBS } from '../rigs/lead-rig.ts';
 import {
   ICON_BOX,

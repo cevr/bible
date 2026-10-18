@@ -1,14 +1,9 @@
-// The circle hand as a Rive rig: one plain circle of paper (the generator's
-// `hand`), no thumb, no fingers, an artboard of its own so the host draws it
-// where it works, over scenery its figure stands behind (the dock's rail,
-// the table, the bench) or over the figure itself. One artboard a paper: the
-// lead's lilac grey, and the house look's peach skin.
-
-import { type Paper, looked } from '@bible/film/style';
-import { type Figure, artboard, boilTimeline, el, hand } from '@bible/film/style/rig';
-
-/** The artboard: the hand's centre at its centre, room round it for its outline. */
-export const HAND_ART = { width: 64, height: 64, r: 19 } as const;
+// Christ's hand held out to us (court onYou) grows past the house hand, so
+// the film lays it in artboards of its own (`figures.ts`): how far it grows
+// (`HAND_OUT`), and the steps it grows in (`HAND_OUT_STEPS`), each an
+// artboard the house draws its circle hand on at that size in the house
+// line (`drawHand`, `@bible/film/style/rig`), so its ink stays its figure's.
+// Every other hand is the house's at its own size. Pure.
 
 /**
  * How far past the house hand Christ's held-out hand grows as He reaches to
@@ -28,22 +23,3 @@ export const HAND_OUT_STEPS = [
   HAND_OUT ** 0.75,
   HAND_OUT,
 ] as const;
-
-/**
- * A hand in `paper`: its circle at the artboard's centre, its cast left to
- * the host; `size` times the house hand's circle with the house line, so a
- * hand held out big keeps its figure's ink.
- */
-export const handRig = (fig: Figure, paper: Paper, size = 1) =>
-  artboard(
-    fig,
-    { width: HAND_ART.width * size, height: HAND_ART.height * size },
-    [
-      el(
-        'Node',
-        { x: (HAND_ART.width * size) / 2, y: (HAND_ART.height * size) / 2, name: 'hand' },
-        [hand(fig, 'palm', HAND_ART.r * size, looked(paper, { ground: 'host' }))],
-      ),
-    ],
-    [boilTimeline(fig)],
-  );

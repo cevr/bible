@@ -19,6 +19,7 @@
 
 import { rng } from '../../core/random.ts';
 import { type Direction, LIGHT, inkOf, ramps as R } from '../house.ts';
+import type { Crease } from '../paper.ts';
 import { type Element, argb, el } from './rml.ts';
 
 export type Pt = readonly [number, number];
@@ -76,26 +77,6 @@ export const creaseOf = (box: Box, crease: Crease = {}) => {
     at: crease.at ?? LIGHT.crease,
   };
 };
-
-/**
- * Where and how a piece's paper turns, when it is not the look's default:
- * the share of the way along the light it turns (`at`), how wide the turn
- * is as a share of that way (`soft`, 0 a cut), and the angle the light
- * crosses this piece at (`toward`, radians, y down). A concept that turns a
- * face softly and a robe sharply says so piece by piece.
- */
-export interface Crease {
-  readonly at?: number;
-  readonly soft?: number;
-  readonly toward?: number;
-  /**
-   * A round piece's turn: the paper is laid in its shade and its light is
-   * its own outline moved this share of its half-size toward the light,
-   * clipped to it, so the shade is a crescent on the far side (`litOf`)
-   * rather than a straight cut.
-   */
-  readonly crescent?: number;
-}
 
 /** A colour as a paint. */
 const solid = (hex: string, alpha = 1) => el('SolidColor', { colorValue: argb(hex, alpha) });

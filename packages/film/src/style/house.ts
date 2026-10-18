@@ -34,8 +34,8 @@ export const shading: Shading = {
   fade: 0.6,
 };
 
-/** The ramp of a base under the key light: its shade, the base and its light (CRAFT 12). */
-const shaded = (base: Hex): Ramp => ramp(base, keyLight, shading);
+/** The ramp of a base under the key light: its shade, the base and its light (CRAFT 12); a paper ramped from a base is this ramp (`rampedPaper`). */
+export const shaded = (base: Hex): Ramp => ramp(base, keyLight, shading);
 
 /** The people's grey paper: what a figure is cut from when its rig names none, and a film's canvas people. */
 export const peoplePaper: Hex = '#b7b2a8';

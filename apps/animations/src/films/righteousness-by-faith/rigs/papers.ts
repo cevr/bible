@@ -8,7 +8,7 @@
 // the house's (`@bible/film/style`). Pure.
 
 import type { Hex } from '@bible/film/canvas';
-import { type Paper, RIM, rampedPaper } from '@bible/film/style';
+import { RIM, papers, rampedPaper } from '@bible/film/style';
 import type { Crease } from '@bible/film/style/rig';
 
 /**
@@ -40,8 +40,8 @@ const TURN = {
   headcloth: { at: 0.6, soft: 0.04, toward: 1.3 },
 } as const satisfies Record<string, Crease>;
 
-/** The figures' papers, by what each is. */
-export const PAPERS = {
+/** The figures' papers, by what each is, each checked as the module loads (`papers`). */
+export const PAPERS = papers({
   /** The plain lead's one paper: head, tunic, legs and hands, a lilac white as cold-34 paints him in the room, his shade a clear violet, his rim near white. */
   lead: { color: '#ece7fa', shade: '#c9bcf2', light: '#fffffb', crease: TURN.sheet, rim: RIM },
   /** The lead's head: his paper, its shade cut straight across the far side as cold-34 cuts it (27° off upright). */
@@ -172,7 +172,7 @@ export const PAPERS = {
   farShoe: { color: '#5c463e', light: '#5c463e', rim: 0 },
   /** The judge's bands: a warm white linen, flat (cold-34 samples #fcf4ec), no rim. */
   bands: { color: '#fcf4ec', light: '#fcf4ec' },
-} as const satisfies Record<string, Paper>;
+});
 
 /** The flat scarlet stain (Isa 1:18): one colour, no crease, no ink; the kept panels' soaked scarlet. */
 export const STAIN: Hex = '#cf4a44';

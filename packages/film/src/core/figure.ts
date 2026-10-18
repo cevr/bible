@@ -272,7 +272,7 @@ const closerThanAt = (r: Raster, i: number, c: Rgb, limit: number, orAt = false)
 const lumaOf = (c: Rgb): number => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
 
 /** `c` as hue, saturation and value. */
-const hsvOf = (c: Rgb): Hsv => {
+export const hsvOf = (c: Rgb): Hsv => {
   const [r, g, b] = [c[0] / 255, c[1] / 255, c[2] / 255];
   const max = Math.max(r, g, b);
   const d = max - Math.min(r, g, b);
@@ -1065,13 +1065,26 @@ const hueTurn = (lit: Hsv, shade: Hsv): number =>
   Math.abs(((shade.hue - lit.hue + 540) % 360) - 180);
 
 /**
- * Whether a shade is a darkening toward grey (its saturation drained to
- * under 0.6 of the lit fill's and its hue turned under 15°) or a colour (the
- * house's rule: a shade's hue moves toward the light's complement, its
- * saturation kept).
+ * The least chroma (the spread of a colour's channels, 0..1) at which one
+ * 8-bit step of a channel turns its hue by no more than the 15° a shade's
+ * turn is judged by (a hue moves 60° across the whole spread, so 4/255).
+ * Under it a colour has no hue (a grey, black), and its hue reads nothing.
  */
-const shadeKind = (lit: Hsv, shade: Hsv): Shading['kind'] =>
-  shade.saturation < 0.6 * lit.saturation && hueTurn(lit, shade) < 15 ? 'grey' : 'colour';
+const HUED = 4 / 255;
+
+/** Whether `c` has a hue to turn: its chroma at least `HUED`. */
+const hued = (c: Hsv): boolean => c.saturation * c.value >= HUED;
+
+/**
+ * Whether a shade is a darkening toward grey (its saturation drained to
+ * under 0.6 of the lit fill's, and its hue turned under 15° or none left to
+ * turn: a grey, black) or a colour (the house's rule: a shade's hue moves
+ * toward the light's complement, its saturation kept).
+ */
+export const shadeKind = (lit: Hsv, shade: Hsv): Shading['kind'] =>
+  shade.saturation < 0.6 * lit.saturation && (!hued(shade) || hueTurn(lit, shade) < 15)
+    ? 'grey'
+    : 'colour';
 
 /**
  * A part's shading from its fill's pixels: past the strays (a mark, a soft

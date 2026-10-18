@@ -29,6 +29,9 @@ const rgbOf = (out: [number, number, number], hex: Hex): [number, number, number
   return out;
 };
 
+/** The red, green and blue of hex colour `hex`, 0..255 each, as a new triple; throws naming any other colour. */
+export const channelsOf = (hex: Hex): [number, number, number] => rgbOf([0, 0, 0], hex);
+
 /** Scratch for the two ends of a `mix`, read within one call. */
 const A: [number, number, number] = [0, 0, 0];
 const B: [number, number, number] = [0, 0, 0];

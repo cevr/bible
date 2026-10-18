@@ -4,12 +4,13 @@
 // stands. Canvas 2D is the engine, and every scene draws them the same way.
 
 import type { RivePropSpec } from '@bible/film/rive';
+import { HAND_ART } from '@bible/film/style/rig';
 import { Record as Rec } from 'effect';
 import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
 import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
 import { FARMER, FARMER_KNOBS, type FarmerKnob } from './farmer-rig.ts';
-import { HAND_ART, HAND_OUT_STEPS } from './hand-rig.ts';
+import { HAND_OUT_STEPS } from './hand-rig.ts';
 import {
   JUDGE_ART,
   JUDGE_FACE_CHECK,
@@ -18,11 +19,11 @@ import {
   type JudgeTimeline,
 } from './judge-rig.ts';
 import {
-  LEAD_ART,
   LEAD_FACE_CHECK,
   LEAD_KNOBS,
   LEAD_TIMELINES,
   type LeadTimeline,
+  lead,
 } from './lead-rig.ts';
 import {
   PROSECUTOR_ART,
@@ -48,13 +49,9 @@ export const leadProp: RivePropSpec<LeadTimeline, keyof typeof LEAD_KNOBS> = {
   },
   engine: 'canvas',
   key: 'righteousness-by-faith/lead',
-  origin: LEAD_ART.feet,
+  origin: lead.art.feet,
   face: LEAD_FACE_CHECK,
-  // `film match`'s concept: the plain lead's model sheet, his front view.
-  concept: {
-    image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/0-plain-lead-sheet.png' },
-    box: [165, 370, 455, 785],
-  },
+  concept: lead.concept,
 };
 
 /** The judge: his head's centre at our origin. */

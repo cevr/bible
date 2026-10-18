@@ -6,7 +6,7 @@
 // (`traced.ts`), one ink line round head, hair and ear together
 // (`silhouette`), the concept's peach skin, a long narrow olive
 // robe a little wider at the hem, dark shoes under it; the face kit at his
-// size. His circle hands are the hand rig's (`hand-rig.ts`), drawn by the host where
+// size. His circle hands are the house's (`drawHand`), drawn by the host where
 // they work (laying a sheet on the stack, thrown up on `cover`).
 //
 // Units are the Board's pixels: in `cold.evidence` he stands 540 tall behind
