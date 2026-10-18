@@ -17,7 +17,7 @@ const KEPT = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
 const CHANGED = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
 /** What the lock answers the changed print with no override. */
-const NOT_KEPT = `its print ${CHANGED} is not its lock's ${KEPT} (version 1, kept in ask a92f276635e): only an override with the owner's words frees it, naming the print it frees`;
+const NOT_KEPT = `its print ${CHANGED} is not its lock's ${KEPT} (version 1, kept in ask a92f276635e): only an override citing the owner's words or his pick frees it, naming the print it frees`;
 
 /** The lead's lock as his file keeps it, holding the print `abc`. */
 const LOCK = decodeLock(
@@ -54,7 +54,7 @@ describe("a locked figure's print against its lock", () => {
     expect(heldTo('lead', LOCK, CHANGED)).toEqual({ _tag: 'Broken', why: NOT_KEPT });
   });
 
-  test("is freed by an override with the owner's words that names that very print", () => {
+  test("is freed by an override citing the owner's words that names that very print", () => {
     expect(heldTo('lead', freeing(CHANGED), CHANGED)).toEqual({
       _tag: 'Freed',
       override: overrideFreeing(CHANGED),

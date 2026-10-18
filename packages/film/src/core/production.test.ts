@@ -12,7 +12,7 @@ import {
   currentOf,
   moveForward,
   newProduction,
-  ownerQuotes,
+  ownerWords,
   productionsOf,
   unfiledOf,
   versionAt,
@@ -191,6 +191,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.none(),
+      picks: Option.none(),
       by: Option.none(),
     };
     const history = historyOf('look', Option.some(withSaid(look(), said)), []);
@@ -199,8 +200,14 @@ describe('a production’s history', () => {
     ]);
   });
 
-  test('the owner’s words are his decisions’ and notes’ quotes, never a question’s', () => {
-    const word = (tag: Said['_tag'], at: number, quote: Option.Option<string>): Said => ({
+  test('the owner’s words are his decisions’ and notes’ quotes and the picks his answers filed, never a question’s', () => {
+    const word = (
+      tag: Said['_tag'],
+      at: number,
+      quote: Option.Option<string>,
+      ask: Option.Option<string> = Option.none(),
+      picks: Option.Option<Readonly<Record<string, string>>> = Option.none(),
+    ): Said => ({
       _tag: tag,
       at,
       text: `${tag} at ${at}`,
@@ -208,22 +215,47 @@ describe('a production’s history', () => {
       set: Option.none(),
       point: Option.none(),
       variant: Option.none(),
-      ask: Option.some('a92f276635e'),
+      ask,
+      picks,
       by: Option.none(),
     });
     const file = {
       ...look(),
       said: [
-        word('Asked', HOUR, Option.some('Keep and lock them?')),
+        word('Asked', HOUR, Option.some('Keep and lock them?'), Option.some('a92f276635e')),
         word('Decided', 2 * HOUR, Option.some('lets lock in that style')),
-        // An ask answered by a pick alone files no words.
-        word('Decided', 3 * HOUR, Option.none()),
+        // An ask answered by a pick alone files no words, and its picks.
+        word(
+          'Decided',
+          3 * HOUR,
+          Option.none(),
+          Option.some('a92f276635e'),
+          Option.some({ keep: 'lock' }),
+        ),
         word('Noted', 4 * HOUR, Option.some('lock in a rig and a style')),
+        // A question, and an ask withdrawn, file no picks of his.
+        word(
+          'Asked',
+          5 * HOUR,
+          Option.none(),
+          Option.some('a0590057595'),
+          Option.some({ arm: 'arm' }),
+        ),
+        word(
+          'Noted',
+          6 * HOUR,
+          Option.none(),
+          Option.some('a0590057595'),
+          Option.some({ arm: 'arm' }),
+        ),
+        // A decision from chat names no ask, so its picks answer none.
+        word('Decided', 7 * HOUR, Option.none(), Option.none(), Option.some({ arm: 'no-arm' })),
       ],
     };
-    expect(ownerQuotes(file)).toEqual(
-      new Set(['lets lock in that style', 'lock in a rig and a style']),
-    );
+    expect(ownerWords(file)).toEqual({
+      quotes: new Set(['lets lock in that style', 'lock in a rig and a style']),
+      picks: new Map([['a92f276635e', { keep: 'lock' }]]),
+    });
   });
 
   test('an ask waits on the owner until a pick in its choice or a later decision answers it', () => {
@@ -249,6 +281,7 @@ describe('a production’s history', () => {
       point: on,
       variant: Option.none(),
       ask: Option.none(),
+      picks: Option.none(),
       by: Option.none(),
     });
     const words = [
@@ -281,6 +314,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.some(ask),
+      picks: Option.none(),
       by: Option.none(),
     });
     const asked = [word('Asked', 20 * HOUR, 'a1'), word('Asked', 21 * HOUR, 'a2')].reduce(
@@ -312,6 +346,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.none(),
+      picks: Option.none(),
       by: Option.none(),
     });
     const on = {
@@ -320,6 +355,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.some('a0123456789'),
+      picks: Option.none(),
       by: Option.none(),
     };
     const closed = [
@@ -340,6 +376,7 @@ describe('a production’s history', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.none(),
+      picks: Option.none(),
       by: Option.none(),
     });
     const [ask] = currentOf(historyOf('look', Option.some(file), [])).waiting;

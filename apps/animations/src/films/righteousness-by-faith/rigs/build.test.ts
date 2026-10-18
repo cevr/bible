@@ -5,12 +5,13 @@
 // fails here, on a host with no Rive CLI too. And the figures the owner
 // locked are drawn as he kept them: each one's print alone is the one its
 // lock holds (`unlocked`), and a part of him moved breaks his lock, so the
-// print the film holds is his parts as drawn. Every override on them is in
-// his words: its quote is a decision's or a note's on RBF's ledger
-// (`unsaid`), so one in words he never said is broken. What a lock answers a
-// print and its way out are the house's
-// (`packages/film/src/style/lock.test.ts`), and so is how an override is
-// held to his words (`packages/film/src/style/override.test.ts`).
+// print the film holds is his parts as drawn. Every override on them cites
+// his word: its quote is a decision's or a note's on RBF's ledger, or its
+// answer a pick the ledger filed with the decision that answered that ask
+// (`unsaid`), so one in words he never said, or citing an ask he never
+// answered that way, is broken. What a lock answers a print and its way out
+// are the house's (`packages/film/src/style/lock.test.ts`), and so is how an
+// override is held to his word (`packages/film/src/style/override.test.ts`).
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -67,7 +68,7 @@ describe("RBF's figures", () => {
     }),
   );
 
-  it.effect.layer(BunServices.layer)("every override on them is in the owner's words", () =>
+  it.effect.layer(BunServices.layer)("every override on them cites the owner's word", () =>
     Effect.gen(function* () {
       expect(yield* unsaid(LEDGER, figureOverrides())).toEqual([]);
     }),
@@ -77,25 +78,44 @@ describe("RBF's figures", () => {
     "an override in words the owner never said is broken, and one in his words on RBF's ledger is not",
     () =>
       Effect.gen(function* () {
-        // The prosecutor's lock with an override that frees a changed print of him.
-        const freed = (quote: string) =>
-          overridesIn({
-            ...prosecutor,
-            lock: {
-              ...PROSECUTOR_LOCK,
-              override: {
-                rule: 'FigureLock',
-                place: 'prosecutor',
-                reason: 'his ear a unit back',
-                quote,
-                frees: 'b'.repeat(64),
-              },
-            },
-          }).map((override) => ({ item: 'prosecutor', override }));
-        const fabricated = yield* unsaid(LEDGER, freed('move his ear back, as the owner asked'));
+        const fabricated = yield* unsaid(
+          LEDGER,
+          freed({ quote: 'move his ear back, as the owner asked' }),
+        );
         expect(fabricated.map((u) => u.item)).toEqual(['prosecutor']);
         // A decision of the owner's on RBF's ledger (2026-10-15), in his words.
-        expect(yield* unsaid(LEDGER, freed('lets lock in that style'))).toEqual([]);
+        expect(yield* unsaid(LEDGER, freed({ quote: 'lets lock in that style' }))).toEqual([]);
+      }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "an override citing an ask no decision on RBF's ledger answered, or a value the owner did not pick there, is broken",
+    () =>
+      Effect.gen(function* () {
+        const ask = (id: string, value: string) =>
+          unsaid(LEDGER, freed({ answer: { ask: id, question: 'keep', value } }));
+        // No decision on RBF's ledger answers this ask.
+        expect((yield* ask('a0000000000', 'lock')).map((u) => u.item)).toEqual(['prosecutor']);
+        // The ask he kept and locked the court figures in (2026-10-17): a decision answers it, and files no pick of `revise`.
+        expect((yield* ask(PROSECUTOR_LOCK.ask, 'revise')).map((u) => u.item)).toEqual([
+          'prosecutor',
+        ]);
       }),
   );
 });
+
+/** The prosecutor's lock with an override citing `cited` that frees a changed print of him, as RBF's figures would lay it. */
+const freed = (cited: { readonly quote: string } | { readonly answer: object }) =>
+  overridesIn({
+    ...prosecutor,
+    lock: {
+      ...PROSECUTOR_LOCK,
+      override: {
+        rule: 'FigureLock',
+        place: 'prosecutor',
+        reason: 'his ear a unit back',
+        ...cited,
+        frees: 'b'.repeat(64),
+      },
+    },
+  }).map((override) => ({ item: 'prosecutor', override }));

@@ -11,8 +11,8 @@
 // not. His film's build and its test hash each locked figure's print and
 // hold it to its lock (`unlocked`, `build.ts`; what a hash answers,
 // `heldTo`): a print that differs breaks the lock (FigureLock), unless its
-// override, with his words, frees that very print, and then it is
-// overridden until he keeps it as the lock's next version. An override that
+// override, citing his words or his pick, frees that very print, and then it
+// is overridden until he keeps it as the lock's next version. An override that
 // frees another print, or one the lock holds already, breaks it too, so no
 // override is left to free a later change unasked. Pure.
 
@@ -26,7 +26,7 @@ const Sha256 = Schema.String.check(
   Schema.isPattern(/^[0-9a-f]{64}$/, { message: 'a sha256, as 64 lowercase hex digits' }),
 );
 
-/** FigureLock's override: it frees the one print it names, by its sha256. */
+/** FigureLock's override: it frees the one print it names, by its sha256, citing his words or his pick. */
 const Freed = overrideOf('FigureLock', { frees: Sha256 });
 type Freed = typeof Freed.Type;
 
@@ -82,7 +82,7 @@ export const heldTo = (item: string, lock: Lock, hash: string): Held => {
         );
   if (o === undefined)
     return broken(
-      `its print ${hash} is not its lock's ${lock.hash} (version ${lock.version}, kept in ask ${lock.ask}): only an override with the owner's words frees it, naming the print it frees`,
+      `its print ${hash} is not its lock's ${lock.hash} (version ${lock.version}, kept in ask ${lock.ask}): only an override citing the owner's words or his pick frees it, naming the print it frees`,
     );
   if (o.frees !== hash) return broken(`its override frees ${o.frees}, not its print ${hash}`);
   return { _tag: 'Freed', override: o };

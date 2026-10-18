@@ -197,49 +197,56 @@ describe('the asks on disk', () => {
     ),
   );
 
-  it.effect('files its question as it is made, and its answers once closed, each once', () =>
-    run(
-      Effect.gen(function* () {
-        const asks = yield* AskStore;
-        const productions = yield* ProductionStore;
-        yield* productions.start('f', {
-          title: 'F',
-          film: Option.none(),
-          blurb: Option.none(),
-          first: 'v1',
-          at: 0,
-        });
-        const said = Effect.map(productions.read('f'), (file) =>
-          Option.getOrThrow(file).said.map((s) => [s._tag, s.text, s.set, s.quote]),
-        );
-        const { id } = yield* asks.make({
-          ...draft(proof([1, 7])),
-          production: 'f',
-          set: 'spare/judge-faces',
-        });
-        expect(yield* said).toEqual([
-          ['Asked', `Keep a try (ask ${id})`, Option.some('judge-faces'), Option.none()],
-        ]);
-        yield* asks.answerPage(id, [{ step: step('pick'), values: { try: '7' } }]);
-        yield* asks.answerPage(id, [{ step: step('why'), values: { why: 'the light' } }]);
-        yield* asks.close(id, 'kept try 7');
-        // Closed again with the same words: answered as it is, filed once.
-        yield* asks.close(id, 'kept try 7');
-        expect(yield* said).toEqual([
-          ['Asked', `Keep a try (ask ${id})`, Option.some('judge-faces'), Option.none()],
-          [
-            'Decided',
-            `Keep a try (ask ${id}): try: Try 7 · why: the light`,
-            Option.some('judge-faces'),
-            Option.some('the light'),
-          ],
-        ]);
-        // An ask on no production files nothing.
-        const loose = yield* asks.make(draft(proof([1, 7])));
-        yield* asks.close(loose.id, 'not needed');
-        expect(yield* said).toHaveLength(2);
-      }),
-    ),
+  it.effect(
+    'files its question as it is made, and its answers once closed, each once, with his picks',
+    () =>
+      run(
+        Effect.gen(function* () {
+          const asks = yield* AskStore;
+          const productions = yield* ProductionStore;
+          yield* productions.start('f', {
+            title: 'F',
+            film: Option.none(),
+            blurb: Option.none(),
+            first: 'v1',
+            at: 0,
+          });
+          const said = Effect.map(productions.read('f'), (file) =>
+            Option.getOrThrow(file).said.map((s) => [s._tag, s.text, s.set, s.quote]),
+          );
+          const picks = Effect.map(productions.read('f'), (file) =>
+            Option.getOrThrow(file).said.map((s) => s.picks),
+          );
+          const { id } = yield* asks.make({
+            ...draft(proof([1, 7])),
+            production: 'f',
+            set: 'spare/judge-faces',
+          });
+          expect(yield* said).toEqual([
+            ['Asked', `Keep a try (ask ${id})`, Option.some('judge-faces'), Option.none()],
+          ]);
+          yield* asks.answerPage(id, [{ step: step('pick'), values: { try: '7' } }]);
+          yield* asks.answerPage(id, [{ step: step('why'), values: { why: 'the light' } }]);
+          yield* asks.close(id, 'kept try 7');
+          // Closed again with the same words: answered as it is, filed once.
+          yield* asks.close(id, 'kept try 7');
+          expect(yield* said).toEqual([
+            ['Asked', `Keep a try (ask ${id})`, Option.some('judge-faces'), Option.none()],
+            [
+              'Decided',
+              `Keep a try (ask ${id}): try: Try 7 · why: the light`,
+              Option.some('judge-faces'),
+              Option.some('the light'),
+            ],
+          ]);
+          // His words are the decision's quote, and his choice its picks: the value of the option he chose.
+          expect(yield* picks).toEqual([Option.none(), Option.some({ try: '7' })]);
+          // An ask on no production files nothing.
+          const loose = yield* asks.make(draft(proof([1, 7])));
+          yield* asks.close(loose.id, 'not needed');
+          expect(yield* said).toHaveLength(2);
+        }),
+      ),
   );
 
   it.effect('files its answers at the time they were given, before a later decision', () =>
@@ -270,6 +277,7 @@ describe('the asks on disk', () => {
           point: Option.none(),
           variant: Option.none(),
           ask: Option.none(),
+          picks: Option.none(),
           by: Option.some('agent'),
         });
         yield* TestClock.adjust('1 hour');

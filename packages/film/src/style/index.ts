@@ -12,15 +12,16 @@
 // `GivenRobe`, `StubLegs`, `Shoes`, `Hands`, `Stance`, `Stature`), each
 // checked under the house's rules (`rules.ts`) as it is made; one the owner
 // locked carries its lock (`lock.ts`), and every override a figure carries,
-// whatever rule it frees, is found by `overridesIn`. The rigs are drawn on
-// `@bible/film/style/rig`, and built by `@bible/film/style/build`, which
-// holds each override's words to the owner's on his production's ledger
-// (`unsaid`) and each locked figure's print to its lock (`unlocked`).
+// whatever rule it frees, is found by `overridesIn` and says what it cites
+// (`citedBy`: the owner's words or his pick on an ask). The rigs are drawn
+// on `@bible/film/style/rig`, and built by `@bible/film/style/build`, which
+// holds each override's citation to the owner's word on his production's
+// ledger (`unsaid`) and each locked figure's print to its lock (`unlocked`).
 
 export { EASE, type Expression, acted } from './face.ts';
 export { type ComposedFigure, figure } from './figure.ts';
 export { RIM, keyLight, parchment, peoplePaper, shading } from './house.ts';
-export { overridesIn } from './override.ts';
+export { citedBy, overridesIn } from './override.ts';
 export { looked, papers, rampedPaper } from './paper.ts';
 export { Robe, Tunic } from './parts/body.ts';
 export { Ear } from './parts/ear.ts';

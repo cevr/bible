@@ -173,6 +173,7 @@ describe('the change feed', () => {
           point: Option.none(),
           variant: Option.none(),
           ask: Option.none(),
+          picks: Option.none(),
           by: Option.some('agent'),
         });
         yield* productions.forward('f', { after: 1, title: 'v2', because: Option.none() }, 3);

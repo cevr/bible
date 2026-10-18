@@ -19,7 +19,9 @@ class StyleRefused extends Data.TaggedError('StyleRefused')<{
     if (this.rule === undefined) return `${this.part} refused: ${this.why}`;
     const rule = RULES[this.rule];
     const way =
-      rule.way === 'none' ? 'nothing frees it' : 'only an override with the owner’s words frees it';
+      rule.way === 'none'
+        ? 'nothing frees it'
+        : 'only an override citing the owner’s words or his pick frees it';
     return `${this.part} refused by ${this.rule}, ${rule.says} (${rule.source}; ${way}): ${this.why}`;
   }
 }

@@ -13,9 +13,9 @@
 // (`drawFigure`). The cold-studies judge (frozen in its `figures.riv`) is
 // another figure (bald, indigo, the cold-studies court's geometry): this one
 // is drawn to RBF's Board. The owner locked him (ask `a92f276635e`,
-// 2026-10-17): `judge.lock.json` holds his print, and only an override with
-// the owner's words frees a change to it (FigureLock, `@bible/film/style`'s
-// `lock.ts`).
+// 2026-10-17): `judge.lock.json` holds his print, and only an override
+// citing the owner's words or his pick frees a change to it (FigureLock,
+// `@bible/film/style`'s `lock.ts`).
 //
 // Units are the Board's pixels: in `cold.evidence` his head is 150 tall with
 // its hair. His head's centre is the artboard's origin.

@@ -2,10 +2,11 @@
 // where `rigs.ts` imports it, with the stamp of what it was built from
 // (`figures.stamp.json`): the generated project (`project/`) compiled by the
 // house's `compile` (`@bible/film/style/build`: the Rive CLI, offline and
-// unsigned). It builds nothing while an override on a figure carries words
-// that are not the owner's on RBF's ledger (`unsaid`, `LEDGER`), nor while a
-// locked figure's print is not the one its lock holds (`unlocked`), unless an
-// override with his words frees that print, which it lists. A build whose
+// unsigned). It builds nothing while an override on a figure cites words or
+// a pick that are not the owner's on RBF's ledger (`unsaid`, `LEDGER`), nor
+// while a locked figure's print is not the one its lock holds (`unlocked`),
+// unless an override citing his words or his pick frees that print, which it
+// lists. A build whose
 // stamp still holds (`unbuilt`) compiles nothing, so to build with a newer
 // CLI, delete the stamp first. Fails when the CLI reports a problem. The
 // film's test (`build.test.ts`) holds the overrides, the locks and the
@@ -17,6 +18,7 @@
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Console, Effect, FileSystem, Schema } from 'effect';
+import { citedBy } from '@bible/film/style';
 import { compile, unbuilt, unlocked, unsaid } from '@bible/film/style/build';
 import { ARTBOARDS, figureOverrides, figuresRml, lockedPrints } from './figures.ts';
 
@@ -37,16 +39,16 @@ class RiveProblems extends Schema.TaggedError<RiveProblems>()('RiveProblems', {
   }
 }
 
-/** An override on a figure carries words that are not the owner's: its quote is on no decision or note of RBF's ledger. Why, each. */
+/** An override on a figure cites a word that is not the owner's: its quote is on no decision or note of RBF's ledger, or its answer is no pick a decision there filed. Why, each. */
 class OverridesUnsaid extends Schema.TaggedError<OverridesUnsaid>()('OverridesUnsaid', {
   unsaid: Schema.Array(Schema.String),
 }) {
   override get message() {
-    return `overrides not in the owner's words:\n${this.unsaid.join('\n')}`;
+    return `overrides not backed by the owner's word:\n${this.unsaid.join('\n')}`;
   }
 }
 
-/** A locked figure's print is not the one its lock holds, and no override with the owner's words frees it: why, each. */
+/** A locked figure's print is not the one its lock holds, and no override citing the owner's words or his pick frees it: why, each. */
 class LocksBroken extends Schema.TaggedError<LocksBroken>()('LocksBroken', {
   broken: Schema.Array(Schema.String),
 }) {
@@ -60,13 +62,13 @@ const committed = { riv: `${here}/figures.riv`, stamp: `${here}/figures.stamp.js
 
 const build = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const unquoted = yield* unsaid(LEDGER, figureOverrides());
-  if (unquoted.length > 0)
-    return yield* OverridesUnsaid.make({ unsaid: unquoted.map((u) => u.why) });
+  const unbacked = yield* unsaid(LEDGER, figureOverrides());
+  if (unbacked.length > 0)
+    return yield* OverridesUnsaid.make({ unsaid: unbacked.map((u) => u.why) });
   const locks = yield* unlocked(lockedPrints());
   yield* Effect.forEach(locks.overridden, ({ item, override }) =>
     Console.log(
-      `overridden: ${item}'s lock (FigureLock): ${override.reason} ("${override.quote}")`,
+      `overridden: ${item}'s lock (FigureLock): ${override.reason} (${citedBy(override)})`,
     ),
   );
   if (locks.broken.length > 0)

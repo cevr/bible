@@ -64,8 +64,19 @@ const SaidOn = {
   variant: maybe(Schema.String),
 };
 
-/** The lab ask a word files (`ask`, in the lab's asks): its question, or its answer or withdrawal. */
-const SaidAsk = { ask: maybe(Schema.String) };
+/**
+ * The owner's picks on a lab ask: each question he answered by a choice, by
+ * its name, and the value of the option he chose.
+ */
+const Picks = Schema.Record(Schema.String, Schema.String);
+
+/**
+ * The lab ask a word files (`ask`, in the lab's asks): its question, or its
+ * answer or withdrawal; and with its answer, the owner's picks on it
+ * (`picks`; none on a question, a withdrawal or a word from chat). An
+ * answer's decision that carries none backs no pick, whatever its line says.
+ */
+const SaidAsk = { ask: maybe(Schema.String), picks: maybe(Picks) };
 
 /** Who filed the word: the agent that heard it (`by`), or the ask's asker; none for a word that does not say. */
 const SaidBy = { by: maybe(Schema.String) };
@@ -362,12 +373,29 @@ export const decisionsIn = (file: ProductionFile, version: number): ReadonlyArra
     .toReversed();
 
 /**
- * The owner's own words on the ledger: each decision's and note's quote,
- * verbatim, filed from chat or by an ask he answered in words. A question
- * (`Asked`) is an agent's, so its words are none of his.
+ * The owner's own word on a ledger, as an override cites it
+ * (`style/override.ts`): each decision's and note's quote, verbatim, filed
+ * from chat or by an ask he answered in words (`quotes`); and each ask's
+ * picks, filed with the decision that answered it (`picks`, by the ask's
+ * id). A question (`Asked`) is an agent's, so neither its words nor an ask
+ * that only asked are his.
  */
-export const ownerQuotes = (file: ProductionFile): ReadonlySet<string> =>
-  new Set(Arr.getSomes(file.said.filter((s) => s._tag !== 'Asked').map((s) => s.quote)));
+export interface OwnerWords {
+  readonly quotes: ReadonlySet<string>;
+  readonly picks: ReadonlyMap<string, Readonly<Record<string, string>>>;
+}
+
+/** The owner's own word on `file`'s ledger: his quotes and his picks. */
+export const ownerWords = (file: ProductionFile): OwnerWords => ({
+  quotes: new Set(Arr.getSomes(file.said.filter((s) => s._tag !== 'Asked').map((s) => s.quote))),
+  picks: new Map(
+    Arr.getSomes(
+      file.said
+        .filter((s): s is Decided => s._tag === 'Decided')
+        .map((d) => Option.zipWith(d.ask, d.picks, (ask, picks) => [ask, picks] as const)),
+    ),
+  ),
+});
 
 /**
  * The move an agent makes on the owner's word: from version `after`, because

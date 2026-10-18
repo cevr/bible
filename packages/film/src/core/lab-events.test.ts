@@ -540,6 +540,7 @@ describe('productionChanges', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.none(),
+      picks: Option.none(),
       by: Option.none(),
     });
 
@@ -569,6 +570,7 @@ describe('productionChanges', () => {
       point: Option.none(),
       variant: Option.none(),
       ask: Option.none(),
+      picks: Option.none(),
       by: Option.none(),
     });
     expect(

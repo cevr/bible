@@ -11,8 +11,8 @@
 // (`drawHand`). How each part is cut, lit and drawn is the house's
 // (`drawFigure`). The owner locked him (ask `a92f276635e`, 2026-10-17, the
 // shoe's sole fixed in passing): `prosecutor.lock.json` holds his print, and
-// only an override with the owner's words frees a change to it (FigureLock,
-// `@bible/film/style`'s `lock.ts`).
+// only an override citing the owner's words or his pick frees a change to it
+// (FigureLock, `@bible/film/style`'s `lock.ts`).
 //
 // Units are the Board's pixels: in `cold.evidence` he stands 540 tall behind
 // the table. His feet are the artboard's origin.

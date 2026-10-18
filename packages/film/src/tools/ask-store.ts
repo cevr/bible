@@ -515,8 +515,9 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
  * What an ask files on its production's timeline as it stands at `now`: its
  * question, when it names a set (at the time it was made); and once closed,
  * the owner's decision (its answers, answered to its end, at the time of his
- * last answer) or its withdrawal (a note, closed before, at the time it was
- * closed; `now` for a record with no close time).
+ * last answer: his words as its quote, and each choice's value as his picks,
+ * which an override may cite) or its withdrawal (a note, closed before, at
+ * the time it was closed; `now` for a record with no close time).
  */
 const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
   const set = Option.map(Option.fromUndefinedOr(record.set), setPathOf);
@@ -525,6 +526,7 @@ const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
     point: Option.fromUndefinedOr(record.point),
     variant: Option.none<string>(),
     ask: Option.some(record.id),
+    picks: Option.none<Readonly<Record<string, string>>>(),
     by: Option.some(record.by),
   };
   const named = `${record.title} (ask ${record.id})`;
@@ -569,6 +571,18 @@ const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
           }),
         ),
       );
+      // His picks: each question he answered by a choice, the value of the option he chose.
+      const picks = Record.getSomes(
+        Record.map(given, (a) =>
+          Match.value(a).pipe(
+            Match.discriminatorsExhaustive('kind')({
+              choose: (c) => Option.some(c.value),
+              free_text: () => Option.none<string>(),
+              skipped: () => Option.none<string>(),
+            }),
+          ),
+        ),
+      );
       // Every answer skipped still reads as answered: the line then names them all.
       const line = answersLine(
         Option.getOrElse(
@@ -585,6 +599,7 @@ const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
           text: `${named}: ${line}`,
           quote: Option.liftPredicate(words.join(' / '), (w) => w.length > 0),
           ...on,
+          picks: Option.liftPredicate(picks, (p) => !Record.isEmptyRecord(p)),
         },
       ];
     }),

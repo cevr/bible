@@ -192,6 +192,7 @@ export class BeatEdits extends Context.Service<BeatEdits, BeatEditsService>()(
             point: Option.none(),
             variant: Option.none(),
             ask: Option.none(),
+            picks: Option.none(),
             by: Option.some(by),
           };
           const isIt = (s: Said) =>

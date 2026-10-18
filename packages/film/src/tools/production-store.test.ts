@@ -62,6 +62,7 @@ describe('ProductionStore', () => {
             point: Option.none(),
             variant: Option.none(),
             ask: Option.none(),
+            picks: Option.none(),
             by: Option.none(),
           }),
         ),
@@ -135,6 +136,7 @@ describe('the verbs', () => {
         point: Option.none(),
         variant: Option.none(),
         ask: Option.none(),
+        picks: Option.none(),
         by: Option.none(),
       };
       const refusal = (said: OwnerWord) =>
@@ -161,6 +163,7 @@ describe('the verbs', () => {
         point: Option.none(),
         variant: Option.none(),
         ask: Option.none(),
+        picks: Option.none(),
         by: Option.none(),
       });
       expect(said.said.map((s) => s._tag)).toEqual(['Noted']);

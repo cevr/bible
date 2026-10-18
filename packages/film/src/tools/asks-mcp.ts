@@ -366,6 +366,7 @@ const asksReads = Effect.fn('LabMcp.asksReads')(function* () {
       point,
       variant,
       ask: Option.none(),
+      picks: Option.none(),
       by: Option.some(given.by),
     };
     const file = yield* refused(productions.say(production, said));
