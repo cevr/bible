@@ -1,5 +1,5 @@
-// An ask's provider: its page machine (one actor per ask page, on the
-// review's runtime), and what the page's parts read and do through it. The
+// An ask's provider: its page machine (one actor per ask on a page of asks,
+// on the review's runtime), and what the page's parts read and do through it. The
 // parts (`parts.tsx`) never see the machine: they read the record, the
 // sections its page shows, the draft and what the last send said, and they
 // set an answer or send the page. The provider is the one place that knows how.
@@ -11,7 +11,7 @@
 // draft only what the lab still asks, so a page sent to its end keeps none.
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { Match, Option, Record } from 'effect';
+import { Effect, Match, Option, Record } from 'effect';
 import * as ActorAtom from 'effect-machine/atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
@@ -20,6 +20,7 @@ import {
   createMemo,
   createSignal,
   onSettled,
+  untrack,
   useContext,
 } from 'solid-js';
 import { type KeptJson, keptJson } from '../../browser/storage.ts';
@@ -44,6 +45,8 @@ const keptDraftKey = (ask: string) => `film-review.ask-draft:${ask}`;
 type AskPhase = AskPageState['_tag'];
 
 interface AskStateValue {
+  /** The ask's id: what its part on the page is found by (`data-ask`). */
+  readonly id: string;
   readonly phase: Accessor<AskPhase>;
   /** The ask as last read. */
   readonly record: Accessor<Option.Option<AskRecord>>;
@@ -122,12 +125,38 @@ const keepDraft = (
   );
 };
 
-const Body = (props: ParentProps<{ readonly ask: string; readonly actor: AskPageActor }>) => {
+/**
+ * Where `record`'s run stands, in a word that changes with each answer the
+ * lab keeps and its close: what tells the page an answer landed.
+ */
+const runOf = (record: Option.Option<AskRecord>): string =>
+  Option.match(record, {
+    onNone: () => '',
+    onSome: (r) => `${r.state._tag}:${r.answered.length}`,
+  });
+
+const Body = (
+  props: ParentProps<{
+    readonly ask: string;
+    readonly actor: AskPageActor;
+    readonly moved: () => void;
+  }>,
+) => {
   const stateAtom = ActorAtom.make(props.actor);
   const page = useAtomValue(() => stateAtom);
   const send = useAtomSet(() => stateAtom);
   keepDraft(props.ask, page, send);
   const record = createMemo(() => Option.map(pageOf(page()), (p) => p.record));
+  // The run as first read; each move past it (an answer landed, or read again where another device left it) is said.
+  let run = Option.none<string>();
+  createEffect(
+    () => runOf(record()),
+    (now) => {
+      if (now === '') return;
+      if (Option.isSome(run) && run.value !== now) props.moved();
+      run = Option.some(now);
+    },
+  );
   const sections = createMemo(() =>
     Option.match(record(), {
       onNone: () => [],
@@ -136,6 +165,7 @@ const Body = (props: ParentProps<{ readonly ask: string; readonly actor: AskPage
   );
   const value: AskContextValue = {
     state: {
+      id: props.ask,
       phase: () => page()._tag,
       record,
       sections,
@@ -158,15 +188,30 @@ const Body = (props: ParentProps<{ readonly ask: string; readonly actor: AskPage
 };
 
 /**
- * Ask `ask`'s state and actions, for its page's parts. The page opens on the
- * review's first read of the ask, the one the shell names it by (`askRead`).
+ * Ask `ask`'s state and actions, for its part's parts. It opens on `first`,
+ * the ask as its page's read had it (`askPage`), the one the shell names the
+ * page by; `moved` hears each move of its run past it, so the page reads its
+ * asks again.
  */
-export const Provider = (props: ParentProps<{ readonly ask: string }>) => {
+export const Provider = (
+  props: ParentProps<{
+    readonly ask: string;
+    readonly first: Accessor<AskRecord>;
+    readonly moved: () => void;
+  }>,
+) => {
   const { meta } = useReview();
+  // The ask as the page's read had it, taken once as the actor starts: later reads are the machine's own.
   return (
-    <Actor runtime={meta.runtime} spawn={spawnAskPage(props.ask, meta.askRead(props.ask))}>
+    <Actor
+      runtime={meta.runtime}
+      spawn={spawnAskPage(
+        props.ask,
+        Effect.sync(() => untrack(props.first)),
+      )}
+    >
       {(actor) => (
-        <Body ask={props.ask} actor={actor}>
+        <Body ask={props.ask} actor={actor} moved={props.moved}>
           {props.children}
         </Body>
       )}

@@ -518,6 +518,41 @@ const answer = (found: Answer): Effect.Effect<Option.Option<Response>> => {
   );
 };
 
+/** A page of asks' path: `/api/asks/<ask>/page`. */
+const ASK_PAGE = /^\/api\/asks\/(a[0-9a-f]{10})\/page$/;
+
+/**
+ * The page of asks a test's fakes do not answer: the ask's own route's
+ * record as a page of one, as the lab keeps an ask that opened its page
+ * and was joined by none, so a fake of one ask needs no page fake beside
+ * it. Its refusals and failures are the page's.
+ */
+const pageOfOne = (
+  routes: ReadonlyArray<FakeRoute>,
+  method: string,
+  path: string,
+): Option.Option<FakeRoute> =>
+  Option.flatMap(
+    Option.filter(Option.fromNullishOr(ASK_PAGE.exec(path)), () => method === 'GET'),
+    ([, ask]) =>
+      Option.map(
+        Option.fromUndefinedOr(
+          routes.find((f) => f.method === 'GET' && f.path.test(`/api/asks/${ask}`)),
+        ),
+        (one): FakeRoute => ({
+          ...one,
+          path: ASK_PAGE,
+          answer: (asked) =>
+            madeBy(
+              Effect.map(madeOf(one.answer({ ...asked, path: `/api/asks/${ask}` })), (record) => {
+                if (record._tag !== 'Json' || record.status !== 200) return record;
+                return json({ page: ask ?? '', asks: [record.json] });
+              }),
+            ),
+        }),
+      ),
+  );
+
 /** Whether the lab's API declares a route a request reaches (`declares`, `core/api.ts`). */
 const declared = declares(LabHttpApi);
 
@@ -549,8 +584,11 @@ const apiAnswer =
     asked.push(made);
     // A HEAD is its GET's answer, as the lab's server answers it (the browser drops the body).
     const method = asGet(request.method);
-    const found = routes.find((f) => f.method === method && f.path.test(made.path));
-    return Option.match(Option.fromUndefinedOr(found), {
+    const found = Option.orElse(
+      Option.fromUndefinedOr(routes.find((f) => f.method === method && f.path.test(made.path))),
+      () => pageOfOne(routes, method, made.path),
+    );
+    return Option.match(found, {
       onNone: () => Effect.succeedSome(respond('no fake route', 'text/plain', 404)),
       onSome: (f) => {
         if (!declared(method, request.url.pathname))

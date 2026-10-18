@@ -48,7 +48,7 @@ import {
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
 import { BoardFile, BoardName } from './board.ts';
-import { AskName, AskRecord, StepValues } from './ask.ts';
+import { AskName, AskRecord, AsksPage, StepValues } from './ask.ts';
 import type { Interval } from './time.ts';
 import { sceneOfPoint } from './point.ts';
 import { Gave, OpId, Project, RenderVariantName, Took } from './catalogue.ts';
@@ -929,14 +929,20 @@ export const sectionsPosted = (post: AskAnswerPost): ReadonlyArray<AskSectionPos
 
 /**
  * The asks: an agent's decision pages (`core/ask.ts`), each read as its
- * record and answered as one page, its sections in order; the answers move
- * its machine and are kept, so a reload or another device opens it where it
- * was left.
+ * record, or with every ask on its page (the asks made in sequence, in the
+ * order made), and answered as one page, its sections in order; the answers
+ * move its machine and are kept, so a reload or another device opens it
+ * where it was left.
  */
 class AsksGroup extends HttpApiGroup.make('asks').add(
   HttpApiEndpoint.get('read', `${API}/asks/:ask`, {
     params: { ask: Schema.String },
     success: AskRecord,
+    error: Refusals,
+  }),
+  HttpApiEndpoint.get('page', `${API}/asks/:ask/page`, {
+    params: { ask: Schema.String },
+    success: AsksPage,
     error: Refusals,
   }),
   HttpApiEndpoint.post('answer', `${API}/asks/:ask/answer`, {
@@ -1498,10 +1504,22 @@ export const Places = {
     params: { series: Codec.Segment, draft: Codec.Segment, beat: Codec.Segment },
     query: Field.struct({ words: cited }),
   }),
-  /** An agent's ask: its decision page (`core/ask.ts`), at the step its run is on; a Board still open full size. */
+  /**
+   * An agent's ask: the page of asks it is on (`core/ask.ts`), taken to this
+   * one, each at the step its run is on; a Board still open full size.
+   */
   ask: Place.make({
     path: '/asks/:ask',
     params: { ask: Codec.Segment },
+    query: Field.struct({ still }),
+  }),
+  /**
+   * A page of asks, by the ask that opened it: the asks made in sequence, in
+   * the order made, taken to the first still asking; a Board still open full size.
+   */
+  askPage: Place.make({
+    path: '/asks/page/:page',
+    params: { page: Codec.Segment },
     query: Field.struct({ still }),
   }),
 };
@@ -1517,6 +1535,7 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, AppPage]> = [
   [Places.export, 'render'],
   [Places.studio, 'player'],
   [Places.ask, 'review'],
+  [Places.askPage, 'review'],
   [Places.draft, 'review'],
   [Places.draftBeat, 'review'],
 ];
@@ -1605,9 +1624,12 @@ export const pageHref = {
   /** A production's timeline, version `v` in focus (0: the current one). */
   production: (production: string, v = 0): string =>
     Place.href(Places.production, { path: { production }, query: { v }, hash: {} }),
-  /** An agent's ask, at the step its run is on. */
+  /** An agent's ask: its page, taken to it. */
   ask: (ask: string): string =>
     Place.href(Places.ask, { path: { ask }, query: { still: '' }, hash: {} }),
+  /** A page of asks, by the ask that opened it: taken to the first still asking. */
+  askPage: (page: string): string =>
+    Place.href(Places.askPage, { path: { page }, query: { still: '' }, hash: {} }),
   /** A series draft in the Script reader. */
   draft: (series: string, draft: string): string =>
     Place.href(Places.draft, { path: { series, draft }, query: {}, hash: {} }),

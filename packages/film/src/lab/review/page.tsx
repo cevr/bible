@@ -19,7 +19,7 @@ import { folderTitle, isFilmsFolder } from './format.ts';
 import { ReviewPlace, placeOf } from './place.ts';
 import { FolderPage, Home, SetPage } from './section.tsx';
 import { ProductionPage, useHistories } from './production.tsx';
-import { AskPage } from '../ask/page.tsx';
+import { AsksPage } from '../ask/page.tsx';
 import { DraftPage } from './draft.tsx';
 import { COMMENTS_CSS } from './comments-style.ts';
 import { REVIEW_CSS } from './style.ts';
@@ -75,9 +75,9 @@ const historyNamed = (
 ): Option.Option<ProductionHistory> =>
   Option.fromUndefinedOr(histories.find((h) => h.production === production));
 
-/** The ask `shown`, when it is ask `id`: one read before another ask's page is not this one's. */
+/** The page of asks `shown`, when it holds ask `id` (a page's id is its first ask's): one read before another page is not this one. */
 const shownAsk = (shown: Option.Option<AskShown>, id: string): Option.Option<AskShown> =>
-  Option.filter(shown, (a) => a.id === id);
+  Option.filter(shown, (a) => a.page === id || a.asks.includes(id));
 
 /** The film a place is about: a film's choices, a set in that film's folder, or the ask shown's. */
 const filmOf = (
@@ -91,6 +91,7 @@ const filmOf = (
       Home: () => Option.none<string>(),
       Production: (p) => Option.flatMap(historyNamed(histories, p.production), (h) => h.film),
       Ask: (p) => Option.flatMap(shownAsk(ask, p.ask), (a) => a.film),
+      AskPage: (p) => Option.flatMap(shownAsk(ask, p.page), (a) => a.film),
       Draft: () => Option.none<string>(),
       Folder: (p) => filmOfFolder(p.folder, films),
       Set: (p) => filmOfFolder(p.folder, films),
@@ -117,6 +118,10 @@ const depthOf = (
       Ask: (p) =>
         Option.some(
           Option.match(shownAsk(ask, p.ask), { onNone: () => 'ask', onSome: (a) => a.title }),
+        ),
+      AskPage: (p) =>
+        Option.some(
+          Option.match(shownAsk(ask, p.page), { onNone: () => 'asks', onSome: (a) => a.title }),
         ),
       Draft: (p) => Option.some(draftName(series, p.series, p.draft)),
       Folder: (p) => Option.some(folderName(index, p.folder)),
@@ -146,7 +151,7 @@ const Shell = (props: { readonly children: JSX.Element }) => {
     <PageShell
       page={() => 'films'}
       film={film}
-      lastFilm={state.place()._tag !== 'Draft' && state.place()._tag !== 'Ask'}
+      lastFilm={!['Draft', 'Ask', 'AskPage'].includes(state.place()._tag)}
       crumb={depth}
       films={films}
       hub={meta.hub}
@@ -184,7 +189,8 @@ const Page = () => {
         Match.tagsExhaustive({
           Home: () => <Home />,
           Production: (p) => <ProductionPage production={p.production} v={p.v} />,
-          Ask: (p) => <AskPage ask={p.ask} />,
+          Ask: (p) => <AsksPage of={p.ask} at={Option.some(p.ask)} />,
+          AskPage: (p) => <AsksPage of={p.page} at={Option.none()} />,
           Draft: (p) => <DraftPage series={p.series} draft={p.draft} />,
           Folder: (p) => <FolderPage folder={p.folder} />,
           Set: (p) => <SetPage folder={p.folder} point={p.point} />,

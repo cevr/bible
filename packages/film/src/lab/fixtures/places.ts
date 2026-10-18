@@ -10,6 +10,7 @@ export const PLACE_HREFS = {
   home: pageHref.home(),
   production: pageHref.production('p'),
   ask: pageHref.ask('a0123456789'),
+  askPage: pageHref.askPage('a0123456782'),
   draft: pageHref.draft('s', 'd'),
   draftBeat: pageHref.draftBeat('s', 'd', '1', '0-0'),
   folder: pageHref.folder('f'),

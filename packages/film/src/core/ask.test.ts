@@ -21,6 +21,7 @@ import {
   askMachine,
   askProblems,
   askStart,
+  asksOnPage,
   materialsIn,
   oneQuestion,
   optionsShown,
@@ -603,4 +604,22 @@ describe('the run', () => {
       );
     }),
   );
+});
+
+describe('a page of asks', () => {
+  test('is the asks that name it, in the order made, its opener first of two made at one instant', () => {
+    const opener = (id: string, created: string) => ({ id: step(id), created });
+    const joiner = (id: string, created: string, page: string) => ({
+      ...opener(id, created),
+      page: step(page),
+    });
+    const all = [
+      joiner('c', '2026-10-17T12:01:00.000Z', 'b'),
+      joiner('z', '2026-10-17T12:00:00.000Z', 'b'),
+      opener('other', '2026-10-17T11:00:00.000Z'),
+      opener('b', '2026-10-17T12:00:00.000Z'),
+    ];
+    expect(asksOnPage(all, step('b')).map((a): string => a.id)).toEqual(['b', 'z', 'c']);
+    expect(asksOnPage(all, step('other')).map((a): string => a.id)).toEqual(['other']);
+  });
 });

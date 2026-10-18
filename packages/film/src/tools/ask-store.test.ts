@@ -396,3 +396,38 @@ describe('the asks on disk', () => {
       ),
   );
 });
+
+/** A one-choice ask by `by`, as an agent makes it in sequence. */
+const choice = (by: string, title: string) => ({
+  title,
+  why: 'the beat waits',
+  by,
+  ask: oneQuestion(
+    pageOf([
+      {
+        kind: 'choose',
+        id: 'pick',
+        label: title,
+        options: [
+          { value: 'a', label: 'A', recommended: true },
+          { value: 'b', label: 'B' },
+        ],
+      },
+    ]),
+  ),
+});
+
+describe('the pages of asks', () => {
+  it.effect('an ask kept before pages reads as a page of one', () =>
+    run(
+      Effect.gen(function* () {
+        const asks = yield* AskStore;
+        const fs = yield* FileSystem.FileSystem;
+        const kept = yield* asks.make(choice('old', 'Kept before pages'));
+        const onDisk = yield* fs.readFileString(asks.file(kept.id));
+        expect(onDisk).not.toContain('"page"');
+        expect(yield* asks.page(kept.id)).toEqual({ page: kept.id, asks: [kept] });
+      }),
+    ),
+  );
+});

@@ -22,9 +22,13 @@
 // put back. On a laptop the dock's words and Send keep to the column. A long
 // document is held at its clamp with Read all, which opens it whole; a Board
 // still opens full size (`?still=`), its caption inside the phone's screen or
-// clear of the laptop's dock, and Escape or a tap closes it.
+// clear of the laptop's dock, and Escape or a tap closes it. A page of asks
+// (`/asks/page/<id>`) stacks its asks in the order made under one count, an
+// answered one folded to a line of its answers, and takes the owner to the
+// first still asking (or, by one ask's own link, to that ask); each ask sends
+// alone, and the page read again moves the count.
 
-import { Boolean as Bool, Deferred, Effect, Exit, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Deferred, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../src/core/api.ts';
 import { AskRefused } from '../../../src/core/refusals.ts';
@@ -58,13 +62,19 @@ import {
   STUDIO_ASK,
   STUDIO_FILM,
   STUDIO_GUIDED,
+  STUDIO_PAGE,
+  STUDIO_PAGE_PACE,
+  STUDIO_PAGE_TAKES,
   askRecordWith,
   draftVoice,
   draftWrites,
   guidedRoutes,
+  pacedAsk,
+  pacedPage,
+  studioPage,
   studioRoutes,
 } from '../../../src/lab/fixtures/studio-film.ts';
-import { ASK_READY, SLOW } from '../studio-states.ts';
+import { ASK_READY, PAGE_READY, SLOW } from '../studio-states.ts';
 
 const ANSWER = new RegExp(`^/api/asks/${STUDIO_ASK}/answer$`);
 /** A still at 1920×1080: the size of a Board's. */
@@ -987,6 +997,118 @@ describe("an agent's ask on a phone", () => {
             return still.height > 0 && caption.top - still.bottom <= 12 && dock.top - caption.bottom >= 8;
           })()`,
         );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+/** The ask parts of the page, in the order drawn. */
+const PARTS = `[...document.querySelectorAll('.akp .ak')].map((a) => a.dataset.ask)`;
+/** Whether ask `ask`'s part starts in view: under the header, in the window's top two-thirds. */
+const inView = (ask: string) =>
+  `(() => { const top = document.querySelector('.ak[data-ask="${ask}"]').getBoundingClientRect().top; const under = document.querySelector('.sh-header').getBoundingClientRect().bottom; return top >= under - 4 && top <= innerHeight * 2 / 3; })()`;
+/** Whether ask `ask`'s Send, scrolled to, is what a tap on it reaches: no other part's Send lies over it. */
+const sendReached = (ask: string) =>
+  `(() => { const send = document.querySelector('.ak[data-ask="${ask}"] .ak-send [data-act="send"]'); send.scrollIntoView({ block: 'center' }); const r = send.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('[data-act="send"]') === send; })()`;
+/** Whether ask `ask`'s part starts just under the header: where the page scrolled to take the owner. */
+const takenTo = (ask: string) =>
+  `(() => { const top = document.querySelector('.ak[data-ask="${ask}"]').getBoundingClientRect().top; const under = document.querySelector('.sh-header').getBoundingClientRect().bottom; return Math.abs(top - under) <= 4; })()`;
+
+describe('a page of asks', () => {
+  for (const [width, viewport] of [
+    ['phone', PHONE],
+    ['laptop', DESK],
+  ] as const)
+    it.live(
+      `on a ${width}: the asks in the order made under one count, the answered one folded, the first asking in view`,
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* openReview(studioRoutes, {
+            href: pageHref.askPage(STUDIO_PAGE),
+            viewport,
+          });
+          yield* waitFor(page, PAGE_READY);
+          yield* textIs(page, '.akp-head h1', '3 asks from toy-agent');
+          yield* textIs(page, '.akp-count', '1 of 3 answered');
+          yield* evaluates(page, PARTS, [STUDIO_PAGE, STUDIO_PAGE_TAKES, STUDIO_PAGE_PACE]);
+          // The answered ask is one closed line: its title and its answer, the outcome inside.
+          yield* countIs(page, `.ak[data-ask="${STUDIO_PAGE}"] .ak-folded:not([open])`, 1);
+          yield* textHas(
+            page,
+            `.ak[data-ask="${STUDIO_PAGE}"] summary`,
+            'What do we call the act?',
+          );
+          yield* textHas(page, `.ak[data-ask="${STUDIO_PAGE}"] summary`, 'The breath');
+          yield* countIs(page, `.ak[data-ask="${STUDIO_PAGE}"] .ak-send`, 0);
+          // Each ask still asking has its own head and Send.
+          yield* countIs(page, '.akp .ak-send [data-act="send"]', 2);
+          yield* textIs(
+            page,
+            `.ak[data-ask="${STUDIO_PAGE_PACE}"] .ak-part-h`,
+            'Keep the pace of the open?',
+          );
+          // The first ask asking starts in view, so the page stays at its head and count.
+          yield* until(page, inView(STUDIO_PAGE_TAKES));
+          yield* evaluates(page, 'scrollY', 0);
+          if (viewport === PHONE) yield* fitsPhone(page);
+          // Each ask's Send is its own to tap, on a phone too, where a page's one Send is docked.
+          yield* evaluates(page, sendReached(STUDIO_PAGE_TAKES), true);
+          yield* evaluates(page, sendReached(STUDIO_PAGE_PACE), true);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+  it.live(
+    'one ask sends alone; the page read again moves the count and folds it',
+    () =>
+      Effect.gen(function* () {
+        const posted: Array<Asked> = [];
+        const routes: ReadonlyArray<FakeRoute> = [
+          route('POST', new RegExp(`^/api/asks/${STUDIO_PAGE_PACE}/answer$`), (asked) => {
+            posted.push(asked);
+            return json(pacedAsk);
+          }),
+          route('GET', /^\/api\/asks\/a012345678[234]\/page$/, () =>
+            json(Arr.match(posted, { onEmpty: () => studioPage, onNonEmpty: () => pacedPage })),
+          ),
+          ...studioRoutes,
+        ];
+        const { page, errors } = yield* openReview(routes, {
+          href: pageHref.askPage(STUDIO_PAGE),
+          viewport: PHONE,
+        });
+        yield* waitFor(page, PAGE_READY);
+        const pace = `.ak[data-ask="${STUDIO_PAGE_PACE}"]`;
+        yield* page.click(`${pace} .ak-option[data-value="keep-it"]`);
+        yield* page.click(`${pace} .ak-send [data-act="send"]`);
+        yield* textIs(page, '.akp-count', '2 of 3 answered');
+        yield* textHas(page, `${pace} .ak-folded summary`, 'Keep it');
+        yield* countIs(page, `${pace} .ak-send`, 0);
+        // The other ask's part stands as it was: still asking, its Send its own.
+        yield* countIs(page, `.ak[data-ask="${STUDIO_PAGE_TAKES}"] .ak-send [data-act="send"]`, 1);
+        expect(posted.map((p) => Option.getOrNull(p.body))).toEqual([
+          { sections: [{ step: 'ask', values: { pace: 'keep-it' } }] },
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "one ask's own link opens its page, taken to that ask",
+    () =>
+      Effect.gen(function* () {
+        // A short window, so the last ask starts below what the page shows at its top.
+        const { page, errors } = yield* openReview(studioRoutes, {
+          href: pageHref.ask(STUDIO_PAGE_PACE),
+          viewport: { ...PHONE, height: 560 },
+        });
+        yield* waitFor(page, PAGE_READY);
+        yield* textIs(page, '.akp-count', '1 of 3 answered');
+        yield* until(page, takenTo(STUDIO_PAGE_PACE));
+        yield* until(page, 'scrollY > 0');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

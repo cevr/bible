@@ -21,6 +21,7 @@ import {
   Boolean as Bool,
   Match,
   Option,
+  Order,
   Predicate,
   Record,
   Result,
@@ -1054,6 +1055,12 @@ export const AskRecord = Schema.Struct({
   set: Schema.optionalKey(Schema.String),
   /** The choice in that set it is about: a pick there answers it on the timeline too. */
   point: Schema.optionalKey(Schema.String),
+  /**
+   * The ask whose page this one joined (made while that page still asked),
+   * by its id; none: it opened its own page. An ask kept before pages is a
+   * page of one.
+   */
+  page: Schema.optionalKey(AskName),
   /** ISO time it was made. */
   created: Schema.String,
   /** ISO time after which it takes no answer. */
@@ -1065,6 +1072,68 @@ export const AskRecord = Schema.Struct({
 export type AskRecord = typeof AskRecord.Type;
 
 export const AskRecordJson = repoJson(AskRecord);
+
+// ---------------------------------------------------------------------------
+// A page of asks
+
+/**
+ * The page `record` is on, by the id of the ask that opened it: its own
+ * when it opened one. A page has no record of its own: it is the asks that
+ * name it, so nothing about it can disagree with them.
+ */
+export const pageIdOf = (record: Pick<AskRecord, 'id' | 'page'>): AskName =>
+  Option.getOrElse(Option.fromUndefinedOr(record.page), () => record.id);
+
+/** The asks on one page, in the order made: the one that opened it first. */
+export const AsksPage = Schema.Struct({ page: AskName, asks: Schema.Array(AskRecord) });
+export type AsksPage = typeof AsksPage.Type;
+
+/**
+ * The asks of `all` on page `page`, in the order made: by when each was
+ * made, the one that opened it first of two made at one instant.
+ */
+export const asksOnPage = <R extends Pick<AskRecord, 'id' | 'page' | 'created'>>(
+  all: ReadonlyArray<R>,
+  page: string,
+): ReadonlyArray<R> =>
+  Arr.sort(
+    all.filter((r) => pageIdOf(r) === page),
+    Order.combine(
+      Order.mapInput(Order.String, (r: R) => r.created),
+      Order.mapInput(Order.Boolean, (r: R) => r.id !== page),
+    ),
+  );
+
+/** Whether the owner still has `record` to answer. */
+const waiting = (record: Pick<AskRecord, 'state'>): boolean => record.state._tag === 'Asking';
+
+/** How far a page is answered, in asks. */
+interface PageCount {
+  /** How many asks the owner has answered. */
+  readonly answered: number;
+  /** How many he is to answer. */
+  readonly of: number;
+}
+
+/**
+ * How far a page is answered: of its asks the owner is to answer (one
+ * withdrawn before he answered it is not), how many he has. A closed ask he
+ * answered to its end counts as answered.
+ */
+export const pageCount = (
+  asks: ReadonlyArray<Pick<AskRecord, 'ask' | 'state' | 'answered'>>,
+): PageCount => {
+  const asked = asks.filter((r) => r.state._tag !== 'Closed' || answeredToEnd(r));
+  return { answered: asked.filter((r) => !waiting(r)).length, of: asked.length };
+};
+
+/** A page's count in words: `2 of 3 answered`. */
+export const pageCountText = (count: PageCount): string =>
+  `${count.answered} of ${count.of} answered`;
+
+/** The first ask on a page the owner still has to answer: where the page takes him. */
+export const nextAsking = (asks: ReadonlyArray<AskRecord>): Option.Option<AskRecord> =>
+  Arr.findFirst(asks, waiting);
 
 /** Answers in one line, each by its name: `try: Try 7 · why: the light · more: (skipped)`. */
 export const answersLine = (answers: AskAnswers): string =>

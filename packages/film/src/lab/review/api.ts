@@ -22,7 +22,7 @@ import {
 } from '../../core/api.ts';
 import type { BoardFile } from '../../core/board.ts';
 import type { MoveForward, ProductionFile, Productions } from '../../core/production.ts';
-import type { AskName, AskRecord, StepValues } from '../../core/ask.ts';
+import type { AskName, AskRecord, AsksPage, StepValues } from '../../core/ask.ts';
 import type { LabWrite } from '../../core/schema.ts';
 import type { StudioAttempts } from '../../core/studio.ts';
 import type { ReviewDuration, ReviewIndex } from '../../core/review.ts';
@@ -59,6 +59,8 @@ interface ReviewCalls {
   ) => Effect.Effect<ProductionFile, LabFailure>;
   /** An agent's ask, as the lab keeps it (`core/ask.ts`). */
   readonly ask: (id: string) => Effect.Effect<AskRecord, LabFailure>;
+  /** The page of asks ask `id` is on: every ask on it, in the order made. */
+  readonly askPage: (id: string) => Effect.Effect<AsksPage, LabFailure>;
   /** The owner's answers to ask `id`'s page, each section's in order: the ask as they leave it. */
   readonly answer: (
     id: string,
@@ -124,6 +126,7 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* () {
     forward: (production, move) =>
       called(lab.productions.forward({ params: { production }, payload: move })),
     ask: (id) => called(lab.asks.read({ params: { ask: id } })),
+    askPage: (id) => called(lab.asks.page({ params: { ask: id } })),
     answer: (id, sections) =>
       called(lab.asks.answer({ params: { ask: id }, payload: { sections } })),
     script: (film) => called(lab.script.beats({ params: { film } })),

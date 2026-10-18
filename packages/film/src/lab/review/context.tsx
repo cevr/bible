@@ -47,7 +47,7 @@ import {
   useContext,
 } from 'solid-js';
 import { type SeenPoint, seenVariants } from '../../core/choice.ts';
-import type { AskRecord } from '../../core/ask.ts';
+import type { AsksPage } from '../../core/ask.ts';
 import type { BoardFile } from '../../core/board.ts';
 import { type ProductionFile, Productions } from '../../core/production.ts';
 import {
@@ -178,16 +178,39 @@ const shownProject = <E,>(
     onSome: (view) => AsyncResult.success<ProjectView, E>(view),
   });
 
-/** An ask as its page read it, for the shell: its crumb and tab say its title, its film is the header's. */
+/**
+ * A page of asks as it was read, for the shell: its asks (by id), its crumb
+ * and tab say its one ask's title or how many it holds, its film is the
+ * header's (the first ask's that names one).
+ */
 export interface AskShown {
-  readonly id: string;
+  readonly page: string;
+  readonly asks: ReadonlyArray<string>;
   readonly title: string;
   readonly film: Option.Option<string>;
 }
 
+/** A page of asks as the shell names it: one ask by its title, more by how many and who asked. */
+const askShown = (read: AsksPage): AskShown => {
+  const asks = read.asks.map((a) => a.id);
+  return {
+    page: read.page,
+    asks,
+    title: Arr.match(read.asks, {
+      onEmpty: () => 'asks',
+      onNonEmpty: ([first, ...more]) =>
+        Arr.match(more, {
+          onEmpty: () => first.title,
+          onNonEmpty: () => `${asks.length} asks from ${first.by}`,
+        }),
+    }),
+    film: Arr.findFirst(read.asks, (a) => Option.fromUndefinedOr(a.film)),
+  };
+};
+
 interface ReviewStateValue {
   readonly place: Accessor<ReviewPlace>;
-  /** The ask the place is (its first read, `askRead`): none until it is read, and on any other place. */
+  /** The page of asks the place is on (its read, `askPage`): none until it is read, and on any other place. */
   readonly ask: Accessor<Option.Option<AskShown>>;
   /**
    * Every folder with something to review, as the newest ask answered it
@@ -275,10 +298,12 @@ interface ReviewMeta {
    */
   readonly script: (film: string) => Loaded<ScriptBeats>;
   /**
-   * Ask `id` as its first read had it, the one read the shell names the ask
-   * by and its page opens on; read again once it failed (a Retry).
+   * The page of asks ask `id` is on (a page's own id is its first ask's),
+   * read in the page alone: the one read the shell names the page by and
+   * the page draws its asks from; read again (a refresh) once an answer
+   * lands, so an ask that joined meanwhile shows.
    */
-  readonly askRead: (id: string) => Effect.Effect<AskRecord, LabFailure>;
+  readonly askPage: (id: string) => Loaded<AsksPage>;
   /**
    * Where video `ref`'s phone copy stands, asked after every few seconds
    * while it is read (a page shows the video waiting on it) and until it is
@@ -419,14 +444,14 @@ export const Root = (
     .atom(ReviewApi.use((api) => api.productions))
     .pipe(served('review.productions', Productions));
   const movedAtom = Atom.make<ReadonlyArray<ProductionFile>>([]);
-  // An ask's first read, in the page alone: the shell names the ask by it and its page opens on it.
-  const askOf = Atom.family((id: string) =>
+  // A page of asks, read in the page alone: the shell names the page by it and the page draws its asks from it.
+  const askPageOf = Atom.family((id: string) =>
     runtime
-      .atom(ReviewApi.use((api) => api.ask(id)))
-      .pipe(Atom.withServerValue(() => AsyncResult.initial<AskRecord, LabFailure>())),
+      .atom(ReviewApi.use((api) => api.askPage(id)))
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<AsksPage, LabFailure>())),
   );
-  // No ask on a place that is not one: nothing is read.
-  const noAsk = Atom.make(AsyncResult.initial<AskRecord, LabFailure>());
+  // No page of asks on a place that is not one: nothing is read.
+  const noAsk = Atom.make(AsyncResult.initial<AsksPage, LabFailure>());
   // A video's phone copy, asked after while a page waits on it (\`copyAwaited\`): read only while
   // something shows it waiting.
   const phoneOf = Atom.family((ref: string) =>
@@ -542,16 +567,12 @@ export const Root = (
     const setMoved = useAtomSet(() => movedAtom);
     const askRead = useAtomValue(() =>
       Match.value(place()).pipe(
-        Match.tag('Ask', (p) => askOf(p.ask)),
+        Match.tag('Ask', (p) => askPageOf(p.ask)),
+        Match.tag('AskPage', (p) => askPageOf(p.page)),
         Match.orElse(() => noAsk),
       ),
     );
-    const ask = (): Option.Option<AskShown> =>
-      Option.map(AsyncResult.value(askRead()), (r) => ({
-        id: r.id,
-        title: r.title,
-        film: Option.fromUndefinedOr(r.film),
-      }));
+    const ask = (): Option.Option<AskShown> => Option.map(AsyncResult.value(askRead()), askShown);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
@@ -666,11 +687,7 @@ export const Root = (
           scriptsRead.add(film);
           return scriptOf(film);
         },
-        askRead: (id) =>
-          Effect.suspend(() => {
-            if (AsyncResult.isFailure(registry.get(askOf(id)))) registry.refresh(askOf(id));
-            return AtomRegistry.getResult(registry, askOf(id), { suspendOnWaiting: true });
-          }),
+        askPage: askPageOf,
         phoneCopy: phoneOf,
         runtime,
         client: props.client,

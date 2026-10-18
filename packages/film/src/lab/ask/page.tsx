@@ -1,13 +1,33 @@
-// An ask's page (`/asks/<id>`, the review's): an agent's guided review for
-// the owner, composed from the lab's primitives and the material it is
-// about, as the agent's machine says: its head, the index of its sections,
-// every section the owner's answers reach on one scrolling page, and one
-// Send held in reach under them. The page is only which parts show and
-// where; the provider holds the ask (`context.tsx`), the parts draw it
-// (`parts.tsx`, `material.tsx`).
+// A page of asks (`/asks/page/<page>`, and `/asks/<ask>` at one of them; the
+// review's): the asks an agent made in sequence, in the order made, each an
+// agent's guided review for the owner, composed from the lab's primitives
+// and the material it is about, as the agent's machine says: its head, the
+// index of its sections, every section the owner's answers reach on one
+// scrolling page, and its own Send held in reach under them. A page of one
+// ask is that ask's page alone; a page of more is headed by how many it
+// holds and how many are answered, each ask a part under it, folded to a
+// line of its answers once answered, and the page takes the owner to the
+// first still asking. The page is only which parts show and where; the
+// review reads the page (`askPage`), each ask's provider holds its ask
+// (`context.tsx`), the parts draw it (`parts.tsx`, `material.tsx`).
+
+import { useAtomRefresh, useAtomValue } from '@bible/atom-solid';
+import { For, Show } from '@solidjs/web';
+import { Match, Option } from 'effect';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import { type Accessor, createMemo } from 'solid-js';
+import {
+  type AskRecord,
+  type AsksPage as Page,
+  nextAsking,
+  pageCount,
+  pageCountText,
+} from '../../core/ask.ts';
+import { useReview } from '../review/context.tsx';
+import { failureText } from '../review/format.ts';
 
 import { PlaceStyle } from '../place-style.tsx';
-import { WIDE } from '../viewport.ts';
+import { PHONE, WIDE } from '../viewport.ts';
 import * as Ask from './parts.tsx';
 
 /**
@@ -25,7 +45,7 @@ import * as Ask from './parts.tsx';
  * `quiet`).
  */
 const ASK_CSS = `
-.ak{max-width:720px;margin:0 auto}
+.ak,.akp{max-width:720px;margin:0 auto}
 .ak-head{display:grid;gap:var(--s-1);padding:var(--s-4) 0 var(--s-3)}
 .ak-head-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s-1) var(--s-2)}
 .ak-head h1{font-size:var(--fs-5);line-height:var(--lh-5);font-weight:var(--w-3);margin:0}
@@ -73,10 +93,30 @@ const ASK_CSS = `
 .ak-answers dt{color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2)}
 .ak-answers dd{margin:0}
 .ak-outcome p{margin:0}
+.akp-head{display:grid;gap:var(--s-1);padding:var(--s-4) 0 var(--s-3);border-bottom:var(--border)}
+.akp-head h1{font-size:var(--fs-5);line-height:var(--lh-5);font-weight:var(--w-3);margin:0}
+.akp-count{margin:0;color:var(--text-2);font-size:var(--fs-2);line-height:var(--lh-2)}
+.akp-status p{margin:0}
+.akp-status:has(button){display:grid;justify-items:start;gap:var(--s-2);margin:var(--s-3) 0}
+.akp-parts{display:grid;gap:var(--s-6);padding-top:var(--s-3)}
+.akp .ak{margin:0;max-width:none;min-width:0;scroll-margin-top:var(--header-h)}
+.akp .ak-part-h{font-size:var(--fs-5);line-height:var(--lh-5);font-weight:var(--w-3);margin:0}
+/* Only the page's last ask holds its last section a window tall: an ask above it ends where it ends. */
+.akp .ak:not(:last-child) .ak-step:last-child{min-height:0}
+.ak-folded{min-width:0}
+.ak-folded-line{display:flex;align-items:center;gap:var(--s-2);min-height:var(--hit);cursor:pointer}
+.ak-folded-title{flex:none;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:var(--w-2)}
+.ak-folded-answers{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)}
+.ak-folded[open] .ak-outcome{padding-top:var(--s-2)}
 /* The script's reader is inset by the gutter, so it runs out over the gutter, and the held heads
    with it: its words then start on the column's edge, on the phone and the laptop alike. */
 .ak-mat[data-material=script],.ak-section-h{margin-inline:calc(-1 * var(--gutter))}
 .ak-mat[data-material=script] .ak-mat-name,.ak-section-h{padding-inline:var(--gutter)}
+@media ${PHONE}{
+  /* On a page of more asks each part's Send is held at the floor while its part is in view, as the
+     laptop holds the one Send: docked to the window, every part's would lie on one another. */
+  .akp .ak-send{position:sticky;left:auto;right:auto;margin-inline:calc(-1 * var(--gutter))}
+}
 @media ${WIDE}{
   .ak-options[data-pictured=true]{grid-template-columns:repeat(4,minmax(0,1fr))}
   /* Held at the window's floor and run out over the gutter as the heads are, so its words start
@@ -94,21 +134,163 @@ const ASK_CSS = `
 }
 `;
 
-/** The ask `ask`: its head and index, its sections on one page and its send, or what came of it. */
-export const AskPage = (props: { readonly ask: string }) => (
-  <>
-    <PlaceStyle css={ASK_CSS} />
-    <Ask.Provider ask={props.ask}>
-      <article class="ak" data-ask={props.ask}>
-        <Ask.Head />
+/** One ask on a page of its own: its head and index, its sections and its send, or what came of it. */
+const OneAsk = (props: {
+  readonly id: string;
+  readonly first: Accessor<AskRecord>;
+  readonly moved: () => void;
+}) => (
+  <Ask.Provider ask={props.id} first={props.first} moved={props.moved}>
+    <article class="ak" data-ask={props.id}>
+      <Ask.Head />
+      <Ask.Index />
+      <Ask.Status />
+      <div class="ak-sections">
+        <Ask.Sections />
+      </div>
+      <Ask.Submit />
+      <Ask.Outcome />
+    </article>
+  </Ask.Provider>
+);
+
+/**
+ * One ask of a page of more: while it asks, its head, index, sections and
+ * send; once answered or closed, one line of its answers; the page takes the
+ * owner to it when it is `next` (the first still asking past the first part).
+ */
+const PartAsk = (props: {
+  readonly id: string;
+  readonly first: Accessor<AskRecord>;
+  readonly moved: () => void;
+  readonly next: Accessor<boolean>;
+}) => (
+  <Ask.Provider ask={props.id} first={props.first} moved={props.moved}>
+    <article class="ak" data-ask={props.id}>
+      <Ask.WhileAsking>
+        <Ask.PartHead />
         <Ask.Index />
         <Ask.Status />
         <div class="ak-sections">
           <Ask.Sections />
         </div>
         <Ask.Submit />
-        <Ask.Outcome />
-      </article>
-    </Ask.Provider>
-  </>
+      </Ask.WhileAsking>
+      <Ask.Folded />
+      <Show when={props.next()}>
+        <Ask.TakeTo />
+      </Show>
+    </article>
+  </Ask.Provider>
 );
+
+/** The ask `at` names on `page` while it asks, else the first still asking: where the page takes the owner. */
+const nextOn = (page: Page, at: Option.Option<string>): Option.Option<string> =>
+  Option.orElse(
+    Option.filter(at, (id) => page.asks.some((a) => a.id === id && a.state._tag === 'Asking')),
+    () => Option.map(nextAsking(page.asks), (a) => a.id),
+  );
+
+/** A page of more than one ask: its title and count, then each ask in the order made. */
+const ManyAsks = (props: {
+  readonly page: Accessor<Page>;
+  readonly at: Option.Option<string>;
+  readonly moved: () => void;
+}) => {
+  const { state } = useReview();
+  // Each part is drawn once by its ask's id: a read again of the page keeps every part (its draft, its send) where it is.
+  const ids = createMemo(() => props.page().asks.map((a) => a.id));
+  const recordOf = (id: string) =>
+    Option.fromUndefinedOr(props.page().asks.find((a) => a.id === id));
+  const next = createMemo(() => nextOn(props.page(), props.at));
+  return (
+    <section class="akp" data-page={props.page().page}>
+      <header class="akp-head">
+        <h1>
+          {Option.match(state.ask(), {
+            onNone: () => `${ids().length} asks`,
+            onSome: (shown) => shown.title,
+          })}
+        </h1>
+        <p class="akp-count" data-role="page-count" role="status" aria-live="polite">
+          {pageCountText(pageCount(props.page().asks))}
+        </p>
+      </header>
+      <div class="akp-parts">
+        <For each={ids()}>
+          {(id, i) => (
+            <Show when={Option.getOrUndefined(recordOf(id))}>
+              {(first: Accessor<AskRecord>) => (
+                <PartAsk
+                  id={id}
+                  first={first}
+                  moved={props.moved}
+                  next={() => i() > 0 && Option.contains(next(), id)}
+                />
+              )}
+            </Show>
+          )}
+        </For>
+      </div>
+    </section>
+  );
+};
+
+/**
+ * The page of asks `of` is on (`of` an ask's id, a page's its first ask's),
+ * taken to ask `at` while it asks, else to the first still asking: one ask
+ * alone as its own page, more as parts of one. Each answer that lands reads
+ * the page again, so its count moves and an ask that joined it shows.
+ */
+export const AsksPage = (props: { readonly of: string; readonly at: Option.Option<string> }) => {
+  const { meta } = useReview();
+  const read = useAtomValue(() => meta.askPage(props.of));
+  const again = useAtomRefresh(() => meta.askPage(props.of));
+  const page = createMemo(() => AsyncResult.value(read()));
+  return (
+    <>
+      <PlaceStyle css={ASK_CSS} />
+      <Show
+        when={Option.getOrUndefined(page())}
+        fallback={
+          <div class="akp akp-status">
+            <p class="rv-hint" role="status" aria-live="polite">
+              {Match.value(read()).pipe(
+                Match.tag('Failure', (f) =>
+                  Option.match(AsyncResult.error(f), {
+                    onNone: () => 'This page of asks cannot be read.',
+                    onSome: (e) => `This page of asks cannot be read: ${failureText(e)}`,
+                  }),
+                ),
+                Match.orElse(() => 'Reading the asks…'),
+              )}
+            </p>
+            <Show when={AsyncResult.isFailure(read())}>
+              <button type="button" class="sh-btn" data-act="retry" onClick={() => again()}>
+                Read again
+              </button>
+            </Show>
+          </div>
+        }
+      >
+        {(shown: Accessor<Page>) => (
+          <Show
+            when={shown().asks.length > 1}
+            fallback={
+              // Drawn once by its ask's id: a read again of the page keeps its draft and its last word.
+              <Show when={shown().asks[0]?.id} keyed>
+                {(id: string) => (
+                  <Show when={shown().asks.find((a) => a.id === id)}>
+                    {(first: Accessor<AskRecord>) => <OneAsk id={id} first={first} moved={again} />}
+                  </Show>
+                )}
+              </Show>
+            }
+          >
+            <ManyAsks page={shown} at={props.at} moved={again} />
+          </Show>
+        )}
+      </Show>
+    </>
+  );
+};

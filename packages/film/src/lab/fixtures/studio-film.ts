@@ -335,6 +335,121 @@ export const askRecordWith = (
 const askRecord = askRecordWith();
 
 /**
+ * A page of three asks the toy-agent made in sequence: the first (which
+ * opened it) answered, then the toy's choice of takes, then a choice of
+ * pace, both still asking.
+ */
+export const STUDIO_PAGE = 'a0123456782';
+/** The page's second ask: the toy's choice of takes, the first it takes the owner to. */
+export const STUDIO_PAGE_TAKES = 'a0123456783';
+/** The page's third ask: one choice, keep the pace or not. */
+export const STUDIO_PAGE_PACE = 'a0123456784';
+
+/** One option of a choice, its value its label's words joined by dashes. */
+const option = (label: string) => ({ value: label.toLowerCase().replaceAll(' ', '-'), label });
+
+/** A one-question ask's machine: a choice by `id` of `recommended`, marked so, and `others`. */
+const oneChoice = (
+  id: string,
+  label: string,
+  recommended: string,
+  others: ReadonlyArray<string>,
+): Json => ({
+  start: 'ask',
+  steps: {
+    ask: {
+      blocks: [
+        {
+          kind: 'choose',
+          id,
+          label,
+          options: [{ ...option(recommended), recommended: true }, ...others.map(option)],
+        },
+      ],
+      next: [{ to: 'done' }],
+    },
+    done: { end: true },
+  },
+});
+
+/** The page's third ask while it asks. */
+const paceAsking = {
+  id: STUDIO_PAGE_PACE,
+  page: STUDIO_PAGE,
+  title: 'Keep the pace of the open?',
+  why: 'The act is timed from it.',
+  by: 'toy-agent',
+  film: STUDIO_FILM,
+  created: '2026-10-17T00:02:00.000Z',
+  ask: oneChoice('pace', 'The pace', 'Keep it', ['Slower']),
+  state: { _tag: 'Asking', step: 'ask', answers: {} },
+  answered: [],
+};
+
+/** The page's asks, in the order made, as the page's read sends them. */
+const pageAsks: ReadonlyArray<Json> = [
+  {
+    id: STUDIO_PAGE,
+    title: 'What do we call the act?',
+    why: 'The act card says it.',
+    by: 'toy-agent',
+    film: STUDIO_FILM,
+    created: '2026-10-17T00:00:00.000Z',
+    ask: oneChoice('name', 'Its name', 'The breath', ['The dust']),
+    state: {
+      _tag: 'Answered',
+      step: 'done',
+      answers: { name: { kind: 'choose', value: 'the-breath', label: 'The breath' } },
+    },
+    answered: [{ step: 'ask', values: { name: 'the-breath' }, at: '2026-10-17T00:05:00.000Z' }],
+  },
+  {
+    id: STUDIO_PAGE_TAKES,
+    page: STUDIO_PAGE,
+    title: 'Which take opens the toy?',
+    why: 'The open sets the pace of the act.',
+    by: 'toy-agent',
+    film: STUDIO_FILM,
+    created: '2026-10-17T00:01:00.000Z',
+    ask: askMachine,
+    state: { _tag: 'Asking', step: 'pick', answers: {} },
+    answered: [],
+  },
+  paceAsking,
+];
+
+/** The page as `GET /api/asks/<any of its asks>/page` sends it. */
+export const studioPage: Json = { page: STUDIO_PAGE, asks: [...pageAsks] };
+
+/** The page's third ask once the owner kept the pace: answered to its end. */
+export const pacedAsk: Json = {
+  ...paceAsking,
+  state: {
+    _tag: 'Answered',
+    step: 'done',
+    answers: { pace: { kind: 'choose', value: 'keep-it', label: 'Keep it' } },
+  },
+  answered: [{ step: 'ask', values: { pace: 'keep-it' }, at: '2026-10-17T00:06:00.000Z' }],
+};
+
+/** The page read again once the pace is kept: two of its three asks answered. */
+export const pacedPage: Json = { page: STUDIO_PAGE, asks: [...pageAsks.slice(0, 2), pacedAsk] };
+
+/** The page's routes: the page by any of its asks, and each ask alone (a read again after a refusal). */
+const pageRoutes: ReadonlyArray<FakeRoute> = [
+  route('GET', /^\/api\/asks\/a012345678[234]\/page$/, () => json(studioPage)),
+  route('GET', /^\/api\/asks\/a012345678[234]$/, (asked) =>
+    json(
+      pageAsks[
+        [STUDIO_PAGE, STUDIO_PAGE_TAKES, STUDIO_PAGE_PACE].findIndex((id) =>
+          asked.path.endsWith(`/${id}`),
+        )
+      ] ?? {},
+    ),
+  ),
+];
+
+/**
  * A guided review on the toy, one page of sections, each its material in
  * place, then its question: the draft's script (its takes and marks), the
  * Board's panels, the cut, the open's take and the set's notes.
@@ -574,6 +689,7 @@ export const studioRoutes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/films\/toy\/project$/, () => json(project)),
   route('GET', /^\/api\/productions$/, () => json({ productions: [productionLedger] })),
   route('GET', /^\/api\/asks\/a0123456789$/, () => json(askRecord)),
+  ...pageRoutes,
   route('GET', /^\/api\/series$/, () =>
     json({
       series: [

@@ -7,7 +7,8 @@
 // (`/series/<series>/<draft>`, the words selected in a beat
 // `/series/<series>/<draft>/<beat>?words=<a>-<b>`). Each of those is also a place ⌘K goes to by
 // its name (`destinationsOf`). A folder or a set keeps the still open full
-// size (`?still=`: `stillIn`, `withStill`), and so does an ask (its Board).
+// size (`?still=`: `stillIn`, `withStill`), and so does a page of asks (an
+// ask's Board), at an ask (`/asks/<ask>`) or at the page (`/asks/page/<page>`).
 
 import { Place } from '@bible/url-state';
 import { Data, Match, Option } from 'effect';
@@ -22,8 +23,10 @@ export type ReviewPlace = Data.TaggedEnum<{
   Home: {};
   /** A production's timeline, version `v` in focus (0: the current one). */
   Production: { readonly production: string; readonly v: number };
-  /** An agent's ask: its decision page, at the step its run is on. */
+  /** An agent's ask: the page of asks it is on, taken to it, each at the step its run is on. */
   Ask: { readonly ask: string };
+  /** A page of asks, by the ask that opened it: taken to the first still asking. */
+  AskPage: { readonly page: string };
   /**
    * A series draft in the Script reader: words `words` (`<a>-<b>`, '' for
    * none) selected in beat `beat` ('' for none).
@@ -50,6 +53,7 @@ export const placeOf = (href: string): ReviewPlace =>
       ReviewPlace.Production({ production: p.path.production, v: p.query.v }),
     ),
     Option.map(Place.decode(Places.ask, href), (v) => ReviewPlace.Ask(v.path)),
+    Option.map(Place.decode(Places.askPage, href), (v) => ReviewPlace.AskPage(v.path)),
     Option.map(Place.decode(Places.draft, href), (v) =>
       ReviewPlace.Draft({ ...v.path, beat: '', words: '' }),
     ),
@@ -86,6 +90,7 @@ const STILLED: ReadonlyArray<Stilled> = [
   stilled(Places.folder),
   stilled(Places.set),
   stilled(Places.ask),
+  stilled(Places.askPage),
 ];
 
 /** The still `href` opens full size (`?still=`): its key, or none. */
@@ -103,6 +108,7 @@ export const hrefOf = (place: ReviewPlace): string =>
       Home: () => pageHref.home(),
       Production: (p) => pageHref.production(p.production, p.v),
       Ask: (p) => pageHref.ask(p.ask),
+      AskPage: (p) => pageHref.askPage(p.page),
       Draft: (p) => {
         if (p.beat === '') return pageHref.draft(p.series, p.draft);
         return pageHref.draftBeat(p.series, p.draft, p.beat, p.words);

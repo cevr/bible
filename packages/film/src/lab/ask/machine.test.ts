@@ -92,6 +92,7 @@ const fakeLab = (
       board: unused,
       forward: unused,
       ask: () => reads.shift() ?? Effect.die('read once too often'),
+      askPage: unused,
       answer: (_id, sections) => {
         sent.push(sections);
         return answer();

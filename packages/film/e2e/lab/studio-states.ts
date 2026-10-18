@@ -25,6 +25,8 @@ import { evaluates, sheetsStand, textHas, until, waitFor } from '../../src/lab/f
 import {
   STUDIO_FOLDER,
   STUDIO_ASK,
+  STUDIO_PAGE,
+  STUDIO_PAGE_PACE,
   STUDIO_DRAFT,
   STUDIO_PRODUCTION,
   STUDIO_SERIES,
@@ -357,6 +359,9 @@ export const LAB_MOVES: Exempt = {
 /** An ask, read: its page's send, under its sections. */
 export const ASK_READY = '.ak-sections:has(.ak-step) ~ .ak-send [data-act="send"]';
 
+/** A page of asks, read: its count, and its last part's send under its sections. */
+export const PAGE_READY = `.akp:has(.akp-count) .ak[data-ask="${STUDIO_PAGE_PACE}"] ${ASK_READY}`;
+
 /** A series draft, read: its first beat's take ready (its ▶). */
 export const DRAFT_READY = '.lab-script-beat[data-beat="1"] [data-act="hear-beat"]';
 
@@ -416,6 +421,16 @@ export const STATES: ByPlace<State, AtRest> = {
       // A page of one section has no "1 of 1" head, and an ask that waits wears no chip (the
       // dock's count says what is left).
       budget: most(23, 23),
+    },
+  ],
+  askPage: [
+    {
+      name: 'a page of three asks: the first answered and folded, two still asking',
+      open: review(pageHref.askPage(STUDIO_PAGE), PAGE_READY),
+      disclose: AT_REST,
+      // The shell's, the page's head and count, the answered ask's one line, then each ask still
+      // asking: its head, why, choice and Send (measured 26 on a phone, 27 on a laptop).
+      budget: most(26, 27),
     },
   ],
   draft: [

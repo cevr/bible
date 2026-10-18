@@ -5,7 +5,9 @@
 // kept; a choice it makes now recommends one option), the owner answers
 // its page from any device (`answerPage`: each section's step in order, the
 // run moved by its machine, `askMachine`, and every section kept or none),
-// and the agent closes it. An answer is kept by its step, so the same
+// and the agent closes it. A page of asks is only the asks that name it
+// (`pageIdOf`, `asksOnPage`): an ask with no `page` opened its own, as every
+// ask kept before pages did. An answer is kept by its step, so the same
 // answer sent again (a retry, a second tab) is answered as it was; a
 // different one to a step already answered is refused, as is one to a step
 // the ask has left, as its machine has it, and one past the deadline. An ask
@@ -41,6 +43,7 @@ import {
   AskName,
   type AskRecord,
   AskEvent,
+  type AsksPage,
   AskRecordJson,
   type AskState,
   type StepValues,
@@ -50,10 +53,12 @@ import {
   askMachine,
   askProblems,
   askStart,
+  asksOnPage,
   filled,
   givenAnswers,
   imagesIn,
   mapImages,
+  pageIdOf,
   unrecommended,
 } from '../core/ask.ts';
 import { boardFileUrl } from '../core/api.ts';
@@ -92,6 +97,8 @@ interface AskStoreService {
     draft: AskDraft,
   ) => Effect.Effect<AskRecord, WordUnaimed | AskInvalid | StoreError>;
   readonly read: (id: string) => Effect.Effect<AskRecord, AskUnknown | StoreError>;
+  /** The page ask `id` is on (an opener's id is its page's): its asks, in the order made. */
+  readonly page: (id: string) => Effect.Effect<AsksPage, AskUnknown | StoreError>;
   /** Every ask, the newest first. */
   readonly list: Effect.Effect<ReadonlyArray<AskRecord>, StoreError>;
   /**
@@ -409,7 +416,12 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         return record;
       });
 
-      return AskStore.of({ dir, file, make, read, list, answerPage, close });
+      const page = Effect.fn('AskStore.page')(function* (id: string) {
+        const on = pageIdOf(yield* read(id));
+        return { page: on, asks: asksOnPage(yield* list, on) } satisfies AsksPage;
+      });
+
+      return AskStore.of({ dir, file, make, read, page, list, answerPage, close });
     }),
   );
 }

@@ -6,7 +6,12 @@
 // prose, a picture, a choice, a free text, and the material it is about,
 // `material.tsx`), the one send held in reach (how many questions are
 // answered; a Send with one open goes to it, marks it and names it), and
-// the ask once answered (every answer, typed) or closed. Each part reads
+// the ask once answered (every answer, typed) or closed. On a page of asks
+// each ask is a part of its own: headed under the page's title
+// (`PartHead`), shown while it asks (`WhileAsking`), folded to a line of its
+// answers once settled (`Folded`), and the one the page takes the owner to
+// (`TakeTo`). Every element a part finds is found inside its own ask
+// (`[data-ask]`), so two asks' steps and answers of one name never meet. Each part reads
 // the ask's provider (`context.tsx`) and nothing else, so a page is only
 // which parts it shows and where; no part takes a flag that changes what it
 // is.
@@ -15,7 +20,7 @@ import { For, type JSX, Show } from '@solidjs/web';
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import { Array as Arr, Match, Option, Predicate, Record } from 'effect';
-import { type Accessor, createEffect, createMemo } from 'solid-js';
+import { type Accessor, createEffect, createMemo, onSettled } from 'solid-js';
 import {
   type AskAnswer,
   type AskBlock,
@@ -54,8 +59,8 @@ const SETTLED = {
 } as const;
 type Settled = (typeof SETTLED)[keyof typeof SETTLED];
 
-/** The ask's head: its title, its state, why it is asked, and by when when it must be. */
-export const Head = () => {
+/** The ask's head, its title drawn by `title`: its state, why it is asked, and by when when it must be. */
+const HeadWith = (props: { readonly title: (text: string) => JSX.Element }) => {
   const { state } = useAsk();
   return (
     <Show when={Option.getOrUndefined(state.record())}>
@@ -68,7 +73,7 @@ export const Head = () => {
         return (
           <header class="ak-head">
             <div class="ak-head-row">
-              <h1>{record().title}</h1>
+              {props.title(record().title)}
               <Show when={Option.getOrUndefined(settled())}>
                 {(chip: Accessor<Settled>) => (
                   <span class="sh-badge" data-state={chip().state} data-role="status">
@@ -90,9 +95,20 @@ export const Head = () => {
   );
 };
 
-/** The block a question of the page is answered in, by its answer's id. */
-const fieldOf = (id: string): Option.Option<HTMLElement> =>
-  Option.fromNullishOr(document.querySelector<HTMLElement>(`[data-answer="${CSS.escape(id)}"]`));
+/** The ask's head on a page of its own: its title the page's. */
+export const Head = () => <HeadWith title={(text) => <h1>{text}</h1>} />;
+
+/** The ask's head as one part of a page of asks: its title under the page's. */
+export const PartHead = () => <HeadWith title={(text) => <h2 class="ak-part-h">{text}</h2>} />;
+
+/** Ask `ask`'s part of the page: what its elements are found inside. */
+const within = (ask: string): string => `.ak[data-ask="${CSS.escape(ask)}"]`;
+
+/** The block a question of ask `ask` is answered in, by its answer's id. */
+const fieldOf = (ask: string, id: string): Option.Option<HTMLElement> =>
+  Option.fromNullishOr(
+    document.querySelector<HTMLElement>(`${within(ask)} [data-answer="${CSS.escape(id)}"]`),
+  );
 
 /** What takes the focus in a question: its first control. */
 const ANSWERS_IN = 'button, textarea, input';
@@ -119,10 +135,10 @@ const goTo = (el: HTMLElement, focus: string, input: Input) => {
   );
 };
 
-/** Section `name` of the page, by its step. */
-const stepOf = (name: string): Option.Option<HTMLElement> =>
+/** Section `name` of ask `ask`, by its step. */
+const stepOf = (ask: string, name: string): Option.Option<HTMLElement> =>
   Option.fromNullishOr(
-    document.querySelector<HTMLElement>(`.ak-step[data-step="${CSS.escape(name)}"]`),
+    document.querySelector<HTMLElement>(`${within(ask)} .ak-step[data-step="${CSS.escape(name)}"]`),
   );
 
 /**
@@ -193,7 +209,9 @@ export const Index = () => {
                     data-step={name}
                     data-done={pressed(done())}
                     onClick={() =>
-                      Option.map(stepOf(name), (el) => goTo(el, HEAD_IN, meta.hub.input()))
+                      Option.map(stepOf(state.id, name), (el) =>
+                        goTo(el, HEAD_IN, meta.hub.input()),
+                      )
                     }
                   >
                     <span class="ak-index-title">{titleOfStep(name, i() + 1)}</span>
@@ -258,7 +276,7 @@ export const ChooseOne = (props: { readonly block: BlockOf<'choose'> }) => {
       data-answer={props.block.id}
       data-invalid={pressed(missing())}
       aria-describedby={Option.getOrUndefined(
-        Option.liftPredicate(saidId(props.block.id), () => missing()),
+        Option.liftPredicate(saidId(state.id, props.block.id), () => missing()),
       )}
     >
       <legend>{props.block.label}</legend>
@@ -311,8 +329,8 @@ export const ChooseOne = (props: { readonly block: BlockOf<'choose'> }) => {
   );
 };
 
-/** The id of the words that say question `id` is still open. */
-const saidId = (id: string): string => `ak-said-${id}`;
+/** The id of the words that say question `id` of ask `ask` is still open. */
+const saidId = (ask: string, id: string): string => `ak-said-${ask}-${id}`;
 
 /**
  * Under question `block`, once a Send was refused for it: what it needs,
@@ -322,7 +340,7 @@ const Unanswered = (props: { readonly block: Asking }) => {
   const { state } = useAsk();
   return (
     <Show when={state.missing() === props.block.id}>
-      <p class="ak-unanswered" id={saidId(props.block.id)}>
+      <p class="ak-unanswered" id={saidId(state.id, props.block.id)}>
         {neededText(props.block)}
       </p>
     </Show>
@@ -349,7 +367,7 @@ export const FreeText = (props: { readonly block: BlockOf<'free_text'> }) => {
         value={state.drafted(props.block.id)}
         aria-invalid={pressed(missing())}
         aria-describedby={Option.getOrUndefined(
-          Option.liftPredicate(saidId(props.block.id), () => missing()),
+          Option.liftPredicate(saidId(state.id, props.block.id), () => missing()),
         )}
         onInput={(e) => actions.set(props.block.id, e.currentTarget.value)}
       />
@@ -435,7 +453,8 @@ export const Submit = () => {
   createEffect(
     () => state.missing(),
     (id) => {
-      if (id !== '') Option.map(fieldOf(id), (el) => goTo(el, ANSWERS_IN, meta.hub.input()));
+      if (id !== '')
+        Option.map(fieldOf(state.id, id), (el) => goTo(el, ANSWERS_IN, meta.hub.input()));
     },
   );
   return (
@@ -548,4 +567,83 @@ export const Status = () => {
       </Show>
     </div>
   );
+};
+
+/** Whether the ask is settled (answered or closed), once it is read. */
+const settledRecord = (record: Option.Option<AskRecord>): Option.Option<AskRecord> =>
+  Option.filter(record, (r) => r.state._tag !== 'Asking');
+
+/** What a part of a page of asks shows while its ask still asks (or is not read yet): its head, its sections and its Send. */
+export const WhileAsking = (props: { readonly children: JSX.Element }) => {
+  const { state } = useAsk();
+  return <Show when={Option.isNone(settledRecord(state.record()))}>{props.children}</Show>;
+};
+
+/**
+ * A part of a page of asks once its ask is answered or closed: one line, its
+ * title, its state and its answers in words, which opens to every answer
+ * under the question that asked it (`Outcome`).
+ */
+export const Folded = () => {
+  const { state } = useAsk();
+  return (
+    <Show when={Option.getOrUndefined(settledRecord(state.record()))}>
+      {(record: Accessor<AskRecord>) => {
+        const chip = () =>
+          Match.value(askStatus(record().state)).pipe(
+            Match.when('closed', () => SETTLED.closed),
+            Match.orElse(() => SETTLED.answered),
+          );
+        return (
+          <details class="ak-folded">
+            <summary class="ak-folded-line">
+              <span class="ak-folded-title">{record().title}</span>
+              <span class="sh-badge" data-state={chip().state} data-role="status">
+                {chip().text}
+              </span>
+              <span class="ak-folded-answers">
+                {Record.values(record().state.answers).map(answerText).join(' · ')}
+              </span>
+            </summary>
+            <Outcome />
+          </details>
+        );
+      }}
+    </Show>
+  );
+};
+
+/** How far down the window a part's top may start and still be in view, so the page leaves it where it is. */
+const IN_VIEW = 2 / 3;
+
+/**
+ * Whether `part` starts in view: below what covers the page's top (its
+ * `scroll-margin-top`, the header's height) and in the window's top
+ * two-thirds.
+ */
+const startsInView = (part: HTMLElement) => {
+  const top = part.getBoundingClientRect().top;
+  return (
+    top >= (Number.parseFloat(getComputedStyle(part).scrollMarginTop) || 0) - 1 &&
+    top <= innerHeight * IN_VIEW
+  );
+};
+
+/**
+ * Where the page takes the owner: drawn in the part he is to answer next,
+ * it scrolls that part to the top under the header once it is drawn, unless
+ * it already starts in view (the page's head and count stay on screen then).
+ */
+export const TakeTo = () => {
+  const { state } = useAsk();
+  onSettled(() => {
+    Option.map(
+      Option.filter(
+        Option.fromNullishOr(document.querySelector<HTMLElement>(within(state.id))),
+        (part) => !startsInView(part),
+      ),
+      (part) => part.scrollIntoView({ block: 'start' }),
+    );
+  });
+  return <></>;
 };
