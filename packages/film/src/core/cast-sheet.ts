@@ -69,13 +69,20 @@ export const Slot = Schema.Literals(['front', 'left', 'right', 'back', 'free']);
 export type Slot = typeof Slot.Type;
 
 /** A turnaround's six views, left to right. */
-const TURNAROUND_SLOTS: ReadonlyArray<Slot> = ['front', 'left', 'left', 'back', 'right', 'right'];
+export const TURNAROUND_SLOTS: ReadonlyArray<Slot> = [
+  'front',
+  'left',
+  'left',
+  'back',
+  'right',
+  'right',
+];
 
 export const SheetKind = Schema.Literals(['turnaround', 'poses', 'heads']);
 export type SheetKind = typeof SheetKind.Type;
 
 /** The cast's canon: Christ's 3.36 heads, the owner's one height for the whole cast (character-design, the height band). */
-const CANON_HEADS = 3.36;
+export const CANON_HEADS = 3.36;
 
 /** How a sheet is read: its kind, how many figures it draws, the anchor view (1-based), each view's slot, the views that stand, and whether the member wears headgear. */
 export interface SheetOptions {
@@ -149,7 +156,7 @@ const PARTING_INK = 44;
 // ---------------------------------------------------------------------------
 // What the measure answers
 
-const SheetCheck = Schema.Literals([
+export const SheetCheck = Schema.Literals([
   'facing',
   'sameWay',
   'roll',
@@ -169,7 +176,7 @@ const SheetCheck = Schema.Literals([
   'bareArm',
   'hairBeard',
 ]);
-type SheetCheck = typeof SheetCheck.Type;
+export type SheetCheck = typeof SheetCheck.Type;
 
 /** A check a sheet fails: the views it names, the value read, the limit, and what it means. */
 const SheetFlag = Schema.Struct({

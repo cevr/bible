@@ -18,7 +18,7 @@
 //   film lab <command> … (lab-cli.ts) the lab's command set, the same as its MCP tools (`--help` lists them)
 //   film lab events … (events-cli.ts) the lab's events, a line each (--follow: as they happen)
 //   film ask wait …   (ask-cli.ts)     wait on the owner's answer to an ask, in the background
-//   film concept …    (concept-cli.ts) a cast member's sheet: its brief, and a try measured
+//   film concept …    (concept-cli.ts) a cast member's sheet: its brief, a try measured, tries drawn
 //
 // Each command's flags are its own `--help`.
 //

@@ -1,0 +1,30 @@
+{
+  "member": "christ",
+  "scope": "library",
+  "who": "Him",
+  "refs": [
+    {
+      "file": "christ-court-12.png",
+      "why": "Christ as the kept concept draws Him beside the accused: His head, face, hair, beard and robe, three-quarters toward the viewer's left"
+    },
+    {
+      "file": "christ-court-you-2.png",
+      "why": "the kept frame of Him turned to the viewer: His front face"
+    },
+    {
+      "file": "christ-robe-5-dress.png",
+      "why": "the kept concept's robe, sash and sandals: His dress only"
+    },
+    {
+      "file": "rig-christ-threequarter.png",
+      "why": "His figure as the film's animation draws Him now, three-quarters: hold His face to it"
+    },
+    {
+      "file": "rig-christ-front.png",
+      "why": "His figure as the film's animation draws Him now, from the front: hold His face to it"
+    }
+  ],
+  "sheets": {
+    "turnaround": { "anchor": 2, "tries": [] }
+  }
+}

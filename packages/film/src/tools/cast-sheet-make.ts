@@ -1,0 +1,409 @@
+// Drawing a cast member's sheet (`film concept cast`): tries of one kind of
+// sheet on the image route, each measured as it lands and recorded in the
+// member's `cast-sheet.json`, its image and its measure under the film's
+// `out/`. The brief is `castSheetBrief`'s: the house block made a sheet's,
+// the references' note, the member's look (`look.md` beside the record), the
+// kind's layout and the sheet rules. Tries run side by side in lanes (three
+// at most: the route's own limit).
+//
+// The retry gate: a try the measure flags is drawn once more, each drift
+// named in its prompt in words, and a try flagged on facing or on the canon
+// rides with the underlay (`core/cast-underlay.ts`) as its last reference,
+// since words alone turned 3 of 9 prototype sheets the right way. A retry
+// that still drifts is recorded with its flags, never dropped: the ask shows
+// it after the clean ones.
+
+import type { PlatformError } from 'effect/PlatformError';
+import {
+  Array as Arr,
+  DateTime,
+  Effect,
+  FileSystem,
+  Match,
+  Option,
+  Path,
+  Random,
+  Result,
+  Schema,
+} from 'effect';
+import {
+  castKindPlan,
+  type CastKindPlan,
+  CastSheetJson,
+  type CastSheetRecord,
+  type CastTry,
+  nextCastTry,
+  withCastTry,
+} from '../core/cast-record.ts';
+import {
+  measureSheet,
+  type SheetCheck,
+  type SheetKind,
+  type SheetMeasure,
+  sheetLines,
+  sheetOverlay,
+  sheetTable,
+  type Slot,
+} from '../core/cast-sheet.ts';
+import { mannequinUnderlay } from '../core/cast-underlay.ts';
+import type { Raster } from '../core/raster.ts';
+import { castSheetBrief, turnaroundLayout } from './cast-sheet-brief.ts';
+import { ContentStore } from './content-store.ts';
+import { FileInvalid } from './errors.ts';
+import { ImageRoute, PANEL_SIZE } from './image-route.ts';
+import { decodePng, encodePng } from './png.ts';
+
+/** The most tries drawn at once: the image route's own limit. */
+export const CAST_LANES = 3;
+
+/** Where one member's sheet is kept and where its tries land. */
+interface CastPlace {
+  /** The `cast-sheet/` folder: `cast-sheet.json`, `look.md` and the reference images. */
+  readonly folder: string;
+  /** The film's output folder for the member: tries, measures, the underlay. */
+  readonly out: string;
+}
+
+/** A run of one kind of sheet. */
+interface CastRun {
+  readonly kind: SheetKind;
+  readonly tries: number;
+  readonly lanes: number;
+  /** Print each prompt and draw nothing. */
+  readonly dryRun: boolean;
+  /** The house block every concept prompt opens with, and its reference image. */
+  readonly house: string;
+  readonly houseImage: string;
+}
+
+/** A line a run prints: a try made (with its flags), one that drew nothing, or (dry) the prompt it would send. */
+type CastLine =
+  | {
+      readonly _tag: 'Made';
+      readonly member: string;
+      readonly kind: SheetKind;
+      readonly tried: CastTry;
+      readonly lines: ReadonlyArray<string>;
+    }
+  | {
+      readonly _tag: 'Failed';
+      readonly member: string;
+      readonly kind: SheetKind;
+      readonly reason: string;
+    }
+  | {
+      readonly _tag: 'Planned';
+      readonly member: string;
+      readonly kind: SheetKind;
+      readonly prompt: string;
+      readonly refs: ReadonlyArray<string>;
+    };
+
+/** One line of a run's output. */
+export const castLine: (line: CastLine) => string = Match.type<CastLine>().pipe(
+  Match.tagsExhaustive({
+    Made: (l) =>
+      [
+        `made ${l.member}.${l.kind} try=${l.tried.n} flags=${l.tried.flags.length} underlay=${l.tried.underlay}${Option.match(Option.fromUndefinedOr(l.tried.retryOf), { onNone: () => '', onSome: (n) => ` retryOf=${n}` })} file=${l.tried.file}`,
+        ...l.lines.slice(1).map((line) => `  ${line}`),
+      ].join('\n'),
+    Failed: (l) => `failed ${l.member}.${l.kind} reason="${l.reason.replace(/\s+/g, ' ')}"`,
+    Planned: (l) => `plan ${l.member}.${l.kind} refs=${l.refs.join(',')}\n${l.prompt}\n`,
+  }),
+);
+
+/** The checks a retry answers with the underlay as well as words: facing and the canon. */
+const UNDERLAID: ReadonlySet<SheetCheck> = new Set(['facing', 'sameWay', 'roll', 'squash']);
+
+/** How a slot reads in a prompt. */
+const facingWords = (slot: Option.Option<Slot>): string =>
+  Match.value(Option.getOrElse(slot, () => 'free' as const)).pipe(
+    Match.when('front', () => 'the viewer straight on'),
+    Match.when('left', () => "the viewer's left"),
+    Match.when('right', () => "the viewer's right"),
+    Match.when('back', () => 'away from the viewer'),
+    Match.orElse(() => 'as its pose says'),
+  );
+
+/** One flag as the sentence a retry's prompt adds. */
+const driftOf = (
+  check: SheetCheck,
+  views: ReadonlyArray<number>,
+  slots: ReadonlyArray<Slot>,
+): string => {
+  const v = views.join(' and ');
+  return Match.value(check).pipe(
+    Match.when(
+      'facing',
+      () =>
+        `Figure ${v} faces ${facingWords(Arr.get(slots, Option.getOrElse(Arr.head(views), () => 1) - 1))}: its eyes, nose and feet point that way.`,
+    ),
+    Match.when('sameWay', () => `Figures ${v} face opposite ways, each its own drawing.`),
+    Match.when(
+      'profileWay',
+      () =>
+        `Figures ${v} face the same way: the profile looks where the three-quarter beside it looks.`,
+    ),
+    Match.when('roll', () => `Figure ${v} holds its head level, never tipped.`),
+    Match.when(
+      'squash',
+      () =>
+        "Every figure stands about three and a third of its own heads tall, as the underlay's figures do.",
+    ),
+    Match.whenOr(
+      'height',
+      'ground',
+      () => `Figure ${v} stands as tall as the others, its soles on the one ground line.`,
+    ),
+    Match.when('head', () => `Figure ${v}'s head is the same size as the others'.`),
+    Match.when(
+      'hand',
+      () => `Figure ${v}'s hands are the same size as the others', as the kept concept draws them.`,
+    ),
+    Match.when('width', () => `Figures ${v} are the same width.`),
+    Match.when('hairFall', () => `Figure ${v}'s hair falls to the same place as in the others.`),
+    Match.whenOr(
+      'papers',
+      'grey',
+      () =>
+        `Figure ${v} wears the same papers as the others, its shade a deeper hue toward violet, never grey.`,
+    ),
+    Match.when(
+      'lit',
+      () => `Figure ${v} is lit from the upper left too: its left side is the lit one.`,
+    ),
+    Match.when('mirror', () => `Figures ${v} are each their own drawing, never one flipped.`),
+    Match.when(
+      'sleeveReach',
+      () =>
+        `In figure ${v} each hand is at the end of its arm in its sleeve, the sleeve running from the shoulder to the hand: no hand floats free beside the body.`,
+    ),
+    Match.when(
+      'bareArm',
+      () =>
+        `In figure ${v} no skin shows below the neck but the round hands: never a bare arm or a bare shoulder.`,
+    ),
+    Match.when(
+      'hairBeard',
+      () =>
+        `In figure ${v} a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair.`,
+    ),
+    Match.exhaustive,
+  );
+};
+
+/** The references' note: what each image is for, in the order they are sent. */
+const referencesNote = (record: CastSheetRecord, underlay: boolean): string =>
+  [
+    'Image 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does.',
+    ...record.refs.map((r, k) => `Image ${k + 2} is ${r.why}.`),
+    ...((underlay && [
+      `Image ${record.refs.length + 2} is a layout, never a look: blank figures on the ground line, each turned the way its figure on this sheet faces and each about three and a third of its own heads tall. Take each figure's facing, place and size from it, and nothing else.`,
+    ]) ||
+      []),
+  ].join(' ');
+
+/** Everything one try needs. */
+interface TryContext {
+  readonly place: CastPlace;
+  readonly run: CastRun;
+  readonly record: CastSheetRecord;
+  readonly look: string;
+  readonly layout: string;
+  readonly plan: CastKindPlan;
+  /** The underlay's file, and its drawing, run by each retry that sends it. */
+  readonly underlay: { readonly file: string; readonly drawn: Effect.Effect<void, PlatformError> };
+}
+
+/** A try's prompt and references: the brief, with each drift of the try it redraws named after it. */
+const requestOf = (ctx: TryContext, drifts: ReadonlyArray<string>, underlay: boolean) =>
+  Effect.gen(function* () {
+    const path = yield* Path.Path;
+    if (underlay) yield* ctx.underlay.drawn;
+    const brief = yield* Effect.fromResult(
+      castSheetBrief({
+        kind: ctx.run.kind,
+        house: ctx.run.house,
+        references: referencesNote(ctx.record, underlay),
+        look: ctx.look,
+        layout: ctx.layout,
+      }),
+    );
+    const prompt = [
+      brief,
+      ...((drifts.length > 0 && [`This sheet is drawn again: ${drifts.join(' ')}`]) || []),
+    ].join('\n\n');
+    const refs = [
+      ctx.run.houseImage,
+      ...ctx.record.refs.map((r) => path.join(ctx.place.folder, r.file)),
+      ...((underlay && [ctx.underlay.file]) || []),
+    ];
+    return { prompt, refs };
+  });
+
+/** The measure's flags as the record keeps them. */
+const flagsOf = (m: SheetMeasure) => m.flags.map((f) => ({ check: f.check, views: f.views }));
+
+/** A try's image drawn: its bytes, read back from a scratch file the route writes. */
+const drawBytes = Effect.fn('Cast.drawBytes')(function* (
+  place: CastPlace,
+  request: { readonly prompt: string; readonly refs: ReadonlyArray<string> },
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const route = yield* ImageRoute;
+  const drawing = path.join(place.out, '.drawing');
+  yield* fs.makeDirectory(drawing, { recursive: true });
+  const out = path.join(drawing, `${(yield* Random.nextIntBetween(0, 36 ** 6)).toString(36)}.png`);
+  return yield* route
+    .draw({ ...request, size: PANEL_SIZE, out })
+    .pipe(
+      Effect.retry({ times: 1, while: (e) => e._tag === 'ImageRouteFailed' }),
+      Effect.andThen(fs.readFile(out)),
+      Effect.ensuring(fs.remove(out).pipe(Effect.ignore)),
+    );
+});
+
+/** A try's measure written beside its image (`<stem>.measure.md`, `<stem>.overlay.png`), and its lines and flags. */
+const keepMeasure = Effect.fn('Cast.keepMeasure')(function* (
+  stem: string,
+  sheet: Raster,
+  measured: Result.Result<SheetMeasure, { readonly message: string }>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const name = path.basename(stem);
+  if (Result.isFailure(measured))
+    return {
+      lines: [`sheet ${name} not measured: ${measured.failure.message}`],
+      flags: [],
+      squash: {},
+    };
+  const m = measured.success;
+  yield* fs.writeFileString(`${stem}.measure.md`, sheetTable(name, m));
+  yield* fs.writeFile(`${stem}.overlay.png`, encodePng(sheetOverlay(sheet, m)));
+  const squash = Option.match(Option.fromUndefinedOr(m.canon.squash), {
+    onNone: () => ({}),
+    onSome: (s) => ({ squash: s }),
+  });
+  return { lines: sheetLines(name, m), flags: flagsOf(m), squash };
+});
+
+/**
+ * One try drawn, measured and recorded: its number is taken under the
+ * record's lock, so lanes drawing at once never share one. Its image and its
+ * measure land in the place's `out/` as `<kind>-<n>.*`.
+ */
+const drawTry = Effect.fn('Cast.drawTry')(function* (
+  ctx: TryContext,
+  drifts: ReadonlyArray<string>,
+  underlay: boolean,
+  retryOf: Option.Option<number>,
+  emit: (line: CastLine) => Effect.Effect<void>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const store = yield* ContentStore;
+  const request = yield* requestOf(ctx, drifts, underlay);
+  const bytes = yield* drawBytes(ctx.place, request);
+  const sheet = yield* Effect.fromResult(decodePng(bytes));
+  const measured = measureSheet(sheet, ctx.plan.options);
+  const manifest = {
+    file: path.join(ctx.place.folder, 'cast-sheet.json'),
+    codec: CastSheetJson,
+    empty: ctx.record,
+  };
+  const kind = ctx.run.kind;
+  const at = DateTime.formatIso(yield* DateTime.now);
+  const [tried, lines] = yield* store.transact(manifest, (current) =>
+    Effect.gen(function* () {
+      const n = nextCastTry(current, kind);
+      const stem = path.join(ctx.place.out, `${kind}-${n}`);
+      yield* fs.writeFile(`${stem}.png`, bytes);
+      const read = yield* keepMeasure(stem, sheet, measured);
+      const t: CastTry = {
+        n,
+        file: path.relative(ctx.place.out, `${stem}.png`),
+        prompt: request.prompt,
+        // Each reference as the sheet's folder reaches it: the record names no machine's paths.
+        refs: request.refs.map((ref) => path.relative(ctx.place.folder, ref)),
+        underlay,
+        ...Option.match(retryOf, { onNone: () => ({}), onSome: (r) => ({ retryOf: r }) }),
+        flags: read.flags,
+        ...read.squash,
+        at,
+      };
+      return [[t, read.lines] as const, withCastTry(current, kind, t)] as const;
+    }),
+  );
+  yield* emit({ _tag: 'Made', member: ctx.record.member, kind, tried, lines });
+  return tried;
+});
+
+/** A try that drew nothing: no tries made. */
+const NONE_MADE: ReadonlyArray<CastTry> = [];
+
+/** One try and, when the measure flags it, its one retry: each drift in words, the underlay on facing or the canon. */
+const gatedTry = (ctx: TryContext, emit: (line: CastLine) => Effect.Effect<void>) =>
+  drawTry(ctx, [], false, Option.none(), emit).pipe(
+    Effect.flatMap((first) => {
+      if (first.flags.length === 0) return Effect.succeed([first]);
+      const slots = ctx.plan.options.slots ?? [];
+      const drifts = first.flags.map((f) => driftOf(f.check, f.views, slots));
+      const underlay = first.flags.some((f) => UNDERLAID.has(f.check));
+      return Effect.map(drawTry(ctx, drifts, underlay, Option.some(first.n), emit), (second) => [
+        first,
+        second,
+      ]);
+    }),
+    Effect.catch((e) =>
+      Effect.as(
+        emit({ _tag: 'Failed', member: ctx.record.member, kind: ctx.run.kind, reason: e.message }),
+        NONE_MADE,
+      ),
+    ),
+  );
+
+/**
+ * Draw `run.tries` tries of the member's `run.kind` sheet, `run.lanes` at
+ * once, each gated by the measure; every try lands in the record. A dry run
+ * prints the first try's prompt and references and draws nothing.
+ */
+export const makeCastSheet = Effect.fn('Cast.make')(function* (
+  place: CastPlace,
+  run: CastRun,
+  emit: (line: CastLine) => Effect.Effect<void>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const store = yield* ContentStore;
+  const record = yield* fs
+    .readFileString(path.join(place.folder, 'cast-sheet.json'))
+    .pipe(Effect.flatMap((text) => Effect.fromResult(decodeRecord(text))));
+  const look = yield* fs.readFileString(path.join(place.folder, 'look.md'));
+  const plan = yield* Effect.fromResult(castKindPlan(record, run.kind));
+  const layout = Option.getOrElse(plan.layout, () => turnaroundLayout(record.who));
+  const file = path.join(place.out, `underlay-${run.kind}.png`);
+  const profiles = (run.kind === 'turnaround' && [3, 5]) || [];
+  // Drawn afresh by each retry that sends it (the slots may have changed since the last run), whole: a lane never reads half of one.
+  const drawn = Effect.sync(() =>
+    encodePng(mannequinUnderlay(plan.options.slots ?? [], profiles)),
+  ).pipe(Effect.flatMap((bytes) => store.writeFile(file, bytes)));
+  const ctx: TryContext = { place, run, record, look, layout, plan, underlay: { file, drawn } };
+  // The brief is built once before any draw: a house block that moved stops the run, not each try.
+  const first = yield* requestOf(ctx, [], false);
+  if (run.dryRun) {
+    yield* emit({ _tag: 'Planned', member: record.member, kind: run.kind, ...first });
+    return NONE_MADE;
+  }
+  yield* fs.makeDirectory(place.out, { recursive: true });
+  const made = yield* Effect.forEach(Arr.range(1, run.tries), () => gatedTry(ctx, emit), {
+    concurrency: Math.min(run.lanes, CAST_LANES),
+  });
+  return made.flat();
+});
+
+const decodeRecord = (text: string) =>
+  Result.mapError(Schema.decodeResult(CastSheetJson)(text), (e) =>
+    FileInvalid.make({ file: 'cast-sheet.json', reason: e.message }),
+  );

@@ -9,6 +9,8 @@ import { Cause, Console, Effect, Exit, FileSystem, Layer, Option, Path, Queue } 
 import { Command } from 'effect/cli';
 import { drawFigure, drawSheet, PLAIN } from '../core/fixtures/figure.ts';
 import { concept } from './concept-cli.ts';
+import { ContentStore } from './content-store.ts';
+import { FilmFolder } from './film-repo.ts';
 import { encodePng } from './png.ts';
 import { memoryFileSystem, printingTo, text } from './testing.ts';
 
@@ -22,8 +24,11 @@ const houseBlock = Effect.gen(function* () {
   );
 }).pipe(Effect.provide(BunServices.layer));
 
-/** A memory store holding the app's house block, a look, references and a layout; nothing under the shell's folder. */
+/** A memory store holding the app's house block, a look, references, a layout and a heads sheet; nothing under the shell's folder; no films. */
 const over = () =>
+  Layer.mergeAll(ContentStore.layer, FilmFolder.layer('/films')).pipe(Layer.provideMerge(files()));
+
+const files = () =>
   Layer.mergeAll(
     BunServices.layer,
     Layer.unwrap(
@@ -141,5 +146,20 @@ describe('film concept measure', () => {
         expect(failureTag(level.exit)).toBe('none');
         expect(level.printed).toContain('flags=0');
       }).pipe(Effect.provide(over())),
+  );
+});
+
+describe('film concept cast', () => {
+  it.effect('refuses a count of tries under one before it draws', () =>
+    Effect.gen(function* () {
+      const tags = yield* Effect.forEach(['0', '-2'], (n) =>
+        Effect.map(
+          run(['cast', 'f', 'christ', '--kind', 'turnaround', '--tries', n, '--dry-run']),
+          ({ exit }) => failureTag(exit),
+        ),
+      );
+      // The flag's schema refuses the value, and the CLI shows the command's help with why.
+      expect(tags).toEqual(['ShowHelp', 'ShowHelp']);
+    }).pipe(Effect.provide(over())),
   );
 });

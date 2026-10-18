@@ -16,9 +16,20 @@
 //     per flag, and write `<stem>.measure.md`, `<stem>.measure.json` and
 //     `<stem>.overlay.png` beside it (or in `--out`). Facing is read first;
 //     a flag guides the retry and the ask, it keeps or drops nothing.
+//
+//   film concept cast <film> <member> --kind turnaround|poses|heads
+//       [--tries 3] [--lanes 3] [--dry-run] [--house <file>] [--house-image <png>]
+//     draw tries of the member's sheet on the image route (`cast-sheet-make.ts`)
+//     from its `cast-sheet.json` and `look.md`: the film's own role's under
+//     `films/<film>/cast/<member>/cast-sheet/`, else the library's under
+//     `library/cast/<member>/cast-sheet/` beside the films. Each try is
+//     measured as it lands and a flagged one drawn once more, its drifts
+//     named (and the underlay sent on facing or the canon); every try, its
+//     measure and overlay land in `out/<film>/cast/<member>/` and the record.
 
 import { Argument, Command, Flag } from 'effect/cli';
 import { Console, Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { CAST_LANES, castLine, makeCastSheet } from './cast-sheet-make.ts';
 import {
   measureSheet,
   type SheetConcept,
@@ -32,6 +43,8 @@ import {
 } from '../core/cast-sheet.ts';
 import { measureFigure } from '../core/figure.ts';
 import { castSheetBrief, turnaroundLayout } from './cast-sheet-brief.ts';
+import { FilmFolder, filmNamed } from './film-repo.ts';
+import { ImageRoute } from './image-route.ts';
 import { decodePng, encodePng } from './png.ts';
 
 /** A `--concept` that is not `<crop.png>:<view>`, or whose crop shows no figure. */
@@ -236,9 +249,102 @@ const brief = (house: HouseLook) =>
     ),
   );
 
+/** A member with no `cast-sheet.json` in the film's cast or the library's. */
+class CastUnfound extends Schema.TaggedError<CastUnfound>()('CastUnfound', {
+  member: Schema.String,
+  looked: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `${this.member} has no cast-sheet.json: looked in ${this.looked.join(' and ')}`;
+  }
+}
+
+/** The member's sheet folder: the film's own role's when it has one, else the library's. */
+const castFolder = Effect.fn('film.concept.castFolder')(function* (film: string, member: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const dir = (yield* FilmFolder).paths(film).dir;
+  const looked = [
+    path.join(dir, 'cast', member, 'cast-sheet'),
+    path.join(dir, '..', '..', 'library', 'cast', member, 'cast-sheet'),
+  ];
+  const found = yield* Effect.findFirst(looked, (folder) =>
+    fs.exists(path.join(folder, 'cast-sheet.json')).pipe(Effect.orElseSucceed(() => false)),
+  );
+  return yield* Effect.fromOption(found).pipe(
+    Effect.mapError(() => CastUnfound.make({ member, looked })),
+  );
+});
+
+const cast = (house: HouseLook) =>
+  Command.make(
+    'cast',
+    {
+      film: Argument.String('film').pipe(
+        Argument.withDescription('the film the tries are drawn for'),
+      ),
+      member: Argument.String('member').pipe(
+        Argument.withDescription("the cast member, by its id (its sheet folder's name)"),
+      ),
+      kind: Flag.Literals('kind', SheetKind.literals).pipe(
+        Flag.withDescription('the sheet to draw: turnaround, poses or heads'),
+      ),
+      tries: Flag.Int('tries').pipe(
+        // A count under one is refused at the flag: the run would draw one try for it.
+        Flag.withSchema(Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))),
+        Flag.withDefault(3),
+        Flag.withDescription(
+          'how many tries to draw (a flagged one is drawn once more beside them)',
+        ),
+      ),
+      lanes: Flag.Int('lanes').pipe(
+        Flag.withDefault(CAST_LANES),
+        Flag.withDescription(`how many tries are drawn at once (at most ${CAST_LANES})`),
+      ),
+      dryRun: Flag.Boolean('dry-run').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('print the prompt and the references, and draw nothing'),
+      ),
+      house: Flag.String('house').pipe(
+        Flag.optional,
+        Flag.withDescription("the house block every concept prompt opens with (the app's own)"),
+      ),
+      houseImage: Flag.String('house-image').pipe(
+        Flag.optional,
+        Flag.withDescription("the house look's image, every try's first reference (the app's own)"),
+      ),
+    },
+    Effect.fn('film.concept.cast')(function* (input) {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const film = yield* filmNamed(input.film);
+      const folder = yield* castFolder(film, input.member);
+      const out = path.join((yield* FilmFolder).paths(film).out, 'cast', input.member);
+      yield* makeCastSheet(
+        { folder, out },
+        {
+          kind: input.kind,
+          tries: input.tries,
+          lanes: input.lanes,
+          dryRun: input.dryRun,
+          house: yield* fs.readFileString(Option.getOrElse(input.house, () => house.text)),
+          houseImage: path.resolve(Option.getOrElse(input.houseImage, () => house.image)),
+        },
+        (line) => Console.log(castLine(line)),
+      );
+    }),
+  ).pipe(
+    Command.withDescription(
+      "Draw tries of a cast member's sheet on the image route, each measured as it lands; a flagged try is drawn once more with its drifts named and, on facing or the canon, the underlay; every try lands in its record and out/<film>/cast/<member>/",
+    ),
+    Command.provide(ImageRoute.layer),
+  );
+
 /** `film concept` over the app's house look. */
 export const concept = (house: HouseLook) =>
   Command.make('concept').pipe(
-    Command.withDescription("A cast member's sheet: its brief, and a try measured"),
-    Command.withSubcommands([brief(house), measure]),
+    Command.withDescription(
+      "A cast member's sheet: its brief, a try measured, and tries drawn and measured",
+    ),
+    Command.withSubcommands([brief(house), measure, cast(house)]),
   );

@@ -2875,6 +2875,38 @@ box, the anchor's top and sole, and where the canon puts a figure's top).
 It guides the retry and the ask, as the match does; it keeps or drops
 nothing.
 
+### A cast member's sheet drawn: `film concept cast`
+
+`film concept cast <film> <member> --kind turnaround|poses|heads [--tries 3]
+[--lanes 3] [--dry-run] [--house <file>] [--house-image <png>]`
+(`tools/cast-sheet-make.ts`) draws tries of one kind of the member's sheet
+on the image route. The member's folder is its film's own role's,
+`src/films/<film>/cast/<member>/cast-sheet/`, else the library's,
+`src/library/cast/<member>/cast-sheet/` beside the films; neither is
+`CastUnfound`. It holds `cast-sheet.json` (`CastSheetRecord`,
+`core/cast-record.ts`, pure: the member's pronoun, its scope, each reference
+image and what it is for, and per kind the anchor view and, for poses and
+heads, the layout in words and each view's slot), `look.md` and the
+reference images; the images stay out of git, as a board's do. A kind the
+record does not set up is `CastKindUnset` before any draw, and the brief is
+built once before any draw, so a house block that moved stops the run.
+
+Tries run `--lanes` at once (three at most, the route's own limit). Each
+lands in `out/<film>/cast/<member>/` as `<kind>-<n>.png` with its
+`.measure.md` and `.overlay.png`, and is recorded in `cast-sheet.json` under
+the record's lock (`ContentStore.transact`): its prompt, its references (as
+the sheet's folder reaches them), whether the underlay rode along, the try
+it draws again, the measure's flags and the anchor's squash. A flagged try
+is drawn once more with each drift named in a sentence; on `facing`,
+`sameWay`, `roll` or `squash` the retry also sends the underlay as its last
+reference (`mannequinUnderlay`, `core/cast-underlay.ts`, pure: a blank
+mannequin per view on one ground line, each the canon of its heads tall and
+turned to its slot by its eyes, its nose and its feet, each hand a circle at the end of its arm in its sleeve (a profile draws its near arm alone); a turnaround's
+profiles are its third and fifth views), written fresh as
+`underlay-<kind>.png`. A retry that still drifts is recorded with its flags,
+never dropped; a try that draws nothing is a line and the run goes on.
+`--dry-run` prints the prompt and the references and draws nothing.
+
 ### The review: `film review`, and keep needs evidence
 
 `film review <film> --set <name> --scene <id> --at <place> --at <place>

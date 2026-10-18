@@ -12,7 +12,9 @@ src/films/*/narration/full.json
 # `.<file>.lock`, stays beside it; the operating system's lock on it is let go
 # when its holder exits.
 src/films/**/*.partial
+src/library/**/*.partial
 src/films/**/*.lock
+src/library/**/*.lock
 src/films/*/narration/*.take.mp3
 # Every recording of a person's take (`takes import`, the lab's studio), kept to
 # hear again or keep instead: only the take the timings name is committed.
@@ -39,6 +41,10 @@ src/films/*/sound/*
 # only at a cost. Only the record, `board.json` (each image's sha256), is
 # committed; copy the folder between checkouts.
 src/films/*/board/
+# A cast member's sheet references (`film concept cast`): the same, beside
+# their record, `cast-sheet.json`, and the member's `look.md`.
+src/library/cast/*/cast-sheet/*.png
+src/films/*/cast/*/cast-sheet/*.png
 # A version folder (`<film>/v<n>/`, an earlier version kept beside the film)
 # keeps the same files out: its board images, its mix and its takes' attempts.
 src/films/*/v*/board/
