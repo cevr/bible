@@ -4,48 +4,93 @@
  * (`Cloudflare.CloudflareApiLive()`, provided by `./copy.ts` on a real run
  * alone, so a dry run never reads the profile).
  *
- * Listing goes through distilled's `listBucketObjects`, page by page. The
- * upload is a PUT of its own: distilled's `uploadBucketObject` escapes the
- * whole key as one path label, so `audio/sdah/1.mp3` would travel as
- * `audio%2Fsdah%2F1.mp3`, and R2 takes a key's slashes only literally.
+ * Both calls are distilled operations, so each is encoded, decoded, classed
+ * and retried by distilled's Cloudflare protocol and its default retry
+ * policy. Listing is distilled's `listBucketObjects`, page by page. The
+ * upload is an operation of its own, built with distilled's `API.make` on the
+ * same route as its `uploadBucketObject`: that one escapes the whole key as
+ * one path label (`audio%2Fsdah%2F1.mp3`), and R2 takes a key's slashes only
+ * literally, so this one names the key as a greedy label (`{object_name+}`),
+ * each segment escaped and the slashes kept.
  */
-import * as CloudflareCredentials from '@distilled.cloud/cloudflare/Credentials';
+import * as CloudflareErrors from '@distilled.cloud/cloudflare/Errors';
+import { CloudflareProtocol } from '@distilled.cloud/cloudflare/Protocol';
 import * as r2 from '@distilled.cloud/cloudflare/r2';
+import * as Retry from '@distilled.cloud/cloudflare/Retry';
+import * as T from '@distilled.cloud/cloudflare/Traits';
+import * as API from '@distilled.cloud/core/api';
 import * as Cloudflare from 'alchemy/Cloudflare';
-import { Effect, Layer, Option, Schedule, Schema, Stream } from 'effect';
-import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http';
+import { Effect, Layer, Option, Predicate, Schema, Stream } from 'effect';
 
 import type { PutMetadata, TargetObject } from './stores.ts';
 import { StoreFailed, Target } from './stores.ts';
 
 const BUCKET = 'cvr-hymns';
 
-/** An object's REST address: the key's segments escaped, its slashes kept. */
-export const objectUrl = (apiBase: string, accountId: string, key: string) =>
-  `${apiBase}/accounts/${encodeURIComponent(accountId)}/r2/buckets/${BUCKET}/objects/${key.split('/').map(encodeURIComponent).join('/')}`;
+/** How long one upload may take, its retries included. */
+const PUT_TIMEOUT = '3 minutes';
 
-/** Cloudflare's envelope around an upload's answer; R2 gives the size as a string. */
-const Uploaded = Schema.Struct({
-  result: Schema.Struct({
-    etag: Schema.String,
-    size: Schema.Union([Schema.Finite, Schema.FiniteFromString]),
+/**
+ * Cloudflare's authentication and permission codes, kept with their code:
+ * distilled's global map would answer them as an `Unauthorized` or a
+ * `Forbidden` that carries the message alone. A matched class is tagged
+ * retryable by the same message rule (`isTransientAuthBlip` in distilled's
+ * protocol), so a blip retries and a denial fails, as before.
+ */
+class CloudflareDenied extends T.applyErrorMatchers(
+  Schema.TaggedError<CloudflareDenied>()('CloudflareDenied', {
+    code: Schema.Finite,
+    message: Schema.String,
   }),
+  [{ code: 10000 }, { code: 10001 }],
+) {}
+
+const PutObjectRequest = Schema.Struct({
+  accountId: Schema.String.pipe(T.Label('account_id')),
+  bucketName: Schema.String.pipe(T.Label('bucket_name')),
+  objectName: Schema.String.pipe(T.Label('object_name')),
+  body: Schema.Uint8Array.pipe(T.HttpBody()),
+  contentType: Schema.String.pipe(T.Header('Content-Type')),
+  cacheControl: Schema.String.pipe(T.Header('Cache-Control')),
+}).pipe(
+  T.Http({
+    method: 'PUT',
+    uri: '/accounts/{account_id}/r2/buckets/{bucket_name}/objects/{object_name+}',
+    code: 200,
+    bodyMediaType: 'application/octet-stream',
+  }),
+);
+
+/** The envelope's `result`: R2 gives the size as a string. */
+const PutObjectResponse = Schema.Struct({
+  etag: Schema.optional(Schema.NullOr(Schema.String)),
+  size: Schema.optional(Schema.NullOr(Schema.String)),
 });
+
+const putObject = API.make(() => ({
+  input: PutObjectRequest,
+  output: PutObjectResponse,
+  errors: [CloudflareDenied, r2.NoSuchBucket, CloudflareErrors.CloudflareRateLimited],
+  protocol: CloudflareProtocol,
+  retry: Retry.Retry,
+}));
 
 const failure = (reason: string) => StoreFailed.make({ store: 'r2', reason });
 
-const reasonOf = (error: { readonly message: string }) => error.message;
+/** A failure as Cloudflare said it: its class, its code when it gave one, its message. */
+const reasonOf = (error: { readonly message: string }) => {
+  const tag = Option.liftPredicate(Reflect.get(error, '_tag'), Predicate.isString);
+  const code = Option.liftPredicate(Reflect.get(error, 'code'), Predicate.isNumber);
+  const head = [Option.getOrElse(tag, () => 'Error'), ...Option.toArray(code)].join(' ');
+  return `${head}: ${error.message}`;
+};
 
 export const TargetR2 = Layer.effect(
   Target,
   Effect.gen(function* () {
     const { accountId } = yield* yield* Cloudflare.CloudflareEnvironment;
-    const credentials = yield* CloudflareCredentials.Credentials;
     const listObjects = yield* r2.listBucketObjects;
-    const client = (yield* HttpClient.HttpClient).pipe(
-      HttpClient.filterStatusOk,
-      HttpClient.retryTransient({ schedule: Schedule.exponential('500 millis'), times: 4 }),
-    );
+    const upload = yield* putObject;
 
     const list = Effect.fn('Target.list')(function* (prefix: string) {
       const objects = yield* listObjects
@@ -58,7 +103,10 @@ export const TargetR2 = Layer.effect(
       for (const object of objects) {
         const key = Option.fromNullishOr(object.key);
         if (Option.isNone(key)) continue;
-        listed.set(key.value, { size: object.size ?? -1, etag: object.etag ?? '' });
+        listed.set(key.value, {
+          size: Option.getOrElse(Option.fromNullishOr(object.size), () => -1),
+          etag: Option.getOrElse(Option.fromNullishOr(object.etag), () => ''),
+        });
       }
       return listed;
     });
@@ -68,19 +116,29 @@ export const TargetR2 = Layer.effect(
       bytes: Uint8Array,
       metadata: PutMetadata,
     ) {
-      const resolved = yield* credentials.pipe(
-        Effect.mapError((error) => failure(`credentials: ${reasonOf(error)}`)),
-      );
-      const request = HttpClientRequest.put(objectUrl(resolved.apiBaseUrl, accountId, key)).pipe(
-        HttpClientRequest.setHeaders(CloudflareCredentials.formatHeaders(resolved)),
-        HttpClientRequest.setHeader('cache-control', metadata.cacheControl),
-        HttpClientRequest.bodyUint8Array(bytes, metadata.contentType),
-      );
-      const answer = yield* client.execute(request).pipe(
-        Effect.flatMap(HttpClientResponse.schemaBodyJson(Uploaded)),
+      const answer = yield* upload({
+        accountId,
+        bucketName: BUCKET,
+        objectName: key,
+        body: bytes,
+        contentType: metadata.contentType,
+        cacheControl: metadata.cacheControl,
+      }).pipe(
         Effect.mapError((error) => failure(`put ${key}: ${reasonOf(error)}`)),
+        Effect.timeoutOrElse({
+          duration: PUT_TIMEOUT,
+          orElse: () => Effect.fail(failure(`put ${key}: no answer in ${PUT_TIMEOUT}`)),
+        }),
       );
-      return { size: answer.result.size, etag: answer.result.etag };
+      const size = Option.fromNullishOr(answer.size).pipe(
+        Option.map(Number),
+        Option.filter(Number.isSafeInteger),
+      );
+      const etag = Option.fromNullishOr(answer.etag);
+      if (Option.isNone(size) || Option.isNone(etag)) {
+        return yield* failure(`put ${key}: the answer gave no size or etag`);
+      }
+      return { size: size.value, etag: etag.value };
     });
 
     return Target.of({ list, put });

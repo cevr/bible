@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@distilled.cloud/cloudflare": "1.0.0-rc.15",
+    "@distilled.cloud/core": "1.0.0-rc.15",
     "@effect/platform-bun": "catalog:",
     "@effect/platform-node": "catalog:",
     "@react-native-community/template": "0.88.0",

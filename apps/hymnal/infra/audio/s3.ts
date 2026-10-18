@@ -14,15 +14,27 @@ import { Source, StoreFailed } from './stores.ts';
 
 const S3_ORIGIN = 'https://cvr-hymns.s3.amazonaws.com';
 
-export const s3Url = (hymn: number) => `${S3_ORIGIN}/${hymn}.mp3`;
+const s3Url = (hymn: number) => `${S3_ORIGIN}/${hymn}.mp3`;
 
 const failure = (reason: string) => StoreFailed.make({ store: 's3', reason });
 
 const transport = (hymn: number) => (error: HttpClientError.HttpClientError) =>
   failure(`${hymn}.mp3: ${error.message}`);
 
+/** How long a HEAD, and a download with its body, may take, retries included. */
+const HEAD_TIMEOUT = '1 minute';
+const GET_TIMEOUT = '3 minutes';
+
+const within =
+  (hymn: number, duration: typeof HEAD_TIMEOUT | typeof GET_TIMEOUT) =>
+  <A, E, R>(self: Effect.Effect<A, E, R>) =>
+    Effect.timeoutOrElse(self, {
+      duration,
+      orElse: () => Effect.fail(failure(`${hymn}.mp3: no answer in ${duration}`)),
+    });
+
 /** What a HEAD's status and headers say of a hymn's key. */
-export const headOf = (
+const headOf = (
   hymn: number,
   status: number,
   headers: Readonly<Record<string, string>>,
@@ -54,13 +66,16 @@ export const SourceS3 = Layer.effect(
     const head = Effect.fn('Source.head')(function* (hymn: number) {
       const response = yield* client
         .execute(HttpClientRequest.head(s3Url(hymn)))
-        .pipe(Effect.mapError(transport(hymn)));
+        .pipe(Effect.mapError(transport(hymn)), within(hymn, HEAD_TIMEOUT));
       return yield* headOf(hymn, response.status, response.headers);
     });
 
     const get = Effect.fn('Source.get')(function* (hymn: number) {
-      const response = yield* ok.get(s3Url(hymn)).pipe(Effect.mapError(transport(hymn)));
-      const body = yield* response.arrayBuffer.pipe(Effect.mapError(transport(hymn)));
+      const body = yield* ok.get(s3Url(hymn)).pipe(
+        Effect.flatMap((response) => response.arrayBuffer),
+        Effect.mapError(transport(hymn)),
+        within(hymn, GET_TIMEOUT),
+      );
       return new Uint8Array(body);
     });
 
