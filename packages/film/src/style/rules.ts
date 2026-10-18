@@ -1,17 +1,25 @@
 // The house's rules for a figure, by id: what each says, where the owner's
-// words for it are written, and whether anything may free it (an override
-// citing his decision on the figure, `override.ts`). A part, a paper or a
-// figure the house refuses as it is made names the rule it breaks
-// (`decode.ts`), so the refusal reads as the rule, not as a schema's words;
-// a locked figure whose print is not its lock's names FigureLock
-// (`lock.ts`). Pure.
+// words for it are written, and its way out (`Way`): none, the owner's word
+// asked first, or an override citing his decision on the figure
+// (`override.ts`). A part, a paper or a figure the house refuses as it is
+// made names the rule it breaks and its way out (`decode.ts`), so the
+// refusal reads as the rule, not as a schema's words; a locked figure whose
+// print is not its lock's names FigureLock (`lock.ts`). Pure.
+
+/**
+ * How a rule may be freed. `none`: by nothing (the owner's "never",
+ * "ever"). `owner`: by his word alone, since no part carries an override of
+ * it, so a change to it is asked of him first. `override`: by an override a
+ * part carries, citing his decision on the figure, in his words or by his
+ * pick (`override.ts`).
+ */
+export type Way = 'none' | 'owner' | 'override';
 
 /** A rule: what it says, where it is written, and its way out. */
 interface Rule {
   readonly says: string;
   readonly source: string;
-  /** `none`: nothing frees it (the owner's "never", "ever"); `override`: an override citing his decision on the figure, in his words or by his pick, may. */
-  readonly way: 'none' | 'override';
+  readonly way: Way;
 }
 
 export const RULES = {
@@ -29,19 +37,19 @@ export const RULES = {
   KitA: {
     says: 'the face is Kit A: two eyes, two brows and a mouth, placed and sized',
     source: 'character-design.md, K1: "three marks" (Kit A, owner, 2026-10-13)',
-    way: 'override',
+    way: 'owner',
   },
   InteriorInk: {
     says: 'no ink inside a figure: one line round the silhouette, none inside it',
     source:
       'director-vision.md, Paper-cut figures rule 1: "no inner lines but the face\'s, since form is the crease"',
-    way: 'override',
+    way: 'owner',
   },
   InnerRim: {
     says: "the rim runs inside a piece's own line, never inside a part laid within it",
     source:
       'RBF journal, round 6: an ear\'s light rim inside the outline (owner: "an inner border")',
-    way: 'override',
+    way: 'owner',
   },
   FigureLock: {
     says: 'a locked figure is drawn as the owner kept it, its print the one its lock holds',

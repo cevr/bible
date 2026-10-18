@@ -12,7 +12,11 @@ import { Share } from './measure.ts';
 
 const HandsPart = Schema.TaggedStruct('Hands', {
   paper: Paper,
-  /** Its circle's width against the head's, as the concept draws it. */
+  /**
+   * Its circle's width against the head's, as the concept draws it. The
+   * house draws nothing from it: the host sizes each hand by a scale of its
+   * own, worked out from this share by hand (RBF's `court-cast.ts` `HAND`).
+   */
   share: Share,
 });
 export type Hands = typeof HandsPart.Type;

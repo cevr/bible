@@ -703,6 +703,29 @@ describe('the parts', () => {
     expect(() => KitA(nosed)).toThrow(/KitA refused by KitA/);
   });
 
+  test("a refusal says its rule's way out: nothing, the owner asked first, or an override", () => {
+    const thumbed = { paper: SKIN, share: 0.3, thumb: 1 };
+    expect(() => Hands(thumbed)).toThrow(/; nothing frees it\): /);
+    const nosed = { x: 0, y: 0, scale: 1, gaze: [0, 0] as const, nose: 1 };
+    // No part carries an override of KitA, so the refusal promises none.
+    expect(() => KitA(nosed)).toThrow(
+      /; no part carries an override of it: only the owner may change it, so ask him first\): /,
+    );
+    const elsewhere = { ...LOCK, override: { ...OVERRIDE, place: 'judge' } };
+    expect(() => figure({ ...leadOf([]), lock: elsewhere })).toThrow(
+      /; only an override citing the owner's decision on the figure frees it\): /,
+    );
+  });
+
+  test('a colour is #rrggbb: a short #rgb is refused, since the house prints six digits', () => {
+    expect(() => paper({ color: '#fff', light: '#ffffff' }, 'short')).toThrow(
+      /short refused: .*a colour as #rrggbb hex/,
+    );
+    expect(() => paper({ color: '#ffffff', light: '#fff' }, 'short light')).toThrow(
+      /short light refused: /,
+    );
+  });
+
   test('hair, an ear or bands laid within an outline with a rimmed paper are refused by InnerRim', () => {
     const outline = ellipse(0, 0, 10, 10, 8);
     expect(() => Hair.Traced({ outline, paper: RIMMED })).toThrow(

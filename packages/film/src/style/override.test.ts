@@ -16,7 +16,7 @@ import { ProductionFile, decisionsOf } from '../core/production.ts';
 import { repoJson } from '../core/schema.ts';
 import { unsaid } from './build.ts';
 import { decodeLock } from './lock.ts';
-import { type Laid, overridesIn, unbacked } from './override.ts';
+import { type Laid, overrideOf, overridesIn, unbacked } from './override.ts';
 
 /** The ask the owner kept and locked the court figures in, and the time the ledger filed his decision there. */
 const LOCK_ASK = 'a92f276635e';
@@ -114,6 +114,14 @@ describe('an override', () => {
     };
     expect(overridesIn(laid)).toEqual([SAID, PICKED]);
     expect(overridesIn({ head: { _tag: 'RoundHead', y: 0 }, knobs: { faceY: 0 } })).toEqual([]);
+  });
+
+  test('is made only of a rule whose way is an override a part carries', () => {
+    expect(overrideOf('FigureLock', {})).toBeDefined();
+    // @ts-expect-error KitA's way is the owner's: no part carries an override of it
+    overrideOf('KitA', {});
+    // @ts-expect-error nothing frees GreyShade
+    overrideOf('GreyShade', {});
   });
 
   test("cites the owner's words or his pick, one, never both, nor neither", () => {

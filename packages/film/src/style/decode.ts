@@ -2,12 +2,19 @@
 // and figure decoded by its schema with no field the schema lacks
 // (`onExcessProperty: 'error'`), so a spread object's stray field is refused
 // as a fresh literal's is. A refusal names what it refused, the rule it breaks
-// when one names it (`rules.ts`) and the decode's words with their place; it
-// is thrown, so a module that composes a figure breaking a rule does not load.
-// Pure.
+// when one names it (`rules.ts`) with its way out, and the decode's words with
+// their place; it is thrown, so a module that composes a figure breaking a
+// rule does not load. Pure.
 
 import { Data, Result, Schema, type SchemaIssue } from 'effect';
-import { RULES, type RuleId } from './rules.ts';
+import { RULES, type RuleId, type Way } from './rules.ts';
+
+/** What a refusal says of a rule's way out. */
+const WAY_OUT: Readonly<Record<Way, string>> = {
+  none: 'nothing frees it',
+  owner: 'no part carries an override of it: only the owner may change it, so ask him first',
+  override: "only an override citing the owner's decision on the figure frees it",
+};
 
 /** What the house refused as it was made: a part, a paper or a figure; the rule it breaks, when one names it; and why. */
 class StyleRefused extends Data.TaggedError('StyleRefused')<{
@@ -18,11 +25,7 @@ class StyleRefused extends Data.TaggedError('StyleRefused')<{
   override get message() {
     if (this.rule === undefined) return `${this.part} refused: ${this.why}`;
     const rule = RULES[this.rule];
-    const way =
-      rule.way === 'none'
-        ? 'nothing frees it'
-        : 'only an override citing the owner’s words or his pick frees it';
-    return `${this.part} refused by ${this.rule}, ${rule.says} (${rule.source}; ${way}): ${this.why}`;
+    return `${this.part} refused by ${this.rule}, ${rule.says} (${rule.source}; ${WAY_OUT[rule.way]}): ${this.why}`;
   }
 }
 

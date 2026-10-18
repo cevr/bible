@@ -17,9 +17,9 @@ import { shaded } from './house.ts';
 import { Opacity, Outline } from './parts/measure.ts';
 import type { PieceLook } from './rig/parts.ts';
 
-/** A colour as a paper takes it: `#rgb` or `#rrggbb` hex. */
+/** A colour as a paper takes it: `#rrggbb` hex, the six digits the house prints (`argb`). */
 export const HexColour = Schema.TemplateLiteral(['#', Schema.String]).check(
-  Schema.isPattern(/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i),
+  Schema.isPattern(/^#[0-9a-f]{6}$/i, { message: 'a colour as #rrggbb hex' }),
 );
 
 /**

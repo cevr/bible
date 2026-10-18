@@ -92,13 +92,15 @@ describe("RBF's figures", () => {
   );
 
   it.effect(
-    "Christ's two views are one figure: His head traced in each, one frame, feet and hands, and one robe turned with Him",
+    "Christ's two views are one figure: His head traced in each, one frame, feet and hands, one robe turned with Him, and one set of knobs",
     () =>
       Effect.sync(() => {
         const views = [christ, christFront].map((f) => f.head._tag === 'TracedHead' && f.head.view);
         expect(views).toEqual(['threeQuarter', 'front']);
         for (const part of ['art', 'stature', 'stance', 'feet', 'hands'] as const)
           expect(christFront[part]).toEqual(christ[part]);
+        // The host poses Him in both by one set of numbers (`court-cast.ts`): the same knobs, in one order.
+        expect(Object.keys(christFront.knobs)).toEqual(Object.keys(christ.knobs));
         // Turned to us His robe is cut to court.you's shoulders, of the same paper and breathing from the same hem.
         const robe = (f: typeof christ) => [f.body._tag, f.body.paper, f.body.hem];
         expect(robe(christFront)).toEqual(robe(christ));
