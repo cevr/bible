@@ -40,26 +40,31 @@
   "refrain": {
     "lines": [
       { "text": "This Rock is Jesus, Yes, He's the One;", "from": "system 3, Refrain, bars 9-12" },
-      { "text": "This Rock is Jesus, The only One!", "from": "system 4, bars 13-15" }
-    ],
-    "endings": [
+      { "text": "This Rock is Jesus, The only One!", "from": "system 4, bars 13-15" },
       {
-        "after": [1, 2],
-        "lines": [
-          { "text": "Be very sure, be very sure", "from": "systems 4-5, row 1, 2., bars 15-17" },
+        "varies": [
           {
-            "text": "Your anchor holds and grips the solid Rock!",
-            "from": "system 5, row 1, 2., bars 18-21"
-          }
-        ]
-      },
-      {
-        "after": [3],
-        "lines": [
-          { "text": "I'm very sure, I'm very sure", "from": "systems 4-5, row 3., bars 15-17" },
+            "after": [1, 2],
+            "lines": [
+              {
+                "text": "Be very sure, be very sure",
+                "from": "systems 4-5, row 1, 2., bars 15-17"
+              },
+              {
+                "text": "Your anchor holds and grips the solid Rock!",
+                "from": "system 5, row 1, 2., bars 18-21"
+              }
+            ]
+          },
           {
-            "text": "My anchor holds and grips the solid Rock!",
-            "from": "system 5, row 3., bars 18-21"
+            "after": [3],
+            "lines": [
+              { "text": "I'm very sure, I'm very sure", "from": "systems 4-5, row 3., bars 15-17" },
+              {
+                "text": "My anchor holds and grips the solid Rock!",
+                "from": "system 5, row 3., bars 18-21"
+              }
+            ]
           }
         ]
       }

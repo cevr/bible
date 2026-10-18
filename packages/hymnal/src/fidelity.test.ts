@@ -9,8 +9,9 @@
  * The oracle builds the expected lines from the sources alone, never from the
  * compiler or `sung`: the row's stanzas by id and its one negative-id
  * refrain; the refrain's place from `data/fixes/refrains.json`, read off each
- * refrain hymn's page; and, for a row hymnal.db holds rewritten (593), the
- * printed source `data/fixes/NNN.json` in place of the row. Where a refrain
+ * refrain hymn's page; and, for a row hymnal.db holds rewritten from its
+ * page (138, 203, 220, 438, 593, 620, 628), the printed source
+ * `data/fixes/NNN.json` in place of the row. Where a refrain
  * is sung has no default: a refrain hymn the census does not list, or a
  * listed hymn with no refrain, fails. The mutant cases below hold the
  * property to the defects it exists to catch.
@@ -96,19 +97,25 @@ const expected = ({ stanzas, refrain }: Printed): string[] => {
   }
 };
 
+const PrintedLines = Schema.Array(Schema.Struct({ text: Schema.String }));
 const PrintedRow = Schema.fromJsonString(
   Schema.Struct({
     number: Schema.Int,
-    stanzas: Schema.Array(Schema.Array(Schema.Struct({ text: Schema.String }))),
-    refrain: Schema.Struct({
-      lines: Schema.Array(Schema.Struct({ text: Schema.String })),
-      endings: Schema.Array(
-        Schema.Struct({
-          after: Schema.Array(Schema.Int),
-          lines: Schema.Array(Schema.Struct({ text: Schema.String })),
-        }),
-      ),
-    }),
+    stanzas: Schema.Array(PrintedLines),
+    refrain: Schema.optionalKey(
+      Schema.Struct({
+        lines: Schema.Array(
+          Schema.Union([
+            Schema.Struct({ text: Schema.String }),
+            Schema.Struct({
+              varies: Schema.Array(
+                Schema.Struct({ after: Schema.Array(Schema.Int), lines: PrintedLines }),
+              ),
+            }),
+          ]),
+        ),
+      }),
+    ),
   }),
 );
 
@@ -116,21 +123,39 @@ const Refrains = Schema.fromJsonString(
   Schema.Struct({ hymns: Schema.Array(Schema.Struct({ number: Schema.Int, order: Order })) }),
 );
 
-/** A printed source (`data/fixes/NNN.json`): its stanzas, and its refrain with the ending printed for each stanza. */
-const fromPrint = (text: string) =>
-  Effect.map(Schema.decodeEffect(PrintedRow)(text), ({ stanzas, refrain }): Printed => {
-    const texts = (lines: ReadonlyArray<{ readonly text: string }>) => lines.map((l) => l.text);
-    return {
-      stanzas: stanzas.map(texts),
-      refrain: {
-        order: 'after-each',
-        after: (n) => [
-          ...texts(refrain.lines),
-          ...texts(refrain.endings.find((ending) => ending.after.includes(n + 1))?.lines ?? []),
-        ],
-      },
-    };
-  });
+/**
+ * A printed source (`data/fixes/NNN.json`): its stanzas, and its refrain as
+ * printed after each stanza, a part printed once for each stanza (`varies`)
+ * in place. A refrain that varies is sung after each stanza, its own part in
+ * it, and the census does not list it (the row holds no refrain); one that
+ * does not vary is sung where the census places it, and has no default.
+ */
+const fromPrint = (text: string, order: Order | undefined) =>
+  Effect.map(
+    Schema.decodeEffect(PrintedRow)(text),
+    ({ stanzas, refrain }): Result.Result<Printed, string> => {
+      const texts = (lines: ReadonlyArray<{ readonly text: string }>) => lines.map((l) => l.text);
+      const printed = { stanzas: stanzas.map(texts) };
+      if (refrain === undefined)
+        return order === undefined
+          ? Result.succeed(printed)
+          : Result.fail(`refrains.json places a refrain (${order}) the print does not have`);
+      const after = (n: number) =>
+        refrain.lines.flatMap((item) =>
+          'varies' in item
+            ? texts(item.varies.find((part) => part.after.includes(n + 1))?.lines ?? [])
+            : [item.text],
+        );
+      const varies = refrain.lines.some((item) => 'varies' in item);
+      if (varies)
+        return order === undefined
+          ? Result.succeed({ ...printed, refrain: { order: 'after-each', after } })
+          : Result.fail(`refrains.json places a refrain (${order}) printed once for each stanza`);
+      return order === undefined
+        ? Result.fail('its refrain has no place in refrains.json')
+        : Result.succeed({ ...printed, refrain: { order, after } });
+    },
+  );
 
 /**
  * A hymnal.db row: its stanzas by id, and its one negative-id refrain at the
@@ -196,7 +221,7 @@ const compileOne = (n: number) =>
     const row = yield* (yield* HymnalService).getHymn(HymnId.make(n));
     const fix = data(`fixes/${name}.json`);
     const printed = (yield* fs.exists(fix))
-      ? Result.succeed(yield* fromPrint(yield* fs.readFileString(fix)))
+      ? yield* fromPrint(yield* fs.readFileString(fix), order.get(n))
       : fromRow(row.verses, order.get(n));
     const midi = yield* fs.readFile(data(`midi/${name}.mid`));
     const result = yield* Effect.result(

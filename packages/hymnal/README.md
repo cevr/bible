@@ -60,32 +60,50 @@ relative to the repository root: `--db`, `--midi`, `--out`, `--key`.
 The app reads a hymn through `@bible/hymnal/hymn`, which imports only
 `effect` and `@bible/hymnal/chord` (no Bun, Node or dictionary). A hymn holds
 its key, its meter, each stanza in order and its refrain once, with the
-order the hymnal sings it in: `after-each` (after every stanza),
-`first-and-after-each` (before stanza 1 and after every stanza, as a page
-that prints the refrain first and marks D.C. sings it) or `first-and-last`
-(before stanza 1 and after the last, as 172's Alleluias). No other order can
-be written. `sung(hymn)` gives the lines in the order they are sung, each
-with its stanza (or `refrain`), part and line.
+order the hymnal sings it in, one of five:
+
+- `after-each`: after every stanza.
+- `first-and-after-each`: before stanza 1 and after every stanza (a page that
+  prints the refrain first and marks D.C. al Fine).
+- `before-each`: before every stanza and not after the last (349 prints its
+  refrain first and no return to it).
+- `first-and-last`: before stanza 1 and after the last (172's footnote).
+- `after-last`: after the last stanza only (262's repeat, its first ending
+  back to stanza 2, its second on to the refrain).
+
+No other order can be written. `sung(hymn)` gives the lines in the order
+they are sung, each with its stanza (or `refrain`), part and line. Stanzas
+are numbered by position: 93's page numbers its refrain "1." and its stanzas
+"2." to "5.", so its printed "3." is stanza 2.
 
 The compiler reads the stanzas' order from the text's verse ids: stanzas 0,
 1, … n − 1, at most one refrain with a negative id, and a letter in every
 verse. A text laid out any other way is refused (`VerseLayoutError`, counted
 as failed). The ids do not say where the refrain is sung, so
-`data/fixes/refrains.json` lists, read off the printed pages, the six hymns
-that sing it first: 93, 121, 133, 362 and 475 (`first-and-after-each`) and
-172 (`first-and-last`); every other refrain is `after-each`. The tune plays
-each verse as a stanza and the refrain after it (a refrain sung first is the
-intro), so the compiler lays the refrain after stanza 1 on the tune's first
-verse, or, for `first-and-last`, after the last stanza alone on the last
-verse, and keeps that one.
+`data/fixes/refrains.json` gives the order of every hymn whose row has a
+refrain (195), each with a `from` that says what on its page shows it: 187
+`after-each`, five `first-and-after-each` (93, 121, 133, 362, 475), and one
+each of `before-each` (349), `first-and-last` (172) and `after-last` (262).
+There is no default: `sourceOf` refuses a refrain with no entry and an entry
+for a hymn with no refrain (`RefrainPlaceError`), and the compiler refuses a
+refrain with no order. The tune plays each verse as a stanza and the refrain
+after it (a refrain sung first is the intro), so the compiler lays the
+refrain after stanza 1 on the tune's first verse, or, for `first-and-last`
+and `after-last`, after the last stanza alone on the last verse, and keeps
+that one.
 
-Hymn 593 sings a different refrain ending after stanza 3 ("I'm very sure …
-My anchor"), which one refrain cannot hold. `data/fixes/593.json` is the
-printed page, each line with the system, row and bars it was read from:
-three stanzas, the refrain, and its two endings (after stanzas 1 and 2, and
-after stanza 3). `bun scripts/hymnal-593.ts [--db <hymnal.db>]` writes it
-into hymnal.db as three stanzas, each with the refrain and its own ending
-inline, and no refrain.
+A hymnal.db row whose text contradicts its printed page is rewritten from
+`data/fixes/<n>.json`: the page as printed, its `print` naming the source
+and each line's `from` the system, row and bars it was read from.
+`bun scripts/hymnal-fixes.ts [--db <hymnal.db>]` writes every fix into
+hymnal.db and changes no other row: the stanzas as ids 0 to n − 1 and the
+refrain as id -1. A refrain whose lines differ by stanza (`varies`, each
+with the stanzas it follows) cannot be one refrain, so each stanza is
+written with the refrain sung after it inline, and the row has no refrain
+(593's last two lines after stanza 3; 220's middle lines, each stanza's
+own). The fixes are 138, 203, 438, 620 and 628 (words and line breaks the
+row lost or changed) and 220 and 593 (a refrain that varies). Echoes the
+row prints and the engraving omits are kept.
 Each part says how far its placement can be trusted:
 
 - `Sung` at `syllable`: the chords sit on the syllables they change on. The
@@ -143,7 +161,8 @@ key signature (6, 162, 663). `src/fidelity.test.ts` compiles every hymn
 fresh from hymnal.db, `data/fixes` and its MIDI file, as `bun run compile`
 does, and checks that `sung` gives exactly the printed lines in the order the
 hymnal sings them: each stanza's lines, and the refrain where
-`refrains.json` (or the fix) places it, compared word for word with case and
-punctuation set aside. It builds the expected order from the text and the
-fixes alone, never from the compiler. The tests read no chart, key or
-compiled file.
+`refrains.json` places it (a fix's varying refrain after each stanza),
+compared word for word with case and punctuation set aside. It builds the
+expected order from the text and the fixes alone, never from the compiler,
+and refuses a refrain `refrains.json` does not place. The tests read no
+chart, key or compiled file.

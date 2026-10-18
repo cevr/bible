@@ -1,0 +1,126 @@
+{
+  "number": 220,
+  "title": "When He Comes",
+  "print": "The engraving SDAHImages 220.png and its second page (github.com/adventHymnals/SDAHImages, docs/seventh-day-adventist-hymnal/SDAHimages/), read line by line on 2026-10-18. Six systems: bars 1-2, 3-5, 6-8 and 9-11 on page 1, 12-14 and 15-17 on page 2, as the engraving numbers them. The stanzas are lyric rows 1., 2. and 3. under bars 1-8; the refrain, marked Refrain, starts at the double bar in bar 9 and ends at the final barline. Its third and fourth lines are printed three times, a row for each stanza (bars 13-16), each the stanza's own fifth and sixth lines; its last line is printed once, in row 2. hymnal.db sang stanza 1's two lines after every stanza. No single refrain holds all three, so each stanza is written with the refrain sung after it. The echoes \"(when He comes)\" and \"(to the sky)\" are the row's: the engraving prints no echo row, and a re-engraving drops echoes (181's printed page has \"(He cares.)\", its engraving does not). Each line is otherwise as the engraving prints it, its syllables joined, its punctuation kept, with a line that the engraving runs on split where the row splits it.",
+  "stanzas": [
+    [
+      {
+        "text": "When He comes, (when He comes)",
+        "from": "system 1, row 1., bars 1-2; the echo is the row's"
+      },
+      {
+        "text": "When He comes, (when He comes)",
+        "from": "system 1, row 1., bars 1-2; the echo is the row's"
+      },
+      { "text": "We shall see the Lord in glory", "from": "systems 1-2, row 1., bars 2-4" },
+      {
+        "text": "When He comes! (when He comes)",
+        "from": "system 2, row 1., bars 4; the echo is the row's"
+      },
+      { "text": "As I read the gospel story,", "from": "system 2, row 1., bars 4-5" },
+      { "text": "We shall see the Lord in glory,", "from": "systems 2-3, row 1., bars 5-6" },
+      { "text": "We shall see the Lord in glory", "from": "system 3, row 1., bars 6-7" },
+      {
+        "text": "When He comes! (when He comes)",
+        "from": "system 3, row 1., bars 7-8; the echo is the row's"
+      }
+    ],
+    [
+      {
+        "text": "When He comes, (when He comes)",
+        "from": "system 1, row 2., bars 1-2; the echo is the row's"
+      },
+      {
+        "text": "When He comes, (when He comes)",
+        "from": "system 1, row 2., bars 1-2; the echo is the row's"
+      },
+      { "text": "We shall hear the trumpet sounded", "from": "systems 1-2, row 2., bars 2-4" },
+      {
+        "text": "When He comes! (when He comes)",
+        "from": "system 2, row 2., bars 4; the echo is the row's"
+      },
+      { "text": "We shall hear the trumpet sounded,", "from": "system 2, row 2., bars 4-5" },
+      { "text": "See the Lord by saints surrounded,", "from": "systems 2-3, row 2., bars 5-6" },
+      { "text": "We shall hear the trumpet sounded", "from": "system 3, row 2., bars 6-7" },
+      {
+        "text": "When He comes! (when He comes)",
+        "from": "system 3, row 2., bars 7-8; the echo is the row's"
+      }
+    ],
+    [
+      {
+        "text": "When He comes, (when He comes)",
+        "from": "system 1, row 3., bars 1-2; the echo is the row's"
+      },
+      {
+        "text": "When He comes, (when He comes)",
+        "from": "system 1, row 3., bars 1-2; the echo is the row's"
+      },
+      { "text": "We shall all rise up to meet Him", "from": "systems 1-2, row 3., bars 2-4" },
+      {
+        "text": "When He comes! (when He comes)",
+        "from": "system 2, row 3., bars 4; the echo is the row's"
+      },
+      { "text": "We shall all rise up to meet Him,", "from": "system 2, row 3., bars 4-5" },
+      { "text": "When He calls His own to greet Him", "from": "systems 2-3, row 3., bars 5-6" },
+      { "text": "We shall all rise up to meet Him", "from": "system 3, row 3., bars 6-7" },
+      {
+        "text": "When He comes! (when He comes)",
+        "from": "system 3, row 3., bars 7-8; the echo is the row's"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "With the alleluias ringing to the sky, (to the sky)",
+        "from": "system 4, Refrain, bars 9-11; the echo is the row's"
+      },
+      {
+        "text": "With the alleluias ringing to the sky! (to the sky)",
+        "from": "systems 4-5, bars 11-13; the echo is the row's"
+      },
+      {
+        "varies": [
+          {
+            "after": [1],
+            "lines": [
+              { "text": "As I read the gospel story,", "from": "systems 5-6, row 1, bars 13-15" },
+              { "text": "We shall see the Lord in glory,", "from": "system 6, row 1, bars 15-16" }
+            ]
+          },
+          {
+            "after": [2],
+            "lines": [
+              {
+                "text": "We shall hear the trumpet sounded,",
+                "from": "systems 5-6, row 2, bars 13-15"
+              },
+              {
+                "text": "See the Lord by saints surrounded,",
+                "from": "system 6, row 2, bars 15-16"
+              }
+            ]
+          },
+          {
+            "after": [3],
+            "lines": [
+              {
+                "text": "We shall all rise up to meet Him,",
+                "from": "systems 5-6, row 3, bars 13-15"
+              },
+              {
+                "text": "When He calls His own to greet Him",
+                "from": "system 6, row 3, bars 15-16"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "text": "With the alleluias ringing to the sky! (to the sky)",
+        "from": "system 6, row 2, bars 16-17 (shared by every stanza); the engraving ends it \"sky,\" at the final barline, the row's \"sky!\" is kept as bar 13 prints it; the echo is the row's"
+      }
+    ]
+  }
+}

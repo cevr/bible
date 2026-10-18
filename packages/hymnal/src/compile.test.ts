@@ -772,6 +772,38 @@ describe('compile: verse layout', () => {
         ]);
       }).pipe(Effect.provide(hymnal)),
   );
+
+  it.effect(
+    'reads hymn 220 from hymnal.db as three stanzas, each with the refrain lines its own row prints',
+    () =>
+      Effect.gen(function* () {
+        const text = yield* (yield* HymnalService).getHymn(HymnId.make(220));
+        const hymn = yield* compile({ ...source(tuneFile(3), []), verses: text.verses });
+        expect(hymn.refrain).toBeUndefined();
+        expect(hymn.stanzas.map((stanza) => wordsOf(stanza).length)).toEqual([13, 13, 13]);
+        expect(hymn.stanzas.map((stanza) => wordsOf(stanza).slice(10, 12))).toEqual([
+          ['As I read the gospel story,', 'We shall see the Lord in glory,'],
+          ['We shall hear the trumpet sounded,', 'See the Lord by saints surrounded,'],
+          ['We shall all rise up to meet Him,', 'When He calls His own to greet Him'],
+        ]);
+      }).pipe(Effect.provide(hymnal)),
+  );
+
+  it.effect("reads hymn 628 from hymnal.db with stanza 2's four printed lines", () =>
+    Effect.gen(function* () {
+      const text = yield* (yield* HymnalService).getHymn(HymnId.make(628));
+      const hymn = yield* compile({
+        ...source(tuneFile(3), []),
+        verses: text.verses,
+        order: 'after-each',
+      });
+      expect(hymn.stanzas.map((stanza) => wordsOf(stanza).length)).toEqual([4, 4, 4]);
+      expect(firstLine(hymn.stanzas[0])).toBe('As Jacob with travel was weary one day,');
+      expect(wordsOf(hymn.stanzas[1] ?? hymn.stanzas[0])[2]).toBe(
+        "And remember each step that by faith we pass o'er,",
+      );
+    }).pipe(Effect.provide(hymnal)),
+  );
 });
 
 /** A part's lines as words: a sung line's syllables joined by word, its spaces collapsed. */
