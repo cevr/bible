@@ -213,9 +213,9 @@ const SHORE: ReadonlyArray<Pt> = [
  * `TEAR.rim` and torn as the face is but a little rougher, so it shows above
  * the torn edge as a thin uneven line, and it casts the plane's shadow. A
  * fading plane's rim fades ahead of its face, so the face never shows it
- * through.
+ * through. The camp in `look` tears its sand and its dunes the same way.
  */
-const plane = (
+export const plane = (
   ctx: CanvasRenderingContext2D,
   pts: ReadonlyArray<Pt>,
   p: Torn,

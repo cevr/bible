@@ -15,6 +15,7 @@ import { fonts } from '../palette.ts';
 import { script } from '../script.ts';
 import { cold } from './cold.ts';
 import { court } from './court.ts';
+import { look } from './look.ts';
 import { rain } from './rain.ts';
 import { seed } from './seed.ts';
 import { spoke } from './spoke.ts';
@@ -22,7 +23,7 @@ import { title } from './title.ts';
 import { word } from './word.ts';
 
 export const scenes: SceneSpec[] = scenesOf(script, {
-  drawings: { cold, court, rain, seed, spoke, title, word },
+  drawings: { cold, court, look, rain, seed, spoke, title, word },
   light: lightOf,
   card: { brief: fonts.display, label: fonts.body },
 });

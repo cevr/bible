@@ -330,6 +330,26 @@ faith, forgiveness, power: the face kit's turn is capped, so his eyes on any ico
 
 cover: with the page framed 23 Board px lower after the flash (idea knob y 588), the seal outline's forked tail ends sit inside the frame at tails@1, and his face stands near the frame's upper third.
 
+## 2026-10-18T16:26:53Z · look
+
+where: the open hand flown home while his near hand rose with it read as two circles side by side at home@0.5; with his hand up first (0.7 s) and the icon shrinking into it, home@0.8 reads as the hand receiving it, the icon overlapping it as it lands
+
+## 2026-10-18T16:26:56Z · look
+
+where: at whereZoom 3.3 on (585, 562) after the push his head is about 0.5 of the frame's height with its middle at 0.34 of the width, his raised hand at 0.52 across and 0.65 down, against look.where.1's 0.48, 0.33, 0.52 and 0.68; on (602, 562) with the palm 11 units nearer him the hand stood at 0.47 across
+
+## 2026-10-18T16:26:58Z · look
+
+expects: at 1:1 the first root 3.6 units wide in the 2.4 ink read as a black hook on the hand with a hairline of white; at 7 units its cream shows between the ink as a root curling over the palm; the seed at 20 units in the 2.4 ink reads as a small gold-brown seed on the hand's top, its ink a third of the hand's
+
+## 2026-10-18T16:27:01Z · look
+
+hand: the medal's ribbon cut as two teal tails read as a letter V at 960; one band narrowing to the disc reads as a ribbon; the stack at 1.2 of its cut size, about 66 units wide on a 41-unit hand, reads at 1:1 as two certificates, three brass coins, a teal rosette and a pewter medal, none lettered
+
+## 2026-10-18T16:27:03Z · look
+
+expects: a gaze target 130 units off toward his raised hand turned his features about 0.05 of his head's width; at 260 units the match reads a turn of 0.124 (look.where.1 turns them about 0.15); match of the lead at root@1: head, outline, jaw, eye width and spacing, brow length within 5%; flags are the expression (eye height +14%, brow +19%), the features turned and lowered toward the hand, the head outline at the neck, the head shade's hue turn -25 against -80 under the peach light; critique of the lead at root@1 timed out
+
 ## 2026-10-18T16:56:22Z · court
 
 r4 at 20.01: the rig lays its ink outside the paper (parts.ts edgeWidths), and FRONT_REGION sat on court.you's inner ink edge within 2 px everywhere but the crown (6-7 px inside) and the beard's foot (on the outer edge, 9-11 px low); on the inner edge the foot's ink starts at 492-494 canvas px; the head's outer stays +7% against court.you by the eyes (+5% by the inner edge, which matches within 1%): the rig's line, 26 px against court.you's 15-16.
@@ -341,3 +361,47 @@ r4 at 20.01: the held-out hand at HAND_OUT 1.62 is 251 px across, centre (950, 7
 ## 2026-10-18T16:56:27Z · rain
 
 r4 at 17.49: rain.rain's near-cheek shade edge sits at panel x 409 at y 440, 419.5 at 452, 424.5 at 460, 430.5 at 468 (a wedge toward the beard, its half step 4 px inside); its nose shade about #db8b59, richer than the skin.
+
+## 2026-10-18T18:31:06Z · court
+
+christ 3/4 at 16.51 against court-12 at 1:1: the hair and the beard papers are one brown in the concept too (#613e2c, #603d2a); what parts them is a dark band (0.13-0.18) from under the ear down to the jaw's ink between the beard's back edge and the lock behind. The old trace ran the beard back to 48 units under the ear, over that lock; court-12 ends the beard at x 36 down to 22 (its band). Now: beard 0.31, band 0.16 (16 px, about 7 concept px), lock 0.29, as court-12's 0.28, 0.13-0.18, 0.27-0.31. The fringe's lit chestnut (#ae6a41, 4-11 px inside the ink) is cut in now.
+
+## 2026-10-18T18:31:09Z · court
+
+christ-front at 20.01 against court.you 2 at 1:1, rows across the beard's edges: near (y 440) lock 0.30, band 804-814 at 0.16, beard lit 0.45 from 816, as the concept's lock 0.40-0.24, band 805-817 at 0.14-0.16, beard 0.43 from 821; far (y 420) beard shade 0.31 to 1002, band 1004-1018 at 0.16, lock 0.23, as the concept's 0.27 to 1002, 1006-1018 at 0.13-0.17, 0.22. The crown's lit chestnut band (#d08445, the concept's 0.82) shows 10-35 px inside the ink from the crown to 280.
+
+## 2026-10-18T18:31:12Z · court
+
+match on christ 3/4 at 16.51: a light band at the hair's silhouette changes how match reads the head's left edge. With the cut lit fringe the head's left lands on the ink's outer edge (x 279, the ink starts at 281); without it match took the dark hair as reaching the line and set it 12 px inside (291). So the head ratios moved by about 5% (height/width 1.278 to 1.225, eyes -2% to -6%) with no pixel of the silhouette or face changed; the new reading is the true edge.
+
+## 2026-10-18T19:14:42Z · look
+
+the camp's eight people stand as blocked masses (look-props.ts campMass: kit body size, one muted warm paper #a58a7c ramped, one ink round each, hands as circles, no face, no cloth), held for the crowd kit's sheets; their finished kit cut-outs and beat faces sit unimported in look-people.ts
+
+## 2026-10-18T19:14:42Z · look
+
+the iris: a porthole drawing the camp at its own framing showed only flat sand while small (iris@0.3); with the tents' line (768,420) held at the seed until the porthole fills the frame, the camp opens out of the seed (iris@0.55)
+
+## 2026-10-18T19:14:43Z · look
+
+the camp framing (768,522)@1.17 cut the risen serpent's head at the frame's top (lit@1); the pole framing (768,470)@1.12 keeps the head in with headroom
+
+## 2026-10-18T19:14:44Z · look
+
+the climber 64 px left of the pole stood over it and hid it (toPole@1); at 112 px his side meets the pole and his hands on its face read as climbing (climbing@0.75); "make" to `climb` is 1.48 s, three heaves
+
+## 2026-10-18T19:14:46Z · look
+
+the pull-back: the low view shrunk at the square root of the porthole's shrink, its serpent slid to the porthole's middle, fills the porthole to the last and the serpent goes into the open hand (pull@0.55, pull@0.8)
+
+## 2026-10-18T19:14:48Z · look
+
+on blocked masses "looks" and "lives" read only through the serpent's light; a head tipped back on a plain ellipse and a stoop of 0.08 rad do not show at the camp's framing
+
+## 2026-10-18T19:14:50Z · look
+
+lead at 40.45: match flags the rig's own body width at 0.7 (-12%), feet (-25%), eye height (+13%) and a seam at the heart patch's edge; the critique timed out (a skip)
+
+## 2026-10-18T19:14:52Z · look
+
+check of look: 0 errors; toClimber and heal end on marks now (DurOnWord cleared); the low knob sat on rain's (768,760) by chance (KnobRepeated) and is (768,772); SeamLong woman→look 0.62 s stays, the script's
