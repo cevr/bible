@@ -1,18 +1,18 @@
-// The judge as a Rive rig, on the house generator's parts, in the
-// kept concept's (`cold-34`) proportions and shading: a large egg-shaped
-// head narrowing to the chin, turned three-quarters toward screen left and
-// canted (his features and chin carried left, his ear behind them), curly
-// grey hair in lumps over an uneven hairline, soft lighter and violet lumps
-// in it, his head and hair traced from the concept (`traced.ts`), one ink
-// line round head, hair and ear together (`silhouette`), the concept's peach
-// skin, a dark purple
-// robe broad at the shoulders with white bands; the face kit at his size,
-// its marks large on the head. He sits behind the bench,
-// so the rig is the part of him above it. His circle hands are the house's
-// (`drawHand`), drawn by the host over the bench (resting on it,
-// taking up the gavel). The cold-studies judge (frozen in its
-// `figures.riv`) is another figure (bald, indigo, the cold-studies court's
-// geometry): this one is drawn to RBF's Board.
+// The judge, composed of the house's parts (`figure`) in the kept concept's
+// (`cold-34`) proportions and shading: a large egg-shaped head narrowing to
+// the chin, turned three-quarters toward screen left and canted (his
+// features and chin carried left, his ear behind them), curly grey hair in
+// lumps over an uneven hairline, soft lighter and violet lumps in it, his
+// head and hair traced from the concept (`traced.ts`), one ink line round
+// head, hair and ear together, the concept's peach skin, a dark purple robe
+// broad at the shoulders with white bands; Kit A at his size, its marks
+// large on the head. He sits behind the bench, so the rig is the part of him
+// above it (`Stance.Seated`). His circle hands are drawn by the host over
+// the bench (resting on it, taking up the gavel), each from its own artboard
+// (`drawHand`). How each part is cut, lit and drawn is the house's
+// (`drawFigure`). The cold-studies judge (frozen in its `figures.riv`) is
+// another figure (bald, indigo, the cold-studies court's geometry): this one
+// is drawn to RBF's Board.
 //
 // Units are the Board's pixels: in `cold.evidence` his head is 150 tall with
 // its hair. His head's centre is the artboard's origin.
@@ -22,120 +22,34 @@
 // bench), negative toward the dock; `tilt`, radians, his head about his neck;
 // `nod`, units, his head down. The rig keeps its `breath` and `boil`.
 
-import { type Pt, looked } from '@bible/film/style';
 import {
-  FACE,
-  type Figure,
-  artboard,
-  boilTimeline,
-  el,
-  ellipse,
-  faceKit,
-  gazeTarget,
-  piece,
-  roundedPolygon,
-  shifted,
-  silhouette,
-  timeline,
-} from '@bible/film/style/rig';
+  Bands,
+  Ear,
+  Hair,
+  Hands,
+  Head,
+  KitA,
+  Robe,
+  Stance,
+  Stature,
+  figure,
+} from '@bible/film/style';
+import { ellipse, shifted } from '@bible/film/style/rig';
 import { PAPERS } from './papers.ts';
 import { JUDGE_HAIR, JUDGE_HEAD } from './traced.ts';
 
-/** His measures from his head's centre, units: the head, his neck, where his lean pivots (the robe's foot). */
-export const JUDGE = {
+/** His measures from his head's centre, units: the head, his neck, his robe's foot behind the bench (where his lean turns). */
+const JUDGE = {
   head: { rx: 58.5, ry: 70 },
   neck: 52,
-  pivot: 300,
+  foot: 300,
 } as const;
 
-/** The artboard, and where his head's centre sits on it. */
-export const JUDGE_ART = { width: 460, height: 520, head: [230, 140] } as const;
-
-/** How far right of the robe's middle his head sits, units: cold-34 sets his face's near side in over his robe. */
+/** How far right of the robe's middle his head and his bands sit, units: cold-34 sets his face's near side in over his robe. */
 const HEAD_X = 3.5;
 
-/** His head's cant, radians, its crown toward screen right: the slope of his eyes and brows in cold-34. */
-const CANT = 0.15;
-
-/** His ear, behind his features on the far side, where cold-34 cuts it under his hair: centre and half-sizes, units. */
-const EAR = { x: 61, y: 6, rx: 11, ry: 16 } as const;
-
-/**
- * The face kit on his head: how far toward screen left of the head's middle
- * it sits (his head turned three-quarters), its scale, how far below the
- * middle; and its marks where cold-34 draws them once his eyes are on the
- * dock: dark oval eyes 0.07 across and 0.11 high, 0.19 apart; heavy brows
- * 0.12 above them, the far one nearer the middle; the mouth 0.23 below them.
- */
-export const JUDGE_FACE = {
-  x: -9.9,
-  scale: 1.3,
-  y: 8.6,
-  shape: {
-    eye: [8.65, 13.5],
-    eyes: [-11.8, 11.8],
-    brows: [-14.9, 11.8],
-    browY: -22.6,
-    browHalf: 5.8,
-    brow: 4.2,
-    mouth: [-3, 23],
-    mouthHalf: 8.2,
-  },
-} as const;
-
-/** The view model's numbers at rest: the face kit's, stern, his eyes on the dock, upright. */
-export const JUDGE_KNOBS = {
-  ...FACE,
-  gazeX: -900,
-  gazeY: 160,
-  browTilt: -0.24,
-  browY: 1.5,
-  mouth: -1.4,
-  lean: 0,
-  tilt: 0,
-  nod: 0,
-} as const;
-
-export const JUDGE_TIMELINES = {
-  breath: { seconds: 5, move: 5 },
-  boil: { seconds: 4, move: 4 },
-} as const;
-export type JudgeTimeline = keyof typeof JUDGE_TIMELINES;
-
-/** The face `check` reads: its node, and his head's height. */
-export const JUDGE_FACE_CHECK = { node: 'face', height: 2 * JUDGE.head.ry } as const;
-
-const KEY = { y: 14, rotation: 15 } as const;
-
-/**
- * His robe, from his head's centre, traced from cold-34 (the concept's
- * robe's edge, at his head's height there): the
- * shoulders risen to his jaw and sloping out to 2.2 head-heights across at
- * the bench, down behind it.
- */
-export const JUDGE_ROBE = roundedPolygon(
-  [
-    [-40, 28],
-    [40, 28],
-    [72, 31],
-    [95, 38],
-    [117, 48],
-    [140, 69],
-    [160, 106],
-    [178, 156],
-    [197, 206],
-    [206, JUDGE.pivot],
-    [-202, JUDGE.pivot],
-    [-192, 206],
-    [-174, 158],
-    [-153, 113],
-    [-132, 76],
-    [-110, 49],
-    [-88, 39],
-    [-68, 34],
-  ],
-  10,
-);
+/** His breath: 5 s in and out, his robe 0.8% wider at its top, his neck 2 units up with it. */
+const BREATH = { period: 5, width: 1.008, neck: -2 } as const;
 
 /** The lumps of his hair where cold-34 lights them: lighter over his brow and crown, violet-grey over the back, each fading into the grey. */
 const LUMPS = [
@@ -156,110 +70,109 @@ const SKIN_TONES = [
   { pts: ellipse(42, 20, 11, 8, 14), color: '#ec9672', alpha: 0.7, soft: true },
 ] as const;
 
+/** His bands' top, under his chin, units from his head's centre. */
+const BANDS_FROM = JUDGE.neck + 10;
+
 /**
- * His bands as cold-34 draws them, from under his chin: two white tabs a
- * narrow gap apart, each wider at its end and splaying a little outward;
- * units, from his head's centre.
+ * The judge. His head sits on his robe as cold-34 sets it: canted 0.15
+ * radians, its crown toward screen right (the slope of his eyes and brows
+ * there), and carried 3.5 units right of the robe's middle; his ear behind
+ * his features on the far side, where cold-34 cuts it under his hair. His
+ * face is Kit A's marks where cold-34 draws them once his eyes are on the
+ * dock: dark oval eyes 0.07 across and 0.11 high, 0.19 apart; heavy brows
+ * 0.12 above them, the far one nearer the middle; the mouth 0.23 below
+ * them; at rest stern, his eyes on the dock. His robe is traced from
+ * cold-34 (the concept's robe's edge, at his head's height there): the
+ * shoulders risen to his jaw and sloping out to 2.2 head-heights across at
+ * the bench, down behind it. His bands are two white tabs from under his
+ * chin a narrow gap apart, each wider at its end and splaying a little
+ * outward, the chin's lilac shade across their tops (cold-34 #dbd0d5). His
+ * hands are 0.45 of his head across, as the concept draws them.
  */
-const BAND = {
-  gap: 3.25,
-  top: 17,
-  bottom: 25,
-  splay: 4,
-  from: JUDGE.neck + 10,
-  to: JUDGE.neck + 74,
-} as const;
-
-/** The band on `side` of his middle (-1 screen left), clockwise. */
-const bandOutline = (side: -1 | 1): Pt[] => {
-  const x = (share: number) => HEAD_X + side * share;
-  const top: Pt[] = [
-    [x(BAND.gap), BAND.from],
-    [x(BAND.gap + BAND.top), BAND.from],
-  ];
-  const bottom: Pt[] = [
-    [x(BAND.gap + BAND.splay + BAND.bottom), BAND.to],
-    [x(BAND.gap + BAND.splay), BAND.to],
-  ];
-  const corners = [...top, ...bottom];
-  return roundedPolygon(side < 0 ? [...corners].reverse() : corners, 2);
-};
-
-/** The bands' paper, no ink, the chin's lilac shade across their tops (cold-34 #dbd0d5). */
-const BAND_LOOK = looked(PAPERS.bands, {
-  ink: 'none',
-  tones: [{ pts: ellipse(0, BAND.from, 40, 22, 16), color: '#dbd0d5', soft: true }],
+export const judge = figure({
+  // `film match`'s concept: the judge at his bench in cold.34, the kept concept.
+  concept: {
+    image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },
+    box: [1110, 95, 1510, 410],
+  },
+  // Room round him for his lean and his robe's breadth; his head's centre is the rig's origin.
+  art: { width: 460, height: 520, head: [230, 140] },
+  stature: Stature.Canon(),
+  stance: Stance.Seated({ breath: BREATH }),
+  head: Head.Traced({
+    outline: JUDGE_HEAD,
+    y: 0,
+    neck: JUDGE.neck,
+    set: { x: HEAD_X, cant: 0.15 },
+    paper: PAPERS.judgeSkin,
+    tones: SKIN_TONES,
+  }),
+  hair: Hair.Traced({ outline: JUDGE_HAIR, paper: PAPERS.greyHair, tones: LUMPS }),
+  ear: Ear({ at: [61, 6], r: [11, 16], paper: PAPERS.ear }),
+  face: KitA({
+    x: -9.9,
+    y: 8.6,
+    scale: 1.3,
+    shape: {
+      eye: [8.65, 13.5],
+      eyes: [-11.8, 11.8],
+      brows: [-14.9, 11.8],
+      browY: -22.6,
+      browHalf: 5.8,
+      brow: 4.2,
+      mouth: [-3, 23],
+      mouthHalf: 8.2,
+    },
+    rest: { browTilt: -0.24, browY: 1.5, mouth: -1.4 },
+    gaze: [-900, 160],
+  }),
+  body: Robe.Cut({
+    corners: [
+      [-40, 28],
+      [40, 28],
+      [72, 31],
+      [95, 38],
+      [117, 48],
+      [140, 69],
+      [160, 106],
+      [178, 156],
+      [197, 206],
+      [206, JUDGE.foot],
+      [-202, JUDGE.foot],
+      [-192, 206],
+      [-174, 158],
+      [-153, 113],
+      [-132, 76],
+      [-110, 49],
+      [-88, 39],
+      [-68, 34],
+    ],
+    radii: [10],
+    hem: JUDGE.foot,
+    paper: PAPERS.judgeRobe,
+  }),
+  over: Bands({
+    x: HEAD_X,
+    gap: 3.25,
+    top: 17,
+    bottom: 25,
+    splay: 4,
+    from: BANDS_FROM,
+    to: JUDGE.neck + 74,
+    paper: PAPERS.bands,
+    tones: [{ pts: ellipse(0, BANDS_FROM, 40, 22, 16), color: '#dbd0d5', soft: true }],
+  }),
+  hands: Hands({ paper: PAPERS.skinHand, share: 0.45 }),
 });
 
-export const judgeRig = (fig: Figure) => {
-  const headNode = el('Node', { y: JUDGE.neck, name: 'neck', id: fig.idOf('neck') }, [
-    el('Node', { name: 'head', id: fig.idOf('head') }, [
-      fig.bind('tilt', KEY.rotation),
-      el('Node', { name: 'nodded', id: fig.idOf('nodded') }, [
-        fig.bind('nod', KEY.y),
-        el('Node', { x: HEAD_X, y: -JUDGE.neck, rotation: CANT, name: 'skull' }, [
-          silhouette(fig, 'headCut', [
-            {
-              key: 'ear',
-              pts: ellipse(EAR.x, EAR.y, EAR.rx, EAR.ry, 12),
-              look: looked(PAPERS.ear),
-              boil: 0.6,
-            },
-            { key: 'hair', pts: JUDGE_HAIR, look: looked(PAPERS.greyHair, { tones: LUMPS }) },
-            faceKit(
-              fig,
-              { x: JUDGE_FACE.x, y: JUDGE_FACE.y, scale: JUDGE_FACE.scale },
-              JUDGE_FACE.shape,
-            ),
-            {
-              key: 'headPaper',
-              pts: JUDGE_HEAD,
-              look: looked(PAPERS.judgeSkin, { tones: SKIN_TONES }),
-            },
-          ]),
-        ]),
-      ]),
-    ]),
-  ]);
-  const bands = ([-1, 1] as const).map((side) =>
-    piece(fig, `band${side < 0 ? 'L' : 'R'}`, bandOutline(side), BAND_LOOK, { boil: 0.5 }),
-  );
-  const body = el('Node', { y: JUDGE.pivot, name: 'leanPivot', id: fig.idOf('leanPivot') }, [
-    fig.bind('lean', KEY.rotation),
-    // Rive draws a node's children front first: the head over the bands over the robe.
-    el('Node', { y: -JUDGE.pivot, name: 'upright' }, [
-      headNode,
-      el('Node', { name: 'robeSide', id: fig.idOf('robeSide') }, [
-        ...bands,
-        piece(fig, 'robe', JUDGE_ROBE, looked(PAPERS.judgeRobe)),
-      ]),
-    ]),
-  ]);
-  const figure = el('Node', { x: JUDGE_ART.head[0], y: JUDGE_ART.head[1], name: 'figure' }, [
-    gazeTarget(fig, JUDGE_KNOBS),
-    body,
-  ]);
-  const breath = timeline(
-    fig,
-    'breath',
-    JUDGE_TIMELINES.breath.seconds,
-    {
-      robeSide: {
-        scaleX: [
-          [0, 1],
-          [2.5, 1.008],
-          [5, 1],
-        ],
-      },
-      neck: {
-        y: [
-          [0, JUDGE.neck],
-          [2.5, JUDGE.neck - 2],
-          [5, JUDGE.neck],
-        ],
-      },
-    },
-    { loop: true },
-  );
-  return artboard(fig, JUDGE_ART, [figure], [breath, boilTimeline(fig)], JUDGE_KNOBS);
-};
+/** The view model's numbers at rest: the face kit's, stern, his eyes on the dock, upright. */
+export const JUDGE_KNOBS = judge.knobs;
+
+export const JUDGE_TIMELINES = {
+  breath: { seconds: BREATH.period, move: 5 },
+  boil: { seconds: 4, move: 4 },
+} as const;
+export type JudgeTimeline = keyof typeof JUDGE_TIMELINES;
+
+/** The face `check` reads: its node, and his head's height. */
+export const JUDGE_FACE_CHECK = { node: 'face', height: 2 * JUDGE.head.ry } as const;

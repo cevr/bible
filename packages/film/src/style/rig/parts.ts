@@ -864,6 +864,9 @@ interface FaceShape {
   readonly mouthLine: number;
 }
 
+/** The kit's marks with `shape`'s in their place: where a figure's sheet draws each (`FaceShape`). */
+export const kitMarks = (shape: Partial<FaceShape> = {}): FaceShape => ({ ...KIT, ...shape });
+
 /** The view model's property keys the kit binds (`rive schema`). */
 const KEY = {
   x: 13,
@@ -954,7 +957,7 @@ export const faceKit = (
   shape: Partial<FaceShape> = {},
 ) => {
   const scale = at.scale ?? 1;
-  const k: FaceShape = { ...KIT, ...shape };
+  const k = kitMarks(shape);
   return el(
     'Node',
     { x: at.x, y: at.y, scaleX: at.scale, scaleY: at.scale, name: 'face', id: fig.idOf('face') },

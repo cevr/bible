@@ -81,6 +81,9 @@ const SHOE: ReadonlyArray<Pt> = [
   [0, 0],
 ];
 
+/** How many points a shoe's outline has: its light runs between two of them (`shoeLight`). */
+export const SHOE_POINTS = SHOE.length;
+
 /**
  * A shoe `w` units across and `h` high (`SHOE`), its sole at y 0 and its
  * middle at x 0, its toe toward screen left (`toe` -1) or right (1).

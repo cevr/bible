@@ -5,13 +5,16 @@
 // from its concept; the house gives what a paper is, checks it as it is made
 // (`paper`: a shade greyed or blackened is refused, GreyShade), ramps one
 // under the key light, and lays it on a piece. A part takes only a checked
-// paper (`Paper` is branded), and checks it again as it is made. Pure.
+// paper (`Paper` is branded), and checks it again as it is made; a part laid
+// within another's outline takes one with no rim (`unrimmed`, InnerRim).
+// Colour laid inside a paper and clipped to it is a tone (`Tones`). Pure.
 
 import { type Brand, Schema } from 'effect';
 import { type Hex, channelsOf } from '../canvas/colour.ts';
 import { hsvOf, shadeKind } from '../core/figure.ts';
 import { decoder, ruleCheck } from './decode.ts';
 import { shaded } from './house.ts';
+import { Opacity, Outline } from './parts/measure.ts';
 import type { PieceLook } from './rig/parts.ts';
 
 /** A colour as a paper takes it: `#rgb` or `#rrggbb` hex. */
@@ -72,6 +75,33 @@ export type Paper = typeof Paper.Type;
 
 /** A paper with no ink of its own: an `ink` on it is refused by InteriorInk (the ink is the film's). */
 const decodePaper = decoder(Paper, { fields: { ink: 'InteriorInk' } });
+
+/**
+ * A part laid within another's outline (hair, an ear, a garment's bands)
+ * takes no rim: the rim runs inside its base piece's own line alone, so a
+ * paper with one is refused by InnerRim.
+ */
+export const unrimmed = ruleCheck('InnerRim', (part: { readonly paper: Paper }) =>
+  part.paper.rim === undefined
+    ? true
+    : `its paper is rimmed ${part.paper.rim} wide, inside the outline of the piece it lies within`,
+);
+
+/**
+ * Colour laid inside a paper and clipped to it: an outline of its own in
+ * the piece's units, in `color` at `alpha` (whole when left out); `soft`, it
+ * fades from its middle to nothing at its edge, so it blends into the paper
+ * with no edge of its own (`Tone`, `rig/parts.ts`).
+ */
+const Tone = Schema.Struct({
+  pts: Outline,
+  color: HexColour,
+  alpha: Schema.optionalKey(Opacity),
+  soft: Schema.optionalKey(Schema.Boolean),
+});
+
+/** A part's tones, laid in order: the light on a tuft, the shade a hairline lays on a brow. */
+export const Tones = Schema.Array(Tone);
 
 /** `fields` as a paper, checked (`Paper`); `name` is what a refusal names. */
 export const paper = (fields: PaperFields, name = 'paper'): Paper => decodePaper(fields, name);

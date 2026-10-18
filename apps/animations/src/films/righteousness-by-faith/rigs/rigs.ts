@@ -12,11 +12,11 @@ import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ
 import { FARMER, FARMER_KNOBS, type FarmerKnob } from './farmer-rig.ts';
 import { HAND_OUT_STEPS } from './hand-rig.ts';
 import {
-  JUDGE_ART,
   JUDGE_FACE_CHECK,
   JUDGE_KNOBS,
   JUDGE_TIMELINES,
   type JudgeTimeline,
+  judge,
 } from './judge-rig.ts';
 import {
   LEAD_FACE_CHECK,
@@ -26,11 +26,11 @@ import {
   lead,
 } from './lead-rig.ts';
 import {
-  PROSECUTOR_ART,
   PROSECUTOR_FACE_CHECK,
   PROSECUTOR_KNOBS,
   PROSECUTOR_TIMELINES,
   type ProsecutorTimeline,
+  prosecutor,
 } from './prosecutor-rig.ts';
 import {
   ROBED_TIMELINES,
@@ -64,13 +64,9 @@ export const judgeProp: RivePropSpec<JudgeTimeline, keyof typeof JUDGE_KNOBS> = 
   },
   engine: 'canvas',
   key: 'righteousness-by-faith/judge',
-  origin: JUDGE_ART.head,
+  origin: judge.art.head,
   face: JUDGE_FACE_CHECK,
-  // `film match`'s concept: the judge at his bench in cold.34, the kept concept.
-  concept: {
-    image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },
-    box: [1110, 95, 1510, 410],
-  },
+  concept: judge.concept,
 };
 
 /** The prosecutor: his feet at our origin. */
@@ -83,13 +79,9 @@ export const prosecutorProp: RivePropSpec<ProsecutorTimeline, keyof typeof PROSE
   },
   engine: 'canvas',
   key: 'righteousness-by-faith/prosecutor',
-  origin: PROSECUTOR_ART.feet,
+  origin: prosecutor.art.feet,
   face: PROSECUTOR_FACE_CHECK,
-  // `film match`'s concept: the prosecutor pointing in cold.34, the kept concept.
-  concept: {
-    image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },
-    box: [560, 200, 900, 830],
-  },
+  concept: prosecutor.concept,
 };
 
 /** Christ: His feet at our origin. */

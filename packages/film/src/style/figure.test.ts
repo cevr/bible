@@ -2,16 +2,20 @@ import { describe, expect, test } from 'bun:test';
 import { DIRECTION } from './house.ts';
 import { figure } from './figure.ts';
 import { paper } from './paper.ts';
-import { Tunic } from './parts/body.ts';
-import { StubLegs } from './parts/feet.ts';
+import { Robe, Tunic } from './parts/body.ts';
+import { Ear } from './parts/ear.ts';
+import { Shoes, StubLegs } from './parts/feet.ts';
+import { Hair } from './parts/hair.ts';
 import { Hands } from './parts/hands.ts';
 import { Head } from './parts/head.ts';
 import { KitA } from './parts/kit.ts';
+import { OpenMouth } from './parts/mouth.ts';
+import { Bands } from './parts/over.ts';
 import { Stance } from './parts/stance.ts';
 import { GivenRobe, Stain } from './parts/states.ts';
 import { Stature } from './parts/stature.ts';
 import { drawFigure } from './rig/draw.ts';
-import { FACE, figure as rigOf } from './rig/parts.ts';
+import { FACE, ellipse, figure as rigOf } from './rig/parts.ts';
 import { fragment, ids } from './rig/rml.ts';
 
 // A figure composed of the house's parts, each checked as it is made: the
@@ -19,6 +23,13 @@ import { fragment, ids } from './rig/rml.ts';
 
 const SKIN = paper({ color: '#ece7fa', shade: '#c9bcf2', light: '#fffffb' }, 'skin');
 const WHITE = paper({ color: '#fcfbfc', shade: '#dcd9ec', light: '#ffffff' }, 'white');
+const HAIR = paper({ color: '#433736', shade: '#2e2a2c', light: '#5a4846' }, 'hair');
+const FLAT = paper({ color: '#f4aa80', light: '#f4aa80' }, 'flat');
+const RIMMED = paper({ color: '#f4aa80', light: '#f4aa80', rim: 2 }, 'rimmed');
+const CONCEPT = {
+  image: { set: 'concepts', file: 'images/court.png' },
+  box: [0, 0, 100, 200] as const,
+};
 
 const stain = Stain({
   at: [-6, -168],
@@ -93,6 +104,139 @@ describe('a composed figure', () => {
   });
 });
 
+/** A head traced from a concept: an ellipse a hair off a circle stands in for the trace. */
+const traced = (y: number, neck: number) =>
+  Head.Traced({
+    outline: ellipse(0, 0, 50, 60, 12),
+    y,
+    neck,
+    set: { x: 5, cant: 0.2 },
+    paper: SKIN,
+  });
+
+const shoes = Shoes({
+  x: 50,
+  w: 50,
+  h: 24,
+  near: { paper: SKIN, light: { color: '#ffffff', from: 0, to: 7, depth: 5 } },
+  far: { paper: SKIN, light: { color: '#ffffff', from: 16, to: 11, depth: 5 } },
+});
+
+/** A standing figure with a traced head, its hair and ear cut inside it, an open mouth, a cut robe and shoes. */
+const standingOf = () => ({
+  concept: CONCEPT,
+  art: { width: 300, height: 600, feet: [150, 580] as const },
+  stature: Stature.Canon(),
+  stance: Stance.Standing({ breath: { period: 4.5, trunk: 1.008, neck: -2.5 } }),
+  head: traced(-400, -330),
+  hair: Hair.Traced({ outline: ellipse(0, -40, 50, 25, 12), paper: HAIR }),
+  ear: Ear({ at: [40, 10], r: [8, 12], paper: FLAT }),
+  face: KitA({ x: -8, y: 8, scale: 1.3, gaze: [-300, 40] }),
+  mouth: OpenMouth({ w: 30, h: 20, paper: '#3a2422' }),
+  body: Robe.Cut({
+    corners: [
+      [-40, -330],
+      [40, -330],
+      [90, -30],
+      [-90, -30],
+    ],
+    radii: [10],
+    hem: -30,
+    paper: SKIN,
+  }),
+  feet: shoes,
+  hands: Hands({ paper: SKIN, share: 0.44 }),
+});
+
+/** A seated figure, its head's centre its origin: a traced head, a cut robe down behind its bench, and bands on it. */
+const seatedOf = (y = 0) => ({
+  concept: CONCEPT,
+  art: { width: 460, height: 520, head: [230, 140] as const },
+  stature: Stature.Canon(),
+  stance: Stance.Seated({ breath: { period: 5, width: 1.008, neck: -2 } }),
+  head: traced(y, 52),
+  face: KitA({ x: -9.9, y: 8.6, scale: 1.3, gaze: [-900, 160] }),
+  body: Robe.Cut({
+    corners: [
+      [-40, 28],
+      [40, 28],
+      [200, 300],
+      [-200, 300],
+    ],
+    radii: [10],
+    hem: 300,
+    paper: SKIN,
+  }),
+  over: Bands({ x: 3.5, gap: 3, top: 17, bottom: 25, splay: 4, from: 62, to: 126, paper: FLAT }),
+  hands: Hands({ paper: SKIN, share: 0.45 }),
+});
+
+/** `spec`'s figure drawn alone, as its project's markup. */
+const drawnOf = (f: Parameters<typeof drawFigure>[1]) =>
+  fragment(drawFigure(rigOf(ids(), 'Figure', 1, 0, DIRECTION), f));
+
+describe('a traced figure, standing or seated', () => {
+  test("an open mouth adds `shout`, after the kit's numbers and before the stance's", () => {
+    expect(Object.keys(figure(standingOf()).knobs)).toEqual([
+      ...Object.keys(FACE),
+      'shout',
+      'lean',
+      'tilt',
+      'nod',
+    ]);
+  });
+
+  test("a seated figure's gaze is measured from its head's centre, its origin", () => {
+    const judge = figure(seatedOf());
+    expect(Object.keys(judge.knobs)).toEqual([...Object.keys(FACE), 'lean', 'tilt', 'nod']);
+    expect([judge.knobs.gazeX, judge.knobs.gazeY]).toEqual([-900, 160]);
+  });
+
+  test("a seated figure leans about its garment's hem, and its breath swells the garment's side", () => {
+    const rml = drawnOf(figure(seatedOf()));
+    expect(rml).toContain('<Node y="300" name="leanPivot"');
+    expect(rml).toContain('<Node y="-300" name="upright">');
+    expect(rml).toContain('name="robeSide"');
+    expect(rml).toContain('name="bandL"');
+    expect(rml).not.toContain('name="trunk"');
+  });
+
+  test('a standing figure stands on its shoes, under its trunk', () => {
+    const rml = drawnOf(figure(standingOf()));
+    expect(rml).toContain('<Node y="-30" name="trunk"');
+    expect(rml).toContain('name="shoeL"');
+    expect(rml).toContain('name="shout"');
+    expect(rml).not.toContain('name="leanPivot"');
+  });
+
+  test('hair, an ear or an open mouth on a round head is refused: each is cut inside a traced head', () => {
+    const { hair, ear, mouth } = standingOf();
+    for (const cut of [{ hair }, { ear }, { mouth }])
+      expect(() => figure({ ...leadOf([]), ...cut })).toThrow(
+        /figure refused: .*a round head takes no hair, ear or open mouth/,
+      );
+  });
+
+  test('a given robe over a cut robe is refused', () => {
+    expect(() => figure({ ...standingOf(), states: [robe] })).toThrow(
+      /figure refused: .*a given robe is laid over a tunic only, not a CutRobe/,
+    );
+  });
+
+  test("a seated figure's head off its origin is refused", () => {
+    expect(() => figure(seatedOf(10))).toThrow(
+      /figure refused: .*a seated figure's origin is its head's centre: its head's y is 10/,
+    );
+  });
+
+  test('a seated figure has no feet', () => {
+    // @ts-expect-error a seated figure's feet are hidden behind what it sits at: it takes none
+    expect(() => figure({ ...seatedOf(), feet: shoes })).toThrow(
+      /figure refused: Expected no excess property\s+at \["feet"\]/,
+    );
+  });
+});
+
 describe('the parts', () => {
   test('a shade that is its paper greyed is refused by GreyShade', () => {
     expect(() =>
@@ -138,5 +282,55 @@ describe('the parts', () => {
   test('a face with a mark Kit A lacks is refused by KitA', () => {
     const nosed = { x: 0, y: 0, scale: 1, gaze: [0, 0] as const, nose: 1 };
     expect(() => KitA(nosed)).toThrow(/KitA refused by KitA/);
+  });
+
+  test('hair, an ear or bands laid within an outline with a rimmed paper are refused by InnerRim', () => {
+    const outline = ellipse(0, 0, 10, 10, 8);
+    expect(() => Hair.Traced({ outline, paper: RIMMED })).toThrow(
+      /Hair.Traced refused by InnerRim/,
+    );
+    expect(() => Ear({ at: [0, 0], r: [8, 12], paper: RIMMED })).toThrow(/Ear refused by InnerRim/);
+    expect(() =>
+      Bands({ x: 0, gap: 3, top: 17, bottom: 25, splay: 4, from: 62, to: 126, paper: RIMMED }),
+    ).toThrow(/Bands refused by InnerRim/);
+  });
+
+  test('an open mouth with an ink of its own is refused by InteriorInk', () => {
+    const inked = { w: 30, h: 20, paper: '#3a2422' as const, ink: '#000000' };
+    expect(() => OpenMouth(inked)).toThrow(/OpenMouth refused by InteriorInk/);
+  });
+
+  test('a cut robe takes one radius, or one for each corner', () => {
+    const { body } = standingOf();
+    const { _tag, ...cut } = body;
+    expect(() => Robe.Cut({ ...cut, radii: [10, 20] })).toThrow(
+      /Robe.Cut refused: .*2 radii for 4 corners/,
+    );
+    expect(Robe.Cut({ ...cut, radii: [1, 2, 3, 4] }).radii).toEqual([1, 2, 3, 4]);
+  });
+
+  test("a shoe's light runs between two of its outline's points", () => {
+    const { _tag, ...s } = shoes;
+    const lit = (from: number, to: number) => ({ ...s.near, light: { ...s.near.light, from, to } });
+    expect(() => Shoes({ ...s, near: lit(3, 3) })).toThrow(
+      /Shoes refused: .*from point 3 to itself/,
+    );
+    expect(() => Shoes({ ...s, near: lit(0, 18) })).toThrow(/Shoes refused/);
+    expect(() => Shoes({ ...s, near: lit(0.5, 7) })).toThrow(/Shoes refused/);
+  });
+
+  test('an outline of fewer than three points is refused', () => {
+    expect(() =>
+      Head.Traced({
+        outline: [
+          [0, 0],
+          [1, 1],
+        ],
+        y: 0,
+        neck: 52,
+        set: { x: 0, cant: 0 },
+        paper: SKIN,
+      }),
+    ).toThrow(/Head.Traced refused/);
   });
 });

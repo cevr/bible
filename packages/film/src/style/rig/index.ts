@@ -27,4 +27,4 @@ export {
   timeline,
 } from './parts.ts';
 export { el, fragment, ids } from './rml.ts';
-export { roundedPolygon, shifted, shoeLight, shoeOutline, tucked, tuckedRimmed } from './shapes.ts';
+export { roundedPolygon, shifted, tucked, tuckedRimmed } from './shapes.ts';
