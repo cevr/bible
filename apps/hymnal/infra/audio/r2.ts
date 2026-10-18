@@ -21,14 +21,16 @@ import * as T from '@distilled.cloud/cloudflare/Traits';
 import * as API from '@distilled.cloud/core/api';
 import * as Cloudflare from 'alchemy/Cloudflare';
 import { Effect, Layer, Option, Predicate, Schema, Stream } from 'effect';
+import { HttpClientError } from 'effect/http';
 
 import type { PutMetadata, TargetObject } from './stores.ts';
 import { StoreFailed, Target } from './stores.ts';
 
 const BUCKET = 'cvr-hymns';
 
-/** How long one upload may take, its retries included. */
+/** How long one upload, or the whole listing, may take, retries included. */
 const PUT_TIMEOUT = '3 minutes';
+const LIST_TIMEOUT = '3 minutes';
 
 /**
  * Cloudflare's authentication and permission codes, kept with their code:
@@ -77,6 +79,20 @@ const putObject = API.make(() => ({
 
 const failure = (reason: string) => StoreFailed.make({ store: 'r2', reason });
 
+/**
+ * An answer whose body is lost after its headers fails as `StoreFailed`.
+ * Distilled reads each body with `Effect.orDie`, so a broken read arrives as
+ * a defect that carries the `HttpClientError`. That key then fails alone and
+ * the run goes on. Every other defect stays a defect.
+ */
+const bodyLost =
+  (what: string) =>
+  <A, E, R>(self: Effect.Effect<A, E, R>) =>
+    Effect.catchDefect(self, (defect) => {
+      if (!HttpClientError.isHttpClientError(defect)) return Effect.die(defect);
+      return Effect.fail(failure(`${what}: the answer lost its body: ${defect.message}`));
+    });
+
 /** A failure as Cloudflare said it: its class, its code when it gave one, its message. */
 const reasonOf = (error: { readonly message: string }) => {
   const tag = Option.liftPredicate(Reflect.get(error, '_tag'), Predicate.isString);
@@ -98,6 +114,12 @@ export const TargetR2 = Layer.effect(
         .pipe(
           Stream.runCollect,
           Effect.mapError((error) => failure(`list ${prefix}: ${reasonOf(error)}`)),
+          bodyLost(`list ${prefix}`),
+          Effect.timeoutOrElse({
+            duration: LIST_TIMEOUT,
+            orElse: () =>
+              Effect.fail(failure(`list ${prefix}: did not complete in ${LIST_TIMEOUT}`)),
+          }),
         );
       const listed = new Map<string, TargetObject>();
       for (const object of objects) {
@@ -125,9 +147,10 @@ export const TargetR2 = Layer.effect(
         cacheControl: metadata.cacheControl,
       }).pipe(
         Effect.mapError((error) => failure(`put ${key}: ${reasonOf(error)}`)),
+        bodyLost(`put ${key}`),
         Effect.timeoutOrElse({
           duration: PUT_TIMEOUT,
-          orElse: () => Effect.fail(failure(`put ${key}: no answer in ${PUT_TIMEOUT}`)),
+          orElse: () => Effect.fail(failure(`put ${key}: did not complete in ${PUT_TIMEOUT}`)),
         }),
       );
       const size = Option.fromNullishOr(answer.size).pipe(
