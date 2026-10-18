@@ -33,9 +33,11 @@ import { SEAL_GOLD, type SeedPose, noSeed, seed as seedProp } from './props.ts';
 import { CHRIST_KNOBS } from './rigs/christ-rig.ts';
 import { JUDGE_KNOBS } from './rigs/judge-rig.ts';
 import { LEAD, LEAD_KNOBS } from './rigs/lead-rig.ts';
+import { HAND_OUT_STEPS } from './rigs/hand-rig.ts';
 import { PROSECUTOR_KNOBS } from './rigs/prosecutor-rig.ts';
 import {
   christFrontProp,
+  christHandOutProps,
   christHandProp,
   christProp,
   judgeProp,
@@ -60,7 +62,14 @@ export const LANDING_RIGS = {
   christ: christProp,
   christFront: christFrontProp,
   christHand: christHandProp,
+  christHandOut1: christHandOutProps[0],
+  christHandOut2: christHandOutProps[1],
+  christHandOut3: christHandOutProps[2],
+  christHandOut4: christHandOutProps[3],
 } as const;
+
+/** A circle hand's rig: a figure's paper, or Christ's held out a step bigger. */
+type HandRig = 'leadHand' | 'skinHand' | 'christHand' | `christHandOut${1 | 2 | 3 | 4}`;
 
 /** What drawing the court needs of a frame: its context, its boil tick and its seconds, and the rigs. */
 export interface CourtFrame {
@@ -80,7 +89,7 @@ export interface CourtFrame {
     name: 'christ' | 'christFront',
     pose: { timelines: Timelines<'breath' | 'boil'>; numbers: ChristNumbers },
   ): void;
-  rive(name: 'leadHand' | 'skinHand' | 'christHand', pose: { timelines: Timelines<'boil'> }): void;
+  rive(name: HandRig, pose: { timelines: Timelines<'boil'> }): void;
 }
 type Timelines<T extends string> = ReadonlyArray<readonly [T, number]>;
 type LeadNumbers = Record<keyof typeof LEAD_KNOBS, number>;
@@ -320,7 +329,7 @@ export const seal = (ctx: CanvasRenderingContext2D, s: SealPose) => {
 };
 
 /** A circle hand of `rig` at `p`, `scale` times its size. */
-const handAt = (f: CourtFrame, rig: 'leadHand' | 'skinHand' | 'christHand', p: Pt, scale = 1) =>
+const handAt = (f: CourtFrame, rig: HandRig, p: Pt, scale = 1) =>
   at(f.ctx, { x: p[0], y: p[1], scale }, () =>
     f.rive(rig, { timelines: [['boil', boilTime(f.boil)]] }),
   );
@@ -338,6 +347,26 @@ export const living = (f: CourtFrame, period: number, offset: number) =>
  * 0.44, the lead's 0.34.
  */
 const HAND = { judge: 1.23, prosecutor: 1.14, lead: 1.08, christ: 1.08 } as const;
+
+/** Christ's hand rigs by size: His own, then each held-out step. */
+const CHRIST_HANDS = [
+  [1, 'christHand'],
+  [HAND_OUT_STEPS[0], 'christHandOut1'],
+  [HAND_OUT_STEPS[1], 'christHandOut2'],
+  [HAND_OUT_STEPS[2], 'christHandOut3'],
+  [HAND_OUT_STEPS[3], 'christHandOut4'],
+] as const;
+
+/**
+ * Christ's near hand held out `reach` times its size: the step nearest the
+ * reach, scaled the rest of the way, so the circle grows as He reaches to us
+ * and its ink stays the house line (within 8 %) rather than swelling with it.
+ */
+const heldOut = (f: CourtFrame, p: Pt, reach: number) => {
+  const off = (size: number) => Math.abs(Math.log(reach / size));
+  const [size, rig] = CHRIST_HANDS.reduce((a, b) => (off(b[0]) < off(a[0]) ? b : a));
+  handAt(f, rig, p, (HAND.christ * reach) / size);
+};
 
 /** The bench and the judge behind it: his chair, the block and the gavel, his hands on the bench. */
 const judgeGroup = (f: CourtFrame, p: CourtPose) => {
@@ -443,7 +472,7 @@ const leadGroup = (f: CourtFrame, p: CourtPose) => {
   if (!christ) return;
   const [near, far] = p.christ.hands;
   handAt(f, 'christHand', far, HAND.christ);
-  handAt(f, 'christHand', near, HAND.christ * p.christ.reach);
+  heldOut(f, near, p.christ.reach);
   seedProp(ctx, p.christ.seed);
 };
 

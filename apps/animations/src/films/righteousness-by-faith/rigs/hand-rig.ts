@@ -10,15 +10,40 @@ import { type Paper, looked } from './papers.ts';
 /** The artboard: the hand's centre at its centre, room round it for its outline. */
 export const HAND_ART = { width: 64, height: 64, r: 19 } as const;
 
-/** A hand in `paper`: its circle at the artboard's centre, its cast left to the host. */
-export const handRig = (fig: Figure, paper: Paper) =>
+/**
+ * How far past the house hand Christ's held-out hand grows as He reaches to
+ * us (court onYou): its circle 0.70 of His head across, as court.you draws it.
+ */
+export const HAND_OUT = 1.85;
+
+/**
+ * The held-out hand's artboards, each `size` times the house hand in the
+ * house line: four steps to `HAND_OUT`, each about 1.17 times the last, so the
+ * step nearest a reach, scaled the rest of the way, draws the house line
+ * within 8 %.
+ */
+export const HAND_OUT_STEPS = [
+  HAND_OUT ** 0.25,
+  HAND_OUT ** 0.5,
+  HAND_OUT ** 0.75,
+  HAND_OUT,
+] as const;
+
+/**
+ * A hand in `paper`: its circle at the artboard's centre, its cast left to
+ * the host; `size` times the house hand's circle with the house line, so a
+ * hand held out big keeps its figure's ink.
+ */
+export const handRig = (fig: Figure, paper: Paper, size = 1) =>
   artboard(
     fig,
-    HAND_ART,
+    { width: HAND_ART.width * size, height: HAND_ART.height * size },
     [
-      el('Node', { x: HAND_ART.width / 2, y: HAND_ART.height / 2, name: 'hand' }, [
-        hand(fig, 'palm', HAND_ART.r, looked(paper, { ground: 'host' })),
-      ]),
+      el(
+        'Node',
+        { x: (HAND_ART.width * size) / 2, y: (HAND_ART.height * size) / 2, name: 'hand' },
+        [hand(fig, 'palm', HAND_ART.r * size, looked(paper, { ground: 'host' }))],
+      ),
     ],
     [boilTimeline(fig)],
   );

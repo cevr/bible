@@ -62,10 +62,10 @@ export const seed = (ctx: CanvasRenderingContext2D, s: SeedPose) => {
   ctx.translate(s.x, s.y);
   ctx.rotate(s.rot);
   ctx.scale(s.scale, s.scale);
-  cut(ctx, drop(7, 10), P.seed, { line: 2.4 });
+  cut(ctx, drop(9.5, 10), P.seed, { line: 2.4 });
   ctx.fillStyle = '#fff3c4';
   ctx.beginPath();
-  ctx.ellipse(-2.4, -2, 1.6, 3, -0.3, 0, 2 * Math.PI);
+  ctx.ellipse(-3.2, -2, 2, 3, -0.3, 0, 2 * Math.PI);
   ctx.fill();
   ctx.restore();
 };

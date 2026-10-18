@@ -146,9 +146,9 @@ export const FRONT_HAIR: Pt[] = [
   [905, 180],
   [883, 190],
   [851, 200],
-  [812, 210],
-  [789, 220],
-  [777, 230],
+  [812, 213],
+  [789, 228],
+  [777, 237],
   [772, 242],
   [771, 260],
   [772, 280],
@@ -209,19 +209,19 @@ export const FRONT_BEARD: Pt[] = [
 
 /** His lower lip under the open smile, in the beard. */
 export const FRONT_LIP: Pt[] = [
-  [866, 399],
-  [878, 394],
-  [897, 392],
-  [917, 391],
-  [934, 388],
-  [948, 385],
-  [950, 393],
-  [944, 403],
-  [933, 412],
-  [915, 419],
-  [896, 422],
-  [880, 418],
-  [869, 409],
+  [877.0, 399],
+  [885.0, 394],
+  [897.7, 392],
+  [911.0, 391],
+  [922.3, 388],
+  [931.7, 385],
+  [933.0, 393],
+  [929.0, 403],
+  [921.7, 412],
+  [909.7, 419],
+  [897.0, 422],
+  [886.3, 418],
+  [879.0, 409],
 ];
 
 /** His ears in the hair: the near one (screen left) by His cheek, the far one at the hair's edge. */
@@ -254,18 +254,104 @@ export const FRONT_EARS = {
   ],
 } satisfies Record<'near' | 'far', Pt[]>;
 
-/** The light on the hair's crown toward the window (screen left), soft. */
+/**
+ * The light on the hair toward the window (screen left), soft: the crown's
+ * left and down the outer edge of the near lock, about a tenth of the hair.
+ */
 export const FRONT_SHEEN: Pt[] = [
   [758, 160],
   [784, 136],
   [820, 120],
   [856, 112],
-  [846, 124],
-  [812, 140],
-  [788, 162],
-  [774, 196],
-  [764, 224],
-  [756, 200],
+  [870, 118],
+  [846, 128],
+  [812, 144],
+  [790, 166],
+  [776, 198],
+  [766, 232],
+  [760, 270],
+  [758, 310],
+  [752, 340],
+  [738, 330],
+  [730, 290],
+  [732, 250],
+  [742, 210],
+  [750, 180],
+];
+
+/**
+ * The locks beside the beard, a darker brown than the hair so the beard reads
+ * as a U inside them by value alone (hair has no ink of its own): each runs
+ * from the silhouette to the beard's edge; the beard, laid over the hair,
+ * covers what lies past its edge.
+ */
+export const FRONT_LOCKS = {
+  near: [
+    [736, 352],
+    [776, 360],
+    [778, 375],
+    [788, 392],
+    [800, 412],
+    [808, 428],
+    [816, 441],
+    [828, 451],
+    [837, 461],
+    [842, 484],
+    [736, 484],
+  ],
+  far: [
+    [1004, 346],
+    [1016, 352],
+    [1018, 375],
+    [1016, 392],
+    [1012, 405],
+    [1004, 420],
+    [992, 440],
+    [986, 452],
+    [984, 476],
+    [1072, 476],
+    [1072, 340],
+  ],
+} satisfies Record<'near' | 'far', Pt[]>;
+
+/** The beard's lit third toward the window (screen left), soft. */
+export const FRONT_BEARD_LIT: Pt[] = [
+  [760, 340],
+  [826, 352],
+  [842, 400],
+  [846, 500],
+  [760, 500],
+];
+
+/**
+ * His skin in the robe's V under the beard, as court.you draws it: 131
+ * pixels across 4 under the beard's foot, narrowing to its point at
+ * (928, 556); its top runs up under the beard.
+ */
+export const FRONT_NECK: Pt[] = [
+  [833, 468],
+  [1023, 468],
+  [993.5, 500],
+  [984, 510],
+  [973.5, 520],
+  [963, 530],
+  [951.5, 540],
+  [939, 550],
+  [928, 556],
+  [917, 550],
+  [904.5, 540],
+  [893, 530],
+  [882.5, 520],
+  [872, 510],
+  [862.5, 500],
+];
+
+/** The neck's top in the beard's shadow. */
+export const FRONT_NECK_SHADE: Pt[] = [
+  [833, 468],
+  [1023, 468],
+  [988, 506],
+  [867, 506],
 ];
 
 /** His face's marks, panel pixels: each eye's centre and size, each brow's ends and stroke, the mouth's ends and stroke. */
@@ -274,7 +360,7 @@ export const FRONT_MARKS = {
     [845, 315],
     [939.5, 295.5],
   ],
-  eye: [24, 46],
+  eye: [24, 38.5],
   brows: [
     [
       [806, 273],
@@ -287,8 +373,8 @@ export const FRONT_MARKS = {
   ],
   brow: 12,
   mouth: [
-    [868, 397],
-    [948, 386],
+    [878, 395],
+    [932, 388],
   ],
   mouthLine: 10,
 } as const;

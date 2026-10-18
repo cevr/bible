@@ -8,7 +8,7 @@
 import { DIRECTION, figure, fragment, ids } from '@bible/film/style/rig';
 import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
 import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
-import { handRig } from './hand-rig.ts';
+import { HAND_OUT_STEPS, handRig } from './hand-rig.ts';
 import { judgeRig } from './judge-rig.ts';
 import { leadRig } from './lead-rig.ts';
 import { PAPERS } from './papers.ts';
@@ -25,6 +25,10 @@ export const ARTBOARDS = {
   christ: 'Christ',
   christFront: 'ChristFront',
   christHand: 'ChristHand',
+  christHandOut1: 'ChristHandOut1',
+  christHandOut2: 'ChristHandOut2',
+  christHandOut3: 'ChristHandOut3',
+  christHandOut4: 'ChristHandOut4',
   farmer: 'Farmer',
   farmerHand: 'FarmerHand',
 } as const;
@@ -61,6 +65,20 @@ export const figuresRml = (): string => {
       figure(next, ARTBOARDS.christFront, 2310, 2400, d),
       CHRIST_FRONT,
       CHRIST_FRONT_KNOBS,
+    ),
+    ...(
+      [
+        [ARTBOARDS.christHandOut1, 2311, 2720],
+        [ARTBOARDS.christHandOut2, 2312, 2800],
+        [ARTBOARDS.christHandOut3, 2313, 2900],
+        [ARTBOARDS.christHandOut4, 2314, 3020],
+      ] as const
+    ).flatMap(([name, id, y], i) =>
+      handRig(
+        figure(next, name, id, y, d),
+        { ...PAPERS.christSkin, crease: PAPERS.skinHand.crease, rim: 4 },
+        HAND_OUT_STEPS[i],
+      ),
     ),
   ]);
 };

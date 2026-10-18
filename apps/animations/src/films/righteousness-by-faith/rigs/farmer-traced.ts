@@ -112,11 +112,11 @@ export const CLOTH_EDGE: Pt[] = [
 
 /** The band round his head, measured on the panel's columns: across his brow from the knot at his far temple, dropping steeply round his near side, thickening to its end at the back of his head. */
 export const BAND: Pt[] = [
-  [508, 328],
-  [500, 324],
-  [485, 318],
-  [470, 314],
-  [455, 314],
+  [508, 324],
+  [500, 320],
+  [485, 315],
+  [470, 312],
+  [455, 313],
   [440, 315],
   [425, 319],
   [410, 326],
@@ -143,11 +143,11 @@ export const BAND: Pt[] = [
   [400, 357],
   [418, 347],
   [436, 341],
-  [455, 337],
-  [470, 336],
-  [485, 337],
-  [500, 340],
-  [509, 341],
+  [455, 336],
+  [470, 333],
+  [485, 333],
+  [500, 336],
+  [509, 337],
 ];
 
 /** The band's near end, lit on its outer side where it turns round his head toward the window: laid on the band. */
@@ -164,6 +164,32 @@ export const BAND_LIT: Pt[] = [
   [298, 436],
   [298, 380],
   [330, 355],
+];
+
+/**
+ * The headcloth's front edge showing under the band across his brow, as
+ * rain.rain paints it: a tan strip 9 pixels deep along the band's lower edge.
+ * Laid on his face, under the band.
+ */
+export const CLOTH_BROW: Pt[] = [
+  [383, 368],
+  [400, 355],
+  [418, 345],
+  [436, 339],
+  [455, 334],
+  [470, 331],
+  [485, 331],
+  [500, 334],
+  [512, 335],
+  [512, 346],
+  [500, 345],
+  [485, 342],
+  [470, 342],
+  [455, 345],
+  [436, 350],
+  [418, 356],
+  [400, 366],
+  [383, 379],
 ];
 
 /** His face's paper: from under the band, its far edge the silhouette, under the beard and the cloth's edge. */
@@ -294,7 +320,7 @@ export const MARKS = {
     [443.9, 406.4],
     [497.5, 395.3],
   ],
-  eye: [12, 23],
+  eye: [12, 26],
   brows: [
     [
       [415, 382],

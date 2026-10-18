@@ -23,6 +23,7 @@ import { HANDS, LANDING_RIGS, courtFigures, courtShadows, restPose } from '../co
 import { BLADE_AT, PLACE, REST, REST_POINT, backWall, benchWarm, floor } from '../court-set.ts';
 import { LIGHT } from '../light.ts';
 import { blade, figLeaf, glow } from '../props.ts';
+import { HAND_OUT } from '../rigs/hand-rig.ts';
 import { JUDGE_KNOBS } from '../rigs/judge-rig.ts';
 
 // ─── the faces ───────────────────────────────────────────────────────────────
@@ -88,13 +89,15 @@ const LEAD_SHOULDER: Pt = [318, 500];
 
 /** Christ's near hand held out to the lead with the seed, and to us (`you`), and the shoulder it swings from. */
 const CHRIST_OFFER: Pt = [384, 560];
-const CHRIST_TO_US: Pt = [430, 478];
-const CHRIST_SHOULDER: Pt = [420, 450];
-/** How much bigger His hand reads held out toward us. */
+const CHRIST_TO_US: Pt = [430, 488];
+/** How much bigger the seed on His hand reads held out toward us. */
 const REACH = 1.6;
+const CHRIST_SHOULDER: Pt = [420, 450];
 
 /** A seed sits on a hand this far above its centre. */
 const ON_HAND = 17;
+/** How much higher it stands on His hand held out to us. */
+const SEAT_UP = 3.5;
 
 /** The dry fig leaves on the floor by the dock: each its place and turn. */
 const LEAVES = [
@@ -230,13 +233,14 @@ export const court = drawing({
     let near = reachAbout(CHRIST_SHOULDER, HANDS.christ[0], CHRIST_OFFER, offered);
     near = toward(near, CHRIST_TO_US, Math.min(1, reach));
     p.christ.hands[0] = near;
-    p.christ.reach = lerp(1, REACH, reach);
+    p.christ.reach = lerp(1, HAND_OUT, reach);
     const cs = p.christ.seed;
     cs.shown = here * (given ? Math.min(1, reach * 3) : offer > 0 ? 1 : 0);
+    // Held out to us the seed stands up on His palm and leans, as court.you draws it.
     cs.x = near[0];
-    cs.y = near[1] - ON_HAND * p.christ.reach;
-    cs.scale = p.christ.reach;
-    cs.rot = -0.2;
+    cs.y = near[1] - (ON_HAND + SEAT_UP * reach) * p.christ.reach;
+    cs.scale = lerp(1, REACH, reach);
+    cs.rot = lerp(-0.2, 0.64, reach);
     const cn = p.christ.numbers;
     const turn = f.at('turn') * (1 - f.at('withdraw'));
     acted(cn, KIND, [[OFFER, turn]]);

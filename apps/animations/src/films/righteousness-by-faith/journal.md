@@ -285,3 +285,11 @@ the cut face at 6 units with its lip and the hollow's edge both at 0.7 of the in
 ## 2026-10-18T14:33:27Z · seed
 
 while the seed parts (open@0.25, open@0.5) the seam's top stood above the cleft as a faint dark smudge at 1:1, since the tip drew down into the cleft and the seam's top did not; with the seam's top following the tip down, the cleft is clean through the opening
+
+## 2026-10-18T15:09:55Z · court
+
+onYou 20.01 at 1:1 after triage r3: held-out hand ring 26 px, outer 279, fill 227; seed fill 95x70 at 42 deg, its ink 15 px over the ring's top; the V below the beard matches court.you within 3-7 px from y 490 down, its apex 26 px above the ring; above that the beard's foot covers it, the beard's ink ending 28 court.you px lower than court.you's (the region traced to court.you's outer ink, our ink laid outside it); the old window spike was the sky between the two cypresses' feet, now gone with the feet sunk under the sill
+
+## 2026-10-18T15:09:57Z · rain
+
+17.5 at 1:1 after triage r3: band, tan strip 11-13 px, skin, brow on both sides; the far side's skin under the strip was 5-8 px until the band's far end rose 4 px, now 11-13 px; farmer eye height -3 % at 17.5 and mark:rain, spacing within 1 %

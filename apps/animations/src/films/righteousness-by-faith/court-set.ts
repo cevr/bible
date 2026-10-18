@@ -206,6 +206,12 @@ const COLUMNS = [-1060, -520, 62, 617, 1087, 1542, 2000, 2470] as const;
 
 /** The window in the left wall, as the panels place it: its frame. */
 const WINDOW = { x: 170, y: -10, w: 330, h: 316 } as const;
+/**
+ * How far below the sill each cypress runs on, its top kept: so they stand
+ * up out of the sill, broad there and touching, with no sliver of sky
+ * between their feet (onYou's camera sets His hair over them).
+ */
+const SINK = 20;
 
 /** One pilaster at `x`: shaft, capital and base, from the room's top to the wainscot. */
 const column = (ctx: CanvasRenderingContext2D, x: number) => {
@@ -264,7 +270,7 @@ const window_ = (ctx: CanvasRenderingContext2D) => {
     [62, 70, 11],
   ] as const) {
     ctx.beginPath();
-    ctx.ellipse(ix + cx, iy + ih - ch / 2, cw, ch / 2, 0, 0, 2 * Math.PI);
+    ctx.ellipse(ix + cx, iy + ih - ch / 2 + SINK, cw, ch / 2 + SINK, 0, 0, 2 * Math.PI);
     ctx.fill();
   }
   ctx.restore();

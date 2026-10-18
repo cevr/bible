@@ -23,6 +23,7 @@ import {
   CHEEK_SHADE,
   CHEEK_SOFT,
   CLOTH,
+  CLOTH_BROW,
   CLOTH_EDGE,
   FACE,
   HANDS,
@@ -163,6 +164,7 @@ export const FARMER: Robed = {
   outline: headParts(FACE),
   skin: looked(PAPERS.farmerFace, {
     tones: [
+      { pts: headParts(CLOTH_BROW), color: PAPERS.headcloth.shade },
       { pts: headParts(NOSE), color: NOSE_SHADE },
       { pts: headParts(CHEEK_SOFT), color: CHEEK_HALF },
       { pts: headParts(CHEEK_SHADE), color: CHEEK_SKIN },

@@ -9,7 +9,7 @@ import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
 import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
 import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
-import { HAND_ART } from './hand-rig.ts';
+import { HAND_ART, HAND_OUT_STEPS } from './hand-rig.ts';
 import {
   JUDGE_ART,
   JUDGE_FACE_CHECK,
@@ -155,11 +155,11 @@ export const farmerProp: RivePropSpec<RobedTimeline, RobedKnob> = {
 };
 
 /** A circle hand of `artboard`, its centre at our origin: no view model, only its paper's crawl. */
-const handProp = (artboard: string, key: string): RivePropSpec<'boil', never> => ({
+const handProp = (artboard: string, key: string, size = 1): RivePropSpec<'boil', never> => ({
   source: { riv: figuresRiv, artboard, timelines: ['boil'], numbers: [] },
   engine: 'canvas',
   key: `righteousness-by-faith/${key}`,
-  origin: [HAND_ART.width / 2, HAND_ART.height / 2],
+  origin: [(HAND_ART.width * size) / 2, (HAND_ART.height * size) / 2],
 });
 
 /** The lead's hand, in his paper. */
@@ -170,6 +170,14 @@ export const skinHandProp = handProp(ARTBOARDS.skinHand, 'skin-hand');
 
 /** Christ's hand, in His skin. */
 export const christHandProp = handProp(ARTBOARDS.christHand, 'christ-hand');
+
+/** Christ's hand held out to us, a step each of `HAND_OUT_STEPS`, in the house line. */
+export const christHandOutProps = [
+  handProp(ARTBOARDS.christHandOut1, 'christ-hand-out-1', HAND_OUT_STEPS[0]),
+  handProp(ARTBOARDS.christHandOut2, 'christ-hand-out-2', HAND_OUT_STEPS[1]),
+  handProp(ARTBOARDS.christHandOut3, 'christ-hand-out-3', HAND_OUT_STEPS[2]),
+  handProp(ARTBOARDS.christHandOut4, 'christ-hand-out-4', HAND_OUT_STEPS[3]),
+] as const;
 
 /** The farmer's hand, in his skin. */
 export const farmerHandProp = handProp(ARTBOARDS.farmerHand, 'farmer-hand');

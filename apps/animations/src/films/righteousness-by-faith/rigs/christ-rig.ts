@@ -17,10 +17,14 @@ import type { Pt } from '@bible/film/style';
 import { ellipse } from '@bible/film/style/rig';
 import {
   FRONT_BEARD,
+  FRONT_BEARD_LIT,
   FRONT_EARS,
   FRONT_HAIR,
   FRONT_LIP,
+  FRONT_LOCKS,
   FRONT_MARKS,
+  FRONT_NECK,
+  FRONT_NECK_SHADE,
   FRONT_PANEL,
   FRONT_REGION,
   FRONT_SHEEN,
@@ -152,12 +156,19 @@ const NECK_SHADE: Pt[] = [
 /** The robe's shade: all of it past the sash's right edge, a lilac (court-12 #cdbecb), its edge the sash's. */
 const ROBE_SHADE: Pt[] = [...SASH_RIGHT, [140, -62], [140, -345]];
 
-const ROBE_TONES = [
-  { pts: ROBE_SHADE, color: '#cdbecb' },
+const ROBE_SHADING = { pts: ROBE_SHADE, color: '#cdbecb' } as const;
+const SASH_TONES = [
   { pts: [...SASH_LEFT, ...[...SASH_RIGHT].reverse()], color: '#dca561' },
   { pts: SASH_SHADE, color: '#b8875a' },
-  { pts: NECKLINE, color: '#fbbb87' },
-  { pts: NECK_SHADE, color: '#e59a76' },
+] as const;
+const NECK_SKIN = '#fbbb87';
+const NECK_SKIN_SHADE = '#e59a76';
+
+const ROBE_TONES = [
+  ROBE_SHADING,
+  ...SASH_TONES,
+  { pts: NECKLINE, color: NECK_SKIN },
+  { pts: NECK_SHADE, color: NECK_SKIN_SHADE },
 ] as const;
 
 /** A sandal's sole under a foot: its last 6.5 units, a dark leather (robe-5 draws it as heavy as the line). */
@@ -257,6 +268,19 @@ const fromFront = ([x, y]: Pt): Pt => [
   +((y - FRONT_PANEL.head[1]) * FRONT_PANEL.scale).toFixed(2),
 ];
 const front = (pts: ReadonlyArray<Pt>) => pts.map(fromFront);
+/** court.you's pixels to units from His feet, for what lies on the robe. */
+const frontBody = (pts: ReadonlyArray<Pt>) =>
+  front(pts).map(([x, y]): Pt => [+(x + HEAD.x).toFixed(2), +(y + HEAD.y).toFixed(2)]);
+
+/** The robe turned to us: court.you's broad V under the beard, the sash laid over its right side. */
+const FRONT_ROBE_TONES = [
+  ROBE_SHADING,
+  { pts: frontBody(FRONT_NECK), color: NECK_SKIN },
+  { pts: frontBody(FRONT_NECK_SHADE), color: NECK_SKIN_SHADE, soft: true },
+  ...SASH_TONES,
+];
+/** The locks beside the beard: court.you's dark brown a shade deeper, so the beard's shaded side still steps 0.08 in value above them. */
+const LOCK_DARK = '#3a241c';
 const FRONT_FACE = tracedFace(FRONT_MARKS, FRONT_PANEL, 0.5);
 
 /**
@@ -267,6 +291,7 @@ const FRONT_FACE = tracedFace(FRONT_MARKS, FRONT_PANEL, 0.5);
  */
 export const CHRIST_FRONT: Robed = {
   ...CHRIST,
+  robeLook: looked(PAPERS.whiteRobe, { tones: FRONT_ROBE_TONES }),
   outline: front(FRONT_REGION),
   face: FRONT_FACE.at,
   marks: FRONT_FACE.marks,
@@ -276,14 +301,24 @@ export const CHRIST_FRONT: Robed = {
       pts: front(FRONT_LIP),
       look: { color: '#dc8e64', light: '#dc8e64', ink: 'none', shadow: 0 },
     },
-    { key: 'beard', pts: front(FRONT_BEARD), look: looked(PAPERS.beard) },
+    {
+      key: 'beard',
+      pts: front(FRONT_BEARD),
+      look: looked(PAPERS.beard, {
+        tones: [{ pts: front(FRONT_BEARD_LIT), color: PAPERS.beard.light, soft: true }],
+      }),
+    },
     { key: 'earNear', pts: front(FRONT_EARS.near), look: looked(PAPERS.christEar), boil: 0.6 },
     { key: 'earFar', pts: front(FRONT_EARS.far), look: looked(PAPERS.christEar), boil: 0.6 },
     {
       key: 'hair',
       pts: front(FRONT_HAIR),
       look: looked(PAPERS.brownHair, {
-        tones: [{ pts: front(FRONT_SHEEN), color: '#8f5c3a', soft: true }],
+        tones: [
+          { pts: front(FRONT_SHEEN), color: '#8d4f29', soft: true },
+          { pts: front(FRONT_LOCKS.near), color: LOCK_DARK },
+          { pts: front(FRONT_LOCKS.far), color: LOCK_DARK },
+        ],
       }),
     },
   ],
