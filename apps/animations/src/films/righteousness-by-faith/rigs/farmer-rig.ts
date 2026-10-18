@@ -66,8 +66,8 @@ const BAND_BROWN = '#7a5340';
 const BAND_TAN = '#d4965b';
 /** The cloth's dark edge down his near cheek, as the panel paints it: near the ink, a warm black-brown. */
 const CLOTH_DARK = '#35261c';
-/** The shade down his nose, toward rose. */
-const NOSE_SHADE = '#e3946a';
+/** The shade down his nose, as the panel paints it: richer than the skin, toward rose. */
+const NOSE_SHADE = '#db8b59';
 /** His near cheek in the cloth's shadow, as the panel paints it: turned 5° toward rose from the lit skin (CRAFT rule 12). */
 const CHEEK_SKIN = '#e39964';
 /** Half way from the lit skin to the cheek's shade: the shade's soft inner edge. */

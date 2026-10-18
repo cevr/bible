@@ -329,3 +329,15 @@ faith, forgiveness, power: the face kit's turn is capped, so his eyes on any ico
 ## 2026-10-18T15:40:39Z · spoke
 
 cover: with the page framed 23 Board px lower after the flash (idea knob y 588), the seal outline's forked tail ends sit inside the frame at tails@1, and his face stands near the frame's upper third.
+
+## 2026-10-18T16:56:22Z · court
+
+r4 at 20.01: the rig lays its ink outside the paper (parts.ts edgeWidths), and FRONT_REGION sat on court.you's inner ink edge within 2 px everywhere but the crown (6-7 px inside) and the beard's foot (on the outer edge, 9-11 px low); on the inner edge the foot's ink starts at 492-494 canvas px; the head's outer stays +7% against court.you by the eyes (+5% by the inner edge, which matches within 1%): the rig's line, 26 px against court.you's 15-16.
+
+## 2026-10-18T16:56:25Z · court
+
+r4 at 20.01: the held-out hand at HAND_OUT 1.62 is 251 px across, centre (950, 701.5) against court.you's (950.5, 703); the seed 9.5 units right of the palm's top stands where court.you sets it; the front robe's far side now lies 10-11 px outside court.you's outer ink (the line) and its inner edge within 3 px; the sash's edges within 2-8 px of court.you's.
+
+## 2026-10-18T16:56:27Z · rain
+
+r4 at 17.49: rain.rain's near-cheek shade edge sits at panel x 409 at y 440, 419.5 at 452, 424.5 at 460, 430.5 at 468 (a wedge toward the beard, its half step 4 px inside); its nose shade about #db8b59, richer than the skin.

@@ -89,7 +89,7 @@ const LEAD_SHOULDER: Pt = [318, 500];
 
 /** Christ's near hand held out to the lead with the seed, and to us (`you`), and the shoulder it swings from. */
 const CHRIST_OFFER: Pt = [384, 560];
-const CHRIST_TO_US: Pt = [430, 488];
+const CHRIST_TO_US: Pt = [431, 475];
 /** How much bigger the seed on His hand reads held out toward us. */
 const REACH = 1.6;
 const CHRIST_SHOULDER: Pt = [420, 450];
@@ -98,6 +98,8 @@ const CHRIST_SHOULDER: Pt = [420, 450];
 const ON_HAND = 17;
 /** How much higher it stands on His hand held out to us. */
 const SEAT_UP = 3.5;
+/** How far right of His palm's top it stands held out to us, as court.you sets it on the ring. */
+const SEAT_RIGHT = 9.5;
 
 /** The dry fig leaves on the floor by the dock: each its place and turn. */
 const LEAVES = [
@@ -237,7 +239,7 @@ export const court = drawing({
     const cs = p.christ.seed;
     cs.shown = here * (given ? Math.min(1, reach * 3) : offer > 0 ? 1 : 0);
     // Held out to us the seed stands up on His palm and leans, as court.you draws it.
-    cs.x = near[0];
+    cs.x = near[0] + SEAT_RIGHT * reach * p.christ.reach;
     cs.y = near[1] - (ON_HAND + SEAT_UP * reach) * p.christ.reach;
     cs.scale = lerp(1, REACH, reach);
     cs.rot = lerp(-0.2, 0.64, reach);

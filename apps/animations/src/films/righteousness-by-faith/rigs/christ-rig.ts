@@ -27,6 +27,8 @@ import {
   FRONT_NECK_SHADE,
   FRONT_PANEL,
   FRONT_REGION,
+  FRONT_ROBE_SIDES,
+  FRONT_SASH,
   FRONT_SHEEN,
 } from './christ-front-traced.ts';
 import { CHRIST_BEARD, CHRIST_EAR, CHRIST_HAIR, CHRIST_REGION } from './christ-traced.ts';
@@ -59,40 +61,41 @@ const SHEEN = [{ pts: ellipse(-30, -52, 16, 7, 14), color: '#8f5c3a', soft: true
  * the shoulders fall to the sleeves' ends at His hands, the robe narrower
  * below them and flaring a little to a hem that sags at its middle.
  */
-const ROBE = roundedPolygon(
-  [
-    [-32.4, -334],
-    [31, -334],
-    [51.5, -312],
-    [57.1, -299.4],
-    [64.9, -274.1],
-    [71.2, -248.8],
-    [75.4, -223.6],
-    [79.7, -198.3],
-    [80.4, -188.2],
-    [60.6, -154.1],
-    [62.7, -122.5],
-    [65.6, -97.3],
-    [67.7, -72],
-    [70.5, -46.7],
-    [71.9, -24],
-    [0, -19],
-    [-79.7, -24],
-    [-77.6, -46.7],
-    [-74.7, -72],
-    [-71.9, -97.3],
-    [-69.1, -122.5],
-    [-66.3, -154.1],
-    [-83.9, -188.2],
-    [-82.5, -198.3],
-    [-76.8, -223.6],
-    [-71.2, -248.8],
-    [-64.2, -274.1],
-    [-56.4, -299.4],
-    [-49.4, -312],
-  ],
-  [20, 20, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 6, 60, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 6],
-);
+const ROBE_CUT: Pt[] = [
+  [-32.4, -334],
+  [31, -334],
+  [51.5, -312],
+  [57.1, -299.4],
+  [64.9, -274.1],
+  [71.2, -248.8],
+  [75.4, -223.6],
+  [79.7, -198.3],
+  [80.4, -188.2],
+  [60.6, -154.1],
+  [62.7, -122.5],
+  [65.6, -97.3],
+  [67.7, -72],
+  [70.5, -46.7],
+  [71.9, -24],
+  [0, -19],
+  [-79.7, -24],
+  [-77.6, -46.7],
+  [-74.7, -72],
+  [-71.9, -97.3],
+  [-69.1, -122.5],
+  [-66.3, -154.1],
+  [-83.9, -188.2],
+  [-82.5, -198.3],
+  [-76.8, -223.6],
+  [-71.2, -248.8],
+  [-64.2, -274.1],
+  [-56.4, -299.4],
+  [-49.4, -312],
+];
+const ROBE_RADII = [
+  20, 20, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 6, 60, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 6,
+];
+const ROBE = roundedPolygon(ROBE_CUT, ROBE_RADII);
 
 /**
  * The gold sash's right edge, court-12's from His far shoulder down to where
@@ -135,7 +138,11 @@ const SASH_LEFT: Pt[] = [
 ];
 
 /** The sash's shade: a band along its right edge, 7 units across (court-12 #b48457 on #dca561). */
-const SASH_SHADE: Pt[] = [...SASH_RIGHT, ...SASH_RIGHT.map(([x, y]): Pt => [x - 7, y]).reverse()];
+const sashShade = (right: ReadonlyArray<Pt>): Pt[] => [
+  ...right,
+  ...right.map(([x, y]): Pt => [x - 7, y]).reverse(),
+];
+const SASH_SHADE = sashShade(SASH_RIGHT);
 
 /** The neckline: His skin in the robe's V under the beard, its top in the beard's shadow. */
 const NECKLINE = roundedPolygon(
@@ -272,12 +279,59 @@ const front = (pts: ReadonlyArray<Pt>) => pts.map(fromFront);
 const frontBody = (pts: ReadonlyArray<Pt>) =>
   front(pts).map(([x, y]): Pt => [+(x + HEAD.x).toFixed(2), +(y + HEAD.y).toFixed(2)]);
 
+/**
+ * The robe turned to us, court.you's sides on robe-5's cut: the shoulders
+ * as court.you draws them, wider than the three-quarter figure's; past where
+ * His hands cover court.you's edges, the far side runs on to the sleeve's
+ * end and the near side down to robe-5's, and from the sleeves' ends round
+ * the hem the robe is robe-5's (`ROBE_CUT`).
+ */
+const FRONT_ROBE = roundedPolygon(
+  [
+    [-32.4, -334],
+    [44, -334],
+    ...frontBody(FRONT_ROBE_SIDES.far),
+    [100.5, -240],
+    [101.5, -222],
+    [101, -205],
+    [100, -190],
+    ...ROBE_CUT.slice(9, 26),
+    ...frontBody(FRONT_ROBE_SIDES.near),
+  ],
+  [
+    20,
+    20,
+    ...FRONT_ROBE_SIDES.far.map(() => 4),
+    4,
+    4,
+    4,
+    4,
+    ...ROBE_RADII.slice(9, 26),
+    ...FRONT_ROBE_SIDES.near.map(() => 4),
+  ],
+);
+
+/**
+ * The sash turned to us, court.you's: from over the far shoulder across the
+ * chest; past the rail's last baluster it runs on to robe-5's near hip, and
+ * the robe's outline cuts what runs off it.
+ */
+const FRONT_SASH_RIGHT: Pt[] = [
+  [80, -345],
+  ...frontBody(FRONT_SASH.right),
+  [-55, -86],
+  [-66, -74],
+  [-78, -62],
+];
+const FRONT_SASH_LEFT: Pt[] = [[40, -345], ...frontBody(FRONT_SASH.left), [-95, -130], [-95, -60]];
+
 /** The robe turned to us: court.you's broad V under the beard, the sash laid over its right side. */
 const FRONT_ROBE_TONES = [
-  ROBE_SHADING,
+  { pts: [...FRONT_SASH_RIGHT, [140, -62], [140, -345]] satisfies Pt[], color: ROBE_SHADING.color },
   { pts: frontBody(FRONT_NECK), color: NECK_SKIN },
   { pts: frontBody(FRONT_NECK_SHADE), color: NECK_SKIN_SHADE, soft: true },
-  ...SASH_TONES,
+  { pts: [...FRONT_SASH_LEFT, ...[...FRONT_SASH_RIGHT].reverse()], color: SASH_TONES[0].color },
+  { pts: sashShade(FRONT_SASH_RIGHT), color: SASH_TONES[1].color },
 ];
 /** The locks beside the beard: court.you's dark brown a shade deeper, so the beard's shaded side still steps 0.08 in value above them. */
 const LOCK_DARK = '#3a241c';
@@ -291,6 +345,7 @@ const FRONT_FACE = tracedFace(FRONT_MARKS, FRONT_PANEL, 0.5);
  */
 export const CHRIST_FRONT: Robed = {
   ...CHRIST,
+  robe: FRONT_ROBE,
   robeLook: looked(PAPERS.whiteRobe, { tones: FRONT_ROBE_TONES }),
   outline: front(FRONT_REGION),
   face: FRONT_FACE.at,

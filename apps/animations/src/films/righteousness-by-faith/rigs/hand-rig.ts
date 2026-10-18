@@ -12,15 +12,15 @@ export const HAND_ART = { width: 64, height: 64, r: 19 } as const;
 
 /**
  * How far past the house hand Christ's held-out hand grows as He reaches to
- * us (court onYou): its circle 0.70 of His head across, as court.you draws it.
+ * us (court onYou): its circle as court.you draws it against His face.
  */
-export const HAND_OUT = 1.85;
+export const HAND_OUT = 1.62;
 
 /**
  * The held-out hand's artboards, each `size` times the house hand in the
- * house line: four steps to `HAND_OUT`, each about 1.17 times the last, so the
+ * house line: four steps to `HAND_OUT`, each about 1.13 times the last, so the
  * step nearest a reach, scaled the rest of the way, draws the house line
- * within 8 %.
+ * within 7 %.
  */
 export const HAND_OUT_STEPS = [
   HAND_OUT ** 0.25,

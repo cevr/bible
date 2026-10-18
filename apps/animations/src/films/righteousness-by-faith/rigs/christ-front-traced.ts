@@ -11,7 +11,7 @@ import type { Pt } from '@bible/film/style';
 
 /**
  * The panel's pixels to the cast's canon: 0.35 units a pixel, which makes
- * the head as tall as court-12's (hair to the beard's foot, 139 units), about
+ * the head as tall as court-12's (hair to the beard's foot, 137 units), about
  * the head's middle inside its ink.
  */
 export const FRONT_PANEL = { scale: 0.35, head: [892, 296] } as const satisfies {
@@ -19,10 +19,14 @@ export const FRONT_PANEL = { scale: 0.35, head: [892, 296] } as const satisfies 
   readonly head: Pt;
 };
 
-/** The head inside its ink: the hair's crown, its locks down both sides to the shoulders, the beard's foot between them. */
+/**
+ * The head on court.you's ink's inner edge (the rig lays its ink outside the
+ * paper): the hair's crown, its locks down both sides to the shoulders, the
+ * beard's foot between them, the foot on the ink's top where the beard meets it.
+ */
 export const FRONT_REGION: Pt[] = [
-  [880, 99],
-  [905, 97],
+  [880, 92],
+  [905, 91],
   [931, 101],
   [950, 110],
   [970, 116],
@@ -59,11 +63,11 @@ export const FRONT_REGION: Pt[] = [
   [988, 448],
   [975, 456],
   [958, 468],
-  [940, 481],
-  [927, 490],
-  [914, 494],
-  [900, 491],
-  [882, 481],
+  [940, 475.5],
+  [927, 479.5],
+  [914, 480.5],
+  [900, 480.5],
+  [882, 477.5],
   [858, 470],
   [836, 463],
   [810, 466],
@@ -101,8 +105,8 @@ export const FRONT_REGION: Pt[] = [
 
 /**
  * The region a little larger about the head's middle (2%, 3 to 4 pixels at
- * the silhouette): the hair and the beard's foot run out past the face's
- * paper to it, so no edge of the face shows under the ink round them.
+ * the silhouette): the hair runs out past the face's paper to it, so no edge
+ * of the face shows under the ink round it.
  */
 const OVER: Pt[] = FRONT_REGION.map(([x, y]): Pt => [
   +(FRONT_PANEL.head[0] + (x - FRONT_PANEL.head[0]) * 1.02).toFixed(1),
@@ -167,7 +171,10 @@ export const FRONT_HAIR: Pt[] = [
   ...OVER.slice(at(810, 466)),
 ];
 
-/** His beard: up each cheek to the hair, the moustache over His mouth, round under His chin. */
+/**
+ * His beard: up each cheek to the hair, the moustache over His mouth, round
+ * under His chin on the region's own foot, so its ink's top is court.you's.
+ */
 export const FRONT_BEARD: Pt[] = [
   [776, 362],
   [788, 360],
@@ -197,7 +204,7 @@ export const FRONT_BEARD: Pt[] = [
   [1012, 405],
   [1004, 420],
   [992, 440],
-  ...OVER.slice(at(975, 456), at(858, 470) + 1),
+  ...FRONT_REGION.slice(at(975, 456), at(858, 470) + 1),
   [837, 461],
   [828, 451],
   [816, 441],
@@ -345,6 +352,86 @@ export const FRONT_NECK: Pt[] = [
   [872, 510],
   [862.5, 500],
 ];
+
+/**
+ * The robe's sides under His locks, as court.you draws them on its ink's
+ * inner edge (the rig lays its ink outside the paper): the far shoulder
+ * (screen right) from under the far lock down to where His far hand covers
+ * it, and the near shoulder from where His held-out hand covers it up under
+ * the near lock.
+ */
+export const FRONT_ROBE_SIDES = {
+  far: [
+    [1070, 480],
+    [1085, 490],
+    [1096, 500],
+    [1105, 510],
+    [1111, 520],
+    [1123, 540],
+    [1133, 560],
+    [1142, 580],
+    [1150, 600],
+    [1158, 620],
+    [1165, 640],
+    [1172, 660],
+    [1178, 680],
+  ],
+  near: [
+    [703, 600],
+    [711, 580],
+    [719, 560],
+    [729, 540],
+    [742, 520],
+    [750, 510],
+    [760, 500],
+    [773, 490],
+    [790, 480],
+  ],
+} satisfies Record<'far' | 'near', Pt[]>;
+
+/**
+ * The gold sash's edges as court.you draws them, from the far shoulder
+ * across the chest toward the near hip: the right edge on the robe's own
+ * edge to 530, then away from it; the left edge until the held-out hand
+ * covers it; each again under the dock's rail, between its balusters.
+ */
+export const FRONT_SASH = {
+  right: [
+    [1118, 480],
+    [1112, 510],
+    [1104, 530],
+    [1102, 550],
+    [1099, 570],
+    [1095, 590],
+    [1092, 610],
+    [1087, 630],
+    [1082, 650],
+    [1077, 670],
+    [1071, 690],
+    [1064, 710],
+    [1058, 730],
+    [1051, 750],
+    [1044, 770],
+    [1036, 790],
+    [940, 990],
+  ],
+  left: [
+    [1007, 470],
+    [1002, 490],
+    [994, 510],
+    [987, 530],
+    [979, 550],
+    [970, 570],
+    [961, 590],
+    [951, 610],
+    [941, 630],
+    [930, 650],
+    [919, 670],
+    [907, 690],
+    [735, 960],
+    [706, 1005],
+  ],
+} satisfies Record<'right' | 'left', Pt[]>;
 
 /** The neck's top in the beard's shadow. */
 export const FRONT_NECK_SHADE: Pt[] = [
