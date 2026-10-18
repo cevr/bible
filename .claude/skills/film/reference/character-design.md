@@ -494,7 +494,7 @@ A sheet is built before a figure is rigged, and the rig is checked against it. F
 | Quarter-size test | what names them in `--mode value` and in `--mode squint`                                                              |
 | Never             | what the frame, the text or this guide forbids for this figure                                                        |
 
-A rig's sheet also carries a scale bar (the figure beside Hugo's 1.0) and the four turnaround drawings; these are images and live with the rig, not here.
+A rig's drawings are its cast sheet (`bun run concept cast`, [SKILL.md](../SKILL.md) step 3): a turnaround of six views, a pose sheet and a heads sheet, painted in the house look and kept with their record in `apps/animations/src/library/cast/<member>/cast-sheet/` (or the film's own role's folder), each kept view filed as `views/<name>.png`. A cast sheet carries no scale bar: it never sets a figure's height, which comes from the cast's height band.
 
 ### 4.2 The cast
 

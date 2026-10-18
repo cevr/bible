@@ -1,11 +1,13 @@
 // A cast sheet's brief from the app's own house block: the block made a
-// sheet's, a block whose phrase moved stops the brief, and every brief
-// carries the sheet rules the owner set.
+// sheet's, a block whose phrase moved stops the brief, every brief carries
+// the sheet rules the owner set, and a layout or a look that floats a hand
+// stops it: the library's and every film's records are read here.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Result } from 'effect';
-import type { SheetKind } from '../core/cast-sheet.ts';
+import { Effect, FileSystem, Option, Result, Schema } from 'effect';
+import { SheetKind } from '../core/cast-sheet.ts';
+import { CastSheetJson } from '../core/cast-record.ts';
 import { castSheetBrief, turnaroundLayout } from './cast-sheet-brief.ts';
 
 /** The house block as the app keeps it. */
@@ -59,7 +61,7 @@ describe("the house block made a sheet's", () => {
     Effect.gen(function* () {
       const moved = (yield* houseBlock).replace('A 2D key frame', 'A key frame');
       const failed = Result.match(briefOver(moved), {
-        onFailure: (e) => e.phrase,
+        onFailure: (e) => ('phrase' in e && e.phrase) || e._tag,
         onSuccess: () => 'swapped',
       });
       expect(failed).toBe('A 2D key frame from a narrated animated film');
@@ -143,5 +145,86 @@ describe("each kind's rules", () => {
       expect(brief).not.toContain('soles');
       expect(brief).not.toContain('Each arm is in its sleeve');
     }),
+  );
+});
+
+describe('a hand that floats', () => {
+  it.effect('stops a brief whose layout or look says a hand floats, naming the clause', () =>
+    Effect.gen(function* () {
+      const house = yield* houseBlock;
+      const refused = (layout: string, look: string) =>
+        Result.match(castSheetBrief({ kind: 'poses', house, references: '', look, layout }), {
+          onSuccess: () => 'drawn',
+          onFailure: (e) => `${e._tag}: ${e.message}`,
+        });
+      expect(
+        refused(
+          'one, at rest; two, His near hand raised before His chest, floating free; three, bowed.',
+          'A cream robe.',
+        ),
+      ).toBe(
+        'HandFloats: the sheet\'s layout says a hand floats ("two, His near hand raised before His chest, floating free"): every house hand is at the end of an arm in its sleeve (CRAFT rule 12), so rewrite the clause',
+      );
+      expect(refused(turnaroundLayout('Him'), 'Circle hands float beside him.')).toStartWith(
+        "HandFloats: the sheet's look",
+      );
+      expect(
+        refused('one, a boat floating on the lake; two, both hands low.', 'A cream robe.'),
+      ).toBe('drawn');
+    }),
+  );
+
+  it.effect("passes every cast record's layouts and look, the library's and each film's", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const house = yield* houseBlock;
+      const app = new URL('../../../../apps/animations/src', import.meta.url).pathname;
+      /** The members' sheet folders under `cast`, where a `cast-sheet.json` is. */
+      const sheetsIn = (cast: string) =>
+        Effect.gen(function* () {
+          // A film with no cast folder (or a file beside the films) lists none.
+          const members = yield* fs
+            .readDirectory(cast)
+            .pipe(Effect.orElseSucceed((): Array<string> => []));
+          return yield* Effect.filter(
+            members.map((m) => `${cast}/${m}/cast-sheet`),
+            (folder) => fs.exists(`${folder}/cast-sheet.json`),
+          );
+        });
+      const films = yield* fs.readDirectory(`${app}/films`);
+      const folders = [
+        ...(yield* sheetsIn(`${app}/library/cast`)),
+        ...(yield* Effect.forEach(films, (film) => sheetsIn(`${app}/films/${film}/cast`))).flat(),
+      ];
+      const refused = yield* Effect.forEach(folders, (folder) =>
+        Effect.gen(function* () {
+          const record = yield* Schema.decodeEffect(CastSheetJson)(
+            yield* fs.readFileString(`${folder}/cast-sheet.json`),
+          );
+          const look = yield* fs.readFileString(`${folder}/look.md`);
+          const kinds = SheetKind.literals.flatMap((kind) =>
+            Option.toArray(
+              Option.map(Option.fromUndefinedOr(record.sheets[kind]), (sheet) => ({ kind, sheet })),
+            ),
+          );
+          return kinds.flatMap(({ kind, sheet }) =>
+            Result.match(
+              castSheetBrief({
+                kind,
+                house,
+                references: '',
+                look,
+                layout: Option.getOrElse(Option.fromUndefinedOr(sheet.layout), () =>
+                  turnaroundLayout(record.who),
+                ),
+              }),
+              { onSuccess: () => [], onFailure: (e) => [`${folder} ${kind}: ${e.message}`] },
+            ),
+          );
+        }),
+      );
+      expect(folders.length).toBeGreaterThan(0);
+      expect(refused.flat()).toEqual([]);
+    }).pipe(Effect.provide(BunServices.layer)),
   );
 });

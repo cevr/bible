@@ -25,10 +25,27 @@
 //     `library/cast/<member>/cast-sheet/` beside the films. Each try is
 //     measured as it lands and a flagged one drawn once more, its drifts
 //     named (and the underlay sent on facing or the canon); every try, its
-//     measure and overlay land in `out/<film>/cast/<member>/` and the record.
+//     measure, overlay and preview land in `out/<film>/cast/<member>/` and
+//     the record.
+//
+//   film concept critique <film> <member> --kind turnaround|poses|heads --try <n>
+//     each view of try n a kept concept faces (the kind's `concepts` in the
+//     record), at 1:1 beside the concept, shown to a fresh model with the
+//     measure's flags on it (`cast-sheet-critique.ts`); a line per finding.
+//
+//   film concept keep <film> <member> --kind turnaround|poses|heads --try <n>
+//       --why <the owner's words> [--ask <id>]
+//     on the owner's answer: the try into the member's folder as
+//     `kept/<kind>.png`, each view cut from it as `views/<name>.png`, the keep
+//     recorded with his why (`cast-sheet-keep.ts`); a kind kept is refused.
 
 import { Argument, Command, Flag } from 'effect/cli';
-import { Console, Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { Console, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import type { CritiqueRule } from '../core/critique.ts';
+import { critiqueCastTry } from './cast-sheet-critique.ts';
+import { keepCastSheet } from './cast-sheet-keep.ts';
+import { Counsel } from './counsel.ts';
+import { Critic } from './critique.ts';
 import { CAST_LANES, castLine, makeCastSheet } from './cast-sheet-make.ts';
 import {
   measureSheet,
@@ -340,11 +357,87 @@ const cast = (house: HouseLook) =>
     Command.provide(ImageRoute.layer),
   );
 
-/** `film concept` over the app's house look. */
-export const concept = (house: HouseLook) =>
+const critique = (rules: ReadonlyArray<CritiqueRule>) =>
+  Command.make(
+    'critique',
+    {
+      film: Argument.String('film').pipe(
+        Argument.withDescription('the film the tries were drawn for'),
+      ),
+      member: Argument.String('member').pipe(
+        Argument.withDescription('the cast member, by its id'),
+      ),
+      kind: Flag.Literals('kind', SheetKind.literals).pipe(
+        Flag.withDescription('the sheet: turnaround, poses or heads'),
+      ),
+      try: Flag.Int('try').pipe(Flag.withDescription("the try's number, as `cast` printed it")),
+    },
+    Effect.fn('film.concept.critique')(function* (input) {
+      const path = yield* Path.Path;
+      const film = yield* filmNamed(input.film);
+      const folder = yield* castFolder(film, input.member);
+      const out = path.join((yield* FilmFolder).paths(film).out, 'cast', input.member);
+      const { taken, unpaired } = yield* critiqueCastTry({ folder, out }, input.kind, input.try);
+      yield* Console.log(
+        `critique ${input.member}.${input.kind} try=${input.try} views=${taken.figures.length} cached=${taken.cached}${Option.match(Option.fromUndefinedOr(taken.skipped), { onNone: () => '', onSome: (why) => ` skipped="${why}"` })}`,
+      );
+      for (const one of taken.figures) {
+        yield* Console.log(`${one.figure}: ${one.file}`);
+        for (const f of one.findings) yield* Console.log(`  ${f.aspect}: ${f.what}`);
+      }
+      for (const view of unpaired) yield* Console.log(`view-${view}: no kept concept faces it`);
+      for (const why of taken.rejected) yield* Console.log(`rejected: ${why}`);
+    }),
+  ).pipe(
+    Command.provide(Critic.layer(rules).pipe(Layer.provide(Counsel.layer))),
+    Command.withDescription(
+      "Critique a cast sheet try: each view a kept concept faces, at 1:1 beside it, shown to a fresh Opus with the measure's flags and the app's figure rules (head angle, face and where the hair meets the beard, pose, proportion, palette, artifacts); a line per finding, each view's beside the try",
+    ),
+  );
+
+const keep = Command.make(
+  'keep',
+  {
+    film: Argument.String('film').pipe(
+      Argument.withDescription('the film the tries were drawn for'),
+    ),
+    member: Argument.String('member').pipe(Argument.withDescription('the cast member, by its id')),
+    kind: Flag.Literals('kind', SheetKind.literals).pipe(
+      Flag.withDescription('the sheet: turnaround, poses or heads'),
+    ),
+    try: Flag.Int('try').pipe(Flag.withDescription('the try the owner kept')),
+    why: Flag.String('why').pipe(Flag.withDescription("the owner's why, in his words")),
+    ask: Flag.String('ask').pipe(
+      Flag.optional,
+      Flag.withDescription('the ask he answered it on, by its id'),
+    ),
+  },
+  Effect.fn('film.concept.keep')(function* (input) {
+    const path = yield* Path.Path;
+    const film = yield* filmNamed(input.film);
+    const folder = yield* castFolder(film, input.member);
+    const out = path.join((yield* FilmFolder).paths(film).out, 'cast', input.member);
+    const kept = yield* keepCastSheet(
+      { folder, out },
+      { kind: input.kind, n: input.try, why: input.why, ask: input.ask },
+    );
+    yield* Console.log(
+      `kept ${input.member}.${input.kind} try=${kept.try} views=${kept.views.length}`,
+    );
+    for (const v of kept.views)
+      yield* Console.log(`  view-${v.view} ${path.join(folder, 'views', `${v.name}.png`)}`);
+  }),
+).pipe(
+  Command.withDescription(
+    "Keep a cast sheet try on the owner's answer: the try into the member's folder, each view cut out by its name (the trace's source), the keep recorded with his why; a kind kept already is refused",
+  ),
+);
+
+/** `film concept` over the app's house look, its critique over the app's figure rules. */
+export const concept = (house: HouseLook, rules: ReadonlyArray<CritiqueRule>) =>
   Command.make('concept').pipe(
     Command.withDescription(
-      "A cast member's sheet: its brief, a try measured, and tries drawn and measured",
+      "A cast member's sheet: its brief, a try measured, tries drawn and measured, a try critiqued, a try kept",
     ),
-    Command.withSubcommands([brief(house), measure, cast(house)]),
+    Command.withSubcommands([brief(house), measure, cast(house), critique(rules), keep]),
   );

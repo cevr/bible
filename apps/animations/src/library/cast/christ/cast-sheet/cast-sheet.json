@@ -25,6 +25,46 @@
     }
   ],
   "sheets": {
-    "turnaround": { "anchor": 2, "tries": [] }
+    "turnaround": {
+      "anchor": 2,
+      "concepts": [
+        {
+          "file": "christ-court-12.png",
+          "box": [0, 0, 245, 492],
+          "views": [2]
+        },
+        {
+          "file": "christ-court-you-2.png",
+          "box": [0, 0, 620, 954],
+          "views": [1]
+        }
+      ],
+      "tries": []
+    },
+    "poses": {
+      "anchor": 1,
+      "layout": "Draw Him six times in one row, evenly spaced, each a pose the film's storyboard gives Him, left to right: one, standing at rest, turned three-quarters toward the viewer's left, looking down a little, both hands low; two, turned to face the viewer, holding one circle hand out at chest height with a small gold seed resting on it, the other hand low; three, turned three-quarters toward the viewer's left, His head bowed, His near arm in its sleeve, the hand raised a little in front of His chest, the far hand low; four, turned three-quarters toward the viewer's left, leaning a little, His near arm in its sleeve held out and down, the hand at hip height in front of Him, as over someone lying low before Him; five, stooped low and crouching, three-quarters toward the viewer's left, His head bowed, one circle hand resting on the ground in front of Him with a few faint marks in the dust beside it; six, gliding toward the viewer's left, three-quarters: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the robe's hem swung back.",
+      "slots": ["left", "front", "left", "left", "left", "left"],
+      "standing": [1, 2, 3, 6],
+      "concepts": [
+        {
+          "file": "christ-court-12.png",
+          "box": [0, 0, 245, 492],
+          "views": [1, 3, 4]
+        },
+        {
+          "file": "christ-court-you-2.png",
+          "box": [0, 0, 620, 954],
+          "views": [2]
+        }
+      ],
+      "tries": []
+    },
+    "heads": {
+      "anchor": 1,
+      "layout": "Draw only His head and the top of His shoulders, six times in a row, evenly spaced, all the same size. One to three are turned three-quarters toward the viewer's left: one, level, at rest, a small warm smile; two, bowed, looking down, compassion, the inner ends of the brows raised; three, lifted a little, looking up, glad. Four to six face the viewer straight on: four, level, at rest, a small warm smile; five, bowed, looking down, grieved, the mouth turned a little down; six, lifted a little, speaking, the mouth a little open inside the beard.",
+      "slots": ["left", "left", "left", "front", "front", "front"],
+      "tries": []
+    }
   }
 }

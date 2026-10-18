@@ -18,7 +18,7 @@
 //   film lab <command> … (lab-cli.ts) the lab's command set, the same as its MCP tools (`--help` lists them)
 //   film lab events … (events-cli.ts) the lab's events, a line each (--follow: as they happen)
 //   film ask wait …   (ask-cli.ts)     wait on the owner's answer to an ask, in the background
-//   film concept …    (concept-cli.ts) a cast member's sheet: its brief, a try measured, tries drawn
+//   film concept …    (concept-cli.ts) a cast member's sheet: its brief, a try measured, tries drawn, a try critiqued
 //
 // Each command's flags are its own `--help`.
 //
@@ -1127,7 +1127,7 @@ export const runFilmCli = <E>({
       ),
       channel.pipe(Command.provide(FetchHttpClient.layer)),
       review(films, critiquing.rules),
-      concept(house),
+      concept(house, critiquing.rules),
       ask,
       production,
       publish,

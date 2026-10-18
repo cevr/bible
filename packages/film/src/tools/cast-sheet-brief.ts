@@ -7,9 +7,12 @@
 // so it asks for a model sheet with no place behind, no beams and no walls. A
 // swap whose phrase the block no longer says is `HouseBlockMoved`, so a
 // changed house text stops the brief before a try is spent rather than
-// painting a scene.
+// painting a scene. A layout or a look whose clause says a hand floats is
+// `HandFloats`: the brief's own rule puts every hand at the end of an arm in
+// its sleeve, and a prompt that asks both ways spends a try on a hand
+// `sleeveReach` then flags.
 
-import { Result, Schema } from 'effect';
+import { Array as Arr, Option, Result, Schema } from 'effect';
 import type { SheetKind } from '../core/cast-sheet.ts';
 
 /** The house block no longer says a phrase the sheet's swaps replace. */
@@ -20,6 +23,36 @@ class HouseBlockMoved extends Schema.TaggedError<HouseBlockMoved>()('HouseBlockM
     return `the house block no longer says "${this.phrase}": update the sheet's swaps in tools/cast-sheet-brief.ts`;
   }
 }
+
+/** A clause of the member's layout or look says a hand floats, against the rule that every hand is at the end of a sleeved arm. */
+class HandFloats extends Schema.TaggedError<HandFloats>()('HandFloats', {
+  part: Schema.Literals(['layout', 'look']),
+  clause: Schema.String,
+}) {
+  override get message() {
+    return `the sheet's ${this.part} says a hand floats ("${this.clause}"): every house hand is at the end of an arm in its sleeve (CRAFT rule 12), so rewrite the clause`;
+  }
+}
+
+/** The first clause (a sentence or a part between semicolons) of `text` that names a hand and says it floats. */
+const floatingHand = (text: string): Option.Option<string> =>
+  Arr.findFirst(
+    text.split(/[.;]/).map((clause) => clause.trim()),
+    (clause) => /\bhands?\b/i.test(clause) && /\bfloat/i.test(clause),
+  );
+
+/** The layout and the look, each refused when a clause of it floats a hand. */
+const sleevedHands = (brief: SheetBrief): Result.Result<SheetBrief, HandFloats> =>
+  Option.match(
+    Option.orElse(
+      Option.map(floatingHand(brief.layout), (clause) =>
+        HandFloats.make({ part: 'layout', clause }),
+      ),
+      () =>
+        Option.map(floatingHand(brief.look), (clause) => HandFloats.make({ part: 'look', clause })),
+    ),
+    { onNone: () => Result.succeed(brief), onSome: (refused) => Result.fail(refused) },
+  );
 
 /** The house block's phrases a sheet swaps: the key frame becomes a model sheet, and the place behind the figures, its beams and its walls go. */
 const SWAPS: ReadonlyArray<readonly [string, string]> = [
@@ -136,13 +169,17 @@ interface SheetBrief {
 }
 
 /** The brief: the sheet's house block, the references' note, the look, the layout, then its kind's rules. */
-export const castSheetBrief = (brief: SheetBrief): Result.Result<string, HouseBlockMoved> =>
-  Result.map(sheetHouseBlock(brief.house), (block) =>
-    [
-      block,
-      brief.references.trim(),
-      brief.look.trim(),
-      brief.layout.trim(),
-      SHEET_RULES[brief.kind].join(' '),
-    ].join('\n\n'),
+export const castSheetBrief = (
+  brief: SheetBrief,
+): Result.Result<string, HouseBlockMoved | HandFloats> =>
+  Result.flatMap(sleevedHands(brief), () => sheetHouseBlock(brief.house)).pipe(
+    Result.map((block) =>
+      [
+        block,
+        brief.references.trim(),
+        brief.look.trim(),
+        brief.layout.trim(),
+        SHEET_RULES[brief.kind].join(' '),
+      ].join('\n\n'),
+    ),
   );

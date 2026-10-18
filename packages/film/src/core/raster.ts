@@ -36,17 +36,20 @@ export const cropRaster = (r: Raster, box: RasterBox): Raster => {
 };
 
 /** `r` drawn `factor` times its size, each pixel the bilinear blend of the four it falls between. */
-export const scaleRaster = (r: Raster, factor: number): Raster => {
-  const width = Math.max(1, Math.round(r.width * factor));
-  const height = Math.max(1, Math.round(r.height * factor));
+export const scaleRaster = (r: Raster, factor: number): Raster => stretchRaster(r, factor, factor);
+
+/** `r` drawn `fx` times its width and `fy` times its height, each pixel the bilinear blend of the four it falls between. */
+export const stretchRaster = (r: Raster, fx: number, fy: number): Raster => {
+  const width = Math.max(1, Math.round(r.width * fx));
+  const height = Math.max(1, Math.round(r.height * fy));
   const rgba = new Uint8Array(width * height * 4);
   const at = (x: number, y: number, k: number) => r.rgba[(y * r.width + x) * 4 + k] ?? 0;
   for (let y = 0; y < height; y++) {
-    const sy = Math.min(r.height - 1, Math.max(0, (y + 0.5) / factor - 0.5));
+    const sy = Math.min(r.height - 1, Math.max(0, (y + 0.5) / fy - 0.5));
     const [y0, ty] = [Math.floor(sy), sy - Math.floor(sy)];
     const y1 = Math.min(r.height - 1, y0 + 1);
     for (let x = 0; x < width; x++) {
-      const sx = Math.min(r.width - 1, Math.max(0, (x + 0.5) / factor - 0.5));
+      const sx = Math.min(r.width - 1, Math.max(0, (x + 0.5) / fx - 0.5));
       const [x0, tx] = [Math.floor(sx), sx - Math.floor(sx)];
       const x1 = Math.min(r.width - 1, x0 + 1);
       for (let k = 0; k < 4; k++) {
@@ -55,6 +58,20 @@ export const scaleRaster = (r: Raster, factor: number): Raster => {
         rgba[(y * width + x) * 4 + k] = Math.round(top * (1 - ty) + bottom * ty);
       }
     }
+  }
+  return { width, height, rgba };
+};
+
+/** `pictures` one under another, left-aligned, on white. */
+export const stackRaster = (pictures: ReadonlyArray<Raster>): Raster => {
+  const width = Math.max(1, ...pictures.map((p) => p.width));
+  const height = pictures.reduce((s, p) => s + p.height, 0);
+  const rgba = new Uint8Array(width * height * 4).fill(255);
+  let down = 0;
+  for (const p of pictures) {
+    for (let y = 0; y < p.height; y++)
+      rgba.set(p.rgba.subarray(y * p.width * 4, (y + 1) * p.width * 4), (down + y) * width * 4);
+    down += p.height;
   }
   return { width, height, rgba };
 };

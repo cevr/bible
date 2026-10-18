@@ -1660,6 +1660,13 @@ export const measureSheet = (
   });
 };
 
+/** The views whose height is held to the anchor's: those the options name, else a turnaround's all. */
+export const standingOf = (
+  options: SheetOptions,
+  views: ReadonlyArray<{ readonly view: number }>,
+): ReadonlyArray<number> =>
+  options.standing ?? ((options.kind === 'turnaround' && views.map((v) => v.view)) || []);
+
 const checked = (
   reads: ReadonlyArray<ViewRead>,
   views: ReadonlyArray<SheetView>,
@@ -1669,8 +1676,7 @@ const checked = (
   const headgear = options.headgear === true;
   const heads = options.kind === 'heads';
   const canon = (heads && {}) || canonOf(anchor, headgear);
-  const standing =
-    options.standing ?? ((options.kind === 'turnaround' && views.map((v) => v.view)) || []);
+  const standing = standingOf(options, views);
   const pairs = pairsOf(reads, options.kind);
   const sides = sidesOf(reads, options.kind);
   const sheetUnmeasured: ReadonlyArray<SheetUnmeasured> =

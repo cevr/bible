@@ -40,13 +40,17 @@ import {
   type SheetCheck,
   type SheetKind,
   type SheetMeasure,
+  type SheetConcept,
+  type SheetOptions,
   sheetLines,
   sheetOverlay,
   sheetTable,
   type Slot,
 } from '../core/cast-sheet.ts';
+import { sheetPreview } from '../core/cast-preview.ts';
 import { mannequinUnderlay } from '../core/cast-underlay.ts';
-import type { Raster } from '../core/raster.ts';
+import { measureFigure } from '../core/figure.ts';
+import { cropRaster, type Raster } from '../core/raster.ts';
 import { castSheetBrief, turnaroundLayout } from './cast-sheet-brief.ts';
 import { ContentStore } from './content-store.ts';
 import { FileInvalid } from './errors.ts';
@@ -211,6 +215,8 @@ interface TryContext {
   readonly look: string;
   readonly layout: string;
   readonly plan: CastKindPlan;
+  /** The measure's options: the plan's, each kept concept measured and held to its views. */
+  readonly options: SheetOptions;
   /** The underlay's file, and its drawing, run by each retry that sends it. */
   readonly underlay: { readonly file: string; readonly drawn: Effect.Effect<void, PlatformError> };
 }
@@ -264,11 +270,12 @@ const drawBytes = Effect.fn('Cast.drawBytes')(function* (
     );
 });
 
-/** A try's measure written beside its image (`<stem>.measure.md`, `<stem>.overlay.png`), and its lines and flags. */
+/** A try's measure written beside its image (`<stem>.measure.md`, `.overlay.png` and `.preview.png`, the views as the trace will make them), and its lines and flags. */
 const keepMeasure = Effect.fn('Cast.keepMeasure')(function* (
   stem: string,
   sheet: Raster,
   measured: Result.Result<SheetMeasure, { readonly message: string }>,
+  options: SheetOptions,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -282,6 +289,7 @@ const keepMeasure = Effect.fn('Cast.keepMeasure')(function* (
   const m = measured.success;
   yield* fs.writeFileString(`${stem}.measure.md`, sheetTable(name, m));
   yield* fs.writeFile(`${stem}.overlay.png`, encodePng(sheetOverlay(sheet, m)));
+  yield* fs.writeFile(`${stem}.preview.png`, encodePng(sheetPreview(sheet, m, options)));
   const squash = Option.match(Option.fromUndefinedOr(m.canon.squash), {
     onNone: () => ({}),
     onSome: (s) => ({ squash: s }),
@@ -307,7 +315,7 @@ const drawTry = Effect.fn('Cast.drawTry')(function* (
   const request = yield* requestOf(ctx, drifts, underlay);
   const bytes = yield* drawBytes(ctx.place, request);
   const sheet = yield* Effect.fromResult(decodePng(bytes));
-  const measured = measureSheet(sheet, ctx.plan.options);
+  const measured = measureSheet(sheet, ctx.options);
   const manifest = {
     file: path.join(ctx.place.folder, 'cast-sheet.json'),
     codec: CastSheetJson,
@@ -320,7 +328,7 @@ const drawTry = Effect.fn('Cast.drawTry')(function* (
       const n = nextCastTry(current, kind);
       const stem = path.join(ctx.place.out, `${kind}-${n}`);
       yield* fs.writeFile(`${stem}.png`, bytes);
-      const read = yield* keepMeasure(stem, sheet, measured);
+      const read = yield* keepMeasure(stem, sheet, measured, ctx.options);
       const t: CastTry = {
         n,
         file: path.relative(ctx.place.out, `${stem}.png`),
@@ -342,6 +350,39 @@ const drawTry = Effect.fn('Cast.drawTry')(function* (
 
 /** A try that drew nothing: no tries made. */
 const NONE_MADE: ReadonlyArray<CastTry> = [];
+
+/** A kept concept whose crop shows no figure the measure reads. */
+class CastConceptUnread extends Schema.TaggedError<CastConceptUnread>()('CastConceptUnread', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the concept ${this.file} does not read in its box: ${this.reason} (cast-sheet.json, the kind's concepts)`;
+  }
+}
+
+/** Each kept concept the plan names, cropped to its box and measured, held to each of its views. */
+export const conceptsOf = Effect.fn('Cast.concepts')(function* (
+  place: CastPlace,
+  plan: CastKindPlan,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const held = yield* Effect.forEach(plan.concepts, (c) =>
+    Effect.gen(function* () {
+      const image = yield* Effect.fromResult(
+        decodePng(yield* fs.readFile(path.join(place.folder, c.file))),
+      );
+      const measure = yield* Effect.fromResult(
+        Result.mapError(measureFigure(cropRaster(image, c.box)), (e) =>
+          CastConceptUnread.make({ file: c.file, reason: e.message }),
+        ),
+      );
+      return c.views.map((view): SheetConcept => ({ name: c.file, measure, view }));
+    }),
+  );
+  return held.flat();
+});
 
 /** One try and, when the measure flags it, its one retry: each drift in words, the underlay on facing or the canon. */
 const gatedTry = (ctx: TryContext, emit: (line: CastLine) => Effect.Effect<void>) =>
@@ -389,7 +430,17 @@ export const makeCastSheet = Effect.fn('Cast.make')(function* (
   const drawn = Effect.sync(() =>
     encodePng(mannequinUnderlay(plan.options.slots ?? [], profiles)),
   ).pipe(Effect.flatMap((bytes) => store.writeFile(file, bytes)));
-  const ctx: TryContext = { place, run, record, look, layout, plan, underlay: { file, drawn } };
+  const options: SheetOptions = { ...plan.options, concepts: yield* conceptsOf(place, plan) };
+  const ctx: TryContext = {
+    place,
+    run,
+    record,
+    look,
+    layout,
+    plan,
+    options,
+    underlay: { file, drawn },
+  };
   // The brief is built once before any draw: a house block that moved stops the run, not each try.
   const first = yield* requestOf(ctx, [], false);
   if (run.dryRun) {

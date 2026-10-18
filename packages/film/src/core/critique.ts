@@ -63,10 +63,34 @@ export interface CritiqueFigure {
   readonly concept: string;
   readonly scene: string;
   readonly flagged: ReadonlyArray<string>;
+  /** On a cast sheet, what its layout asks of this view (its turn, tilt and gesture); a scene's figure has none. */
+  readonly layout: Option.Option<string>;
 }
+
+/** What the figures were drawn in: a film's scene (a rig drawn there), or a cast sheet (a view painted from the concept, that the rigs are traced from). */
+export type CritiqueDrawn = 'scene' | 'sheet';
+
+/** The packet's opening: what each figure is, by what it was drawn in. */
+const drawnIn = (drawn: CritiqueDrawn, place: string): string =>
+  (drawn === 'sheet' &&
+    `Each figure below is one view of a cast sheet (${place}), painted from a concept: the film's rigs are traced from the sheet, so what differs here differs in every scene. Hold each view to its concept in the face, the proportion, the palette, the sleeves and the artifacts, and to its layout's words in the angle and the pose.`) ||
+  `Each figure below was drawn in a film's scene (${place}) from a painted concept.`;
+
+/** How a head's angle is judged: a scene's figure holds its concept's angle; a sheet's view holds the angle its layout asks for. */
+const angleRule = (drawn: CritiqueDrawn): string =>
+  (drawn === 'sheet' &&
+    "On a sheet each view's turn and tilt are what its layout asks (said under it), never the concept's: an angle is a finding only where the view differs from its layout's words.") ||
+  "A concept's angle is design, never a slip: a different angle is a finding.";
+
+/** On a sheet, the gesture each view's layout asks for is the design. */
+const poseRule = (drawn: CritiqueDrawn): string =>
+  (drawn === 'sheet' &&
+    ' On a sheet each view holds the gesture its layout asks (said under it): a raised hand, a bow or a lean the layout asks for is never a finding.') ||
+  '';
 
 /** The packet the counsel reads: what to compare, the rules, each figure's crops and flags, and the answer's form. */
 export const critiquePacket = (
+  drawn: CritiqueDrawn,
   place: string,
   figures: ReadonlyArray<CritiqueFigure>,
   rules: ReadonlyArray<QuotedSection>,
@@ -74,18 +98,18 @@ export const critiquePacket = (
   [
     '# Critique: figures against their concepts',
     '',
-    `Each figure below was drawn in a film's scene (${place}) from a painted concept. Read both crops of each with the Read tool. Both are at 1:1: look at them closely, part by part, before you answer.`,
+    `${drawnIn(drawn, place)} Read both crops of each with the Read tool. Both are at 1:1: look at them closely, part by part, before you answer.`,
     '',
     'For each figure, name every difference between the concept and the scene in:',
     '',
-    "- **head angle**: the head's turn (front, three-quarter, profile; which way) and its tilt (up, down, to a side). A concept's angle is design, never a slip: a different angle is a finding.",
-    "- **face**: the face's shape (round, long, the jaw, the chin, the cheek) and its features (the eyes' size, spacing and height, the brows, a nose, the mouth, the beard's shape).",
-    '- **pose**: where each hand is (raised or low, which one), the lean, the gesture. The house hand is a circle at the end of an arm in its sleeve: a hand floating free of the body, with no sleeve to it, is a finding.',
+    `- **head angle**: the head's turn (front, three-quarter, profile; which way) and its tilt (up, down, to a side). ${angleRule(drawn)}`,
+    "- **face**: the face's shape (round, long, the jaw, the chin, the cheek) and its features (the eyes' size, spacing and height, the brows, a nose, the mouth, the beard's shape), and where the hair meets the beard: the concept's head outline runs between them, so a beard that runs into the hair, or hair drawn as beard, is a finding (owner, 2026-10-18).",
+    `- **pose**: where each hand is (raised or low, which one), the lean, the gesture. The house hand is a circle at the end of an arm in its sleeve: a hand floating free of the body, with no sleeve to it, is a finding.${poseRule(drawn)}`,
     "- **proportion**: the head against the body, a garment's width and length. The figure's height in heads is not a finding: it comes from the cast's height band.",
     '- **palette**: a colour in the scene the concept does not have, or one it lost (skin, hair, a garment, the shade).',
     '- **artifact**: anything at 1:1 no part should draw: a light line between two pieces, a fill short of the outline with another colour showing in the gap, a point poking past the silhouette, rain or a stroke across the face, a hole, a ragged edge.',
     '',
-    "The match's numbers flagged the rows listed under each figure: check each against the crops, and add what the numbers missed. Say nothing a crop does not show. Name no fix; say what differs.",
+    "The measure's numbers flagged the rows listed under each figure: check each against the crops, and add what the numbers missed. Say nothing a crop does not show. Name no fix; say what differs.",
     '',
     '## The house rules',
     '',
@@ -96,11 +120,15 @@ export const critiquePacket = (
       `### ${f.figure}`,
       '',
       `- The concept: \`${f.concept}\``,
-      `- The scene: \`${f.scene}\``,
+      `- The ${drawn}: \`${f.scene}\``,
+      ...Option.match(f.layout, {
+        onNone: () => [],
+        onSome: (asked) => [`- What the layout asks of it: ${asked}`],
+      }),
       '',
       ...Arr.match(f.flagged, {
-        onEmpty: () => ['The match flagged no row.'],
-        onNonEmpty: (rows) => ["The match's flagged rows:", '', ...rows.map((r) => `- ${r}`)],
+        onEmpty: () => ['The measure flagged no row.'],
+        onNonEmpty: (rows) => ["The measure's flagged rows:", '', ...rows.map((r) => `- ${r}`)],
       }),
       '',
     ]),

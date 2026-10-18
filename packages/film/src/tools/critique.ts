@@ -31,6 +31,7 @@ import {
   Schema,
 } from 'effect';
 import {
+  type CritiqueDrawn,
   type CritiqueFigure,
   CritiqueFinding,
   type CritiqueRead,
@@ -79,9 +80,45 @@ class CritiqueRuleMissing extends Schema.TaggedError<CritiqueRuleMissing>()('Cri
   }
 }
 
+/** One view of a cast sheet try to critique: its name, its crop and its concept's at 1:1, the measure's lines on it, and the file its findings go to. */
+interface SheetView {
+  readonly figure: string;
+  readonly concept: string;
+  readonly sheet: string;
+  readonly flagged: ReadonlyArray<string>;
+  readonly file: string;
+  /** What the sheet's layout asks of this view: its numbered clause, or the whole layout when it numbers none. */
+  readonly layout: Option.Option<string>;
+}
+
+/** A cast sheet try's views to critique: where they are, in words, and the folder its answers are kept in. */
+interface SheetCritique {
+  readonly place: string;
+  readonly kept: string;
+  readonly views: ReadonlyArray<SheetView>;
+}
+
 interface CriticService {
   /** The figures `taken` matched, critiqued against their concepts: never fails, a skip is said and logged. */
   readonly critique: (taken: MatchTaken) => Effect.Effect<CritiqueTaken>;
+  /** A cast sheet try's views, each critiqued against its concept: never fails, a skip is said and logged. */
+  readonly critiqueSheet: (sheet: SheetCritique) => Effect.Effect<CritiqueTaken>;
+}
+
+/** What one critique is asked about: what it was drawn in, where, how its log names it, the folder its answers are kept in, and each figure (its crops' paths and the file its findings go to). */
+interface CritiqueAsk {
+  readonly drawn: CritiqueDrawn;
+  readonly place: string;
+  readonly logged: string;
+  readonly keptDir: string;
+  readonly figures: ReadonlyArray<{
+    readonly figure: string;
+    readonly concept: string;
+    readonly drawnCrop: string;
+    readonly flagged: ReadonlyArray<string>;
+    readonly file: string;
+    readonly layout: Option.Option<string>;
+  }>;
 }
 
 /** The rows a figure's table flagged, as `matchLines` says them. */
@@ -91,17 +128,49 @@ const flaggedOf = (m: MatchTaken['figures'][number]): ReadonlyArray<string> =>
     .map((line) => line.trim());
 
 /** Each figure as the packet names it: its crops by their files beside the packet, and its flagged rows. */
-const figuresOf = (taken: MatchTaken): ReadonlyArray<CritiqueFigure> =>
-  taken.figures.map((m) => ({
-    figure: m.figure,
-    concept: `${m.figure}-concept.png`,
-    scene: `${m.figure}-scene.png`,
-    flagged: flaggedOf(m),
+const figuresOf = (ask: CritiqueAsk): ReadonlyArray<CritiqueFigure> =>
+  ask.figures.map((f) => ({
+    figure: f.figure,
+    concept: `${f.figure}-concept.png`,
+    scene: `${f.figure}-${ask.drawn}.png`,
+    flagged: f.flagged,
+    layout: f.layout,
   }));
 
-/** Where a match's figures were drawn, in words: the scene, the place, the time and the build. */
-const placeOf = (taken: MatchTaken) =>
-  `${taken.scene} ${taken.at}, t=${taken.time.toFixed(2)}, build ${taken.build}`;
+/** A match's figures as a critique asks them: drawn in its scene, at its place, each written beside its table. */
+const askOfMatch = (taken: MatchTaken, path: Path.Path): CritiqueAsk => ({
+  drawn: 'scene',
+  place: `${taken.scene} ${taken.at}, t=${taken.time.toFixed(2)}, build ${taken.build}`,
+  logged: `scene=${taken.scene} at=${taken.at}`,
+  keptDir: Option.match(Arr.head(taken.figures), {
+    onNone: () => '',
+    onSome: (m) => path.join(path.dirname(path.dirname(path.dirname(m.table))), 'critique'),
+  }),
+  figures: taken.figures.map((m) => ({
+    figure: m.figure,
+    concept: m.crops.concept,
+    drawnCrop: m.crops.scene,
+    flagged: flaggedOf(m),
+    file: `${m.table.replace(/\.md$/, '')}.critique.md`,
+    layout: Option.none(),
+  })),
+});
+
+/** A cast sheet try's views as a critique asks them. */
+const askOfSheet = (sheet: SheetCritique): CritiqueAsk => ({
+  drawn: 'sheet',
+  place: sheet.place,
+  logged: `sheet="${sheet.place}"`,
+  keptDir: sheet.kept,
+  figures: sheet.views.map((v) => ({
+    figure: v.figure,
+    concept: v.concept,
+    drawnCrop: v.sheet,
+    flagged: v.flagged,
+    file: v.file,
+    layout: v.layout,
+  })),
+});
 
 export class Critic extends Context.Service<Critic, CriticService>()('@bible/film/tools/Critic') {
   /** The critic over the app's rule sections `rules` (`FilmApp.critique`), asking the counsel; refused when a section is missing. */
@@ -132,24 +201,23 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
           }),
         );
 
-        /** The counsel's findings on `figures` (their crops copied beside the packet), or why there are none. */
-        const asked = (
-          place: string,
-          taken: MatchTaken,
-          kept: string,
-        ): Effect.Effect<CritiqueRead, string> =>
+        /** The counsel's findings on the ask's figures (their crops copied beside the packet), or why there are none. */
+        const asked = (ask: CritiqueAsk, kept: string): Effect.Effect<CritiqueRead, string> =>
           Effect.scoped(
             Effect.gen(function* () {
               const dir = yield* fs.makeTempDirectoryScoped();
-              const figures = figuresOf(taken);
-              yield* Effect.forEach(taken.figures, (m) =>
+              const figures = figuresOf(ask);
+              yield* Effect.forEach(ask.figures, (f) =>
                 Effect.all([
-                  fs.copyFile(m.crops.concept, path.join(dir, `${m.figure}-concept.png`)),
-                  fs.copyFile(m.crops.scene, path.join(dir, `${m.figure}-scene.png`)),
+                  fs.copyFile(f.concept, path.join(dir, `${f.figure}-concept.png`)),
+                  fs.copyFile(f.drawnCrop, path.join(dir, `${f.figure}-${ask.drawn}.png`)),
                 ]),
               );
               const packet = path.join(dir, 'packet.md');
-              yield* fs.writeFileString(packet, critiquePacket(place, figures, sections));
+              yield* fs.writeFileString(
+                packet,
+                critiquePacket(ask.drawn, ask.place, figures, sections),
+              );
               return packet;
             }).pipe(
               Effect.mapError((error) => `the packet cannot be written: ${error.message}`),
@@ -162,7 +230,7 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
                 Effect.fromResult(
                   findingsOf(
                     answer.text,
-                    taken.figures.map((m) => m.figure),
+                    ask.figures.map((f) => f.figure),
                   ),
                 ),
               ),
@@ -185,53 +253,51 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
             Effect.option,
           );
 
-        const critique = Effect.fn('Critic.critique')(function* (taken: MatchTaken) {
-          const place = placeOf(taken);
-          if (taken.figures.length === 0)
-            return { figures: [], cached: false, rejected: [] } satisfies CritiqueTaken;
-          const started = yield* Clock.currentTimeMillis;
-          const outFilm = Option.match(Arr.head(taken.figures), {
-            onNone: () => '',
-            onSome: (m) => path.dirname(path.dirname(path.dirname(m.table))),
-          });
-          const read = yield* Effect.gen(function* () {
-            const crops = yield* Effect.forEach(taken.figures, (m) =>
-              Effect.all([fs.readFile(m.crops.concept), fs.readFile(m.crops.scene)]).pipe(
-                Effect.map(([concept, scene]) => [sha256Hex(concept), sha256Hex(scene)]),
-                Effect.mapError((error) => `${m.figure}'s crops cannot be read: ${error.message}`),
+        /** The ask's findings, kept by the hash of its prompt (but the place) and its crops, or asked. */
+        const answered = (ask: CritiqueAsk) =>
+          Effect.gen(function* () {
+            const crops = yield* Effect.forEach(ask.figures, (f) =>
+              Effect.all([fs.readFile(f.concept), fs.readFile(f.drawnCrop)]).pipe(
+                Effect.map(([concept, drawn]) => [sha256Hex(concept), sha256Hex(drawn)]),
+                Effect.mapError((error) => `${f.figure}'s crops cannot be read: ${error.message}`),
               ),
             );
-            // The prompt as sent, but the place (its build and time change with every build).
+            // The prompt as sent, but the place (a scene's build and time change with every build).
             const hash = sha256Hex(
-              [critiquePacket('', figuresOf(taken), sections), ...crops.flat()].join('\n'),
+              [critiquePacket(ask.drawn, '', figuresOf(ask), sections), ...crops.flat()].join('\n'),
             );
-            const kept = path.join(outFilm, 'critique', `${hash.slice(0, 32)}.json`);
+            const kept = path.join(ask.keptDir, `${hash.slice(0, 32)}.json`);
             yield* fs
-              .makeDirectory(path.dirname(kept), { recursive: true })
+              .makeDirectory(ask.keptDir, { recursive: true })
               .pipe(Effect.mapError((error) => error.message));
             const before = yield* keptAnswer(kept);
             if (Option.isSome(before)) return { read: before.value, cached: true };
-            return { read: yield* asked(place, taken, kept), cached: false };
+            return { read: yield* asked(ask, kept), cached: false };
           }).pipe(
             Effect.result,
             Effect.catchDefect((defect) =>
               Effect.succeed(Result.fail(`the critique died: ${Cause.pretty(Cause.die(defect))}`)),
             ),
           );
+
+        const critiqued = Effect.fn('Critic.critiqued')(function* (ask: CritiqueAsk) {
+          if (ask.figures.length === 0)
+            return { figures: [], cached: false, rejected: [] } satisfies CritiqueTaken;
+          const started = yield* Clock.currentTimeMillis;
+          const read = yield* answered(ask);
           const findings = Result.map(read, (r) => r.read);
-          const figures = yield* Effect.forEach(taken.figures, (m) =>
+          const figures = yield* Effect.forEach(ask.figures, (f) =>
             Effect.gen(function* () {
-              const file = `${m.table.replace(/\.md$/, '')}.critique.md`;
               yield* fs
-                .writeFileString(file, critiqueMarkdown(m.figure, place, findings))
+                .writeFileString(f.file, critiqueMarkdown(f.figure, ask.place, findings))
                 .pipe(Effect.ignore);
               return {
-                figure: m.figure,
+                figure: f.figure,
                 findings: Result.match(findings, {
                   onFailure: () => [],
-                  onSuccess: (r) => r.findings.filter((f) => f.figure === m.figure),
+                  onSuccess: (r) => r.findings.filter((x) => x.figure === f.figure),
                 }),
-                file,
+                file: f.file,
               };
             }),
           );
@@ -239,12 +305,12 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
           yield* Result.match(read, {
             onFailure: (why) =>
               Effect.logWarning(
-                `critique.skipped scene=${taken.scene} at=${taken.at} figures=${figures.length} reason=${why}`,
+                `critique.skipped ${ask.logged} figures=${figures.length} reason=${why}`,
               ),
             onSuccess: (r) =>
               Effect.flatMap(Clock.currentTimeMillis, (now) =>
                 Effect.log(
-                  `critique scene=${taken.scene} at=${taken.at} figures=${figures.length} findings=${r.read.findings.length} rejected=${r.read.rejected.length} cached=${r.cached} ms=${now - started}`,
+                  `critique ${ask.logged} figures=${figures.length} findings=${r.read.findings.length} rejected=${r.read.rejected.length} cached=${r.cached} ms=${now - started}`,
                 ),
               ),
           });
@@ -254,7 +320,10 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
           });
         });
 
-        return Critic.of({ critique });
+        return Critic.of({
+          critique: (taken) => critiqued(askOfMatch(taken, path)),
+          critiqueSheet: (sheet) => critiqued(askOfSheet(sheet)),
+        });
       }),
     );
 
@@ -264,6 +333,8 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
       Critic,
       Critic.of({
         critique: () =>
+          Effect.succeed({ figures: [], cached: false, skipped: reason, rejected: [] }),
+        critiqueSheet: () =>
           Effect.succeed({ figures: [], cached: false, skipped: reason, rejected: [] }),
       }),
     );

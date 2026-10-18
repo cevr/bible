@@ -10,7 +10,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Cause, Context, Effect, Exit, FileSystem, Layer, Path } from 'effect';
+import { Cause, Context, Effect, Exit, FileSystem, Layer, Option, Path } from 'effect';
 import { critiquePacket } from '../core/critique.ts';
 import { CounselFailed } from '../core/judge.ts';
 import type { MatchTaken } from '../core/match.ts';
@@ -106,10 +106,41 @@ describe("the critique's packet", () => {
     'calls a hand floating free of the body a finding: the house hand ends an arm in its sleeve',
     () =>
       Effect.sync(() =>
-        expect(critiquePacket('s at 1', [], [])).toContain(
+        expect(critiquePacket('scene', 's at 1', [], [])).toContain(
           '- **pose**: where each hand is (raised or low, which one), the lean, the gesture. The house hand is a circle at the end of an arm in its sleeve: a hand floating free of the body, with no sleeve to it, is a finding.',
         ),
       ),
+  );
+});
+
+describe("a cast sheet's packet", () => {
+  const packet = critiquePacket(
+    'sheet',
+    "christ's poses sheet, try 1",
+    [
+      {
+        figure: 'view-3',
+        concept: 'view-3-concept.png',
+        scene: 'view-3-sheet.png',
+        flagged: [],
+        layout: Option.some("turned three-quarters toward the viewer's left, His head bowed"),
+      },
+    ],
+    [],
+  );
+  it.effect("holds each view's angle and gesture to what its layout asks, not to the concept", () =>
+    Effect.sync(() => {
+      expect(packet).toContain(
+        "- What the layout asks of it: turned three-quarters toward the viewer's left, His head bowed",
+      );
+      expect(packet).toContain(
+        "an angle is a finding only where the view differs from its layout's words",
+      );
+      expect(packet).toContain(
+        'a raised hand, a bow or a lean the layout asks for is never a finding',
+      );
+      expect(packet).not.toContain('a different angle is a finding');
+    }),
   );
 });
 
@@ -195,5 +226,55 @@ describe('the critique', () => {
       expect(first.skipped).toContain('no claude on PATH');
       expect(second.cached).toBe(false);
     }),
+  );
+});
+
+describe("a cast sheet's critique", () => {
+  it.effect(
+    'asks of each view as a sheet the rigs are traced from, the hair and the beard named, its findings beside the try',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const { rules, dir } = yield* written;
+        const view = path.join(dir, 'turnaround-2.view-2');
+        yield* fs.writeFile(`${view}.concept.png`, new Uint8Array([3]));
+        yield* fs.writeFile(`${view}.sheet.png`, new Uint8Array([4]));
+        const asked: Array<string> = [];
+        const answer = [
+          '```json',
+          '{"findings": [{"figure": "view-2", "aspect": "face", "what": "the beard runs into the hair at the cheek"}]}',
+          '```',
+        ].join('\n');
+        const built = yield* Layer.build(
+          Critic.layer([{ file: rules, heading: '## The look' }]).pipe(
+            Layer.provide(Counsel.layerTest(() => answer, asked)),
+          ),
+        );
+        const taken = yield* Context.get(built, Critic).critiqueSheet({
+          place: 'christ turnaround try 2',
+          kept: path.join(dir, 'critique'),
+          views: [
+            {
+              figure: 'view-2',
+              concept: `${view}.concept.png`,
+              sheet: `${view}.sheet.png`,
+              flagged: ['hairBeard view=2'],
+              file: `${view}.critique.md`,
+              layout: Option.some("turned three-quarters toward the viewer's left"),
+            },
+          ],
+        });
+        expect(asked[0]).toContain('one view of a cast sheet (christ turnaround try 2)');
+        expect(asked[0]).toContain('- The sheet: `view-2-sheet.png`');
+        expect(asked[0]).toContain(
+          "- What the layout asks of it: turned three-quarters toward the viewer's left",
+        );
+        expect(asked[0]).toContain('where the hair meets the beard');
+        expect(taken.figures[0]?.findings.map((f) => f.what)).toEqual([
+          'the beard runs into the hair at the cheek',
+        ]);
+        expect(yield* fs.readFileString(`${view}.critique.md`)).toContain('**face**');
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 });

@@ -2768,10 +2768,13 @@ two crops at 1:1 to a fresh Opus (`Counsel`, as `film judge` asks it:
 headless Claude at max effort, Read its one tool, sandboxed) beside the
 match's flagged rows and the app's figure rules (`FilmApp.critique.rules`:
 sections of its rule files, each by its heading line). It asks for each
-difference in head angle and turn, face shape and features, pose,
+difference in head angle and turn, face shape and features (and where the
+hair meets the beard: the owner, 2026-10-18, on Christ's render), pose,
 proportion (never the height in heads, which is the cast's band), palette
 and artifacts, and reads the findings (`CritiqueFinding`
-`{figure, aspect, what, where?}`) from the answer's last `json` block.
+`{figure, aspect, what, where?}`) from the answer's last `json` block. Its
+sheet mode (`Critic.critiqueSheet`, `film concept critique`) asks the same
+of a cast sheet's views, each beside the concept it faces as.
 
 - **Batched.** One counsel run answers every figure at the place.
 - **Cached.** The answer is kept at `out/<film>/critique/<hash>.json`, the
@@ -2784,7 +2787,8 @@ and artifacts, and reads the findings (`CritiqueFinding`
   `apps/animations/rules.test.ts` holds every heading to its file.
 - **Fails open.** A counsel that fails, an answer with no `json` block or
   one that is not `{"findings": [...]}`, crops that cannot be read, or a
-  defect is a skip: logged (`critique.skipped scene= at= figures= reason=`),
+  defect is a skip: logged (`critique.skipped scene= at= figures= reason=`;
+  a sheet's `sheet=` for `scene= at=`),
   said in each figure's file and in the answer's `skipped`, never a
   failure. Each finding is read on its own: one that does not read, or names
   no figure asked about (names match in any case), is rejected and said in
@@ -2813,7 +2817,11 @@ the references' note, the member's look, the layout and the sheet rules (the
 canon, one outline round each figure's silhouette with the head's outline
 the one line inside it, the hair a shape behind the head and
 the beard parted from it, each circle hand at the end of its arm in its
-sleeve and never a bare arm, the glide, no lettering).
+sleeve and never a bare arm, the glide, no lettering). A layout or a look
+with a clause that names a hand and says it floats is refused as
+`HandFloats`, naming the clause, so a prompt never asks for a sleeved hand
+and a floating one at once; a test reads every cast record's layouts and
+look, the library's and each film's, through it.
 
 `film concept measure <try.png> --kind turnaround|poses|heads --count <n>
 --anchor <view> [--slot <slot> ...] [--standing <view> ...] [--level <view>
@@ -2886,14 +2894,21 @@ on the image route. The member's folder is its film's own role's,
 `CastUnfound`. It holds `cast-sheet.json` (`CastSheetRecord`,
 `core/cast-record.ts`, pure: the member's pronoun, its scope, each reference
 image and what it is for, and per kind the anchor view and, for poses and
-heads, the layout in words and each view's slot), `look.md` and the
-reference images; the images stay out of git, as a board's do. A kind the
-record does not set up is `CastKindUnset` before any draw, and the brief is
-built once before any draw, so a house block that moved stops the run.
+heads, the layout in words and each view's slot, and the kept concepts its
+views are held to: a reference's file, the member's box in it and the views
+that face as it does), `look.md` and the reference images; the references
+stay out of git, as a board's images do. A kind the record does not set up
+is `CastKindUnset` before any draw, a concept whose box shows no figure is
+`CastConceptUnread`, and the brief is built once before any draw, so a
+house block that moved stops the run. Each concept is measured once and
+held to its views (`compareFigures`, as `--concept` is).
 
 Tries run `--lanes` at once (three at most, the route's own limit). Each
 lands in `out/<film>/cast/<member>/` as `<kind>-<n>.png` with its
-`.measure.md` and `.overlay.png`, and is recorded in `cast-sheet.json` under
+`.measure.md`, `.overlay.png` and `.preview.png` (`sheetPreview`,
+`core/cast-preview.ts`, pure: each view cut out at one head height, a
+standing view's body under the chin drawn to the canon with its head held,
+as the trace will make it, the canon's band across), and is recorded in `cast-sheet.json` under
 the record's lock (`ContentStore.transact`): its prompt, its references (as
 the sheet's folder reaches them), whether the underlay rode along, the try
 it draws again, the measure's flags and the anchor's squash. A flagged try
@@ -2906,6 +2921,28 @@ profiles are its third and fifth views), written fresh as
 `underlay-<kind>.png`. A retry that still drifts is recorded with its flags,
 never dropped; a try that draws nothing is a line and the run goes on.
 `--dry-run` prints the prompt and the references and draws nothing.
+
+`film concept critique <film> <member> --kind <kind> --try <n>`
+(`tools/cast-sheet-critique.ts`) cuts each view a kept concept faces from
+the try at 1:1 beside the concept's crop, and asks one counsel run of them
+with the measure's flags on each view (`Critic.critiqueSheet`: the scene
+critique's packet, its figures said to be a cast sheet's views, the face
+aspect naming where the hair meets the beard). Each view goes with what the
+layout asks of it (its numbered clause, "one, …; two, …", after the words
+its group shares, as "One to three are turned …: one, …", or the whole
+layout when it numbers none), and the packet holds a sheet's head angle and
+gesture to those words, not to the concept: a bow or a raised hand the
+layout asks for is never a finding. A view no concept faces is said, never
+critiqued against another's. The crops and each view's `.critique.md` land
+in `out/<film>/cast/<member>/critique/<kind>-<n>/`.
+
+`film concept keep <film> <member> --kind <kind> --try <n> --why <words>
+[--ask <id>]` (`tools/cast-sheet-keep.ts`) files the owner's keep: the try
+as `kept/<kind>.png` in the member's folder, each view cut from it as
+`views/<name>.png` (a turnaround's by the house's names, `front` …
+`threeQuarterRight`; a poses or heads sheet's as `<kind>-<n>`), both
+committed, and `kept.<kind>` in the record with his why and the ask. A kind
+kept already, or a try the record does not hold, is `SheetKept`.
 
 ### The review: `film review`, and keep needs evidence
 

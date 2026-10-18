@@ -142,7 +142,9 @@ describe('a try drawn the wrong way', () => {
         expect(files.has(`${OUT}/poses-1.png`) && files.has(`${OUT}/poses-1.measure.md`)).toBe(
           true,
         );
-        expect(files.has(`${OUT}/poses-2.overlay.png`)).toBe(true);
+        expect(
+          files.has(`${OUT}/poses-2.overlay.png`) && files.has(`${OUT}/poses-2.preview.png`),
+        ).toBe(true);
         expect(castLine(lines[0]!)).toStartWith('made christ.poses try=1 flags=1 underlay=false');
       }).pipe(Effect.provide(castOver(files, calls, (r) => (underlaid(r) && clean) || wrong)));
     },

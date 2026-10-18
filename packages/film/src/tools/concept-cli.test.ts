@@ -51,7 +51,7 @@ const files = () =>
 const run = (args: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const lines = yield* Queue.unbounded<string>();
-    const exit = yield* Command.runWith(concept(HOUSE), { version: '0' })(args).pipe(
+    const exit = yield* Command.runWith(concept(HOUSE, []), { version: '0' })(args).pipe(
       Effect.provideService(Console.Console, printingTo(lines)),
       Effect.exit,
     );
