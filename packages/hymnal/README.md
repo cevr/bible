@@ -32,7 +32,11 @@ voices sound, named and placed on the melody note where it changes.
   notes no chord names is named, when it can be, by the complete chord its
   notes above the bass make (`Db/Eb`), or by the one complete chord it makes
   with one note left out (a passing tone); `Harmony` drops a chord over a held
-  bass that only neighbours the same chord on both sides.
+  bass that only neighbours the same chord on both sides. A key is one a
+  signature writes, the 15 major and 15 minor keys from seven flats to seven
+  sharps (`Key`; no E# major, no Db minor), so every degree spells with at
+  most two accidentals. A member bass whose interval's letter would take three
+  accidentals is spelled as its degree in the key instead.
 
 `bun run chart <file.mid> [verses] [full|guitar]` prints one verse's chords
 note by note, to check a file by eye against the printed hymn. `bun run split
@@ -55,10 +59,21 @@ relative to the repository root: `--db`, `--midi`, `--out`, `--key`.
 
 The app reads a hymn through `@bible/hymnal/hymn`, which imports only
 `effect` and `@bible/hymnal/chord` (no Bun, Node or dictionary). A hymn holds
-its key, its meter, each stanza in order and its refrain once. The compiler
-reads that order from the text's verse ids, stanzas 0, 1, … n − 1 and at most
-one refrain with a negative id; a text laid out any other way is refused
-(`VerseLayoutError`, counted as failed), never compiled in a guessed order.
+its key, its meter, each stanza in order and its refrain once, sung after
+every stanza. The compiler reads the stanzas' order from the text's verse
+ids: stanzas 0, 1, … n − 1, at most one refrain with a negative id, and words
+in every verse. A text laid out any other way is refused (`VerseLayoutError`,
+counted as failed). The ids do not say where the print places the refrain:
+the compiler lays it after stanza 1 on the tune's first verse. Hymns 93, 121,
+133, 362 and 475 print it before stanza 1, and 172 sings its Alleluias only
+before stanza 1 and after stanza 4, so for these six the refrain's place and
+its chords are not checked against the score.
+
+Hymn 593 sings a different refrain ending after stanza 3 ("I'm very sure …
+My anchor"), which one refrain cannot hold. `data/fixes/593.json` keeps its
+row as the print lays it (each stanza, then the refrain sung after it), and
+`bun scripts/hymnal-593.ts [--db <hymnal.db>]` writes it into hymnal.db as
+three stanzas, each with its own refrain ending inline, and no refrain.
 Each part says how far its placement can be trusted:
 
 - `Sung` at `syllable`: the chords sit on the syllables they change on. The
@@ -110,6 +125,8 @@ on N notes and `text_0` for one sharing the note before. The compile reports
 how many lines lay exactly as the key says, in all and per level.
 
 The MIDI files, the hand charts, the key and the compiled set are tracked
-here (owner, 2026-10-18). The tests read none of them: they build their MIDI
-in code (`src/midi-fixture.ts`), and read only the texts' verse layout from
-hymnal.db.
+here (owner, 2026-10-18). The tests build their MIDI in code
+(`src/midi-fixture.ts`) and read no MIDI file, chart or key. They read
+hymnal.db, and one test reads the compiled set and `data/fixes`: every line
+of every hymn's text (its fix where one is kept) is sung in the compiled hymn,
+in the text's order.
