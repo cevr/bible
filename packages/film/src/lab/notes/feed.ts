@@ -1,6 +1,6 @@
 // The notes feed, the lab page's live connection to its server, as one
 // machine: it reads the notes, then long-polls past the cursor, so a reply
-// the agent makes from `film notes` lands on the page as it is written. A
+// the agent makes from `film lab` lands on the page as it is written. A
 // wait that brings changes reads the notes again; one that brings none (the
 // server answers empty after WAIT_S) waits again. A read takes the file's own
 // cursor, and a wait whose cursor went back (a notes file trashed, moved or

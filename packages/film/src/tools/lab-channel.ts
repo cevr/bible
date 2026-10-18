@@ -9,9 +9,10 @@
 // `changes`, waiting up to `WAIT_S` each time, and sends each change on as
 // one channel event: its summary and links as the text, what it is about as
 // attributes.
-// The lab stays the one record and the one feed; the bridge keeps nothing
-// but the cursor (`lab-relay.ts`), which outlives a session: a lab that
-// stops answering is asked again every `RETRY` and read on from it.
+// The lab stays the one record and the one feed; the bridge reads the lab's
+// event stream (`lab-stream.ts`, the one `film lab events --follow` prints),
+// whose cursor outlives a session: a lab that stops answering is asked again
+// with backoff and read on from it.
 //
 //   claude mcp add lab-events -s user -- bun <app>/cli.ts channel
 //   claude --dangerously-load-development-channels server:lab-events
@@ -19,7 +20,7 @@
 import {
   Array as Arr,
   Boolean as Bool,
-  Duration,
+  Match,
   Effect,
   Option,
   Queue,
@@ -31,19 +32,13 @@ import { Command } from 'effect/cli';
 import type { LabChange } from '../core/lab-events.ts';
 import { labClient, labUrl } from './lab-client.ts';
 import { Changes } from './lab-commands.ts';
-import { relayFeed } from './lab-relay.ts';
+import { type Heard, STREAM_PACE, followLab } from './lab-stream.ts';
 
 /** The capability Claude Code reads a channel by. */
 const CHANNEL = 'claude/channel';
 
 /** The method a channel event is sent with. */
 const CHANNEL_EVENT = 'notifications/claude/channel';
-
-/** How long one ask of the lab waits for a change, in seconds: inside the lab's own limit. */
-const WAIT_S = 50;
-
-/** How long the bridge waits before asking a lab that did not answer again. */
-const RETRY = Duration.seconds(5);
 
 /** The most changes one reconnect sends on: the rest are said in one line. */
 const CATCH_UP = 20;
@@ -208,19 +203,30 @@ const runChannel = (url: string) =>
     };
 
     /** The lab's changes, relayed for as long as the bridge runs: a lost session is started again. */
-    const relay = relayFeed(
+    const relay = followLab(
       feed,
-      (answer) =>
-        Effect.gen(function* () {
-          const told = Bool.match(answer.reset, {
-            onTrue: () => caughtUp(answer.changes),
-            onFalse: () => answer.changes.map(channelEvent),
-          });
-          yield* Effect.forEach(told, send, { discard: true });
-          if (told.length > 0) yield* Effect.log(`lab.channel.sent count=${told.length}`);
-        }),
-      (error) => Effect.logWarning(`lab.channel.unanswered url=${url} reason="${error.reason}"`),
-      { wait: WAIT_S, retry: RETRY },
+      { since: Option.none(), pace: STREAM_PACE, isLost: () => true, goneAfter: Option.none() },
+      (heard: Heard<string>) =>
+        Match.value(heard).pipe(
+          Match.tagsExhaustive({
+            Connected: () => Effect.as(Effect.log('lab.channel.connected'), Option.none()),
+            Answer: ({ answer }) =>
+              Effect.gen(function* () {
+                const told = Bool.match(answer.reset, {
+                  onTrue: () => caughtUp(answer.changes),
+                  onFalse: () => answer.changes.map(channelEvent),
+                });
+                yield* Effect.forEach(told, send, { discard: true });
+                if (told.length > 0) yield* Effect.log(`lab.channel.sent count=${told.length}`);
+                return Option.none();
+              }),
+            Lost: ({ reason }) =>
+              Effect.as(
+                Effect.logWarning(`lab.channel.unanswered url=${url} reason="${reason}"`),
+                Option.none(),
+              ),
+          }),
+        ),
     );
 
     const answering = stdio.stdin.pipe(

@@ -42,7 +42,7 @@ What it gets wrong, so a pick checks for it and a tweak names it:
 
 The owner works the board in the studio (`/films/<film>/studio`): a panel's clip on the timeline's Board lane, or a beat, opens the inspector's **Board** section, each of the beat's panels at its mark with its tries as a strip of thumbs, the kept one ringed and its why under it; a try pressed shows in the viewer (a second press, the kept one), and **Keep** keeps it on the version the film plays. **Mark up** draws over a try with a pen and takes the owner's words, saved as a **Tweak** (or a plain note) on that try. **Approve** approves the beat once each of its pictures keeps a try (the button says why not before then), **Withdraw** takes an approval back. The **Notes and asks** section holds the beat's open notes, each with its thread and a reply, and its asks. The old Board page's links (`/films/<film>/board/<beat>?panel=`) land on the studio with that beat or panel selected.
 
-A comment or a tweak is a lab note carrying its `panel` (`id`, `try`, `ask: tweak`), and a sketch and a still of the panel as drawn on when it has them. An agent asks a tweak with the lab's `request_tweak` tool, the owner's word from chat on it. Read them with `bun run notes <film>`; a tweak is made with:
+A comment or a tweak is a lab note carrying its `panel` (`id`, `try`, `ask: tweak`), and a sketch and a still of the panel as drawn on when it has them. An agent asks a tweak with the lab's `request_tweak` tool, the owner's word from chat on it. Read them with `bun run lab notes --film <film>`; a tweak is made with:
 
 ```
 bun run board tweak <film> <note>

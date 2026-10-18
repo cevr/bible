@@ -27,7 +27,7 @@
     "chapters": "bun cli.ts chapters",
     "lab": "bun cli.ts lab",
     "production": "bun cli.ts production",
-    "notes": "bun cli.ts notes",
+    "notes": "bun cli.ts lab notes",
     "media": "bun cli.ts media",
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",

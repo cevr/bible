@@ -1,13 +1,11 @@
-// How `film notes` prints a note: one line of `key=value` fields an agent (or
-// a Claude Code Monitor on `--watch`) reads without parsing JSON. The still is
-// an absolute path, so the reader can open the frame directly. Every line
-// carries `seq=`, the change it reports: `--watch --since <seq>` resumes right
-// after it. Pure.
+// How `film lab notes` prints a note: one line of `key=value` fields an agent
+// reads without parsing JSON. The still is an absolute path, so the reader
+// can open the frame directly, and `seq=` is the change it was last made at.
+// Pure.
 
 import { Option } from 'effect';
-import type { Note, NoteEvent, Reply } from '../core/schema.ts';
+import type { Note } from '../core/schema.ts';
 import { sketchSummary } from '../core/sketch.ts';
-import type { NotesPaths } from './notes-store.ts';
 
 /** Text in double quotes, on one line. */
 const quoted = (text: string) =>
@@ -64,35 +62,12 @@ const fields = (note: Note) => {
 };
 
 /**
- * A note as of change `seq` (it was made then, or last changed then):
+ * A note as of change `seq` (it was made then, or last changed then), its
+ * still at `stillFile`:
  * `note id=n3 seq=3 status=open scene=hand T=230.38 local=4.12 frame=6911 cue=topple:end ... still=/…/n3.png text="…"`
  * (`local=`, `range=3.20-4.00`, `source=scenes/hand.ts:118 line="…"` and
  * `words=hand:4-6 said="…" kind=correction replace="…"`, and
  * `panel=cold.righteous try=1 ask=tweak sketch="pen 2, arrow 1"` only on a note that has them).
  */
-export const noteLine = (at: NotesPaths, note: Note, seq: number) =>
-  `note id=${note.id} seq=${seq} status=${note.status} ${fields(note)} replies=${note.thread.length} still=${at.stills}/${note.still} text=${quoted(note.text)}`;
-
-/** A reply in a note's thread; its still is the reply's own, else the note's frame. */
-const replyLine = (at: NotesPaths, note: Note, reply: Reply) => {
-  const still = Option.getOrElse(Option.fromNullishOr(reply.still), () => note.still);
-  return `reply id=${note.id} seq=${reply.seq} by=${reply.by} ${fields(note)} still=${at.stills}/${still} text=${quoted(reply.text)}`;
-};
-
-/**
- * The line for a change the agent has not seen: a new note, or a reply from
- * the user. None for the agent's own replies and for resolving, which the
- * agent does not act on.
- */
-export const eventLine = (at: NotesPaths, event: NoteEvent): Option.Option<string> => {
-  if (event._tag === 'NoteAdded') return Option.some(noteLine(at, event.note, event.seq));
-  if (event._tag === 'NoteReplied' && event.reply.by === 'user')
-    return Option.some(replyLine(at, event.note, event.reply));
-  return Option.none();
-};
-
-/** The notes file's cursor: pass it to `--watch --since` to see every change after it. */
-export const cursorLine = (seq: number) => `cursor seq=${seq}`;
-
-/** What `--watch` prints first: the cursor it starts past. */
-export const watchLine = (since: number) => `watch since=${since}`;
+export const noteLine = (note: Note & { readonly stillFile: string }, seq: number) =>
+  `note id=${note.id} seq=${seq} status=${note.status} ${fields(note)} replies=${note.thread.length} still=${note.stillFile} text=${quoted(note.text)}`;

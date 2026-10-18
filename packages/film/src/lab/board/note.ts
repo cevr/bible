@@ -1,7 +1,7 @@
 // A note on a storyboard panel, as the studio's Board section saves it
 // (`film-studio/panel-markup.tsx`): the lab's own note (`core/schema.ts`),
 // additive fields only, so every reader of notes (the studio's Notes and
-// asks, `film notes`, an agent) reads it as it reads any other. Its
+// asks, `film lab notes`, an agent) reads it as it reads any other. Its
 // scene is the panel's beat, its time the moment the panel is held from (its
 // mark, said), its mark the panel's; `panel` names the panel, the try shown
 // (none on a card or a verse) and what it asks; `sketch` is what was drawn

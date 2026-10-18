@@ -6,7 +6,7 @@ Until the owner asks for scene review (owner, 2026-10-01: the framework first, f
 
 ## Sources, read every pass
 
-1. **Lab notes**: `bun run notes <film>` for each film (in `apps/animations`). Every `open` or reopened note is an item; answer it with the film skill's Lab loop (reply with the after-still).
+1. **Lab notes**: `bun run lab notes --film <film>` for each film (in `apps/animations`). Every `open` or reopened note is an item; answer it with the film skill's Lab loop (reply with the after-still).
 2. **Frame reviews**: `apps/animations/plans/*-frame-review.md`. A finding the rebuild has not answered is an item.
 3. **The latest ledger's open items.** The seed list below is closed; an intake takes none of it.
 4. **`film check` and the look-book**: `bun run check <film>` findings, and a read of `bun run lookbook <film>` against the film skill's CRAFT rules and the topic file's MUST NOT list.

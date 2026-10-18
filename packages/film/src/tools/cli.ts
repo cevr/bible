@@ -16,7 +16,7 @@
 //   film read …       (read-cli.ts)    the studio's reading, a cue, the scenes' sites, read fresh for the lab
 //   film lab                                                   the lab's server, every film (Ctrl-C stops it)
 //   film lab <command> … (lab-cli.ts) the lab's command set, the same as its MCP tools (`--help` lists them)
-//   film notes …      (notes-cli.ts)   the lab's notes, from the terminal
+//   film lab events … (events-cli.ts) the lab's events, a line each (--follow: as they happen)
 //   film ask wait …   (ask-cli.ts)     wait on the owner's answer to an ask, in the background
 //   film concept …    (concept-cli.ts) a cast member's sheet: its brief, and a try measured
 //
@@ -106,6 +106,7 @@ import { SeriesDrafts, draftKey } from './series-drafts.ts';
 import { ask } from './ask-cli.ts';
 import { concept } from './concept-cli.ts';
 import { labCliCommands } from './lab-cli.ts';
+import { STREAM_PACE } from './lab-stream.ts';
 import { hereCommands, inLabCommands } from './lab-commands.ts';
 import { review } from './review-cli.ts';
 import { Counsel } from './counsel.ts';
@@ -116,7 +117,7 @@ import { judge } from './judge-cli.ts';
 import type { JudgeRule } from '../core/judge.ts';
 import type { CritiqueRule } from '../core/critique.ts';
 import { Review, type ReviewRoot } from './review.ts';
-import { notes } from './notes-cli.ts';
+import { labEventsAt } from './events-cli.ts';
 import { read } from './read-cli.ts';
 import { PreviewServer } from './preview-server.ts';
 import {
@@ -1125,9 +1126,10 @@ export const runFilmCli = <E>({
       chaptersCommand,
       doctor(previewServer),
       lab(labApp, films, footageAt, critiquing.rules).pipe(
-        Command.withSubcommands(
-          labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films }),
-        ),
+        Command.withSubcommands([
+          ...labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films }),
+          labEventsAt(STREAM_PACE),
+        ]),
       ),
       channel.pipe(Command.provide(FetchHttpClient.layer)),
       review(films, critiquing.rules),
@@ -1137,11 +1139,10 @@ export const runFilmCli = <E>({
       publish,
       board,
       judge(films, judging.rules),
-      notes,
     ]),
   );
   // Logs go to stderr, so stdout carries only what a command prints: the lines
-  // `cues`, `check` and `notes --watch` hand to a reader or a Monitor.
+  // `cues`, `check` and `lab events --follow` hand to a reader or a Monitor.
   const Logs = Layer.succeed(Logger.LogToStderr, true);
   // A bare `--accept-mismatch` stays bare: the parser would take the next word as its beats.
   // A take heard as something else is printed with the flags that re-record or keep it.

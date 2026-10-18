@@ -1,6 +1,6 @@
 // The lab's notes, on disk: `lab/<film>/notes.json` and the stills in
 // `lab/<film>/stills/`. The file is the source of truth; the lab server and
-// `film notes` both read and write it through this store, so either works
+// `film lab` both read and write it through this store, so either works
 // without the other. Every change is one `ContentStore.transact`: written
 // whole, one writer at a time across processes (the manifest's lock,
 // `ManifestLock`), its still written under the same lock, so a note saved
@@ -42,7 +42,7 @@ import { NoteAnswered, NoteNotFound } from '../core/refusals.ts';
 import type { FilmName } from './film-repo.ts';
 
 /** Where one film's notes live. A film is named by `filmNamed`, so no unchecked name reaches a path. */
-export interface NotesPaths {
+interface NotesPaths {
   readonly dir: string;
   readonly stills: string;
   readonly notes: Manifest<NotesFile>;

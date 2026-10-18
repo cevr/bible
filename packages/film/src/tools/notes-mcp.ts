@@ -42,6 +42,7 @@ import { BoardStore } from './board-store.ts';
 import { type FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { LabAddress, labCommand } from './lab-command.ts';
 import { FilmParam, LabRefused, refused } from './lab-mcp-parts.ts';
+import { noteLine } from './notes-lines.ts';
 import { NotesStore } from './notes-store.ts';
 
 // ---------------------------------------------------------------------------
@@ -58,7 +59,7 @@ export const NoteRead = Schema.Struct({
 
 export const NotesRead = Schema.Struct({
   film: Schema.String,
-  /** The note log's last change: `film notes --watch` waits past it. */
+  /** The note log's last change. */
   seq: Schema.Int,
   notes: Schema.Array(NoteRead),
 });
@@ -372,6 +373,8 @@ const lab = notesReads();
 export const notesCommands = [
   labCommand(Notes, {
     run: ({ film, status }) => Effect.flatMap(lab, (l) => l.notesOf(film, status ?? 'unresolved')),
+    // A note a line, every field it has (`noteLine`), then the log's last change.
+    lines: ({ notes, seq }) => [...notes.map((note) => noteLine(note, note.changed)), `seq=${seq}`],
   }),
   labCommand(Board, {
     run: ({ film, beat }) =>

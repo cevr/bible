@@ -34,6 +34,7 @@ import {
   Sink,
   Stdio,
   Stream,
+  SubscriptionRef,
 } from 'effect';
 import { BunTerminal } from '@effect/platform-bun';
 import { Command } from 'effect/cli';
@@ -55,7 +56,9 @@ import type { ContentStore } from './content-store.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { production } from './production-cli.ts';
 import { ProductionStore } from './production-store.ts';
+import { labEventsAt } from './events-cli.ts';
 import { channel } from './lab-channel.ts';
+import { STREAM_PACE } from './lab-stream.ts';
 import { labClient } from './lab-client.ts';
 import { labCliCommands } from './lab-cli.ts';
 import { Changes, hereCommands, inLabCommands } from './lab-commands.ts';
@@ -991,17 +994,46 @@ describe('asks through the MCP', () => {
   );
 });
 
-/** `film production` and `film lab <command>` as the CLI serves them, this checkout's films folder `/films`. */
+/** `film production`, `film lab <command>` and `film lab events` as the CLI serves them, this checkout's films folder `/films`. */
 const filmCommand = Command.make('film').pipe(
   Command.withSubcommands([
     production,
     Command.make('lab').pipe(
-      Command.withSubcommands(
-        labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films: '/films' }),
-      ),
+      Command.withSubcommands([
+        ...labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films: '/films' }),
+        labEventsAt(STREAM_PACE),
+      ]),
     ),
   ]),
 );
+
+/** The terminal `film …` runs in against the lab at `MCP_BASE`, its requests answered by `fetch`, and printing to `console`. */
+const onTerminal =
+  (fetch: (request: Request) => Promise<Response>, console: Console.Console) =>
+  <A, E, R>(run: Effect.Effect<A, E, R>) =>
+    run.pipe(
+      Effect.provideService(Console.Console, console),
+      Effect.provideService(References.MinimumLogLevel, 'None'),
+      Effect.provideService(
+        FetchHttpClient.Fetch,
+        Object.assign(
+          (input: RequestInfo | URL, init?: RequestInit) => fetch(new Request(input, init)),
+          {
+            preconnect: globalThis.fetch.preconnect,
+          },
+        ),
+      ),
+      Effect.provide(
+        Layer.mergeAll(
+          Stdio.layerTest({}),
+          formatAsIs,
+          BunTerminal.layer,
+          ConfigProvider.layer(
+            ConfigProvider.fromUnknown({ FILM_LAB_URL: MCP_BASE, FILM_LAB_PHONE_URL: MCP_PHONE }),
+          ),
+        ),
+      ),
+    );
 
 /**
  * `film …args` run to its end against the lab at `MCP_BASE`, its requests
@@ -1013,28 +1045,7 @@ const filmCli = (fetch: (request: Request) => Promise<Response>, args: ReadonlyA
     const lines = yield* Queue.unbounded<string>();
     const exit = yield* Effect.exit(
       Command.runWith(filmCommand, { version: '0' })(args).pipe(
-        Effect.provideService(Console.Console, printingTo(lines)),
-        Effect.provideService(References.MinimumLogLevel, 'None'),
-        Effect.provideService(
-          FetchHttpClient.Fetch,
-          Object.assign(
-            (input: RequestInfo | URL, init?: RequestInit) => fetch(new Request(input, init)),
-            {
-              preconnect: globalThis.fetch.preconnect,
-            },
-          ),
-        ),
-        // oxlint-disable-next-line effect/noInlineProvide -- the command's own terminal, and the lab it asks
-        Effect.provide(
-          Layer.mergeAll(
-            Stdio.layerTest({}),
-            formatAsIs,
-            BunTerminal.layer,
-            ConfigProvider.layer(
-              ConfigProvider.fromUnknown({ FILM_LAB_URL: MCP_BASE, FILM_LAB_PHONE_URL: MCP_PHONE }),
-            ),
-          ),
-        ),
+        onTerminal(fetch, printingTo(lines)),
       ),
     );
     return {
@@ -1050,6 +1061,148 @@ const filmCli = (fetch: (request: Request) => Promise<Response>, args: ReadonlyA
       }),
     };
   });
+
+/**
+ * `film …args` running against the lab at `MCP_BASE`, its requests answered
+ * by `fetch`: each line it prints offered to `out` as printed, each it says
+ * on stderr to `err`, until its fiber is interrupted.
+ */
+const filmRunning = (fetch: (request: Request) => Promise<Response>, args: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const out = yield* Queue.unbounded<string>();
+    const err = yield* Queue.unbounded<string>();
+    const console: Console.Console = {
+      ...printingTo(out),
+      error: (...words: ReadonlyArray<unknown>) => {
+        Queue.offerUnsafe(err, words.map(String).join(' '));
+      },
+    };
+    const fiber = yield* Effect.forkChild(
+      Command.runWith(filmCommand, { version: '0' })(args).pipe(onTerminal(fetch, console)),
+    );
+    return { out, err, fiber };
+  });
+
+/** A request on a line that is down. */
+class LineDown extends Schema.TaggedError<LineDown>()('LineDown', {}) {}
+
+/**
+ * The lab's handler behind a line that can drop: `drop` fails every request
+ * in flight and each one after it, as a lab restarted or a network gone
+ * does, until `restore`.
+ */
+const droppable = (lab: LabFetch) =>
+  Effect.map(SubscriptionRef.make(false), (down) => ({
+    fetch: (request: Request) =>
+      Effect.runPromise(
+        Effect.raceFirst(
+          Effect.promise(() => lab(request, mcpBound)),
+          SubscriptionRef.changes(down).pipe(
+            Stream.filter((isDown) => isDown),
+            Stream.runHead,
+            Effect.andThen(Effect.fail(LineDown.make())),
+          ),
+        ),
+      ),
+    drop: SubscriptionRef.set(down, true),
+    restore: SubscriptionRef.set(down, false),
+  }));
+
+/** A `film lab events` line's cursor (`cursor=<epoch>.<seq>`). */
+const cursorIn = (line: string) =>
+  Option.getOrThrow(Option.fromNullishOr(/ cursor=(\S+)/.exec(line)?.[1]));
+
+describe('film lab events', () => {
+  it.effect(
+    'follows the lab: a line per event as the lab sees it, flushed as each is printed; without --follow, the events past a cursor',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          const fetch = (request: Request) => lab(request, mcpBound);
+          const { out, err, fiber } = yield* filmRunning(fetch, [
+            'lab',
+            'events',
+            '--follow',
+            '--film',
+            'f',
+            '--name',
+            'note.*',
+          ]);
+          expect(yield* Queue.take(err)).toMatch(
+            /^lab events: following http:\/\/localhost:4401\/ from \w+\.\d+$/,
+          );
+          expect((yield* ownerNote(lab, 'the judge looks away too soon')).status).toBe(200);
+          yield* events.look;
+          const first = yield* Queue.take(out);
+          expect(first).toMatch(
+            /^note\.added cursor=\w+\.1 at=\S+ film=f note=n1 summary="[^"]*the judge looks away too soon[^"]*" read="bun cli\.ts lab notes --film f --status all" link=http:\/\/localhost:4401\/films\/f\/studio\?sel=beat%3Acold&note=n1$/,
+          );
+          expect((yield* ownerNote(lab, 'and the hand is late')).status).toBe(200);
+          yield* events.look;
+          const second = yield* Queue.take(out);
+          expect(second).toMatch(/^note\.added cursor=\w+\.2 .* note=n2 /);
+          yield* Fiber.interrupt(fiber);
+          // The events past the first line's cursor, as JSON, then the cursor to read on from.
+          const past = yield* filmCli(fetch, [
+            'lab',
+            'events',
+            '--since',
+            cursorIn(first),
+            '--json',
+          ]);
+          expect(past.failed).toBe('');
+          const [event, end] = yield* Effect.forEach(past.lines, (line) => readJson(line));
+          expect(event).toMatchObject({
+            cursor: cursorIn(second),
+            event: { kind: 'note.added', film: 'f', note: 'n2', text: 'and the hand is late' },
+          });
+          expect(end).toEqual({ cursor: cursorIn(second) });
+          expect(past.lines).toHaveLength(2);
+          // The full record each line's `read` names: every note a line, then the log's last change.
+          const read = yield* filmCli(fetch, ['lab', 'notes', '--film', 'f', '--status', 'all']);
+          expect(read.failed).toBe('');
+          expect(read.lines).toHaveLength(3);
+          expect(read.lines[0]).toMatch(
+            /^note id=n1 seq=1 status=open scene=cold T=1\.00 frame=30 replies=0 still=\/\S+\/n1\.png text="the judge looks away too soon"$/,
+          );
+          expect(read.lines[2]).toBe('seq=2');
+        }),
+      ),
+  );
+
+  it.effect(
+    'says on stderr when the lab is lost, reconnects, and reads on from its cursor: nothing missed while it was away',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          const line = yield* droppable(lab);
+          const { out, err, fiber } = yield* filmRunning(line.fetch, ['lab', 'events', '--follow']);
+          expect(yield* Queue.take(err)).toContain('lab events: following');
+          yield* ownerNote(lab, 'one');
+          yield* events.look;
+          const first = yield* Queue.take(out);
+          expect(first).toMatch(/^note\.added .* note=n1 /);
+          yield* line.drop;
+          expect(yield* Queue.take(err)).toMatch(
+            /^lab events: lost the lab \(no lab answered at .*\); asking again$/,
+          );
+          // What the owner does while the line is down, the lab keeps.
+          yield* ownerNote(lab, 'two');
+          yield* events.look;
+          yield* line.restore;
+          yield* TestClock.adjust('1 second');
+          expect(yield* Queue.take(err)).toBe(
+            `lab events: reconnected to ${MCP_BASE}, reading on from ${cursorIn(first)}`,
+          );
+          expect(yield* Queue.take(out)).toMatch(/^note\.added .* note=n2 /);
+          expect(yield* Queue.size(err)).toBe(0);
+          yield* Fiber.interrupt(fiber);
+        }),
+      ),
+  );
+});
 
 describe('film lab ask', () => {
   it.effect(

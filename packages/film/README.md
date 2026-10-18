@@ -2215,7 +2215,7 @@ recorder over the real studio page in Chrome with a fake microphone.
 
 **Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in
-git). The file is the source of truth: the lab server and `film notes` both
+git). The file is the source of truth: the lab server and `film lab notes` both
 go through NotesStore, so either works without the other. A note is `{ id,
 film, scene, T, local?, frame, cue?: { name, edge }, mark?, range?: { from, to },
 box?, ink?, text, status, still, thread, createdAt }`, plus `seq` (the change that made it) and
@@ -2353,7 +2353,9 @@ a note, reply or resolve made on the page reads the notes at once. (A
 scene edited on disk loads the studio again at its place through the lab's
 own build counter, `lab/rebuilt.ts`; there is no HMR client.)
 
-`film notes <film>` (`notes-cli.ts`) prints each unresolved note as one line:
+`film lab notes --film <film>` (the `notes` command, `notes-mcp.ts`; its
+line is `notes-lines.ts`) prints each unresolved note as one line (`--status
+all` every note), then `seq=<N>`, the note log's last change:
 
 ```
 note id=n1 seq=1 status=open scene=hand T=230.38 local=4.12 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
@@ -2372,10 +2374,10 @@ text as it stood, so the line is found after the file moves.
 and last index in the line, the words as they read, what the note asks of
 them, and a correction's words to say instead.
 
-`--watch` prints each new note, and each reply from the user (`reply id=…
-by=user … still=… text="…"`), once per run, starting past the current cursor
-(`--since n` to start earlier): run it under a Claude Code Monitor and each
-note arrives as a notification. `film lab reply --film <film> --note <id>
+A note made, replied to or done arrives as an event (`note.added`,
+`note.replied`, `note.resolved`) on `film lab events --follow --film <film>
+--name 'note.*'`: run it under a Claude Code Monitor and each arrives as a
+notification (the Lab's events, `lab-stream.ts`). `film lab reply --film <film> --note <id>
 --text "…" [--still file.png]` answers as the agent (the still is copied to
 `stills/<id>.r<seq>.png` and the note becomes `replied`); `film lab resolve
 --film <film> --note <id>` closes it. An unknown id fails with `NoteNotFound`,
@@ -3555,7 +3557,7 @@ two numbers) pass; one shared across scenes lives in a set file.
 over all of `packages/film` and `apps/animations`: a variadic logger
 (`Console.*`, `console.*`, `Effect.log*`) handed point-free to a callback that
 is passed an index (`Effect.forEach(lines, Console.log)`, `xs.map(console.log)`)
-prints the index after each line, so a reader of `film notes --watch` gets a
+prints the index after each line, so a reader of `film lab events --follow` gets a
 field that is not there. Write `(line) => Console.log(line)`.
 `film/no-read-once` (`lint/no-read-once.ts`) holds the lab's browser tests
 (`*.dom.test.ts`): a test waits for the value it asserts through

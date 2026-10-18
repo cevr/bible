@@ -1,7 +1,7 @@
 // `film ask wait`'s latch over a fake lab: an ask answered before the wait
 // ends it at once; one answered later is heard through the feed and read
 // again; a step's latch ends on that step; a lab that drops is asked again
-// and read on from the last cursor; a `reset` reads the asks again (a lab
+// and read on from the last cursor, the loss said once; a `reset` reads the asks again (a lab
 // restarted saw the answer as its baseline); `--any` counts only an ask
 // answered after it began; an unknown ask and a timeout are typed failures.
 // What it held on prints a line each, every answer typed, words quoted so a
@@ -15,7 +15,7 @@ import type { AskRead } from './asks-mcp.ts';
 import { AskLatch, type AskFeed, askLines, waitForAsk } from './ask-wait.ts';
 import type { LabChanges } from './lab-events.ts';
 
-const PACE = { wait: 50, retry: Schedule.spaced('1 second'), sayEvery: '1 minute' } as const;
+const PACE = { wait: 50, retry: Schedule.spaced('1 second') } as const;
 
 const read = (
   ask: string,
@@ -203,7 +203,7 @@ describe("film ask wait's latch", () => {
     }),
   );
 
-  it.effect('never ends for a lab that does not answer, saying so once a minute', () => {
+  it.effect('never ends for a lab that does not answer, saying so once for the loss', () => {
     const lines: Array<string> = [];
     return Effect.gen(function* () {
       let tries = 0;
@@ -221,7 +221,7 @@ describe("film ask wait's latch", () => {
       yield* TestClock.adjust('150 seconds');
       expect(fiber.pollUnsafe()).toBeUndefined();
       expect(tries).toBeGreaterThan(100);
-      expect(lines.filter((l) => l.startsWith('[ask] wait lab=unreachable'))).toHaveLength(3);
+      expect(lines.filter((l) => l.startsWith('[ask] wait lab=unreachable'))).toHaveLength(1);
       yield* Fiber.interrupt(fiber);
     }).pipe(
       Effect.provide(

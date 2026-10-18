@@ -5,7 +5,7 @@
 // the studio) and reviews it (the renders under the roots, the film's
 // choices and its project), and runs for days: `film lab`.
 //
-// The notes read and write through NotesStore, so the page and `film notes`
+// The notes read and write through NotesStore, so the page and `film lab notes`
 // see the same file. The scene source routes write through SceneWriter: each
 // write lands in the scene's `.ts` file, then `film check --static` runs
 // fresh; Undo and Redo put the newest write back or make it again.
