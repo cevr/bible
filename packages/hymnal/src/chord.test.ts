@@ -1,10 +1,10 @@
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import * as Chord from './chord.js';
 
-const F = { tonic: 'F', minor: false };
-const Db = { tonic: 'Db', minor: false };
+const F = { tonic: 'F', minor: false } as const;
+const Db = { tonic: 'Db', minor: false } as const;
 const named = (keys: number[], key: Chord.Key) => {
   const chord = Chord.fromPitches(keys, Math.min(...keys), Chord.pitchClass(key.tonic));
   return chord === undefined ? undefined : Chord.format(chord, key);
@@ -92,58 +92,106 @@ const MEMBERS: Record<Chord.Quality, ReadonlyArray<readonly [number, number]>> =
   ],
 };
 const LETTERS = 'CDEFGAB';
-const NOTE = /^[A-G](#{1,2}|b{1,2})?/;
+const NATURALS = [0, 2, 4, 5, 7, 9, 11];
 
-/** Every key a signature names, major and minor. */
-const KEYS = Array.from({ length: 15 }, (_, i) => i - 7).flatMap((fifths) => [
-  Chord.keyFromSignature(fifths, false),
-  Chord.keyFromSignature(fifths, true),
-]);
+/**
+ * The letter each degree is written on, as steps above the tonic's letter,
+ * in major and minor keys alike: b2, 2, b3, 3, 4, #4, 5, b6, 6, b7, 7.
+ */
+const DEGREE_LETTERS = [0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6];
+
+/** How each quality is written after its root. */
+const SUFFIXES: Record<Chord.Quality, string> = {
+  '': '',
+  m: 'm',
+  '7': '7',
+  m7: 'm7',
+  maj7: 'maj7',
+  '6': '6',
+  m6: 'm6',
+  dim: 'dim',
+  dim7: 'dim7',
+  m7b5: 'm7b5',
+  aug: '+',
+  sus4: 'sus4',
+  sus2: 'sus2',
+  '7sus4': '7sus4',
+};
+
+/** A spelled note's pitch class, read here rather than through the module. */
+const pitchOf = (name: string) =>
+  ([...name.slice(1)].reduce(
+    (pc, c) => pc + (c === '#' ? 1 : -1),
+    (NATURALS[LETTERS.indexOf(name[0] ?? 'C')] ?? 0) + 12,
+  ) +
+    12) %
+  12;
+
+/** The note on a letter (steps from C, any octave) at a pitch class; undefined past two accidentals. */
+const onLetter = (letter: number, pc: number): string | undefined => {
+  const at = ((letter % 7) + 7) % 7;
+  const offset = (pc - (NATURALS[at] ?? 0) + 12) % 12;
+  const accidental = [
+    '',
+    '#',
+    '##',
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    'bb',
+    'b',
+  ][offset];
+  return accidental === undefined ? undefined : `${LETTERS[at]}${accidental}`;
+};
+
+/** Every key the schema admits, from every tonic a signature could be written with, in both modes. */
+const KEYS = [...LETTERS]
+  .flatMap((letter) => [letter, `${letter}#`, `${letter}b`])
+  .flatMap((tonic) => [
+    { tonic, minor: false },
+    { tonic, minor: true },
+  ])
+  .filter(Schema.is(Chord.Key));
 
 /** A diminished chord on #1, #2 or #5 of a major key: the leading tone of ii, iii or vi. */
 const leadsUp = (key: Chord.Key, chord: Chord.Chord) =>
   !key.minor && ['dim', 'dim7', 'm7b5'].includes(chord.quality) && [1, 3, 8].includes(chord.root);
 
-/** The letter a chord's bass is written on: a member's from the root's letter, unless that takes three accidentals. */
-const bassLetter = (key: Chord.Key, chord: Chord.Chord, rootLetter: string, bass: number) => {
+/**
+ * The symbol a score writes, by letter arithmetic alone: the root on its
+ * degree's letter (a raised diminished root on the letter below), a member
+ * bass on the letter its interval gives unless that takes three accidentals,
+ * any other bass on its degree's letter.
+ */
+const expected = (key: Chord.Key, chord: Chord.Chord): string => {
+  const tonicLetter = LETTERS.indexOf(key.tonic[0] ?? 'C');
+  const tonic = pitchOf(key.tonic);
+  const degreeLetter = (degree: number) => tonicLetter + (DEGREE_LETTERS[degree] ?? 0);
+  const rootLetter = degreeLetter(leadsUp(key, chord) ? chord.root - 1 : chord.root);
+  const root = onLetter(rootLetter, tonic + chord.root) ?? '?';
+  const symbol = `${root}${SUFFIXES[chord.quality]}`;
+  if (chord.bass === undefined) return symbol;
+  const pc = tonic + chord.bass;
   const member = MEMBERS[chord.quality].find(
-    ([semitones]) => semitones === (bass - chord.root + 12) % 12,
+    ([semitones]) => semitones === (chord.bass! - chord.root + 12) % 12,
   );
-  const keyLetter = Chord.spell(key, bass)[0];
-  if (member === undefined) return keyLetter;
-  const letter = LETTERS[(LETTERS.indexOf(rootLetter) + member[1]) % 7] ?? '';
-  const off = (Chord.pitchClass(key.tonic) + bass - Chord.pitchClass(letter) + 12) % 12;
-  return [10, 11, 0, 1, 2].includes(off) ? letter : keyLetter;
+  const asMember = member === undefined ? undefined : onLetter(rootLetter + member[1], pc);
+  return `${symbol}/${asMember ?? onLetter(degreeLetter(chord.bass), pc) ?? '?'}`;
 };
 
-/** What is wrong with a chord's symbol in a key: none when its pitches and letters are right. */
+/** What is wrong with a chord's symbol in a key: none when it is the one a score writes. */
 const misspelled = (key: Chord.Key, chord: Chord.Chord): string[] => {
   const symbol = Chord.format(chord, key);
-  const [head = '', bassName] = symbol.split('/');
-  const rootName = NOTE.exec(head)?.[0] ?? '';
-  const tonic = Chord.pitchClass(key.tonic);
-  const raised = leadsUp(key, chord);
-  const rootLetter = Chord.spell(key, raised ? chord.root - 1 : chord.root)[0] ?? '';
-  const why = [
-    Chord.pitchClass(rootName) === (tonic + chord.root) % 12 ? '' : 'root pitch',
-    rootName[0] === rootLetter ? '' : `root letter, not ${rootLetter}`,
-    raised && rootName.includes('b') ? 'raised root flat' : '',
-  ];
-  if (chord.bass !== undefined) {
-    const bass = bassName ?? '';
-    const letter = bassLetter(key, chord, rootLetter, chord.bass);
-    why.push(
-      NOTE.exec(bass)?.[0] === bass ? '' : 'bass not a note',
-      Chord.pitchClass(bass) === (tonic + chord.bass) % 12 ? '' : 'bass pitch',
-      bass[0] === letter ? '' : `bass letter, not ${letter}`,
-    );
-  }
-  return why
-    .filter((w) => w !== '')
-    .map(
-      (w) =>
-        `${key.tonic}${key.minor ? 'm' : ''} ${symbol} (root ${chord.root}, bass ${chord.bass ?? '-'}): ${w}`,
-    );
+  const want = expected(key, chord);
+  return symbol === want
+    ? []
+    : [
+        `${key.tonic}${key.minor ? 'm' : ''} root ${chord.root} ${chord.quality} bass ${chord.bass ?? '-'}: ${symbol}, not ${want}`,
+      ];
 };
 
 describe('Chord.fromPitches', () => {
@@ -197,7 +245,7 @@ describe('Chord.overBass and Chord.withoutOne', () => {
 
   it.effect('leaves two one-note-out readings unnamed, unless one is already sounding', () =>
     Effect.sync(() => {
-      const C = { tonic: 'C', minor: false };
+      const C = { tonic: 'C', minor: false } as const;
       // C3 G3 Eb4 E4: C with E-flat out, or C minor with E out.
       expect(without([48, 55, 63, 64], C)).toBeUndefined();
       expect(without([48, 55, 63, 64], C, { root: 0, quality: 'm' })).toBe('Cm');
@@ -234,7 +282,8 @@ describe('Chord.format', () => {
 
   it.effect('spells the examples the hymns showed misspelled as the score spells them', () =>
     Effect.sync(() => {
-      const major = (tonic: string) => ({ tonic, minor: false });
+      const major = (tonic: Extract<Chord.Key, { minor: false }>['tonic']) =>
+        ({ tonic, minor: false }) as const;
       expect(Chord.format({ root: 4, quality: '', bass: 8 }, major('Eb'))).toBe('G/B');
       expect(Chord.format({ root: 4, quality: '', bass: 8 }, major('Ab'))).toBe('C/E');
       expect(Chord.format({ root: 4, quality: '', bass: 8 }, major('D'))).toBe('F#/A#');
@@ -261,6 +310,8 @@ describe('Chord.format', () => {
           ),
         );
         expect(wrong.slice(0, 10)).toEqual([]);
+        // The 15 major and 15 minor keys a signature writes, and no other.
+        expect(KEYS.length).toBe(30);
       }),
   );
 
@@ -269,6 +320,21 @@ describe('Chord.format', () => {
       expect(Chord.keyFromSignature(-5, false)).toEqual(Db);
       expect(Chord.keyFromSignature(-1, true)).toEqual({ tonic: 'D', minor: true });
       expect(Chord.keyFromSignature(3, false)).toEqual({ tonic: 'A', minor: false });
+    }),
+  );
+
+  it.effect('names the key on a tonic pitch as a signature writes it, every one a key', () =>
+    Effect.sync(() => {
+      expect(Chord.keyOnPitch(1, false)).toEqual(Db);
+      expect(Chord.keyOnPitch(1, true)).toEqual({ tonic: 'C#', minor: true });
+      expect(Chord.keyOnPitch(6, false)).toEqual({ tonic: 'F#', minor: false });
+      expect(Chord.keyOnPitch(3, true)).toEqual({ tonic: 'Eb', minor: true });
+      expect(Chord.keyOnPitch(8, true)).toEqual({ tonic: 'G#', minor: true });
+      const all = Array.from({ length: 24 }, (_, i) => Chord.keyOnPitch(i % 12, i >= 12));
+      expect(all.filter((key) => !Schema.is(Chord.Key)(key))).toEqual([]);
+      expect(all.map((key) => Chord.pitchClass(key.tonic))).toEqual(
+        Array.from({ length: 24 }, (_, i) => i % 12),
+      );
     }),
   );
 });

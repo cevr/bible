@@ -4,7 +4,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import * as ChordPro from './chordpro.js';
 import type { Sung } from './hymn.js';
 
-const key = { tonic: 'F', minor: false };
+const key = { tonic: 'F', minor: false } as const;
 const F = { root: 0, quality: '' } as const;
 const C = { root: 7, quality: '' } as const;
 const C7 = { root: 7, quality: '7' } as const;

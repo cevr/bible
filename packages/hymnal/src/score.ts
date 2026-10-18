@@ -89,8 +89,7 @@ const closingKey = (harmony: readonly Note[]): Chord.Key => {
   const last = harmony.filter((note) => note.end === end);
   const bass = Math.min(...last.map((note) => note.key)) % 12;
   const minor = last.some((note) => (note.key - bass + 12) % 12 === 3);
-  const tonic = Chord.spell({ tonic: 'C', minor: false }, bass);
-  return { tonic: tonic === 'Gb' ? 'F#' : tonic, minor };
+  return Chord.keyOnPitch(bass, minor);
 };
 
 /**

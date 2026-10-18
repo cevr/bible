@@ -178,11 +178,54 @@ const NATURAL = [0, 2, 4, 5, 7, 9, 11] as const;
 /** A degree as letter steps above the tonic's letter: the names hymn keys use (b2, #4, b6, b7). */
 const STEPS = [0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6] as const;
 
-export const Key = Schema.Struct({
-  /** The tonic's spelling, such as "Db" or "F#". */
-  tonic: Schema.String.check(Schema.isPattern(/^[A-G](#|b)?$/)),
-  minor: Schema.Boolean,
-});
+/** The major keys a key signature names, from seven flats to seven sharps. */
+const MAJOR_BY_FIFTHS = [
+  'Cb',
+  'Gb',
+  'Db',
+  'Ab',
+  'Eb',
+  'Bb',
+  'F',
+  'C',
+  'G',
+  'D',
+  'A',
+  'E',
+  'B',
+  'F#',
+  'C#',
+] as const;
+
+/** The minor keys a key signature names, from seven flats to seven sharps. */
+const MINOR_BY_FIFTHS = [
+  'Ab',
+  'Eb',
+  'Bb',
+  'F',
+  'C',
+  'G',
+  'D',
+  'A',
+  'E',
+  'B',
+  'F#',
+  'C#',
+  'G#',
+  'D#',
+  'A#',
+] as const;
+
+/**
+ * A key, as a key signature names it: one of the 15 major and 15 minor keys
+ * from seven flats to seven sharps. A key no signature writes (E# major,
+ * Db minor) is no key here, so every degree of every key spells with at most
+ * two accidentals.
+ */
+export const Key = Schema.Union([
+  Schema.Struct({ tonic: Schema.Literals(MAJOR_BY_FIFTHS), minor: Schema.Literal(false) }),
+  Schema.Struct({ tonic: Schema.Literals(MINOR_BY_FIFTHS), minor: Schema.Literal(true) }),
+]);
 export type Key = typeof Key.Type;
 
 const letterIndex = (name: string) => LETTERS.findIndex((letter) => letter === name[0]);
@@ -275,29 +318,28 @@ export const format = (chord: Chord, key: Key): string => {
   return `${symbol}/${bass}`;
 };
 
-/** The major keys from seven flats to seven sharps, by key signature. */
-const MAJOR_BY_FIFTHS = [
-  'Cb',
-  'Gb',
-  'Db',
-  'Ab',
-  'Eb',
-  'Bb',
-  'F',
-  'C',
-  'G',
-  'D',
-  'A',
-  'E',
-  'B',
-  'F#',
-  'C#',
-];
-
 /** The key a MIDI key signature names. */
 export const keyFromSignature = (fifths: number, minor: boolean): Key => {
-  const major = MAJOR_BY_FIFTHS[fifths + 7] ?? 'C';
+  const at = Math.max(-7, Math.min(7, fifths)) + 7;
   return minor
-    ? { tonic: spell({ tonic: major, minor: false }, 9), minor }
-    : { tonic: major, minor };
+    ? { tonic: MINOR_BY_FIFTHS[at] ?? 'A', minor }
+    : { tonic: MAJOR_BY_FIFTHS[at] ?? 'C', minor };
+};
+
+/**
+ * The key on a tonic pitch class (0 = C), as a signature names it: the
+ * spelling with fewer accidentals in its signature (Db major, C# minor), and
+ * F# major and Eb minor where the two spellings tie.
+ */
+export const keyOnPitch = (pc: number, minor: boolean): Key => {
+  const names: readonly string[] = minor ? MINOR_BY_FIFTHS : MAJOR_BY_FIFTHS;
+  const tied = minor ? 'Eb' : 'F#';
+  const at = names
+    .map((tonic, i) => ({ tonic, fifths: Math.abs(i - 7) }))
+    .filter(({ tonic }) => pitchClass(tonic) === mod12(pc))
+    .toSorted(
+      (a, b) => a.fifths - b.fifths || Number(b.tonic === tied) - Number(a.tonic === tied),
+    )[0];
+  const index = names.indexOf(at?.tonic ?? '');
+  return keyFromSignature(index < 0 ? 0 : index - 7, minor);
 };
