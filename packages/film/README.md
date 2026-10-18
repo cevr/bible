@@ -2782,15 +2782,17 @@ inner rim (a light band just inside the edge of an inner part of the head,
 an ear or the hair, where that edge is not the silhouette; the owner's
 rule is the concept's); the head's and the body's shading (each lit and
 shaded half's hue, saturation and value, the edge between them, colour or
-grey); and the outline (`FigureSilhouette`): the head's outer radius at 72
-angles from its centre, the body's sides row by row, the feet's box. The
-head's top and its outline are where the ground stops at its ink
-(`outerOf`): what the ground off the head, walled by the ink and the dark
-masses, does not reach, opened by a line and joined to the face, so dark
-hair whose grain specks it with ink (no region of its own) is the head's
-still. A ratio the crop does not show is left out with why (`missing`: a hem behind
-a rail, whose line runs on past the body; feet a rail hides; feet that would
-lie past the crop's edge). The line is the longest run of dark ink that
+grey); the face's pose as its mouth shows it (`mouth`: open, a filled
+shape whose stroke is over 0.8 of the head's line, or closed, a line); and
+the outline (`FigureSilhouette`): the head's outer radius at 72 angles from
+its centre, the body's sides row by row, the feet's box. The head's top and
+its outline are where the ground stops at its ink (`outerOf`): what the
+ground off the head, walled by the ink and the dark masses, does not reach,
+opened by a line and joined to the face, so dark hair whose grain specks it
+with ink (no region of its own) is the head's still. A ratio the crop does
+not show is left out with why (`missing`: a hem behind a rail, whose line
+runs on past the body; feet a rail hides; feet that would lie past the
+crop's edge). The line is the longest run of dark ink that
 holds half the ink of the most-inked run, and no longer than a twelfth of
 the crop, so a wall's thin lines or a long dark band behind the figure do
 not stand for it.
@@ -2802,8 +2804,14 @@ past 5% of the concept's; interior ink past 0.02 of a head; an inner rim
 gap of 0.03 of a head from the concept's (the widest gap named by its
 side), the body's past 0.05; feet the concept shows and the scene does not
 (or the other way); a shade's drop, turn, kept saturation and edge past
-their tolerances, and a grey shade. It guides; it is never a gate: a
-concept is painted.
+their tolerances, and a grey shade. Two kinds of row are information,
+never flagged: the height in heads (a figure's height comes from the cast's
+height band, and a concept is a design sketch:
+`.claude/skills/film/reference/character-design.md`, "One height band for
+the cast"), and, where the two mouths' poses differ (a shout against a
+closed mouth), the marks an expression moves: the eyes' height, the brows
+and the mouth (a row `face: its mouth` names both poses). It guides; it is
+never a gate: a concept is painted.
 
 **Files.** Under `out/<film>/match/<scene>/`, each figure's side-by-side
 (`<figure>.t<time>.b<build>.png`: the concept, the scene at one head

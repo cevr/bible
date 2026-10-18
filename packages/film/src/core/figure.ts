@@ -162,6 +162,14 @@ export const FigureSilhouette = Schema.Struct({
 export type FigureSilhouette = typeof FigureSilhouette.Type;
 
 /** A figure measured: its head's outer box, its ink, each ratio it shows, its outline, its shading, and each ratio it does not show. */
+/**
+ * A mouth open (a filled shape, its stroke over 0.8 of the head's line: a
+ * shout's is about 1.5) or closed (a line, about 0.4 of it).
+ */
+const MouthPose = Schema.Literals(['open', 'closed']);
+type MouthPose = typeof MouthPose.Type;
+const MOUTH_OPEN = 0.8;
+
 export const FigureMeasure = Schema.Struct({
   head: PixelBox,
   ink: Schema.Tuple([Schema.Int, Schema.Int, Schema.Int]),
@@ -169,6 +177,8 @@ export const FigureMeasure = Schema.Struct({
   silhouette: FigureSilhouette,
   headShading: Schema.optionalKey(Shading),
   bodyShading: Schema.optionalKey(Shading),
+  /** The face's pose as its mouth shows it: open (a shout) or closed (a line); left out with no mouth. */
+  mouth: Schema.optionalKey(MouthPose),
   missing: Schema.Array(Unmeasured),
 });
 export type FigureMeasure = typeof FigureMeasure.Type;
@@ -1153,8 +1163,8 @@ const browOver = (
   );
 };
 
-/** The face's marks: the eyes' size and place, the brows over them, the mouth under them. */
-const faceRatios = (read: Read, head: Head, sink: Sink) => {
+/** The face's marks: the eyes' size and place, the brows over them, the mouth under them, and whether that is open. */
+const faceRatios = (read: Read, head: Head, sink: Sink): Option.Option<MouthPose> => {
   const { a, b, W } = head;
   const [sa, sb] = [markSize(read, a), markSize(read, b)];
   sink.put('eyeWidth', (sa.width + sb.width) / 2 / W);
@@ -1189,16 +1199,19 @@ const faceRatios = (read: Read, head: Head, sink: Sink) => {
   }
   const under = (p: Part) =>
     p.y0 > Math.max(a.y1, b.y1) && cxOf(p) > cxOf(a) - widthOf(a) && cxOf(p) < cxOf(b) + widthOf(b);
-  Option.match(
+  return Option.match(
     Option.fromUndefinedOr(inHead.filter(under).sort((p, q) => widthOf(q) - widthOf(p))[0]),
     {
       onNone: () => {
         sink.lacks('mouthWidth', 'no mark under the eyes');
         sink.lacks('mouthBelowCentre', 'no mark under the eyes');
+        return Option.none();
       },
       onSome: (mouth) => {
         sink.put('mouthWidth', markSize(read, mouth).width / W);
         sink.put('mouthBelowCentre', (cyOf(mouth) - head.cy) / W);
+        const open = strokeOf(read, soft, mouth) > MOUTH_OPEN * head.outline;
+        return Option.some<MouthPose>(open ? 'open' : 'closed');
       },
     },
   );
@@ -1556,7 +1569,7 @@ export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, Figure
       onNone: () => sink.lacks('jaw', 'no head 0.2 of a head above the chin'),
       onSome: ([lo, hi]) => sink.put('jaw', (hi - lo + 1 + 2 * head.rim) / W),
     });
-    faceRatios(read, head, sink);
+    const mouth = faceRatios(read, head, sink);
     const radii = hairRatios(read, head, sink);
     // The head's shade: the face below the eyes.
     const headShading = shadingOf(
@@ -1578,6 +1591,7 @@ export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, Figure
       },
       ...Option.match(headShading, { onNone: () => ({}), onSome: (s) => ({ headShading: s }) }),
       ...Option.match(body.shading, { onNone: () => ({}), onSome: (s) => ({ bodyShading: s }) }),
+      ...Option.match(mouth, { onNone: () => ({}), onSome: (pose) => ({ mouth: pose }) }),
       missing,
     };
   });

@@ -77,6 +77,27 @@ describe('compareFigures', () => {
     expect(row(rows, 'feet, their whole width').note).toContain('scene: no feet under the hem');
   });
 
+  test("its height in heads is information, never flagged: the cast's band sets it", () => {
+    const tall = figure({ ...PLAIN, robeDepth: 380 });
+    const height = row(compareFigures(plain.measure, tall.measure), 'height in head heights');
+    expect(height.diff).toBeGreaterThan(5);
+    expect(height.flagged).toBe(false);
+    expect(height.note).toContain("the cast's height band");
+  });
+
+  test("a shout against a closed mouth: the face's marks are information, the pose named; one pose against itself compares them", () => {
+    const [shout, line, wideLine] = [
+      figure({ ...PLAIN, mouth: { open: true, width: 30 } }),
+      figure({ ...PLAIN, mouth: { open: false, width: 30 } }),
+      figure({ ...PLAIN, mouth: { open: false, width: 44 } }),
+    ];
+    const posed = compareFigures(shout.measure, wideLine.measure);
+    expect(row(posed, 'mouth width')).toMatchObject({ flagged: false });
+    expect(row(posed, 'mouth width').note).toContain('the expression differs');
+    expect(row(posed, 'face: its mouth').note).toBe('concept open, scene closed');
+    expect(row(compareFigures(line.measure, wideLine.measure), 'mouth width').flagged).toBe(true);
+  });
+
   test('the table and the CLI lines carry each flagged row', () => {
     const rows = compareFigures(plain.measure, inked.measure);
     const concept = {

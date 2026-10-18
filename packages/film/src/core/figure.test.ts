@@ -122,6 +122,12 @@ describe('a drawn figure', () => {
     expect(measured({ ...PLAIN, robeShade: [104, 118, 135] }).bodyShading?.kind).toBe('grey');
   });
 
+  test('reads its mouth open when it is a filled shape, closed when it is a line', () => {
+    expect(measured({ ...PLAIN, mouth: { open: true, width: 30 } }).mouth).toBe('open');
+    expect(measured({ ...PLAIN, mouth: { open: false, width: 30 } }).mouth).toBe('closed');
+    expect(plain.mouth).toBeUndefined();
+  });
+
   test('a crop with no ink is no figure', () => {
     const blank: Raster = { width: 40, height: 40, rgba: new Uint8Array(40 * 40 * 4).fill(240) };
     const m = measureFigure(blank);

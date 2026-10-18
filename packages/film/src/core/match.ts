@@ -476,6 +476,52 @@ const ruleRow = (
   );
 };
 
+/** A row given as information: never flagged, `why` added to its note. */
+const informing = (row: MatchRow, why: string): MatchRow => ({
+  ...row,
+  flagged: false,
+  note: [...Option.toArray(Option.fromUndefinedOr(row.note)), why].join('; '),
+});
+
+/** Why a figure's height in heads is information (owner, 2026-10-18; `character-design.md`, "One height band for the cast"). */
+const HEIGHT_IS_THE_BAND =
+  "information: a figure's height comes from the cast's height band, and a concept is a design sketch";
+
+/** The face's marks an expression moves: the eyes' height (a squint), the brows, the mouth. */
+const EXPRESSION_RATIOS: ReadonlySet<Ratio> = new Set([
+  'eyeHeight',
+  'browLength',
+  'browAbove',
+  'mouthWidth',
+  'mouthBelowCentre',
+]);
+
+/** Each side's mouth pose, or none. */
+const posesOf = (concept: FigureMeasure, scene: FigureMeasure) =>
+  [Option.fromUndefinedOr(concept.mouth), Option.fromUndefinedOr(scene.mouth)] as const;
+
+/** The face's pose as each mouth shows it: information, never flagged. */
+const poseRow = (concept: FigureMeasure, scene: FigureMeasure): MatchRow => {
+  const [painted, drawn] = posesOf(concept, scene).map((pose) =>
+    Option.getOrElse(pose, () => 'none'),
+  );
+  return {
+    name: 'face: its mouth',
+    unit: 'rule',
+    flagged: false,
+    note: `concept ${painted}, scene ${drawn}`,
+  };
+};
+
+/** Why the face's marks are information where the two mouths differ (a shout against a frown), or none where they agree. */
+const expressionDiffers = (concept: FigureMeasure, scene: FigureMeasure): Option.Option<string> =>
+  Option.flatMap(Option.all(posesOf(concept, scene)), ([painted, drawn]) =>
+    Option.liftPredicate(
+      `information: the expression differs (the concept's mouth ${painted}, the scene's ${drawn}), so the face's marks do not compare`,
+      () => painted !== drawn,
+    ),
+  );
+
 /** One ratio's row: a ratio flagged past its tolerance, or an owner's rule (no ink of the hair's own; no light rim the concept does not paint). */
 const ratioRow = (concept: FigureMeasure, scene: FigureMeasure, ratio: Ratio): MatchRow => {
   const why = { concept: whyMissing(concept, ratio), scene: whyMissing(scene, ratio) };
@@ -500,8 +546,26 @@ const ratioRow = (concept: FigureMeasure, scene: FigureMeasure, ratio: Ratio): M
         'a light rim inside an inner part the concept does not paint: the owner rule is none',
       ),
     ),
+    Match.when('heightInHeads', () =>
+      informing(rowOf(RATIO_LABELS[ratio], 'ratio', ...sides, why, Infinity), HEIGHT_IS_THE_BAND),
+    ),
     Match.orElse(() => rowOf(RATIO_LABELS[ratio], 'ratio', ...sides, why, RATIO_TOLERANCE)),
   );
+};
+
+/** Every ratio's row, the face's marks information where the expression differs, then the face's pose. */
+const ratioRows = (concept: FigureMeasure, scene: FigureMeasure): ReadonlyArray<MatchRow> => {
+  const differs = expressionDiffers(concept, scene);
+  return [
+    ...RATIOS.map((ratio) => {
+      const row = ratioRow(concept, scene, ratio);
+      return Option.match(
+        Option.filter(differs, () => EXPRESSION_RATIOS.has(ratio)),
+        { onNone: () => row, onSome: (why) => informing(row, why) },
+      );
+    }),
+    poseRow(concept, scene),
+  ];
 };
 
 /** The concept's measure against the scene's, row by row: every ratio, the outlines, then the head's and the body's shading. */
@@ -509,7 +573,7 @@ export const compareFigures = (
   concept: FigureMeasure,
   scene: FigureMeasure,
 ): ReadonlyArray<MatchRow> => [
-  ...RATIOS.map((ratio) => ratioRow(concept, scene, ratio)),
+  ...ratioRows(concept, scene),
   ...silhouetteRows(concept, scene),
   ...shadeRows(
     'head',

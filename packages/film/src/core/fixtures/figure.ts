@@ -4,9 +4,10 @@
 // numbers it was drawn with. A circle head with its outline, a hair cap
 // (its own ink along the hair line, or none), an ear on the face (a light
 // rim inside its edge, or none), the hair dark and grained (or light and
-// flat), two upright oval eyes, a robe down to a hem, two feet (or none),
-// a round hand, a rail in front of the robe's foot (or none), and a wall's
-// thin lines behind it (or none). Tests only.
+// flat), two upright oval eyes, a mouth under them (open, or a closed
+// line, or none), a robe down to a hem, two feet (or none), a round hand, a
+// rail in front of the robe's foot (or none), and a wall's thin lines behind
+// it (or none). Tests only.
 
 import type { Raster } from '../raster.ts';
 
@@ -54,6 +55,8 @@ export interface FigureSpec {
   readonly robeShade?: Rgb;
   /** An ear on the face's right side, 38 px from its centre (clear of an eye at an `eyeGap` up to 30), when it has one: its rim, a light band inside its edge, or none. */
   readonly ear?: { readonly rim: boolean };
+  /** A mouth 25 px under the eyes, when it has one: open (a filled oval half as tall as it is wide) or closed (a 3 px line), `width` px wide. */
+  readonly mouth?: { readonly open: boolean; readonly width: number };
   /** Whether two feet stand under the hem (they do unless `false`). */
   readonly feet?: boolean;
   /** A rail drawn in front of the robe's foot, 320 px wide, hiding its hem and its feet. */
@@ -166,6 +169,17 @@ export const drawFigure = (spec: FigureSpec = PLAIN): Raster => {
       ellipse(cx + (side * spec.eyeGap) / 2, cy + spec.eyeBelow, spec.eyeW / 2, spec.eyeH / 2),
       INK,
     );
+  // The mouth, under the eyes: an open oval, or a closed line.
+  if (spec.mouth !== undefined) {
+    const { open, width } = spec.mouth;
+    const y = cy + spec.eyeBelow + 25;
+    c.fill(
+      open
+        ? ellipse(cx, y, width / 2, width / 4)
+        : (x, yy) => Math.abs(x - cx) <= width / 2 && Math.abs(yy - y) <= 1.5,
+      INK,
+    );
+  }
   return c.raster();
 };
 
