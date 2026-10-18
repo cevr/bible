@@ -12,9 +12,10 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { AuthProviders } from 'alchemy/Auth';
 import * as Cloudflare from 'alchemy/Cloudflare';
 import { Effect, Layer } from 'effect';
-import { Command, Flag } from 'effect/cli';
+import { Command } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 
+import { audioCopyCommand } from './command.ts';
 import { FillGitHub } from './github.ts';
 import { HashBun } from './hash-bun.ts';
 import { dryRun, run } from './job.ts';
@@ -37,18 +38,12 @@ const Writes = TargetR2.pipe(
   Layer.provide(FetchHttpClient.layer),
 );
 
-const audioCopy = Command.make(
-  'audio-copy',
-  {
-    dryRun: Flag.Boolean('dry-run').pipe(
-      Flag.withDescription('Read the sources and print what would move; never touch R2'),
-    ),
-  },
-  ({ dryRun: dry }) => {
+const audioCopy = audioCopyCommand.pipe(
+  Command.withHandler(({ dryRun: dry }) => {
     if (dry) return dryRun.pipe(Effect.provide(Sources));
     return run.pipe(Effect.provide(Layer.merge(Sources, Writes)));
-  },
-).pipe(Command.withDescription('Copy the hymn recordings from S3 into the R2 bucket cvr-hymns'));
+  }),
+);
 
 Command.run(audioCopy, { version: '1.0.0' }).pipe(
   Effect.provide(BunServices.layer),
