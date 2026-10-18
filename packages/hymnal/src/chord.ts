@@ -35,8 +35,10 @@ export const Chord = Schema.Struct({
 });
 export type Chord = typeof Chord.Type;
 
-/** Each quality's intervals above its root, in semitones. */
-const INTERVALS: ReadonlyArray<readonly [Quality, ReadonlyArray<number>]> = [
+type Table = ReadonlyArray<readonly [Quality, ReadonlyArray<number>]>;
+
+/** Each quality's intervals above its root, in semitones, every note sounding. */
+const COMPLETE: Table = [
   ['', [0, 4, 7]],
   ['m', [0, 3, 7]],
   ['7', [0, 4, 7, 10]],
@@ -51,7 +53,11 @@ const INTERVALS: ReadonlyArray<readonly [Quality, ReadonlyArray<number>]> = [
   ['sus4', [0, 5, 7]],
   ['sus2', [0, 2, 7]],
   ['7sus4', [0, 5, 7, 10]],
-  // Four voices often leave out the fifth.
+];
+
+/** The complete chords, and those four voices sound with the fifth left out. */
+const INTERVALS: Table = [
+  ...COMPLETE,
   ['7', [0, 4, 10]],
   ['m7', [0, 3, 10]],
   ['', [0, 4]],
@@ -72,18 +78,64 @@ export const fromPitches = (
   pitchClasses: Iterable<number>,
   bass: number,
   tonic: number,
+): Chord | undefined => named(pitchClasses, bass, tonic, INTERVALS);
+
+const named = (
+  pitchClasses: Iterable<number>,
+  bass: number,
+  tonic: number,
+  table: Table,
 ): Chord | undefined => {
   const pcs = [...new Set([...pitchClasses].map(mod12))];
   const key = setKey(pcs);
   const roots = [mod12(bass), ...pcs.filter((pc) => pc !== mod12(bass))];
   for (const root of roots) {
-    for (const [quality, intervals] of INTERVALS) {
+    for (const [quality, intervals] of table) {
       if (setKey(intervals.map((i) => root + i).map(mod12)) !== key) continue;
       const chord: Chord = { root: mod12(root - tonic), quality };
       return root === mod12(bass) ? chord : { ...chord, bass: mod12(bass - tonic) };
     }
   }
   return undefined;
+};
+
+/**
+ * Names a set of keys (MIDI note numbers) by the chord its notes above the
+ * bass make, when that is a complete chord the bass is not in: the chord
+ * over the bass (D-flat over E-flat). Undefined otherwise.
+ */
+export const overBass = (keys: readonly number[], tonic: number): Chord | undefined => {
+  const bass = Math.min(...keys);
+  const above = keys.filter((key) => key !== bass);
+  const upper = [...new Set(above.map(mod12))];
+  if (upper.length < 3 || upper.includes(mod12(bass))) return undefined;
+  const chord = named(upper, Math.min(...above), tonic, COMPLETE);
+  return chord === undefined
+    ? undefined
+    : { root: chord.root, quality: chord.quality, bass: mod12(bass - tonic) };
+};
+
+/**
+ * Names a set of keys by the complete chord it makes with one note other
+ * than the bass left out (a passing tone over a held chord), when exactly
+ * one such chord exists; of several, the chord `sounding` before, when it is
+ * one of them. Undefined otherwise.
+ */
+export const withoutOne = (
+  keys: readonly number[],
+  tonic: number,
+  sounding: Chord | undefined,
+): Chord | undefined => {
+  const bass = Math.min(...keys);
+  const pcs = [...new Set(keys.map(mod12))];
+  const found: Chord[] = [];
+  for (const left of pcs.filter((pc) => pc !== mod12(bass))) {
+    const rest = pcs.filter((pc) => pc !== left);
+    const chord = rest.length >= 3 ? named(rest, bass, tonic, COMPLETE) : undefined;
+    if (chord !== undefined && !found.some((c) => equals(c, chord))) found.push(chord);
+  }
+  if (found.length === 1) return found[0];
+  return sounding !== undefined && found.some((c) => equals(c, sounding)) ? sounding : undefined;
 };
 
 export const equals = (a: Chord, b: Chord): boolean =>

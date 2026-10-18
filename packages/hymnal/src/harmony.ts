@@ -19,40 +19,68 @@ export type Level = 'full' | 'guitar';
 
 const tonicOf = (score: Score) => Chord.pitchClass(score.key.tonic);
 
-/** The chord sounding at each onset in [from, to); a set no chord names leaves the last chord sounding. */
-const sample = (score: Score, from: number, to: number): Span[] => {
+/** A sampled chord; `pedal` when it names the upper voices over a bass outside them. */
+interface Sampled extends Span {
+  readonly pedal: boolean;
+}
+
+/**
+ * The chord sounding at each onset in [from, to): the one its notes name, else
+ * the chord above a foreign bass, else the one chord a passing tone leaves
+ * (`Chord.overBass`, `Chord.withoutOne`); a set none names keeps the last
+ * chord sounding.
+ */
+const sample = (score: Score, from: number, to: number): Sampled[] => {
   const onsets = [
     ...new Set([from, ...score.harmony.map((n) => n.start).filter((t) => t > from && t < to)]),
   ].sort((a, b) => a - b);
-  const spans: Span[] = [];
+  const spans: Sampled[] = [];
   onsets.forEach((tick, i) => {
     const sounding = score.harmony.filter((note) => note.start <= tick && note.end > tick);
     const end = onsets[i + 1] ?? to;
     if (sounding.length === 0) return;
-    const bass = Math.min(...sounding.map((note) => note.key));
-    const chord = Chord.fromPitches(
-      sounding.map((note) => note.key),
-      bass,
-      tonicOf(score),
-    );
     const last = spans.at(-1);
+    const keys = sounding.map((note) => note.key);
+    const tonic = tonicOf(score);
+    const own = Chord.fromPitches(keys, Math.min(...keys), tonic);
+    const over = own === undefined ? Chord.overBass(keys, tonic) : undefined;
+    const chord = own ?? over ?? Chord.withoutOne(keys, tonic, last?.chord);
     if (chord === undefined) {
       if (last !== undefined) spans[spans.length - 1] = { ...last, end };
       return;
     }
-    spans.push({ start: tick, end, chord });
+    spans.push({ start: tick, end, chord, pedal: over !== undefined });
   });
   return spans;
 };
 
-const merge = (spans: readonly Span[]): Span[] =>
-  spans.reduce<Span[]>((out, span) => {
+const merge = <S extends Span>(spans: readonly S[]): S[] =>
+  spans.reduce<S[]>((out, span) => {
     const last = out.at(-1);
     if (last !== undefined && Chord.equals(last.chord, span.chord)) {
       out[out.length - 1] = { ...last, end: span.end };
     } else out.push(span);
     return out;
   }, []);
+
+/**
+ * Drops a chord over a foreign bass that leaves and returns to the same
+ * chord: the upper voices moving over a held bass, not a change.
+ */
+const dropPedals = (spans: readonly Sampled[]): Span[] => {
+  const out: Sampled[] = [];
+  spans.forEach((span, i) => {
+    const [before, after] = [out.at(-1), spans[i + 1]];
+    const neighbor =
+      span.pedal &&
+      before !== undefined &&
+      after !== undefined &&
+      Chord.equals(before.chord, after.chord);
+    if (neighbor) out[out.length - 1] = { ...before, end: span.end };
+    else out.push(span);
+  });
+  return out;
+};
 
 /** Folds spans shorter than `min` ticks into the chord before them (the first into the one after). */
 const dropShort = (spans: readonly Span[], min: number): Span[] => {
@@ -107,7 +135,9 @@ const readSixths = (spans: readonly Span[]): Span[] =>
 /** The chords of [from, to) at a level. */
 export const chords = (score: Score, from: number, to: number, level: Level): Span[] => {
   const beat = score.ticksPerBeat;
-  const full = merge(readSixths(dropShort(merge(sample(score, from, to)), beat / 2)));
+  const full = merge(
+    readSixths(dropShort(merge(dropPedals(merge(sample(score, from, to)))), beat / 2)),
+  );
   if (level === 'full') return full;
   const strummed = full.map((span) => ({ ...span, chord: Chord.simplify(span.chord) }));
   return dropShort(dropNeighbors(merge(strummed), beat), beat / 2);

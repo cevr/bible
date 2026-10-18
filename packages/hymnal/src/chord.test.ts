@@ -32,6 +32,43 @@ describe('Chord.fromPitches', () => {
   );
 });
 
+describe('Chord.overBass and Chord.withoutOne', () => {
+  const name = (chord: Chord.Chord | undefined, key: Chord.Key) =>
+    chord === undefined ? undefined : Chord.format(chord, key);
+  const over = (keys: number[], key: Chord.Key) =>
+    name(Chord.overBass(keys, Chord.pitchClass(key.tonic)), key);
+  const without = (keys: number[], key: Chord.Key, sounding?: Chord.Chord) =>
+    name(Chord.withoutOne(keys, Chord.pitchClass(key.tonic), sounding), key);
+
+  it.effect('names the chord above a bass it leaves out (hymn 100, bar 23)', () =>
+    Effect.sync(() => {
+      // Eb3 Ab3 F4 Db5: D-flat over E-flat.
+      expect(over([51, 56, 65, 73], Db)).toBe('Db/Eb');
+      // The bass doubled above, or two notes above it: no chord over a foreign bass.
+      expect(over([51, 63, 65, 73], Db)).toBeUndefined();
+      expect(over([51, 65, 73], Db)).toBeUndefined();
+    }),
+  );
+
+  it.effect('names the one chord a set makes with one note left out (hymn 100, bar 10)', () =>
+    Effect.sync(() => {
+      // Db3 C4 Gb4 Bb4: G-flat over D-flat with a passing C.
+      expect(without([49, 60, 66, 70], Db)).toBe('Gb/Db');
+      // Db3 Bb3 Ab4 C5: only B-flat minor seventh with its fifth left out, which names nothing.
+      expect(without([49, 58, 68, 72], Db)).toBeUndefined();
+    }),
+  );
+
+  it.effect('leaves two one-note-out readings unnamed, unless one is already sounding', () =>
+    Effect.sync(() => {
+      const C = { tonic: 'C', minor: false };
+      // C3 C4 D4 E4 G4: C with D out, or Csus2 with E out.
+      expect(without([48, 60, 62, 64, 67], C)).toBeUndefined();
+      expect(without([48, 60, 62, 64, 67], C, { root: 0, quality: '' })).toBe('C');
+    }),
+  );
+});
+
 describe('Chord.simplify', () => {
   it.effect(
     'plays a diminished triad as the dominant seventh it stands for, and drops the bass',
