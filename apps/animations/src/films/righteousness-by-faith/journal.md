@@ -217,3 +217,7 @@ r3: the near hair tip, blunt and as wide as the rim, hides the face rim beside i
 ## 2026-10-18T06:47:15Z · court
 
 onYou (C3): Christ's head turned to us (ChristFront, traced from court.you try 2) swaps in at the turn's middle, during the camera move; at 20.01 His eyes sit at 29% of the frame height with the hair whole in frame, and the lead stands a pace back behind Him at 0.72 of his size. The hair and the beard's foot traced on the region alone left a 1-3 px light line of the face under the ink; run 2% past the region they close it. film match flags the head turn at +0.31 against -0.01 while the eyes sit centred between the hair's edges (pixels); the face's shade band on the far side is twice court.you's value drop.
+
+## 2026-10-18T06:52:19Z · court
+
+onYou at 20.01: with the lead a pace back at rise 36 his head sat at 0.62 of the frame, under Christ's beard (court.you.2 puts it at 0.45, level with the beard's foot); at rise 100 it sits at 0.44, his feet clear above the floor behind the dock rail in toThree.

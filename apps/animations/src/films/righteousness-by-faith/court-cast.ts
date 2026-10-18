@@ -394,7 +394,7 @@ const prosecutorGroup = (f: CourtFrame, p: CourtPose) => {
 };
 
 /** The lead a pace back (`back` 1): how much smaller he stands, and how far up the floor his feet go, Board pixels. */
-const BACK = { scale: 0.28, rise: 36 } as const;
+const BACK = { scale: 0.28, rise: 100 } as const;
 
 /**
  * The dock and who stands behind it: Christ beside the lead when He is
