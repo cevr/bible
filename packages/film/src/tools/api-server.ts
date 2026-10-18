@@ -292,6 +292,13 @@ class BodyRead extends Context.Service<BodyRead, { readonly limit: number }>()(
 ) {}
 
 /**
+ * Whether the gate has admitted the request a route (or a middleware beside
+ * the routes) is answering and read its body (`bounded`): a write the gate
+ * let through, its body whole.
+ */
+export const bodyAdmitted = Effect.map(Effect.serviceOption(BodyRead), Option.isSome);
+
+/**
  * The gate: a request admitted, a write's body bounded; anything else
  * answered with its refusal. A write whose body is read is answered by the
  * server's own handler (`self`) as a new request, never by swapping the

@@ -47,6 +47,7 @@ import { labHandler } from './lab.ts';
 import { LabEvents } from './lab-events.ts';
 import { LabAddress } from './lab-command.ts';
 import { type LabMcpNeeds, labMcp } from './lab-mcp.ts';
+import { McpEvents } from './mcp-events.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { Earshot } from './earshot.ts';
 import { SoundLibrary } from './library.ts';
@@ -265,16 +266,26 @@ const FEED_EVERY = Duration.seconds(2);
 /**
  * The lab's routes with its MCP beside `beside`: every link at the lab's own
  * `links` (local, and the phone's when it listens there), over a change feed
- * kept while the scope is open.
+ * and its event subscriptions (`mcp-events.ts`), kept while the scope is open.
  */
 const mcpRoutes = Effect.fn('film.lab.mcp')(function* (links: LabLinks, beside: BesideRoutes) {
   const events = yield* Layer.build(LabEvents.layer({ links, every: FEED_EVERY }));
   const services = yield* Effect.context<LabMcpNeeds>();
+  // The subscriptions deliver over the same feed, kept in the lab's folder by its store.
+  const subscriptions = yield* Layer.build(
+    McpEvents.layer.pipe(Layer.provide(Layer.succeedContext(Context.merge(services, events)))),
+  );
   return Layer.merge(
     beside,
     labMcp.pipe(
       Layer.provide(
-        Layer.succeedContext(Context.add(Context.merge(services, events), LabAddress, links)),
+        Layer.succeedContext(
+          Context.add(
+            Context.merge(Context.merge(services, events), subscriptions),
+            LabAddress,
+            links,
+          ),
+        ),
       ),
     ),
   );

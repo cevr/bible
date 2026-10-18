@@ -1,16 +1,28 @@
 // Content digests, in one place: a file named by what it holds (a take, a
 // library variant, a score), a store key's bytes checked against the hash
-// they were kept under, and the review's cache names. Every sha256 here is
+// they were kept under, the review's cache names, and a webhook's signature
+// (an HMAC-SHA256, compared in constant time). Every sha256 here is
 // lowercase hex, so the lock, the manifests and the store agree byte for byte.
 // A file is hashed as it streams, never read whole.
 
-import { createHash } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { Effect, type FileSystem, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 
 /** The sha256 of `bytes`, as lowercase hex. */
 export const sha256Hex = (bytes: Uint8Array | string): string =>
   createHash('sha256').update(bytes).digest('hex');
+
+/** The HMAC-SHA256 of `text` under `key`. */
+export const hmacSha256 = (key: Uint8Array, text: string): Uint8Array =>
+  new Uint8Array(createHmac('sha256', key).update(text).digest());
+
+/** Whether `a` and `b` are the same text, compared in time that does not depend on where they differ. */
+export const sameText = (a: string, b: string): boolean => {
+  const left = new TextEncoder().encode(a);
+  const right = new TextEncoder().encode(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+};
 
 /** An incremental sha256: fed chunk by chunk as bytes stream past, read once at the end. */
 interface Hashing {

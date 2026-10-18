@@ -22,6 +22,7 @@ import {
   Queue,
   Redacted,
   Result,
+  Schedule,
   Schema,
   Sink,
   Stream,
@@ -71,6 +72,7 @@ import { labHandler } from './lab.ts';
 import { LabEvents } from './lab-events.ts';
 import { LabAddress } from './lab-command.ts';
 import { type LabMcpNeeds, MCP_PATH, labMcp } from './lab-mcp.ts';
+import { McpEvents } from './mcp-events.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
 import { BoardStore } from './board-store.ts';
@@ -1904,16 +1906,32 @@ export const mcpBound = { hostname: '127.0.0.1', port: 4401 } as const;
 /** The lab's handler as a client's request reaches it. */
 export type LabFetch = (request: Request, server: typeof mcpBound) => Promise<Response>;
 
-/** The lab's handler with its MCP beside it, over a feed the test reads (`look`) when it says. */
+/** How a test's lab delivers MCP events: a delivery tried twice more at once, a callback verified for 10 minutes. */
+const MCP_EVENTS_PACE: Parameters<typeof McpEvents.at>[0] = {
+  retry: Schedule.forever,
+  retries: 2,
+  verifiedFor: '10 minutes',
+  answerWithin: '10 seconds',
+};
+
+/**
+ * The lab's handler with its MCP beside it, over a feed the test reads
+ * (`look`) when it says, and its event subscriptions (`mcp-events.ts`),
+ * which post to their callbacks by fetch.
+ */
 export const labWithMcp = Effect.gen(function* () {
   const links = { local: MCP_BASE, phone: MCP_PHONE };
   const events = yield* LabEvents.make({ links });
   yield* events.look;
   const services = yield* Effect.context<LabMcpNeeds>();
+  const withEvents = Context.add(services, LabEvents, events);
+  const subscriptions = yield* Layer.build(
+    McpEvents.at(MCP_EVENTS_PACE).pipe(Layer.provide(Layer.succeedContext(withEvents))),
+  );
   const mcp = labMcp.pipe(
     Layer.provide(
       Layer.succeedContext(
-        Context.add(Context.add(services, LabEvents, events), LabAddress, links),
+        Context.add(Context.merge(withEvents, subscriptions), LabAddress, links),
       ),
     ),
   );

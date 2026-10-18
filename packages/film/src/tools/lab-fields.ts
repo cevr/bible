@@ -2,7 +2,9 @@
 // (what an MCP client reads in `tools/list`): each property's name, its kind,
 // whether it is required and its description. A command's transports take
 // their fields from here (`lab-command.ts` answers them as `fields`), so the
-// terminal's flags are the MCP tool's arguments by construction.
+// terminal's flags are the MCP tool's arguments by construction. The JSON
+// Schema of an object is made here too (`objectSchema`), for a tool's listing
+// and an MCP event's (`mcp-events.ts`) alike.
 
 import { Array as Arr, Option, Predicate, Schema } from 'effect';
 import type { JsonSchema } from 'effect';
@@ -162,4 +164,26 @@ export const fieldsOf = (tool: Tool.Any): ReadonlyArray<LabField> => {
       })),
     ),
   );
+};
+
+// ---------------------------------------------------------------------------
+// A schema as MCP lists it
+
+const RefRoot = Schema.Struct({ $ref: Schema.String });
+const isRefRoot = Schema.is(RefRoot);
+
+/** A schema's JSON Schema with an object root, as MCP lists a tool's input and output: a top-level `$ref` inlined. */
+export const objectSchema = (schema: Schema.Top) => {
+  const document = Schema.toJsonSchemaDocument(schema, { onExcessProperty: 'ignore' });
+  const { definitions } = document;
+  const root = Option.liftPredicate(document.schema, isRefRoot).pipe(
+    Option.flatMap((ref) =>
+      Option.fromUndefinedOr(definitions[ref.$ref.replace(/^#\/\$defs\//, '')]),
+    ),
+    Option.getOrElse(() => document.schema),
+  );
+  return Arr.match(Object.keys(definitions), {
+    onEmpty: () => root,
+    onNonEmpty: () => ({ ...root, $defs: definitions }),
+  });
 };

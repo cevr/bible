@@ -27,35 +27,18 @@ import { Array as Arr, Cause, Context, Effect, Layer, Option, Schema } from 'eff
 import { McpProtocol, McpSchema, McpServer, Tool } from 'effect/ai';
 import { gist } from '../core/lab-events.ts';
 import { EASEL_INSTRUCTIONS } from './easel-mcp.ts';
+import { objectSchema } from './lab-fields.ts';
 import type { Answered, LabAddress, LabCommand } from './lab-command.ts';
 import { type InLabNeeds, OverviewRead, allCommands, overviewRead } from './lab-commands.ts';
 import { LabChanges, LabEvents } from './lab-events.ts';
 import { type CallParams, callParamsOf, logged } from './mcp-calls.ts';
+import { eventsRoute } from './mcp-events.ts';
 import { BoardRead, type NoteRead, NotesRead, notesReads } from './notes-mcp.ts';
 
 export const MCP_PATH = '/mcp';
 
 // ---------------------------------------------------------------------------
 // A command as a tool
-
-const RefRoot = Schema.Struct({ $ref: Schema.String });
-const isRefRoot = Schema.is(RefRoot);
-
-/** A schema's JSON Schema with an object root, as MCP lists a tool's input and output: a top-level `$ref` inlined. */
-const objectSchema = (schema: Schema.Top) => {
-  const document = Schema.toJsonSchemaDocument(schema, { onExcessProperty: 'ignore' });
-  const { definitions } = document;
-  const root = Option.liftPredicate(document.schema, isRefRoot).pipe(
-    Option.flatMap((ref) =>
-      Option.fromUndefinedOr(definitions[ref.$ref.replace(/^#\/\$defs\//, '')]),
-    ),
-    Option.getOrElse(() => document.schema),
-  );
-  return Arr.match(Object.keys(definitions), {
-    onEmpty: () => root,
-    onNonEmpty: () => ({ ...root, $defs: definitions }),
-  });
-};
 
 const errorResult = (text: string) =>
   McpSchema.CallToolResult.make({ isError: true, content: [{ type: 'text', text }] });
@@ -268,7 +251,7 @@ export type LabMcpNeeds = Exclude<InLabNeeds, LabEvents | LabAddress>;
  * runs first, as for every path. A client ends its session with a DELETE
  * (the transport keeps a session until then: it has no expiry).
  */
-export const labMcp = Layer.mergeAll(commandTools, resources, inbox).pipe(
+export const labMcp = Layer.mergeAll(commandTools, resources, inbox, eventsRoute(MCP_PATH)).pipe(
   Layer.provide(
     McpServer.layerHttp({
       name: 'film-lab',
