@@ -43,6 +43,7 @@
 
 import { Option, Result, Schema } from 'effect';
 import type { Raster } from './raster.ts';
+import { ArtifactMark, headArtifacts } from './render-artifacts.ts';
 
 // ---------------------------------------------------------------------------
 // What a measure answers
@@ -170,6 +171,21 @@ const MouthPose = Schema.Literals(['open', 'closed']);
 type MouthPose = typeof MouthPose.Type;
 const MOUTH_OPEN = 0.8;
 
+/**
+ * Which way a head faces, read from its marks inside its outline: `turn`,
+ * how far the eyes' midpoint sits from the middle of the face's opening on
+ * the cheek row just under them, as a share of that opening (0 a front face,
+ * + turned to the viewer's right); `roll`, the eye line's slope in degrees
+ * (+ the right eye lower); and `eyes`, the eyes' spacing in pixels, which
+ * says how finely the roll was read.
+ */
+const Facing = Schema.Struct({
+  turn: Schema.Finite,
+  roll: Schema.Finite,
+  eyes: Schema.Finite,
+});
+type Facing = typeof Facing.Type;
+
 export const FigureMeasure = Schema.Struct({
   head: PixelBox,
   ink: Schema.Tuple([Schema.Int, Schema.Int, Schema.Int]),
@@ -179,6 +195,10 @@ export const FigureMeasure = Schema.Struct({
   bodyShading: Schema.optionalKey(Shading),
   /** The face's pose as its mouth shows it: open (a shout) or closed (a line); left out with no mouth. */
   mouth: Schema.optionalKey(MouthPose),
+  /** Which way the head faces (`Facing`). */
+  facing: Facing,
+  /** The head's render artifacts (`render-artifacts.ts`): thin lines of a third colour on it or past its outline. */
+  artifacts: Schema.Array(ArtifactMark),
   missing: Schema.Array(Unmeasured),
 });
 export type FigureMeasure = typeof FigureMeasure.Type;
@@ -1218,6 +1238,52 @@ const faceRatios = (read: Read, head: Head, sink: Sink): Option.Option<MouthPose
 };
 
 /**
+ * The face's box, from the eyes: half an eye line out either side of them,
+ * half one above, and an eye line and a half below them (the mouth and the
+ * chin). Read from the eyes, not the face's fill, which may run on into a
+ * headcloth or a neck of its colour.
+ */
+const faceBoxOf = (head: Head) => {
+  const { a, b } = head;
+  const span = cxOf(b) - cxOf(a);
+  return {
+    x0: a.x0 - 0.5 * span,
+    y0: Math.min(a.y0, b.y0) - 0.5 * span,
+    x1: b.x1 + 0.5 * span,
+    y1: Math.max(a.y1, b.y1) + 1.5 * span,
+  };
+};
+
+/** Which way the head faces (`Facing`): the eyes in the face's opening under them, and the eye line's slope. */
+const facingOf = (read: Read, head: Head): Facing => {
+  const { a, b, outer } = head;
+  const eyesX = (cxOf(a) + cxOf(b)) / 2;
+  // The face's opening on the cheek row just under the eyes: from between the
+  // eyes out to the hair, the ink or the head's edge either side.
+  const y = Math.min(read.h - 1, Math.round(Math.max(a.y1, b.y1) + 0.5 * heightOf(a)));
+  const hairIds = new Set(head.hair.map((p) => p.id));
+  const open = (x: number) => {
+    const [ox, oy] = [x - outer.x0, y - outer.y0];
+    if (
+      ox < 0 ||
+      oy < 0 ||
+      ox >= outer.bw ||
+      oy >= outer.bh ||
+      outer.mask[oy * outer.bw + ox] !== 1
+    )
+      return false;
+    const i = y * read.w + x;
+    return read.ink[i] === 0 && read.mass[i] === 0 && !hairIds.has(read.regions.labels[i]!);
+  };
+  let [lo, hi] = [Math.round(eyesX), Math.round(eyesX)];
+  while (lo > 0 && open(lo - 1)) lo--;
+  while (hi < read.w - 1 && open(hi + 1)) hi++;
+  const turn = hi > lo ? (eyesX - (lo + hi + 1) / 2) / (hi - lo + 1) : 0;
+  const roll = (Math.atan2(cyOf(b) - cyOf(a), cxOf(b) - cxOf(a)) * 180) / Math.PI;
+  return { turn, roll, eyes: Math.hypot(cxOf(b) - cxOf(a), cyOf(b) - cyOf(a)) };
+};
+
+/**
  * The head's inner parts: the face, the hair and what lies across one line
  * from either (an ear), within a third of a head of the head's box.
  */
@@ -1571,6 +1637,17 @@ export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, Figure
     });
     const mouth = faceRatios(read, head, sink);
     const radii = hairRatios(read, head, sink);
+    // The outline's own colour only: a dark brown fill (hair, a beard) is a fill here, so a gap between it and the line shows.
+    const inkOrMass = new Uint8Array(read.ink.length);
+    for (let i = 0; i < inkOrMass.length; i++)
+      inkOrMass[i] = dist(rgbAt(read.r, i), read.inkColour) < INK_NEAR ? 1 : 0;
+    const artifacts = headArtifacts({
+      raster: read.r,
+      ink: inkOrMass,
+      head: head.outer,
+      face: faceBoxOf(head),
+      line: read.line,
+    });
     // The head's shade: the face below the eyes.
     const headShading = shadingOf(
       pixelsOf(read, new Set([head.face.id]), head.eyeY + 0.1 * W, head.hy1),
@@ -1592,6 +1669,8 @@ export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, Figure
       ...Option.match(headShading, { onNone: () => ({}), onSome: (s) => ({ headShading: s }) }),
       ...Option.match(body.shading, { onNone: () => ({}), onSome: (s) => ({ bodyShading: s }) }),
       ...Option.match(mouth, { onNone: () => ({}), onSome: (pose) => ({ mouth: pose }) }),
+      facing: facingOf(read, head),
+      artifacts,
       missing,
     };
   });

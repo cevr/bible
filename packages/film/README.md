@@ -2839,6 +2839,21 @@ holds half the ink of the most-inked run, and no longer than a twelfth of
 the crop, so a wall's thin lines or a long dark band behind the figure do
 not stand for it.
 
+**Facing and artifacts.** The head's facing (`facing`): its `turn`, the
+eyes' midpoint off the middle of the face's opening on the cheek row just
+under them (a share of that opening, + to the viewer's right; the opening
+runs out to the hair, the ink or the head's edge), its `roll`, the eye
+line's slope in degrees, and `eyes`, the eye line's length, which says how
+coarsely the roll was read. The render's artifacts on the head
+(`artifacts`, `core/render-artifacts.ts`), at 1:1 only: a pixel whose
+colour lies off the blend of its neighbours two or three pixels across it
+is a thin line of a third colour (an antialiased edge is a blend and reads
+as nothing), classed by what lies either side: a `seam` (two fills), a
+`sliver` (the outline's ink and a fill, the fill's luma off the line's by
+more than the house rim's lift), or `weather` (one fill, over the face's
+box from the eyes to the chin: rain across the face). Its pixels join into
+marks, and a mark shorter than two of the head's lines is grain.
+
 **The table** (`compareFigures`, `matchTable`). A row per measure, the
 concept's and the scene's numbers and their difference: a ratio is flagged
 past 5% of the concept's; interior ink past 0.02 of a head; an inner rim
@@ -2846,7 +2861,12 @@ past 5% of the concept's; interior ink past 0.02 of a head; an inner rim
 gap of 0.03 of a head from the concept's (the widest gap named by its
 side), the body's past 0.05; feet the concept shows and the scene does not
 (or the other way); a shade's drop, turn, kept saturation and edge past
-their tolerances, and a grey shade. Two kinds of row are information,
+their tolerances, and a grey shade; the head's turn past 0.1 of the
+face's opening from the concept's, and its roll past 6° and the grain of
+each side's eye line (a concept's head angle is design, never information:
+owner, 2026-10-18, ask `aab16c0cb70`); and any seam, sliver or weather on
+the scene's head (the owner's rule is none; a concept is painted, so its
+side is not read). Two kinds of row are information,
 never flagged: the height in heads (a figure's height comes from the cast's
 height band, and a concept is a design sketch:
 `.claude/skills/film/reference/character-design.md`, "One height band for
@@ -2857,7 +2877,8 @@ never a gate: a concept is painted.
 
 **Files.** Under `out/<film>/match/<scene>/`, each figure's side-by-side
 (`<figure>.t<time>.b<build>.png`: the concept, the scene at one head
-height, and the scene again under the concept's outline in magenta, laid
+height with each artifact ringed (a seam red, a sliver blue, weather
+green), and the scene again under the concept's outline in magenta, laid
 by the head's centre and width) and its table (`….md`), written once, so
 a path handed on keeps its pixels. A figure with no concept declared, one whose
 box lies past the frame's edge, a concept not on disk or unreadable, or a

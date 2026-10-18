@@ -7,6 +7,7 @@
 // a painter and fails nothing. Pure.
 
 import { Array as Arr, Match, Option, Order, Schema } from 'effect';
+import { ARTIFACT_KINDS, type ArtifactKind, type ArtifactMark } from './render-artifacts.ts';
 import {
   type FigureMeasure,
   type FigureSilhouette,
@@ -225,6 +226,25 @@ const INNER_RIM_MORE = 0.1;
 
 /** An outline's mean gap from the concept's past this share of the head's width is flagged: the head's, the body's. */
 const SILHOUETTE_TOLERANCE = { head: 0.03, body: 0.05 } as const;
+
+/**
+ * A head's turn past this (the eyes' offset in the face's opening, a share of
+ * it) is flagged: RBF's farmer, a front face drawn from a three-quarter
+ * concept, differs by 0.17; Christ and cold's prosecutor, drawn in their
+ * concepts' turn, by 0.05 and 0.002 (measured, 2026-10-18).
+ */
+const TURN_TOLERANCE = 0.1;
+
+/**
+ * A head's roll past this many degrees, beside what a pixel either way at
+ * each eye makes of the eye line (a small concept's eyes are read coarsely),
+ * is flagged: RBF's farmer, tilted up 12° in his concept and level in the
+ * scene, is; Christ (a 26-pixel eye line in his concept) is not.
+ */
+const ROLL_TOLERANCE = 6;
+
+/** The degrees one pixel either way at each eye can tilt an eye line `eyes` pixels long. */
+const rollGrain = (eyes: number) => (Math.atan2(2, Math.max(1, eyes)) * 180) / Math.PI;
 
 /** A shade's tolerances, in its unit: a value drop, a hue turn, the saturation kept, the edge's angle. */
 const SHADE_TOLERANCE = { drop: 0.05, turn: 8, kept: 0.15, edge: 15 } as const;
@@ -568,13 +588,92 @@ const ratioRows = (concept: FigureMeasure, scene: FigureMeasure): ReadonlyArray<
   ];
 };
 
-/** The concept's measure against the scene's, row by row: every ratio, the outlines, then the head's and the body's shading. */
+/** Why a turn or a roll that differs is flagged, never information (owner, 2026-10-18, on the RBF v3 cast; `character-design.md`). */
+const ANGLE_IS_DESIGN = "a concept's head angle is design, not a sketch's slip: draw the concept's";
+
+/** The head's facing: its turn and its roll against the concept's, each flagged past its tolerance. */
+const facingRows = (concept: FigureMeasure, scene: FigureMeasure): ReadonlyArray<MatchRow> => {
+  const none = { concept: Option.none<string>(), scene: Option.none<string>() };
+  const [c, s] = [concept.facing, scene.facing];
+  const turn = rowOf(
+    'head: turn (eyes in the face)',
+    'value',
+    Option.some(c.turn),
+    Option.some(s.turn),
+    none,
+    TURN_TOLERANCE,
+  );
+  const roll = rowOf(
+    'head: roll (the eye line)',
+    'degrees',
+    Option.some(c.roll),
+    Option.some(s.roll),
+    none,
+    ROLL_TOLERANCE + rollGrain(c.eyes) + rollGrain(s.eyes),
+  );
+  return [turn, roll].map((row) =>
+    Match.value(row.flagged).pipe(
+      Match.when(true, (): MatchRow => ({ ...row, note: ANGLE_IS_DESIGN })),
+      Match.orElse(() => row),
+    ),
+  );
+};
+
+/** What each artifact is, as its row says it. */
+const ARTIFACT_LABELS: Readonly<Record<ArtifactKind, string>> = {
+  seam: 'artifacts: seam (a light line between two fills)',
+  sliver: 'artifacts: sliver (a fill short of the outline)',
+  weather: 'artifacts: weather over the face',
+};
+
+/** The most boxes a row's note lists. */
+const BOXES_LISTED = 4;
+
+/**
+ * A row per artifact kind: the scene's marks' length in head widths, flagged
+ * where it has any (the owner's rule is none, 2026-10-18: "theres some
+ * artifacts in the render"), its boxes in the scene crop's pixels listed. A
+ * concept is painted, so its side is not read.
+ */
+const artifactRows = (scene: FigureMeasure): ReadonlyArray<MatchRow> => {
+  const width = Math.max(1, scene.head[2] - scene.head[0]);
+  return ARTIFACT_KINDS.map((kind): MatchRow => {
+    const marks = scene.artifacts.filter((a) => a.kind === kind);
+    const row: MatchRow = {
+      name: ARTIFACT_LABELS[kind],
+      unit: 'rule',
+      scene: marks.reduce((sum, a) => sum + a.length, 0) / width,
+      flagged: marks.length > 0,
+    };
+    return Option.match(Arr.head(marks), {
+      onNone: () => row,
+      onSome: () => ({ ...row, note: artifactNote(marks) }),
+    });
+  });
+};
+
+/** Where a row's marks lie, in the scene crop's pixels: the first `BOXES_LISTED` boxes, and how many there are. */
+const artifactNote = (marks: ReadonlyArray<ArtifactMark>): string => {
+  const at = marks
+    .slice(0, BOXES_LISTED)
+    .map((a) => a.box.map(Math.round).join(','))
+    .join(' ');
+  const more = Match.value(marks.length > BOXES_LISTED).pipe(
+    Match.when(true, () => ' …'),
+    Match.orElse(() => ''),
+  );
+  return `${marks.length} in the scene crop at ${at}${more}: the owner rule is none`;
+};
+
+/** The concept's measure against the scene's, row by row: every ratio, the facing, the outlines, the artifacts, then the head's and the body's shading. */
 export const compareFigures = (
   concept: FigureMeasure,
   scene: FigureMeasure,
 ): ReadonlyArray<MatchRow> => [
   ...ratioRows(concept, scene),
+  ...facingRows(concept, scene),
   ...silhouetteRows(concept, scene),
+  ...artifactRows(scene),
   ...shadeRows(
     'head',
     Option.fromUndefinedOr(concept.headShading),
@@ -717,12 +816,48 @@ const outlinePaths = (
 /** The head's height, in pixels, both sides of a side-by-side are scaled to. */
 const SIDE_HEAD = 200;
 
+/** Each artifact's colour where the side-by-side rings it. */
+const ARTIFACT_COLOURS: Readonly<Record<ArtifactKind, readonly [number, number, number]>> = {
+  seam: [255, 0, 0],
+  sliver: [0, 90, 255],
+  weather: [0, 200, 0],
+};
+
+/** `raster` (the scene crop scaled by `factor`) with each of its artifacts ringed in its kind's colour. */
+const markArtifacts = (raster: Raster, measure: FigureMeasure, factor: number): Raster =>
+  measure.artifacts.reduce((out, a) => {
+    const [x0, y0, x1, y1] = [
+      a.box[0] * factor,
+      a.box[1] * factor,
+      a.box[2] * factor,
+      a.box[3] * factor,
+    ];
+    const room = 3;
+    return strokeRaster(
+      out,
+      [
+        {
+          points: [
+            [x0 - room, y0 - room],
+            [x1 + room, y0 - room],
+            [x1 + room, y1 + room],
+            [x0 - room, y1 + room],
+          ],
+          closed: true,
+        },
+      ],
+      ARTIFACT_COLOURS[a.kind],
+      2,
+    );
+  }, raster);
+
 /**
  * The concept's crop left, the scene's in the middle, each scaled so its head
  * is `head` pixels tall and set down so the heads' tops meet, and right the
  * scene again with the concept's outline over it (`OUTLINE_COLOUR`), laid
  * by the head's centre and width: the proportions a table counts, seen at
- * one size, and the outlines one over the other.
+ * one size, the outlines one over the other, and the scene's artifacts
+ * ringed in the middle (`ARTIFACT_COLOURS`).
  */
 export const sideBySide = (
   concept: { readonly crop: Raster; readonly measure: FigureMeasure },
@@ -739,7 +874,11 @@ export const sideBySide = (
     const factor = head / Math.max(1, measure.head[3] - measure.head[1]);
     return { raster: scaleRaster(crop, factor), top: measure.head[1] * factor, factor };
   };
-  const [left, middle] = [scaled(concept), scaled(scene)];
+  const [left, scaledScene] = [scaled(concept), scaled(scene)];
+  const middle = {
+    ...scaledScene,
+    raster: markArtifacts(scaledScene.raster, scene.measure, scaledScene.factor),
+  };
   const over = strokeRaster(
     middle.raster,
     outlinePaths(concept.measure.silhouette, scene.measure.head, middle.factor),
