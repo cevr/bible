@@ -47,6 +47,7 @@ import {
   labOf,
   litSideOf,
   lumaOf,
+  opaqueOf,
   outsideOf,
   pairDiff,
   papersOf,
@@ -1630,9 +1631,10 @@ const conceptRows = (reads: ReadonlyArray<ViewRead>, concepts: ReadonlyArray<She
 
 /** Measure a cast sheet: its figures found, each view read, and every check run. */
 export const measureSheet = (
-  sheet: Raster,
+  given: Raster,
   options: SheetOptions,
 ): Result.Result<SheetMeasure, SheetUnread> => {
+  const sheet = opaqueOf(given);
   const { figures, found } = figuresOf(sheet, options.count);
   const slots =
     options.slots ??

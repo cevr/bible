@@ -12,13 +12,22 @@ import { drawFigure, drawSheet, type FigureSpec, PLAIN } from '../core/fixtures/
 import { Segment } from '../core/segment.ts';
 import { keepCastSheet } from './cast-sheet-keep.ts';
 import { ContentStore } from './content-store.ts';
-import { encodePng } from './png.ts';
+import type { Raster } from '../core/raster.ts';
+import { decodePng, encodePng } from './png.ts';
 import { memoryFileSystem, memoryLocks, text } from './testing.ts';
 
 const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150], arm: 'sleeve' };
 const at = (eyeShift: number, extra: Partial<FigureSpec> = {}) =>
   drawFigure({ ...base, eyeShift, ...extra });
 const poses = encodePng(drawSheet([at(0), at(-14)]));
+
+/** `sheet` as the route can answer it with its paper left out: every paper pixel transparent, its colour a dark grey no eye sees. */
+const bare = (sheet: Raster): Raster => {
+  const rgba = Uint8Array.from(sheet.rgba);
+  for (let i = 0; i < rgba.length; i += 4)
+    if (rgba[i] === 238 && rgba[i + 1] === 230 && rgba[i + 2] === 214) rgba.set([70, 70, 70, 0], i);
+  return { ...sheet, rgba };
+};
 
 const FOLDER = '/library/cast/christ/cast-sheet';
 const OUT = '/out/f/cast/christ';
@@ -96,6 +105,23 @@ describe('a sheet kept', () => {
       });
     }).pipe(Effect.provide(over(files)));
   });
+
+  it.effect(
+    'cuts each view on white from a sheet painted with no paper, and keeps the try as drawn',
+    () => {
+      const files = new Map<string, Uint8Array>();
+      const drawn = encodePng(bare(drawSheet([at(0), at(-14)])));
+      return Effect.gen(function* () {
+        files.set(`${OUT}/poses-1.png`, drawn);
+        yield* keep(1);
+        expect(files.get(`${FOLDER}/kept/poses.png`)).toEqual(drawn);
+        const view = yield* Effect.fromResult(
+          decodePng(files.get(`${FOLDER}/views/poses-1.png`) ?? new Uint8Array()),
+        );
+        expect(view.rgba.filter((_, i) => i % 4 === 3 && view.rgba[i] !== 255).length).toBe(0);
+      }).pipe(Effect.provide(over(files)));
+    },
+  );
 
   it.effect('refuses a kind kept already, and a try the record does not hold', () => {
     const files = new Map<string, Uint8Array>();

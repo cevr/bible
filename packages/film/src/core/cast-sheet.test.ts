@@ -263,6 +263,21 @@ describe('a turnaround whose profiles are swapped', () => {
   });
 });
 
+describe('a sheet painted on no paper', () => {
+  // The route can answer with the paper left out: every pixel round the figures transparent, its colour a dark grey no eye sees.
+  const opaque = drawSheet([at(0), at(-14)]);
+  const rgba = Uint8Array.from(opaque.rgba);
+  for (let i = 0; i < rgba.length; i += 4)
+    if (rgba[i] === 238 && rgba[i + 1] === 230 && rgba[i + 2] === 214) rgba.set([70, 70, 70, 0], i);
+  const options: SheetOptions = { kind: 'poses', count: 2, anchor: 1, slots: ['front', 'left'] };
+
+  test('reads its figures as on white paper', () => {
+    const m = read({ ...opaque, rgba }, options);
+    expect(m.views.map((v) => v.box)).toEqual(read(opaque, options).views.map((v) => v.box));
+    expect(flagsOf(m)).toEqual([]);
+  });
+});
+
 describe('a sheet that draws more figures than it names', () => {
   const sheet = drawSheet([
     at(0),

@@ -58,6 +58,7 @@ import {
   sheetTable,
   Slot,
 } from '../core/cast-sheet.ts';
+import { opaqueOf } from '../core/cast-sheet-pixels.ts';
 import { measureFigure } from '../core/figure.ts';
 import { castSheetBrief, turnaroundLayout } from './cast-sheet-brief.ts';
 import { FilmFolder, filmNamed } from './film-repo.ts';
@@ -171,7 +172,7 @@ const measure = Command.make(
   Effect.fn('film.concept.measure')(function* (input) {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const sheet = yield* pngAt(input.sheet);
+    const sheet = opaqueOf(yield* pngAt(input.sheet));
     const concepts = yield* Effect.forEach(input.concept, conceptOf);
     const options: SheetOptions = {
       kind: input.kind,

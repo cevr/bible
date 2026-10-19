@@ -2927,7 +2927,11 @@ canon of its heads tall and turned to its slot by its eyes, its nose and its fee
 does not stand leaves its column empty; a turnaround's profiles are its
 third and fifth views), written fresh as `underlay-<kind>.png`. A sheet with
 no standing view, as every heads sheet, is redrawn with no underlay. A retry that still drifts is recorded with its flags,
-never dropped; a try that draws nothing is a line and the run goes on.
+never dropped; a try that draws nothing is a line and the run goes on. A
+try the measure cannot read is recorded with why (`unread`), said on its
+line, and drawn once more. A sheet the route paints with no paper (its
+ground transparent) is read on white (`opaqueOf`), as the CLI's measure
+reads one.
 `--dry-run` prints the prompt and the references and draws nothing.
 
 `film concept critique <film> <member> --kind <kind> --try <n>`

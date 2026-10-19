@@ -36,6 +36,8 @@ const CastTry = Schema.Struct({
   /** The try this one draws again, its drift named in the prompt. */
   retryOf: Schema.optionalKey(Schema.Int),
   flags: Schema.Array(CastFlag),
+  /** Why the measure could not read the try, when it could not: no flags then means nothing was read. */
+  unread: Schema.optionalKey(Schema.String),
   /** The anchor's squash to the canon, in percent, where it reads. */
   squash: Schema.optionalKey(Schema.Finite),
   at: Schema.String,

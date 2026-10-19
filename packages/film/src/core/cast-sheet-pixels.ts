@@ -248,6 +248,22 @@ export const figuresOf = (r: Raster, count: number): SheetFigures => {
   return { figures, found: big.length } satisfies SheetFigures;
 };
 
+/**
+ * A sheet laid on white paper: each pixel's colour weighed by its alpha over
+ * white. The route can answer with the paper left out, every pixel round
+ * the figures transparent and its colour one no eye sees; read as it is,
+ * that colour is as dark as ink and joins every figure into one.
+ */
+export const opaqueOf = (r: Raster): Raster => {
+  const rgba = Uint8Array.from(r.rgba);
+  for (let i = 0; i < rgba.length; i += 4) {
+    const a = (rgba[i + 3] ?? 255) / 255;
+    for (let c = 0; c < 3; c++) rgba[i + c] = Math.round(a * (rgba[i + c] ?? 255) + (1 - a) * 255);
+    rgba[i + 3] = 255;
+  }
+  return { width: r.width, height: r.height, rgba };
+};
+
 /** A sheet's ink by its darkness alone: 1 darker than a line's luma. */
 export const inkByLuma = (r: Raster): Uint8Array => {
   const ink = new Uint8Array(r.width * r.height);

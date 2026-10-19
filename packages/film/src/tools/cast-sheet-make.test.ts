@@ -232,6 +232,25 @@ describe('a heads sheet whose head drifts within its turn', () => {
   );
 });
 
+describe('a try the measure cannot read', () => {
+  it.effect('is recorded unread, said on its line, and drawn once more', () => {
+    const files = new Map<string, Uint8Array>();
+    const calls: Array<ImageRequest> = [];
+    const lines: Array<CastLine> = [];
+    // One figure where the sheet names two.
+    const lone = encodePng(drawSheet([at(0)]));
+    return Effect.gen(function* () {
+      const kept = yield* ran(files, lines);
+      const tries = kept.sheets.poses?.tries ?? [];
+      expect(tries.map((t) => [t.n, t.unread ?? 'read', t.flags.length])).toEqual([
+        [1, '1 figures found, the sheet names 2', 0],
+        [2, 'read', 0],
+      ]);
+      expect(castLine(lines[0]!)).toContain('unread="1 figures found, the sheet names 2"');
+    }).pipe(Effect.provide(castOver(files, calls, () => (calls.length > 1 && clean) || lone)));
+  });
+});
+
 describe('a sheet with no standing view', () => {
   it.effect(
     'is redrawn with its drift named but no underlay: a mannequin would stand a pose that lies',

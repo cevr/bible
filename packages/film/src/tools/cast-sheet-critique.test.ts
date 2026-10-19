@@ -11,7 +11,8 @@ import { Segment } from '../core/segment.ts';
 import { critiqueCastTry } from './cast-sheet-critique.ts';
 import { Counsel } from './counsel.ts';
 import { Critic } from './critique.ts';
-import { encodePng } from './png.ts';
+import type { Raster } from '../core/raster.ts';
+import { decodePng, encodePng } from './png.ts';
 
 const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150], arm: 'sleeve' };
 const front = drawFigure({ ...base, eyeShift: 0 });
@@ -20,6 +21,14 @@ const ANSWER = [
   '{"findings": [{"figure": "view-1", "aspect": "face", "what": "the beard runs into the hair"}]}',
   '```',
 ].join('\n');
+
+/** `sheet` as the route can answer it with its paper left out: every paper pixel transparent, its colour a dark grey no eye sees. */
+const bare = (sheet: Raster): Raster => {
+  const rgba = Uint8Array.from(sheet.rgba);
+  for (let i = 0; i < rgba.length; i += 4)
+    if (rgba[i] === 238 && rgba[i + 1] === 230 && rgba[i + 2] === 214) rgba.set([70, 70, 70, 0], i);
+  return { ...sheet, rgba };
+};
 
 /** Every packet the counsel was asked. */
 const asked: Array<string> = [];
@@ -36,7 +45,7 @@ const critic = Layer.unwrap(
   }),
 );
 
-/** The try `poses-1.png` (a front view and one more), critiqued with `layout`: the critique, the packets asked and whether the first view was cropped. */
+/** The try `poses-1.png` (a front view and one more, painted with no paper), critiqued with `layout`: the critique, the packets asked and the first view's crop. */
 const critiqued = (layout: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -49,7 +58,8 @@ const critiqued = (layout: string) =>
     yield* fs.writeFile(path.join(folder, 'concept.png'), encodePng(front));
     yield* fs.writeFile(
       path.join(out, 'poses-1.png'),
-      encodePng(drawSheet([front, drawFigure({ ...base, eyeShift: 0, cy: 120 })])),
+      // Painted with no paper: the critic is still shown each view on white.
+      encodePng(bare(drawSheet([front, drawFigure({ ...base, eyeShift: 0, cy: 120 })]))),
     );
     const record: CastSheetRecord = {
       member: Segment.make('christ'),
@@ -83,14 +93,16 @@ const critiqued = (layout: string) =>
     );
     const before = asked.length;
     const result = yield* critiqueCastTry({ folder, out }, 'poses', 1);
-    const cropped = yield* fs.exists(path.join(out, 'critique', 'poses-1', 'view-1.sheet.png'));
-    return { ...result, packets: asked.slice(before), cropped };
+    const crop = yield* Effect.fromResult(
+      decodePng(yield* fs.readFile(path.join(out, 'critique', 'poses-1', 'view-1.sheet.png'))),
+    );
+    return { ...result, packets: asked.slice(before), crop };
   });
 
 describe("a cast sheet try's critique", () => {
   it.effect('asks of each view a concept faces, with its flags, and says the rest', () =>
     Effect.gen(function* () {
-      const { taken, unpaired, packets, cropped } = yield* critiqued(
+      const { taken, unpaired, packets, crop } = yield* critiqued(
         'Draw Him twice, left to right: one, standing at rest, facing the viewer; two, standing, facing the viewer.',
       );
       expect(packets).toHaveLength(1);
@@ -101,7 +113,7 @@ describe("a cast sheet try's critique", () => {
       );
       expect(taken.figures.map((f) => [f.figure, f.findings.length])).toEqual([['view-1', 1]]);
       expect(unpaired).toEqual([2]);
-      expect(cropped).toBe(true);
+      expect(crop.rgba.filter((_, i) => i % 4 === 3 && crop.rgba[i] !== 255).length).toBe(0);
     }).pipe(Effect.provide(critic.pipe(Layer.provideMerge(BunServices.layer))), Effect.scoped),
   );
 

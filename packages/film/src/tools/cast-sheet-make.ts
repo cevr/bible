@@ -22,6 +22,7 @@ import {
   Match,
   Option,
   Path,
+  Predicate,
   Random,
   Result,
   Schema,
@@ -49,7 +50,7 @@ import {
   type Slot,
 } from '../core/cast-sheet.ts';
 import { sheetPreview } from '../core/cast-preview.ts';
-import { colourWords, hexOf } from '../core/cast-sheet-pixels.ts';
+import { colourWords, hexOf, opaqueOf } from '../core/cast-sheet-pixels.ts';
 import { mannequinUnderlay } from '../core/cast-underlay.ts';
 import { measureFigure } from '../core/figure.ts';
 import { cropRaster, type Raster } from '../core/raster.ts';
@@ -110,7 +111,7 @@ export const castLine: (line: CastLine) => string = Match.type<CastLine>().pipe(
   Match.tagsExhaustive({
     Made: (l) =>
       [
-        `made ${l.member}.${l.kind} try=${l.tried.n} flags=${l.tried.flags.length} underlay=${l.tried.underlay}${Option.match(Option.fromUndefinedOr(l.tried.retryOf), { onNone: () => '', onSome: (n) => ` retryOf=${n}` })} file=${l.tried.file}`,
+        `made ${l.member}.${l.kind} try=${l.tried.n} flags=${l.tried.flags.length} underlay=${l.tried.underlay}${Option.match(Option.fromUndefinedOr(l.tried.retryOf), { onNone: () => '', onSome: (n) => ` retryOf=${n}` })}${Option.match(Option.fromUndefinedOr(l.tried.unread), { onNone: () => '', onSome: (why) => ` unread="${why}"` })} file=${l.tried.file}`,
         ...l.lines.slice(1).map((line) => `  ${line}`),
       ].join('\n'),
     Failed: (l) => `failed ${l.member}.${l.kind} reason="${l.reason.replace(/\s+/g, ' ')}"`,
@@ -385,7 +386,7 @@ const drawBytes = Effect.fn('Cast.drawBytes')(function* (
 const keepMeasure = Effect.fn('Cast.keepMeasure')(function* (
   stem: string,
   sheet: Raster,
-  measured: Result.Result<SheetMeasure, { readonly message: string }>,
+  measured: Result.Result<SheetMeasure, { readonly message: string; readonly reason: string }>,
   options: SheetOptions,
 ) {
   const fs = yield* FileSystem.FileSystem;
@@ -396,6 +397,7 @@ const keepMeasure = Effect.fn('Cast.keepMeasure')(function* (
       lines: [`sheet ${name} not measured: ${measured.failure.message}`],
       flags: [],
       squash: {},
+      unread: { unread: measured.failure.reason },
     };
   const m = measured.success;
   yield* fs.writeFileString(`${stem}.measure.md`, sheetTable(name, m));
@@ -405,7 +407,7 @@ const keepMeasure = Effect.fn('Cast.keepMeasure')(function* (
     onNone: () => ({}),
     onSome: (s) => ({ squash: s }),
   });
-  return { lines: sheetLines(name, m), flags: flagsOf(m), squash };
+  return { lines: sheetLines(name, m), flags: flagsOf(m), squash, unread: {} };
 });
 
 /**
@@ -425,7 +427,7 @@ const drawTry = Effect.fn('Cast.drawTry')(function* (
   const store = yield* ContentStore;
   const request = yield* requestOf(ctx, drifts, underlay);
   const bytes = yield* drawBytes(ctx.place, request);
-  const sheet = yield* Effect.fromResult(decodePng(bytes));
+  const sheet = opaqueOf(yield* Effect.fromResult(decodePng(bytes)));
   const measured = measureSheet(sheet, ctx.options);
   const manifest = {
     file: path.join(ctx.place.folder, 'cast-sheet.json'),
@@ -449,6 +451,7 @@ const drawTry = Effect.fn('Cast.drawTry')(function* (
         underlay,
         ...Option.match(retryOf, { onNone: () => ({}), onSome: (r) => ({ retryOf: r }) }),
         flags: read.flags,
+        ...read.unread,
         ...read.squash,
         at,
       };
@@ -499,7 +502,8 @@ export const conceptsOf = Effect.fn('Cast.concepts')(function* (
 const gatedTry = (ctx: TryContext, emit: (line: CastLine) => Effect.Effect<void>) =>
   drawTry(ctx, [], false, Option.none(), emit).pipe(
     Effect.flatMap(({ tried: first, measure }) => {
-      if (first.flags.length === 0) return Effect.succeed([first]);
+      if (first.flags.length === 0 && Predicate.isUndefined(first.unread))
+        return Effect.succeed([first]);
       const held: Drifting = {
         slots: ctx.plan.options.slots ?? [],
         anchor: Option.flatMap(measure, (m) => Arr.findFirst(m.views, (v) => v.view === m.anchor)),

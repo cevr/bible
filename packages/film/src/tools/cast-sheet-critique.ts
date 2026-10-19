@@ -13,6 +13,7 @@
 import { Array as Arr, Effect, FileSystem, Option, Path, Result, Schema } from 'effect';
 import { castKindPlan, CastSheetJson } from '../core/cast-record.ts';
 import { measureSheet, type SheetKind, type SheetMeasure } from '../core/cast-sheet.ts';
+import { opaqueOf } from '../core/cast-sheet-pixels.ts';
 import { cropRaster } from '../core/raster.ts';
 import { turnaroundLayout } from './cast-sheet-brief.ts';
 import { conceptsOf } from './cast-sheet-make.ts';
@@ -109,6 +110,8 @@ export const critiqueCastTry = Effect.fn('Cast.critique')(function* (
     Result.mapError(measureSheet(sheet, options), (e) => unknown(e.message)),
   );
   const layout = Option.getOrElse(plan.layout, () => turnaroundLayout(record.who));
+  // Each view is cut on white, as the measure reads the sheet: one painted with no paper is transparent round the figures.
+  const opaque = opaqueOf(sheet);
   const dir = path.join(place.out, 'critique', `${kind}-${n}`);
   yield* fs.makeDirectory(dir, { recursive: true });
   const views = yield* Effect.forEach(m.views, (v) =>
@@ -123,7 +126,7 @@ export const critiqueCastTry = Effect.fn('Cast.critique')(function* (
               decodePng(yield* fs.readFile(path.join(place.folder, c.file))),
             );
             yield* fs.writeFile(`${stem}.concept.png`, encodePng(cropRaster(concept, c.box)));
-            yield* fs.writeFile(`${stem}.sheet.png`, encodePng(cropRaster(sheet, v.box)));
+            yield* fs.writeFile(`${stem}.sheet.png`, encodePng(cropRaster(opaque, v.box)));
             return Option.some({
               figure: `view-${v.view}`,
               concept: `${stem}.concept.png`,
