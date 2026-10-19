@@ -1183,6 +1183,44 @@ const changesEdited =
       }),
     );
 
+/** A `changes` call's `name` and `film` arguments, wherever they sit in the call's JSON. */
+const FILTER_ARGUMENT =
+  /,"(?:name|film)":(?:\[[^\]]*\]|"[^"]*")|"(?:name|film)":(?:\[[^\]]*\]|"[^"]*"),?/g;
+
+/**
+ * The lab's handler as an older lab answers `changes`: it reads no `name` or
+ * `film` (its tool took only `since` and `wait`), and its changes carry no
+ * `id` or `read`.
+ */
+const olderLab = (lab: LabFetch) =>
+  changesEdited(
+    (request, server) =>
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const asked = yield* Effect.promise(() => request.clone().text());
+          if (!asked.includes('"name":"changes"'))
+            return yield* Effect.promise(() => lab(request, server));
+          const unfiltered = asked.replace(/"arguments":\{[^}]*\}/, (args) =>
+            args.replace(FILTER_ARGUMENT, ''),
+          );
+          return yield* Effect.promise(() =>
+            lab(
+              new Request(request.url, {
+                method: request.method,
+                headers: request.headers,
+                body: unfiltered,
+              }),
+              server,
+            ),
+          );
+        }),
+      ),
+    (result) => ({
+      ...result,
+      changes: result.changes.map(({ id: _id, read: _read, ...rest }) => rest),
+    }),
+  );
+
 /** A request on a line that is down, counted on `attempts` as it is made. */
 const countedDroppable = (lab: LabFetch) =>
   Effect.gen(function* () {
@@ -1330,7 +1368,7 @@ describe('film lab events, against a lab that runs other code', () => {
             /^note\.pinned cursor=\w+\.2 at=\S+ id=[0-9a-f]{16} film=f note=n2 summary="f n2: note on scene cold: pinned" read="bun cli\.ts lab notes --film f --status all" link=http:\/\/localhost:4401\/\S+$/,
           );
           expect(yield* Queue.take(err)).toBe(
-            'lab events: note.pinned is an event this checkout does not know (the lab runs newer code): printed from the fields every event has',
+            'lab events: note.pinned is an event this checkout does not know (the lab runs other code): printed from the fields every event has',
           );
           yield* ownerNote(lab, 'pinned');
           yield* events.look;
@@ -1340,6 +1378,42 @@ describe('film lab events, against a lab that runs other code', () => {
           expect(yield* Queue.take(out)).toMatch(/^note\.added cursor=\w+\.4 .* note=n4 /);
           // Said once for its kind, and no loss said.
           expect(yield* Queue.size(err)).toBe(0);
+          yield* Fiber.interrupt(fiber);
+        }),
+      ),
+  );
+
+  it.effect(
+    'keeps only the names and the film it asked for, against an older lab that reads no filter, and says the shape once',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          const { out, err, fiber } = yield* filmRunning(olderLab(lab), [
+            'lab',
+            'events',
+            '--follow',
+            '--film',
+            'f',
+            '--name',
+            'note.resolved',
+          ]);
+          expect(yield* Queue.take(err)).toContain('lab events: following');
+          yield* ownerNote(lab, 'one');
+          yield* events.look;
+          const fetch = (request: Request) => lab(request, mcpBound);
+          expect(
+            (yield* filmCli(fetch, ['lab', 'resolve', '--film', 'f', '--note', 'n1'])).failed,
+          ).toBe('');
+          yield* events.look;
+          // The note made is not asked for, so the first line is the note done.
+          expect(yield* Queue.take(out)).toMatch(
+            /^note\.resolved cursor=\w+\.2 at=\S+ film=f note=n1 /,
+          );
+          expect(yield* Queue.take(err)).toBe(
+            'lab events: note.resolved came in a shape this checkout does not read (the lab runs other code): printed from the fields every event has',
+          );
+          expect(yield* Queue.size(out)).toBe(0);
           yield* Fiber.interrupt(fiber);
         }),
       ),

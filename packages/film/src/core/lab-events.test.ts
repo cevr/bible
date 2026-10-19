@@ -24,10 +24,12 @@ import {
   namesMatch,
   noteChanges,
   notePath,
+  noteWithdrawals,
   productionChanges,
   setChanges,
 } from './lab-events.ts';
 import { Said, moveForward, newProduction } from './production.ts';
+import { addNote, emptyNotes, eventsSince, replyToNote, withdrawNote } from './notes.ts';
 import type { Note } from './schema.ts';
 import { Segment } from './segment.ts';
 
@@ -440,6 +442,59 @@ describe('the catalogue', () => {
     expect(namesMatch(['*.approved', 'note.added'], 'beat.approved')).toBe(true);
     expect(namesMatch(['ask.step'], 'ask.stepped')).toBe(false);
   });
+
+  it('matches a record by its name: every event read from it, a tweak asked among the notes', () => {
+    expect(
+      Record.keys(LAB_EVENTS)
+        .filter((kind) => namesMatch(['notes'], kind))
+        .toSorted(),
+    ).toEqual(['note.added', 'note.replied', 'note.resolved', 'note.withdrawn', 'tweak.requested']);
+    expect(namesMatch(['board'], 'beat.approved')).toBe(true);
+    expect(namesMatch(['notes'], 'board.kept')).toBe(false);
+    // A kind the catalogue does not know is read from no record.
+    expect(namesMatch(['notes'], 'note.pinned')).toBe(false);
+  });
+});
+
+describe('a note log over time', () => {
+  const draft = { scene: 'cold', T: 1, frame: 30 };
+  const made = (file: ReturnType<typeof emptyNotes>, text: string, at: string) =>
+    addNote(file, { ...draft, text }, at);
+
+  it('tells a note withdrawn while the log went on, never one gone with a reset', () => {
+    const one = made(emptyNotes('f'), 'hand lower', '2026-10-18T10:00:00.000Z');
+    const two = made(one, 'look up', '2026-10-18T10:01:00.000Z');
+    const gone = Option.getOrThrow(withdrawNote(two, 'n1'));
+    expect(noteWithdrawals(two, gone).map((c) => [c.kind, c.note, c.by, c.text])).toEqual([
+      ['note.withdrawn', 'n1', 'owner', 'hand lower'],
+    ]);
+    // Read again: nothing more.
+    expect(noteWithdrawals(gone, gone)).toEqual([]);
+    // A file reset below what was read (trashed, restored) is a new baseline.
+    expect(noteWithdrawals(two, made(emptyNotes('f'), 'new', '2026-10-18T11:00:00.000Z'))).toEqual(
+      [],
+    );
+  });
+
+  it("gives a note made after its file was reset an id of its own, though its number is the old one's", () => {
+    const ids = (file: ReturnType<typeof emptyNotes>) =>
+      noteChanges(eventsSince(file, 0).events).map(
+        (draft) => changeOf(draft, 1, 'now', { local: 'http://localhost:8229/' }).id,
+      );
+    const before = made(emptyNotes('f'), 'before reset', '2026-10-18T10:00:00.000Z');
+    const after = made(emptyNotes('f'), 'after reset', '2026-10-18T11:00:00.000Z');
+    expect(ids(before)).toHaveLength(1);
+    expect(ids(after)).not.toEqual(ids(before));
+    // One note read twice (two labs, one file) keeps one id.
+    expect(ids(before)).toEqual(ids(before));
+    const replied = replyToNote(
+      before,
+      'n1',
+      { by: 'user', text: 'and the hand', still: Option.none() },
+      '2026-10-18T10:05:00.000Z',
+    );
+    expect(new Set(ids(replied)).size).toBe(2);
+  });
 });
 
 describe('productionChanges', () => {
@@ -472,6 +527,26 @@ describe('productionChanges', () => {
     const noted = { ...said, said: [word('Noted', 1.5, 'try the one line'), ...said.said] };
     expect(productionChanges(Option.some(said), noted).map((c) => c.kind)).toEqual([
       'production.noted',
+    ]);
+    // A note with no words of the owner's is an agent's work note; one quoting him is his.
+    const quoted = Said.cases.Noted.make({
+      text: 'warmer',
+      at: 1.7,
+      quote: Option.some('make it warmer'),
+      set: Option.some('rbf-rive'),
+      point: Option.none(),
+      variant: Option.none(),
+      ask: Option.none(),
+      by: Option.none(),
+    });
+    expect(
+      productionChanges(Option.some(said), { ...said, said: [quoted, ...noted.said] }).map((c) => [
+        c.text,
+        c.by,
+      ]),
+    ).toEqual([
+      ['warmer', 'owner'],
+      ['try the one line', 'agent'],
     ]);
     const moved = Result.getOrThrow(
       moveForward(noted, { after: 1, title: 'One Line', because: Option.some('9005') }, 4),

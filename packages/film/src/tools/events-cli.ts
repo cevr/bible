@@ -33,12 +33,13 @@ import {
   Effect,
   Match,
   Option,
+  Record,
   Ref,
   Schema,
 } from 'effect';
 import { Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
-import { HeardChange, isKnownChange } from '../core/lab-events.ts';
+import { HeardChange, LAB_EVENTS, isKnownChange } from '../core/lab-events.ts';
 import { failureLine, labCliCommands } from './lab-cli.ts';
 import { hereCommands, inLabCommands } from './lab-commands.ts';
 import { isLostLab, labClient, labUrl } from './lab-client.ts';
@@ -89,8 +90,9 @@ interface Printing {
 
 /**
  * Each event of `answer` printed, a line each, with the cursor after it;
- * the first of each kind this checkout does not know (kept in `foreign`)
- * said on stderr.
+ * the first of each kind this checkout does not read (kept in `foreign`)
+ * said on stderr: a kind it does not know, or one it knows in another
+ * shape (an older lab's, with no `id`).
  */
 const printed = (answer: HeardChanges, printing: Printing, foreign: Ref.Ref<ReadonlySet<string>>) =>
   Effect.forEach(
@@ -101,7 +103,13 @@ const printed = (answer: HeardChanges, printing: Printing, foreign: Ref.Ref<Read
         if (!isKnownChange(change) && !told.has(change.kind)) {
           yield* Ref.set(foreign, new Set([...told, change.kind]));
           yield* Console.error(
-            `lab events: ${change.kind} is an event this checkout does not know (the lab runs newer code): printed from the fields every event has`,
+            `lab events: ${Bool.match(
+              Record.keys(LAB_EVENTS).some((known) => known === change.kind),
+              {
+                onTrue: () => `${change.kind} came in a shape this checkout does not read`,
+                onFalse: () => `${change.kind} is an event this checkout does not know`,
+              },
+            )} (the lab runs other code): printed from the fields every event has`,
           );
         }
         const cursor = cursorAfter(answer.cursor, change);

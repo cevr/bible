@@ -79,7 +79,7 @@ const Overview = Tool.make('overview', {
 }).annotate(Tool.Readonly, true);
 
 export const Changes = Tool.make('changes', {
-  description: `What changed in the lab past \`since\` (a cursor from \`overview\` or an earlier \`changes\`), each change an event of the lab's catalogue by its name (\`kind\`): notes, replies and notes done, tweaks asked, tries kept and beats approved or withdrawn on a board, comments, approvals and withdrawals on renders, renders recorded, sets published or updated, each step of an ask answered (\`ask.step\`, its answers typed), an ask answered to its end (\`ask.answered\`) or closed, and the owner's words and moves on a production's timeline (\`production.*\`). Each change names its film, panel, render, set or production, its words, its lab link, and \`read\`: the lab command that reads its whole record. \`name\` (globs, \`ask.*\`) and \`film\` keep only those. With \`wait\` (seconds, at most ${MAX_WAIT_S}) it answers as soon as there is one, else with none when the time is up: call it again with the cursor it answers to keep listening. With no \`since\`, it answers no changes and the cursor now. \`reset\` means the cursor was from an earlier run of the lab: the changes are all this run kept.`,
+  description: `What changed in the lab past \`since\` (a cursor from \`overview\` or an earlier \`changes\`), each change an event of the lab's catalogue by its name (\`kind\`): notes, replies and notes done, tweaks asked, tries kept and beats approved or withdrawn on a board, comments, approvals and withdrawals on renders, renders recorded, sets published or updated, each step of an ask answered (\`ask.step\`, its answers typed), an ask answered to its end (\`ask.answered\`) or closed, the owner's words and moves on a production's timeline (\`production.*\`), and a film's source written, undone or made again through the lab's writer (\`source.*\`: a beat moved, a hold trimmed, a pick, a take kept). Each change names its film, panel, render, set or production, its words, its lab link, and \`read\`: the lab command that reads its whole record. \`name\` (globs, \`ask.*\`, or a record's name, \`notes\` for every note event, tweaks among them) and \`film\` keep only those. With \`wait\` (seconds, at most ${MAX_WAIT_S}) it answers as soon as there is one, else with none when the time is up: call it again with the cursor it answers to keep listening. With no \`since\`, it answers no changes and the cursor now. \`reset\` means the cursor was from an earlier run of the lab: the changes are all this run kept.`,
   parameters: Schema.Struct({
     since: Schema.optionalKey(Schema.String),
     wait: Schema.optionalKey(
@@ -87,7 +87,7 @@ export const Changes = Tool.make('changes', {
     ),
     name: Schema.optionalKey(
       Schema.Array(Schema.String).annotate({
-        description: `Only the events of these names, each a glob over the catalogue (\`ask.*\`, \`*.approved\`; its names: ${Record.keys(LAB_EVENTS).join(', ')}); every one when left out`,
+        description: `Only the events of these names, each a glob over the catalogue (\`ask.*\`, \`*.approved\`; its names: ${Record.keys(LAB_EVENTS).join(', ')}) or a record's name, every event it tells (\`notes\`: the notes, tweaks among them; \`board\`, \`catalogue\`, \`set\`, \`ask\`, \`production\`, \`source\`); every one when left out`,
       }),
     ),
     film: Schema.optionalKey(

@@ -50,6 +50,7 @@ import {
   catalogueChanges,
   namesMatch,
   noteChanges,
+  noteWithdrawals,
   productionChanges,
   setChanges,
   sourceChanges,
@@ -58,6 +59,7 @@ import type { ProductionFile } from '../core/production.ts';
 import { eventsSince } from '../core/notes.ts';
 import { ReviewManifestJson } from '../core/review.ts';
 import type { AskRecord } from '../core/ask.ts';
+import type { Note } from '../core/schema.ts';
 import { AskStore } from './ask-store.ts';
 import { BoardStore } from './board-store.ts';
 import { CATALOGUE_FILE } from './catalogue.ts';
@@ -95,7 +97,10 @@ type Stamp = Option.Option<string>;
 
 /** What the feed last read of each file it watches. */
 interface Seen {
-  readonly notes: Map<string, { readonly stamp: Stamp; readonly seq: number }>;
+  readonly notes: Map<
+    string,
+    { readonly stamp: Stamp; readonly seq: number; readonly notes: ReadonlyArray<Note> }
+  >;
   readonly boards: Map<string, { readonly stamp: Stamp; readonly board: BoardFile }>;
   readonly catalogues: Map<string, { readonly stamp: Stamp; readonly catalogue: Catalogue }>;
   sets: ReadonlyMap<string, SetSeen>;
@@ -229,10 +234,15 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
           onNone: () => Bool.match(baseline, { onTrue: () => log.seq, onFalse: () => 0 }),
           onSome: (w) => w.seq,
         });
-        seen.notes.set(name, { stamp, seq: log.seq });
+        seen.notes.set(name, { stamp, seq: log.seq, notes: log.notes });
         // A log reset below what was seen (restored, trashed) is a new baseline, not news.
         if (log.seq < since) return [];
-        return noteChanges(eventsSince(log, since).events);
+        // A note gone while the log went on was withdrawn: no change in the log names it.
+        const withdrawn = Option.match(was, {
+          onNone: () => [],
+          onSome: (w) => noteWithdrawals(w, log),
+        });
+        return [...noteChanges(eventsSince(log, since).events), ...withdrawn];
       }).pipe(Effect.catch(unread(`notes of ${name}`)));
 
     const lookBoard = (name: string, baseline: boolean) =>

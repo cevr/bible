@@ -79,6 +79,26 @@ describe('the change feed', () => {
     }).pipe(Effect.provide(labInMemory(files()))),
   );
 
+  it.effect('tells a note the owner withdrew, as the file no longer holds it', () =>
+    Effect.gen(function* () {
+      const notes = yield* NotesStore;
+      const film = yield* filmNamed('f');
+      const events = yield* LabEvents.make({ links: { local: 'http://localhost:8229/' } });
+      yield* events.look;
+      const { cursor } = yield* events.since(Option.none());
+      yield* notes.add(film, { scene: 'cold', T: 1, frame: 30, text: 'taken back' }, text('png'));
+      yield* events.look;
+      yield* notes.withdraw(film, 'n1');
+      yield* events.look;
+      const told = (yield* events.since(Option.some(cursor))).changes;
+      expect(told.map((c) => [c.kind, c.note, c.text])).toEqual([
+        ['note.added', 'n1', 'taken back'],
+        ['note.withdrawn', 'n1', 'taken back'],
+      ]);
+      expect(told[0]?.id).not.toBe(told[1]?.id);
+    }).pipe(Effect.provide(labInMemory(files()))),
+  );
+
   it.effect('wakes a wait on the change itself, with no clock passing', () =>
     Effect.gen(function* () {
       const notes = yield* NotesStore;

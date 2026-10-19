@@ -19,7 +19,7 @@
 // does not read) ends it in its own words.
 
 import { Clock, Duration, Effect, Option, Ref, Schedule, Schema, type Scope } from 'effect';
-import { HeardChange } from '../core/lab-events.ts';
+import { HeardChange, namesMatch } from '../core/lab-events.ts';
 import type { labClient } from './lab-client.ts';
 import { Changes } from './lab-commands.ts';
 
@@ -49,21 +49,40 @@ interface FeedOf {
 
 type LabClient = Effect.Success<ReturnType<typeof labClient>>;
 
-/** The feed of the lab `client` asks, its changes read one by one (`HeardChanges`): what each stream reads. */
+/**
+ * The feed of the lab `client` asks, its changes read one by one
+ * (`HeardChanges`): what each stream reads. The names and the film are asked
+ * of the lab and kept here too, so a lab that runs other code (an older one,
+ * which reads no filter) still hands on only what was asked; the cursor moves
+ * past every change either way.
+ */
 export const labFeed = (client: LabClient, of: FeedOf = {}) => ({
   session: client.session,
   changes: (session: string, since: Option.Option<string>, wait: number) =>
-    client.read(
-      session,
-      Changes,
-      {
-        ...of,
-        ...Option.match(since, { onNone: () => ({}), onSome: (cursor) => ({ since: cursor }) }),
-        wait,
-      },
-      HeardChanges,
+    Effect.map(
+      client.read(
+        session,
+        Changes,
+        {
+          ...of,
+          ...Option.match(since, { onNone: () => ({}), onSome: (cursor) => ({ since: cursor }) }),
+          wait,
+        },
+        HeardChanges,
+      ),
+      (answer) => ({ ...answer, changes: answer.changes.filter(asked(of)) }),
     ),
 });
+
+/** Whether `change` is one `of` asks for: its names (globs or records) and its film. Pure. */
+const asked =
+  (of: FeedOf) =>
+  (change: HeardChange): boolean =>
+    namesMatch(of.name ?? [], change.kind) &&
+    Option.match(Option.fromUndefinedOr(of.film), {
+      onNone: () => true,
+      onSome: (film) => change.film === film,
+    });
 
 /**
  * What the stream hears: a session opened (`resumed` after a loss), the

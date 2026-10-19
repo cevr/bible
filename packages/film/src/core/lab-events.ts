@@ -119,10 +119,26 @@ const productionRead = (from: ReadFrom): ReadCommand =>
 /** A film's source reads as its timeline. */
 const sourceRead = (from: ReadFrom) => labRead('timeline', given(from, ['film']));
 
-/** One event of the lab's: what it says, and the read of its whole record. */
+/**
+ * The records the lab's events are read from, by name, each with the lab
+ * command that reads it whole. A record's name is also a name a reader asks
+ * for (`--name notes`): every event read from it, so a note follower hears
+ * a tweak asked (`tweak.requested`) and a note withdrawn with the rest.
+ */
+const RECORDS = {
+  notes: notesRead,
+  board: boardRead,
+  catalogue: catalogueRead,
+  set: setRead,
+  ask: askRead,
+  production: productionRead,
+  source: sourceRead,
+} satisfies Record<string, (from: ReadFrom) => ReadCommand>;
+
+/** One event of the lab's: what it says, and the record it is read from. */
 interface LabEventDefinition {
   readonly description: string;
-  readonly read: (from: ReadFrom) => ReadCommand;
+  readonly record: keyof typeof RECORDS;
 }
 
 /**
@@ -134,83 +150,101 @@ interface LabEventDefinition {
 export const LAB_EVENTS = {
   'note.added': {
     description: "A note written on a frame, a line's words or a panel.",
-    read: notesRead,
+    record: 'notes',
   },
-  'note.replied': { description: "A reply in a note's thread.", read: notesRead },
-  'note.resolved': { description: 'A note marked done.', read: notesRead },
+  'note.replied': { description: "A reply in a note's thread.", record: 'notes' },
+  'note.resolved': { description: 'A note marked done.', record: 'notes' },
+  'note.withdrawn': {
+    description:
+      'A note taken back by the owner while it was unanswered: it is gone from the notes.',
+    record: 'notes',
+  },
   'tweak.requested': {
     description: 'A note on a panel that asks for it to be made again (`film board tweak`).',
-    read: notesRead,
+    record: 'notes',
   },
-  'board.kept': { description: "A panel's try kept (or a different one kept).", read: boardRead },
-  'board.tried': { description: 'A try added to a panel.', read: boardRead },
-  'beat.approved': { description: "A beat's board approved as it stands.", read: boardRead },
-  'beat.withdrawn': { description: "A beat's board approval withdrawn.", read: boardRead },
-  'render.commented': { description: "A comment on a render's version.", read: catalogueRead },
-  'render.approved': { description: "A render's version approved.", read: catalogueRead },
-  'render.withdrawn': { description: "A render's approval withdrawn.", read: catalogueRead },
+  'board.kept': { description: "A panel's try kept (or a different one kept).", record: 'board' },
+  'board.tried': { description: 'A try added to a panel.', record: 'board' },
+  'beat.approved': { description: "A beat's board approved as it stands.", record: 'board' },
+  'beat.withdrawn': { description: "A beat's board approval withdrawn.", record: 'board' },
+  'render.commented': { description: "A comment on a render's version.", record: 'catalogue' },
+  'render.approved': { description: "A render's version approved.", record: 'catalogue' },
+  'render.withdrawn': { description: "A render's approval withdrawn.", record: 'catalogue' },
   'render.recorded': {
     description: "A render recorded in a project folder's catalogue.",
-    read: catalogueRead,
+    record: 'catalogue',
   },
   'set.published': {
     description: 'A set (a folder with a `review.json`) that was not there before.',
-    read: setRead,
+    record: 'set',
   },
-  'set.updated': { description: "A set's `review.json` written again.", read: setRead },
+  'set.updated': { description: "A set's `review.json` written again.", record: 'set' },
   'ask.step': {
     description: "A step of an agent's ask answered by the owner: that step's answers, typed.",
-    read: askRead,
+    record: 'ask',
   },
   'ask.answered': {
     description: 'An ask answered to its end: every answer, typed.',
-    read: askRead,
+    record: 'ask',
   },
-  'ask.closed': { description: 'An ask closed by its agent.', read: askRead },
+  'ask.closed': { description: 'An ask closed by its agent.', record: 'ask' },
   'production.decided': {
     description:
       "The owner's decision filed on a production's timeline (from chat, or by an ask he answered).",
-    read: productionRead,
+    record: 'production',
   },
   'production.noted': {
     description: "The owner's feedback filed on a production's timeline.",
-    read: productionRead,
+    record: 'production',
   },
   'production.asked': {
     description: "A question an agent's ask put on a production's timeline.",
-    read: productionRead,
+    record: 'production',
   },
   'production.forwarded': {
     description: 'A production moved into its next version.',
-    read: productionRead,
+    record: 'production',
   },
   'source.written': {
     description:
-      "A film's source changed through the lab's writer (a beat moved, a hold trimmed, from the studio or an agent).",
-    read: sourceRead,
+      "A film's source changed through the lab's writer, from the studio or an agent: a beat moved or a hold trimmed, a cue or a knob set, a pick written, a take kept, a delivery mark.",
+    record: 'source',
   },
-  'source.undone': { description: "A change to a film's source undone.", read: sourceRead },
+  'source.undone': { description: "A change to a film's source undone.", record: 'source' },
   'source.redone': {
     description: "An undone change to a film's source made again.",
-    read: sourceRead,
+    record: 'source',
   },
 } satisfies Record<string, LabEventDefinition>;
 
 /** An event's name: one of the catalogue's. */
 const LabEventName = Schema.Literals(Record.keys(LAB_EVENTS));
 
-/** Whether `name` matches one of `globs` (`ask.*`, `*.approved`; `*` any run of characters), or none is given. Pure. */
+/** The record an event of the catalogue is read from; none for a name it does not know. */
+const recordOf = (name: string): Option.Option<string> =>
+  Option.map(
+    Arr.findFirst(Record.toEntries(LAB_EVENTS), ([kind]) => kind === name),
+    ([, definition]) => definition.record,
+  );
+
+/**
+ * Whether `name` matches one of `globs` (`ask.*`, `*.approved`; `*` any run
+ * of characters) or is read from a record one of them names (`notes`: every
+ * note event, a tweak asked among them), or none is given. Pure.
+ */
 export const namesMatch = (globs: ReadonlyArray<string>, name: string): boolean =>
   Arr.match(globs, {
     onEmpty: () => true,
     onNonEmpty: (all) =>
-      all.some((glob) =>
-        new RegExp(
-          `^${glob
-            .split('*')
-            .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
-            .join('.*')}$`,
-        ).test(name),
+      all.some(
+        (glob) =>
+          Option.contains(recordOf(name), glob) ||
+          new RegExp(
+            `^${glob
+              .split('*')
+              .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+              .join('.*')}$`,
+          ).test(name),
       ),
   });
 
@@ -392,6 +426,14 @@ const noteFields = (note: Note) => ({
 const actorOf = (by: NoteEvent['note']['thread'][number]['by']): LabActor =>
   Bool.match(by === 'user', { onTrue: () => 'owner', onFalse: () => 'agent' });
 
+/**
+ * Where a change of a note is read from: the note, by its id and the time it
+ * was made, and the change's number. The time tells a note made after its
+ * file was reset (trashed, restored) from the one its number had before.
+ */
+const noteOrigin = (note: Note, seq: number) =>
+  `notes/${note.film}/${note.id}@${note.createdAt}/${seq}`;
+
 /** One change of a film's note log, as the feed says it. */
 const noteChange = Match.type<NoteEvent>().pipe(
   Match.tagsExhaustive({
@@ -399,7 +441,7 @@ const noteChange = Match.type<NoteEvent>().pipe(
       const tweak = note.panel?.ask === 'tweak';
       return {
         ...noteFields(note),
-        origin: `notes/${note.film}/${seq}`,
+        origin: noteOrigin(note, seq),
         kind: Bool.match(tweak, { onTrue: () => 'tweak.requested', onFalse: () => 'note.added' }),
         by: 'owner',
         text: note.text,
@@ -413,7 +455,7 @@ const noteChange = Match.type<NoteEvent>().pipe(
       const by = actorOf(reply.by);
       return {
         ...noteFields(note),
-        origin: `notes/${note.film}/${seq}`,
+        origin: noteOrigin(note, seq),
         kind: 'note.replied',
         by,
         text: reply.text,
@@ -422,7 +464,7 @@ const noteChange = Match.type<NoteEvent>().pipe(
     },
     NoteResolved: ({ note, seq }): LabChangeDraft => ({
       ...noteFields(note),
-      origin: `notes/${note.film}/${seq}`,
+      origin: noteOrigin(note, seq),
       kind: 'note.resolved',
       text: note.text,
       summary: `${note.film} ${note.id} done: ${gist(note.text)}`,
@@ -433,6 +475,30 @@ const noteChange = Match.type<NoteEvent>().pipe(
 /** The changes a film's note log made past a cursor (`eventsSince`), as the feed says them. */
 export const noteChanges = (events: ReadonlyArray<NoteEvent>): ReadonlyArray<LabChangeDraft> =>
   events.map(noteChange);
+
+/**
+ * The notes withdrawn between two reads of a film's notes: each one the
+ * earlier read held that the later does not, while the log went on from it
+ * (a withdrawal is a change of the log; a log reset below the earlier read
+ * is a new baseline, not a withdrawal). Pure.
+ */
+export const noteWithdrawals = (
+  before: { readonly seq: number; readonly notes: ReadonlyArray<Note> },
+  after: { readonly seq: number; readonly notes: ReadonlyArray<Note> },
+): ReadonlyArray<LabChangeDraft> => {
+  if (after.seq <= before.seq) return [];
+  const still = new Set(after.notes.map((n) => `${n.id}@${n.createdAt}`));
+  return before.notes
+    .filter((n) => !still.has(`${n.id}@${n.createdAt}`))
+    .map((note): LabChangeDraft => ({
+      ...noteFields(note),
+      origin: `${noteOrigin(note, note.seq)}/withdrawn`,
+      kind: 'note.withdrawn',
+      by: 'owner',
+      text: note.text,
+      summary: `${note.film} ${note.id} withdrawn: ${gist(note.text)}`,
+    }));
+};
 
 /** The panel `id` in `board`, if it has it. */
 const panelIn = (board: BoardFile, id: string): Option.Option<Panel> =>
@@ -461,7 +527,7 @@ export const boardChanges = (
       .map((t): LabChangeDraft => ({
         ...where,
         kind: 'board.tried',
-        origin: `board/${film}/${panel.id}/${t.n}`,
+        origin: `board/${film}/${panel.id}/${t.n}@${t.at}`,
         try: t.n,
         ...Option.match(Option.fromUndefinedOr(t.note), {
           onNone: () => ({}),
@@ -711,6 +777,18 @@ export const askChanges = (
   return [...steps, ...answered, ...Arr.filter(closed, () => !held(isClosed))];
 };
 
+/**
+ * Who a word on a ledger is from: an agent's question (`Asked`) and a note
+ * filed with no words of the owner's (an edit's work, a withdrawn ask) are an
+ * agent's; a decision, and a note quoting the owner, are the owner's. The
+ * word's own `by` names who filed it, not whose word it is.
+ */
+const saidBy = (word: ProductionFile['said'][number]): LabActor =>
+  Bool.match(word._tag === 'Asked' || (word._tag === 'Noted' && Option.isNone(word.quote)), {
+    onTrue: () => 'agent',
+    onFalse: () => 'owner',
+  });
+
 /** What is new on a production's ledger between two reads: each word filed, each version opened. */
 export const productionChanges = (
   before: Option.Option<ProductionFile>,
@@ -738,7 +816,7 @@ export const productionChanges = (
       ...of,
       kind: kinds[word._tag],
       origin: `production/${after.production}/${wordKey(word)}`,
-      by: Bool.match(word._tag === 'Asked', { onTrue: () => 'agent', onFalse: () => 'owner' }),
+      by: saidBy(word),
       text: word.text,
       ...Option.match(word.set, { onNone: () => ({}), onSome: (set) => ({ set }) }),
       ...Option.match(word.ask, { onNone: () => ({}), onSome: (ask) => ({ ask }) }),
@@ -794,7 +872,7 @@ export const changeOf = (
     at,
     id: changeId(draft.kind, origin),
     links: linksAt(links, place),
-    read: LAB_EVENTS[draft.kind].read(draft),
+    read: RECORDS[LAB_EVENTS[draft.kind].record](draft),
   });
 
 /**
