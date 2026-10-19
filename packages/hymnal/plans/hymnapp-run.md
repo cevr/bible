@@ -21,7 +21,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | budgettypes  | testsplit                      | .rifts/manna/budgettypes                           |                       | merged 94bdc7e49 (1 round; verify pass r1)                                                                                                                            |
 | scriptstypes | budgettypes                    | .rifts/manna/scriptstypes                          |                       | merged 29d9b8ae3 (1 round; verify pass r1)                                                                                                                            |
 | selahbuild   | testsplit                      | .rifts/manna/selahbuild                            |                       | merged ebebfdb63 (1 round; verify pass r1)                                                                                                                            |
-| toolnits     | scriptstypes, selahbuild       | .rifts/manna/toolnits2                             | impl ae9df69 (r6 rw3) |                                                                                                                                                                       |
+| toolnits     | scriptstypes, selahbuild       | .rifts/manna/toolnits2                             |                       | merged 1437a41dc                                                                                                                                                      |
 | fidelityci   | (CI red on main)               | .rifts/manna/fidelityci                            |                       | dropped (no local defect)                                                                                                                                             |
 | reader       | appbase, compile, glass, manna | .rifts/bible-tools/reader                          |                       |                                                                                                                                                                       |
 | chords       | reader                         | .rifts/manna/chords                                |                       |                                                                                                                                                                       |
@@ -31,6 +31,9 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `inexact` (the 7 MIDI files whose verses do not split: 126 225 262 292 403 453 580), `decks` (syllable splits into feat/hymn-decks, last by the owner's word), `selah` (planned: after reader, see Decisions; macOS stays SwiftUI until react-native-gpui ships a real package).
 
 ## Decisions
+
+- toolnits merged 1437a41dc on the owner's word ("Merge the toolnits") after rewrite r3 came back test-only changes (r6 M1/M2: near spellings of node_modules, a renaming link; no reachable file); those tests are a follow-up.
+- glass paused 2026-10-19: owner wants to refine in the real app on One's native parts, not a component library and gallery ("let's refine with the app rather than a component and a component library and gallery page"); r8 stopped before any edit; the branch stays as data.
 
 - glass r7 changes: M1-M5 are parts of the domain the census never reached (Shift+Tab, value indicators in focused/pressed, sub-floor text, off-window pressables, native visibility). Round 8 (rewrite 2 r3, last before the owner) replaces the premise with a reach ledger that fails closed on what was not reached; fresh implementor.
 
@@ -94,6 +97,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 - selah (from `notes/selah-dictation.md`, 2026-10-19): (1) what a live mistake shows while the user speaks: a mark only (recall stays unaided), or the correct word (a peek that caps the grade like a hint)? Recommendation: a mark only, with a tap on the mark to reveal the word as a peek. (2) Should Stop suggest a grade from the comparison? Recommendation: yes, pre-selected, the user confirms or changes it. (3) On a phone with no on-device recognizer (Android 12 or older, some makers), may Selah fall back to network recognition after the user agrees? Recommendation: yes, off by default, asked once with what leaves the phone. — answer (owner, 2026-10-19): "for the mistake it should probably show a mark first and then you can kind of hover over and see the word if you really or like click the mark and see the word if you want. Like you said it counts as a peak. Yeah, and we'll go with your record, with your recommendations." So: (1) a mark first; hovering (pointer) or tapping the mark reveals the word, and that counts as a peek; (2) Stop pre-selects a suggested grade the user confirms or changes; (3) network fallback allowed, off by default, asked once with what leaves the phone.
 
 ## Follow-ups
+
+- toolnits r6 M1/M2 + O1-O3 tests (the r6 reviewer wrote three in a scratch copy; bundle toolnits2.bundle in the unit dir).
 
 - Freshness guard for the committed set `packages/hymnal/data/sdah-1985/`: a `compile.ts --check` in the gate (fidelityci planner, measured 0 drift today). Goes into the reader unit's spec.
 
