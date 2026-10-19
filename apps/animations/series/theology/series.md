@@ -46,7 +46,7 @@ House rules for every episode (owner's, binding): quote only Scripture, KJV, ver
 
 ## Episodes
 
-41 episodes, about 4¼ hours in all (37 planned on 2026-10-11, and four added by the owner on 2026-10-19: 02b, 03b, 04b, 06b). Each block gives the promise, the core KJV, the sources to paraphrase (refcodes as the corpus prints them; they become credit lines), what it builds on, rough length, and the church-history flag. The per-episode research (shapes, pictures, must-not-show, searches) is in `sources.md`. "(frame)" marks a quote already verified in `.claude/skills/film/frame/`.
+42 episodes, about 4⅓ hours in all (37 planned on 2026-10-11; on 2026-10-19 the owner added 02b, 03b, 04b, 06b and a new 08, and moved Righteousness by Faith to 18b). Each block gives the promise, the core KJV, the sources to paraphrase (refcodes as the corpus prints them; they become credit lines), what it builds on, rough length, and the church-history flag. The per-episode research (shapes, pictures, must-not-show, searches) is in `sources.md`. "(frame)" marks a quote already verified in `.claude/skills/film/frame/`.
 
 History flag key:
 
@@ -160,13 +160,13 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 - **Sources:** SC 23.2, 23.3, 24.3, 26.4; RH April 1, 1890, par. 3; RH November 4, 1890, par. 2 (EGW); AMS May 24, 1894, 162.9 (A. T. Jones, byline not confirmed); SSP 368.2 (Haskell, 1905).
 - **Builds on:** 04, 06. **Length:** about 5½ min. **History:** OK.
 
-**08 · Righteousness by Faith** (stone 2, "faith toward God"; already made, `apps/animations/src/films/righteousness-by-faith`)
+**08 · Faith Toward God** (stone 2, "faith toward God"; new, owner 2026-10-19; notes: [`what-is-salvation.md`](what-is-salvation.md), "Eternal life: three ways, one source")
 
-- **Promise:** God justifies the ungodly without a cover-up. His word declares and creates righteousness in whoever believes.
-- **Core KJV, from its beats:** Job 9:2; Rom 4:5; Isa 64:6; Rom 3:23–25; Rom 10:17; Gen 1:2–3; Ps 33:9; 2 Cor 5:21; Zech 3:1–4; Heb 8:10; Jer 23:6.
-- **Sources (its credits):** Steps to Christ, Christ's Object Lessons, Desire of Ages, TM 91–92, Faith and Works (EGW); Christ and His Righteousness, The Glad Tidings, PTUK 1894–95, GCDB 1897 (E. J. Waggoner); Lessons on Faith, The Consecrated Way (A. T. Jones); Fundamental Principles (1889) XVIII.
-- **Builds on:** in this series, 03, 06 and 07. **History:** see Open questions; its last act already reaches Dan 8:14 and Rev 14.
-- **The rewrite (2026-10-15):** the film was rewritten from scratch as v3, and the owner kept it: since 2026-10-16 it is the film's `script.ts`, with version 2's script, board and takes in the film's `v2/` folder. [`scripts/08-righteousness-by-faith.md`](scripts/08-righteousness-by-faith.md) is that script as the reader reads it. The entry above describes version 2, the film as made.
+- **Promise:** Jesus names three ways to eternal life, and the Old Testament names the same three: to know God, to keep His law, and to have Him, for He is life. They are one life from one source, His word, received by faith.
+- **Core KJV:** Heb 6:1; John 17:3 with Jer 9:24; Luke 10:25–28 with Deut 30:16 and Lev 18:5; John 14:6 and 1 John 5:11–12 with Deut 30:20; John 6:63 with Deut 8:3 and 32:47; Rom 10:17.
+- **Sources (leads):** ST August 24, 1891, par. 1; RH February 22, 1898, par. 7; DA 391.1 (EGW).
+- **Builds on:** 03b, 04b, 06b, 07. **Length:** about 6 min. **History:** OK.
+- **Note:** this slot held Righteousness by Faith until 2026-10-19 (owner: "I think righteousness by faith is probably actually something that should come later in the series"; he chose option A, Tier Two after 18). 09, 11 and 13 build on this film now.
 
 **09 · Buried and Raised** (stone 3, "the doctrine of baptisms")
 
@@ -249,6 +249,14 @@ The "many things … hard to be uttered". The series motif is the veil with gold
 - **Core KJV:** Gen 22:16–18; Ex 19:5, 8; Heb 6:17; Heb 8:6–10; Jer 31:33; Gal 4:24.
 - **Sources:** PP 371.1, 371.4, 372.1 (EGW); EVCO 327.2, 328.1; GTI 184.1; SSW 11.4 (E. J. Waggoner).
 - **Builds on:** 08, 14. **Length:** about 6 min. **History:** CAUTION. EGW's 1890 endorsement of Waggoner's covenant view (Lt 30, 1890) is 1888-era history and is left out; the episode does not need it.
+
+**18b · Righteousness by Faith** (moved here from stone 2 on 2026-10-19, owner's option A: its last act reaches the judgment and Heb 8:10, the meat of 18; already made, `apps/animations/src/films/righteousness-by-faith`)
+
+- **Promise:** God justifies the ungodly without a cover-up. His word declares and creates righteousness in whoever believes.
+- **Core KJV, from its beats:** Job 9:2; Rom 4:5; Isa 64:6; Rom 3:23–25; Rom 10:17; Gen 1:2–3; Ps 33:9; 2 Cor 5:21; Zech 3:1–4; Heb 8:10; Jer 23:6.
+- **Sources (its credits):** Steps to Christ, Christ's Object Lessons, Desire of Ages, TM 91–92, Faith and Works (EGW); Christ and His Righteousness, The Glad Tidings, PTUK 1894–95, GCDB 1897 (E. J. Waggoner); Lessons on Faith, The Consecrated Way (A. T. Jones); Fundamental Principles (1889) XVIII.
+- **Builds on:** in this series, 03, 06, 07 and 08, and Tier Two's 14–18 (the priest, the sanctuary, the covenant). **History:** see Open questions; its last act reaches Dan 8:14 and Rev 14, which Tier Two prepares.
+- **The rewrite (2026-10-15):** the film was rewritten from scratch as v3, and the owner kept it: since 2026-10-16 it is the film's `script.ts`, with version 2's script, board and takes in the film's `v2/` folder. [`scripts/08-righteousness-by-faith.md`](scripts/08-righteousness-by-faith.md) is that script as the reader reads it. The entry above describes version 2, the film as made.
 
 **19 · What Was in the Ark**
 
