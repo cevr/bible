@@ -99,7 +99,7 @@ const resumePoint = (
     if (stat.value.size > wanted) {
       // The crash window between an append and its checkpoint: the tail bytes
       // are real vectors, but nothing records which rows they belong to.
-      yield* fs.truncate(partPath(out), wanted).pipe(Effect.ignore);
+      yield* fs.truncate(partPath(out), Number(wanted)).pipe(Effect.ignore);
       const repaired = yield* fs.stat(partPath(out)).pipe(Effect.option);
       const exact = Option.filter(repaired, (info) => info.size === wanted);
       if (Option.isNone(exact)) return yield* fresh;
@@ -170,9 +170,8 @@ export const embedAllResumable = (
         }
       }).pipe(
         Effect.scoped,
-        Effect.mapError(
-          (cause) =>
-            new CompilerEmbedError({ message: `checkpoint flush failed: ${String(cause)}` }),
+        Effect.mapError((cause) =>
+          CompilerEmbedError.make({ message: `checkpoint flush failed: ${String(cause)}` }),
         ),
       );
 
@@ -182,11 +181,10 @@ export const embedAllResumable = (
       const row = Option.fromNullishOr(rows[index]);
       if (Option.isNone(row)) break;
       const vector = yield* embedder.embedDocument(row.value.text).pipe(
-        Effect.mapError(
-          (cause) =>
-            new CompilerEmbedError({
-              message: `${MODEL_FINGERPRINT} unavailable (${cause.adapter}): ${cause.reason}`,
-            }),
+        Effect.mapError((cause) =>
+          CompilerEmbedError.make({
+            message: `${MODEL_FINGERPRINT} unavailable (${cause.adapter}): ${cause.reason}`,
+          }),
         ),
       );
       batch.push(vector);
@@ -201,12 +199,12 @@ export const embedAllResumable = (
     const bytes = yield* fs
       .readFile(partPath(out))
       .pipe(
-        Effect.mapError(
-          (cause) => new CompilerEmbedError({ message: `part file unreadable: ${String(cause)}` }),
+        Effect.mapError((cause) =>
+          CompilerEmbedError.make({ message: `part file unreadable: ${String(cause)}` }),
         ),
       );
     if (bytes.length !== rows.length * DIMENSIONS) {
-      return yield* new CompilerEmbedError({
+      return yield* CompilerEmbedError.make({
         message: `part file carries ${String(bytes.length)} bytes, expected ${String(rows.length * DIMENSIONS)}`,
       });
     }

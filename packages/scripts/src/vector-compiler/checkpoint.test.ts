@@ -88,7 +88,7 @@ describe('resumable vector embedding', () => {
       expect(yield* fs.exists(partPath(out))).toBe(true);
       expect(yield* fs.exists(checkpointPath(out))).toBe(true);
       const partial = yield* fs.stat(partPath(out));
-      expect(partial.size).toBe(BigInt(500 * DIMENSIONS));
+      expect(Number(partial.size)).toBe(500 * DIMENSIONS);
 
       // Pass 2 must complete from row 500, not row 0 — the budget proves it:
       // finishing needs 700 embeds and a from-scratch pass would need 1200,
@@ -121,8 +121,12 @@ describe('resumable vector embedding', () => {
         }),
       );
 
-      budget.remaining = Option.none();
+      // The tail cut, the run resumes from row 500: the 700 embeds left fit
+      // this refill, and the 1200 of a run started over do not.
+      budget.remaining = Option.some(700);
       const resumed = yield* embedAllResumable(ROWS, out);
+
+      budget.remaining = Option.none();
       const single = yield* embedAllResumable(ROWS, `${dir}/single.bvi`);
       expect(Buffer.from(resumed).equals(Buffer.from(single))).toBe(true);
     }).pipe(Effect.scoped, Effect.provide(testLayer), Effect.runPromise));
