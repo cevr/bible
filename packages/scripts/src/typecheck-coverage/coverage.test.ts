@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { listedFiles, uncovered } from './coverage.js';
+import { declarations, listedFiles, uncovered } from './coverage.js';
 
 describe("the files a tsconfig's program leaves out", () => {
   test('names each TypeScript file outside the program, sorted', () => {
@@ -29,5 +29,20 @@ describe("the files a tsconfig's program leaves out", () => {
 
   test("tsc's listing is read a path a line, blank lines dropped", () => {
     expect(listedFiles('/r/a.ts\n\n  /r/b.ts \n')).toEqual(['/r/a.ts', '/r/b.ts']);
+  });
+});
+
+describe('declaration files', () => {
+  test("each form of TypeScript's rule outside installed packages is named, sorted", () => {
+    const named = ['a.d.css.ts', 'a.d.cts', 'a.d.json.ts', 'a.d.mts', 'a.d.ts'];
+    const not = [
+      'a.D.ts',
+      'a.d.TS',
+      'a.dd.ts',
+      'a.data.ts',
+      'dir.d.css/ordinary.ts',
+      'node_modules/x/y.d.css.ts',
+    ];
+    expect(declarations([...not, ...named])).toEqual(named);
   });
 });

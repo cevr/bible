@@ -1,0 +1,137 @@
+// The check's answer to "is this a declaration file" against TypeScript's own,
+// over generated file names. TypeScript's answer is read from its program: with
+// `skipLibCheck` on, tsc reports a file's type error only when the file is not
+// a declaration file, so each file carries one and the silent ones are
+// TypeScript's declaration files.
+
+import { describe, expect, it } from 'bun:test';
+import { BunServices } from '@effect/platform-bun';
+import { Effect, FileSystem, Option, Schema, Stream } from 'effect';
+import * as ChildProcess from 'effect/process/ChildProcess';
+import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
+
+import { declarations } from './coverage.js';
+import { tscScript } from './tsc.js';
+
+/** A seeded generator, so a red run names the same files again. */
+const random = (seed: number) => {
+  let state = seed >>> 0;
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 2 ** 32;
+  };
+};
+
+const dirs = ['', 'src/', 'src/deep/er/', 'src/.hidden/', 'dir.d.css/', '.dot/', 'D.D/'];
+const leads = ['', '.'];
+const stems = ['a', 'd', 'A', 'style', 'a.json', 'x.y', ''];
+const middles = [
+  '',
+  '.d',
+  '.D',
+  '.dd',
+  '.d.',
+  '.d.css',
+  '.D.css',
+  '.d.ts',
+  '.d.mts',
+  '.data',
+  '.d.x.y',
+  '..d',
+];
+// Lower case only: a case-sensitive tsc refuses `a.TS` as an unsupported
+// extension, so it never reaches the rule. The middles keep the rule's case.
+const extensions = ['.ts', '.tsx', '.mts', '.cts'];
+
+const pick = <A>(next: () => number, from: ReadonlyArray<A>): A =>
+  from[Math.floor(next() * from.length)] as A;
+
+/** Names across the rule's domain, plus fixed forms on each side of its edges. */
+const generated = (count: number, seed: number) => {
+  const next = random(seed);
+  const names = new Set([
+    'src/style.d.css.ts',
+    'a.d.ts',
+    'a.d.mts',
+    'a.d.cts',
+    'a.d.json.ts',
+    'a.dd.ts',
+    'a.data.ts',
+    'dir.d.css/ordinary.ts',
+    '.d.ts',
+  ]);
+  while (names.size < count) {
+    const base = `${pick(next, leads)}${pick(next, stems)}${pick(next, middles)}${pick(next, extensions)}`;
+    if (base === '.' || base.startsWith('..')) continue;
+    names.add(`${pick(next, dirs)}${base}`);
+  }
+  return [...names];
+};
+
+const text = <E>(stream: Stream.Stream<Uint8Array, E>) =>
+  Stream.mkString(Stream.decodeText(stream));
+
+const encodeTsconfig = Schema.encodeEffect(
+  Schema.fromJsonString(
+    Schema.Struct({
+      compilerOptions: Schema.Struct({
+        noEmit: Schema.Boolean,
+        skipLibCheck: Schema.Boolean,
+        types: Schema.Array(Schema.String),
+      }),
+      files: Schema.Array(Schema.String),
+    }),
+  ),
+);
+
+/** The names whose type error tsc hides: its declaration files. */
+const typescriptDeclarations = (names: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const spawner = yield* ChildProcessSpawner;
+    const root = yield* fs.makeTempDirectoryScoped();
+    // One directory a name, so names that differ in case never meet on a
+    // case-insensitive disk.
+    const files = names.map((name, index) => `f${String(index)}/${name}`);
+    for (const file of files) {
+      yield* fs.makeDirectory(`${root}/${file.slice(0, file.lastIndexOf('/'))}`, {
+        recursive: true,
+      });
+      yield* fs.writeFileString(`${root}/${file}`, 'export declare const x: NotAType;\n');
+    }
+    const tsconfig = {
+      compilerOptions: { noEmit: true, skipLibCheck: true, types: [] },
+      files,
+    };
+    yield* fs.writeFileString(`${root}/tsconfig.json`, yield* encodeTsconfig(tsconfig));
+    const child = yield* spawner.spawn(
+      ChildProcess.make(process.execPath, [yield* tscScript, '-p', '.', '--pretty', 'false'], {
+        cwd: root,
+        forceKillAfter: '5 seconds',
+      }),
+    );
+    const [stdout, stderr] = yield* Effect.all(
+      [text(child.stdout), text(child.stderr), child.exitCode],
+      { concurrency: 3 },
+    );
+    expect(stderr).toBe('');
+    const reported = new Set(
+      stdout
+        .split('\n')
+        .flatMap((line) =>
+          Option.toArray(Option.fromNullishOr(/^(.*)\(\d+,\d+\): error TS2304/.exec(line)?.[1])),
+        ),
+    );
+    const unknown = stdout.split('\n').filter((line) => /error TS(?!2304)/.test(line));
+    expect(unknown).toEqual([]);
+    return names.filter((_, index) => !reported.has(files[index] as string));
+  }).pipe(Effect.scoped);
+
+describe('a declaration file, as TypeScript decides it', () => {
+  it('the check names exactly the files TypeScript checks as declarations', () =>
+    Effect.gen(function* () {
+      const names = generated(400, 0x5eed);
+      const theirs = yield* typescriptDeclarations(names);
+      expect(declarations(names)).toEqual(theirs.toSorted());
+    }).pipe(Effect.provide(BunServices.layer), Effect.runPromise));
+});
