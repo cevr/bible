@@ -8,9 +8,12 @@
     "src/ci-verdict.ts",
     "src/fetch-stills.ts",
     "src/lint-judged.ts",
+    "src/test-budget.ts",
+    "src/test-budget.test.ts",
     "src/ci-verdict/**/*.ts",
     "src/checkpoint/**/*.ts",
     "src/judged/**/*.ts",
+    "src/test-budget/**/*.ts",
     "src/topics-compiler/**/*.ts"
   ]
 }

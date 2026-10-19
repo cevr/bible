@@ -65,7 +65,7 @@ const RunSummary = Schema.Struct({
   tasks: Schema.Array(
     Schema.Struct({
       taskId: Schema.String,
-      execution: Schema.Struct({ startTime: Schema.Number, endTime: Schema.Number }),
+      execution: Schema.Struct({ startTime: Schema.Finite, endTime: Schema.Finite }),
     }),
   ),
 });
@@ -115,7 +115,7 @@ const ownSummary = (runs: string, name: string, printed: ReadonlyArray<string>) 
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const unreadable = (why: string) =>
-      new SummaryUnreadable({
+      SummaryUnreadable.make({
         message: `test:budget: ${name}: ${why}; nothing is measured or removed.`,
       });
     const only = Arr.head(printed);
@@ -212,7 +212,7 @@ const command = Command.make(
       const known = yield* workspacesOfTest(root);
       const unknown = names.filter((name) => !known.includes(name));
       if (unknown.length > 0)
-        return yield* new UnknownWorkspace({
+        return yield* UnknownWorkspace.make({
           message: `test:budget: no workspace's test is named ${unknown.join(', ')}; the workspaces are ${known.join(', ')}.`,
         });
       const chosen = Arr.match(names, {

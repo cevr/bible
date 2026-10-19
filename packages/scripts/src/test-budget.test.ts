@@ -54,7 +54,7 @@ const OWN_FILE = 'own.json';
 /** Where the `outside` case writes its summary, relative to the scratch root. */
 const OUTSIDE_DIR = 'elsewhere';
 
-const json = Schema.encodeSync(Schema.UnknownFromJsonString);
+const json = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 const summary = (tasks: ReadonlyArray<string>, ms: number) =>
   json({
