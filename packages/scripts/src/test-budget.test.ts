@@ -4,7 +4,7 @@
 // `.turbo/runs` before, during or after it, at turbo's exit 0 and 1. A run
 // never reports a time from a summary it did not write, never removes one,
 // and measures nothing when its own summary cannot be read, at any exit: it
-// fails, and at a non-zero exit names the workspace's exit with no time.
+// fails, and names the workspace's exit with no time.
 // `TEST_BUDGET_SEED=<n>` replays the generated cases of a failing seed.
 
 import * as BunServices from '@effect/platform-bun/BunServices';
@@ -222,10 +222,7 @@ const violations = (
   }
   if (result.code !== 1) found.push(`exits ${result.code} with its own summary unreadable`);
   if (times.length > 0) found.push(`reports [${times.join()}] with no summary of its own`);
-  if (
-    each.exit !== 0 &&
-    !new RegExp(`^\\s+no time {2}x: exit ${each.exit}\\b`, 'm').test(result.stdout)
-  )
+  if (!new RegExp(`^\\s+no time {2}x: exit ${each.exit}\\b`, 'm').test(result.stdout))
     found.push(`names no exit ${each.exit} with no time for x`);
   const unread: ReadonlyArray<Own> = ['truncated', 'no-task', 'two-lines'];
   if (unread.includes(each.own) && !result.left.has(OWN_FILE))
