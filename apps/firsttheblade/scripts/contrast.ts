@@ -8,11 +8,13 @@
  * text transparent, and each box's pixels are compared with the text's own
  * colour. A run passes when 95% of its pixels meet WCAG 2.2 AA: 4.5:1, or
  * 3:1 for large text (24 px, or 18.66 px bold). The wordmark is a logo
- * (`data-logo`), which AA exempts. Build first (`bun run build`); the run
- * fails when any text falls short.
+ * (`data-logo`), which AA exempts. At the desktop board each link and button
+ * is also measured under the pointer, since a hover may change its colours
+ * (phones have no hover). Build first (`bun run build`); the run fails when
+ * any text falls short.
  */
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
-import { chromium, type Browser } from '@playwright/test';
+import { chromium, type Browser, type Page } from '@playwright/test';
 import { Array as Arr, Data, Effect, Layer, Option, Order } from 'effect';
 import { HttpServer, HttpServerRequest } from 'effect/http';
 
@@ -23,6 +25,10 @@ import { respond } from '../src/worker/respond.ts';
 const PORT = 8479;
 const BASE = `http://localhost:${PORT}`;
 const WIDTHS = [1440, 390] as const;
+/** The board measured under the pointer. */
+const HOVER_WIDTH = 1440;
+const HIDE = 'contrast-hide';
+const TARGET = 'data-contrast-target';
 
 /** A run of text as the page lays it out: its boxes, in page pixels. */
 interface Run {
@@ -64,10 +70,14 @@ const eager = () => {
 const settled = () =>
   document.fonts.status === 'loaded' && [...document.images].every((image) => image.complete);
 
-/** In the page: each visible run of text and its boxes; then all text is hidden. */
-const collectRuns = (): ReadonlyArray<Run> => {
+/** In the page: each visible run of text under `root` and its boxes; then all text is hidden. */
+const collectRuns = (input: {
+  readonly root: string;
+  readonly hide: string;
+}): ReadonlyArray<Run> => {
   const found: Array<Run> = [];
-  const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const root = document.querySelector(input.root) || document.body;
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   while (walk.nextNode()) {
     const node = walk.currentNode;
     const text = (node.nodeValue || '').trim();
@@ -91,10 +101,35 @@ const collectRuns = (): ReadonlyArray<Run> => {
     }
   }
   const hide = document.createElement('style');
+  hide.id = input.hide;
   hide.textContent =
     '*{color:transparent!important;text-shadow:none!important;-webkit-text-fill-color:transparent!important;text-decoration-color:transparent!important}';
   document.head.append(hide);
   return found;
+};
+
+/** In the page: every transition and animation has finished. */
+const still = () =>
+  document.getAnimations().every((animation) => animation.playState !== 'running');
+
+/** In the page: the text drawn again. */
+const reveal = (hide: string) => {
+  const style = document.getElementById(hide);
+  if (style) style.remove();
+};
+
+/** In the page: each link and button drawn on the page, named by an index; answers how many. */
+const markTargets = (attribute: string) => {
+  const onPage = (element: Element) => {
+    const box = element.getBoundingClientRect();
+    return box.width > 2 && box.left + scrollX >= 0 && box.top + scrollY >= 0;
+  };
+  const targets = [...document.querySelectorAll('a, button')].filter(
+    (element) =>
+      element.checkVisibility() && onPage(element) && (element.textContent || '').trim() !== '',
+  );
+  targets.forEach((element, index) => element.setAttribute(attribute, String(index)));
+  return targets.length;
 };
 
 /** In the page: each run's contrast against the text-free drawing behind it. */
@@ -163,12 +198,30 @@ const measure = Effect.fn('Contrast.measure')(function* (
   yield* step('goto', () => page.goto(BASE + path, { waitUntil: 'networkidle' }));
   yield* step('eager', () => page.evaluate(eager));
   yield* step('settle', () => page.waitForFunction(settled));
-  const runs = yield* step('runs', () => page.evaluate(collectRuns));
+  const rest = yield* measureRuns(page, 'body');
+  if (width !== HOVER_WIDTH) return { rest, hover: [] };
+  const hover: Array<Measured> = [];
+  const targets = yield* step('targets', () => page.evaluate(markTargets, TARGET));
+  for (let index = 0; index < targets; index += 1) {
+    const target = `[${TARGET}="${index}"]`;
+    yield* step('hover', () => page.hover(target, { force: true }));
+    yield* step('still', () => page.waitForFunction(still));
+    const runs = yield* measureRuns(page, target);
+    hover.push(...runs.map((run) => ({ ...run, text: `hover: ${run.text}` })));
+  }
+  return { rest, hover };
+}, Effect.scoped);
+
+/** The runs under `root`, measured against the page as drawn without its text. */
+const measureRuns = Effect.fn('Contrast.measureRuns')(function* (page: Page, root: string) {
+  const runs = yield* step('runs', () => page.evaluate(collectRuns, { root, hide: HIDE }));
   const shot = yield* step('shot', () => page.screenshot({ fullPage: true, type: 'png' }));
-  return yield* step('contrast', () =>
+  const measured = yield* step('contrast', () =>
     page.evaluate(contrastOf, { data: shot.toString('base64'), runs }),
   );
-}, Effect.scoped);
+  yield* step('reveal', () => page.evaluate(reveal, HIDE));
+  return measured;
+});
 
 const byMargin = Order.mapInput(Order.Number, (run: Measured) => run.p95 / run.bar);
 
@@ -180,7 +233,8 @@ const contrast = Effect.gen(function* () {
   let under = 0;
   for (const width of WIDTHS) {
     for (const { path } of PAGES) {
-      const runs = yield* measure(browser, path, width);
+      const measured = yield* measure(browser, path, width);
+      const runs = [...measured.rest, ...measured.hover];
       const failing = runs.filter((run) => run.p95 < run.bar);
       under += failing.length;
       const lowest = Arr.head(Arr.sort(runs, byMargin));
@@ -188,7 +242,8 @@ const contrast = Effect.gen(function* () {
         Effect.annotateLogs({
           page: path,
           width,
-          runs: runs.length,
+          runs: measured.rest.length,
+          hovered: measured.hover.length,
           under: failing.length,
           lowest: Option.match(lowest, {
             onNone: () => 'none',

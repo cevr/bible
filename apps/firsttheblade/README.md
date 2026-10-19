@@ -73,7 +73,7 @@ the stylesheet's `--color-*` tokens repeat them, and the tests hold the two
 together.
 
 ```bash
-bun run contrast   # every built page at 390 and 1440 px against WCAG AA, as drawn (build first)
+bun run contrast   # every built page at 390 and 1440 px, and each link under the pointer, against WCAG AA (build first)
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
 ```
 
