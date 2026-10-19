@@ -77,6 +77,9 @@ bun run contrast   # every built page at 390 and 1440 px, and each link under th
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
 ```
 
+The app's `gate` is `bun run contrast`: `bun run gate` runs it after the
+build, and so does CI's gate job, in the runner's Google Chrome.
+
 ## The art and the fonts
 
 The field, the night and the mark (`src/art/`, and `kit/art/` at full size)

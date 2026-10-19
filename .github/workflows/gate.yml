@@ -1,5 +1,7 @@
 # The gate, as `bun run gate` runs it locally: lint and the format check, then
-# every package's typecheck, build and tests through turbo. CI keeps no turbo
+# every package's typecheck, build and tests through turbo, and after them a
+# package's own `gate` script where it has one (firsttheblade's built pages'
+# contrast, in the runner's Google Chrome). CI keeps no turbo
 # cache, so every task runs. The hooks run only the staged-file lint and
 # format. The browser tests (the film's and @bible/ui's) run in the `e2e` job
 # beside it. `bun run ci <commit>` waits for this workflow's run on a commit on

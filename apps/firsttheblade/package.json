@@ -8,6 +8,7 @@
     "preview": "bun src/worker/preview.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
+    "gate": "bun run contrast",
     "contrast": "bun scripts/contrast.ts",
     "kit": "bun kit/draw.ts",
     "plan": "bun run build && alchemy plan alchemy.run.ts --stage prod",
