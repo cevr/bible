@@ -24,7 +24,7 @@ import {
   namesMatch,
   noteChanges,
   notePath,
-  noteWithdrawals,
+  notesNews,
   productionChanges,
   setChanges,
 } from './lab-events.ts';
@@ -97,6 +97,19 @@ describe('boardChanges', () => {
     expect(boardChanges(again, kept, 'r1').map((c) => c.kind)).toEqual(['beat.withdrawn']);
     // Nothing changed, nothing said.
     expect(boardChanges(kept, kept, 'r1')).toEqual([]);
+  });
+
+  it("gives a try made after its board was made again an id of its own, though its number is the old one's", () => {
+    const idOf = (more: Partial<ReturnType<typeof tried>>) =>
+      boardChanges(
+        board({ panels: [{ id: 'cold.judge', beat: COLD, at: JUDGE, tries: [] }] }),
+        board({
+          panels: [{ id: 'cold.judge', beat: COLD, at: JUDGE, tries: [{ ...tried(1), ...more }] }],
+        }),
+        'r1',
+      ).map((draft) => changeOf(draft, 1, 'now', { local: 'http://localhost:8229/' }).id);
+    expect(idOf({})).toEqual(idOf({}));
+    expect(idOf({ at: '2026-10-15T00:00:00.000Z' })).not.toEqual(idOf({}));
   });
 });
 
@@ -461,19 +474,38 @@ describe('a note log over time', () => {
   const made = (file: ReturnType<typeof emptyNotes>, text: string, at: string) =>
     addNote(file, { ...draft, text }, at);
 
-  it('tells a note withdrawn while the log went on, never one gone with a reset', () => {
+  /** Each change's kind and note, as the feed tells two reads. */
+  const told = (before: ReturnType<typeof emptyNotes>, after: ReturnType<typeof emptyNotes>) =>
+    notesNews(before, after).map((c) => [c.kind, c.note, c.text]);
+
+  it('tells a note withdrawn while the log went on, by the owner', () => {
     const one = made(emptyNotes('f'), 'hand lower', '2026-10-18T10:00:00.000Z');
     const two = made(one, 'look up', '2026-10-18T10:01:00.000Z');
     const gone = Option.getOrThrow(withdrawNote(two, 'n1'));
-    expect(noteWithdrawals(two, gone).map((c) => [c.kind, c.note, c.by, c.text])).toEqual([
+    expect(notesNews(two, gone).map((c) => [c.kind, c.note, c.by, c.text])).toEqual([
       ['note.withdrawn', 'n1', 'owner', 'hand lower'],
     ]);
     // Read again: nothing more.
-    expect(noteWithdrawals(gone, gone)).toEqual([]);
-    // A file reset below what was read (trashed, restored) is a new baseline.
-    expect(noteWithdrawals(two, made(emptyNotes('f'), 'new', '2026-10-18T11:00:00.000Z'))).toEqual(
-      [],
-    );
+    expect(notesNews(gone, gone)).toEqual([]);
+  });
+
+  it('tells a reset log whole and withdraws nothing, whether its count fell, held or passed the old one', () => {
+    const one = made(emptyNotes('f'), 'before reset', '2026-10-18T10:00:00.000Z');
+    const two = made(one, 'also before', '2026-10-18T10:01:00.000Z');
+    const fresh = (texts: ReadonlyArray<string>) =>
+      texts.reduce(
+        (file, text, i) => made(file, text, `2026-10-18T11:0${i}:00.000Z`),
+        emptyNotes('f'),
+      );
+    // Below the old count: one new note where two were.
+    expect(told(two, fresh(['after one']))).toEqual([['note.added', 'n1', 'after one']]);
+    // At the old count: a new n1 where n1 was.
+    expect(told(one, fresh(['after one']))).toEqual([['note.added', 'n1', 'after one']]);
+    // Past it, inside one read: trashed, then two notes made.
+    expect(told(one, fresh(['after one', 'after two']))).toEqual([
+      ['note.added', 'n1', 'after one'],
+      ['note.added', 'n2', 'after two'],
+    ]);
   });
 
   it("gives a note made after its file was reset an id of its own, though its number is the old one's", () => {

@@ -48,9 +48,9 @@ import {
   askChanges,
   boardChanges,
   catalogueChanges,
-  namesMatch,
+  changeAsked,
   noteChanges,
-  noteWithdrawals,
+  notesNews,
   productionChanges,
   setChanges,
   sourceChanges,
@@ -136,14 +136,7 @@ interface Of {
 }
 
 /** Whether `change` is one `of` asks for. Pure. */
-const kept =
-  (of: Of = {}) =>
-  (change: LabChange): boolean =>
-    namesMatch(of.names ?? [], change.kind) &&
-    Option.match(Option.fromUndefinedOr(of.film), {
-      onNone: () => true,
-      onSome: (film) => change.film === film,
-    });
+const kept = (of: Of = {}) => changeAsked(of.names ?? [], Option.fromUndefinedOr(of.film));
 
 /** What the feed needs: where its links point (the lab's own links, local and the phone's). */
 interface FeedOptions {
@@ -229,20 +222,16 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
         const was = Option.fromUndefinedOr(seen.notes.get(name));
         if (Option.exists(was, (w) => same(w.stamp, stamp))) return [];
         const log = yield* notes.read(film);
-        // A film first seen after the baseline (made since) tells its whole log.
-        const since = Option.match(was, {
-          onNone: () => Bool.match(baseline, { onTrue: () => log.seq, onFalse: () => 0 }),
-          onSome: (w) => w.seq,
-        });
         seen.notes.set(name, { stamp, seq: log.seq, notes: log.notes });
-        // A log reset below what was seen (restored, trashed) is a new baseline, not news.
-        if (log.seq < since) return [];
-        // A note gone while the log went on was withdrawn: no change in the log names it.
-        const withdrawn = Option.match(was, {
-          onNone: () => [],
-          onSome: (w) => noteWithdrawals(w, log),
+        // A film first seen after the baseline (made since) tells its whole log; the baseline tells nothing.
+        return Option.match(was, {
+          onNone: () =>
+            noteChanges(
+              eventsSince(log, Bool.match(baseline, { onTrue: () => log.seq, onFalse: () => 0 }))
+                .events,
+            ),
+          onSome: (w) => notesNews(w, log),
         });
-        return [...noteChanges(eventsSince(log, since).events), ...withdrawn];
       }).pipe(Effect.catch(unread(`notes of ${name}`)));
 
     const lookBoard = (name: string, baseline: boolean) =>

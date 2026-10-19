@@ -154,7 +154,7 @@ const labCommands = [
         );
         if (unmatched.length > 0)
           return yield* LabRefused.make({
-            reason: `no event matches ${unmatched.join(', ')}: the lab's are ${catalogue.join(', ')}`,
+            reason: `no event matches ${unmatched.join(', ')}: the lab's are ${catalogue.join(', ')}; a record's name names every event it tells: ${[...new Set(Record.values(LAB_EVENTS).map((one) => one.record))].join(', ')}`,
           });
         const asked = Option.fromUndefinedOr(film);
         if (Option.isSome(asked))

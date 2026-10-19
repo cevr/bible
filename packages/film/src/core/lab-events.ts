@@ -27,7 +27,8 @@ import type { Catalogue } from './catalogue.ts';
 import { type PointRef, pointIdOf } from './point.ts';
 import type { ProductionFile } from './production.ts';
 import { FNV_START, fnvText } from './random.ts';
-import type { Note, NoteEvent } from './schema.ts';
+import { eventsSince } from './notes.ts';
+import type { Note, NoteEvent, NotesFile } from './schema.ts';
 
 /**
  * Where a place in the lab opens: on this machine (`local`, at `localhost`)
@@ -194,7 +195,8 @@ export const LAB_EVENTS = {
     record: 'production',
   },
   'production.noted': {
-    description: "The owner's feedback filed on a production's timeline.",
+    description:
+      "A note filed on a production's timeline: the owner's feedback (with his words as its quote), or an agent's work note (`by: agent`).",
     record: 'production',
   },
   'production.asked': {
@@ -247,6 +249,19 @@ export const namesMatch = (globs: ReadonlyArray<string>, name: string): boolean 
           ).test(name),
       ),
   });
+
+/**
+ * Whether a change is one a reader asks for: its kind among `names` (globs or
+ * records, `namesMatch`) and, with a `film`, about that film. Pure.
+ */
+export const changeAsked =
+  (names: ReadonlyArray<string>, film: Option.Option<string>) =>
+  (change: { readonly kind: string; readonly film?: string }): boolean =>
+    namesMatch(names, change.kind) &&
+    Option.match(film, {
+      onNone: () => true,
+      onSome: (one) => change.film === one,
+    });
 
 /** The most bytes an event's payload takes as JSON: an MCP Events delivery body is at most 256 KiB, with room for its envelope. */
 const PAYLOAD_MAX_BYTES = 240 * 1024;
@@ -476,20 +491,33 @@ const noteChange = Match.type<NoteEvent>().pipe(
 export const noteChanges = (events: ReadonlyArray<NoteEvent>): ReadonlyArray<LabChangeDraft> =>
   events.map(noteChange);
 
+/** What a film's notes log is, as two reads of it compare: its count and its notes. */
+interface NotesRead {
+  readonly seq: number;
+  readonly notes: ReadonlyArray<Note>;
+}
+
+/** A note's name across the lives of its file: its id and when it was made. */
+const noteKey = (note: Note) => `${note.id}@${note.createdAt}`;
+
 /**
- * The notes withdrawn between two reads of a film's notes: each one the
- * earlier read held that the later does not, while the log went on from it
- * (a withdrawal is a change of the log; a log reset below the earlier read
- * is a new baseline, not a withdrawal). Pure.
+ * Whether `after` is a new log in place of `before` (trashed, restored, made
+ * again) rather than `before` gone on: its count fell, or it holds a note
+ * `before` did not that is numbered at or below `before`'s count, which a log
+ * that only grows never makes. Pure.
  */
-export const noteWithdrawals = (
-  before: { readonly seq: number; readonly notes: ReadonlyArray<Note> },
-  after: { readonly seq: number; readonly notes: ReadonlyArray<Note> },
-): ReadonlyArray<LabChangeDraft> => {
-  if (after.seq <= before.seq) return [];
-  const still = new Set(after.notes.map((n) => `${n.id}@${n.createdAt}`));
+const notesReset = (before: NotesRead, after: NotesRead): boolean => {
+  const held = new Set(before.notes.map(noteKey));
+  return (
+    after.seq < before.seq || after.notes.some((n) => !held.has(noteKey(n)) && n.seq <= before.seq)
+  );
+};
+
+/** The notes `before` held that `after` does not, each told withdrawn by the owner. Pure. */
+const noteWithdrawals = (before: NotesRead, after: NotesRead): ReadonlyArray<LabChangeDraft> => {
+  const still = new Set(after.notes.map(noteKey));
   return before.notes
-    .filter((n) => !still.has(`${n.id}@${n.createdAt}`))
+    .filter((n) => !still.has(noteKey(n)))
     .map((note): LabChangeDraft => ({
       ...noteFields(note),
       origin: `${noteOrigin(note, note.seq)}/withdrawn`,
@@ -499,6 +527,22 @@ export const noteWithdrawals = (
       summary: `${note.film} ${note.id} withdrawn: ${gist(note.text)}`,
     }));
 };
+
+/**
+ * What a film's notes tell between two reads: each change past the earlier
+ * read, and each note gone while the log went on (a withdrawal is a change of
+ * the log that names no note). A log reset between them is told whole and
+ * withdraws nothing: its ids are its own (`noteOrigin`), so a change told
+ * before comes again with the id it had. Pure.
+ */
+export const notesNews = (before: NotesRead, after: NotesFile): ReadonlyArray<LabChangeDraft> =>
+  Bool.match(notesReset(before, after), {
+    onTrue: () => noteChanges(eventsSince(after, 0).events),
+    onFalse: () => [
+      ...noteChanges(eventsSince(after, before.seq).events),
+      ...noteWithdrawals(before, after),
+    ],
+  });
 
 /** The panel `id` in `board`, if it has it. */
 const panelIn = (board: BoardFile, id: string): Option.Option<Panel> =>

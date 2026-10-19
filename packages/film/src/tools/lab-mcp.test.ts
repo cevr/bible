@@ -1384,6 +1384,48 @@ describe('film lab events, against a lab that runs other code', () => {
   );
 
   it.effect(
+    "hands on a newer lab's kind under a record's name, as that lab narrowed it by its own catalogue",
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          // A newer lab whose notes record tells a `note.pinned`: it narrows by `notes` and sends it.
+          const newer = changesEdited(lab, (result) => ({
+            ...result,
+            changes: result.changes.map((change) =>
+              Option.match(
+                Option.liftPredicate(change, (c) => c['text'] === 'pinned'),
+                {
+                  onNone: () => change,
+                  onSome: (c) => ({ ...c, kind: 'note.pinned' }),
+                },
+              ),
+            ),
+          }));
+          const { out, err, fiber } = yield* filmRunning(newer, [
+            'lab',
+            'events',
+            '--follow',
+            '--film',
+            'f',
+            '--name',
+            'notes',
+          ]);
+          expect(yield* Queue.take(err)).toContain('lab events: following');
+          yield* ownerNote(lab, 'pinned');
+          yield* ownerNote(lab, 'two');
+          yield* events.look;
+          expect(yield* Queue.take(out)).toMatch(/^note\.pinned cursor=\w+\.1 .* note=n1 /);
+          expect(yield* Queue.take(out)).toMatch(/^note\.added cursor=\w+\.2 .* note=n2 /);
+          expect(yield* Queue.take(err)).toContain(
+            'note.pinned is an event this checkout does not know',
+          );
+          yield* Fiber.interrupt(fiber);
+        }),
+      ),
+  );
+
+  it.effect(
     'keeps only the names and the film it asked for, against an older lab that reads no filter, and says the shape once',
     () =>
       provided(
@@ -1446,6 +1488,9 @@ describe('film lab events, against a lab that runs other code', () => {
           const name = yield* filmCli(fetch, ['lab', 'events', '--name', 'nope.*']);
           expect(name.ok).toBe(false);
           expect(name.failed).toMatch(/no event matches nope\.\*: the lab's are .*note\.added/);
+          expect(name.failed).toContain(
+            "a record's name names every event it tells: notes, board, catalogue, set, ask, production, source",
+          );
           const film = yield* filmCli(fetch, ['lab', 'events', '--follow', '--film', 'zz']);
           expect(film.ok).toBe(false);
           expect(film.failed).toContain('zz');

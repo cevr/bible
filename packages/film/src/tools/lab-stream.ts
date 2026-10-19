@@ -19,7 +19,7 @@
 // does not read) ends it in its own words.
 
 import { Clock, Duration, Effect, Option, Ref, Schedule, Schema, type Scope } from 'effect';
-import { HeardChange, namesMatch } from '../core/lab-events.ts';
+import { changeAsked, HeardChange } from '../core/lab-events.ts';
 import type { labClient } from './lab-client.ts';
 import { Changes } from './lab-commands.ts';
 
@@ -52,9 +52,9 @@ type LabClient = Effect.Success<ReturnType<typeof labClient>>;
 /**
  * The feed of the lab `client` asks, its changes read one by one
  * (`HeardChanges`): what each stream reads. The names and the film are asked
- * of the lab and kept here too, so a lab that runs other code (an older one,
- * which reads no filter) still hands on only what was asked; the cursor moves
- * past every change either way.
+ * of the lab; a change in an older lab's shape (no `id`: that lab reads no
+ * filter) is narrowed here too (`asked`). The cursor moves past every change
+ * either way.
  */
 export const labFeed = (client: LabClient, of: FeedOf = {}) => ({
   session: client.session,
@@ -74,15 +74,18 @@ export const labFeed = (client: LabClient, of: FeedOf = {}) => ({
     ),
 });
 
-/** Whether `change` is one `of` asks for: its names (globs or records) and its film. Pure. */
+/**
+ * Whether the stream hands `change` on. A change with an `id` comes from a
+ * lab that narrows by `of` itself, by its own catalogue, which can name kinds
+ * this checkout does not know: it is handed on as it came. A change with no
+ * `id` comes from an older lab, which reads no filter: `of` narrows it here.
+ * Pure.
+ */
 const asked =
   (of: FeedOf) =>
   (change: HeardChange): boolean =>
-    namesMatch(of.name ?? [], change.kind) &&
-    Option.match(Option.fromUndefinedOr(of.film), {
-      onNone: () => true,
-      onSome: (film) => change.film === film,
-    });
+    Option.isSome(Option.fromUndefinedOr(change.id)) ||
+    changeAsked(of.name ?? [], Option.fromUndefinedOr(of.film))(change);
 
 /**
  * What the stream hears: a session opened (`resumed` after a loss), the

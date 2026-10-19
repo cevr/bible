@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber, FileSystem, Option, Result, Schema } from 'effect';
+import { TestClock } from 'effect/testing';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { Segment } from '../core/segment.ts';
 import { LabEvents } from './lab-events.ts';
@@ -16,7 +17,7 @@ import { ProductionStore } from './production-store.ts';
 import { BoardStore } from './board-store.ts';
 import { filmNamed } from './film-repo.ts';
 import { SourceWriter } from './source-writer.ts';
-import { echoPages, labInMemory, text, writesInMemory } from './testing.ts';
+import { NOTES_LAB, echoPages, labInMemory, text, writesInMemory } from './testing.ts';
 
 const board: BoardFile = {
   film: 'f',
@@ -97,6 +98,34 @@ describe('the change feed', () => {
       ]);
       expect(told[0]?.id).not.toBe(told[1]?.id);
     }).pipe(Effect.provide(labInMemory(files()))),
+  );
+
+  it.effect(
+    'tells a notes file trashed and made again, two notes within one read, whole: no withdrawal',
+    () =>
+      Effect.gen(function* () {
+        const notes = yield* NotesStore;
+        const fs = yield* FileSystem.FileSystem;
+        const film = yield* filmNamed('f');
+        const events = yield* LabEvents.make({ links: { local: 'http://localhost:8229/' } });
+        yield* events.look;
+        const { cursor } = yield* events.since(Option.none());
+        yield* notes.add(film, { scene: 'cold', T: 1, frame: 30, text: 'before' }, text('png'));
+        yield* events.look;
+        yield* fs.remove(`${NOTES_LAB}/f/notes.json`);
+        // Made again later: its n1 is a note of its own, made at another time.
+        yield* TestClock.adjust('1 minute');
+        yield* notes.add(film, { scene: 'cold', T: 1, frame: 30, text: 'after one' }, text('png'));
+        yield* notes.add(film, { scene: 'cold', T: 1, frame: 30, text: 'after two' }, text('png'));
+        yield* events.look;
+        const told = (yield* events.since(Option.some(cursor))).changes;
+        expect(told.map((c) => [c.kind, c.note, c.text])).toEqual([
+          ['note.added', 'n1', 'before'],
+          ['note.added', 'n1', 'after one'],
+          ['note.added', 'n2', 'after two'],
+        ]);
+        expect(new Set(told.map((c) => c.id)).size).toBe(3);
+      }).pipe(Effect.provide(labInMemory(files()))),
   );
 
   it.effect('wakes a wait on the change itself, with no clock passing', () =>
