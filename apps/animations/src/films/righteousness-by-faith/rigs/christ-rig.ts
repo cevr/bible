@@ -229,8 +229,8 @@ const NECK_SKIN_SHADE = '#e59a76';
 const ROBE_TONES = [
   ROBE_SHADING,
   ...SASH_TONES,
-  { pts: NECKLINE, color: NECK_SKIN },
-  { pts: NECK_SHADE, color: NECK_SKIN_SHADE },
+  { pts: NECKLINE, color: NECK_SKIN, skin: true },
+  { pts: NECK_SHADE, color: NECK_SKIN_SHADE, skin: true },
 ] as const;
 
 /** A sandal's sole: a dark leather (robe-5 draws it as heavy as the line). */
@@ -416,8 +416,8 @@ const FRONT_SASH_LEFT: Pt[] = [[40, -345], ...frontBody(FRONT_SASH.left), [-95, 
 /** The robe turned to us: court.you's broad V under the beard, the sash laid over its right side. */
 const FRONT_ROBE_TONES = [
   { pts: [...FRONT_SASH_RIGHT, [140, -62], [140, -345]] satisfies Pt[], color: ROBE_SHADING.color },
-  { pts: frontBody(FRONT_NECK), color: NECK_SKIN },
-  { pts: frontBody(FRONT_NECK_SHADE), color: NECK_SKIN_SHADE, soft: true },
+  { pts: frontBody(FRONT_NECK), color: NECK_SKIN, skin: true },
+  { pts: frontBody(FRONT_NECK_SHADE), color: NECK_SKIN_SHADE, soft: true, skin: true },
   { pts: [...FRONT_SASH_LEFT, ...[...FRONT_SASH_RIGHT].reverse()], color: SASH_TONES[0].color },
   { pts: sashShade(FRONT_SASH_RIGHT), color: SASH_TONES[1].color },
 ] as const;

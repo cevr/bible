@@ -10,7 +10,7 @@
 
 import { Match, Schema } from 'effect';
 import { decoder } from '../decode.ts';
-import { Paper, Tones } from '../paper.ts';
+import { GarmentTones, Paper } from '../paper.ts';
 import { Corners, Length, Outline, Units, oneRadiusOrEach } from './measure.ts';
 
 /** A tunic is cut from its neck down to its hem, so its neck lies above its hem. */
@@ -46,8 +46,8 @@ const CutRobePart = Schema.TaggedStruct('CutRobe', {
    */
   hem: Units,
   paper: Paper,
-  /** Colour laid on it with no line of its own, clipped to it, in order: a sash, the shade past it, the skin in its neckline. */
-  tones: Schema.optionalKey(Tones),
+  /** Colour laid on it with no line of its own, clipped to it, in order: a sash, the shade past it, the skin in its neckline (marked `skin`). */
+  tones: Schema.optionalKey(GarmentTones),
 }).check(oneRadiusOrEach);
 type CutRobe = typeof CutRobePart.Type;
 
@@ -58,13 +58,16 @@ const TracedRobePart = Schema.TaggedStruct('TracedRobe', {
   /** Its hem's height, units from the origin: where a standing figure's trunk breathes from, and where a seated figure's lean turns. */
   hem: Units,
   paper: Paper,
-  /** Colour laid on it with no line of its own, clipped to it, in order: a sleeve that lies on it, a fold's shade, a vest, the skin in its neckline. */
-  tones: Schema.optionalKey(Tones),
+  /** Colour laid on it with no line of its own, clipped to it, in order: a sleeve that lies on it, a fold's shade, a vest, the skin in its neckline (marked `skin`). */
+  tones: Schema.optionalKey(GarmentTones),
 });
 type TracedRobe = typeof TracedRobePart.Type;
 
 /** A garment, of any kind. */
 export type Garment = Tunic | CutRobe | TracedRobe;
+
+/** The colour laid on a garment, clipped to it, in order: a robe's (a sash, a vest, the skin in its neckline); a tunic lays none. */
+export const tonesOn = (g: Garment) => (g._tag === 'Tunic' ? [] : (g.tones ?? []));
 
 /** Each kind, checked: an ink on it is refused by InteriorInk. */
 const decodeTunic = decoder(TunicPart, { fields: { ink: 'InteriorInk' } });

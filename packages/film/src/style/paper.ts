@@ -7,7 +7,8 @@
 // under the key light, and lays it on a piece. A part takes only a checked
 // paper (`Paper` is branded), and checks it again as it is made; a part laid
 // within another's outline takes one with no rim (`unrimmed`, InnerRim).
-// Colour laid inside a paper and clipped to it is a tone (`Tones`). Pure.
+// Colour laid inside a paper and clipped to it is a tone (`Tones`); on a
+// garment or a sleeve a tone may be the figure's skin (`GarmentTones`). Pure.
 
 import { type Brand, Schema } from 'effect';
 import { type Hex, channelsOf } from '../canvas/colour.ts';
@@ -93,15 +94,27 @@ export const unrimmed = ruleCheck('InnerRim', (part: { readonly paper: Paper }) 
  * fades from its middle to nothing at its edge, so it blends into the paper
  * with no edge of its own (`Tone`, `rig/parts.ts`).
  */
-const Tone = Schema.Struct({
+const ToneFields = {
   pts: Outline,
   color: HexColour,
   alpha: Schema.optionalKey(Opacity),
   soft: Schema.optionalKey(Schema.Boolean),
-});
+};
 
 /** A part's tones, laid in order: the light on a tuft, the shade a hairline lays on a brow. */
-export const Tones = Schema.Array(Tone);
+export const Tones = Schema.Array(Schema.Struct(ToneFields));
+
+/**
+ * A garment's or a sleeve's tones, laid in order: its cloth (a sash, a
+ * fold's shade, the light on a sleeve), which leaves `skin` out, and, marked
+ * `skin: true`, the figure's skin where the piece shows it (a neckline, the
+ * wrist past a cuff), which a robe given over the piece lays again
+ * (`GivenRobe`). `skin` is `true` or left out, nothing else. Only a garment
+ * and an arm take `skin`: any other part refuses it as a field it lacks.
+ */
+export const GarmentTones = Schema.Array(
+  Schema.Struct({ ...ToneFields, skin: Schema.optionalKey(Schema.Literal(true)) }),
+);
 
 /** `fields` as a paper, checked (`Paper`); `name` is what a refusal names. */
 export const paper = (fields: PaperFields, name = 'paper'): Paper => decodePaper(fields, name);

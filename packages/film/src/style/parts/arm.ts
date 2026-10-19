@@ -12,7 +12,7 @@
 
 import { Schema } from 'effect';
 import { decoder } from '../decode.ts';
-import { Paper, Tones } from '../paper.ts';
+import { GarmentTones, Paper } from '../paper.ts';
 import { Outline, Point } from './measure.ts';
 
 /** An arm: where it turns, its turn at rest, its sleeve's outline, its paper and the colour on it. */
@@ -28,8 +28,8 @@ const ArmPart = Schema.TaggedStruct('Arm', {
   /** Its sleeve to the wrist in the pose it is traced in, units from the figure's origin. */
   outline: Outline,
   paper: Paper,
-  /** Colour laid on it with no line of its own, clipped to it, in order: the light on it, its cuff's shade. */
-  tones: Schema.optionalKey(Tones),
+  /** Colour laid on it with no line of its own, clipped to it, in order: the light on it, its cuff's shade, the skin past its cuff (marked `skin`). */
+  tones: Schema.optionalKey(GarmentTones),
 });
 export type Arm = typeof ArmPart.Type;
 

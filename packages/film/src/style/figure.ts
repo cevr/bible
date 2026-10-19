@@ -3,27 +3,29 @@
 // a part spread with a field its kind lacks, or a paper copied with a grey
 // shade, is refused as the module that composes it loads, and so are parts
 // the house cannot draw together (hair, a headcloth or a beard on a round
-// head, a pivot outside its garment). Only a figure `figure` returned is
-// one a film's figures file lays (`isComposed`), and it is frozen through:
-// a copy of it with a part changed was never checked, and a change made in
-// it throws, so a change is composed from the figure's spec again. A figure
-// stands on its feet, its origin, or sits, its origin its body's middle at
-// its head's height, the part of it above what hides its feet drawn; an arm
-// that reaches past its garment is in its sleeve, cut in one outline with
-// the garment, and turns about a point inside it nearer the sleeve than the
-// garment's edge, so the sleeve's root stays under its paper however it
-// swings. Its view model's numbers are its parts', in one order, never
-// listed by hand (`knobsOf`). How it is drawn is the house's (`rig/draw.ts`).
-// A figure the owner locked carries its lock, checked here, and its film
-// holds its print to it (`lock.ts`). Pure.
+// head, a pivot outside its garment, cloth laid over the skin under a given
+// robe). Only a figure `figure` returned is one a film's figures file lays
+// (`isComposed`), and it is frozen through: a copy of it with a part changed
+// was never checked, and a change made in it throws, so a change is composed
+// from the figure's spec again. A figure stands on its feet, its origin, or
+// sits, its origin its body's middle at its head's height, the part of it
+// above what hides its feet drawn; an arm that reaches past its garment is
+// in its sleeve, cut in one outline with the garment, and turns about a
+// point inside it nearer the sleeve than the garment's edge, so the sleeve's
+// root stays under its paper however it swings. Its view model's numbers are
+// its parts', in one order, never listed by hand (`knobsOf`). How it is
+// drawn is the house's (`rig/draw.ts`). A figure the owner locked carries
+// its lock, checked here, and its film holds its print to it (`lock.ts`).
+// Pure.
 
 import { Predicate, Schema } from 'effect';
 import { ConceptRef } from '../core/match.ts';
 import { decoder } from './decode.ts';
 import { type Lock, decodeLock } from './lock.ts';
+import { GarmentTones } from './paper.ts';
 import { ARM_SIDES, type Arm, type ArmSide, decodeArm } from './parts/arm.ts';
 import { type Beard, decodeBeard } from './parts/beard.ts';
-import { type Garment, decodeGarment } from './parts/body.ts';
+import { type Garment, decodeGarment, tonesOn } from './parts/body.ts';
 import { type Ear, decodeEar } from './parts/ear.ts';
 import { type Feet, decodeFeet } from './parts/feet.ts';
 import { type Hair, decodeHair } from './parts/hair.ts';
@@ -347,10 +349,41 @@ const armsOf = (arms: Arms, body: Garment): Arms => {
   return { near: armOn(arms.near, 'arms.near'), far: armOn(arms.far, 'arms.far') };
 };
 
-/** Every figure's parts of `spec`, each checked as its kind's, its arms on its checked garment, and its lock, under its checked `concept`. */
+/**
+ * A decode of a garment's or a sleeve's tones on a figure given a robe: its
+ * skin (each tone marked `skin`) laid after its cloth. The robe lays the skin
+ * again over its paper and covers the cloth, so skin that cloth laid after it
+ * covers on the piece would show on the robe.
+ */
+const skinAfterCloth = decoder(
+  GarmentTones.check(
+    Schema.makeFilter((tones: ReadonlyArray<{ readonly skin?: true }>) => {
+      const skin = tones.findIndex((t) => t.skin === true);
+      const cloth = skin < 0 ? -1 : tones.findIndex((t, i) => i > skin && t.skin !== true);
+      return cloth < 0
+        ? true
+        : `its tone ${cloth}, cloth, is laid after its skin (tone ${skin}): a given robe lays the skin again over its paper and covers the cloth, so skin that cloth covers would show on the robe; lay the skin after the cloth, cut to where it shows, or, if tone ${cloth} is a shade on the skin, mark it \`skin\``;
+    }),
+  ),
+);
+
+/** On a figure given a robe, its garment's skin and each arm's laid after their cloth (`skinAfterCloth`). */
+const skinUnderRobe = (f: Pick<ComposedParts, 'body' | 'arms'>) => {
+  skinAfterCloth(tonesOn(f.body), 'body');
+  for (const side of ARM_SIDES) {
+    const tones = f.arms[side]?.tones;
+    if (tones !== undefined) skinAfterCloth(tones, `arms.${side}`);
+  }
+};
+
+/**
+ * Every figure's parts of `spec`, each checked as its kind's, its arms on
+ * its checked garment, and its lock, under its checked `concept`; given a
+ * robe, its garment and arms lay their skin after their cloth.
+ */
 const composedOf = (spec: FigureSpec, concept: ConceptRef): ComposedParts => {
   const body = decodeGarment(spec.body, 'body');
-  return {
+  const parts: ComposedParts = {
     lock: spec.lock === undefined ? undefined : decodeLock(spec.lock, 'lock'),
     concept,
     stature: decodeStature(spec.stature, 'stature'),
@@ -368,6 +401,8 @@ const composedOf = (spec: FigureSpec, concept: ConceptRef): ComposedParts => {
     states: statesOf(spec.states ?? []),
     hands: decodeHands(spec.hands, 'hands'),
   };
+  if (parts.states.robe !== undefined) skinUnderRobe(parts);
+  return parts;
 };
 
 /** A figure's parts of `spec`: its slots checked as its stance's, then each part as its kind's. */

@@ -265,7 +265,7 @@ export const farmer = figure({
       { pts: bodyParts(TUNIC_FOLD), color: PAPERS.linen.shade },
       { pts: bodyParts(VEST_NEAR), color: WALNUT },
       { pts: bodyParts(VEST_FAR), color: WALNUT_SHADE },
-      { pts: bodyParts(NECK), color: NECK_SKIN },
+      { pts: bodyParts(NECK), color: NECK_SKIN, skin: true },
     ],
   }),
   arms: {

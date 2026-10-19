@@ -17,7 +17,7 @@ import {
 import { type Paper, looked, paper } from '../paper.ts';
 import { ARM_SIDES, type Arm, type ArmSide } from '../parts/arm.ts';
 import type { Beard } from '../parts/beard.ts';
-import type { Garment } from '../parts/body.ts';
+import { type Garment, tonesOn } from '../parts/body.ts';
 import type { Ear } from '../parts/ear.ts';
 import type { Feet, Sandals, Shoes, StubLegs } from '../parts/feet.ts';
 import type { Hair } from '../parts/hair.ts';
@@ -349,9 +349,6 @@ const headOf = (rig: Figure, f: Parts) =>
 /** What a garment's piece is named, and its side's node after it. */
 const garmentKey = (g: Garment) => (g._tag === 'Tunic' ? 'tunic' : 'robe');
 
-/** The colour laid on a garment, clipped to it: a robe's (a sash, a vest, a neckline's skin); a tunic lays none. */
-const tonesOn = (g: Garment) => (g._tag === 'Tunic' ? [] : (g.tones ?? []));
-
 /** The band on `side` of the bands' middle (-1 screen left), clockwise. */
 const bandOutline = (b: Bands, side: -1 | 1): Pt[] => {
   const x = (d: number) => b.x + side * d;
@@ -432,19 +429,37 @@ const garmentOf = (rig: Figure, f: Parts, outline: ReadonlyArray<Pt>): Element =
     look: (arm) => looked(arm.paper, { tones: arm.tones ?? [] }),
   });
 
+/** The skin among `tones` (each marked `skin`), in their order: what a given robe lays again over its paper. */
+const skinIn = <T extends { readonly skin?: true }>(tones: ReadonlyArray<T>): ReadonlyArray<T> =>
+  tones.filter((t) => t.skin === true);
+
 /**
  * The robe he is given, shown by its number (`robe`): the garment's
  * outline again in its paper, and each arm's sleeve again in it, turned by
  * its arm's number and cut in one outline with it (`sleevedOf`), so the robe
- * covers the garment and its sleeves, and its line runs round them all. Its
- * node is named `robe` and keyed `givenRobe`, so its id is its own beside a
- * robe garment's piece `robe`.
+ * covers the garment and its sleeves, and its line runs round them all. It
+ * covers his cloth, not him: the skin laid on the garment and on each sleeve
+ * (`skinIn`) it lays again over its paper, and the cloth laid on them (a
+ * sash, a vest, a fold's shade) it covers. A figure given a robe lays that
+ * skin after the cloth (`figure`), so with the robe whole (its number 1) the
+ * skin it shows is the skin the garment lays, where each skin tone is opaque
+ * or lies over opaque skin: a translucent tone past that skin shows the
+ * robe's paper through it, where the garment shows its own paper or cloth.
+ * Where the robe's paper has a rim, the rim lies over that skin along its lit
+ * edge, in the robe's light, as a garment's rim lies over its own skin. A
+ * stain lies under the robe, so the robe covers it on the skin too. At a
+ * number between 0 and 1 the skin it lays again shows paler, toward its
+ * paper. Its node is named `robe` and keyed `givenRobe`, so its id is its
+ * own beside a robe garment's piece `robe`.
  */
 const robeOf = (rig: Figure, f: Parts, robe: GivenRobe, outline: ReadonlyArray<Pt>): Element => {
-  const look = looked(robe.paper);
+  const look = looked(robe.paper, { tones: skinIn(tonesOn(f.body)) });
   return el('Node', { name: 'robe', id: rig.idOf('givenRobe') }, [
     rig.bind('robe', KEY.opacity),
-    sleevedOf(rig, f, 'robePaper', outline, look, { key: 'RobeSleeve', look: () => look }),
+    sleevedOf(rig, f, 'robePaper', outline, look, {
+      key: 'RobeSleeve',
+      look: (arm) => looked(robe.paper, { tones: skinIn(arm.tones ?? []) }),
+    }),
   ]);
 };
 
