@@ -1,0 +1,159 @@
+{
+  "number": 467,
+  "title": "Life Is Great! So Sing About It",
+  "print": "the owner's photo of his 1985 book (467.jpg), each line read off the page at its system and row; the rulings (data/crops/467/rulings.json) put in what the page prints where the base row differs: \"shop\" -> \"Shops\" (words, crop 467-0.jpg, judge-443 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Life is great! So sing about it,",
+        "from": "467.jpg system 1, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "As we can and as we should-",
+        "from": "467.jpg system 1, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Shops and buses, towns and people,",
+        "from": "467.jpg system 2, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Village, farmland, field and wood,",
+        "from": "467.jpg system 3, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Life is great and life is given;",
+        "from": "467.jpg system 3, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Life is lovely, free and good.",
+        "from": "467.jpg system 4, row 1. (placed off the page by from-464 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Life is great!- what ever happens,",
+        "from": "467.jpg system 1, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Snow or sunshine, joy or pain,",
+        "from": "467.jpg system 1, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Hardship, grief or disillusion,",
+        "from": "467.jpg system 2, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Suffering that I can't explain-",
+        "from": "467.jpg system 3, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Life is great if someone loves me,",
+        "from": "467.jpg system 3, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Holds my hand and calls my name.",
+        "from": "467.jpg system 4, row 2. (placed off the page by from-464 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Love is great!- the love of lovers,",
+        "from": "467.jpg system 1, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Whispered words and longing eyes;",
+        "from": "467.jpg system 1, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Love that gazes at the cradle",
+        "from": "467.jpg system 2, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Where a child of loving lies;",
+        "from": "467.jpg system 3, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Love that lasts when youth has faded,",
+        "from": "467.jpg system 3, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Bends with age, but never dies.",
+        "from": "467.jpg system 4, row 3. (placed off the page by from-464 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Love is giving and receiving-",
+        "from": "467.jpg system 1, row 4. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Boy and girl, or friend with friend;",
+        "from": "467.jpg system 1, row 4. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Love is bearing and forgiving",
+        "from": "467.jpg system 2, row 4. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "All the hurts that hate can send;",
+        "from": "467.jpg system 3, row 4. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Love's the greatest way of living,",
+        "from": "467.jpg system 3, row 4. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Hoping, trusting to the end.",
+        "from": "467.jpg system 4, row 4. (placed off the page by from-464 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "God is great! in Christ He loved us,",
+        "from": "467.jpg system 1, row 5. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "As we should, but never can-",
+        "from": "467.jpg system 1, row 5. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Love that suffered, hoped and trusted",
+        "from": "467.jpg system 2, row 5. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "When disciples turned and ran,",
+        "from": "467.jpg system 3, row 5. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Love that broke through death forever.",
+        "from": "467.jpg system 3, row 5. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Praise that loving, living Man!",
+        "from": "467.jpg system 4, row 5. (placed off the page by from-464 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Life is great! So sing about it,\nAs we can and as we should-\nShop and buses, towns and people,\nVillage, farmland, field and wood,\nLife is great and life is given;\nLife is lovely, free and good."
+    },
+    {
+      "id": 1,
+      "text": "Life is great!- what ever happens,\nSnow or sunshine, joy or pain,\nHardship, grief or disillusion,\nSuffering that I can't explain-\nLife is great if someone loves me,\nHolds my hand and calls my name."
+    },
+    {
+      "id": 2,
+      "text": "Love is great!- the love of lovers,\nWhispered words and longing eyes;\nLove that gazes at the cradle\nWhere a child of loving lies;\nLove that lasts when youth has faded,\nBends with age, but never dies."
+    },
+    {
+      "id": 3,
+      "text": "Love is giving and receiving-\nBoy and girl, or friend with friend;\nLove is bearing and forgiving\nAll the hurts that hate can send;\nLove's the greatest way of living,\nHoping, trusting to the end."
+    },
+    {
+      "id": 4,
+      "text": "God is great! in Christ He loved us,\r\nAs we should, but never can-\nLove that suffered, hoped and trusted\nWhen disciples turned and ran,\nLove that broke through death forever.\nPraise that loving, living Man!"
+    }
+  ]
+}

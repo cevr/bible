@@ -1,0 +1,123 @@
+{
+  "number": 638,
+  "title": "The Wise May Bring Their Learning",
+  "print": "the owner's photo of his 1985 book (638.jpg), each line read off the page at its system and row; the rulings (data/crops/638/rulings.json) put in what the page prints where the base row differs: \"\" -> \"shall\" (words, crop 638-1600.jpg, judge-634 (Opus, effort max)); \"gift\" -> \"gifts\" (words, crop 638-2174.jpg, judge-634 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "The wise may bring their learning,",
+        "from": "638.jpg system 1, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "The rich may bring their wealth,",
+        "from": "638.jpg system 1, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And some may bring their greatness,",
+        "from": "638.jpg system 2, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And some their strength and health:",
+        "from": "638.jpg system 2, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "We too would bring our treasures",
+        "from": "638.jpg system 3, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "To offer to the King,",
+        "from": "638.jpg system 3, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "We have no wealth or learning-",
+        "from": "638.jpg system 4, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "What shall we children bring?",
+        "from": "638.jpg system 4, row 1. (placed off the page by from-606 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "We'll bring Him hearts that love Him,",
+        "from": "638.jpg system 1, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "We'll bring Him thankful praise,",
+        "from": "638.jpg system 1, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And young souls meekly striving",
+        "from": "638.jpg system 2, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "To follow in His ways:",
+        "from": "638.jpg system 2, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And these shall be the treasures",
+        "from": "638.jpg system 3, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "We offer to the King,",
+        "from": "638.jpg system 3, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And these are gifts that ever",
+        "from": "638.jpg system 4, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "The poorest child may bring.",
+        "from": "638.jpg system 4, row 2. (placed off the page by from-606 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "We'll bring the little duties",
+        "from": "638.jpg system 1, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "We have to do each day;",
+        "from": "638.jpg system 1, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "We'll try our best to please Him",
+        "from": "638.jpg system 2, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "At home, at school, at play:",
+        "from": "638.jpg system 2, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And better are these treasures",
+        "from": "638.jpg system 3, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "To offer to the King",
+        "from": "638.jpg system 3, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Than richest gifts without them:",
+        "from": "638.jpg system 4, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Yet these a child may bring.",
+        "from": "638.jpg system 4, row 3. (placed off the page by from-606 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "The wise may bring their learning,\nThe rich may bring their wealth,\nAnd some may bring their greatness,\nAnd some their strength and health:\nWe too would bring our treasures\nTo offer to the King,\nWe have no wealth or learning-\nWhat shall we children bring?"
+    },
+    {
+      "id": 1,
+      "text": "We'll bring Him hearts that love Him,\nWe'll bring Him thankful praise,\nAnd young souls meekly striving\nTo follow in His ways:\nAnd these be the treasures\nWe offer to the King,\nAnd these are gifts that ever\nThe poorest child may bring."
+    },
+    {
+      "id": 2,
+      "text": "We'll bring the little duties\nWe have to do each day;\nWe'll try our best to please Him\nAt home, at school, at play:\nAnd better are these treasures\nTo offer to the King\nThan richest gift without them:\nYet these a child may bring."
+    }
+  ]
+}

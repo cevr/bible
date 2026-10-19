@@ -1,0 +1,121 @@
+{
+  "number": 314,
+  "title": "Just as I Am",
+  "print": "the 1985 book's hymnary.org scan (p306.jpg, 313.jpg), each line read off the page at its system and row; the rulings (data/crops/314/rulings.json) put in what the page prints where the base row differs: \"\" -> \"Just as I am and waiting not To rid my soul of one dark blot To Thee whose blood can cleanse each spot O Lamb of God I come I come\" (repeat, crop 313-200x580.jpg, judge-220-2 (Opus, effort max)); \"\" -> \"Just as I am though tossed about With many a conflict many a doubt Fightings within and fears without O Lamb of God I come I come\" (repeat, crop 313-200x580.jpg, judge-220-2 (Opus, effort max)); \"\" -> \"Just as I am poor wretched blind Sight riches healing of the mind Yea all I need in Thee I find O Lamb of God I come I come\" (repeat, crop 313-200x580.jpg, judge-220-2 (Opus, effort max)); \"\" -> \"Just as I am Thou wilt receive Wilt welcome pardon cleanse relieve Because Thy promise I believe O Lamb of God I come I come\" (repeat, crop 313-200x580.jpg, judge-220-2 (Opus, effort max)); \"\" -> \"Just as I am Thy love I own Has broken every barrier down Now to be Thine and Thine alone O Lamb of God I come I come\" (repeat, crop 313-200x580.jpg, judge-220-2 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Just as I am, without one plea",
+        "from": "p306.jpg system 1, row 1. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "But that Thy blood was shed for me",
+        "from": "p306.jpg system 1, row 1. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "And that Thou bid'st me come to Thee",
+        "from": "p306.jpg system 2, row 1. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "O Lamb of God, I come, I come.",
+        "from": "p306.jpg system 2, row 1. (placed off the page by from-314 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, and waiting not",
+        "from": "313.jpg system 1, row 2. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "To rid my soul of one dark blot,",
+        "from": "313.jpg system 1, row 2. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "To Thee whose blood can cleanse each spot,",
+        "from": "313.jpg system 2, row 2. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "O Lamb of God, I come, I come.",
+        "from": "313.jpg system 3, the shared row \"O Lamb of God, I come.\" printed once for all six stanzas, sung with \"I come\" twice as p306.jpg prints it on 314's tune (a repeat ruling, data/crops/314/rulings.json)"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, though tossed about",
+        "from": "313.jpg system 1, row 3. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "With many a conflict, many a doubt,",
+        "from": "313.jpg system 1, row 3. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "\"Fightings within, and fears without,\"",
+        "from": "313.jpg system 2, row 3. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "O Lamb of God, I come, I come.",
+        "from": "313.jpg system 3, the shared row \"O Lamb of God, I come.\" printed once for all six stanzas, sung with \"I come\" twice as p306.jpg prints it on 314's tune (a repeat ruling, data/crops/314/rulings.json)"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, poor, wretched, blind;",
+        "from": "313.jpg system 1, row 4. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "Sight, riches, healing of the mind,",
+        "from": "313.jpg system 1, row 4. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "Yea, all I need, in Thee I find,",
+        "from": "313.jpg system 2, row 4. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "O Lamb of God, I come, I come.",
+        "from": "313.jpg system 3, the shared row \"O Lamb of God, I come.\" printed once for all six stanzas, sung with \"I come\" twice as p306.jpg prints it on 314's tune (a repeat ruling, data/crops/314/rulings.json)"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, Thou wilt receive,",
+        "from": "313.jpg system 1, row 5. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "Wilt welcome, pardon, cleanse, relieve;",
+        "from": "313.jpg system 1, row 5. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "Because Thy promise I believe,",
+        "from": "313.jpg system 2, row 5. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "O Lamb of God, I come, I come.",
+        "from": "313.jpg system 3, the shared row \"O Lamb of God, I come.\" printed once for all six stanzas, sung with \"I come\" twice as p306.jpg prints it on 314's tune (a repeat ruling, data/crops/314/rulings.json)"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, Thy love I own",
+        "from": "313.jpg system 1, row 6. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "Has broken every barrier down;",
+        "from": "313.jpg system 1, row 6. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "Now to be Thine, and Thine alone,",
+        "from": "313.jpg system 2, row 6. (placed off the page by from-314 (Opus): 314 prints stanza 1 only; other stanzas on No. 313)"
+      },
+      {
+        "text": "O Lamb of God, I come, I come.",
+        "from": "313.jpg system 3, the shared row \"O Lamb of God, I come.\" printed once for all six stanzas, sung with \"I come\" twice as p306.jpg prints it on 314's tune (a repeat ruling, data/crops/314/rulings.json)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Just as I am, without one plea\nBut that Thy blood was shed for me\nAnd that Thou bid'st me come to Thee\nO Lamb of God, I come, I come."
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "number": 443,
+  "title": "There'll Be No Sorrow There",
+  "print": "the 1985 book's hymnary.org scan (p430.jpg), each line read off the page at its system and row; the rulings (data/crops/443/rulings.json) put in what the page prints where the base row differs: \"\" -> \"There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there.\" (words, crop p430-2010.jpg, judge-443 (Opus, effort max)); \"\" -> \"There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there.\" (words, crop p430-2010.jpg, judge-443 (Opus, effort max)); \"\" -> \"There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there.\" (words, crop p430-2010.jpg, judge-443 (Opus, effort max)); \"therell be no sorrow there therell be no sorrow there in heaven above where all is love therell be no sorrow there\" -> \"\" (words, crop p430-2010.jpg, judge-443 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "There'll be no night in heaven,",
+        "from": "p430.jpg system 1, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "In that blest world above;",
+        "from": "p430.jpg system 1, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "No anxious toil, no weary hours;",
+        "from": "p430.jpg system 2, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "For labor there is love.",
+        "from": "p430.jpg system 2, row 1. (placed off the page by from-443 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "There'll be no grief in heaven;",
+        "from": "p430.jpg system 1, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "For life is one glad day,",
+        "from": "p430.jpg system 1, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "And tears are those of former things",
+        "from": "p430.jpg system 2, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Which all have passed away.",
+        "from": "p430.jpg system 2, row 2. (placed off the page by from-443 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "There'll be no sin in heaven;",
+        "from": "p430.jpg system 1, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Behold that blessed throng,",
+        "from": "p430.jpg system 1, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "All holy in their spotless robes,",
+        "from": "p430.jpg system 2, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "All holy in their song.",
+        "from": "p430.jpg system 2, row 3. (placed off the page by from-443 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "There'll be no sorrow there,",
+        "from": "p430.jpg system 1, the refrain row (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "There'll be no sorrow there;",
+        "from": "p430.jpg system 1, the refrain row (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "In heaven above, where all is love,",
+        "from": "p430.jpg system 2, the refrain row (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "There'll be no sorrow there.",
+        "from": "p430.jpg system 2, the refrain row (placed off the page by from-443 (Opus))"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": 0,
+      "text": "There'll be no night in heaven,\nIn that blest world above;\nNo anxious toil, no weary hours;\nFor labor there is love."
+    },
+    {
+      "id": 1,
+      "text": "There'll be no grief in heaven;\nFor life is one glad day,\nAnd tears are those of former things\nWhich all have passed away."
+    },
+    {
+      "id": 2,
+      "text": "There'll be no sin in heaven;\nBehold that blessed throng,\nAll holy in their spotless robes,\nAll holy in their song."
+    },
+    {
+      "id": 3,
+      "text": "There'll be no sorrow there,\nThere'll be no sorrow there;\nIn heaven above, where all is love,\nThere'll be no sorrow there."
+    }
+  ]
+}

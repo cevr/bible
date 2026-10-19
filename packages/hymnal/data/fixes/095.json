@@ -1,0 +1,123 @@
+{
+  "number": 95,
+  "title": "Spring Has Now Unwrapped the Flowers",
+  "print": "the owner's photo of his 1985 book (095.jpg), each line read off the page at its system and row; the rulings (data/crops/095/rulings.json) put in what the page prints where the base row differs: \"leisurek\" -> \"leisure\" (words, crop 095-0.jpg, judge-095 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Spring has now unwrapped the flowers,",
+        "from": "095.jpg system 1, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Day is fast reviving,",
+        "from": "095.jpg system 1, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Life in all her growing powers",
+        "from": "095.jpg system 2, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Towards the light is striving:",
+        "from": "095.jpg system 2, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Gone the iron touch of cold,",
+        "from": "095.jpg system 3, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Winter time and frost time,",
+        "from": "095.jpg system 3, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Seedlings, working through the mould,",
+        "from": "095.jpg system 4, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Now make up for lost time.",
+        "from": "095.jpg system 4, row 1. (placed off the page by from-095 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Herb and plant that winter long,",
+        "from": "095.jpg system 1, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Slumbered at their leisure,",
+        "from": "095.jpg system 1, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Now bestirring, green and strong,",
+        "from": "095.jpg system 2, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Find in growth their pleasure:",
+        "from": "095.jpg system 2, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "All the world with beauty fills,",
+        "from": "095.jpg system 3, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Gold the green enhancing;",
+        "from": "095.jpg system 3, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Flowers make glee among the hills,",
+        "from": "095.jpg system 4, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Set the meadows dancing.",
+        "from": "095.jpg system 4, row 2. (placed off the page by from-095 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Through each wonder of fair days",
+        "from": "095.jpg system 1, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "God Himself expresses;",
+        "from": "095.jpg system 1, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Beauty follows all His ways,",
+        "from": "095.jpg system 2, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "As the world He blesses:",
+        "from": "095.jpg system 2, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "So, as He renews the earth,",
+        "from": "095.jpg system 3, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Artist without rival,",
+        "from": "095.jpg system 3, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "In His grace of glad new birth",
+        "from": "095.jpg system 4, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "We must seek revival.",
+        "from": "095.jpg system 4, row 3. (placed off the page by from-095 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Spring has now unwrapped the flowers,\nDay is fast reviving,\nLife in all her growing powers\nTowards the light is striving:\nGone the iron touch of cold,\nWinter time and frost time,\nSeedlings, working through the mould,\nNow make up for lost time."
+    },
+    {
+      "id": 1,
+      "text": "Herb and plant that winter long,\nSlumbered at their leisurek,\nNow bestirring, green and strong,\nFind in growth their pleasure:\nAll the world with beauty fills,\nGold the green enhancing;\nFlowers make glee among the hills,\nSet the meadows dancing."
+    },
+    {
+      "id": 2,
+      "text": "Through each wonder of fair days\nGod Himself expresses;\nBeauty follows all His ways,\r\nAs the world He blesses:\nSo, as He renews the earth,\nArtist without rival,\nIn His grace of glad new birth\nWe must seek revival."
+    }
+  ]
+}

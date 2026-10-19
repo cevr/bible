@@ -1,0 +1,97 @@
+{
+  "number": 6,
+  "title": "O Worship the Lord",
+  "print": "the 1985 book's hymnary.org scan (p007.jpg), each line read off the page at its system and row; the rulings (data/crops/006/rulings.json) put in what the page prints where the base row differs: \"ihese\" -> \"These\" (words, crop p007-1933.jpg, judge-006-2 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "O worship the Lord in the beauty of holiness,",
+        "from": "p007.jpg system 1, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Bow down before Him, His glory proclaim;",
+        "from": "p007.jpg system 2, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "With gold of obedience, and incense of lowliness,",
+        "from": "p007.jpg system 3, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Kneel and adore Him; the Lord is His name.",
+        "from": "p007.jpg system 4, row 1. (placed off the page by from-006 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Low at His feet lay thy burden of carefulness;",
+        "from": "p007.jpg system 1, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "High on His heart He will bear it for thee,",
+        "from": "p007.jpg system 2, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Comfort thy sorrows and answer thy prayerfulness,",
+        "from": "p007.jpg system 3, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Guiding thy steps as may best for thee be.",
+        "from": "p007.jpg system 4, row 2. (placed off the page by from-006 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Fear not to enter His courts in the slenderness",
+        "from": "p007.jpg system 1, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Of the poor wealth thou wouldst reckon as thine.",
+        "from": "p007.jpg system 2, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Truth in its beauty and love in its tenderness,",
+        "from": "p007.jpg system 3, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "These are the offerings to lay on His shrine.",
+        "from": "p007.jpg system 4, row 3. (placed off the page by from-006 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "These, though we bring them in trembling and fearfulness,",
+        "from": "p007.jpg system 1, row 4. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "He will accept for the name that is dear;",
+        "from": "p007.jpg system 2, row 4. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Mornings of joy give for evenings of tearfulness,",
+        "from": "p007.jpg system 3, row 4. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Trust for our trembling, and hope for our fear.",
+        "from": "p007.jpg system 4, row 4. (placed off the page by from-006 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "O worship the Lord in the beauty of holiness,\nBow down before Him, His glory proclaim;\nWith gold of obedience, and incense of lowliness,\nKneel and adore Him; the Lord is His name."
+    },
+    {
+      "id": 1,
+      "text": "Low at His feet lay thy burden of carefulness;\nHigh on His heart He will bear it for thee,\nComfort thy sorrows and answer thy prayerfulness,\nGuiding thy steps as may best for thee be."
+    },
+    {
+      "id": 2,
+      "text": "Fear not to enter His courts in the slenderness\nOf the poor wealth thou wouldst reckon as thine.\nTruth in its beauty and love in its tenderness,\n'I'hese are the offerings to lay on His shrine."
+    },
+    {
+      "id": 3,
+      "text": "These, though we bring them in trembling and fearfulness,\nHe will accept for the name that is dear;\nMornings of joy give for evenings of tearfulness,\nTrust for our trembling, and hope for our fear."
+    }
+  ]
+}

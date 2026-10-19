@@ -1,0 +1,97 @@
+{
+  "number": 585,
+  "title": "When Christ Was Lifted From the Earth",
+  "print": "the owner's photo of his 1985 book (585.jpg), each line read off the page at its system and row; the rulings (data/crops/585/rulings.json) put in what the page prints where the base row differs: \"love\" -> \"loves\" (words, crop 585-1220.jpg, judge-583 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "When Christ was lifted from the earth",
+        "from": "585.jpg system 1, row 1. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "His arms stretched out above",
+        "from": "585.jpg system 1, row 1. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "Through every culture, every birth,",
+        "from": "585.jpg system 2, row 1. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "To draw an answering love.",
+        "from": "585.jpg system 2, row 1. (placed off the page by from-575 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Still east and west His love extends",
+        "from": "585.jpg system 1, row 2. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "And always, near or far,",
+        "from": "585.jpg system 1, row 2. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "He calls and claims us as His friends",
+        "from": "585.jpg system 2, row 2. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "And loves us as we are.",
+        "from": "585.jpg system 2, row 2. (placed off the page by from-575 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Where generation, class or race",
+        "from": "585.jpg system 1, row 3. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "Divides us to our shame",
+        "from": "585.jpg system 1, row 3. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "He sees not labels but a face,",
+        "from": "585.jpg system 2, row 3. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "A person and a name.",
+        "from": "585.jpg system 2, row 3. (placed off the page by from-575 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Thus freely loved, tho' fully known",
+        "from": "585.jpg system 1, row 4. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "May I in Christ be free",
+        "from": "585.jpg system 1, row 4. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "To welcome and accept His own",
+        "from": "585.jpg system 2, row 4. (placed off the page by from-575 (Opus))"
+      },
+      {
+        "text": "As Christ accepted me.",
+        "from": "585.jpg system 2, row 4. (placed off the page by from-575 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "When Christ was lifted from the earth\nHis arms stretched out above\nThrough every culture, every birth,\nTo draw an answering love."
+    },
+    {
+      "id": 1,
+      "text": "Still east and west His love extends\nAnd always, near or far,\nHe calls and claims us as His friends\nAnd love us as we are."
+    },
+    {
+      "id": 2,
+      "text": "Where generation, class or race\nDivides us to our shame\nHe sees not labels but a face,\nA person and a name."
+    },
+    {
+      "id": 3,
+      "text": "Thus freely loved, tho' fully known\nMay I in Christ be free\nTo welcome and accept His own\nAs Christ accepted me."
+    }
+  ]
+}

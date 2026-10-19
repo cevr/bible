@@ -1,0 +1,101 @@
+{
+  "number": 214,
+  "title": "We Have This Hope",
+  "print": "the owner's photo of his 1985 book (214.jpg, 215.jpg), each line read off the page at its system and row; the rulings (data/crops/214/rulings.json) put in what the page prints where the base row differs: \"heanns\" -> \"heav'ns\" (words, crop 214-1912.jpg, judge-209 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "We have this hope that burns within our hearts,",
+        "from": "214.jpg system 1, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Hope in the coming of the Lord.",
+        "from": "214.jpg system 2, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "We have this faith that Christ alone imparts,",
+        "from": "214.jpg system 3, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Faith in the promise of His Word.",
+        "from": "214.jpg system 4, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "We believe the time is here,",
+        "from": "214.jpg system 5, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "When the nations far and near",
+        "from": "214.jpg system 5, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Shall awake, and shout, and sing",
+        "from": "215.jpg system 1, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Hallelujah! Christ is King!",
+        "from": "215.jpg system 1, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "We have this hope that burns within our hearts,",
+        "from": "215.jpg system 2, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Hope in the coming of the Lord.",
+        "from": "215.jpg system 3, row 1. (placed off the page by from-209 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "We are united in Jesus Christ our Lord.",
+        "from": "214.jpg system 1, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "We are united in His love.",
+        "from": "214.jpg system 2, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Love for the waiting people of the world.",
+        "from": "214.jpg system 3, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "People who need our Savior's love.",
+        "from": "214.jpg system 4, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Soon the heav'ns will open wide,",
+        "from": "214.jpg system 5, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Christ will come to claim His bride.",
+        "from": "214.jpg system 5, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "All the universe will sing Hallelujah!",
+        "from": "215.jpg system 1, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Christ is King! We have this hope,",
+        "from": "215.jpg system 1, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "this faith, and God's great love",
+        "from": "215.jpg system 2, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "We are united in Christ",
+        "from": "215.jpg system 3, row 2. (placed off the page by from-209 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "We have this hope that burns within our hearts,\nHope in the coming of the Lord.\nWe have this faith that Christ alone imparts,\nFaith in the promise of His Word.\nWe believe the time is here,\nWhen the nations far and near\nShall awake, and shout, and sing\r\nHallelujah! Christ is King!\nWe have this hope that burns within our hearts,\nHope in the coming of the Lord."
+    },
+    {
+      "id": 1,
+      "text": "We are united in Jesus Christ our Lord.\nWe are united in His love.\nLove for the waiting people of the world.\nPeople who need our Savior's love.\nSoon the hean'ns will open wide,\r\nChrist will come to claim His bride.\nAll the universe will sing Hallelujah!\nChrist is King! We have this hope,\r\nthis faith, and God's great love\nWe are united in Christ"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "number": 259,
+  "title": "Draw Us in the Spirits Tether",
+  "print": "the owner's photo of his 1985 book (259.jpg), each line read off the page at its system and row; the rulings (data/crops/259/rulings.json) put in what the page prints where the base row differs: \"us\" -> \"as\" (words, crop 259-337.jpg, judge-209 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Draw us in the Spirit's tether,",
+        "from": "259.jpg system 1, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "For when humbly in Thy name,",
+        "from": "259.jpg system 1, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Two or three are met together,",
+        "from": "259.jpg system 2, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Thou art in the midst of them;",
+        "from": "259.jpg system 2, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Alleluia! Alleluia!",
+        "from": "259.jpg system 3, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Touch we now Thy garment's hem.",
+        "from": "259.jpg system 4, row 1. (placed off the page by from-255 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "As the brethren used to gather",
+        "from": "259.jpg system 1, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "In the name of Christ to sup,",
+        "from": "259.jpg system 1, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Then with thanks to God the Father",
+        "from": "259.jpg system 2, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Break the bread and bless the cup,",
+        "from": "259.jpg system 2, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Alleluia! Alleluia!",
+        "from": "259.jpg system 3, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "So knit Thou our friendship up.",
+        "from": "259.jpg system 4, row 2. (placed off the page by from-255 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "All our meals and all our living",
+        "from": "259.jpg system 1, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Make as sacraments of Thee,",
+        "from": "259.jpg system 1, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "That by caring, helping, giving,",
+        "from": "259.jpg system 2, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "We may true disciples be.",
+        "from": "259.jpg system 2, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Alleluia! Alleluia!",
+        "from": "259.jpg system 3, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "We will serve Thee faithfully.",
+        "from": "259.jpg system 4, row 3. (placed off the page by from-255 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Draw us in the Spirit's tether,\nFor when humbly in Thy name,\nTwo or three are met together,\nThou art in the midst of them;\nAlleluia! Alleluia!\r\nTouch we now Thy garment's hem."
+    },
+    {
+      "id": 1,
+      "text": "As the brethren used to gather\nIn the name of Christ to sup,\nThen with thanks to God the Father\nBreak the bread and bless the cup,\nAlleluia! Alleluia!\nSo knit Thou our friendship up."
+    },
+    {
+      "id": 2,
+      "text": "All our meals and all our living\nMake us sacraments of Thee,\nThat by caring, helping, giving,\nWe may true disciples be.\nAlleluia! Alleluia!\nWe will serve Thee faithfully."
+    }
+  ]
+}

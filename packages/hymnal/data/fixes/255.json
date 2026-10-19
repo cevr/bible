@@ -1,0 +1,161 @@
+{
+  "number": 255,
+  "title": "I Cannot Tell Why",
+  "print": "the owner's photo of his 1985 book (255-p2.jpg, 255.jpg), each line read off the page at its system and row; the rulings (data/crops/255/rulings.json) put in what the page prints where the base row differs: \"biding\" -> \"bidding\" (words, crop 255-779.jpg, judge-225 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "I cannot tell why He whom angels worship",
+        "from": "255.jpg system 1, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Should set His love upon the souls of men,",
+        "from": "255.jpg system 2, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Or why as Shepherd He should seek the wanderers,",
+        "from": "255.jpg system 3, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "To bring them back, they know not how nor when.",
+        "from": "255.jpg system 4, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "But this I know that He was born of Mary",
+        "from": "255-p2.jpg system 1, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "When Bethlehem's manger was His only home,",
+        "from": "255-p2.jpg system 2, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "And that He lived at Nazareth and labored;",
+        "from": "255-p2.jpg system 3, row 1. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "And so the Savior, Savior of the world, has come.",
+        "from": "255-p2.jpg system 4, row 1. (placed off the page by from-255 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "I cannot tell how silently He suffered",
+        "from": "255.jpg system 1, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "As with His peace He graced this place of tears,",
+        "from": "255.jpg system 2, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Nor how His heart upon the cross was broken,",
+        "from": "255.jpg system 3, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "The crown of pain to three and thirty years.",
+        "from": "255.jpg system 4, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "But this I know He heals the broken hearted",
+        "from": "255-p2.jpg system 1, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "And stays our sin and calms our lurking fear,",
+        "from": "255-p2.jpg system 2, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "And lifts the burden from the heavy laden;",
+        "from": "255-p2.jpg system 3, row 2. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "For still the Savior, Savior of the world, is here.",
+        "from": "255-p2.jpg system 4, row 2. (placed off the page by from-255 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "I cannot tell how He will win the nations,",
+        "from": "255.jpg system 1, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "How He will claim His earthly heritage,",
+        "from": "255.jpg system 2, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "How satisfy the needs and aspirations",
+        "from": "255.jpg system 3, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Of east and west, of sinner and of sage.",
+        "from": "255.jpg system 4, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "But this I know all flesh shall see His glory,",
+        "from": "255-p2.jpg system 1, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "And He shall reap the harvest He has sown,",
+        "from": "255-p2.jpg system 2, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "And some glad day His sun will shine in splendor",
+        "from": "255-p2.jpg system 3, row 3. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "When He the Savior, Savior of the world, is known.",
+        "from": "255-p2.jpg system 4, row 3. (placed off the page by from-255 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "I cannot tell how all the lands shall worship,",
+        "from": "255.jpg system 1, row 4. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "When at His bidding every storm is stilled,",
+        "from": "255.jpg system 2, row 4. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Or who can say how great the jubilation",
+        "from": "255.jpg system 3, row 4. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "When all our hearts with love for Him are filled.",
+        "from": "255.jpg system 4, row 4. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "But this I know the skies shall sound His praises,",
+        "from": "255-p2.jpg system 1, row 4. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "Ten thousand thousand human voices sing,",
+        "from": "255-p2.jpg system 2, row 4. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "And earth to heaven, and heaven to earth will answer,",
+        "from": "255-p2.jpg system 3, row 4. (placed off the page by from-255 (Opus))"
+      },
+      {
+        "text": "At last the Savior, Savior of the world, is King!",
+        "from": "255-p2.jpg system 4, row 4. (placed off the page by from-255 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "I cannot tell why He whom angels worship\nShould set His love upon the souls of men,\nOr why as Shepherd He should seek the wanderers,\nTo bring them back, they know not how nor when.\nBut this I know that He was born of Mary\nWhen Bethlehem's manger was His only home,\nAnd that He lived at Nazareth and labored;\nAnd so the Savior, Savior of the world, has come."
+    },
+    {
+      "id": 1,
+      "text": "I cannot tell how silently He suffered\nAs with His peace He graced this place of tears,\nNor how His heart upon the cross was broken,\nThe crown of pain to three and thirty years.\nBut this I know He heals the broken hearted\nAnd stays our sin and calms our lurking fear,\nAnd lifts the burden from the heavy laden;\nFor still the Savior, Savior of the world, is here."
+    },
+    {
+      "id": 2,
+      "text": "I cannot tell how He will win the nations,\nHow He will claim His earthly heritage,\nHow satisfy the needs and aspirations\nOf east and west, of sinner and of sage.\nBut this I know all flesh shall see His glory,\nAnd He shall reap the harvest He has sown,\nAnd some glad day His sun will shine in splendor\nWhen He the Savior, Savior of the world, is known."
+    },
+    {
+      "id": 3,
+      "text": "I cannot tell how all the lands shall worship,\nWhen at His biding every storm is stilled,\nOr who can say how great the jubilation\nWhen all our hearts with love for Him are filled.\nBut this I know the skies shall sound His praises,\nTen thousand thousand human voices sing,\nAnd earth to heaven, and heaven to earth will answer,\nAt last the Savior, Savior of the world, is King!"
+    }
+  ]
+}

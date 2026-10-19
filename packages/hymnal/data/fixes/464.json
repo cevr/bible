@@ -1,0 +1,123 @@
+{
+  "number": 464,
+  "title": "When I Can Read My Title Clear",
+  "print": "the owner's photo of his 1985 book (464.jpg), each line read off the page at its system and row; the rulings (data/crops/464/rulings.json) put in what the page prints where the base row differs: \"or\" -> \"of\" (words, crop 464-432.jpg, judge-443 (Opus, effort max)); \"may\" -> \"My\" (words, crop 464-759.jpg, judge-443 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "When I can read my title clear",
+        "from": "464.jpg system 1, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "To mansions in the skies",
+        "from": "464.jpg system 1, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "I'll bid farewell to every fear,",
+        "from": "464.jpg system 2, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And wipe my weeping eyes;",
+        "from": "464.jpg system 2, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And wipe my weeping eyes,",
+        "from": "464.jpg system 3, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And wipe my weeping eyes,",
+        "from": "464.jpg system 3, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "I'll bid farewell to every fear,",
+        "from": "464.jpg system 4, row 1. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And wipe my weeping eyes.",
+        "from": "464.jpg system 4, row 1. (placed off the page by from-464 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Should earth against my soul engage,",
+        "from": "464.jpg system 1, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And fiery darts be hurled,",
+        "from": "464.jpg system 1, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Then I can smile at Satan's rage,",
+        "from": "464.jpg system 2, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And face a frowning world;",
+        "from": "464.jpg system 2, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And face a frowning world,",
+        "from": "464.jpg system 3, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And face a frowning world,",
+        "from": "464.jpg system 3, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "Then I can smile at Satan's rage,",
+        "from": "464.jpg system 4, row 2. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And face a frowning world.",
+        "from": "464.jpg system 4, row 2. (placed off the page by from-464 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Let cares like a wild deluge come,",
+        "from": "464.jpg system 1, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "And storms of sorrow fall!",
+        "from": "464.jpg system 1, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "May I but safely reach my home,",
+        "from": "464.jpg system 2, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "My God, my heav’n, my all;",
+        "from": "464.jpg system 2, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "My God. my heav’n, my all,",
+        "from": "464.jpg system 3, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "My God, my heav’n, my all,",
+        "from": "464.jpg system 3, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "May I but safely reach my home,",
+        "from": "464.jpg system 4, row 3. (placed off the page by from-464 (Opus))"
+      },
+      {
+        "text": "My God, my heav’n, my all.",
+        "from": "464.jpg system 4, row 3. (placed off the page by from-464 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "When I can read my title clear\nTo mansions in the skies\nI'll bid farewell to every fear,\nAnd wipe my weeping eyes;\nAnd wipe my weeping eyes,\nAnd wipe my weeping eyes,\nI'll bid farewell to every fear,\nAnd wipe my weeping eyes."
+    },
+    {
+      "id": 1,
+      "text": "Should earth against my soul engage,\nAnd fiery darts be hurled,\nThen I can smile at Satan's rage,\nAnd face a frowning world;\nAnd face a frowning world,\nAnd face a frowning world,\nThen I can smile at Satan's rage,\nAnd face a frowning world."
+    },
+    {
+      "id": 2,
+      "text": "Let cares like a wild deluge come,\nAnd storms or sorrow fall!\nMay I but safely reach my home,\nMay God, my heav’n, my all;\nMy God. my heav’n, my all,\nMy God, my heav’n, my all,\nMay I but safely reach my home,\nMy God, my heav’n, my all."
+    }
+  ]
+}

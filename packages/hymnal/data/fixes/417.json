@@ -1,0 +1,161 @@
+{
+  "number": 417,
+  "title": "O Solemn Thought",
+  "print": "the owner's photo of his 1985 book (417.jpg), each line read off the page at its system and row; the rulings (data/crops/417/rulings.json) put in what the page prints where the base row differs: \"upon\" -> \"up\" (words, crop 417-876.jpg, judge-284 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "O solemn thought and can it be",
+        "from": "417.jpg system 1, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "The hour of judgment now is come",
+        "from": "417.jpg system 1, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Which soon must fix our destiny,",
+        "from": "417.jpg system 2, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "And seal the sinner's fearful doom?",
+        "from": "417.jpg system 2, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Yes, it is so; the judgment hour",
+        "from": "417.jpg system 3, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Is swiftly hastening to its close;",
+        "from": "417.jpg system 3, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Then will the Judge, in mighty power,",
+        "from": "417.jpg system 4, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Descend in vengeance on His foes.",
+        "from": "417.jpg system 4, row 1. (placed off the page by from-408 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "He who came down to earth to die",
+        "from": "417.jpg system 1, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "An offering for the sins of men,",
+        "from": "417.jpg system 1, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "And then ascended up on high,",
+        "from": "417.jpg system 2, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "And will e'er long return again,",
+        "from": "417.jpg system 2, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Is standing now before the ark,",
+        "from": "417.jpg system 3, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "And mercy seat and cherubim,",
+        "from": "417.jpg system 3, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "To plead His blood for saints, and make",
+        "from": "417.jpg system 4, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "The last remembrance of their sin.",
+        "from": "417.jpg system 4, row 2. (placed off the page by from-408 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "The solemn moment is at hand",
+        "from": "417.jpg system 1, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "When we who have His name confessed,",
+        "from": "417.jpg system 1, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Each in his lot must singly stand",
+        "from": "417.jpg system 2, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "And pass the final, searching test.",
+        "from": "417.jpg system 2, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Jesus! we hope in Thee alone;",
+        "from": "417.jpg system 3, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "In mercy now upon us look,",
+        "from": "417.jpg system 3, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Confess our names before the throne,",
+        "from": "417.jpg system 4, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "And blot our sins from out Thy book.",
+        "from": "417.jpg system 4, row 3. (placed off the page by from-408 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "O blessed Savior! may we feel",
+        "from": "417.jpg system 1, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "The full importance of this hour.",
+        "from": "417.jpg system 1, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Inspire our hearts with holy zeal,",
+        "from": "417.jpg system 2, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "And aid us by Thy Spirit's power,",
+        "from": "417.jpg system 2, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "That we may in Thy strength be strong,",
+        "from": "417.jpg system 3, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "And brave the conflict valiantly;",
+        "from": "417.jpg system 3, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Then, on Mount Zion, join the song,",
+        "from": "417.jpg system 4, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "And swell the notes of victory.",
+        "from": "417.jpg system 4, row 4. (placed off the page by from-408 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "O solemn thought and can it be\nThe hour of judgment now is come\nWhich soon must fix our destiny,\nAnd seal the sinner's fearful doom?\nYes, it is so; the judgment hour\r\nIs swiftly hastening to its close;\nThen will the Judge, in mighty power,\nDescend in vengeance on His foes."
+    },
+    {
+      "id": 1,
+      "text": "He who came down to earth to die\nAn offering for the sins of men,\nAnd then ascended upon on high,\nAnd will e'er long return again,\nIs standing now before the ark,\nAnd mercy seat and cherubim,\nTo plead His blood for saints, and make\nThe last remembrance of their sin."
+    },
+    {
+      "id": 2,
+      "text": "The solemn moment is at hand\nWhen we who have His name confessed,\nEach in his lot must singly stand\nAnd pass the final, searching test.\nJesus! we hope in Thee alone;\nIn mercy now upon us look,\nConfess our names before the throne,\nAnd blot our sins from out Thy book."
+    },
+    {
+      "id": 3,
+      "text": "O blessed Savior! may we feel\nThe full importance of this hour.\nInspire our hearts with holy zeal,\nAnd aid us by Thy Spirit's power,\nThat we may in Thy strength be strong,\nAnd brave the conflict valiantly;\nThen, on Mount Zion, join the song,\nAnd swell the notes of victory."
+    }
+  ]
+}

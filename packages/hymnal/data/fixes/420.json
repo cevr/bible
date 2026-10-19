@@ -1,0 +1,97 @@
+{
+  "number": 420,
+  "title": "Jerusalem My Happy Home",
+  "print": "the owner's photo of his 1985 book (419.jpg, 420.jpg), each line read off the page at its system and row; the rulings (data/crops/420/rulings.json) put in what the page prints where the base row differs: \"the\" -> \"Thy\" (words, crop 419-2095.jpg, judge-284 (Opus, effort max)); \"the\" -> \"Thy\" (words, crop 419-1176.jpg, judge-284 (Opus, effort max)); \"blessed\" -> \"blest\" (words, crop 419-2095.jpg, judge-284 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Jerusalem, my happy home,",
+        "from": "420.jpg system 1, row 1. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "O how I long for thee!",
+        "from": "420.jpg system 1, row 1. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "When will my sorrows have an end,",
+        "from": "420.jpg system 2, row 1. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Thy joys when shall I see?",
+        "from": "420.jpg system 2, row 1. (placed off the page by from-419 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Thy walls are all of precious stone,",
+        "from": "420.jpg system 1, row 2. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Most glorious to behold;",
+        "from": "420.jpg system 1, row 2. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Thy gates are richly set with pearl,",
+        "from": "420.jpg system 2, row 2. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Thy streets are paved with gold.",
+        "from": "420.jpg system 2, row 2. (placed off the page by from-419 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Thy garden and thy pleasant walks",
+        "from": "420.jpg system 1, row 3. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "My study long have been;",
+        "from": "420.jpg system 1, row 3. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Such dazzling views by human sight",
+        "from": "420.jpg system 2, row 3. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Have never yet been seen.",
+        "from": "420.jpg system 2, row 3. (placed off the page by from-419 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Lord, help us by Thy mighty grace,",
+        "from": "420.jpg system 1, row 4. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "To keep in view the prize,",
+        "from": "420.jpg system 1, row 4. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Till Thou dost come to take us home",
+        "from": "420.jpg system 2, row 4. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "To that blest paradise.",
+        "from": "420.jpg system 2, row 4. (placed off the page by from-419 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Jerusalem, my happy home,\nO how I long for thee!\nWhen will my sorrows have an end,\nThe joys when shall I see?"
+    },
+    {
+      "id": 1,
+      "text": "The walls are all of precious stone,\nMost glorious to behold;\nThy gates are richly set with pearl,\nThy streets are paved with gold."
+    },
+    {
+      "id": 2,
+      "text": "Thy garden and thy pleasant walks\nMy study long have been;\nSuch dazzling views by human sight\nHave never yet been seen."
+    },
+    {
+      "id": 3,
+      "text": "Lord, help us by Thy mighty grace,\nTo keep in view the prize,\nTill Thou dost come to take us home\nTo that blessed paradise."
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "number": 459,
+  "title": "As the Bridegroom to His Chosen",
+  "print": "the owner's photo of his 1985 book (459.jpg), each line read off the page at its system and row; the rulings (data/crops/459/rulings.json) put in what the page prints where the base row differs: \"to\" -> \"unto\" (words, crop 459-175.jpg, judge-443 (Opus, effort max)); \"up in\" -> \"upon\" (words, crop 459-876.jpg, judge-443 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "As the bridegroom to his chosen,",
+        "from": "459.jpg system 1, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "as the king unto his realm,",
+        "from": "459.jpg system 1, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "As the keep unto the castle,",
+        "from": "459.jpg system 2, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "as the pilot to the helm,",
+        "from": "459.jpg system 2, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "So, Lord, art Thou to me.",
+        "from": "459.jpg system 3, row 1. (placed off the page by from-443 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "As the fountain in the garden,",
+        "from": "459.jpg system 1, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "as the candle in the dark,",
+        "from": "459.jpg system 1, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "As the treasure in the coffer,",
+        "from": "459.jpg system 2, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "as the manna in the ark,",
+        "from": "459.jpg system 2, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "So, Lord, art Thou to me.",
+        "from": "459.jpg system 3, row 2. (placed off the page by from-443 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "As the ruby in the setting,",
+        "from": "459.jpg system 1, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "as the honey in the comb,",
+        "from": "459.jpg system 1, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "As the light within the lantern,",
+        "from": "459.jpg system 2, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "as the father in the home,",
+        "from": "459.jpg system 2, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "So, Lord, art Thou to me.",
+        "from": "459.jpg system 3, row 3. (placed off the page by from-443 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "As the sunshine in the heavens,",
+        "from": "459.jpg system 1, row 4. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "as the image in the glass,",
+        "from": "459.jpg system 1, row 4. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "As the fruits upon the fig tree,",
+        "from": "459.jpg system 2, row 4. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "as the dew upon the grass,",
+        "from": "459.jpg system 2, row 4. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "So, Lord, art Thou to me.",
+        "from": "459.jpg system 3, row 4. (placed off the page by from-443 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "As the bridegroom to his chosen,\nas the king to his realm,\nAs the keep unto the castle,\nas the pilot to the helm,\nSo, Lord, art Thou to me."
+    },
+    {
+      "id": 1,
+      "text": "As the fountain in the garden,\nas the candle in the dark,\nAs the treasure in the coffer,\r\nas the manna in the ark,\nSo, Lord, art Thou to me."
+    },
+    {
+      "id": 2,
+      "text": "As the ruby in the setting,\r\nas the honey in the comb,\nAs the light within the lantern,\r\nas the father in the home,\nSo, Lord, art Thou to me."
+    },
+    {
+      "id": 3,
+      "text": "As the sunshine in the heavens,\r\nas the image in the glass,\r\nAs the fruits up in the fig tree,\r\nas the dew upon the grass,\nSo, Lord, art Thou to me."
+    }
+  ]
+}

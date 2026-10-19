@@ -1,0 +1,75 @@
+{
+  "number": 52,
+  "title": "Now the Day Is Over",
+  "print": "the 1985 book's hymnary.org scan (p051.jpg), each line read off the page at its system and row; the rulings (data/crops/052/rulings.json) put in what the page prints where the base row differs: \"your\" -> \"Thy\" (words, crop p051-736.jpg, judge-006-2 (Opus, effort max)); \"your\" -> \"Thine\" (words, crop p051-252.jpg, judge-006 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Now the day is over;",
+        "from": "p051.jpg system 1, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Night is drawing nigh,",
+        "from": "p051.jpg system 1, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Shadows of the evening",
+        "from": "p051.jpg system 2, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Steal across the sky.",
+        "from": "p051.jpg system 2, row 1. (placed off the page by from-052 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Father, give the weary",
+        "from": "p051.jpg system 1, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Calm and sweet repose;",
+        "from": "p051.jpg system 1, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "With Thy tenderest blessing",
+        "from": "p051.jpg system 2, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "May our eyelids close.",
+        "from": "p051.jpg system 2, row 2. (placed off the page by from-052 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Through the long night-watches,",
+        "from": "p051.jpg system 1, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "May Thine angels spread",
+        "from": "p051.jpg system 1, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Their white wings above me,",
+        "from": "p051.jpg system 2, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Watching round my bed.",
+        "from": "p051.jpg system 2, row 3. (placed off the page by from-052 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Now the day is over;\nNight is drawing nigh,\nShadows of the evening\nSteal across the sky."
+    },
+    {
+      "id": 1,
+      "text": "Father, give the weary\nCalm and sweet repose;\nWith your tenderest blessing\nMay our eyelids close."
+    },
+    {
+      "id": 2,
+      "text": "Through the long night-watches,\nMay your angels spread\nTheir white wings above me,\nWatching round my bed."
+    }
+  ]
+}

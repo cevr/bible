@@ -1,0 +1,119 @@
+{
+  "number": 588,
+  "title": "Lord of All Nations",
+  "print": "the owner's photo of his 1985 book (588.jpg), each line read off the page at its system and row; the rulings (data/crops/588/rulings.json) put in what the page prints where the base row differs: \"redeemer\" -> \"redeemed\" (words, crop 588-1607.jpg, judge-583 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Lord of all nations, grant me grace",
+        "from": "588.jpg system 1, row 1. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "To love all people, every race,",
+        "from": "588.jpg system 1, row 1. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "And in each person may I see",
+        "from": "588.jpg system 2, row 1. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "My kindred loved, redeemed by Thee.",
+        "from": "588.jpg system 3, row 1. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Break down the wall that would divide",
+        "from": "588.jpg system 1, row 2. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Thy children Lord, on every side.",
+        "from": "588.jpg system 1, row 2. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "My neighbor's good let me pursue;",
+        "from": "588.jpg system 2, row 2. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Let Christian love bind warm and true.",
+        "from": "588.jpg system 3, row 2. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Forgive me, Lord, where I have erred",
+        "from": "588.jpg system 1, row 3. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "By loveless act and thoughtless word.",
+        "from": "588.jpg system 1, row 3. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Make me to see the wrong I do",
+        "from": "588.jpg system 2, row 3. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Will crucify my Lord anew.",
+        "from": "588.jpg system 3, row 3. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Give me Thy courage, Lord, to speak",
+        "from": "588.jpg system 1, row 4. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Whenever strong oppress the weak.",
+        "from": "588.jpg system 1, row 4. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Should I myself the victim be,",
+        "from": "588.jpg system 2, row 4. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Help me forgive, rememb'ring Thee",
+        "from": "588.jpg system 3, row 4. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "With Thine own love may I be filled",
+        "from": "588.jpg system 1, row 5. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "And by Thy Holy Spirit willed,",
+        "from": "588.jpg system 1, row 5. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "That all I touch, where'er I be,",
+        "from": "588.jpg system 2, row 5. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "May be divinely touched by Thee.",
+        "from": "588.jpg system 3, row 5. (placed off the page by from-588 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Lord of all nations, grant me grace\nTo love all people, every race,\nAnd in each person may I see\nMy kindred loved, redeemer by Thee."
+    },
+    {
+      "id": 1,
+      "text": "Break down the wall that would divide\nThy children Lord, on every side.\nMy neighbor's good let me pursue;\nLet Christian love bind warm and true."
+    },
+    {
+      "id": 2,
+      "text": "Forgive me, Lord, where I have erred\nBy loveless act and thoughtless word.\nMake me to see the wrong I do\nWill crucify my Lord anew."
+    },
+    {
+      "id": 3,
+      "text": "Give me Thy courage, Lord, to speak\nWhenever strong oppress the weak.\nShould I myself the victim be,\nHelp me forgive, rememb'ring Thee"
+    },
+    {
+      "id": 4,
+      "text": "With Thine own love may I be filled\nAnd by Thy Holy Spirit willed,\nThat all I touch, where'er I be,\nMay be divinely touched by Thee."
+    }
+  ]
+}

@@ -1,0 +1,199 @@
+{
+  "number": 424,
+  "title": "For Thee, O Dear, Dear Country",
+  "print": "the 1985 book's hymnary.org scan (p409.jpg, p410.jpg), each line read off the page at its system and row; the rulings (data/crops/424/rulings.json) put in what the page prints where the base row differs: \"thavas\" -> \"thee as\" (words, crop p410-1412.jpg, judge-422 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "For thee, O dear, dear country,",
+        "from": "p409.jpg system 1, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Mine eyes their vigils keep;",
+        "from": "p409.jpg system 1, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "For very love beholding",
+        "from": "p409.jpg system 2, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Thy holy name, they weep.",
+        "from": "p409.jpg system 2, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "The mention of thy glory",
+        "from": "p410.jpg system 1, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Is unction to the breast,",
+        "from": "p410.jpg system 1, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "And medicine in sickness,",
+        "from": "p410.jpg system 2, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "And love, and life, and rest.",
+        "from": "p410.jpg system 2, row 1. (placed off the page by from-424 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "O one, O only mansion!",
+        "from": "p409.jpg system 1, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "O Paradise of joy!",
+        "from": "p409.jpg system 1, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Where tears are ever banish'd",
+        "from": "p409.jpg system 2, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "And smiles have no alloy;",
+        "from": "p409.jpg system 2, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Thy loveliness oppresses",
+        "from": "p410.jpg system 1, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "All human thought and heart,",
+        "from": "p410.jpg system 1, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "And none, O Peace, O Sion,",
+        "from": "p410.jpg system 2, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Can sing thee as thou art.",
+        "from": "p410.jpg system 2, row 2. (placed off the page by from-424 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "With jasper glow thy bulwarks,",
+        "from": "p409.jpg system 1, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Thy streets with emeralds blaze;",
+        "from": "p409.jpg system 1, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "The sardius and the topaz",
+        "from": "p409.jpg system 2, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Unite in thee their rays;",
+        "from": "p409.jpg system 2, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Thine ageless walls are bonded",
+        "from": "p410.jpg system 1, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "With amethyst unpriced;",
+        "from": "p410.jpg system 1, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "The saints shall build thy fabric,",
+        "from": "p410.jpg system 2, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "And the cornerstone is Christ.",
+        "from": "p410.jpg system 2, row 3. (placed off the page by from-424 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "The cross is all thy splendor,",
+        "from": "p409.jpg system 1, row 4. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "The Crucified thy praise;",
+        "from": "p409.jpg system 1, row 4. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "His laud and benediction",
+        "from": "p409.jpg system 2, row 4. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Thy ransom'd saints shall raise;",
+        "from": "p409.jpg system 2, row 4. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Upon the Rock of Ages",
+        "from": "p410.jpg system 1, row 4. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "They build thy holy tower;",
+        "from": "p410.jpg system 1, row 4. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Thine is the victor's laurel,",
+        "from": "p410.jpg system 2, row 4. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "And thine the golden dower.",
+        "from": "p410.jpg system 2, row 4. (placed off the page by from-424 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "O sweet and blessed country,",
+        "from": "p409.jpg system 1, row 5. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "The home of God's elect!",
+        "from": "p409.jpg system 1, row 5. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "O sweet and blessed country",
+        "from": "p409.jpg system 2, row 5. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "That eager hearts expect!",
+        "from": "p409.jpg system 2, row 5. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Jesus, in mercy bring us",
+        "from": "p410.jpg system 1, row 5. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "To that dear land of rest,",
+        "from": "p410.jpg system 1, row 5. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Who art, with God the Father,",
+        "from": "p410.jpg system 2, row 5. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "And Spirit, ever blest.",
+        "from": "p410.jpg system 2, row 5. (placed off the page by from-424 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "For thee, O dear, dear country,\nMine eyes their vigils keep;\nFor very love beholding\nThy holy name, they weep.\nThe mention of thy glory\nIs unction to the breast,\nAnd medicine in sickness,\nAnd love, and life, and rest."
+    },
+    {
+      "id": 1,
+      "text": "O one, O only mansion!\nO Paradise of joy!\nWhere tears are ever banish'd\nAnd smiles have no alloy;\nThy loveliness oppresses\nAll human thought and heart,\nAnd none, O Peace, O Sion,\nCan sing thavas thou art."
+    },
+    {
+      "id": 2,
+      "text": "With jasper glow thy bulwarks,\nThy streets with emeralds blaze;\nThe sardius and the topaz\nUnite in thee their rays;\nThine ageless walls are bonded\nWith amethyst unpriced;\nThe saints shall build thy fabric,\nAnd the cornerstone is Christ."
+    },
+    {
+      "id": 3,
+      "text": "The cross is all thy splendor,\nThe Crucified thy praise;\nHis laud and benediction\nThy ransom'd saints shall raise;\nUpon the Rock of Ages\nThey build thy holy tower;\nThine is the victor's laurel,\nAnd thine the golden dower."
+    },
+    {
+      "id": 4,
+      "text": "O sweet and blessed country,\nThe home of God's elect!\nO sweet and blessed country\nThat eager hearts expect!\nJesus, in mercy bring us\nTo that dear land of rest,\nWho art, with God the Father,\nAnd Spirit, ever blest."
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "number": 547,
+  "title": "Be Thou My Vision",
+  "print": "the owner's photo of his 1985 book (547.jpg), each line read off the page at its system and row; the rulings (data/crops/547/rulings.json) put in what the page prints where the base row differs: \"mine\" -> \"my\" (words, crop 547-922.jpg, judge-509 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Be Thou my vision, O Lord of my heart;",
+        "from": "547.jpg system 1, row 1. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Naught be all else to me, Save that Thou art",
+        "from": "547.jpg system 2, row 1. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Thou my best thought, by day or by night,",
+        "from": "547.jpg system 3, row 1. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Waking or sleeping, Thy presence my light.",
+        "from": "547.jpg system 4, row 1. (placed off the page by from-547 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Be Thou my wisdom, Be Thou my true word;",
+        "from": "547.jpg system 1, row 2. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "I ever with Thee Thou with me, Lord;",
+        "from": "547.jpg system 2, row 2. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Thou my great Father, I Thy true son;",
+        "from": "547.jpg system 3, row 2. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Thou in me dwelling, and I with Thee one.",
+        "from": "547.jpg system 4, row 2. (placed off the page by from-547 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Riches I heed not, Nor man's empty praise,",
+        "from": "547.jpg system 1, row 3. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Thou my inheritance, now and always:",
+        "from": "547.jpg system 2, row 3. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Thou and Thou only, first in my heart,",
+        "from": "547.jpg system 3, row 3. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "High King of heaven, my Treasure Thou art.",
+        "from": "547.jpg system 4, row 3. (placed off the page by from-547 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "High King of heaven, When vict'ry is won,",
+        "from": "547.jpg system 1, row 4. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "May I reach heaven's joys, O bright heaven's Sun!",
+        "from": "547.jpg system 2, row 4. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Heart of my own heart, whatever befall,",
+        "from": "547.jpg system 3, row 4. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Still be my vision, O ruler of all.",
+        "from": "547.jpg system 4, row 4. (placed off the page by from-547 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Be Thou my vision, O Lord of my heart;\nNaught be all else to me, Save that Thou art\nThou my best thought, by day or by night,\nWaking or sleeping, Thy presence my light."
+    },
+    {
+      "id": 1,
+      "text": "Be Thou my wisdom, Be Thou my true word;\nI ever with Thee Thou with me, Lord;\nThou my great Father, I Thy true son;\nThou in me dwelling, and I with Thee one."
+    },
+    {
+      "id": 2,
+      "text": "Riches I heed not, Nor man's empty praise,\nThou mine inheritance, now and always:\nThou and Thou only, first in my heart,\nHigh King of heaven, my Treasure Thou art."
+    },
+    {
+      "id": 3,
+      "text": "High King of heaven, When vict'ry is won,\nMay I reach heaven's joys, O bright heaven's Sun!\nHeart of my own heart, whatever befall,\nStill be my vision, O ruler of all."
+    }
+  ]
+}

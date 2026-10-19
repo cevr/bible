@@ -1,0 +1,99 @@
+{
+  "number": 54,
+  "title": "O Gladsome Light",
+  "print": "the owner's photo of his 1985 book (054.jpg, 055.jpg), each line read off the page at its system and row; the rulings (data/crops/054/rulings.json) put in what the page prints where the base row differs: \"\" -> \"O grace\" (words, crop 054-153.jpg, judge-006-2 (Opus, effort max)); \"ourpouring\" -> \"outpouring\" (words, crop 054-153.jpg, judge-006-2 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "O gladsome light O grace",
+        "from": "054.jpg system 1, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Of God the Father's face,",
+        "from": "054.jpg system 1, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "The eternal splendor wearing;",
+        "from": "054.jpg system 1, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Celestial, holy, blest,",
+        "from": "054.jpg system 2, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Our Savior, Jesus Christ,",
+        "from": "054.jpg system 3, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Joyful in Thine appearing.",
+        "from": "054.jpg system 3, row 1. (placed off the page by from-052 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Now e'er day fadeth quite,",
+        "from": "054.jpg system 1, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "We see the ev'ning light,",
+        "from": "054.jpg system 1, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Our wonted hymn outpouring;",
+        "from": "054.jpg system 1, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Father of might unknown,",
+        "from": "054.jpg system 2, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Thee His incarnate Son,",
+        "from": "054.jpg system 3, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "And Holy Spirit adoring.",
+        "from": "054.jpg system 3, row 2. (placed off the page by from-052 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "To Thee of right belongs",
+        "from": "054.jpg system 1, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "All praise of holy songs,",
+        "from": "054.jpg system 1, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "O Son of God, lifegiver;",
+        "from": "054.jpg system 1, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Thee therefore, O most high,",
+        "from": "054.jpg system 2, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "The world doth glorify",
+        "from": "054.jpg system 3, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "And shall exalt for ever.",
+        "from": "054.jpg system 3, row 3. (placed off the page by from-052 (Opus): the page prints forever as one word sung in three syllables (for-ev-er); the line has two words, for ever)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "O gladsome light\nOf God the Father's face,\nThe eternal splendor wearing;\nCelestial, holy, blest,\nOur Savior, Jesus Christ,\nJoyful in Thine appearing."
+    },
+    {
+      "id": 1,
+      "text": "Now e'er day fadeth quite,\nWe see the ev'ning light,\nOur wonted hymn ourpouring;\nFather of might unknown,\nThee His incarnate Son,\nAnd Holy Spirit adoring."
+    },
+    {
+      "id": 2,
+      "text": "To Thee of right belongs\nAll praise of holy songs,\nO Son of God, lifegiver;\nThee therefore, O most high,\nThe world doth glorify\nAnd shall exalt for ever."
+    }
+  ]
+}

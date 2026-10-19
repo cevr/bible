@@ -1,0 +1,75 @@
+{
+  "number": 419,
+  "title": "Soon Shall the Trump of God",
+  "print": "the owner's photo of his 1985 book (419.jpg, 420.jpg), each line read off the page at its system and row; the rulings (data/crops/419/rulings.json) put in what the page prints where the base row differs: \"in\" -> \"an\" (words, crop 419-855.jpg, judge-284 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Soon shall the trump of God",
+        "from": "419.jpg system 1, row 1. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Give out the welcome sound,",
+        "from": "419.jpg system 1, row 1. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "That shakes death's silent chamber walls,",
+        "from": "419.jpg system 2, row 1. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "And breaks the turf sealed ground.",
+        "from": "419.jpg system 2, row 1. (placed off the page by from-419 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "You dwellers in the dust,",
+        "from": "419.jpg system 1, row 2. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Awake, come forth, and sing;",
+        "from": "419.jpg system 1, row 2. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Sharp has your frost of winter been,",
+        "from": "419.jpg system 2, row 2. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "But bright shall be your spring.",
+        "from": "419.jpg system 2, row 2. (placed off the page by from-419 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "'Twas sown in weakness here;",
+        "from": "419.jpg system 1, row 3. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "'Twill then be raised in power;",
+        "from": "419.jpg system 1, row 3. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "That which was sown an earthly seed",
+        "from": "419.jpg system 2, row 3. (placed off the page by from-419 (Opus))"
+      },
+      {
+        "text": "Shall rise a heav'nly flower.",
+        "from": "419.jpg system 2, row 3. (placed off the page by from-419 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Soon shall the trump of God\nGive out the welcome sound,\nThat shakes death's silent chamber walls,\nAnd breaks the turf sealed ground."
+    },
+    {
+      "id": 1,
+      "text": "You dwellers in the dust,\nAwake, come forth, and sing;\nSharp has your frost of winter been,\nBut bright shall be your spring."
+    },
+    {
+      "id": 2,
+      "text": "'Twas sown in weakness here;\n'Twill then be raised in power;\nThat which was sown in earthly seed\nShall rise a heav'nly flower."
+    }
+  ]
+}

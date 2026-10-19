@@ -1,0 +1,117 @@
+{
+  "number": 408,
+  "title": "Lord, Enthroned in Heavenly Splendor",
+  "print": "the 1985 book's hymnary.org scan (p395.jpg), each line read off the page at its system and row; the rulings (data/crops/408/rulings.json) put in what the page prints where the base row differs: \"where\" -> \"when\" (words, crop p395-273.jpg, judge-284 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Lord, enthroned in heav'nly splendor,",
+        "from": "p395.jpg system 1, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "First begotten from the dead,",
+        "from": "p395.jpg system 1, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "You alone, our strong defender,",
+        "from": "p395.jpg system 2, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Lifting up Your people's head.",
+        "from": "p395.jpg system 2, row 1. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Alleluia, Jesus, true and living Bread!",
+        "from": "p395.jpg system 3, row 1. (placed off the page by from-408 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Tho' the lowliest form now veil You",
+        "from": "p395.jpg system 1, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "As of old in Bethlehem,",
+        "from": "p395.jpg system 1, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Here as there Your angels hail You",
+        "from": "p395.jpg system 2, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Branch and flow'r of Jesse's stem.",
+        "from": "p395.jpg system 2, row 2. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Alleluia, We in worship join with them.",
+        "from": "p395.jpg system 3, row 2. (placed off the page by from-408 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Paschal Lamb, Your off'ring finished",
+        "from": "p395.jpg system 1, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Once for all when You were slain,",
+        "from": "p395.jpg system 1, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "In its fullness undiminished",
+        "from": "p395.jpg system 2, row 3. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Shall forever more remain.",
+        "from": "p395.jpg system 2, row 3. (placed off the page by from-408 (Opus): the page prints one hyphenated word for-ev-er-more across the system break; the line has two words, forever more)"
+      },
+      {
+        "text": "Alleluia, Cleansing souls from every stain.",
+        "from": "p395.jpg system 3, row 3. (placed off the page by from-408 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Life-imparting heav'nly manna,",
+        "from": "p395.jpg system 1, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Stricken rock with streaming side,",
+        "from": "p395.jpg system 1, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Heav'n and earth with loud hosanna",
+        "from": "p395.jpg system 2, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Worship You the Lamb who died.",
+        "from": "p395.jpg system 2, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Alleluia,",
+        "from": "p395.jpg system 3, row 4. (placed off the page by from-408 (Opus))"
+      },
+      {
+        "text": "Ris'n, ascended, glorified!",
+        "from": "p395.jpg system 3, row 4. (placed off the page by from-408 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Lord, enthroned in heav'nly splendor,\nFirst begotten from the dead,\nYou alone, our strong defender,\nLifting up Your people's head.\nAlleluia, Jesus, true and living Bread!"
+    },
+    {
+      "id": 1,
+      "text": "Tho' the lowliest form now veil You\nAs of old in Bethlehem,\nHere as there Your angels hail You\nBranch and flow'r of Jesse's stem.\nAlleluia, We in worship join with them."
+    },
+    {
+      "id": 2,
+      "text": "Paschal Lamb, Your off'ring finished\nOnce for all where You were slain,\nIn its fullness undiminished\nShall forever more remain.\nAlleluia, Cleansing souls from every stain."
+    },
+    {
+      "id": 3,
+      "text": "Life-imparting heav'nly manna,\nStricken rock with streaming side,\nHeav'n and earth with loud hosanna\nWorship You the Lamb who died.\nAlleluia,\nRis'n, ascended, glorified!"
+    }
+  ]
+}

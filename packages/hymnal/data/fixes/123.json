@@ -1,0 +1,129 @@
+{
+  "number": 123,
+  "title": "As With Gladness Men of Old",
+  "print": "the owner's photo of his 1985 book (123.jpg), each line read off the page at its system and row; the rulings (data/crops/123/rulings.json) put in what the page prints where the base row differs: \"glorious\" -> \"gracious\" (words, crop 123-1606.jpg, judge-095 (Opus, effort max)); \"heavenly\" -> \"heav'nly\" (words, crop 123-1606.jpg, judge-095 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "As with gladness, men of old",
+        "from": "123.jpg system 1, row 1. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Did the guiding star behold",
+        "from": "123.jpg system 1, row 1. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "As with joy they hailed its light",
+        "from": "123.jpg system 2, row 1. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Leading onward, beaming bright",
+        "from": "123.jpg system 2, row 1. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "So, most gracious Lord, may we",
+        "from": "123.jpg system 3, row 1. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Evermore be led to Thee.",
+        "from": "123.jpg system 3, row 1. (placed off the page by from-108 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "As with joyful steps they sped",
+        "from": "123.jpg system 1, row 2. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "To that lowly manger bed",
+        "from": "123.jpg system 1, row 2. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "There to bend the knee before",
+        "from": "123.jpg system 2, row 2. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Him Whom heav'n and earth adore;",
+        "from": "123.jpg system 2, row 2. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "So may we with willing feet",
+        "from": "123.jpg system 3, row 2. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Ever seek Thy mercy seat.",
+        "from": "123.jpg system 3, row 2. (placed off the page by from-108 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "As they offered gifts most rare",
+        "from": "123.jpg system 1, row 3. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "At that manger rude and bare;",
+        "from": "123.jpg system 1, row 3. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "So may we with holy joy,",
+        "from": "123.jpg system 2, row 3. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Pure and free from sin's alloy,",
+        "from": "123.jpg system 2, row 3. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "All our costliest treasures bring,",
+        "from": "123.jpg system 3, row 3. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Christ, to Thee, our heav'nly King.",
+        "from": "123.jpg system 3, row 3. (placed off the page by from-108 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Holy Jesus, every day",
+        "from": "123.jpg system 1, row 4. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Keep us in the narrow way;",
+        "from": "123.jpg system 1, row 4. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "And, when earthly things are past,",
+        "from": "123.jpg system 2, row 4. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Bring our ransomed souls at last",
+        "from": "123.jpg system 2, row 4. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Where they need no star to guide,",
+        "from": "123.jpg system 3, row 4. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Where no clouds Thy glory hide.",
+        "from": "123.jpg system 3, row 4. (placed off the page by from-108 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "As with gladness, men of old\r\nDid the guiding star behold\r\nAs with joy they hailed its light\r\nLeading onward, beaming bright\r\nSo, most glorious Lord, may we\r\nEvermore be led to Thee."
+    },
+    {
+      "id": 1,
+      "text": "As with joyful steps they sped\r\nTo that lowly manger bed\r\nThere to bend the knee before\r\nHim Whom heav'n and earth adore;\r\nSo may we with willing feet\r\nEver seek Thy mercy seat."
+    },
+    {
+      "id": 2,
+      "text": "As they offered gifts most rare\r\nAt that manger rude and bare;\r\nSo may we with holy joy,\r\nPure and free from sin's alloy,\r\nAll our costliest treasures bring,\r\nChrist, to Thee, our heavenly King."
+    },
+    {
+      "id": 3,
+      "text": "Holy Jesus, every day\r\nKeep us in the narrow way;\r\nAnd, when earthly things are past,\r\nBring our ransomed souls at last\r\nWhere they need no star to guide,\r\nWhere no clouds Thy glory hide."
+    }
+  ]
+}

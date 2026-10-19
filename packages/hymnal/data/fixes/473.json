@@ -1,0 +1,199 @@
+{
+  "number": 473,
+  "title": "Nearer My God, to Thee",
+  "print": "the 1985 book's hymnary.org scan (p462.jpg), each line read off the page at its system and row; the rulings (data/crops/473/rulings.json) put in what the page prints where the base row differs: \"i\" -> \"I'll\" (words, crop p462-1533.jpg, judge-471 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 1, row 1. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer to Thee!",
+        "from": "p462.jpg system 1, row 1. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "E'en though it be a cross",
+        "from": "p462.jpg system 1, row 1. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "That raiseth me!",
+        "from": "p462.jpg system 2, row 1. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Still all my song shall be,",
+        "from": "p462.jpg system 2, row 1. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 2, row 1. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      },
+      {
+        "text": "Nearer to Thee.",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      }
+    ],
+    [
+      {
+        "text": "Though like a wanderer,",
+        "from": "p462.jpg system 1, row 2. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Daylight all gone,",
+        "from": "p462.jpg system 1, row 2. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Darkness be over me,",
+        "from": "p462.jpg system 1, row 2. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "My rest a stone;",
+        "from": "p462.jpg system 2, row 2. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Yet in my dreams I'd be",
+        "from": "p462.jpg system 2, row 2. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 2, row 2. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      },
+      {
+        "text": "Nearer to Thee.",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      }
+    ],
+    [
+      {
+        "text": "There let the way appear,",
+        "from": "p462.jpg system 1, row 3. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Steps up to heaven;",
+        "from": "p462.jpg system 1, row 3. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "All that Thou sendest me,",
+        "from": "p462.jpg system 1, row 3. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "In mercy given;",
+        "from": "p462.jpg system 2, row 3. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Angels to beckon me",
+        "from": "p462.jpg system 2, row 3. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 2, row 3. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      },
+      {
+        "text": "Nearer to Thee.",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      }
+    ],
+    [
+      {
+        "text": "Then, with my waking thoughts",
+        "from": "p462.jpg system 1, row 4. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Bright with Thy praise,",
+        "from": "p462.jpg system 1, row 4. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Out of my stony griefs",
+        "from": "p462.jpg system 1, row 4. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Bethel I'll raise;",
+        "from": "p462.jpg system 2, row 4. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "So by my woes to be",
+        "from": "p462.jpg system 2, row 4. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 2, row 4. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      },
+      {
+        "text": "Nearer to Thee.",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      }
+    ],
+    [
+      {
+        "text": "Or if, on joyful wing",
+        "from": "p462.jpg system 1, row 5. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Cleaving the sky,",
+        "from": "p462.jpg system 1, row 5. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Sun, moon, and stars forgot,",
+        "from": "p462.jpg system 1, row 5. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Upward I fly,",
+        "from": "p462.jpg system 2, row 5. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Still all my song shall be,",
+        "from": "p462.jpg system 2, row 5. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 2, row 5. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Nearer, my God, to Thee,",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      },
+      {
+        "text": "Nearer to Thee.",
+        "from": "p462.jpg system 3, the refrain row (placed off the page by from-473 (Opus): system 3 prints one row, shared by all five stanzas)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Nearer, my God, to Thee,\nNearer to Thee!\nE'en though it be a cross\nThat raiseth me!\nStill all my song shall be,\nNearer, my God, to Thee,\nNearer, my God, to Thee,\nNearer to Thee."
+    },
+    {
+      "id": 1,
+      "text": "Though like a wanderer,\nDaylight all gone,\nDarkness be over me,\nMy rest a stone;\nYet in my dreams I'd be\nNearer, my God, to Thee,\nNearer, my God, to Thee,\nNearer to Thee."
+    },
+    {
+      "id": 2,
+      "text": "There let the way appear,\nSteps up to heaven;\nAll that Thou sendest me,\nIn mercy given;\nAngels to beckon me\nNearer, my God, to Thee,\nNearer, my God, to Thee,\nNearer to Thee."
+    },
+    {
+      "id": 3,
+      "text": "Then, with my waking thoughts\nBright with Thy praise,\nOut of my stony griefs\nBethel I raise;\nSo by my woes to be\nNearer, my God, to Thee,\nNearer, my God, to Thee,\nNearer to Thee."
+    },
+    {
+      "id": 4,
+      "text": "Or if, on joyful wing\nCleaving the sky,\nSun, moon, and stars forgot,\nUpward I fly,\nStill all my song shall be,\nNearer, my God, to Thee,\nNearer, my God, to Thee,\nNearer to Thee."
+    }
+  ]
+}

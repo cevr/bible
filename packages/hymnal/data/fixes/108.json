@@ -1,0 +1,119 @@
+{
+  "number": 108,
+  "title": "Amazing Grace",
+  "print": "the owner's photo of his 1985 book (108.jpg), each line read off the page at its system and row; the rulings (data/crops/108/rulings.json) put in what the page prints where the base row differs: \"we\" -> \"we'd\" (words, crop 108-1053.jpg, judge-095 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Amazing grace! How sweet the sound",
+        "from": "108.jpg system 1, row 1. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "That saved a wretch like me!",
+        "from": "108.jpg system 1, row 1. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "I once was lost, but now am found;",
+        "from": "108.jpg system 2, row 1. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Was blind, but now I see.",
+        "from": "108.jpg system 3, row 1. (placed off the page by from-108 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "'Twas grace that taught my heart to fear,",
+        "from": "108.jpg system 1, row 2. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "And grace my fears relieved;",
+        "from": "108.jpg system 1, row 2. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "How precious did that grace appear",
+        "from": "108.jpg system 2, row 2. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "The hour I first believed.",
+        "from": "108.jpg system 3, row 2. (placed off the page by from-108 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "The Lord has promised good to me,",
+        "from": "108.jpg system 1, row 3. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "His word my hope secures;",
+        "from": "108.jpg system 1, row 3. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "He will my shield and portion be,",
+        "from": "108.jpg system 2, row 3. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "As long as life endures.",
+        "from": "108.jpg system 3, row 3. (placed off the page by from-108 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Through many dangers, toils, and snares,",
+        "from": "108.jpg system 1, row 4. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "I have already come;",
+        "from": "108.jpg system 1, row 4. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "'Tis grace hath brought me safe thus far,",
+        "from": "108.jpg system 2, row 4. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "And grace will lead me home.",
+        "from": "108.jpg system 3, row 4. (placed off the page by from-108 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "When we've been there ten thousand years,",
+        "from": "108.jpg system 1, row 5. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Bright shining as the sun,",
+        "from": "108.jpg system 1, row 5. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "We've no less days to sing God's praise",
+        "from": "108.jpg system 2, row 5. (placed off the page by from-108 (Opus))"
+      },
+      {
+        "text": "Than when we'd first begun.",
+        "from": "108.jpg system 3, row 5. (placed off the page by from-108 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Amazing grace! How sweet the sound\nThat saved a wretch like me!\r\nI once was lost, but now am found;\r\nWas blind, but now I see."
+    },
+    {
+      "id": 1,
+      "text": "'Twas grace that taught my heart to fear,\r\nAnd grace my fears relieved;\nHow precious did that grace appear\r\nThe hour I first believed."
+    },
+    {
+      "id": 2,
+      "text": "The Lord has promised good to me,\r\nHis word my hope secures;\r\nHe will my shield and portion be,\r\nAs long as life endures."
+    },
+    {
+      "id": 3,
+      "text": "Through many dangers, toils, and snares,\nI have already come;\r\n'Tis grace hath brought me safe thus far,\r\nAnd grace will lead me home."
+    },
+    {
+      "id": 4,
+      "text": "When we've been there ten thousand years,\r\nBright shining as the sun,\r\nWe've no less days to sing God's praise\r\nThan when we first begun."
+    }
+  ]
+}

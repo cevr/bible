@@ -1,0 +1,121 @@
+{
+  "number": 284,
+  "title": "For You I Am Praying",
+  "print": "the 1985 book's hymnary.org scan (p277.jpg, p278.jpg), each line read off the page at its system and row; the rulings (data/crops/284/rulings.json) put in what the page prints where the base row differs: \"you\" -> \"too\" (words, crop p277-1940.jpg, judge-284 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "I have a Savior, He's pleading in glory,",
+        "from": "p277.jpg system 1, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "A dear, loving Savior, though earth friends be few;",
+        "from": "p277.jpg system 1, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "And now He is watching in tenderness o'er me,",
+        "from": "p277.jpg system 2, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "But oh that my Savior were your Savior, too.",
+        "from": "p277.jpg system 3, row 1. (placed off the page by from-261 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "I have a Father; to me He has given",
+        "from": "p277.jpg system 1, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "A hope for eternity, blessed and true;",
+        "from": "p277.jpg system 1, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "And soon He will call me to meet Him in heaven,",
+        "from": "p277.jpg system 2, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "But oh that He'd let me bring you with me, too!",
+        "from": "p277.jpg system 3, row 2. (placed off the page by from-261 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "I have a robe; 'tis resplendent in whiteness,",
+        "from": "p277.jpg system 1, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Awaiting in glory my wondering view;",
+        "from": "p277.jpg system 1, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Oh, when I receive it, all shining in brightness,",
+        "from": "p277.jpg system 2, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Dear friend, could I see you receiving one, too!",
+        "from": "p277.jpg system 3, row 3. (placed off the page by from-261 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "When Jesus has found you, tell others the story,",
+        "from": "p277.jpg system 1, row 4. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "That my loving Savior is your Savior, too;",
+        "from": "p277.jpg system 1, row 4. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Then pray that your Savior will bring them to glory,",
+        "from": "p277.jpg system 2, row 4. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "And prayer will be answered; 'twas answered for you!",
+        "from": "p277.jpg system 3, row 4. (placed off the page by from-261 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "For you I am praying,",
+        "from": "p277.jpg system 4, the refrain row (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "For you I am praying,",
+        "from": "p277.jpg system 4, the refrain row (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "For you I am praying,",
+        "from": "p278.jpg system 1, the refrain row (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "I'm praying for you.",
+        "from": "p278.jpg system 1, the refrain row (placed off the page by from-261 (Opus))"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "For you I am praying,\nFor you I am praying,\nFor you I am praying,\nI'm praying for you."
+    },
+    {
+      "id": 0,
+      "text": "I have a Savior, He's pleading in glory,\nA dear, loving Savior, though earth friends be few;\nAnd now He is watching in tenderness o'er me,\nBut oh that my Savior were your Savior, too."
+    },
+    {
+      "id": 1,
+      "text": "I have a Father; to me He has given\nA hope for eternity, blessed and true;\nAnd soon He will call me to meet Him in heaven,\nBut oh that He'd let me bring you with me, too!"
+    },
+    {
+      "id": 2,
+      "text": "I have a robe; 'tis resplendent in whiteness,\nAwaiting in glory my wondering view;\nOh, when I receive it, all shining in brightness,\nDear friend, could I see you receiving one, you!"
+    },
+    {
+      "id": 3,
+      "text": "When Jesus has found you, tell others the story,\nThat my loving Savior is your Savior, too;\nThen pray that your Savior will bring them to glory,\nAnd prayer will be answered; 'twas answered for you!"
+    }
+  ]
+}

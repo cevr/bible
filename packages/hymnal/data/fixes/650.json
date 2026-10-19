@@ -1,0 +1,111 @@
+{
+  "number": 650,
+  "title": "Our Father By Whose Name",
+  "print": "the owner's photo of his 1985 book (650.jpg), each line read off the page at its system and row; the rulings (data/crops/650/rulings.json) put in what the page prints where the base row differs: \"teaches\" -> \"teachest\" (words, crop 650-45.jpg, judge-634 (Opus, effort max)); \"\" -> \"the\" (words, crop 650-1795.jpg, judge-634 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Our Father, by whose name,",
+        "from": "650.jpg system 1, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "All fatherhood is known,",
+        "from": "650.jpg system 1, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Who dost in love proclaim",
+        "from": "650.jpg system 2, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Each family Thine own,",
+        "from": "650.jpg system 2, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Bless Thou all parents, guarding well,",
+        "from": "650.jpg system 3, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "With constant love as sentinel,",
+        "from": "650.jpg system 3, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "The homes in which Thy people dwell.",
+        "from": "650.jpg system 4, row 1. (placed off the page by from-639 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "O Christ, Thyself a child",
+        "from": "650.jpg system 1, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Within an earthly home,",
+        "from": "650.jpg system 1, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "With heart still undefiled,",
+        "from": "650.jpg system 2, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Thou didst to manhood come;",
+        "from": "650.jpg system 2, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Our children bless, in every place,",
+        "from": "650.jpg system 3, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "That they may all behold Thy face,",
+        "from": "650.jpg system 3, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "And knowing Thee may grow in grace.",
+        "from": "650.jpg system 4, row 2. (placed off the page by from-639 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "O Spirit, who dost bind",
+        "from": "650.jpg system 1, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Our hearts in unity,",
+        "from": "650.jpg system 1, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Who teachest us to find",
+        "from": "650.jpg system 2, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "The love from self set free,",
+        "from": "650.jpg system 2, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "In all our hearts such love increase,",
+        "from": "650.jpg system 3, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "That every home, by this release,",
+        "from": "650.jpg system 3, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "May be the dwelling place of peace.",
+        "from": "650.jpg system 4, row 3. (placed off the page by from-639 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Our Father, by whose name,\r\nAll fatherhood is known,\nWho dost in love proclaim\nEach family Thine own,\nBless Thou all parents, guarding well,\nWith constant love as sentinel,\nThe homes in which Thy people dwell."
+    },
+    {
+      "id": 1,
+      "text": "O Christ, Thyself a child\nWithin an earthly home,\nWith heart still undefiled,\nThou didst to manhood come;\nOur children bless, in every place,\nThat they may all behold Thy face,\nAnd knowing Thee may grow in grace."
+    },
+    {
+      "id": 2,
+      "text": "O Spirit, who dost bind\nOur hearts in unity,\nWho teaches us to find\nThe love from self set free,\nIn all our hearts such love increase,\nThat every home, by this release,\nMay be dwelling place of peace."
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "number": 261,
+  "title": "The Spirit of the Lord Revealed",
+  "print": "the owner's photo of his 1985 book (261.jpg), each line read off the page at its system and row; the rulings (data/crops/261/rulings.json) put in what the page prints where the base row differs: \"\" -> \"and\" (words, crop 261-944.jpg, judge-261 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "The Spirit of the Lord revealed",
+        "from": "261.jpg system 1, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "His will to saints of old;",
+        "from": "261.jpg system 1, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Their heart and mind and lips unsealed",
+        "from": "261.jpg system 2, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "His glory to unfold.",
+        "from": "261.jpg system 2, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Amid the gloom of ancient night",
+        "from": "261.jpg system 3, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "They hailed the dawning Word,",
+        "from": "261.jpg system 3, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "And in the coming of the light",
+        "from": "261.jpg system 4, row 1. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Proclaimed the coming Lord.",
+        "from": "261.jpg system 4, row 1. (placed off the page by from-261 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "The prophets passed; at length there came",
+        "from": "261.jpg system 1, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "To sojourn and abide,",
+        "from": "261.jpg system 1, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "The Word incarnate, to whose name",
+        "from": "261.jpg system 2, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "The prophets testified;",
+        "from": "261.jpg system 2, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "And He, the twilight overpast,",
+        "from": "261.jpg system 3, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Himself, the Light of light,",
+        "from": "261.jpg system 3, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "As man with man, revealed at last",
+        "from": "261.jpg system 4, row 2. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "The Father to our sight.",
+        "from": "261.jpg system 4, row 2. (placed off the page by from-261 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Eternal Spirit, who dost speak",
+        "from": "261.jpg system 1, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "To mind and conscience still,",
+        "from": "261.jpg system 1, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "That we in this our day, may seek",
+        "from": "261.jpg system 2, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "To do our Father's will,",
+        "from": "261.jpg system 2, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "To us the word of life impart,",
+        "from": "261.jpg system 3, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Of Christ, the living way;",
+        "from": "261.jpg system 3, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "Give us the quiet, humble heart",
+        "from": "261.jpg system 4, row 3. (placed off the page by from-261 (Opus))"
+      },
+      {
+        "text": "To hear and to obey.",
+        "from": "261.jpg system 4, row 3. (placed off the page by from-261 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "The Spirit of the Lord revealed\nHis will to saints of old;\nTheir heart and mind lips unsealed\nHis glory to unfold.\nAmid the gloom of ancient night\nThey hailed the dawning Word,\nAnd in the coming of the light\nProclaimed the coming Lord."
+    },
+    {
+      "id": 1,
+      "text": "The prophets passed; at length there came\nTo sojourn and abide,\nThe Word incarnate, to whose name\nThe prophets testified;\nAnd He, the twilight overpast,\nHimself, the Light of light,\nAs man with man, revealed at last\nThe Father to our sight."
+    },
+    {
+      "id": 2,
+      "text": "Eternal Spirit, who dost speak\nTo mind and conscience still,\nThat we in this our day, may seek\nTo do our Father's will,\nTo us the word of life impart,\nOf Christ, the living way;\nGive us the quiet, humble heart\nTo hear and to obey."
+    }
+  ]
+}

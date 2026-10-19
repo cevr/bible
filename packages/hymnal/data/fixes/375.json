@@ -1,0 +1,123 @@
+{
+  "number": 375,
+  "title": "Work For the Night Is Coming",
+  "print": "the owner's photo of his 1985 book (375.jpg), each line read off the page at its system and row; the rulings (data/crops/375/rulings.json) put in what the page prints where the base row differs: \"the\" -> \"\" (words, crop 375-35.jpg, judge-284 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Work, for the night is coming;",
+        "from": "375.jpg system 1, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work through the morning hours;",
+        "from": "375.jpg system 1, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work while the dew is sparkling;",
+        "from": "375.jpg system 2, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work 'mid springing flowers;",
+        "from": "375.jpg system 2, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work while the day grows brighter,",
+        "from": "375.jpg system 3, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Under the glowing sun;",
+        "from": "375.jpg system 3, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work, for the night is coming,",
+        "from": "375.jpg system 4, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "When man's work is done.",
+        "from": "375.jpg system 4, row 1. (placed off the page by from-375 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Work, for the night is coming;",
+        "from": "375.jpg system 1, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work through the sunny noon;",
+        "from": "375.jpg system 1, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Fill brightest hours with labor,",
+        "from": "375.jpg system 2, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Rest comes sure and soon;",
+        "from": "375.jpg system 2, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Give every flying minute",
+        "from": "375.jpg system 3, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Something to keep in store;",
+        "from": "375.jpg system 3, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work, for the night is coming,",
+        "from": "375.jpg system 4, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "When man works no more.",
+        "from": "375.jpg system 4, row 2. (placed off the page by from-375 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Work, for the night is coming:",
+        "from": "375.jpg system 1, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Under the sunset skies,",
+        "from": "375.jpg system 1, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "While their bright tints are glowing,",
+        "from": "375.jpg system 2, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work for daylight flies;",
+        "from": "375.jpg system 2, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work till the last beam fadeth,",
+        "from": "375.jpg system 3, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Fadeth to shine no more;",
+        "from": "375.jpg system 3, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "Work, for the Lord is coming,",
+        "from": "375.jpg system 4, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "When man's work is o'er.",
+        "from": "375.jpg system 4, row 3. (placed off the page by from-375 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Work, for the night is coming;\nWork through the morning hours;\nWork while the dew is sparkling;\nWork 'mid springing flowers;\nWork while the day grows brighter,\nUnder the glowing sun;\nWork, for the night is coming,\nWhen man's work is done."
+    },
+    {
+      "id": 1,
+      "text": "Work, for the night is coming;\nWork through the sunny noon;\nFill brightest hours with labor,\nRest comes sure and soon;\nGive every flying minute\nSomething to keep in store;\nWork, for the night is coming,\nWhen man works no more."
+    },
+    {
+      "id": 2,
+      "text": "Work, for the night is coming:\nUnder the sunset skies,\nWhile their bright tints are glowing,\nWork for the daylight flies;\nWork till the last beam fadeth,\nFadeth to shine no more;\nWork, for the Lord is coming,\nWhen man's work is o'er."
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "number": 74,
+  "title": "Like a River Glorious",
+  "print": "the 1985 book's hymnary.org scan (p072.jpg), each line read off the page at its system and row; the rulings (data/crops/074/rulings.json) put in what the page prints where the base row differs: \"they\" -> \"Those\" (words, crop p072-1176.jpg, judge-074 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Like a river glorious",
+        "from": "p072.jpg system 1, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Is God's perfect peace,",
+        "from": "p072.jpg system 1, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Over all victorious",
+        "from": "p072.jpg system 1, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "In its bright increase;",
+        "from": "p072.jpg system 2, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Perfect, yet it floweth",
+        "from": "p072.jpg system 2, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Fuller every day,",
+        "from": "p072.jpg system 2, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Perfect, yet it groweth",
+        "from": "p072.jpg system 3, row 1. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Deeper all the way.",
+        "from": "p072.jpg system 3, row 1. (placed off the page by from-052 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Hidden in the hollow",
+        "from": "p072.jpg system 1, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Of His blessed hand,",
+        "from": "p072.jpg system 1, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Never foe can follow,",
+        "from": "p072.jpg system 1, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Never traitor stand;",
+        "from": "p072.jpg system 2, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Not a surge of worry,",
+        "from": "p072.jpg system 2, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Not a shade of care,",
+        "from": "p072.jpg system 2, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Not a blast of hurry",
+        "from": "p072.jpg system 3, row 2. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Touch the spirit there.",
+        "from": "p072.jpg system 3, row 2. (placed off the page by from-052 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Every joy or testing",
+        "from": "p072.jpg system 1, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Comes from God above,",
+        "from": "p072.jpg system 1, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Given to His children",
+        "from": "p072.jpg system 1, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "As an act of love;",
+        "from": "p072.jpg system 2, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "We may trust Him fully",
+        "from": "p072.jpg system 2, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "All for us to do;",
+        "from": "p072.jpg system 2, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Those who trust Him wholly",
+        "from": "p072.jpg system 3, row 3. (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Find Him wholly true.",
+        "from": "p072.jpg system 3, row 3. (placed off the page by from-052 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "Trusting in Jehovah,",
+        "from": "p072.jpg system 4, the refrain row (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Hearts are fully blest;",
+        "from": "p072.jpg system 4, the refrain row (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Finding, as He promised,",
+        "from": "p072.jpg system 5, the refrain row (placed off the page by from-052 (Opus))"
+      },
+      {
+        "text": "Perfect peace and rest.",
+        "from": "p072.jpg system 5, the refrain row (placed off the page by from-052 (Opus))"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "Trusting in Jehovah,\nHearts are fully blest;\nFinding, as He promised,\nPerfect peace and rest."
+    },
+    {
+      "id": 0,
+      "text": "Like a river glorious\nIs God's perfect peace,\nOver all victorious\nIn its bright increase;\nPerfect, yet it floweth\nFuller every day,\nPerfect, yet it groweth\nDeeper all the way."
+    },
+    {
+      "id": 1,
+      "text": "Hidden in the hollow\nOf His blessed hand,\nNever foe can follow,\nNever traitor stand;\nNot a surge of worry,\nNot a shade of care,\nNot a blast of hurry\nTouch the spirit there."
+    },
+    {
+      "id": 2,
+      "text": "Every joy or testing\nComes from God above,\nGiven to His children\nAs an act of love;\nWe may trust Him fully\nAll for us to do;\nThey who trust Him wholly\nFind Him wholly true."
+    }
+  ]
+}

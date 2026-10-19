@@ -1,0 +1,123 @@
+{
+  "number": 23,
+  "title": "Now the Joyful Bells A-Ringing",
+  "print": "the owner's photo of his 1985 book (023.jpg), each line read off the page at its system and row; the rulings (data/crops/023/rulings.json) put in what the page prints where the base row differs: \"ring\" -> \"ringing\" (words, crop 023-303.jpg, judge-006 (Opus, effort max)); \"of\" -> \"praise\" (words, crop 023-303.jpg, judge-006 (Opus, effort max)); \"hearts\" -> \"hearths\" (words, crop 023-303.jpg, judge-006 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Now the joyful bells a-ringing,",
+        "from": "023.jpg system 1, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "All ye mountains praise the Lord!",
+        "from": "023.jpg system 1, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Lift our hearts like birds a-winging,",
+        "from": "023.jpg system 2, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "All ye mountains, praise the Lord!",
+        "from": "023.jpg system 2, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Now our festal season bringing",
+        "from": "023.jpg system 3, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Kinsmen all to bide and board,",
+        "from": "023.jpg system 3, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Sets our cheery voices singing:",
+        "from": "023.jpg system 4, row 1. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "All ye mountains, praise the Lord!",
+        "from": "023.jpg system 4, row 1. (placed off the page by from-006 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Dear our home as dear none other;",
+        "from": "023.jpg system 1, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Where the mountains praise the Lord!",
+        "from": "023.jpg system 1, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Gladly here our care we smother;",
+        "from": "023.jpg system 2, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Where the mountains praise the Lord!",
+        "from": "023.jpg system 2, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Here we know that Christ our brother",
+        "from": "023.jpg system 3, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Binds us all as by a cord:",
+        "from": "023.jpg system 3, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "He was born of Mary mother",
+        "from": "023.jpg system 4, row 2. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Where the mountains praise the Lord!",
+        "from": "023.jpg system 4, row 2. (placed off the page by from-006 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Cold the year, new whiteness wearing,",
+        "from": "023.jpg system 1, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "All ye mountains, praise the Lord!",
+        "from": "023.jpg system 1, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Peace, good will to us a-bearing,",
+        "from": "023.jpg system 2, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "All ye mountains praise the Lord!",
+        "from": "023.jpg system 2, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Now we all God's goodness sharing",
+        "from": "023.jpg system 3, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Break the bread and sheath the sword:",
+        "from": "023.jpg system 3, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "Bright our hearths the signal flaring,",
+        "from": "023.jpg system 4, row 3. (placed off the page by from-006 (Opus))"
+      },
+      {
+        "text": "All ye mountains, praise the Lord!",
+        "from": "023.jpg system 4, row 3. (placed off the page by from-006 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Now the joyful bells a-ring,\nAll ye mountains of the Lord!\nLift our hearts like birds a-winging,\nAll ye mountains, praise the Lord!\nNow our festal season bringing\nKinsmen all to bide and board,\nSets our cheery voices singing:\nAll ye mountains, praise the Lord!"
+    },
+    {
+      "id": 1,
+      "text": "Dear our home as dear none other;\nWhere the mountains praise the Lord!\nGladly here our care we smother;\nWhere the mountains praise the Lord!\nHere we know that Christ our brother\nBinds us all as by a cord:\nHe was born of Mary mother\nWhere the mountains praise the Lord!"
+    },
+    {
+      "id": 2,
+      "text": "Cold the year, new whiteness wearing,\nAll ye mountains, praise the Lord!\nPeace, good will to us a-bearing,\nAll ye mountains praise the Lord!\nNow we all God's goodness sharing\nBreak the bread and sheath the sword:\nBright our hearts the signal flaring,\nAll ye mountains, praise the Lord!"
+    }
+  ]
+}

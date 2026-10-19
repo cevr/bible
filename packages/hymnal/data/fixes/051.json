@@ -1,0 +1,137 @@
+{
+  "number": 51,
+  "title": "Day Is Dying in the West",
+  "print": "the 1985 book's hymnary.org scan (p050.jpg), each line read off the page at its system and row; the rulings (data/crops/051/rulings.json) put in what the page prints where the base row differs: \"the\" -> \"her\" (words, crop p050-901.jpg, judge-006 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Day is dying in the west;",
+        "from": "p050.jpg system 1, row 1. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Heaven is touching earth with rest;",
+        "from": "p050.jpg system 1, row 1. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Wait and worship while the night",
+        "from": "p050.jpg system 1, row 1. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Sets her evening lamps alight",
+        "from": "p050.jpg system 2, row 1. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Through all the sky.",
+        "from": "p050.jpg system 2, row 1. (placed off the page by from-043 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Lord of life, beneath the dome",
+        "from": "p050.jpg system 1, row 2. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Of the universe, Thy home,",
+        "from": "p050.jpg system 1, row 2. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Gather us who seek Thy face",
+        "from": "p050.jpg system 1, row 2. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "To the fold of Thy embrace,",
+        "from": "p050.jpg system 2, row 2. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "For Thou art nigh.",
+        "from": "p050.jpg system 2, row 2. (placed off the page by from-043 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "While the deepening shadows fall,",
+        "from": "p050.jpg system 1, row 3. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Heart of love enfolding all,",
+        "from": "p050.jpg system 1, row 3. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Thro' the glory and the grace",
+        "from": "p050.jpg system 1, row 3. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Of the stars that veil Thy face,",
+        "from": "p050.jpg system 2, row 3. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Our hearts ascend.",
+        "from": "p050.jpg system 2, row 3. (placed off the page by from-043 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "When forever from our sight",
+        "from": "p050.jpg system 1, row 4. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Pass the stars, the day, the night,",
+        "from": "p050.jpg system 1, row 4. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Lord of angels, on our eyes",
+        "from": "p050.jpg system 1, row 4. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Let eternal morning rise",
+        "from": "p050.jpg system 2, row 4. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "And shadows end.",
+        "from": "p050.jpg system 2, row 4. (placed off the page by from-043 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "Holy, holy, holy, Lord God of Hosts!",
+        "from": "p050.jpg system 3, the refrain row (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Heaven and earth are full of Thee;",
+        "from": "p050.jpg system 3, the refrain row (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Heaven and earth are praising Thee,",
+        "from": "p050.jpg system 4, the refrain row (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "O Lord most high!",
+        "from": "p050.jpg system 4, the refrain row (placed off the page by from-043 (Opus))"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "Holy, holy, holy, Lord God of Hosts!\nHeaven and earth are full of Thee;\nHeaven and earth are praising Thee,\nO Lord most high!"
+    },
+    {
+      "id": 0,
+      "text": "Day is dying in the west;\nHeaven is touching earth with rest;\nWait and worship while the night\nSets the evening lamps alight\nThrough all the sky."
+    },
+    {
+      "id": 1,
+      "text": "Lord of life, beneath the dome\nOf the universe, Thy home,\nGather us who seek Thy face\nTo the fold of Thy embrace,\nFor Thou art nigh."
+    },
+    {
+      "id": 2,
+      "text": "While the deepening shadows fall,\nHeart of love enfolding all,\nThro' the glory and the grace\nOf the stars that veil Thy face,\nOur hearts ascend."
+    },
+    {
+      "id": 3,
+      "text": "When forever from our sight\nPass the stars, the day, the night,\nLord of angels, on our eyes\nLet eternal morning rise\nAnd shadows end."
+    }
+  ]
+}

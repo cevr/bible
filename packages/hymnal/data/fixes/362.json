@@ -1,0 +1,95 @@
+{
+  "number": 362,
+  "title": "Lift High the Cross",
+  "print": "the owner's photo of his 1985 book (362.jpg), each line read off the page at its system and row; the rulings (data/crops/362/rulings.json) put in what the page prints where the base row differs: \"men unto\" -> \"us all to\" (words, crop 362-1944.jpg, judge-336 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Come, Christians, follow where our Captain trod,",
+        "from": "362.jpg system 3, row 1. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Our King victorious, Christ, the Son of God.",
+        "from": "362.jpg system 4, row 1. (placed off the page by from-314 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Led on their way by this triumphant sign,",
+        "from": "362.jpg system 3, row 2. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "The hosts of God in conqu'ring ranks combine.",
+        "from": "362.jpg system 4, row 2. (placed off the page by from-314 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "All newborn soldiers of the Crucified",
+        "from": "362.jpg system 3, row 3. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Bear on their brows the seal of Him who died.",
+        "from": "362.jpg system 4, row 3. (placed off the page by from-314 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "O Lord, once lifted on the glorious tree,",
+        "from": "362.jpg system 3, row 4. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "As Thou hast promised, draw us all to Thee.",
+        "from": "362.jpg system 4, row 4. (placed off the page by from-314 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "So shall our song of triumph ever be:",
+        "from": "362.jpg system 3, row 5. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Praise to the Crucified for victory!",
+        "from": "362.jpg system 4, row 5. (placed off the page by from-314 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "Lift high the Cross, the love of Christ proclaim,",
+        "from": "362.jpg system 1, the refrain row (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Till all the world adore His sacred name.",
+        "from": "362.jpg system 1, the refrain row (placed off the page by from-314 (Opus): begins with Till at the end of system 1)"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "Lift high the Cross, the love of Christ proclaim,\nTill all the world adore His sacred name."
+    },
+    {
+      "id": 0,
+      "text": "Come, Christians, follow where our Captain trod,\nOur King victorious, Christ, the Son of God."
+    },
+    {
+      "id": 1,
+      "text": "Led on their way by this triumphant sign,\nThe hosts of God in conqu'ring ranks combine."
+    },
+    {
+      "id": 2,
+      "text": "All newborn soldiers of the Crucified\nBear on their brows the seal of Him who died."
+    },
+    {
+      "id": 3,
+      "text": "O Lord, once lifted on the glorious tree,\nAs Thou hast promised, draw men unto Thee."
+    },
+    {
+      "id": 4,
+      "text": "So shall our song of triumph ever be:\nPraise to the Crucified for victory!"
+    }
+  ]
+}

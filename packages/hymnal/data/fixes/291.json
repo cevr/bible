@@ -1,0 +1,159 @@
+{
+  "number": 291,
+  "title": "We Have Not Known Thee",
+  "print": "the 1985 book's hymnary.org scan (p284.jpg), each line read off the page at its system and row; the rulings (data/crops/291/rulings.json) put in what the page prints where the base row differs: \"led\" -> \"filled\" (words, crop p284-824.jpg, judge-261 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "We have not known Thee as we ought,",
+        "from": "p284.jpg system 1, row 1. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Nor learned Thy wisdom, grace, and power;",
+        "from": "p284.jpg system 1, row 1. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "The things of earth have filled our thought,",
+        "from": "p284.jpg system 2, row 1. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "And trifles of the passing hour.",
+        "from": "p284.jpg system 3, row 1. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Lord, give us light Thy truth to see,",
+        "from": "p284.jpg system 3, row 1. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "And make us wise in knowing Thee.",
+        "from": "p284.jpg system 4, row 1. (placed off the page by from-291 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "We have not feared Thee as we ought,",
+        "from": "p284.jpg system 1, row 2. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Nor bowed beneath Thine awful eye,",
+        "from": "p284.jpg system 1, row 2. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Nor guarded deed, and word, and thought,",
+        "from": "p284.jpg system 2, row 2. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Remembering that God was nigh.",
+        "from": "p284.jpg system 3, row 2. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Lord, give us faith to know Thee near,",
+        "from": "p284.jpg system 3, row 2. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "And grant the grace of holy fear.",
+        "from": "p284.jpg system 4, row 2. (placed off the page by from-291 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "We have not loved Thee as we ought,",
+        "from": "p284.jpg system 1, row 3. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Nor cared that we are loved by Thee;",
+        "from": "p284.jpg system 1, row 3. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Thy presence we have coldly sought,",
+        "from": "p284.jpg system 2, row 3. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "And feebly longed Thy face to see.",
+        "from": "p284.jpg system 3, row 3. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Lord, give a pure and loving heart",
+        "from": "p284.jpg system 3, row 3. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "To feel and own the love Thou art.",
+        "from": "p284.jpg system 4, row 3. (placed off the page by from-291 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "We have not served Thee as we ought;",
+        "from": "p284.jpg system 1, row 4. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Alas! the duties left undone,",
+        "from": "p284.jpg system 1, row 4. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "The work with little fervor wrought,",
+        "from": "p284.jpg system 2, row 4. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "The battles lost, or scarcely won!",
+        "from": "p284.jpg system 3, row 4. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Lord, give the zeal, and give the might,",
+        "from": "p284.jpg system 3, row 4. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "For Thee to toil, for Thee to fight.",
+        "from": "p284.jpg system 4, row 4. (placed off the page by from-291 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "When shall we know Thee as we ought,",
+        "from": "p284.jpg system 1, row 5. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "And fear, and love, and serve aright!",
+        "from": "p284.jpg system 1, row 5. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "When shall we, out of trial brought,",
+        "from": "p284.jpg system 2, row 5. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Be perfect in the land of light!",
+        "from": "p284.jpg system 3, row 5. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Lord, may we day by day prepare",
+        "from": "p284.jpg system 3, row 5. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "To see Thy face, and serve Thee there.",
+        "from": "p284.jpg system 4, row 5. (placed off the page by from-291 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "We have not known Thee as we ought,\nNor learned Thy wisdom, grace, and power;\nThe things of earth have led our thought,\nAnd trifles of the passing hour.\nLord, give us light Thy truth to see,\nAnd make us wise in knowing Thee."
+    },
+    {
+      "id": 1,
+      "text": "We have not feared Thee as we ought,\nNor bowed beneath Thine awful eye,\nNor guarded deed, and word, and thought,\nRemembering that God was nigh.\nLord, give us faith to know Thee near,\nAnd grant the grace of holy fear."
+    },
+    {
+      "id": 2,
+      "text": "We have not loved Thee as we ought,\nNor cared that we are loved by Thee;\nThy presence we have coldly sought,\nAnd feebly longed Thy face to see.\nLord, give a pure and loving heart\nTo feel and own the love Thou art."
+    },
+    {
+      "id": 3,
+      "text": "We have not served Thee as we ought;\nAlas! the duties left undone,\nThe work with little fervor wrought,\nThe battles lost, or scarcely won!\nLord, give the zeal, and give the might,\nFor Thee to toil, for Thee to fight."
+    },
+    {
+      "id": 4,
+      "text": "When shall we know Thee as we ought,\nAnd fear, and love, and serve aright!\nWhen shall we, out of trial brought,\nBe perfect in the land of light!\nLord, may we day by day prepare\nTo see Thy face, and serve Thee there."
+    }
+  ]
+}

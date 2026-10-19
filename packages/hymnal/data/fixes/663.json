@@ -1,0 +1,53 @@
+{
+  "number": 663,
+  "title": "Dresden Amen",
+  "print": "the owner's photo of his 1985 book (663.jpg), each line read off the page at its system and row; the rulings (data/crops/663/rulings.json) put in what the page prints where the base row differs: \"\" -> \"Amen\" (words, crop 663-390x270.jpg, judge-663 (Opus, effort max)); \"\" -> \"Amen\" (words, crop 663-390x270.jpg, judge-663 (Opus, effort max)); \"\" -> \"Amen, (Amen)\" (words, crop 663-390x270.jpg, judge-663 (Opus, effort max)); \"\" -> \"Amen\" (words, crop 663-390x270.jpg, judge-663 (Opus, effort max)); \"\" -> \"Amen, Amen, Amen\" (words, crop 663-390x270.jpg, judge-663 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Amen,",
+        "from": "663.jpg system 1, row 1. (placed off the page by from-654 (Opus): Amen A (Dresden Amen), top left; the page labels the six Amens A-F, not 1.-6.; systems counted in reading order A=1 B=2 C=3 D=4 E=5 F=6)"
+      },
+      {
+        "text": "Amen.",
+        "from": "663.jpg system 1, row 1. (placed off the page by from-654 (Opus): Amen A, second Amen)"
+      }
+    ],
+    [
+      {
+        "text": "Amen.",
+        "from": "663.jpg system 2, row 2. (placed off the page by from-654 (Opus): Amen B (Robert Ramsay), top right)"
+      }
+    ],
+    [
+      {
+        "text": "Amen.",
+        "from": "663.jpg system 3, row 3. (placed off the page by from-654 (Opus): Amen C, middle left)"
+      }
+    ],
+    [
+      {
+        "text": "Amen, (Amen.)",
+        "from": "663.jpg system 4, row 4. (placed off the page by from-654 (Opus): Amen D, middle right; prints A-men, (A-men.))"
+      }
+    ],
+    [
+      {
+        "text": "Amen.",
+        "from": "663.jpg system 5, row 5. (placed off the page by from-654 (Opus): Amen E, bottom left)"
+      }
+    ],
+    [
+      {
+        "text": "Amen, Amen, Amen.",
+        "from": "663.jpg system 6, row 6. (placed off the page by from-654 (Opus): Amen F (Danish), bottom right)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Amen,\nAmen."
+    }
+  ]
+}

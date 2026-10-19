@@ -1,0 +1,103 @@
+{
+  "number": 440,
+  "title": "How Cheering Is the Christian's Hope",
+  "print": "the 1985 book's hymnary.org scan (p427.jpg), each line read off the page at its system and row; the rulings (data/crops/440/rulings.json) put in what the page prints where the base row differs: \"bouys\" -> \"buoys\" (words, crop p427-782.jpg, judge-440 (Opus, effort max)); \"\" -> \"passing through\" (words, crop p427-1042.jpg, judge-440 (Opus, effort max)); \"\" -> \"wilderness of woe It buoys us up while\" (words, crop p427-1783.jpg, judge-440 (Opus, effort max)); \"bouys\" -> \"points\" (words, crop p427-2101.jpg, judge-440 (Opus, effort max)); \"up while this passing through this wilderness\" -> \"to a land\" (words, crop p427-2101.jpg, judge-440 (Opus, effort max)); \"woe it bouys us up while passing through this wilderness\" -> \"rest Where saints with Christ will reign Where we shall meet the loved\" (words, crop p427-2101.jpg, judge-440 (Opus, effort max)); \"woe\" -> \"earth And never part again Where we shall meet the loved of earth And never part again\" (repeat, crop p427-2101.jpg, judge-440-2 (Opus, effort max)); \"it points us to a land of rest where saints with christ will reign where\" -> \"Fly lingering moments fly O fly Dear Savior quickly come\" (words, crop p427-2101.jpg, judge-440 (Opus, effort max)); \"shall meet the loved of earth\" -> \"long to see Thee as Thou art\" (words, crop p427-2101.jpg, judge-440 (Opus, effort max)); \"never part again\" -> \"reach that blissful home We long to see Thee as Thou art And reach that blissful home\" (repeat, crop p427-2101.jpg, judge-440-2 (Opus, effort max)); \"fly lingering moments fly o fly dear savior quickly come we long to see thee as thou art and reach that blissful home\" -> \"\" (words, crop p427-2101.jpg, judge-440 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "How cheering is the Christian's hope,",
+        "from": "p427.jpg system 1, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "While toiling here below!",
+        "from": "p427.jpg system 1, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "It buoys us up while passing through",
+        "from": "p427.jpg system 2, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "This wilderness of woe,",
+        "from": "p427.jpg system 3, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "It buoys us up while passing through",
+        "from": "p427.jpg system 3, row 1. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "This wilderness of woe.",
+        "from": "p427.jpg system 4, row 1. (placed off the page by from-424 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "It points us to a land of rest,",
+        "from": "p427.jpg system 5, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Where saints with Christ will reign;",
+        "from": "p427.jpg system 5, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Where we shall meet the loved of earth,",
+        "from": "p427.jpg system 5, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "And never part again,",
+        "from": "p427.jpg system 5, row 2. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Where we shall meet the loved of earth,",
+        "from": "p427.jpg, stanza 2 printed below system 4, its line 3 printed once; the music sings lines 3-4 again, as systems 2-4 print stanza 1's in the row 1. and the echo rows (a repeat ruling, crop p427-2101.jpg, data/crops/440/rulings.json)"
+      },
+      {
+        "text": "And never part again.",
+        "from": "p427.jpg, stanza 2 printed below system 4, its line 4 printed once; the music sings lines 3-4 again, as systems 2-4 print stanza 1's in the row 1. and the echo rows (a repeat ruling, crop p427-2101.jpg, data/crops/440/rulings.json)"
+      }
+    ],
+    [
+      {
+        "text": "Fly, lingering moments, fly, O, fly,",
+        "from": "p427.jpg system 5, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "Dear Savior, quickly come!",
+        "from": "p427.jpg system 5, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "We long to see Thee as Thou art,",
+        "from": "p427.jpg system 5, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "And reach that blissful home,",
+        "from": "p427.jpg system 5, row 3. (placed off the page by from-424 (Opus))"
+      },
+      {
+        "text": "We long to see Thee as Thou art,",
+        "from": "p427.jpg, stanza 3 printed below system 4, its line 3 printed once; the music sings lines 3-4 again, as systems 2-4 print stanza 1's in the row 1. and the echo rows (a repeat ruling, crop p427-2101.jpg, data/crops/440/rulings.json)"
+      },
+      {
+        "text": "And reach that blissful home.",
+        "from": "p427.jpg, stanza 3 printed below system 4, its line 4 printed once; the music sings lines 3-4 again, as systems 2-4 print stanza 1's in the row 1. and the echo rows (a repeat ruling, crop p427-2101.jpg, data/crops/440/rulings.json)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "How cheering is the Christian’s hope,\nWhile toiling here below!\nIt bouys us up while this passing through\nThis wilderness of woe."
+    },
+    {
+      "id": 1,
+      "text": "It bouys us up while this passing through\nThis wilderness of woe,\nIt bouys us up while passing through\nThis wilderness of woe."
+    },
+    {
+      "id": 2,
+      "text": "It points us to a land of rest,\nWhere saints with Christ will reign;\nWhere we shall meet the loved of earth,\nAnd never part again."
+    },
+    {
+      "id": 3,
+      "text": "Fly, lingering moments, fly, O, fly,\nDear Savior, quickly come!\nWe long to see Thee as Thou art,\nAnd reach that blissful home."
+    }
+  ]
+}

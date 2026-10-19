@@ -1,0 +1,77 @@
+{
+  "number": 131,
+  "title": "Lo, How a Rose E'er Blooming",
+  "print": "the 1985 book's hymnary.org scan (p128.jpg), each line read off the page at its system and row; the rulings (data/crops/131/rulings.json) put in what the page prints where the base row differs: \"behold\" -> \"beheld\" (words, crop p128-896.jpg, judge-095 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Lo, how a rose e'er blooming",
+        "from": "p128.jpg system 1, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "From tender stem hath sprung,",
+        "from": "p128.jpg system 1, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Of Jesse's lineage coming",
+        "from": "p128.jpg system 2, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "As men of old have sung.",
+        "from": "p128.jpg system 2, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "It came, a floweret bright,",
+        "from": "p128.jpg system 3, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Amid the cold of winter,",
+        "from": "p128.jpg system 3, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "When half spent was the night.",
+        "from": "p128.jpg system 4, row 1. (placed off the page by from-126 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Isaiah 'twas foretold it,",
+        "from": "p128.jpg system 1, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "The Rose I have in mind,",
+        "from": "p128.jpg system 1, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "With Mary we beheld it,",
+        "from": "p128.jpg system 2, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "The virgin mother kind.",
+        "from": "p128.jpg system 2, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "To show God's love aright",
+        "from": "p128.jpg system 3, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "She bore to them a Savior.",
+        "from": "p128.jpg system 3, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "When half spent was the night.",
+        "from": "p128.jpg system 4, row 2. (placed off the page by from-126 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Lo, how a rose e'er blooming\nFrom tender stem hath sprung,\nOf Jesse's lineage coming\nAs men of old have sung.\nIt came, a floweret bright,\nAmid the cold of winter,\nWhen half spent was the night."
+    },
+    {
+      "id": 1,
+      "text": "Isaiah 'twas foretold it,\nThe Rose I have in mind,\nWith Mary we behold it,\nThe virgin mother kind.\nTo show God's love aright\nShe bore to them a Savior.\nWhen half spent was the night."
+    }
+  ]
+}

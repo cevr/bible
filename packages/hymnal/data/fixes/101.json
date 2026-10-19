@@ -1,0 +1,119 @@
+{
+  "number": 101,
+  "title": "Children of the Heavenly Father",
+  "print": "the 1985 book's hymnary.org scan (p100.jpg), each line read off the page at its system and row; the rulings (data/crops/101/rulings.json) put in what the page prints where the base row differs: \"bossom\" -> \"bosom\" (words, crop p100-1260.jpg, judge-095 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Children of the heavenly Father",
+        "from": "p100.jpg system 1, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Safely in His bosom gather;",
+        "from": "p100.jpg system 1, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Nestling bird nor star in heaven",
+        "from": "p100.jpg system 2, row 1. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Such a refuge e'er was given.",
+        "from": "p100.jpg system 2, row 1. (placed off the page by from-095 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "God His own doth tend and nourish,",
+        "from": "p100.jpg system 1, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "In His holy love they flourish;",
+        "from": "p100.jpg system 1, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "From all evil things He spares them,",
+        "from": "p100.jpg system 2, row 2. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "In His mighty arms He bears them.",
+        "from": "p100.jpg system 2, row 2. (placed off the page by from-095 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Neither life nor death shall ever",
+        "from": "p100.jpg system 1, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "From the Lord His children sever;",
+        "from": "p100.jpg system 1, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Unto them His grace He showeth,",
+        "from": "p100.jpg system 2, row 3. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "And their sorrows all He knoweth.",
+        "from": "p100.jpg system 2, row 3. (placed off the page by from-095 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Praise the Lord in joyful numbers,",
+        "from": "p100.jpg system 1, row 4. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Your Protector never slumbers;",
+        "from": "p100.jpg system 1, row 4. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "At the will of your Defender",
+        "from": "p100.jpg system 2, row 4. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "Every foeman must surrender.",
+        "from": "p100.jpg system 2, row 4. (placed off the page by from-095 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Though He giveth or He taketh,",
+        "from": "p100.jpg system 1, row 5. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "God His children ne'er forsaketh;",
+        "from": "p100.jpg system 1, row 5. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "His the loving purpose solely",
+        "from": "p100.jpg system 2, row 5. (placed off the page by from-095 (Opus))"
+      },
+      {
+        "text": "To preserve them pure and holy.",
+        "from": "p100.jpg system 2, row 5. (placed off the page by from-095 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Children of the heavenly Father\r\nSafely in His bossom gather;\r\nNestling bird nor star in heaven\r\nSuch a refuge e'er was given."
+    },
+    {
+      "id": 1,
+      "text": "God His own doth tend and nourish,\r\nIn His holy love they flourish;\r\nFrom all evil things He spares them,\r\nIn His mighty arms He bears them."
+    },
+    {
+      "id": 2,
+      "text": "Neither life nor death shall ever\r\nFrom the Lord His children sever;\r\nUnto them His grace He showeth,\r\nAnd their sorrows all He knoweth."
+    },
+    {
+      "id": 3,
+      "text": "Praise the Lord in joyful numbers,\r\nYour Protector never slumbers;\r\nAt the will of your Defender\r\nEvery foeman must surrender."
+    },
+    {
+      "id": 4,
+      "text": "Though He giveth or He taketh,\r\nGod His children ne'er forsaketh;\r\nHis the loving purpose solely\r\nTo preserve them pure and holy."
+    }
+  ]
+}

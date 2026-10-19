@@ -1,0 +1,97 @@
+{
+  "number": 378,
+  "title": "Go, Preach My Gospel",
+  "print": "the 1985 book's hymnary.org scan (p368.jpg), each line read off the page at its system and row; the rulings (data/crops/378/rulings.json) put in what the page prints where the base row differs: \"brigh\" -> \"bright\" (words, crop p368-266.jpg, judge-284 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "\"Go, preach My gospel,\" saith the Lord;",
+        "from": "p368.jpg system 1, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "\"Bid the whole world My grace receive;",
+        "from": "p368.jpg system 1, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "He shall be saved who trusts My word,",
+        "from": "p368.jpg system 2, row 1. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "And they condemned who disbelieve.",
+        "from": "p368.jpg system 3, row 1. (placed off the page by from-375 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "\"I'll make your great commission known,",
+        "from": "p368.jpg system 1, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "And ye shall prove My gospel true",
+        "from": "p368.jpg system 1, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "By all the works that I have done,",
+        "from": "p368.jpg system 2, row 2. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "By all the wonders ye shall do.",
+        "from": "p368.jpg system 3, row 2. (placed off the page by from-375 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "\"Teach all the nations My commands;",
+        "from": "p368.jpg system 1, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "I'm with you till the world shall end;",
+        "from": "p368.jpg system 1, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "All power is vested in My hands;",
+        "from": "p368.jpg system 2, row 3. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "I can destroy, and I defend.\"",
+        "from": "p368.jpg system 3, row 3. (placed off the page by from-375 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "He spake, and light shone round His head;",
+        "from": "p368.jpg system 1, row 4. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "On a bright cloud to heaven He rode;",
+        "from": "p368.jpg system 1, row 4. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "They to the farthest nations spread",
+        "from": "p368.jpg system 2, row 4. (placed off the page by from-375 (Opus))"
+      },
+      {
+        "text": "The grace of their ascended Lord.",
+        "from": "p368.jpg system 3, row 4. (placed off the page by from-375 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "\"Go, preach My gospel,\" saith the Lord;\n\"Bid the whole world My grace receive;\nHe shall be saved who trusts My word,\nAnd they condemned who disbelieve."
+    },
+    {
+      "id": 1,
+      "text": "\"I'll make your great commission known,\nAnd ye shall prove My gospel true\nBy all the works that I have done,\nBy all the wonders ye shall do."
+    },
+    {
+      "id": 2,
+      "text": "\"Teach all the nations My commands;\nI'm with you till the world shall end;\nAll power is vested in My hands;\nI can destroy, and I defend.\""
+    },
+    {
+      "id": 3,
+      "text": "He spake, and light shone round His head;\nOn a brigh cloud to heaven He rode;\nThey to the farthest nations spread\nThe grace of their ascended Lord."
+    }
+  ]
+}

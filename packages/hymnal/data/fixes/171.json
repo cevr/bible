@@ -1,0 +1,147 @@
+{
+  "number": 171,
+  "title": "Thine Is the Glory",
+  "print": "the 1985 book's hymnary.org scan (p167.jpg, p168.jpg), each line read off the page at its system and row; the rulings (data/crops/171/rulings.json) put in what the page prints where the base row differs: \"victry\" -> \"victory\" (words, crop p167-692.jpg, judge-128 (Opus, effort max)); \"victry\" -> \"victory\" (words, crop p168-94.jpg, judge-128 (Opus, effort max)); \"victry\" -> \"victory\" (words, crop p168-94.jpg, judge-128 (Opus, effort max)); \"naught\" -> \"nought\" (words, crop p167-311.jpg, judge-128 (Opus, effort max)); \"conqurors\" -> \"conquerors\" (words, crop p167-692.jpg, judge-128 (Opus, effort max)); \"with\" -> \"To\" (words, crop p167-1952.jpg, judge-128 (Opus, effort max)); \"power and love\" -> \"home above\" (words, crop p167-1952.jpg, judge-128 (Opus, effort max)); \"victry\" -> \"victory\" (words, crop p168-94.jpg, judge-128 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Thine is the glory,",
+        "from": "p167.jpg system 1, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Risen, conquering Son;",
+        "from": "p167.jpg system 1, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Endless is the victory",
+        "from": "p167.jpg system 1, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Thou o'er death hast won.",
+        "from": "p167.jpg system 2, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Angels in bright raiment",
+        "from": "p167.jpg system 2, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Rolled the stone away,",
+        "from": "p167.jpg system 3, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Kept the folded graveclothes",
+        "from": "p167.jpg system 3, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Where Thy body lay.",
+        "from": "p167.jpg system 4, row 1. (placed off the page by from-165 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Lo! Jesus meets us,",
+        "from": "p167.jpg system 1, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Risen, from the tomb;",
+        "from": "p167.jpg system 1, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Lovingly He greets us,",
+        "from": "p167.jpg system 1, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Scatters fear and gloom;",
+        "from": "p167.jpg system 2, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Let His church with gladness",
+        "from": "p167.jpg system 2, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Hymns of triumph sing,",
+        "from": "p167.jpg system 3, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "For her Lord now liveth;",
+        "from": "p167.jpg system 3, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Death hath lost its sting.",
+        "from": "p167.jpg system 4, row 2. (placed off the page by from-165 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "No more we doubt Thee,",
+        "from": "p167.jpg system 1, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Glorious Prince of Life!",
+        "from": "p167.jpg system 1, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Life is nought without Thee;",
+        "from": "p167.jpg system 1, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Aid us in our strife;",
+        "from": "p167.jpg system 2, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Make us more than conquerors,",
+        "from": "p167.jpg system 2, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Through Thy deathless love;",
+        "from": "p167.jpg system 3, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Bring us safe through Jordan",
+        "from": "p167.jpg system 3, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "To Thy home above.",
+        "from": "p167.jpg system 4, row 3. (placed off the page by from-165 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "Thine is the glory,",
+        "from": "p167.jpg system 4, the refrain row (placed off the page by from-165 (Opus): the refrain begins after the double bar of system 4, printed once on the middle (stanza 2) line)"
+      },
+      {
+        "text": "Risen, conquering Son;",
+        "from": "p167.jpg system 4, the refrain row (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Endless is the victory",
+        "from": "p168.jpg system 1, the refrain row (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Thou o'er death hast won.",
+        "from": "p168.jpg system 1, the refrain row (placed off the page by from-165 (Opus))"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "Thine is the glory,\nRisen, conquering Son;\nEndless is the vict'ry\nThou o'er death hast won."
+    },
+    {
+      "id": 0,
+      "text": "Thine is the glory,\nRisen, conquering Son;\nEndless is the vict'ry\nThou o'er death hast won.\nAngels in bright raiment\nRolled the stone away,\nKept the folded graveclothes\nWhere Thy body lay."
+    },
+    {
+      "id": 1,
+      "text": "Lo! Jesus meets us,\nRisen, from the tomb;\nLovingly He greets us,\nScatters fear and gloom;\nLet His church with gladness\nHymns of triumph sing,\nFor her Lord now liveth;\nDeath hath lost its sting."
+    },
+    {
+      "id": 2,
+      "text": "No more we doubt Thee,\nGlorious Prince of Life!\nLife is naught without Thee;\nAid us in our strife;\nMake us more than conqu'rors,\nThrough Thy deathless love;\nBring us safe through Jordan\nWith Thy power and love."
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "number": 461,
+  "title": "Be Still My Soul",
+  "print": "the owner's photo of his 1985 book (461.jpg), each line read off the page at its system and row; the rulings (data/crops/461/rulings.json) put in what the page prints where the base row differs: \"dwelth\" -> \"dwelt\" (words, crop 461-1800.jpg, judge-443 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Be still, my soul: the Lord is on thy side;",
+        "from": "461.jpg system 1, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Bear patiently the cross of grief or pain;",
+        "from": "461.jpg system 1, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Leave to thy God to order and provide;",
+        "from": "461.jpg system 2, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "In every change He faithful will remain.",
+        "from": "461.jpg system 3, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Be still, my soul: thy best, thy heavenly friend",
+        "from": "461.jpg system 3, row 1. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Through thorny ways leads to a joyful end.",
+        "from": "461.jpg system 4, row 1. (placed off the page by from-443 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Be still, my soul: thy God doth undertake",
+        "from": "461.jpg system 1, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "To guide the future as He has the past.",
+        "from": "461.jpg system 1, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Thy hope, thy confidence let nothing shake;",
+        "from": "461.jpg system 2, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "All now mysterious shall be bright at last.",
+        "from": "461.jpg system 3, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Be still, my soul: the waves and winds still know",
+        "from": "461.jpg system 3, row 2. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "His voice who ruled them while He dwelt below.",
+        "from": "461.jpg system 4, row 2. (placed off the page by from-443 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Be still, my soul: the hour is hastening on",
+        "from": "461.jpg system 1, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "When we shall be forever with the Lord,",
+        "from": "461.jpg system 1, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "When disappointment, grief, and fear are gone,",
+        "from": "461.jpg system 2, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Sorrow forgot, love's purest joys restored.",
+        "from": "461.jpg system 3, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "Be still, my soul: when change and tears are past,",
+        "from": "461.jpg system 3, row 3. (placed off the page by from-443 (Opus))"
+      },
+      {
+        "text": "All safe and blessed we shall meet at last.",
+        "from": "461.jpg system 4, row 3. (placed off the page by from-443 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Be still, my soul: the Lord is on thy side;\nBear patiently the cross of grief or pain;\nLeave to thy God to order and provide;\nIn every change He faithful will remain.\nBe still, my soul: thy best, thy heavenly friend\nThrough thorny ways leads to a joyful end."
+    },
+    {
+      "id": 1,
+      "text": "Be still, my soul: thy God doth undertake\nTo guide the future as He has the past.\nThy hope, thy confidence let nothing shake;\nAll now mysterious shall be bright at last.\nBe still, my soul: the waves and winds still know\nHis voice who ruled them while He dwelth below."
+    },
+    {
+      "id": 2,
+      "text": "Be still, my soul: the hour is hastening on\nWhen we shall be forever with the Lord,\nWhen disappointment, grief, and fear are gone,\nSorrow forgot, love's purest joys restored.\nBe still, my soul: when change and tears are past,\r\nAll safe and blessed we shall meet at last."
+    }
+  ]
+}

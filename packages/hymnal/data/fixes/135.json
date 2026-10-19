@@ -1,0 +1,161 @@
+{
+  "number": 135,
+  "title": "O Little Town of Bethlehem",
+  "print": "the 1985 book's hymnary.org scan (p132.jpg), each line read off the page at its system and row; the rulings (data/crops/135/rulings.json) put in what the page prints where the base row differs: \"o\" -> \"Oh\" (words, crop p132-1817.jpg, judge-095 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "O little town of Bethlehem,",
+        "from": "p132.jpg system 1, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "How still we see thee lie!",
+        "from": "p132.jpg system 1, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Above thy deep and dreamless sleep",
+        "from": "p132.jpg system 2, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "The silent stars go by;",
+        "from": "p132.jpg system 2, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Yet in thy dark streets shineth",
+        "from": "p132.jpg system 3, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "The everlasting light;",
+        "from": "p132.jpg system 3, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "The hopes and fears of all the years",
+        "from": "p132.jpg system 4, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Are met in thee tonight.",
+        "from": "p132.jpg system 4, row 1. (placed off the page by from-135 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "For Christ is born of Mary;",
+        "from": "p132.jpg system 1, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "And gathered all above,",
+        "from": "p132.jpg system 1, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "While mortals sleep, the angels keep",
+        "from": "p132.jpg system 2, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Their watch of wondering love.",
+        "from": "p132.jpg system 2, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "O morning stars, together",
+        "from": "p132.jpg system 3, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Proclaim the holy birth!",
+        "from": "p132.jpg system 3, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "And praises sing to God the King,",
+        "from": "p132.jpg system 4, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "And peace to men on earth.",
+        "from": "p132.jpg system 4, row 2. (placed off the page by from-135 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "How silently, how silently",
+        "from": "p132.jpg system 1, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "The wondrous gift is given!",
+        "from": "p132.jpg system 1, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "So God imparts to human hearts",
+        "from": "p132.jpg system 2, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "The blessings of His heaven.",
+        "from": "p132.jpg system 2, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "No ear may hear His coming;",
+        "from": "p132.jpg system 3, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "But in this world of sin,",
+        "from": "p132.jpg system 3, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Where meek souls will receive Him still,",
+        "from": "p132.jpg system 4, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "The dear Christ enters in.",
+        "from": "p132.jpg system 4, row 3. (placed off the page by from-135 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "O holy Child of Bethlehem,",
+        "from": "p132.jpg system 1, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Descend to us, we pray;",
+        "from": "p132.jpg system 1, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Cast out our sin and enter in;",
+        "from": "p132.jpg system 2, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Be born in us today.",
+        "from": "p132.jpg system 2, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "We hear the Christmas angels",
+        "from": "p132.jpg system 3, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "The great glad tidings tell;",
+        "from": "p132.jpg system 3, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Oh come to us, abide with us,",
+        "from": "p132.jpg system 4, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Our Lord Immanuel!",
+        "from": "p132.jpg system 4, row 4. (placed off the page by from-135 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "O little town of Bethlehem,\nHow still we see thee lie!\nAbove thy deep and dreamless sleep\nThe silent stars go by;\nYet in thy dark streets shineth\nThe everlasting light;\nThe hopes and fears of all the years\nAre met in thee tonight."
+    },
+    {
+      "id": 1,
+      "text": "For Christ is born of Mary;\nAnd gathered all above,\nWhile mortals sleep, the angels keep\nTheir watch of wondering love.\nO morning stars, together\nProclaim the holy birth!\nAnd praises sing to God the King,\nAnd peace to men on earth."
+    },
+    {
+      "id": 2,
+      "text": "How silently, how silently\nThe wondrous gift is given!\nSo God imparts to human hearts\nThe blessings of His heaven.\nNo ear may hear His coming;\nBut in this world of sin,\nWhere meek souls will receive Him still,\nThe dear Christ enters in."
+    },
+    {
+      "id": 3,
+      "text": "O holy Child of Bethlehem,\nDescend to us, we pray;\nCast out our sin and enter in;\nBe born in us today.\nWe hear the Christmas angels\nThe great glad tidings tell;\nO come to us, abide with us,\nOur Lord Immanuel!"
+    }
+  ]
+}

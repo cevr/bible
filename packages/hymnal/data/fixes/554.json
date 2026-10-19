@@ -1,0 +1,99 @@
+{
+  "number": 554,
+  "title": "O Let Me Walk With Thee",
+  "print": "the 1985 book's hymnary.org scan (p539.jpg), each line read off the page at its system and row; the rulings (data/crops/554/rulings.json) put in what the page prints where the base row differs: \"iil\" -> \"I'll\" (words, crop p539-275.jpg, judge-554 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "O let me walk with Thee, my God,",
+        "from": "p539.jpg system 1, row 1. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "As Enoch walked in days of old;",
+        "from": "p539.jpg system 1, row 1. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Place Thou my trembling hand in Thine,",
+        "from": "p539.jpg system 2, row 1. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "And sweet communion with me hold;",
+        "from": "p539.jpg system 2, row 1. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "E'en though the path I may not see,",
+        "from": "p539.jpg system 3, row 1. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Yet, Jesus, let me walk with Thee.",
+        "from": "p539.jpg system 3, row 1. (placed off the page by from-547 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "I cannot, dare not, walk alone;",
+        "from": "p539.jpg system 1, row 2. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "The tempest rages in the sky,",
+        "from": "p539.jpg system 1, row 2. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "A thousand snares beset my feet,",
+        "from": "p539.jpg system 2, row 2. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "A thousand foes are lurking nigh.",
+        "from": "p539.jpg system 2, row 2. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Still Thou the raging of the sea,",
+        "from": "p539.jpg system 3, row 2. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "O Master! let me walk with Thee.",
+        "from": "p539.jpg system 3, row 2. (placed off the page by from-547 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "If I may rest my hand in Thine,",
+        "from": "p539.jpg system 1, row 3. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "I'll count the joys of earth but loss,",
+        "from": "p539.jpg system 1, row 3. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "And firmly, bravely journey on;",
+        "from": "p539.jpg system 2, row 3. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "I'll bear the banner of the cross",
+        "from": "p539.jpg system 2, row 3. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Till Zion's glorious gates I see;",
+        "from": "p539.jpg system 3, row 3. (placed off the page by from-547 (Opus))"
+      },
+      {
+        "text": "Yet, Savior, let me walk with Thee.",
+        "from": "p539.jpg system 3, row 3. (placed off the page by from-547 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "O let me walk with Thee, my God,\nAs Enoch walked in days of old;\nPlace Thou my trembling hand in Thine,\nAnd sweet communion with me hold;\nE'en though the path I may not see,\nYet, Jesus, let me walk with Thee."
+    },
+    {
+      "id": 1,
+      "text": "I cannot, dare not, walk alone;\nThe tempest rages in the sky,\nA thousand snares beset my feet,\nA thousand foes are lurking nigh.\nStill Thou the raging of the sea,\nO Master! let me walk with Thee."
+    },
+    {
+      "id": 2,
+      "text": "If I may rest my hand in Thine,\nI'Il count the joys of earth but loss,\nAnd firmly, bravely journey on;\nI'll bear the banner of the cross\nTill Zion's glorious gates I see;\nYet, Savior, let me walk with Thee."
+    }
+  ]
+}

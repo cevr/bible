@@ -1,0 +1,97 @@
+{
+  "number": 643,
+  "title": "Father Who On Us Do Shower",
+  "print": "the owner's photo of his 1985 book (643.jpg), each line read off the page at its system and row; the rulings (data/crops/643/rulings.json) put in what the page prints where the base row differs: \"form\" -> \"from\" (words, crop 643-1250.jpg, judge-643 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Father, who on us do shower",
+        "from": "643.jpg system 1, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Gifts of plenty from Your dower,",
+        "from": "643.jpg system 1, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "To Your people give the power",
+        "from": "643.jpg system 2, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "All Your gifts to use aright.",
+        "from": "643.jpg system 3, row 1. (placed off the page by from-639 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Give pure happiness in leisure",
+        "from": "643.jpg system 1, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Temperance in every pleasure,",
+        "from": "643.jpg system 1, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Wholesome use of earthly treasure",
+        "from": "643.jpg system 2, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Bodies clean and spirits bright.",
+        "from": "643.jpg system 3, row 2. (placed off the page by from-639 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Lift from this and every nation",
+        "from": "643.jpg system 1, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "All that brings us degradation;",
+        "from": "643.jpg system 1, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Quell the forces of temptation;",
+        "from": "643.jpg system 2, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Put Your enemies to flight.",
+        "from": "643.jpg system 3, row 3. (placed off the page by from-639 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Father, You who sought and found us,",
+        "from": "643.jpg system 1, row 4. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Son of God, whose love has bound us,",
+        "from": "643.jpg system 1, row 4. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Holy Spirit, in us, round us,",
+        "from": "643.jpg system 2, row 4. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Hear us, Godhead infinite.",
+        "from": "643.jpg system 3, row 4. (placed off the page by from-639 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Father, who on us do shower\r\nGifts of plenty form Your dower,\nTo Your people give the power\nAll Your gifts to use aright."
+    },
+    {
+      "id": 1,
+      "text": "Give pure happiness in leisure\nTemperance in every pleasure,\nWholesome use of earthly treasure\nBodies clean and spirits bright."
+    },
+    {
+      "id": 2,
+      "text": "Lift from this and every nation\nAll that brings us degradation;\nQuell the forces of temptation;\nPut Your enemies to flight."
+    },
+    {
+      "id": 3,
+      "text": "Father, You who sought and found us,\nSon of God, whose love has bound us,\nHoly Spirit, in us, round us,\nHear us, Godhead infinite."
+    }
+  ]
+}

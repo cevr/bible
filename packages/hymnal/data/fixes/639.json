@@ -1,0 +1,97 @@
+{
+  "number": 639,
+  "title": "A Diligent and Grateful Heart",
+  "print": "the owner's photo of his 1985 book (639.jpg), each line read off the page at its system and row; the rulings (data/crops/639/rulings.json) put in what the page prints where the base row differs: \"you\" -> \"\" (words, crop 639-228.jpg, judge-634 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "A diligent and grateful heart",
+        "from": "639.jpg system 1, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Prompts me to sing Thy praise.",
+        "from": "639.jpg system 1, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Thy love and mercies from the start",
+        "from": "639.jpg system 2, row 1. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Have blessed me all my days.",
+        "from": "639.jpg system 3, row 1. (placed off the page by from-639 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "I thank Thee for the means to serve",
+        "from": "639.jpg system 1, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "With talents and with tithes,",
+        "from": "639.jpg system 1, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "For sharing brings the utmost joy",
+        "from": "639.jpg system 2, row 2. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "When lifting other lives.",
+        "from": "639.jpg system 3, row 2. (placed off the page by from-639 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "My thanks I give for stewardship",
+        "from": "639.jpg system 1, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "To minister through deeds,",
+        "from": "639.jpg system 1, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "To serve and share with patient care",
+        "from": "639.jpg system 2, row 3. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Thy people in their needs.",
+        "from": "639.jpg system 3, row 3. (placed off the page by from-639 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "O Lord, I dedicate my all",
+        "from": "639.jpg system 1, row 4. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "In this response to Thee.",
+        "from": "639.jpg system 1, row 4. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "Help me to magnify this call",
+        "from": "639.jpg system 2, row 4. (placed off the page by from-639 (Opus))"
+      },
+      {
+        "text": "In deep humility.",
+        "from": "639.jpg system 3, row 4. (placed off the page by from-639 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "A diligent and grateful heart\nPrompts me to sing Thy praise.\nThy love and mercies from the start\nHave blessed me all my days."
+    },
+    {
+      "id": 1,
+      "text": "I thank Thee for the means to serve\nWith talents and with tithes,\nFor sharing brings the utmost joy\nWhen lifting other lives."
+    },
+    {
+      "id": 2,
+      "text": "My thanks I give you for stewardship\nTo minister through deeds,\nTo serve and share with patient care\nThy people in their needs."
+    },
+    {
+      "id": 3,
+      "text": "O Lord, I dedicate my all\nIn this response to Thee.\nHelp me to magnify this call\nIn deep humility."
+    }
+  ]
+}

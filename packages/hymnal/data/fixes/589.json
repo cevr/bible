@@ -1,0 +1,141 @@
+{
+  "number": 589,
+  "title": "Holy Spirit Gracious Guest",
+  "print": "the owner's photo of his 1985 book (589.jpg), each line read off the page at its system and row; the rulings (data/crops/589/rulings.json) put in what the page prints where the base row differs: \"ifself\" -> \"itself\" (words, crop 589-1728.jpg, judge-583 (Opus, effort max)); \"had\" -> \"hand\" (words, crop 589-978.jpg, judge-583 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Holy Spirit, gracious guest,",
+        "from": "589.jpg system 1, row 1. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Hear and grant our heart's request",
+        "from": "589.jpg system 1, row 1. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "For that gift supreme and best",
+        "from": "589.jpg system 2, row 1. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Holy heav'nly love.",
+        "from": "589.jpg system 3, row 1. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Faith that mountains could remove,",
+        "from": "589.jpg system 1, row 2. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Tongues of earth or heaven above,",
+        "from": "589.jpg system 1, row 2. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Knowledge, all things, empty prove",
+        "from": "589.jpg system 2, row 2. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "If I have no love.",
+        "from": "589.jpg system 3, row 2. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Though I as a martyr bleed,",
+        "from": "589.jpg system 1, row 3. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Give my goods the poor to feed,",
+        "from": "589.jpg system 1, row 3. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "All is vain if love I need:",
+        "from": "589.jpg system 2, row 3. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Therefore give me love.",
+        "from": "589.jpg system 3, row 3. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Love is kind and suffers long,",
+        "from": "589.jpg system 1, row 4. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Love is pure and thinks no wrong;",
+        "from": "589.jpg system 1, row 4. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Love than death itself more strong:",
+        "from": "589.jpg system 2, row 4. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Therefore give us love.",
+        "from": "589.jpg system 3, row 4. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Prophecy will fade away,",
+        "from": "589.jpg system 1, row 5. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Melting in the light of day;",
+        "from": "589.jpg system 1, row 5. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Love will ever with us stay:",
+        "from": "589.jpg system 2, row 5. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Therefore give us love.",
+        "from": "589.jpg system 3, row 5. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Faith and hope and love we see",
+        "from": "589.jpg system 1, row 6. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Joining hand in hand agree-",
+        "from": "589.jpg system 1, row 6. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "But the greatest of the three,",
+        "from": "589.jpg system 2, row 6. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "And the best is love.",
+        "from": "589.jpg system 3, row 6. (placed off the page by from-588 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Holy Spirit, gracious guest,\nHear and grant our heart's request\nFor that gift supreme and best\nHoly heav'nly love."
+    },
+    {
+      "id": 1,
+      "text": "Faith that mountains could remove,\nTongues of earth or heaven above,\nKnowledge, all things, empty prove\nIf I have no love."
+    },
+    {
+      "id": 2,
+      "text": "Though I as a martyr bleed,\r\nGive my goods the poor to feed,\nAll is vain if love I need:\nTherefore give me love."
+    },
+    {
+      "id": 3,
+      "text": "Love is kind and suffers long,\nLove is pure and thinks no wrong;\nLove than death ifself more strong:\nTherefore give us love."
+    },
+    {
+      "id": 4,
+      "text": "Prophecy will fade away,\nMelting in the light of day;\nLove will ever with us stay:\nTherefore give us love."
+    },
+    {
+      "id": 5,
+      "text": "Faith and hope and love we see\nJoining hand in had agree-\nBut the greatest of the three,\nAnd the best is love."
+    }
+  ]
+}

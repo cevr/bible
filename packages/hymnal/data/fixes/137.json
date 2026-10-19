@@ -1,0 +1,143 @@
+{
+  "number": 137,
+  "title": "We Three Kings of Orient Are",
+  "print": "the 1985 book's hymnary.org scan (p134.jpg), each line read off the page at its system and row; the rulings (data/crops/137/rulings.json) put in what the page prints where the base row differs: \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "We three kings of Orient are;",
+        "from": "p134.jpg system 1, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Bearing gifts we traverse afar",
+        "from": "p134.jpg system 1, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Field and fountain, moor and mountain,",
+        "from": "p134.jpg system 2, row 1. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Following yonder star.",
+        "from": "p134.jpg system 2, row 1. (placed off the page by from-135 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Born a king on Bethlehem's plain;",
+        "from": "p134.jpg system 1, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Gold I bring to crown Him again,",
+        "from": "p134.jpg system 1, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "King forever, ceasing never",
+        "from": "p134.jpg system 2, row 2. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Over us all to reign.",
+        "from": "p134.jpg system 2, row 2. (placed off the page by from-135 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Frankincense to offer have I;",
+        "from": "p134.jpg system 1, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Incense owns a Deity nigh;",
+        "from": "p134.jpg system 1, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Prayer and praising all men raising,",
+        "from": "p134.jpg system 2, row 3. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Worship Him, God on high.",
+        "from": "p134.jpg system 2, row 3. (placed off the page by from-135 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Myrrh is mine: its bitter perfume",
+        "from": "p134.jpg system 1, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Breathes a life of gathering gloom:",
+        "from": "p134.jpg system 1, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Sorrowing, sighing, bleeding, dying,",
+        "from": "p134.jpg system 2, row 4. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Sealed in the stone-cold tomb.",
+        "from": "p134.jpg system 2, row 4. (placed off the page by from-135 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Glorious now behold Him arise,",
+        "from": "p134.jpg system 1, row 5. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "King and God and Sacrifice;",
+        "from": "p134.jpg system 1, row 5. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Alleluia, alleluia!",
+        "from": "p134.jpg system 2, row 5. (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Sounds through the earth and skies.",
+        "from": "p134.jpg system 2, row 5. (placed off the page by from-135 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "O, star of wonder, star of night,",
+        "from": "p134.jpg system 3, the refrain row (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Star with royal beauty bright,",
+        "from": "p134.jpg system 3, the refrain row (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Westward leading, still proceeding,",
+        "from": "p134.jpg system 4, the refrain row (placed off the page by from-135 (Opus))"
+      },
+      {
+        "text": "Guide us to Thy perfect light.",
+        "from": "p134.jpg system 4, the refrain row (placed off the page by from-135 (Opus))"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "Oh, star of wonder, star of night,\nStar with royal beauty bright,\nWestward leading, still proceeding,\nGuide us to Thy perfect light."
+    },
+    {
+      "id": 0,
+      "text": "We three kings of Orient are;\nBearing gifts we traverse afar\nField and fountain, moor and mountain,\nFollowing yonder star."
+    },
+    {
+      "id": 1,
+      "text": "Born a king on Bethlehem's plain;\nGold I bring to crown Him again,\nKing forever, ceasing never\nOver us all to reign."
+    },
+    {
+      "id": 2,
+      "text": "Frankincense to offer have I;\nIncense owns a Deity nigh;\nPrayer and praising all men raising,\nWorship Him, God on high."
+    },
+    {
+      "id": 3,
+      "text": "Myrrh is mine: its bitter perfume\nBreathes a life of gathering gloom:\nSorrowing, sighing, bleeding, dying,\nSealed in the stone-cold tomb."
+    },
+    {
+      "id": 4,
+      "text": "Glorious now behold Him arise,\nKing and God and Sacrifice;\nAlleluia, alleluia!\nSounds through the earth and skies."
+    }
+  ]
+}

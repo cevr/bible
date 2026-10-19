@@ -1,0 +1,129 @@
+{
+  "number": 471,
+  "title": "Grant Us Your Peace",
+  "print": "the owner's photo of his 1985 book (471.jpg), each line read off the page at its system and row; the rulings (data/crops/471/rulings.json) put in what the page prints where the base row differs: \"\" -> \"us\" (words, crop 471-0.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-0.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-353.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-353.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-353.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-0.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-0.jpg, judge-471 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Dona nobis pacem, pacem;",
+        "from": "471.jpg system 1, row 1. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Dona nobis pacem.",
+        "from": "471.jpg system 1, row 1. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Dona nobis pacem;",
+        "from": "471.jpg system 2, row 1. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Dona nobis pacem.",
+        "from": "471.jpg system 3, row 1. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Dona nobis pacem;",
+        "from": "471.jpg system 3, row 1. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Dona nobis pacem.",
+        "from": "471.jpg system 4, row 1. (placed off the page by from-471 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Father grant us, grant us Your peace;",
+        "from": "471.jpg system 1, row 2. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Oh, loving Father, grant us Your peace.",
+        "from": "471.jpg system 1, row 2. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Grant us, grant us peace;",
+        "from": "471.jpg system 2, row 2. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Grant us, grant us, grant us Your peace;",
+        "from": "471.jpg system 3, row 2. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Grant us, grant us peace;",
+        "from": "471.jpg system 3, row 2. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Loving Father, grant us Your peace.",
+        "from": "471.jpg system 4, row 2. (placed off the page by from-471 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Accorde nous ta paix, ta paix,",
+        "from": "471.jpg system 1, row 3. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Accorde nous ta paix.",
+        "from": "471.jpg system 1, row 3. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Accorde nous ta paix;",
+        "from": "471.jpg system 2, row 3. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Accorde nous ta paix.",
+        "from": "471.jpg system 3, row 3. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Accorde nous ta paix;",
+        "from": "471.jpg system 3, row 3. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Accorde nous ta paix.",
+        "from": "471.jpg system 4, row 3. (placed off the page by from-471 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Padre, danos tu paz, tu paz;",
+        "from": "471.jpg system 1, row 4. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Padre, danos, danos tu paz",
+        "from": "471.jpg system 1, row 4. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Padre, danos, tu paz.",
+        "from": "471.jpg system 2, row 4. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Padre, danos, danos tu paz.",
+        "from": "471.jpg system 3, row 4. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Padre, danos tu paz;",
+        "from": "471.jpg system 3, row 4. (placed off the page by from-471 (Opus))"
+      },
+      {
+        "text": "Padre, danos, danos tu paz.",
+        "from": "471.jpg system 4, row 4. (placed off the page by from-471 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Dona nobis pacem, pacem;\nDona nobis pacem.\nDona nobis pacem;\nDona nobis pacem.\nDona nobis pacem;\nDona nobis pacem."
+    },
+    {
+      "id": 1,
+      "text": "Father grant us, grant us Your peace;\nOh, loving Father, grant us Your peace.\nGrant us, grant us peace;\nGrant us, grant us, grant Your peace;\nGrant us, grant us peace;\nLoving Father, grant us Your peace."
+    },
+    {
+      "id": 2,
+      "text": "A coordenous ta paix, ta paix,\nA coordenous ta paix.\r\nA coordenous ta paix;\nA coordenous ta paix.\nA coordenous ta paix;\nA coordenous ta paix."
+    },
+    {
+      "id": 3,
+      "text": "Padre, danos tu paz, tu paz;\nPadre, danos, danos tu paz\nPadre, danos, tu paz.\nPadre, danos, danos tu paz.\nPadre, danos tu paz;\nPadre, danos, danos tu paz."
+    }
+  ]
+}

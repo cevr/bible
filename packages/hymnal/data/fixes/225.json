@@ -1,0 +1,161 @@
+{
+  "number": 225,
+  "title": "God Is Working His Purpose Out",
+  "print": "the owner's photo of his 1985 book (225-p2.jpg, 225.jpg, 226.jpg), each line read off the page at its system and row; the rulings (data/crops/225/rulings.json) put in what the page prints where the base row differs: \"suceeds\" -> \"succeeds\" (words, crop 225-p2-684.jpg, judge-225 (Opus, effort max)); \"confinents\" -> \"continents\" (words, crop 225-1230.jpg, judge-225 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "God is working His purpose out",
+        "from": "225.jpg system 1, row 1. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "As year succeeds to year;",
+        "from": "225.jpg system 1, row 1. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "God is working His purpose out,",
+        "from": "225.jpg system 2, row 1. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "And the time is drawing near;",
+        "from": "225.jpg system 2, row 1. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Nearer and nearer draws the time,",
+        "from": "225.jpg system 3, row 1. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "The time that shall surely be",
+        "from": "225.jpg system 3, row 1. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "When the earth shall be filled with the glory of God",
+        "from": "225.jpg system 4, row 1. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "As the waters cover the sea.",
+        "from": "225-p2.jpg system 1, row 1. (placed off the page by from-225 (Opus): the closing system prints one lyric row, shared by every stanza)"
+      }
+    ],
+    [
+      {
+        "text": "From utmost east to utmost west,",
+        "from": "225.jpg system 1, row 2. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Where'er man's foot hath trod,",
+        "from": "225.jpg system 1, row 2. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "By the mouth of many messengers",
+        "from": "225.jpg system 2, row 2. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Goes forth the voice of God;",
+        "from": "225.jpg system 2, row 2. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Give ear to me, ye continents,",
+        "from": "225.jpg system 3, row 2. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Ye isles, give ear to me,",
+        "from": "225.jpg system 3, row 2. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "That the earth shall be filled with the glory of God",
+        "from": "225.jpg system 4, row 2. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "As the waters cover the sea.",
+        "from": "225-p2.jpg system 1, row 1. (placed off the page by from-225 (Opus): the closing system prints one lyric row, shared by every stanza)"
+      }
+    ],
+    [
+      {
+        "text": "March we forth in the strength of God",
+        "from": "225.jpg system 1, row 3. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "With the banner of Christ unfurled,",
+        "from": "225.jpg system 1, row 3. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "That the light of the glorious gospel of truth",
+        "from": "225.jpg system 2, row 3. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "May shine thru-out the world:",
+        "from": "225.jpg system 2, row 3. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Fight we the fight with sorrow and sin",
+        "from": "225.jpg system 3, row 3. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "To set their captives free,",
+        "from": "225.jpg system 3, row 3. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "That the earth shall be filled with the glory of God",
+        "from": "225.jpg system 4, row 3. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "As the waters cover the sea.",
+        "from": "225-p2.jpg system 1, row 1. (placed off the page by from-225 (Opus): the closing system prints one lyric row, shared by every stanza)"
+      }
+    ],
+    [
+      {
+        "text": "All we can do is nothing worth",
+        "from": "225.jpg system 1, row 4. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Unless God blesses the deed;",
+        "from": "225.jpg system 1, row 4. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Vainly we hope for the harvest tide",
+        "from": "225.jpg system 2, row 4. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Till God gives life to the seed;",
+        "from": "225.jpg system 2, row 4. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "Yet nearer and nearer draws the time,",
+        "from": "225.jpg system 3, row 4. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "The time that shall surely be,",
+        "from": "225.jpg system 3, row 4. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "When the earth shall be filled with the glory of God",
+        "from": "225.jpg system 4, row 4. (placed off the page by from-225 (Opus))"
+      },
+      {
+        "text": "As the waters cover the sea.",
+        "from": "225-p2.jpg system 1, row 1. (placed off the page by from-225 (Opus): the closing system prints one lyric row, shared by every stanza)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "God is working His purpose out\nAs year suceeds to year;\nGod is working His purpose out,\nAnd the time is drawing near;\nNearer and nearer draws the time,\nThe time that shall surely be\nWhen the earth shall be filled with the glory of God\nAs the waters cover the sea."
+    },
+    {
+      "id": 1,
+      "text": "From utmost east to utmost west,\nWhere'er man's foot hath trod,\nBy the mouth of many messengers\nGoes forth the voice of God;\nGive ear to me, ye confinents,\nYe isles, give ear to me,\nThat the earth shall be filled with the glory of God\nAs the waters cover the sea."
+    },
+    {
+      "id": 2,
+      "text": "March we forth in the strength of God\nWith the banner of Christ unfurled,\nThat the light of the glorious gospel of truth\nMay shine thru-out the world:\nFight we the fight with sorrow and sin\nTo set their captives free,\nThat the earth shall be filled with the glory of God\nAs the waters cover the sea."
+    },
+    {
+      "id": 3,
+      "text": "All we can do is nothing worth\nUnless God blesses the deed;\nVainly we hope for the harvest tide\nTill God gives life to the seed;\nYet nearer and nearer draws the time,\nThe time that shall surely be,\nWhen the earth shall be filled with the glory of God\nAs the waters cover the sea."
+    }
+  ]
+}

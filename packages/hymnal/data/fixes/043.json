@@ -1,0 +1,189 @@
+{
+  "number": 43,
+  "title": "When Morning Gilds the Skies",
+  "print": "the 1985 book's hymnary.org scan (p043.jpg), each line read off the page at its system and row; the rulings (data/crops/043/rulings.json) put in what the page prints where the base row differs: \"powrs\" -> \"powers\" (words, crop p043-787.jpg, judge-006 (Opus, effort max)); \"song\" -> \"chant\" (words, crop p043-1580.jpg, judge-006 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "When morning gilds the skies,",
+        "from": "p043.jpg system 1, row 1. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "My heart awaking cries,",
+        "from": "p043.jpg system 1, row 1. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 2, row 1. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Alike at work and prayer,",
+        "from": "p043.jpg system 2, row 1. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "To Jesus I repair;",
+        "from": "p043.jpg system 3, row 1. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 3, row 1. (placed off the page by from-043 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Whene'er the sweet church bell",
+        "from": "p043.jpg system 1, row 2. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Peals over hill and dell,",
+        "from": "p043.jpg system 1, row 2. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 2, row 2. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "O hark to what it sings,",
+        "from": "p043.jpg system 2, row 2. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "As joyously it rings,",
+        "from": "p043.jpg system 3, row 2. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 3, row 2. (placed off the page by from-043 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "The night becomes as day,",
+        "from": "p043.jpg system 1, row 3. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "When from the heart we say,",
+        "from": "p043.jpg system 1, row 3. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 2, row 3. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "The powers of darkness fear,",
+        "from": "p043.jpg system 2, row 3. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "When this sweet chant they hear,",
+        "from": "p043.jpg system 3, row 3. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 3, row 3. (placed off the page by from-043 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Ye nations of mankind,",
+        "from": "p043.jpg system 1, row 4. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "In this your concord find,",
+        "from": "p043.jpg system 1, row 4. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 2, row 4. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Let all the earth around",
+        "from": "p043.jpg system 2, row 4. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Ring joyous with the sound,",
+        "from": "p043.jpg system 3, row 4. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 3, row 4. (placed off the page by from-043 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "In heaven's eternal bliss",
+        "from": "p043.jpg system 1, row 5. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "The loveliest strain is this,",
+        "from": "p043.jpg system 1, row 5. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 2, row 5. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Let earth, and sea, and sky",
+        "from": "p043.jpg system 2, row 5. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "From depth to height reply,",
+        "from": "p043.jpg system 3, row 5. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 3, row 5. (placed off the page by from-043 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Be this, while life is mine,",
+        "from": "p043.jpg system 1, row 6. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "My canticle divine,",
+        "from": "p043.jpg system 1, row 6. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 2, row 6. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Be this th'eternal song",
+        "from": "p043.jpg system 2, row 6. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "Through all the ages long,",
+        "from": "p043.jpg system 3, row 6. (placed off the page by from-043 (Opus))"
+      },
+      {
+        "text": "May Jesus Christ be praised!",
+        "from": "p043.jpg system 3, row 6. (placed off the page by from-043 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "When morning gilds the skies,\nMy heart awaking cries,\nMay Jesus Christ be praised!\nAlike at work and prayer,\nTo Jesus I repair;\nMay Jesus Christ be praised!"
+    },
+    {
+      "id": 1,
+      "text": "Whene'er the sweet church bell\nPeals over hill and dell,\nMay Jesus Christ be praised!\nO hark to what it sings,\nAs joyously it rings,\nMay Jesus Christ be praised!"
+    },
+    {
+      "id": 2,
+      "text": "The night becomes as day,\nWhen from the heart we say,\nMay Jesus Christ be praised!\nThe pow'rs of darkness fear,\nWhen this sweet song they hear,\nMay Jesus Christ be praised!"
+    },
+    {
+      "id": 3,
+      "text": "Ye nations of mankind,\nIn this your concord find,\nMay Jesus Christ be praised!\nLet all the earth around\nRing joyous with the sound,\nMay Jesus Christ be praised!"
+    },
+    {
+      "id": 4,
+      "text": "In heaven's eternal bliss\nThe loveliest strain is this,\nMay Jesus Christ be praised!\nLet earth, and sea, and sky\nFrom depth to height reply,\nMay Jesus Christ be praised!"
+    },
+    {
+      "id": 5,
+      "text": "Be this, while life is mine,\nMy canticle divine,\nMay Jesus Christ be praised!\nBe this th'eternal song\nThrough all the ages long,\nMay Jesus Christ be praised!"
+    }
+  ]
+}

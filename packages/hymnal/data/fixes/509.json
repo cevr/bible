@@ -1,0 +1,119 @@
+{
+  "number": 509,
+  "title": "How Firm A Foundation",
+  "print": "the owner's photo of his 1985 book (509.jpg), each line read off the page at its system and row; the rulings (data/crops/509/rulings.json) put in what the page prints where the base row differs: \"has\" -> \"hath\" (words, crop 509-1286.jpg, judge-509 (Opus, effort max)); \"rightious\" -> \"righteous\" (words, crop 509-1593.jpg, judge-509 (Opus, effort max)); \"\" -> \"I\" (words, crop 509-125.jpg, judge-509 (Opus, effort max)); \"go\" -> \"\" (words, crop 509-125.jpg, judge-509 (Opus, effort max)); \"destress\" -> \"distress\" (words, crop 509-1593.jpg, judge-509 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "How firm a foundation, ye saints of the Lord,",
+        "from": "509.jpg system 1, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "Is laid for your faith in His excellent word!",
+        "from": "509.jpg system 2, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "What more can He say than to you He hath said,",
+        "from": "509.jpg system 3, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "To you who for refuge to Jesus hath fled?",
+        "from": "509.jpg system 4, row 1. (placed off the page by from-509 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Fear not, I am with thee, O be not dismayed;",
+        "from": "509.jpg system 1, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "For I am thy God, and will still give thee aid;",
+        "from": "509.jpg system 2, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "I'll strengthen thee, help thee, and cause thee to stand,",
+        "from": "509.jpg system 3, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "Upheld by My righteous, omnipotent hand.",
+        "from": "509.jpg system 4, row 2. (placed off the page by from-509 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "When thro the deep waters I call thee to go,",
+        "from": "509.jpg system 1, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "The rivers of sorrow shall not overflow",
+        "from": "509.jpg system 2, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "For I will be with Thee, thy troubles to bless,",
+        "from": "509.jpg system 3, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "And sanctify to Thee thy deepest distress.",
+        "from": "509.jpg system 4, row 3. (placed off the page by from-509 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "When thro fiery trials thy pathway shall lie,",
+        "from": "509.jpg system 1, row 4. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "My grace, all sufficient, shall be thy supply;",
+        "from": "509.jpg system 2, row 4. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "The flame shall not hurt thee; I only design",
+        "from": "509.jpg system 3, row 4. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "Thy dross to consume, and thy gold to refine.",
+        "from": "509.jpg system 4, row 4. (placed off the page by from-509 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "The soul that on Jesus hath leaned for repose,",
+        "from": "509.jpg system 1, row 5. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "I will not, I will not desert to his foes;",
+        "from": "509.jpg system 2, row 5. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "That soul, Though all hell should endeavor to shake,",
+        "from": "509.jpg system 3, row 5. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "I'll never, no never, no never forsake.",
+        "from": "509.jpg system 4, row 5. (placed off the page by from-509 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "How firm a foundation, ye saints of the Lord,\nIs laid for your faith in His excellent word!\nWhat more can He say than to you He has said,\nTo you who for refuge to Jesus hath fled?"
+    },
+    {
+      "id": 1,
+      "text": "Fear not, I am with thee, O be not dismayed;\nFor I am thy God, and will still give thee aid;\nI'll strengthen thee, help thee, and cause thee to stand,\nUpheld by My rightious, omnipotent hand."
+    },
+    {
+      "id": 2,
+      "text": "When thro the deep waters call thee to go,\nThe rivers of sorrow shall not go overflow\nFor I will be with Thee, thy troubles to bless,\nAnd sanctify to Thee thy deepest destress."
+    },
+    {
+      "id": 3,
+      "text": "When thro fiery trials thy pathway shall lie,\nMy grace, all sufficient, shall be thy supply;\nThe flame shall not hurt thee; I only design\nThy dross to consume, and thy gold to refine."
+    },
+    {
+      "id": 4,
+      "text": "The soul that on Jesus hath leaned for repose,\nI will not, I will not desert to his foes;\nThat soul, Though all hell should endeavor to shake,\nI'll never, no never, no never forsake."
+    }
+  ]
+}

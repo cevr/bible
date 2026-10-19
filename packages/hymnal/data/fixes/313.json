@@ -1,0 +1,141 @@
+{
+  "number": 313,
+  "title": "Just as I Am",
+  "print": "the owner's photo of his 1985 book (313.jpg), each line read off the page at its system and row; the rulings (data/crops/313/rulings.json) put in what the page prints where the base row differs: \"\" -> \"a\" (words, crop 313-368.jpg, judge-261 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Just as I am, without one plea,",
+        "from": "313.jpg system 1, row 1. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "But that Thy blood was shed for me,",
+        "from": "313.jpg system 1, row 1. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "And that Thou bid'st me come to Thee,",
+        "from": "313.jpg system 2, row 1. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "O Lamb of God, I come.",
+        "from": "313.jpg system 3, the refrain row (placed off the page by from-291 (Opus): printed once in system 3, beside the six stanza rows, shared by every stanza)"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, and waiting not",
+        "from": "313.jpg system 1, row 2. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "To rid my soul of one dark blot,",
+        "from": "313.jpg system 1, row 2. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "To Thee whose blood can cleanse each spot,",
+        "from": "313.jpg system 2, row 2. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "O Lamb of God, I come.",
+        "from": "313.jpg system 3, the refrain row (placed off the page by from-291 (Opus): printed once in system 3, beside the six stanza rows, shared by every stanza)"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, though tossed about",
+        "from": "313.jpg system 1, row 3. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "With many a conflict, many a doubt;",
+        "from": "313.jpg system 1, row 3. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "\"Fightings within, and fears without,\"",
+        "from": "313.jpg system 2, row 3. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "O Lamb of God, I come.",
+        "from": "313.jpg system 3, the refrain row (placed off the page by from-291 (Opus): printed once in system 3, beside the six stanza rows, shared by every stanza)"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, poor, wretched, blind;",
+        "from": "313.jpg system 1, row 4. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Sight, riches, healing of the mind,",
+        "from": "313.jpg system 1, row 4. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Yea, all I need, in Thee I find,",
+        "from": "313.jpg system 2, row 4. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "O Lamb of God, I come.",
+        "from": "313.jpg system 3, the refrain row (placed off the page by from-291 (Opus): printed once in system 3, beside the six stanza rows, shared by every stanza)"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, Thou wilt receive,",
+        "from": "313.jpg system 1, row 5. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Wilt welcome, pardon, cleanse, relieve;",
+        "from": "313.jpg system 1, row 5. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Because Thy promise I believe,",
+        "from": "313.jpg system 2, row 5. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "O Lamb of God, I come.",
+        "from": "313.jpg system 3, the refrain row (placed off the page by from-291 (Opus): printed once in system 3, beside the six stanza rows, shared by every stanza)"
+      }
+    ],
+    [
+      {
+        "text": "Just as I am, Thy love I own",
+        "from": "313.jpg system 1, row 6. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Has broken every barrier down;",
+        "from": "313.jpg system 1, row 6. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "Now to be Thine, and Thine alone,",
+        "from": "313.jpg system 2, row 6. (placed off the page by from-291 (Opus))"
+      },
+      {
+        "text": "O Lamb of God, I come.",
+        "from": "313.jpg system 3, the refrain row (placed off the page by from-291 (Opus): printed once in system 3, beside the six stanza rows, shared by every stanza)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Just as I am, without one plea,\nBut that Thy blood was shed for me,\nAnd that Thou bid'st me come to Thee,\nO Lamb of God, I come."
+    },
+    {
+      "id": 1,
+      "text": "Just as I am, and waiting not\nTo rid my soul of one dark blot,\nTo Thee whose blood can cleanse each spot,\nO Lamb of God, I come."
+    },
+    {
+      "id": 2,
+      "text": "Just as I am, though tossed about\nWith many conflict, many a doubt;\n\"Fightings within, and fears without,\"\nO Lamb of God, I come."
+    },
+    {
+      "id": 3,
+      "text": "Just as I am, poor, wretched, blind;\nSight, riches, healing of the mind,\nYea, all I need, in Thee I find,\nO Lamb of God, I come."
+    },
+    {
+      "id": 4,
+      "text": "Just as I am, Thou wilt receive,\nWilt welcome, pardon, cleanse, relieve;\nBecause Thy promise I believe,\nO Lamb of God, I come."
+    },
+    {
+      "id": 5,
+      "text": "Just as I am, Thy love I own\nHas broken every barrier down;\nNow to be Thine, and Thine alone,\nO Lamb of God, I come."
+    }
+  ]
+}

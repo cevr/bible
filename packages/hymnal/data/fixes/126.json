@@ -1,0 +1,123 @@
+{
+  "number": 126,
+  "title": "In the Bleak Midwinter",
+  "print": "the owner's photo of his 1985 book (126.jpg), each line read off the page at its system and row; the rulings (data/crops/126/rulings.json) put in what the page prints where the base row differs: \"minwinter\" -> \"midwinter\" (words, crop 126-2022.jpg, judge-074 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "In the bleak midwinter",
+        "from": "126.jpg system 1, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Frosty wind made moan;",
+        "from": "126.jpg system 1, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Earth stood hard as iron,",
+        "from": "126.jpg system 2, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Water like a stone;",
+        "from": "126.jpg system 2, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Snow had fallen, snow on snow,",
+        "from": "126.jpg system 3, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Snow on snow,",
+        "from": "126.jpg system 3, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "In the bleak midwinter,",
+        "from": "126.jpg system 4, row 1. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Long ago.",
+        "from": "126.jpg system 4, row 1. (placed off the page by from-126 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Angels and archangels",
+        "from": "126.jpg system 1, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "May have gathered there,",
+        "from": "126.jpg system 1, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Cherubim and seraphim",
+        "from": "126.jpg system 2, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Thronged the air.",
+        "from": "126.jpg system 2, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "But His mother only",
+        "from": "126.jpg system 3, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "In her maiden bliss,",
+        "from": "126.jpg system 3, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Worshiped the beloved",
+        "from": "126.jpg system 4, row 2. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "With a kiss.",
+        "from": "126.jpg system 4, row 2. (placed off the page by from-126 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "What can I give Him,",
+        "from": "126.jpg system 1, row 3. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Poor as I am?",
+        "from": "126.jpg system 1, row 3. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "If I were a shepherd",
+        "from": "126.jpg system 2, row 3. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "I would bring a lamb;",
+        "from": "126.jpg system 2, row 3. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "If I were a wise man",
+        "from": "126.jpg system 3, row 3. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "I would do my part;",
+        "from": "126.jpg system 3, row 3. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Yet what can I give Him?",
+        "from": "126.jpg system 4, row 3. (placed off the page by from-126 (Opus))"
+      },
+      {
+        "text": "Give my heart.",
+        "from": "126.jpg system 4, row 3. (placed off the page by from-126 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "In the bleak midwinter\nFrosty wind made moan;\nEarth stood hard as iron,\nWater like a stone;\nSnow had fallen, snow on snow,\nSnow on snow,\nIn the bleak minwinter,\nLong ago."
+    },
+    {
+      "id": 1,
+      "text": "Angels and archangels\nMay have gathered there,\nCherubim and seraphim\nThronged the air.\nBut His mother only\nIn her maiden bliss,\nWorshiped the beloved\nWith a kiss."
+    },
+    {
+      "id": 2,
+      "text": "What can I give Him,\nPoor as I am?\nIf I were a shepherd\nI would bring a lamb;\nIf I were a wise man\nI would do my part;\nYet what can I give Him?\nGive my heart."
+    }
+  ]
+}

@@ -1,0 +1,195 @@
+{
+  "number": 232,
+  "title": "At the Name of Jesus",
+  "print": "the owner's photo of his 1985 book (232.jpg), each line read off the page at its system and row; the rulings (data/crops/232/rulings.json) put in what the page prints where the base row differs: \"\" -> \"Surely, this Lord Jesus Shall return again, With His Father's glory, With His angel train; For all wreaths of empire Meet upon His brow, And our hearts confess Him King of glory now.\" (words, crop 232-817.jpg, judge-225 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "At the name of Jesus",
+        "from": "232.jpg system 1, row 1. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Every knee shall bow,",
+        "from": "232.jpg system 1, row 1. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Every tongue confess Him",
+        "from": "232.jpg system 2, row 1. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "King of glory now;",
+        "from": "232.jpg system 2, row 1. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "'Tis the Father's pleasure",
+        "from": "232.jpg system 3, row 1. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "We should call Him Lord,",
+        "from": "232.jpg system 3, row 1. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Who from the beginning",
+        "from": "232.jpg system 4, row 1. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Was the mighty Word.",
+        "from": "232.jpg system 4, row 1. (placed off the page by from-232 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "At His voice creation",
+        "from": "232.jpg system 1, row 2. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Sprang at once to sight,",
+        "from": "232.jpg system 1, row 2. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "All the angel faces,",
+        "from": "232.jpg system 2, row 2. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "All the hosts of light,",
+        "from": "232.jpg system 2, row 2. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Thrones and dominations",
+        "from": "232.jpg system 3, row 2. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Stars upon their way,",
+        "from": "232.jpg system 3, row 2. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "All the heavenly orders",
+        "from": "232.jpg system 4, row 2. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "In their great array.",
+        "from": "232.jpg system 4, row 2. (placed off the page by from-232 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Humbled for a season,",
+        "from": "232.jpg system 1, row 3. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "To receive a name",
+        "from": "232.jpg system 1, row 3. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "From the lips of sinners,",
+        "from": "232.jpg system 2, row 3. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Unto whom He came;",
+        "from": "232.jpg system 2, row 3. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "He is God the Savior,",
+        "from": "232.jpg system 3, row 3. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "He is Christ the Lord,",
+        "from": "232.jpg system 3, row 3. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Ever to be worshiped,",
+        "from": "232.jpg system 4, row 3. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Trusted and adored.",
+        "from": "232.jpg system 4, row 3. (placed off the page by from-232 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "In your hearts enthrone Him:",
+        "from": "232.jpg system 1, row 4. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "There let Him subdue",
+        "from": "232.jpg system 1, row 4. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "All that is not holy,",
+        "from": "232.jpg system 2, row 4. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "All that is not true;",
+        "from": "232.jpg system 2, row 4. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Crown Him as your captain",
+        "from": "232.jpg system 3, row 4. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "In temptation's hour,",
+        "from": "232.jpg system 3, row 4. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Let His will enfold you",
+        "from": "232.jpg system 4, row 4. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "In its light and power.",
+        "from": "232.jpg system 4, row 4. (placed off the page by from-232 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Surely, this Lord Jesus",
+        "from": "232.jpg system 1, row 5. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Shall return again,",
+        "from": "232.jpg system 1, row 5. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "With His Father's glory,",
+        "from": "232.jpg system 2, row 5. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "With His angel train;",
+        "from": "232.jpg system 2, row 5. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "For all wreaths of empire",
+        "from": "232.jpg system 3, row 5. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "Meet upon His brow,",
+        "from": "232.jpg system 3, row 5. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "And our hearts confess Him",
+        "from": "232.jpg system 4, row 5. (placed off the page by from-232 (Opus))"
+      },
+      {
+        "text": "King of glory now.",
+        "from": "232.jpg system 4, row 5. (placed off the page by from-232 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "At the name of Jesus\nEvery knee shall bow,\nEvery tongue confess Him\nKing of glory now;\n'Tis the Father's pleasure\nWe should call Him Lord,\nWho from the beginning\nWas the mighty Word."
+    },
+    {
+      "id": 1,
+      "text": "At His voice creation\nSprang at once to sight,\nAll the angel faces,\nAll the hosts of light,\nThrones and dominations\nStars upon their way,\nAll the heavenly orders\nIn their great array."
+    },
+    {
+      "id": 2,
+      "text": "Humbled for a season,\nTo receive a name\nFrom the lips of sinners,\nUnto whom He came;\nHe is God the Savior,\nHe is Christ the Lord,\nEver to be worshiped,\nTrusted and adored."
+    },
+    {
+      "id": 3,
+      "text": "In your hearts enthrone Him:\nThere let Him subdue\nAll that is not holy,\nAll that is not true;\nCrown Him as your captain\nIn temptation's hour,\nLet His will enfold you\nIn its light and power."
+    }
+  ]
+}

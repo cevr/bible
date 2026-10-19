@@ -1,0 +1,123 @@
+{
+  "number": 209,
+  "title": "That Glorious Day Is Coming",
+  "print": "the owner's photo of his 1985 book (209.jpg), each line read off the page at its system and row; the rulings (data/crops/209/rulings.json) put in what the page prints where the base row differs: \"\" -> \"fly\" (words, crop 209-1383.jpg, judge-209 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "That glorious day is coming,",
+        "from": "209.jpg system 1, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "The hour is hastening on;",
+        "from": "209.jpg system 1, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Its radiant light is nearing,",
+        "from": "209.jpg system 2, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Far brighter than the sun;",
+        "from": "209.jpg system 2, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "In yonder clouds of heaven,",
+        "from": "209.jpg system 3, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "The Savior will appear,",
+        "from": "209.jpg system 3, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "And gather all His chosen,",
+        "from": "209.jpg system 4, row 1. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "To meet Him in the air.",
+        "from": "209.jpg system 4, row 1. (placed off the page by from-209 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "The saints, then all victorious",
+        "from": "209.jpg system 1, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Will go to meet their Lord;",
+        "from": "209.jpg system 1, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "An earth both bright and glorious,",
+        "from": "209.jpg system 2, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Will then be their reward;",
+        "from": "209.jpg system 2, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "And God Himself there reigning,",
+        "from": "209.jpg system 3, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Will wipe all tears away;",
+        "from": "209.jpg system 3, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Nor clouds nor night remaining,",
+        "from": "209.jpg system 4, row 2. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "But one eternal day.",
+        "from": "209.jpg system 4, row 2. (placed off the page by from-209 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "O Christian, keep from sleeping,",
+        "from": "209.jpg system 1, row 3. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "And let your love abound;",
+        "from": "209.jpg system 1, row 3. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Be watchful, prayerful, faithful,",
+        "from": "209.jpg system 2, row 3. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "The trumpet soon will sound!",
+        "from": "209.jpg system 2, row 3. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "O sinner, hear the warning!",
+        "from": "209.jpg system 3, row 3. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "To Jesus quickly! fly",
+        "from": "209.jpg system 3, row 3. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "Then you, in that blest morning,",
+        "from": "209.jpg system 4, row 3. (placed off the page by from-209 (Opus))"
+      },
+      {
+        "text": "May meet Him in the sky!",
+        "from": "209.jpg system 4, row 3. (placed off the page by from-209 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "That glorious day is coming,\nThe hour is hastening on;\nIts radiant light is nearing,\nFar brighter than the sun;\nIn yonder clouds of heaven,\nThe Savior will appear,\nAnd gather all His chosen,\nTo meet Him in the air."
+    },
+    {
+      "id": 1,
+      "text": "The saints, then all victorious\nWill go to meet their Lord;\nAn earth both bright and glorious,\nWill then be their reward;\nAnd God Himself there reigning,\nWill wipe all tears away;\nNor clouds nor night remaining,\nBut one eternal day."
+    },
+    {
+      "id": 2,
+      "text": "O Christian, keep from sleeping,\nAnd let your love abound;\nBe watchful, prayerful, faithful,\nThe trumpet soon will sound!\nO sinner, hear the warning!\nTo Jesus quickly!\nThen you, in that blest morning,\nMay meet Him in the sky!"
+    }
+  ]
+}

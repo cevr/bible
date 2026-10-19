@@ -1,0 +1,99 @@
+{
+  "number": 600,
+  "title": "Hold Fast Till I Come",
+  "print": "the 1985 book's hymnary.org scan (p585.jpg), each line read off the page at its system and row; the rulings (data/crops/600/rulings.json) put in what the page prints where the base row differs: \"other\" -> \"others\" (words, crop p585-171.jpg, judge-583 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Sweet promise is given to all who believe;",
+        "from": "p585.jpg system 1, row 1. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "\"Behold I come quickly Mine own to receive;",
+        "from": "p585.jpg system 1, row 1. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Hold fast till I come; the danger is great;",
+        "from": "p585.jpg system 2, row 1. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Sleep not as do others; be watchful, and wait.\"",
+        "from": "p585.jpg system 2, row 1. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "We'll \"watch unto prayer\" with lamps burning bright;",
+        "from": "p585.jpg system 1, row 2. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "He comes to all others a \"thief in the night.\"",
+        "from": "p585.jpg system 1, row 2. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "We know He is near, but know not the day;",
+        "from": "p585.jpg system 2, row 2. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "As spring shows that summer is not far away.",
+        "from": "p585.jpg system 2, row 2. (placed off the page by from-588 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Yes! this is our hope, 'tis built on His word;",
+        "from": "p585.jpg system 1, row 3. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "The glorious appearing of Jesus, our Lord;",
+        "from": "p585.jpg system 1, row 3. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Of promises all, it stands as the sum:",
+        "from": "p585.jpg system 2, row 3. (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "\"Behold I come quickly, hold fast till I come.\"",
+        "from": "p585.jpg system 2, row 3. (placed off the page by from-588 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "\"Hold fast till I come;\" sweet promise of heaven;",
+        "from": "p585.jpg system 3, the refrain row (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "\"The kingdom restored, to you shall be given!\"",
+        "from": "p585.jpg system 4, the refrain row (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "\"Come, enter My joy, sit down on My throne;",
+        "from": "p585.jpg system 4, the refrain row (placed off the page by from-588 (Opus))"
+      },
+      {
+        "text": "Bright crowns are in waiting; hold fast till I come.\"",
+        "from": "p585.jpg system 5, the refrain row (placed off the page by from-588 (Opus))"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "\"Hold fast till I come;\" sweet promise of heaven;\n\"The kingdom restored, to you shall be given!\"\n\"Come, enter My joy, sit down on My throne;\nBright crowns are in waiting; hold fast till I come.\""
+    },
+    {
+      "id": 0,
+      "text": "Sweet promise is given to all who believe;\n\"Behold I come quickly Mine own to receive;\nHold fast till I come; the danger is great;\nSleep not as do others; be watchful, and wait.\""
+    },
+    {
+      "id": 1,
+      "text": "We'll \"watch unto prayer\" with lamps burning bright;\nHe comes to all other a \"thief in the night.\"\nWe know He is near, but know not the day;\nAs spring shows that summer is not far away."
+    },
+    {
+      "id": 2,
+      "text": "Yes! this is our hope, 'tis built on His word;\nThe glorious appearing of Jesus, our Lord;\nOf promises all, it stands as the sum:\n\"Behold I come quickly, hold fast till I come.\""
+    }
+  ]
+}

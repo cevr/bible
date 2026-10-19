@@ -1,0 +1,97 @@
+{
+  "number": 654,
+  "title": "Lord Bless Our Homes",
+  "print": "the owner's photo of his 1985 book (654-p2.jpg, 654.jpg, 655.jpg), each line read off the page at its system and row; the rulings (data/crops/654/rulings.json) put in what the page prints where the base row differs: \"untied\" -> \"united\" (words, crop 654-1752.jpg, judge-634 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Lord, bless our homes with peace and love and laughter,",
+        "from": "654.jpg system 1, row 1. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "With understanding and with loyalty.",
+        "from": "654.jpg system 2, row 1. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "May we together follow Christ the Master",
+        "from": "654.jpg system 3, row 1. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "And know the blessing of His sov'reignty.",
+        "from": "654-p2.jpg system 1, row 1. (placed off the page by from-654 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "May every heart receive His loving spirit",
+        "from": "654.jpg system 1, row 2. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "And know the truth that makes life truly free;",
+        "from": "654.jpg system 2, row 2. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "Then, in that spirit may we live united,",
+        "from": "654.jpg system 3, row 2. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "And find in God our deep security.",
+        "from": "654-p2.jpg system 1, row 2. (placed off the page by from-654 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Forgive the hurts our selfishness inflicted",
+        "from": "654.jpg system 1, row 3. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "On those we love and those who love us best.",
+        "from": "654.jpg system 2, row 3. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "Christ, heal the scars, and draw us all together",
+        "from": "654.jpg system 3, row 3. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "In Him whose will is peace and joy and rest.",
+        "from": "654-p2.jpg system 1, row 3. (placed off the page by from-654 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Father, in gratitude for homes and loved ones,",
+        "from": "654.jpg system 1, row 4. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "We open now our hearts to all mankind.",
+        "from": "654.jpg system 2, row 4. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "Grant us Your spirit-love for one another-",
+        "from": "654.jpg system 3, row 4. (placed off the page by from-654 (Opus))"
+      },
+      {
+        "text": "So in Your peace may we our concord find.",
+        "from": "654-p2.jpg system 1, row 4. (placed off the page by from-654 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Lord, bless our homes with peace and love and laughter,\nWith understanding and with loyalty.\nMay we together follow Christ the Master\nAnd know the blessing of His sov'reignty."
+    },
+    {
+      "id": 1,
+      "text": "May every heart receive His loving spirit\nAnd know the truth that makes life truly free;\nThen, in that spirit may we live untied,\nAnd find in God our deep security."
+    },
+    {
+      "id": 2,
+      "text": "Forgive the hurts our selfishness inflicted\nOn those we love and those who love us best.\nChrist, heal the scars, and draw us all together\nIn Him whose will is peace and joy and rest."
+    },
+    {
+      "id": 3,
+      "text": "Father, in gratitude for homes and loved ones,\nWe open now our hearts to all mankind.\nGrant us Your spirit-love for one another-\nSo in Your peace may we our concord find."
+    }
+  ]
+}

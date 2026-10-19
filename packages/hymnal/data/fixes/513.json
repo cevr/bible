@@ -1,0 +1,123 @@
+{
+  "number": 513,
+  "title": "In Heavenly Love Abiding",
+  "print": "the 1985 book's hymnary.org scan (p501.jpg), each line read off the page at its system and row; the rulings (data/crops/513/rulings.json) put in what the page prints where the base row differs: \"the\" -> \"\" (words, crop p501-892.jpg, judge-509 (Opus, effort max)); \"the\" -> \"My\" (words, crop p501-1416.jpg, judge-509 (Opus, effort max)); \"saviour\" -> \"Savior\" (words, crop p501-1978.jpg, judge-509 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "In Heavenly love abiding,",
+        "from": "p501.jpg system 1, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "No change my heart shall fear,",
+        "from": "p501.jpg system 1, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "And safe is such confiding,",
+        "from": "p501.jpg system 2, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "For nothing changes here.",
+        "from": "p501.jpg system 2, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "The storm may roar without me,",
+        "from": "p501.jpg system 3, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "My heart may low be laid;",
+        "from": "p501.jpg system 3, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "But God is round about me,",
+        "from": "p501.jpg system 4, row 1. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "And can I be dismayed?",
+        "from": "p501.jpg system 4, row 1. (placed off the page by from-509 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Wherever He may guide me,",
+        "from": "p501.jpg system 1, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "No want shall turn me back;",
+        "from": "p501.jpg system 1, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "My Shepherd is beside me,",
+        "from": "p501.jpg system 2, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "And nothing can I lack.",
+        "from": "p501.jpg system 2, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "His wisdom ever waketh,",
+        "from": "p501.jpg system 3, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "His sight is never dim;",
+        "from": "p501.jpg system 3, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "He knows the way He taketh,",
+        "from": "p501.jpg system 4, row 2. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "And I will; walk with Him.",
+        "from": "p501.jpg system 4, row 2. (placed off the page by from-509 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Green pastures are before me,",
+        "from": "p501.jpg system 1, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "Which yet I have not seen;",
+        "from": "p501.jpg system 1, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "Bright skies will soon be o'er me,",
+        "from": "p501.jpg system 2, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "Where darkest clouds have been.",
+        "from": "p501.jpg system 2, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "My hope I cannot measure,",
+        "from": "p501.jpg system 3, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "My path to life is free;",
+        "from": "p501.jpg system 3, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "My Savior has my treasure,",
+        "from": "p501.jpg system 4, row 3. (placed off the page by from-509 (Opus))"
+      },
+      {
+        "text": "And He will walk with me.",
+        "from": "p501.jpg system 4, row 3. (placed off the page by from-509 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "In Heavenly love abiding,\nNo change my heart shall fear,\nAnd safe is such confiding,\nFor nothing changes here.\nThe storm may roar without me,\nMy heart may low be laid;\nBut God is round about me,\nAnd can I be dismayed?"
+    },
+    {
+      "id": 1,
+      "text": "Wherever He may guide me,\nNo want shall turn me back;\nMy Shepherd is beside me,\nAnd nothing can I lack.\nHis wisdom ever waketh,\nHis sight is never dim;\nHe knows the way He taketh,\nAnd I will; walk with Him."
+    },
+    {
+      "id": 2,
+      "text": "Green pastures are before me,\nWhich yet I have not seen;\nBright skies will soon be o'er me,\nWhere the darkest clouds have been.\nMy hope I cannot measure,\nThe path to life is free;\nMy Saviour has my treasure,\nAnd He will walk with me."
+    }
+  ]
+}

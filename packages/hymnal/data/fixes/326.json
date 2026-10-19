@@ -1,0 +1,123 @@
+{
+  "number": 326,
+  "title": "Open My Eyes That I May See",
+  "print": "the 1985 book's hymnary.org scan (p316.jpg), each line read off the page at its system and row; the rulings (data/crops/326/rulings.json) put in what the page prints where the base row differs: \"evrywhere\" -> \"everywhere\" (words, crop p316-310.jpg, judge-220-2 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Open my eyes, that I may see",
+        "from": "p316.jpg system 1, row 1. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Glimpses of truth Thou hast for me;",
+        "from": "p316.jpg system 1, row 1. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Place in my hands the wonderful key",
+        "from": "p316.jpg system 2, row 1. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "That shall unclasp and set me free.",
+        "from": "p316.jpg system 2, row 1. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Silently now I wait for Thee,",
+        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
+      },
+      {
+        "text": "Ready, my God, Thy will to see;",
+        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
+      },
+      {
+        "text": "Open my eyes, illumine me,",
+        "from": "p316.jpg system 4, row 1. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Spirit divine!",
+        "from": "p316.jpg system 4, row 1. (placed off the page by from-314 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Open my ears, that I may hear",
+        "from": "p316.jpg system 1, row 2. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Voices of truth Thou sendest clear;",
+        "from": "p316.jpg system 1, row 2. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "And while the wave-notes fall on my ear,",
+        "from": "p316.jpg system 2, row 2. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Everything false will disappear.",
+        "from": "p316.jpg system 2, row 2. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Silently now I wait for Thee,",
+        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
+      },
+      {
+        "text": "Ready, my God, Thy will to see;",
+        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
+      },
+      {
+        "text": "Open my ears, illumine me,",
+        "from": "p316.jpg system 4, row 2. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Spirit divine!",
+        "from": "p316.jpg system 4, row 2. (placed off the page by from-314 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Open my mouth, and let me bear",
+        "from": "p316.jpg system 1, row 3. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Gladly the warm truth everywhere;",
+        "from": "p316.jpg system 1, row 3. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Open my heart, and let me prepare",
+        "from": "p316.jpg system 2, row 3. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Love with Thy children thus to share.",
+        "from": "p316.jpg system 2, row 3. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Silently now I wait for Thee,",
+        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
+      },
+      {
+        "text": "Ready, my God, Thy will to see;",
+        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
+      },
+      {
+        "text": "Open my heart, illumine me,",
+        "from": "p316.jpg system 4, row 3. (placed off the page by from-314 (Opus))"
+      },
+      {
+        "text": "Spirit divine!",
+        "from": "p316.jpg system 4, row 3. (placed off the page by from-314 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Open my eyes, that I may see\nGlimpses of truth Thou hast for me;\nPlace in my hands the wonderful key\nThat shall unclasp and set me free.\nSilently now I wait for Thee,\nReady, my God, Thy will to see;\nOpen my eyes, illumine me,\nSpirit divine!"
+    },
+    {
+      "id": 1,
+      "text": "Open my ears, that I may hear\nVoices of truth Thou sendest clear;\nAnd while the wave-notes fall on my ear,\nEverything false will disappear.\nSilently now I wait for Thee,\nReady, my God, Thy will to see;\nOpen my ears, illumine me,\nSpirit divine!"
+    },
+    {
+      "id": 2,
+      "text": "Open my mouth, and let me bear\nGladly the warm truth ev'rywhere;\nOpen my heart, and let me prepare\nLove with Thy children thus to share.\nSilently now I wait for Thee,\nReady, my God, Thy will to see;\nOpen my heart, illumine me,\nSpirit divine!"
+    }
+  ]
+}

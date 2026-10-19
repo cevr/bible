@@ -1,0 +1,161 @@
+{
+  "number": 165,
+  "title": "Look, You Saints! the Sight Is Glorious",
+  "print": "the 1985 book's hymnary.org scan (p161.jpg), each line read off the page at its system and row; the rulings (data/crops/165/rulings.json) put in what the page prints where the base row differs: \"bring\" -> \"brings\" (words, crop p161-312.jpg, judge-158 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Look, you saints, the sight is glorious,",
+        "from": "p161.jpg system 1, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "See the Man of sorrows now;",
+        "from": "p161.jpg system 1, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "From the fight returned victorious,",
+        "from": "p161.jpg system 2, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Every knee to Him shall bow.",
+        "from": "p161.jpg system 2, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Crown Him! Crown Him! Crown Him!",
+        "from": "p161.jpg system 3, the refrain row (placed off the page by from-165 (Opus): system 3 prints one row, once, shared by every stanza)"
+      },
+      {
+        "text": "Crown Him! Crown Him! Crown Him!",
+        "from": "p161.jpg system 3, the refrain row (placed off the page by from-165 (Opus): system 3 prints one row, once, shared by every stanza)"
+      },
+      {
+        "text": "Crowns become the victor's brow.",
+        "from": "p161.jpg system 4, row 1. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Crowns become the victor's brow.",
+        "from": "p161.jpg system 4, row 1. (placed off the page by from-165 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Crown the Savior! angels crown Him!",
+        "from": "p161.jpg system 1, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Rich the trophies Jesus brings;",
+        "from": "p161.jpg system 1, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "On the seat of power enthrone Him",
+        "from": "p161.jpg system 2, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "While the vault of heaven rings.",
+        "from": "p161.jpg system 2, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Crown Him! Crown Him! Crown Him!",
+        "from": "p161.jpg system 3, the refrain row (placed off the page by from-165 (Opus): system 3 prints one row, once, shared by every stanza)"
+      },
+      {
+        "text": "Crown Him! Crown Him! Crown Him!",
+        "from": "p161.jpg system 3, the refrain row (placed off the page by from-165 (Opus): system 3 prints one row, once, shared by every stanza)"
+      },
+      {
+        "text": "Crown the Savior, King of kings.",
+        "from": "p161.jpg system 4, row 2. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Crown the Savior, King of kings.",
+        "from": "p161.jpg system 4, row 2. (placed off the page by from-165 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Sinners in derision crowned Him,",
+        "from": "p161.jpg system 1, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Mocking thus the Savior's claim;",
+        "from": "p161.jpg system 1, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Saints and angels crowd around Him,",
+        "from": "p161.jpg system 2, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Own His title, praise His name.",
+        "from": "p161.jpg system 2, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Crown Him! Crown Him! Crown Him!",
+        "from": "p161.jpg system 3, the refrain row (placed off the page by from-165 (Opus): system 3 prints one row, once, shared by every stanza)"
+      },
+      {
+        "text": "Crown Him! Crown Him! Crown Him!",
+        "from": "p161.jpg system 3, the refrain row (placed off the page by from-165 (Opus): system 3 prints one row, once, shared by every stanza)"
+      },
+      {
+        "text": "Spread abroad the victor's fame!",
+        "from": "p161.jpg system 4, row 3. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Spread abroad the victor's fame!",
+        "from": "p161.jpg system 4, row 3. (placed off the page by from-165 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Hark! those bursts of acclamation!",
+        "from": "p161.jpg system 1, row 4. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Hark! those loud triumphant chords!",
+        "from": "p161.jpg system 1, row 4. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Jesus takes the highest station;",
+        "from": "p161.jpg system 2, row 4. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Oh, what joy the sight affords.",
+        "from": "p161.jpg system 2, row 4. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "Crown Him! Crown Him! Crown Him!",
+        "from": "p161.jpg system 3, the refrain row (placed off the page by from-165 (Opus): system 3 prints one row, once, shared by every stanza)"
+      },
+      {
+        "text": "Crown Him! Crown Him! Crown Him!",
+        "from": "p161.jpg system 3, the refrain row (placed off the page by from-165 (Opus): system 3 prints one row, once, shared by every stanza)"
+      },
+      {
+        "text": "King of kings and Lord of lords!",
+        "from": "p161.jpg system 4, row 4. (placed off the page by from-165 (Opus))"
+      },
+      {
+        "text": "King of kings and Lord of lords!",
+        "from": "p161.jpg system 4, row 4. (placed off the page by from-165 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Look, you saints, the sight is glorious,\nSee the Man of sorrows now;\nFrom the fight returned victorious,\nEvery knee to Him shall bow.\nCrown Him! Crown Him! Crown Him!\nCrown Him! Crown Him! Crown Him!\nCrowns become the victor's brow.\nCrowns become the victor's brow."
+    },
+    {
+      "id": 1,
+      "text": "Crown the Savior! angels crown Him!\nRich the trophies Jesus bring;\nOn the seat of power enthrone Him\nWhile the vault of heaven rings.\nCrown Him! Crown Him! Crown Him!\nCrown Him! Crown Him! Crown Him!\nCrown the Savior, King of kings.\nCrown the Savior, King of kings."
+    },
+    {
+      "id": 2,
+      "text": "Sinners in derision crowned Him,\nMocking thus the Savior's claim;\nSaints and angels crowd around Him,\nOwn His title, praise His name.\nCrown Him! Crown Him! Crown Him!\nCrown Him! Crown Him! Crown Him!\nSpread abroad the victor's fame!\nSpread abroad the victor's fame!"
+    },
+    {
+      "id": 3,
+      "text": "Hark! those bursts of acclamation!\nHark! those loud triumphant chords!\nJesus takes the highest station;\nOh, what joy the sight affords.\nCrown Him! Crown Him! Crown Him!\nCrown Him! Crown Him! Crown Him!\nKing of kings and Lord of lords!\nKing of kings and Lord of lords!"
+    }
+  ]
+}

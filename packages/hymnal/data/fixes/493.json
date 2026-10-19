@@ -1,0 +1,99 @@
+{
+  "number": 493,
+  "title": "Fill My Cup Lord",
+  "print": "the owner's photo of his 1985 book (493.jpg), each line read off the page at its system and row; the rulings (data/crops/493/rulings.json) put in what the page prints where the base row differs: \"shall\" -> \"\" (words, crop 493-0.jpg, judge-471 (Opus, effort max)); \"\" -> \"shall\" (words, crop 493-0.jpg, judge-471 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Like the woman at the well I was seeking",
+        "from": "493.jpg system 1, row 1. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "For things that could not satisfy;",
+        "from": "493.jpg system 1, row 1. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "And then I heard my Savior speaking:",
+        "from": "493.jpg system 2, row 1. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "\"Draw from My well that never shall run dry.\"",
+        "from": "493.jpg system 2, row 1. (placed off the page by from-473 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "There are millions in this world who are craving",
+        "from": "493.jpg system 1, row 2. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "The pleasure earthly things afford;",
+        "from": "493.jpg system 1, row 2. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "But none can match the wondrous treasure",
+        "from": "493.jpg system 2, row 2. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "That I find in Jesus Christ my Lord.",
+        "from": "493.jpg system 3, row 2. (placed off the page by from-473 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "So, my children, if the things this world gave you",
+        "from": "493.jpg system 1, row 3. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Leave hungers that won't pass away,",
+        "from": "493.jpg system 1, row 3. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "My blessed Lord will come and save you,",
+        "from": "493.jpg system 2, row 3. (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "If you kneel to Him and humbly pray:",
+        "from": "493.jpg system 3, row 3. (placed off the page by from-473 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "Fill my cup, Lord, I lift it up, Lord!",
+        "from": "493.jpg system 3, the refrain row (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Come and quench this thirsting of my soul;",
+        "from": "493.jpg system 4, the refrain row (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Bread of heaven, feed me till I want no more-",
+        "from": "493.jpg system 4, the refrain row (placed off the page by from-473 (Opus))"
+      },
+      {
+        "text": "Fill my cup, fill it up and make me whole!",
+        "from": "493.jpg system 5, the refrain row (placed off the page by from-473 (Opus))"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "Fill my cup, Lord, I lift it up, Lord!\nCome and quench this thirsting of my soul;\nBread of heaven, feed me till I want no more-\nFill my cup, fill it up and make me whole!"
+    },
+    {
+      "id": 0,
+      "text": "Like the woman at the well I was seeking\nFor things that could not satisfy;\nAnd then I heard my Savior speaking:\n\"Draw from My well that shall never run dry.\""
+    },
+    {
+      "id": 1,
+      "text": "There are millions in this world who are craving\nThe pleasure earthly things afford;\nBut none can match the wondrous treasure\nThat I find in Jesus Christ my Lord."
+    },
+    {
+      "id": 2,
+      "text": "So, my children, if the things this world gave you\nLeave hungers that won't pass away,\nMy blessed Lord will come and save you,\nIf you kneel to Him and humbly pray:"
+    }
+  ]
+}

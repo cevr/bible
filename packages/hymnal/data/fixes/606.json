@@ -1,0 +1,161 @@
+{
+  "number": 606,
+  "title": "Once to Every Man and Nation",
+  "print": "the owner's photo of his 1985 book (606.jpg), each line read off the page at its system and row; the rulings (data/crops/606/rulings.json) put in what the page prints where the base row differs: \"keepin\" -> \"Keeping\" (words, crop 606-1369.jpg, judge-583 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Once to every man and nation",
+        "from": "606.jpg system 1, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Comes the moment to decide,",
+        "from": "606.jpg system 1, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "In the strife of truth with falsehood,",
+        "from": "606.jpg system 2, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "For the good or evil side;",
+        "from": "606.jpg system 2, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Some great cause, God's new Messiah,",
+        "from": "606.jpg system 3, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Offering each the bloom or blight,",
+        "from": "606.jpg system 3, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And the choice goes by forever",
+        "from": "606.jpg system 4, row 1. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "'Twixt that darkness and that light.",
+        "from": "606.jpg system 4, row 1. (placed off the page by from-606 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Then to side with truth is noble",
+        "from": "606.jpg system 1, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "When we share her wretched crust,",
+        "from": "606.jpg system 1, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Ere her cause bring fame and profit,",
+        "from": "606.jpg system 2, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And 'tis prosperous to be just;",
+        "from": "606.jpg system 2, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Then it is the brave man chooses,",
+        "from": "606.jpg system 3, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "While the coward stands aside,",
+        "from": "606.jpg system 3, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Till the multitude make virtue",
+        "from": "606.jpg system 4, row 2. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Of the faith they had denied.",
+        "from": "606.jpg system 4, row 2. (placed off the page by from-606 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "By the light of burning martyrs,",
+        "from": "606.jpg system 1, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Christ, Thy bleeding feet we track,",
+        "from": "606.jpg system 1, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Toiling up new Calvaries ever",
+        "from": "606.jpg system 2, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "With the cross that turns not back",
+        "from": "606.jpg system 2, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "New occasions teach new duties,",
+        "from": "606.jpg system 3, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Time makes ancient good uncouth;",
+        "from": "606.jpg system 3, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "They must upward still and onward,",
+        "from": "606.jpg system 4, row 3. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Who would keep abreast of truth.",
+        "from": "606.jpg system 4, row 3. (placed off the page by from-606 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Though the cause of evil prosper,",
+        "from": "606.jpg system 1, row 4. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Yet 'tis truth alone is strong;",
+        "from": "606.jpg system 1, row 4. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Though her portion be the scaffold,",
+        "from": "606.jpg system 2, row 4. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And upon the throne be wrong;",
+        "from": "606.jpg system 2, row 4. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Yet that scaffold sways the future,",
+        "from": "606.jpg system 3, row 4. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "And, behind the dim unknown,",
+        "from": "606.jpg system 3, row 4. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Standeth God within the shadow,",
+        "from": "606.jpg system 4, row 4. (placed off the page by from-606 (Opus))"
+      },
+      {
+        "text": "Keeping watch above His own.",
+        "from": "606.jpg system 4, row 4. (placed off the page by from-606 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Once to every man and nation\nComes the moment to decide,\nIn the strife of truth with falsehood,\nFor the good or evil side;\nSome great cause, God's new Messiah,\nOffering each the bloom or blight,\nAnd the choice goes by forever\n'Twixt that darkness and that light."
+    },
+    {
+      "id": 1,
+      "text": "Then to side with truth is noble\nWhen we share her wretched crust,\nEre her cause bring fame and profit,\nAnd 'tis prosperous to be just;\nThen it is the brave man chooses,\nWhile the coward stands aside,\nTill the multitude make virtue\nOf the faith they had denied."
+    },
+    {
+      "id": 2,
+      "text": "By the light of burning martyrs,\nChrist, Thy bleeding feet we track,\nToiling up new Calvaries ever\nWith the cross that turns not back\nNew occasions teach new duties,\nTime makes ancient good uncouth;\nThey must upward still and onward,\nWho would keep abreast of truth."
+    },
+    {
+      "id": 3,
+      "text": "Though the cause of evil prosper,\nYet 'tis truth alone is strong;\nThough her portion be the scaffold,\nAnd upon the throne be wrong;\nYet that scaffold sways the future,\nAnd, behind the dim unknown,\nStandeth God within the shadow,\nKeepin watch above His own."
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "number": 601,
+  "title": "Watchmen, on the Walls of Zion",
+  "print": "the 1985 book's hymnary.org scan (p586.jpg), each line read off the page at its system and row; the rulings (data/crops/601/rulings.json) put in what the page prints where the base row differs: \"our\" -> \"your\" (words, crop p586-1401.jpg, judge-583 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Watchmen, on the walls of Zion,",
+        "from": "p586.jpg system 1, row 1. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "What, O tell us, of the night?",
+        "from": "p586.jpg system 1, row 1. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Is the day-star now arising?",
+        "from": "p586.jpg system 2, row 1. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Will the morn soon greet our sight?",
+        "from": "p586.jpg system 2, row 1. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "O'er your vision",
+        "from": "p586.jpg system 3, row 1. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Shine there now some rays of light?",
+        "from": "p586.jpg system 3, row 1. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "O'er your vision",
+        "from": "p586.jpg system 4, row 1. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Shine there now some rays of light?",
+        "from": "p586.jpg system 4, row 1. (placed off the page by from-601 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Tell, O tell us, are the landmarks",
+        "from": "p586.jpg system 1, row 2. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "On our voyage all passed by?",
+        "from": "p586.jpg system 1, row 2. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Are we nearing now the haven?",
+        "from": "p586.jpg system 2, row 2. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Can we e'en the land descry?",
+        "from": "p586.jpg system 2, row 2. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Do we truly",
+        "from": "p586.jpg system 3, row 2. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "See the heavenly kingdom nigh?",
+        "from": "p586.jpg system 3, row 2. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Do we truly",
+        "from": "p586.jpg system 4, row 2. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "See the heavenly kingdom nigh?",
+        "from": "p586.jpg system 4, row 2. (placed off the page by from-601 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Light is beaming, day is coming!",
+        "from": "p586.jpg system 1, row 3. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Let us sound aloud the cry;",
+        "from": "p586.jpg system 1, row 3. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "We behold the day-star rising",
+        "from": "p586.jpg system 2, row 3. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Pure and bright in yonder sky!",
+        "from": "p586.jpg system 2, row 3. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Saints, be joyful;",
+        "from": "p586.jpg system 3, row 3. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Your redemption draweth nigh;",
+        "from": "p586.jpg system 3, row 3. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Saints, be joyful;",
+        "from": "p586.jpg system 4, row 3. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Your redemption draweth nigh.",
+        "from": "p586.jpg system 4, row 3. (placed off the page by from-601 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "We have found the chart and compass,",
+        "from": "p586.jpg system 1, row 4. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "And are sure the land is near;",
+        "from": "p586.jpg system 1, row 4. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Onward, onward we are hasting,",
+        "from": "p586.jpg system 2, row 4. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Soon the haven will appear;",
+        "from": "p586.jpg system 2, row 4. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Let your voices",
+        "from": "p586.jpg system 3, row 4. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Sound aloud your holy cheer;",
+        "from": "p586.jpg system 3, row 4. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Let your voices",
+        "from": "p586.jpg system 4, row 4. (placed off the page by from-601 (Opus))"
+      },
+      {
+        "text": "Sound aloud your holy cheer.",
+        "from": "p586.jpg system 4, row 4. (placed off the page by from-601 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Watchmen, on the walls of Zion,\nWhat, O tell us, of the night?\nIs the day-star now arising?\nWill the morn soon greet our sight?\nO'er your vision\nShine there now some rays of light?\nO'er your vision\nShine there now some rays of light?"
+    },
+    {
+      "id": 1,
+      "text": "Tell, O tell us, are the landmarks\nOn our voyage all passed by?\nAre we nearing now the haven?\nCan we e'en the land descry?\nDo we truly\nSee the heavenly kingdom nigh?\nDo we truly\nSee the heavenly kingdom nigh?"
+    },
+    {
+      "id": 2,
+      "text": "Light is beaming, day is coming!\nLet us sound aloud the cry;\nWe behold the day-star rising\nPure and bright in yonder sky!\nSaints, be joyful;\nYour redemption draweth nigh;\nSaints, be joyful;\nYour redemption draweth nigh."
+    },
+    {
+      "id": 3,
+      "text": "We have found the chart and compass,\nAnd are sure the land is near;\nOnward, onward we are hasting,\nSoon the haven will appear;\nLet your voices\nSound aloud our holy cheer;\nLet your voices\nSound aloud your holy cheer."
+    }
+  ]
+}
