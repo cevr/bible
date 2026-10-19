@@ -33,6 +33,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Decisions
 
+- Owner 2026-10-19 accepted the unlock proposal ("Yeah, I like your your unlock. It makes sense"). Free: 3 passages at a time, each up to one chapter; archiving a learned passage frees its slot; the full loop (dictation, live marks, peek, scheduled review with a suggested grade); the first screen states the limit. Unlock ($3.99 non-consumable, Restore): unlimited passages, the 14 promise collections, whole chapters and books learned a verse at a time, a daily reminder, and backup by export file. (selah)
+
 - Owner 2026-10-19: the palette is A, Wada No. 167 (Ecru #c2ae93, Pale King's Blue #a7d4e4, Vandar Poel's Blue #064f6e), for the hymnal and for Selah. Selah is a free download with a $3.99 one-time unlock. The free tier is 3 passages, and the promise collections come with the unlock. The owner will talk through what else the unlock gives. Quote: "I'll pick A and let's do free plus unlock. We'll talk about kind of what does the unlock give us and um maybe, yeah, three passages and then promises become like an like a plus". (selah, reader1)
 
 - reader1 (2026-10-19): the first hymnal slice the owner can test is native tabs, the list, plain text, appearance and one Wada accent. It runs before the manna rename the owner ordered first, because he asked to test the app himself: "let's just kind of get into the hymn app. I want to test it myself". Visual progress goes to Sideshow (owner: "use sideshow instead"). (feedback-refine-in-the-app; reader1)
