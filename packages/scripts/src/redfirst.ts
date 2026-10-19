@@ -87,7 +87,7 @@ const lines = (out: string) => out.split('\n').filter((line) => line !== '');
 
 /** Test code a test file may lean on: its fixtures and its package's doubles. */
 const isTestCode = (file: string) =>
-  isTest(file) || file.includes('/fixtures/') || file.endsWith('/testing.ts');
+  isTest(file) || /(^|\/)fixtures\//.test(file) || file.endsWith('/testing.ts');
 
 /** A scratch worktree of `base`, removed with the scope. */
 const worktree = (root: string, base: string) =>
@@ -175,8 +175,6 @@ const casesOfFiles = Effect.fn('redfirst.casesOfFiles')(function* (
 });
 
 const redfirst = Effect.fn('redfirst')(function* (baseRef: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
   const root = (yield* run('git', ['rev-parse', '--show-toplevel'], '.')).trim();
   const base = (yield* run('git', ['rev-parse', '--verify', `${baseRef}^{commit}`], root)).trim();
   const head = (yield* run('git', ['rev-parse', 'HEAD'], root)).trim();
@@ -217,18 +215,11 @@ const redfirst = Effect.fn('redfirst')(function* (baseRef: string) {
     ...c,
     file: toOf.get(c.file) ?? c.file,
   }));
-  // HEAD's test code over the base's sources.
-  yield* Effect.forEach(
-    changed.filter(isTestCode),
-    (file) =>
-      Effect.flatMap(run('git', ['show', `${head}:${file}`], root), (text) =>
-        Effect.andThen(
-          fs.makeDirectory(path.dirname(path.join(tree, file)), { recursive: true }),
-          () => fs.writeFileString(path.join(tree, file), text),
-        ),
-      ),
-    { discard: true },
-  );
+  // HEAD's test code over the base's sources, written by git from its own
+  // objects so a binary fixture (a PNG) lands byte for byte: text through
+  // stdout would decode it as UTF-8 and change it.
+  const testCode = changed.filter(isTestCode);
+  if (testCode.length > 0) yield* run('git', ['checkout', head, '--', ...testCode], tree);
   const headCases = yield* casesOfFiles(root, tree, tests);
   const changes = new Map(
     yield* Effect.forEach(tests, (file) =>
