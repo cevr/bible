@@ -445,3 +445,7 @@ match lead at mark:arose (t 29.63, spent and bowed, the strip over his feet): he
 ## 2026-10-19T00:47:55Z · within
 
 match lead at 33.26 (freed, warmed): head outline gap 0.010, body 0.019, 2.41 heads against the concept's 2.45; the head turn reads 0.129 against the front sheet's 0.002, his marks slid toward the gaze up and ahead, as within.arose.1 carries his eyes toward the right of his head; the eye centre sits 0.073 above the head's centre, eye height +11% (warmed), hands -6% where they read +3% at mark:arose at the same scale, feet width -17% (the rig's stub legs).
+
+## 2026-10-19T01:09:16Z · within
+
+The page strip at its old depth (+8..+10 px under the feet's middle) left the far foot's sole ink showing under its lower edge as a dark fleck at 29.6 (critique at mark:arose); at +19..+21 px no ink shows under it at 27.3 or 29.6, and the halves still tear clear by 32.5.

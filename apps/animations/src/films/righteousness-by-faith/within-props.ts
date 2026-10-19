@@ -1127,7 +1127,7 @@ export const SLACK: readonly [Pt, Pt, Pt, Pt] = [
 
 /**
  * The page holding his feet (`we`): a strip of it torn up and laid across
- * both his feet, pinning them to it, from his feet's middle, Board pixels:
+ * both his feet, deep enough to cover their soles' ink, pinning them to it, from his feet's middle, Board pixels:
  * whole, and as the two halves it tears into between his feet as they come
  * free (the far one first), each about its own middle.
  */
@@ -1137,10 +1137,10 @@ const HOLD: ReadonlyArray<Pt> = [
   [0, -25],
   [38, -29],
   [78, -21],
-  [80, 9],
-  [36, 7],
-  [-36, 10],
-  [-80, 8],
+  [80, 20],
+  [36, 19],
+  [-36, 21],
+  [-80, 19],
 ];
 const HOLD_HALVES: readonly [ReadonlyArray<Pt>, ReadonlyArray<Pt>] = [
   [
@@ -1150,23 +1150,23 @@ const HOLD_HALVES: readonly [ReadonlyArray<Pt>, ReadonlyArray<Pt>] = [
     [3, -16],
     [-2, -8],
     [2, 0],
-    [-1, 9],
-    [-36, 10],
-    [-80, 8],
+    [-1, 20],
+    [-36, 21],
+    [-80, 19],
   ],
   [
     [0, -25],
     [38, -29],
     [78, -21],
-    [80, 9],
-    [36, 7],
-    [-1, 9],
+    [80, 20],
+    [36, 19],
+    [-1, 20],
     [2, 0],
     [-2, -8],
     [3, -16],
   ],
 ];
-const HALF_MIDDLE: Pt = [40, -9];
+const HALF_MIDDLE: Pt = [40, -4];
 
 /**
  * How the halves fly as the strip tears: how far out, how high they lift,
