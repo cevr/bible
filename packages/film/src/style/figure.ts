@@ -10,10 +10,12 @@
 // stands on its feet, its origin, or sits, its origin its body's middle at
 // its head's height, the part of it above what hides its feet drawn; an arm
 // that reaches past its garment is in its sleeve, cut in one outline with
-// the garment, its pivot inside it. Its view model's numbers are its parts',
-// in one order, never listed by hand (`knobsOf`). How it is drawn is the
-// house's (`rig/draw.ts`). A figure the owner locked carries its lock,
-// checked here, and its film holds its print to it (`lock.ts`). Pure.
+// the garment, and turns about a point inside it nearer the sleeve than the
+// garment's edge, so the sleeve's root stays under its paper however it
+// swings. Its view model's numbers are its parts', in one order, never
+// listed by hand (`knobsOf`). How it is drawn is the house's (`rig/draw.ts`).
+// A figure the owner locked carries its lock, checked here, and its film
+// holds its print to it (`lock.ts`). Pure.
 
 import { Predicate, Schema } from 'effect';
 import { ConceptRef } from '../core/match.ts';
@@ -29,14 +31,14 @@ import { type Hands, decodeHands } from './parts/hands.ts';
 import { type Headcloth, decodeHeadcloth } from './parts/headcloth.ts';
 import { type Head, type RoundHead, decodeHead } from './parts/head.ts';
 import { type KitA, decodeKit } from './parts/kit.ts';
-import { Length, Outline, Point } from './parts/measure.ts';
+import { Length, Point } from './parts/measure.ts';
 import { type OpenMouth, decodeMouth } from './parts/mouth.ts';
 import { type Over, decodeOver } from './parts/over.ts';
 import { type Seated, type Standing, decodeSeated, decodeStanding } from './parts/stance.ts';
 import { type GivenRobe, type Stain, type State, decodeState } from './parts/states.ts';
 import { type Stature, decodeStature } from './parts/stature.ts';
-import { FACE, type FaceKnob } from './rig/parts.ts';
-import { garmentOutline, inside } from './rig/shapes.ts';
+import { FACE, type FaceKnob, type Pt } from './rig/parts.ts';
+import { fromEdge, garmentOutline, inside } from './rig/shapes.ts';
 
 /** A standing figure's artboard: its size, and where its feet stand on it (the rig's origin). */
 const StandingArt = Schema.Struct({ width: Length, height: Length, feet: Point });
@@ -322,24 +324,35 @@ const statesOf = (states: ReadonlyArray<State>): ComposedParts['states'] => {
   };
 };
 
-/** An arm's pivot, and the outline of the garment it turns behind. */
-const ArmRoot = Schema.Struct({ pivot: Point, garment: Outline });
+/**
+ * A decode of the pivot of an arm whose sleeve is `sleeve`, on the garment
+ * `garment`: a point inside the garment, the sleeve nearer it than the
+ * garment's edge (at no distance when the pivot lies inside the sleeve), so
+ * a point of the sleeve stays under the garment's paper however it swings.
+ */
+const pivotOn = (garment: ReadonlyArray<Pt>, sleeve: ReadonlyArray<Pt>) =>
+  decoder(
+    Point.check(
+      Schema.makeFilter((pivot: Pt) => {
+        if (!inside(pivot, garment)) {
+          return `its pivot (${pivot.join(', ')}) lies outside its garment: an arm turns inside it`;
+        }
+        const reach = inside(pivot, sleeve) ? 0 : fromEdge(pivot, sleeve);
+        const edge = fromEdge(pivot, garment);
+        if (reach < edge) return true;
+        const [r, e] = [reach.toFixed(1), edge.toFixed(1)];
+        return `its sleeve lies ${r} from its pivot, its garment's edge ${e}: a sleeve lies nearer its pivot than the edge`;
+      }),
+    ),
+  );
 
-/** An arm turns about a point inside its garment, so its sleeve's root stays under the garment's paper however it swings. */
-const rootInside = Schema.makeFilter((root: typeof ArmRoot.Type) =>
-  inside(root.pivot, root.garment)
-    ? true
-    : `its pivot (${root.pivot.join(', ')}) lies outside its garment's outline: an arm turns about a point inside it, so its sleeve's root stays under the garment's paper`,
-);
-const decodeArmRoot = decoder(ArmRoot.check(rootInside));
-
-/** Its arms by side, each checked as an arm and as one turned about a point inside `body`'s outline. */
+/** Its arms by side, each checked as an arm and its pivot as one on `body`'s outline (`pivotOn`). */
 const armsOf = (arms: Arms, body: Garment): Arms => {
   const garment = garmentOutline(body);
   const armOn = (arm: Arm | undefined, part: string) => {
     if (arm === undefined) return undefined;
     const checked = decodeArm(arm, part);
-    decodeArmRoot({ pivot: checked.pivot, garment }, part);
+    pivotOn(garment, checked.outline)(checked.pivot, part);
     return checked;
   };
   return { near: armOn(arms.near, 'arms.near'), far: armOn(arms.far, 'arms.far') };

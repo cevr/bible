@@ -226,6 +226,45 @@ const sleeve = Arm({
   tones: [{ pts: SLEEVE_LIT, color: '#efca9a' }],
 });
 
+/** A sleeve far from any garment's edge. */
+const ASTRAY: Pt[] = [
+  [380, -20],
+  [420, -20],
+  [420, 60],
+  [380, 60],
+];
+
+/** A sleeve round the raised sleeve's pivot, its edge 30 from it. */
+const ROUND: Pt[] = [
+  [0, -320],
+  [60, -320],
+  [60, -250],
+  [0, -250],
+];
+
+/** A square traced robe, and a sleeve beside its pivot: each lies 100 from (0, -300). */
+const SQUARE: Pt[] = [
+  [-100, -400],
+  [100, -400],
+  [100, 0],
+  [-100, 0],
+];
+const LEVEL: Pt[] = [
+  [100, -310],
+  [140, -310],
+  [140, -290],
+  [100, -290],
+];
+
+/** A robe traced as the cut one is cut, its pivot's place inside it. */
+const TRACED_ROBE: Pt[] = [
+  [-40, -330],
+  [40, -330],
+  [85, -20],
+  [0, -15],
+  [-85, -20],
+];
+
 /** The plain lead's arms hanging at his sides at rest: each pivot inside his tunic and its sleeve, the far one lit. */
 const HANGING: Pt[] = [
   [20, -215],
@@ -794,25 +833,49 @@ describe('an arm in its sleeve', () => {
     );
   });
 
-  test('turned about a point outside its garment is refused, on either side and on any garment', () => {
-    const astray = Arm({
-      pivot: [400, 0],
-      rest: 0,
-      outline: [
-        [380, -20],
-        [420, -20],
-        [420, 60],
-        [380, 60],
-      ],
-      paper: FLAT,
-    });
+  test('turned about a point outside its garment is refused, on either side, on a tunic or a cut or traced robe, standing or seated', () => {
+    const astray = Arm({ pivot: [400, 0], rest: 0, outline: ASTRAY, paper: FLAT });
     expect(() => figure({ ...standingOf(), arms: { far: astray } })).toThrow(
-      /arms\.far refused: [^]*its pivot \(400, 0\) lies outside its garment's outline/,
+      /arms\.far refused: [^]*its pivot \(400, 0\) lies outside its garment: an arm turns inside it/,
     );
     expect(() => figure({ ...standingOf(), arms: { near: astray } })).toThrow(/arms\.near refused/);
     // The sleeve's pivot lies inside the cut robe, but above the plain lead's tunic.
     expect(() => figure({ ...leadOf([]), arms: { far: sleeve } })).toThrow(
       /arms\.far refused: [^]*its pivot \(30, -290\) lies outside/,
+    );
+    const traced = Robe.Traced({ outline: TRACED_ROBE, hem: -15, paper: SKIN });
+    expect(figure({ ...standingOf(), body: traced, arms: { far: sleeve } }).arms.far).toEqual(
+      sleeve,
+    );
+    expect(() => figure({ ...standingOf(), body: traced, arms: { far: astray } })).toThrow(
+      /arms\.far refused: [^]*its pivot \(400, 0\) lies outside/,
+    );
+    expect(() => figure({ ...seatedOf(), arms: { near: astray } })).toThrow(
+      /arms\.near refused: [^]*its pivot \(400, 0\) lies outside/,
+    );
+  });
+
+  test("whose sleeve lies as far from its pivot as its garment's edge, or farther, is refused, unless the pivot lies inside the sleeve", () => {
+    // The pivot lies inside the cut robe, 16.4 from its edge.
+    const away = Arm({ pivot: [30, -290], rest: 0, outline: ASTRAY, paper: FLAT });
+    expect(() => figure({ ...standingOf(), arms: { far: away } })).toThrow(
+      /arms\.far refused: [^]*its sleeve lies 442\.0 from its pivot, its garment's edge 16\.4: a sleeve lies nearer its pivot than the edge/,
+    );
+    // The raised sleeve lies 13.4 from it and is taken; moved 6 out, it lies 16.5 from it.
+    expect(figure({ ...standingOf(), arms: { far: sleeve } }).arms.far).toEqual(sleeve);
+    const out = SLEEVE.map(([x, y]): Pt => [x + 6, y - 6]);
+    const moved = Arm({ pivot: [30, -290], rest: 1.2, outline: out, paper: FLAT });
+    expect(() => figure({ ...standingOf(), arms: { far: moved } })).toThrow(
+      /arms\.far refused: [^]*its sleeve lies 16\.5 from its pivot, its garment's edge 16\.4/,
+    );
+    // A sleeve round its pivot, its edge 30 from it, keeps that point under the garment's paper.
+    const round = Arm({ pivot: [30, -290], rest: 0, outline: ROUND, paper: FLAT });
+    expect(figure({ ...standingOf(), arms: { far: round } }).arms.far).toEqual(round);
+    // A sleeve exactly as far from its pivot as the garment's edge is refused.
+    const square = Robe.Traced({ outline: SQUARE, hem: 0, paper: SKIN });
+    const level = Arm({ pivot: [0, -300], rest: 0, outline: LEVEL, paper: FLAT });
+    expect(() => figure({ ...standingOf(), body: square, arms: { far: level } })).toThrow(
+      /arms\.far refused: [^]*its sleeve lies 100\.0 from its pivot, its garment's edge 100\.0/,
     );
   });
 

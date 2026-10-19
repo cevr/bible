@@ -2,13 +2,13 @@
 // figure's frame: the sleeve's outline in the pose it is traced in, its paper
 // and the colour laid on it. The host swings it by the figure's number for
 // its side (`nearArm` or `farArm`, radians, 0 the pose it is traced in) about
-// a point inside the garment (`pivot`), so the sleeve's root stays under the
-// garment's paper however it swings. It lies behind the garment's paper, cut
-// in one outline with it, so the sleeve grows out of the garment with no line
-// where it leaves it; an arm that lies on the garment is a tone of it. The
-// host draws the figure's circle hand at its cuff: a hand ends its sleeve
-// (the owner's sleeves, look ledger, 2026-10-18). How it is cut and drawn is
-// the house's (`rig/draw.ts`). Pure.
+// a point inside the garment nearer the sleeve than the garment's edge
+// (`pivot`), so the sleeve's root stays under the garment's paper however it
+// swings. It lies behind the garment's paper, cut in one outline with it, so
+// the sleeve grows out of the garment with no line where it leaves it; an arm
+// that lies on the garment is a tone of it. The host draws the figure's circle
+// hand at its cuff: a hand ends its sleeve (the owner's sleeves, look ledger,
+// 2026-10-18). How it is cut and drawn is the house's (`rig/draw.ts`). Pure.
 
 import { Schema } from 'effect';
 import { decoder } from '../decode.ts';
@@ -17,7 +17,11 @@ import { Outline, Point } from './measure.ts';
 
 /** An arm: where it turns, its turn at rest, its sleeve's outline, its paper and the colour on it. */
 const ArmPart = Schema.TaggedStruct('Arm', {
-  /** Where it turns, units from the figure's origin: a point inside its garment (a figure refuses one outside it). */
+  /**
+   * Where it turns, units from the figure's origin: a point inside its
+   * garment nearer its sleeve than the garment's edge (a figure refuses any
+   * other).
+   */
   pivot: Point,
   /** Its turn at rest, radians from the pose it is traced in: its number's value at rest. */
   rest: Schema.Finite,

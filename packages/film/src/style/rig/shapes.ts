@@ -1,11 +1,12 @@
 // The outlines a figure is cut from, in the figure's units: a polygon with
 // its corners rounded, a garment's (a tunic cut from its neck and hem, a
 // robe from its corners or as traced), a shoe, and a blot (a head is traced
-// from its concept); whether a point lies inside an outline (`inside`); and
-// how one paper tucks under the papers laid over it (`tucked`, and a paper
-// rimmed all round deeper, under their seams, `tuckedRimmed`). Each outline
-// is a list of points the generator's `piece` runs a smooth path through,
-// dense enough along a straight edge that the edge stays straight. Pure.
+// from its concept); whether a point lies inside an outline (`inside`) and
+// how far from its edge (`fromEdge`); and how one paper tucks under the
+// papers laid over it (`tucked`, and a paper rimmed all round deeper, under
+// their seams, `tuckedRimmed`). Each outline is a list of points the
+// generator's `piece` runs a smooth path through, dense enough along a
+// straight edge that the edge stays straight. Pure.
 
 import { rng } from '../../core/random.ts';
 import type { Garment, Tunic } from '../parts/body.ts';
@@ -194,19 +195,11 @@ export const inside = (p: Pt, poly: ReadonlyArray<Pt>) => {
   return c;
 };
 
-// ─── tucking one paper under another ─────────────────────────────────────────
-
 /** A point on an outline, its distance from the point it is nearest, and the inward normal of its edge. */
 interface Nearest {
   readonly at: Pt;
   readonly d: number;
   readonly n: Pt;
-}
-
-/** A point walked along an outline, and whether it was one of the outline's own. */
-interface Walked {
-  readonly p: Pt;
-  readonly cut: boolean;
 }
 
 /**
@@ -233,6 +226,17 @@ const nearestEdge = (p: Pt, poly: ReadonlyArray<Pt>, only?: ReadonlyArray<boolea
   });
   return best;
 };
+
+/** How far `p` lies from the edge of the closed outline `poly`, inside it or out. */
+export const fromEdge = (p: Pt, poly: ReadonlyArray<Pt>) => nearestEdge(p, poly).d;
+
+// ─── tucking one paper under another ─────────────────────────────────────────
+
+/** A point walked along an outline, and whether it was one of the outline's own. */
+interface Walked {
+  readonly p: Pt;
+  readonly cut: boolean;
+}
 
 /** `pts` (closed) with points added along each edge so none is longer than `step`; each says whether it was one of `pts`. */
 const resampled = (pts: ReadonlyArray<Pt>, step: number) =>
