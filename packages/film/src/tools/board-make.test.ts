@@ -373,6 +373,16 @@ describe('the scene prompt', () => {
       shot: false,
       tweak: Option.none(),
     });
+  test("takes the style image's look but not its floating hands: every hand is at the end of a sleeved arm", () => {
+    expect(prompt).toContain(
+      'take its line, shapes, colour handling, faces, paper texture and light',
+    );
+    expect(prompt).not.toContain('faces, hands,');
+    expect(prompt).toContain(
+      'Its hands float free beside the body, which this film no longer draws',
+    );
+    expect(prompt).toContain('Hands are plain round circles at the end of an arm in its sleeve');
+  });
   test('keeps every spoken word off the picture: the film sets them as cards', () => {
     expect(prompt).toContain('TEXT: no captions, no subtitles, no narration');
     expect(prompt).toContain('the film sets every spoken word as a full-screen card');

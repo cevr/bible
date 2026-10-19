@@ -9,9 +9,14 @@ import type { Act } from '../core/schema.ts';
 import { type BoardName, type BoardStyle, PANEL_START } from '../core/board.ts';
 import { parse } from '../core/narration.ts';
 
-/** What the style's reference image is for: its look, none of its content. */
+/**
+ * What the style's reference image is for: its look, none of its content.
+ * Its hands are not taken: the house style image draws them floating free,
+ * the look from before 2026-10-18, and every house hand is now at the end of
+ * an arm in its sleeve (CRAFT rule 12).
+ */
 const STYLE_REF =
-  'The first reference image shows the art style only: take its line, shapes, colour handling, faces, hands, paper texture and light, but none of its people, its room or its layout.';
+  'The first reference image shows the art style only: take its line, shapes, colour handling, faces, paper texture and light, but none of its people, its room or its layout. Its hands float free beside the body, which this film no longer draws: every hand here is at the end of an arm in its sleeve.';
 
 /** What a beat's earlier panel is for, when it rides along: the same place, the same people. */
 const SHOT_REF =
@@ -26,7 +31,7 @@ const TEXT_RULE =
 
 /** The house rules every frame keeps. */
 const RULES =
-  'RULES: Shade with colour: every shaded side and every cast shadow turns its hue toward the complement of the light (violet-blue under a warm light), never black and never plain grey; outlines may be dark. Hands are plain round circles: no thumbs, no fingers. No crosses on buildings, church buildings, religious symbols, logos or emblems anywhere, unless the brief names one. One clean, calm, finished 16:9 animated-film frame: not a photograph, not a comic page, not a character sheet, no panels or borders.';
+  'RULES: Shade with colour: every shaded side and every cast shadow turns its hue toward the complement of the light (violet-blue under a warm light), never black and never plain grey; outlines may be dark. Hands are plain round circles at the end of an arm in its sleeve: no thumbs, no fingers, and never a hand floating free beside the body. No crosses on buildings, church buildings, religious symbols, logos or emblems anywhere, unless the brief names one. One clean, calm, finished 16:9 animated-film frame: not a photograph, not a comic page, not a character sheet, no panels or borders.';
 
 /** A beat as the board reads it from the script. */
 export interface BoardBeat {
