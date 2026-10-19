@@ -5,11 +5,11 @@
 // and what the read cannot tell is said as not measured.
 
 import { describe, expect, test } from 'bun:test';
-import { Result } from 'effect';
+import { Option, Result } from 'effect';
 import { measureSheet, type SheetMeasure } from './cast-sheet.ts';
 import { drawFigure, drawSheet, type FigureSpec, PLAIN } from './fixtures/figure.ts';
 
-const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150] };
+const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150], arm: 'sleeve' };
 const at = (extra: Partial<FigureSpec> = {}) => drawFigure({ ...base, eyeShift: 0, ...extra });
 const poses = (views: ReadonlyArray<ReturnType<typeof drawFigure>>): SheetMeasure =>
   Result.getOrThrow(
@@ -26,9 +26,13 @@ const raised = (kind: 'free' | 'sleeve' | 'bare') =>
 describe('a raised hand', () => {
   const m = poses([at(), raised('free'), raised('sleeve'), raised('bare')]);
 
-  test('passes one floating free, and flags one on a sleeve and one on a bare forearm', () => {
-    expect(flagsOf(m)).toEqual(['sleeveReach:3', 'bareArm:4']);
-    expect(m.views[1]?.reach).toBe(0);
+  test('passes one on a sleeve, and flags one floating free and one on a bare forearm', () => {
+    expect(flagsOf(m)).toEqual(['sleeveReach:2', 'bareArm:4']);
+    expect(
+      m.views.map((v) =>
+        Option.getOrElse(Option.fromUndefinedOr(v.free), (): number | 'unread' => 'unread'),
+      ),
+    ).toEqual([0, 1, 0, 'unread']);
   });
 });
 
@@ -52,14 +56,15 @@ describe('a sleeve into a hand held out, from flat to straight down', () => {
   const reached = (m: SheetMeasure) =>
     m.flags.filter((f) => f.check === 'sleeveReach').map((f) => f.views[0]);
 
-  test("flags the sleeve at every angle, met as flat colour or across the hand's ring", () => {
-    expect(reached(flat)).toEqual([2, 3, 4, 5, 6, 7, 8]);
-    expect(reached(cuffed)).toEqual([2, 3, 4, 5, 6, 7, 8]);
+  test("passes the sleeve at every angle, met as flat colour or across the hand's ring", () => {
+    expect(reached(flat)).toEqual([1]);
+    expect(reached(cuffed)).toEqual([1]);
+    expect(flat.views.slice(1).map((v) => v.free)).toEqual(angles.map(() => 0));
   });
 
-  test('passes the hand floating free at the same place', () => {
-    expect(flat.views[0]?.reach).toBe(0);
-    expect(flagsOf(flat)).not.toContain('sleeveReach:1');
+  test('flags the hand floating free at the same place', () => {
+    expect(flat.views[0]?.free).toBe(1);
+    expect(flagsOf(flat)).toContain('sleeveReach:1');
   });
 });
 
@@ -89,12 +94,30 @@ describe('a hand the read cannot follow', () => {
   });
 });
 
-describe('a hand held low beside the hem', () => {
-  // Its middle under the robe's widest rows: too few of the body's side lie under it to follow a sleeve, and it is not raised.
-  const m = poses([at(), at({ limb: { hand: [370, 510], kind: 'free' } })]);
+describe("a bare hand whose ring touches a straight robe's side", () => {
+  // The robe as wide at the hem as under the chin, no sleeve: the hand's ring lies on the robe's line, so the circle round the hand crosses the robe, and its middle stands 0.07 of its diameter past a touch.
+  const straight: Partial<FigureSpec> = { robeTop: 160, robeHem: 160 };
+  const m = poses([at(straight), at({ ...straight, limb: { hand: [316, 414], kind: 'free' } })]);
 
-  test('is said as not measured for a sleeve, never read as a hand raised', () => {
-    expect(flagsOf(m)).toEqual([]);
+  test('is said as a hand at rest, never read as joined by a sleeve', () => {
+    expect(m.views[1]?.reach).toBeUndefined();
+    expect(
+      m.unmeasured.filter((u) => u.view === 2 && u.check === 'sleeveReach').map((u) => u.why),
+    ).toEqual(['a hand at rest against the body: a sleeve to it is not told from a touch']);
+  });
+});
+
+describe('a hand held low beside the hem', () => {
+  // Its middle under the robe's widest rows: too few of the body's side lie under it to tell held out from at rest, and it is not raised.
+  const low = [370, 510] as const;
+  const m = poses([
+    at(),
+    at({ limb: { hand: low, from: [[250, 300]], kind: 'sleeve' } }),
+    at({ limb: { hand: low, kind: 'free' } }),
+  ]);
+
+  test('on a sleeve, is said as not measured, never read as a hand raised; floating free, is flagged', () => {
+    expect(flagsOf(m)).toEqual(['sleeveReach:3']);
     expect(m.unmeasured.filter((u) => u.view === 2 && u.check === 'sleeveReach')).toEqual([
       { check: 'sleeveReach', view: 2, why: "the body's side under a hand does not read" },
     ]);

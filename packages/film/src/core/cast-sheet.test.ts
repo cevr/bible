@@ -4,7 +4,7 @@
 // in `cast-sheet-poses.test.ts`, so the two files run side by side.
 
 import { describe, expect, test } from 'bun:test';
-import { Result, Schema } from 'effect';
+import { Option, Result, Schema } from 'effect';
 import {
   measureSheet,
   SheetMeasure,
@@ -17,8 +17,8 @@ import { measureFigure } from './figure.ts';
 import { drawFigure, drawSheet, type FigureSpec, flipRaster, PLAIN } from './fixtures/figure.ts';
 import { cropRaster } from './raster.ts';
 
-/** A figure as a turnaround draws it: the robe shaded on its right, the eyes `eyeShift` px off the face's middle. */
-const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150] };
+/** A figure as a turnaround draws it: the robe shaded on its right, the hand at the end of its sleeve, the eyes `eyeShift` px off the face's middle. */
+const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150], arm: 'sleeve' };
 const at = (eyeShift: number, extra: Partial<FigureSpec> = {}) =>
   drawFigure({ ...base, eyeShift, ...extra });
 /** A view facing the viewer's right as a painter draws one: the left-facing drawing flipped, its shade drawn on the far side so the lit side stays left. */
@@ -71,6 +71,38 @@ describe('a clean turnaround', () => {
     expect(Schema.decodeSync(json)(Schema.encodeSync(json)(m))).toEqual(m);
     const overlay = sheetOverlay(sheet, m);
     expect([overlay.width, overlay.height]).toEqual([sheet.width, sheet.height]);
+  });
+});
+
+describe('a turnaround whose hands float free', () => {
+  // The old house hand: a circle a hand's width beside the robe, no sleeve or arm to it.
+  const free = (eyeShift: number, extra: Partial<FigureSpec> = {}) =>
+    drawFigure({ ...PLAIN, robeShade: [60, 78, 150], eyeShift, ...extra });
+  const m = read(
+    drawSheet([
+      free(0),
+      free(-14),
+      free(-26),
+      free(0, { eyeW: 0 }),
+      flipRaster(free(-26, { lit: 'right' })),
+      flipRaster(free(-14, { lit: 'right' })),
+    ]),
+    turnaround,
+  );
+
+  test('flags each view whose hand reads, for its sleeve (owner, 2026-10-18)', () => {
+    expect(flagsOf(m)).toEqual([
+      'sleeveReach:1',
+      'sleeveReach:2',
+      'sleeveReach:3',
+      'sleeveReach:5',
+      'sleeveReach:6',
+    ]);
+    expect(
+      m.views.map((v) =>
+        Option.getOrElse(Option.fromUndefinedOr(v.free), (): number | 'unread' => 'unread'),
+      ),
+    ).toEqual([1, 1, 1, 'unread', 1, 1]);
   });
 });
 

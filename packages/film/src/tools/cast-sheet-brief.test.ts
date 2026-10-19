@@ -43,6 +43,18 @@ describe("the house block made a sheet's", () => {
     }),
   );
 
+  it.effect(
+    'keeps the house hand: a circle at the end of an arm in its sleeve, never floating free',
+    () =>
+      Effect.gen(function* () {
+        // The owner's rule (2026-10-18, look v5): every hand ends an arm in its sleeve.
+        expect(yield* houseBlock).toContain(
+          'Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm',
+        );
+        expect(yield* briefOf).toContain('at the end of each arm in its sleeve');
+      }),
+  );
+
   it.effect('stops at a block that no longer says a phrase it swaps', () =>
     Effect.gen(function* () {
       const moved = (yield* houseBlock).replace('A 2D key frame', 'A key frame');
@@ -74,13 +86,14 @@ describe("a sheet's brief", () => {
   );
 
   it.effect(
-    "carries the owner's rules: a sleeve at rest only, the beard parted from the hair, no lettering",
+    "carries the owner's rules: each hand at its sleeve's end, the beard parted from the hair, no lettering",
     () =>
       Effect.gen(function* () {
         const brief = yield* briefOf;
-        expect(brief).toContain(
-          "A sleeve may hang at rest along the body's side, but never reaches toward a hand.",
-        );
+        expect(brief).toContain('Each arm is in its sleeve to the wrist');
+        expect(brief).toContain('a hand never floats free beside the body');
+        expect(brief).not.toContain('floating free a hand');
+        expect(brief).not.toContain('floating low');
         expect(brief).toContain('never a bare arm');
         expect(brief).toContain('a narrow dark band, the deep shade of that brown');
         expect(brief).toContain('No lettering anywhere');
@@ -128,7 +141,7 @@ describe("each kind's rules", () => {
       const brief = yield* kindBrief('heads');
       expect(brief).toContain('No hands, no arms and no skin show below the neck');
       expect(brief).not.toContain('soles');
-      expect(brief).not.toContain('floating free a hand');
+      expect(brief).not.toContain('Each arm is in its sleeve');
     }),
   );
 });

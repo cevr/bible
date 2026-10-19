@@ -4,11 +4,11 @@
 // said, never flagged. The turnarounds are read in `cast-sheet.test.ts`.
 
 import { describe, expect, test } from 'bun:test';
-import { Result } from 'effect';
+import { Option, Result } from 'effect';
 import { measureSheet, type SheetMeasure, type SheetOptions } from './cast-sheet.ts';
 import { drawFigure, drawSheet, type FigureSpec, PLAIN } from './fixtures/figure.ts';
 
-const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150] };
+const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150], arm: 'sleeve' };
 const at = (extra: Partial<FigureSpec> = {}) => drawFigure({ ...base, eyeShift: 0, ...extra });
 const read = (
   views: ReadonlyArray<ReturnType<typeof drawFigure>>,
@@ -17,17 +17,20 @@ const read = (
 const flagsOf = (m: SheetMeasure) => m.flags.map((f) => `${f.check}:${f.views.join(',')}`);
 
 describe("a pose sheet's sleeves and arms", () => {
-  const m = read([at({ arm: 'sleeveAtRest' }), at({ arm: 'sleeveReach' }), at({ arm: 'bare' })], {
-    kind: 'poses',
-    count: 3,
-    anchor: 1,
-  });
+  const m = read(
+    [at(), at({ arm: 'sleeveAtRest' }), at({ arm: 'sleeveReach' }), at({ arm: 'bare' })],
+    { kind: 'poses', count: 4, anchor: 1 },
+  );
 
-  test('passes a sleeve at rest, and flags a sleeve that reaches to the hand and a bare arm', () => {
-    expect(flagsOf(m)).toEqual(['sleeveReach:2', 'bareArm:3']);
-    expect(m.views[0]?.reach).toBe(0);
-    expect(m.views[1]?.reach).toBeGreaterThan(0.5);
-    expect(m.views.map((v) => v.bare)).toEqual([0, 0, 1]);
+  test('passes a hand at the end of its sleeve, at rest or held out, and flags a hand floating free beside a sleeve and a bare arm', () => {
+    expect(flagsOf(m)).toEqual(['sleeveReach:2', 'bareArm:4']);
+    expect(
+      m.views.map((v) =>
+        Option.getOrElse(Option.fromUndefinedOr(v.free), (): number | 'unread' => 'unread'),
+      ),
+    ).toEqual([0, 1, 0, 'unread']);
+    expect(m.views[2]?.reach).toBeGreaterThan(0.5);
+    expect(m.views.map((v) => v.bare)).toEqual([0, 0, 0, 1]);
   });
 });
 

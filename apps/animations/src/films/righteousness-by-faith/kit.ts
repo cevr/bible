@@ -195,7 +195,9 @@ export interface Person {
    * over it): its target in the person's units, how far it has travelled
    * there from its rest (a named cue's `f.at`) and its grip. No gesture, or
    * one at `reach` 0, and the hand floats at rest beside the body, bobbing
-   * with the breath. No arm is ever drawn (DIRECTION, Figures → Hands).
+   * with the breath. No arm is drawn: the canvas kit's look from before
+   * 2026-10-18 (DIRECTION, Figures → Hands); the house hand is now at the
+   * end of an arm in its sleeve (CRAFT rule 12).
    */
   far?: PersonGesture;
   near?: PersonGesture;

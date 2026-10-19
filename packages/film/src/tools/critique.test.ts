@@ -11,6 +11,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Cause, Context, Effect, Exit, FileSystem, Layer, Path } from 'effect';
+import { critiquePacket } from '../core/critique.ts';
 import { CounselFailed } from '../core/judge.ts';
 import type { MatchTaken } from '../core/match.ts';
 import { Counsel } from './counsel.ts';
@@ -99,6 +100,18 @@ const MIXED = [
   ']}',
   '```',
 ].join('\n');
+
+describe("the critique's packet", () => {
+  it.effect(
+    'calls a hand floating free of the body a finding: the house hand ends an arm in its sleeve',
+    () =>
+      Effect.sync(() =>
+        expect(critiquePacket('s at 1', [], [])).toContain(
+          '- **pose**: where each hand is (raised or low, which one), the lean, the gesture. The house hand is a circle at the end of an arm in its sleeve: a hand floating free of the body, with no sleeve to it, is a finding.',
+        ),
+      ),
+  );
+});
 
 describe('the critique', () => {
   it.effect("a heading its rule file lacks fails the critic's build, as the judge's does", () =>

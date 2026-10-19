@@ -9,8 +9,10 @@
 // rail in front of the robe's foot (or none), and a wall's thin lines behind
 // it (or none). For a cast sheet's tests (`cast-sheet.test.ts`): the eyes
 // turned off the face's middle, long dark hair down the head's sides and a
-// beard (parted from the hair by a line, or running into it), a sleeve
-// hanging at rest or reaching to the hand, a bare arm, a limb (a sleeve, a
+// beard (parted from the hair by a line, or running into it), the house arm
+// (a sleeve from the shoulder to the hand at rest at its end), a sleeve
+// hanging at rest with the hand floating free beside it, a sleeve reaching
+// to the hand, a bare arm, a limb (a sleeve, a
 // bare forearm or nothing) bent from the shoulder into a hand at any place
 // and angle, its cuff inked or not, no hands at all, bare skin on the robe
 // (a yoke, two shoulders, a patch on the chest), one eye (a profile), a
@@ -82,12 +84,15 @@ export interface FigureSpec {
   /** A dark beard over the lower face between the locks, the mouth inside it: parted from the locks by a line, or running into them. */
   readonly beard?: { readonly parted: boolean };
   /**
-   * What lies between the robe and the hand: a sleeve hanging at rest down
-   * the robe's side (8 px wide), a sleeve reaching out from the side to the
-   * hand held out, or a bare arm of skin out to it, the hand at its end with
+   * What lies between the robe and the hand: the house arm, a sleeve from
+   * the shoulder down and out to the hand at rest at its end, the hand's
+   * ring between them as the painted sheets draw it (`sleeve`); a
+   * sleeve hanging at rest down the robe's side (8 px wide), the hand
+   * floating free beside it; a sleeve reaching out from the side to the
+   * hand held out; or a bare arm of skin out to it, the hand at its end with
    * no line between them. The hand floats beside the robe when left out.
    */
-  readonly arm?: 'sleeveAtRest' | 'sleeveReach' | 'bare';
+  readonly arm?: 'sleeve' | 'sleeveAtRest' | 'sleeveReach' | 'bare';
   /** The robe's colour, when not the house blue: a paper of another cloth. */
   readonly robe?: Rgb;
   /** A head tipped: the right eye this many pixels lower than the left. */
@@ -209,6 +214,16 @@ const drawArm = (c: Canvas, spec: FigureSpec, f: Frame) => {
   }
   if (spec.arm === 'bare') c.fill(reach(line), INK);
   if (spec.limb !== undefined || spec.handless === true) return;
+  if (spec.arm === 'sleeve') {
+    const top = f.chin + 0.15 * spec.robeDepth;
+    const along = (w: number) => segment([cx + f.halfAt(top), top], [hand.x, hand.y], w);
+    c.fill(along(14 + line), INK);
+    c.fill(along(14), spec.robeShade ?? spec.robe ?? ROBE);
+    c.fill(ellipse(hand.x, hand.y, hand.r + line, hand.r + line), INK);
+    c.fill(ellipse(hand.x, hand.y, hand.r, hand.r), SKIN);
+    drawRobeFill(c, spec, f);
+    return;
+  }
   c.fill(ellipse(hand.x, hand.y, hand.r + line, hand.r + line), INK);
   if (spec.arm === 'bare') c.fill(reach(0), SKIN);
   c.fill(ellipse(hand.x, hand.y, hand.r, hand.r), SKIN);

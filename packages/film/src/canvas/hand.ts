@@ -1,5 +1,7 @@
-// Floating hands (DIRECTION, "Hands"). No arm is ever drawn: a figure's hand
-// is the one mitten, floating free near its body. At rest it floats at its
+// Floating hands, the canvas kit's look from before 2026-10-18 (DIRECTION,
+// "Hands"), when no arm was drawn: the house hand is now a circle at the end
+// of an arm in its sleeve (CRAFT rule 12), drawn by the Rive rigs. Here a
+// figure's hand is the one mitten, floating free near its body. At rest it floats at its
 // spot beside the body, bobbing a little with the figure's breath. When it
 // has work to do it travels there on a named cue along a soft arc round its
 // shoulder, as a hand on an unseen arm would, swings a little past its reach

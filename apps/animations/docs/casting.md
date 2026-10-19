@@ -401,7 +401,7 @@ The entries run in priority order. The §4.3 figures that no script uses come la
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Texts                | Num 12:3; Ex 2:3; 3:5; 4:2; 17:12; 34:29                                                                                                     |
 | Age, height          | 80 for most scenes; 1.0                                                                                                                      |
-| Silhouette and props | the rod (Ex 4:2); sandals off at the bush (Ex 3:5); his hands held up by Aaron and Hur (Ex 17:12), floating circles held by theirs           |
+| Silhouette and props | the rod (Ex 4:2); sandals off at the bush (Ex 3:5); his hands held up by Aaron and Hur (Ex 17:12), at the end of his sleeves, held by theirs |
 | Garments             | camel mantle, linen tunic, walnut headcloth                                                                                                  |
 | Expressions          | meek, "above all the men" (Num 12:3): head inclined, never a commanding pose; his face shining (Ex 34:29), the one gold glow on a man's face |
 | Never                | a muscular lawgiver; horns (a Latin misreading of Ex 34:29's "shone")                                                                        |

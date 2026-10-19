@@ -85,10 +85,10 @@ The faces, the style's name and the face mods are studied further in [face-study
    - _Fit:_ this matches the design language's "outer lines are heavier than inner ones", and its numbers are a trial (§5).
 3. **A figure is a few parts; the pose lives in the parts' placement.** Head, body and two hand circles are separate pieces. A pose is where they sit and how they tilt, never a new drawing.
    - _Map:_ §11 rules 4 and 9.
-   - _Fit:_ this is RimWorld's head-on-a-body at a fixed offset with floating equipment. Our circle hands with no arm are the same idea one step further: the hand floats, as RimWorld's weapon does.
+   - _Fit:_ this is RimWorld's head-on-a-body at a fixed offset with floating equipment. Our circle hands were the same idea one step further, the hand floating as RimWorld's weapon does, until the owner gave every hand a sleeve (2026-10-18, CRAFT.md): the hand now sits at the sleeve's end, and the pose still lives in where it sits.
 4. **The held thing points, not the arm.** A prop rides a hand circle, at an offset from the body's root, rotated toward what it acts on: the gavel toward the bench, a scroll toward the reader.
    - _Map:_ the hand circle's reach arc, plus a rotation on the held prop toward its target.
-   - _Fit:_ full fit with "no arm, ever".
+   - _Fit:_ fits: the prop rides the hand at its sleeve's end, and the prop turns, not the arm.
 5. **Variety by swapping parts and recolouring, never by drawing a new person.**
    - Keep a small body-type set, about 4–5 silhouettes (slight, broad, tall, child, elder), a few head shapes and a few hats or hair, plus the garment tint from a ramp.
    - _Map:_ Rive solo groups chosen by view-model numbers, and garment colours bound from the palette ramps.

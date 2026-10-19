@@ -22,10 +22,12 @@
 //   mirror of the other, a beard parted from the hair as the kept concept
 //   parts it (owner, 2026-10-18: "Jesus's render confuses parts of his hair
 //   with his beard, look more closely to the concept"), and no skin below the
-//   neck but the hands, nor a sleeve or an arm that joins a hand held out
-//   or raised, from any angle (owner, 2026-10-18: "A sleeve may hang at
-//   rest, but never reach toward a hand"). The face is found by its own
-//   read (the skin round the eyes), never as the skin above the chin.
+//   neck but the hands, and every hand at the end of an arm in its sleeve,
+//   never floating free of the body (owner, 2026-10-18: "I actually like the
+//   style when they have sleeves and like arms, kind of like we have with
+//   Jesus and a lot of the characters so far in the cast"). The face is
+//   found by its own read (the skin round the eyes), never as the skin above
+//   the chin.
 //
 // A sheet is painted: what a view does not show is listed as not measured,
 // never guessed, and the measure guides the retry and the ask; it does not
@@ -120,10 +122,10 @@ const PAPER_DE = 12;
 const GROUND = 0.02;
 /** The hair's fall under the chin, in head heights, past which it differs from the anchor's. */
 const HAIR_FALL = 0.1;
-/** A garment that joins the body to a hand held out across more than this share of the hand's diameter is a sleeve or an arm that reaches. */
-const REACH = 0.1;
-/** A join crossing the circle just round a hand along less than this share of its radius is a touch, never a sleeve. */
+/** A join crossing the circle just round a hand along less than this share of its radius is a touch, never a sleeve: the hand floats free. */
 const LINK = 0.5;
+/** A joined hand held out by a gap under this share of its diameter from the body's side touches it, at rest: a sleeve to it is not told from a touch. */
+const REACH = 0.1;
 /** A fill's distance from the face's skin (ΔE76) inside which it may be skin. */
 const SKIN_DE = 14;
 /**
@@ -218,8 +220,10 @@ const SheetView = Schema.Struct({
       share: Schema.Finite,
     }),
   ),
-  /** How far a garment reaches out to a hand held out or raised, joined to it, in hand diameters (0 where paper shows between them). */
+  /** How far a sleeve or an arm reaches out to a hand held out or raised, joined to it, in hand diameters. */
   reach: Schema.optionalKey(Schema.Finite),
+  /** The hands read that float free: no sleeve or arm joins them to the body. */
+  free: Schema.optionalKey(Schema.Int),
   /** Skin regions below the neck that are not round hands. */
   bare: Schema.Int,
 });
@@ -735,9 +739,10 @@ interface ReachFrame {
   readonly head: HeadFrame;
 }
 
-/** One hand's reach: read (its gap in hand diameters, 0 when free), or not read and why. */
+/** One hand's reach: read (joined, and the gap its sleeve or arm closes in hand diameters, or free), or not read and why. */
 type HandReach =
-  | { readonly read: true; readonly reach: number }
+  | { readonly read: true; readonly joined: true; readonly reach: number }
+  | { readonly read: true; readonly joined: false }
   | { readonly read: false; readonly why: string };
 
 /** Whether something joins a hand to the body: it crosses the circle just round the hand along more than a touch. */
@@ -746,17 +751,21 @@ const linked = (frame: ReachFrame, d: HandDisc) =>
   LINK * d.r;
 
 /**
- * How far a garment or an arm reaches to one hand, in hand diameters. The
- * house hand floats free, a hand's width out, with paper between it and the
- * body. A hand whose middle lies more than its radius past the body's side
- * just under it is held out; a hand above the shoulders is raised, held out
- * from the head's side. Either is reached when, its disc cut out, the
- * body still crosses the circle round it: a sleeve or an arm from any angle,
- * met as flat colour or across the hand's own ring; the reach is the gap it
- * closes. A hand at rest against the body, or in front of the head, cannot
- * tell a sleeve from a touch, and is said.
+ * Whether a sleeve or an arm joins one hand to the body, and how far it
+ * reaches. The house hand is a circle at the end of an arm in its sleeve. A
+ * hand is joined when, its disc cut out, the body still crosses the circle
+ * round it past a touch: a sleeve or an arm from any angle, met as flat
+ * colour or across the hand's own ring; a hand with paper all round it, or
+ * one that only touches the body, floats free. A joined hand whose middle
+ * lies more than its radius past the body's side just under it is held out,
+ * and one above the shoulders raised, held out from the head's side: its
+ * reach is the gap its sleeve closes. A joined hand at rest against the
+ * body (or held out from it by under `REACH` of its diameter: a bare hand
+ * whose ring touches the body's line meets it as a sleeve would), or in
+ * front of the head, cannot tell a sleeve from a touch, and is said.
  */
 const handReachOf = (frame: ReachFrame, d: HandDisc): HandReach => {
+  if (!linked(frame, d)) return { read: true, joined: false };
   const toward = Math.sign(d.x - frame.middle) || 1;
   const under = frame.rows
     .filter((row) => row.y > d.y + d.r + 2 * frame.line && row.y <= d.y + 3 * d.r)
@@ -769,17 +778,14 @@ const handReachOf = (frame: ReachFrame, d: HandDisc): HandReach => {
     (under.sort((a, b) => a - b)[Math.floor(under.length / 2)] ?? d.x);
   const out = toward * (d.x - side);
   const gap = out - d.r - frame.line;
-  const joined = linked(frame, d);
-  if (out <= d.r || gap <= 0)
-    return (
-      (joined && {
-        read: false,
-        why:
-          (raised && 'a hand in front of the head: a sleeve to it is not told from a touch') ||
-          'a hand at rest against the body: a sleeve to it is not told from a touch',
-      }) || { read: true, reach: 0 }
-    );
-  return { read: true, reach: (joined && gap / (2 * d.r)) || 0 };
+  if (out <= d.r || gap <= REACH * 2 * d.r)
+    return {
+      read: false,
+      why:
+        (raised && 'a hand in front of the head: a sleeve to it is not told from a touch') ||
+        'a hand at rest against the body: a sleeve to it is not told from a touch',
+    };
+  return { read: true, joined: true, reach: gap / (2 * d.r) };
 };
 
 /** A garment's rows: its fills (not skin, not hair) from 0.55 to 0.85 of the figure down. */
@@ -969,7 +975,8 @@ const readMeasured = (
   );
   const reaches =
     (hands && reachesOf(crop, closed, { rows, discs, middle: ctx.middle, line, head: at })) || [];
-  const read = reaches.flatMap((r) => (r.read && [r.reach]) || []);
+  const read = reaches.flatMap((r) => (r.read && r.joined && [r.reach]) || []);
+  const free = reaches.filter((r) => r.read && !r.joined).length;
   const whys = [...new Set(reaches.flatMap((r) => (!r.read && [r.why]) || []))];
   unmeasured.push(
     ...whys.map((why) => ({ check: 'sleeveReach' as const, view: ctx.view, why })),
@@ -992,6 +999,7 @@ const readMeasured = (
     hair,
     discs,
     reach: Option.liftPredicate(Math.max(0, ...read), () => read.length > 0),
+    free: Option.liftPredicate(free, () => reaches.some((r) => r.read)),
     unmeasured,
   };
 };
@@ -1135,7 +1143,8 @@ const measuredFields = (
     },
   });
   const reach = Option.match(r.reach, { onNone: () => ({}), onSome: (v) => ({ reach: v }) });
-  return { ...head, ...hand, ...hair, ...reach };
+  const free = Option.match(r.free, { onNone: () => ({}), onSome: (v) => ({ free: v }) });
+  return { ...head, ...hand, ...hair, ...reach, ...free };
 };
 
 // ---------------------------------------------------------------------------
@@ -1429,19 +1438,19 @@ const paperFlags = (views: ReadonlyArray<SheetView>, anchor: SheetView): Readonl
     ];
   });
 
-/** A view's sleeve: a garment that reaches out to a hand. */
+/** A view's sleeves: a hand that floats free, no sleeve or arm joining it to the body. */
 const reachFlags = (v: SheetView): ReadonlyArray<SheetFlag> =>
   Option.match(
-    Option.filter(Option.fromUndefinedOr(v.reach), (r) => r > REACH),
+    Option.filter(Option.fromUndefinedOr(v.free), (n) => n > 0),
     {
       onNone: () => [],
-      onSome: (r) => [
+      onSome: (n) => [
         flag(
           'sleeveReach',
           [v.view],
-          r,
-          REACH,
-          'a sleeve reaches toward a hand: a sleeve may hang at rest, never reach',
+          n,
+          0,
+          'a hand floats free of the body: every hand is a circle at the end of an arm in its sleeve',
         ),
       ],
     },
@@ -1727,13 +1736,13 @@ export const sheetTable = (name: string, m: SheetMeasure): string => {
       '',
     ]) ||
       []),
-    `${m.kind}, ${m.views.length} views. ${canon} Held within ${TOLERANCE} %; papers within ΔE ${PAPER_DE}; a mirror under ${MIRROR_FLOOR}; a pair under ${SAME_WAY} of its flipped difference faces one way; a garment joined to a hand held out across more than ${REACH.toFixed(2)} of its diameter reaches.`,
+    `${m.kind}, ${m.views.length} views. ${canon} Held within ${TOLERANCE} %; papers within ΔE ${PAPER_DE}; a mirror under ${MIRROR_FLOOR}; a pair under ${SAME_WAY} of its flipped difference faces one way; every hand at the end of a sleeve or an arm, never free.`,
     '',
-    '| View | Slot | Turn | Roll | Height | Head | Heads tall | W/H | Hand | Hair fall | Hair/beard | Lit | Reach | Bare | Papers |',
-    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
+    '| View | Slot | Turn | Roll | Height | Head | Heads tall | W/H | Hand | Hair fall | Hair/beard | Lit | Reach | Free | Bare | Papers |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...m.views.map(
       (v) =>
-        `| ${v.view} | ${v.slot} | ${fixed(some(v.turn), 2)} | ${fixed(some(v.roll), 0)} | ${v.height} | ${fixed(some(v.head), 0)} | ${fixed(some(v.headsTall), 2)} | ${v.widthToHeight.toFixed(3)} | ${fixed(some(v.hand), 3)} | ${fixed(some(v.hairFall), 2)} | ${v.hairBeard ?? '–'} | ${v.lit} | ${fixed(some(v.reach), 2)} | ${v.bare} | ${v.papers.map((p) => `${hexOf(p.rgb)} ${(100 * p.share).toFixed(0)}%`).join(' ')} |`,
+        `| ${v.view} | ${v.slot} | ${fixed(some(v.turn), 2)} | ${fixed(some(v.roll), 0)} | ${v.height} | ${fixed(some(v.head), 0)} | ${fixed(some(v.headsTall), 2)} | ${v.widthToHeight.toFixed(3)} | ${fixed(some(v.hand), 3)} | ${fixed(some(v.hairFall), 2)} | ${v.hairBeard ?? '–'} | ${v.lit} | ${fixed(some(v.reach), 2)} | ${v.free ?? '–'} | ${v.bare} | ${v.papers.map((p) => `${hexOf(p.rgb)} ${(100 * p.share).toFixed(0)}%`).join(' ')} |`,
     ),
     '',
     ...m.pairs.map(

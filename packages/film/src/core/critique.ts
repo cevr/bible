@@ -80,7 +80,7 @@ export const critiquePacket = (
     '',
     "- **head angle**: the head's turn (front, three-quarter, profile; which way) and its tilt (up, down, to a side). A concept's angle is design, never a slip: a different angle is a finding.",
     "- **face**: the face's shape (round, long, the jaw, the chin, the cheek) and its features (the eyes' size, spacing and height, the brows, a nose, the mouth, the beard's shape).",
-    '- **pose**: where each hand floats (raised or low, which one), the lean, the gesture. The house hands float free with no arm, ever: compare where a hand is, never ask for an arm or a sleeve to it.',
+    '- **pose**: where each hand is (raised or low, which one), the lean, the gesture. The house hand is a circle at the end of an arm in its sleeve: a hand floating free of the body, with no sleeve to it, is a finding.',
     "- **proportion**: the head against the body, a garment's width and length. The figure's height in heads is not a finding: it comes from the cast's height band.",
     '- **palette**: a colour in the scene the concept does not have, or one it lost (skin, hair, a garment, the shade).',
     '- **artifact**: anything at 1:1 no part should draw: a light line between two pieces, a fill short of the outline with another colour showing in the gap, a point poking past the silhouette, rain or a stroke across the face, a hole, a ragged edge.',

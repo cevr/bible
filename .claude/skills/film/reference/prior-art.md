@@ -23,7 +23,7 @@ The older studies beside it are:
 - **Colour.** White is the robe's (`#fcfefc`), scarlet is sin (`#ce0914`), and gold is God's word (`#e6b347`). Garments sit at saturation 0.20–0.35.
 - **Shading.** Shade with colour, never with black or grey. Outlines may be dark ([CRAFT.md](../CRAFT.md) rule 12).
 - **Lines.** There are no inner lines but the face's.
-- **Hands.** Hands are circles, with no thumbs and no arms.
+- **Hands.** Hands are circles, with no thumbs, each at the end of an arm in its sleeve (owner, 2026-10-18).
 - **Speech.** The cast never speaks, so there is no lip-sync.
 - **Faces.** A face is a few Rive shapes moved by numbers, never a new drawing for each expression.
 - **Tone.** The tone is sincere and hopeful: no gore, no slapstick at a verdict, and no irony as a default.

@@ -20,7 +20,7 @@ The image route letters a sign well enough, yet a word the narration says always
      --block-file docs/ref/house-look.txt --ref docs/ref/house-look.png --world-file <world.txt>
    ```
 
-   No code default exists: the house look is those two committed files, and `board style` copies the image into the board folder as `style.9005.png`. A frame the owner already approved, a kept concept among them, comes in by `board import` with `--keep` and `--why`.
+   No code default exists: the house look is those two committed files (the image gives the paper, the line and the light; its hands float, which the house no longer draws: every hand is at the end of an arm in its sleeve), and `board style` copies the image into the board folder as `style.9005.png`. A frame the owner already approved, a kept concept among them, comes in by `board import` with `--keep` and `--why`.
 
 2. **Draw.** `bun run board <film> --lanes 3` (or `--beat id,id`): two tries a panel on `okra image`'s Codex route, with the style ref attached. The route is the Codex one only: never pass `--model`, never a paid route, and keep personal data out of every prompt. A try takes about 50 s (37–164 s); RBF's 100 tries took 31 minutes on 3 lanes. `--dry-run` prints the prompts first.
 3. **Pick.** Look at both tries of every panel against its brief, the line at its mark, the style and the frames already kept, and keep one with a concrete why (`bun run lab keep_try --film <film> --panel <beat>.<at> --try <n> --why …`). The owner keeps a try in the studio's inspector too; an agent's picks are the owner's to overrule.
@@ -34,7 +34,7 @@ What it gets wrong, so a pick checks for it and a tweak names it:
 
 - **Callbacks.** Only the style ref rides along, so a frame that calls back an earlier beat (the cold open's court, the robed figure, a recurring prop row) is redrawn from words and drifts. Name the called-back panel in the tweak and draw over it.
 - **Character sheets.** The route does not attach a film's character sheets yet ([film-flow-audit.md](../../../../apps/animations/plans/film-flow-audit.md), `concepttool`). Unattached, the plain lead drifts taller, slimmer or into another hue. Until the route attaches them, draw a try of a sheet's figure with its sheet attached (the plain lead's `apps/animations/docs/ref/plain-lead-sheet.png`, the robe sheet where the story clothes him), and measure the try against the sheet before you pick it (character-design 2.3).
-- **The cast.** Crowds and named people drift toward the style ref's people: skin tones, hair, bright clothes, its props. The everyman's grey head warms. Sleeves or stick arms appear on gestures despite the circle-hands rule.
+- **The cast.** Crowds and named people drift toward the style ref's people: skin tones, hair, bright clothes, its props. The everyman's grey head warms. Stick arms or bare arms appear on gestures, though the house hand is a circle at the end of an arm in its sleeve (CRAFT.md).
 - **Big changes inside a beat.** A beat's later panels copy its first, which holds continuity and drops the change the brief asks for (a circle that keeps growing, specks winking out).
 - **Tweaks.** Sent the try with "keep everything", the route returns near copies; the tweak prompt therefore asks for the change plainly, seen at a glance.
 

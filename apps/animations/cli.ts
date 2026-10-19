@@ -16,7 +16,7 @@ export const SOUNDS = `${import.meta.dir}/sounds`;
 /** The app's footage library, shared by its talks (`footage/library.lock.json`). */
 export const FOOTAGE = `${import.meta.dir}/footage`;
 
-/** The house look every concept prompt opens with (`docs/ref/`): its block and its picture. */
+/** The house look every concept prompt opens with (`docs/ref/`): its block and its picture (its paper, line and light; its hands float, which the house no longer draws). */
 const HOUSE_LOOK = {
   text: `${import.meta.dir}/docs/ref/house-look.txt`,
   image: `${import.meta.dir}/docs/ref/house-look.png`,

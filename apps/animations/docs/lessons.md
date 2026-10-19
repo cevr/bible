@@ -192,7 +192,7 @@ The form of an entry, each field on its own line:
 - **Source:** apps/animations/plans/film-flow-audit.md #23 (canvas-era RBF, before v3)
 - **Wrong:** Figures were drawn with arms.
 - **Cause:** Not recorded.
-- **Guard:** judgement only: a hand's design is a figure's design, held against the sheet by the critique's pose and proportion. Carried by `.claude/skills/film/CRAFT.md`: "**One hand design per look, floating near its figure with no arm, ever.**"
+- **Guard:** judgement only: superseded on 2026-10-18 by `hands-at-sleeve-end`, which gives every hand a sleeve; a hand's design is a figure's design, held against the sheet by the critique's pose and proportion. Carried by `.claude/skills/film/CRAFT.md`: "**One hand design per look: a circle at the end of an arm in its sleeve, never a hand floating free of the body**"
 
 ### shade-with-colour-not-grey
 
@@ -219,7 +219,25 @@ The form of an entry, each field on its own line:
 - **Source:** tmp/orchestrate/p5/papercut/spec.md:8; apps/animations/plans/film-flow-audit.md #54
 - **Wrong:** The cold-studies paper-cut figures had hands with thumbs and no signature of their own.
 - **Cause:** Not recorded.
-- **Guard:** judgement only: a design rule of the figures, read by eye and by the critique. Carried by `.claude/skills/film/reference/character-design.md`: "plain circles of the figure's paper, no thumb, no fingers, no arm, ever"
+- **Guard:** judgement only: a design rule of the figures, read by eye and by the critique. Carried by `.claude/skills/film/reference/character-design.md`: "plain circles of the figure's paper, no thumb, no fingers (owner, 2026-10-12)"
+
+### hands-at-sleeve-end
+
+- **Date:** 2026-10-18
+- **Said:** "I actually like the style when they have sleeves and like arms, kind of like we have with Jesus and a lot of the characters so far in the cast. Let's make that kind of a standing role for the concept."
+- **Source:** the `look` production, v5 decision (2026-10-18)
+- **Wrong:** The house hand floated free of the body with no arm, and the cast sheet brief asked for it; the measure flagged a sleeve that reached to a hand.
+- **Cause:** The 2026-09-29 rule (`floating-circle-hands-no-arms`), which the kept Christ and the cast had outgrown.
+- **Guard:** `packages/film/src/core/cast-sheet.ts` `reachFlags` (a hand no sleeve or arm joins to the body flags `sleeveReach`); `packages/film/src/tools/cast-sheet-brief.ts` `HANDS`
+
+### farmer-sleeves
+
+- **Date:** 2026-10-18
+- **Said:** "He lifts his hand up, but it just looks weird without the sleeves. So let's add the sleeves."
+- **Source:** the `look` production, v5 (2026-10-18), on the RBF farmer's rig
+- **Wrong:** The farmer's raised hand floated with no sleeve, though his concept draws one.
+- **Cause:** The rig followed the floating-hand rule over the concept.
+- **Guard:** judgement only: a rig's arm is drawn by its painter and read by the critique's pose. Carried by `.claude/skills/film/reference/character-design.md`: "A raised hand is the house hand raised at the end of its sleeve, as the concept draws it"
 
 ### faces-more-interesting
 

@@ -55,8 +55,12 @@ const sheetHouseBlock = (house: string): Result.Result<string, HouseBlockMoved> 
     Result.succeed(house.trim()),
   );
 
-// What a sheet says, by its kind. The sleeve and the arm are the owner's
-// (2026-10-18: "A sleeve may hang at rest, but never reach toward a hand");
+// What a sheet says, by its kind. The arm in its sleeve is the owner's
+// (2026-10-18, the look's v5: "I actually like the style when they have
+// sleeves and like arms, kind of like we have with Jesus and a lot of the
+// characters so far in the cast. Let's make that kind of a standing role for
+// the concept"; on the farmer: "He lifts his hand up, but it just looks weird
+// without the sleeves. So let's add the sleeves.");
 // the hair and the beard answer his note on Christ's render ("Jesus's render
 // confuses parts of his hair with his beard"), as the kept concepts part them
 // (court.you and court-12: one brown, a dark band of its deep shade, about
@@ -79,7 +83,7 @@ const LIGHT =
   'The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another.';
 
 const HANDS =
-  "The hands are two plain round paper circles of the skin's colour floating free a hand's width beside the body: no arm, no thumb, no fingers. A sleeve may hang at rest along the body's side, but never reaches toward a hand. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder.";
+  "Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder.";
 
 const NO_LETTERING =
   'No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.';
@@ -117,7 +121,7 @@ const SHEET_RULES: Record<SheetKind, ReadonlyArray<string>> = {
 
 /** A turnaround's layout: six views in one row, as `TURNAROUND_SLOTS` reads them, `who` the member's pronoun ("Him", "her"). */
 export const turnaroundLayout = (who: string): string =>
-  `Draw ${who} six times in one row, evenly spaced across the sheet, standing at rest with both hands floating low beside the body, left to right: one, facing the viewer straight on; two, turned three-quarters toward the viewer's left; three, in full profile facing the viewer's left; four, seen from directly behind; five, in full profile facing the viewer's right; six, turned three-quarters toward the viewer's right. In profile one eye shows; from behind no face shows, only the back of the hair or headcloth and the garment's back.`;
+  `Draw ${who} six times in one row, evenly spaced across the sheet, standing at rest with both arms hanging in their sleeves at the sides, each hand at its sleeve's end, left to right: one, facing the viewer straight on; two, turned three-quarters toward the viewer's left; three, in full profile facing the viewer's left; four, seen from directly behind; five, in full profile facing the viewer's right; six, turned three-quarters toward the viewer's right. In profile one eye shows; from behind no face shows, only the back of the hair or headcloth and the garment's back.`;
 
 /** What a sheet's brief is made of: its kind, the house block as the app keeps it, and the member's own paragraphs. */
 interface SheetBrief {

@@ -166,7 +166,7 @@ const measure = Command.make(
   }),
 ).pipe(
   Command.withDescription(
-    'Measure a cast sheet try: facing first, then the canon, the views held to the anchor, the papers, the lit side, mirrors, sleeves and bare arms, the hair and the beard; a line per flag, a table, JSON and an overlay. Guides the retry and the ask; not a gate',
+    'Measure a cast sheet try: facing first, then the canon, the views held to the anchor, the papers, the lit side, mirrors, a hand floating free of its sleeve and bare arms, the hair and the beard; a line per flag, a table, JSON and an overlay. Guides the retry and the ask; not a gate',
   ),
 );
 
@@ -232,7 +232,7 @@ const brief = (house: HouseLook) =>
     }),
   ).pipe(
     Command.withDescription(
-      "Print a cast sheet's brief for the image route: the house block made a sheet's, the references, the look, the layout and its kind's rules (no lettering, a sleeve at rest only, the beard parted from the hair by a dark band)",
+      "Print a cast sheet's brief for the image route: the house block made a sheet's, the references, the look, the layout and its kind's rules (no lettering, each hand at its sleeve's end, the beard parted from the hair by a dark band)",
     ),
   );
 
