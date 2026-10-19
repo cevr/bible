@@ -836,11 +836,14 @@ a {
 
 /* ── Dusk, then night ─────────────────────────────────────────────────── */
 
-/* From the reasons band through the sky and the soil's warmth into the night, never through grey. */
+/*
+ * From the reasons band through the sky and the soil's warmth into the night,
+ * blended in oklab, so it passes through no hue the palette lacks.
+ */
 .dusk {
   height: var(--height-dusk);
   background: linear-gradient(
-    180deg in oklch,
+    180deg in oklab,
     var(--color-band),
     var(--color-sky) 22%,
     var(--color-dusk-warm) 48%,
