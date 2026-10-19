@@ -457,3 +457,7 @@ The farmer's far arm now swings in its sleeve from his side (rest, hand at panel
 ## 2026-10-19T12:26:56Z · film
 
 board style 9005 re-run from docs/ref/house-look.txt at 81859a6d0: a word diff of the style block shows only the hands sentence changed (circles at the end of each arm in its sleeve, never floating free, never a bare arm); name, ref sha and world are as before; the tries' recorded prompts keep the old sentence as the record of what made them; v2/board.json is left as the record.
+
+## 2026-10-19T13:32:06Z · film
+
+board style 9005 world text: the plain lead's "two circle hands floating beside him" now reads "two circle hands at the ends of his arms in their sleeves, never floating free of him"; a word diff of board.json shows only that clause changed (block, ref sha and name as before); v2/board.json is left as the record. The rest of the lead's world text waits for the keep of candidate 9's sheets (ask a8fb2170353).
