@@ -3898,10 +3898,11 @@ prints, and gates on, only the findings oxlint cannot report (a Markdown
 series script, an answer the store could not keep), and one line a rule;
 `--strict` prints every finding and fails on any. It never fails on its
 model or its host: no key (`TYPESAFE_API_KEY`, else the keychain item
-`typesafe-api-key` within 2 s), a part past 5 s, a rate limit, an HTTP error,
-one item alone past the input limit or an answer that misses items passes,
-and prints `[judged] skipped rule=<rule> reason=<reason> items=<n>`; any
-other failure (git, the lint config, a defect) is `rule=* reason=error` with
+`typesafe-api-key` within 2 s), a part past 5 s, an account with no
+credits left, a rate limit, an HTTP error, one item alone past the input
+limit or an answer that misses items passes, and prints
+`[judged] skipped rule=<rule> reason=<reason> items=<n>`; any other failure
+(git, the lint config, a defect) is `rule=* reason=error` with
 `detail=<tag>`, a store that does not decode is read as empty with one
 `[judged] store unread` line, and answers the store cannot keep are asked
 again next run. Two runs keep their answers under one lock file that names

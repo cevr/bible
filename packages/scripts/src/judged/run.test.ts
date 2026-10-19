@@ -630,6 +630,17 @@ describe('a judged rule never fails on its model', () => {
     }),
   );
 
+  it.effect('skips no-credits when the account has none left', () =>
+    Effect.gen(function* () {
+      const typesafe = typesafeAnswering(402, () => ({
+        detail: { error_type: 'billing_error', message: 'No available TypeSafe API credits.' },
+      }));
+      expect(yield* lineOver(typesafe.layer)).toBe(
+        '[judged] skipped rule=historyComment reason=no-credits items=3',
+      );
+    }),
+  );
+
   it.effect('skips http on a server error', () =>
     Effect.gen(function* () {
       const typesafe = typesafeAnswering(500, () => ({ message: 'Upstream request failed' }));

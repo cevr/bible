@@ -9,7 +9,7 @@
 // an error when its rule's severity is `error`.
 
 import type { Duration } from 'effect';
-import { Console, Effect, Option, Result, Schema } from 'effect';
+import { Console, Effect, Option, Predicate, Result, Schema } from 'effect';
 import { type AiError, Decision, DecisionModel } from 'effect/ai';
 
 import { keepAnswers, readCache } from './cache.js';
@@ -17,7 +17,14 @@ import { type JudgedRule, ruleKey } from './rule.js';
 import { type Answer, cacheKey } from './store.js';
 
 /** Why a rule judged none of some items: what its skip line says. */
-type SkipReason = 'no-key' | 'timeout' | 'rate-limit' | 'http' | 'incomplete' | 'too-big';
+type SkipReason =
+  | 'no-key'
+  | 'no-credits'
+  | 'timeout'
+  | 'rate-limit'
+  | 'http'
+  | 'incomplete'
+  | 'too-big';
 
 /**
  * How many items one request holds at most, how many input tokens (as
@@ -57,8 +64,18 @@ export const LIMITS: Limits = { bound: 200, budget: 60_000, deadline: '5 seconds
 
 const PARTS_AT_ONCE = 8;
 
-/** The skip reason an `AiError` from the model is: `too-big` for a request past the model's input limit. */
+/** Whether a failure's words say TypeSafe refused it for the account's credits (HTTP 402, `billing_error`). */
+const billing = (reason: AiError.AiError['reason']) =>
+  Predicate.hasProperty(reason, 'description') &&
+  Predicate.isString(reason.description) &&
+  reason.description.includes('billing_error');
+
+/**
+ * The skip reason an `AiError` from the model is: `too-big` for a request
+ * past the model's input limit, `no-credits` for an account with none left.
+ */
 const reasonOf = (error: AiError.AiError): SkipReason => {
+  if (billing(error.reason)) return 'no-credits';
   switch (error.reason._tag) {
     case 'InvalidRequestError':
       if (
