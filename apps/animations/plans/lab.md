@@ -50,8 +50,8 @@ A Bun server (reuses the app's PreviewServer + HMR) serving the player with a la
 
 ## The agent's side (the laboratory)
 
-- `film lab events --follow --film <film> --name 'note.*'`: streams each note made, replied to or done as a line
-  (for a Claude Code Monitor, like `sideshow watch`), exactly once. `film lab notes --film <film>` lists open notes; `film lab reply --film <film> --note <id> --text "…"` / `film lab resolve`.
+- `film lab events --follow --film <film> --name notes`: streams each note made (a tweak asked of a panel among
+  them), replied to, done or withdrawn as a line (for a Claude Code Monitor, like `sideshow watch`), with its `id`. `film lab notes --film <film>` lists open notes; `film lab reply --film <film> --note <id> --text "…"` / `film lab resolve`.
 - Every note hands the agent the frame, the still, the scene, the nearest cue/mark, and the box → it reads the
   still, makes the change (promote to a knob/cue if needed), re-renders the same frame, attaches the after-still
   to the reply. The human sees before/after in the lab.

@@ -2241,10 +2241,10 @@ still is taken where the first word is said. A correction or a removal whose
 writer wrote nothing says what it asks (`say “…” for “…”`, `remove “…”`).
 None of it writes `script.ts`: the agent reads the ask and edits the script.
 Every change takes the file's next `seq`, so `eventsSince(file, n)`
-(`core/notes.ts`) returns each new note, reply and resolve exactly once past
-a cursor (a file reset below the cursor, trashed or restored, replays its
+(`core/notes.ts`) returns each new note, reply and resolve past a cursor,
+once each (a file reset below the cursor, trashed or restored, replays its
 log at its own `seq` and a wait over it answers at once, even when the log is
-empty, so an open page and `--watch` keep hearing); `wait` polls the file for them (every 200 ms), so it sees a reply
+empty, so an open page and an events follower keep hearing); `wait` polls the file for them (every 200 ms), so it sees a reply
 the CLI wrote while the server was waiting. Each change is one
 `ContentStore.transact`, as every manifest's is: written whole, one writer at
 a time across processes (the operating system's lock on `.notes.json.lock`,
@@ -2376,9 +2376,9 @@ text as it stood, so the line is found after the file moves.
 and last index in the line, the words as they read, what the note asks of
 them, and a correction's words to say instead.
 
-A note made, replied to or done arrives as an event (`note.added`,
-`note.replied`, `note.resolved`) on `film lab events --follow --film <film>
---name 'note.*'`: run it under a Claude Code Monitor and each arrives as a
+A note made, replied to, done or withdrawn arrives as an event (`note.added`,
+`tweak.requested` for a note on a Board panel that asks for a new try,
+`note.replied`, `note.resolved`, `note.withdrawn`) on `film lab events --follow --film <film> --name notes`: run it under a Claude Code Monitor and each arrives as a
 notification ("The lab's events", below). `film lab reply --film <film> --note <id>
 --text "…" [--still file.png]` answers as the agent (the still is copied to
 `stills/<id>.r<seq>.png` and the note becomes `replied`); `film lab resolve
@@ -2456,10 +2456,10 @@ In `apps/animations`, `bun run lab <command>` runs it; `look`, `match`,
 Where a terminal runs a command follows from what it needs, and the types
 hold it there:
 
-| Where      | Commands                                                                                                                                                                                                                                           | Why                                                                                                                                                            |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| here       | `notes` `board` `reply` `resolve` `request_tweak` `keep_try` `approve_beat` `withdraw_beat` `catalogue` `sets` `set` `publish_set` `record_render` `ask_read` `asks` `close_ask` `decide` `note` `forward` `check` `cues` `journal` `journal_note` | over the lab's files alone, through the stores the lab writes through; each write holds its file's lock across processes (`ContentStore`), so no lab need run  |
-| in the lab | `overview` `changes` `ask` `timeline` `working` `look` `match` `critique`                                                                                                                                                                          | over what only the running lab holds: its change feed, the agents' lines, the asks' page lock (held in memory), the easel's warm page and the critic beside it |
+| Where      | Commands                                                                                                                                                                                                                                           | Why                                                                                                                                                                                             |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| here       | `notes` `board` `reply` `resolve` `request_tweak` `keep_try` `approve_beat` `withdraw_beat` `catalogue` `sets` `set` `publish_set` `record_render` `ask_read` `asks` `close_ask` `decide` `note` `forward` `check` `cues` `journal` `journal_note` | over the lab's files alone, through the stores the lab writes through; each write holds its file's lock across processes (`ContentStore`), so no lab need run                                   |
+| in the lab | `overview` `changes` `ask` `timeline` `working` `beat_move` `beat_hold` `undo` `look` `match` `critique`                                                                                                                                           | over what only the running lab holds: its change feed, the agents' lines, the film's one history of edits, the asks' page lock (held in memory), the easel's warm page and the critic beside it |
 
 An in-lab command is the lab MCP's own tool asked at `FILM_LAB_URL` (else
 `http://127.0.0.1:8229/`, `tools/lab-client.ts`): its input checked here
@@ -2472,7 +2472,7 @@ and the same required ones.
 ### The lab's events: `film lab events` and MCP Events
 
 What happens in the lab is one catalogue of events (`LAB_EVENTS`,
-`core/lab-events.ts`: 24 names, `note.added` to `source.redone`), each
+`core/lab-events.ts`: 25 names, `note.added` to `source.redone`), each
 with one payload (`LabChange`: what it is about, its words, a one-line
 summary, its links, and `read`, the lab command that reads its whole record),
 read off the lab's files by its change feed (`tools/lab-events.ts`). A change
@@ -2480,7 +2480,10 @@ to a film's source (`source.written`, `source.undone`, `source.redone`: a beat
 moved or a hold trimmed in the studio or by an agent, and each undo and redo)
 is read off the lab's writer (`SourceWriter.landings`), which the page and the
 agents write through alike. `changes` reads the feed by the catalogue (`name`,
-globs over its names; `film`).
+globs over its names or the name of a record, which names every event that
+record tells: `notes`, `board`, `catalogue`, `set`, `ask`, `production`,
+`source`; `film`). A note the owner withdraws is told as `note.withdrawn`, read
+as a note the file held at the last read and holds no more.
 
 `film lab events` (`tools/events-cli.ts`) prints them from the running lab.
 With `--follow` it keeps running and prints one line per event as the lab sees
@@ -2491,9 +2494,13 @@ ask.answered cursor=k3x.12 at=… id=3f0c… film=f ask=a1 summary="…" read="b
 ```
 
 `id=` is the change's own id, made from its kind and the record it was read
-from (a note's log number, a try's number, an ask's step), so two labs that
-read one change give it one id and a reader told it twice knows it. `--name`
-(repeated) and `--film` narrow it, and a `--name` no event of the catalogue
+from (a note's id, its time made and its log number; a try's number and
+time made; an ask's step), so two labs that read one change give it one id, a
+reader told it twice knows it, and a note made after its file was reset never
+takes an older note's id. A kept try's id is made from the time the lab read
+the board, so two labs give it two. A word on a production's ledger is told by
+whoever said it: an ask and a note with no quote of the owner's are `agent`'s. `--name`
+(repeated; `--name notes` follows a film's notes, tweaks among them) and `--film` narrow it, kept on the follower's side too, so a lab that runs other code and does not narrow is still narrowed, and a `--name` no event of the catalogue
 matches, or a film the lab does not have, is refused before anything is
 followed. `--since <cursor>` reads on from a line's cursor, and `--json`
 prints `{"cursor":…,"event":…}` a line. An event of a kind this checkout does
@@ -2502,8 +2509,11 @@ said once on stderr. What is not an event goes to stderr. The stream
 (`tools/lab-stream.ts`) is what `film ask wait` and `film channel` read too: a
 lab that stops answering is said once and asked again with backoff (250 ms
 doubling to 10 s, started over after each session that answered), and the new
-session reads on from the last cursor seen, so nothing is skipped; a cursor the
-lab no longer knows comes back `reset`. Only `--gone-after <dur>` (counted from
+session reads on from the last cursor seen, so while the same lab runs nothing
+is missed; a restarted lab no longer knows the cursor, which comes back `reset`,
+and the stream prints every event that lab kept (one told before comes again
+with its `id`); a change made while no lab ran is in the new lab's first read
+and is never told. Only `--gone-after <dur>` (counted from
 the first loss since the lab last answered), a refusal of the lab's, or an
 answer this checkout cannot read (`LabAnswerUnread`) ends it, with a non-zero
 exit and, with `--json`, a last `{"_tag","message"}` line on stdout.

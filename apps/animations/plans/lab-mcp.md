@@ -38,8 +38,8 @@ name, its Effect Schema input, output and refusal, and its effect, defined once.
 `film lab <command> [--json]` (`tools/lab-cli.ts`; `bun run lab <command>` in `apps/animations`) are both made
 from that definition: the flags from the input schema, by each field's name; `--json` the output schema's value;
 the default the command's plain lines. Over the lab's files a terminal runs the command in its own process; over
-what only the running lab holds (`overview`, `changes`, `ask`, `timeline`, `working`, `look`, `match`,
-`critique`) it asks the lab through `lab-client.ts` (`packages/film/README.md`, "The lab's commands", says which
+what only the running lab holds (`overview`, `changes`, `ask`, `timeline`, `working`, `beat_move`, `beat_hold`,
+`undo`, `look`, `match`, `critique`) it asks the lab through `lab-client.ts` (`packages/film/README.md`, "The lab's commands", says which
 and why). The parity test (`tools/lab-command.test.ts`) holds every tool the lab lists to a `film lab` command
 with the same fields. The studio's edits (`beat_move`, `beat_hold`, `undo`) join the set as commands of their own
 where the studio's commands are listed (`tools/timeline-mcp.ts`).
@@ -62,6 +62,9 @@ when `FILM_LAB_HOSTS` names one).
 | `reply`         | a reply on a note, by `agent` (`NotesStore.reply`): the page shows it in the thread                                     |
 | `resolve`       | marks a note done (`NotesStore.resolve`)                                                                                |
 | `request_tweak` | a tweak note on a board panel, its still the try shown (as the Board's Tweak writes one)                                |
+| `keep_try`      | keeps one try of a board panel, with why: the Board shows it; a beat approved on another try goes stale                 |
+| `approve_beat`  | approves a beat's board as it stands, each picture panel on its kept try; on the owner's word only                      |
+| `withdraw_beat` | withdraws a beat's board approval                                                                                       |
 | `publish_set`   | copies files into `out/<name>/` and merges keys into its `review.json` (validated as a manifest)                        |
 | `record_render` | records a render in a film's project catalogue (`RenderCatalogue.record`)                                               |
 | `ask`           | makes an ask from `blocks` or a `machine`, on a page of asks; answers its and its page's links ([Asks](#asks))          |
@@ -72,12 +75,17 @@ when `FILM_LAB_HOSTS` names one).
 | `note`          | files the owner's feedback from chat on a production's timeline the same way: it decides nothing                        |
 | `forward`       | moves a production to its next version on the owner's decision it names, filed in the version open now; refused else    |
 | `look`          | stills of a scene as its files stand, each an image after its line (see [The easel's tools](#the-easels-tools))         |
+| `match`         | a scene's figures held against their concepts at one place: a table and a side-by-side image each                       |
+| `critique`      | the match, and each figure's crops shown to a fresh Opus beside the figure rules: its findings                          |
 | `cues`          | each scene's placement, marks and named cues, as `film cues` prints them; one scene's when named                        |
 | `check`         | the scenes named (or the film) checked as drawn, `film check --draw`, the findings a page at a time                     |
 | `journal`       | a film's journal: the newest entries (of one scene, when named) that fit, the rest counted with its file                |
 | `journal_note`  | one observation in a film's journal, of a scene or the whole film, at the time now                                      |
 | `timeline`      | a film's timeline at one version (its open one by default): lanes, bands, flags, the nine stages, Next, the header      |
 | `working`       | an agent's "doing now" line on a film's studio header, as `by`; `done` clears it (no `text`), 30 min of silence too     |
+| `beat_move`     | moves a beat before another, or to the end, through the film's one history of edits                                     |
+| `beat_hold`     | sets a beat's lead or tail hold, snapped to 0.1 s, through the same history                                             |
+| `undo`          | undoes the film's newest change, or the one named while no newer one stands                                             |
 
 Resources: `lab://overview`, `lab://changes` (the last 50), `lab://films/{film}/notes`, `lab://films/{film}/board`.
 Prompt: `inbox` (every waiting note across the films, and how to work them).
@@ -156,6 +164,7 @@ change kept, flagged `reset`.
 | Kind                                                                         | From                                            |
 | ---------------------------------------------------------------------------- | ----------------------------------------------- |
 | `note.added`, `note.replied`, `note.resolved`                                | a note, a reply (by owner or agent), done       |
+| `note.withdrawn`                                                             | a note the owner took back                      |
 | `tweak.requested`                                                            | a note asking a tweak of a board panel          |
 | `board.tried`, `board.kept`                                                  | a try added; a try kept, with why               |
 | `beat.approved`, `beat.withdrawn`                                            | a beat's board approved; its approval withdrawn |
@@ -168,17 +177,22 @@ change kept, flagged `reset`.
 
 The kinds are one catalogue, `LAB_EVENTS` (`core/lab-events.ts`): each name, what it says, and how its record is
 read. Every event has one payload, `LabChange`: its `id`, `film`, `set`, `note`, `panel`, `beat`, `try`, `address`,
-`variant`, `production`, `version`, `ask`, `step` as they apply, `by`, the words (`text`), an ask's typed
+`variant`, `production`, `version`, `ask`, `step` as they apply, `by` (on a production's word, `agent` for an
+ask and a note with no quote of the owner's, `owner` else), the words (`text`), an ask's typed
 `answers`, a one-line `summary`, the lab `links`, and `read`: the lab command that reads its whole record (the
 MCP tool and its arguments, `{name: 'ask_read', arguments: {ask}}`, and its terminal line, `bun cli.ts lab
 ask_read --ask a…`; a track's ledger, which no lab command reads, `bun cli.ts production show <p>` alone). A
 payload stays under 240 KiB of JSON, so a webhook body with its envelope stays under 256 KiB: one over it leaves
 its answers out and cuts its words, said as `trimmed: true`, and `read` has them. `changes` reads the feed by the
-catalogue: `name` (globs over its names, `ask.*`) and `film` keep only those; the cursor moves past every change
+catalogue: `name` (globs over its names, `ask.*`, or a record's name for every event it tells: `notes`,
+`board`, `catalogue`, `set`, `ask`, `production`, `source`) and `film` keep only those, and a follower keeps
+them on its own side too, for a lab that runs other code; the cursor moves past every change
 either way. A `name` no event of the catalogue matches, or a film the lab does not have, is refused.
 
-A change's `id` is made from its kind and the record it was read from (`notes/<film>/<seq>`, a try's
-`board/<film>/<panel>/<n>`, a kept try's with the board's read, an ask's step, a ledger's word,
+A change's `id` is made from its kind and the record it was read from (a note's
+`notes/<film>/<id>@<made>/<seq>`, so a note made after its file was reset takes a new id; a try's
+`board/<film>/<panel>/<n>@<made>`; a kept try's with the board's read, so two labs that read the board at
+different writes give one keep two ids; an ask's step, a ledger's word,
 `source/<film>/<change>/<step>/<n>`): 16 hex of a 64-bit FNV. Two labs that read one change give it one id, so a
 reader told it twice (during a restart, below) knows it.
 
@@ -186,8 +200,9 @@ How an agent hears them. Every way below but the first reads one stream (`tools/
 the lab's MCP, the feed long-polled past a cursor (50 s a call), and the cursor the stream's, not the session's.
 A lab that stops answering (restarted, the network dropped) is said once and asked again with backoff (250 ms
 doubling to 10 s, started over after each session that answered); the new session reads on from the last cursor
-seen, so nothing that changed while it was away is skipped, and a cursor the lab no longer knows comes back
-`reset`. A change of a kind this checkout does not know (a newer lab's) is read from the fields every change
+seen, so while the same lab runs nothing is missed; a restarted lab no longer knows the cursor, which comes back
+`reset`, and the stream hears every change that lab kept (one heard before comes again with its `id`); a change
+made while no lab ran is in the new lab's first read and is never told. A change of a kind this checkout does not know (a newer lab's) is read from the fields every change
 carries (`HeardChange`), never as a lab lost.
 
 1. **`changes` with `wait`** — works in every client, session and subagent. Call it with the cursor from
@@ -235,7 +250,7 @@ middleware in front of its MCP route (`eventsRoute`), after the gate has admitte
 gains `capabilities.events`, and the three methods are answered there; every other request goes on to Effect's
 server. A request carries the 2026-07-28 headers (`mcp-protocol-version`, `mcp-method`) and `params._meta`.
 
-- **`events/list`** answers the catalogue: each of the 24 names with its description, `delivery: ['webhook']`,
+- **`events/list`** answers the catalogue: each of the 25 names with its description, `delivery: ['webhook']`,
   its `inputSchema` (`{film?}`, `additionalProperties: false`: only that film's events) and its `payloadSchema`
   (`LabChange`). Every events result carries `_meta['io.modelcontextprotocol/serverInfo']`, the lab's server
   name and version, as the profile asks.

@@ -82,7 +82,7 @@ bun cli.ts options keep-voice <film> <beat> <file> [--accept-mismatch]  # keep a
 bun cli.ts read voice <film>                   # what the lab's studio reads of the film, fresh from disk (one line of JSON)
 bun cli.ts read cue <film> <scene> <cue> [--spans <json>] [--patch <json>]  # a cue on its scene's clock as the files declare it (or with these spans, and this patch over its own span when its source computes part of it), or why it does not resolve (one line of JSON)
 bun run lab notes --film <film> [--status all]  # open lab notes, a line each, then `seq=` (bun run notes is the same)
-bun run lab events [--follow] [--name 'note.*'] [--film <film>] [--since <cursor>] [--json] [--gone-after <dur>]  # the lab's events, a line each with its cursor=; --follow keeps printing them as they happen (for a Monitor), reconnecting from its cursor
+bun run lab events [--follow] [--name notes] [--film <film>] [--since <cursor>] [--json] [--gone-after <dur>]  # the lab's events, a line each with its cursor=; --follow keeps printing them as they happen (for a Monitor), reconnecting from its cursor
 bun run lab reply --film <film> --note <id> --text "text" [--still file.png]  # reply as the agent; the note becomes replied
 bun run lab resolve --film <film> --note <id>
 bun run board <film> [--beat id,id] [--tries 2] [--lanes 3] [--dry-run]  # the storyboard: every panel the board lacks (a beat's picture's marks, at most 3; its start when none), 2 tries each on okra image's Codex route, into src/films/<film>/board/ + board.json
@@ -325,7 +325,7 @@ makes a 1920×1080 PNG about 4 MB. Stills are kept under
 `out/<film>/look/<scene>/`, named by time, view and build
 (`t0002.33.value.b<build>.jpg`), and never rewritten.
 
-A **wedge** (`--level ground=light`) is the printer's wedge: one strip printed
+A **wedge** (`--levels '{"ground":"light"}'`) is the printer's wedge: one strip printed
 at each of several grades so one can be chosen. It draws the scene with a
 look (`looks` in `palette.ts`) at another level than the one it plays,
 without writing the pick: the lab builds its pages once more with
@@ -335,7 +335,7 @@ from it. The file on disk never changes. A look or level the palette lacks
 is `LookLevelUnknown`; a wedge's stills carry its levels in their names
 (`….wground-light.b<build>.jpg`).
 
-`render` takes the same `--level` (`render <film> --level style=ps1`): the
+`render` takes the same wedge as `--level` (`render <film> --level style=ps1`): the
 render page alone is built with the swapped palette and served on a loopback
 port of its own while the render runs, in place of the app's player, so a
 render needs no lab. The render's stamp carries the levels, so a wedge's
