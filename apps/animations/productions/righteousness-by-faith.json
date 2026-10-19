@@ -709,6 +709,24 @@
       "point": "item:lead",
       "ask": "a1cfb45a7cf",
       "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792379441540,
+      "text": "The farmer gets sleeves: his raised hand looks wrong without them.",
+      "quote": "Um, because one place that it breaks,  I think it's the farmer.  He lifts his hand up, but it just looks weird without the sleeves.  So let's add the sleeves.",
+      "set": "rbf-v3-cast-2026-10-18",
+      "point": "item:farmer",
+      "by": "Claude (orchestrator, p6)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792379443630,
+      "text": "RBF's lead is no longer the pale, hairless plain figure: try a more human character, a man, like the male lead of the early concepts (lead A in try cold.21).",
+      "quote": "Secondly, the main character in this RBF, instead of making, making him white in, in this, in this, like, in this script, maybe let's try a more kind of human character, it could be male or female.  Let's do a male, female.  I think one of the concepts had a male character in the beginning as well.  Let's try that.",
+      "set": "rbf-v3-cast-2026-10-18",
+      "point": "item:lead",
+      "by": "Claude (orchestrator, p6)"
     }
   ],
   "filed": [
