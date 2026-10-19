@@ -264,12 +264,14 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
               duration: pace.answerWithin,
               orElse: () => Effect.fail(Undelivered.make({ reason: 'timeout' })),
             }),
+            // Said by the failure's kind alone: the client's message holds the whole URL, and a
+            // webhook's path can be its secret.
             Effect.mapError((error) =>
               Undelivered.make({
-                reason: Bool.match(Schema.is(Undelivered)(error), {
-                  onTrue: () => 'timeout',
-                  onFalse: () => `unreachable: ${error.message}`,
-                }),
+                reason: Match.value(error).pipe(
+                  Match.tag('HttpClientError', (failed) => `unreachable: ${failed.reason._tag}`),
+                  Match.orElse(() => 'timeout'),
+                ),
               }),
             ),
           );
