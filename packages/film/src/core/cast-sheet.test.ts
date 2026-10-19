@@ -15,6 +15,7 @@ import {
 } from './cast-sheet.ts';
 import { measureFigure } from './figure.ts';
 import { drawFigure, drawSheet, type FigureSpec, flipRaster, PLAIN } from './fixtures/figure.ts';
+import { cropRaster } from './raster.ts';
 
 /** A figure as a turnaround draws it: the robe shaded on its right, the eyes `eyeShift` px off the face's middle. */
 const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150] };
@@ -142,6 +143,49 @@ describe("a turnaround's partners with a hand against the robe", () => {
   test("holds the partners' widths on the body under the hands, never on where the hands float", () => {
     expect(flagsOf(m)).toEqual([]);
     expect(Math.abs(m.pairs[1]?.widths ?? 99)).toBeLessThan(1);
+  });
+});
+
+describe('a turnaround painted close together', () => {
+  // Each view's robe straight down its sides, cut to its own ink with 3 px of paper each side and drawn with no hands, so a neighbour's ink stands 6 px off its side, inside the 12 px a view's crop is padded by; view 4 is the back.
+  const straight = { robeTop: 240, handless: true };
+  const tight = (r: ReturnType<typeof at>) => cropRaster(r, [70, 0, 330, 640]);
+  const close = drawSheet(
+    [
+      at(0, straight),
+      at(-14, straight),
+      at(-26, straight),
+      at(0, { ...straight, eyeW: 0 }),
+      flipRaster(at(-26, { ...straight, lit: 'right' })),
+      flipRaster(at(-14, { ...straight, lit: 'right' })),
+    ].map(tight),
+  );
+  const m = read(close, turnaround);
+
+  test("reads each view's width on its own body, never a neighbour's ink beside it", () => {
+    expect(new Set(m.views.map((v) => v.widthToHeight)).size).toBe(1);
+    expect(m.pairs.map((p) => p.widths)).toEqual([0, 0, 0]);
+  });
+});
+
+describe('a turnaround whose hands float low, in the band its width is read on', () => {
+  // The hands float free beside the robe at 480 px, inside the band (from 0.76 of the height); the back and the profiles read no face, so no hand's disc is cut out of them.
+  const limb = { hand: [372, 480] as const, kind: 'free' as const };
+  const low = (eyeShift: number, extra: Partial<FigureSpec> = {}) =>
+    at(eyeShift, { limb, ...extra });
+  const sheet = drawSheet([
+    low(0),
+    low(-14),
+    low(-26, { oneEye: true }),
+    low(0, { eyeW: 0 }),
+    flipRaster(low(-26, { oneEye: true, lit: 'right' })),
+    flipRaster(low(-14, { lit: 'right' })),
+  ]);
+  const m = read(sheet, turnaround);
+
+  test('reads the width on the body alone, faced or not, never on where the hands float', () => {
+    expect(new Set(m.views.map((v) => v.widthToHeight)).size).toBe(1);
+    expect(flagsOf(m).filter((f) => f.startsWith('width'))).toEqual([]);
   });
 });
 

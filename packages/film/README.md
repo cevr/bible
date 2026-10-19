@@ -2654,7 +2654,8 @@ A cast sheet is one painted image of a cast member in the house look: a
 turnaround (six views, left to right: front, three-quarter and profile to
 the viewer's left, the back, profile and three-quarter to the right), a
 pose sheet or a heads sheet. `film concept brief --look <file> --references
-<file> (--turnaround <who> | --layout <file>) [--house <file>]` prints the
+<file> (--turnaround <who> | --layout <file> --kind poses|heads) [--house
+<file>]` prints the
 prompt one try is painted from (`tools/cast-sheet-brief.ts`): the house
 block made a sheet's by two swaps (a model sheet, no place behind), each
 refused as `HouseBlockMoved` when the block no longer says its phrase, then
@@ -2672,13 +2673,13 @@ of the largest's box, each with its hands and feet) and reads the `count`
 largest; a sheet that draws more says "N figures found, the sheet names M".
 It reads each view's face with `measureFigure`, and checks, facing first:
 
+| Check | Flags |
+
 | Check                                                   | Flags                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Check                                                   | Flags                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ---                                                     | ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `facing`, `sameWay`, `profileWay`, `roll`               | a head that does not face its slot (a turn past 0.06 off the front, or under 0.04 toward its side); a pair of partner views that face one way; a profile that faces away from the three-quarter on its side (it reads no face, so its head band, the top 0.3 of the figure, is held to that three-quarter's: it matches better flipped than not); a turnaround head tipped past 5°                                                                                                                                                                                                                                                                                               |
 | `squash`                                                | the anchor's trace to the canon (3.36 heads) would squash or stretch the body past 10 %; not read on a heads sheet, nor under headgear (the canon is read on the lock)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `height`, `head`, `hand`, `width`, `hairFall`, `ground` | a standing view's height, any view's head or hand (in head heights) off the anchor's past 5 %; on a heads sheet, the head's height on the level heads and its width among the heads of one turn, each held to that turn's first level head, and no hand; partners' body widths (the median row from 0.76 to 0.9 of the height, the hands cut out) past 5 %; the hair's fall on level heads past 0.1 head; soles off the anchor's ground line past 2 % of its height                                                                                                                                                                                                              |
+| `height`, `head`, `hand`, `width`, `hairFall`, `ground` | a standing view's height, any view's head or hand (in head heights) off the anchor's past 5 %; on a heads sheet, the head's height on the level heads and its width among the heads of one turn, each held to that turn's first level head, and no hand; partners' body widths (the median row from 0.76 to 0.9 of the height, read across the view's own body ring alone, so a neighbour's ink in its crop and a hand floating beside it are left out) past 5 %; the hair's fall on level heads past 0.1 head; soles off the anchor's ground line past 2 % of its height                                                                                                        |
 | `papers`, `grey`, `lit`                                 | a paper farther than ΔE 12 from the anchor's; a grey paper (CRAFT 12); a view lit on its right (the key light is upper left)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `mirror`                                                | a partner view that is the other flipped (a mean difference under 6)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `sleeveReach`, `bareArm`                                | a garment or an arm that still joins a hand held out (its middle past its radius from the body's side under it) or raised (above the shoulders, held out from the head's side) once the hand's disc is cut out, from any angle, met as flat colour or across the hand's ring, past 0.1 of the hand's diameter; skin below the neck that is not a hand, a hand being round (its sides within 0.75 to 1.33 of each other, filling 0.8 to 1.1 of its ellipse, 0.4 to 1.3 of the anchor's hand) or one clipped behind the body, hand-sized and meeting the robe's fill on under 0.35 of its ring (the owner, 2026-10-18: "A sleeve may hang at rest, but never reach toward a hand") |
@@ -2686,12 +2687,17 @@ It reads each view's face with `measureFigure`, and checks, facing first:
 
 The face is found by its own read: the skin that holds the eyes, or lies
 in the head's box down to the chin or under the mouth, is the face; the
-neck is narrower than 0.6 of the head. Where a check cannot be read it is
+neck is narrower than 0.6 of the head and shorter than 0.5. Where a check cannot be read it is
 said, never passed: a view with no face (the back, the profiles, a figure
 lying on a bed, a head bowed far) is unmeasured for facing, the sleeve, the
-bare arm and the beard; a hand at rest against the body, in front of the
-head, or under the body's last rows is unmeasured for the sleeve, since a
-sleeve to it is not told from a touch; a view with no round hand, a head
+bare arm and the beard; a hand at rest against the body, or under the
+body's last rows, is unmeasured for the sleeve, since a sleeve to it is not
+told from a touch; a round hand whose middle lies in the face's window (the
+head's box widened by 0.1 of the head on each side, down to the chin or 0.3
+of the head under the mouth) but which runs past the head's box, or one in
+the neck's window under the chin (narrower than 0.6 of the head, shorter than
+0.5), is unmeasured for the sleeve and the bare arm, never passed as a part
+of the face or the neck; a view with no round hand, a head
 with no dark hair at its crown and a face with no beard under its mouth
 say so; a heads sheet says it draws no hands, and the canon, as a turnaround
 under headgear does.
@@ -2701,7 +2707,8 @@ Known gaps:
 - A bowed head on a pose sheet can flag `facing`: the pose band is
   calibrated on the first kept pose sheet.
 - `measureFigure` reads no face on a head rolled past about 7°.
-- A hand held in front of the face is dropped as a part of the face.
+- A round hand held wholly inside the head's box is not told from the
+  face's skin, so it is read as a part of the face.
 - An inked cuff on a hand at rest is not told from a touch, so it is
   unmeasured, never flagged.
 

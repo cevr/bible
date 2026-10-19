@@ -100,3 +100,74 @@ describe('a hand held low beside the hem', () => {
     ]);
   });
 });
+
+/** A colour, painted on top of a drawn figure wherever `inside` holds (the robe and the head too). */
+type Rgb = readonly [number, number, number];
+const INK: Rgb = [58, 38, 28];
+const SKIN: Rgb = [226, 178, 146];
+const paint = (r: ReturnType<typeof at>, inside: (x: number, y: number) => boolean, c: Rgb) => {
+  for (let y = 0; y < r.height; y++)
+    for (let x = 0; x < r.width; x++)
+      if (inside(x + 0.5, y + 0.5)) r.rgba.set([c[0], c[1], c[2], 255], (y * r.width + x) * 4);
+  return r;
+};
+const disc = (cx: number, cy: number, radius: number) => (x: number, y: number) =>
+  Math.hypot(x - cx, y - cy) <= radius;
+const band =
+  (a: readonly [number, number], b: readonly [number, number], w: number) =>
+  (x: number, y: number) => {
+    const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
+    const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(x - (a[0] + t * dx), y - (a[1] + t * dy)) <= w;
+  };
+/** A hand at `hand` painted on top of the figure, alone. */
+const alone = (hand: readonly [number, number]) => {
+  const r = at();
+  paint(r, disc(hand[0], hand[1], 28), INK);
+  return paint(r, disc(hand[0], hand[1], 22), SKIN);
+};
+/** A hand at `hand` painted on top of the figure, on a limb from `from` of `fill`: its ink, then its fill. */
+const onLimb = (hand: readonly [number, number], from: readonly [number, number], fill: Rgb) => {
+  const r = at();
+  paint(r, band(from, hand, 22), INK);
+  paint(r, disc(hand[0], hand[1], 28), INK);
+  paint(r, band(from, hand, 16), fill);
+  return paint(r, disc(hand[0], hand[1], 22), SKIN);
+};
+
+describe('a hand held before the chest, just under the chin', () => {
+  const hand = [228, 262] as const;
+  const m = poses([
+    at(),
+    onLimb(hand, [235, 400], SKIN),
+    alone(hand),
+    onLimb(hand, [235, 400], [92, 128, 170]),
+  ]);
+
+  test('flags a bare forearm joined to it, never read as the neck, and says a hand alone or on a sleeve there is not measured', () => {
+    expect(flagsOf(m)).toEqual(['bareArm:2']);
+    for (const view of [3, 4])
+      expect(m.unmeasured.filter((u) => u.view === view && u.check !== 'hairBeard')).toEqual([
+        {
+          check: 'sleeveReach',
+          view,
+          why: 'a hand in front of the head or the neck: no sleeve or arm to it is read',
+        },
+        {
+          check: 'bareArm',
+          view,
+          why: 'a hand in front of the head or the neck: no sleeve or arm to it is read',
+        },
+      ]);
+  });
+});
+
+describe("a hand raised over the head's edge", () => {
+  // Its middle 62 px right of the head's, so its round runs past the head's box, which the face's parts are read inside.
+  const m = poses([at(), onLimb([262, 170], [250, 262], [60, 78, 150])]);
+
+  test('on a sleeve, is said as not measured, never passed as a part of the face', () => {
+    expect(flagsOf(m)).toEqual([]);
+    expect(unmeasuredOf(m, 2)).toEqual(['sleeveReach', 'bareArm']);
+  });
+});

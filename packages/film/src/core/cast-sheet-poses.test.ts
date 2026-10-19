@@ -139,10 +139,12 @@ describe('a heads sheet of level, bowed and lifted heads', () => {
     });
   });
 
-  test("flags a head drawn wider than its turn's first", () => {
-    const wide = sheet({ rx: 68 });
-    expect(flagsOf(wide)).toEqual(['head:6,4']);
-    expect(wide.flags[0]?.note).toContain("view 4's, its turn's first");
+  test("holds a head whose box a lock of hair widens by its eyes, and flags a head drawn bigger than its turn's first", () => {
+    // A lock beside the face widens the head's box and leaves the face as it is; a head drawn bigger spaces its eyes wider too.
+    expect(flagsOf(sheet({ rx: 68 }))).toEqual([]);
+    const big = sheet({ rx: 68, eyeGap: 56 });
+    expect(flagsOf(big)).toEqual(['head:6,4']);
+    expect(big.flags[0]?.note).toContain("view 4's, its turn's first");
   });
 });
 

@@ -199,8 +199,10 @@ const SheetView = Schema.Struct({
   widthToHeight: Schema.Finite,
   /** The head's height in pixels; under headgear, the face opening's. */
   head: Schema.optionalKey(Schema.Finite),
-  /** The head's width in pixels, which a nod changes little: what a heads sheet holds its heads by. */
+  /** The head's width in pixels: its box, which a lock of hair beside the face widens. */
   headWidth: Schema.optionalKey(Schema.Finite),
+  /** The eyes' spacing in pixels, which neither a nod nor the hair changes: what a heads sheet holds the heads of one turn by. */
+  eyes: Schema.optionalKey(Schema.Finite),
   headsTall: Schema.optionalKey(Schema.Finite),
   turn: Schema.optionalKey(Schema.Finite),
   roll: Schema.optionalKey(Schema.Finite),
@@ -390,7 +392,9 @@ const LIGHT_EDGE: Rgb = [255, 248, 230];
 /** A skin region below the neck: a round hand (with the share of its ring that is a garment's fill), or bare skin (an arm, a shoulder). */
 type SkinPart =
   | { readonly kind: 'hand'; readonly region: Region; readonly cloth: number }
-  | { readonly kind: 'bare'; readonly region: Region };
+  | { readonly kind: 'bare'; readonly region: Region }
+  /** A hand's round before the head or the neck: read as neither, and said. */
+  | { readonly kind: 'masked'; readonly region: Region };
 
 /**
  * The skin's regions, by colour: the fills inside the figure within
@@ -409,6 +413,8 @@ const skinRegionsOf = (crop: Raster, inside: Uint8Array, skin: Rgb): ReadonlyArr
 
 /** The neck is no wider than this share of the head's width; bare skin from shoulder to shoulder is wider. */
 const NECK_WIDTH = 0.6;
+/** Nor taller than this share of it: a painted neck with the V of the robe's throat under it stands up to 0.41 of the head's width, a forearm joined to a raised hand 0.83, so a forearm is never the neck; a hand alone (0.33 drawn, 0.45 painted) is round, and said. */
+const NECK_TALL = 0.5;
 /** A hand's box, wide over tall, and how much of the box's ellipse it fills: a disc fills 1, a square 1.27. */
 const HAND_ASPECT: readonly [number, number] = [0.75, 1.33];
 const HAND_FILL: readonly [number, number] = [0.8, 1.1];
@@ -451,6 +457,39 @@ interface SkinFrame {
   readonly cloth: (region: Region) => number;
 }
 
+/** Whether a region is the neck, or a V at the robe's throat: it starts under the chin, or under a beard that hangs below it, narrow and short. */
+const isNeck = (region: Region, f: HeadFrame) => {
+  const [x0, y0, x1, y1] = region.box;
+  return (
+    y0 <= f.chin + 0.5 * f.W &&
+    Math.abs((x0 + x1) / 2 - f.cx) < 0.35 * f.W &&
+    x1 - x0 <= NECK_WIDTH * f.W &&
+    y1 - y0 <= NECK_TALL * f.W
+  );
+};
+
+/** Whether a region is a hand's size, and whether it is round as a hand is (a disc's box and fill). */
+const roundOf = (region: Region, frame: SkinFrame) => {
+  const [x0, y0, x1, y1] = region.box;
+  const [bw, bh] = [x1 - x0, y1 - y0];
+  const sized = Option.match(frame.hand, {
+    onNone: () => true,
+    onSome: (d) => within(Math.max(bw, bh) / d, HAND_SIZE),
+  });
+  const round =
+    within(bw / bh, HAND_ASPECT) &&
+    within(region.area / ((Math.PI * bw * bh) / 4), HAND_FILL) &&
+    sized;
+  return { sized, round };
+};
+
+/** A hand's round read as the neck under the chin, or as a part of the face that runs past the head's box, may be a hand held there: said, never passed. */
+const maskedBy = (region: Region, f: HeadFrame, neck: boolean) => {
+  const [x0, y0, x1, y1] = region.box;
+  const pastHead = x0 < f.left || x1 > f.right || y1 > f.chin;
+  return !holdsEyes(region, f) && ((neck && y0 >= f.chin) || (facePart(region, f) && pastHead));
+};
+
 /**
  * The skin regions below the neck, at any height, each a hand or bare skin.
  * The face is the region that holds the eyes (and its parts in the head's
@@ -467,26 +506,15 @@ const skinPartsOf = (
   frame: SkinFrame,
 ): ReadonlyArray<SkinPart> =>
   regions.flatMap((region): ReadonlyArray<SkinPart> => {
-    const [x0, y0, x1, y1] = region.box;
-    const [bw, bh] = [x1 - x0, y1 - y0];
-    // The neck and a V at the robe's throat start under the chin, or under a beard that hangs below it.
-    const neck =
-      y0 <= f.chin + 0.5 * f.W &&
-      Math.abs((x0 + x1) / 2 - f.cx) < 0.35 * f.W &&
-      bw <= NECK_WIDTH * f.W;
-    const feet = y1 >= frame.sole - 0.06 * frame.height;
+    const neck = isNeck(region, f);
+    const feet = region.box[3] >= frame.sole - 0.06 * frame.height;
+    const { sized, round } = roundOf(region, frame);
+    const masked = frame.hands && round && maskedBy(region, f, neck);
+    if (masked) return [{ kind: 'masked', region }];
     if (facePart(region, f) || neck || feet) return [];
     const bare: ReadonlyArray<SkinPart> =
       (region.area >= 0.02 * f.W * f.W && [{ kind: 'bare', region }]) || [];
     if (!frame.hands) return bare;
-    const sized = Option.match(frame.hand, {
-      onNone: () => true,
-      onSome: (d) => within(Math.max(bw, bh) / d, HAND_SIZE),
-    });
-    const round =
-      within(bw / bh, HAND_ASPECT) &&
-      within(region.area / ((Math.PI * bw * bh) / 4), HAND_FILL) &&
-      sized;
     const cloth = frame.cloth(region);
     const clipped = Option.isSome(frame.hand) && sized && cloth < CLIPPED_CLOTH;
     return ((round || clipped) && [{ kind: 'hand', region, cloth }]) || bare;
@@ -617,17 +645,25 @@ const discsOf = (
     return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, r, clear: r + 1.5 * line };
   });
 
-/** A view's body rows: each row's left and right edge of what the ink closes, its hands' discs cleared. */
+/** The columns of a view's crop its body's own ink ring spans (`SheetFigure.body`): a neighbour painted close beside it, inside the crop's pad, and a hand floating free lie past them. */
+interface BodyColumns {
+  readonly from: number;
+  readonly to: number;
+}
+
+/** A view's body rows: each row's left and right edge of what the ink closes inside its body's columns, its hands' discs cleared. */
 const sideRowsOf = (
   crop: Raster,
   closed: Uint8Array,
   discs: ReadonlyArray<HandDisc>,
   rows: { readonly from: number; readonly to: number },
+  columns: BodyColumns,
 ): ReadonlyArray<SideRow> => {
   const out: Array<SideRow> = [];
+  const [x0, x1] = [Math.max(0, Math.floor(columns.from)), Math.min(crop.width, columns.to)];
   for (let y = Math.max(0, Math.round(rows.from)); y < rows.to && y < crop.height; y++) {
     let [left, right] = [crop.width, -1];
-    for (let x = 0; x < crop.width; x++)
+    for (let x = x0; x < x1; x++)
       if (
         closed[y * crop.width + x] === 1 &&
         !discs.some((d) => Math.hypot(x - d.x, y - d.y) <= d.clear)
@@ -781,6 +817,7 @@ const readMeasured = (
     readonly top: number;
     readonly height: number;
     readonly middle: number;
+    readonly columns: BodyColumns;
   },
 ) => {
   const f = headFrameOf(m);
@@ -818,7 +855,16 @@ const readMeasured = (
     },
   });
   const handParts = parts.flatMap((p) => (p.kind === 'hand' && [p]) || []);
+  const masked = parts.some((p) => p.kind === 'masked');
   const unmeasured: Array<SheetUnmeasured> = [];
+  if (masked)
+    unmeasured.push(
+      ...(['sleeveReach', 'bareArm'] as const).map((check) => ({
+        check,
+        view: ctx.view,
+        why: 'a hand in front of the head or the neck: no sleeve or arm to it is read',
+      })),
+    );
   if (Option.isNone(skin))
     unmeasured.push(
       ...(['sleeveReach', 'bareArm'] as const).map((check) => ({
@@ -862,10 +908,13 @@ const readMeasured = (
     line,
     handSize,
   );
-  const rows = sideRowsOf(crop, closed, discs, {
-    from: Math.max(f.chin + 0.05 * ctx.height, fallen),
-    to: sole - 0.08 * ctx.height,
-  });
+  const rows = sideRowsOf(
+    crop,
+    closed,
+    discs,
+    { from: Math.max(f.chin + 0.05 * ctx.height, fallen), to: sole - 0.08 * ctx.height },
+    ctx.columns,
+  );
   const reaches =
     (hands && reachesOf(crop, closed, { rows, discs, middle: ctx.middle, line, head: f })) || [];
   const read = reaches.flatMap((r) => (r.read && [r.reach]) || []);
@@ -906,11 +955,15 @@ const bodyWidthOf = (
   closed: Uint8Array,
   discs: ReadonlyArray<HandDisc>,
   span: { readonly top: number; readonly height: number },
+  columns: BodyColumns,
 ) => {
-  const widths = sideRowsOf(crop, closed, discs, {
-    from: span.top + BODY_BAND[0] * span.height,
-    to: span.top + BODY_BAND[1] * span.height,
-  })
+  const widths = sideRowsOf(
+    crop,
+    closed,
+    discs,
+    { from: span.top + BODY_BAND[0] * span.height, to: span.top + BODY_BAND[1] * span.height },
+    columns,
+  )
     .map((row) => row.right - row.left + 1)
     .sort((a, b) => a - b);
   return (widths[Math.floor(widths.length / 2)] ?? 0) / span.height;
@@ -931,6 +984,7 @@ const readView = (
   const span = { top: y0 - oy, height };
   const middle = (figure.body[0] + figure.body[2]) / 2 - ox;
   const closed = closedOf(crop);
+  const columns = { from: figure.body[0] - ox, to: figure.body[2] - ox };
   const read = Option.map(measure, (m) =>
     readMeasured(crop, m, closed, {
       view,
@@ -939,6 +993,7 @@ const readView = (
       top: span.top,
       height,
       middle,
+      columns,
     }),
   );
   const skin = Option.flatMap(read, (r) => r.skin);
@@ -951,7 +1006,7 @@ const readView = (
     slot,
     box: figure.box,
     height,
-    widthToHeight: bodyWidthOf(crop, closed.closed, discs, span),
+    widthToHeight: bodyWidthOf(crop, closed.closed, discs, span, columns),
     lit,
     papers: papers.map((p) => ({ rgb: p.rgb, share: p.share })),
     bare: Option.match(read, {
@@ -976,7 +1031,11 @@ const readView = (
   return { record, crop, measure, unmeasured };
 };
 
-const facingFields = (m: FigureMeasure) => ({ turn: m.facing.turn, roll: m.facing.roll });
+const facingFields = (m: FigureMeasure) => ({
+  turn: m.facing.turn,
+  roll: m.facing.roll,
+  eyes: m.facing.eyes,
+});
 
 /** A beard and the hair: one fill, or parted by a line. */
 const partingOf = (merged: boolean): 'parted' | 'merged' => (merged && 'merged') || 'parted';
@@ -1166,10 +1225,11 @@ const percentOff =
 
 /**
  * The heads on a heads sheet: a turn changes a head's width and a nod its
- * height, so the height is held on the level heads alone, and the width
+ * height, so the height is held on the level heads alone, and the size
  * among the heads of one turn, each to that turn's first level head (the
- * anchor on its own turn). A bowed or lifted head is held to its own turn,
- * never read as drift for its nod.
+ * anchor on its own turn), by the eyes' spacing: a lock of hair falling
+ * beside the face widens the head's box, never the eyes. A bowed or lifted
+ * head is held to its own turn, never read as drift for its nod.
  */
 const headsFlags = (
   views: ReadonlyArray<SheetView>,
@@ -1200,9 +1260,9 @@ const headsFlags = (
           turn,
           to,
           'head',
-          (v) => Option.fromUndefinedOr(v.headWidth),
+          (v) => Option.fromUndefinedOr(v.eyes),
           percentOff(
-            "the head's width",
+            "the eyes' spacing",
             (to.view === anchor.view && "the anchor's") || `view ${to.view}'s, its turn's first`,
           ),
         ),

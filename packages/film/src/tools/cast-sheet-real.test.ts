@@ -1,15 +1,18 @@
-// The cast sheet's measure on a real try: a Christ turnaround the image
-// route painted from the cast sheet brief (scaled to 0.75), and the same
+// The cast sheet's measure on real tries the image route painted from the
+// cast sheet brief, each scaled to 0.75: a Christ turnaround, and the same
 // sheet rebuilt with its two profiles swapped, so each faces away from the
-// three-quarter on its side. A painted profile and three-quarter differ in
+// three-quarter on its side (a painted profile and three-quarter differ in
 // the body far more than a drawn fixture's do, so the profile is held to the
-// three-quarter on their heads. The sheet is a PNG, so it is decoded here,
-// past core.
+// three-quarter on their heads); a turnaround painted close together, whose
+// body band crosses into its neighbours' crops; a heads sheet whose locks of
+// hair widen some heads' boxes; a pose sheet with a bare forearm painted on
+// to a hand under the chin; and a farmer under a headcloth whose ends fall
+// past his hands. The sheets are PNGs, so they are decoded here, past core.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Result } from 'effect';
-import { measureSheet } from '../core/cast-sheet.ts';
+import { measureSheet, type SheetOptions } from '../core/cast-sheet.ts';
 import { figuresOf } from '../core/cast-sheet-pixels.ts';
 import { drawSheet } from '../core/fixtures/figure.ts';
 import { cropRaster, type Raster } from '../core/raster.ts';
@@ -44,6 +47,110 @@ describe("a painted turnaround's profiles", () => {
       const sheet = yield* sheetAt('christ-turnaround-w1.png');
       expect(profileWays(reordered(sheet, [1, 2, 3, 4, 5, 6]))).toEqual([]);
       expect(profileWays(reordered(sheet, [1, 2, 5, 4, 3, 6]))).toEqual(['2,3', '6,5']);
+    }),
+  );
+});
+
+const measured = (sheet: Raster, options: SheetOptions) =>
+  Result.getOrThrow(measureSheet(sheet, options));
+const flagsOf = (sheet: Raster, options: SheetOptions) =>
+  measured(sheet, options).flags.map((f) => `${f.check}:${f.views.join(',')}`);
+
+describe('a turnaround painted close together', () => {
+  it.effect("reads each view's width on its own body, never a neighbour's robe in its crop", () =>
+    Effect.gen(function* () {
+      const sheet = yield* sheetAt('christ-turnaround-2.png');
+      // Seen: its front and back are as wide; the back's crop took the next view's sleeve, and read 31 % narrower.
+      expect(flagsOf(sheet, { kind: 'turnaround', count: 6, anchor: 2 })).not.toContain(
+        'width:1,4',
+      );
+    }),
+  );
+});
+
+describe("a heads sheet whose locks widen some heads' boxes", () => {
+  it.effect('holds the heads of one turn by their eyes, never by the box the hair widens', () =>
+    Effect.gen(function* () {
+      const sheet = yield* sheetAt('christ-heads-l1.png');
+      const options: SheetOptions = {
+        kind: 'heads',
+        count: 6,
+        anchor: 1,
+        slots: ['left', 'left', 'left', 'front', 'front', 'front'],
+        level: [1, 4],
+      };
+      // Seen: one head drawn six times, the lock beside the cheek falling wider on some.
+      expect(flagsOf(sheet, options).filter((f) => f.startsWith('head:'))).toEqual(['head:4,1']);
+    }),
+  );
+});
+
+/** A bare forearm painted on christ-poses-l2's view 2, joined as flat skin to the hand it holds under the chin, run down toward the waist's middle: its ink, then its skin. */
+const withForearm = (sheet: Raster) => {
+  const r = { ...sheet, rgba: Uint8Array.from(sheet.rgba) };
+  const at = (x: number, y: number) => {
+    const i = (y * r.width + x) * 4;
+    return [r.rgba[i] ?? 0, r.rgba[i + 1] ?? 0, r.rgba[i + 2] ?? 0] as const;
+  };
+  const skin = at(216, 373);
+  const ink = Array.from({ length: 38 }, (_, k) => at(202 + k, 368)).reduce(
+    (a, c) => (c[0] + c[1] + c[2] < a[0] + a[1] + a[2] && c) || a,
+  );
+  const [from, to] = [
+    [228, 379.5],
+    [250.5, 425.25],
+  ] as const;
+  const near = (w: number) => (x: number, y: number) => {
+    const [dx, dy] = [to[0] - from[0], to[1] - from[1]];
+    const t = Math.max(
+      0,
+      Math.min(1, ((x - from[0]) * dx + (y - from[1]) * dy) / (dx * dx + dy * dy)),
+    );
+    return Math.hypot(x - (from[0] + t * dx), y - (from[1] + t * dy)) <= w;
+  };
+  const paint = (inside: (x: number, y: number) => boolean, c: ReadonlyArray<number>) => {
+    for (let y = 330; y < 465; y++)
+      for (let x = 180; x < 285; x++)
+        if (inside(x + 0.5, y + 0.5))
+          r.rgba.set([c[0] ?? 0, c[1] ?? 0, c[2] ?? 0, 255], (y * r.width + x) * 4);
+  };
+  paint((x, y) => near(13.5)(x, y) && Math.hypot(x - 222, y - 368.25) > 20.25, ink);
+  paint(near(9.75), skin);
+  return r;
+};
+
+describe('a pose sheet with a bare forearm painted to a hand under the chin', () => {
+  it.effect('flags the bare arm, never reads it as the neck', () =>
+    Effect.gen(function* () {
+      const sheet = yield* sheetAt('christ-poses-l2.png');
+      const options: SheetOptions = {
+        kind: 'poses',
+        count: 6,
+        anchor: 1,
+        slots: ['left', 'front', 'left', 'left', 'left', 'left'],
+      };
+      expect(flagsOf(sheet, options)).not.toContain('bareArm:2');
+      expect(flagsOf(withForearm(sheet), options)).toContain('bareArm:2');
+    }),
+  );
+});
+
+describe('a farmer under a headcloth whose ends fall past his hands', () => {
+  it.effect('reads his hands at rest against the body, never the side under them unread', () =>
+    Effect.gen(function* () {
+      const sheet = yield* sheetAt('farmer-turnaround-u2.png');
+      const m = measured(sheet, { kind: 'turnaround', count: 6, anchor: 6, headgear: true });
+      // Seen: the hands touch the robe, with no sleeve; the cloth is not hair, so the side's rows start under the chin.
+      expect(
+        m.unmeasured
+          .filter((u) => u.check === 'sleeveReach' && [1, 2, 6].includes(u.view))
+          .map((u) => u.why),
+      ).toEqual(
+        Array.from(
+          { length: 3 },
+          () => 'a hand at rest against the body: a sleeve to it is not told from a touch',
+        ),
+      );
     }),
   );
 });
