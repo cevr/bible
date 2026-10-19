@@ -51,3 +51,18 @@ The owner's ideas for scripts, set against _From Milk to Meat_ ([series.md](seri
 - **What Seth inherits.** "The son shall not bear the iniquity of the father" (Ezek 18:20). Seth inherits the fallen nature, not Adam's guilt; the owner's wording already says this (we fall when "we sin ourselves"). Keep it so.
 - **Two small wording points.** "Heart, soul, strength and mind" is Luke 10:27, spoken by the lawyer and approved by Jesus; Jesus says it Himself in Matt 22:37–40 (heart, soul, mind). "Might" is Deut 6:5. In Ex 33 the name comes one verse before the face (33:19, then 33:20).
 - **House rules.** Quote only Scripture; paraphrase the pioneers unnamed; no denominational sourcing; one narrator; the cast in the background only.
+
+## Eternal life: three ways, one source (owner, 2026-10-19)
+
+The owner's study: Jesus gives a few ways to obtain eternal life, and the Old Testament gives the same ones. In the end they are one source, faith, which comes by the word. Every verse was read with `bible verse` on 2026-10-19.
+
+| Way                  | Jesus                                                                                                                                                         | The Old Testament                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Know Him             | "this is life eternal, that they might know thee the only true God, and Jesus Christ, whom thou hast sent" (John 17:3)                                        | "let him that glorieth glory in this, that he understandeth and knoweth me" (Jer 9:24)                                                       |
+| Keep the law         | "What is written in the law? how readest thou? … this do, and thou shalt live" (Luke 10:26–28)                                                                | "keep his commandments … that thou mayest live" (Deut 30:16); "which if a man do, he shall live in them" (Lev 18:5)                          |
+| Him, Himself         | "I am the way, the truth, and the life" (John 14:6); "I am the resurrection, and the life" (John 11:25); "this life is in his Son" (1 John 5:11–12)           | "cleave unto him: for he is thy life, and the length of thy days" (Deut 30:20)                                                               |
+| One source: the word | "the words that I speak unto you, they are spirit, and they are life" (John 6:63); "Search the scriptures … they are they which testify of me" (John 5:39–40) | "man doth not live by bread only, but by every word that proceedeth out of the mouth of the LORD" (Deut 8:3); "it is your life" (Deut 32:47) |
+
+- **Faith joins them:** "faith cometh by hearing, and hearing by the word of God" (Rom 10:17). To know Him, to keep His law and to have Him are one life, received by faith from His word.
+- **Corpus leads (not yet verified into sources.md):** ST August 24, 1891, par. 1 ("The knowledge of God and of Christ is the only knowledge which can lead to true and eternal" life); RH February 22, 1898, par. 7; DA 391.1.
+- **Where it fits:** 06b · What Is Salvation? (the answer to the four losses), or a milk-level film for stone 2, "faith toward God" (Heb 6:1), if Righteousness by Faith moves later (owner, 2026-10-19: "I think righteousness by faith is probably actually something that should come later in the series").
