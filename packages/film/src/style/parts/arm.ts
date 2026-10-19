@@ -17,7 +17,7 @@ import { Outline, Point } from './measure.ts';
 
 /** An arm: where it turns, its turn at rest, its sleeve's outline, its paper and the colour on it. */
 const ArmPart = Schema.TaggedStruct('Arm', {
-  /** Where it turns, units from the figure's origin: a point inside its garment. */
+  /** Where it turns, units from the figure's origin: a point inside its garment (a figure refuses one outside it). */
   pivot: Point,
   /** Its turn at rest, radians from the pose it is traced in: its number's value at rest. */
   rest: Schema.Finite,

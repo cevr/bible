@@ -1,11 +1,11 @@
 // The outlines a figure is cut from, in the figure's units: a polygon with
 // its corners rounded, a garment's (a tunic cut from its neck and hem, a
 // robe from its corners or as traced), a shoe, and a blot (a head is traced
-// from its concept); and how one paper tucks under the papers laid over it
-// (`tucked`, and a paper rimmed all round deeper, under their seams,
-// `tuckedRimmed`). Each outline is a list of points the generator's `piece`
-// runs a smooth path through, dense enough along a straight edge that the
-// edge stays straight. Pure.
+// from its concept); whether a point lies inside an outline (`inside`); and
+// how one paper tucks under the papers laid over it (`tucked`, and a paper
+// rimmed all round deeper, under their seams, `tuckedRimmed`). Each outline
+// is a list of points the generator's `piece` runs a smooth path through,
+// dense enough along a straight edge that the edge stays straight. Pure.
 
 import { rng } from '../../core/random.ts';
 import type { Garment, Tunic } from '../parts/body.ts';
@@ -183,10 +183,8 @@ export const blotOutline = (rx: number, ry: number, wander: number, seed: number
   });
 };
 
-// ─── tucking one paper under another ─────────────────────────────────────────
-
 /** Whether `p` lies inside the closed outline `poly`. */
-const inside = (p: Pt, poly: ReadonlyArray<Pt>) => {
+export const inside = (p: Pt, poly: ReadonlyArray<Pt>) => {
   let c = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const [xi, yi] = poly[i] ?? p;
@@ -195,6 +193,8 @@ const inside = (p: Pt, poly: ReadonlyArray<Pt>) => {
   }
   return c;
 };
+
+// ─── tucking one paper under another ─────────────────────────────────────────
 
 /** A point on an outline, its distance from the point it is nearest, and the inward normal of its edge. */
 interface Nearest {

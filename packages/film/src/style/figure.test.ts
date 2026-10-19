@@ -725,6 +725,28 @@ describe('an arm in its sleeve', () => {
     expect(rml).toMatch(/<Shape name="farSleeve" id="[^"]+">[^]*?<Stroke [^>]*name="Ink">/);
   });
 
+  test('turned about a point outside its garment is refused, on either side and on any garment', () => {
+    const astray = Arm({
+      pivot: [400, 0],
+      rest: 0,
+      outline: [
+        [380, -20],
+        [420, -20],
+        [420, 60],
+        [380, 60],
+      ],
+      paper: FLAT,
+    });
+    expect(() => figure({ ...standingOf(), arms: { far: astray } })).toThrow(
+      /arms\.far refused: [^]*its pivot \(400, 0\) lies outside its garment's outline/,
+    );
+    expect(() => figure({ ...standingOf(), arms: { near: astray } })).toThrow(/arms\.near refused/);
+    // The sleeve's pivot lies inside the cut robe, but above the plain lead's tunic.
+    expect(() => figure({ ...leadOf([]), arms: { far: sleeve } })).toThrow(
+      /arms\.far refused: [^]*its pivot \(30, -290\) lies outside/,
+    );
+  });
+
   test('is frozen with its figure: a change made in it throws, and it stays as composed', () => {
     const armed = figure({ ...standingOf(), arms: { far: sleeve } });
     const far = armed.arms.far;
