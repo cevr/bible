@@ -643,9 +643,9 @@ const seatedBreath = (rig: Figure, stance: Seated, side: string, neck: number) =
  * A composed figure's artboard and view model. Rive draws a node's
  * children front first: the head over the garment, the garment over the
  * feet, and on the garment what lies on it with no line of its own, then the
- * given robe, the stain, the garment's own paper and its arms behind it. The stain's node is
- * made before the head's, what lies on the garment after it, and the gaze's
- * binds after the body.
+ * given robe, the stain, the garment's own paper and its arms behind it.
+ * The stain's node is made before the head's, what lies on the garment
+ * after it, and the gaze's binds after the body.
  */
 export const drawFigure = <K extends string>(rig: Figure, f: ComposedFigure<K>): Element[] => {
   const stain = f.states.stain === undefined ? [] : [stainOf(rig, f.states.stain)];

@@ -258,7 +258,7 @@ type StatesKnob<T> =
 
 /** The number each arm adds, by its side (`nearArm`, `farArm`); none for a side typed as one that may be missing. */
 type ArmKnob<A> = {
-  readonly [Side in keyof A & ArmSide]-?: A[Side] extends Arm ? `${Side}Arm` : never;
+  readonly [Side in keyof A & ArmSide]: A[Side] extends Arm ? `${Side}Arm` : never;
 }[keyof A & ArmSide];
 
 /**
