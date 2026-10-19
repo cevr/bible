@@ -2,7 +2,16 @@
 // the key is read from), the environment as config, and a fake TypeSafe HTTP
 // client, so no test reads the real keychain or reaches the network.
 
-import { ConfigProvider, Effect, Layer, type Option, Schema, Sink, Stream } from 'effect';
+import {
+  ConfigProvider,
+  Effect,
+  Layer,
+  type Option,
+  Predicate,
+  Schema,
+  Sink,
+  Stream,
+} from 'effect';
 import { Headers, HttpClient, HttpClientResponse } from 'effect/http';
 import { ChildProcessSpawner } from 'effect/process';
 
@@ -12,7 +21,6 @@ import type { JudgedRule } from './rule.js';
 export const historyComment: JudgedRule = {
   id: 'historyComment',
   severity: 'warn',
-  version: 1,
   selector: 'comments',
   subject: 'code comment',
   instructions:
@@ -74,25 +82,38 @@ const Sent = Schema.fromJsonString(
 
 /**
  * A fake TypeSafe HTTP client answering every request with `status` and
- * `body` (of the request's question keys); it records each request's URL
- * and authorization header.
+ * `body` (each of the request's question keys, or a status the same for
+ * every request); it records each request's URL, authorization header and
+ * keys.
  */
-export const typesafeHttp = (status: number, body: (keys: ReadonlyArray<string>) => unknown) => {
-  const requests: Array<{ readonly url: string; readonly authorization: Option.Option<string> }> =
-    [];
+export const typesafeHttp = (
+  status: number | ((keys: ReadonlyArray<string>) => number),
+  body: (keys: ReadonlyArray<string>) => unknown,
+) => {
+  const requests: Array<{
+    readonly url: string;
+    readonly authorization: Option.Option<string>;
+    readonly keys: ReadonlyArray<string>;
+  }> = [];
+  const statusOf = (keys: ReadonlyArray<string>) => {
+    if (Predicate.isNumber(status)) return status;
+    return status(keys);
+  };
   const layer = Layer.succeed(
     HttpClient.HttpClient,
     HttpClient.make((request) =>
       Effect.gen(function* () {
+        if (request.body._tag !== 'Uint8Array') return yield* Effect.die('no JSON body');
+        const sent = yield* Schema.decodeEffect(Sent)(new TextDecoder().decode(request.body.body));
+        const keys = Object.keys(sent.questions);
         requests.push({
           url: request.url,
           authorization: Headers.get(request.headers, 'authorization'),
+          keys,
         });
-        if (request.body._tag !== 'Uint8Array') return yield* Effect.die('no JSON body');
-        const sent = yield* Schema.decodeEffect(Sent)(new TextDecoder().decode(request.body.body));
         return HttpClientResponse.fromWeb(
           request,
-          Response.json(body(Object.keys(sent.questions)), { status }),
+          Response.json(body(keys), { status: statusOf(keys) }),
         );
       }).pipe(Effect.orDie),
     ),

@@ -3857,43 +3857,55 @@ item of any file, so it is a line of the film skill
 **Judged rules** are the rules a pattern cannot decide, decided by a model
 and reported by oxlint. Each is an entry `judged/<id>` in `.oxlintrc.json`,
 its options its whole definition (`packages/scripts/src/judged/rule.ts`): a
-version, a selector (which items it reads), the subject, the classify
-instructions and criteria, the label that reports, a threshold and a
-message; `settings.judged` names the model, whose measurements set the
-thresholds, and where the answers are kept. Its severity is its gate: `warn`
-reports, `error` fails the lint, `off` judges nothing. The rules are
-`historyComment` (a comment's history), `commentClaimsCode` (a comment that
-claims more than its code), `testOracle` (a test whose oracle is its code),
-`silentDrop` (a function that drops what it cannot handle unsaid), all at
-`warn`, and `scriptSpeech` (a film beat that names its sources or church
-history), at `error`; over each, `.oxlintrc.json` says what its corpus
-measured. `bun run lint` (and so
-the gate) runs the runner (`packages/scripts/src/lint-judged.ts`, `bun run
-lint:judged`) first and oxlint after it. The runner reads the items that the
-working tree adds or changes against the merge base with origin/main
-(`--base` names another), for every rule at once, and asks TypeSafe's model
-about all those the store does not answer in one request, split only past
-200 items or about 60,000 input tokens (the model refused a request near
-65,536). It keeps each answer in the store `settings.judged.cache` names
-under the repo's ignored tmp folder, keyed by the rule and its version, the
-model and the text, with the rules judged in each file, so a rerun asks only
-for new text. The plugin (`packages/scripts/lint/judged.ts`) reads that store
-and reports each kept answer at or over its rule's threshold, at its line;
-it asks no model, so a checkout with no store reports nothing. The runner
+selector (which items it reads), the subject, the classify instructions and
+criteria, the label that reports, a threshold and a message;
+`settings.judged` names the model by its exact id (`jev-1.13.0`), whose
+measurements set the thresholds, and where the answers are kept. Its
+severity is its gate: `warn` reports, `error` fails the lint, `off` judges
+nothing. The rules are `historyComment` (a comment's history),
+`commentClaimsCode` (a comment that claims more than its code), `testOracle`
+(a test whose oracle is its code), `silentDrop` (a function that drops what
+it cannot handle unsaid), all at `warn`, and `scriptSpeech` (a film beat that
+names its sources or church history), at `error`; over each,
+`.oxlintrc.json` says what its corpus measured. To add one: write its entry
+in `.oxlintrc.json` (at `warn`), add its id to `RULE_IDS` in
+`packages/scripts/lint/judged.ts` (the plugin defines each rule by name, and
+`packages/scripts/src/judged/config.test.ts` holds the two lists equal), write its labelled
+corpus in `packages/scripts/src/judged/fixtures/`, and measure it. `bun run
+lint` (and so the gate) runs the runner (`packages/scripts/src/lint-judged.ts`,
+`bun run lint:judged`) first and oxlint after it. The runner reads every item
+of every rule in the working tree, tracked or new (git's ignored files and
+the config's `ignorePatterns` aside; a series script's Markdown in its tables
+and its `**say:**` and `**picture:**` paragraphs), and asks TypeSafe's model
+about all those the store does not answer in one request, split past 200
+items or about 60,000 estimated input tokens, a part the model still refuses
+as too long asked again in halves. The store (`settings.judged.cache`, under
+the repo's ignored tmp folder) is keyed by content: a hash of the words the
+model reads for the rule (subject, instructions, criteria), the model, and
+the item's text with its whitespace folded. So a rerun asks only for text
+or rule words it has not seen, an edit to a rule's words asks again, a
+threshold or a message changes no answer, and a moved, copied or re-indented
+item keeps its answer. The plugin (`packages/scripts/lint/judged.ts`) hashes
+each item of the file it lints the same way and reports the kept answer at
+or over its rule's threshold at its line, wherever the text now lives; it
+asks no model, so a checkout with no store reports nothing. The runner
 prints, and gates on, only the findings oxlint cannot report (a Markdown
 series script, an answer the store could not keep), and one line a rule;
 `--strict` prints every finding and fails on any. It never fails on its
 model or its host: no key (`TYPESAFE_API_KEY`, else the keychain item
-`typesafe-api-key` within 2 s), a timeout, a rate limit, an HTTP error or an
-answer that misses items passes, and prints `[judged] skipped rule=<rule>
-reason=<reason> items=<n>`; any other failure (git, the lint config, a
-defect) is `rule=* reason=error` with `detail=<tag>`, and answers the store
-cannot keep are asked again next run. The key goes only to TypeSafe's own
-host, and the runner reads no `.env` file (`bun --no-env-file`): none in a
-checkout sets its key or a proxy. A rule stays at `warn` until its labelled
-corpus (`packages/scripts/src/judged/fixtures/`) shows the precision a gate
-needs; `bun run --cwd packages/scripts judged:measure --rule <id>` measures it
-there and prints its precision and recall at its threshold and at others.
+`typesafe-api-key` within 2 s), a part past 5 s, a rate limit, an HTTP error,
+one item alone past the input limit or an answer that misses items passes,
+and prints `[judged] skipped rule=<rule> reason=<reason> items=<n>`; any
+other failure (git, the lint config, a defect) is `rule=* reason=error` with
+`detail=<tag>`, a store that does not decode is read as empty with one
+`[judged] store unread` line, and answers the store cannot keep are asked
+again next run. Two runs keep their answers under one lock file and write
+the store whole, so neither loses the other's. The key goes only to
+TypeSafe's own host, and the runner reads no `.env` file (`bun
+--no-env-file`): none in a checkout sets its key or a proxy. A rule stays at
+`warn` until its labelled corpus shows the precision a gate needs; `bun run
+--cwd packages/scripts judged:measure --rule <id>` measures it there and
+prints its precision and recall at its threshold and at others.
 `film/drawing-literal` and `film/no-unprobed-ink` hold a film's scenes to
 what the lab can locate and what `film check` can probe; the films' README
 (`apps/animations/README.md`, **Lint**) says what each refuses.

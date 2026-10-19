@@ -1,5 +1,5 @@
-// The judged lint's command (`lint-judged.ts` runs it): its flags, the run
-// of every judged rule of the lint config over the changed items, the
+// The judged lint's command (`lint-judged.ts` runs it): its flag, the run
+// of every judged rule of the lint config over the repo's items, the
 // findings oxlint cannot report printed, and the boundary that turns every failure but a gating finding and an interrupt
 // into one `reason=error` skip line and success. It takes its model as a
 // layer for the config's model name, so a test runs the whole command
@@ -9,11 +9,11 @@ import { Cause, Console, Effect, Layer, Option, Path, Ref, Runtime, Schema } fro
 import type { DecisionModel } from 'effect/ai';
 import { Command, Flag } from 'effect/cli';
 
-import { changedItems } from './changes.js';
 import { readByOxlint } from './items.js';
 import { JudgedLint, judgedLintLayer } from './config.js';
 import { cacheModel } from './rule.js';
 import { LIMITS, detailOf, findingLine, judge, runLine } from './run.js';
+import { repoItems } from './sources.js';
 
 /** Findings that fail the run: a rule at `error`, or any finding under `--strict`. */
 class GatingFindings extends Schema.TaggedError<GatingFindings>()('GatingFindings', {
@@ -27,20 +27,16 @@ const isGatingFindings = Schema.is(GatingFindings);
 /** A model layer for a model's name. */
 type ModelOf<E, R> = (model: string) => Layer.Layer<DecisionModel.DecisionModel, E, R>;
 
-/** Lints the repo's changed items against `base`; `read` holds how many items the selectors found. */
-const lint = Effect.fn('lintJudged')(function* (
-  base: string,
-  strict: boolean,
-  read: Ref.Ref<number>,
-) {
+/** Lints the repo's items; `read` holds how many items the selectors found. */
+const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<number>) {
   const path = yield* Path.Path;
   const config = yield* JudgedLint;
   const root = config.root;
-  const changed = yield* changedItems(root, base, config.ignorePatterns, [
+  const found = yield* repoItems(root, config.ignorePatterns, [
     ...new Set(config.rules.map((rule) => rule.selector)),
   ]);
   const items = config.rules.flatMap((rule) =>
-    changed
+    found
       .filter((item) => item.selector === rule.selector)
       .map((item) => ({ rule, file: item.file, line: item.line, text: item.text })),
   );
@@ -74,12 +70,6 @@ const commandOf = (read: Ref.Ref<number>) =>
   Command.make(
     'lint-judged',
     {
-      base: Flag.String('base').pipe(
-        Flag.withDefault('origin/main'),
-        Flag.withDescription(
-          'the ref whose merge base with HEAD the changed lines are read against',
-        ),
-      ),
       strict: Flag.Boolean('strict').pipe(
         Flag.withDefault(false),
         Flag.withDescription(
@@ -87,8 +77,8 @@ const commandOf = (read: Ref.Ref<number>) =>
         ),
       ),
     },
-    ({ base, strict }) => lint(base, strict, read),
-  ).pipe(Command.withDescription('Run the judged lint rules over the changed items'));
+    ({ strict }) => lint(strict, read),
+  ).pipe(Command.withDescription("Run the judged lint rules over the repo's items"));
 
 /**
  * `program` with every failure but `GatingFindings` and an interrupt turned

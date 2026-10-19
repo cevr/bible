@@ -2,7 +2,9 @@
 // with which lines and which words. The runner and the plugin both read
 // through these, so an item's text here is its cache key's text in both.
 
-import { Effect } from 'effect';
+import * as BunServices from '@effect/platform-bun/BunServices';
+import { Glob } from 'bun';
+import { Effect, FileSystem } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import { itemsOf, markdownBeats, parse, selects } from './items.ts';
@@ -101,6 +103,57 @@ describe('the judged selectors', () => {
         [2, 2, 'picture: A page. ${CARDS}'],
       ]);
     }),
+  );
+
+  it.effect('testCases takes a layered case and an each case by their root name', () =>
+    Effect.sync(() => {
+      const lines = [
+        "import { it, test } from 'effect-bun-test';", // 1
+        "it.effect.layer(Live)('reads the layer', () => Effect.void);", // 2
+        "test.each([1, 2])('takes %d', (n) => expect(n).toBeGreaterThan(0));", // 3
+        "describe.each([1])('a group %d', () => {});", // 4
+      ];
+      expect(read('testCases', 'src/a.test.ts', lines).map(([line]) => line)).toEqual([2, 3]);
+    }),
+  );
+
+  it.effect("markdownBeats takes a beat's say and picture paragraphs, never its cite", () =>
+    Effect.sync(() => {
+      const items = markdownBeats(
+        [
+          '## Beat 1 · hook', // 1
+          '', // 2
+          '**say:** {a}A baby drinks milk. {/} {b}And nobody minds.', // 3
+          '**cite:** Hebrews 5:12; E. G. White, Education, 13', // 4
+          '**picture:** STORY: a courtyard,', // 5
+          'lanterns strung.', // 6
+          '', // 7
+          '**Say:** Second.', // 8
+        ].join('\n'),
+      );
+      expect(items.map((item) => [item.line, item.end, item.text])).toEqual([
+        [3, 3, 'say: {a}A baby drinks milk. {/} {b}And nobody minds.'],
+        [5, 6, 'picture: STORY: a courtyard, lanterns strung.'],
+        [8, 8, 'say: Second.'],
+      ]);
+    }),
+  );
+
+  it.effect("markdownBeats reads every series script's beats: none is a form it cannot read", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const series = new URL('../../../../apps/animations/series/', import.meta.url).pathname;
+      const scripts = [...new Glob('*/scripts/*.md').scanSync({ cwd: series })];
+      expect(scripts.length).toBeGreaterThan(0);
+      const unread: Array<string> = [];
+      for (const script of scripts) {
+        const says = markdownBeats(yield* fs.readFileString(`${series}${script}`)).filter((item) =>
+          item.text.startsWith('say: '),
+        );
+        if (says.length === 0) unread.push(script);
+      }
+      expect(unread).toEqual([]);
+    }).pipe(Effect.provide(BunServices.layer)),
   );
 
   it.effect("markdownBeats takes each row's Say and Picture, by their headers", () =>

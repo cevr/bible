@@ -1,8 +1,9 @@
 // The judged rules' selectors: the items of one source a rule judges, each
 // with its first line, its last line, its offset and its text. The runner
-// (`changes.ts`) keeps the items a changed line touches and asks the model;
-// the oxlint plugin (`packages/scripts/lint/judged.ts`) takes every item of a file it lints and
-// reports the answers kept for them. Both read a source through `parse`
+// (`sources.ts`) reads every item of the repo and asks the model of those
+// the store does not answer; the oxlint plugin
+// (`packages/scripts/lint/judged.ts`) takes every item of a file it lints
+// and reports the answers kept for them. Both read a source through `parse`
 // (oxc-parser), so an item's text, and with it its cache key, is the same in
 // both. This module runs in Node (oxlint's plugin host) and in Bun, so it
 // imports nothing of either.
@@ -12,13 +13,15 @@
 //                  line; a line comment after code is a block of its own)
 //   commentedCode  each comment block first on its line with the code it sits
 //                  on: the outermost node that starts the next line
-//   testCases      each test case (`it`/`test`, a name and a function) of a
-//                  test file, with the file's imports
+//   testCases      each test case (`it`/`test`, a name and a function,
+//                  layered or `.each` too) of a test file, with the file's
+//                  imports
 //   functions      each named function of a source that is not a test, with
 //                  the comment it sits under; one longer than FUNCTION_LINES
 //                  is no item, and the named functions inside it are
 //   scriptBeats    each beat's `say` and `picture` of a film's `script.ts`,
-//                  and each row's of a series script's table
+//                  and of a series script's Markdown, in its tables' rows or
+//                  its `**say:**` and `**picture:**` paragraphs
 //                  (`markdownBeats`)
 
 import { Option, Predicate } from 'effect';
@@ -229,10 +232,14 @@ const commentedCode = (source: Source): ReadonlyArray<Item> => {
     });
 };
 
-/** The name a callee is called by at its root: `it` in `it.effect.skip`. */
+/**
+ * The name a callee is called by at its root: `it` in `it.effect.skip`, in
+ * `it.effect.layer(x)` and in `test.each(rows)`.
+ */
 const rootName = (node: Node): Option.Option<string> => {
   if (node.type === 'Identifier') return Option.some(node.name);
   if (node.type === 'MemberExpression') return rootName(node.object);
+  if (node.type === 'CallExpression') return rootName(node.callee);
   return Option.none();
 };
 
@@ -395,18 +402,57 @@ const columnOf = (header: ReadonlyArray<string>, names: ReadonlyArray<string>) =
     (at) => at >= 0,
   );
 
+/** A beat's paragraph in a series script: `**say:** …` or `**picture:** …` (never `**cite:**`). */
+const PARAGRAPH = /^\*\*(say|picture):\*\*\s*(.*)$/i;
+
+/** A line that ends a beat's paragraph: a blank line, another bold label, a table row or a heading. */
+const ENDS_PARAGRAPH = /^\s*$|^\*\*|^\s*\||^#/;
+
 /**
- * Each row's `say` and `picture` of a series script's beat tables: the
- * column headed `Say` or `Spoken`, and the one headed `Picture` or
- * `On screen`. Oxlint reads no Markdown, so only the runner reads these.
+ * Each beat's `say` and `picture` of a series script, in either form the
+ * series write them: a beat table's rows (the column headed `Say` or
+ * `Spoken`, and the one headed `Picture` or `On screen`), or a beat's
+ * `**say:**` and `**picture:**` paragraphs, each to the next blank line,
+ * bold label, table row or heading. A `**cite:**` paragraph names its
+ * sources by design, and is not read. Oxlint reads no Markdown, so only the
+ * runner reads these.
  */
 export const markdownBeats = (text: string): ReadonlyArray<Item> => {
   const items: Array<Item> = [];
   let columns = Option.none<{ readonly say: number; readonly picture: number }>();
+  let paragraph = Option.none<{
+    name: string;
+    line: number;
+    start: number;
+    words: Array<string>;
+  }>();
+  const close = () => {
+    Option.map(paragraph, ({ name, line, start, words }) => {
+      const said = words.join(' ').trim();
+      if (said !== '')
+        items.push({ line, end: line + words.length - 1, start, text: `${name}: ${said}` });
+    });
+    paragraph = Option.none();
+  };
   let offset = 0;
   text.split('\n').forEach((row, i) => {
     const start = offset;
     offset += row.length + 1;
+    if (Option.isSome(paragraph) && !ENDS_PARAGRAPH.test(row)) {
+      paragraph.value.words.push(row.trim());
+      return;
+    }
+    close();
+    const opened = PARAGRAPH.exec(row);
+    if (opened) {
+      paragraph = Option.some({
+        name: (opened[1] ?? '').toLowerCase(),
+        line: i + 1,
+        start,
+        words: [opened[2] ?? ''],
+      });
+      return;
+    }
     if (!row.trim().startsWith('|')) {
       columns = Option.none();
       return;
@@ -425,5 +471,6 @@ export const markdownBeats = (text: string): ReadonlyArray<Item> => {
       if (words !== '') items.push({ line: i + 1, end: i + 1, start, text: `${name}: ${words}` });
     }
   });
+  close();
   return items;
 };

@@ -1,12 +1,12 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Deferred, Effect, Fiber, FileSystem, Layer, Path } from 'effect';
+import { Console, DateTime, Deferred, Effect, Fiber, FileSystem, Layer, Path } from 'effect';
 import { DecisionModel } from 'effect/ai';
 import { describe, expect, it } from 'effect-bun-test';
 import { TestClock } from 'effect/testing';
 
-import { keepAnswers } from './cache.js';
+import { keepAnswers, readCache } from './cache.js';
 import { judgedModel } from './model.js';
-import type { JudgedRule } from './rule.js';
+import { type JudgedRule, ruleKey } from './rule.js';
 import { findingLine, judge, partsOf, runLine } from './run.js';
 
 /** An item a judged rule reads. */
@@ -291,10 +291,69 @@ describe('a judged rule', () => {
           ['We switched to Rive.'],
         ]);
         expect(third.findings.map((f) => f.file)).toEqual(['src/a.ts', 'src/d.ts']);
-        // Another model's answers, or another version of the rule's, are not these.
+        // Another model's answers are not these.
         yield* judgeBy(historyComment, ITEMS, { ...options, model: 'fake/other' });
-        yield* judgeBy({ ...historyComment, version: 2 }, ITEMS, options);
+        expect(model.requests).toHaveLength(3);
+      }).pipe(Effect.provide(model.layer), withFs);
+    },
+  );
+
+  it.effect(
+    "asks again when the rule's subject, instructions or criteria change, and not for its threshold or message",
+    () => {
+      const model = countingModel((text) => P.get(text) ?? 0.99);
+      return Effect.gen(function* () {
+        const options = yield* judging;
+        yield* judgeBy(historyComment, ITEMS, options);
+        const reworded = [
+          { ...historyComment, subject: 'source comment' },
+          { ...historyComment, instructions: `${historyComment.instructions} Be strict.` },
+          { ...historyComment, criteria: { ...historyComment.criteria, today: 'says what is' } },
+        ];
+        for (const rule of reworded) yield* judgeBy(rule, ITEMS, options);
         expect(model.requests).toHaveLength(4);
+        const retuned = yield* judgeBy(
+          { ...historyComment, threshold: 0.85, message: 'other words' },
+          ITEMS,
+          options,
+        );
+        expect(model.requests).toHaveLength(4);
+        expect(runLine(retuned)).toBe(
+          '[judged] rule=historyComment items=3 cached=3 asked=0 findings=2',
+        );
+      }).pipe(Effect.provide(model.layer), withFs);
+    },
+  );
+
+  it.effect(
+    'keeps an answer for its text wherever it lives, re-indented or re-wrapped, and asks for a text an edit changed',
+    () => {
+      const model = countingModel((text) => P.get(text.replace(/\s+/g, ' ')) ?? 0.99);
+      return Effect.gen(function* () {
+        const options = yield* judging;
+        yield* judgeBy(historyComment, ITEMS, options);
+        const moved = yield* judgeBy(
+          historyComment,
+          [
+            {
+              file: 'src/elsewhere/z.ts',
+              line: 40,
+              text: 'This used to retry;\n  pass 6 removed that.',
+            },
+            { file: 'src/y.ts', line: 2, text: '  The key used to sign each token.  ' },
+          ],
+          options,
+        );
+        expect(model.requests).toHaveLength(1);
+        expect(moved.findings).toEqual([
+          { file: 'src/elsewhere/z.ts', line: 40, p: 0.97, kept: true },
+        ]);
+        yield* judgeBy(
+          historyComment,
+          [{ file: 'src/a.ts', line: 3, text: 'This used to retry.' }],
+          options,
+        );
+        expect(model.requests).toHaveLength(2);
       }).pipe(Effect.provide(model.layer), withFs);
     },
   );
@@ -306,7 +365,10 @@ describe('a judged rule', () => {
  * environment; it records the requests' URLs. `keyless` is the same model
  * with no key, in the environment or the keychain.
  */
-const typesafeAnswering = (status: number, body: (keys: ReadonlyArray<string>) => unknown) => {
+const typesafeAnswering = (
+  status: Parameters<typeof typesafeHttp>[0],
+  body: (keys: ReadonlyArray<string>) => unknown,
+) => {
   const http = typesafeHttp(status, body);
   const over = (vars: Record<string, string>) =>
     judgedModel('jev-latest').pipe(
@@ -336,6 +398,60 @@ const lineOver = <E>(layer: Layer.Layer<DecisionModel.DecisionModel, E>) =>
 
 /** The answer TypeSafe gives the first item, history; every other is today. */
 const FIRST = new Map([['c0', choice('history', 0.96)]]);
+
+describe("a judged rule's store", () => {
+  const answer = { label: 'history', probabilities: { today: 0.03, history: 0.97 } };
+
+  it.live("keeps both runs' answers when two keep theirs at once", () =>
+    Effect.gen(function* () {
+      const { cacheFile } = yield* judging;
+      const runs = Array.from(
+        { length: 6 },
+        (_, run) =>
+          new Map(Array.from({ length: 50 }, (_, i) => [`run${run}-key${i}`, answer] as const)),
+      );
+      yield* Effect.forEach(runs, (fresh) => keepAnswers(cacheFile, fresh), { concurrency: 6 });
+      expect((yield* readCache(cacheFile)).size).toBe(300);
+    }).pipe(withFs),
+  );
+
+  it.live('takes a lock a dead run left over 10 s ago, and waits for a live one', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const { cacheFile } = yield* judging;
+      yield* fs.makeDirectory(path.dirname(cacheFile), { recursive: true });
+      yield* fs.writeFileString(`${cacheFile}.lock`, '1\n');
+      const old = DateTime.toDateUtc(DateTime.subtract(yield* DateTime.now, { minutes: 1 }));
+      yield* fs.utimes(`${cacheFile}.lock`, old, old);
+      yield* keepAnswers(cacheFile, new Map([['a', answer]]));
+      expect([...(yield* readCache(cacheFile)).keys()]).toEqual(['a']);
+      expect(yield* fs.exists(`${cacheFile}.lock`)).toBe(false);
+    }).pipe(withFs),
+  );
+
+  it.effect('reads a store that does not decode as empty, and says so', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const { cacheFile } = yield* judging;
+      yield* fs.makeDirectory(path.dirname(cacheFile), { recursive: true });
+      yield* fs.writeFileString(cacheFile, '{"answers":{},"files":[1]');
+      const lines: Array<string> = [];
+      const recording: Console.Console = {
+        ...Console.Console.defaultValue(),
+        log: (...parts: ReadonlyArray<unknown>) => {
+          lines.push(parts.map(String).join(' '));
+        },
+      };
+      const read = yield* readCache(cacheFile).pipe(
+        Effect.provideService(Console.Console, recording),
+      );
+      expect(read.size).toBe(0);
+      expect(lines).toEqual([`[judged] store unread file=${cacheFile} reason=decode`]);
+    }).pipe(withFs),
+  );
+});
 
 describe('a judged rule never fails on its model', () => {
   it.effect('answers through TypeSafe in one request', () => {
@@ -396,11 +512,44 @@ describe('a judged rule never fails on its model', () => {
     }),
   );
 
-  it.effect('skips http on a request past the input limit', () =>
+  it.effect('asks a part past the input limit again in halves, down to one item', () =>
+    Effect.gen(function* () {
+      const tooBig = { detail: { error_type: 'max_tokens_exceeded' } };
+      const typesafe = typesafeAnswering(
+        (keys) => {
+          if (keys.length > 1) return 400;
+          return 200;
+        },
+        (keys) => {
+          if (keys.length > 1) return tooBig;
+          return {
+            model: 'jev-1.13.0',
+            answers: { c0: choice('today', 0.04) },
+            usage: { input_tokens: 10, output_tokens: 3 },
+          };
+        },
+      );
+      expect(yield* lineOver(typesafe.layer)).toBe(
+        '[judged] rule=historyComment items=3 cached=0 asked=3 findings=0',
+      );
+      expect(typesafe.requests.map((request) => request.keys.length)).toEqual([3, 2, 1, 1, 1]);
+    }),
+  );
+
+  it.effect('skips too-big when one item alone is past the input limit', () =>
     Effect.gen(function* () {
       const typesafe = typesafeAnswering(400, () => ({
         detail: { error_type: 'max_tokens_exceeded' },
       }));
+      expect(yield* lineOver(typesafe.layer)).toBe(
+        '[judged] skipped rule=historyComment reason=too-big items=3',
+      );
+    }),
+  );
+
+  it.effect('skips http on any other refused request', () =>
+    Effect.gen(function* () {
+      const typesafe = typesafeAnswering(400, () => ({ detail: { error_type: 'bad_request' } }));
       expect(yield* lineOver(typesafe.layer)).toBe(
         '[judged] skipped rule=historyComment reason=http items=3',
       );
@@ -430,11 +579,10 @@ describe('a judged rule never fails on its model', () => {
           options.cacheFile,
           new Map([
             [
-              cacheKey('historyComment@1', options.model, kept),
+              cacheKey(ruleKey(historyComment), options.model, kept),
               { label: 'history', probabilities: { today: 0.03, history: 0.97 } },
             ],
           ]),
-          new Map(),
         );
         const outcome = yield* judgeBy(historyComment, ITEMS, options);
         expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97, kept: true }]);

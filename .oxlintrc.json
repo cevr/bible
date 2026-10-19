@@ -87,8 +87,9 @@
     "effect/noFixedWaitInTests": "error",
     // The judged rules (packages/scripts/src/judged): a model decides each
     // item its selector reads. `bun run lint` runs `lint:judged` first, which
-    // asks it about the changed items and keeps the answers, then oxlint,
-    // which reports the kept ones at each rule's severity. Each entry's
+    // asks it about every item of the repo it holds no answer for and keeps
+    // the answers by content, then oxlint, which reports the kept ones
+    // wherever their text lives, at each rule's severity. Each entry's
     // options are the rule (rule.ts); a rule is `warn` until its labelled
     // corpus (judged/fixtures) shows the precision a gate needs, measured by
     // `bun run --cwd packages/scripts judged:measure --rule <id>`.
@@ -100,7 +101,6 @@
     "judged/historyComment": [
       "warn",
       {
-        "version": 1,
         "selector": "comments",
         "subject": "code comment",
         "instructions": "HISTORY means the comment narrates the code's own past: an earlier behaviour that no longer holds ('this used to retry', 'before X this read argv', 'we switched to Y'), or which change, review, pass or person altered it. TODAY means anything else: what the code does, why, a constraint, or a noun phrase naming a purpose. 'X used to <verb>' meaning 'X that is used for <verb>ing' is TODAY.",
@@ -122,7 +122,6 @@
     "judged/commentClaimsCode": [
       "warn",
       {
-        "version": 1,
         "selector": "commentedCode",
         "subject": "comment and the code it sits on",
         "instructions": "Read the comment, then the code it sits on, given after it. OVERCLAIMS means the comment states something about that code which the code shown does not do or contradicts: a wider scope, a number or bound, an order, a guarantee, a case it handles, a caller, an argument or a behaviour that the code plainly lacks or does differently. HOLDS means every claim the comment makes that the code shown can prove or disprove is true of it. A claim about something outside the code shown (a reason, a caller elsewhere, the wider system) cannot be checked here and HOLDS; so does a comment that is vague or tells less than the code does. A number the code has, said in other words, HOLDS, and so does a number that is not the code's own value: one derived from it with other inputs, another thing's value it is compared with or explained against (an engine's default, a margin under a target, a measurement). OVERCLAIMS needs the code shown to state the same quantity, name or case differently, or to plainly lack what the comment says it does.",
@@ -143,7 +142,6 @@
     "judged/testOracle": [
       "warn",
       {
-        "version": 1,
         "selector": "testCases",
         "subject": "test case",
         "instructions": "The item is one test case, after its file's imports. TAUTOLOGICAL means the test's expected value is computed by the code under test itself, or the data it checks is built by the very function whose defect the test must catch, so the test passes even when that function is wrong: for example the expectation is the same function called again, or a helper made from it, or the fake is laid out with the function the test is about. INDEPENDENT means the expected value is written out (a literal, a fixture stated in full), or computed another way than the code under test, or a property is checked that a defect there would break. Calling the function under test on the actual side only is INDEPENDENT. Judge only what the case shows.",
@@ -166,7 +164,6 @@
     "judged/silentDrop": [
       "warn",
       {
-        "version": 1,
         "selector": "functions",
         "subject": "function",
         "instructions": "The item is one function, with the comment above it. SILENT means that, given an input or a failure it cannot handle, the function drops it, substitutes a default, or reports success for work it did not do, and says nothing of it: no typed error, no finding, no log line, no field or return type that carries the drop, no comment that names it. SAID means the function refuses with a typed error, reports the case, carries it in its result (an Option, a tagged result, a skip line), or its fallback is said in a comment or a log as deliberate (a documented fail-open), or it drops nothing. An input the function's type or comment says it never receives is not a drop.",
@@ -187,7 +184,6 @@
     "judged/scriptSpeech": [
       "error",
       {
-        "version": 1,
         "selector": "scriptBeats",
         "subject": "film beat's speech or picture",
         "instructions": "The item is what a narrated Bible film says (say:) or shows (picture:) in one beat. The films teach from Scripture alone and never source themselves overtly. BREACH means the words quote or name Ellen White, an Adventist pioneer (Waggoner, Jones, Uriah Smith, William Miller and the like) or one of their books by title, name a denomination or church as an authority, or tell church history (1844, the Millerites, Minneapolis 1888, a church's statement of beliefs), in speech or on screen. CLEAN means anything else: Scripture quoted or retold, \"the Bible\" named, plain teaching (the Sabbath, the sanctuary, the latter rain, the day of atonement) with no church, person or date of church history named, a pioneer's idea paraphrased with no name, or Bible-era history.",
@@ -201,12 +197,13 @@
       }
     ]
   },
-  // Test code besides `*.test.*` and `*.spec.*` modules: the harness helpers
-  // the fixed-wait rule and effect's other test-aware rules read as tests.
   "settings": {
-    // The model the judged rules ask (their thresholds were measured on it),
-    // and where their answers are kept, from the repo's root.
-    "judged": { "model": "jev-latest", "cache": "tmp/judged/cache.json" },
+    // The model the judged rules ask, by its exact id (their thresholds were
+    // measured on it; an alias such as jev-latest moves under them), and
+    // where their answers are kept, from the repo's root.
+    "judged": { "model": "jev-1.13.0", "cache": "tmp/judged/cache.json" },
+    // Test code besides `*.test.*` and `*.spec.*` modules: the harness helpers
+    // the fixed-wait rule and effect's other test-aware rules read as tests.
     "effect": {
       "testFiles": ["**/fixtures/**", "**/test/**", "**/tests/**", "**/e2e/**"]
     }

@@ -1,10 +1,11 @@
 #!/usr/bin/env bun
 // The judged lint's runner: the rules a model decides, each a `judged/<id>`
-// entry of the repo's `.oxlintrc.json` (`judged/rule.ts`), run over the items
-// its selector reads that the working tree adds or changes against the merge
-// base of `--base` (origin/main) and HEAD. Every item the store (the config's
-// `settings.judged.cache`) does not answer, of every rule, goes to TypeSafe's
-// model in one request, and the answers are kept. `bun run lint` runs this
+// entry of the repo's `.oxlintrc.json` (`judged/rule.ts`), run over every
+// item its selector reads in the working tree, tracked or new. The store
+// (the config's `settings.judged.cache`) keeps each answer by the item's
+// content (`judged/store.ts`), so only an item whose text, or whose rule's
+// words, it has not seen goes to TypeSafe's model, every rule's in one
+// request, and the answers are kept. `bun run lint` runs this
 // first and oxlint after it, and oxlint reports the kept answers at their
 // lines at each rule's severity (`packages/scripts/lint/judged.ts`). This
 // prints and gates on the findings oxlint cannot report (a Markdown series
@@ -16,18 +17,19 @@
 // and each rule ends on one `[judged]` line: what it read
 // (`[judged] rule=<rule> items=<n> cached=<n> asked=<n> findings=<n>`: the
 // items read, those the store answered and those the model was asked about;
-// two items of one text go in the request once), or why it skipped
+// two items of one folded text go in the request once), or why it skipped
 // (`[judged] skipped rule=<rule> reason=<reason> items=<n>`, the items it
-// could not judge). The model's reasons are no-key, timeout, rate-limit, http
-// and incomplete. Any other failure (git, the lint config, a defect) is one
+// could not judge). The model's reasons are no-key, timeout, rate-limit,
+// http, too-big (one item alone past the model's input limit) and
+// incomplete. A store that does not decode is read as empty, and says so on
+// one `[judged] store unread file=<file> reason=decode` line. Any other failure (git, the lint config, a defect) is one
 // `[judged] skipped rule=* reason=error` line, its `detail=` the failure's tag
 // and its words on one stderr line; answers the store cannot keep are asked
 // again next run. Every one passes: the lint never fails on its model or its
 // host. A finding it prints fails the run when its rule's severity is
 // `error`, or under `--strict`; an interrupt stops it.
 //
-//   bun run lint:judged                  # against origin/main
-//   bun run lint:judged --base <ref>     # against another base
+//   bun run lint:judged                  # judge what the store has not seen
 //   bun run lint:judged --strict         # print every finding, fail on any
 //
 // The model is the config's `settings.judged.model`; the key

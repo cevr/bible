@@ -1,7 +1,7 @@
 // The `judged` oxlint plugin, run for real: oxlint lints a scratch repo with
 // only this plugin on, over a store of kept answers, and reports exactly the
-// items whose answer is at or over the rule's threshold, in the files the
-// store says the rule has judged.
+// items whose answer is at or over the rule's threshold, wherever their text
+// lives.
 
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Effect, FileSystem, Path, Schema, Stream } from 'effect';
@@ -9,6 +9,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 import { itemsOf, parse } from '../src/judged/items.ts';
+import { ruleKey } from '../src/judged/rule.ts';
 import { Store, cacheKey } from '../src/judged/store.ts';
 import { historyComment } from '../src/judged/testing.ts';
 
@@ -24,9 +25,21 @@ const SOURCE = [
   '',
   '// The key used to sign each token.',
   'const b = 2;',
+  '',
+  '// We switched to Rive in the spring.',
+  'const c = 3;',
 ].join('\n');
 
-/** Runs oxlint in `cwd`; answers what it prints. */
+/** The history comment moved to another file, indented in a block and wrapped. */
+const MOVED = [
+  'export const f = () => {',
+  '  // This used to retry;',
+  '  // pass 6 removed that.',
+  '  return 1;',
+  '};',
+].join('\n');
+
+/** Runs oxlint in `cwd`; answers its exit code and the judged lines it prints. */
 const oxlint = (cwd: string) =>
   Effect.scoped(
     Effect.gen(function* () {
@@ -37,63 +50,116 @@ const oxlint = (cwd: string) =>
           forceKillAfter: '5 seconds',
         }),
       );
-      const [out] = yield* Effect.all(
+      const [out, code] = yield* Effect.all(
         [Stream.mkString(Stream.decodeText(handle.stdout)), handle.exitCode],
         { concurrency: 'unbounded' },
       );
-      return out
-        .split('\n')
-        .filter((line) => line.includes('judged('))
-        .map((line) => line.replace(/^.*?(src\/)/, '$1'));
+      return {
+        code: Number(code),
+        out,
+        lines: out
+          .split('\n')
+          .filter((line) => line.includes('judged('))
+          .map((line) => line.replace(/^.*?(src\/)/, '$1'))
+          .toSorted(),
+      };
     }),
   );
 
+/** A scratch repo linted by historyComment alone at `severity` (its selector `selector`), its store `kept.json`. */
+const scratch = (severity: 'warn' | 'error', selector: string = historyComment.selector) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-plugin-' });
+    const { id, severity: _, ...options } = historyComment;
+    yield* fs.writeFileString(
+      path.join(dir, 'oxlintrc.json'),
+      yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown))({
+        categories: { correctness: 'off' },
+        plugins: [],
+        jsPlugins: [PLUGIN],
+        settings: { judged: { model: 'jev-1.13.0', cache: 'kept.json' } },
+        rules: { [`judged/${id}`]: [severity, { ...options, selector }] },
+      }),
+    );
+    yield* fs.makeDirectory(path.join(dir, 'src'));
+    return dir;
+  });
+
+/** The store answering each of `SOURCE`'s comments history at the given probability. */
+const storeOf = (ps: ReadonlyArray<number>) => {
+  const keyOf = (text: string) => cacheKey(ruleKey(historyComment), 'typesafe/jev-1.13.0', text);
+  const comments = itemsOf('comments', parse('src/x.ts', SOURCE));
+  return Schema.encodeEffect(Store)({
+    answers: Object.fromEntries(
+      comments.map((item, i) => [
+        keyOf(item.text),
+        {
+          label: 'history',
+          probabilities: { today: 1 - (ps[i] ?? 0), history: ps[i] ?? 0 },
+        },
+      ]),
+    ),
+  });
+};
+
+const REPORT =
+  "the comment tells the code's history: say what it does today and why; how it got here lives in git log";
+
 describe('the judged plugin', () => {
   it.live(
-    'reports a kept answer at or over its threshold, at its line, in a file the store has judged under the rule',
+    'reports a kept answer at or over its threshold, at its line, and nothing with no store',
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-plugin-' });
-        const { id, severity: _, ...options } = historyComment;
-        yield* fs.writeFileString(
-          path.join(dir, 'oxlintrc.json'),
-          yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown))({
-            categories: { correctness: 'off' },
-            plugins: [],
-            jsPlugins: [PLUGIN],
-            settings: { judged: { model: 'jev-latest', cache: 'kept.json' } },
-            rules: { [`judged/${id}`]: ['warn', options] },
-          }),
-        );
-        yield* fs.makeDirectory(path.join(dir, 'src'));
-        for (const file of ['src/judged.ts', 'src/unjudged.ts'])
-          yield* fs.writeFileString(path.join(dir, file), SOURCE);
-        const [history, today] = itemsOf('comments', parse('src/judged.ts', SOURCE));
-        const keyOf = (text: string) => cacheKey('historyComment@1', 'typesafe/jev-latest', text);
-        yield* fs.writeFileString(
-          path.join(dir, 'kept.json'),
-          yield* Schema.encodeEffect(Store)({
-            answers: {
-              [keyOf(history!.text)]: {
-                label: 'history',
-                probabilities: { today: 0.05, history: 0.95 },
-              },
-              [keyOf(today!.text)]: {
-                label: 'history',
-                probabilities: { today: 0.11, history: 0.89 },
-              },
-            },
-            files: { 'src/judged.ts': ['historyComment'], 'src/unjudged.ts': ['otherRule'] },
-          }),
-        );
-        expect(yield* oxlint(dir)).toEqual([
-          "src/judged.ts:1:1: the comment tells the code's history: say what it does today and why; how it got here lives in git log p=0.95 [Warning/judged(historyComment)]",
+        const dir = yield* scratch('warn');
+        yield* fs.writeFileString(path.join(dir, 'src/x.ts'), SOURCE);
+        yield* fs.writeFileString(path.join(dir, 'kept.json'), yield* storeOf([0.95, 0.89, 0.9]));
+        expect((yield* oxlint(dir)).lines).toEqual([
+          `src/x.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
+          `src/x.ts:7:1: ${REPORT} p=0.90 [Warning/judged(historyComment)]`,
         ]);
         // No store: the rule says nothing.
         yield* fs.remove(path.join(dir, 'kept.json'));
-        expect(yield* oxlint(dir)).toEqual([]);
+        expect((yield* oxlint(dir)).lines).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    SPAWNS_MS,
+  );
+
+  it.live(
+    'reports a kept breach wherever its text now lives, moved, copied or re-indented, and fails at error',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = yield* scratch('error');
+        yield* fs.writeFileString(path.join(dir, 'kept.json'), yield* storeOf([0.95, 0.02, 0.02]));
+        // The store was written for src/x.ts; the text is now in src/y/z.ts alone.
+        yield* fs.makeDirectory(path.join(dir, 'src/y'));
+        yield* fs.writeFileString(path.join(dir, 'src/y/z.ts'), MOVED);
+        const moved = yield* oxlint(dir);
+        expect(moved.lines).toEqual([
+          `src/y/z.ts:2:3: ${REPORT} p=0.95 [Error/judged(historyComment)]`,
+        ]);
+        expect(moved.code).not.toBe(0);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    SPAWNS_MS,
+  );
+
+  it.live(
+    'refuses a misspelt selector once, by the rule, before it lints a file',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = yield* scratch('warn', 'comment');
+        yield* fs.writeFileString(path.join(dir, 'src/x.ts'), SOURCE);
+        const refused = yield* oxlint(dir);
+        expect(refused.code).not.toBe(0);
+        expect(refused.out).toContain("Options validation failed for rule 'judged/historyComment'");
+        expect(refused.out).not.toContain('SchemaError');
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     SPAWNS_MS,
   );

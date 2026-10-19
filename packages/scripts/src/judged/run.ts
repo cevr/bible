@@ -13,11 +13,11 @@ import { Console, Effect, Option, Result, Schema } from 'effect';
 import { type AiError, Decision, DecisionModel } from 'effect/ai';
 
 import { keepAnswers, readCache } from './cache.js';
-import { type JudgedRule, versionedId } from './rule.js';
+import { type JudgedRule, ruleKey } from './rule.js';
 import { type Answer, cacheKey } from './store.js';
 
 /** Why a rule judged none of some items: what its skip line says. */
-type SkipReason = 'no-key' | 'timeout' | 'rate-limit' | 'http' | 'incomplete';
+type SkipReason = 'no-key' | 'timeout' | 'rate-limit' | 'http' | 'incomplete' | 'too-big';
 
 /**
  * How many items one request holds at most, how many input tokens (as
@@ -50,15 +50,24 @@ interface Asked {
  * The lint's limits, measured on TypeSafe's Jev (2026-10-15): one request
  * took 300 comment lines (63,887 input tokens) and 210 comment blocks
  * (65,322), and refused 215 blocks and 320 lines `max_tokens_exceeded`, so
- * its input ends near 65,536 tokens; 182 blocks took 0.4–0.9 s.
+ * its input ends near 65,536 tokens; 182 blocks took 0.4–0.9 s, so a part
+ * past 5 s is a host that hangs, and the lint skips it rather than wait.
  */
-export const LIMITS: Limits = { bound: 200, budget: 60_000, deadline: '20 seconds' };
+export const LIMITS: Limits = { bound: 200, budget: 60_000, deadline: '5 seconds' };
 
 const PARTS_AT_ONCE = 8;
 
-/** The skip reason an `AiError` from the model is. */
+/** The skip reason an `AiError` from the model is: `too-big` for a request past the model's input limit. */
 const reasonOf = (error: AiError.AiError): SkipReason => {
   switch (error.reason._tag) {
+    case 'InvalidRequestError':
+      if (
+        Option.exists(Option.fromUndefinedOr(error.reason.description), (words) =>
+          words.includes('max_tokens_exceeded'),
+        )
+      )
+        return 'too-big';
+      return 'http';
     case 'RateLimitError':
     case 'QuotaExhaustedError':
       return 'rate-limit';
@@ -170,18 +179,53 @@ export const partsOf = (
   return parts;
 };
 
+/** What asking one part came to: its answers by `questionKey` and its tokens, or why it went unanswered. */
+type PartResult = Result.Result<
+  {
+    readonly answers: ReadonlyArray<readonly [string, Answer]>;
+    readonly inputTokens: number;
+    readonly outputTokens: number;
+  },
+  { readonly reason: SkipReason; readonly questions: ReadonlyArray<Question> }
+>;
+
+/**
+ * Asks one part; a part the model refuses as past its input limit (the
+ * estimate in `tokensOf` is not the model's count) is asked again as its two
+ * halves, at once, down to one question, which skips `too-big`.
+ */
+const askSplitting = (
+  questions: ReadonlyArray<Question>,
+  deadline: Duration.Input,
+): Effect.Effect<ReadonlyArray<PartResult>, never, DecisionModel.DecisionModel> =>
+  Effect.flatMap(askPart(questions, deadline), (result) => {
+    if (Result.isFailure(result) && result.failure === 'too-big' && questions.length > 1) {
+      const half = Math.ceil(questions.length / 2);
+      return Effect.map(
+        Effect.forEach(
+          [questions.slice(0, half), questions.slice(half)],
+          (part) => askSplitting(part, deadline),
+          { concurrency: 2 },
+        ),
+        (halves) => halves.flat(),
+      );
+    }
+    return Effect.succeed([Result.mapError(result, (reason) => ({ reason, questions }))]);
+  });
+
 /**
  * Asks the model each question's rule's decision of its text: one request,
  * or past `bound` questions or `budget` tokens one request a part, the parts
- * sent at once, and none for no questions. A part that fails leaves its
- * questions unanswered, and the first failure's reason is the run's.
+ * sent at once, and none for no questions. A part past the model's input
+ * limit is asked in halves; a part that fails otherwise leaves its questions
+ * unanswered, and the first failure's reason is the run's.
  */
 export const ask = Effect.fn('judged.ask')(function* (
   questions: ReadonlyArray<Question>,
   limits: Limits,
 ) {
   const parts = partsOf(questions, limits);
-  const results = yield* Effect.forEach(parts, (part) => askPart(part, limits.deadline), {
+  const results = yield* Effect.forEach(parts, (part) => askSplitting(part, limits.deadline), {
     concurrency: PARTS_AT_ONCE,
   });
   const answers = new Map<string, Answer>();
@@ -189,19 +233,18 @@ export const ask = Effect.fn('judged.ask')(function* (
   const reasons: Array<SkipReason> = [];
   let inputTokens = 0;
   let outputTokens = 0;
-  results.forEach((result, i) =>
+  for (const result of results.flat())
     Result.match(result, {
-      onFailure: (reason) => {
-        reasons.push(reason);
-        unanswered.push(...(parts[i] ?? []));
+      onFailure: (failed) => {
+        reasons.push(failed.reason);
+        unanswered.push(...failed.questions);
       },
       onSuccess: (part) => {
         for (const [key, answer] of part.answers) answers.set(key, answer);
         inputTokens += part.inputTokens;
         outputTokens += part.outputTokens;
       },
-    }),
-  );
+    });
   const asked: Asked = {
     answers,
     unanswered,
@@ -245,7 +288,7 @@ interface Finding {
 /**
  * What a rule's run came to: its findings, how many items it read, how many
  * of those the cache answered and how many it asked about (`items` is
- * `cached + asked`; items of one text go in the request once), and its skip.
+ * `cached + asked`; items of one folded text go in the request once), and its skip.
  */
 interface Outcome {
   readonly rule: JudgedRule;
@@ -271,55 +314,57 @@ export const judge = Effect.fn('judged.judge')(function* (
   items: ReadonlyArray<RuleItem>,
   judging: Judging,
 ) {
-  const keyOf = (question: Question) =>
-    cacheKey(versionedId(question.rule), judging.model, question.text);
+  // Each rule's words and each question's text are hashed once a run.
+  const ruleKeys = new Map(rules.map((rule) => [rule.id, ruleKey(rule)]));
+  const keys = new Map<string, string>();
+  const keyOf = (question: Question) => {
+    const name = questionKey(question);
+    return Option.getOrElse(Option.fromUndefinedOr(keys.get(name)), () => {
+      const key = cacheKey(
+        ruleKeys.get(question.rule.id) ?? ruleKey(question.rule),
+        judging.model,
+        question.text,
+      );
+      keys.set(name, key);
+      return key;
+    });
+  };
   const cache = yield* readCache(judging.cacheFile);
-  const isCached = (item: RuleItem) => cache.answers.has(keyOf(item));
+  const isCached = (item: RuleItem) => cache.has(keyOf(item));
   const fresh = [
-    ...new Map(
-      items.filter((item) => !isCached(item)).map((item) => [questionKey(item), item]),
-    ).values(),
+    ...new Map(items.filter((item) => !isCached(item)).map((item) => [keyOf(item), item])).values(),
   ].map(({ rule, text }) => ({ rule, text }));
   const asked = yield* ask(fresh, judging);
   // Answers that cannot be kept are asked again next run, and their findings
   // are the runner's to print: the plugin cannot see them.
-  let kept = true;
-  if (asked.answers.size > 0) {
-    const answered = fresh.filter((question) => asked.answers.has(questionKey(question)));
-    const judged = new Map<string, Set<string>>();
-    for (const item of items)
-      if (isCached(item) || asked.answers.has(questionKey(item)))
-        judged.set(item.file, new Set([...(judged.get(item.file) ?? []), item.rule.id]));
-    kept = yield* keepAnswers(
-      judging.cacheFile,
-      new Map(
-        answered.flatMap((question) =>
-          Option.toArray(
-            Option.map(
-              Option.fromUndefinedOr(asked.answers.get(questionKey(question))),
-              (answer): [string, Answer] => [keyOf(question), answer],
-            ),
-          ),
+  const answered = new Map(
+    fresh.flatMap((question) =>
+      Option.toArray(
+        Option.map(
+          Option.fromUndefinedOr(asked.answers.get(questionKey(question))),
+          (answer): [string, Answer] => [keyOf(question), answer],
         ),
       ),
-      judged,
-    ).pipe(
+    ),
+  );
+  const kept =
+    answered.size === 0 ||
+    (yield* keepAnswers(judging.cacheFile, answered).pipe(
       Effect.as(true),
       Effect.catch((error) =>
         Console.error(
-          `[judged] answers not kept rule=${[...new Set(answered.map((q) => q.rule.id))].join(',')} detail=${detailOf(error)}`,
+          `[judged] answers not kept rule=${[...new Set(fresh.map((q) => q.rule.id))].join(',')} detail=${detailOf(error)}`,
         ).pipe(Effect.as(false)),
       ),
-    );
-  }
+    ));
   const answerOf = (item: RuleItem) =>
-    Option.orElse(Option.fromUndefinedOr(cache.answers.get(keyOf(item))), () =>
-      Option.fromUndefinedOr(asked.answers.get(questionKey(item))),
+    Option.orElse(Option.fromUndefinedOr(cache.get(keyOf(item))), () =>
+      Option.fromUndefinedOr(answered.get(keyOf(item))),
     );
-  const unanswered = new Set(asked.unanswered.map(questionKey));
+  const unanswered = new Set(asked.unanswered.map(keyOf));
   return rules.map((rule): Outcome => {
     const own = items.filter((item) => item.rule.id === rule.id);
-    const skipped = own.filter((item) => unanswered.has(questionKey(item))).length;
+    const skipped = own.filter((item) => unanswered.has(keyOf(item))).length;
     return {
       rule,
       findings: own.flatMap((item) =>

@@ -44,7 +44,7 @@ bun run ci [<commit>]          # Wait for a commit's CI run on main and print it
 
 ## The gate is the feedback cycle
 
-The local gate verifies a change; CI does not (owner, 2026-10-19: "CI is not a verification tool for us"). Agents never check or wait on CI, and never fix a test only CI sees red; this overrides the global "CI red: fix til green". A mistake found once becomes a guard the gate runs: a deterministic one an oxlint rule in `.oxlintrc.json`, an indeterministic one a judged rule there (TypeSafe Jev, fail-open) or a skill line. The film e2e stays a tool a unit runs by hand, not a check of the gate.
+The local gate verifies a change; CI does not (owner, 2026-10-19: "CI is not a verification tool for us"). Agents never check or wait on CI, and never fix a test only CI sees red; this overrides the global "CI red: fix til green". A mistake found once becomes a guard the gate runs: a deterministic one an oxlint rule in `.oxlintrc.json`, an indeterministic one a judged rule there (TypeSafe Jev, fail-open) or a skill line. How to add each: `packages/film/README.md`, **A mistake found once** and **Judged rules**. The film e2e stays a tool a unit runs by hand, not a check of the gate.
 
 ## Workspaces
 

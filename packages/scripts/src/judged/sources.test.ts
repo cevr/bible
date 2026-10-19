@@ -3,11 +3,11 @@ import { Effect, FileSystem, Path, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
-import { changedItems } from './changes.js';
+import { repoItems } from './sources.js';
 
-/** The changed comment blocks of the repo at `dir` against `base`, past the dist folders. */
-const changedComments = (dir: string, base: string) =>
-  Effect.map(changedItems(dir, base, ['**/dist/**'], ['comments']), (items) =>
+/** The comment blocks of the repo at `dir`, past the dist folders. */
+const commentsOf = (dir: string) =>
+  Effect.map(repoItems(dir, ['**/dist/**'], ['comments']), (items) =>
     items.map(({ file, line, text }) => ({ file, line, text })),
   );
 
@@ -32,13 +32,11 @@ const git = (cwd: string, ...args: ReadonlyArray<string>) =>
   });
 
 /**
- * A repository whose `main` holds `base` (each file's lines), then a branch
- * `topic` committing `branch`, then `tree` written over the working tree
- * uncommitted; answers its directory.
+ * A repository whose `main` commits `committed` (each file's lines), then
+ * `tree` written over the working tree uncommitted; answers its directory.
  */
 const repo = (
-  base: Record<string, ReadonlyArray<string>>,
-  branch: Record<string, ReadonlyArray<string>>,
+  committed: Record<string, ReadonlyArray<string>>,
   tree: Record<string, ReadonlyArray<string>>,
 ) =>
   Effect.gen(function* () {
@@ -55,14 +53,10 @@ const repo = (
     yield* git(dir, 'init', '-q', '-b', 'main');
     yield* write({
       '.oxlintrc.json': ['{', '  // the lint', '  "ignorePatterns": ["**/dist/**"]', '}'],
-      ...base,
+      ...committed,
     });
     yield* git(dir, 'add', '-A');
     yield* git(dir, 'commit', '-qm', 'base');
-    yield* git(dir, 'checkout', '-q', '-b', 'topic');
-    yield* write(branch);
-    yield* git(dir, 'add', '-A');
-    yield* git(dir, 'commit', '-qm', 'branch');
     yield* write(tree);
     return dir;
   });
@@ -85,24 +79,24 @@ const A = [
   'const c = 3;', // 12
 ];
 
-describe('the changed items', () => {
-  it.live('takes each block a changed line touches whole, with its first line', () =>
+describe("the repo's items", () => {
+  it.live('takes every comment block of a file whole, with its first line, changed or not', () =>
     withFs(
       Effect.gen(function* () {
         const changed = A.map((line, i) => {
           if (i === 1) return '// read as one block, now changed.';
-          if (i === 6) return ' * its stars gone, and changed.';
           if (i === 11) return 'const c = 4; // a trailing comment of its own';
           return line;
         });
-        const dir = yield* repo({ 'src/a.ts': A }, {}, { 'src/a.ts': changed });
-        expect(yield* changedComments(dir, 'main')).toEqual([
+        const dir = yield* repo({ 'src/a.ts': A }, { 'src/a.ts': changed });
+        expect(yield* commentsOf(dir)).toEqual([
           {
             file: 'src/a.ts',
             line: 1,
             text: 'One run of line comments,\nread as one block, now changed.',
           },
-          { file: 'src/a.ts', line: 5, text: 'A JSDoc block,\nits stars gone, and changed.' },
+          { file: 'src/a.ts', line: 5, text: 'A JSDoc block,\nits stars gone.' },
+          { file: 'src/a.ts', line: 11, text: 'Untouched.' },
           { file: 'src/a.ts', line: 12, text: 'a trailing comment of its own' },
         ]);
       }),
@@ -119,8 +113,8 @@ describe('the changed items', () => {
           '/* plain */',
           '//',
         ];
-        const dir = yield* repo({}, { 'src/b.ts': b }, {});
-        expect(yield* changedComments(dir, 'main')).toEqual([
+        const dir = yield* repo({ 'src/b.ts': b }, {});
+        expect(yield* commentsOf(dir)).toEqual([
           { file: 'src/b.ts', line: 1, text: 'A second run,' },
           { file: 'src/b.ts', line: 3, text: 'and a third after a blank line.' },
           { file: 'src/b.ts', line: 4, text: 'plain' },
@@ -130,26 +124,37 @@ describe('the changed items', () => {
   );
 
   it.live(
-    "reads only the TypeScript the repo lints and tracks: past the lint's ignore patterns, no declarations, no new untracked file",
+    "reads the TypeScript the repo lints, committed or new: past the lint's ignore patterns and git's, no declarations, no deleted file",
     () =>
       withFs(
         Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
           const comment = ['// a comment'];
           const dir = yield* repo(
-            { 'src/gone.ts': comment, 'src/kept.tsx': ['const k = 1;'] },
             {
+              'src/gone.ts': comment,
+              'src/removed.ts': comment,
               'dist/c.ts': comment,
               'src/types.d.ts': comment,
               'src/d.js': comment,
               'README.md': comment,
               'src/e.mts': comment,
+              '.gitignore': ['out/'],
             },
-            { 'src/untracked.ts': comment, 'src/kept.tsx': ['const k = 1; // in a tsx'] },
+            {
+              'src/untracked.ts': comment,
+              'src/staged.ts': comment,
+              'out/ignored.ts': comment,
+            },
           );
           yield* git(dir, 'rm', '-q', 'src/gone.ts');
-          expect(yield* changedComments(dir, 'main')).toEqual([
-            { file: 'src/e.mts', line: 1, text: 'a comment' },
-            { file: 'src/kept.tsx', line: 1, text: 'in a tsx' },
+          yield* fs.remove(path.join(dir, 'src/removed.ts'));
+          yield* git(dir, 'add', 'src/staged.ts');
+          expect((yield* commentsOf(dir)).map((item) => item.file).toSorted()).toEqual([
+            'src/e.mts',
+            'src/staged.ts',
+            'src/untracked.ts',
           ]);
         }),
       ),
@@ -160,11 +165,10 @@ describe('the changed items', () => {
       Effect.gen(function* () {
         const comment = ['// a comment'];
         const dir = yield* repo(
-          {},
-          { 'src/a b.ts': comment, 'src/café.ts': comment, 'src/say "hi".ts': comment },
-          {},
+          { 'src/a b.ts': comment, 'src/café.ts': comment },
+          { 'src/say "hi".ts': comment },
         );
-        expect((yield* changedComments(dir, 'main')).map((item) => item.file).sort()).toEqual([
+        expect((yield* commentsOf(dir)).map((item) => item.file).toSorted()).toEqual([
           'src/a b.ts',
           'src/café.ts',
           'src/say "hi".ts',
@@ -173,97 +177,13 @@ describe('the changed items', () => {
     ),
   );
 
-  it.live("reads the diff whatever the repo's git config says of its prefixes", () =>
-    withFs(
-      Effect.gen(function* () {
-        for (const setting of ['diff.noprefix', 'diff.mnemonicPrefix']) {
-          const dir = yield* repo({}, { 'src/a.ts': ['// a comment'] }, {});
-          yield* git(dir, 'config', setting, 'true');
-          expect(yield* changedComments(dir, 'main')).toEqual([
-            { file: 'src/a.ts', line: 1, text: 'a comment' },
-          ]);
-        }
-      }),
-    ),
-  );
-
-  it.live('takes no unchanged comment between two changes under diff.interHunkContext', () =>
-    withFs(
-      Effect.gen(function* () {
-        const base = ['const a = 1;', '', '// untouched middle', '', '', 'const b = 2;'];
-        const dir = yield* repo(
-          { 'src/a.ts': base },
-          {
-            'src/a.ts': base.map((line, i) => {
-              if (i === 0) return 'const a = 1; // first';
-              if (i === 5) return 'const b = 2; // last';
-              return line;
-            }),
-          },
-          {},
-        );
-        yield* git(dir, 'config', 'diff.interHunkContext', '10');
-        expect((yield* changedComments(dir, 'main')).map((item) => item.text)).toEqual([
-          'first',
-          'last',
-        ]);
-      }),
-    ),
-  );
-
-  it.live("reads the source's own lines past a textconv driver or a -diff attribute", () =>
-    withFs(
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
-        const base = ['// keep', 'const a = 1;'];
-        const branch = ['// keep', 'const a = 1;', '// new words'];
-        // A driver that drops every comment row from what git compares.
-        const textconv = yield* repo({ 'src/a.ts': base }, { 'src/a.ts': branch }, {});
-        yield* git(textconv, 'config', 'diff.nocomments.textconv', "sed '/^\\/\\//d'");
-        yield* fs.writeFileString(
-          path.join(textconv, '.git', 'info', 'attributes'),
-          '*.ts diff=nocomments\n',
-        );
-        // An attribute that makes git call the file binary.
-        const binary = yield* repo(
-          { 'src/a.ts': base },
-          { 'src/a.ts': branch, '.gitattributes': ['*.ts -diff'] },
-          {},
-        );
-        for (const dir of [textconv, binary])
-          expect(yield* changedComments(dir, 'main')).toEqual([
-            { file: 'src/a.ts', line: 3, text: 'new words' },
-          ]);
-      }),
-    ),
-  );
-
-  it.live('reads an added line that starts with ++ as code, not a file header', () =>
-    withFs(
-      Effect.gen(function* () {
-        // Two hunks: the added `++ b/x.ts` (git's row `+++ b/x.ts`, a
-        // header's shape), then a changed comment.
-        const head = ['let b = 0;', 'const x = { ts: 1 };'];
-        const tail = ['const a = 1;'];
-        const dir = yield* repo(
-          { 'src/a.ts': [...head, ...tail, '// old words', 'const y = 1;'] },
-          { 'src/a.ts': [...head, '++ b/x.ts', ...tail, '// new words', 'const y = 1;'] },
-          {},
-        );
-        expect(yield* changedComments(dir, 'main')).toEqual([
-          { file: 'src/a.ts', line: 5, text: 'new words' },
-        ]);
-      }),
-    ),
-  );
-
   it.live('fails, tagged, when git fails', () =>
     withFs(
       Effect.gen(function* () {
-        const dir = yield* repo({ 'src/a.ts': A }, {}, {});
-        const noBase = yield* Effect.flip(changedComments(dir, 'no-such-ref'));
-        expect(noBase._tag).toBe('GitFailed');
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-no-repo-' });
+        const failed = yield* Effect.flip(commentsOf(dir));
+        expect(failed._tag).toBe('GitFailed');
       }),
     ),
   );
@@ -279,7 +199,6 @@ describe('the changed items', () => {
             '| 1   | In the beginning | A dark page   | Gen 1:1     |',
           ];
           const dir = yield* repo(
-            {},
             {
               'apps/animations/series/health/scripts/01-a.md': script,
               'notes/plan.md': script,
@@ -287,12 +206,7 @@ describe('the changed items', () => {
             },
             {},
           );
-          const items = yield* changedItems(
-            dir,
-            'main',
-            [],
-            ['comments', 'commentedCode', 'scriptBeats'],
-          );
+          const items = yield* repoItems(dir, [], ['comments', 'commentedCode', 'scriptBeats']);
           expect(
             items.map(({ selector, file, line, text }) => [selector, file, line, text]),
           ).toEqual([

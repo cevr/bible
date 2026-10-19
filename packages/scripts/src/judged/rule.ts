@@ -7,16 +7,15 @@
 // (`packages/scripts/lint/judged.ts`) reports the kept answers. A rule carries no code of its own.
 //
 // This module is read in Node (oxlint's plugin host) as well as in Bun, so it
-// imports nothing of either.
+// imports nothing of either but node's crypto, which Bun provides.
 
+import { createHash } from 'node:crypto';
 import { Schema } from 'effect';
 
 import { SELECTORS } from './items.ts';
 
 /** A rule's options, as `.oxlintrc.json` writes them. */
 export const RuleOptions = Schema.Struct({
-  /** Raised when the decision's words change, so no cached answer outlives them. */
-  version: Schema.Int,
   selector: Schema.Literals(SELECTORS),
   /** What one item is, as each item's instructions name it ("code comment"). */
   subject: Schema.String,
@@ -40,14 +39,14 @@ export type RuleOptions = typeof RuleOptions.Type;
 
 /** A rule as a run reads it: its options, its id (`judged/<id>`), and whether it gates. */
 export interface JudgedRule extends RuleOptions {
-  /** The rule's name in its reports and its cache key. */
+  /** The rule's name in its reports. */
   readonly id: string;
   readonly severity: 'warn' | 'error';
 }
 
 /** The settings every judged rule shares (`settings.judged`). */
 export const Settings = Schema.Struct({
-  /** The TypeSafe model the rules ask; their thresholds were measured on it. */
+  /** The TypeSafe model the rules ask, by its exact id: their thresholds were measured on it. */
   model: Schema.String,
   /** Where the answers are kept, from the repo's root. */
   cache: Schema.String,
@@ -55,9 +54,24 @@ export const Settings = Schema.Struct({
 
 export type Settings = typeof Settings.Type;
 
-/** A rule's name in the cache's keys: its id and its version. */
-export const versionedId = (rule: Pick<JudgedRule, 'id' | 'version'>) =>
-  `${rule.id}@${rule.version}`;
+/**
+ * A rule's part of the cache's keys: a hash of the words the model reads for
+ * it, its subject, its instructions and each label and its meaning, so an
+ * edit to any of them asks again. Its id, selector, threshold, reporting
+ * label and message are no part of it: the model reads none of them.
+ */
+export const ruleKey = (rule: Pick<RuleOptions, 'subject' | 'instructions' | 'criteria'>) =>
+  createHash('sha256')
+    .update(
+      [
+        rule.subject,
+        rule.instructions,
+        ...Object.entries(rule.criteria)
+          .toSorted(([a], [b]) => a.localeCompare(b))
+          .flatMap(([label, words]) => [label, words]),
+      ].join('\0'),
+    )
+    .digest('hex');
 
 /** A model's name in the cache's keys. */
 export const cacheModel = (model: string) => `typesafe/${model}`;

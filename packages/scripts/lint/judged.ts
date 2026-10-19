@@ -2,9 +2,12 @@
 // `judged/<id>` in `.oxlintrc.json`, its options its whole definition, and
 // this reports the answers the runner (`bun run lint:judged`) has kept for it
 // at their lines, at the rule's severity. It asks no model: oxlint's rules
-// are synchronous and run where there is no key (CI). An item no answer is
-// kept for says nothing, and so does a file the runner has not judged under
-// the rule, or a checkout with no kept answers: the rule fails open.
+// are synchronous and run where there is no key (CI). The store is keyed by
+// content (`src/judged/store.ts`), so each item of the file is hashed and
+// its answer read by its text, wherever the text now lives: a moved or
+// copied breach reports at its new place. An item no answer is kept for
+// says nothing, and so does a checkout with no kept answers: the rule fails
+// open.
 //
 // oxlint runs its plugins in Node, so this reads the store with node's file
 // system, from the folder oxlint runs in (the repo's root, where the config's
@@ -17,8 +20,8 @@ import { relative, resolve } from 'node:path';
 import { Effect, Option, Schema } from 'effect';
 import { Diagnostic, Plugin, Rule, RuleContext, Visitor } from 'oxlint-plugin-effect/rule-bindings';
 
-import { itemsOf, parse, selects } from '../src/judged/items.ts';
-import { RuleOptions, Settings, cacheModel, versionedId } from '../src/judged/rule.ts';
+import { SELECTORS, itemsOf, parse, selects } from '../src/judged/items.ts';
+import { RuleOptions, Settings, cacheModel, ruleKey } from '../src/judged/rule.ts';
 import { type Answer, Store, cacheKey } from '../src/judged/store.ts';
 
 /** A file parsed, as the selectors read it. */
@@ -35,11 +38,8 @@ export const RULE_IDS = [
 
 const SharedSettings = Schema.Struct({ judged: Settings });
 
-/** The kept answers as the plugin reads them: by key, and the rules judged in each file. */
-interface Kept {
-  readonly answers: ReadonlyMap<string, Answer>;
-  readonly files: ReadonlyMap<string, ReadonlySet<string>>;
-}
+/** The kept answers as the plugin reads them: by key. */
+type Kept = ReadonlyMap<string, Answer>;
 
 /** The store at each path, read once a process: oxlint's run is one look at the files. */
 const stores = new Map<string, Option.Option<Kept>>();
@@ -56,10 +56,10 @@ const readStore = (file: string): Option.Option<Kept> => {
       Effect.option,
     ),
   );
-  const kept = Option.map(read, (store): Kept => ({
-    answers: new Map(Object.entries(store.answers)),
-    files: new Map(Object.entries(store.files).map(([path, rules]) => [path, new Set(rules)])),
-  }));
+  const kept = Option.filter(
+    Option.map(read, (store): Kept => new Map(Object.entries(store.answers))),
+    (answers) => answers.size > 0,
+  );
   stores.set(file, kept);
   return kept;
 };
@@ -80,8 +80,7 @@ const OPTIONS_SCHEMA = [
   {
     type: 'object',
     properties: {
-      version: { type: 'integer' },
-      selector: { type: 'string' },
+      selector: { type: 'string', enum: SELECTORS },
       subject: { type: 'string' },
       instructions: { type: 'string' },
       criteria: { type: 'object', additionalProperties: { type: 'string' } },
@@ -90,7 +89,6 @@ const OPTIONS_SCHEMA = [
       message: { type: 'string' },
     },
     required: [
-      'version',
       'selector',
       'subject',
       'instructions',
@@ -119,14 +117,12 @@ const judgedRule = (id: string) =>
       const file = relative(context.cwd, context.filename);
       const settings = Schema.decodeUnknownOption(SharedSettings)(context.settings);
       const kept = Option.flatMap(settings, ({ judged }) =>
-        Option.filter(storeAt(resolve(context.cwd, judged.cache)), (store) =>
-          Option.exists(Option.fromUndefinedOr(store.files.get(file)), (rules) => rules.has(id)),
-        ),
+        storeAt(resolve(context.cwd, judged.cache)),
       );
       if (Option.isNone(kept) || Option.isNone(settings) || !selects(options.selector, file))
         return Visitor.on('Program', () => Effect.void);
       const model = cacheModel(settings.value.judged.model);
-      const rule = versionedId({ id, version: options.version });
+      const rule = ruleKey(options);
       return Visitor.on('Program', () =>
         Effect.forEach(
           itemsOf(options.selector, sourceOf(file, context.sourceCode.text)),
@@ -134,7 +130,7 @@ const judgedRule = (id: string) =>
             Option.match(
               Option.filter(
                 Option.map(
-                  Option.fromUndefinedOr(kept.value.answers.get(cacheKey(rule, model, item.text))),
+                  Option.fromUndefinedOr(kept.value.get(cacheKey(rule, model, item.text))),
                   (answer) => answer.probabilities[options.reports] ?? 0,
                 ),
                 (p) => p >= options.threshold,

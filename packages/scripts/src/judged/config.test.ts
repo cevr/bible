@@ -46,7 +46,7 @@ describe("the judged rules in the repo's lint config", () => {
       const config = yield* lintOf(import.meta.dir);
       expect(config.rules.map((rule) => rule.id).toSorted()).toEqual([...RULE_IDS].toSorted());
       expect(config.rules.find((rule) => rule.id === 'historyComment')).toEqual(historyComment);
-      expect(config.settings.model).toBe('jev-latest');
+      expect(config.settings.model).toBe('jev-1.13.0');
     }).pipe(Effect.provide(BunServices.layer)),
   );
 

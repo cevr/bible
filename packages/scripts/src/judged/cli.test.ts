@@ -15,10 +15,16 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { lintJudged } from './cli.js';
 import { JudgedLint, judgedLintLayer } from './config.js';
 import { judgedModel } from './model.js';
+import { Store } from './store.js';
 import { env, missing, typesafeHttp } from './testing.js';
 
 const PACKAGES = new URL('../../../', import.meta.url).pathname;
 const CLI = new URL('../lint-judged.ts', import.meta.url).pathname;
+/** The timeout of a test here that spawns oxlint: a cold start's time is the machine's. */
+const SPAWNS_MS = 30_000;
+
+const PLUGIN = new URL('../../lint/judged.ts', import.meta.url).pathname;
+const OXLINT = new URL('../../../../node_modules/.bin/oxlint', import.meta.url).pathname;
 const ROOT_PACKAGE = new URL('../../../../package.json', import.meta.url).pathname;
 
 /** A package.json, as far as its scripts. */
@@ -71,6 +77,9 @@ const lintConfig = (id: string) =>
   Effect.gen(function* () {
     const config = yield* JudgedLint;
     return yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown))({
+      categories: { correctness: 'off' },
+      plugins: [],
+      jsPlugins: [PLUGIN],
       ignorePatterns: [],
       settings: { judged: config.settings },
       rules: Object.fromEntries(
@@ -215,19 +224,15 @@ const withFs = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   );
 
 describe('the judged lint fails open', () => {
-  it.live('skips reason=error, exit 0, when git cannot read the base', () =>
+  it.live('skips reason=error, exit 0, when git cannot read the repo', () =>
     withFs(
       Effect.gen(function* () {
-        const dir = yield* repo;
-        const out = yield* run(
-          dir,
-          'bun',
-          ['--no-env-file', CLI, '--base', 'no-such-ref'],
-          yield* keyless,
-        );
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-no-repo-' });
+        const out = yield* run(dir, 'bun', ['--no-env-file', CLI], yield* keyless);
         expect(out.code).toBe(0);
         expect(out.stdout).toBe('[judged] skipped rule=* reason=error items=0 detail=GitFailed');
-        expect(out.stderr).toContain('git merge-base exited 128');
+        expect(out.stderr).toContain('git rev-parse exited 128');
       }),
     ),
   );
@@ -259,12 +264,7 @@ describe('the judged lint fails open', () => {
             'HTTP_PROXY=http://127.0.0.1:9',
           ].join('\n'),
         );
-        const out = yield* run(
-          dir,
-          'bun',
-          ['run', 'lint:judged', '--base', 'main'],
-          yield* keyless,
-        );
+        const out = yield* run(dir, 'bun', ['run', 'lint:judged'], yield* keyless);
         expect(out.code).toBe(0);
         expect(out.stdout.split('\n').at(-1)).toBe(
           '[judged] skipped rule=historyComment reason=no-key items=1',
@@ -283,7 +283,7 @@ describe('the judged lint fails open', () => {
         yield* fs.makeDirectory(path.join(dir, 'tmp'));
         yield* fs.writeFileString(path.join(dir, 'tmp', 'judged'), 'a file, not a folder\n');
         const model = historyModel();
-        const lint = yield* inProcess(dir, ['--base', 'main'], model.layer);
+        const lint = yield* inProcess(dir, [], model.layer);
         expect(Exit.isSuccess(lint.exit)).toBe(true);
         expect(lint.out).toEqual([
           FINDING,
@@ -303,13 +303,14 @@ describe('the judged lint fails open', () => {
           const fs = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const dir = yield* repo;
-          const lint = yield* inProcess(dir, ['--base', 'main'], historyModel().layer);
+          const lint = yield* inProcess(dir, [], historyModel().layer);
           expect(Exit.isSuccess(lint.exit)).toBe(true);
           expect(lint.out).toEqual([
             '[judged] rule=historyComment items=1 cached=0 asked=1 findings=1',
           ]);
           const store = yield* fs.readFileString(path.join(dir, 'tmp', 'judged', 'cache.json'));
-          expect(store).toContain('"src/a.ts":["historyComment"]');
+          expect(Object.keys((yield* Schema.decodeEffect(Store)(store)).answers)).toHaveLength(1);
+          expect(store).not.toContain('src/a.ts');
         }),
       ),
   );
@@ -323,7 +324,7 @@ describe('the judged lint fails open', () => {
           '| # | Say | Picture |\n| - | - | - |\n| 1 | Rest. |  |\n',
           '| # | Say | Picture |\n| - | - | - |\n| 1 | Ellen White said, "Rest." |  |\n',
         );
-        const lint = yield* inProcess(dir, ['--base', 'main'], answering('breach', 'clean').layer);
+        const lint = yield* inProcess(dir, [], answering('breach', 'clean').layer);
         expect(Exit.isFailure(lint.exit)).toBe(true);
         expect(lint.out).toEqual([
           'apps/animations/series/s/scripts/01-a.md:3 error judged(scriptSpeech): the beat names its sources or church history: teach it from Scripture, the idea unnamed p=0.97',
@@ -337,7 +338,7 @@ describe('the judged lint fails open', () => {
     withFs(
       Effect.gen(function* () {
         const dir = yield* repo;
-        const lint = yield* inProcess(dir, ['--base', 'main', '--strict'], historyModel().layer);
+        const lint = yield* inProcess(dir, ['--strict'], historyModel().layer);
         expect(Exit.isFailure(lint.exit)).toBe(true);
         expect(lint.out).toEqual([
           FINDING,
@@ -351,9 +352,105 @@ describe('the judged lint fails open', () => {
     withFs(
       Effect.gen(function* () {
         const dir = yield* repo;
-        const lint = yield* inProcess(dir, ['--base', 'main'], dyingModel);
+        const lint = yield* inProcess(dir, [], dyingModel);
         expect(Exit.isSuccess(lint.exit)).toBe(true);
         expect(lint.out).toEqual(['[judged] skipped rule=* reason=error items=1 detail=defect']);
+      }),
+    ),
+  );
+});
+
+describe('the judged lint reads the whole repo, by content', () => {
+  it.live(
+    'a gating breach moved from films/x to films/y asks nothing again and fails oxlint at its new place',
+    () =>
+      withFs(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const script =
+            "export const script = {\n  beats: [{ id: 'a', say: 'Ellen White said, rest.' }],\n};\n";
+          const from = 'apps/animations/src/films/x/script.ts';
+          const to = 'apps/animations/src/films/y/script.ts';
+          const dir = yield* repoOf('scriptSpeech', from, script, script);
+          const model = answering('breach', 'clean');
+          const first = yield* inProcess(dir, [], model.layer);
+          expect(Exit.isSuccess(first.exit)).toBe(true);
+          expect(first.out).toEqual([
+            '[judged] rule=scriptSpeech items=1 cached=0 asked=1 findings=1',
+          ]);
+          yield* fs.makeDirectory(path.dirname(path.join(dir, to)), { recursive: true });
+          yield* git(dir, 'mv', from, to);
+          const second = yield* inProcess(dir, [], model.layer);
+          expect(second.out).toEqual([
+            '[judged] rule=scriptSpeech items=1 cached=1 asked=0 findings=1',
+          ]);
+          expect(model.requests).toHaveLength(1);
+          const lint = yield* run(dir, OXLINT, [
+            '--format',
+            'unix',
+            '-c',
+            '.oxlintrc.json',
+            'apps',
+          ]);
+          expect(lint.code).not.toBe(0);
+          expect(lint.stdout).toContain(`${to}:2:`);
+          expect(lint.stdout).toContain('[Error/judged(scriptSpeech)]');
+          expect(lint.stdout).not.toContain(from);
+        }),
+      ),
+    SPAWNS_MS,
+  );
+
+  it.live('judges a new file never staged, as a committed one', () =>
+    withFs(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = yield* repoOf('historyComment', 'src/a.ts', 'const a = 1;\n', 'const a = 1;\n');
+        yield* fs.writeFileString(
+          path.join(dir, 'src', 'new.ts'),
+          '// This used to retry; pass 6 removed that.\nconst b = 1;\n',
+        );
+        const lint = yield* inProcess(dir, ['--strict'], historyModel().layer);
+        expect(lint.out).toEqual([
+          FINDING.replace('src/a.ts', 'src/new.ts'),
+          '[judged] rule=historyComment items=1 cached=0 asked=1 findings=1',
+        ]);
+      }),
+    ),
+  );
+
+  it.live('asks again for a test case whose only expect a change deleted, and for no other', () =>
+    withFs(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const cases = (body: string) =>
+          [
+            "import { expect, it } from 'bun:test';",
+            "it('adds', () => {",
+            `${body}});`,
+            "it('subtracts', () => {",
+            '  expect(2 - 1).toBe(1);',
+            '});',
+            '',
+          ].join('\n');
+        const file = 'src/a.test.ts';
+        const dir = yield* repoOf(
+          'testOracle',
+          file,
+          cases('  expect(1 + 1).toBe(2);\n'),
+          cases('  expect(1 + 1).toBe(2);\n'),
+        );
+        const model = answering('independent', 'tautological');
+        const first = yield* inProcess(dir, [], model.layer);
+        expect(first.out).toEqual(['[judged] rule=testOracle items=2 cached=0 asked=2 findings=0']);
+        yield* fs.writeFileString(path.join(dir, file), cases(''));
+        const second = yield* inProcess(dir, [], model.layer);
+        expect(second.out).toEqual([
+          '[judged] rule=testOracle items=2 cached=1 asked=1 findings=0',
+        ]);
       }),
     ),
   );
