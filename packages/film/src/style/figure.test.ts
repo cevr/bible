@@ -351,7 +351,7 @@ describe('a traced figure, standing or seated', () => {
 
   test("a seated figure's head off its origin is refused", () => {
     expect(() => figure(seatedOf(10))).toThrow(
-      /figure refused: .*a seated figure's origin is its head's centre: its head's y is 10/,
+      /figure refused: .*a seated figure's origin is at its head's height: its head's y is 10/,
     );
   });
 

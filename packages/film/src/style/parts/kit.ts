@@ -52,7 +52,7 @@ const KitAPart = Schema.TaggedStruct('KitA', {
   eyeLean: Schema.optionalKey(Units),
   shape: Schema.optionalKey(Shape),
   rest: Schema.optionalKey(Rest),
-  /** Where the eyes look at rest, units from the head's centre. */
+  /** Where the eyes look at rest, units from the figure's body's middle at its head's height: a round head's centre (a traced head is carried off it, by its `set`). */
   gaze: Point,
 });
 export type KitA = typeof KitAPart.Type;

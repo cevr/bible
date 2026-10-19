@@ -6,7 +6,8 @@
 // (`keyLight`, `shading`, with `ramp` from `@bible/film/canvas`); a set
 // creases its pieces under the same light (`boxOf`, `creaseOf`). A film's
 // papers are checked as its module loads (`papers`; `rampedPaper` for one
-// ramped from a base; a turn's `Crease`), rimmed `RIM` wide; a film's canvas
+// ramped from a base; a turn's `Crease`), each rimmed as its concept lays it
+// (the house's `RIM`, or a width of its own) or not at all; a film's canvas
 // people and page read the house's two papers (`peoplePaper`, `parchment`).
 // A figure is composed of parts (`figure`: `Head`, `Beard`, `Hair`,
 // `Headcloth`, `Ear`, `KitA`, `OpenMouth`, `Tunic`, `Robe`, `Arm`, `Bands`,

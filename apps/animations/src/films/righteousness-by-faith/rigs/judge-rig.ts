@@ -18,7 +18,8 @@
 // to it (FigureLock, `@bible/film/style`'s `lock.ts`).
 //
 // Units are the Board's pixels: in `cold.evidence` his head is 150 tall with
-// its hair. His head's centre is the artboard's origin.
+// its hair. The artboard's origin is his robe's middle at his head's height,
+// his head carried `HEAD_X` right of it.
 //
 // The host poses him by the view model `Judge`, every frame: the face kit's
 // numbers (`FACE`); `lean`, radians about his robe's foot (behind the

@@ -6,13 +6,13 @@
 // head, a given robe over a cut robe). Only a figure `figure` returned is
 // one a film's figures file lays (`isComposed`): a copy of it with a part
 // changed was never checked, so a change is composed from the figure's
-// spec again. A figure stands on its feet, its origin, or sits, its head's
-// centre its origin, the part of it above what hides its feet drawn; an arm
-// that reaches past its garment is in its sleeve, cut in one outline with
-// the garment. Its view model's numbers are its parts', in one order, never
-// listed by hand (`knobsOf`). How it is drawn is the house's
-// (`rig/draw.ts`). A figure the owner locked carries its lock, checked here,
-// and its film holds its print to it (`lock.ts`). Pure.
+// spec again. A figure stands on its feet, its origin, or sits, its origin
+// its body's middle at its head's height, the part of it above what hides
+// its feet drawn; an arm that reaches past its garment is in its sleeve, cut
+// in one outline with the garment. Its view model's numbers are its parts',
+// in one order, never listed by hand (`knobsOf`). How it is drawn is the
+// house's (`rig/draw.ts`). A figure the owner locked carries its lock,
+// checked here, and its film holds its print to it (`lock.ts`). Pure.
 
 import { Predicate, Schema } from 'effect';
 import { ConceptRef } from '../core/match.ts';
@@ -39,7 +39,7 @@ import { FACE, type FaceKnob } from './rig/parts.ts';
 /** A standing figure's artboard: its size, and where its feet stand on it (the rig's origin). */
 const StandingArt = Schema.Struct({ width: Length, height: Length, feet: Point });
 
-/** A seated figure's artboard: its size, and where its head's centre sits on it (the rig's origin). */
+/** A seated figure's artboard: its size, and where its body's middle at its head's height sits on it (the rig's origin). */
 const SeatedArt = Schema.Struct({ width: Length, height: Length, head: Point });
 
 /** A figure's arms that reach past its garment, by side: the near one, the far one, or both. */
@@ -80,7 +80,7 @@ interface StandingSpec extends Composed {
   readonly feet: Feet;
 }
 
-/** A seated figure: its head's centre is its origin, and what it sits behind hides its feet. */
+/** A seated figure: its origin is its body's middle at its head's height, and what it sits behind hides its feet. */
 interface SeatedSpec extends Composed {
   readonly art: typeof SeatedArt.Type;
   readonly stance: Seated;
@@ -126,10 +126,10 @@ const robeOverTunic = Schema.makeFilter(
       : true,
 );
 
-/** A seated figure's origin is its head's centre, so its head sits at 0. */
+/** A seated figure's origin is at its head's height, so its head's `y` is 0. */
 const headAtOrigin = Schema.makeFilter((s: { readonly head: unknown }) =>
   Predicate.hasProperty(s.head, 'y') && s.head.y !== 0
-    ? `a seated figure's origin is its head's centre: its head's y is ${String(s.head.y)}, not 0`
+    ? `a seated figure's origin is at its head's height: its head's y is ${String(s.head.y)}, not 0`
     : true,
 );
 
@@ -263,8 +263,13 @@ type KnobsOf<S extends FigureSpec> =
   | (S extends { readonly states: infer T } ? StatesKnob<T> : never)
   | (S extends { readonly arms: infer A } ? ArmKnob<A> : never);
 
-/** The centre of `head`, units from the origin: where its face's gaze is measured from. */
-const centreOf = (head: Head) => [0, head.y] as const;
+/**
+ * Where a face's gaze is measured from, units from the figure's origin: its
+ * body's middle at its head's height. A round head's centre is there; a
+ * traced head is carried `set.x` right of it (`rig/draw.ts`), its gaze still
+ * measured from the body's middle.
+ */
+const gazeFrom = (head: Head) => [0, head.y] as const;
 
 /**
  * A figure's numbers at rest, in the house's order (the view model keeps
@@ -275,7 +280,7 @@ const centreOf = (head: Head) => [0, head.y] as const;
  * keeps its place.
  */
 const knobsOf = (f: Parts) => {
-  const [x, y] = centreOf(f.head);
+  const [x, y] = gazeFrom(f.head);
   const knobs = new Map(
     Object.entries({
       ...FACE,
