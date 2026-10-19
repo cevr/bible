@@ -53,7 +53,6 @@ export {
   HAND_ART,
   HAND_TIMELINES,
   type HandTimeline,
-  tunicOutline,
 } from './rig/draw.ts';
 export { type Pt, boilTime, boxOf, creaseOf, ellipse, reachAbout, smooth } from './rig/parts.ts';
-export { roundedPolygon, shifted } from './rig/shapes.ts';
+export { roundedPolygon, shifted, tunicOutline } from './rig/shapes.ts';

@@ -1,5 +1,6 @@
 // The outlines a figure is cut from, in the figure's units: a polygon with
-// its corners rounded (a tunic, a robe), a shoe, and a blot (a head is traced
+// its corners rounded, a garment's (a tunic cut from its neck and hem, a
+// robe from its corners or as traced), a shoe, and a blot (a head is traced
 // from its concept); and how one paper tucks under the papers laid over it
 // (`tucked`, and a paper rimmed all round deeper, under their seams,
 // `tuckedRimmed`). Each outline is a list of points the generator's `piece`
@@ -7,6 +8,7 @@
 // edge stays straight. Pure.
 
 import { rng } from '../../core/random.ts';
+import type { Garment, Tunic } from '../parts/body.ts';
 import type { Pt } from './parts.ts';
 
 /** How far apart points lie along a straight edge, units, so a smooth path keeps it straight. */
@@ -51,6 +53,33 @@ export const roundedPolygon = (
       out.push([b[0] + ((end[0] - b[0]) * s) / steps, b[1] + ((end[1] - b[1]) * s) / steps]);
   });
   return out;
+};
+
+/** A tunic's outline, in its figure's units: its corners rounded, its sides bowed out between neck and hem. */
+export const tunicOutline = (t: Tunic): Pt[] =>
+  roundedPolygon(
+    [
+      [-t.half.neck, t.neck],
+      [t.half.neck, t.neck],
+      [t.half.hem, t.hem],
+      [-t.half.hem, t.hem],
+    ],
+    t.radius,
+  ).map(([x, y]): Pt => {
+    const k = (y - t.neck) / (t.hem - t.neck);
+    return k > 0 && k < 1 ? [x + Math.sign(x) * t.bow * Math.sin(Math.PI * k), y] : [x, y];
+  });
+
+/** A garment's outline: a tunic cut from its neck and hem, a cut robe from its corners, a traced robe as traced. */
+export const garmentOutline = (g: Garment): ReadonlyArray<Pt> => {
+  switch (g._tag) {
+    case 'Tunic':
+      return tunicOutline(g);
+    case 'CutRobe':
+      return roundedPolygon(g.corners, g.radii);
+    case 'TracedRobe':
+      return g.outline;
+  }
 };
 
 /**

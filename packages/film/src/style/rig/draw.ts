@@ -17,7 +17,7 @@ import {
 import { type Paper, looked, paper } from '../paper.ts';
 import { ARM_SIDES, type Arm, type ArmSide } from '../parts/arm.ts';
 import type { Beard } from '../parts/beard.ts';
-import type { Garment, Tunic } from '../parts/body.ts';
+import type { Garment } from '../parts/body.ts';
 import type { Ear } from '../parts/ear.ts';
 import type { Feet, Sandals, Shoes, StubLegs } from '../parts/feet.ts';
 import type { Hair } from '../parts/hair.ts';
@@ -46,6 +46,7 @@ import {
 import { type Element, el } from './rml.ts';
 import {
   blotOutline,
+  garmentOutline,
   roundedPolygon,
   shifted,
   shoeLight,
@@ -344,33 +345,6 @@ const tracedHeadOf = (rig: Figure, f: Parts, head: TracedHead) => {
 /** A figure's head, as its kind is cut. */
 const headOf = (rig: Figure, f: Parts) =>
   f.head._tag === 'TracedHead' ? tracedHeadOf(rig, f, f.head) : roundHeadOf(rig, f.head, f.face);
-
-/** A tunic's outline, in its figure's units: its corners rounded, its sides bowed out between neck and hem. */
-export const tunicOutline = (t: Tunic): Pt[] =>
-  roundedPolygon(
-    [
-      [-t.half.neck, t.neck],
-      [t.half.neck, t.neck],
-      [t.half.hem, t.hem],
-      [-t.half.hem, t.hem],
-    ],
-    t.radius,
-  ).map(([x, y]): Pt => {
-    const k = (y - t.neck) / (t.hem - t.neck);
-    return k > 0 && k < 1 ? [x + Math.sign(x) * t.bow * Math.sin(Math.PI * k), y] : [x, y];
-  });
-
-/** A garment's outline: a tunic cut from its neck and hem, a cut robe from its corners, a traced robe as traced. */
-const garmentOutline = (g: Garment): ReadonlyArray<Pt> => {
-  switch (g._tag) {
-    case 'Tunic':
-      return tunicOutline(g);
-    case 'CutRobe':
-      return roundedPolygon(g.corners, g.radii);
-    case 'TracedRobe':
-      return g.outline;
-  }
-};
 
 /** What a garment's piece is named, and its side's node after it. */
 const garmentKey = (g: Garment) => (g._tag === 'Tunic' ? 'tunic' : 'robe');
