@@ -85,20 +85,25 @@ const house = Effect.gen(function* () {
   );
 }).pipe(Effect.provide(BunServices.layer));
 
-/** One try of the poses sheet, in one lane. */
-const runOf = Effect.map(house, (block) => ({
-  kind: 'poses' as const,
-  tries: 1,
-  lanes: 1,
-  dryRun: false,
-  house: block,
-  houseImage: '/ref/house.png',
-}));
+/** One try of a sheet (the poses sheet when unnamed), in one lane. */
+const runOf = (kind: 'poses' | 'heads') =>
+  Effect.map(house, (block) => ({
+    kind,
+    tries: 1,
+    lanes: 1,
+    dryRun: false,
+    house: block,
+    houseImage: '/ref/house.png',
+  }));
 
 /** A run's record as it stands after, and its lines. */
-const ran = (files: Map<string, Uint8Array>, lines: Array<CastLine>) =>
+const ran = (
+  files: Map<string, Uint8Array>,
+  lines: Array<CastLine>,
+  kind: 'poses' | 'heads' = 'poses',
+) =>
   Effect.gen(function* () {
-    const run = yield* runOf;
+    const run = yield* runOf(kind);
     yield* makeCastSheet({ folder: FOLDER, out: OUT }, run, (line) =>
       Effect.sync(() => lines.push(line)),
     );
@@ -191,6 +196,42 @@ describe('a try whose head and papers drift from the anchor', () => {
   );
 });
 
+describe('a heads sheet whose head drifts within its turn', () => {
+  it.effect(
+    "is drawn again held to its turn's first head by its eyes, and its nodding head is not held for its height",
+    () => {
+      const files = new Map<string, Uint8Array>();
+      const calls: Array<ImageRequest> = [];
+      const bust = (extra: Partial<FigureSpec>) =>
+        at(0, { handless: true, feet: false, robeDepth: 120, longHair: true, ...extra });
+      const heads: CastSheetRecord = {
+        ...record,
+        sheets: {
+          heads: {
+            anchor: 1,
+            layout: 'His head three times, facing the viewer: level, bowed, level.',
+            slots: ['front', 'front', 'front'],
+            level: [1, 3],
+            tries: [],
+          },
+        },
+      };
+      // The bowed head is shorter on the page; the third, level, is drawn bigger than the first, its eyes farther apart.
+      const drifted = encodePng(
+        drawSheet([bust({}), bust({ ry: 56, eyeBelow: 22 }), bust({ rx: 70, eyeGap: 56 })]),
+      );
+      return Effect.gen(function* () {
+        const kept = yield* ran(files, [], 'heads');
+        const first = kept.sheets.heads?.tries[0];
+        expect(first?.flags.map((f) => `${f.check}:${f.views.join(',')}`)).toEqual(['head:3,1']);
+        expect(calls[1]?.prompt ?? '').toMatch(
+          /Figure 3's head is the size of figure 1's, which turns the same way: its eyes about \d+ pixels apart\./,
+        );
+      }).pipe(Effect.provide(castOver(files, calls, () => drifted, heads)));
+    },
+  );
+});
+
 describe('a sheet with no standing view', () => {
   it.effect(
     'is redrawn with its drift named but no underlay: a mannequin would stand a pose that lies',
@@ -220,7 +261,7 @@ describe('a kind the record does not set up', () => {
     const files = new Map<string, Uint8Array>();
     const calls: Array<ImageRequest> = [];
     return Effect.gen(function* () {
-      const run = yield* runOf;
+      const run = yield* runOf('poses');
       const exit = yield* Effect.exit(
         makeCastSheet({ folder: FOLDER, out: OUT }, { ...run, kind: 'heads' }, () => Effect.void),
       );

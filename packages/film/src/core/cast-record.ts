@@ -59,6 +59,8 @@ const CastSheetOf = Schema.Struct({
   slots: Schema.optionalKey(Schema.Array(Slot)),
   /** The views whose height is held to the anchor's (a turnaround: all of them). */
   standing: Schema.optionalKey(Schema.Array(Schema.Int)),
+  /** The views whose head is level, neither bowed nor lifted: the hair's fall, and on a heads sheet the head's height, are held on these (all of them when left out). */
+  level: Schema.optionalKey(Schema.Array(Schema.Int)),
   /** The kept concepts the views are critiqued against: a reference's file, the member's box in it, and the views that face as it does. */
   concepts: Schema.optionalKey(Schema.Array(CastConcept)),
   tries: Schema.Array(CastTry),
@@ -140,7 +142,7 @@ export const castKindPlan = (
   const unset = (reason: string) => CastKindUnset.make({ member: record.member, kind, reason });
   const sheet: Option.Option<CastSheetOf> = Option.fromUndefinedOr(record.sheets[kind]);
   if (Option.isNone(sheet)) return Result.fail(unset('the record has no entry for it'));
-  const { anchor, layout, slots, standing, concepts = [] } = sheet.value;
+  const { anchor, layout, slots, standing, level, concepts = [] } = sheet.value;
   const turnaround = kind === 'turnaround';
   const viewSlots = Option.getOrElse(
     Option.fromUndefinedOr(slots),
@@ -164,6 +166,7 @@ export const castKindPlan = (
       anchor,
       slots: viewSlots,
       ...((Predicate.isNotUndefined(standing) && { standing }) || {}),
+      ...((Predicate.isNotUndefined(level) && { level }) || {}),
       headgear: record.headgear === true,
     },
   });

@@ -2894,7 +2894,8 @@ on the image route. The member's folder is its film's own role's,
 `CastUnfound`. It holds `cast-sheet.json` (`CastSheetRecord`,
 `core/cast-record.ts`, pure: the member's pronoun, its scope, each reference
 image and what it is for, and per kind the anchor view and, for poses and
-heads, the layout in words and each view's slot, and the kept concepts its
+heads, the layout in words and each view's slot, the standing views and
+the level heads (as `--standing` and `--level` name them), and the kept concepts its
 views are held to: a reference's file, the member's box in it and the views
 that face as it does), `look.md` and the reference images; the references
 stay out of git, as a board's images do. A kind the record does not set up
@@ -2916,7 +2917,8 @@ is drawn once more with each drift named in a sentence (a head, hand or
 papers drift held to the anchor view as the try measured it, in numbers and
 words: its head's pixels and share of its height, its hand's share of the
 head, its papers' colours by name and hex, `colourWords` in
-`core/cast-sheet-pixels.ts`); on `facing`,
+`core/cast-sheet-pixels.ts`; on a heads sheet a head is held by its eyes'
+spacing, in pixels, to its turn's first head); on `facing`,
 `sameWay`, `roll` or `squash` the retry also sends the underlay as its last
 reference (`mannequinUnderlay`, `core/cast-underlay.ts`, pure: a blank
 mannequin per standing view, their soles on one row with no line drawn

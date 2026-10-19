@@ -135,6 +135,10 @@ const facingWords = (slot: Option.Option<Slot>): string =>
 interface Drifting {
   readonly slots: ReadonlyArray<Slot>;
   readonly anchor: Option.Option<SheetMeasure['views'][number]>;
+  /** Every view as the try measured it. */
+  readonly views: ReadonlyArray<SheetMeasure['views'][number]>;
+  /** A heads sheet: a head is held by its width to its turn's first head, not by its height to the anchor. */
+  readonly heads: boolean;
 }
 
 /** A share in words, for a prompt beside its number: "about a third of". */
@@ -194,6 +198,25 @@ const heldTo = (
     () => plain,
   );
 
+/** A heads sheet's head drift: the head held by its eyes' spacing, which no lock of hair widens, to the head its flag names, its turn's first. */
+const headsDrift = (held: Drifting, views: ReadonlyArray<number>): string => {
+  const [drifted, to] = [Arr.get(views, 0), Arr.get(views, 1)];
+  const eyes = Option.flatMap(to, (n) =>
+    Option.flatMap(
+      Arr.findFirst(held.views, (v) => v.view === n),
+      (v) => Option.fromUndefinedOr(v.eyes),
+    ),
+  );
+  return Option.getOrElse(
+    Option.map(
+      Option.all([drifted, to, eyes]),
+      ([d, n, e]) =>
+        `Figure ${d}'s head is the size of figure ${n}'s, which turns the same way: its eyes about ${Math.round(e)} pixels apart.`,
+    ),
+    () => `Figure ${views.join(' and ')}'s heads are the same size as the others'.`,
+  );
+};
+
 /** One flag as the sentence a retry's prompt adds. */
 const driftOf = (check: SheetCheck, views: ReadonlyArray<number>, held: Drifting): string => {
   const v = views.join(' and ');
@@ -221,14 +244,17 @@ const driftOf = (check: SheetCheck, views: ReadonlyArray<number>, held: Drifting
       'ground',
       () => `Figure ${v} stands as tall as the others, its soles level with theirs.`,
     ),
-    Match.when('head', () =>
-      heldTo(
-        held,
-        views,
-        'head',
-        (who, anchor, size) => `${who}'s head is as big as figure ${anchor}'s: ${size}.`,
-        `Figure ${v}'s head is the same size as the others'.`,
-      ),
+    Match.when(
+      'head',
+      () =>
+        (held.heads && headsDrift(held, views)) ||
+        heldTo(
+          held,
+          views,
+          'head',
+          (who, anchor, size) => `${who}'s head is as big as figure ${anchor}'s: ${size}.`,
+          `Figure ${v}'s head is the same size as the others'.`,
+        ),
     ),
     Match.when('hand', () =>
       heldTo(
@@ -477,6 +503,8 @@ const gatedTry = (ctx: TryContext, emit: (line: CastLine) => Effect.Effect<void>
       const held: Drifting = {
         slots: ctx.plan.options.slots ?? [],
         anchor: Option.flatMap(measure, (m) => Arr.findFirst(m.views, (v) => v.view === m.anchor)),
+        views: Option.match(measure, { onNone: () => [], onSome: (m) => m.views }),
+        heads: ctx.run.kind === 'heads',
       };
       const drifts = first.flags.map((f) => driftOf(f.check, f.views, held));
       const underlay = ctx.underlay.shown && first.flags.some((f) => UNDERLAID.has(f.check));

@@ -64,6 +64,7 @@
       "anchor": 1,
       "layout": "Draw only His head and the top of His shoulders, six times in a row, evenly spaced, all the same size. One to three are turned three-quarters toward the viewer's left: one, level, at rest, a small warm smile; two, bowed, looking down, compassion, the inner ends of the brows raised; three, lifted a little, looking up, glad. Four to six face the viewer straight on: four, level, at rest, a small warm smile; five, bowed, looking down, grieved, the mouth turned a little down; six, lifted a little, speaking, the mouth a little open inside the beard.",
       "slots": ["left", "left", "left", "front", "front", "front"],
+      "level": [1, 4],
       "tries": []
     }
   }
