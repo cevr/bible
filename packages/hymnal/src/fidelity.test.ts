@@ -10,11 +10,11 @@
  * compiler or `sung`: the row's stanzas by id and its one negative-id
  * refrain; the refrain's place from `data/fixes/refrains.json`, read off each
  * refrain hymn's page; and, for a row hymnal.db holds rewritten from its
- * page (138, 203, 220, 438, 593, 620, 628), the printed source
- * `data/fixes/NNN.json` in place of the row. Where a refrain
- * is sung has no default: a refrain hymn the census does not list, or a
- * listed hymn with no refrain, fails. The mutant cases below hold the
- * property to the defects it exists to catch.
+ * page (each hymn with a `data/fixes/NNN.json`: the census's `fixed` hymns
+ * and the seven fixes before it), that printed source in place of the row.
+ * Where a refrain is sung has no default: a refrain hymn `refrains.json`
+ * does not list, or a listed hymn with no refrain, fails. The mutant cases
+ * below hold the property to the defects it exists to catch.
  */
 
 import { HymnalService, HymnId } from '@bible/core/hymnal';
