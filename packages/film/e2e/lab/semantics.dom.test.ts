@@ -6,8 +6,8 @@
 // page and in every portal, never the browser's; every floating root (a
 // dialog, a menu, a sheet, a receipt) shows it over its own shadow, exactly,
 // on every page that opens it, inside its edge when its box fills the view;
-// and a mouse path that moves the focus from script (the studio holding it, a
-// key's Reset) shows no ring.
+// and a mouse path that moves the focus from script (the studio holding it)
+// shows no ring.
 
 import { Effect, type Scope } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -145,21 +145,6 @@ describe("the kit's focus ring", () => {
       }).pipe(Effect.scoped),
     SLOW,
   );
-
-  it.live(
-    'in the keys dialog, a button drawn outside the kit (a command’s Change) shows the studio’s ring',
-    () =>
-      Effect.gen(function* () {
-        const { page, errors } = yield* studio();
-        const rebind = '[data-role="keys-sheet"] .lab-keys-actions > button';
-        yield* page.press('?');
-        yield* waitFor(page, rebind);
-        yield* page.focus(rebind);
-        yield* evaluates(page, FOCUS_SHOWN, 'ring');
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
 });
 
 /** A page-side function: the box-shadow a value (`var(--focus-ring)`) computes to. */
@@ -215,32 +200,6 @@ const keepRest = (root: string) =>
  */
 const ringedOverRest = (root: string) =>
   `((el) => { const s = getComputedStyle(el); const ring = ${RESOLVED}('var(--focus-ring)'); const want = window.restingShadow === 'none' ? ring : ring + ', ' + window.restingShadow; return el.matches('${root}') && s.outlineStyle === 'none' && s.boxShadow === want ? 'exact' : ${NAME}(el) + ': outline ' + s.outlineStyle + ', shadow ' + s.boxShadow + ', not ' + want; })(document.activeElement)`;
-
-/** The keys dialog, and a command's Change in it. */
-const KEYS_SHEET = '[data-role="keys-sheet"]';
-const CHANGE = `${KEYS_SHEET} .lab-keys-actions > button`;
-
-/**
- * Open the keys dialog (`?`), keep its resting shadow, and change the first command's key:
- * Change clicked, `y` pressed. The new chord re-lists the rows, so the button leaves the page,
- * and the dialog takes the focus.
- */
-const rebind = (page: Tab) =>
-  Effect.gen(function* () {
-    yield* page.press('?');
-    yield* waitFor(page, CHANGE);
-    yield* page.evaluate(keepRest(KEYS_SHEET));
-    yield* page.click(CHANGE);
-    yield* waitFor(page, `${KEYS_SHEET} [data-act="press"]`);
-    yield* page.press('y');
-    yield* evaluates(page, `document.activeElement.matches('${KEYS_SHEET}')`, true);
-  });
-
-/** Each page the studio's frame (and its keys dialog) is on, opened at a desk. */
-const PAGES = [
-  ['the studio', () => studio()],
-  ['the review', () => openReview([])],
-] as const;
 
 /**
  * The element the page shows the keyboard's focus on (`:focus-visible`), by name; `none` when
@@ -323,24 +282,6 @@ describe('every focus the keyboard shows is the studio’s ring', () => {
   );
 });
 
-describe('a floating root shows the ring over its own shadow, exactly, on every page', () => {
-  for (const [where, open] of PAGES)
-    it.live(
-      `on ${where}, a key changed in the keys dialog hands the focus to the dialog, which shows the ring over its shadow`,
-      () =>
-        Effect.gen(function* () {
-          const { page, errors } = yield* open();
-          yield* page.evaluate(WATCH_FOCUS);
-          yield* rebind(page);
-          yield* evaluates(page, stoppedOn('lab-keys-sheet'), true);
-          yield* evaluates(page, UNRINGED, []);
-          yield* evaluates(page, ringedOverRest(KEYS_SHEET), 'exact');
-          expect(errors).toEqual([]);
-        }).pipe(Effect.scoped),
-      SLOW,
-    );
-});
-
 /**
  * A case that runs alone, its scope closed at its end, a timeout's included (`it.scopedLive.serial`):
  * `:focus-visible` matches only in the window that has the focus, and a sibling case opening
@@ -368,24 +309,6 @@ describe('a mouse path that moves the focus from script shows no ring', () => {
       const { page, errors } = yield* inRecord();
       yield* page.click(RECORD_BEAT);
       yield* evaluates(page, IN_STUDIO, true);
-      yield* evaluates(page, SHOWN_FOCUS, 'none');
-      expect(errors).toEqual([]);
-    }),
-  );
-
-  alone(
-    'in the keys dialog, Reset clicked hands the focus to the dialog with no ring',
-    Effect.gen(function* () {
-      const { page, errors } = yield* studio();
-      yield* rebind(page);
-      // The key back to its default re-lists the rows: Reset leaves the page, and the dialog takes the focus.
-      yield* page.click(`${KEYS_SHEET} [data-act="reset"]`);
-      yield* evaluates(
-        page,
-        `document.querySelector('${KEYS_SHEET} [data-act="reset"]') === null`,
-        true,
-      );
-      yield* evaluates(page, `document.activeElement.matches('${KEYS_SHEET}')`, true);
       yield* evaluates(page, SHOWN_FOCUS, 'none');
       expect(errors).toEqual([]);
     }),

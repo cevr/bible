@@ -198,18 +198,18 @@ describe('statusOf', () => {
     expect(status).not.toContain('TypeError');
   });
 
-  test('a refusal names each control by its key as bound: a rebound key reads as rebound', () => {
-    const rebound: Keyed = (title, command) =>
+  test('a refusal names each control by the key its reader gives, never a key written in', () => {
+    const bound: Keyed = (title, command) =>
       `${title} (${{ 'studio.back': 'B', 'studio.submit': 'Enter', 'studio.record': 'R', 'studio.stop': 'S' }[command]})`;
     const micLost = RecorderState.Failed({
       beat: 'a',
       refusal: MicLost.make({}),
       wav: Option.some(wav),
     });
-    expect(statusWith(micLost, Option.none(), rebound)).toBe(
+    expect(statusWith(micLost, Option.none(), bound)).toBe(
       `${MicLost.make({}).message}\nBack (B) to hear it`,
     );
-    expect(statusWith(failed(mismatch), Option.none(), rebound)).toBe(
+    expect(statusWith(failed(mismatch), Option.none(), bound)).toBe(
       `${mismatch.message}\nAccept anyway (Enter) keeps it as the take; Record (R) reads it again`,
     );
   });

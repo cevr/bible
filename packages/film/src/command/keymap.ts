@@ -1,8 +1,7 @@
-// The keymap: which key runs which command. A command declares its default
-// keys as chords (`mod+z`, `shift+arrowleft`, `?`); the viewer's overrides
-// (kept in the browser, `hub.ts`) add a key to a command or take one away
-// (`-<id>`, as VS Code's keybindings write a removal), so a rebound key is
-// a default taken away and a key added. A press binds to a chord by its key
+// The keymap: which key runs which command. A command declares its keys as
+// chords (`mod+z`, `shift+arrowleft`, `?`), and those are the keys it has:
+// the page lists them (the `?` sheet, ⌘K, a control's title) and binds them,
+// the same for every viewer. A press binds to a chord by its key
 // and modifiers: `mod` is ⌘ or Ctrl, a letter reads the same with Caps Lock,
 // Shift counts on a letter, a digit or a named key but not on a symbol (`?`
 // is already shifted), a letter held with Alt reads by its physical key (⌥O
@@ -15,20 +14,13 @@
 // first, then the page's; on a control (a button, a link), the page's; the
 // studio owns its keys, so one with nothing to do in the studio's state is
 // still not the page's. Of the commands a press binds to, the last
-// available one runs: a viewer's key, bound after the defaults, wins over a
-// default on the same key. Pure.
+// available one runs: the one registered last wins a key two commands
+// share. Pure.
 
-import { Data, Option, Schema } from 'effect';
+import { Data, Option } from 'effect';
 import type { KeyPress } from '../browser/keys.ts';
 import type { Command, CommandId, Invocation } from './command.ts';
 import type { Context, Focus } from './context.ts';
-
-/** One override of the viewer's: `key` added to `command`, or taken from it (`-<id>`). */
-const KeymapOverride = Schema.Struct({ key: Schema.String, command: Schema.String });
-
-/** The viewer's overrides, in the order made: what the browser keeps. */
-export const KeymapOverrides = Schema.Array(KeymapOverride);
-export type KeymapOverrides = typeof KeymapOverrides.Type;
 
 /** A key bound to a command: the chord in its canonical text. */
 interface Binding {
@@ -83,8 +75,8 @@ const lastKey = (parts: ReadonlyArray<string>): string =>
     () => '+',
   );
 
-/** A command's default keys. */
-const defaultKeys = (command: Command): ReadonlyArray<string> =>
+/** A command's keys. */
+const declaredKeys = (command: Command): ReadonlyArray<string> =>
   Option.getOrElse(Option.fromUndefinedOr(command.keys), () => []);
 
 /** A chord's canonical text (`Shift+Cmd+Z` is `mod+shift+z`), or none when it names no key. */
@@ -126,60 +118,19 @@ const heldBy = (press: KeyPress): ReadonlySet<Modifier> =>
   );
 
 /** The chord a press is, in its canonical text. */
-export const chordOf = (press: KeyPress): string => chordText(pressedKey(press), heldBy(press));
+const chordOf = (press: KeyPress): string => chordText(pressedKey(press), heldBy(press));
 
-/** `bound` with `key` added to `command`, or taken from it when it reads `-<id>`. */
-const overridden = (
-  bound: ReadonlyArray<Binding>,
-  key: string,
-  command: string,
-): ReadonlyArray<Binding> => {
-  if (!command.startsWith('-')) return [...bound, { key, command }];
-  return bound.filter((b) => b.key !== key || b.command !== command.slice(1));
-};
-
-/** The bindings: each command's default keys, then the viewer's overrides in order. */
-export const bindingsOf = (
-  commands: ReadonlyArray<Command>,
-  overrides: KeymapOverrides,
-): ReadonlyArray<Binding> =>
-  overrides.reduce<ReadonlyArray<Binding>>(
-    (bound, o) =>
-      Option.match(parseChord(o.key), {
-        onNone: () => bound,
-        onSome: (key) => overridden(bound, key, o.command),
-      }),
-    commands.flatMap((c) =>
-      defaultKeys(c).flatMap((k) =>
-        Option.toArray(Option.map(parseChord(k), (key) => ({ key, command: c.id }))),
-      ),
+/** The bindings: each command's keys, in the order the commands are registered. */
+export const bindingsOf = (commands: ReadonlyArray<Command>): ReadonlyArray<Binding> =>
+  commands.flatMap((c) =>
+    declaredKeys(c).flatMap((k) =>
+      Option.toArray(Option.map(parseChord(k), (key) => ({ key, command: c.id }))),
     ),
   );
 
 /** The keys bound to `id`, in binding order. */
 export const keysOf = (bindings: ReadonlyArray<Binding>, id: CommandId): ReadonlyArray<string> =>
   bindings.filter((b) => b.command === id).map((b) => b.key);
-
-/** `overrides` with nothing of `id`'s: its default keys again. */
-export const resetKeys = (overrides: KeymapOverrides, id: CommandId): KeymapOverrides =>
-  overrides.filter((o) => o.command !== id && o.command !== `-${id}`);
-
-/** `overrides` binding `command` to `key` alone: its defaults taken away, `key` added. */
-export const rebind = (
-  overrides: KeymapOverrides,
-  command: Command,
-  key: string,
-): KeymapOverrides => {
-  const defaults = defaultKeys(command).flatMap((k) => Option.toArray(parseChord(k)));
-  return Option.match(parseChord(key), {
-    onNone: () => overrides,
-    onSome: (chord) => [
-      ...resetKeys(overrides, command.id),
-      ...defaults.filter((d) => d !== chord).map((d) => ({ key: d, command: `-${command.id}` })),
-      ...[chord].filter((c) => !defaults.includes(c)).map((c) => ({ key: c, command: command.id })),
-    ],
-  });
-};
 
 /** What a press does: run a command with a step, stop at a scope that owns it, or pass. */
 export type Resolved = Data.TaggedEnum<{
@@ -211,7 +162,7 @@ const triesOf = (press: KeyPress): ReadonlyArray<readonly [string, Invocation['s
   const held = heldBy(press);
   const without = (m: Modifier) => new Set([...held].filter((h) => h !== m));
   return [
-    [chordText(key, held), 'normal'] as const,
+    [chordOf(press), 'normal'] as const,
     ...[[chordText(key, without('shift')), 'coarse'] as const].filter(() => press.shift),
     ...[[chordText(key, without('alt')), 'fine'] as const].filter(() => press.alt),
   ];

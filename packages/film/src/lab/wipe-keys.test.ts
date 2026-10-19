@@ -29,7 +29,7 @@ describe("a wipe's divider by the keyboard", () => {
         split = to;
       },
     );
-    const bindings = bindingsOf(commands, []);
+    const bindings = bindingsOf(commands);
     const onGrip: Context = { ...contextAt('player', '/films/f/studio'), focus: 'slider' };
     const press = (key: string, shift = false, ctx = onGrip) =>
       resolve(

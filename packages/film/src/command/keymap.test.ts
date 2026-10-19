@@ -3,17 +3,7 @@ import { Effect, Option } from 'effect';
 import type { KeyPress } from '../browser/keys.ts';
 import { type Command, quiet } from './command.ts';
 import { type Context, contextAt } from './context.ts';
-import {
-  Resolved,
-  bindingsOf,
-  chordLabel,
-  chordOf,
-  keysOf,
-  parseChord,
-  rebind,
-  resetKeys,
-  resolve,
-} from './keymap.ts';
+import { Resolved, bindingsOf, chordLabel, keysOf, parseChord, resolve } from './keymap.ts';
 
 const press = (key: string, held: Partial<Omit<KeyPress, 'key'>> = {}): KeyPress => ({
   key,
@@ -40,11 +30,15 @@ const page = contextAt('player', '/films/f/studio');
 
 /** What `p` does among `commands` in `ctx`: the command and step it runs, `owned` or `pass`. */
 const does = (p: KeyPress, commands: ReadonlyArray<Command>, ctx: Context = page) =>
-  Resolved.$match(resolve(p, ctx, commands, bindingsOf(commands, [])), {
+  Resolved.$match(resolve(p, ctx, commands, bindingsOf(commands)), {
     Run: ({ command, how }) => `${command.id} ${how.step}`,
     Owned: () => 'owned',
     Pass: () => 'pass',
   });
+
+/** Whether `p` runs a command bound to `chord` alone: the chord the press reads as. */
+const readsAs = (p: KeyPress, chord: string): boolean =>
+  does(p, [command('bound', { keys: [chord] })]) === 'bound normal';
 
 describe('chords', () => {
   test('read in one canonical text, whatever names their modifiers', () => {
@@ -57,23 +51,23 @@ describe('chords', () => {
   });
 
   test('a press reads as its chord: ⌘ or Ctrl is mod, Caps Lock is no Shift, a symbol drops Shift', () => {
-    expect(chordOf(press('z', { meta: true, shift: true }))).toBe('mod+shift+z');
-    expect(chordOf(press('Z', { ctrl: true, shift: true }))).toBe('mod+shift+z');
-    expect(chordOf(press('N'))).toBe('n');
-    expect(chordOf(press('?', { shift: true }))).toBe('?');
-    expect(chordOf(press(' '))).toBe('space');
-    expect(chordOf(press('ArrowLeft', { shift: true }))).toBe('shift+arrowleft');
+    expect(readsAs(press('z', { meta: true, shift: true }), 'mod+shift+z')).toBe(true);
+    expect(readsAs(press('Z', { ctrl: true, shift: true }), 'mod+shift+z')).toBe(true);
+    expect(readsAs(press('N'), 'n')).toBe(true);
+    expect(readsAs(press('?', { shift: true }), '?')).toBe(true);
+    expect(readsAs(press(' '), 'space')).toBe(true);
+    expect(readsAs(press('ArrowLeft', { shift: true }), 'shift+arrowleft')).toBe(true);
   });
 
   test('a letter held with Alt reads by its physical key', () => {
-    expect(chordOf(press('ø', { alt: true, code: 'KeyO' }))).toBe('alt+o');
-    expect(chordOf(press('¡', { alt: true, code: 'Digit1' }))).toBe('alt+1');
+    expect(readsAs(press('ø', { alt: true, code: 'KeyO' }), 'alt+o')).toBe(true);
+    expect(readsAs(press('¡', { alt: true, code: 'Digit1' }), 'alt+1')).toBe(true);
   });
 
   test("a digit held with Shift reads by its physical key, Shift and all: the pages' ⇧1-⇧8", () => {
-    expect(chordOf(press('!', { shift: true, code: 'Digit1' }))).toBe('shift+1');
-    expect(chordOf(press('&', { shift: true, code: 'Digit6' }))).toBe('shift+6');
-    expect(chordOf(press('*', { shift: true, code: 'Digit8' }))).toBe('shift+8');
+    expect(readsAs(press('!', { shift: true, code: 'Digit1' }), 'shift+1')).toBe(true);
+    expect(readsAs(press('&', { shift: true, code: 'Digit6' }), 'shift+6')).toBe(true);
+    expect(readsAs(press('*', { shift: true, code: 'Digit8' }), 'shift+8')).toBe(true);
     expect(parseChord('Shift+1')).toEqual(Option.some('shift+1'));
     expect(chordLabel('shift+1', true)).toBe('⇧1');
   });
@@ -160,25 +154,11 @@ describe('the keymap', () => {
     expect(does(press('Tab'), [walk], control)).toBe('pass');
   });
 
-  test("the viewer's overrides add keys and take defaults away; Reset puts them back", () => {
-    const commands = [undo, frame];
-    const moved = rebind([], undo, 'mod+u');
-    expect(moved).toEqual([
-      { key: 'mod+z', command: '-edit.undo' },
-      { key: 'mod+u', command: 'edit.undo' },
-    ]);
-    expect(keysOf(bindingsOf(commands, moved), 'edit.undo')).toEqual(['mod+u']);
-    expect(keysOf(bindingsOf(commands, moved), 'play.frame-next')).toEqual(['arrowright']);
-    expect(keysOf(bindingsOf(commands, resetKeys(moved, 'edit.undo')), 'edit.undo')).toEqual([
-      'mod+z',
-    ]);
-    // Rebound to its own default: nothing taken away, nothing added.
-    expect(rebind([], undo, 'cmd+z')).toEqual([]);
-  });
-
-  test("a viewer's key wins over a default on the same key", () => {
-    const commands = [undo, command('edit.other')];
-    const bindings = bindingsOf(commands, rebind([], commands[1] ?? undo, 'mod+z'));
+  test("a command's own keys are its bindings; of two on one key, the one registered last runs", () => {
+    const commands = [undo, frame, command('edit.other', { keys: ['cmd+z'] })];
+    const bindings = bindingsOf(commands);
+    expect(keysOf(bindings, 'edit.undo')).toEqual(['mod+z']);
+    expect(keysOf(bindings, 'play.frame-next')).toEqual(['arrowright']);
     const run = resolve(press('z', { meta: true }), page, commands, bindings);
     expect(Resolved.$is('Run')(run) && run.command.id).toBe('edit.other');
   });

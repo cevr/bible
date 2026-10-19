@@ -165,7 +165,7 @@ const SAID: ReadonlySet<string> = new Set(['refused', 'kept']);
  */
 const Controls = () => {
   const { state, meta } = useStudio();
-  // Each button is its command, and names its key as bound now: a rebound key reads as rebound.
+  // Each button is its command, and names its key as the hub's keymap binds it now.
   const keys = hubKeys(meta.hub);
   return (
     <div class="studio-controls">

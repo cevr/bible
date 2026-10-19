@@ -9,7 +9,7 @@ import type { JSX } from '@solidjs/web';
 import { Effect } from 'effect';
 import type { ParentProps } from 'solid-js';
 import { type Host, addressOn } from '../browser/host.ts';
-import { TabStore, ViewerStore } from '../browser/storage-browser.ts';
+import { TabStore } from '../browser/storage-browser.ts';
 import type { PageName } from '../core/api.ts';
 import { type Hub, makeHub } from '../command/hub.ts';
 import { CommandMenu } from './command/command-menu.tsx';
@@ -41,7 +41,7 @@ export const StudioFrame = (props: StudioFrameProps) => (
  * hydrate and the server to render.
  */
 export const studioOn = (page: PageName, host: Host, app: (hub: Hub) => () => JSX.Element) =>
-  Effect.map(makeHub(page, addressOn(host).href, ViewerStore), (hub) => ({
+  Effect.map(makeHub(page, addressOn(host).href), (hub) => ({
     hub,
     app: app(hub),
   })).pipe(Effect.provideContext(host));

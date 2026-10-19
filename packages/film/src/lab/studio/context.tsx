@@ -233,7 +233,7 @@ const Body = (
 ) => {
   const page = props.page;
   const { runtime } = props.reads;
-  // The status line names each control's key as bound now: a rebound key reads as rebound.
+  // The status line names each control's key as the hub's keymap binds it now.
   const keys = hubKeys(page.hub);
   const stateAtom = ActorAtom.make(props.actor);
   const recorder = useAtomValue(() => stateAtom);

@@ -208,7 +208,7 @@ export const PageShell = (props: PageShellProps) => {
   onCleanup(
     props.hub.commands.register(...shellCommands(film, () => true, go), ...filmCommands(go)),
   );
-  // Each names its key as bound now: a rebound key reads as rebound.
+  // Each names its key as bound now, as the viewer's keyboard writes it.
   const keys = hubKeys(props.hub);
   return (
     <ShellContext value={Option.some(setTime)}>

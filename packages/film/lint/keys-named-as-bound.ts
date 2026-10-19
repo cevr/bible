@@ -1,10 +1,12 @@
 // `film/keys-named-as-bound`: a control's title names its command's key as
-// bound now, never a key written into it or read once. The viewer rebinds
-// any key in the `?` sheet (`command/keymap.ts`, `rebind`): a title that
-// wrote `(n)`, or read the keymap once as the control was made, still names
-// the old key after a rebind. A control reads `hubKeys`
+// bound now, never a key written into it or read once. A command's keys are
+// the ones it declares, registered while its tool is mounted
+// (`command/keymap.ts`): a title that wrote `(n)` names a key the command
+// may no longer declare, as a PC's keyboard and a Mac's write it alike, and
+// one that read the keymap once as the control was made names none for a
+// command registered after it. A control reads `hubKeys`
 // (`lab/command/changes.ts`: `titled`, `text`, `first`), which follows each
-// change of keys.
+// command as it comes and goes, as the viewer's keyboard writes its keys.
 //
 // Refused: a call of `.keysOf(…)` (the keymap read directly), and a `title`
 // (a JSX attribute, or an assignment to `.title`) written with a key in
@@ -55,7 +57,7 @@ const titleSet = (assign: ESTree.AssignmentExpression): boolean =>
   Option.contains(memberName(assign.left), 'title') &&
   namesAKey(assign.right);
 
-const READ_ONCE = 'keysOf reads the keymap once, so a rebound key reads as the old one';
+const READ_ONCE = 'keysOf reads the keymap once, so a command registered after it reads as unbound';
 const WRITTEN = 'a title written with its key';
 
 export const keysNamedAsBound = Rule.define({

@@ -488,12 +488,7 @@ export const STATES: ByPlace<State, AtRest> = {
     {
       name: 'Studio, the keys dialog',
       open: player(pageHref.studio(PROBE), STUDIO_READY),
-      // The first command's Change holds the focus, whichever element the opening focus chose.
-      disclose: (page) =>
-        Effect.gen(function* () {
-          yield* pressed('?', `${KEYS} [data-command]`)(page);
-          yield* page.focus(`${KEYS} .lab-keys-actions > button`);
-        }),
+      disclose: pressed('?', `${KEYS} [data-command]`),
       layer: KEYS,
     },
     {

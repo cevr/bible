@@ -2,8 +2,8 @@
 // available, filters by every word typed and runs the chosen command, and a
 // query no command matches names no row and says so beside the list; a row
 // pressed while the film plays is the row released on, and runs; the `?`
-// sheet rebinds a key, the rebound key survives a reload and is the one the
-// transport's key names; a right-click on no thing opens the page's own
+// sheet lists a command with the key the transport's key names, and that key
+// runs it; a right-click on no thing opens the page's own
 // context menu, and on a clip the clip's; on a phone a touch held still on a
 // clip opens its menu, and a touch that moves does not.
 
@@ -108,26 +108,18 @@ describe("the studio's command menu", () => {
 
 describe("the studio's keys sheet", () => {
   it.live(
-    "rebinds a key: the rebound key survives a reload, and is the one the transport's key names",
+    "lists a command with the key the transport's key names, and the key runs it",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* studioAt(DESK);
         const key = '.st-key[data-act="studio.on"]';
         yield* evaluates(page, `document.querySelector('${key}').title`, 'Next beat (↓)');
-        yield* page.press('?');
-        const row = '[data-role="keys-sheet"] [data-command="studio.on"]';
-        yield* page.click(`${row} [data-act="rebind"]`);
-        yield* page.pressIn(`${row} [data-act="press"]`, 'x');
-        yield* textHas(page, `${row} .lab-keys-bound`, 'X');
-        yield* evaluates(page, `document.querySelector('${key}').title`, 'Next beat (X)');
-        yield* page.press('Escape');
-        yield* page.reload;
-        yield* waitFor(page, READY);
-        yield* page.press('x');
+        yield* page.press('ArrowDown');
         yield* textIs(page, '.st-tc', /^0:04\.7/);
         yield* page.press('?');
-        yield* page.click(`${row} [data-act="reset"]`);
+        const row = '[data-role="keys-sheet"] [data-command="studio.on"]';
         yield* textHas(page, `${row} .lab-keys-bound`, '↓');
+        yield* countIs(page, '[data-role="keys-sheet"] button', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

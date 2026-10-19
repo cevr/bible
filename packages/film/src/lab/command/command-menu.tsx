@@ -2,8 +2,8 @@
 // typing, run with Enter or a click, each with the keys bound to it now (`/`
 // opens it too, to go somewhere by name: a Go to entry is found by typing). It
 // reads the page's hub and nothing else (the registry, the keymap), so a
-// command a tool registers is here while the tool is mounted, and a key the
-// viewer rebinds reads as rebound. The context is the one the page had when
+// command a tool registers is here while the tool is mounted, with its keys.
+// The context is the one the page had when
 // the menu opened (what was selected, whether the film played). A command
 // runs once the menu has closed and focus is back on the page, so what it
 // focuses (a note's composer) keeps focus. Its rows are keyed by their

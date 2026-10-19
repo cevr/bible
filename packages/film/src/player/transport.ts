@@ -135,7 +135,8 @@ export const rateId = (rate: number): string => `play.rate-${rate}`;
 
 /**
  * The rate chip's title, each step named with its key as `titled` reads it
- * bound now (a hub's), so a rebound key reads as rebound.
+ * from the hub's keymap now (a hub's), so a key a command registered later
+ * declares reads too.
  */
 export const rateTitle = (titled: (title: string, id: string) => string): string =>
   `The speed: play ${titled('slower', 'play.slower')}, ${titled('faster', 'play.faster')}, or ${titled('at 1×', rateId(1))}`;

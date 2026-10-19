@@ -18,7 +18,8 @@ export const nudged = (split: number, by: number, step: Invocation['step']): num
 
 /**
  * The grip's title: how to move `scope`'s wipe, naming the keys `first`
- * reads as bound now (a hub's `first`), so a rebound key reads as rebound.
+ * reads from the hub's keymap now (a hub's `first`), so a key a command
+ * registered later declares reads too.
  */
 export const wipeTitle = (scope: string, first: (id: string) => string): string =>
   `Drag the wipe, or move it with ${first(`${scope}.wipe-left`)}/${first(`${scope}.wipe-right`)} (⇧ ten), ${first(`${scope}.wipe-start`)} and ${first(`${scope}.wipe-end`)}`;

@@ -104,13 +104,6 @@ const COMMAND_RULES = `
   padding: var(--s-1) 0; border-top: 1px solid var(--line-strong);
 }
 .lab-keys-touch { grid-column: 1; }
-.lab-keys-actions { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: var(--s-1); }
-.lab-keys-actions button {
-  font: inherit; font-size: var(--fs-2); background: none; color: var(--text-1); cursor: pointer;
-  border: 1px solid var(--line-strong); border-radius: var(--r-2); padding: var(--cmd-button-pad);
-  min-height: var(--control-h);
-}
-.lab-keys-actions button[data-act="press"] { border-color: var(--accent); color: var(--accent); }
 .lab-context-positioner { z-index: calc(var(--cmd-layer) + 1); }
 .lab-context-menu {
   min-width: var(--cmd-menu-width); max-width: calc(100vw - 2 * var(--gutter)); max-height: var(--cmd-height); overflow: auto;

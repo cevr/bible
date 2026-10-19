@@ -1,6 +1,6 @@
 // `film/keys-through-keymap`: a page's keys and its context menus are its
 // commands' (packages/film/src/command/), never a listener of its own. A key
-// listener of its own skips the keymap: the viewer's rebinding, the focus
+// listener of its own skips the keymap: the focus
 // rule (a field's keys are the field's, the studio owns its own), the `?`
 // sheet and ⌘K that list every key; a `contextmenu` listener of its own
 // skips the long press a phone opens the same menu with.

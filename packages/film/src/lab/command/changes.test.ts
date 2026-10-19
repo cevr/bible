@@ -1,13 +1,11 @@
-// What a title or a label names as a command's key is the hub's binding now:
-// a viewer's rebind moves it, with no literal left behind.
+// What a title or a label names as a command's key is the hub's binding now,
+// as the viewer's keyboard writes it, with no literal left behind.
 
 import { describe, expect, test } from 'bun:test';
 import { Effect, Layer } from 'effect';
 import { Clipboard } from '../../browser/clipboard.ts';
-import { memoryStorage } from '../../browser/fixtures/storage.ts';
 import { hostOf } from '../../browser/host.ts';
 import { Keys } from '../../browser/keys.ts';
-import { storeOver } from '../../browser/storage.ts';
 import { quietly } from '../../command/command.ts';
 import { makeHub } from '../../command/hub.ts';
 import { pageHref } from '../../core/api.ts';
@@ -18,13 +16,7 @@ const page = (mac = false) => {
   const host = hostOf(
     Layer.mergeAll(Keys.layerOn(new EventTarget(), mac), Clipboard.memory([], 'https://lab.test')),
   );
-  const hub = Effect.runSyncWith(host)(
-    makeHub(
-      'player',
-      () => pageHref.studio('f'),
-      storeOver(() => memoryStorage()),
-    ),
-  );
+  const hub = Effect.runSyncWith(host)(makeHub('player', () => pageHref.studio('f')));
   hub.commands.register({
     id: 'notes.frame',
     label: 'Note this frame',
@@ -38,27 +30,13 @@ const page = (mac = false) => {
 };
 
 describe("a command's keys as a title names them", () => {
-  test("the viewer's: the key bound now, so a rebind moves it", () => {
-    const hub = page();
-    const keys = keysAs(hub, () => true);
-    expect(keys.first('notes.frame')).toBe('N');
-    expect(keys.text('notes.frame')).toBe('N Shift+N');
-    hub.setOverrides([
-      { key: 'n', command: '-notes.frame' },
-      { key: 'shift+n', command: '-notes.frame' },
-      { key: 'b', command: 'notes.frame' },
-    ]);
-    expect(keys.first('notes.frame')).toBe('B');
-    expect(keys.text('notes.frame')).toBe('B');
-    expect(keys.titled('Note frame', 'notes.frame')).toBe('Note frame (B)');
-    expect(keys.text('nothing.bound')).toBe('');
-    expect(keys.titled('Unbound', 'nothing.bound')).toBe('Unbound');
-  });
-
-  test("a server render's: the defaults, as the viewer's keyboard writes them, whatever the viewer rebound", () => {
+  test('the keys bound now, as the keyboard writes them, a title with the first', () => {
     const [pc, mac] = [page(false), page(true)];
-    for (const hub of [pc, mac]) hub.setOverrides([{ key: 'b', command: 'notes.frame' }]);
-    expect(keysAs(pc, () => false).text('notes.frame')).toBe('N Shift+N');
-    expect(keysAs(mac, () => false).text('notes.frame')).toBe('N ⇧N');
+    expect(keysAs(pc).first('notes.frame')).toBe('N');
+    expect(keysAs(pc).text('notes.frame')).toBe('N Shift+N');
+    expect(keysAs(mac).text('notes.frame')).toBe('N ⇧N');
+    expect(keysAs(pc).titled('Note frame', 'notes.frame')).toBe('Note frame (N)');
+    expect(keysAs(pc).text('nothing.bound')).toBe('');
+    expect(keysAs(pc).titled('Unbound', 'nothing.bound')).toBe('Unbound');
   });
 });

@@ -1,6 +1,5 @@
 // A page's commands, wired: its registry (`command.ts`), its keymap
-// (`keymap.ts`) with the viewer's overrides kept in the browser (a
-// `StoreRuntime`, the viewer's local store live: `film-keymap`, as JSON), the
+// (`keymap.ts`: each command's own keys), the
 // context its commands read (`context.ts`: the page's URL and what is
 // selected there, refined by whatever on the page knows more, such as
 // whether the film plays), the one key listener on the page (`listen`,
@@ -19,7 +18,6 @@
 import { Effect, Option } from 'effect';
 import type { Clipboard } from '../browser/clipboard.ts';
 import { type Heard, type Input, type KeyPress, Keys } from '../browser/keys.ts';
-import { type StoreRuntime, keptJson } from '../browser/storage.ts';
 import type { PageName } from '../core/api.ts';
 import {
   type Asked,
@@ -30,7 +28,7 @@ import {
   makeCommands,
 } from './command.ts';
 import { type Context, type Focus, contextAt, focusOf, withFocused } from './context.ts';
-import { KeymapOverrides, Resolved, bindingsOf, keysOf, resolve } from './keymap.ts';
+import { Resolved, bindingsOf, keysOf, resolve } from './keymap.ts';
 import { linkCommands } from './link.ts';
 import { selectionOf } from './selection.ts';
 import { targetAt } from './target.ts';
@@ -71,13 +69,9 @@ export interface Hub {
   readonly presses: (listener: () => void) => () => void;
   /** Say `receipt` in `slot`: what a write no command ran said as it landed, or while it is out. */
   readonly announce: (receipt: Receipt, slot: string) => void;
-  /** The viewer's keymap overrides, as kept. */
-  readonly overrides: () => KeymapOverrides;
-  /** Keep `next` as the viewer's overrides: a reload keeps them too. */
-  readonly setOverrides: (next: KeymapOverrides) => void;
   /** The keys bound to `id` now. */
   readonly keysOf: (id: CommandId) => ReadonlyArray<string>;
-  /** Call `changed` each time a command comes or goes or a key is rebound, until the returned stop. */
+  /** Call `changed` each time a command comes or goes, until the returned stop. */
   readonly subscribe: (changed: () => void) => () => void;
   /**
    * Hear the page's presses through `Keys`, until interrupted: the page's one
@@ -92,32 +86,27 @@ export interface Hub {
   readonly listenWithin: (part: EventTarget) => Effect.Effect<never, never, Keys>;
 }
 
-/** The key the viewer's overrides are kept under. */
-const KEPT_AS = 'film-keymap';
-
 /**
- * The hub of `page`, whose URL `href` reads, keeping the viewer's overrides
- * in `store`: built with the page's `Keys` (whose keyboard says how chords
- * read) and its `Clipboard` (where Copy link, every page's command, writes).
+ * The hub of `page`, whose URL `href` reads: built with the page's `Keys`
+ * (whose keyboard says how chords read) and its `Clipboard` (where Copy
+ * link, every page's command, writes).
  */
 export const makeHub = (
   page: PageName,
   href: () => string,
-  store: StoreRuntime,
 ): Effect.Effect<Hub, never, Keys | Clipboard> =>
   Effect.gen(function* () {
     const keys = yield* Keys;
     const clipboard = yield* Effect.context<Clipboard>();
-    const hub = hubOf(page, href, store, keys.mac);
+    const hub = hubOf(page, href, keys.mac);
     // Copy link is every page's, for as long as the page lives.
     hub.commands.register(...linkCommands(clipboard));
     return hub;
   });
 
 /** The hub of `page`, chords read as a Mac's when `mac`. */
-const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boolean): Hub => {
+const hubOf = (page: PageName, href: () => string, mac: boolean): Hub => {
   const commands = makeCommands();
-  const kept = keptJson(store, KEPT_AS, KeymapOverrides, (): KeymapOverrides => []);
 
   const listeners = new Set<() => void>();
   const changed = () => {
@@ -149,7 +138,7 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       ),
     );
   };
-  const bindings = () => bindingsOf(commands.all(), kept.get());
+  const bindings = () => bindingsOf(commands.all());
 
   const pressHeard = new Set<() => void>();
   /** One press, heard, then bound and run: whether the keymap took it (its default is then prevented). */
@@ -200,11 +189,6 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       return () => pressHeard.delete(listener);
     },
     announce,
-    overrides: kept.get,
-    setOverrides: (next) => {
-      kept.set(next);
-      changed();
-    },
     keysOf: (id) => keysOf(bindings(), id),
     subscribe: (listener) => {
       listeners.add(listener);

@@ -1,20 +1,20 @@
 // The page's hub as Solid reads and writes it: a count that moves each time
-// a command comes or goes or a key is rebound, so a list of commands or keys
-// reads it and follows; the keys a command is bound to, as the viewer's
+// a command comes or goes, so a list of commands or keys reads it and
+// follows; the keys a command is bound to, as the viewer's
 // keyboard writes them; commands that follow a value (a page's Go to
 // entries over what it shows), registered again as it changes; and a menu's
 // run, deferred until it has closed (`deferredRun`). Each ends with the
 // owner.
 
 import { isServer } from '@solidjs/web';
-import { Boolean as Bool, Context as Services, Effect, Option, Scheduler } from 'effect';
+import { Context as Services, Effect, Option, Scheduler } from 'effect';
 import type { Accessor } from 'solid-js';
-import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
+import { createEffect, createSignal, onCleanup } from 'solid-js';
 import type { Input } from '../../browser/keys.ts';
 import type { Command, CommandId, Invocation } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
-import { bindingsOf, chordLabel, keysOf, titleWith } from '../../command/keymap.ts';
+import { chordLabel, titleWith } from '../../command/keymap.ts';
 import type { MenuRow } from '../../command/menu.ts';
 
 /**
@@ -42,16 +42,12 @@ interface HubKeys {
   readonly titled: (title: string, id: CommandId) => string;
 }
 
-/**
- * `hub`'s keys as the viewer's keyboard writes them: their own (their
- * rebinds) where `viewers` holds, else the default keys.
- */
-export const keysAs = (hub: Hub, viewers: Accessor<boolean>): HubKeys => {
-  const bound = (id: CommandId) =>
-    Bool.match(viewers(), {
-      onTrue: () => hub.keysOf(id),
-      onFalse: () => keysOf(bindingsOf(hub.commands.all(), []), id),
-    });
+/** `hub`'s keys as the viewer's keyboard writes them, each read through `follow` (what a reader tracks). */
+export const keysAs = (hub: Hub, follow: () => void = () => {}): HubKeys => {
+  const bound = (id: CommandId) => {
+    follow();
+    return hub.keysOf(id);
+  };
   const label = (chord: string) => chordLabel(chord, hub.mac);
   const first = (id: CommandId) => bound(id).slice(0, 1).map(label).join('');
   return {
@@ -64,21 +60,16 @@ export const keysAs = (hub: Hub, viewers: Accessor<boolean>): HubKeys => {
 };
 
 /**
- * `hub`'s keys as the page shows them, followed as they change. The viewer's
- * rebound keys are the browser's: a server render knows them not, so it
- * shows the default keys, the client's hydration shows the same, and the
- * viewer's own follow once the page is hydrated. Their keyboard a server
- * render knows from the request (`PageAsked.mac`), so every label reads as
- * that keyboard writes it from the first paint (`⌘K` on a Mac), and no
- * control changes its width once the page is hydrated.
+ * `hub`'s keys as the page shows them, followed as commands come and go.
+ * Every viewer has the same keys, so a server render shows the keys the
+ * client's hydration shows. The viewer's keyboard a server render knows from
+ * the request (`PageAsked.mac`), so every label reads as that keyboard writes
+ * it from the first paint (`⌘K` on a Mac), and no control changes its width
+ * once the page is hydrated.
  */
 export const hubKeys = (hub: Hub): HubKeys => {
   const changes = hubChanges(hub);
-  const hydrated = createMemo(() => true, { ssrSource: 'client', loadingValue: false });
-  return keysAs(hub, () => {
-    changes();
-    return hydrated();
-  });
+  return keysAs(hub, changes);
 };
 
 /**

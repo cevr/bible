@@ -101,7 +101,7 @@ const MESSAGES = {
   'host-events-jsx.tsx:9 film/host-events-through-adapter':
     "a JSX handler for 'pointerup' ends a press outside its owner: use Pointer.press (packages/film/src/browser/pointer.ts).",
   'keys-named-as-bound.tsx:9 film/keys-named-as-bound':
-    "keysOf reads the keymap once, so a rebound key reads as the old one: name the key as bound now: hubKeys' titled or text (packages/film/src/lab/command/changes.ts).",
+    "keysOf reads the keymap once, so a command registered after it reads as unbound: name the key as bound now: hubKeys' titled or text (packages/film/src/lab/command/changes.ts).",
   'keys-named-as-bound.tsx:15 film/keys-named-as-bound':
     "a title written with its key: name the key as bound now: hubKeys' titled or text (packages/film/src/lab/command/changes.ts).",
   'keys-through-keymap.tsx:10 film/keys-through-keymap':

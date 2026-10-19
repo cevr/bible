@@ -1731,17 +1731,15 @@ last available command bound to a chord runs; a key with no available
 command passes to the browser (⌘Z with nothing to undo). Chords are written
 `mod+shift+z` (`mod` is ⌘ on a Mac, Ctrl elsewhere); a letter is read by its
 key in any case, Alt+letter by its physical key, and a symbol by the
-character it types, so `?` and `]` work on any layout. A viewer's rebindings
-are kept locally (`film-keymap` in `ViewerStore`, a list of `{ key, command }`,
-`-<id>` removing a default) and survive a reload; the `?` sheet changes and
-resets them.
+character it types, so `?` and `]` work on any layout. A command's keys are
+the ones it declares, the same for every viewer: nothing rebinds them.
 
 Every page in the studio's shell (a film's studio through
 `lab/studio-frame.tsx`, and the review) hosts three generated surfaces
 (`src/lab/command/`): the **command menu** (⌘K) lists the commands
 available here, filtered by every word typed, with their keys; the keys
-**sheet** (`?`) lists every command by group with its keys, its touch path,
-and Change and Reset; the **context menu** (`TargetMenu`, one per page) opens
+**sheet** (`?`) lists every command by group with its keys and its touch
+path; the **context menu** (`TargetMenu`, one per page) opens
 on a right-click, or a touch held still for half a second, on a thing the
 page marks as a `Target` (a beat's clip, a Board panel's, a note, a folder's,
 set's, version's or film's card, a film's links, a choice, a variant): its commands about that thing (a command's `about`, in
@@ -1882,7 +1880,8 @@ owner, `lab/review/options/receipt.ts` `undoApprove`) withdraws exactly the appr
 written with a key in brackets, and a read of the keymap (`keysOf`) outside
 its followers (`film/keys-named-as-bound`): a title names its key as bound
 now, through `hubKeys` in Solid,
-so a key rebound in `?` reads as rebound.
+so a command registered after the control reads with its key, as the
+viewer's keyboard writes it.
 
 **Terms**, as editing software uses them:
 
@@ -4207,7 +4206,7 @@ inert, answering as a phone held upright (`Viewport.layerPhone`). `browser/` is
 framework-free, so the player may import it. Per-viewer settings go through
 Effect's `KeyValueStore` (`browser/storage.ts`): `TabStore` over the tab's
 session (the receipts, `film-receipts`, a `keptJson`) and `ViewerStore` over
-local storage (the keymap, `film-keymap`, a `keptJson`; `film-lab-mic`,
+local storage (`film-lab-mic`,
 `film-review.quality` and the `film-studio.*` conveniences, each a
 `keptText` stored as plain text), each a store
 in memory when the page may not use its storage. Every drag (the

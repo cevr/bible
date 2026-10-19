@@ -1,10 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { Effect, Layer } from 'effect';
 import { Clipboard } from '../browser/clipboard.ts';
-import { memoryStorage } from '../browser/fixtures/storage.ts';
 import { hostOf } from '../browser/host.ts';
 import { Keys } from '../browser/keys.ts';
-import { storeOver } from '../browser/storage.ts';
 import { type Command, type Receipt, quietly, said } from './command.ts';
 import { makeHub } from './hub.ts';
 import { Selection } from './selection.ts';
@@ -18,23 +16,13 @@ interface Held {
   readonly ctrlKey?: boolean;
 }
 
-/** A page whose presses go to `target`, with a hub over `storage` at `href`, on a Mac's keyboard unless `mac` is false. */
-const pageWith = (
-  storage: Storage,
-  href = pageHref.studio('f', { sel: beatSelection('one') }),
-  mac = true,
-) => {
+/** A page whose presses go to `target`, with a hub at `href`, on a Mac's keyboard unless `mac` is false. */
+const pageWith = (href = pageHref.studio('f', { sel: beatSelection('one') }), mac = true) => {
   const target = new EventTarget();
   const host = hostOf(
     Layer.mergeAll(Keys.layerOn(target, mac), Clipboard.memory([], 'https://lab.test')),
   );
-  const hub = Effect.runSyncWith(host)(
-    makeHub(
-      'player',
-      () => href,
-      storeOver(() => storage),
-    ),
-  );
+  const hub = Effect.runSyncWith(host)(makeHub('player', () => href));
   const stop = Effect.runCallbackWith(host)(hub.listen);
   const keydown = (key: string, held: Held = {}) => {
     const e = Object.assign(new Event('keydown', { cancelable: true }), { key, ...held });
@@ -71,7 +59,7 @@ const counter = (id: string, over: Partial<Omit<Command, 'touch'>> = {}) => {
 
 describe('the hub', () => {
   test("is the page's one key listener: a bound press runs its command and is taken", () => {
-    const { hub, stop, keydown } = pageWith(memoryStorage());
+    const { hub, stop, keydown } = pageWith();
     const frame = counter('play.frame-next', { keys: ['arrowright'], stepped: true });
     hub.commands.register(frame.command);
     expect([
@@ -86,7 +74,7 @@ describe('the hub', () => {
   });
 
   test('hears a part whose wrapper keeps its presses from the page: one it takes goes no further', () => {
-    const { hub, stop } = pageWith(memoryStorage());
+    const { hub, stop } = pageWith();
     const frame = counter('play.frame-next', { keys: ['arrowright'] });
     hub.commands.register(frame.command);
     // A part inside a wrapper (a dialog) that would stop the arrow keys on their way to the
@@ -114,7 +102,7 @@ describe('the hub', () => {
   });
 
   test('every press is heard, bound or not, apart from what it runs, until its listener stops', () => {
-    const { hub, stop, keydown } = pageWith(memoryStorage());
+    const { hub, stop, keydown } = pageWith();
     const frame = counter('play.frame-next', { keys: ['arrowright'] });
     hub.commands.register(frame.command);
     let heard = 0;
@@ -130,27 +118,8 @@ describe('the hub', () => {
     stop();
   });
 
-  test('a rebound key survives the page: a new hub over the same storage reads it', () => {
-    const storage = memoryStorage();
-    const first = pageWith(storage);
-    const undo = counter('edit.undo', { keys: ['mod+z'] });
-    first.hub.commands.register(undo.command);
-    first.hub.setOverrides([
-      { key: 'mod+z', command: '-edit.undo' },
-      { key: 'u', command: 'edit.undo' },
-    ]);
-    first.stop();
-    const again = pageWith(storage);
-    const undoAgain = counter('edit.undo', { keys: ['mod+z'] });
-    again.hub.commands.register(undoAgain.command);
-    expect(again.hub.keysOf('edit.undo')).toEqual(['u']);
-    expect(again.keydown('z', { metaKey: true })).toBe(false);
-    expect(again.keydown('u')).toBe(true);
-    expect(undoAgain.ran).toEqual(['normal']);
-  });
-
   test("reads the URL's selection and what the page refines it with; receipts reach their sinks", () => {
-    const { hub } = pageWith(memoryStorage());
+    const { hub } = pageWith();
     expect(hub.context().selection).toEqual([
       Selection.cases.Scene.make({ film: 'f', scene: 'one' }),
     ]);
@@ -178,7 +147,7 @@ describe('the hub', () => {
   });
 
   test('runs a command only where it is available, however it is asked for', () => {
-    const { hub, keydown } = pageWith(memoryStorage());
+    const { hub, keydown } = pageWith();
     const playing = counter('play.only', { keys: ['p'], when: (ctx) => ctx.playing });
     hub.commands.register(playing.command);
     hub.invokeId('play.only', { step: 'normal', via: 'menu' });
@@ -191,7 +160,7 @@ describe('the hub', () => {
   });
 
   test('runs a command with the input that asked: its own, else the one the viewer last used', () => {
-    const { hub, keydown, pointerdown } = pageWith(memoryStorage());
+    const { hub, keydown, pointerdown } = pageWith();
     const inputs: Array<string> = [];
     hub.commands.register(
       counter('note.frame', {
@@ -217,7 +186,7 @@ describe('the hub', () => {
   });
 
   test("a key pressed while a pointer is down is the press's: the input that started a click is the click's", () => {
-    const { hub, keydown, pointerdown, pointerup, blur } = pageWith(memoryStorage());
+    const { hub, keydown, pointerdown, pointerup, blur } = pageWith();
     keydown('a');
     pointerdown();
     keydown('Shift', { shiftKey: true });
@@ -235,7 +204,7 @@ describe('the hub', () => {
   });
 
   test('a step through the history is a key only when a key the browser walks it by asked, once', () => {
-    const { hub, keydown, pointerdown, pointerup } = pageWith(memoryStorage());
+    const { hub, keydown, pointerdown, pointerup } = pageWith();
     // Nothing heard: the toolbar's Back, a swipe.
     expect(hub.traversed()).toBe('pointer');
     for (const walk of [
