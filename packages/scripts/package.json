@@ -7,7 +7,7 @@
   "author": "",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && bun src/typecheck-coverage.ts",
     "test": "bun test src",
     "build:topics": "bun src/topics-compiler/main.ts",
     "build:vectors": "bun src/vector-compiler/main.ts",
