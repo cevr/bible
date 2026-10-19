@@ -78,7 +78,7 @@ export const CLOTH: Pt[] = [
 
 /**
  * The cloth's dark edge down his near cheek, from the band to his shoulder,
- * as the panel paints it: 9 pixels at his eyes, widening to his jaw beside
+ * as the panel paints it: 10 pixels at his eyes, widening to his jaw beside
  * the beard, then narrowing under the beard so that it and the head's ink
  * read as the one dark band the panel draws down to the vest (19 pixels).
  * A paper of its own over the cloth, its inner side 2 pixels past the
@@ -89,9 +89,10 @@ export const CLOTH: Pt[] = [
 export const CLOTH_EDGE: Pt[] = [
   [374, 372],
   [391, 356],
-  [390, 380],
-  [389, 420],
-  [388, 460],
+  [387, 380],
+  [386, 420],
+  [386, 450],
+  [388, 462],
   [392, 480],
   [393, 500],
   [392, 520],
@@ -108,6 +109,24 @@ export const CLOTH_EDGE: Pt[] = [
   [374, 430],
   [376, 410],
   [377, 392],
+];
+
+/**
+ * The cloth's edge in the light, as the panel paints it: a warm brown down
+ * to his eyes' height, a darker brown to his cheek, its own dark from there
+ * to the beard. Laid on the edge.
+ */
+export const CLOTH_EDGE_BROWN: Pt[] = [
+  [360, 340],
+  [400, 340],
+  [400, 428],
+  [360, 428],
+];
+export const CLOTH_EDGE_DUSK: Pt[] = [
+  [360, 428],
+  [400, 428],
+  [400, 446],
+  [360, 446],
 ];
 
 /** The band round his head, measured on the panel's columns: across his brow from the knot at his far temple, dropping steeply round his near side, thickening to its end at the back of his head. */
@@ -449,12 +468,89 @@ export const NECK: Pt[] = [
 ];
 
 /**
- * His hands' centres, free circles as the cast's hands are: the near one
- * over his near vest; the far one over his far vest at rest, clear of his
- * outline, raised to the panel's open hand beside him as the rain comes on.
+ * His near sleeve on the tunic, as the panel paints it: from under his
+ * headcloth's flap down his near side to its cuff above his near hand, in
+ * from the tunic's lit edge, its inner side under the vest's outer edge.
+ */
+export const NEAR_SLEEVE: Pt[] = [
+  [326, 566],
+  [316, 590],
+  [300, 615],
+  [280, 645],
+  [264, 680],
+  [256, 705],
+  [250, 740],
+  [248, 750],
+  [275, 755],
+  [300, 760],
+  [338, 772],
+  [336, 720],
+  [332, 640],
+  [326, 598],
+];
+
+/**
+ * His far arm in its sleeve, raised to the rain as the panel draws it: its
+ * top edge from his side up to the hand, the cuff's end under the hand, its
+ * underside back to his side, and its root inside the tunic, where it turns
+ * on `ARM_PIVOT` without leaving the tunic's paper.
+ */
+export const FAR_SLEEVE: Pt[] = [
+  [578, 690],
+  [600, 679],
+  [624, 667],
+  [646, 655],
+  [668, 640],
+  [686, 650],
+  [690, 690],
+  [688, 712],
+  [687, 742],
+  [676, 756],
+  [655, 767],
+  [630, 778],
+  [604, 788],
+  [580, 790],
+  [560, 760],
+  [540, 715],
+  [545, 680],
+  [565, 672],
+];
+
+/** The light along the raised sleeve's top edge, as the panel paints it. */
+export const FAR_SLEEVE_LIT: Pt[] = [
+  [578, 690],
+  [600, 679],
+  [624, 667],
+  [646, 655],
+  [668, 640],
+  [672, 652],
+  [648, 667],
+  [626, 679],
+  [602, 690],
+  [580, 700],
+];
+
+/** The raised sleeve's cuff, its open end in shadow under the hand. */
+export const FAR_CUFF: Pt[] = [
+  [662, 700],
+  [690, 690],
+  [688, 712],
+  [687, 742],
+  [676, 756],
+  [664, 758],
+  [668, 730],
+];
+
+/** Where his far arm turns, inside the tunic: as far from the raised hand as from the hand at rest. */
+export const ARM_PIVOT: Pt = [558, 674];
+
+/**
+ * His hands' centres, each at the end of its sleeve: the near one at his
+ * near cuff; the far one at rest by his side, its sleeve hanging, and raised
+ * to the panel's open hand beside him as the rain comes on.
  */
 export const HANDS = {
   near: [330, 815],
-  far: [522, 845],
+  far: [614, 795],
   raised: [690, 655],
 } as const satisfies Record<string, Pt>;

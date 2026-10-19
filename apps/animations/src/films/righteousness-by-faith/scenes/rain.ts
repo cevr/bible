@@ -17,7 +17,7 @@ import { EASE, type Expression, type Pt, acted, boilTime } from '@bible/film/sty
 import { LANDING_RIGS, courtFigures, courtShadows, living, restPose } from '../court-cast.ts';
 import { BENCH_BEAM, REST_POINT, backWall, benchWarm, floor } from '../court-set.ts';
 import { FIELD_REST, farField, nearField, nearPlants, rain as rainFlecks } from '../fields.ts';
-import { FARMER_HANDS, FARMER_KNOBS } from '../rigs/farmer-rig.ts';
+import { FARMER_ARM, FARMER_HANDS, FARMER_KNOBS } from '../rigs/farmer-rig.ts';
 import { PANEL } from '../rigs/farmer-traced.ts';
 import { farmerHandProp, farmerProp } from '../rigs/rigs.ts';
 
@@ -158,11 +158,9 @@ export const rain = drawing({
     FN.gazeY = lerp(GAZE.field[1], GAZE.up[1], up);
     FN.nod = -5 * up;
     FN.tilt = 0.03 * up + 0.015 * Math.sin(f.t * 0.6);
-    const open = f.at('open');
-    const far: Pt = [
-      lerp(FARMER_HANDS.far[0], FARMER_HANDS.raised[0], open),
-      lerp(FARMER_HANDS.far[1], FARMER_HANDS.raised[1], open),
-    ];
+    // His far arm swings up from his side in its sleeve, its hand at its cuff.
+    FN.farArm = lerp(FARMER_ARM.rest, 0, f.at('open'));
+    const far = FARMER_ARM.hand(FN.farArm);
     const hand = (p: Pt) =>
       at(
         ctx,

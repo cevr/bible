@@ -5,7 +5,10 @@
 // set wide and his nose turned toward screen right, a round beard; an
 // off-white headcloth bound with a brown band, its flap over his near
 // shoulder; a tan tunic under a brown vest, his shoulders turned with his
-// head; his hands free beside him, as every hand in the cast is. His
+// head; his arms in the tunic's sleeves to the wrist, a circle hand at the
+// end of each: the near one down his side on the tunic, the far one his own
+// paper behind the tunic's, cut in one outline with it, that the host swings
+// from his side up to the rain (`FARMER_ARM`). His
 // face's marks are the face kit's, set and tipped where the panel draws
 // them. The panel cuts him at his knees; below it his tunic runs straight
 // on to its hem and his feet stand under it.
@@ -17,6 +20,7 @@
 
 import type { Pt } from '@bible/film/style';
 import {
+  ARM_PIVOT,
   BAND,
   BAND_LIT,
   BEARD,
@@ -25,10 +29,16 @@ import {
   CLOTH,
   CLOTH_BROW,
   CLOTH_EDGE,
+  CLOTH_EDGE_BROWN,
+  CLOTH_EDGE_DUSK,
   FACE,
+  FAR_CUFF,
+  FAR_SLEEVE,
+  FAR_SLEEVE_LIT,
   HANDS,
   LIP,
   MARKS,
+  NEAR_SLEEVE,
   NECK,
   NOSE,
   PANEL,
@@ -64,8 +74,11 @@ const WALNUT_SHADE = '#7a4d3f';
 const BAND_BROWN = '#7a5340';
 /** The band's near end in the light: a tan. */
 const BAND_TAN = '#d4965b';
-/** The cloth's dark edge down his near cheek, as the panel paints it: near the ink, a warm black-brown. */
+/** The cloth's dark edge down his near cheek, as the panel paints it: near the ink, a warm black-brown at the beard. */
 const CLOTH_DARK = '#35261c';
+/** The cloth's edge above his cheek, as the panel paints it (sampled): a brown at his eyes, a darker one under them. */
+const CLOTH_EDGE_UPPER = '#553a26';
+const CLOTH_EDGE_MID = '#46301f';
 /** The shade down his nose, as the panel paints it: richer than the skin, toward rose. */
 const NOSE_SHADE = '#db8b59';
 /** His near cheek in the cloth's shadow, as the panel paints it: turned 5° toward rose from the lit skin (CRAFT rule 12). */
@@ -74,6 +87,12 @@ const CHEEK_SKIN = '#e39964';
 const CHEEK_HALF = '#eca66b';
 /** His beard: one flat brown, as the panel paints it, with no turn across it. */
 const BEARD_BROWN = '#5f412a';
+/** His near sleeve, as the panel paints it: the tunic's tan a step into its shade. */
+const NEAR_SLEEVE_TAN = '#cb9f74';
+/** His far sleeve, turned from the light, as the panel paints it: the tunic's shade. */
+const FAR_SLEEVE_TAN = '#c1936e';
+/** The far sleeve's open cuff in shadow under his hand, as the panel paints it. */
+const CUFF_SHADE = '#946f56';
 /** His neck in the tunic's V, in the beard's shadow. */
 const NECK_SKIN = '#e29662';
 
@@ -197,19 +216,47 @@ export const FARMER: Robed = {
     {
       key: 'clothEdge',
       pts: headParts(CLOTH_EDGE),
-      look: { color: CLOTH_DARK, light: CLOTH_DARK, ink: 'none', shadow: 0 },
+      look: {
+        color: CLOTH_DARK,
+        light: CLOTH_DARK,
+        ink: 'none',
+        shadow: 0,
+        tones: [
+          { pts: headParts(CLOTH_EDGE_BROWN), color: CLOTH_EDGE_UPPER },
+          { pts: headParts(CLOTH_EDGE_DUSK), color: CLOTH_EDGE_MID },
+        ],
+      },
     },
     { key: 'cloth', pts: headParts(CLOTH), look: looked(PAPERS.headcloth) },
   ],
   robe: bodyParts(TUNIC),
   robeLook: looked(PAPERS.linen, {
     tones: [
+      { pts: bodyParts(NEAR_SLEEVE), color: NEAR_SLEEVE_TAN },
       { pts: bodyParts(TUNIC_FOLD), color: PAPERS.linen.shade },
       { pts: bodyParts(VEST_NEAR), color: WALNUT },
       { pts: bodyParts(VEST_FAR), color: WALNUT_SHADE },
       { pts: bodyParts(NECK), color: NECK_SKIN },
     ],
   }),
+  arms: [
+    {
+      knob: 'farArm',
+      pivot: fromFeet(ARM_PIVOT),
+      sleeve: {
+        key: 'farSleeve',
+        pts: bodyParts(FAR_SLEEVE),
+        look: {
+          color: FAR_SLEEVE_TAN,
+          light: FAR_SLEEVE_TAN,
+          tones: [
+            { pts: bodyParts(FAR_SLEEVE_LIT), color: PAPERS.linen.light },
+            { pts: bodyParts(FAR_CUFF), color: CUFF_SHADE },
+          ],
+        },
+      },
+    },
+  ],
   feet: [
     {
       key: 'footNear',
@@ -230,12 +277,35 @@ export const FARMER: Robed = {
   breath: 5,
 };
 
-/** His hands' centres from his feet, units: the near one down, the far one at rest and raised (`HANDS`). */
+/** His hands' centres from his feet, units: the near one at its cuff, the far one at rest and raised (`HANDS`). */
 export const FARMER_HANDS = {
   near: fromFeet(HANDS.near),
   far: fromFeet(HANDS.far),
   raised: fromFeet(HANDS.raised),
 } as const;
 
-/** His numbers at rest: his face lifted to the rain at screen right, the smile rain.rain draws. */
-export const FARMER_KNOBS = robedKnobs([260, HEAD.y - 160], { mouth: 2.5, browTilt: 0.25 });
+/**
+ * His far arm: where it turns (units from his feet), and its turn at rest,
+ * radians from the raised pose it is traced in, that brings the raised hand
+ * to the hand at rest; `hand` is the centre of its hand at its cuff at a turn.
+ */
+export const FARMER_ARM = (() => {
+  const pivot = fromFeet(ARM_PIVOT);
+  const { far, raised } = FARMER_HANDS;
+  const angle = ([x, y]: Pt) => Math.atan2(y - pivot[1], x - pivot[0]);
+  const reach: Pt = [raised[0] - pivot[0], raised[1] - pivot[1]];
+  const hand = (turn: number): Pt => {
+    const [cos, sin] = [Math.cos(turn), Math.sin(turn)];
+    return [pivot[0] + reach[0] * cos - reach[1] * sin, pivot[1] + reach[0] * sin + reach[1] * cos];
+  };
+  return { pivot, rest: +(angle(far) - angle(raised)).toFixed(4), hand } as const;
+})();
+
+/** His numbers at rest: his face lifted to the rain at screen right, the smile rain.rain draws, his far arm down. */
+export const FARMER_KNOBS = {
+  ...robedKnobs([260, HEAD.y - 160], { mouth: 2.5, browTilt: 0.25 }),
+  farArm: FARMER_ARM.rest,
+} as const;
+
+/** The farmer's numbers, by name. */
+export type FarmerKnob = keyof typeof FARMER_KNOBS;

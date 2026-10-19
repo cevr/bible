@@ -449,3 +449,7 @@ match lead at 33.26 (freed, warmed): head outline gap 0.010, body 0.019, 2.41 he
 ## 2026-10-19T01:09:16Z · within
 
 The page strip at its old depth (+8..+10 px under the feet's middle) left the far foot's sole ink showing under its lower edge as a dark fleck at 29.6 (critique at mark:arose); at +19..+21 px no ink shows under it at 27.3 or 29.6, and the halves still tear clear by 32.5.
+
+## 2026-10-19T11:08:02Z · rain
+
+The farmer's far arm now swings in its sleeve from his side (rest, hand at panel 614,795) up to rain.rain.2's raised hand (690,655), its root under the tunic's paper with no seam where it leaves him; his near sleeve is a tone of the tunic (#cb9f74, panel-sampled) to a cuff above his near hand. The cloth's dark edge up his near face measured 13 panel px at v.19 against the panel's 10-12 px brown (#543924 at his eyes, #452f1e under them, near-ink only at the beard); now 9-10 px at v.30. The face's near shade measured a drop of .10 (scene) against .08 (panel), its wedge the panel's to a few px: `match`'s head shade row reads the headcloth as the lit face (hue 41, s .225).

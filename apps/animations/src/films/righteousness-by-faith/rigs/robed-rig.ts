@@ -72,6 +72,19 @@ const leanEyes = (node: Element, lean: number): Element => {
 };
 type FaceMarks = NonNullable<Parameters<typeof faceKit>[2]>;
 
+/**
+ * An arm in its sleeve to the wrist, swung by the host: the sleeve's paper
+ * in the pose it is traced in, from the feet, turned by the number `knob`
+ * (radians, 0 that pose) about `pivot`, a point inside the robe, so its root
+ * stays under the robe's paper however it swings. The host draws its circle
+ * hand at the cuff.
+ */
+interface RobedArm {
+  readonly knob: string;
+  readonly pivot: Pt;
+  readonly sleeve: RobedPart;
+}
+
 /** A robed figure: its measures, head, face, robe and feet. */
 export interface Robed {
   /** Its artboard, and where its feet stand on it. */
@@ -93,6 +106,12 @@ export interface Robed {
   /** The robe, from the feet, and its paper with what lies on it (`tones`). */
   readonly robe: ReadonlyArray<Pt>;
   readonly robeLook: PieceLook;
+  /**
+   * Its arms that reach past the robe, each laid behind the robe's paper and
+   * cut in one outline with it, so a sleeve grows out of the robe with no
+   * line where it leaves it. An arm that lies on the robe is a tone of it.
+   */
+  readonly arms?: ReadonlyArray<RobedArm>;
   /** The feet under the hem, front first: each foot, its sole, its strap. */
   readonly feet: ReadonlyArray<RobedPart>;
   /** Its breath's period, seconds. */
@@ -214,8 +233,33 @@ const tuckedHead = (r: Robed): RobedPart[] => {
   });
 };
 
-/** The robed figure `r`, at rest at `knobs`, as its artboard and view model. */
-export const robedRig = (fig: Figure, r: Robed, knobs: Readonly<Record<RobedKnob, number>>) => {
+/** An arm's sleeve on its pivot, turned by its number. */
+const armOf = (fig: Figure, a: RobedArm): Element => {
+  const name = `${a.sleeve.key}Arm`;
+  return el('Node', { x: a.pivot[0], y: a.pivot[1], name, id: fig.idOf(name) }, [
+    fig.bind(a.knob, KEY.rotation),
+    el('Node', { x: -a.pivot[0], y: -a.pivot[1], name: `${a.sleeve.key}At` }, [
+      piece(fig, a.sleeve.key, a.sleeve.pts, a.sleeve.look, { boil: a.sleeve.boil ?? 0.9 }),
+    ]),
+  ]);
+};
+
+/** The robe's paper, and its arms behind it in one outline with it when it has any. */
+const robeOf = (fig: Figure, r: Robed): Element => {
+  const arms = r.arms ?? [];
+  if (arms.length === 0) return piece(fig, 'robe', r.robe, r.robeLook);
+  return silhouette(fig, 'robeCut', [
+    { key: 'robe', pts: r.robe, look: r.robeLook },
+    ...arms.map((a) => armOf(fig, a)),
+  ]);
+};
+
+/** The robed figure `r`, at rest at `knobs` (its own numbers past the kit's), as its artboard and view model. */
+export const robedRig = (
+  fig: Figure,
+  r: Robed,
+  knobs: Readonly<Record<RobedKnob, number>> & Readonly<Record<string, number>>,
+) => {
   // The robe breathes about its hem.
   const hem = Math.max(...r.robe.map((p) => p[1]));
   const { rotation, eyeLean, ...faceAt } = r.face;
@@ -244,7 +288,7 @@ export const robedRig = (fig: Figure, r: Robed, knobs: Readonly<Record<RobedKnob
     fig.bind('lean', KEY.rotation),
     headNode,
     el('Node', { y: hem, name: 'trunk', id: fig.idOf('trunk') }, [
-      el('Node', { y: -hem, name: 'robeSide' }, [piece(fig, 'robe', r.robe, r.robeLook)]),
+      el('Node', { y: -hem, name: 'robeSide' }, [robeOf(fig, r)]),
     ]),
     ...r.feet.map((p) => piece(fig, p.key, p.pts, p.look, { boil: p.boil ?? 0.6 })),
   ]);

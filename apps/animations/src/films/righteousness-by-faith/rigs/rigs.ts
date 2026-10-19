@@ -8,7 +8,7 @@ import { Record as Rec } from 'effect';
 import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
 import { CHRIST, CHRIST_FRONT, CHRIST_FRONT_KNOBS, CHRIST_KNOBS } from './christ-rig.ts';
-import { FARMER, FARMER_KNOBS } from './farmer-rig.ts';
+import { FARMER, FARMER_KNOBS, type FarmerKnob } from './farmer-rig.ts';
 import { HAND_ART, HAND_OUT_STEPS } from './hand-rig.ts';
 import {
   JUDGE_ART,
@@ -134,7 +134,7 @@ export const christFrontProp: RivePropSpec<RobedTimeline, RobedKnob> = {
 };
 
 /** The farmer of the rain: his feet at our origin. */
-export const farmerProp: RivePropSpec<RobedTimeline, RobedKnob> = {
+export const farmerProp: RivePropSpec<RobedTimeline, FarmerKnob> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.farmer,
