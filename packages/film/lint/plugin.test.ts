@@ -137,11 +137,11 @@ const MESSAGES = {
   'tests-keep-their-strength.ts:13 film/tests-keep-their-strength':
     '`only` runs a test less than every time: a test runs every time and passes as written. Fix what it tests and drop `only`, or delete the test with the code it held.',
   'tests-keep-their-strength.ts:19 film/tests-keep-their-strength':
-    "a timeout over bun's 5 s on a test that starts no process: make the test fast (share its setup, use TestClock, run its work concurrently), never give it more time. A test that spawns names its spawn budget (effect/requireSpawnBudget).",
+    "a timeout over bun's 5 s, or of 0 (none), on a test that starts no process: make the test fast (share its setup, use TestClock, run its work concurrently), never give it more time. A test that spawns names its spawn budget (effect/requireSpawnBudget).",
   'tests-keep-their-strength.ts:23 film/tests-keep-their-strength':
     'a retry passes a test that fails: find why it fails (a race, a shared fixture, a wall clock) and fix that.',
   'tests-keep-their-strength.ts:24 film/tests-keep-their-strength':
-    "a default timeout over bun's 5 s raises every test after it: make the slow tests fast, and give a test that spawns its own spawn budget.",
+    "a default timeout over bun's 5 s, or of 0 (none), raises every test after it: make the slow tests fast, and give a test that spawns its own spawn budget.",
 } as const satisfies Readonly<Record<string, string>>;
 
 /** oxlint over the fixtures with the fixtures' config: what it reported, and its exit code. */

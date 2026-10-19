@@ -22,6 +22,8 @@ test('a slow test given a named time', () => {}, { timeout: LONG }); // RED film
 test('a timeout from elsewhere', () => {}, SLOW); // RED film/tests-keep-their-strength
 test('a test run until it passes', () => {}, { retry: 3 }); // RED film/tests-keep-their-strength
 setDefaultTimeout(20_000); // RED film/tests-keep-their-strength
+setDefaultTimeout(0); // RED film/tests-keep-their-strength
+test('a test given no deadline', () => {}, 0); // RED film/tests-keep-their-strength
 
 // bun's own default, and less, raise nothing.
 test('a test at the default', () => {}, 5_000);

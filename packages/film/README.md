@@ -3803,9 +3803,10 @@ every test, fixture and preload of the repo: a test runs every time at its
 full strength. It refuses a runner member that runs a test less (`.skip`,
 `.only`, `.todo`, `.failing`, `.skipIf`, `.todoIf`, `.if`, `.runIf`, and the
 `x`- and `f`-prefixed runners), a `retry` in a test's options, a timeout of
-a test's own over bun's 5 s (or one it cannot read) unless the test starts a
-process (its body, a function or a module `const` of the file it reads, the
-same starters as above), and a `setDefaultTimeout` over 5 s. oxlint's own
+a test's own over bun's 5 s or of 0, which sets none (or one it cannot read),
+unless the test starts a process (its body, a function or a module `const`
+of the file it reads, the same starters as above), and a `setDefaultTimeout`
+over 5 s or of 0. oxlint's own
 jest and vitest rules see no runner imported from `bun:test` or
 `effect-bun-test`, so they are not used. The browser suite (`e2e/`) sizes
 its own timeouts (`{ "timeouts": false }`). A spawn the rule cannot see (one

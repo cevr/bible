@@ -14,13 +14,13 @@
 // - a `retry` in a test's or a suite's options, which passes a test that
 //   fails;
 // - a timeout of its own (a number after the body, or `{ timeout }` in the
-//   options, before the body or after it) over bun's 5 s default, or one the
-//   rule cannot read (a name imported from another file), unless the test
+//   options, before the body or after it) over bun's 5 s default, of 0 or
+//   under (which sets no deadline at all), or one the rule cannot read (a name imported from another file), unless the test
 //   starts a process: a spawn's time is the machine's, and such a test names
 //   its spawn budget (`effect/requireSpawnBudget`). A suite's timeout passes
 //   when a test inside it starts one;
-// - the runner's `setDefaultTimeout` over bun's 5 s, which raises every test
-//   after it.
+// - the runner's `setDefaultTimeout` over bun's 5 s, or of 0 or under, which
+//   raises every test after it.
 //
 // A test starts a process when its body calls a process starter (Bun's
 // `spawn` or `spawnSync`, off the global `Bun`, imported from `bun` or taken
@@ -258,9 +258,10 @@ const retryOf = (call: ESTree.CallExpression) =>
     ),
   );
 
-/** Whether a timeout is over bun's default, or cannot be read. */
+/** Whether a timeout is over bun's default, sets none (0 or under), or cannot be read. */
 const raises = (timeout: Timeout) =>
-  timeout._tag === 'Unread' || (timeout._tag === 'Read' && timeout.ms > BUN_DEFAULT_MS);
+  timeout._tag === 'Unread' ||
+  (timeout._tag === 'Read' && (timeout.ms > BUN_DEFAULT_MS || timeout.ms <= 0));
 
 const weakenerMessage = (member: string) =>
   `\`${member}\` runs a test less than every time: a test runs every time and passes as written. Fix what it tests and drop \`${member}\`, or delete the test with the code it held.`;
@@ -272,10 +273,10 @@ const RETRY_MESSAGE =
   'a retry passes a test that fails: find why it fails (a race, a shared fixture, a wall clock) and fix that.';
 
 const TIMEOUT_MESSAGE =
-  "a timeout over bun's 5 s on a test that starts no process: make the test fast (share its setup, use TestClock, run its work concurrently), never give it more time. A test that spawns names its spawn budget (effect/requireSpawnBudget).";
+  "a timeout over bun's 5 s, or of 0 (none), on a test that starts no process: make the test fast (share its setup, use TestClock, run its work concurrently), never give it more time. A test that spawns names its spawn budget (effect/requireSpawnBudget).";
 
 const DEFAULT_MESSAGE =
-  "a default timeout over bun's 5 s raises every test after it: make the slow tests fast, and give a test that spawns its own spawn budget.";
+  "a default timeout over bun's 5 s, or of 0 (none), raises every test after it: make the slow tests fast, and give a test that spawns its own spawn budget.";
 
 /** What the rule refuses on one member read: a weakener on the runner's chain. */
 const weakenerAt = (b: Bindings, n: ESTree.MemberExpression) =>
