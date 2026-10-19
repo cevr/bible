@@ -46,7 +46,7 @@ House rules for every episode (owner's, binding): quote only Scripture, KJV, ver
 
 ## Episodes
 
-37 episodes, about 3¾ hours in all. Each block gives the promise, the core KJV, the sources to paraphrase (refcodes as the corpus prints them; they become credit lines), what it builds on, rough length, and the church-history flag. The per-episode research (shapes, pictures, must-not-show, searches) is in `sources.md`. "(frame)" marks a quote already verified in `.claude/skills/film/frame/`.
+41 episodes, about 4¼ hours in all (37 planned on 2026-10-11, and four added by the owner on 2026-10-19: 02b, 03b, 04b, 06b). Each block gives the promise, the core KJV, the sources to paraphrase (refcodes as the corpus prints them; they become credit lines), what it builds on, rough length, and the church-history flag. The per-episode research (shapes, pictures, must-not-show, searches) is in `sources.md`. "(frame)" marks a quote already verified in `.claude/skills/film/frame/`.
 
 History flag key:
 
@@ -72,12 +72,27 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 - **Sources:** Rules of interpretation, MWV1 20.2, 20.6, 20.8, 22.3, 22.8, and HST May 15, 1840, 25.42 (William Miller); RCASDA 75.4 (Uriah Smith, frame); FP1889 148.1 (frame); 4SP 413.2 = GC 595.1 (frame); GC 598.3; Ed 190.2; AA 231.2 (EGW).
 - **Builds on:** 01. **Length:** about 6:10 (665 words, 4:39 spoken at 155 wpm with its marks). **History:** OK. The credits name Miller only as the author of the rules; nothing about his movement is said or shown.
 
+**02b · As It Reads** (new, owner 2026-10-19; draft notes: [`as-it-reads.md`](as-it-reads.md); numbers settle when the list is renumbered)
+
+- **Promise:** Every error starts from one choice: read the Bible as it reads, or as you read it. The second way has no end of meanings. The Bible crosses every time and culture because it defines its own words, and anyone can learn to use its dictionary.
+- **Core KJV:** 2 Pet 1:20; Prov 30:5–6; Rev 17:15; Rev 1:20; Dan 7:17; Matt 1:23; Deut 32:2; 1 Cor 2:13–14; Isa 28:10; Rom 15:4; Rom 12:2.
+- **Sources:** MWV1 21.6, 22.3, 22.5, 22.6 (William Miller, rules IX, XI, XII, XIII); GC 598.3; Ed 190.2; GC 674 (via LDE 286.2) (EGW).
+- **Builds on:** 01, 02. 02's `plain` and `figure` beats hand off to it in one line (owner, 2026-10-19, "A is fine": a new episode after 02). **Length:** about 6 min. **History:** OK.
+
 **03 · God Is Love** (script: `scripts/03-god-is-love.md`)
 
 - **Promise:** Everything God has made and said shows one character, love. The cross shows it most clearly of all, answering the old lie that God is harsh.
 - **Core KJV:** Gen 3:9–10; Ps 145:9; Ex 34:6–7; John 14:9; Luke 15:20; John 3:16; 1 John 4:8.
 - **Sources:** SC 9.3, 10.1, 10.2, 10.3, 11.1, 12.1, 13.2; COL 203.1 (EGW); PTUK September 27, 1888, 292.5; SITI December 7, 1888, 742.6 (Waggoner).
 - **Builds on:** 01, 02. **Length:** about 5:30 (602 words, 4:15 spoken at 155 wpm with its marks). **History:** OK.
+
+**03b · In Our Image** (new; the salvation arc, 1 of 3; owner 2026-10-19: "maybe an ark for the salvation question, depending on how it's split"; draft notes: [`what-is-salvation.md`](what-is-salvation.md))
+
+- **Promise:** To know what salvation saves us from, start where we began. God made us in His image: His form, for He is a person, and His character, which His law describes. Christ is that image in full.
+- **Core KJV:** Gen 1:26–27; Ex 33:18–20, 23; Ex 34:5–7; 1 John 4:8; Matt 22:37–40; Rom 13:10; Ps 145:17; Rom 7:12; Heb 1:3.
+- **Sources:** FP1889 147.2 (frame); 8T 263.1; Broadside1 April 6, 1846, par. 7 (frame); CTr 339.2; 13LtMs, Ms 167, 1898, par. 11 (EGW).
+- **Builds on:** 02b, 03 (one-line callback to the name in Ex 34). **Length:** about 6 min. **History:** OK.
+- **Note:** the Father as a definite human form veiled in light, never a face (god-christ frame).
 
 **04 · The Serpent's Question**
 
@@ -86,6 +101,14 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 - **Sources:** GC 492.2; DA 21.3; YI June 2, 1898, par. 3; PP 54.2; Ed 27.1 (EGW); EB xi.2–xi.3 (A. T. Jones, 1904); SITI December 8, 1887, 742.6 (E. J. Waggoner); ARSH April 7, 1859, 156.21 (Uriah Smith marker, byline not confirmed).
 - **Builds on:** 02, 03. **Length:** about 5½ min. **History:** OK.
 - **Note:** show how sin entered (a choice apart from God), never a reason why (GC 492.2 against EB xi.2).
+
+**04b · What Was Lost** (new; the salvation arc, 2 of 3)
+
+- **Promise:** The fall cost four things: the image (Adam's son is born in Adam's likeness), nearness to God (His presence consumes sin, so He keeps us apart that we may live), life itself, and the power to stop sinning. The last is the deepest problem: paying the price would not end the cycle.
+- **Core KJV:** Gen 5:1, 3; Isa 59:2; Isa 33:14; Heb 12:29; Ex 33:20; Rom 6:23; Rom 7:18–19; Jer 13:23; Ezek 18:20.
+- **Sources:** FLB 176.9 (to sin "our God is a consuming fire"); RC 377.4 (separated from God we do not possess life) (EGW).
+- **Builds on:** 03b, 04. **Length:** about 6 min. **History:** OK.
+- **Note:** Seth inherits the fallen nature, not Adam's guilt (Ezek 18:20).
 
 **05 · The Word Made Flesh** (script: `scripts/05-the-word-made-flesh.md`; revised 2026-10-12 with `asitreads-jesus-lord-god-almighty.md`)
 
@@ -122,6 +145,13 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 - **Core KJV:** John 1:29; Gen 22:8; Ex 12:13; Isa 53:6; 1 Pet 1:19–20; 1 Pet 2:24; 2 Cor 5:21; Heb 9:22.
 - **Sources:** CIS 5.1 (S. N. Haskell, 1914); AERS 146.1–146.2 (J. H. Waggoner, 1884); PTUK July 20, 1893, 242.12 (E. J. Waggoner, byline not confirmed); ST January 2, 1893, par. 6; DA 25.2; DA 753.2; DA 57.2 (EGW); FP1889 147.3 note (frame).
 - **Builds on:** 03, 04, 05. **Length:** about 6 min. **History:** OK. **Caution:** say "sacrifice" or "offering", never "the atonement" (see Open questions).
+
+**06b · What Is Salvation?** (new; the salvation arc, 3 of 3)
+
+- **Promise:** Salvation answers all four losses at once: the Mediator bridges the separation, the cross meets death, and the power of the new life breaks the cycle, until the image is restored. The six stones that follow show how it is received.
+- **Core KJV:** 1 Tim 2:5; Rom 6:23; 2 Cor 3:18; Col 3:10; Heb 1:3; 1 John 3:2.
+- **Sources:** FLB 142.2 ("Jesus came to restore in man the image of his Maker"); Ed 15.1 (EGW).
+- **Builds on:** 03b, 04b, 05, 06. **Length:** about 6 min. **History:** OK.
 
 **07 · Repentance from Dead Works** (stone 1)
 
