@@ -47,9 +47,9 @@ const PICKED = {
 
 /**
  * A ledger round the lead's lock: before it, a decision on him and one on no
- * figure; the decision the lock names; after it, his note on the lead, a
- * decision on no figure, his decision on the lead, one on the judge, a
- * question on the lead and its answer's picks, a pick on the judge, and an
+ * figure; the decision the lock names, on him; after it, his note on the
+ * lead, a decision on no figure, his decision on the lead, one on the judge,
+ * a question on the lead and its answer's picks, a pick on the judge, and an
  * ask on the lead asked, then withdrawn.
  */
 const LEDGER = `{
@@ -60,7 +60,7 @@ const LEDGER = `{
     { "_tag": "Asked", "at": ${LOCK_AT - 3}, "text": "Keep and lock them?", "quote": "Keep and lock them?", "ask": "${LOCK_ASK}", "set": "cold" },
     { "_tag": "Decided", "at": ${LOCK_AT - 2}, "text": "His ear as cut", "quote": "his ear as the concept cuts it", "set": "cast", "point": "item:lead" },
     { "_tag": "Decided", "at": ${LOCK_AT - 1}, "text": "The style", "quote": "lets lock in that style", "set": "concepts" },
-    { "_tag": "Decided", "at": ${LOCK_AT}, "text": "Keep and lock them", "ask": "${LOCK_ASK}", "picks": { "keep": "lock" }, "set": "cold" },
+    { "_tag": "Decided", "at": ${LOCK_AT}, "text": "Keep and lock them", "ask": "${LOCK_ASK}", "picks": { "keep": "lock" }, "set": "cold", "point": "item:lead" },
     { "_tag": "Noted", "at": ${LOCK_AT + 1}, "text": "His ear", "quote": "move his ear back a unit", "set": "cast", "point": "item:lead" },
     { "_tag": "Decided", "at": ${LOCK_AT + 2}, "text": "The aim", "quote": "lock in a rig and a style", "set": "concepts" },
     { "_tag": "Decided", "at": ${LOCK_AT + 3}, "text": "His ear back", "quote": "move his ear back a unit", "set": "cast", "point": "item:lead" },
@@ -179,7 +179,7 @@ describe('an override', () => {
       expect(unbacked([onLock({ ...SAID, quote })], DECISIONS)).toHaveLength(1);
   });
 
-  test('citing an ask no decision answered, a value he did not pick there, or a pick on another figure, before its lock or in a question, is broken', () => {
+  test('citing an ask no decision answered, a value he did not pick there, or a pick on another figure, at its lock or in a question, is broken', () => {
     const cases = [
       ['a0000000000', 'ear', 'back'],
       [EAR_ASK, 'ear', 'front'],
@@ -187,7 +187,7 @@ describe('an override', () => {
       [EAR_ASK, 'notes', 'back'],
       // A pick on the judge.
       [JUDGE_ASK, 'ear', 'back'],
-      // The pick the lock's own decision filed: on no figure, and not after the lock.
+      // The pick the lock's own decision filed on him: at the lock, not after it.
       [LOCK_ASK, 'keep', 'lock'],
       // Asked, then withdrawn: what the question and the withdrawal carry is no pick of his.
       [ARM_ASK, 'arm', 'arm'],
