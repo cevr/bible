@@ -9,10 +9,22 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { Array as Arr, Console, Effect, Layer, ManagedRuntime, Option, Result } from 'effect';
+import { BunServices } from '@effect/platform-bun';
+import {
+  Array as Arr,
+  Config,
+  Console,
+  Effect,
+  FileSystem,
+  Layer,
+  ManagedRuntime,
+  Option,
+  Result,
+} from 'effect';
 
 import { QueryEmbedder } from './embedder.js';
 import { layerBunEmbedder } from './embedder-bun.js';
+import { bibleHomeModelsFallback } from './embedder-transformers.js';
 import { DOCUMENT_PREFIX, QUERY_PREFIX, truncateToMrl } from './embedding.js';
 import { GOLDEN_QUERIES } from './golden-fixture.js';
 import { DIMENSIONS, MODEL_FINGERPRINT } from './vector-index.js';
@@ -45,59 +57,85 @@ const adapter: Layer.Layer<QueryEmbedder> = Layer.effectContext(
   ManagedRuntime.make(layerBunEmbedder).contextEffect,
 );
 
-/** Whether this machine can load the model at all.
- *
- *  Probed once with the cheapest possible query. A failure here is the "model
- *  absent" state §10 asks to be skipped visibly, not a test failure: the
- *  adapters are correct, the weights are not present. */
+/** Where the adapter reads the model's weights: `BIBLE_MODEL_CACHE`, else
+ *  `~/.bible/models`, the order the adapter resolves them in, under the
+ *  model's id (`MODEL_ID` in `embedder-transformers.ts`). */
+const weightsDir = Effect.gen(function* () {
+  const override = yield* Config.option(Config.String('BIBLE_MODEL_CACHE'));
+  const fallback = yield* bibleHomeModelsFallback;
+  return Option.map(
+    Option.orElse(override, () => fallback),
+    (dir) => `${dir}/onnx-community/embeddinggemma-300m-ONNX`,
+  );
+});
+
+/** Whether the model's weights are on this machine. They are not committed
+ *  (§10), so a machine that never fetched them skips the real model's checks,
+ *  and says so. Where the weights are present the probe below must load them:
+ *  a load that fails then is a defect, and the suite fails with it. */
 // Top-level await, deliberately: `it.skipIf` needs the boolean at module
-// evaluation, before any test body runs. Nothing inside an `Effect.gen` can
-// supply it, because the describe block is built before the runtime starts.
+// evaluation, before any test body runs.
 // oxlint-disable-next-line effect/noAsyncFunction -- it.skipIf needs this at module-evaluation time
-const probe = await Effect.runPromise(embedWith(adapter, 'probe'));
-const modelAvailable = Result.isSuccess(probe);
+const weights = await Effect.runPromise(
+  Effect.gen(function* () {
+    const dir = yield* weightsDir;
+    if (Option.isNone(dir)) return dir;
+    const fs = yield* FileSystem.FileSystem;
+    const present = yield* fs.exists(`${dir.value}/onnx`);
+    return Option.filter(dir, () => present);
+  }).pipe(Effect.provide(BunServices.layer)),
+);
+const modelAvailable = Option.isSome(weights);
+
+/** One load of the model and one query through it, where the weights are
+ *  present. Every check below then reads the loaded model, so none of them
+ *  pays for the load. */
+// oxlint-disable-next-line effect/noAsyncFunction -- the probe runs once at module evaluation, beside the skip it backs
+const probe = await Effect.runPromise(
+  Effect.when(embedWith(adapter, 'probe'), Effect.succeed(modelAvailable)),
+);
+
+/** A document past the model's 2048-token context, embedded once beside the
+ *  probe so its case reads the answer rather than timing the encode. */
+const overLong = 'and the word of the Lord came unto the prophet saying '.repeat(400);
+// oxlint-disable-next-line effect/noAsyncFunction -- embedded once at module evaluation, beside the probe
+const overLongEmbedded = await Effect.runPromise(
+  Effect.when(embedDocumentWith(adapter, overLong), Effect.succeed(modelAvailable)),
+);
 
 describe('§10 the Bun embedding adapter', () => {
   it('reports whether the model was available, so a skip is never silent', () =>
-    // Deliberately always green, and deliberately loud. Its whole job is to put
-    // the reason in the output when the substantive tests below skip, so a run
-    // that checked nothing cannot be mistaken for a run that checked everything.
+    // Loud where the weights are absent, so a run that checked nothing cannot
+    // be mistaken for a run that checked everything; red where they are
+    // present and the model does not load.
     Effect.runPromise(
       Effect.gen(function* () {
         if (!modelAvailable) {
-          const reason = Result.match(probe, {
-            onFailure: (failure) => failure.reason,
-            onSuccess: () => 'unknown',
-          });
           yield* Console.warn(
-            `[search] embedder model checks SKIPPED — ${MODEL_FINGERPRINT} is not loadable here: ${reason}\n` +
-              `[search] set BIBLE_MODEL_CACHE, or fetch the model, to run the real checks.`,
+            `[search] embedder model checks SKIPPED — ${MODEL_FINGERPRINT}'s weights are not on this machine\n` +
+              `[search] set BIBLE_MODEL_CACHE, or fetch the model to ~/.bible/models, to run the real checks.`,
           );
         }
-        // The probe resolved one way or the other, which is what makes the
-        // skip decision above a decision rather than an unhandled state.
-        expect(Result.isSuccess(probe) || Result.isFailure(probe)).toBe(true);
+        // Weights present means the model loads: a failed load is a defect,
+        // never a skip.
+        expect(!modelAvailable || Option.exists(probe, Result.isSuccess)).toBe(true);
       }),
     ));
 
-  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
-  it.skipIf(!modelAvailable)(
-    'the adapter declares the pinned fingerprint',
-    () =>
-      // The precondition the whole vector leg rests on: an adapter whose
-      // fingerprint disagreed with the index's would be refused at query time,
-      // and §10's mismatch test only means something if the shipping adapter
-      // agrees with the constant.
-      Effect.runPromise(
-        Effect.gen(function* () {
-          expect(yield* fingerprintOf(adapter)).toBe(MODEL_FINGERPRINT);
-        }),
-      ),
-    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
-    120_000,
+  // oxlint-disable-next-line film/tests-keep-their-strength -- needs the model's weights, which are not committed (§10); it skips, and says so above, on a machine that never fetched them
+  it.skipIf(!modelAvailable)('the adapter declares the pinned fingerprint', () =>
+    // The precondition the whole vector leg rests on: an adapter whose
+    // fingerprint disagreed with the index's would be refused at query time,
+    // and §10's mismatch test only means something if the shipping adapter
+    // agrees with the constant.
+    Effect.runPromise(
+      Effect.gen(function* () {
+        expect(yield* fingerprintOf(adapter)).toBe(MODEL_FINGERPRINT);
+      }),
+    ),
   );
 
-  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
+  // oxlint-disable-next-line film/tests-keep-their-strength -- needs the model's weights, which are not committed (§10); it skips, and says so above, on a machine that never fetched them
   it.skipIf(!modelAvailable)(
     'produces a 256-d int8 vector, which is what the index is scanned with',
     () =>
@@ -111,8 +149,6 @@ describe('§10 the Bun embedding adapter', () => {
           expect(result.success).toBeInstanceOf(Int8Array);
         }),
       ),
-    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
-    120_000,
   );
 });
 
@@ -152,7 +188,7 @@ describe('§9.5 the retrieval embedding, against the real model', () => {
     expect(DOCUMENT_PREFIX).toBe('title: none | text: ');
   });
 
-  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
+  // oxlint-disable-next-line film/tests-keep-their-strength -- needs the model's weights, which are not committed (§10); it skips, and says so above, on a machine that never fetched them
   it.skipIf(!modelAvailable)(
     'places a query nearer the paragraph that answers it than an unrelated one',
     () =>
@@ -189,11 +225,9 @@ describe('§9.5 the retrieval embedding, against the real model', () => {
           expect(near - far).toBeGreaterThan(0.3);
         }),
       ),
-    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
-    180_000,
   );
 
-  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
+  // oxlint-disable-next-line film/tests-keep-their-strength -- needs the model's weights, which are not committed (§10); it skips, and says so above, on a machine that never fetched them
   it.skipIf(!modelAvailable)(
     'embeds a query and a document differently, because the model is asymmetric',
     () =>
@@ -211,8 +245,6 @@ describe('§9.5 the retrieval embedding, against the real model', () => {
           expect([...asQuery.success]).not.toEqual([...asDocument.success]);
         }),
       ),
-    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
-    180_000,
   );
 });
 
@@ -305,7 +337,7 @@ describe('§9.5 the shared vector post-processing', () => {
     expect(Option.isNone(truncateToMrl(Array.from({ length: 768 }, () => 0)))).toBe(true);
   });
 
-  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
+  // oxlint-disable-next-line film/tests-keep-their-strength -- needs the model's weights, which are not committed (§10); it skips, and says so above, on a machine that never fetched them
   it.skipIf(!modelAvailable)(
     'embeds a document past the model context by truncating, not failing',
     () =>
@@ -316,13 +348,9 @@ describe('§9.5 the shared vector post-processing', () => {
       // input reproduces that failure; with it, the embedding is the
       // document's first 2048 tokens.
       Effect.runPromise(
-        Effect.gen(function* () {
-          const overLong = 'and the word of the Lord came unto the prophet saying '.repeat(400);
-          const embedded = yield* embedDocumentWith(adapter, overLong);
-          expect(Result.isSuccess(embedded)).toBe(true);
+        Effect.sync(() => {
+          expect(Option.exists(overLongEmbedded, Result.isSuccess)).toBe(true);
         }),
       ),
-    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
-    120_000,
   );
 });
