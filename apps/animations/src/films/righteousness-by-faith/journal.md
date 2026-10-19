@@ -409,3 +409,39 @@ check of look: 0 errors; toClimber and heal end on marks now (DurOnWord cleared)
 ## 2026-10-18T19:20:46Z · court
 
 christ-front at 20.01, match with and without the crown's lit chestnut band (all else equal): without it every row is as at r4 (head height/width 1.245, hair/skin ink 0.000, outline gap 0.026); with it match sets the head's left at 321 (the ink starts at 328), reads no face shade and counts 0.352 of hair/skin ink, though the frame gains no dark pixel there: the band (#d08445) is read as skin beside the silhouette's ink. The beard's shade bands change no row. A fresh critique at 16.51 saw the beard's far side as a red-brown patch (#4f2c26, h9); both concepts paint it h17-18 (#4b2f24, #462d22), and at #4a2e23 it now samples #4a2d21-#4a2e21.
+
+## 2026-10-18T19:50:57Z · within
+
+power: at value the blade is the frame's one dark mass inside its own light while the open hand and the cloth fall to page-grey; at squint the eye lands on the blade first, then him; the creep to [968,606]@1.58 keeps the blade's light clear of the right edge at 3.5 s.
+
+## 2026-10-18T20:05:46Z · within
+
+remember: at value the held woman is the court's darkest mass and Christ's hair the next, the pale stone set sits back in the haze; at squint the eye lands on her mass, then Christ; she passes behind the near left column at walk@0.7 and the court holds Christ alone with the stones by 8.3 s; on the page the tablets are the dark mass beside him.
+
+## 2026-10-18T20:09:10Z · within
+
+command: the opened seed at 92 units read as a gold egg with a green fleck at 960; at 120 units between tablets parted to 975 the blade and its root read inside the hollow, about 43% of the tablets' height as within.command.2 has it; at value the gap's light is the frame's brightest patch with the seed the dark mark in it, and at squint the eye lands there before him.
+
+## 2026-10-18T20:27:57Z · within
+
+write: with the pair shrinking ahead of its travel the tablets reach his chest below his chin and pass behind his near hand; drawing the bare lines under the law's own transform leaves one set of ten lines, where an earlier pass doubled them; a 'lighter' glow alone whitened his lilac tunic, a gold tint held inside the inset tunic reads warm; at value the lines read on his chest and the light does not, the gold carries it by hue; on the verse page the highlight bar is the darkest mass at squint and covers "I will put my laws into their mind," as the page lands.
+
+## 2026-10-19T00:14:12Z · within
+
+bed: a standing held mass turned on its side read as a thick lump with the head on a stick; a lying mass cut from the same paper (legs along the pallet, trunk raised from the hip, head on the trunk's end, sunk at the pallet's line) reads as a man on his bed; the crowd behind him at the same paper merged with him until it stood on a far plane in thicker haze; at squint the eye lands on Christ's robe and the four's heads against the sky in the hole, the man a mid-dark mass between them; his strain to 0.78 rad lifts his head about 60 px, the fall reads on "walk," and "wished.".
+
+## 2026-10-19T00:34:09Z · within
+
+we: a strip of the page's own colour laid over his feet read as his feet sunk into the page, a smudge; paler than the sheet with a heavier shadow it reads as a torn strip pasted across both feet; the strain reads once his eyes close to 0.2 and he leans 0.17 rad toward the right, his hands pressed down at his hem; at 0.1 rad with open eyes it did not read; at squint the eye lands on his head, the strip a pale band under him.
+
+## 2026-10-19T00:37:12Z · within
+
+arose: slack ropes run from the hole's hands to the floor read as straight poles; drawn up short under the hands, as roof.went hangs them, they read as loosed; the man sits up on "arise," as a lying mass raised to 1.42 rad, then a standing mass with the bed's silhouette shrunk into a roll across its waist reads as up with his bed, and walking left he merges with the side crowd's masses, the paler roll the one mark that keeps him; on the page the push to the step's framing followed him so the step carried him left in frame, until `we` framed him on the left third; the strip's halves flying apart read as his feet freed, and the gold wash from the upper left at 0.3 reads as within.arose's morning.
+
+## 2026-10-19T00:45:54Z · within
+
+match lead at mark:arose (t 29.63, spent and bowed, the strip over his feet): head outline gap 0.012, body 0.023; flags are the rig's outline +10% and tunic -10% at 0.7 under the chin, the spent face (eye height -11%, brow top +20%, mouth -7%), the bow sliding his eyes 0.18 of a head under its centre against the concept's 0, the strip hiding his feet (their height -65%), and the rig's paper turning its shade 26 degrees against the concept's 80; the critique timed out.
+
+## 2026-10-19T00:47:55Z · within
+
+match lead at 33.26 (freed, warmed): head outline gap 0.010, body 0.019, 2.41 heads against the concept's 2.45; the head turn reads 0.129 against the front sheet's 0.002, his marks slid toward the gaze up and ahead, as within.arose.1 carries his eyes toward the right of his head; the eye centre sits 0.073 above the head's centre, eye height +11% (warmed), hands -6% where they read +3% at mark:arose at the same scale, feet width -17% (the rig's stub legs).
