@@ -106,6 +106,8 @@ interface KeyResult {
   readonly exact: number;
   readonly cuts: number;
   readonly misses: readonly string[];
+  /** The key's lines (1-based) whose notes the compile does not match. */
+  readonly inexact: readonly number[];
 }
 
 /** Compares a hymn's stanza 1 and refrain with its key: a line is exact when its syllables' notes match. */
@@ -120,11 +122,13 @@ const compareKey = (hymn: Hymn, key: ReturnType<typeof readKey>): KeyResult => {
   );
   let [exact, cuts] = [0, 0];
   const misses: string[] = [];
+  const inexact: number[] = [];
   key.forEach((line, i) => {
     const mine = sung[i] ?? [];
     const same = mine.length === line.length && line.every((s, k) => mine[k]?.notes === s.notes);
     if (same) exact += 1;
     else {
+      inexact.push(i + 1);
       const shown = mine.map((s) => `${s.text}${s.notes === 1 ? '' : `_${s.notes}`}`).join(' ');
       misses.push(
         `line ${i + 1}: key \`${line.map((s) => `${s.text}${s.notes === 1 ? '' : `_${s.notes}`}`).join(' ')}\` compiled \`${shown}\``,
@@ -134,7 +138,15 @@ const compareKey = (hymn: Hymn, key: ReturnType<typeof readKey>): KeyResult => {
       cuts += line.filter((s, k) => letters(s.text) !== letters(mine[k]?.text ?? '')).length;
     }
   });
-  return { number: hymn.number, level: levelOf(first), lines: key.length, exact, cuts, misses };
+  return {
+    number: hymn.number,
+    level: levelOf(first),
+    lines: key.length,
+    exact,
+    cuts,
+    misses,
+    inexact,
+  };
 };
 
 class Failed extends Data.TaggedError('Failed')<{ readonly why: string }> {}
@@ -294,6 +306,10 @@ const reportOf = ({ summary, compiled, failed, counts, keys, keyLine, seconds }:
     '| hymn | level | lines | exact | cut differences |',
     '| --- | --- | --- | --- | --- |',
     ...keys.map((k) => `| ${k.number} | ${k.level} | ${k.lines} | ${k.exact} | ${k.cuts} |`),
+    '',
+    'Each key line the compile does not match, as `key inexact <hymn>:<line>`:',
+    '',
+    ...keys.flatMap((k) => k.inexact.map((line) => `key inexact ${k.number}:${line}`)),
     '',
     ...keys.flatMap((k) =>
       k.misses.length === 0 ? [] : [`### ${k.number}`, '', ...k.misses.map((m) => `- ${m}`), ''],
