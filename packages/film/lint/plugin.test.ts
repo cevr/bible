@@ -134,6 +134,14 @@ const MESSAGES = {
     "a host's Math in the sound graph: its sin, exp, log, pow and tanh round apart between hosts. Use the graph's own (packages/film/src/core/synth/graph/math.ts: sinTurn, cosTurn, exp, exp2, log, tanh, dbToGain); of Math, read only abs, ceil, floor, round, trunc, sign, min, max, sqrt, fround, imul, clz32 and the constants, by name.",
   'synth-own-math.ts:37 film/synth-own-math':
     "`**` is the host's pow, which rounds apart between hosts: write the product out, or use exp2, or exp and log, from packages/film/src/core/synth/graph/math.ts.",
+  'tests-keep-their-strength.ts:13 film/tests-keep-their-strength':
+    '`only` runs a test less than every time: a test runs every time and passes as written. Fix what it tests and drop `only`, or delete the test with the code it held.',
+  'tests-keep-their-strength.ts:19 film/tests-keep-their-strength':
+    "a timeout over bun's 5 s on a test that starts no process: make the test fast (share its setup, use TestClock, run its work concurrently), never give it more time. A test that spawns names its spawn budget (effect/requireSpawnBudget).",
+  'tests-keep-their-strength.ts:23 film/tests-keep-their-strength':
+    'a retry passes a test that fails: find why it fails (a race, a shared fixture, a wall clock) and fix that.',
+  'tests-keep-their-strength.ts:24 film/tests-keep-their-strength':
+    "a default timeout over bun's 5 s raises every test after it: make the slow tests fast, and give a test that spawns its own spawn budget.",
 } as const satisfies Readonly<Record<string, string>>;
 
 /** oxlint over the fixtures with the fixtures' config: what it reported, and its exit code. */

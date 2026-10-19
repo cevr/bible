@@ -1231,12 +1231,40 @@
       }
     },
     {
-      // A test that spawns a process declares its timeout, at least the package's
-      // run default (`--timeout 20000`): a shorter one fails sooner than none
-      // (effect/requireSpawnBudget).
+      // A test that spawns a process declares its spawn budget, at least 20 s:
+      // a cold start's time is the machine's, and a shorter budget fails a
+      // loaded one sooner than none (effect/requireSpawnBudget).
       "files": ["**/packages/film/**/*.test.ts"],
       "rules": {
         "effect/requireSpawnBudget": ["error", { "minimum": 20000 }]
+      }
+    },
+    {
+      // A test runs every time at its full strength: no skip, only, todo,
+      // failing or retry, and no timeout over bun's 5 s but a spawn budget
+      // (packages/film/lint/tests-keep-their-strength.ts). A slow test is made
+      // fast, never given more time, so each workspace's tests stay inside the
+      // ten-second budget (`bun run test:budget`). The fixtures and preloads
+      // are read too: a preload's default timeout raises every test after it.
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/fixtures/**/*.ts",
+        "**/e2e/**/*.ts"
+      ],
+      "rules": {
+        "film/tests-keep-their-strength": "error"
+      }
+    },
+    {
+      // The film's browser suite (`test:e2e`) runs outside the budget, on
+      // real Chrome workers, and sizes its own timeouts; it still runs every
+      // test (packages/film/README.md, the E2E suite).
+      "files": ["**/packages/film/e2e/**/*.ts"],
+      "rules": {
+        "film/tests-keep-their-strength": ["error", { "timeouts": false }]
       }
     },
     {

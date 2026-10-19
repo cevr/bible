@@ -594,6 +594,7 @@ describe("a talk's writes in the lab", () => {
         yield* post(labUrls.talk.restore(film), { section: 'law', from: 2, to: 2 });
         expect(text(yield* file())).toBe(FORMATTED.replace(', cut: [[2, 2]] }', ' }'));
       }).pipe(Effect.scoped, Effect.provide(Layer.merge(world, lab))),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- each write formats its text with oxfmt, a spawn inside the lab the test provides (spawn budget).
     SPAWNS_MS,
   );
 
@@ -663,6 +664,7 @@ describe("a talk's writes in the lab", () => {
           expect(yield* file()).toEqual(before);
         }
       }).pipe(Effect.scoped, Effect.provide(Layer.merge(world, lab))),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- each write formats its text with oxfmt, a spawn inside the lab the test provides (spawn budget).
     SPAWNS_MS,
   );
 
@@ -709,6 +711,7 @@ describe("a talk's writes in the lab", () => {
         yield* post(labUrls.talk.restore(film), { section: 'law', from: 3, to: 3 });
         expect(text(yield* file())).toBe(played);
       }).pipe(Effect.scoped, Effect.provide(Layer.merge(world, lab))),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- each write formats its text with oxfmt, a spawn inside the lab the test provides (spawn budget).
     SPAWNS_MS,
   );
 

@@ -11,7 +11,7 @@
 import { Clock, Effect, FiberSet, Match, Option, Predicate, Schema, type Scope } from 'effect';
 import { BrowserFailed } from '../../tools/errors.ts';
 import { CLOCK, REAL_TIMERS } from './clock.ts';
-import { TEST_TIMEOUT_MS } from './test-timeout.ts';
+import { E2E_TIMEOUT_MS } from './test-timeout.ts';
 
 /** How a touch report is stamped: now, or a frame after the last (a gesture under way). */
 type Pace = 'now' | 'paced';
@@ -178,13 +178,13 @@ export const jsonOf = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 /**
  * How far ahead of the page's clock `clock.hold` pauses it: the test's own
- * time limit (`TEST_TIMEOUT_MS`). The clock runs on in real time between
+ * time limit (`E2E_TIMEOUT_MS`). The clock runs on in real time between
  * the read and the pause, and `pauseAt` refuses a time already past ("Cannot
  * fast-forward to the past", which a lead of 10 ms met under load); no test
  * lives long enough to pass this one. The jump fires each timer due in it
  * once.
  */
-const HOLD_LEAD_MS = TEST_TIMEOUT_MS;
+const HOLD_LEAD_MS = E2E_TIMEOUT_MS;
 
 /** A key as the DevTools protocol dispatches it: `text` is what it types, empty for none. */
 interface Key {

@@ -5,6 +5,7 @@ import { notes } from '../../src/commands/notes.js';
 import { expectCallCount, expectContains, expectNoCalls, runCli } from '../lib/run-cli.js';
 
 describe('notes commands', () => {
+  // oxlint-disable-next-line film/tests-keep-their-strength -- listNotes spawns osascript itself (Bun.spawn), so these cases would read the real Apple Notes; listed for the owner: they run once listNotes reads through the AppleScript service.
   describe.skip('list command', () => {
     // TODO: listNotes uses Bun.spawn directly instead of AppleScript service
     // These tests hit real Apple Notes. Needs refactoring to use AppleScript service.

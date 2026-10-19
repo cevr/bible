@@ -1144,28 +1144,25 @@ describe.concurrent('SoundLibrary', () => {
       ),
   );
 
-  it.effect.layer(fixture)(
-    'auditions and renders without a paid call',
-    () =>
-      withLibrary(({ calls }) =>
-        Effect.gen(function* () {
-          const library = yield* SoundLibrary;
-          const fs = yield* FileSystem.FileSystem;
-          const media = yield* Media;
-          const renders = yield* library.render('tone.chime', {
-            seed: Option.none(),
-            trial: false,
-            sheet: false,
-          });
-          expect(renders).toHaveLength(3);
-          const heard = yield* library.audition('tone.chime', 'plays');
-          expect(yield* fs.exists(heard)).toBe(true);
-          // Three 0.6-second chimes, each followed by the half-second gap.
-          expect((yield* media.decode(heard)).frames).toBe(3 * (26460 + 22050));
-          expect(calls).toHaveLength(0);
-        }),
-      ),
-    30_000,
+  it.effect.layer(fixture)('auditions and renders without a paid call', () =>
+    withLibrary(({ calls }) =>
+      Effect.gen(function* () {
+        const library = yield* SoundLibrary;
+        const fs = yield* FileSystem.FileSystem;
+        const media = yield* Media;
+        const renders = yield* library.render('tone.chime', {
+          seed: Option.none(),
+          trial: false,
+          sheet: false,
+        });
+        expect(renders).toHaveLength(3);
+        const heard = yield* library.audition('tone.chime', 'plays');
+        expect(yield* fs.exists(heard)).toBe(true);
+        // Three 0.6-second chimes, each followed by the half-second gap.
+        expect((yield* media.decode(heard)).frames).toBe(3 * (26460 + 22050));
+        expect(calls).toHaveLength(0);
+      }),
+    ),
   );
 
   it.effect.layer(fixture)('curates no take of a code sound: its seeds play as its data says', () =>

@@ -126,6 +126,7 @@ describe('scene sources', () => {
         const site = yield* sources.site('f', 'gamma');
         expect([site.shown, site.exportName]).toEqual(['scenes/gamma.ts', 'gamma']);
       }).pipe(Effect.provide(lab)),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- the scene sources read the registry in a fresh process, a spawn inside the service the test provides (spawn budget).
     SPAWNS_MS,
   );
 });

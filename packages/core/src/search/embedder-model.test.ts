@@ -80,6 +80,7 @@ describe('§10 the Bun embedding adapter', () => {
       }),
     ));
 
+  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
   it.skipIf(!modelAvailable)(
     'the adapter declares the pinned fingerprint',
     () =>
@@ -92,9 +93,11 @@ describe('§10 the Bun embedding adapter', () => {
           expect(yield* fingerprintOf(adapter)).toBe(MODEL_FINGERPRINT);
         }),
       ),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
     120_000,
   );
 
+  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
   it.skipIf(!modelAvailable)(
     'produces a 256-d int8 vector, which is what the index is scanned with',
     () =>
@@ -108,6 +111,7 @@ describe('§10 the Bun embedding adapter', () => {
           expect(result.success).toBeInstanceOf(Int8Array);
         }),
       ),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
     120_000,
   );
 });
@@ -148,6 +152,7 @@ describe('§9.5 the retrieval embedding, against the real model', () => {
     expect(DOCUMENT_PREFIX).toBe('title: none | text: ');
   });
 
+  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
   it.skipIf(!modelAvailable)(
     'places a query nearer the paragraph that answers it than an unrelated one',
     () =>
@@ -184,9 +189,11 @@ describe('§9.5 the retrieval embedding, against the real model', () => {
           expect(near - far).toBeGreaterThan(0.3);
         }),
       ),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
     180_000,
   );
 
+  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
   it.skipIf(!modelAvailable)(
     'embeds a query and a document differently, because the model is asymmetric',
     () =>
@@ -204,6 +211,7 @@ describe('§9.5 the retrieval embedding, against the real model', () => {
           expect([...asQuery.success]).not.toEqual([...asDocument.success]);
         }),
       ),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
     180_000,
   );
 });
@@ -297,6 +305,7 @@ describe('§9.5 the shared vector post-processing', () => {
     expect(Option.isNone(truncateToMrl(Array.from({ length: 768 }, () => 0)))).toBe(true);
   });
 
+  // oxlint-disable-next-line film/tests-keep-their-strength -- the real model's checks run only where its weights load (BIBLE_MODEL_CACHE or a fetched model); CI has none. Listed for the owner: they need the model vendored for the suite, or a home outside the budgeted test script.
   it.skipIf(!modelAvailable)(
     'embeds a document past the model context by truncating, not failing',
     () =>
@@ -313,6 +322,7 @@ describe('§9.5 the shared vector post-processing', () => {
           expect(Result.isSuccess(embedded)).toBe(true);
         }),
       ),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- loading the real model's weights the first time; listed with the skipIf above.
     120_000,
   );
 });

@@ -301,6 +301,7 @@ describe.concurrent('scene writer', () => {
         );
         expect(landed.resolved?.dur).toBeCloseTo(0.3, 9);
       }).pipe(Effect.provide(fixture)),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- the scene writer formats each write with oxfmt, a spawn inside the service the test provides (spawn budget).
     SPAWNS_MS,
   );
 
@@ -338,6 +339,7 @@ describe.concurrent('scene writer', () => {
         expect(landed.resolved?.start).toBeCloseTo(1.0003, 9);
         expect(landed.resolved?.end).toBeCloseTo(1.001, 9);
       }).pipe(Effect.provide(fixture)),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- the scene writer formats each write with oxfmt, a spawn inside the service the test provides (spawn budget).
     SPAWNS_MS,
   );
 
@@ -573,6 +575,7 @@ describe.concurrent('scene writer', () => {
           }),
         ),
       ),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- the scene writer formats each write with oxfmt, a spawn inside the service the test provides (spawn budget).
     SPAWNS_MS,
   );
 

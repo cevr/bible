@@ -130,6 +130,5 @@ describe('no ffmpeg CLI', () => {
       Effect.gen(function* () {
         expect(yield* commandsIn(ROOT)).toEqual([]);
       }),
-    30_000,
   );
 });

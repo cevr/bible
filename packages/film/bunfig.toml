@@ -14,8 +14,9 @@
 # heard), about 0.5 s of work in 3-4.5 s a file run one case after another,
 # a worker's slot held idle the rest.
 concurrentTestGlob = ["**/*.dom.test.ts", "**/*.pixel.test.ts", "**/lab-page-*.test.ts"]
-# The tests' time limit for effect-bun-test's runners, which interrupt a
-# concurrent case at it (src/lab/fixtures/test-timeout.ts). Bun keeps the
-# preload's default for a process's first file only, so the scripts pass the
-# same number as --timeout for the files after it.
+# The browser-free tests' time limit for effect-bun-test's runners, which
+# interrupt a concurrent case at it: bun's own 5 s (src/lab/fixtures/test-timeout.ts).
+# The browser suite's script preloads its own limit after this one
+# (e2e/preload.ts) and passes it as --timeout too, since bun keeps a preload's
+# default for a process's first file only.
 preload = ["./src/lab/fixtures/preload.ts"]

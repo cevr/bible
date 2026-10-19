@@ -291,6 +291,7 @@ describe('film read script, run fresh', () => {
           { id: 'title', picture: 'The title.', cite: [] },
         ]);
       }),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- FreshFilm reads the film in a fresh process, a spawn inside the service the test provides (spawn budget).
     SPAWNS_MS,
   );
 });
@@ -348,6 +349,7 @@ describe('film read clock, run fresh', () => {
         expect(own.acts.map((a) => [a.name, a.from])).toEqual([['sowing', 'seed']]);
         expect(own.movements.map((m) => [m.name, m.from])).toEqual([['sowing', 'seed']]);
       }),
+    // oxlint-disable-next-line film/tests-keep-their-strength -- FreshFilm reads the film in a fresh process, a spawn inside the service the test provides (spawn budget).
     SPAWNS_MS,
   );
 });

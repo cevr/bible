@@ -3794,10 +3794,23 @@ whose kept answer only a wait reads (a baseline the page keeps).
 `packages/film`: a test whose body spawns a process (effect's
 `ChildProcess.make`, the global `Bun`'s `spawn` or `spawnSync`, `spawn`
 imported from `bun`, `node:child_process`, or a function of the same file
-that does) gives its timeout in milliseconds as its last argument, at least
-the package's 20 s run default (its `minimum`): a cold start's time is the
+that does) gives its timeout in milliseconds as its last argument, its
+spawn budget, at least 20 s (its `minimum`): a cold start's time is the
 machine's, and a shorter budget fails a loaded one sooner than none.
 A spawn inside a service the test provides is not seen.
+`film/tests-keep-their-strength` (`lint/tests-keep-their-strength.ts`) holds
+every test, fixture and preload of the repo: a test runs every time at its
+full strength. It refuses a runner member that runs a test less (`.skip`,
+`.only`, `.todo`, `.failing`, `.skipIf`, `.todoIf`, `.if`, `.runIf`, and the
+`x`- and `f`-prefixed runners), a `retry` in a test's options, a timeout of
+a test's own over bun's 5 s (or one it cannot read) unless the test starts a
+process (its body, a function or a module `const` of the file it reads, the
+same starters as above), and a `setDefaultTimeout` over 5 s. oxlint's own
+jest and vitest rules see no runner imported from `bun:test` or
+`effect-bun-test`, so they are not used. The browser suite (`e2e/`) sizes
+its own timeouts (`{ "timeouts": false }`). A spawn the rule cannot see (one
+inside a provided service) is said where it stands, by a disable comment
+that names it.
 `film/touches-serial` (`lint/touches-serial.ts`) holds the browser tests
 (`e2e/`): a finger (`page.finger`, one or two) is read, and the touch gesture
 (`touch`, `lab/fixtures/gestures.ts`) called, only inside a `test.serial(…)`
@@ -3913,7 +3926,7 @@ properties `getScope`, `getDeclaredVariables`, `scopeManager`,
 reader.
 `lint/plugin.test.ts` runs oxlint over the marked fixtures: every RED
 location must report its rule, with no extra findings. Each of the plugin's
-twenty-four rules (`lint/plugin.ts`) also has a diagnostic whose corrective
+twenty-five rules (`lint/plugin.ts`) also has a diagnostic whose corrective
 message is asserted, including the distinct anchor-end and cue-part repairs,
 so a rule that fires but gives the wrong advice fails the fixture suite; the
 test holds that list to the plugin's rules.
@@ -3931,25 +3944,30 @@ those paths do not discover or execute them. Their source remains linted and typ
 Run `bun run test:e2e` from the repository root or this package to exercise
 the real browser workflows and canvas pixel checks. The E2E script uses
 `src/lab/fixtures/run-suite.ts` to compile fresh browser bundles and run
-`bun test --parallel --no-isolate --max-concurrency=3 --timeout 20000 e2e`.
+`bun test --parallel --no-isolate --max-concurrency=3 --preload ./e2e/preload.ts --timeout 20000 e2e`.
 Its folder (the bundles, the workers' Chrome profiles) is removed once every
 process whose command line names a path in it has ended
 (`src/lab/fixtures/run-folder.ts`): Bun's recursive remove fails when an
 entry goes from under it.
-A film test that sets no timeout of its own has 20 s
-(`TEST_TIMEOUT_MS`, `src/lab/fixtures/test-timeout.ts`), set in two places
-that `test-timeout.test.ts` keeps equal. The preload `bunfig.toml` names
-passes it to effect-bun-test's `setDefaultTimeout`: the deadline its
-runners hold for the whole process, at which they interrupt a concurrent
-case, since a test cannot read `--timeout`. So a runner case that times out
-has its scope closed, its tabs and its lab, at its limit, where before its
-fiber ran on beside the cases after it. The `test` and `test:e2e` scripts
-pass it as `--timeout 20000` too: bun keeps the preload's half, its own
-default, for a process's first file only, and these scripts run several
-files in one process (`--no-isolate`), so plain `test(...)` calls and hooks
-in the later files take theirs from `--timeout`. To give a case more time,
-give it a timeout of its own: a different `--timeout` on the command line
-reaches only plain tests and hooks in files after a process's first, never
+A browser-free film test that sets no timeout of its own has bun's own 5 s,
+so the `test` script names no `--timeout`, and a browser test has 20 s
+(`E2E_TIMEOUT_MS`, `src/lab/fixtures/test-timeout.ts`);
+`test-timeout.test.ts` holds the scripts to both. The preload `bunfig.toml`
+names (`src/lab/fixtures/preload.ts`) passes the first to effect-bun-test's `setDefaultTimeout`: the
+deadline its runners hold for the whole process, at which they interrupt a
+concurrent case, since a test cannot read `--timeout`. So a runner case that
+times out has its scope closed, its tabs and its lab, at its limit. The
+`test:e2e` script preloads `e2e/preload.ts` after it (bun runs a
+`--preload` after bunfig's), which passes the second, and passes it as
+`--timeout 20000` too: bun keeps a preload's default for a process's first
+file only, and the script runs several files in one process
+(`--no-isolate`), so plain `test(...)` calls and hooks in the later files
+take theirs from `--timeout`. A browser-free test is never given more time
+than bun's 5 s, but a test that spawns names its spawn budget
+(`film/tests-keep-their-strength`, `effect/requireSpawnBudget`): a slow test
+is made fast. A browser test given more time gives it a timeout of its own: a
+different `--timeout` on the command line reaches only plain tests and hooks
+in files after a process's first, never
 the runner cases. On CI the runner takes eight workers, or the host's core count when smaller;
 on a shared machine (the laptop, the workbox) it takes the cores free when it
 starts, the core count less the one-minute load, at least two and at most the
@@ -4021,7 +4039,7 @@ page's own work takes seconds, and a suite of them only times out. From
 
 ```sh
 FILM_E2E_CPU_THROTTLE=20 lockf -k /tmp/bible-tools-e2e.lock \
-  bun src/lab/fixtures/run-suite.ts --max-concurrency=3 --timeout 20000 <file> -t '<case>'
+  bun src/lab/fixtures/run-suite.ts --max-concurrency=3 --preload ./e2e/preload.ts --timeout 20000 <file> -t '<case>'
 ```
 
 On the workbox, `flock /tmp/bible-tools-e2e.lock` in place of `lockf -k …`.

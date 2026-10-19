@@ -20,9 +20,11 @@
 //
 // Local only, like `test:perf`: CI's runners are smaller and shared, so a
 // wall-clock budget there would fail on the runner, not on the code. In CI
-// the guard is each test's own timeout: bun's 5 s, or the `--timeout` a
-// workspace's `test` script names (`packages/film` also sets the same number
-// in a preload, for effect-bun-test's runners).
+// the guard is each test's timeout: bun's 5 s, which no workspace's `test`
+// script raises (`test-budget/strength.ts`, held over every workspace by its
+// test) and no test raises but a spawn budget
+// (`film/tests-keep-their-strength`). A workspace whose `test` script weakens
+// its tests is not measured: the run names each flag and fails.
 //
 // The 1- and 5-minute load averages before the first workspace runs and the
 // core count are printed beside the times: read once, since each workspace's
@@ -52,6 +54,7 @@ import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 import { availableParallelism, loadavg } from 'node:os';
 import { judge } from './test-budget/budget.js';
+import { weakeningFlags } from './test-budget/strength.js';
 
 /** What this reads of turbo's dry run (`--dry=json`): each task, and the command it would run. */
 const DryRun = Schema.Struct({
@@ -75,6 +78,11 @@ class UnknownWorkspace extends Schema.TaggedError<UnknownWorkspace>()('UnknownWo
   message: Schema.String,
 }) {}
 
+/** A workspace whose `test` script weakens its tests: its time would not be its tests' at full strength. */
+class WeakenedTests extends Schema.TaggedError<WeakenedTests>()('WeakenedTests', {
+  message: Schema.String,
+}) {}
+
 /** A run whose own turbo left no summary this can read: no path printed, or a file that does not decode or names no `<ws>#test`. */
 class SummaryUnreadable extends Schema.TaggedError<SummaryUnreadable>()('SummaryUnreadable', {
   message: Schema.String,
@@ -83,7 +91,7 @@ class SummaryUnreadable extends Schema.TaggedError<SummaryUnreadable>()('Summary
 /** turbo's line naming the summary it wrote: `Summary:    <root>/.turbo/runs/<id>.json`. */
 const SUMMARY_LINE = /^Summary:\s+(\S.*\.json)\s*$/;
 
-/** The workspaces `bun run test` runs a `test` in, by turbo's own dry run. */
+/** The workspaces `bun run test` runs a `test` in, by turbo's own dry run: each name and the command its `test` runs. */
 const workspacesOfTest = (root: string) =>
   Effect.flatMap(ChildProcessSpawner, (spawner) =>
     spawner.string(
@@ -99,8 +107,8 @@ const workspacesOfTest = (root: string) =>
         .filter(
           (task) => task.taskId === `${task.package}#test` && task.command !== '<NONEXISTENT>',
         )
-        .map((task) => task.package)
-        .toSorted(),
+        .map((task) => ({ name: task.package, command: task.command }))
+        .toSorted((a, b) => a.name.localeCompare(b.name)),
     ),
   );
 
@@ -194,6 +202,15 @@ const measure = (root: string, name: string) =>
     };
   });
 
+/** A refusal: its words on stderr, and the run fails. */
+const refuse = (message: string) =>
+  Effect.andThen(
+    Console.error(message),
+    Effect.sync(() => {
+      process.exitCode = 1;
+    }),
+  );
+
 const command = Command.make(
   'test-budget',
   {
@@ -209,7 +226,8 @@ const command = Command.make(
       const path = yield* Path.Path;
       // packages/scripts/src → the repo root.
       const root = path.resolve(import.meta.dir, '..', '..', '..');
-      const known = yield* workspacesOfTest(root);
+      const tests = yield* workspacesOfTest(root);
+      const known = tests.map((test) => test.name);
       const unknown = names.filter((name) => !known.includes(name));
       if (unknown.length > 0)
         return yield* UnknownWorkspace.make({
@@ -219,6 +237,14 @@ const command = Command.make(
         onEmpty: () => known,
         onNonEmpty: (given) => Arr.dedupe(given),
       });
+      // A weakened suite fits the budget by running less, so none is measured.
+      const weakened = tests
+        .filter((test) => chosen.includes(test.name))
+        .flatMap((test) => weakeningFlags(test.command).map((why) => `${test.name}: ${why}`));
+      if (weakened.length > 0)
+        return yield* WeakenedTests.make({
+          message: `test:budget: nothing is measured; a workspace's test script weakens its tests:\n${weakened.join('\n')}`,
+        });
       // The machine's load before the run: what else was running, not the run's own.
       const [one = 0, five = 0] = loadavg();
       const workspaces = yield* Effect.forEach(chosen, (name) => measure(root, name));
@@ -229,14 +255,10 @@ const command = Command.make(
         process.exitCode = judged.code;
       });
     }).pipe(
-      Effect.catchTag('UnknownWorkspace', (error) =>
-        Effect.andThen(
-          Console.error(error.message),
-          Effect.sync(() => {
-            process.exitCode = 1;
-          }),
-        ),
-      ),
+      Effect.catchTags({
+        UnknownWorkspace: (error) => refuse(error.message),
+        WeakenedTests: (error) => refuse(error.message),
+      }),
     ),
 ).pipe(Command.withDescription("Measure each workspace's tests alone against the 10 s budget"));
 
