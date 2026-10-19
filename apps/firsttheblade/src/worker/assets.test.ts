@@ -18,4 +18,8 @@ describe('the files a path names', () => {
   test('a file path names itself', () => {
     expect(candidates('/assets/client-abc12345.css')).toEqual(['/assets/client-abc12345.css']);
   });
+
+  test('a file whose type the Mime table does not know still names itself', () => {
+    expect(candidates('/favicon.ico')).toEqual(['/favicon.ico']);
+  });
 });

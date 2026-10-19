@@ -19,10 +19,19 @@ export interface AssetsService {
 
 export class Assets extends Context.Service<Assets, AssetsService>()('firsttheblade/Assets') {}
 
+/** A path whose last segment has an extension names a file, whatever its type. */
+const FILE = /\.[^/.]+$/;
+
+/** A file's type: the Mime table's, and the icon's, which the table does not know (as Cloudflare's asset layer serves it). */
+const contentTypeOf = (file: string) => {
+  if (file.endsWith('.ico')) return 'image/x-icon';
+  return Option.getOrElse(Mime.getType(file), () => 'application/octet-stream');
+};
+
 /** The files a path may name, in the order the asset layer tries them. */
 export const candidates = (pathname: string): ReadonlyArray<string> => {
   if (pathname.endsWith('/')) return [`${pathname}index.html`];
-  if (Option.isSome(Mime.getType(pathname))) return [pathname];
+  if (FILE.test(pathname)) return [pathname];
   return [`${pathname}.html`, `${pathname}/index.html`];
 };
 
@@ -42,7 +51,7 @@ export const layerDirectory = (root: string) =>
         fs.readFile(path.join(base, file)).pipe(
           Effect.map((bytes) =>
             HttpServerResponse.uint8Array(bytes, {
-              contentType: Option.getOrElse(Mime.getType(file), () => 'application/octet-stream'),
+              contentType: contentTypeOf(file),
             }),
           ),
           Effect.option,

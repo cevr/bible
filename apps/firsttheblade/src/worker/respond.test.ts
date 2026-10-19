@@ -11,7 +11,7 @@ const FILES = new Map<string, readonly [string, string]>([
   ['/about', ['<h1>about</h1>', 'text/html; charset=utf-8']],
   ['/404', ['<h1>Page not found</h1>', 'text/html; charset=utf-8']],
   ['/assets/client-abc12345.css', ['body{}', 'text/css']],
-  ['/favicon.svg', ['<svg/>', 'image/svg+xml']],
+  ['/favicon.ico', ['ico', 'image/x-icon']],
 ]);
 
 const AssetsTest = Layer.succeed(
@@ -50,7 +50,7 @@ describe('the Worker policy', () => {
     Effect.gen(function* () {
       const asset = yield* get('/assets/client-abc12345.css');
       expect(header(asset, 'cache-control')).toBe(CACHE.immutable);
-      const icon = yield* get('/favicon.svg');
+      const icon = yield* get('/favicon.ico');
       expect(header(icon, 'cache-control')).toBe(CACHE.day);
     }));
 
