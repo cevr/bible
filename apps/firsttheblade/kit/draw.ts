@@ -60,7 +60,11 @@ const field = (position: string) =>
 const frame = (width: number, height: number, inner: string) =>
   `<div style="position:relative;width:${width}px;height:${height}px;overflow:hidden">${inner}</div>`;
 
-/** The avatar: the painting on the ink, a touch larger than the square so YouTube's circle crops its ring. */
+/**
+ * The avatar: the painting on the ink at 116% of the square, as round 4 drew
+ * it. YouTube's circle crop meets the painted ring at the sides; at the top
+ * and bottom a hairline of the painting's cream shows inside the crop.
+ */
 const avatar = (size: number) =>
   frame(
     size,
@@ -247,19 +251,31 @@ const kit = Effect.gen(function* () {
     yield* draw(browser, seriesCard(series), `${PUBLIC}/og/${series.id}.jpg`, OG, 'jpeg');
   }
 
+  // The manifest's icons and the favicon are the disc on nothing, so a dark
+  // tab strip or launcher shows no square; iOS fills a clear corner black, so
+  // its touch icon is the avatar's square.
   for (const [file, size] of [
     ['icon-512.png', 512],
     ['icon-192.png', 192],
-    ['apple-touch-icon.png', 180],
   ] as const) {
-    yield* draw(browser, avatar(size), `${PUBLIC}/${file}`, { width: size, height: size });
+    yield* draw(
+      browser,
+      disc(size),
+      `${PUBLIC}/${file}`,
+      { width: size, height: size },
+      'transparent',
+    );
   }
+  yield* draw(browser, avatar(180), `${PUBLIC}/apple-touch-icon.png`, { width: 180, height: 180 });
   const icons = [];
   for (const size of [16, 32, 48]) {
-    const png = yield* draw(browser, avatar(size), `${WORK}/favicon-${size}.png`, {
-      width: size,
-      height: size,
-    });
+    const png = yield* draw(
+      browser,
+      disc(size),
+      `${WORK}/favicon-${size}.png`,
+      { width: size, height: size },
+      'transparent',
+    );
     icons.push({ size, png });
   }
   const favicon = ico(icons);
