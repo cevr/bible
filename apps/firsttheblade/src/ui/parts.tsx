@@ -8,7 +8,7 @@ import type { JSX } from '@solidjs/web';
 
 import { MARK_4_27, type Series, type Verse } from '../content.ts';
 import { CHANNEL } from '../site.ts';
-import { EMBLEMS, FIELD, MARK, NIGHT, srcset } from './art.ts';
+import { EMBLEMS, FIELD, MARK, NIGHT } from './art.ts';
 import { FOOTER_NAV_ID, NAV, SUBSCRIBE } from './nav.ts';
 
 export const seriesHref = (series: Series) => `/series/${series.slug}`;
@@ -46,8 +46,8 @@ interface FieldArtProps {
 const FieldArt = (props: FieldArtProps) => (
   <img
     class="field-art"
-    src={FIELD.small}
-    srcset={srcset(FIELD)}
+    src={FIELD.src}
+    srcset={FIELD.srcset}
     sizes={props.sizes}
     alt=""
     width="1536"
@@ -135,8 +135,8 @@ export const NightClose = () => (
   <section class="night" aria-labelledby="night-title">
     <img
       class="night-art"
-      src={NIGHT.small}
-      srcset={srcset(NIGHT)}
+      src={NIGHT.src}
+      srcset={NIGHT.srcset}
       sizes="(min-width: 65rem) 100vw, 65rem"
       alt=""
       width="1536"

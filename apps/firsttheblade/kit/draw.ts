@@ -8,8 +8,10 @@
  * - The site's link cards and icons, into `public/`: a card per page
  *   (`og/<page>.jpg`, 1200 × 630), the app icons and `favicon.ico`.
  *
- * The paintings are brand round 4's (`kit/art/` at full size; the emblems
- * from `src/art/`); the colours are `src/palette.ts`.
+ * The YouTube kit's paintings are brand round 4's (`kit/art/` at full size).
+ * The link cards show the site's own hero, round 5's repaint of the field
+ * (`src/art/field-3072.webp`), so a shared link looks like the page it opens;
+ * the emblems are from `src/art/`. The colours are `src/palette.ts`.
  */
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { chromium, type Browser } from '@playwright/test';
@@ -54,8 +56,13 @@ const lockup = (px: number) =>
 const strip = (inner: string, padding: string) =>
   `<div style="display:inline-block;background:${PALETTE.strip};clip-path:${TORN};padding:${padding}">${inner}</div>`;
 
-const field = (position: string) =>
-  `<div style="position:absolute;inset:0;background:url(${kitArt('field.webp')}) ${position}/cover"></div>`;
+/** The field as YouTube set 6 was picked with it: round 4's painting. */
+const YOUTUBE_FIELD = kitArt('field.webp');
+/** The field as the site's hero shows it. */
+const SITE_FIELD = url(`${APP}/src/art/field-3072.webp`);
+
+const field = (art: string, position: string) =>
+  `<div style="position:absolute;inset:0;background:url(${art}) ${position}/cover"></div>`;
 
 const frame = (width: number, height: number, inner: string) =>
   `<div style="position:relative;width:${width}px;height:${height}px;overflow:hidden">${inner}</div>`;
@@ -160,7 +167,7 @@ const DESKTOP = { y: 508.5, height: 423 } as const;
 const banner = frame(
   2560,
   1440,
-  `${field('50% 58%')}<div style="position:absolute;left:50%;top:720px;transform:translate(-50%,-50%) rotate(-1deg)">${strip(lockup(110), '40px 80px')}</div>`,
+  `${field(YOUTUBE_FIELD, '50% 58%')}<div style="position:absolute;left:50%;top:720px;transform:translate(-50%,-50%) rotate(-1deg)">${strip(lockup(110), '40px 80px')}</div>`,
 );
 
 /** What a TV, a computer and a phone show of the banner. */
@@ -208,14 +215,14 @@ const OG = { width: 1200, height: 630 } as const;
 const homeCard = frame(
   OG.width,
   OG.height,
-  `${field('50% 58%')}<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-1deg)">${strip(lockup(64), '30px 54px')}</div>`,
+  `${field(SITE_FIELD, '50% 58%')}<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-1deg)">${strip(lockup(64), '30px 54px')}</div>`,
 );
 
 const seriesCard = (series: Series) =>
   frame(
     OG.width,
     OG.height,
-    `${field('50% 58%')}<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-1deg)">${strip(
+    `${field(SITE_FIELD, '50% 58%')}<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-1deg)">${strip(
       `<div style="display:flex;align-items:center;gap:32px"><img src="${emblem(series.id)}" width="132" height="132" alt=""><div><div style="font:500 17px Newsreader;letter-spacing:.16em;text-transform:uppercase;color:${PALETTE.accent};white-space:nowrap">${series.subject} · ${series.form}</div><div style="margin-top:6px;font:500 64px/1.05 Newsreader;font-variation-settings:'opsz' 72;letter-spacing:-.015em;color:${PALETTE.ink};white-space:nowrap">${series.name}</div><div style="margin-top:14px">${lockup(26)}</div></div></div>`,
       '34px 56px',
     )}</div>`,

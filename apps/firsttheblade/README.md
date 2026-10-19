@@ -70,7 +70,8 @@ read” (the morning field, the series on torn paper, a dusk band, the night
 close with Mark 4:27), and palette 09, “Morning under a blue sky”, from Sanzo
 Wada's combination no. 294. The colours have one source, `src/palette.ts`;
 the stylesheet's `--color-*` tokens repeat them, and the tests hold the two
-together.
+together. Round 5 (2026-10-19) sharpened two pieces: the hero is a repaint
+of the field at 3072 px, and the dusk band blends in oklab.
 
 ```bash
 bun run contrast   # every built page at 390 and 1440 px, and each link under the pointer, against WCAG AA (build first)
@@ -82,11 +83,14 @@ build, and so does CI's gate job, in the runner's Google Chrome.
 
 ## The art and the fonts
 
-The field, the night and the mark (`src/art/`, and `kit/art/` at full size)
-are brand round 4's paintings; the series emblems are round 3's, in the same
-colours. The thumbnails' paintings (`kit/art/robe.webp`, `kit/art/court.webp`)
-are from Righteousness by Faith. The link cards and icons in `public/` are drawn
-from them by `bun run kit`.
+The site's field (`src/art/field-*.webp`, 768 to 3072 px) is brand round 5's
+repaint of round 4's field. The night and the mark (`src/art/`, and `kit/art/`
+at full size) are round 4's paintings, and the YouTube kit keeps round 4's
+field (`kit/art/field.webp`), as YouTube set 6 was picked with it. The series
+emblems are round 3's, in the same colours. The thumbnails' paintings
+(`kit/art/robe.webp`, `kit/art/court.webp`) are from Righteousness by Faith.
+`bun run kit` draws the link cards in `public/og/` from the site's field, and
+the icons from the mark.
 
 Newsreader (`src/fonts/`) is under the SIL Open Font License 1.1, subset to
 Latin and Latin Extended and served from this site.
