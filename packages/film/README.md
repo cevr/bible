@@ -3948,9 +3948,8 @@ starts, the core count less the one-minute load, at least two and at most the
 cores (`src/lab/fixtures/workers.ts`), and prints the count it took. Each
 worker keeps its module registry and Chrome across files. Test files restore
 the global state they change. E2E cases retain native input, actual browser
-recording and pixel assertions. The gate does not run it; CI runs it in its
-own `e2e` job beside the gate (`.github/workflows/gate.yml`), over the
-runner's Google Chrome named by `BUN_CHROME_PATH`. The fake server answers
+recording and pixel assertions. Neither the gate nor CI runs it: a unit runs
+it by hand, through `test:e2e:check`, when its change touches the pages. The fake server answers
 only paths `LabHttpApi` declares (`declares`, `core/api.ts`): a fake matching
 any other path answers a 500 naming it, so no case passes over a route the
 real server does not serve.
@@ -3994,8 +3993,7 @@ exit that is not 0 after bun passed the case is the runner's, not the case's.
   file.
 
 The base (`--base`) is a log of the suite on the change's base: an earlier
-check's `<log>`, a plain `bun run test:e2e` log, or CI's
-`gh run view <id> --log-failed`. A check also writes `<log>.verdict.json`,
+check's `<log>`, or a plain `bun run test:e2e` log. A check also writes `<log>.verdict.json`,
 its reruns as data, and a later check given that `<log>` as its base reads it
 from beside the log. So to resolve a failure red alone at the head, run the
 check at the base and pass its log. The check exits 1 when a failure is

@@ -63,4 +63,4 @@ An atom is read on the server in one of three ways, by what it is:
 fixture pages in `test/ssr`. The hook tests mount under a real
 `RegistryProvider` through `createComponent`, with no JSX. `bun run test:ssr`
 hydrates the server's markup in Playwright's Chromium and checks for no
-mismatch; CI runs it in the gate workflow's browser job.
+mismatch; a unit runs it by hand, outside the gate and CI.

@@ -3,9 +3,9 @@
 # package's own `gate` script where it has one (firsttheblade's built pages'
 # contrast, in the runner's Google Chrome). CI keeps no turbo
 # cache, so every task runs. The hooks run only the staged-file lint and
-# format. The browser tests (the film's and @bible/ui's) run in the `e2e` job
-# beside it. `bun run ci <commit>` waits for this workflow's run on a commit on
-# main and prints its verdict.
+# format. CI runs the gate alone (owner, 2026-10-19: "gate only"): the browser
+# tests (the film's e2e, @bible/ui's, atom-solid's hydration, egw-search's
+# page) are tools a unit runs by hand, and no agent reads this workflow's runs.
 
 name: gate
 
@@ -75,60 +75,3 @@ jobs:
         run: echo "BIBLE_MODEL_CACHE=$HOME/.cache/bible-models" >> "$GITHUB_ENV"
 
       - run: bun run gate
-
-  # The browser tests, in two jobs beside the gate, so each runs well inside
-  # its time limit. `e2e` is the film's (`bun run test:e2e`: the lab, review
-  # and player pages over Chrome through Bun.WebView); the runner image
-  # carries Google Chrome, named to Bun by BUN_CHROME_PATH
-  # (packages/film/src/tools/chrome.ts). `browser` is, in Playwright's
-  # Chromium, @bible/ui's parts (`test:browser`), @bible/atom-solid's
-  # server-rendered page hydrating (`test:ssr`) and egw-search's page over its
-  # fixture server (`test:browser`, which builds the page first); Playwright
-  # installs its Chromium once for the three packages, which pin one
-  # Playwright version.
-  e2e:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: package.json
-      - uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - name: Point Bun at the runner's Chrome
-        run: echo "BUN_CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
-      - run: bun run test:e2e
-
-  browser:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: package.json
-      - uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - name: Point Bun at the runner's Chrome
-        run: echo "BUN_CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
-      - name: Install Playwright's Chromium
-        working-directory: packages/ui
-        run: bunx playwright install --with-deps chromium
-      - name: '@bible/ui browser tests'
-        working-directory: packages/ui
-        run: bun run test:browser
-      - name: '@bible/atom-solid hydration test'
-        working-directory: packages/atom-solid
-        run: bun run test:ssr
-      - name: 'egw-search browser tests'
-        working-directory: apps/egw-search
-        run: bun run test:browser
