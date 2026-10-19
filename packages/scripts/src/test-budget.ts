@@ -12,9 +12,11 @@
 //
 // A run reads only the summary its own turbo names on its `Summary:` line,
 // and removes only that file: another run's summary in the same
-// `.turbo/runs` is never read or removed. When turbo exits 0 and names no
-// summary, or one that does not decode or names no `<ws>#test`, the run stops
-// and removes nothing.
+// `.turbo/runs` is never read or removed. When turbo names no summary, more
+// than one, one outside `.turbo/runs`, or one that does not decode or names no
+// `<ws>#test`, the workspace has no time, at any exit code: nothing is
+// measured or removed, its line names its exit code and no time, and the run
+// fails.
 //
 // Local only, like `test:perf`: CI's runners are smaller and shared, so a
 // wall-clock budget there would fail on the runner, not on the code. In CI
@@ -36,7 +38,6 @@ import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import {
   Array as Arr,
-  Clock,
   Console,
   Effect,
   FileSystem,
@@ -145,7 +146,6 @@ const measure = (root: string, name: string) =>
     const path = yield* Path.Path;
     const spawner = yield* ChildProcessSpawner;
     yield* Console.log(`\ntest:budget: ${name} alone`);
-    const started = yield* Clock.currentTimeMillis;
     // turbo's output is passed on line by line, and its `Summary:` line kept:
     // the path of the one summary this run wrote.
     const [exitCode, printed] = yield* Effect.scoped(
@@ -179,19 +179,19 @@ const measure = (root: string, name: string) =>
           ),
       ),
     );
-    const wall = (yield* Clock.currentTimeMillis) - started;
     const own = yield* Effect.result(ownSummary(path.join(root, '.turbo', 'runs'), name, printed));
     // Only the summary this run read is removed; `force` lets one another hand removed first pass.
     if (Result.isSuccess(own)) yield* fs.remove(own.success.file, { force: true });
-    // A run that failed is named for its exit code, and timed by its wall when its summary does not read.
-    if (exitCode !== 0)
-      return {
-        name,
-        ms: Result.match(own, { onSuccess: (summary) => summary.ms, onFailure: () => wall }),
-        exitCode: Number(exitCode),
-      };
-    if (Result.isFailure(own)) return yield* own.failure;
-    return { name, ms: own.success.ms, exitCode: 0 };
+    // At any exit, a workspace whose own summary did not read has no time: the judge names its exit and fails the run.
+    if (Result.isFailure(own)) yield* Console.error(own.failure.message);
+    return {
+      name,
+      ms: Result.match(own, {
+        onSuccess: (summary) => Option.some(summary.ms),
+        onFailure: () => Option.none<number>(),
+      }),
+      exitCode: Number(exitCode),
+    };
   });
 
 const command = Command.make(
@@ -229,7 +229,7 @@ const command = Command.make(
         process.exitCode = judged.code;
       });
     }).pipe(
-      Effect.catchTag(['UnknownWorkspace', 'SummaryUnreadable'], (error) =>
+      Effect.catchTag('UnknownWorkspace', (error) =>
         Effect.andThen(
           Console.error(error.message),
           Effect.sync(() => {

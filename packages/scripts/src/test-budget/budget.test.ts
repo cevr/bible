@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { Option } from 'effect';
 import { judge } from './budget.js';
 
 const quiet = { one: 3.2, five: 2.8 };
@@ -9,8 +10,8 @@ describe("the tests' time budget, each workspace alone", () => {
   test('workspaces each under budget pass, printing each time with the load and the cores', () => {
     const judged = judge({
       workspaces: [
-        { name: '@bible/core', ms: 4_200, exitCode: 0 },
-        { name: '@bible/film', ms: 6_100, exitCode: 0 },
+        { name: '@bible/core', ms: Option.some(4_200), exitCode: 0 },
+        { name: '@bible/film', ms: Option.some(6_100), exitCode: 0 },
       ],
       load: quiet,
       cores,
@@ -29,8 +30,8 @@ describe("the tests' time budget, each workspace alone", () => {
     for (const load of [quiet, { one: cores, five: cores }]) {
       const judged = judge({
         workspaces: [
-          { name: '@bible/core', ms: 4_200, exitCode: 0 },
-          { name: '@bible/film', ms: 12_300, exitCode: 0 },
+          { name: '@bible/core', ms: Option.some(4_200), exitCode: 0 },
+          { name: '@bible/film', ms: Option.some(12_300), exitCode: 0 },
         ],
         load,
         cores,
@@ -43,8 +44,8 @@ describe("the tests' time budget, each workspace alone", () => {
   test('a workspace at exactly 10,000 ms is over budget: the budget is under 10 s', () => {
     const judged = judge({
       workspaces: [
-        { name: '@bible/core', ms: 9_999, exitCode: 0 },
-        { name: '@bible/film', ms: 10_000, exitCode: 0 },
+        { name: '@bible/core', ms: Option.some(9_999), exitCode: 0 },
+        { name: '@bible/film', ms: Option.some(10_000), exitCode: 0 },
       ],
       load: quiet,
       cores,
@@ -56,9 +57,9 @@ describe("the tests' time budget, each workspace alone", () => {
   test('workspaces whose times sum past the budget, each under it, pass: the run states no total', () => {
     const judged = judge({
       workspaces: [
-        { name: '@bible/core', ms: 6_000, exitCode: 0 },
-        { name: '@bible/film', ms: 9_400, exitCode: 0 },
-        { name: '@bible/scripts', ms: 8_800, exitCode: 0 },
+        { name: '@bible/core', ms: Option.some(6_000), exitCode: 0 },
+        { name: '@bible/film', ms: Option.some(9_400), exitCode: 0 },
+        { name: '@bible/scripts', ms: Option.some(8_800), exitCode: 0 },
       ],
       load: quiet,
       cores,
@@ -71,7 +72,7 @@ describe("the tests' time budget, each workspace alone", () => {
   test('a machine busier than its cores measures nothing: the run says so and passes, over budget or not', () => {
     for (const ms of [4_200, 14_000]) {
       const judged = judge({
-        workspaces: [{ name: '@bible/film', ms, exitCode: 0 }],
+        workspaces: [{ name: '@bible/film', ms: Option.some(ms), exitCode: 0 }],
         load: busy,
         cores,
       });
@@ -85,7 +86,7 @@ describe("the tests' time budget, each workspace alone", () => {
 
   test('a lull in a busy period measures nothing: the 5-minute average above the cores holds the run', () => {
     const judged = judge({
-      workspaces: [{ name: '@bible/film', ms: 11_300, exitCode: 0 }],
+      workspaces: [{ name: '@bible/film', ms: Option.some(11_300), exitCode: 0 }],
       load: { one: 4.9, five: 19.1 },
       cores,
     });
@@ -100,14 +101,38 @@ describe("the tests' time budget, each workspace alone", () => {
     for (const load of [quiet, busy]) {
       const judged = judge({
         workspaces: [
-          { name: '@bible/core', ms: 4_200, exitCode: 0 },
-          { name: '@bible/cli', ms: 2_400, exitCode: 1 },
+          { name: '@bible/core', ms: Option.some(4_200), exitCode: 0 },
+          { name: '@bible/cli', ms: Option.some(2_400), exitCode: 1 },
         ],
         load,
         cores,
       });
       expect(judged.code).toBe(1);
       expect(judged.failure).toEqual(['test:budget: tests failed: @bible/cli (exit 1).']);
+    }
+  });
+
+  test('a workspace with no time fails the run at any load, its line naming its exit code and no time', () => {
+    for (const load of [quiet, busy]) {
+      for (const exitCode of [0, 1]) {
+        const judged = judge({
+          workspaces: [
+            { name: '@bible/core', ms: Option.some(4_200), exitCode: 0 },
+            { name: '@bible/cli', ms: Option.none(), exitCode },
+          ],
+          load,
+          cores,
+        });
+        expect(judged.code).toBe(1);
+        expect(judged.report.slice(2, 4)).toEqual([
+          '    4.2 s  @bible/core',
+          `  no time  @bible/cli: exit ${exitCode}, its own summary did not read`,
+        ]);
+        expect(judged.failure.at(-1)).toBe(
+          'test:budget: no time measured: @bible/cli; its own summary did not read.',
+        );
+        expect(judged.report.join('\n')).not.toMatch(/\d\.\d s {2}@bible\/cli/);
+      }
     }
   });
 });
