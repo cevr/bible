@@ -10,7 +10,9 @@
 //
 // Its inputs are props (`CodeView`): the scene's code, its clock at the
 // playhead, why it is unlit, a seek. `StudioCode` gives them from the
-// studio's context, for the inspector's Code section; the text is painted
+// studio's context, in two places: the inspector's Code section (the
+// selected beat's scene) and the Script pane (`ScriptPane`, the beat at the
+// playhead's, the next beat's as the playhead crosses into it). The text is painted
 // through the page's highlights (`browser/highlights.ts`), so it stays
 // selectable and copyable. Every state is a pure function of the playhead,
 // so a link with `#t=` lights what its sender saw.
@@ -25,6 +27,7 @@ import type { ClockReads, Film } from '../../canvas/film.ts';
 import { type Placed, sceneClock, sceneOf } from '../../core/layout.ts';
 import type { CodeRange, SceneCode } from '../../core/schema.ts';
 import { LabApi } from '../api.ts';
+import { hubKeys } from '../command/changes.ts';
 import { pressed } from '../pressed.ts';
 import { type FollowClock, useFollow } from '../follow.ts';
 import { usePainted } from '../transcript/words.ts';
@@ -43,7 +46,8 @@ import {
 } from './code-lit.ts';
 import { useStudio } from './context.tsx';
 import { CODE_CSS } from './style.ts';
-import { timecode } from './view-state.ts';
+import { StudioIcon } from './icons.tsx';
+import { hasScene, timecode } from './view-state.ts';
 import { PlaceStyle } from '../place-style.tsx';
 
 /**
@@ -455,5 +459,74 @@ export const StudioCode = (props: { readonly scene: string; readonly lit: Access
         />
       )}
     </Show>
+  );
+};
+
+/**
+ * The Script pane: the code view of the beat at the playhead, in the
+ * inspector's column while no selection's inspector covers it. It shows the
+ * next beat's scene as the playhead crosses into it, and follows the line
+ * the frame reads.
+ */
+export const ScriptPane = () => {
+  const { state, actions, meta } = useStudio();
+  const keys = hubKeys(meta.hub);
+  // The beat at the playhead's scene, when the version draws one for it.
+  const scene = createMemo(() =>
+    Option.getOrUndefined(
+      Option.flatMap(state.current(), (beat) =>
+        Option.liftPredicate(beat.beat, (id) =>
+          Option.exists(state.timeline(), (t) => hasScene(t, id)),
+        ),
+      ),
+    ),
+  );
+  return (
+    <section class="st-pane st-script" aria-label="Script" data-pane="script">
+      <div class="st-pane-head">
+        <div class="st-ttl">
+          <h2>Script</h2>
+          <span class="st-sub">
+            {Option.getOrElse(
+              Option.map(
+                state.current(),
+                (beat) =>
+                  `${beat.beat} · ${timecode(beat.start)} – ${timecode(beat.start + beat.dur)}`,
+              ),
+              () => 'no beat at the playhead',
+            )}
+          </span>
+        </div>
+        <button
+          type="button"
+          class="st-close"
+          data-act="close-script"
+          aria-label="Close the Script pane"
+          title={keys.titled('Close the Script pane', 'studio.script')}
+          onClick={() => actions.pane(false)}
+        >
+          <StudioIcon of="close" />
+        </button>
+      </div>
+      <Show
+        when={scene()}
+        keyed
+        fallback={
+          <p class="st-line" role="status">
+            {Bool.match(Option.isSome(state.current()), {
+              onTrue: () => 'This beat draws no scene.',
+              onFalse: () => 'No beat at the playhead.',
+            })}
+          </p>
+        }
+      >
+        {(id: string) => (
+          <StudioCode
+            scene={id}
+            lit={() => Option.exists(state.current(), (beat) => beat.beat === id)}
+          />
+        )}
+      </Show>
+    </section>
   );
 };

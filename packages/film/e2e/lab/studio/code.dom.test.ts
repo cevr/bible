@@ -2,8 +2,14 @@
 // phone (390 × 844): the inspector's Code section shows scene one's file lit
 // by the playhead while it is in the beat (the playing cue's literal and the
 // read that fires, a meter under its line, the band naming it), unlit once it
-// leaves; a tap on a line puts the playhead where the line next plays, and
-// selects nothing. Every wait is on what the page shows, never on time.
+// leaves, and unlit on a version kept in its own folder; a tap on a line puts
+// the playhead where the line next plays, and selects nothing. The Script
+// pane: closed at rest, S opens it on the beat at the playhead, Play lights a
+// line and the view follows it, a scrub lights the frame's lines, a tap on a
+// line seeks, a selection's inspector covers it and Escape shows it again,
+// Escape and S close it, `?pane=script` holds it through Back, and on a
+// phone a tap on the reading block's head opens it. Every wait is on what
+// the page shows, never on time.
 
 import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -17,9 +23,11 @@ import {
   route,
 } from '../../../src/lab/fixtures/harness.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
+import { probeTimeline } from '../../../src/lab/fixtures/probe-timeline.ts';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import {
   attributeIs,
+  countIs,
   evaluates,
   textIs,
   until,
@@ -44,6 +52,8 @@ const TEXT = [
   '  },',
   '  draw: (f) => {',
   "    const lift = f.at('rise');",
+  // Lines between the two reads, so the view scrolls to follow the second.
+  ...Array.from({ length: 40 }, (_, n) => `    // the draw's line ${n + 1}`),
   "    const drop = f.at('fall');",
   '    f.ctx.arc(320, 100 - 80 * lift + 80 * drop, 24, 0, 7);',
   "    f.mark('rise'); f.mark('fall');",
@@ -114,6 +124,71 @@ const MARKS_NUMBER = `${CODE_SECTION} .st-code-line[data-line="${MARKS_LINE}"] .
 /** The text of rise's read, in the Code section. */
 const RISE_TEXT = `${CODE_SECTION} .st-code-line[data-line="${RISE_READ_LINE}"] .st-code-t`;
 
+/** The Script pane. */
+const PANE = '.st-script';
+
+/** The address's `?pane=`: `closed` when it has none. */
+const PANE_Q = `new URLSearchParams(location.search).get('pane') ?? 'closed'`;
+
+const PLAY = '.st-key[data-act="play.toggle"]';
+
+/** Whether the transport's timecode text stands inside its box (within a pixel's rounding), none of it under the keys beside it. */
+const TC_FITS = `(() => {
+  const tc = document.querySelector('.st-tc');
+  const text = document.createRange();
+  text.selectNodeContents(tc);
+  return text.getBoundingClientRect().right <= tc.getBoundingClientRect().right + 1;
+})()`;
+
+/** Whether line `n` of the pane's code stands whole in its box, and the box is scrolled `scrolled` (down from its top, or not). */
+const inView = (n: number, scrolled: boolean) => `(() => {
+  const box = document.querySelector('${PANE} .st-code-scroll');
+  const row = box?.querySelector('[data-line="${n}"]');
+  if (!box || !row) return false;
+  const b = box.getBoundingClientRect();
+  const r = row.getBoundingClientRect();
+  return r.top >= b.top && r.bottom <= b.bottom && (box.scrollTop > 0) === ${scrolled};
+})()`;
+
+/**
+ * The probe's v1, kept in its own folder, with the open version's scenes lane:
+ * a past version whose beats have scenes, which no staged film draws.
+ */
+const FOLDER_WITH_SCENES = {
+  ...probeTimeline(1),
+  lanes: [
+    ...probeTimeline(1).lanes,
+    ...probeTimeline(2).lanes.filter((lane) => lane.track === 'scenes'),
+  ],
+};
+
+/** Scene one's file read at its route. */
+const ROUTES = [route('GET', /^\/scenes\/one\/code$/, () => json(CODE))];
+
+/** The studio at `T` with nothing selected, the Script pane open or not, its timeline drawn. */
+const studioAt = (viewport: Viewport, T: number, pane: 'closed' | 'script' = 'closed') =>
+  openPlayer(
+    { href: pageHref.studio(PROBE, { pane }, Option.some(T)), viewport },
+    '.st-timeline .st-clip',
+    ROUTES,
+  );
+
+/** Script clip `beat`. */
+const clip = (beat: string) => `.st-lane[data-track="script"] .st-clip[data-beat="${beat}"]`;
+
+/** Press on the ruler at film second `from`, drag to `to` and let go: a scrub. */
+const scrub = (page: Tab, from: number, to: number) =>
+  Effect.gen(function* () {
+    const ruler = yield* page.box('.st-ruler');
+    const x = (T: number) => ruler.x + (ruler.width * T) / film.duration;
+    const y = ruler.y + ruler.height / 2;
+    yield* page.mouse.move(x(from), y);
+    yield* page.mouse.down;
+    yield* page.mouse.move((x(from) + x(to)) / 2, y);
+    yield* page.mouse.move(x(to), y);
+    yield* page.mouse.up;
+  });
+
 /** Select the whole text of `selector` on the page, as a drag over it would. */
 const selects = (page: Tab, selector: string) =>
   evaluates(
@@ -167,12 +242,12 @@ const textStands = (selector: string) => `(() => {
 })()`;
 
 /** The studio at `T` with beat one selected and its Code section open, its code read. */
-const codeAt = (viewport: Viewport, T: number) =>
+const codeAt = (viewport: Viewport, T: number, v = 0) =>
   Effect.gen(function* () {
     const open = yield* openPlayer(
-      { href: pageHref.studio(PROBE, { sel: 'beat:one' }, Option.some(T)), viewport },
+      { href: pageHref.studio(PROBE, { v, sel: 'beat:one' }, Option.some(T)), viewport },
       '.st-timeline .st-clip',
-      [route('GET', /^\/scenes\/one\/code$/, () => json(CODE))],
+      [...ROUTES, route('GET', /^\/timeline\?v=1(&|$)/, () => json(FOLDER_WITH_SCENES))],
     );
     yield* open.page.click(`${CODE_SECTION} > summary`);
     yield* waitFor(open.page, `${CODE_SECTION}[open] .st-code-line[data-line="${RISE_LINE}"]`);
@@ -293,4 +368,134 @@ for (const size of SIZES)
         }).pipe(Effect.scoped),
       SLOW,
     );
+
+    it.live(
+      'is unlit on a version kept in its own folder, and says it is lit for the open one',
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* codeAt(size.viewport, middle('rise'), 1);
+          yield* attributeIs(page, `${CODE_SECTION} .st-code`, 'data-lit', 'false');
+          yield* textIs(page, `${CODE_SECTION} .st-code-live`, 'Lit for the open version');
+          yield* evaluates(page, PAINTED, []);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
   });
+
+describe("the studio's Script pane", () => {
+  it.live(
+    'is closed at rest; S opens it on the beat at the playhead, Play lights a line and the view follows it, S closes it',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioAt(DESK, middle('rise'));
+        yield* countIs(page, PANE, 0);
+        yield* page.press('s');
+        yield* attributeIs(page, `${PANE} .st-code`, 'data-lit', 'true');
+        yield* evaluates(page, PANE_Q, 'script');
+        yield* attributeIs(page, '.st-key[data-act="studio.script"]', 'aria-pressed', 'true');
+        yield* textIs(page, `${PANE} .st-code-live`, 'rise');
+        yield* until(page, inView(RISE_READ_LINE, false));
+        // Play: the fall's read begins far down the file, and the view scrolls to it.
+        yield* page.click(PLAY);
+        yield* textIs(page, `${PANE} .st-code-live`, 'fall');
+        yield* until(page, inView(FALL_READ_LINE, true));
+        yield* page.click(PLAY);
+        yield* page.press('s');
+        yield* countIs(page, PANE, 0);
+        yield* evaluates(page, PANE_Q, 'closed');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a scrub lights the frame's lines, and a tap on a line puts the playhead where it next plays",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioAt(DESK, 0.1, 'script');
+        yield* attributeIs(page, `${PANE} .st-code`, 'data-lit', 'true');
+        yield* evaluates(page, PAINTED, []);
+        yield* scrub(page, 0.1, middle('rise'));
+        yield* until(page, `Math.abs(${HASH_T} - ${middle('rise')}) < 0.1`);
+        yield* textIs(page, `${PANE} .st-code-live`, 'rise');
+        yield* evaluates(page, PAINTED, ["f.at('rise')", "rise: { mark: 'rise', dur: 0.6 }"]);
+        // A tap on the fall's read: the playhead goes where it next plays, the view with it.
+        yield* page.click(`${PANE} .st-code-line[data-line="${FALL_READ_LINE}"] .st-code-t`);
+        yield* until(page, `Math.abs(${HASH_T} - ${into(span('fall').start)}) < 0.002`);
+        yield* textIs(page, `${PANE} .st-code-live`, 'fall');
+        yield* until(page, inView(FALL_READ_LINE, true));
+        yield* evaluates(page, `new URLSearchParams(location.search).get('sel') ?? ''`, '');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a selection's inspector covers it and Escape shows it again; Escape closes it, and Back opens it again",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioAt(DESK, middle('rise'), 'script');
+        yield* waitFor(page, `${PANE} .st-code-line[data-line="${RISE_LINE}"]`);
+        yield* page.click(clip('one'));
+        yield* waitFor(page, '.st-pane[data-beat="one"]');
+        yield* countIs(page, PANE, 0);
+        yield* page.press('Escape');
+        yield* waitFor(page, `${PANE} .st-code-line[data-line="${RISE_LINE}"]`);
+        yield* evaluates(page, PANE_Q, 'script');
+        yield* page.press('Escape');
+        yield* countIs(page, PANE, 0);
+        yield* evaluates(page, PANE_Q, 'closed');
+        yield* page.back;
+        yield* waitFor(page, `${PANE} .st-code-line[data-line="${RISE_LINE}"]`);
+        yield* evaluates(page, PANE_Q, 'script');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'under a selection, S shows it and lets the selection go; Back gives the selection back',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* codeAt(DESK, middle('rise'));
+        yield* countIs(page, PANE, 0);
+        yield* page.press('s');
+        yield* attributeIs(page, `${PANE} .st-code`, 'data-lit', 'true');
+        yield* evaluates(page, PANE_Q, 'script');
+        yield* evaluates(page, `new URLSearchParams(location.search).get('sel') ?? ''`, '');
+        yield* attributeIs(page, '.st-key[data-act="studio.script"]', 'aria-pressed', 'true');
+        yield* page.back;
+        yield* waitFor(page, '.st-pane[data-beat="one"]');
+        yield* countIs(page, PANE, 0);
+        yield* attributeIs(page, '.st-key[data-act="studio.script"]', 'aria-pressed', 'false');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "on a phone, a tap on the reading block's head opens it in the block's place; no Script key takes the timecode's room",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioAt(PHONE, middle('rise'));
+        yield* countIs(page, PANE, 0);
+        yield* page.click('.st-reading [data-act="open-script"]');
+        yield* evaluates(
+          page,
+          `getComputedStyle(document.querySelector('.st-key[data-act="studio.script"]')).display`,
+          'none',
+        );
+        yield* evaluates(page, TC_FITS, true);
+        yield* attributeIs(page, `${PANE} .st-code`, 'data-lit', 'true');
+        yield* evaluates(page, PANE_Q, 'script');
+        yield* evaluates(
+          page,
+          `getComputedStyle(document.querySelector('.st-reading')).display`,
+          'none',
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});

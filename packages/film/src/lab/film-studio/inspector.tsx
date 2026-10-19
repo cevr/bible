@@ -81,7 +81,7 @@ import {
   spawnBoardWrites,
   writesLine,
 } from './board-writes.ts';
-import { StudioCode } from './code.tsx';
+import { ScriptPane, StudioCode } from './code.tsx';
 import { useStudio } from './context.tsx';
 import { StudioIcon } from './icons.tsx';
 import { PanelMarkup } from './panel-markup.tsx';
@@ -1144,17 +1144,8 @@ const Pane = (props: {
         </Section>
       </Show>
       <Show
-        when={kept() && hasScene(props.timeline, props.beat.beat)}
-        fallback={
-          <Empty
-            name="Code"
-            kind="scenes"
-            says={Bool.match(hasScene(props.timeline, props.beat.beat), {
-              onTrue: () => PAST,
-              onFalse: () => '–',
-            })}
-          />
-        }
+        when={hasScene(props.timeline, props.beat.beat)}
+        fallback={<Empty name="Code" kind="scenes" />}
       >
         <Section {...section('Code')} kind="scenes" count="read only">
           <StudioCode
@@ -1251,8 +1242,10 @@ const INSPECTOR_STYLES = `${SHELL_CSS}${SCRIPT_READ_CSS}${READER_CSS}${INSPECTOR
 
 /**
  * The inspector: the selected beat's pane, beside the viewer on a laptop
- * and in the reading block's place on a phone; nothing while no beat is
- * selected. The film's notes are read once for it, followed by their feed.
+ * and in the reading block's place on a phone. While no beat is selected it
+ * holds the Script pane when that is open (`ScriptPane`), else nothing: a
+ * selection covers the pane, and closing it shows the pane again. The
+ * film's notes are read once for it, followed by their feed.
  */
 export const Inspector = () => {
   const { state, meta } = useStudio();
@@ -1260,6 +1253,9 @@ export const Inspector = () => {
     <aside class="st-insp" aria-label="Inspector">
       <PlaceStyle css={INSPECTOR_STYLES} />
       <RecordRoom />
+      <Show when={state.pane()}>
+        <ScriptPane />
+      </Show>
       <Show when={Option.isSome(state.selected())}>
         <NotesFeed film={meta.film} runtime={meta.runtime} note={state.note}>
           <WithWrites>

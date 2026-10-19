@@ -1333,6 +1333,9 @@ const still = cited;
  */
 export const SET_VIEWS = ['all', 'pair', 'wipe', 'moments', 'diff', 'notes'] as const;
 
+/** The studio's panes beside the viewer, besides the inspector: none open (`closed`), or the Script pane. */
+const STUDIO_PANES = ['closed', 'script'] as const;
+
 /** A moment's index (`?m=`): a whole number from 0. */
 const MomentIndex = Codec.Int.check(Schema.isGreaterThanOrEqualTo(0));
 
@@ -1462,8 +1465,9 @@ export const Places = {
    * the production's open one), the clip selected (`?sel=beat:<id>`, a step
    * Back walks), the note open in its inspector (`?note=<id>`), the try of
    * the selected panel shown in the viewer (`?try=<n>`; 0: the kept one), the
-   * words of the selected beat's line selected (`?words=<a>-<b>`), and the
-   * playhead on `#t=`, film seconds.
+   * words of the selected beat's line selected (`?words=<a>-<b>`), the
+   * Script pane open (`?pane=script`; closed at rest), and the playhead on
+   * `#t=`, film seconds.
    */
   studio: Place.make({
     path: '/films/:film/studio',
@@ -1474,6 +1478,7 @@ export const Places = {
       note: cited,
       try: Field.key(Codec.Int, { default: 0, history: 'push' }),
       words: cited,
+      pane: Field.key(Codec.literals(STUDIO_PANES), { default: 'closed', history: 'push' }),
     }),
     hash: At,
   }),
@@ -1598,8 +1603,8 @@ export const pageHref = {
   /**
    * A film's studio at version `v` (0: the open one), with `sel` selected,
    * the note `note` open, the selected panel's try `try` shown (0: the kept
-   * one), the selected beat's words `words` selected (`<a>-<b>`), at film
-   * time `t`.
+   * one), the selected beat's words `words` selected (`<a>-<b>`), the pane
+   * `pane` open, at film time `t`.
    */
   studio: (
     film: string,
@@ -1609,18 +1614,20 @@ export const pageHref = {
       note = '',
       try: shown = 0,
       words = '',
+      pane = 'closed',
     }: {
       readonly v?: number;
       readonly sel?: string;
       readonly note?: string;
       readonly try?: number;
       readonly words?: string;
+      readonly pane?: (typeof STUDIO_PANES)[number];
     } = {},
     t: Option.Option<number> = Option.none(),
   ): string =>
     Place.href(Places.studio, {
       path: { film },
-      query: { v, sel, note, try: shown, words },
+      query: { v, sel, note, try: shown, words, pane },
       hash: timeOf(t),
     }),
   /** A film's export page: the render page, staged for the easel's stills. */

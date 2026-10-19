@@ -78,7 +78,7 @@ export interface Budget {
 /** A view's budget: at most `phone` things on a phone, `laptop` on a laptop. */
 export const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
 /** The studio at rest: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
-export const STUDIO_AT_REST = most(31, 54);
+export const STUDIO_AT_REST = most(31, 55);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 export interface State {
@@ -418,7 +418,11 @@ export const STATES: ByPlace<State, AtRest> = {
       // Films link, the studio's way home that every visit that leaves the film takes, and the
       // probe's card panel, a Board clip as a film's narration cards are (CRAFT rule 1), most of an
       // animatic's panels. The Note key is one more on each: the frame's
-      // note is the studio's one way to say what to change, so it stands in the transport.
+      // note is the studio's one way to say what to change, so it stands in the transport. The
+      // Script key is one more on a laptop: the owner chose a key in the transport to open the
+      // Script pane ("opened with a Script key (S)", his answer to the pane's ask). A phone hides
+      // the key, so the timecode keeps its room, and opens the pane from its reading block's
+      // head, which counts already.
       budget: STUDIO_AT_REST,
     },
     {

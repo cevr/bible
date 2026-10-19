@@ -1303,7 +1303,8 @@ Studio (**Studio**, below), which it opens over itself. The player page
 (`studioRender`, `lab/film-studio/server.tsx`). Its query `v` names the version (0
 or none: the production's open one); `sel` names the beat selected
 (`beat:<id>`: `beatSelection`, `selectedBeat` in `core/api.ts`), and a new
-selection is a step Back walks. Its hash `t` is film time.
+selection is a step Back walks; `pane=script` keeps the Script pane open
+(below), a step Back walks too. Its hash `t` is film time.
 
 The page reads its data from `GET /api/films/<film>/timeline[?v=<n>]`
 (`FilmTimeline`, `core/timeline-schema.ts`; **Timeline**, below). A version
@@ -1322,7 +1323,20 @@ timeline full width under them. The inspector's place is one grid template
   `Board · two`).
 - **The transport**: the timecode in Geist Mono (`M:SS.t`, `timecode`),
   five keys (to the start, the previous beat, play, the next beat, to the
-  end), Note on this frame, and the line spoken at the playhead.
+  end), Note on this frame, the line spoken at the playhead, and the Script
+  key at its right end (a laptop's: a phone hides it, so the timecode keeps
+  its room, and opens the pane from its reading block's head).
+- **The Script pane** (S, the Script key; `?pane=script`): closed at rest.
+  Open, it stands in the inspector's column and shows the studio's code view
+  (`code.tsx` `ScriptPane`; the Code section's, below) of the beat at the
+  playhead, the next beat's scene as the playhead crosses into it: the
+  scene's code, lit as the playhead plays it, with the script's line and its
+  marks over it. It follows the line the frame reads by the one Follow rule
+  (`lab/follow.ts`): a reader's scroll takes the box, and Play or Follow
+  gives it back. A selection's inspector covers it, and closing that shows
+  it again; S under a selection shows it, the selection let go, a step Back
+  walks. On a phone the reading block is its closed face: a tap on the
+  block's head, the Script glyph at its end, opens it in the block's place.
 - **The timeline**: a flag strip of the open asks and notes, a ruler that
   scrubs, the act bands, a lane for each stage with material, the Next row
   and the red playhead. Zoom −, Fit and + set its scale; ⇧Z fits the film.
@@ -1331,8 +1345,9 @@ The keys: Space plays or pauses, K pauses, L plays, J or ↑ goes to the
 previous beat, ↓ to the next beat, Home to the start and End to the end.
 ← and → step a frame (⇧ a second). N draws on the frame (below). ⌘Z undoes
 the film's newest change and ⇧⌘Z redoes it (while drawing, they are the
-ink's). Escape lets an edit in hand go (a clip carried, an edge pulled, a
-frame drawn on), else closes the inspector.
+ink's). S shows or closes the Script pane. Escape lets an edit in hand go
+(a clip carried, an edge pulled, a frame drawn on), else closes the
+inspector, else the Script pane.
 
 A click on any clip of a beat selects that beat (`?sel=beat:<id>`), and a
 click on a Board clip selects its panel (`?sel=panel:<beat>.<mark>`:
@@ -1373,14 +1388,16 @@ the owner opens or shuts stays so while the selection stands.
   recorder hidden never ends a take. Close, Escape or a swipe while it holds
   a take only this page has first asks to discard it (Discard, Keep).
 - **Code**: the scene's file read only (`GET …/scenes/<scene>/code`), only
-  when the beat has a scene: the studio's code view (`code.tsx`), a row to a
+  when the beat has a scene: the studio's code view (`code.tsx`, the Script
+  pane's too), a row to a
   line, lit while the playhead is in the beat (`code-lit.ts`): a playing
   cue's literal, a meter under its line, and each call that reads the clock
   while the frame read it and the clock plays it (`Player.hearClock`), its
   line glowing and fading after. The band over the code names the beat and
   what plays. A tap on a line puts the playhead where it next plays
-  (`nextFiring`), and selects nothing. With no staged film the code shows
-  unlit (`Lit for the open version`). A note cannot cite one of its lines.
+  (`nextFiring`), and selects nothing. With no staged film (a version kept
+  in its own folder) the code is the film's as it stands, unlit (`Lit for
+  the open version`). A note cannot cite one of its lines.
 - **Notes and asks**: the beat's open notes, each with its thread and a
   reply (`lab/notes/thread.tsx`), and the open asks at its time, each a link
   to its page. The note open is the address's (`?note=<id>`): a note's link
@@ -1388,10 +1405,9 @@ the owner opens or shuts stays so while the selection stands.
   Choices page remains.
 
 A section with nothing to show is a quiet row with no body: Board on a
-beat with no panel and Code on a beat with no scene (`–`), Words and Code
-on a version kept in its own folder (`not read for past versions`: the
-reader and the scene are the film's as it stands), and Concept (`to
-come`).
+beat with no panel and Code on a beat with no scene (`–`), Words on a
+version kept in its own folder (`not read for past versions`: the reader
+is the film's as it stands), and Concept (`to come`).
 
 A film's script is read in the one words reader (`lab/words/reader.tsx`,
 the film's in `film-script.tsx`): in the studio's inspector (its Words

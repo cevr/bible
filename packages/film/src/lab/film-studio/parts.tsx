@@ -475,9 +475,9 @@ const Viewer = () => {
 const Key = (props: {
   readonly id: string;
   readonly label: string;
-  readonly icon: 'start' | 'back' | 'play' | 'pause' | 'on' | 'end' | 'note';
-  /** Its look: an end key (quieter), a beat key, the play key, or the Note key (apart from the pill). */
-  readonly look: 'edge' | 'step' | 'play' | 'note';
+  readonly icon: 'start' | 'back' | 'play' | 'pause' | 'on' | 'end' | 'note' | 'script';
+  /** Its look: an end key (quieter), a beat key, the play key, the Note key or the Script key (apart from the pill). */
+  readonly look: 'edge' | 'step' | 'play' | 'note' | 'pane';
   /** Whether it is pressed, for a key that toggles. */
   readonly pressed: Option.Option<boolean>;
 }) => {
@@ -499,7 +499,10 @@ const Key = (props: {
   );
 };
 
-/** The transport row: the timecode, the five keys in one pill, the sentence spoken at the playhead. */
+/**
+ * The transport row: the timecode, the five keys in one pill, the Note key,
+ * the sentence spoken at the playhead, and the Script key at its right end.
+ */
 const Transport = () => {
   const { state } = useStudio();
   const duration = () =>
@@ -560,6 +563,13 @@ const Transport = () => {
         pressed={Option.none()}
       />
       <p class="st-caption">{spoken()}</p>
+      <Key
+        id="studio.script"
+        label="Script pane"
+        icon="script"
+        look="pane"
+        pressed={Option.some(state.pane())}
+      />
     </section>
   );
 };
@@ -1377,9 +1387,13 @@ const Timeline = (props: { readonly timeline: FilmTimeline }) => {
 
 // ---------------------------------------------------------------- Phone reading
 
-/** The phone's reading block: the beat at the playhead, its words and what waits; the inspector takes its place. */
+/**
+ * The phone's reading block: the beat at the playhead, its words and what
+ * waits; the inspector takes its place. It is the Script pane's closed face:
+ * a tap on its head opens the pane in its place.
+ */
 const Reading = () => {
-  const { state } = useStudio();
+  const { state, actions } = useStudio();
   return (
     <section class="st-reading" aria-label="Words" aria-live="off">
       <Show when={Option.getOrUndefined(state.timeline())}>
@@ -1392,10 +1406,18 @@ const Reading = () => {
       <Show when={Option.getOrUndefined(state.current())}>
         {(beat) => (
           <>
-            <div class="st-r-head">
+            <button
+              type="button"
+              class="st-r-head"
+              data-act="open-script"
+              aria-label={`${beat().beat}: open the Script pane`}
+              aria-expanded="false"
+              onClick={() => actions.pane(true)}
+            >
               <b>{beat().beat}</b>
               <span>{`${timecode(beat().start)} – ${timecode(beat().start + beat().dur)}`}</span>
-            </div>
+              <StudioIcon of="script" />
+            </button>
             <Show when={Option.getOrUndefined(state.words(beat().beat))}>
               {(words) => (
                 <>
@@ -1446,9 +1468,10 @@ const Status = () => {
 
 /**
  * The studio's one grid (layout C, the owner's pick): the
- * viewer with the inspector beside it, the transport and the timeline full
- * width under them; on a phone the viewer, the transport, the timeline and
- * the reading block, the inspector in the reading block's place.
+ * viewer with the inspector beside it (or the Script pane, which a
+ * selection's inspector covers), the transport and the timeline full width
+ * under them; on a phone the viewer, the transport, the timeline and the
+ * reading block, the inspector or the pane in the reading block's place.
  */
 const Layout = () => {
   const { state } = useStudio();
@@ -1464,7 +1487,7 @@ const Layout = () => {
   return (
     <div
       class="st-studio"
-      data-open={pressed(Option.isSome(state.selected()))}
+      data-open={pressed(Option.isSome(state.selected()) || state.pane())}
       style={{ '--st-tl-h': `${timelineRow()}px` }}
     >
       <Viewer />

@@ -183,6 +183,10 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-insp { grid-area: insp; min-width: 0; min-height: 0; overflow: hidden; padding: var(--st-gutter) var(--st-gutter) var(--s-2) 0; }
 .st-studio[data-open="false"] .st-insp { padding: 0; }
 .st-pane { height: 100%; overflow-y: auto; border-radius: var(--r-panel); border: var(--border); background: var(--surface-1); min-width: 0; }
+/* In the Script pane the code takes the column's height under the pane's head, and scrolls in it. */
+.st-script { display: flex; flex-direction: column; overflow: hidden; }
+.st-script .st-code { flex: 1; padding: var(--s-2) var(--s-3) var(--s-3); }
+.st-script .st-code-scroll { flex: 1; max-height: none; }
 .st-pane-head { position: sticky; top: 0; z-index: 2; background: var(--surface-1); display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-2) var(--s-3) var(--s-4); border-bottom: var(--border); }
 .st-ttl { min-width: 0; flex: 1; }
 .st-ttl h2 { margin: 0; font-size: var(--fs-4); line-height: var(--lh-4); font-weight: var(--w-3); }
@@ -217,7 +221,8 @@ a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
   .st-viewer { padding: 0; container-type: normal; }
   .st-frame { width: 100%; height: auto; border-radius: 0; }
   .st-transport { gap: var(--s-2); }
-  .st-caption, .st-key[data-look="edge"] { display: none; }
+  /* The Script key too: a phone opens the pane from the reading block's head, and the timecode keeps its room. */
+  .st-caption, .st-key[data-look="edge"], .st-key[data-look="pane"] { display: none; }
   .st-keys { margin-left: auto; }
   .st-app .st-key { width: var(--hit); height: var(--hit); }
   .st-app .st-key[data-look="play"] { width: 56px; }
@@ -230,9 +235,11 @@ a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
   .st-scroller { grid-column: 1 / span 2; }
   .st-reading { grid-area: reading; display: block; overflow-y: auto; padding: var(--s-3) var(--st-gutter) var(--s-6); border-top: var(--border); }
   .st-studio[data-open="true"] .st-reading { display: none; }
-  .st-r-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--s-2); font-size: var(--fs-2); line-height: var(--lh-2); }
+  .st-app .st-r-head { display: flex; gap: var(--s-2); align-items: center; width: 100%; min-height: var(--hit); margin-bottom: var(--s-2); padding: 0; border: 0; background: none; color: inherit; font: inherit; font-size: var(--fs-2); line-height: var(--lh-2); text-align: start; cursor: pointer; }
   .st-r-head b { font-weight: var(--w-3); color: var(--k-script); }
-  .st-r-head span { font-family: var(--font-mono); color: var(--text-2); }
+  .st-r-head span { margin-left: auto; font-family: var(--font-mono); color: var(--text-2); }
+  /* The Script pane's glyph at the head's end: the head opens it. */
+  .st-r-head .st-icon { flex: none; color: var(--text-2); }
   .st-reading p { margin: 0 0 var(--s-2); font-size: var(--fs-4); line-height: var(--lh-4); text-wrap: pretty; }
   .st-reading .st-r-cite { font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
   /* What waits, a tap from its list: the header's menu, a full line here. */
@@ -370,6 +377,9 @@ export const INSPECTOR_CSS = `
 .st-readout[data-edge="tail"] { translate: -100% 0; }
 .st-readout[data-role="drop-tag"] { border-color: var(--accent); color: var(--accent); }
 .st-app .st-key[data-look="note"] { flex: none; width: auto; padding: 0 var(--s-3); gap: var(--s-1); display: inline-flex; border: var(--border); border-radius: var(--r-pill); }
+/* The Script key: apart at the row's right end, raised while its pane is open. */
+.st-app .st-key[data-look="pane"] { flex: none; border: var(--border); border-radius: var(--r-pill); }
+.st-app .st-key[data-look="pane"][aria-pressed="true"] { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line-strong); }
 /* Drawing on the frame: the red ink over the viewer; the note bar in the transport's row. */
 .st-draw-over { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 3; }
 /* While the frame is drawn on: a crosshair and a ring in the note's colour say it takes a drawing; the tag says so over it. */

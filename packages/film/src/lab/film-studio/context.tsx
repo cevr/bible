@@ -9,7 +9,7 @@
 // or `?sel=panel:<id>` for a Board panel and its beat, a step Back walks),
 // the try of that panel the viewer shows (`?try=`), the note the inspector
 // has open (`?note=`), the words of the selected beat's line selected
-// (`?words=<a>-<b>`) and the playhead (`#t=`, film seconds, written as it
+// (`?words=<a>-<b>`), the Script pane open (`?pane=script`) and the playhead (`#t=`, film seconds, written as it
 // settles and every quarter second while it moves). The clock is the staged
 // film's preview when the version shown is the one the film registry holds
 // (its narration heard), else a silent clock over the version's timeline
@@ -152,6 +152,8 @@ interface StudioState {
   readonly board: Accessor<Option.Option<BoardFile>>;
   /** Whether the recorder is over the page (its dialog, a phone's sheet). */
   readonly recording: Accessor<boolean>;
+  /** Whether the Script pane shows: open (`?pane=script`), and no selection's inspector over it. */
+  readonly pane: Accessor<boolean>;
   /** The zoom, a factor over the fit (1: the whole film in the timeline's width). */
   readonly zoom: Accessor<number>;
   /** The beat's words at the playhead (the film's registered script only); none where none are read. */
@@ -191,6 +193,8 @@ interface StudioActions {
   readonly boardAgain: () => void;
   /** Show the recorder over the page, or hide it: hidden, it records on behind the page. */
   readonly record: (open: boolean) => void;
+  /** Show the Script pane, the selection let go so it is in sight, or close it: a step Back walks. */
+  readonly pane: (open: boolean) => void;
   /** Read the version shown again: a write changed what it shows. */
   readonly refresh: () => void;
   /** Open version `v` (0: the open one). */
@@ -419,6 +423,10 @@ const Body = (
     ),
   );
   const current = createMemo(() => Option.flatMap(timeline(), (t) => beatAt(t, T())));
+  // The pane open in the address shows while nothing is selected: a selection's inspector stands over it.
+  const pane = createMemo(
+    () => Option.exists(place(), (v) => v.query.pane === 'script') && Option.isNone(selected()),
+  );
 
   // The film's Board, read once for the page: the viewer draws a try of it, the inspector keeps one.
   const boardRead = props.runtime.atom(LabApi.use((api) => api.board));
@@ -611,6 +619,23 @@ const Body = (
       }),
     boardAgain,
     record: setRecording,
+    pane: (open) =>
+      Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) =>
+        setPlace({
+          ...value,
+          query: Bool.match(open, {
+            onTrue: () => ({
+              ...value.query,
+              pane: 'script' as const,
+              sel: '',
+              try: 0,
+              note: '',
+              words: '',
+            }),
+            onFalse: () => ({ ...value.query, pane: 'closed' as const }),
+          }),
+        }),
+      ),
     refresh: () => sendTimeline(TimelineEvent.Refresh),
     version: (v) =>
       Option.map(Place.decode(Places.studio, address.href()), (value: StudioValue) =>
@@ -715,6 +740,13 @@ const Body = (
           touch: 'Fit, in the timeline corner',
           act: actions.fit,
         },
+        {
+          id: 'studio.script',
+          label: 'Script pane',
+          keys: ['s'],
+          touch: 'the Script key; on a phone, the reading block’s head',
+          act: () => actions.pane(!pane()),
+        },
       ].map(({ act, ...command }) => ({
         ...command,
         group: 'Studio',
@@ -722,14 +754,20 @@ const Body = (
         run: quietly(() => act()),
       })),
       // Escape is the recorder's while it is over the page: it never closes the inspector behind it.
+      // It closes the inspector, so the Script pane under it shows again; with none, it closes the pane.
       {
         id: 'studio.close',
-        label: 'Close the inspector',
+        label: 'Close the inspector or the Script pane',
         group: 'Studio',
         keys: ['escape'],
-        touch: 'the inspector’s ×',
+        touch: 'the inspector’s ×, or the Script pane’s',
         when: () => !recording(),
-        run: quietly(() => actions.select(Option.none())),
+        run: quietly(() =>
+          Bool.match(pane(), {
+            onTrue: () => actions.pane(false),
+            onFalse: () => actions.select(Option.none()),
+          }),
+        ),
       },
       {
         id: 'play.frame-next',
@@ -792,6 +830,7 @@ const Body = (
       picked,
       board,
       recording,
+      pane,
       zoom,
       words,
     },
