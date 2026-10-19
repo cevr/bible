@@ -35,12 +35,16 @@ This project uses **Bun** as its package manager and runtime.
 bun install                    # Install dependencies
 bun run typecheck              # Type check all packages
 bun run fmt                    # Format code with oxfmt
-bun run gate                   # What CI runs: lint, format check, typecheck, build, tests
+bun run gate                   # The feedback cycle: lint (deterministic and judged rules), format check, typecheck, build, tests
 bun run test:perf              # The CLI's performance budgets (local only; reads packages/core/data/bible.db)
 bun run test:budget [<ws>…]    # Each workspace's tests alone under 10 s, no total (local only)
 bun run --filter @bible/selah gate  # Native Swift gate on macOS
 bun run ci [<commit>]          # Wait for a commit's CI run on main and print its verdict
 ```
+
+## The gate is the feedback cycle
+
+The local gate verifies a change; CI does not (owner, 2026-10-19: "CI is not a verification tool for us"). Agents never check or wait on CI, and never fix a test only CI sees red; this overrides the global "CI red: fix til green". A mistake found once becomes a guard the gate runs: a deterministic one an oxlint rule in `.oxlintrc.json`, an indeterministic one a judged rule there (TypeSafe Jev, fail-open) or a skill line. The film e2e stays a tool a unit runs by hand, not a check of the gate.
 
 ## Workspaces
 
