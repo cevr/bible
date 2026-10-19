@@ -54,6 +54,15 @@ describe('a clean turnaround', () => {
   test('says the back view shows no face, so it reads no facing, sleeve or bare arm', () => {
     const back = m.unmeasured.filter((u) => u.view === 4).map((u) => u.check);
     expect(back).toEqual(['facing', 'hairBeard', 'sleeveReach', 'bareArm']);
+    expect(m.unmeasured.find((u) => u.view === 4)?.why).toBe(
+      'no face reads, so no head, skin or hair to read from: no pair of eyes (two small upright ink ovals on one row)',
+    );
+  });
+
+  test("reads each face's chin closed by its line", () => {
+    expect(
+      m.views.map((v) => Option.getOrElse(Option.fromUndefinedOr(v.chin), () => 'unread')),
+    ).toEqual(['closed', 'closed', 'closed', 'unread', 'closed', 'closed']);
   });
 
   test('holds a kept concept to its view with no row flagged', () => {
@@ -290,5 +299,65 @@ describe('a sheet that draws more figures than it names', () => {
     expect(m.found).toBe(3);
     expect(sheetTable('three', m)).toContain('3 figures found, the sheet names 2');
     expect(sheetLines('three', m)[0]).toContain('found=3');
+  });
+});
+
+describe('a sheet whose anchor reads a head over half its figure', () => {
+  const sheet = drawSheet([at(0, { robeDepth: 110, handless: true }), at(0)]);
+  const m = read(sheet, {
+    kind: 'poses',
+    count: 2,
+    anchor: 1,
+    slots: ['front', 'front'],
+    standing: [1, 2],
+  });
+
+  test("says the canon and the anchor's head unread, with no squash: its short body flags its height alone", () => {
+    expect(m.canon.heads).toBeUndefined();
+    expect(m.canon.squash).toBeUndefined();
+    expect(m.views[0]?.headsTall).toBeUndefined();
+    expect(flagsOf(m)).toEqual(['height:2,1', 'ground:2']);
+    const why = m.unmeasured.filter((u) => u.check === 'squash' || u.check === 'head');
+    expect(why.map((u) => u.check)).toEqual(['squash', 'head']);
+    for (const u of why) expect(u.why).toContain('over half its figure: not a head');
+  });
+});
+
+describe("a sheet whose view reads a head over half its figure, the anchor's whole", () => {
+  // A head drawn as tall as the body under it, on a figure as tall as the anchor's.
+  const sheet = drawSheet([at(0), at(0, { ry: 150, cy: 234, robeDepth: 162 }), at(0)]);
+  const m = read(sheet, {
+    kind: 'poses',
+    count: 3,
+    anchor: 1,
+    slots: ['front', 'front', 'front'],
+    standing: [1, 2, 3],
+  });
+
+  test("says that view's head unread, never held to the anchor's head or hand", () => {
+    expect(m.canon.heads).toBeCloseTo(3.44, 1);
+    expect(m.views[1]?.head).toBeUndefined();
+    expect(m.views[1]?.hand).toBeUndefined();
+    expect(flagsOf(m)).toEqual([]);
+    const why = m.unmeasured.filter((u) => u.check === 'head');
+    expect(why.map((u) => u.view)).toEqual([2]);
+    expect(why[0]?.why).toContain('over half its figure: not a head');
+  });
+});
+
+describe('a sheet whose low pose, which it does not stand, draws its head a quarter too big', () => {
+  // A crouching view: a short body under a head 25 % taller than the anchor's, so under two heads tall.
+  const sheet = drawSheet([at(0), at(0, { ry: PLAIN.ry * 1.25, robeDepth: 110, handless: true })]);
+  const m = read(sheet, {
+    kind: 'poses',
+    count: 2,
+    anchor: 1,
+    slots: ['front', 'front'],
+    standing: [1],
+  });
+
+  test("holds its head to the anchor's and flags it, never says it is not a head", () => {
+    expect(flagsOf(m)).toContain('head:2,1');
+    expect(m.unmeasured.filter((u) => u.check === 'head')).toEqual([]);
   });
 });

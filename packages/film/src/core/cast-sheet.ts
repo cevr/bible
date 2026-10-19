@@ -231,6 +231,8 @@ const SheetView = Schema.Struct({
   /** The hair's lowest point under the chin, in head heights. */
   hairFall: Schema.optionalKey(Schema.Finite),
   hairBeard: Schema.optionalKey(Schema.Literals(['parted', 'merged'])),
+  /** Whether a line closes the chin, or the face runs on into the neck as one fill (`figure.ts`'s `chin`): read where a face reads. */
+  chin: Schema.optionalKey(Schema.Literals(['closed', 'open'])),
   lit: LitSide,
   papers: Schema.Array(
     Schema.Struct({
@@ -1073,7 +1075,12 @@ const readView = (
     Option.liftPredicate(crop, () => heldToConcept),
     (c) => Result.getSuccess(measureFigure(c)),
   );
-  const measure = Option.orElse(full, () => Result.getSuccess(readFigure(crop)));
+  // The lean read where no concept is held, or the full one failed: its failure says why no face reads.
+  const lean = Option.match(full, {
+    onNone: () => readFigure(crop),
+    onSome: (m) => Result.succeed<FigureRead>(m),
+  });
+  const measure = Result.getSuccess(lean);
   const span = { top: y0 - oy, height };
   const middle = (figure.body[0] + figure.body[2]) / 2 - ox;
   const closed = closedOf(crop);
@@ -1117,12 +1124,13 @@ const readView = (
     }),
     ...Option.match(measure, { onNone: () => ({}), onSome: (m) => facingFields(m) }),
   };
+  const faceless = Result.match(lean, { onFailure: (e) => e.reason, onSuccess: () => '' });
   const unmeasured = Option.match(read, {
     onNone: () =>
       FACELESS.map((check) => ({
         check,
         view,
-        why: 'no face reads (no pair of eyes), so no head, skin or hair to read from',
+        why: `no face reads, so no head, skin or hair to read from: ${faceless}`,
       })),
     onSome: (r) => r.unmeasured,
   });
@@ -1177,7 +1185,8 @@ const measuredFields = (
   });
   const reach = Option.match(r.reach, { onNone: () => ({}), onSome: (v) => ({ reach: v }) });
   const free = Option.match(r.free, { onNone: () => ({}), onSome: (v) => ({ free: v }) });
-  return { ...head, ...hand, ...hair, ...reach, ...free };
+  const chin = Option.getOrElse(Option.fromUndefinedOr(m.chin), () => 'closed' as const);
+  return { ...head, ...hand, ...hair, ...reach, ...free, chin };
 };
 
 // ---------------------------------------------------------------------------
@@ -1254,6 +1263,31 @@ const rollFlags = (views: ReadonlyArray<SheetView>, kind: SheetKind): ReadonlyAr
       },
     ),
   );
+
+/**
+ * Under this many heads tall, a standing view's head read is over half its
+ * figure: no standing figure the house draws (the canon is 3.36), so the read
+ * is not its head (a face whose fill runs on into a body of its own colour
+ * reads so), and nothing is held to it. The views read so are those the
+ * sheet's options stand, or every view when they name none; a low pose
+ * (crouching, seated, lying) the options do not stand can be under two heads
+ * with its head read right, so it keeps its head. A heads sheet draws busts,
+ * so it is never asked.
+ */
+const HEADS_LEAST = 2;
+
+/** A view with its head's reads left out: the head, its width, the height in heads, and the hand and the hair's fall, both in head heights. */
+const headless = (v: SheetView): SheetView => {
+  const {
+    head: _head,
+    headWidth: _width,
+    headsTall: _tall,
+    hand: _hand,
+    hairFall: _fall,
+    ...rest
+  } = v;
+  return rest;
+};
 
 /** The anchor's height in heads, and the squash a trace to the canon applies with the head held. */
 const canonOf = (
@@ -1700,7 +1734,38 @@ const checked = (
 ): SheetMeasure => {
   const headgear = options.headgear === true;
   const heads = options.kind === 'heads';
-  const canon = (heads && {}) || canonOf(anchor, headgear);
+  // A standing view (each the options name, else every view) whose head reads over half its figure is read with no head: its head's reads are said, never a squash or a drift that sends a retry. A low pose the options do not stand keeps its head.
+  const stands = (v: SheetView) =>
+    Option.match(Option.fromUndefinedOr(options.standing), {
+      onNone: () => true,
+      onSome: (named) => named.includes(v.view),
+    });
+  const misreadOf = (v: SheetView): Option.Option<number> =>
+    Option.filter(
+      Option.fromUndefinedOr(v.headsTall),
+      (tall) => !heads && stands(v) && tall < HEADS_LEAST,
+    );
+  const misread = misreadOf(anchor);
+  const viewsHeld = views.map((v) =>
+    Option.match(misreadOf(v), { onNone: () => v, onSome: () => headless(v) }),
+  );
+  const held = Option.match(misread, { onNone: () => anchor, onSome: () => headless(anchor) });
+  const headsUnread: ReadonlyArray<SheetUnmeasured> = views.flatMap(
+    (v) =>
+      (v.view !== anchor.view &&
+        Option.match(misreadOf(v), {
+          onNone: () => [],
+          onSome: (tall) => [
+            {
+              check: 'head' as const,
+              view: v.view,
+              why: `its head reads ${tall.toFixed(2)} heads tall, over half its figure: not a head, so it is not held to the anchor's`,
+            },
+          ],
+        })) ||
+      [],
+  );
+  const canon = (heads && {}) || canonOf(held, headgear);
   const standing = standingOf(options, views);
   const pairs = pairsOf(reads, options.kind);
   const sides = sidesOf(reads, options.kind);
@@ -1717,9 +1782,19 @@ const checked = (
         why: 'headgear: the head reads the cloth, so the canon is read on the lock; the views hold to the face opening',
       },
     ]) ||
-    (Option.isNone(Option.fromUndefinedOr(canon.heads)) && [
-      { check: 'squash', view: 0, why: "the anchor's head does not read" },
-    ]) ||
+    (Option.isNone(Option.fromUndefinedOr(canon.heads)) &&
+      Option.match(misread, {
+        onNone: () => [
+          { check: 'squash' as const, view: 0, why: "the anchor's head does not read" },
+        ],
+        onSome: (tall) => {
+          const why = `the anchor's head reads ${tall.toFixed(2)} heads tall, over half its figure: not a head, so the canon is not read and no view is held to its head`;
+          return [
+            { check: 'squash' as const, view: 0, why },
+            { check: 'head' as const, view: anchor.view, why },
+          ];
+        },
+      })) ||
     [];
   const bodies = !heads;
   const level = options.level ?? views.map((v) => v.view);
@@ -1727,7 +1802,7 @@ const checked = (
     kind: options.kind,
     anchor: options.anchor,
     found: options.found,
-    views: [...views],
+    views: viewsHeld,
     pairs,
     sides,
     canon,
@@ -1737,13 +1812,13 @@ const checked = (
       ...pairFlags(pairs),
       ...sideFlags(sides),
       ...squashFlags(canon, anchor.view),
-      ...anchorFlags(views, anchor, { standing, level, heads }).filter(
+      ...anchorFlags(viewsHeld, held, { standing, level, heads }).filter(
         (f) => bodies || (f.check !== 'ground' && f.check !== 'height'),
       ),
       ...((bodies && paperFlags(views, anchor)) || []),
       ...lookFlags(views),
     ],
-    unmeasured: [...sheetUnmeasured, ...reads.flatMap((r) => r.unmeasured)],
+    unmeasured: [...sheetUnmeasured, ...headsUnread, ...reads.flatMap((r) => r.unmeasured)],
     concepts: conceptRows(reads, options.concepts ?? []),
   };
 };
@@ -1758,6 +1833,18 @@ const fixed = (v: Option.Option<number>, places: number) =>
     () => '–',
   );
 const some = Option.fromUndefinedOr;
+
+/**
+ * The views whose face runs into the neck with no line at the chin: said,
+ * never a flag. The owner's B2 lead draws its chin so, the face meeting the
+ * neck by a shade step (the coordinator's zoom of his pick, 2026-10-19), so a
+ * flag would redraw every try of his pick against his own design.
+ */
+const openChins = (m: SheetMeasure): ReadonlyArray<number> =>
+  m.views.filter((v) => v.chin === 'open').map((v) => v.view);
+
+const OPEN_CHIN =
+  'the face runs into the neck with no line at the chin: read down to where the neck narrows, said, never a fault';
 
 /** The sheet's measure as Markdown: the canon, a row per view, the partners, the flags, what was not measured and the concepts. */
 export const sheetTable = (name: string, m: SheetMeasure): string => {
@@ -1776,11 +1863,11 @@ export const sheetTable = (name: string, m: SheetMeasure): string => {
       []),
     `${m.kind}, ${m.views.length} views. ${canon} Held within ${TOLERANCE} %; papers within ΔE ${PAPER_DE}; a mirror under ${MIRROR_FLOOR}; a pair under ${SAME_WAY} of its flipped difference faces one way; every hand at the end of a sleeve or an arm, never free.`,
     '',
-    '| View | Slot | Turn | Roll | Height | Head | Heads tall | W/H | Hand | Hair fall | Hair/beard | Lit | Reach | Free | Bare | Papers |',
-    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
+    '| View | Slot | Turn | Roll | Height | Head | Heads tall | W/H | Hand | Hair fall | Hair/beard | Chin | Lit | Reach | Free | Bare | Papers |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...m.views.map(
       (v) =>
-        `| ${v.view} | ${v.slot} | ${fixed(some(v.turn), 2)} | ${fixed(some(v.roll), 0)} | ${v.height} | ${fixed(some(v.head), 0)} | ${fixed(some(v.headsTall), 2)} | ${v.widthToHeight.toFixed(3)} | ${fixed(some(v.hand), 3)} | ${fixed(some(v.hairFall), 2)} | ${v.hairBeard ?? '–'} | ${v.lit} | ${fixed(some(v.reach), 2)} | ${v.free ?? '–'} | ${v.bare} | ${v.papers.map((p) => `${hexOf(p.rgb)} ${(100 * p.share).toFixed(0)}%`).join(' ')} |`,
+        `| ${v.view} | ${v.slot} | ${fixed(some(v.turn), 2)} | ${fixed(some(v.roll), 0)} | ${v.height} | ${fixed(some(v.head), 0)} | ${fixed(some(v.headsTall), 2)} | ${v.widthToHeight.toFixed(3)} | ${fixed(some(v.hand), 3)} | ${fixed(some(v.hairFall), 2)} | ${v.hairBeard ?? '–'} | ${v.chin ?? '–'} | ${v.lit} | ${fixed(some(v.reach), 2)} | ${v.free ?? '–'} | ${v.bare} | ${v.papers.map((p) => `${hexOf(p.rgb)} ${(100 * p.share).toFixed(0)}%`).join(' ')} |`,
     ),
     '',
     ...m.pairs.map(
@@ -1799,6 +1886,10 @@ export const sheetTable = (name: string, m: SheetMeasure): string => {
       )),
     '',
     ...m.unmeasured.map((u) => `- not measured: ${u.check} (view ${u.view}): ${u.why}`),
+    ...((openChins(m).length > 0 && [
+      `- said: an open chin (view ${openChins(m).join(', ')}): ${OPEN_CHIN}`,
+    ]) ||
+      []),
     ...m.concepts.map(
       (c) =>
         `- against ${c.name} (view ${c.view}): ${c.flagged.length} of ${c.rows} rows flagged${(c.flagged.length > 0 && `: ${c.flagged.join('; ')}`) || ''}`,
@@ -1807,13 +1898,15 @@ export const sheetTable = (name: string, m: SheetMeasure): string => {
   ].join('\n');
 };
 
-/** The sheet's measure as the CLI prints it: a line for the sheet, then one per flag. */
+/** The sheet's measure as the CLI prints it: a line for the sheet, one per flag, then what is said (an open chin). */
 export const sheetLines = (name: string, m: SheetMeasure): ReadonlyArray<string> => [
   `sheet ${name} kind=${m.kind} views=${m.views.length}${(m.found > m.views.length && ` found=${m.found}`) || ''} anchor=${m.anchor} flags=${m.flags.length} heads=${fixed(some(m.canon.heads), 2)} squash=${fixed(some(m.canon.squash), 0)}`,
   ...m.flags.map(
     (f) =>
       `${f.check} view=${f.views.join(',')} value=${f.value.toFixed(2)} limit=${f.limit.toFixed(2)} ${f.note}`,
   ),
+  ...((openChins(m).length > 0 && [`said chin=open view=${openChins(m).join(',')} ${OPEN_CHIN}`]) ||
+    []),
 ];
 
 const MAGENTA = [232, 0, 140] as const;

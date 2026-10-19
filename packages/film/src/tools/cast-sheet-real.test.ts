@@ -7,13 +7,15 @@
 // body band crosses into its neighbours' crops; a heads sheet whose locks of
 // hair widen some heads' boxes; a pose sheet with a bare forearm painted on
 // to a hand under the chin; a farmer under a headcloth whose ends fall past
-// his hands; and a farmer whose headcloth falls to his hem. The sheets are
-// PNGs, so they are decoded here, past core.
+// his hands; a farmer whose headcloth falls to his hem; and RBF's new lead
+// (the painter's B2 tries, 2026-10-19), a turnaround and a heads sheet whose
+// face runs into the neck with no line at the chin. The sheets are PNGs, so
+// they are decoded here, past core.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Result } from 'effect';
-import { measureSheet, type SheetOptions } from '../core/cast-sheet.ts';
+import { Effect, FileSystem, Option, Result } from 'effect';
+import { measureSheet, type SheetOptions, sheetLines } from '../core/cast-sheet.ts';
 import { figuresOf } from '../core/cast-sheet-pixels.ts';
 import { drawSheet } from '../core/fixtures/figure.ts';
 import { cropRaster, type Raster } from '../core/raster.ts';
@@ -178,5 +180,57 @@ describe('a farmer under a headcloth that falls to his hem', () => {
           ),
         );
       }),
+  );
+});
+
+describe('a lead whose face runs into his neck with no line at the chin', () => {
+  it.effect(
+    'reads his head down to where the neck starts, so he stands in the cast band, and says the open chin, never a flag',
+    () =>
+      Effect.gen(function* () {
+        const m = measured(yield* sheetAt('lead-turnaround-b2.png'), {
+          kind: 'turnaround',
+          count: 6,
+          anchor: 1,
+        });
+        // Seen: about 3.5 heads by his pixel rows, hair top to chin; the face's fill runs on down the neck into the shirt, so a head read that does not stop where the neck narrows takes him for one head tall.
+        const heads = Option.getOrElse(Option.fromUndefinedOr(m.canon.heads), () => 0);
+        expect(heads).toBeGreaterThan(3.3);
+        expect(heads).toBeLessThan(3.8);
+        expect(m.flags.filter((f) => f.check === 'squash')).toEqual([]);
+        // His open chin is his design (a shade step, no line): said, so no try of it is redrawn for it.
+        expect(m.views.map((v) => v.chin ?? 'unread')).toEqual([
+          'open',
+          'open',
+          'unread',
+          'unread',
+          'unread',
+          'open',
+        ]);
+        expect(sheetLines('b2', m).filter((l) => l.startsWith('said '))).toEqual([
+          'said chin=open view=1,2,6 the face runs into the neck with no line at the chin: read down to where the neck narrows, said, never a fault',
+        ]);
+      }),
+  );
+});
+
+describe('a heads sheet whose faces run into their necks and whose busts are cut with no line', () => {
+  it.effect('reads a face on every view but the profile, and says why the profile reads none', () =>
+    Effect.gen(function* () {
+      const m = measured(yield* sheetAt('lead-heads-b2.png'), {
+        kind: 'heads',
+        count: 6,
+        anchor: 1,
+      });
+      // Seen: each face's fill runs through the neck, the shirt and the bust's open foot into the paper, so a head read that does not stop where the neck narrows takes the paper for the head; the profile draws one eye.
+      expect(
+        m.views.flatMap((v) => (Option.isSome(Option.fromUndefinedOr(v.head)) && [v.view]) || []),
+      ).toEqual([1, 2, 4, 5, 6]);
+      expect(
+        m.unmeasured.filter((u) => u.view === 3 && u.check === 'facing').map((u) => u.why),
+      ).toEqual([
+        'no face reads, so no head, skin or hair to read from: no pair of eyes (two small upright ink ovals on one row)',
+      ]);
+    }),
   );
 });

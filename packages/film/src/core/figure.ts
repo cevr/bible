@@ -197,6 +197,8 @@ export const FigureMeasure = Schema.Struct({
   mouth: Schema.optionalKey(MouthPose),
   /** Which way the head faces (`Facing`). */
   facing: Facing,
+  /** `open` when the face runs on into the neck with no line at the chin: the head is read down to where the neck starts (left out when a line closes the chin). */
+  chin: Schema.optionalKey(Schema.Literal('open')),
   /** The head's render artifacts (`render-artifacts.ts`): thin lines of a third colour inside its outline. */
   artifacts: Schema.Array(ArtifactMark),
   missing: Schema.Array(Unmeasured),
@@ -918,6 +920,138 @@ const eyesOf = (read: Read, marks: ReadonlyArray<Part>) => {
 };
 
 // ---------------------------------------------------------------------------
+// An open chin
+
+/**
+ * A neck against the face under the eyes: narrower than `NECK_NARROW` of it,
+ * never a sliver under `NECK_LEAST` of it (a cheek's last pixels beside a
+ * beard), with shoulders under it at least as wide as the face.
+ */
+const NECK_NARROW = 0.8;
+const NECK_LEAST = 0.15;
+/** A row's width within this share over the neck's narrowest is the neck: its first such row is where the chin ends. */
+const NECK_EVEN = 1.15;
+
+/** Where an open chin ends (its row), a pixel of the face above it, and a plug across the neck under it that walls the head's outer read off from the neck. */
+interface OpenChin {
+  readonly chin: number;
+  readonly seed: number;
+  readonly plug: readonly [number, number, number, number];
+}
+
+/** Row `y`'s extent of the runs of region `id` that overlap `[x0, x1]`, or none. */
+const spanOn = (
+  read: Read,
+  id: number,
+  y: number,
+  x0: number,
+  x1: number,
+): Option.Option<readonly [number, number]> => {
+  const { w, regions } = read;
+  const of = (x: number) => x >= 0 && x < w && regions.labels[y * w + x] === id;
+  let [lo, hi] = [-1, -1];
+  for (let x = Math.max(0, x0); x <= Math.min(w - 1, x1); x++) {
+    if (!of(x)) continue;
+    let [l, r] = [x, x];
+    while (of(l - 1)) l--;
+    while (of(r + 1)) r++;
+    [lo, hi] = [lo < 0 ? l : Math.min(lo, l), Math.max(hi, r)];
+    x = r;
+  }
+  return lo < 0 ? Option.none() : Option.some([lo, hi] as const);
+};
+
+/**
+ * Where an open chin ends: the face's fill followed down from under the eyes,
+ * a row at a time, through the runs joined to the row above, narrows to a
+ * neck and widens again to the shoulders, so no line closes the chin. The
+ * chin ends at the neck's first row as narrow as the neck. None when the
+ * face's fill ends, as a line under the chin ends it, or never narrows to a
+ * neck and widens again to the face's width within 1.2 of that width.
+ */
+const openChinOf = (
+  read: Read,
+  face: Part,
+  eyes: readonly [Part, Part],
+): Option.Option<OpenChin> => {
+  const [a, b] = eyes;
+  const top = Math.ceil(Math.max(a.y1, b.y1) + read.seal + read.line);
+  const first = spanOn(read, face.id, top, Math.floor(a.x0), Math.ceil(b.x1));
+  if (Option.isNone(first)) return Option.none();
+  const across = first.value[1] - first.value[0] + 1;
+  const spans: Array<readonly [number, number]> = [];
+  let span = first.value;
+  for (let y = top; y < read.h && y <= top + 2.5 * across; y++) {
+    const next = spanOn(read, face.id, y, span[0], span[1]);
+    if (Option.isNone(next)) break;
+    span = next.value;
+    spans.push(span);
+  }
+  const widths = spans.map(([lo, hi]) => hi - lo + 1);
+  const reach = Math.min(widths.length, Math.ceil(1.2 * across));
+  const narrowest = widths.slice(0, reach).reduce((m, v, k) => (v < widths[m]! ? k : m), 0);
+  const neck = widths[narrowest] ?? across;
+  const widens = widths
+    .slice(narrowest, narrowest + Math.ceil(1.2 * across))
+    .some((v) => v >= across);
+  if (neck >= NECK_NARROW * across || neck < NECK_LEAST * across || !widens) return Option.none();
+  let chin = narrowest;
+  while (chin > 0 && widths[chin - 1]! <= NECK_EVEN * neck) chin--;
+  // The plug spans the neck's fill and the unfilled band between it and the line on either side.
+  const [lo, hi] = spans[chin]!;
+  const pad = read.line + read.seal;
+  return Option.some({
+    chin: top + chin,
+    seed: top * read.w + first.value[0],
+    plug: [lo - pad, top + chin, hi + pad, top + chin + read.line] as const,
+  });
+};
+
+/**
+ * The read with the face cut from the neck at row `chin`: the face's fill
+ * above it, flooded from `seed` under the eyes, is a region of its own, and
+ * the rest (the neck and what joins it) keeps the face's old region, its box
+ * read again.
+ */
+const cutAtChin = (read: Read, face: Part, seed: number, chin: number) => {
+  const { w, h } = read;
+  const old = read.regions.labels;
+  const labels = Int32Array.from(old, (id) => (id === face.id ? -1 : id));
+  const cut: Part = {
+    id: read.regions.parts.length,
+    area: 0,
+    x0: w,
+    y0: h,
+    x1: -1,
+    y1: -1,
+    border: false,
+  };
+  flood(
+    seed,
+    cut,
+    [w, h],
+    STEPS_FOUR,
+    (_i, j) => j < chin * w && old[j] === face.id,
+    labels,
+    new Int32Array(w * h),
+  );
+  const rest: Part = { id: face.id, area: 0, x0: w, y0: h, x1: -1, y1: -1, border: false };
+  for (let i = 0; i < labels.length; i++) {
+    if (labels[i] !== -1 || old[i] !== face.id) continue;
+    labels[i] = face.id;
+    const [x, y] = [i % w, Math.floor(i / w)];
+    rest.area++;
+    rest.x0 = Math.min(rest.x0, x);
+    rest.y0 = Math.min(rest.y0, y);
+    rest.x1 = Math.max(rest.x1, x);
+    rest.y1 = Math.max(rest.y1, y);
+    rest.border ||= x === 0 || y === 0 || x === w - 1 || y === h - 1;
+  }
+  const parts = [...read.regions.parts.map((p) => (p.id === face.id ? rest : p)), cut];
+  return { read: { ...read, regions: { labels, parts } }, face: cut };
+};
+
+// ---------------------------------------------------------------------------
 // Shading
 
 interface Pixel {
@@ -1127,6 +1261,8 @@ interface Head {
   readonly outline: number;
   /** The head inside its outline's outer edge (`outerOf`). */
   readonly outer: Outer;
+  /** Whether a line closes the chin, or the face runs on into the neck (`openChinOf`). */
+  readonly chin: 'closed' | 'open';
 }
 
 /** A head as a mask in a box of the crop: 1 inside its outline's outer edge. */
@@ -1147,15 +1283,32 @@ interface Outer {
  * dark fill the grain specks with ink is no region, but the ground cannot
  * reach it past the outline, so it is the head too.
  */
-const outerOf = (read: Read, face: Part, ids: ReadonlySet<number>, reach: number): Outer => {
+const outerOf = (
+  read: Read,
+  face: Part,
+  ids: ReadonlySet<number>,
+  reach: number,
+  plug: Option.Option<readonly [number, number, number, number]>,
+): Outer => {
   const x0 = Math.max(0, Math.floor(face.x0 - reach));
   const y0 = Math.max(0, Math.floor(face.y0 - reach));
   const bw = Math.min(read.w, Math.ceil(face.x1 + reach) + 1) - x0;
   const bh = Math.min(read.h, Math.ceil(face.y1 + reach) + 1) - y0;
   const at = (i: number) => (y0 + Math.floor(i / bw)) * read.w + x0 + (i % bw);
+  const plugged = Option.match(plug, {
+    onNone: () => () => false,
+    onSome:
+      ([px0, py0, px1, py1]) =>
+      (i: number) => {
+        const [x, y] = [x0 + (i % bw), y0 + Math.floor(i / bw)];
+        return x >= px0 && x <= px1 && y >= py0 && y <= py1;
+      },
+  });
   const ground = (i: number) => {
     const j = at(i);
-    return !ids.has(read.regions.labels[j]!) && read.ink[j] === 0 && read.mass[j] === 0;
+    return (
+      !ids.has(read.regions.labels[j]!) && read.ink[j] === 0 && read.mass[j] === 0 && !plugged(i)
+    );
   };
   const onBoxEdge = (i: number) => {
     const [x, y] = [i % bw, Math.floor(i / bw)];
@@ -1207,20 +1360,24 @@ const sideOf = (
 };
 
 /** The head: the face round the two eyes, the hair joined to it, its outer box and its line. */
-const headOf = (read: Read): Result.Result<Head, FigureUnread> => {
-  const { line, seal } = read;
+const headOf = (
+  given: Read,
+): Result.Result<{ readonly head: Head; readonly read: Read }, FigureUnread> => {
+  const { line, seal } = given;
   // Marks: ink parts small against the crop, past the grain's specks, that touch no crop edge.
   const speck = (line * line) / 4;
-  const marks = read.marks.parts.filter(
-    (p) => !p.border && p.area >= speck && p.area < 0.01 * read.w * read.h,
+  const marks = given.marks.parts.filter(
+    (p) => !p.border && p.area >= speck && p.area < 0.01 * given.w * given.h,
   );
-  const eyes = eyesOf(read, marks);
+  const eyes = eyesOf(given, marks);
   if (Option.isNone(eyes))
     return unread('no pair of eyes (two small upright ink ovals on one row)');
-  const {
-    eyes: [a, b],
-    face,
-  } = eyes.value;
+  const [a, b] = eyes.value.eyes;
+  const open = openChinOf(given, eyes.value.face, [a, b]);
+  const { read, face } = Option.match(open, {
+    onNone: () => ({ read: given, face: eyes.value.face }),
+    onSome: ({ chin, seed }) => cutAtChin(given, eyes.value.face, seed, chin),
+  });
   if (face.border) return unread("the head's outline is open: its fill reaches the crop's edge");
   const eyeY = (cyOf(a) + cyOf(b)) / 2;
   const span = Math.ceil(line + 2 * seal + 3);
@@ -1230,11 +1387,18 @@ const headOf = (read: Read): Result.Result<Head, FigureUnread> => {
   const parts = [face, ...hair];
   const hx0 = sideOf(parts, masses, rim, (p) => p.x0, -1, Math.min);
   const hx1 = sideOf(parts, masses, rim, (p) => p.x1, 1, Math.max) + 1;
-  const outer = outerOf(read, face, new Set(parts.map((p) => p.id)), 1.2 * (hx1 - hx0));
+  const outer = outerOf(
+    read,
+    face,
+    new Set(parts.map((p) => p.id)),
+    1.2 * (hx1 - hx0),
+    Option.map(open, (o) => o.plug),
+  );
   const hy0 = outerTop(outer);
-  const hy1 = face.y1 + rim + 1;
+  // An open chin has no line under it: the head ends where the neck starts.
+  const hy1 = face.y1 + 1 + ((Option.isNone(open) && rim) || 0);
   const [cx, cy] = [(hx0 + hx1) / 2, (hy0 + hy1) / 2];
-  return Result.succeed({
+  const head: Head = {
     a,
     b,
     face,
@@ -1255,7 +1419,9 @@ const headOf = (read: Read): Result.Result<Head, FigureUnread> => {
     cy,
     outline: outlineOf(read, cx, eyeY, face),
     outer,
-  });
+    chin: Option.match(open, { onNone: () => 'closed' as const, onSome: () => 'open' as const }),
+  };
+  return Result.succeed({ head, read });
 };
 
 /** A brow over `eye`: the stroke over it nearest its column, never `taken` (one brow to an eye). */
@@ -1777,8 +1943,7 @@ export type FigureRead = Omit<FigureMeasure, 'headShading' | 'bodyShading' | 'ar
 const readWith = (crop: Raster, rims: boolean) => {
   const maybe = readCrop(crop);
   if (Option.isNone(maybe)) return unread('no dark warm ink in it');
-  const read = maybe.value;
-  return Result.map(headOf(read), (head) => {
+  return Result.map(headOf(maybe.value), ({ head, read }) => {
     const found = new Map<Ratio, number>();
     const missing: Array<Unmeasured> = [];
     const sink: Sink = {
@@ -1810,6 +1975,7 @@ const readWith = (crop: Raster, rims: boolean) => {
       },
       ...Option.match(mouth, { onNone: () => ({}), onSome: (pose) => ({ mouth: pose }) }),
       facing: facingOf(read, head),
+      ...((head.chin === 'open' && { chin: 'open' as const }) || {}),
       missing,
     };
     return { figure, read, head, body };
