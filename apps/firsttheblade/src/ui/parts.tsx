@@ -34,13 +34,21 @@ interface FieldProps {
   readonly children: JSX.Element;
 }
 
+interface FieldArtProps {
+  /**
+   * How wide the painting is drawn: it covers its field, so a field taller
+   * than the screen is wide draws it wider than the screen.
+   */
+  readonly sizes: string;
+}
+
 /** The field at morning, the first thing every page paints. */
-const FieldArt = () => (
+const FieldArt = (props: FieldArtProps) => (
   <img
     class="field-art"
     src={FIELD.small}
     srcset={srcset(FIELD)}
-    sizes="100vw"
+    sizes={props.sizes}
     alt=""
     width="1536"
     height="1024"
@@ -54,7 +62,7 @@ const FieldArt = () => (
  */
 export const HomeField = (props: FieldProps) => (
   <div class="field field-home">
-    <FieldArt />
+    <FieldArt sizes="max(100vw, 77rem)" />
     <div class="field-scrim" />
     {props.children}
   </div>
@@ -63,7 +71,7 @@ export const HomeField = (props: FieldProps) => (
 /** A page's own field: shorter, with the page's title on a torn strip. */
 export const PageField = (props: FieldProps) => (
   <div class="field field-page">
-    <FieldArt />
+    <FieldArt sizes="max(100vw, 49rem)" />
     {props.children}
   </div>
 );
@@ -129,7 +137,7 @@ export const NightClose = () => (
       class="night-art"
       src={NIGHT.small}
       srcset={srcset(NIGHT)}
-      sizes="100vw"
+      sizes="max(100vw, 65rem)"
       alt=""
       width="1536"
       height="1024"

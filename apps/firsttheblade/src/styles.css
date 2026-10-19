@@ -178,8 +178,8 @@
     0 97%
   );
   --tilt-strip: -1deg;
-  --tilt-odd: 0.6deg;
-  --tilt-even: -0.5deg;
+  --tilt-odd: -0.5deg;
+  --tilt-even: 0.6deg;
   --border-outline: 1.5px;
   --shadow-popup: 0 18px 50px color-mix(in srgb, var(--color-shadow) 28%, transparent);
   --shadow-glow: 0 1px 10px color-mix(in srgb, var(--color-glow) 53%, transparent);
@@ -361,7 +361,9 @@ a {
   border: var(--border-outline) solid var(--color-night-accent);
   background: transparent;
   color: var(--color-night-accent);
-  transition: color var(--motion-fast) var(--motion-ease);
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
 }
 @media (hover: hover) {
   .button-night:hover {
@@ -391,6 +393,7 @@ a {
   display: block;
   margin-top: var(--space-4);
   font-size: var(--size-ref);
+  line-height: normal;
   font-weight: var(--weight-medium);
   letter-spacing: var(--letter-spacing-ref);
   text-transform: uppercase;
@@ -429,7 +432,10 @@ a {
 }
 @media (hover: hover) {
   .site-nav a:not(.pill):hover {
-    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 5px;
   }
 }
 
@@ -762,9 +768,10 @@ a {
 .card h3 a:focus-visible {
   outline: 0;
 }
+/* The ring sits inside the deepest tear, so the torn edge never cuts it. */
 .card:has(h3 a:focus-visible) {
   outline: 2px solid var(--color-accent);
-  outline-offset: -6px;
+  outline-offset: -16px;
 }
 @media (hover: hover) {
   .card:hover h3 a {
