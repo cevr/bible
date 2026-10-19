@@ -32,14 +32,14 @@ interface ListedFile {
 }
 
 /**
- * The listed paths of the sources in `files` whose real path no file of
- * `program` has, sorted; `program` holds real paths. Every path is relative to
- * the package, with `/` between its parts.
+ * The listed paths of the sources in `files` (each one `isSource` holds) whose
+ * real path no file of `program` has, sorted; `program` holds real paths.
+ * Every path is relative to the package, with `/` between its parts.
  */
 export const uncovered = (files: ReadonlyArray<ListedFile>, program: ReadonlyArray<string>) => {
   const held = new Set(program);
   return files
-    .filter(({ listed, disk }) => isSource(listed) && !held.has(disk))
+    .filter(({ disk }) => !held.has(disk))
     .map(({ listed }) => listed)
     .toSorted();
 };

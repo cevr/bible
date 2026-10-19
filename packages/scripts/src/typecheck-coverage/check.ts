@@ -1,16 +1,18 @@
-// The coverage check over one package root: every TypeScript file under it is
-// in its tsconfig's program and is not a declaration file, so `tsc --noEmit`
-// reports its errors. A declaration file (TypeScript's rule: `a.d.ts`,
-// `style.d.css.ts`) is in the program, but `skipLibCheck` (the root tsconfig)
-// hides its own errors, so the check refuses it.
+// The coverage check over one package root. It holds two things, each by real
+// path: every TypeScript source listed under the root, outside `node_modules`,
+// is in its tsconfig's program; and no program file under the root, outside
+// `node_modules`, is a declaration file. A declaration file (TypeScript's rule:
+// `a.d.ts`, `style.d.css.ts`) is in the program, but `skipLibCheck` (the root
+// tsconfig) hides its own errors, so the check refuses it.
 //
 // tsc may spell a program file otherwise than the disk does (`./foo.js` finds
 // `foo.d.TS` as `foo.d.ts` on a disk that folds case; a path through a
 // symlink), and so may the listing (a symlinked source). So the check knows
 // each listed source and each program file by its real path: that decides
 // which listed file a program file is and whether it is the package's, and
-// tsc's own spelling decides the rule. A file whose real path is outside the
-// package, linked in, is not the package's: its declaration file passes.
+// tsc's own spelling decides the rule. Two kinds of declaration file pass with
+// their errors hidden: one whose real path is outside the package, and one
+// whose real path is inside `node_modules` (linked in, or installed).
 
 import { Console, Effect, FileSystem, Path, Runtime, Schema, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
@@ -90,6 +92,8 @@ export const check = (packageRoot: string) =>
       [fs.readDirectory(root, { recursive: true }), programOf(path.join(root, 'tsconfig.json'))],
       { concurrency: 2 },
     );
+    // Only the sources are resolved, so an entry inside `node_modules` (a
+    // dangling link an install left, say) is never read.
     const files = yield* Effect.forEach(
       listing.map((file) => file.split(path.sep).join('/')).filter(isSource),
       (listed) =>
@@ -112,6 +116,6 @@ export const check = (packageRoot: string) =>
     const declared = declarations(known);
     if (declared.length > 0) return yield* Unchecked.make({ files: declared });
     yield* Console.log(
-      `typecheck-coverage: every TypeScript file under ${root} is in its tsconfig's program and checked`,
+      `typecheck-coverage: under ${root}, outside node_modules, every TypeScript source is in its tsconfig's program and no program file is a declaration file, each by its real path`,
     );
   });

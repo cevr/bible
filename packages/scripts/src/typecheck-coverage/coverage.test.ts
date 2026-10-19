@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { declarations, listedFiles, uncovered } from './coverage.js';
+import { declarations, isSource, listedFiles, uncovered } from './coverage.js';
 
 /** Listed files whose real path is their listed path. */
 const asListed = (files: ReadonlyArray<string>) =>
@@ -21,15 +21,15 @@ describe("the files a tsconfig's program leaves out", () => {
     expect(uncovered(asListed(files), ['../../node_modules/lib.d.ts', ...files])).toEqual([]);
   });
 
-  test('files that are not TypeScript, and installed packages, are not asked for', () => {
+  test('files that are not TypeScript, and installed packages, are not sources', () => {
     const files = ['README.md', 'src/data.json', 'node_modules/effect/src/Effect.ts', 'src/x.ts'];
-    expect(uncovered(asListed(files), [])).toEqual(['src/x.ts']);
+    expect(files.filter(isSource)).toEqual(['src/x.ts']);
   });
 
   test('every TypeScript extension counts, a declaration file included', () => {
     const typescript = ['a.cts', 'a.d.ts', 'a.mts', 'a.ts', 'a.tsx'];
-    const listed = asListed([...typescript, 'a.js', 'a.json', 'a.ts.md', 'ts']);
-    expect(uncovered(listed, [])).toEqual(typescript);
+    const listed = [...typescript, 'a.js', 'a.json', 'a.ts.md', 'ts'];
+    expect(listed.filter(isSource)).toEqual(typescript);
   });
 
   test('a listed file is held by its real path, and named by its listed path', () => {

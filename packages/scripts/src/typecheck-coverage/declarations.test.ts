@@ -4,8 +4,9 @@
 // program: with `skipLibCheck` on, tsc reports a file's type error only when
 // the file is not a declaration file, so each file carries one and the silent
 // ones are TypeScript's declaration files. The routes where tsc spells a file
-// otherwise than the disk (case, the long s, Unicode normalization, a climbing
-// path, a symlink) are check.test.ts's census.
+// otherwise than the disk are check.test.ts's census, generated over the
+// rule's two edges (the root, `node_modules`), each way tsc crosses one, and
+// each spelling a disk folds.
 
 import { describe, expect, it } from 'bun:test';
 import { BunServices } from '@effect/platform-bun';
