@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "${0:A:h:h}"
 source scripts/toolchain.sh
-swift test "${SELAH_SWIFT_ARGS[@]}" "${SELAH_TEST_ARGS[@]}" -Xswiftc -warnings-as-errors
+swift test "${SELAH_DEBUG_ARGS[@]}"
 python3 - <<'PY'
 import json
 from pathlib import Path

@@ -14,3 +14,6 @@ if [[ "$(xcode-select -p)" == /Library/Developer/CommandLineTools ]]; then
         -Xswiftc -load-plugin-library -Xswiftc /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib
         -Xlinker -F -Xlinker "$SELAH_TEST_FRAMEWORKS" -Xlinker -rpath -Xlinker "$SELAH_TEST_FRAMEWORKS")
 fi
+# The debug build's flags, warnings as errors: compile.sh's `swift build` and test.sh's
+# `swift test` both read this one list, so neither rebuilds what the other built.
+SELAH_DEBUG_ARGS=("${SELAH_SWIFT_ARGS[@]}" "${SELAH_TEST_ARGS[@]}" -Xswiftc -warnings-as-errors)
