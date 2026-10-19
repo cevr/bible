@@ -2470,11 +2470,15 @@ and the same required ones.
 ### The lab's events: `film lab events` and MCP Events
 
 What happens in the lab is one catalogue of events (`LAB_EVENTS`,
-`core/lab-events.ts`: 21 names, `note.added` to `production.forwarded`), each
+`core/lab-events.ts`: 24 names, `note.added` to `source.redone`), each
 with one payload (`LabChange`: what it is about, its words, a one-line
 summary, its links, and `read`, the lab command that reads its whole record),
-read off the lab's files by its change feed (`tools/lab-events.ts`). `changes`
-reads the feed by the catalogue (`name`, globs over its names; `film`).
+read off the lab's files by its change feed (`tools/lab-events.ts`). A change
+to a film's source (`source.written`, `source.undone`, `source.redone`: a beat
+moved or a hold trimmed in the studio or by an agent, and each undo and redo)
+is read off the lab's writer (`SourceWriter.landings`), which the page and the
+agents write through alike. `changes` reads the feed by the catalogue (`name`,
+globs over its names; `film`).
 
 `film lab events` (`tools/events-cli.ts`) prints them from the running lab.
 With `--follow` it keeps running and prints one line per event as the lab sees

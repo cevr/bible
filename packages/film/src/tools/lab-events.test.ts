@@ -3,9 +3,11 @@
 // it tells its tries, and a cursor from another run is answered with every
 // change kept, said as a reset. A production's ledger is read too, and a
 // reader is answered only the events it names (globs) about the film it names.
+// A change to a film's source through the lab's writer (the studio's beat
+// move, an agent's undo) is told as it landed: written, undone, redone.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Fiber, FileSystem, Option, Schema } from 'effect';
+import { Effect, Fiber, FileSystem, Option, Result, Schema } from 'effect';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { Segment } from '../core/segment.ts';
 import { LabEvents } from './lab-events.ts';
@@ -13,7 +15,8 @@ import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
 import { BoardStore } from './board-store.ts';
 import { filmNamed } from './film-repo.ts';
-import { labInMemory, text } from './testing.ts';
+import { SourceWriter } from './source-writer.ts';
+import { echoPages, labInMemory, text, writesInMemory } from './testing.ts';
 
 const board: BoardFile = {
   film: 'f',
@@ -148,5 +151,79 @@ describe('the change feed', () => {
           'bun cli.ts lab timeline --film f',
         ]);
       }).pipe(Effect.provide(labInMemory(files()))),
+  );
+
+  it.effect("tells each change to a film's source as it landed: written, undone, redone", () =>
+    Effect.gen(function* () {
+      const writer = yield* SourceWriter;
+      const fs = yield* FileSystem.FileSystem;
+      const scene = '/films/f/scenes/cold.ts';
+      const events = yield* LabEvents.make({ links: { local: 'http://localhost:8229/' } });
+      yield* events.look;
+      const { cursor } = yield* events.since(Option.none());
+      yield* writer.write({
+        film: 'f',
+        scene: Option.some('cold'),
+        file: scene,
+        target: 'knob palm',
+        edit: (source) => Result.succeed(source.replace('1', '2')),
+        verify: () => Result.succeed([]),
+        check: () => Effect.void,
+      });
+      // A film's own file (no scene) is told on the film, its studio unselected.
+      yield* writer.around(
+        'f',
+        '/films/f/sound.ts',
+        'score play piano',
+        fs.writeFileString('/films/f/sound.ts', 'export {};\n'),
+      );
+      yield* events.look;
+      const filmWide = yield* events.since(Option.some(cursor));
+      expect(
+        filmWide.changes.map((c) => [c.kind, c.beat ?? 'the film', c.summary, c.links.local]),
+      ).toEqual([
+        [
+          'source.written',
+          'cold',
+          'f changed: knob palm (cold)',
+          'http://localhost:8229/films/f/studio?sel=beat%3Acold',
+        ],
+        [
+          'source.written',
+          'the film',
+          'f changed: score play piano',
+          'http://localhost:8229/films/f/studio',
+        ],
+      ]);
+      yield* writer.step('undo', 'f');
+      yield* writer.step('undo', 'f');
+      yield* writer.step('redo', 'f');
+      yield* events.look;
+      const told = yield* events.since(Option.some(filmWide.cursor));
+      expect(told.changes.map((c) => [c.kind, c.film, c.beat ?? 'the film', c.text])).toEqual([
+        ['source.undone', 'f', 'the film', 'score play piano'],
+        ['source.undone', 'f', 'cold', 'knob palm'],
+        ['source.redone', 'f', 'cold', 'knob palm'],
+      ]);
+      // One change, each step its own id; read as its timeline.
+      const knob = [filmWide.changes[0], ...told.changes.slice(1)].map((c) => c?.id);
+      expect(new Set(knob).size).toBe(3);
+      expect(told.changes[2]?.read.cli).toBe('bun cli.ts lab timeline --film f');
+      // Read again with nothing new: nothing said twice.
+      yield* events.look;
+      expect((yield* events.since(Option.some(told.cursor))).changes).toEqual([]);
+    }).pipe(
+      Effect.provide(
+        labInMemory(
+          new Map([
+            ...files(),
+            ['/films/f/scenes/cold.ts', text('export const palm = 1;\n')],
+            ['/films/f/sound.ts', text('export const score = 1;\n')],
+          ]),
+          echoPages,
+          { writes: writesInMemory },
+        ),
+      ),
+    ),
   );
 });

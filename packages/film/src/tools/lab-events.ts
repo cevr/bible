@@ -6,7 +6,9 @@
 // on, by the catalogue's names (`LAB_EVENTS`) and a film. The files are the
 // record, so a change the page makes, one a terminal's `film lab` makes, and
 // one an agent makes through the lab's MCP are all seen alike, and nothing
-// writes twice: the feed only reads. A set or a render it sees drops the
+// writes twice: the feed only reads. A change to a film's source is read off
+// the lab's writer, which tells each one that landed in order (the newest
+// 200: a read every few seconds finds them all). A set or a render it sees drops the
 // review's index (`Review.written`) before its event is told, so the page
 // and an ask read what another process wrote. What a change is, said from
 // two reads of a file, is `core/lab-events.ts`.
@@ -50,6 +52,7 @@ import {
   noteChanges,
   productionChanges,
   setChanges,
+  sourceChanges,
 } from '../core/lab-events.ts';
 import type { ProductionFile } from '../core/production.ts';
 import { eventsSince } from '../core/notes.ts';
@@ -64,6 +67,7 @@ import { FilmFolder, filmNamed } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import { ProductionStore } from './production-store.ts';
 import { Review, recordsUnder } from './review.ts';
+import { SourceWriter } from './source-writer.ts';
 
 /** What a reader is answered: the changes past its cursor, in order, and the cursor to ask past next. */
 export const LabChanges = Schema.Struct({
@@ -97,6 +101,8 @@ interface Seen {
   sets: ReadonlyMap<string, SetSeen>;
   readonly asks: Map<string, { readonly stamp: Stamp; readonly record: AskRecord }>;
   readonly productions: Map<string, ProductionFile>;
+  /** The number of the writer's last landing read: 0 before the first. */
+  landed: number;
 }
 
 interface Journal {
@@ -170,6 +176,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
     const store = yield* ContentStore;
     const asks = yield* AskStore;
     const productions = yield* ProductionStore;
+    const writer = yield* SourceWriter;
     const films = yield* Effect.context<FilmFolder>();
     const platform = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
     const epoch = (yield* Random.nextIntBetween(0, 2 ** 31)).toString(36);
@@ -182,6 +189,7 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
       sets: new Map(),
       asks: new Map(),
       productions: new Map(),
+      landed: 0,
     };
     /** Whether the next read is the first: the baseline, which tells nothing. */
     const first = yield* Ref.make(true);
@@ -310,6 +318,18 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
         });
       }).pipe(Effect.catch(unread('productions')));
 
+    /** Each change to a film's source that landed since the last read. */
+    const lookSource = (baseline: boolean) =>
+      Effect.map(writer.landings, (landings) => {
+        const fresh = landings.filter((l) => l.n > seen.landed);
+        seen.landed = Option.match(Arr.last(landings), {
+          onNone: () => seen.landed,
+          onSome: (l) => l.n,
+        });
+        if (baseline) return [];
+        return sourceChanges(fresh);
+      });
+
     /** The set a folder's manifest makes, when it has one: its title and its bytes' digest. */
     const setAt = (dir: string) =>
       Effect.gen(function* () {
@@ -358,12 +378,14 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
       seen.sets = sets;
       const asked = yield* lookAsks(baseline);
       const filed = yield* lookProductions(baseline);
+      const edited = yield* lookSource(baseline);
       return [
         ...Arr.flatten(filmChanges),
         ...Arr.flatten(catalogued),
         ...published,
         ...asked,
         ...filed,
+        ...edited,
       ];
     });
 

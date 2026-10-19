@@ -5,7 +5,10 @@
 // the files that hold it. The lab's change feed (`tools/lab-events.ts`)
 // reads the files; these say what changed between two reads. A change is
 // read from the record, never from the route that made it, so a write from
-// the page, a terminal or an agent is seen alike. Pure and DOM-free.
+// the page, a terminal or an agent is seen alike. A change to a film's
+// source (a beat moved, a hold trimmed, an undo) is read from the record the
+// lab's writer keeps of each one that landed, which the page and the agents
+// write through alike. Pure and DOM-free.
 
 import { Array as Arr, Boolean as Bool, Match, Option, Record, Schema } from 'effect';
 import { addressKey } from './address.ts';
@@ -113,6 +116,9 @@ const productionRead = (from: ReadFrom): ReadCommand =>
     }),
   });
 
+/** A film's source reads as its timeline. */
+const sourceRead = (from: ReadFrom) => labRead('timeline', given(from, ['film']));
+
 /** One event of the lab's: what it says, and the read of its whole record. */
 interface LabEventDefinition {
   readonly description: string;
@@ -177,6 +183,16 @@ export const LAB_EVENTS = {
   'production.forwarded': {
     description: 'A production moved into its next version.',
     read: productionRead,
+  },
+  'source.written': {
+    description:
+      "A film's source changed through the lab's writer (a beat moved, a hold trimmed, from the studio or an agent).",
+    read: sourceRead,
+  },
+  'source.undone': { description: "A change to a film's source undone.", read: sourceRead },
+  'source.redone': {
+    description: "An undone change to a film's source made again.",
+    read: sourceRead,
   },
 } satisfies Record<string, LabEventDefinition>;
 
@@ -779,4 +795,50 @@ export const changeOf = (
     id: changeId(draft.kind, origin),
     links: linksAt(links, place),
     read: LAB_EVENTS[draft.kind].read(draft),
+  });
+
+/**
+ * One change to a film's source that landed, as the lab's writer tells it
+ * (`tools/source-writer.ts`): its number in the writer's order, the step
+ * (a write, an undo, a redo), and what the change is.
+ */
+interface SourceLanding {
+  readonly n: number;
+  readonly verb: 'write' | 'undo' | 'redo';
+  readonly change: {
+    readonly id: string;
+    readonly film: string;
+    readonly scene: Option.Option<string>;
+    readonly target: string;
+  };
+}
+
+/** What each step of a source change is told as, and its verb in a summary. */
+const SOURCE_STEPS = {
+  write: { kind: 'source.written', says: 'changed' },
+  undo: { kind: 'source.undone', says: 'undid' },
+  redo: { kind: 'source.redone', says: 'redid' },
+} as const;
+
+/** Each landing as the change it tells: its film, its scene's beat, what it set, and the studio on that beat. Pure. */
+export const sourceChanges = (
+  landings: ReadonlyArray<SourceLanding>,
+): ReadonlyArray<LabChangeDraft> =>
+  landings.map(({ n, verb, change }): LabChangeDraft => {
+    const step = SOURCE_STEPS[verb];
+    return {
+      kind: step.kind,
+      origin: `source/${change.film}/${change.id}/${verb}/${n}`,
+      film: change.film,
+      ...Option.match(change.scene, { onNone: () => ({}), onSome: (beat) => ({ beat }) }),
+      text: change.target,
+      summary: `${change.film} ${step.says}: ${gist(change.target)}${Option.match(change.scene, {
+        onNone: () => '',
+        onSome: (scene) => ` (${scene})`,
+      })}`,
+      path: Option.match(change.scene, {
+        onNone: () => pageHref.studio(change.film),
+        onSome: (beat) => pageHref.studio(change.film, { sel: beatSelection(beat) }),
+      }),
+    };
   });

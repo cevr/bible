@@ -39,6 +39,10 @@
 // and filed again by its redo, so the work standing is always the work its
 // text asks for. A filing that fails is logged and leaves the text landed.
 //
+// Each change that lands (a write, an undo, a redo) is told in order, a
+// number each (`landings`, the newest `TOLD_KEPT`), for the lab's change feed
+// to hand on as an event.
+//
 // Each change has an id no other has (`Change.id`), kept by its undo and its
 // redo. An Undo or a Redo asked for one change (a receipt's, by the id its
 // write answered) steps only that change: when another stands before it on
@@ -220,6 +224,13 @@ interface WriteHistory {
   readonly landed: ReadonlyArray<LandedStep>;
 }
 
+/** One change that landed, as the writer tells it: its number (from 1, in the order they landed), the step, and the change. */
+interface Landing {
+  readonly n: number;
+  readonly verb: 'write' | StepVerb;
+  readonly change: Change;
+}
+
 interface SourceWriterService {
   /**
    * Rewrite one file as `rewrite` says: formatted, read back, checked, and
@@ -253,6 +264,8 @@ interface SourceWriterService {
   readonly step: (verb: StepVerb, film: string, ask?: StepAsk) => Effect.Effect<Stepped, StepError>;
   /** What undo and redo would do now for `film`, and its latest change. */
   readonly history: (film: string) => Effect.Effect<WriteHistory>;
+  /** Every film's changes that landed, the newest `TOLD_KEPT`, oldest first. */
+  readonly landings: Effect.Effect<ReadonlyArray<Landing>>;
 }
 
 /**
@@ -276,6 +289,9 @@ export type StepError = UndoUnavailable | RedoUnavailable | StepNotNewest | Stor
 
 /** How many changes Undo can walk back, per film. Each holds its file's text before and after. */
 export const UNDO_DEPTH = 50;
+
+/** How many landings the writer keeps told: what the feed has not read past them is gone. */
+const TOLD_KEPT = 200;
 
 const emptyHistory: History = {
   undos: [],
@@ -381,6 +397,19 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
       const writer = yield* Semaphore.make(1);
       const histories = yield* Ref.make(new Map<string, History>());
+      const told = yield* Ref.make<ReadonlyArray<Landing>>([]);
+      /** `change` told as landed by `verb`, numbered after the last. */
+      const tell = (verb: Landing['verb'], change: Change) =>
+        Ref.update(told, (all) =>
+          [
+            ...all,
+            {
+              n: Option.match(Arr.last(all), { onNone: () => 1, onSome: (l) => l.n + 1 }),
+              verb,
+              change,
+            },
+          ].slice(-TOLD_KEPT),
+        );
 
       const historyOf = (film: string) =>
         Effect.map(Ref.get(histories), (all) =>
@@ -442,6 +471,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
       const record = (c: Change, event: string) =>
         Effect.gen(function* () {
           yield* setHistory(c.film, recordChange(yield* historyOf(c.film), c));
+          yield* tell('write', c);
           yield* Effect.log(
             `${event} film=${c.film}${sceneLog(c)} target="${c.target}" file=${shown(c)}`,
           );
@@ -663,6 +693,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                   latest: Option.some(made),
                   landed: landedWith(h.landed, Option.fromUndefinedOr(request), made),
                 });
+                yield* tell(verb, c);
                 yield* Effect.log(
                   `lab.${verb} film=${film}${sceneLog(c)} target="${c.target}" file=${shown(c)}`,
                 );
@@ -682,7 +713,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
           landed: h.landed,
         }));
 
-      return SourceWriter.of({ write, around, step, history });
+      return SourceWriter.of({ write, around, step, history, landings: Ref.get(told) });
     }),
   );
 }

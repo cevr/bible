@@ -796,6 +796,8 @@ const noWrites = Layer.succeed(
     around: () => unusedSource,
     step: () => unusedSource,
     history: () => unusedSource,
+    // Nothing lands through a writer no test calls.
+    landings: Effect.succeed([]),
   }),
 );
 
@@ -2353,6 +2355,7 @@ const reviewFilmServices = (films: string, runs: Array<ReadonlyArray<string>>) =
             latest: Option.none(),
             landed: [],
           }),
+        landings: Effect.succeed([]),
       }),
     ),
     FilmFolder.layer(films),
