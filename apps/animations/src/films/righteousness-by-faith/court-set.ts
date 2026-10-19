@@ -33,7 +33,7 @@ export const PLACE = {
   lead: [293, 725],
   /** The prosecutor's feet, behind the table. */
   prosecutor: [748, 800],
-  /** The judge's head's centre, behind the bench. */
+  /** The judge's robe's middle at his head's height, behind the bench: his rig's origin. */
   judge: [1312, 196],
   /**
    * Christ's feet, beside the lead in the dock (`court.beside`): the lead's

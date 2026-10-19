@@ -3,9 +3,9 @@
 // and nods (`nod`, units). Standing, his feet are the figure's origin: the
 // lean turns about them, and the breath lifts the trunk from its hem and the
 // neck with it. Seated, the part of him above the bench is drawn and his
-// head's centre is the origin: the lean turns about his garment's hem (its
-// foot, behind the bench), and the breath swells the garment across and
-// lifts the neck. Pure.
+// body's middle at his head's height is the origin: the lean turns about his
+// garment's hem (its foot, behind the bench), and the breath swells the
+// garment across and lifts the neck. Pure.
 
 import { Schema } from 'effect';
 import { decoder } from '../decode.ts';
@@ -51,7 +51,7 @@ export const Stance = {
   /** Standing on his feet, the figure's origin. */
   Standing: (o: Omit<Standing, '_tag'>): Standing =>
     decodeStanding({ _tag: 'Standing', ...o }, 'Stance.Standing'),
-  /** Seated behind what hides his feet (the judge at his bench): his head's centre is the origin. */
+  /** Seated behind what hides his feet (the judge at his bench): his body's middle at his head's height is the origin. */
   Seated: (o: Omit<Seated, '_tag'>): Seated =>
     decodeSeated({ _tag: 'Seated', ...o }, 'Stance.Seated'),
 };

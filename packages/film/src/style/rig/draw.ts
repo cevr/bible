@@ -583,9 +583,9 @@ const standingOf = (
   ]);
 
 /**
- * A seated figure's body, about its head's centre: it leans about the
- * garment's hem, its foot behind what hides its feet (`lean`); the head over
- * the garment, whose side breathes.
+ * A seated figure's body, about its origin, its body's middle at its head's
+ * height: it leans about the garment's hem, its foot behind what hides its
+ * feet (`lean`); the head over the garment, whose side breathes.
  */
 const seatedOf = (
   rig: Figure,

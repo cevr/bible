@@ -278,7 +278,7 @@ const standingOf = () => ({
   hands: Hands({ paper: SKIN, share: 0.44 }),
 });
 
-/** A seated figure, its head's centre its origin: a traced head, a cut robe down behind its bench, and bands on it. */
+/** A seated figure, its origin its body's middle at its head's height: a traced head, a cut robe down behind its bench, and bands on it. */
 const seatedOf = (y = 0) => ({
   concept: CONCEPT,
   art: { width: 460, height: 520, head: [230, 140] as const },
@@ -320,7 +320,7 @@ describe('a traced figure, standing or seated', () => {
     >();
   });
 
-  test("a seated figure's gaze is measured from its head's centre, its origin", () => {
+  test("a seated figure's gaze is measured from its origin, its body's middle at its head's height", () => {
     const judge = figure(seatedOf());
     expect(Object.keys(judge.knobs)).toEqual([...Object.keys(FACE), 'lean', 'tilt', 'nod']);
     expectTypeOf(Rec.keys(judge.knobs)).toEqualTypeOf<Array<FaceKnob | 'lean' | 'tilt' | 'nod'>>();

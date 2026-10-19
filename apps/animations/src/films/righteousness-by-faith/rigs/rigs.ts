@@ -43,7 +43,7 @@ export const leadProp: RivePropSpec<FigureTimeline, keyof typeof LEAD_KNOBS> = {
   concept: lead.concept,
 };
 
-/** The judge: his head's centre at our origin. */
+/** The judge: his robe's middle at his head's height at our origin. */
 export const judgeProp: RivePropSpec<FigureTimeline, keyof typeof JUDGE_KNOBS> = {
   source: {
     riv: figuresRiv,

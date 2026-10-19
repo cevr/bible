@@ -103,7 +103,7 @@ export const judge = figure({
     image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },
     box: [1110, 95, 1510, 410],
   },
-  // Room round him for his lean and his robe's breadth; his head's centre is the rig's origin.
+  // Room round him for his lean and his robe's breadth; his robe's middle at his head's height is the rig's origin.
   art: { width: 460, height: 520, head: [230, 140] },
   stature: Stature.Canon(),
   stance: Stance.Seated({ breath: BREATH }),
