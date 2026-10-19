@@ -39,10 +39,11 @@ name, its Effect Schema input, output and refusal, and its effect, defined once.
 from that definition: the flags from the input schema, by each field's name; `--json` the output schema's value;
 the default the command's plain lines. Over the lab's files a terminal runs the command in its own process; over
 what only the running lab holds (`overview`, `changes`, `ask`, `timeline`, `working`, `beat_move`, `beat_hold`,
-`undo`, `look`, `match`, `critique`) it asks the lab through `lab-client.ts` (`packages/film/README.md`, "The lab's commands", says which
+`undo`, `tweak`, `look`, `match`, `critique`) it asks the lab through `lab-client.ts` (`packages/film/README.md`, "The lab's commands", says which
 and why). The parity test (`tools/lab-command.test.ts`) holds every tool the lab lists to a `film lab` command
 with the same fields. The studio's edits (`beat_move`, `beat_hold`, `undo`) join the set as commands of their own
-where the studio's commands are listed (`tools/timeline-mcp.ts`).
+where the studio's commands are listed (`tools/timeline-mcp.ts`), and `tweak` (`tools/tweak-mcp.ts`) beside them:
+a scene's cue timing and knob values are the agents' to set, and no page draws a control for them.
 
 ## Tools, resources, prompt
 
@@ -85,6 +86,7 @@ when `FILM_LAB_HOSTS` names one).
 | `working`       | an agent's "doing now" line on a film's studio header, as `by`; `done` clears it (no `text`), 30 min of silence too     |
 | `beat_move`     | moves a beat before another, or to the end, through the film's one history of edits                                     |
 | `beat_hold`     | sets a beat's lead or tail hold, snapped to 0.1 s, through the same history                                             |
+| `tweak`         | sets one value of a scene's literal, a cue's timing or a knob's value, through the same history, and checks after it    |
 | `undo`          | undoes the film's newest change, or the one named while no newer one stands                                             |
 
 Resources: `lab://overview`, `lab://changes` (the last 50), `lab://films/{film}/notes`, `lab://films/{film}/board`.
@@ -155,7 +157,7 @@ One change feed, `LabEvents` (`tools/lab-events.ts`), read off the files themsel
 `notes.json` and `board.json`, each project folder's `catalogue.json`, each set's `review.json`, each ask, each
 production's ledger. A change the page makes, a terminal's `film lab`, and an agent's MCP call are seen alike, and
 nothing writes twice. A change to a film's source (the studio's beat moves and holds, an agent's `beat_move`,
-`beat_hold` and `undo`, each undo and redo) is read off the lab's writer, which tells each change that landed in
+`beat_hold`, `tweak` and `undo`, each undo and redo) is read off the lab's writer, which tells each change that landed in
 order (`SourceWriter.landings`, the newest 200), since the page and the agents write through it alike.
 What changed between two reads is pure (`core/lab-events.ts`). The first read is the baseline: only what happens
 after the lab starts is news. A cursor is `<epoch>.<seq>`; one from another run (the lab restarted) answers every

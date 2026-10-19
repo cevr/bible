@@ -93,11 +93,6 @@ describe('scene sources', () => {
       ]);
       const error = yield* Effect.flip(sources.site('f', 'plain'));
       expect(error.message).toContain('scene "plain" has no editable drawing');
-      const editable = yield* sources.editable('f', 'hand');
-      expect(editable.cues.map((c) => [c.name, c.offset])).toEqual([
-        ['topple', 'literal'],
-        ['late', 'computed'],
-      ]);
       // The code view: the file's text now, and each cue's literal as a range of it.
       const code = yield* sources.code('f', 'hand');
       expect(code.site.shown).toBe('scenes/hand.ts');

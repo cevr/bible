@@ -1035,46 +1035,60 @@ const CueOffset = Schema.Finite;
 const CueDur = Seconds;
 
 /** A cue patch's fields, in the order a span writes them. */
-const CuePatchFields = {
-  offset: Schema.optionalKey(CueOffset),
-  dur: Schema.optionalKey(CueDur),
-  /**
-   * End on this mark instead: it replaces the span's `dur`, as a `dur` replaces
-   * its `until`, and ends on the mark itself unless `untilOffset` comes with it.
-   */
-  until: Schema.optionalKey(Schema.String),
-  /** Where an `until` span ends off its point: 0 puts it back on the point (the key dropped). */
-  untilOffset: Schema.optionalKey(CueOffset),
-  ease: Schema.optionalKey(EaseName),
-  stagger: Schema.optionalKey(Share),
+export const CuePatchFields = {
+  offset: Schema.optionalKey(
+    CueOffset.annotate({ description: "The cue's offset from its anchor, in seconds." }),
+  ),
+  dur: Schema.optionalKey(CueDur.annotate({ description: "The cue's length, in seconds." })),
+  until: Schema.optionalKey(
+    Schema.String.annotate({
+      description:
+        "End on this mark instead: it replaces the span's `dur`, as a `dur` replaces its `until`, and ends on the mark itself unless `untilOffset` comes with it.",
+    }),
+  ),
+  untilOffset: Schema.optionalKey(
+    CueOffset.annotate({
+      description:
+        'Where an `until` span ends off its point, in seconds: 0 puts it back on the point (the key dropped).',
+    }),
+  ),
+  ease: Schema.optionalKey(
+    EaseName.annotate({ description: 'The ease `f.at` applies across the cue, by its name.' }),
+  ),
+  stagger: Schema.optionalKey(
+    Share.annotate({ description: "The cue's stagger across its items, a share from 0 to 1." }),
+  ),
 };
 
 /** Every key a cue patch may set, in the order a span writes them: the one list of them. */
 export const CUE_PATCH_KEYS = Struct.keys(CuePatchFields);
 
-/** `POST /api/films/:film/scenes/:scene/cues/:cue`: the fields to set; a field the span lacks is added. */
+/** The fields of a cue patch an input sets. */
+const Patched = Schema.Struct(CuePatchFields);
+type Patched = typeof Patched.Type;
+
+/** How a span ends, as a patch may say it: by its dur or on a mark, never both. */
+export const spanEnds = [
+  Schema.makeFilter(
+    (p: Patched) =>
+      !('dur' in p && 'until' in p) || 'a span ends by its dur or on a mark, not both',
+  ),
+  Schema.makeFilter(
+    (p: Patched) =>
+      !('dur' in p && 'untilOffset' in p) ||
+      'a span that ends by its dur has no until point to be off',
+  ),
+] as const;
+
+/** A cue write: the fields to set; a field the span lacks is added. */
 export const CuePatch = Schema.Struct(CuePatchFields)
   .check(
     Schema.makeFilter(
       (p) => Object.keys(p).length > 0 || `set at least one of ${CUE_PATCH_KEYS.join(', ')}`,
     ),
   )
-  .check(
-    Schema.makeFilter(
-      (p) => !('dur' in p && 'until' in p) || 'a span ends by its dur or on a mark, not both',
-    ),
-  )
-  .check(
-    Schema.makeFilter(
-      (p) =>
-        !('dur' in p && 'untilOffset' in p) ||
-        'a span that ends by its dur has no until point to be off',
-    ),
-  );
+  .check(...spanEnds);
 export type CuePatch = typeof CuePatch.Type;
-
-/** `POST /api/films/:film/scenes/:scene/knobs/:knob`: the knob's new value. */
-export const KnobPatch = Schema.Struct({ value: Knob });
 
 /** A cue on the scene clock, in scene-local seconds, with the ease `f.at` applies across it. */
 export const ResolvedCue = Schema.Struct({
@@ -1166,46 +1180,6 @@ export const CheckReport = Schema.Struct({
   landed: Schema.optionalKey(Schema.Array(LandedStep)),
 });
 export type CheckReport = typeof CheckReport.Type;
-
-const FieldState = Schema.Literals(['literal', 'absent', 'computed']);
-
-/** `GET /api/films/:film/scenes/:scene/source`: where the scene's drawing is, and what the lab may rewrite. */
-export const SceneSource = Schema.Struct({
-  scene: Schema.String,
-  /** The scene file, relative to the film's folder. */
-  file: Schema.String,
-  cues: Schema.Array(
-    Schema.Struct({
-      name: Schema.String,
-      offset: FieldState,
-      dur: FieldState,
-      until: FieldState,
-      /** Additive: an answer without it (a server before it) leaves the end's offset unjudged. */
-      untilOffset: Schema.optionalKey(FieldState),
-      ease: FieldState,
-      stagger: FieldState,
-      /** Additive: the line (from 1) that writes the cue; an answer without it (a server before it) has the inspector wait for the code. */
-      line: Schema.optionalKey(Schema.Int),
-    } satisfies Record<keyof CuePatch | 'name' | 'line', Schema.Top>),
-  ),
-  knobs: Schema.Array(
-    Schema.Struct({
-      name: Schema.String,
-      state: FieldState,
-      /** Additive: the line (from 1) that writes the knob, likewise. */
-      line: Schema.optionalKey(Schema.Int),
-    }),
-  ),
-  /**
-   * A field the lab will not write, and why: the scene reads a timeline or
-   * knobs no literal declares (the registry overrides it), or one other
-   * scenes read too. Its cues or knobs are not listed.
-   */
-  refused: Schema.Array(
-    Schema.Struct({ field: Schema.Literals(['timeline', 'knobs']), reason: Schema.String }),
-  ),
-});
-export type SceneSource = typeof SceneSource.Type;
 
 /** A stretch of a scene file's text: `[start, end)` as offsets into `SceneCode.text` (UTF-16 units, so `text.slice(start, end)`). */
 export const CodeRange = Schema.Tuple([Schema.Int, Schema.Int]);

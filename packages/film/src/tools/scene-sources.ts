@@ -39,7 +39,7 @@ import {
 import type { FilmModuleInvalid } from './errors.ts';
 import { FilmFolder, Stamped, filmNamed, keptWhenMade } from './film-repo.ts';
 import { type FreshError, FreshFilm, type SceneSite } from './fresh-film.ts';
-import { type Editable, editable, sceneCode } from './scene-source.ts';
+import { sceneCode } from './scene-source.ts';
 
 export type { SceneSite } from './fresh-film.ts';
 
@@ -70,21 +70,6 @@ interface SceneSourcesService {
     field: Field,
   ) => Effect.Effect<SceneSite, LocateError | SceneNotLocated | SourceShared>;
   /**
-   * Which of the scene's cues and knobs are literals the lab can rewrite, read
-   * from the file now; a field the lab may not write lists none, and `refused`
-   * says why.
-   */
-  readonly editable: (
-    film: string,
-    scene: string,
-  ) => Effect.Effect<
-    Editable & {
-      readonly refused: ReadonlyArray<{ readonly field: Field; readonly reason: string }>;
-      readonly site: SceneSite;
-    },
-    LocateError | SceneNotLocated | SourceRefused
-  >;
-  /**
    * One scene's file as it stands now, and where in it each cue and knob
    * is written and read (`sceneCode`); read-only, so a field the lab may not
    * write is listed all the same.
@@ -99,8 +84,6 @@ interface SceneSourcesService {
     LocateError | SceneNotLocated | SourceRefused
   >;
 }
-
-const FIELDS: ReadonlyArray<Field> = ['timeline', 'knobs'];
 
 /** How many films' sites the lab keeps: one film, a few stamps of it. */
 const SITES_KEPT = 8;
@@ -143,28 +126,6 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
       return at;
     });
 
-    const readEditable = Effect.fn('SceneSources.editable')(function* (
-      film: string,
-      scene: string,
-    ) {
-      const at = yield* site(film, scene);
-      const source = yield* fs.readFileString(at.file);
-      const found = yield* Effect.fromResult(editable(at.shown, source, at.exportName));
-      // Only the fields the lab may write: a refused one lists nothing, and says why.
-      const refused = FIELDS.flatMap((field) => {
-        const access = at.access[field];
-        if (access._tag === 'Writable') return [];
-        return [{ field, reason: access.error.message }];
-      });
-      const open = (field: Field) => at.access[field]._tag === 'Writable';
-      return {
-        cues: found.cues.filter(() => open('timeline')),
-        knobs: found.knobs.filter(() => open('knobs')),
-        refused,
-        site: at,
-      };
-    });
-
     const readCode = Effect.fn('SceneSources.code')(function* (film: string, scene: string) {
       const at = yield* site(film, scene);
       const text = yield* fs.readFileString(at.file);
@@ -172,7 +133,7 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
       return { ...found, text, site: at };
     });
 
-    return SceneSources.of({ locate, site, writable, editable: readEditable, code: readCode });
+    return SceneSources.of({ locate, site, writable, code: readCode });
   });
 
   /**

@@ -698,7 +698,7 @@ describe('lab routes', () => {
       );
       expect(yield* Effect.promise(() => head.text())).toBe('');
       // A route that takes no GET takes no HEAD either.
-      const added = labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } });
+      const added = labUrls.notes.reply({ params: { film: 'f', id: 'n1' } });
       const refused = yield* Effect.promise(() =>
         lab(new Request(at(added), { method: 'HEAD' }), bound),
       );

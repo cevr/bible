@@ -429,8 +429,8 @@ describe('declared routes', () => {
 
   test("the API's paths, as the wire has them", () => {
     expect(labUrls.notes.list({ params: { film: 'f' } })).toBe('/api/films/f/notes');
-    expect(labUrls.scenes.cue({ params: { film: 'f', scene: 's', cue: 'c' } })).toBe(
-      '/api/films/f/scenes/s/cues/c',
+    expect(labUrls.scenes.code({ params: { film: 'f', scene: 's' } })).toBe(
+      '/api/films/f/scenes/s/code',
     );
     expect(labUrls.choices.films()).toBe('/api/films');
     expect(labUrls.project.get({ params: { film: 'f' }, query: {} })).toBe('/api/films/f/project');

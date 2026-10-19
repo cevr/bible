@@ -1544,7 +1544,9 @@ has answered it (`POST /api/films/<film>/notes/:id/withdraw`).
 film's newest change (or, given `change`, that change alone, refused while
 another stands before it); `beat_hold` answers the seams into and out of
 its beat as the version reads after it (`seamsAround`: from the end of a
-beat's take to the next beat's words). `BeatEdits` makes them as the page makes them,
+beat's take to the next beat's words). `tweak` (`tools/tweak-mcp.ts`)
+writes a scene's cue timing or knob value into the same history (The
+tweak, below). `BeatEdits` makes them as the page makes them,
 so the owner and the agents step one history, and the lab's change feed tells
 each change, its undo and its redo as it lands (`source.written`,
 `source.undone`, `source.redone`; The lab's events, below).
@@ -1576,27 +1578,36 @@ Its modules are in `lab/film-studio/`:
   browser entry).
 
 **The lab's source routes.** Beside the edits' routes the lab keeps
-routes no page calls, for an agent's tool (p6-tweak): a scene's cue and knob
-written into its file, the steps' undo, redo and check, and a talk's words
-read, cut, restored and marked.
+the steps' undo, redo and check, a scene's code as the studio reads it, and a
+talk's words read, cut, restored and marked. A scene's cue timing and knob
+values are the agents' to set, by the lab's `tweak` command (below); no
+page draws a control for them.
 
-| Route                                              | What it does                                                                                                                                                                                                                                                    |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`, and the `line` that writes each cue and knob                                                                                                                  |
-| `GET /api/films/<film>/scenes/:scene/code`         | the scene file's text now and, as `[start, end)` ranges of it, where each cue and knob is written and every call that reads a cue, a knob or a mark by name, and why a field lists none (`SceneCode`; read-only: the studio's Code section reads its text)      |
-| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `untilOffset?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                                                             |
-| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                                                                                                                                       |
-| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`)                                    |
-| `POST /api/films/<film>/beats/move`                | `{ version?, beat, before? }`: the beat moved before `before` (to the end when none) in the version's `script.ts`, one write through the history; a move that breaks the acts or the movements a 422 (`StudioEdit`: the change, its words, the steps, no check) |
-| `POST /api/films/<film>/beats/hold`                | `{ version?, beat, edge, seconds }`: the beat's `lead` or `tail` held, snapped to 0.1 s and kept at its floor, one write through the history (`StudioEdit`)                                                                                                     |
-| `POST /api/films/<film>/edits/undo`, `/redo`       | Undo and Redo as `/undo` and `/redo` do them, answered at once with the owner's words and the steps (`StudioEdit`), no check                                                                                                                                    |
-| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                                                     |
-| `GET /api/films/<film>/talk`                       | a talk's words (`TalkWords`): each section in play order, its take, every word from its first to its last with its text, whether the cut strikes it, when it is heard, and the section's marks; a film with no `talk.ts` a 422                                  |
-| `POST /api/films/<film>/talk/cut`, `/restore`      | `{ section, from, to }`: strike those words from the section's cut, or play them again, as one write of `talk.ts` judged by the cut (`LabWrite`; an edit the cut refuses a 422)                                                                                 |
-| `POST /api/films/<film>/talk/mark`                 | `{ section, word, name }`: mark that played word, as one write of `talk.ts` judged by the cut (`LabWrite`); a name the talk's decode would drop (`MarkName`) a 422, the mark read back from the talk decoded                                                    |
+| Route                                         | What it does                                                                                                                                                                                                                                                    |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/scenes/:scene/code`    | the scene file's text now and, as `[start, end)` ranges of it, where each cue and knob is written and every call that reads a cue, a knob or a mark by name, and why a field lists none (`SceneCode`; read-only: the studio's Code section reads its text)      |
+| `POST /api/films/<film>/undo`, `/redo`        | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`)                                    |
+| `POST /api/films/<film>/beats/move`           | `{ version?, beat, before? }`: the beat moved before `before` (to the end when none) in the version's `script.ts`, one write through the history; a move that breaks the acts or the movements a 422 (`StudioEdit`: the change, its words, the steps, no check) |
+| `POST /api/films/<film>/beats/hold`           | `{ version?, beat, edge, seconds }`: the beat's `lead` or `tail` held, snapped to 0.1 s and kept at its floor, one write through the history (`StudioEdit`)                                                                                                     |
+| `POST /api/films/<film>/edits/undo`, `/redo`  | Undo and Redo as `/undo` and `/redo` do them, answered at once with the owner's words and the steps (`StudioEdit`), no check                                                                                                                                    |
+| `GET /api/films/<film>/check`                 | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                                                     |
+| `GET /api/films/<film>/talk`                  | a talk's words (`TalkWords`): each section in play order, its take, every word from its first to its last with its text, whether the cut strikes it, when it is heard, and the section's marks; a film with no `talk.ts` a 422                                  |
+| `POST /api/films/<film>/talk/cut`, `/restore` | `{ section, from, to }`: strike those words from the section's cut, or play them again, as one write of `talk.ts` judged by the cut (`LabWrite`; an edit the cut refuses a 422)                                                                                 |
+| `POST /api/films/<film>/talk/mark`            | `{ section, word, name }`: mark that played word, as one write of `talk.ts` judged by the cut (`LabWrite`); a name the talk's decode would drop (`MarkName`) a 422, the mark read back from the talk decoded                                                    |
 
-A scene that is not located is a 404, a value the lab will not rewrite a 422
-(so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
+An undo with nothing to undo (or a file changed since) is a 409.
+
+**The tweak.** The lab's `tweak` command (`tools/tweak-mcp.ts`; MCP, and
+`bun run lab tweak` from a terminal) sets one value of a scene's
+`drawing({...})` literal: a `cue`'s timing (`offset`, `dur` or `until`,
+`untilOffset`, `ease`, `stagger`, the fields of `CuePatch`) or a `knob`'s
+`value` (a number or `[x, y]`), by SceneWriter, through the film's one
+history (the owner's Undo and the `undo` command step it). It answers
+`LabWrite`: the change, the file, the cue's span and where it resolves (or
+why it does not), or the knob read back, and `film check --static` run after
+it. A scene that is not located, a value the lab will not rewrite (computed,
+not a literal; a literal other scenes share) and a cue timing the scene's
+timeline would not resolve with are refused, with the reason.
 A cue write is judged, and answered with the cue resolved on its scene's
 clock, as the film's files now declare it with the new spans in place, and
 the write applied, as the file will hold it (`writtenPatch`: every number to
@@ -1938,9 +1949,9 @@ in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
 `reviewPhoneUrl`, `reviewFrameUrl`, from
 `urlBuilder`).
 
-| API          | Served by                 | Groups                                                                                                                                                                                                                                                                                                         |
-| ------------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LabHttpApi` | `film lab` (`labHandler`) | `notes`, `scenes` (source, code, cue, knob), `steps` (undo, redo, check, steps), `edits` (move, hold, undo, redo), `talk` (words, cut, restore, mark), `script` (beats), `studio`, `review` (index, file, phone, frame, duration, say), `choices`, `project`, `looks` (take), `page` (wait: the build counter) |
+| API          | Served by                 | Groups                                                                                                                                                                                                                                                                                      |
+| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LabHttpApi` | `film lab` (`labHandler`) | `notes`, `scenes` (code), `steps` (undo, redo, check, steps), `edits` (move, hold, undo, redo), `talk` (words, cut, restore, mark), `script` (beats), `studio`, `review` (index, file, phone, frame, duration, say), `choices`, `project`, `looks` (take), `page` (wait: the build counter) |
 
 **A HEAD of a GET route** answers as the GET does, with its status and
 headers and no body.
@@ -2494,7 +2505,7 @@ hold it there:
 | Where      | Commands                                                                                                                                                                                                                                           | Why                                                                                                                                                                                             |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | here       | `notes` `board` `reply` `resolve` `request_tweak` `keep_try` `approve_beat` `withdraw_beat` `catalogue` `sets` `set` `publish_set` `record_render` `ask_read` `asks` `close_ask` `decide` `note` `forward` `check` `cues` `journal` `journal_note` | over the lab's files alone, through the stores the lab writes through; each write holds its file's lock across processes (`ContentStore`), so no lab need run                                   |
-| in the lab | `overview` `changes` `ask` `timeline` `working` `beat_move` `beat_hold` `undo` `look` `match` `critique`                                                                                                                                           | over what only the running lab holds: its change feed, the agents' lines, the film's one history of edits, the asks' page lock (held in memory), the easel's warm page and the critic beside it |
+| in the lab | `overview` `changes` `ask` `timeline` `working` `beat_move` `beat_hold` `tweak` `undo` `look` `match` `critique`                                                                                                                                   | over what only the running lab holds: its change feed, the agents' lines, the film's one history of edits, the asks' page lock (held in memory), the easel's warm page and the critic beside it |
 
 An in-lab command is the lab MCP's own tool asked at `FILM_LAB_URL` (else
 `http://127.0.0.1:8229/`, `tools/lab-client.ts`): its input checked here

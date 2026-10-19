@@ -1,7 +1,7 @@
 // A film's writes as the lab answers them: each write named one way
 // (`wroteFields`: the file it changed, what it set, the change it made), with
-// `film check --static` after it (`writeAnswer`, which the scene writes in
-// `lab.ts` share; the choices' writes name theirs the same way), and the lab
+// `film check --static` after it (`writeAnswer`, which the `tweak` command's scene writes in
+// `tweak-mcp.ts` share; the choices' writes name theirs the same way), and the lab
 // API's `steps` group (undo, redo, check, and the steps alone, in this
 // process) for the film its route names.
 

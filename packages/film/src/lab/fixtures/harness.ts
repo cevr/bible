@@ -156,45 +156,6 @@ export const route = (
   after: Duration.Input = Duration.zero,
 ): FakeRoute => ({ method, path, answer, after: Duration.fromInputUnsafe(after) });
 
-const literal = 'literal' as const;
-const cueSource = (name: string) => ({
-  name,
-  offset: literal,
-  dur: literal,
-  until: literal,
-  ease: literal,
-  stagger: literal,
-});
-
-/** Scene one's source as the lab reads it: every cue and knob a literal it may write. */
-export const sourceOne = {
-  scene: 'one',
-  file: 'scenes/one.ts',
-  cues: [cueSource('rise'), cueSource('fall')],
-  knobs: [
-    { name: 'spot', state: literal },
-    { name: 'size', state: literal },
-    { name: 'tilt', state: literal },
-    { name: 'lean', state: literal },
-  ],
-  refused: [],
-};
-
-const sourceTwo = { scene: 'two', file: 'scenes/two.ts', cues: [], knobs: [], refused: [] };
-
-/** Scene three's source: its `until` cue, its camera's target and zoom, and a pole, all literals. */
-const sourceThree = {
-  scene: 'three',
-  file: 'scenes/three.ts',
-  cues: [cueSource('push')],
-  knobs: [
-    { name: 'face', state: literal },
-    { name: 'faceZoom', state: literal },
-    { name: 'pole', state: literal },
-  ],
-  refused: [],
-};
-
 /**
  * The probe film's script as the lab reads it (`GET …/script`): each beat's
  * picture, naming its cues in backticks as a script's brief does, and its
@@ -298,20 +259,6 @@ const wrote = (target: string, scene = 'one') => ({
 const defaults: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/notes$/, () => json({ film: PROBE, seq: 0, notes: [] })),
   route('GET', /^\/notes\/wait/, () => hold),
-  route('GET', /^\/scenes\/one\/source$/, () => json(sourceOne)),
-  route('GET', /^\/scenes\/two\/source$/, () => json(sourceTwo)),
-  route('GET', /^\/scenes\/three\/source$/, () => json(sourceThree)),
-  route('GET', /^\/scenes\/(one|two|three)\/head$/, (asked) => {
-    const scene = asked.path.split('/')[2] ?? '';
-    return json({
-      scene,
-      file: `scenes/${scene}.ts`,
-      timeline: {},
-      knobs: {},
-      codeChanged: false,
-      sameData: true,
-    });
-  }),
   route('GET', /^\/check$/, () => json({ findings: [] })),
   // The film's history as the studio reads it: nothing to undo or redo.
   route('GET', /^\/steps$/, () => json({})),
@@ -329,8 +276,6 @@ const defaults: ReadonlyArray<FakeRoute> = [
       }),
     ),
   ),
-  route('POST', /^\/scenes\/\w+\/cues\//, () => json(wrote('cue'))),
-  route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
   route('GET', PROBE_FACE_PATH, () => file(PROBE_FACE_FILE)),
 ];
@@ -498,7 +443,7 @@ const asGet = (method: string): string => {
 const apiAnswer =
   (prefix: string, routes: ReadonlyArray<FakeRoute>, asked: Array<Asked>) =>
   (request: Request): Effect.Effect<Option.Option<Response>> => {
-    // Past `prefix` when under it (`/scenes/one/source`), else whole (`/api/review/build`).
+    // Past `prefix` when under it (`/notes/wait`), else whole (`/api/review/build`).
     const under = Option.liftPredicate(request.url.pathname, (p) => p.startsWith(`${prefix}/`));
     const made: Asked = {
       method: request.method,

@@ -1,14 +1,14 @@
 // The lab's server: one web handler for the lab's whole API (`LabHttpApi` in
 // `core/api.ts`, where every path, body and answer is declared), for every
-// film the app has, and its pages (`LabPage`). It tweaks a film (notes on
-// frames, the scene source the cues and knobs write back to, Undo and Redo,
-// the studio) and reviews it (the renders under the roots, the film's
-// choices and its project), and runs for days: `film lab`.
+// film the app has, and its pages (`LabPage`). It serves a film's studio
+// (notes on frames, a scene's code, the script's edits, Undo and Redo) and
+// reviews it (the renders under the roots, the film's choices and its
+// project), and runs for days: `film lab`. A scene's cues and knobs are the
+// agents' to set (the `tweak` command, `tweak-mcp.ts`).
 //
 // The notes read and write through NotesStore, so the page and `film lab notes`
-// see the same file. The scene source routes write through SceneWriter: each
-// write lands in the scene's `.ts` file, then `film check --static` runs
-// fresh; Undo and Redo put the newest write back or make it again.
+// see the same file. Undo and Redo put the film's newest write back or make
+// it again, any writer's (SourceWriter).
 //
 // The API rewrites source and is reached from a phone, so every request, the
 // pages included, passes the one gate (`api-server.ts`): each listener's own
@@ -26,7 +26,6 @@ import {
   Layer,
   Option,
   Path,
-  Record as Rec,
   Result,
 } from 'effect';
 import type { HttpPlatform, HttpServerRequest } from 'effect/http';
@@ -61,9 +60,7 @@ import {
 import { NotesStore } from './notes-store.ts';
 import { BoardStore } from './board-store.ts';
 import { approveBeat, pickTry, withdrawBeat } from '../core/board.ts';
-import { readKnob, readSpans } from './scene-source.ts';
 import { SceneSources } from './scene-sources.ts';
-import { type CueWritten, SceneWriter } from './scene-writer.ts';
 import { type Follows, type Remade, SourceWriter, type Wrote } from './source-writer.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { stepsGroup, writeAnswer } from './steps-http.ts';
@@ -83,23 +80,6 @@ import {
   talkCutIn,
   talkWords,
 } from './talk-source.ts';
-
-/** A cue written: the span as the file now reads it, and where it resolves (or why it does not). */
-const cueWritten = Effect.fn('lab.cueWritten')(function* (
-  film: FilmName,
-  cue: string,
-  done: CueWritten,
-) {
-  const { written, read } = done;
-  const spans = readSpans(written.file, written.after, written.exportName);
-  const span = Option.match(Rec.get(spans, cue), {
-    onNone: () => ({}),
-    onSome: (s) => ({ span: s }),
-  });
-  // Where the cue lands is the write's own check: run fresh, on the text the write made.
-  const { _tag, ...where } = read;
-  return yield* writeAnswer(film, written, Effect.succeed({ ...span, ...where }));
-});
 
 /** The notes on the film's frames. */
 const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
@@ -174,60 +154,17 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
     ),
 );
 
-/** The scene source the lab edits. */
+/** A scene's code, for the studio's Scene section. */
 const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
-  handlers
-    .handle('source', ({ params }) =>
-      answered(
-        Effect.gen(function* () {
-          const film = yield* filmNamed(params.film);
-          const found = yield* (yield* SceneSources).editable(film, params.scene);
-          return {
-            scene: params.scene,
-            file: found.site.shown,
-            cues: found.cues,
-            knobs: found.knobs,
-            refused: found.refused,
-          };
-        }),
-      ),
-    )
-    .handle('code', ({ params }) =>
-      answered(
-        Effect.gen(function* () {
-          const film = yield* filmNamed(params.film);
-          const { site, ...found } = yield* (yield* SceneSources).code(film, params.scene);
-          return { scene: params.scene, file: site.shown, ...found };
-        }),
-      ),
-    )
-    .handle('cue', ({ params, payload }) =>
-      answered(
-        Effect.gen(function* () {
-          const film = yield* filmNamed(params.film);
-          const { scene, cue } = params;
-          const written = yield* (yield* SceneWriter).setCue(film, scene, cue, payload);
-          return yield* cueWritten(film, cue, written);
-        }),
-      ),
-    )
-    .handle('knob', ({ params, payload }) =>
-      answered(
-        Effect.gen(function* () {
-          const film = yield* filmNamed(params.film);
-          const { scene, knob } = params;
-          const written = yield* (yield* SceneWriter).setKnob(film, scene, knob, payload.value);
-          const read = Effect.succeed(
-            Result.match(readKnob(written.file, written.after, written.exportName, knob), {
-              onFailure: () => ({}),
-              onSuccess: (v) =>
-                Option.match(v, { onNone: () => ({}), onSome: (k) => ({ knob: k }) }),
-            }),
-          );
-          return yield* writeAnswer(film, written, read);
-        }),
-      ),
+  handlers.handle('code', ({ params }) =>
+    answered(
+      Effect.gen(function* () {
+        const film = yield* filmNamed(params.film);
+        const { site, ...found } = yield* (yield* SceneSources).code(film, params.scene);
+        return { scene: params.scene, file: site.shown, ...found };
+      }),
     ),
+  ),
 );
 
 /** A talk's file as a write and a refusal name it (`talk.ts`), and what the write sets. */
@@ -607,8 +544,7 @@ export const labPhone = Config.option(Config.URL('FILM_LAB_PHONE_URL'));
  * The lab runs for days and keeps a module as it first imported it, so
  * nothing here loads a film (`FilmRepo`), the sound library
  * (`SoundLibrary`) or mixes in process (`Mixer`): the studio reads the
- * script and voice fresh (`StudioReadings`) and remixes fresh, a cue write is
- * judged and resolved fresh (SceneWriter's check), a scene's drawing is
+ * script and voice fresh (`StudioReadings`) and remixes fresh, a scene's drawing is
  * located fresh (`SceneSources`), and a film's options are
  * read and heard fresh (`Choices`). `lab-context.types.ts` fails the
  * typecheck if a loader joins.
@@ -623,7 +559,6 @@ export type LabContext =
   | ContentStore
   | FilmFolder
   | SceneSources
-  | SceneWriter
   | SourceWriter
   | FreshFilm
   | Takes

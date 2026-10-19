@@ -126,8 +126,6 @@ import { MoveForward, ProductionFile, ProductionId, Productions } from './produc
 import {
   ChangeId,
   CheckReport,
-  CuePatch,
-  KnobPatch,
   LabWrite,
   Note,
   NotePost,
@@ -137,7 +135,6 @@ import {
   ReplyPost,
   RequestId,
   SceneCode,
-  SceneSource,
   TakeWord,
 } from './schema.ts';
 import { Segment } from './segment.ts';
@@ -670,29 +667,12 @@ class NotesGroup extends HttpApiGroup.make('notes').add(
   }),
 ) {}
 
-/** A scene's source as the lab edits it: what it may rewrite, HEAD's version, a cue or a knob written. */
+/** A scene's code as the studio's Scene section reads it. */
 class ScenesGroup extends HttpApiGroup.make('scenes').add(
-  HttpApiEndpoint.get('source', `${FILM}/scenes/:scene/source`, {
-    params: { ...film, scene: Schema.String },
-    success: SceneSource,
-    error: Refusals,
-  }),
   /** The scene file's text now, and where its cues and knobs are written and read (the studio's Scene section). */
   HttpApiEndpoint.get('code', `${FILM}/scenes/:scene/code`, {
     params: { ...film, scene: Schema.String },
     success: SceneCode,
-    error: Refusals,
-  }),
-  HttpApiEndpoint.post('cue', `${FILM}/scenes/:scene/cues/:cue`, {
-    params: { ...film, scene: Schema.String, cue: Schema.String },
-    payload: CuePatch,
-    success: LabWrite,
-    error: Refusals,
-  }),
-  HttpApiEndpoint.post('knob', `${FILM}/scenes/:scene/knobs/:knob`, {
-    params: { ...film, scene: Schema.String, knob: Schema.String },
-    payload: KnobPatch,
-    success: LabWrite,
     error: Refusals,
   }),
 ) {}

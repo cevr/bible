@@ -280,6 +280,7 @@ describe('the lab as an MCP server', () => {
             'match',
             'critique',
             'timeline',
+            'tweak',
             'undo',
             'working',
           ].toSorted(),

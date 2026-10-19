@@ -9,7 +9,6 @@ import {
   drawingSites,
   editCue,
   editKnob,
-  editable,
   parseModule,
   cueLanded,
   readKnob,
@@ -92,21 +91,6 @@ describe('scene source', () => {
     expect(readSpans(FILE, timed, 'hand')['bare']).toEqual({ at: 'speech', offset: 0.25, dur: 1 });
   });
 
-  it('lists the line that writes each cue and knob, so the inspector can cite it before the code is read', () => {
-    const found = ok(editable(FILE, scene, 'hand'));
-    expect(found.cues.map((c) => [c.name, c.line])).toEqual([
-      ['topple', 10],
-      ['shine', 11],
-      ['late', 12],
-      ['bare', 13],
-    ]);
-    expect(found.knobs.map((k) => [k.name, k.line])).toEqual([
-      ['palm', 16],
-      ['tilt', 17],
-      ['half', 18],
-    ]);
-  });
-
   it('adds an offset to a word pin after its word, which it keeps', () => {
     const pinned = scene.replace(
       "bare: { at: 'speech' },",
@@ -119,20 +103,17 @@ describe('scene source', () => {
   it('writes an until in place of a dur, and a dur in place of an until', () => {
     const marked = ok(editCue(FILE, scene, 'hand', 'topple', { until: 'gift' }));
     expect(marked).toBe(scene.replace('offset: 0.1, dur: 1.8 }', "offset: 0.1, until: 'gift' }"));
-    expect(ok(editable(FILE, marked, 'hand')).cues[0]).toEqual({
-      name: 'topple',
-      line: 10,
-      offset: 'literal',
-      dur: 'absent',
-      until: 'literal',
-      untilOffset: 'absent',
-      ease: 'absent',
-      stagger: 'absent',
-    });
     const off = ok(editCue(FILE, marked, 'hand', 'topple', { untilOffset: 0.2 }));
-    expect(ok(editable(FILE, off, 'hand')).cues[0]?.untilOffset).toBe('literal');
+    expect(readSpans(FILE, off, 'hand')['topple']).toEqual({
+      mark: 'earns',
+      offset: 0.1,
+      until: 'gift',
+      untilOffset: 0.2,
+    });
     const coded = off.replace('untilOffset: 0.2', 'untilOffset: GAP');
-    expect(ok(editable(FILE, coded, 'hand')).cues[0]?.untilOffset).toBe('computed');
+    expect(Result.isFailure(editCue(FILE, coded, 'hand', 'topple', { untilOffset: 0.3 }))).toBe(
+      true,
+    );
     const sized = ok(editCue(FILE, marked, 'hand', 'topple', { dur: 1.2 }));
     expect(sized).toBe(scene.replace('dur: 1.8', 'dur: 1.2'));
     const bare = ok(editCue(FILE, scene, 'hand', 'bare', { until: 'gift', ease: 'linear' }));
@@ -218,9 +199,6 @@ describe('scene source', () => {
         "bare: { at: 'speech' }",
         `bare: { at: 'speech', until: ${until} }`,
       );
-      expect(
-        ok(editable(FILE, before, 'hand')).cues.find((cue) => cue.name === 'bare')?.until,
-      ).toBe('literal');
       const next = ok(editCue(FILE, before, 'hand', 'bare', { dur: 3 }));
       expect(next).toBe(before.replace(`until: ${until}`, 'dur: 3'));
       expect(readSpans(FILE, next, 'hand')['bare']).toEqual({ at: 'speech', dur: 3 });
@@ -408,7 +386,6 @@ describe('scene source', () => {
       ease: 'outBack',
       stagger: 0.857,
     });
-    expect(ok(editable(FILE, spread, 'hand')).cues[1]?.stagger).toBe('literal');
     expect(ok(editCue(FILE, spread, 'hand', 'shine', { stagger: 0.5 }))).toBe(
       spread.replace('stagger: 0.857', 'stagger: 0.5'),
     );
@@ -486,57 +463,6 @@ export const hand = drawing({
     );
     const mutable = lifted.replace('const timeline', 'let timeline');
     expect(Result.isFailure(editCue(FILE, mutable, 'hand', 'topple', { dur: 2 }))).toBe(true);
-  });
-
-  it('says which fields are literals, missing or computed', () => {
-    const found = ok(editable(FILE, scene, 'hand'));
-    expect(found.cues).toEqual([
-      {
-        name: 'topple',
-        line: 10,
-        offset: 'literal',
-        dur: 'literal',
-        until: 'absent',
-        untilOffset: 'absent',
-        ease: 'absent',
-        stagger: 'absent',
-      },
-      {
-        name: 'shine',
-        line: 11,
-        offset: 'literal',
-        dur: 'literal',
-        until: 'absent',
-        untilOffset: 'absent',
-        ease: 'literal',
-        stagger: 'absent',
-      },
-      {
-        name: 'late',
-        line: 12,
-        offset: 'computed',
-        dur: 'absent',
-        until: 'absent',
-        untilOffset: 'absent',
-        ease: 'absent',
-        stagger: 'absent',
-      },
-      {
-        name: 'bare',
-        line: 13,
-        offset: 'absent',
-        dur: 'absent',
-        until: 'absent',
-        untilOffset: 'absent',
-        ease: 'absent',
-        stagger: 'absent',
-      },
-    ]);
-    expect(found.knobs).toEqual([
-      { name: 'palm', state: 'literal', line: 16 },
-      { name: 'tilt', state: 'literal', line: 17 },
-      { name: 'half', state: 'computed', line: 18 },
-    ]);
   });
 
   it('reads every span that is literal through and through, and leaves out the rest', () => {

@@ -37,7 +37,6 @@ import {
   Span,
   Until,
 } from '../core/schema.ts';
-import { lineOf, lineStarts } from '../core/lines.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
 import { patchSpan, writtenPatch } from '../core/timeline.ts';
@@ -56,27 +55,6 @@ export interface DrawingSite {
   readonly at: number;
   readonly timeline: Slot;
   readonly knobs: Slot;
-}
-
-/** What a field holds in the source: a literal the lab may rewrite, nothing yet, or code. */
-type FieldState = 'literal' | 'absent' | 'computed';
-
-/** A cue, and what each field a patch may set holds in its source. */
-type EditableCue = { readonly name: string; readonly line: number } & {
-  readonly [K in keyof CuePatch]-?: FieldState;
-};
-
-interface EditableKnob {
-  readonly name: string;
-  readonly state: FieldState;
-  /** The line (from 1) that writes it: the inspector's `file:line`, before the code is read. */
-  readonly line: number;
-}
-
-/** Which of a drawing's cues and knobs the lab can rewrite. */
-export interface Editable {
-  readonly cues: ReadonlyArray<EditableCue>;
-  readonly knobs: ReadonlyArray<EditableKnob>;
 }
 
 interface Splice {
@@ -197,7 +175,6 @@ const pointOf = (e: Expression): Option.Option<readonly [Expression, Expression]
 
 const isNumberLiteral = (e: Expression) => Option.isSome(numberOf(e));
 const isStringLiteral = (e: Expression) => Option.isSome(stringOf(e));
-const isKnobLiteral = (e: Expression) => isNumberLiteral(e) || Option.isSome(pointOf(e));
 
 /** A property's value, unless it is a shorthand (`{ palm }`: a name, not a literal). */
 export const valueOf = (p: ObjectProperty): Option.Option<Expression> => {
@@ -561,38 +538,6 @@ const decodeSpan = Schema.decodeUnknownOption(Span);
 const isUntilLiteral = (e: Expression): boolean =>
   Option.isSome(Option.flatMap(plain(e), decodeUntil));
 
-const fieldState = (prop: Option.Option<ObjectProperty>, literal: (e: Expression) => boolean) =>
-  Option.match(prop, {
-    onNone: (): FieldState => 'absent',
-    onSome: (p): FieldState => {
-      if (Option.exists(valueOf(p), literal)) return 'literal';
-      return 'computed';
-    },
-  });
-
-const editableCue = (
-  file: string,
-  cue: string,
-  span: ObjectExpression,
-  line: number,
-): EditableCue => {
-  const state = (key: TimingKey) =>
-    Result.match(propertyOf(file, cue, span, key), {
-      onFailure: (): FieldState => 'computed',
-      onSuccess: (prop) => fieldState(prop, isLiteralFor(key)),
-    });
-  return {
-    name: cue,
-    line,
-    offset: state('offset'),
-    dur: state('dur'),
-    until: state('until'),
-    untilOffset: state('untilOffset'),
-    ease: state('ease'),
-    stagger: state('stagger'),
-  };
-};
-
 const literalProperties = (slot: Slot): ReadonlyArray<ObjectProperty> => {
   if (slot._tag !== 'Literal') return [];
   return slot.node.properties.flatMap((p) => {
@@ -600,43 +545,6 @@ const literalProperties = (slot: Slot): ReadonlyArray<ObjectProperty> => {
     return [p];
   });
 };
-
-/** Which cues and knobs of the drawing exported as `name` the lab can rewrite. */
-export const editable = (
-  file: string,
-  source: string,
-  name: string,
-): Result.Result<Editable, SourceRefused> =>
-  Result.map(siteNamed(file, source, name), (site) => {
-    // The file's lines, counted once for every cue and knob it writes.
-    const starts = lineStarts(source);
-    return {
-      cues: literalProperties(site.timeline).flatMap((p) =>
-        Option.match(
-          Option.zipWith(keyName(p), valueOf(p), (cue, span) => ({ cue, span })),
-          {
-            onNone: (): ReadonlyArray<EditableCue> => [],
-            onSome: ({ cue, span }): ReadonlyArray<EditableCue> => {
-              if (span.type !== 'ObjectExpression') return [];
-              return [editableCue(file, cue, span, lineOf(starts, p.start))];
-            },
-          },
-        ),
-      ),
-      knobs: literalProperties(site.knobs).flatMap((p) =>
-        Option.match(keyName(p), {
-          onNone: () => [],
-          onSome: (knob) => [
-            {
-              name: knob,
-              state: fieldState(Option.some(p), isKnobLiteral),
-              line: lineOf(starts, p.start),
-            },
-          ],
-        }),
-      ),
-    };
-  });
 
 const applySplices = (source: string, splices: ReadonlyArray<Splice>) =>
   [...splices]

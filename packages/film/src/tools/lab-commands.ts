@@ -12,7 +12,8 @@
 // - `inLab`: over what only the running lab holds (`InLabNeeds`): its change
 //   feed (`overview`, `changes`), the agents' "doing now" lines (`working`,
 //   and `timeline`, which shows them), the film's one history of edits
-//   (`beat_move`, `beat_hold`, `undo`: the studio page steps it too), the asks' page lock (`ask`: an ask
+//   (`beat_move`, `beat_hold`, `tweak`, `undo`: the studio page steps it
+//   too), the asks' page lock (`ask`: an ask
 //   joins its asker's open page under a lock held in memory), and the easel
 //   (`look`, `match`, `critique`: the warm page and the critic beside it). A
 //   terminal calls it on the lab at `FILM_LAB_URL` (`lab-client.ts`).
@@ -41,8 +42,10 @@ import { notesCommands } from './notes-mcp.ts';
 import { NotesStore } from './notes-store.ts';
 import type { ProductionStore } from './production-store.ts';
 import type { Review } from './review.ts';
+import type { SceneWriter } from './scene-writer.ts';
 import { SetRead, setsCommands, setsReads } from './sets-mcp.ts';
 import { timelineCommands } from './timeline-mcp.ts';
+import { tweakCommands } from './tweak-mcp.ts';
 import type { Working } from './working.ts';
 
 /** The longest a `changes` call waits for a change, in seconds: well inside the lab's idle limit. */
@@ -193,7 +196,7 @@ type HereNeeds =
   | FileSystem.FileSystem
   | Path.Path;
 
-/** What a command over the running lab needs beside: its change feed, its easel and critic, the timelines and the agents' lines. */
+/** What a command over the running lab needs beside: its change feed, its easel and critic, the timelines, the agents' lines, and the film's one history (the script's edits, a scene's literals). */
 export type InLabNeeds =
   | HereNeeds
   | LabEvents
@@ -201,7 +204,8 @@ export type InLabNeeds =
   | Critic
   | FilmTimelines
   | Working
-  | BeatEdits;
+  | BeatEdits
+  | SceneWriter;
 
 /** The commands a terminal runs in its own process. */
 export const hereCommands: ReadonlyArray<LabCommand<HereNeeds>> = [
@@ -216,6 +220,7 @@ export const inLabCommands: ReadonlyArray<LabCommand<InLabNeeds>> = [
   ...labCommands,
   askInLab,
   ...timelineCommands,
+  ...tweakCommands,
   ...easelInLab,
 ];
 
