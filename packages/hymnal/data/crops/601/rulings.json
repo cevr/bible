@@ -1,0 +1,23 @@
+{
+  "number": 601,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 29
+        }
+      ],
+      "row": "our",
+      "readings": ["your"],
+      "printed": "your",
+      "sung": "your",
+      "kind": "words",
+      "image": "p586.jpg",
+      "crop": "p586-1401.jpg",
+      "box": [0, 1401, 1759, 433],
+      "judge": "judge-583 (Opus, effort max)",
+      "why": "Row 4 of this third system (the line's first singing) prints 'Sound a - loud your ho - ly cheer;' with the y, as the fourth system's repeat does."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "number": 497,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 20
+        }
+      ],
+      "row": "our",
+      "readings": ["or"],
+      "printed": "or",
+      "sung": "or",
+      "kind": "words",
+      "image": "497.png",
+      "crop": "497-497.jpg",
+      "box": [0, 497, 1275, 277],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 2 prints 'Wrought out or un - ex - pressed.', with 'or', not 'our'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 37
+        }
+      ],
+      "row": "to",
+      "readings": ["with"],
+      "printed": "with",
+      "sung": "with",
+      "kind": "words",
+      "image": "497.png",
+      "crop": "497-881.jpg",
+      "box": [0, 881, 1275, 286],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 3 prints 'But blend our wills with Thine;', with 'with', not 'to'."
+    }
+  ]
+}

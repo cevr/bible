@@ -1,0 +1,23 @@
+{
+  "number": 74,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 27
+        }
+      ],
+      "row": "they",
+      "readings": ["those"],
+      "printed": "Those",
+      "sung": "Those",
+      "kind": "words",
+      "image": "p072.jpg",
+      "crop": "p072-1176.jpg",
+      "box": [0, 1176, 1759, 385],
+      "judge": "judge-074 (Opus, effort max)",
+      "why": "Row 3 (stanza 3) prints 'us to do— Those who trust Him whol - ly', plainly 'Those', not 'They'."
+    }
+  ]
+}

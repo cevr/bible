@@ -1,0 +1,23 @@
+{
+  "number": 375,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 18
+        }
+      ],
+      "row": "the",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "image": "375.jpg",
+      "crop": "375-35.jpg",
+      "box": [0, 35, 2268, 1342],
+      "judge": "judge-284 (Opus, effort max)",
+      "why": "Row 3 of the second system prints 'Work for day - light flies;' with nothing between 'for' and 'daylight' (12 syllables to the system's 12 notes)."
+    }
+  ]
+}

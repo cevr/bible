@@ -1,0 +1,23 @@
+{
+  "number": 214,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "heanns",
+      "readings": ["heavns"],
+      "printed": "heav'ns",
+      "sung": "heav'ns",
+      "kind": "words",
+      "image": "214.jpg",
+      "crop": "214-1912.jpg",
+      "box": [0, 1912, 2268, 530],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "The second lyric row (stanza 2) of 214-1912 prints 'Soon the heav'ns will o-pen wide' plainly; 'heanns' is not on the page."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "number": 102,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 25
+        }
+      ],
+      "row": "",
+      "readings": ["we"],
+      "printed": "we",
+      "sung": "we",
+      "kind": "words",
+      "image": "102.png",
+      "crop": "102-882.jpg",
+      "box": [0, 882, 1275, 280],
+      "judge": "judge-074 (Opus, effort max)",
+      "why": "Row 4 (stanza 4) prints 'He, whom we a - dore, Shall', with 'we' plainly between 'whom' and 'adore'."
+    }
+  ]
+}

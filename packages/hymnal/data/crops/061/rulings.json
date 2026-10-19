@@ -1,0 +1,23 @@
+{
+  "number": 61,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 8
+        }
+      ],
+      "row": "",
+      "readings": ["an"],
+      "printed": "an",
+      "sung": "an",
+      "kind": "words",
+      "image": "061.png",
+      "crop": "061-114.jpg",
+      "box": [0, 114, 1275, 278],
+      "judge": "judge-006-2 (Opus, effort max)",
+      "why": "Row 4. prints 'king-dom, in an age of change and doubt', so 'an' stands between 'in' and 'age'."
+    }
+  ]
+}

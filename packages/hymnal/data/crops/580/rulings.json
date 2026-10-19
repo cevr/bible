@@ -1,0 +1,113 @@
+{
+  "number": 580,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 11
+        }
+      ],
+      "row": "",
+      "readings": ["shine"],
+      "printed": "(shine)",
+      "sung": "",
+      "kind": "echo",
+      "image": "580.jpg",
+      "crop": "580-0.jpg",
+      "box": [0, 0, 2268, 868],
+      "judge": "judge-554 (Opus, effort max)",
+      "why": "The first system prints the shared line 'I'm going to let it shine, (shine)' once for all stanzas; the second 'shine' is in parentheses, an echo the database leaves out."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 22
+        }
+      ],
+      "row": "",
+      "readings": ["shine"],
+      "printed": "(shine)",
+      "sung": "",
+      "kind": "echo",
+      "image": "580.jpg",
+      "crop": "580-1080.jpg",
+      "box": [0, 1080, 2268, 300],
+      "judge": "judge-580 (Opus, effort max)",
+      "why": "Crop 580-1080 (second system): the line all stanzas share, printed once in the middle row, ends 'shine, (shine)', and the parenthesized '(shine)' is an echo that the database leaves out (as it does after system 1)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 9
+        }
+      ],
+      "row": "",
+      "readings": ["shine"],
+      "printed": "(shine)",
+      "sung": "",
+      "kind": "echo",
+      "image": "580.jpg",
+      "crop": "580-0.jpg",
+      "box": [0, 0, 2268, 868],
+      "judge": "judge-554 (Opus, effort max)",
+      "why": "The first 'let it shine' of stanza 2 is in the first system (580-1543.jpg is the third system, which prints only 'shine,'); 580-0.jpg prints the shared 'shine, (shine)', the parenthesized word an echo."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 18
+        }
+      ],
+      "row": "",
+      "readings": ["shine"],
+      "printed": "(shine)",
+      "sung": "",
+      "kind": "echo",
+      "image": "580.jpg",
+      "crop": "580-1080.jpg",
+      "box": [0, 1080, 2268, 300],
+      "judge": "judge-580 (Opus, effort max)",
+      "why": "Crop 580-1080, row 'Ev - ery - where I go,' (second system) ends 'I'm going to let it shine, (shine)', and the parenthesized '(shine)' is an echo that the database leaves out."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 10
+        }
+      ],
+      "row": "",
+      "readings": ["shine"],
+      "printed": "(shine)",
+      "sung": "",
+      "kind": "echo",
+      "image": "580.jpg",
+      "crop": "580-0.jpg",
+      "box": [0, 0, 2268, 868],
+      "judge": "judge-554 (Opus, effort max)",
+      "why": "Row 3. of the first system shares the line 'I'm going to let it shine, (shine)'; the parenthesized second 'shine' is an echo the database leaves out."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 20
+        }
+      ],
+      "row": "",
+      "readings": ["shine"],
+      "printed": "(shine)",
+      "sung": "",
+      "kind": "echo",
+      "image": "580.jpg",
+      "crop": "580-1080.jpg",
+      "box": [0, 1080, 2268, 300],
+      "judge": "judge-580 (Opus, effort max)",
+      "why": "Crop 580-1080 (second system): the 'All through the night,' row has no words there, and the shared line in the middle row ends 'shine, (shine)', a parenthesized echo that the database leaves out."
+    }
+  ]
+}

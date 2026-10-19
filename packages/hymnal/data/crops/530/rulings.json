@@ -1,0 +1,23 @@
+{
+  "number": 530,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 14
+        }
+      ],
+      "row": "roll",
+      "readings": ["rolled"],
+      "printed": "rolled",
+      "sung": "rolled",
+      "kind": "words",
+      "image": "p519.jpg",
+      "crop": "p519-293.jpg",
+      "box": [0, 293, 1759, 574],
+      "judge": "judge-509 (Opus, effort max)",
+      "why": "Row 3. ends 'The clouds be rolled' plainly."
+    }
+  ]
+}

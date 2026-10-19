@@ -1,0 +1,23 @@
+{
+  "number": 126,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 29
+        }
+      ],
+      "row": "minwinter",
+      "readings": ["midwinter"],
+      "printed": "midwinter",
+      "sung": "midwinter",
+      "kind": "words",
+      "image": "126.jpg",
+      "crop": "126-2022.jpg",
+      "box": [0, 2022, 2268, 542],
+      "judge": "judge-074 (Opus, effort max)",
+      "why": "Row 1 (stanza 1) of the last system prints 'In the bleak mid - win - ter, Long a - go.', so the database's 'minwinter' is its own slip."
+    }
+  ]
+}

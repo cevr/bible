@@ -1,0 +1,23 @@
+{
+  "number": 261,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 16
+        }
+      ],
+      "row": "",
+      "readings": ["and"],
+      "printed": "and",
+      "sung": "and",
+      "kind": "words",
+      "image": "261.jpg",
+      "crop": "261-944.jpg",
+      "box": [0, 944, 2268, 630],
+      "judge": "judge-261 (Opus, effort max)",
+      "why": "Row 1 (stanza 1) of the crop prints 'Their heart and mind and lips un-sealed' plainly."
+    }
+  ]
+}

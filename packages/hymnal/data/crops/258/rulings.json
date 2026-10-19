@@ -1,0 +1,167 @@
+{
+  "number": 258,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 15
+        }
+      ],
+      "row": "",
+      "readings": ["last vs"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "image": "p253.jpg",
+      "crop": "p253-1490.jpg",
+      "box": [0, 1490, 1759, 360],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "Stanza 2 sings the refrain's first row of p253-1490, which prints nothing before 'We'; '(Last vs.)' is a label on the second row, the last stanza's refrain."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 16
+        }
+      ],
+      "row": "humbly beseech",
+      "readings": ["praise"],
+      "printed": "humbly beseech",
+      "sung": "humbly beseech",
+      "kind": "words",
+      "image": "p253.jpg",
+      "crop": "p253-1490.jpg",
+      "box": [0, 1490, 1759, 360],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "The refrain's first row of p253-1490, sung after stanzas 1-3, prints 'We hum-bly be-seech Thee'; 'praise' is in the '(Last vs.)' row, stanza 4's."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 19
+        }
+      ],
+      "row": "lord jesus",
+      "readings": [""],
+      "printed": "Lord Jesus",
+      "sung": "Lord Jesus",
+      "kind": "words",
+      "image": "p253.jpg",
+      "crop": "p253-1490.jpg",
+      "box": [0, 1490, 1759, 360],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "The refrain's first row of p253-1490 prints 'Thee, Lord Je-sus, we pray'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 22
+        }
+      ],
+      "row": "pray with love",
+      "readings": ["bless thee dear lamb that was slain we laud"],
+      "printed": "pray With love",
+      "sung": "pray With love",
+      "kind": "words",
+      "image": "p253.jpg",
+      "crop": "p253-1490.jpg",
+      "box": [0, 1490, 1759, 360],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "The refrain's first row of p253-1490 ends 'we pray,' and row 1 of p253-2023 goes on 'With love and'; 'bless Thee, dear Lamb' is the '(Last vs.)' row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 26
+        }
+      ],
+      "row": "the spirit baptize us today",
+      "readings": ["adore thee amen and amen"],
+      "printed": "the Spirit baptize us today",
+      "sung": "the Spirit baptize us today",
+      "kind": "words",
+      "image": "p253.jpg",
+      "crop": "p253-2023.jpg",
+      "box": [0, 2023, 1759, 356],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "Row 1 of p253-2023 (the refrain for stanzas 1-3) prints 'the Spir-it bap-tize us to-day'; 'A-men and A-men' is the last stanza's row 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 18
+        }
+      ],
+      "row": "praise thee we bless",
+      "readings": ["humbly beseech"],
+      "printed": "praise Thee we bless",
+      "sung": "praise Thee we bless",
+      "kind": "words",
+      "image": "p253.jpg",
+      "crop": "p253-1490.jpg",
+      "box": [0, 1490, 1759, 360],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "The '(Last vs.)' row of p253-1490, stanza 4's refrain, prints 'We praise Thee, we bless Thee'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 23
+        }
+      ],
+      "row": "dear lamb that was slain",
+      "readings": ["lord jesus"],
+      "printed": "dear Lamb that was slain",
+      "sung": "dear Lamb that was slain",
+      "kind": "words",
+      "image": "p253.jpg",
+      "crop": "p253-1490.jpg",
+      "box": [0, 1490, 1759, 360],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "The '(Last vs.)' row of p253-1490 prints 'Thee, dear Lamb that was slain'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 29
+        }
+      ],
+      "row": "laud and adore thee amen",
+      "readings": ["pray with love"],
+      "printed": "laud and adore Thee Amen",
+      "sung": "laud and adore Thee Amen",
+      "kind": "words",
+      "image": "p253.jpg",
+      "crop": "p253-2023.jpg",
+      "box": [0, 2023, 1759, 356],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "Row 2 of p253-2023, the last stanza's refrain under the '(Last vs.)' row, prints 'We laud and a-dore Thee, A-men'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 35
+        }
+      ],
+      "row": "amen",
+      "readings": ["the spirit baptize us today"],
+      "printed": "Amen",
+      "sung": "Amen",
+      "kind": "words",
+      "image": "p253.jpg",
+      "crop": "p253-2023.jpg",
+      "box": [0, 2023, 1759, 356],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "Row 2 of p253-2023 ends 'A-men and A-men.'"
+    }
+  ]
+}

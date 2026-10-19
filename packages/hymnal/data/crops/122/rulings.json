@@ -1,0 +1,41 @@
+{
+  "number": 122,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 12
+        }
+      ],
+      "row": "light and",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "image": "122.png",
+      "crop": "122-111.jpg",
+      "box": [0, 111, 1275, 247],
+      "judge": "judge-095 (Opus, effort max)",
+      "why": "Row 3. prints 'Hail! the Sun of Righ-teous-ness! Life and light to', so nothing stands between 'Righteousness' and 'Life'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 15
+        }
+      ],
+      "row": "",
+      "readings": ["and light"],
+      "printed": "and light",
+      "sung": "and light",
+      "kind": "words",
+      "image": "122.png",
+      "crop": "122-111.jpg",
+      "box": [0, 111, 1275, 247],
+      "judge": "judge-095 (Opus, effort max)",
+      "why": "Row 3. prints 'Life and light to', so 'and light' stands between 'Life' and 'to'."
+    }
+  ]
+}

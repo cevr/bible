@@ -1,0 +1,23 @@
+{
+  "number": 101,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 8
+        }
+      ],
+      "row": "bossom",
+      "readings": ["bosom"],
+      "printed": "bosom",
+      "sung": "bosom",
+      "kind": "words",
+      "image": "p100.jpg",
+      "crop": "p100-1260.jpg",
+      "box": [0, 1260, 1759, 480],
+      "judge": "judge-095 (Opus, effort max)",
+      "why": "Row 1. prints 'Safe - ly in His bos - om gath - er;' with one s."
+    }
+  ]
+}

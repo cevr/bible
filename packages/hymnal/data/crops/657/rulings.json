@@ -1,0 +1,23 @@
+{
+  "number": 657,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 17
+        }
+      ],
+      "row": "there",
+      "readings": ["these"],
+      "printed": "these",
+      "sung": "these",
+      "kind": "words",
+      "image": "657.png",
+      "crop": "657-883.jpg",
+      "box": [0, 883, 1275, 344],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "Row 1 prints 'Be with these two who now be-fore You wait;' plainly."
+    }
+  ]
+}

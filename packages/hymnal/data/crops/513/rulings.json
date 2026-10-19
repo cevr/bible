@@ -1,0 +1,59 @@
+{
+  "number": 513,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 19
+        }
+      ],
+      "row": "the",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "image": "p501.jpg",
+      "crop": "p501-892.jpg",
+      "box": [0, 892, 1759, 391],
+      "judge": "judge-509 (Opus, effort max)",
+      "why": "Row 3 prints 'Bright skies will soon be o'er me, Where dark - est clouds have been.' with nothing between 'Where' and 'darkest'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 29
+        }
+      ],
+      "row": "the",
+      "readings": ["my"],
+      "printed": "My",
+      "sung": "My",
+      "kind": "words",
+      "image": "p501.jpg",
+      "crop": "p501-1416.jpg",
+      "box": [0, 1416, 1759, 393],
+      "judge": "judge-509 (Opus, effort max)",
+      "why": "Row 3 prints 'My hope I can - not mea - sure, My path to life is free;' with 'My' before 'path'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 36
+        }
+      ],
+      "row": "saviour",
+      "readings": ["savior"],
+      "printed": "Savior",
+      "sung": "Savior",
+      "kind": "words",
+      "image": "p501.jpg",
+      "crop": "p501-1978.jpg",
+      "box": [0, 1978, 1759, 651],
+      "judge": "judge-509 (Opus, effort max)",
+      "why": "Row 3 prints 'My Sav - ior has my trea - sure', which joins to 'Savior' (no u)."
+    }
+  ]
+}

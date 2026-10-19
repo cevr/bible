@@ -1,0 +1,23 @@
+{
+  "number": 639,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 4
+        }
+      ],
+      "row": "you",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "image": "639.jpg",
+      "crop": "639-228.jpg",
+      "box": [0, 228, 2268, 860],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "Row 3. prints 'My thanks I give for stew-ard-ship' with no 'you' between 'give' and 'for'; its eight syllables match row 1.'s 'A dil-i-gent and grate-ful heart'."
+    }
+  ]
+}

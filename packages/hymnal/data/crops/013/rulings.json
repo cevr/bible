@@ -1,0 +1,23 @@
+{
+  "number": 13,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "new",
+      "readings": ["now"],
+      "printed": "Now",
+      "sung": "Now",
+      "kind": "words",
+      "image": "013.png",
+      "crop": "013-112.jpg",
+      "box": [0, 112, 1275, 249],
+      "judge": "judge-006 (Opus, effort max)",
+      "why": "Row 1. of crop 013-112.jpg prints 'Now songs of cel - e - bra - tion' plainly, though the page's title reads 'New Songs of Celebration Render'."
+    }
+  ]
+}

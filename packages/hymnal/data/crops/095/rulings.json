@@ -1,0 +1,23 @@
+{
+  "number": 95,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 9
+        }
+      ],
+      "row": "leisurek",
+      "readings": ["leisure"],
+      "printed": "leisure",
+      "sung": "leisure",
+      "kind": "words",
+      "image": "095.jpg",
+      "crop": "095-0.jpg",
+      "box": [0, 0, 2268, 808],
+      "judge": "judge-095 (Opus, effort max)",
+      "why": "Row 2. prints 'Slum-bered at their lei - sure,' plainly; no 'leisurek' is on the page."
+    }
+  ]
+}

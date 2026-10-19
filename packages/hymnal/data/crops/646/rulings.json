@@ -1,0 +1,23 @@
+{
+  "number": 646,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 15
+        }
+      ],
+      "row": "foreswear",
+      "readings": ["forswear"],
+      "printed": "foreswear",
+      "sung": "foreswear",
+      "kind": "words",
+      "image": "p632.jpg",
+      "crop": "p632-1390.jpg",
+      "box": [0, 1390, 1759, 389],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "Row 2 prints 'Now fore-swear their en-mi-ty', the syllables joining to 'foreswear'."
+    }
+  ]
+}

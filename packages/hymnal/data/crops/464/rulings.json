@@ -1,0 +1,41 @@
+{
+  "number": 464,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 9
+        }
+      ],
+      "row": "or",
+      "readings": ["of"],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "image": "464.jpg",
+      "crop": "464-432.jpg",
+      "box": [0, 432, 2268, 448],
+      "judge": "judge-443 (Opus, effort max)",
+      "why": "Row 3. of the first system prints 'And storms of sor - row fall!' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 19
+        }
+      ],
+      "row": "may",
+      "readings": ["my"],
+      "printed": "My",
+      "sung": "My",
+      "kind": "words",
+      "image": "464.jpg",
+      "crop": "464-759.jpg",
+      "box": [0, 759, 2268, 556],
+      "judge": "judge-443 (Opus, effort max)",
+      "why": "Row 3 of the second system prints 'reach my home, My God, my heav'n, my all', a capital 'My' with no 'a'."
+    }
+  ]
+}

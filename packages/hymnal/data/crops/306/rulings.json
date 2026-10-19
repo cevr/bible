@@ -1,0 +1,59 @@
+{
+  "number": 306,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 37
+        }
+      ],
+      "row": "",
+      "readings": ["nearer"],
+      "printed": "nearer nearer",
+      "sung": "",
+      "kind": "echo",
+      "image": "p298.jpg",
+      "crop": "p298-1264.jpg",
+      "box": [0, 1264, 1759, 385],
+      "judge": "judge-261 (Opus, effort max)",
+      "why": "The main row prints 'Draw me near-er,' here and 'near-er, bless-ed Lord' in the next system; the extra 'near-er, near-er,' is the lower voices' answering row under the held 'near-er' (bottom row of this crop)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 33
+        }
+      ],
+      "row": "",
+      "readings": ["nearer"],
+      "printed": "nearer nearer",
+      "sung": "",
+      "kind": "echo",
+      "image": "p298.jpg",
+      "crop": "p298-1264.jpg",
+      "box": [0, 1264, 1759, 385],
+      "judge": "judge-261 (Opus, effort max)",
+      "why": "The refrain is printed once: main row 'Draw me near-er,' then 'near-er, bless-ed Lord', with the lower voices' answering 'near-er, near-er,' under the held note (bottom row of this crop)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 34
+        }
+      ],
+      "row": "",
+      "readings": ["nearer"],
+      "printed": "nearer nearer",
+      "sung": "",
+      "kind": "echo",
+      "image": "p298.jpg",
+      "crop": "p298-1264.jpg",
+      "box": [0, 1264, 1759, 385],
+      "judge": "judge-261 (Opus, effort max)",
+      "why": "The refrain is printed once: main row 'Draw me near-er,' then 'near-er, bless-ed Lord', with the lower voices' answering 'near-er, near-er,' under the held note (bottom row of this crop)."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "number": 284,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 31
+        }
+      ],
+      "row": "you",
+      "readings": ["too"],
+      "printed": "too",
+      "sung": "too",
+      "kind": "words",
+      "image": "p277.jpg",
+      "crop": "p277-1940.jpg",
+      "box": [0, 1940, 1759, 600],
+      "judge": "judge-284 (Opus, effort max)",
+      "why": "Row 3 (stanza 3) of the crop ends 'ceiv - ing one, too!' plainly, not 'you'."
+    }
+  ]
+}

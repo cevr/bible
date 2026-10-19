@@ -1,0 +1,41 @@
+{
+  "number": 562,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 11
+        }
+      ],
+      "row": "this",
+      "readings": ["these"],
+      "printed": "these",
+      "sung": "these",
+      "kind": "words",
+      "image": "562.png",
+      "crop": "562-610.jpg",
+      "box": [0, 610, 1275, 185],
+      "judge": "judge-554 (Opus, effort max)",
+      "why": "The fourth row of the second system (stanza 4, after 'Ac-' ending stanza 4's row in 562-200.jpg) prints 'cept these gifts we of - fer' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 7
+        }
+      ],
+      "row": "",
+      "readings": ["we"],
+      "printed": "we",
+      "sung": "we",
+      "kind": "words",
+      "image": "562.png",
+      "crop": "562-200.jpg",
+      "box": [0, 200, 1275, 185],
+      "judge": "judge-554 (Opus, effort max)",
+      "why": "Row 5. of the first system prints 'hun - gry While we our - selves are fed' plainly."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "number": 467,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 14
+        }
+      ],
+      "row": "shop",
+      "readings": ["shops"],
+      "printed": "Shops",
+      "sung": "Shops",
+      "kind": "words",
+      "image": "467.jpg",
+      "crop": "467-0.jpg",
+      "box": [0, 0, 2268, 1250],
+      "judge": "judge-443 (Opus, effort max)",
+      "why": "Row 1 of the second system prints 'Shops and bus - es, towns and peo - ple' with a plain final 's'."
+    }
+  ]
+}

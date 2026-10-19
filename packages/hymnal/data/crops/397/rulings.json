@@ -1,0 +1,23 @@
+{
+  "number": 397,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "",
+      "readings": ["he"],
+      "printed": "He",
+      "sung": "He",
+      "kind": "words",
+      "image": "397.png",
+      "crop": "397-113.jpg",
+      "box": [0, 113, 1275, 277],
+      "judge": "judge-284 (Opus, effort max)",
+      "why": "Row 1. ends 'For those He' plainly, so the page prints 'He' between 'those' and 'loved'."
+    }
+  ]
+}

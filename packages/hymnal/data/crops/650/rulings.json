@@ -1,0 +1,41 @@
+{
+  "number": 650,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 10
+        }
+      ],
+      "row": "teaches",
+      "readings": ["teachest"],
+      "printed": "teachest",
+      "sung": "teachest",
+      "kind": "words",
+      "image": "650.jpg",
+      "crop": "650-45.jpg",
+      "box": [0, 45, 2268, 1236],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "Row 3 of the second system prints 'Who teach-est us to find' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 35
+        }
+      ],
+      "row": "",
+      "readings": ["the"],
+      "printed": "the",
+      "sung": "the",
+      "kind": "words",
+      "image": "650.jpg",
+      "crop": "650-1795.jpg",
+      "box": [0, 1795, 2268, 470],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "Row 3 prints 'May be the dwell-ing place of peace' plainly."
+    }
+  ]
+}

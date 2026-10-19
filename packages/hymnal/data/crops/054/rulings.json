@@ -1,0 +1,41 @@
+{
+  "number": 54,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 3
+        }
+      ],
+      "row": "",
+      "readings": ["o grace"],
+      "printed": "O grace",
+      "sung": "O grace",
+      "kind": "words",
+      "image": "054.jpg",
+      "crop": "054-153.jpg",
+      "box": [0, 153, 2268, 1046],
+      "judge": "judge-006-2 (Opus, effort max)",
+      "why": "Row 1. of the first system prints 'O glad-some light, O grace Of God the Fa-ther's face', so 'O grace' stands between 'light' and 'Of'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 13
+        }
+      ],
+      "row": "ourpouring",
+      "readings": ["outpouring"],
+      "printed": "outpouring",
+      "sung": "outpouring",
+      "kind": "words",
+      "image": "054.jpg",
+      "crop": "054-153.jpg",
+      "box": [0, 153, 2268, 1046],
+      "judge": "judge-006-2 (Opus, effort max)",
+      "why": "Row 2 of the second system prints 'wont-ed hymn out-pour-ing;', joined 'outpouring' (a t, not an r)."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "number": 135,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 32
+        }
+      ],
+      "row": "o",
+      "readings": ["oh"],
+      "printed": "Oh",
+      "sung": "Oh",
+      "kind": "words",
+      "image": "p132.jpg",
+      "crop": "p132-1817.jpg",
+      "box": [0, 1817, 1759, 812],
+      "judge": "judge-095 (Opus, effort max)",
+      "why": "Row 4 of the last system prints 'Oh, come to us, a - bide with us,' plainly."
+    }
+  ]
+}

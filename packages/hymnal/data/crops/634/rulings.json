@@ -1,0 +1,41 @@
+{
+  "number": 634,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 14
+        }
+      ],
+      "row": "one",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "image": "634.png",
+      "crop": "634-403.jpg",
+      "box": [0, 403, 1275, 373],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "Row 3 (the 'one;' row) prints 'Show-ing mer-cy to an-oth-er' with no 'one' between 'to' and 'another'; the eight syllables match stanza 1's 'Make your lives for Him more fit-ted'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 7
+        }
+      ],
+      "row": "in",
+      "readings": ["on"],
+      "printed": "on",
+      "sung": "on",
+      "kind": "words",
+      "image": "634.png",
+      "crop": "634-114.jpg",
+      "box": [0, 114, 1275, 277],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "Row 4. prints 'All who on Christ's name be-' plainly."
+    }
+  ]
+}

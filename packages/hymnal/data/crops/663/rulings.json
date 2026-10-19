@@ -1,0 +1,95 @@
+{
+  "number": 663,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["amen"],
+      "printed": "Amen",
+      "sung": "Amen",
+      "kind": "words",
+      "image": "663.jpg",
+      "crop": "663-390x270.jpg",
+      "box": [390, 270, 1290, 2010],
+      "judge": "judge-663 (Opus, effort max)",
+      "why": "The page has no numbered stanzas but six lettered Amens; Amen B, the second, prints 'A - men.' under its chords."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["amen"],
+      "printed": "Amen",
+      "sung": "Amen",
+      "kind": "words",
+      "image": "663.jpg",
+      "crop": "663-390x270.jpg",
+      "box": [390, 270, 1290, 2010],
+      "judge": "judge-663 (Opus, effort max)",
+      "why": "Amen C, the third lettered Amen, prints 'A - men.' in its lyric row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["amen amen"],
+      "printed": "Amen, (Amen)",
+      "sung": "Amen, (Amen)",
+      "kind": "words",
+      "image": "663.jpg",
+      "crop": "663-390x270.jpg",
+      "box": [390, 270, 1290, 2010],
+      "judge": "judge-663 (Opus, effort max)",
+      "why": "Amen D, the fourth lettered Amen, prints 'A - men, (A - men.)': one Amen, then a second one in parentheses in the same row, under the moving lower notes of the last bars."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["amen"],
+      "printed": "Amen",
+      "sung": "Amen",
+      "kind": "words",
+      "image": "663.jpg",
+      "crop": "663-390x270.jpg",
+      "box": [390, 270, 1290, 2010],
+      "judge": "judge-663 (Opus, effort max)",
+      "why": "Amen E, the fifth lettered Amen, prints 'A - men.' in its lyric row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 6,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["amen amen amen"],
+      "printed": "Amen, Amen, Amen",
+      "sung": "Amen, Amen, Amen",
+      "kind": "words",
+      "image": "663.jpg",
+      "crop": "663-390x270.jpg",
+      "box": [390, 270, 1290, 2010],
+      "judge": "judge-663 (Opus, effort max)",
+      "why": "Amen F (Danish), the sixth lettered Amen, prints 'A-men, A-men, A - men.' in its lyric row."
+    }
+  ]
+}

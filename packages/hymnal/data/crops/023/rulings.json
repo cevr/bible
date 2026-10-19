@@ -1,0 +1,59 @@
+{
+  "number": 23,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 5
+        }
+      ],
+      "row": "ring",
+      "readings": ["ringing"],
+      "printed": "ringing",
+      "sung": "ringing",
+      "kind": "words",
+      "image": "023.jpg",
+      "crop": "023-303.jpg",
+      "box": [0, 303, 2268, 2572],
+      "judge": "judge-006 (Opus, effort max)",
+      "why": "Row 1. of the first system prints 'bells a - ring - ing,' so the word after 'a' is 'ringing'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "of",
+      "readings": ["praise"],
+      "printed": "praise",
+      "sung": "praise",
+      "kind": "words",
+      "image": "023.jpg",
+      "crop": "023-303.jpg",
+      "box": [0, 303, 2268, 2572],
+      "judge": "judge-006 (Opus, effort max)",
+      "why": "Row 1. of the first system prints 'All ye moun - tains, praise the Lord!' with 'praise', not 'of'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 40
+        }
+      ],
+      "row": "hearts",
+      "readings": ["hearths"],
+      "printed": "hearths",
+      "sung": "hearths",
+      "kind": "words",
+      "image": "023.jpg",
+      "crop": "023-303.jpg",
+      "box": [0, 303, 2268, 2572],
+      "judge": "judge-006 (Opus, effort max)",
+      "why": "Row 3 of the fourth system prints 'Bright our hearths the sig - nal flar - ing,' with 'hearths'."
+    }
+  ]
+}

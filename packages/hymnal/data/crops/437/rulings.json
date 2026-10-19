@@ -1,0 +1,23 @@
+{
+  "number": 437,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 15
+        }
+      ],
+      "row": "glittring",
+      "readings": ["glitring"],
+      "printed": "glitt'ring",
+      "sung": "glitt'ring",
+      "kind": "words",
+      "image": "p424.jpg",
+      "crop": "p424-1772.jpg",
+      "box": [0, 1772, 1759, 607],
+      "judge": "judge-422 (Opus, effort max)",
+      "why": "Row 1 of the second system prints 'Its glit-t'ring tow'rs', which joins to 'glitt'ring' with two t's, as the database has it."
+    }
+  ]
+}

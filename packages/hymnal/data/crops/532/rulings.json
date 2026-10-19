@@ -1,0 +1,23 @@
+{
+  "number": 532,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 29
+        }
+      ],
+      "row": "counselor",
+      "readings": ["counsellor"],
+      "printed": "Counsellor",
+      "sung": "Counsellor",
+      "kind": "words",
+      "image": "532.png",
+      "crop": "532-520.jpg",
+      "box": [0, 520, 1275, 160],
+      "judge": "judge-509 (Opus, effort max)",
+      "why": "Row 2 of the second system prints 'He whose name is Coun - sel - lor and power', which joins to 'Counsellor' (double l)."
+    }
+  ]
+}

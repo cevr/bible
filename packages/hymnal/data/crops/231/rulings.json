@@ -1,0 +1,113 @@
+{
+  "number": 231,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "bless",
+      "readings": ["blest"],
+      "printed": "Blest",
+      "sung": "Blest",
+      "kind": "shared",
+      "image": "231.png",
+      "crop": "231-132.jpg",
+      "box": [0, 132, 1275, 195],
+      "judge": "judge-225 (Opus, effort max)",
+      "why": "The first system prints 'Blest be the King whose com - ing Is in the name of God!' once, unnumbered, before the numbered stanza rows, and every stanza sings it; it reads 'Blest'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "bless",
+      "readings": ["blest"],
+      "printed": "Blest",
+      "sung": "Blest",
+      "kind": "shared",
+      "image": "231.png",
+      "crop": "231-132.jpg",
+      "box": [0, 132, 1275, 195],
+      "judge": "judge-225 (Opus, effort max)",
+      "why": "The shared unnumbered row of the first system, sung before stanza 2's row, prints 'Blest be the King'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "bless",
+      "readings": ["blest"],
+      "printed": "Blest",
+      "sung": "Blest",
+      "kind": "shared",
+      "image": "231.png",
+      "crop": "231-132.jpg",
+      "box": [0, 132, 1275, 195],
+      "judge": "judge-225 (Opus, effort max)",
+      "why": "The shared unnumbered row of the first system, sung before stanza 3's row, prints 'Blest be the King'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "bless",
+      "readings": ["blest"],
+      "printed": "Blest",
+      "sung": "Blest",
+      "kind": "shared",
+      "image": "231.png",
+      "crop": "231-132.jpg",
+      "box": [0, 132, 1275, 195],
+      "judge": "judge-225 (Opus, effort max)",
+      "why": "The shared unnumbered row of the first system, sung before stanza 4's row, prints 'Blest be the King'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 27
+        }
+      ],
+      "row": "humbled",
+      "readings": ["humble"],
+      "printed": "humble",
+      "sung": "humble",
+      "kind": "words",
+      "image": "231.png",
+      "crop": "231-839.jpg",
+      "box": [0, 839, 1275, 277],
+      "judge": "judge-225 (Opus, effort max)",
+      "why": "Row 4 (stanza 4) of the third system prints 'tle is He and hum - ble! And light His Yoke shall be'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 44
+        }
+      ],
+      "row": "make",
+      "readings": ["made"],
+      "printed": "made",
+      "sung": "made",
+      "kind": "words",
+      "image": "231.png",
+      "crop": "231-1223.jpg",
+      "box": [0, 1223, 1275, 272],
+      "judge": "judge-225 (Opus, effort max)",
+      "why": "Row 4 (stanza 4) of the last system of this re-engraving plainly prints 'So He can made us free!'; 'made' is a real word, so it is not ruled a misprint."
+    }
+  ]
+}

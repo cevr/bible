@@ -1,0 +1,23 @@
+{
+  "number": 547,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 9
+        }
+      ],
+      "row": "mine",
+      "readings": ["my"],
+      "printed": "my",
+      "sung": "my",
+      "kind": "words",
+      "image": "547.jpg",
+      "crop": "547-922.jpg",
+      "box": [0, 922, 2268, 664],
+      "judge": "judge-509 (Opus, effort max)",
+      "why": "Row 3 of the second system prints 'Thou my in - her - it - ance, Now and al - ways:' with 'my', not 'mine'."
+    }
+  ]
+}

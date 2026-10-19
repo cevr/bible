@@ -1,0 +1,149 @@
+{
+  "number": 336,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 27
+        }
+      ],
+      "row": "lose all their guilty stains",
+      "readings": [""],
+      "printed": "Lose all their guilty stains",
+      "sung": "Lose all their guilty stains",
+      "kind": "words",
+      "image": "p326.jpg",
+      "crop": "p326-1349.jpg",
+      "box": [0, 1349, 1759, 495],
+      "judge": "judge-336 (Opus, effort max)",
+      "why": "Row 1 of p326-794 ends 'Lose all their guilt-y stains,' and row 1 of p326-1349 prints it twice more; this place is the second of those, the third in all."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 2
+        }
+      ],
+      "row": "thief",
+      "readings": ["theif"],
+      "printed": "theif",
+      "sung": "thief",
+      "kind": "misprint",
+      "image": "p326.jpg",
+      "crop": "p326-239.jpg",
+      "box": [0, 239, 1759, 505],
+      "judge": "judge-336 (Opus, effort max)",
+      "why": "Row 2. of p326-239 prints 'dy-ing theif re-joiced', the i and e swapped, plainly meaning 'thief'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 29
+        }
+      ],
+      "row": "wash all my sins away",
+      "readings": [""],
+      "printed": "Wash all my sins away",
+      "sung": "Wash all my sins away",
+      "kind": "words",
+      "image": "p326.jpg",
+      "crop": "p326-1349.jpg",
+      "box": [0, 1349, 1759, 495],
+      "judge": "judge-336 (Opus, effort max)",
+      "why": "Row 2 of p326-1349 prints 'Wash all my sins a-way' twice after row 2 of p326-794 ends with it; this place is the second on p326-1349."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 30
+        }
+      ],
+      "row": "are saved to sin no more",
+      "readings": [""],
+      "printed": "Are saved to sin no more",
+      "sung": "Are saved to sin no more",
+      "kind": "words",
+      "image": "p326.jpg",
+      "crop": "p326-1349.jpg",
+      "box": [0, 1349, 1759, 495],
+      "judge": "judge-336 (Opus, effort max)",
+      "why": "Row 3 of p326-1349 prints 'Are saved, to sin no more' twice after row 3 of p326-794 ends with it; this place is the second on p326-1349."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 30
+        }
+      ],
+      "row": "and shall be till i die",
+      "readings": [""],
+      "printed": "And shall be till I die",
+      "sung": "And shall be till I die",
+      "kind": "words",
+      "image": "p326.jpg",
+      "crop": "p326-1349.jpg",
+      "box": [0, 1349, 1759, 495],
+      "judge": "judge-336 (Opus, effort max)",
+      "why": "Row 4 of p326-1349 prints 'And shall be till I die' twice after row 4 of p326-794 ends with it; this place is the second on p326-1349."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 27
+        }
+      ],
+      "row": "a golden harp",
+      "readings": [""],
+      "printed": "A golden harp",
+      "sung": "A golden harp",
+      "kind": "words",
+      "image": "p326.jpg",
+      "crop": "p326-1349.jpg",
+      "box": [0, 1349, 1759, 495],
+      "judge": "judge-336 (Opus, effort max)",
+      "why": "Row 5 of p326-1349 prints 'A gold-en harp for me!' twice after row 5 of p326-794 ends with it; this place is the second one's 'A gold-en harp'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 32
+        }
+      ],
+      "row": "for me",
+      "readings": [""],
+      "printed": "For me",
+      "sung": "For me",
+      "kind": "words",
+      "image": "p326.jpg",
+      "crop": "p326-1749.jpg",
+      "box": [0, 1749, 1759, 880],
+      "judge": "judge-336 (Opus, effort max)",
+      "why": "Row 5 of the last system (p326-1749) opens 'For me a blood-bought, free re-ward', right after row 5 of p326-1349 ends 'for me!'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 6,
+          "at": 28
+        }
+      ],
+      "row": "is ransomed from the grave",
+      "readings": [""],
+      "printed": "Is ransomed from the grave",
+      "sung": "Is ransomed from the grave",
+      "kind": "words",
+      "image": "p326.jpg",
+      "crop": "p326-1349.jpg",
+      "box": [0, 1349, 1759, 495],
+      "judge": "judge-336 (Opus, effort max)",
+      "why": "Row 6 of p326-1349 prints 'Is ran-somed from the grave' twice after row 6 of p326-794 ends with it; this place is the second on p326-1349."
+    }
+  ]
+}

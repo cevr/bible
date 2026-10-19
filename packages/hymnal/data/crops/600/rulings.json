@@ -1,0 +1,23 @@
+{
+  "number": 600,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 12
+        }
+      ],
+      "row": "other",
+      "readings": ["others"],
+      "printed": "others",
+      "sung": "others",
+      "kind": "words",
+      "image": "p585.jpg",
+      "crop": "p585-171.jpg",
+      "box": [0, 171, 1759, 400],
+      "judge": "judge-583 (Opus, effort max)",
+      "why": "Row 2. ends 'He comes to all oth - ers', plural with the s."
+    }
+  ]
+}

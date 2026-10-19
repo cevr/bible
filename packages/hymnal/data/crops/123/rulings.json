@@ -1,0 +1,41 @@
+{
+  "number": 123,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 24
+        }
+      ],
+      "row": "glorious",
+      "readings": ["gracious"],
+      "printed": "gracious",
+      "sung": "gracious",
+      "kind": "words",
+      "image": "123.jpg",
+      "crop": "123-1606.jpg",
+      "box": [0, 1606, 2268, 444],
+      "judge": "judge-095 (Opus, effort max)",
+      "why": "Row 1 of the last system prints 'So, most gra - cious Lord, may we' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 33
+        }
+      ],
+      "row": "heavenly",
+      "readings": ["heavnly"],
+      "printed": "heav'nly",
+      "sung": "heav'nly",
+      "kind": "words",
+      "image": "123.jpg",
+      "crop": "123-1606.jpg",
+      "box": [0, 1606, 2268, 444],
+      "judge": "judge-095 (Opus, effort max)",
+      "why": "Row 3 of the last system prints 'Christ, to Thee our heav'n - ly King.' with the apostrophe."
+    }
+  ]
+}

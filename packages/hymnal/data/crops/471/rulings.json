@@ -1,0 +1,131 @@
+{
+  "number": 471,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 24
+        }
+      ],
+      "row": "",
+      "readings": ["us"],
+      "printed": "us",
+      "sung": "us",
+      "kind": "words",
+      "image": "471.jpg",
+      "crop": "471-0.jpg",
+      "box": [0, 0, 2268, 1470],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 2 of the third system prints 'Grant us, grant us, grant us Your peace', with 'us' between the third 'grant' and 'Your'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "a coordenous",
+      "readings": ["accorde nous"],
+      "printed": "Accorde-nous",
+      "sung": "Accorde-nous",
+      "kind": "words",
+      "image": "471.jpg",
+      "crop": "471-0.jpg",
+      "box": [0, 0, 2268, 1470],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 3. of the first system prints 'Ac - cor - de - nous ta paix', one o in 'cor' and no separate 'a'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 6
+        }
+      ],
+      "row": "a coordenous",
+      "readings": ["accorde nous"],
+      "printed": "Accorde-nous",
+      "sung": "Accorde-nous",
+      "kind": "words",
+      "image": "471.jpg",
+      "crop": "471-353.jpg",
+      "box": [0, 353, 2268, 822],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 3 prints 'Ac - cor -' at the end of the first system and 'de - nous' at the start of the second system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 10
+        }
+      ],
+      "row": "a coordenous",
+      "readings": ["accorde nous"],
+      "printed": "Accorde-nous",
+      "sung": "Accorde-nous",
+      "kind": "words",
+      "image": "471.jpg",
+      "crop": "471-353.jpg",
+      "box": [0, 353, 2268, 822],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 3 of the second system prints 'Ac - cor - de - nous ta paix;' after 'ta paix.'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 14
+        }
+      ],
+      "row": "a coordenous",
+      "readings": ["accorde nous"],
+      "printed": "Accorde-nous",
+      "sung": "Accorde-nous",
+      "kind": "words",
+      "image": "471.jpg",
+      "crop": "471-353.jpg",
+      "box": [0, 353, 2268, 822],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 3 of the third system begins 'Ac - cor - de - nous ta paix.'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 18
+        }
+      ],
+      "row": "a coordenous",
+      "readings": ["accorde nous"],
+      "printed": "Accorde-nous",
+      "sung": "Accorde-nous",
+      "kind": "words",
+      "image": "471.jpg",
+      "crop": "471-0.jpg",
+      "box": [0, 0, 2268, 1470],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 3 prints 'Ac - cor -' at the end of the third system and 'de - nous' at the start of the fourth system, which only 471-0.jpg shows."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 22
+        }
+      ],
+      "row": "a coordenous",
+      "readings": ["accorde nous"],
+      "printed": "Accorde-nous",
+      "sung": "Accorde-nous",
+      "kind": "words",
+      "image": "471.jpg",
+      "crop": "471-0.jpg",
+      "box": [0, 0, 2268, 1470],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 3 of the fourth system prints 'Ac - cor - de - nous ta - paix.'; 471-353.jpg stops above this system's words."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "number": 313,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 9
+        }
+      ],
+      "row": "",
+      "readings": ["a"],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "image": "313.jpg",
+      "crop": "313-368.jpg",
+      "box": [0, 368, 2268, 730],
+      "judge": "judge-261 (Opus, effort max)",
+      "why": "Row 3. of the crop ends 'With man-y a', and the next system on the page begins 'con-flict', so the page prints 'a' between 'many' and 'conflict'."
+    }
+  ]
+}

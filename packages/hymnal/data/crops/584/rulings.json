@@ -1,0 +1,23 @@
+{
+  "number": 584,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 4
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "image": "584.png",
+      "crop": "584-114.jpg",
+      "box": [0, 114, 1275, 362],
+      "judge": "judge-583 (Opus, effort max)",
+      "why": "Row 5. prints 'not a - lone,': that 'a' is the first syllable of 'alone', and no separate 'a' stands before it."
+    }
+  ]
+}

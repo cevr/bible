@@ -1,0 +1,23 @@
+{
+  "number": 203,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 9
+        }
+      ],
+      "row": "assail",
+      "readings": ["assails"],
+      "printed": "assails",
+      "sung": "assails",
+      "kind": "words",
+      "image": "203.png",
+      "crop": "203-114.jpg",
+      "box": [0, 114, 1275, 246],
+      "judge": "judge-183-2 (Opus, effort max)",
+      "why": "Row 2. of 203-114.jpg prints 'When doubt and grief as - sails' plainly, with the final s."
+    }
+  ]
+}

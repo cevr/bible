@@ -1,0 +1,41 @@
+{
+  "number": 459,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "to",
+      "readings": ["unto"],
+      "printed": "unto",
+      "sung": "unto",
+      "kind": "words",
+      "image": "459.jpg",
+      "crop": "459-175.jpg",
+      "box": [0, 175, 2268, 1300],
+      "judge": "judge-443 (Opus, effort max)",
+      "why": "Row 1. of the first system prints 'as the king un - to his', two syllables like the other rows' 'can-dle', 'hon-ey', 'im-age'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 15
+        }
+      ],
+      "row": "up in",
+      "readings": ["upon"],
+      "printed": "upon",
+      "sung": "upon",
+      "kind": "words",
+      "image": "459.jpg",
+      "crop": "459-876.jpg",
+      "box": [0, 876, 2268, 600],
+      "judge": "judge-443 (Opus, effort max)",
+      "why": "Row 4 of the second system prints 'As the fruits up - on the fig tree', one hyphenated word 'upon'."
+    }
+  ]
+}

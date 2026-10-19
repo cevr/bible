@@ -1,0 +1,23 @@
+{
+  "number": 581,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 32
+        }
+      ],
+      "row": "",
+      "readings": ["we"],
+      "printed": "we",
+      "sung": "we",
+      "kind": "words",
+      "image": "581.png",
+      "crop": "581-1213.jpg",
+      "box": [0, 1213, 1275, 248],
+      "judge": "judge-554 (Opus, effort max)",
+      "why": "The first row of the last system (stanza 1's ending) prints 'That the world we ban - ish Is our Chris - tian care.' plainly."
+    }
+  ]
+}

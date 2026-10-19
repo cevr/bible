@@ -1,0 +1,23 @@
+{
+  "number": 424,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 35
+        }
+      ],
+      "row": "thavas",
+      "readings": ["thee as"],
+      "printed": "thee as",
+      "sung": "thee as",
+      "kind": "words",
+      "image": "p410.jpg",
+      "crop": "p410-1412.jpg",
+      "box": [0, 1412, 1759, 478],
+      "judge": "judge-422 (Opus, effort max)",
+      "why": "Row 2 of the last system on p410 prints 'Can sing thee as thou art.' plainly; the page has no 'thavas'."
+    }
+  ]
+}

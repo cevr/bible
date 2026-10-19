@@ -1,0 +1,23 @@
+{
+  "number": 632,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 32
+        }
+      ],
+      "row": "bring",
+      "readings": ["brings"],
+      "printed": "brings",
+      "sung": "brings",
+      "kind": "words",
+      "image": "632.png",
+      "crop": "632-759.jpg",
+      "box": [0, 759, 1275, 297],
+      "judge": "judge-583 (Opus, effort max)",
+      "why": "Row 2 (stanza 2) of this re-engraving prints 'will on - ly brings a smile.' with a plain final s; odd after 'will', but a real word, so not a misprint."
+    }
+  ]
+}

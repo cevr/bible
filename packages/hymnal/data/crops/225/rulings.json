@@ -1,0 +1,41 @@
+{
+  "number": 225,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 8
+        }
+      ],
+      "row": "suceeds",
+      "readings": ["succeeds"],
+      "printed": "succeeds",
+      "sung": "succeeds",
+      "kind": "words",
+      "image": "225-p2.jpg",
+      "crop": "225-p2-684.jpg",
+      "box": [0, 684, 2268, 1446],
+      "judge": "judge-225 (Opus, effort max)",
+      "why": "The stanza 1 row at the crop's left edge ('ear suc-ceeds to') prints 'suc - ceeds' with two c's, as row 1. of 225-170.jpg also does."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 28
+        }
+      ],
+      "row": "confinents",
+      "readings": ["continents"],
+      "printed": "continents",
+      "sung": "continents",
+      "kind": "words",
+      "image": "225.jpg",
+      "crop": "225-1230.jpg",
+      "box": [0, 1230, 2268, 610],
+      "judge": "judge-225 (Opus, effort max)",
+      "why": "Row 2 (stanza 2) of the third system prints 'Give ear to me, ye con - ti - nents, Ye', with a t, not an f."
+    }
+  ]
+}

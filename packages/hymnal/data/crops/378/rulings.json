@@ -1,0 +1,23 @@
+{
+  "number": 378,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 10
+        }
+      ],
+      "row": "brigh",
+      "readings": ["bright"],
+      "printed": "bright",
+      "sung": "bright",
+      "kind": "words",
+      "image": "p368.jpg",
+      "crop": "p368-266.jpg",
+      "box": [0, 266, 1759, 456],
+      "judge": "judge-284 (Opus, effort max)",
+      "why": "Row 4. of the first system ends 'On a bright' plainly; the database's 'brigh' is cut short."
+    }
+  ]
+}

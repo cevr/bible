@@ -1,0 +1,23 @@
+{
+  "number": 461,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 49
+        }
+      ],
+      "row": "dwelth",
+      "readings": ["dwelt"],
+      "printed": "dwelt",
+      "sung": "dwelt",
+      "kind": "words",
+      "image": "461.jpg",
+      "crop": "461-1800.jpg",
+      "box": [0, 1800, 2268, 610],
+      "judge": "judge-443 (Opus, effort max)",
+      "why": "Row 2 of the last system prints 'His voice who ruled them while He dwelt be - low' plainly."
+    }
+  ]
+}

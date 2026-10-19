@@ -1,0 +1,23 @@
+{
+  "number": 606,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 40
+        }
+      ],
+      "row": "keepin",
+      "readings": ["keeping"],
+      "printed": "Keeping",
+      "sung": "Keeping",
+      "kind": "words",
+      "image": "606.jpg",
+      "crop": "606-1369.jpg",
+      "box": [0, 1369, 2268, 1394],
+      "judge": "judge-583 (Opus, effort max)",
+      "why": "Row 4 of the lower system (stanza 4) prints 'shad - ow, Keep-ing watch a - bove His own.' with the final g."
+    }
+  ]
+}

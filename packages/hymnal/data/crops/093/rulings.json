@@ -1,0 +1,448 @@
+{
+  "number": 93,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "each little flower that opens each little bird that sings he made their glowing colors he",
+      "readings": [
+        "all things bright and beautiful all creatures great and small all things wise and wonderful the lord god"
+      ],
+      "printed": "Each little flower that opens Each little bird that sings He made their glowing colors He",
+      "sung": "Each little flower that opens Each little bird that sings He made their glowing colors He",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-409.jpg",
+      "box": [0, 409, 1275, 187],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "The page prints the refrain as stanza '1.' (093-28.jpg, 093-409.jpg) and these words as verse '2.' (093-702.jpg row 2., 093-1070.jpg row 1), so the reading's refrain words stand at another place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "each little flower that opens each little bird that sings he made their glowing colors he made their tiny wings",
+      "readings": [""],
+      "printed": "Each little flower that opens Each little bird that sings He made their glowing colors He made their tiny wings",
+      "sung": "Each little flower that opens Each little bird that sings He made their glowing colors He made their tiny wings",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 2. of 093-702.jpg and row 1 of 093-1070.jpg print this verse, numbered 2 only because the refrain is printed as '1.' before it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 17
+        }
+      ],
+      "row": "their tiny wings",
+      "readings": ["them"],
+      "printed": "their tiny wings",
+      "sung": "their tiny wings",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-28.jpg",
+      "box": [0, 28, 1275, 277],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 1 of 093-1070.jpg prints 'He made their ti-ny wings' (not on 093-28.jpg); the reading's 'them' is from the refrain's 'made them all', printed as stanza '1.'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 21
+        }
+      ],
+      "row": "",
+      "readings": ["all"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-28.jpg",
+      "box": [0, 28, 1275, 277],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 1. of 093-28.jpg prints 'All things bright' with nothing between 'All' and 'things'; the reading's extra 'all' ends its stanza 1, the refrain printed before the verses."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "the purple headed mountain the river running by the sunset and the morning",
+      "readings": ["each little flower"],
+      "printed": "The purple-headed mountain The river running by The sunset and the morning",
+      "sung": "The purple-headed mountain The river running by The sunset and the morning",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 3. of 093-702.jpg and row 2 of 093-1070.jpg print these words; the reading's 'each little flower' is row 2., the database's stanza 1."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 14
+        }
+      ],
+      "row": "brightens up the sky",
+      "readings": [
+        "opens each little bird that sings he made their glowing colors he made their tiny wings"
+      ],
+      "printed": "brightens up the sky",
+      "sung": "brightens up the sky",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 2 of 093-1070.jpg prints 'That bright-ens up the sky' (not on 093-702.jpg); the reading's words are verse '2.', the database's stanza 1."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 14
+        }
+      ],
+      "row": "brightens up the sky all things bright and beautiful all creatures great and small all things wise and wonderful the lord god",
+      "readings": ["opens each little bird that sings he"],
+      "printed": "brightens up the sky All things bright and beautiful All creatures great and small All things wise and wonderful The Lord God",
+      "sung": "brightens up the sky All things bright and beautiful All creatures great and small All things wise and wonderful The Lord God",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-409.jpg",
+      "box": [0, 409, 1275, 187],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 2 of 093-1070.jpg prints 'bright-ens up the sky', then D.C. al Fine sings the refrain printed as '1.' (093-28.jpg, 093-409.jpg); the reading's words are verse '2.'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 37
+        }
+      ],
+      "row": "them all",
+      "readings": ["their glowing colors he made their tiny wings"],
+      "printed": "them all",
+      "sung": "them all",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-409.jpg",
+      "box": [0, 409, 1275, 187],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "093-409.jpg prints the refrain's end 'made them all.'; the reading's words are verse '2.' (093-1070.jpg row 1), the database's stanza 1."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 1
+        }
+      ],
+      "row": "cold wind in",
+      "readings": ["purple headed mountain"],
+      "printed": "cold wind in",
+      "sung": "cold wind in",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 4. of 093-702.jpg prints 'The cold wind in the win-ter'; the reading's 'purple-headed mountain' is row 3., the database's stanza 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 1
+        }
+      ],
+      "row": "cold wind in the winter the pleasant summer sun",
+      "readings": ["purple headed mountain"],
+      "printed": "cold wind in the winter The pleasant summer sun",
+      "sung": "cold wind in the winter The pleasant summer sun",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 4. of 093-702.jpg prints 'The cold wind in the win-ter, The pleas-ant sum-mer sun'; the reading's words are row 3., the database's stanza 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 5
+        }
+      ],
+      "row": "winter",
+      "readings": ["river running by"],
+      "printed": "winter",
+      "sung": "winter",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 4. of 093-702.jpg prints 'win-ter'; the reading's 'river running by' is row 3., the database's stanza 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 7
+        }
+      ],
+      "row": "pleasant summer sun",
+      "readings": ["sunset and"],
+      "printed": "pleasant summer sun",
+      "sung": "pleasant summer sun",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 4. of 093-702.jpg prints 'pleas-ant sum-mer sun'; the reading's 'sunset and' is the database's stanza 2 (093-1070.jpg row 2)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 11
+        }
+      ],
+      "row": "ripe fruits in",
+      "readings": ["morning that brightens up", "river running by"],
+      "printed": "ripe fruits in",
+      "sung": "ripe fruits in",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-1070.jpg",
+      "box": [0, 1070, 1275, 279],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 3 of 093-1070.jpg prints 'The ripe fruits in the gar-den'; both readings' words are the database's stanza 2 (093-702.jpg row 3., 093-1070.jpg row 2)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 15
+        }
+      ],
+      "row": "garden he made them every one",
+      "readings": ["sky"],
+      "printed": "garden He made them every one",
+      "sung": "garden He made them every one",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-1070.jpg",
+      "box": [0, 1070, 1275, 279],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 3 of 093-1070.jpg prints 'gar-den, He made them ev-ery one.'; the reading's 'sky' ends row 2, the database's stanza 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 15
+        }
+      ],
+      "row": "garden he made them every one all things bright and beautiful all creatures great and small all things wise",
+      "readings": ["sunset"],
+      "printed": "garden He made them every one All things bright and beautiful All creatures great and small All things wise",
+      "sung": "garden He made them every one All things bright and beautiful All creatures great and small All things wise",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-409.jpg",
+      "box": [0, 409, 1275, 187],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 3 of 093-1070.jpg prints 'gar-den, He made them ev-ery one.', then D.C. al Fine sings the refrain printed as '1.' (093-28.jpg, 093-409.jpg); the reading's 'sunset' is the database's stanza 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 35
+        }
+      ],
+      "row": "wonderful",
+      "readings": [""],
+      "printed": "wonderful",
+      "sung": "wonderful",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-409.jpg",
+      "box": [0, 409, 1275, 187],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "093-409.jpg prints 'won-der-ful' in the refrain that D.C. al Fine sings after this verse; the reading lost it by following the page's numbering."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 37
+        }
+      ],
+      "row": "lord god made them all",
+      "readings": ["morning that brightens up the sky"],
+      "printed": "Lord God made them all",
+      "sung": "Lord God made them all",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-409.jpg",
+      "box": [0, 409, 1275, 187],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "093-409.jpg prints 'The Lord God made them all.'; the reading's words end the database's stanza 2 (093-1070.jpg row 2)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": [
+        "the cold wind in the winter the pleasant summer sun the ripe fruits in the garden"
+      ],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 5. of 093-702.jpg begins 'He gave' with nothing before it; the reading's words are row 4. and 093-1070.jpg row 3, the database's stanza 3."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "he gave us eyes to see them and lips that we might tell how great is god almighty who has made all things well all things bright and beautiful all creatures great and small all things wise and wonderful",
+      "readings": [""],
+      "printed": "He gave us eyes to see them And lips that we might tell How great is God Almighty Who has made all things well All things bright and beautiful All creatures great and small All things wise and wonderful",
+      "sung": "He gave us eyes to see them And lips that we might tell How great is God Almighty Who has made all things well All things bright and beautiful All creatures great and small All things wise and wonderful",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 5. of 093-702.jpg and row 4 of 093-1070.jpg print this verse, then D.C. al Fine sings the refrain printed as '1.'; the reading put the verse in its stanza 5."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 1
+        }
+      ],
+      "row": "gave us eyes to see them and lips that we might tell how great is god almighty who has",
+      "readings": [""],
+      "printed": "gave us eyes to see them And lips that we might tell How great is God Almighty Who has",
+      "sung": "gave us eyes to see them And lips that we might tell How great is God Almighty Who has",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 5. of 093-702.jpg prints 'He gave us eyes to see them, And lips that we might tell' and row 4 of 093-1070.jpg 'How great is God Al-might-y, Who has'; the reading put it in its stanza 5."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 21
+        }
+      ],
+      "row": "all things well",
+      "readings": ["them every one"],
+      "printed": "all things well",
+      "sung": "all things well",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-1070.jpg",
+      "box": [0, 1070, 1275, 279],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 4 of 093-1070.jpg prints 'made all things well.'; the reading's 'them every one' ends row 3, the database's stanza 3."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 40
+        }
+      ],
+      "row": "lord god",
+      "readings": [
+        "cold wind in the winter the pleasant summer sun the ripe fruits in the garden he"
+      ],
+      "printed": "Lord God",
+      "sung": "Lord God",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-409.jpg",
+      "box": [0, 409, 1275, 187],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "093-409.jpg prints 'The Lord God made them all.'; the reading's words are the database's stanza 3 (093-702.jpg row 4., 093-1070.jpg row 3)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 44
+        }
+      ],
+      "row": "all",
+      "readings": ["every one"],
+      "printed": "all",
+      "sung": "all",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-409.jpg",
+      "box": [0, 409, 1275, 187],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "093-409.jpg prints 'all.' at the refrain's end; the reading's 'every one' ends the database's stanza 3 (093-1070.jpg row 3)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": [
+        "he gave us eyes to see them and lips that we might tell how great is god almighty who has made all things well all things bright and beautiful all creatures great and small all things wise and wonderful the lord god made them all",
+        "he gave us eyes to see them and lips that we might tell how great is god almighty who has made all things well"
+      ],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "image": "093.png",
+      "crop": "093-702.jpg",
+      "box": [0, 702, 1275, 280],
+      "judge": "judge-093 (Opus, effort max)",
+      "why": "Row 5. of 093-702.jpg and row 4 of 093-1070.jpg are the database's stanza 4, numbered 5 because the refrain is printed as '1.'; the page prints no further verse."
+    }
+  ]
+}

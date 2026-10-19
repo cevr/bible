@@ -1,0 +1,23 @@
+{
+  "number": 685,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 35
+        }
+      ],
+      "row": "amen",
+      "readings": [""],
+      "printed": "Amen",
+      "sung": "Amen",
+      "kind": "words",
+      "image": "685.png",
+      "crop": "685-1135.jpg",
+      "box": [0, 1135, 1275, 188],
+      "judge": "judge-663 (Opus, effort max)",
+      "why": "The crop's row ends 'lift up my soul to Thee.' and then prints 'A - - - - - - - - men.' under the closing bars."
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "number": 272,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 49
+        }
+      ],
+      "row": "precept and promise law and love combining till night shall vanish in eternal day",
+      "readings": [""],
+      "printed": "Precept and promise law and love combining 'Till night shall vanish in eternal day",
+      "sung": "precept and promise law and love combining till night shall vanish in eternal day",
+      "kind": "layout",
+      "image": "p266.jpg",
+      "crop": "p266-121.jpg",
+      "box": [0, 121, 1759, 309],
+      "judge": "judge-261 (Opus, effort max)",
+      "why": "The refrain is printed once and its last line stands alone at the top of p266 after the page turn (this crop), so the reading moved it out of the refrain into a unit 4."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 52
+        }
+      ],
+      "row": "precept and promise law and love combining till night shall vanish in eternal day",
+      "readings": [""],
+      "printed": "Precept and promise law and love combining 'Till night shall vanish in eternal day",
+      "sung": "precept and promise law and love combining till night shall vanish in eternal day",
+      "kind": "layout",
+      "image": "p266.jpg",
+      "crop": "p266-121.jpg",
+      "box": [0, 121, 1759, 309],
+      "judge": "judge-261 (Opus, effort max)",
+      "why": "The same refrain line, printed once at the top of p266 (this crop) and sung after stanza 2; the reading moved it into a unit 4."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 50
+        }
+      ],
+      "row": "precept and promise law and love combining till night shall vanish in eternal day",
+      "readings": [""],
+      "printed": "Precept and promise law and love combining 'Till night shall vanish in eternal day",
+      "sung": "precept and promise law and love combining till night shall vanish in eternal day",
+      "kind": "layout",
+      "image": "p266.jpg",
+      "crop": "p266-121.jpg",
+      "box": [0, 121, 1759, 309],
+      "judge": "judge-261 (Opus, effort max)",
+      "why": "The same refrain line, printed once at the top of p266 (this crop) and sung after stanza 3; the reading moved it into a unit 4."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": [
+        "precept and promise law and love combining till night shall vanish in eternal day give me the bible holy message shining thy light shall guide me in the narrow way"
+      ],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "image": "p265.jpg",
+      "crop": "p265-1829.jpg",
+      "box": [0, 1829, 1759, 681],
+      "judge": "judge-261 (Opus, effort max)",
+      "why": "The page prints three stanzas only; this crop's row 'ho-ly mes-sage shin-ing, Thy light shall guide me in the nar-row way' and p266's top row are the refrain, which the database already has after each stanza."
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "number": 181,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 58
+        }
+      ],
+      "row": "he cares",
+      "readings": [""],
+      "printed": "He cares",
+      "sung": "He cares",
+      "kind": "echo",
+      "image": "p176.jpg",
+      "crop": "p176-1997.jpg",
+      "box": [0, 1997, 1759, 466],
+      "judge": "judge-128 (Opus, effort max)",
+      "why": "Crop p176-1997, the refrain's row ends 'I know my Sav - ior cares. (He cares.)': the last two words in parentheses are the lower voices' echo while the melody holds 'cares'; the database keeps it, the reading left it out."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 58
+        }
+      ],
+      "row": "he cares",
+      "readings": [""],
+      "printed": "He cares",
+      "sung": "He cares",
+      "kind": "echo",
+      "image": "p176.jpg",
+      "crop": "p176-1997.jpg",
+      "box": [0, 1997, 1759, 466],
+      "judge": "judge-128 (Opus, effort max)",
+      "why": "Crop p176-1997, the refrain's one row ends with the parenthesized echo '(He cares.)' under the lower voices' last notes."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 60
+        }
+      ],
+      "row": "he cares",
+      "readings": [""],
+      "printed": "He cares",
+      "sung": "He cares",
+      "kind": "echo",
+      "image": "p176.jpg",
+      "crop": "p176-1997.jpg",
+      "box": [0, 1997, 1759, 466],
+      "judge": "judge-128 (Opus, effort max)",
+      "why": "Crop p176-1997, the refrain's one row ends with the parenthesized echo '(He cares.)' under the lower voices' last notes."
+    }
+  ]
+}

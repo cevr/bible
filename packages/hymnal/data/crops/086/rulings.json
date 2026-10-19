@@ -1,0 +1,23 @@
+{
+  "number": 86,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 12
+        }
+      ],
+      "row": "works",
+      "readings": ["worlds"],
+      "printed": "worlds",
+      "sung": "worlds",
+      "kind": "words",
+      "image": "086.png",
+      "crop": "086-0.jpg",
+      "box": [0, 0, 1275, 390],
+      "judge": "judge-006-2 (Opus, effort max)",
+      "why": "Row 1. prints 'Con-sid-er all the worlds Thy hands have' plainly, w-o-r-l-d-s."
+    }
+  ]
+}

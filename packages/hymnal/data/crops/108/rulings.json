@@ -1,0 +1,23 @@
+{
+  "number": 108,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 22
+        }
+      ],
+      "row": "we",
+      "readings": ["wed"],
+      "printed": "we'd",
+      "sung": "we'd",
+      "kind": "words",
+      "image": "108.jpg",
+      "crop": "108-1053.jpg",
+      "box": [0, 1053, 2268, 1104],
+      "judge": "judge-095 (Opus, effort max)",
+      "why": "Row 5 of the third system prints 'Than when we'd first be - gun.' with the apostrophe and d plainly."
+    }
+  ]
+}

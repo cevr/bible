@@ -1,0 +1,23 @@
+{
+  "number": 654,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 23
+        }
+      ],
+      "row": "untied",
+      "readings": ["united"],
+      "printed": "united",
+      "sung": "united",
+      "kind": "words",
+      "image": "654.jpg",
+      "crop": "654-1752.jpg",
+      "box": [0, 1752, 2268, 666],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "Row 2 prints 'Then, in that spir-it may we live u-nit-ed,' plainly."
+    }
+  ]
+}

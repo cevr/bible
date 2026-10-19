@@ -1,0 +1,23 @@
+{
+  "number": 473,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 15
+        }
+      ],
+      "row": "i",
+      "readings": ["ill"],
+      "printed": "I'll",
+      "sung": "I'll",
+      "kind": "words",
+      "image": "p462.jpg",
+      "crop": "p462-1533.jpg",
+      "box": [0, 1533, 1759, 468],
+      "judge": "judge-471 (Opus, effort max)",
+      "why": "Row 4 ('ston - y griefs Beth - el I'll raise;') prints 'I'll' plainly, apostrophe and double l, not 'I'."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "number": 548,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 4
+        }
+      ],
+      "row": "",
+      "readings": ["we"],
+      "printed": "we",
+      "sung": "we",
+      "kind": "words",
+      "image": "548.png",
+      "crop": "548-113.jpg",
+      "box": [0, 113, 1275, 277],
+      "judge": "judge-509 (Opus, effort max)",
+      "why": "Row 2. prints 'Who chal - lenged us, when we were young To', with 'we' between 'when' and 'were'."
+    }
+  ]
+}

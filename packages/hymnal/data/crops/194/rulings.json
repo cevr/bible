@@ -1,0 +1,23 @@
+{
+  "number": 194,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 16
+        }
+      ],
+      "row": "namelss",
+      "readings": ["nameless"],
+      "printed": "nameless",
+      "sung": "nameless",
+      "kind": "words",
+      "image": "194.png",
+      "crop": "194-375.jpg",
+      "box": [0, 375, 1275, 354],
+      "judge": "judge-183-2 (Opus, effort max)",
+      "why": "The first row (stanza 1) of 194-375.jpg prints 'Sing we of its name - less peo - ple' plainly; the database's 'namelss' drops the second e."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "number": 588,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 23
+        }
+      ],
+      "row": "redeemer",
+      "readings": ["redeemed"],
+      "printed": "redeemed",
+      "sung": "redeemed",
+      "kind": "words",
+      "image": "588.jpg",
+      "crop": "588-1607.jpg",
+      "box": [0, 1607, 2268, 852],
+      "judge": "judge-583 (Opus, effort max)",
+      "why": "Row 1 of this system (stanza 1) prints 'My kin - dred loved, re - deemed by Thee.'"
+    }
+  ]
+}

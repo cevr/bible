@@ -1,0 +1,95 @@
+{
+  "number": 137,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 20
+        }
+      ],
+      "row": "oh",
+      "readings": ["o"],
+      "printed": "O",
+      "sung": "O",
+      "kind": "words",
+      "image": "p134.jpg",
+      "crop": "p134-1547.jpg",
+      "box": [0, 1547, 1759, 312],
+      "judge": "judge-074 (Opus, effort max)",
+      "why": "The Refrain's one lyric row prints 'O star of won-der', a lone 'O' with no 'h'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 22
+        }
+      ],
+      "row": "oh",
+      "readings": ["o"],
+      "printed": "O",
+      "sung": "O",
+      "kind": "words",
+      "image": "p134.jpg",
+      "crop": "p134-1547.jpg",
+      "box": [0, 1547, 1759, 312],
+      "judge": "judge-074 (Opus, effort max)",
+      "why": "The Refrain's one lyric row, sung after every stanza, prints 'O star of won-der', a lone 'O' with no 'h'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 21
+        }
+      ],
+      "row": "oh",
+      "readings": ["o"],
+      "printed": "O",
+      "sung": "O",
+      "kind": "words",
+      "image": "p134.jpg",
+      "crop": "p134-1547.jpg",
+      "box": [0, 1547, 1759, 312],
+      "judge": "judge-074 (Opus, effort max)",
+      "why": "The listed p134-768 holds the stanzas' second system, not the refrain; the Refrain row on p134-1547 prints 'O star of won-der', a lone 'O'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 22
+        }
+      ],
+      "row": "oh",
+      "readings": ["o"],
+      "printed": "O",
+      "sung": "O",
+      "kind": "words",
+      "image": "p134.jpg",
+      "crop": "p134-1547.jpg",
+      "box": [0, 1547, 1759, 312],
+      "judge": "judge-074 (Opus, effort max)",
+      "why": "The Refrain's one lyric row, sung after every stanza, prints 'O star of won-der', a lone 'O' with no 'h'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 18
+        }
+      ],
+      "row": "oh",
+      "readings": ["o"],
+      "printed": "O",
+      "sung": "O",
+      "kind": "words",
+      "image": "p134.jpg",
+      "crop": "p134-1547.jpg",
+      "box": [0, 1547, 1759, 312],
+      "judge": "judge-074 (Opus, effort max)",
+      "why": "The listed p134-768 holds the stanzas' second system, not the refrain; the Refrain row on p134-1547 prints 'O star of won-der', a lone 'O'."
+    }
+  ]
+}

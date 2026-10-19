@@ -13,6 +13,7 @@
     "test": "bun test",
     "align": "bun scripts/align.ts",
     "chart": "bun scripts/chart.ts",
+    "census": "bun scripts/census.ts",
     "compile": "bun scripts/compile.ts",
     "golden": "bun scripts/golden.ts",
     "split": "bun scripts/split.ts"

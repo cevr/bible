@@ -1,0 +1,23 @@
+{
+  "number": 585,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 21
+        }
+      ],
+      "row": "love",
+      "readings": ["loves"],
+      "printed": "loves",
+      "sung": "loves",
+      "kind": "words",
+      "image": "585.jpg",
+      "crop": "585-1220.jpg",
+      "box": [0, 1220, 2268, 708],
+      "judge": "judge-583 (Opus, effort max)",
+      "why": "Row 2 of this system (stanza 2) prints 'And loves us as we are.' plainly, with the s."
+    }
+  ]
+}

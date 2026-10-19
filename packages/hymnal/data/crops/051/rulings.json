@@ -1,0 +1,23 @@
+{
+  "number": 51,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 19
+        }
+      ],
+      "row": "the",
+      "readings": ["her"],
+      "printed": "her",
+      "sung": "her",
+      "kind": "words",
+      "image": "p050.jpg",
+      "crop": "p050-901.jpg",
+      "box": [0, 901, 1759, 431],
+      "judge": "judge-006 (Opus, effort max)",
+      "why": "Row 1 of crop p050-901.jpg prints 'Sets her eve - ning lamps a - light' plainly."
+    }
+  ]
+}

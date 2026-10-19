@@ -1,0 +1,23 @@
+{
+  "number": 408,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 8
+        }
+      ],
+      "row": "where",
+      "readings": ["when"],
+      "printed": "when",
+      "sung": "when",
+      "kind": "words",
+      "image": "p395.jpg",
+      "crop": "p395-273.jpg",
+      "box": [0, 273, 1759, 433],
+      "judge": "judge-284 (Opus, effort max)",
+      "why": "Row 3. ends 'Once for all when', and the next system (p395-879.jpg) goes on 'You were slain'."
+    }
+  ]
+}

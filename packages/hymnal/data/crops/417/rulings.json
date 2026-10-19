@@ -1,0 +1,23 @@
+{
+  "number": 417,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 18
+        }
+      ],
+      "row": "upon",
+      "readings": ["up"],
+      "printed": "up",
+      "sung": "up",
+      "kind": "words",
+      "image": "417.jpg",
+      "crop": "417-876.jpg",
+      "box": [0, 876, 2268, 526],
+      "judge": "judge-284 (Opus, effort max)",
+      "why": "Row 2 of the second system prints 'as - cend - ed up on high' with 'up' and 'on' as two separate words."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "number": 641,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 16
+        }
+      ],
+      "row": "forced",
+      "readings": ["force"],
+      "printed": "force",
+      "sung": "force",
+      "kind": "words",
+      "image": "641.png",
+      "crop": "641-498.jpg",
+      "box": [0, 498, 1275, 277],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "Row 3 prints 'Long has earth bowed to the ter-ror of force;' plainly."
+    }
+  ]
+}

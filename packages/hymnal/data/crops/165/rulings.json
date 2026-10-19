@@ -1,0 +1,23 @@
+{
+  "number": 165,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 10
+        }
+      ],
+      "row": "bring",
+      "readings": ["brings"],
+      "printed": "brings",
+      "sung": "brings",
+      "kind": "words",
+      "image": "p161.jpg",
+      "crop": "p161-312.jpg",
+      "box": [0, 312, 1759, 431],
+      "judge": "judge-158 (Opus, effort max)",
+      "why": "Row 2. of p161-312.jpg ends 'Je - sus brings;' with a plain final s."
+    }
+  ]
+}

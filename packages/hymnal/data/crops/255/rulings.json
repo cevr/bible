@@ -1,0 +1,23 @@
+{
+  "number": 255,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 12
+        }
+      ],
+      "row": "biding",
+      "readings": ["bidding"],
+      "printed": "bidding",
+      "sung": "bidding",
+      "kind": "words",
+      "image": "255.jpg",
+      "crop": "255-779.jpg",
+      "box": [0, 779, 2268, 626],
+      "judge": "judge-225 (Opus, effort max)",
+      "why": "Row 4 (stanza 4) of the second system prints 'When at His bid - ding ev - ery storm is stilled', with two d's."
+    }
+  ]
+}

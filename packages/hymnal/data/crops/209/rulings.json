@@ -1,0 +1,23 @@
+{
+  "number": 209,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 27
+        }
+      ],
+      "row": "",
+      "readings": ["fly"],
+      "printed": "fly",
+      "sung": "fly",
+      "kind": "words",
+      "image": "209.jpg",
+      "crop": "209-1383.jpg",
+      "box": [0, 1383, 2268, 436],
+      "judge": "judge-209 (Opus, effort max)",
+      "why": "Row 3 (stanza 3) of 209-1383 prints 'To Je-sus quick-ly fly!', so 'fly' stands between 'quickly' and 'Then' (row 3 of 209-1912)."
+    }
+  ]
+}

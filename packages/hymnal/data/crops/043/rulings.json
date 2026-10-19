@@ -1,0 +1,41 @@
+{
+  "number": 43,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 17
+        }
+      ],
+      "row": "powrs",
+      "readings": ["powers"],
+      "printed": "powers",
+      "sung": "powers",
+      "kind": "words",
+      "image": "p043.jpg",
+      "crop": "p043-787.jpg",
+      "box": [0, 787, 1759, 667],
+      "judge": "judge-006 (Opus, effort max)",
+      "why": "Row 3 of crop p043-787.jpg prints 'The powers of dark - ness fear,' with 'powers' spelled out, no apostrophe."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 24
+        }
+      ],
+      "row": "song",
+      "readings": ["chant"],
+      "printed": "chant",
+      "sung": "chant",
+      "kind": "words",
+      "image": "p043.jpg",
+      "crop": "p043-1580.jpg",
+      "box": [0, 1580, 1759, 504],
+      "judge": "judge-006 (Opus, effort max)",
+      "why": "Row 3 of crop p043-1580.jpg prints 'When this sweet chant they hear,' plainly."
+    }
+  ]
+}

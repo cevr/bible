@@ -1,0 +1,23 @@
+{
+  "number": 626,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 18
+        }
+      ],
+      "row": "may",
+      "readings": ["my"],
+      "printed": "my",
+      "sung": "my",
+      "kind": "words",
+      "image": "626.png",
+      "crop": "626-560.jpg",
+      "box": [0, 560, 1275, 170],
+      "judge": "judge-580 (Opus, effort max)",
+      "why": "Crop 626-560, row 3 of the second system (re-engraved page), prints 'And my lov - ing hearts' plainly: two letters, 'my', not 'may'."
+    }
+  ]
+}

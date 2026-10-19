@@ -1,0 +1,23 @@
+{
+  "number": 643,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "form",
+      "readings": ["from"],
+      "printed": "from",
+      "sung": "from",
+      "kind": "words",
+      "image": "643.jpg",
+      "crop": "643-1250.jpg",
+      "box": [0, 1250, 2268, 260],
+      "judge": "judge-643 (Opus, effort max)",
+      "why": "The top row of the second system (the stanza 1 row, which continues 'Gifts of') prints 'plen - ty from Your dow - er' plainly, so the page has 'from', not 'form'."
+    }
+  ]
+}
