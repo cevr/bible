@@ -6,8 +6,9 @@
 // three-quarter on their heads); a turnaround painted close together, whose
 // body band crosses into its neighbours' crops; a heads sheet whose locks of
 // hair widen some heads' boxes; a pose sheet with a bare forearm painted on
-// to a hand under the chin; and a farmer under a headcloth whose ends fall
-// past his hands. The sheets are PNGs, so they are decoded here, past core.
+// to a hand under the chin; a farmer under a headcloth whose ends fall past
+// his hands; and a farmer whose headcloth falls to his hem. The sheets are
+// PNGs, so they are decoded here, past core.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -79,8 +80,12 @@ describe("a heads sheet whose locks widen some heads' boxes", () => {
         slots: ['left', 'left', 'left', 'front', 'front', 'front'],
         level: [1, 4],
       };
-      // Seen: one head drawn six times, the lock beside the cheek falling wider on some.
-      expect(flagsOf(sheet, options).filter((f) => f.startsWith('head:'))).toEqual(['head:4,1']);
+      // Seen: one head drawn six times, the lock beside the cheek falling wider on some; the heads' height on the level heads is a check of its own, held to the anchor.
+      expect(
+        measured(sheet, options)
+          .flags.filter((f) => f.check === 'head' && f.note.includes("the eyes' spacing"))
+          .map((f) => f.views.join(',')),
+      ).toEqual([]);
     }),
   );
 });
@@ -152,5 +157,26 @@ describe('a farmer under a headcloth whose ends fall past his hands', () => {
         ),
       );
     }),
+  );
+});
+
+describe('a farmer under a headcloth that falls to his hem', () => {
+  it.effect(
+    'reads his face, neck and shoulders on the face opening, so his hands hang at rest, never in front of the head',
+    () =>
+      Effect.gen(function* () {
+        const sheet = yield* sheetAt('farmer-turnaround-2.png');
+        const m = measured(sheet, { kind: 'turnaround', count: 6, anchor: 6, headgear: true });
+        // Seen: his hands hang at his sides on views 1, 2 and 6; the cloth's box runs down to the hem on view 6.
+        expect(
+          m.unmeasured
+            .filter((u) => u.check === 'sleeveReach' && [1, 2, 6].includes(u.view))
+            .map((u) => `${u.view} ${u.why}`),
+        ).toEqual(
+          [1, 2, 6].map(
+            (v) => `${v} a hand at rest against the body: a sleeve to it is not told from a touch`,
+          ),
+        );
+      }),
   );
 });

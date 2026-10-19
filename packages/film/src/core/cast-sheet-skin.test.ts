@@ -171,3 +171,13 @@ describe("a hand raised over the head's edge", () => {
     expect(unmeasuredOf(m, 2)).toEqual(['sleeveReach', 'bareArm']);
   });
 });
+
+describe('a hand held at the chin on a sleeve, its ring over the chin line', () => {
+  // Its middle 18 px under the chin, its ring starting 10 px above it: the skin reads as one region from above the chin, in the neck's window.
+  const m = poses([at(), onLimb([200, 234], [207, 372], [92, 128, 170])]);
+
+  test('is said as not measured, never dropped as the neck', () => {
+    expect(flagsOf(m)).toEqual([]);
+    expect(unmeasuredOf(m, 2)).toEqual(['sleeveReach', 'bareArm']);
+  });
+});

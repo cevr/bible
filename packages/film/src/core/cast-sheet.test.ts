@@ -168,6 +168,30 @@ describe('a turnaround painted close together', () => {
   });
 });
 
+describe("a turnaround whose view's box overlaps its neighbour's", () => {
+  // As the close turnaround, with a lock of view 6's hair drawn out level from its head over view 5's shoulder (a band of ink from x 1244 to its head, never touching view 5): view 6's box now spans view 5's robe on the rows its width is read on.
+  const straight = { robeTop: 240, handless: true };
+  const tight = (r: ReturnType<typeof at>) => cropRaster(r, [70, 0, 330, 640]);
+  const sheet = drawSheet(
+    [
+      at(0, straight),
+      at(-14, straight),
+      at(-26, straight),
+      at(0, { ...straight, eyeW: 0 }),
+      flipRaster(at(-26, { ...straight, lit: 'right' })),
+      flipRaster(at(-14, { ...straight, lit: 'right' })),
+    ].map(tight),
+  );
+  for (let y = 96; y < 104; y++)
+    for (let x = 1244; x < 1392; x++) sheet.rgba.set([58, 38, 28, 255], (y * sheet.width + x) * 4);
+  const m = read(sheet, turnaround);
+
+  test("reads its width on its own ring's pixels, never on the neighbour its box spans", () => {
+    expect(new Set(m.views.map((v) => v.widthToHeight)).size).toBe(1);
+    expect(m.pairs.map((p) => p.widths)).toEqual([0, 0, 0]);
+  });
+});
+
 describe('a turnaround whose hands float low, in the band its width is read on', () => {
   // The hands float free beside the robe at 480 px, inside the band (from 0.76 of the height); the back and the profiles read no face, so no hand's disc is cut out of them.
   const limb = { hand: [372, 480] as const, kind: 'free' as const };

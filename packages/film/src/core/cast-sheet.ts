@@ -335,6 +335,24 @@ const headFrameOf = (m: FigureMeasure): HeadFrame => {
   };
 };
 
+/**
+ * The head's frame under a headcloth, held to its face opening (`box`): the
+ * cloth's box runs down to the shoulders or the hem, so the chin is the
+ * opening's foot, and the head is as wide as the figure's silhouette across the eyes' row
+ * through the face (the cloth over the head, with its line), never wider than the cloth's box.
+ */
+const clothedFrame = (f: HeadFrame, box: Box, closed: Uint8Array, width: number): HeadFrame => {
+  const y = Math.round(f.eyeY);
+  const x = Math.round(f.faceX);
+  const on = (at: number) => at >= 0 && at < width && closed[y * width + at] === 1;
+  let [l, r] = [x, x];
+  while (l > f.left && on(l - 1)) l--;
+  while (r < f.right && on(r + 1)) r++;
+  const [left, right] = [Math.max(f.left, l), Math.min(f.right, r + 1)];
+  const chin = Math.min(f.chin, box[3]);
+  return { ...f, W: right - left, H: chin - f.top, cx: (left + right) / 2, left, right, chin };
+};
+
 /** The face's skin: the median of the light fills on the band under the eyes. */
 const skinOf = (crop: Raster, inside: Uint8Array, f: HeadFrame): Option.Option<Rgb> => {
   const at: Array<number> = [];
@@ -413,7 +431,7 @@ const skinRegionsOf = (crop: Raster, inside: Uint8Array, skin: Rgb): ReadonlyArr
 
 /** The neck is no wider than this share of the head's width; bare skin from shoulder to shoulder is wider. */
 const NECK_WIDTH = 0.6;
-/** Nor taller than this share of it: a painted neck with the V of the robe's throat under it stands up to 0.41 of the head's width, a forearm joined to a raised hand 0.83, so a forearm is never the neck; a hand alone (0.33 drawn, 0.45 painted) is round, and said. */
+/** Nor taller than this share of it: a painted neck with the V of the robe's throat under it stands up to 0.41 of the head's width, a forearm joined to a raised hand 0.83, so a forearm is never the neck; a hand alone (0.33 drawn, 0.45 painted) is round, and said when its middle lies under the chin or it runs past the head's box. */
 const NECK_TALL = 0.5;
 /** A hand's box, wide over tall, and how much of the box's ellipse it fills: a disc fills 1, a square 1.27. */
 const HAND_ASPECT: readonly [number, number] = [0.75, 1.33];
@@ -487,7 +505,11 @@ const roundOf = (region: Region, frame: SkinFrame) => {
 const maskedBy = (region: Region, f: HeadFrame, neck: boolean) => {
   const [x0, y0, x1, y1] = region.box;
   const pastHead = x0 < f.left || x1 > f.right || y1 > f.chin;
-  return !holdsEyes(region, f) && ((neck && y0 >= f.chin) || (facePart(region, f) && pastHead));
+  // A hand on the neck has its middle under the chin, though its ring may start above it.
+  return (
+    !holdsEyes(region, f) &&
+    ((neck && (y0 + y1) / 2 >= f.chin) || (facePart(region, f) && pastHead))
+  );
 };
 
 /**
@@ -645,13 +667,36 @@ const discsOf = (
     return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, r, clear: r + 1.5 * line };
   });
 
-/** The columns of a view's crop its body's own ink ring spans (`SheetFigure.body`): a neighbour painted close beside it, inside the crop's pad, and a hand floating free lie past them. */
+/** The columns of a view's crop its body's own ink ring spans on each row (`SheetFigure.body`), its last exclusive: a neighbour painted close beside it, inside the crop's pad or its box, and a hand floating free lie past them. */
 interface BodyColumns {
-  readonly from: number;
-  readonly to: number;
+  readonly from: Int32Array;
+  readonly to: Int32Array;
 }
 
-/** A view's body rows: each row's left and right edge of what the ink closes inside its body's columns, its hands' discs cleared. */
+/**
+ * Each row's span of the view's body ring: the ink component the sheet's
+ * figures were found by (`body`, its box in the crop), read on its own
+ * pixels, so a neighbour whose box overlaps it stays out. A row the ring
+ * does not cross (a gap in its line) is read across the ring's box.
+ */
+const bodyColumnsOf = (crop: Raster, body: PixelBox): BodyColumns => {
+  const { width: w, height: h } = crop;
+  const { components, labels } = componentsOf(inkByLuma(crop), w, h, true);
+  const ring = Arr.findFirst(components, (c) => c.box.every((v, k) => v === body[k]));
+  const from = new Int32Array(h).fill(Math.max(0, Math.floor(body[0])));
+  const to = new Int32Array(h).fill(Math.min(w, body[2]));
+  if (Option.isNone(ring)) return { from, to };
+  const id = ring.value.id;
+  for (let y = 0; y < h; y++) {
+    let [l, r] = [w, -1];
+    for (let x = from[y] ?? 0; x < (to[y] ?? 0); x++)
+      if (labels[y * w + x] === id) [l, r] = [Math.min(l, x), x];
+    if (r >= l) [from[y], to[y]] = [l, r + 1];
+  }
+  return { from, to };
+};
+
+/** A view's body rows: each row's left and right edge of what the ink closes inside its body ring's span on that row, its hands' discs cleared. */
 const sideRowsOf = (
   crop: Raster,
   closed: Uint8Array,
@@ -660,10 +705,9 @@ const sideRowsOf = (
   columns: BodyColumns,
 ): ReadonlyArray<SideRow> => {
   const out: Array<SideRow> = [];
-  const [x0, x1] = [Math.max(0, Math.floor(columns.from)), Math.min(crop.width, columns.to)];
   for (let y = Math.max(0, Math.round(rows.from)); y < rows.to && y < crop.height; y++) {
     let [left, right] = [crop.width, -1];
-    for (let x = x0; x < x1; x++)
+    for (let x = columns.from[y] ?? 0; x < (columns.to[y] ?? 0); x++)
       if (
         closed[y * crop.width + x] === 1 &&
         !discs.some((d) => Math.hypot(x - d.x, y - d.y) <= d.clear)
@@ -828,6 +872,24 @@ const readMeasured = (
     onNone: () => [],
     onSome: (s) => skinRegionsOf(crop, inside, s),
   });
+  // The face opening under a headcloth: the skin's own paper round the eyes, inside the head's box (a tan tunic joins no face).
+  const faceOpening = Arr.findFirst(
+    regions,
+    (r) =>
+      r.box[0] <= f.faceX &&
+      r.box[2] > f.faceX &&
+      r.box[1] <= f.eyeY &&
+      r.box[3] > f.eyeY &&
+      r.box[3] <= m.head[3] + 0.1 * f.H,
+  );
+  // Under a headcloth the head's box runs down the cloth: the face, the neck and the shoulders are read on the face opening's frame instead.
+  const at = Option.getOrElse(
+    Option.filter(
+      Option.map(faceOpening, (r) => clothedFrame(f, r.box, closed, crop.width)),
+      () => ctx.headgear,
+    ),
+    () => f,
+  );
   const sole = ctx.top + ctx.height;
   const ink: Rgb = [m.ink[0], m.ink[1], m.ink[2]];
   const handSize = Option.map(ratioOf(m, 'hand'), (d) => d * f.W);
@@ -844,7 +906,7 @@ const readMeasured = (
           offLine(c, s, LIGHT_EDGE) > SOFT_EDGE
         );
       };
-      return skinPartsOf(regions, f, {
+      return skinPartsOf(regions, at, {
         sole,
         height: ctx.height,
         hand: handSize,
@@ -873,16 +935,6 @@ const readMeasured = (
         why: 'no skin reads under the eyes',
       })),
     );
-  // The face opening under a headcloth: the skin's own paper round the eyes, inside the head's box (a tan tunic joins no face).
-  const faceOpening = Arr.findFirst(
-    regions,
-    (r) =>
-      r.box[0] <= f.faceX &&
-      r.box[2] > f.faceX &&
-      r.box[1] <= f.eyeY &&
-      r.box[3] > f.eyeY &&
-      r.box[3] <= m.head[3] + 0.1 * f.H,
-  );
   const head =
     (ctx.headgear && Option.map(faceOpening, (r) => r.box[3] - r.box[1])) ||
     Option.some(m.head[3] - m.head[1]);
@@ -901,7 +953,7 @@ const readMeasured = (
   // The side's rows start under the hair, which falls over the shoulders outside the garment's line.
   const fallen = Option.getOrElse(
     Option.map(hair, (h) => h.lowest + line),
-    () => f.chin,
+    () => at.chin,
   );
   const discs = discsOf(
     handParts.map((p) => p.region),
@@ -912,11 +964,11 @@ const readMeasured = (
     crop,
     closed,
     discs,
-    { from: Math.max(f.chin + 0.05 * ctx.height, fallen), to: sole - 0.08 * ctx.height },
+    { from: Math.max(at.chin + 0.05 * ctx.height, fallen), to: sole - 0.08 * ctx.height },
     ctx.columns,
   );
   const reaches =
-    (hands && reachesOf(crop, closed, { rows, discs, middle: ctx.middle, line, head: f })) || [];
+    (hands && reachesOf(crop, closed, { rows, discs, middle: ctx.middle, line, head: at })) || [];
   const read = reaches.flatMap((r) => (r.read && [r.reach]) || []);
   const whys = [...new Set(reaches.flatMap((r) => (!r.read && [r.why]) || []))];
   unmeasured.push(
@@ -984,7 +1036,12 @@ const readView = (
   const span = { top: y0 - oy, height };
   const middle = (figure.body[0] + figure.body[2]) / 2 - ox;
   const closed = closedOf(crop);
-  const columns = { from: figure.body[0] - ox, to: figure.body[2] - ox };
+  const columns = bodyColumnsOf(crop, [
+    figure.body[0] - ox,
+    figure.body[1] - oy,
+    figure.body[2] - ox,
+    figure.body[3] - oy,
+  ]);
   const read = Option.map(measure, (m) =>
     readMeasured(crop, m, closed, {
       view,
