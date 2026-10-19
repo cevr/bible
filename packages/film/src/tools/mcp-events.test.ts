@@ -212,14 +212,24 @@ describe('MCP Events on the lab', () => {
             result: { capabilities: { events: {}, tools: { listChanged: true } } },
           });
           const listed = yield* rpc(lab, 'events/list');
-          expect(listed).toMatchObject({ result: { resultType: 'complete' } });
+          expect(listed).toMatchObject({
+            result: {
+              resultType: 'complete',
+              _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'film-lab' } },
+            },
+          });
           const definitions: ReadonlyArray<{ name: string }> = listed.result.events;
           expect(definitions.map((d) => d.name).toSorted()).toEqual(
             Rec.keys(LAB_EVENTS).toSorted(),
           );
           expect(definitions[0]).toMatchObject({
             delivery: ['webhook'],
-            inputSchema: { type: 'object', properties: { film: { type: 'string' } } },
+            // A subscribe takes no argument the schema does not name.
+            inputSchema: {
+              type: 'object',
+              properties: { film: { type: 'string' } },
+              additionalProperties: false,
+            },
             payloadSchema: { type: 'object' },
           });
 
@@ -286,7 +296,16 @@ describe('MCP Events on the lab', () => {
               arguments: { film: 'f' },
               delivery: { mode: 'webhook', url: `${hook.url}/a` },
             }),
-          ).toEqual({ jsonrpc: '2.0', id: 1, result: { resultType: 'complete' } });
+          ).toEqual({
+            jsonrpc: '2.0',
+            id: 1,
+            result: {
+              resultType: 'complete',
+              _meta: {
+                'io.modelcontextprotocol/serverInfo': { name: 'film-lab', version: '0.1.0' },
+              },
+            },
+          });
           yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/b`, {}, 'note.added', {}));
           expect((yield* Queue.take(hook.heard)).path).toBe('/b');
           yield* ownerNote(lab, 'the third');
@@ -345,11 +364,27 @@ describe('MCP Events on the lab', () => {
           expect(
             yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/a`, {}, 'note.nope')),
           ).toMatchObject({ error: { code: -32602 } });
+          // A ttlMs past the lab's longest is invalid params, not a failure of the lab's.
+          expect(
+            yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/a`, { ttlMs: 1e20 })),
+          ).toMatchObject({
+            error: {
+              code: -32602,
+              message: expect.stringContaining('ttlMs 100000000000000000000'),
+            },
+          });
           // Nothing was posted for a refused subscribe.
           expect(yield* Queue.size(hook.heard)).toBe(0);
           yield* Ref.set(hook.echo, false);
-          expect(yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/a`))).toMatchObject({
-            error: { code: -32015, data: { reason: 'challenge_failed' } },
+          // Said by its category alone: nothing of what the callback answered.
+          expect(yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/a`))).toEqual({
+            jsonrpc: '2.0',
+            id: 1,
+            error: {
+              code: -32015,
+              message: 'CallbackEndpointError: the callback did not verify (challenge_failed)',
+              data: { reason: 'challenge_failed' },
+            },
           });
           expect((yield* Queue.take(hook.heard)).path).toBe('/a');
           const fs = yield* FileSystem.FileSystem;
@@ -401,5 +436,75 @@ describe('MCP Events on the lab', () => {
           expect(urls).toEqual([`${hook.url}/a`]);
         }),
       ),
+  );
+  it.effect(
+    'answers a cursor it no longer knows with where its replay starts, truncated, and replays from there',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          const hook = yield* callback;
+          yield* ownerNote(lab, 'one');
+          yield* events.look;
+          const now = (yield* events.since(Option.none())).cursor;
+          const epoch = now.split('.')[0];
+          const made = yield* rpc(
+            lab,
+            'events/subscribe',
+            subscribeAt(`${hook.url}/a`, { cursor: 'zz0.5' }),
+          );
+          expect(made).toMatchObject({ result: { cursor: `${epoch}.0`, truncated: true } });
+          yield* Queue.take(hook.heard);
+          expect(readDelivered((yield* Queue.take(hook.heard)).body).data.note).toBe('n1');
+        }),
+      ),
+  );
+
+  it.effect(
+    "two labs over one folder (a restart's overlap) deliver one event under one id, so a subscriber knows it twice told",
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const hook = yield* callback;
+          const first = yield* labWithMcp;
+          // oxlint-disable-next-line effect/noNullish -- the profile's ttlMs null: no expiry
+          yield* rpc(first.lab, 'events/subscribe', subscribeAt(`${hook.url}/a`, { ttlMs: null }));
+          yield* Queue.take(hook.heard);
+          // The lab started again before the first has stopped: both deliver from the folder's subscription.
+          const second = yield* labWithMcp;
+          yield* ownerNote(first.lab, 'one');
+          yield* first.events.look;
+          yield* second.events.look;
+          const [a, b] = [
+            readDelivered((yield* Queue.take(hook.heard)).body),
+            readDelivered((yield* Queue.take(hook.heard)).body),
+          ];
+          expect([a.data.note, b.data.note]).toEqual(['n1', 'n1']);
+          expect(a.cursor.split('.')[0]).not.toBe(b.cursor.split('.')[0]);
+          expect(a.eventId).toBe(b.eventId);
+          expect(a.eventId).toMatch(/^evt_[0-9a-f]{16}$/);
+        }),
+      ),
+  );
+
+  it.effect('delivers on when its cursor cannot be kept, saying so in the log', () =>
+    provided(
+      Effect.gen(function* () {
+        const { lab, events } = yield* labWithMcp;
+        const hook = yield* callback;
+        yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/a`));
+        yield* Queue.take(hook.heard);
+        // The subscriptions file made unwritable: a folder where it was.
+        const fs = yield* FileSystem.FileSystem;
+        yield* fs.remove(SUBSCRIPTIONS);
+        yield* fs.makeDirectory(SUBSCRIPTIONS);
+        yield* ownerNote(lab, 'one');
+        yield* events.look;
+        expect(readDelivered((yield* Queue.take(hook.heard)).body).data.note).toBe('n1');
+        yield* ownerNote(lab, 'two');
+        yield* events.look;
+        expect(readDelivered((yield* Queue.take(hook.heard)).body).data.note).toBe('n2');
+      }),
+    ),
   );
 });

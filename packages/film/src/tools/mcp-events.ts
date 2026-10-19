@@ -83,6 +83,7 @@ import { bodyAdmitted } from './api-server.ts';
 import { ContentStore, type Manifest } from './content-store.ts';
 import { hmacSha256, sameText, sha256Hex } from './digest.ts';
 import { objectSchema } from './lab-fields.ts';
+import { LAB_SERVER } from './lab-mcp-parts.ts';
 import { LabEvents, cursorAfter } from './lab-events.ts';
 
 /** A JSON-RPC error the events methods answer: invalid params, or a callback that did not verify. */
@@ -101,9 +102,18 @@ const CALLBACK_ENDPOINT_ERROR = -32015;
 const INTERNAL_ERROR = -32603;
 
 const invalid = (reason: string) => EventsRefused.make({ code: INVALID_PARAMS, reason });
-/** The callback did not verify: `callback` is the profile's `data.reason` (`challenge_failed`, `timeout`, `unreachable`). */
-const unverified = (callback: string, reason: string) =>
-  EventsRefused.make({ code: CALLBACK_ENDPOINT_ERROR, reason, callback });
+/**
+ * The callback did not verify: `callback` is the profile's `data.reason`
+ * (`challenge_failed`, `timeout`, `unreachable`), and the words say only
+ * that, never what the callback answered: what a subscriber is told of a
+ * URL it named is no probe of what answers there.
+ */
+const unverified = (callback: 'challenge_failed' | 'timeout' | 'unreachable') =>
+  EventsRefused.make({
+    code: CALLBACK_ENDPOINT_ERROR,
+    reason: `the callback did not verify (${callback})`,
+    callback,
+  });
 
 /** How the lab delivers: how it retries a delivery and how many times, how long a verified callback stays verified, and how long a callback may take. */
 interface DeliveryPace {
@@ -121,9 +131,10 @@ const DELIVERY_PACE: DeliveryPace = {
   answerWithin: '10 seconds',
 };
 
-/** How long a subscription lasts: a day unless asked; one asked for less lasts a minute at least. */
+/** How long a subscription lasts: a day unless asked; one asked for less lasts a minute at least, and none more than 30 days. */
 const DEFAULT_TTL = Duration.days(1);
 const MIN_TTL = Duration.minutes(1);
+const MAX_TTL = Duration.days(30);
 
 /** An ISO time the lab wrote, as epoch ms (one that does not read: long past). Pure. */
 const millisOf = (iso: string): number =>
@@ -164,7 +175,8 @@ const definitions: ReadonlyArray<EventDefinition> = Record.toEntries(LAB_EVENTS)
     name,
     description: event.description,
     delivery: ['webhook'],
-    inputSchema: objectSchema(EventArguments),
+    // A subscribe refuses an argument it does not name, so the schema allows none.
+    inputSchema: objectSchema(EventArguments, 'error'),
     payloadSchema: objectSchema(LabChange),
   }),
 );
@@ -273,13 +285,15 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
           { id: `verify_${challenge.slice(0, 12)}`, subscription: id },
           verificationJson({ type: 'verification', challenge }),
         ).pipe(
+          Effect.tapError((error) =>
+            Effect.logWarning(`mcp.events.unverified id=${id} url=${url} reason="${error.reason}"`),
+          ),
           Effect.mapError((error) =>
             unverified(
               Bool.match(error.reason === 'timeout', {
-                onTrue: () => 'timeout',
-                onFalse: () => 'unreachable',
+                onTrue: () => 'timeout' as const,
+                onFalse: () => 'unreachable' as const,
               }),
-              `the callback ${url} did not answer its verification (${error.reason})`,
             ),
           ),
         );
@@ -288,11 +302,12 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
           Option.map(readEcho(text), (echo) => echo.challenge),
           () => text.trim(),
         );
-        if (answer.status < 200 || answer.status > 299 || !sameText(echoed, challenge))
-          return yield* unverified(
-            'challenge_failed',
-            `the callback ${url} answered its verification ${answer.status} without echoing the challenge`,
+        if (answer.status < 200 || answer.status > 299 || !sameText(echoed, challenge)) {
+          yield* Effect.logWarning(
+            `mcp.events.unverified id=${id} url=${url} status=${answer.status} echoed=${sameText(echoed, challenge)}`,
           );
+          return yield* unverified('challenge_failed');
+        }
         yield* Ref.update(verified, (all) =>
           new Map(all).set(
             url,
@@ -309,10 +324,17 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
         .update(manifest, (file) => ({ subscriptions: change(file.subscriptions) }))
         .pipe(Effect.asVoid);
 
+    /** A subscription's cursor kept: one that cannot be written is logged, and delivery goes on (a restart then replays from the last one kept). */
     const keepCursor = (id: string, cursor: string) =>
       kept((all) =>
         all.map((s) =>
           Bool.match(s.id === id, { onTrue: () => ({ ...s, cursor }), onFalse: () => s }),
+        ),
+      ).pipe(
+        Effect.catch((error) =>
+          Effect.logWarning(
+            `mcp.events.cursor.unkept id=${id} cursor=${cursor} reason="${error.message}"`,
+          ),
         ),
       );
     const drop = (id: string) => kept((all) => all.filter((s) => s.id !== id));
@@ -325,7 +347,7 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
       cursor: string,
     ) =>
       Effect.gen(function* () {
-        const eventId = `evt_${cursor}`;
+        const eventId = `evt_${change.id}`;
         // The body is written once: every try sends these bytes.
         const body = deliveryJson({
           eventId,
@@ -448,17 +470,35 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
         const url = params.delivery.url;
         if (!URL.canParse(url) || !['http:', 'https:'].includes(new URL(url).protocol))
           return yield* invalid(`the callback ${url} is no http(s) URL`);
+        const ttl = yield* Match.value(params.ttlMs).pipe(
+          Match.when(Predicate.isUndefined, () => Effect.succeedSome(DEFAULT_TTL)),
+          Match.when(Predicate.isNull, () => Effect.succeed(Option.none<Duration.Duration>())),
+          Match.when(
+            (ms) => ms > Duration.toMillis(MAX_TTL),
+            (ms) =>
+              Effect.fail(
+                invalid(
+                  `ttlMs ${ms} is longer than the lab keeps a subscription (${Duration.toMillis(MAX_TTL)}, 30 days): ask for no more, or null for no expiry`,
+                ),
+              ),
+          ),
+          Match.orElse((ms) => Effect.succeedSome(Duration.max(Duration.millis(ms), MIN_TTL))),
+        );
         const id = subscriptionId(url, params.name, args);
         yield* verify(url, key, id);
         const of = { names: [params.name], ...args };
         const asked = Option.fromNullishOr(params.cursor);
         const answer = yield* events.since(asked, of);
-        const cursor = Option.getOrElse(asked, () => answer.cursor);
-        const ttl = Match.value(params.ttlMs).pipe(
-          Match.when(Predicate.isUndefined, () => Option.some(DEFAULT_TTL)),
-          Match.when(Predicate.isNull, () => Option.none<Duration.Duration>()),
-          Match.orElse((ms) => Option.some(Duration.max(Duration.millis(ms), MIN_TTL))),
-        );
+        // A cursor the feed no longer knows replays every change it kept: the cursor is where that replay starts.
+        const replayFrom = Option.match(Arr.head(answer.changes), {
+          onNone: () => answer.cursor,
+          onSome: (first) => cursorAfter(answer.cursor, { seq: first.seq - 1 }),
+        });
+        const cursor = Option.match(asked, {
+          onNone: () => answer.cursor,
+          onSome: (given) =>
+            Bool.match(answer.reset, { onTrue: () => replayFrom, onFalse: () => given }),
+        });
         const at = yield* Clock.currentTimeMillis;
         const refreshBefore = Option.map(ttl, (d) =>
           DateTime.formatIso(DateTime.makeUnsafe(at + Duration.toMillis(d))),
@@ -570,7 +610,11 @@ const answered = (id: Option.Option<Id>, result: Answer) =>
   HttpServerResponse.jsonUnsafe({
     jsonrpc: '2.0',
     ...Option.match(id, { onNone: () => ({}), onSome: (i) => ({ id: i }) }),
-    result: { ...result, resultType: 'complete' },
+    result: {
+      ...result,
+      resultType: 'complete',
+      _meta: { 'io.modelcontextprotocol/serverInfo': LAB_SERVER },
+    },
   });
 const refusedWith = (id: Option.Option<Id>, refused: EventsRefused) =>
   HttpServerResponse.jsonUnsafe({

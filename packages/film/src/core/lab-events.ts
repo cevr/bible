@@ -23,6 +23,7 @@ import type { BoardFile, Panel } from './board.ts';
 import type { Catalogue } from './catalogue.ts';
 import { type PointRef, pointIdOf } from './point.ts';
 import type { ProductionFile } from './production.ts';
+import { FNV_START, fnvText } from './random.ts';
 import type { Note, NoteEvent } from './schema.ts';
 
 /**
@@ -214,6 +215,12 @@ export const LabChange = Schema.Struct({
   seq: Schema.Int,
   /** ISO time the lab read it. */
   at: Schema.String,
+  /**
+   * The change's own id, made from the record it was read from (a note's
+   * log number, a try's number, an ask's step): two labs that read one
+   * change give it one id, so a reader told it twice knows it.
+   */
+  id: Schema.String,
   kind: LabEventName,
   by: Schema.optionalKey(LabActor),
   film: Schema.optionalKey(Schema.String),
@@ -257,6 +264,7 @@ export type LabChange = typeof LabChange.Type;
 const ForeignChange = Schema.Struct({
   seq: Schema.Int,
   at: Schema.String,
+  id: Schema.optionalKey(Schema.String),
   kind: Schema.String,
   by: Schema.optionalKey(Schema.String),
   film: Schema.optionalKey(Schema.String),
@@ -284,10 +292,22 @@ export type HeardChange = typeof HeardChange.Type;
 export const isKnownChange: (change: HeardChange) => change is LabChange = Schema.is(LabChange);
 
 /** A change as it is read, before the feed numbers it, dates it and makes its links. */
-export type LabChangeDraft = Omit<LabChange, 'seq' | 'at' | 'links' | 'read' | 'trimmed'> & {
+export type LabChangeDraft = Omit<LabChange, 'seq' | 'at' | 'id' | 'links' | 'read' | 'trimmed'> & {
   /** The lab path it is on (`/films/f/studio?sel=panel:cold.judge`). */
   readonly path: string;
+  /** What in its record it was read from (`notes/f/12`): its id is made from this and its kind. */
+  readonly origin: string;
 };
+
+/** A change's id: its kind and origin hashed to 64 bits (two FNV-1a passes), in hex. Pure. */
+const changeId = (kind: string, origin: string): string => {
+  const text = `${kind} ${origin}`;
+  const half = (start: number) => (fnvText(start, text) >>> 0).toString(16).padStart(8, '0');
+  return `${half(FNV_START)}${half(FNV_SECOND)}`;
+};
+
+/** The second pass's start: FNV's offset basis with its bits turned. */
+const FNV_SECOND = ~FNV_START >>> 0;
 
 /** A note's words cut to one line of at most `max` characters, for a summary. */
 export const gist = (text: string, max = 120): string => {
@@ -359,10 +379,11 @@ const actorOf = (by: NoteEvent['note']['thread'][number]['by']): LabActor =>
 /** One change of a film's note log, as the feed says it. */
 const noteChange = Match.type<NoteEvent>().pipe(
   Match.tagsExhaustive({
-    NoteAdded: ({ note }): LabChangeDraft => {
+    NoteAdded: ({ note, seq }): LabChangeDraft => {
       const tweak = note.panel?.ask === 'tweak';
       return {
         ...noteFields(note),
+        origin: `notes/${note.film}/${seq}`,
         kind: Bool.match(tweak, { onTrue: () => 'tweak.requested', onFalse: () => 'note.added' }),
         by: 'owner',
         text: note.text,
@@ -372,18 +393,20 @@ const noteChange = Match.type<NoteEvent>().pipe(
         })} ${aboutNote(note)}: ${gist(note.text)}`,
       };
     },
-    NoteReplied: ({ note, reply }): LabChangeDraft => {
+    NoteReplied: ({ note, reply, seq }): LabChangeDraft => {
       const by = actorOf(reply.by);
       return {
         ...noteFields(note),
+        origin: `notes/${note.film}/${seq}`,
         kind: 'note.replied',
         by,
         text: reply.text,
         summary: `${note.film} ${note.id}: ${by} replied: ${gist(reply.text)}`,
       };
     },
-    NoteResolved: ({ note }): LabChangeDraft => ({
+    NoteResolved: ({ note, seq }): LabChangeDraft => ({
       ...noteFields(note),
+      origin: `notes/${note.film}/${seq}`,
       kind: 'note.resolved',
       text: note.text,
       summary: `${note.film} ${note.id} done: ${gist(note.text)}`,
@@ -402,11 +425,13 @@ const panelIn = (board: BoardFile, id: string): Option.Option<Panel> =>
 /**
  * What changed on a film's board between two reads: each try kept (or kept
  * instead of another), each try added, each beat approved (again, on other
- * tries) and each approval withdrawn.
+ * tries) and each approval withdrawn. `read` names the later read (its
+ * file's stamp): a keep has no time of its own, so its origin is the read.
  */
 export const boardChanges = (
   before: BoardFile,
   after: BoardFile,
+  read: string,
 ): ReadonlyArray<LabChangeDraft> => {
   const film = after.film;
   const panels = after.panels.flatMap((panel): Array<LabChangeDraft> => {
@@ -420,6 +445,7 @@ export const boardChanges = (
       .map((t): LabChangeDraft => ({
         ...where,
         kind: 'board.tried',
+        origin: `board/${film}/${panel.id}/${t.n}`,
         try: t.n,
         ...Option.match(Option.fromUndefinedOr(t.note), {
           onNone: () => ({}),
@@ -437,6 +463,7 @@ export const boardChanges = (
       Option.map(kept, (n): LabChangeDraft => ({
         ...where,
         kind: 'board.kept',
+        origin: `board/${film}/${panel.id}/${n}/${read}`,
         try: n,
         ...Option.match(Option.fromUndefinedOr(panel.why), {
           onNone: () => ({}),
@@ -457,6 +484,7 @@ export const boardChanges = (
       film,
       beat: a.beat,
       kind: 'beat.approved',
+      origin: `board/${film}/${approvalKey(a)}`,
       summary: `${film} beat ${a.beat}: board approved (${a.kept.map((k) => `${k.panel}#${k.try}`).join(', ')})`,
       path: boardPath(film, a.beat, Option.none()),
     }));
@@ -467,6 +495,7 @@ export const boardChanges = (
       film,
       beat: a.beat,
       kind: 'beat.withdrawn',
+      origin: `board/${film}/${approvalKey(a)}`,
       summary: `${film} beat ${a.beat}: board approval withdrawn`,
       path: boardPath(film, a.beat, Option.none()),
     }));
@@ -505,6 +534,7 @@ export const catalogueChanges = (
     .map((c): LabChangeDraft => ({
       ...about(c),
       kind: 'render.commented',
+      origin: `catalogue/${set}/${c.id}`,
       by: 'owner',
       note: c.id,
       text: c.text,
@@ -519,6 +549,7 @@ export const catalogueChanges = (
     .map((a): LabChangeDraft => ({
       ...about(a),
       kind: 'render.approved',
+      origin: `catalogue/${set}/${approvalKey(a)}`,
       summary: `${named(a)}: approved`,
     }));
   const withdrawn = before.approvals
@@ -526,6 +557,7 @@ export const catalogueChanges = (
     .map((a): LabChangeDraft => ({
       ...about(a),
       kind: 'render.withdrawn',
+      origin: `catalogue/${set}/${approvalKey(a)}`,
       summary: `${named(a)}: approval withdrawn`,
     }));
   const renderKey = (r: Catalogue['renders'][number]) =>
@@ -539,6 +571,7 @@ export const catalogueChanges = (
       address: addressKey(r.address),
       variant: r.variant,
       kind: 'render.recorded',
+      origin: `catalogue/${set}/${renderKey(r)}`,
       summary: `${film} ${addressKey(r.address)} ${r.variant}: ${r.kind} recorded`,
       path: Bool.match(r.kind === 'video', {
         onTrue: () =>
@@ -568,13 +601,20 @@ export const setChanges = (
         {
           set,
           kind: 'set.published',
+          origin: `set/${set}/${seen.stamp}`,
           summary: `set ${titled} published`,
           path: pageHref.folder(set),
         },
       ];
     if (was.value.stamp === seen.stamp) return [];
     return [
-      { set, kind: 'set.updated', summary: `set ${titled} updated`, path: pageHref.folder(set) },
+      {
+        set,
+        kind: 'set.updated',
+        origin: `set/${set}/${seen.stamp}`,
+        summary: `set ${titled} updated`,
+        path: pageHref.folder(set),
+      },
     ];
   });
 
@@ -606,11 +646,12 @@ export const askChanges = (
       onSome: (film) => ({ film }),
     }),
   };
-  const steps = after.answered.slice(was).map((a): LabChangeDraft => {
+  const steps = after.answered.slice(was).map((a, i): LabChangeDraft => {
     const answers = answersOf(after, a.step);
     return {
       ...of,
       kind: 'ask.step',
+      origin: `ask/${after.id}/${was + i}`,
       by: 'owner',
       step: a.step,
       answers,
@@ -626,6 +667,7 @@ export const askChanges = (
       {
         ...of,
         kind: 'ask.answered' as const,
+        origin: `ask/${after.id}`,
         by: 'owner' as const,
         answers: after.state.answers,
         summary: `ask ${after.id} (${gist(after.title, 60)}) answered: ${gist(answersLine(after.state.answers), 200)}`,
@@ -640,6 +682,7 @@ export const askChanges = (
       {
         ...of,
         kind: 'ask.closed',
+        origin: `ask/${after.id}`,
         by: 'agent',
         text: s.why,
         answers: s.answers,
@@ -678,6 +721,7 @@ export const productionChanges = (
     .map((word): LabChangeDraft => ({
       ...of,
       kind: kinds[word._tag],
+      origin: `production/${after.production}/${wordKey(word)}`,
       by: Bool.match(word._tag === 'Asked', { onTrue: () => 'agent', onFalse: () => 'owner' }),
       text: word.text,
       ...Option.match(word.set, { onNone: () => ({}), onSome: (set) => ({ set }) }),
@@ -690,6 +734,7 @@ export const productionChanges = (
     return {
       ...of,
       kind: 'production.forwarded',
+      origin: `production/${after.production}/${number}`,
       version: number,
       text: version.title,
       summary: `${after.production} v${number}: ${gist(version.title)}`,
@@ -722,7 +767,7 @@ const bounded = (change: LabChange): LabChange =>
 
 /** A draft as the feed keeps it: numbered, dated, linked under the lab's `links`, its read named, within its bound. Pure. */
 export const changeOf = (
-  { path: place, ...draft }: LabChangeDraft,
+  { path: place, origin, ...draft }: LabChangeDraft,
   seq: number,
   at: string,
   links: LabLinks,
@@ -731,6 +776,7 @@ export const changeOf = (
     ...draft,
     seq,
     at,
+    id: changeId(draft.kind, origin),
     links: linksAt(links, place),
     read: LAB_EVENTS[draft.kind].read(draft),
   });

@@ -1238,7 +1238,7 @@ describe('film lab events', () => {
           yield* events.look;
           const first = yield* Queue.take(out);
           expect(first).toMatch(
-            /^note\.added cursor=\w+\.1 at=\S+ film=f note=n1 summary="[^"]*the judge looks away too soon[^"]*" read="bun cli\.ts lab notes --film f --status all" link=http:\/\/localhost:4401\/films\/f\/studio\?sel=beat%3Acold&note=n1$/,
+            /^note\.added cursor=\w+\.1 at=\S+ id=[0-9a-f]{16} film=f note=n1 summary="[^"]*the judge looks away too soon[^"]*" read="bun cli\.ts lab notes --film f --status all" link=http:\/\/localhost:4401\/films\/f\/studio\?sel=beat%3Acold&note=n1$/,
           );
           expect((yield* ownerNote(lab, 'and the hand is late')).status).toBe(200);
           yield* events.look;
@@ -1334,7 +1334,7 @@ describe('film lab events, against a lab that runs other code', () => {
           yield* ownerNote(lab, 'pinned');
           yield* events.look;
           expect(yield* Queue.take(out)).toMatch(
-            /^note\.pinned cursor=\w+\.2 at=\S+ film=f note=n2 summary="f n2: note on scene cold: pinned" read="bun cli\.ts lab notes --film f --status all" link=http:\/\/localhost:4401\/\S+$/,
+            /^note\.pinned cursor=\w+\.2 at=\S+ id=[0-9a-f]{16} film=f note=n2 summary="f n2: note on scene cold: pinned" read="bun cli\.ts lab notes --film f --status all" link=http:\/\/localhost:4401\/\S+$/,
           );
           expect(yield* Queue.take(err)).toBe(
             'lab events: note.pinned is an event this checkout does not know (the lab runs newer code): printed from the fields every event has',

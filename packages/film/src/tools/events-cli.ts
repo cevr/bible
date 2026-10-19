@@ -8,10 +8,12 @@
 //   film lab events [--follow] [--name <glob>…] [--film <f>] [--since <cursor>] [--json] [--gone-after <dur>]
 //
 // A line is the event's name first, then its cursor (the one to read on from
-// after it), when the lab saw it, what it is about, its summary, the command
-// that reads its whole record, and its lab link:
+// after it), when the lab saw it, its id (made from its record: the same
+// from every lab that tells it, so a reader told it twice knows it), what it
+// is about, its summary, the command that reads its whole record, and its
+// lab link:
 //
-//   ask.answered cursor=k3x.12 at=… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1" link=http://…
+//   ask.answered cursor=k3x.12 at=… id=3f0c… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1" link=http://…
 //
 // `--json` prints `{"cursor":…,"event":…}` a line instead, the event as the
 // catalogue's payload schema encodes it. An event of a kind this checkout
@@ -67,6 +69,7 @@ const eventLine = (cursor: string, change: HeardChange): string =>
     change.kind,
     `cursor=${cursor}`,
     `at=${change.at}`,
+    ...Option.toArray(Option.map(Option.fromUndefinedOr(change.id), (id) => `id=${id}`)),
     ...ABOUT.flatMap((key) =>
       Option.toArray(Option.map(Option.fromUndefinedOr(change[key]), (value) => `${key}=${value}`)),
     ),

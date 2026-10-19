@@ -36,7 +36,7 @@ import {
   Semaphore,
 } from 'effect';
 import { CatalogueJson, emptyCatalogue, type Catalogue } from '../core/catalogue.ts';
-import { type BoardFile, emptyBoard } from '../core/board.ts';
+import { type BoardFile, BoardFileJson, emptyBoard } from '../core/board.ts';
 import {
   LabChange,
   type LabLinks,
@@ -76,6 +76,9 @@ export const LabChanges = Schema.Struct({
   reset: Schema.Boolean,
 });
 export type LabChanges = typeof LabChanges.Type;
+
+/** A board as its file holds it. */
+const boardText = Schema.encodeSync(BoardFileJson);
 
 /** How many changes the feed keeps. */
 const KEPT = 1000;
@@ -233,13 +236,15 @@ export class LabEvents extends Context.Service<LabEvents, LabEventsService>()(
         if (Option.exists(was, (w) => same(w.stamp, stamp))) return [];
         const board = yield* boards.read(film);
         seen.boards.set(name, { stamp, board });
+        // The read's name, the same in every lab that reads this file: its stamp, else its bytes' digest.
+        const read = Option.getOrElse(stamp, () => sha256Hex(boardText(board)));
         return Option.match(was, {
           onNone: () =>
             Bool.match(baseline, {
               onTrue: () => [],
-              onFalse: () => boardChanges(emptyBoard(board.film), board),
+              onFalse: () => boardChanges(emptyBoard(board.film), board, read),
             }),
-          onSome: (w) => boardChanges(w.board, board),
+          onSome: (w) => boardChanges(w.board, board, read),
         });
       }).pipe(Effect.catch(unread(`board of ${name}`)));
 

@@ -13,6 +13,9 @@ export class LabRefused extends Schema.TaggedError<LabRefused>()('LabRefused', {
   }
 }
 
+/** The lab's MCP server as it names itself: in its handshake, and on each events result (`_meta`). */
+export const LAB_SERVER = { name: 'film-lab', version: '0.1.0' } as const;
+
 /** Any failure of a tool's work, as the tool answers it. */
 export const refused = <A, R>(self: Effect.Effect<A, { readonly message: string }, R>) =>
   Effect.mapError(self, (error) => LabRefused.make({ reason: error.message }));

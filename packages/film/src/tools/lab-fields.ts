@@ -172,9 +172,13 @@ export const fieldsOf = (tool: Tool.Any): ReadonlyArray<LabField> => {
 const RefRoot = Schema.Struct({ $ref: Schema.String });
 const isRefRoot = Schema.is(RefRoot);
 
-/** A schema's JSON Schema with an object root, as MCP lists a tool's input and output: a top-level `$ref` inlined. */
-export const objectSchema = (schema: Schema.Top) => {
-  const document = Schema.toJsonSchemaDocument(schema, { onExcessProperty: 'ignore' });
+/**
+ * A schema's JSON Schema with an object root, as MCP lists a tool's input
+ * and output: a top-level `$ref` inlined. `excess` says what it does with a
+ * key it does not name: `ignore` (more are allowed) or `error` (none are).
+ */
+export const objectSchema = (schema: Schema.Top, excess: 'ignore' | 'error' = 'ignore') => {
+  const document = Schema.toJsonSchemaDocument(schema, { onExcessProperty: excess });
   const { definitions } = document;
   const root = Option.liftPredicate(document.schema, isRefRoot).pipe(
     Option.flatMap((ref) =>

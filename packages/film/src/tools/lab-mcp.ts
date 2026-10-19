@@ -33,6 +33,7 @@ import { type InLabNeeds, OverviewRead, allCommands, overviewRead } from './lab-
 import { LabChanges, LabEvents } from './lab-events.ts';
 import { type CallParams, callParamsOf, logged } from './mcp-calls.ts';
 import { eventsRoute } from './mcp-events.ts';
+import { LAB_SERVER } from './lab-mcp-parts.ts';
 import { BoardRead, type NoteRead, NotesRead, notesReads } from './notes-mcp.ts';
 
 export const MCP_PATH = '/mcp';
@@ -254,8 +255,7 @@ export type LabMcpNeeds = Exclude<InLabNeeds, LabEvents | LabAddress>;
 export const labMcp = Layer.mergeAll(commandTools, resources, inbox, eventsRoute(MCP_PATH)).pipe(
   Layer.provide(
     McpServer.layerHttp({
-      name: 'film-lab',
-      version: '0.1.0',
+      ...LAB_SERVER,
       instructions: INSTRUCTIONS,
       path: MCP_PATH,
       protocols: [

@@ -42,6 +42,7 @@ interface Lost {
 const change = (ask: string, kind: LabChange['kind']): LabChange => ({
   seq: 1,
   at: '2026-10-17T12:00:00.000Z',
+  id: `${ask}-${kind}`,
   kind,
   ask,
   summary: `${kind} ${ask}`,

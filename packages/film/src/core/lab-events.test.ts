@@ -56,7 +56,7 @@ describe('boardChanges', () => {
     const added = board({
       panels: [{ id: 'cold.judge', beat: COLD, at: JUDGE, tries: [tried(1), tried(2)] }],
     });
-    expect(boardChanges(before, added).map((c) => [c.kind, c.panel, c.try, c.path])).toEqual([
+    expect(boardChanges(before, added, 'r1').map((c) => [c.kind, c.panel, c.try, c.path])).toEqual([
       ['board.tried', 'cold.judge', 2, '/films/f/studio?sel=panel%3Acold.judge&try=2'],
     ]);
     const kept = board({
@@ -71,7 +71,7 @@ describe('boardChanges', () => {
         },
       ],
     });
-    const [keep] = boardChanges(added, kept);
+    const [keep] = boardChanges(added, kept, 'r1');
     expect(keep).toMatchObject({
       kind: 'board.kept',
       try: 2,
@@ -86,15 +86,15 @@ describe('boardChanges', () => {
       at: '2026-10-14T01:00:00.000Z',
     };
     const approved = { ...kept, approvals: [approval] };
-    expect(boardChanges(kept, approved).map((c) => [c.kind, c.beat, c.path])).toEqual([
+    expect(boardChanges(kept, approved, 'r1').map((c) => [c.kind, c.beat, c.path])).toEqual([
       ['beat.approved', 'cold', '/films/f/studio?sel=beat%3Acold'],
     ]);
     // Approved again (new tries) is an approval, not a withdrawal.
     const again = { ...kept, approvals: [{ ...approval, at: '2026-10-14T02:00:00.000Z' }] };
-    expect(boardChanges(approved, again).map((c) => c.kind)).toEqual(['beat.approved']);
-    expect(boardChanges(again, kept).map((c) => c.kind)).toEqual(['beat.withdrawn']);
+    expect(boardChanges(approved, again, 'r1').map((c) => c.kind)).toEqual(['beat.approved']);
+    expect(boardChanges(again, kept, 'r1').map((c) => c.kind)).toEqual(['beat.withdrawn']);
     // Nothing changed, nothing said.
-    expect(boardChanges(kept, kept)).toEqual([]);
+    expect(boardChanges(kept, kept, 'r1')).toEqual([]);
   });
 });
 
@@ -275,6 +275,7 @@ describe('askChanges', () => {
         film: 'f',
         kind: 'ask.step',
         by: 'owner',
+        origin: 'ask/a0123456789/0',
         step: 'pick',
         answers: { try: { kind: 'choose', value: '7', label: 'Try 7' } },
         summary: 'ask a0123456789 (Keep a try) step pick answered: try: Try 7',
@@ -356,6 +357,7 @@ describe('the catalogue', () => {
     kind,
     summary: `${kind} said`,
     path: '/films/f/studio',
+    origin: 'test/1',
     ...more,
   });
   const links = { local: 'http://localhost:8229/', phone: 'http://100.64.0.9:8230/' };
@@ -479,6 +481,7 @@ describe('productionChanges', () => {
         production: 'rbf',
         film: 'righteousness-by-faith',
         kind: 'production.forwarded',
+        origin: 'production/rbf/2',
         version: 2,
         text: 'One Line',
         summary: 'rbf v2: One Line',
