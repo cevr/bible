@@ -672,6 +672,15 @@ describe('a bearded head, and the parts of a head turned and of bare feet', () =
 });
 
 describe('an arm in its sleeve', () => {
+  /** The id of the number `node`'s turn is bound to (`rig.bind`), in `rml`. */
+  const boundIn = (rml: string, node: string) =>
+    rml.match(
+      new RegExp(`name="${node}"[^>]*>\\s*<DataBindContext sourcePathIds="[^"-]+-([^"]+)"`),
+    )?.[1];
+  /** The id of the view model's number named `knob`, in `rml`. */
+  const numberIn = (rml: string, knob: string) =>
+    rml.match(new RegExp(`<ViewModelPropertyNumber name="${knob}" id="([^"]+)"/>`))?.[1];
+
   test("adds its side's number after the stance's, at its rest", () => {
     const armed = figure({ ...standingOf(), arms: { far: sleeve } });
     expect(Object.keys(armed.knobs)).toEqual([
@@ -711,18 +720,16 @@ describe('an arm in its sleeve', () => {
     expect(rml).toMatch(
       /<Node x="30" y="-290" name="farSleeveArm" id="[^"]+">\s*<DataBindContext sourcePathIds="[^"]+" propertyKey="15"\/>\s*<Node x="-30" y="290" name="farSleeveAt">/,
     );
-    const bound = rml.match(
-      /name="farSleeveArm"[^>]*>\s*<DataBindContext sourcePathIds="[^"-]+-([^"]+)"/,
-    );
-    const number = rml.match(/<ViewModelPropertyNumber name="farArm" id="([^"]+)"\/>/);
-    expect(number?.[1]).toBeDefined();
-    expect(bound?.[1]).toBe(number?.[1]);
+    expect(numberIn(rml, 'farArm')).toBeDefined();
+    expect(boundIn(rml, 'farSleeveArm')).toBe(numberIn(rml, 'farArm'));
     expect(printed(rml, 'farSleeve')).toEqual(SLEEVE);
     expect(printed(rml, 'farSleeveTone0')).toEqual(SLEEVE_LIT);
     // The cut's line runs round the garment; the sleeve inks its own, hidden under the garment's paper inside it.
     expect(rml).toContain('name="robeCutInkrobe.0"');
     expect(rml).not.toContain('name="robeCutInkfarSleeve.0"');
-    expect(rml).toMatch(/<Shape name="farSleeve" id="[^"]+">[^]*?<Stroke [^>]*name="Ink">/);
+    expect(rml).toMatch(
+      /<Shape name="farSleeve" id="[^"]+">(?:(?!<\/Shape>)[^])*?<Stroke [^>]*name="Ink">/,
+    );
   });
 
   test('turned about a point outside its garment is refused, on either side and on any garment', () => {
@@ -759,11 +766,15 @@ describe('an arm in its sleeve', () => {
     expect(far?.outline).toEqual(SLEEVE);
   });
 
-  test('the near arm lies in front of the far one, and a figure with none draws its garment uncut', () => {
+  test('the near arm lies in front of the far one, each turned by its own number, and a figure with none draws its garment uncut', () => {
     const rml = drawnOf(figure({ ...standingOf(), arms: { far: sleeve, near: sleeve } }));
     const places = placesOf(rml, ['nearSleeveArm', 'farSleeveArm']);
     expect(places.every((at) => at >= 0)).toBe(true);
     expect(places).toEqual(places.toSorted((a, b) => a - b));
+    expect(numberIn(rml, 'nearArm')).toBeDefined();
+    expect(numberIn(rml, 'nearArm')).not.toBe(numberIn(rml, 'farArm'));
+    expect(boundIn(rml, 'nearSleeveArm')).toBe(numberIn(rml, 'nearArm'));
+    expect(boundIn(rml, 'farSleeveArm')).toBe(numberIn(rml, 'farArm'));
     expect(drawnOf(figure(standingOf()))).not.toContain('name="robeCut"');
   });
 });
