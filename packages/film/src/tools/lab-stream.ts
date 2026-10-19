@@ -3,17 +3,33 @@
 // `film channel` each read. A session of the lab's MCP is opened, the cursor
 // taken (or the one given kept), and the feed long-polled (`changes`, its
 // `wait`) past it; each answer is heard in turn, and the reader's own reads
-// run on the same session between two polls. The cursor is the stream's, not
-// a session's: a lab that stops answering (restarted, the network dropped)
-// is said once (`Lost`), asked again on `pace.retry`, and the new session
-// reads on from the last cursor seen (`Connected`, `resumed`), so nothing
-// that changed while it was away is skipped; a lab that no longer knows that
-// cursor says so in its answer's `reset`. Only a lab silent past `goneAfter`
-// ends it (`LabGone`), and a refusal that is no lost connection (`isLost`
-// says which) ends it in its own words.
+// run on the same session between two polls. Each change is read on its
+// own (`HeardChange`): one of a kind this checkout does not know (a newer
+// lab's) is heard from the fields every change has, never as a lab lost.
+//
+// The cursor is the stream's, not a session's: a lab that stops answering
+// (restarted, the network dropped) is said once (`Lost`), asked again on
+// `pace.retry`, and the new session reads on from the last cursor seen
+// (`Connected`, `resumed`), so nothing that changed while it was away is
+// skipped; a lab that no longer knows that cursor says so in its answer's
+// `reset`. Each loss after a session that answered starts `pace.retry`
+// over. Only a lab silent past `goneAfter`, counted from the first loss
+// since it last answered, ends it (`LabGone`), and a failure that is no
+// lost connection (`isLost` says which: a refusal, an answer this checkout
+// does not read) ends it in its own words.
 
 import { Clock, Duration, Effect, Option, Ref, Schedule, Schema, type Scope } from 'effect';
-import type { LabChanges } from './lab-events.ts';
+import { HeardChange } from '../core/lab-events.ts';
+import type { labClient } from './lab-client.ts';
+import { Changes } from './lab-commands.ts';
+
+/** What a reader of the feed is answered: the changes past its cursor, each as it reads, and the cursor to ask past next. */
+const HeardChanges = Schema.Struct({
+  cursor: Schema.String,
+  changes: Schema.Array(HeardChange),
+  reset: Schema.Boolean,
+});
+export type HeardChanges = typeof HeardChanges.Type;
 
 /** The lab's feed as the stream reads it: a session (ended with its scope), then `changes` past a cursor (none: the cursor now). */
 export interface LabFeed<S, E> {
@@ -22,8 +38,32 @@ export interface LabFeed<S, E> {
     session: S,
     since: Option.Option<string>,
     wait: number,
-  ) => Effect.Effect<LabChanges, E>;
+  ) => Effect.Effect<HeardChanges, E>;
 }
+
+/** Which changes a reader asks the feed for: their names (globs over the catalogue's) and their film. */
+interface FeedOf {
+  readonly name?: ReadonlyArray<string>;
+  readonly film?: string;
+}
+
+type LabClient = Effect.Success<ReturnType<typeof labClient>>;
+
+/** The feed of the lab `client` asks, its changes read one by one (`HeardChanges`): what each stream reads. */
+export const labFeed = (client: LabClient, of: FeedOf = {}) => ({
+  session: client.session,
+  changes: (session: string, since: Option.Option<string>, wait: number) =>
+    client.read(
+      session,
+      Changes,
+      {
+        ...of,
+        ...Option.match(since, { onNone: () => ({}), onSome: (cursor) => ({ since: cursor }) }),
+        wait,
+      },
+      HeardChanges,
+    ),
+});
 
 /**
  * What the stream hears: a session opened (`resumed` after a loss), the
@@ -37,7 +77,7 @@ export type Heard<S> =
       readonly cursor: string;
       readonly resumed: boolean;
     }
-  | { readonly _tag: 'Answer'; readonly session: S; readonly answer: LabChanges }
+  | { readonly _tag: 'Answer'; readonly session: S; readonly answer: HeardChanges }
   | { readonly _tag: 'Lost'; readonly reason: string };
 
 /** How the stream reads: each wait in seconds, and when it asks a silent lab again. */
@@ -71,7 +111,7 @@ interface Follow<E> {
   /** The cursor to read past; none: the cursor now, so nothing from before is told. */
   readonly since: Option.Option<string>;
   readonly pace: StreamPace;
-  /** Whether `error` is the lab lost (asked again), not a refusal (which ends the stream). */
+  /** Whether `error` is the lab lost (asked again), not a refusal or an unread answer (which end the stream). */
   readonly isLost: (error: E) => boolean;
   /** How long a lab may be silent before the stream ends with `LabGone`; none: never. */
   readonly goneAfter: Option.Option<Duration.Duration>;
@@ -92,29 +132,42 @@ export const followLab = <S, E extends { readonly message: string }, A, R>(
     const cursor = yield* Ref.make(follow.since);
     /** When the lab was first heard lost since it last answered; none while it answers. */
     const down = yield* Ref.make(Option.none<number>());
+    /** Whether the lab has answered the feed since the last loss: a loss then starts `pace.retry` over. */
+    const answered = yield* Ref.make(false);
     /** Whether a session was ever opened: a later one is resumed. */
     const opened = yield* Ref.make(false);
+
+    /** An answer of the feed's: the lab is up again. */
+    const heardBack = Effect.andThen(Ref.set(down, Option.none()), Ref.set(answered, true));
 
     const connected = Effect.gen(function* () {
       const session = yield* feed.session;
       const now = yield* Option.match(yield* Ref.get(cursor), {
         onSome: Effect.succeed,
-        onNone: () => Effect.map(feed.changes(session, Option.none(), 0), (a) => a.cursor),
+        onNone: () =>
+          Effect.map(
+            Effect.tap(feed.changes(session, Option.none(), 0), heardBack),
+            (a) => a.cursor,
+          ),
       });
       yield* Ref.set(cursor, Option.some(now));
-      yield* Ref.set(down, Option.none());
       const resumed = yield* Ref.getAndSet(opened, true);
       const first = yield* hear({ _tag: 'Connected', session, cursor: now, resumed });
       if (Option.isSome(first)) return first.value;
       while (true) {
         const answer = yield* feed.changes(session, yield* Ref.get(cursor), follow.pace.wait);
+        yield* heardBack;
         const heard = yield* hear({ _tag: 'Answer', session, answer });
         yield* Ref.set(cursor, Option.some(answer.cursor));
         if (Option.isSome(heard)) return heard.value;
       }
     });
 
-    /** A lost lab said once, and gone once it has been silent past `goneAfter`. */
+    /**
+     * A lost lab: said once, and gone once it has been silent past
+     * `goneAfter`. After a session that answered, the loss ends this outage's
+     * retries (`Option.none`), so the next opens at once on a fresh schedule.
+     */
     const lost = (error: E) =>
       Effect.gen(function* () {
         const at = yield* Clock.currentTimeMillis;
@@ -123,6 +176,7 @@ export const followLab = <S, E extends { readonly message: string }, A, R>(
           yield* Ref.set(down, Option.some(at));
           yield* Effect.asVoid(hear({ _tag: 'Lost', reason: error.message }));
         }
+        if (yield* Ref.getAndSet(answered, false)) return Option.none<A>();
         const waited = at - Option.getOrElse(since, () => at);
         if (Option.exists(follow.goneAfter, (after) => waited >= Duration.toMillis(after)))
           return yield* LabGone.make({
@@ -132,11 +186,18 @@ export const followLab = <S, E extends { readonly message: string }, A, R>(
         return yield* Effect.fail(error);
       });
 
-    return yield* Effect.scoped(connected).pipe(
+    /** One outage's sessions: opened again on `pace.retry` until one answers and ends, or is lost after answering. */
+    const outage = Effect.scoped(connected).pipe(
+      Effect.asSome,
       Effect.catchIf(follow.isLost, lost),
       Effect.retry({
         schedule: follow.pace.retry,
         while: (error) => !Schema.is(LabGone)(error) && follow.isLost(error),
       }),
     );
+
+    while (true) {
+      const ended = yield* outage;
+      if (Option.isSome(ended)) return ended.value;
+    }
   });

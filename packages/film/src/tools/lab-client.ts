@@ -8,11 +8,22 @@
 // is JSON in and out (`callJson`, what `film lab` sends a command's checked
 // input by), or typed by the lab's own tool (`call`): its arguments encoded
 // by the tool's parameters, its structured answer decoded by the tool's
-// success. The lab answers loopback with no token. No lab answering, or one
-// answering in a shape this checkout does not read, is `LabUnanswered`; a
-// tool's refusal is `LabToolRefused`, in the lab's words.
+// success (`read`: by another schema the caller reads it with). The lab
+// answers loopback with no token. No lab answering is `LabUnanswered` (a
+// stream asks it again: `isLostLab`); an answer in a shape this checkout
+// does not read is `LabAnswerUnread` (the two run different code); a tool's
+// refusal is `LabToolRefused`, in the lab's words.
 
-import { Array as Arr, Boolean as Bool, Config, Effect, Option, Ref, Schema } from 'effect';
+import {
+  Array as Arr,
+  Boolean as Bool,
+  Config,
+  Effect,
+  Option,
+  Predicate,
+  Ref,
+  Schema,
+} from 'effect';
 import { HttpClient, HttpClientRequest } from 'effect/http';
 import { MCP_PATH } from './lab-mcp.ts';
 
@@ -24,7 +35,7 @@ export const labUrl = Config.String('FILM_LAB_URL').pipe(
   Config.withDefault('http://127.0.0.1:8229/'),
 );
 
-/** No lab answered at `url`, or the one there answered in a shape this checkout does not read. */
+/** No lab answered at `url`. */
 class LabUnanswered extends Schema.TaggedError<LabUnanswered>()('LabUnanswered', {
   url: Schema.String,
   reason: Schema.String,
@@ -33,6 +44,21 @@ class LabUnanswered extends Schema.TaggedError<LabUnanswered>()('LabUnanswered',
     return `no lab answered at ${this.url} (${this.reason}): start one (from apps/animations: bun run lab, or LAB_PORT=<port> bun cli.ts lab) and point FILM_LAB_URL at it`;
   }
 }
+
+/** The lab at `url` answered `tool` in a shape this checkout does not read: the two run different code. */
+class LabAnswerUnread extends Schema.TaggedError<LabAnswerUnread>()('LabAnswerUnread', {
+  url: Schema.String,
+  tool: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `the lab at ${this.url} answered ${this.tool} in a shape this checkout does not read (${this.reason}): the two run different code, so update the older one (pull this checkout, or restart the lab on the newer code)`;
+  }
+}
+
+/** Whether `error` is no lab answering (asked again by a stream), not a refusal or an answer this checkout does not read. Pure. */
+export const isLostLab = (error: { readonly message: string }): boolean =>
+  Predicate.isTagged(error, 'LabUnanswered');
 
 /** A tool of the lab's that refused a call, in the lab's words. */
 class LabToolRefused extends Schema.TaggedError<LabToolRefused>()('LabToolRefused', {
@@ -126,11 +152,8 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
   const endpoint = new URL(MCP_PATH, url).href;
   const ids = yield* Ref.make(0);
   const unanswered = (reason: string) => LabUnanswered.make({ url, reason });
-  /** An answer this checkout does not read: the lab runs older code than the checkout. */
-  const outdated = (name: string, reason: string) =>
-    unanswered(
-      `its answer to ${name} does not read (${reason}); a lab older than this checkout needs a restart`,
-    );
+  /** An answer this checkout does not read. */
+  const unread = (tool: string, reason: string) => LabAnswerUnread.make({ url, tool, reason });
 
   const post = (body: string, session: Option.Option<string>) =>
     http
@@ -254,8 +277,13 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
       );
     });
 
-  /** One of the lab's tools called in `session`, typed by the tool: its arguments encoded by its parameters, its answer decoded by its success. */
-  const call = <P, PE, S, SE>(session: string, tool: LabTool<P, PE, S, SE>, params: P) =>
+  /** One of the lab's tools called in `session`: its arguments encoded by its parameters, its answer decoded by `success`. */
+  const read = <P, PE, S, SE, A, AE>(
+    session: string,
+    tool: LabTool<P, PE, S, SE>,
+    params: P,
+    success: Schema.Codec<A, AE>,
+  ) =>
     Effect.gen(function* () {
       const args = yield* Schema.encodeEffect(tool.parametersSchema)(params).pipe(
         Effect.flatMap((encoded) => readJsonValue(encoded)),
@@ -267,10 +295,14 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
         ),
       );
       const json = yield* callJson(session, tool.name, args);
-      return yield* Schema.decodeUnknownEffect(tool.successSchema)(json).pipe(
-        Effect.mapError((error) => outdated(tool.name, error.message)),
+      return yield* Schema.decodeUnknownEffect(success)(json).pipe(
+        Effect.mapError((error) => unread(tool.name, error.message)),
       );
     });
 
-  return { url, session, call, callJson };
+  /** One of the lab's tools called in `session`, typed by the tool: its arguments encoded by its parameters, its answer decoded by its success. */
+  const call = <P, PE, S, SE>(session: string, tool: LabTool<P, PE, S, SE>, params: P) =>
+    read(session, tool, params, tool.successSchema);
+
+  return { url, session, call, read, callJson };
 });

@@ -249,6 +249,40 @@ export const LabChange = Schema.Struct({
 });
 export type LabChange = typeof LabChange.Type;
 
+/**
+ * A change of a kind this checkout's catalogue does not name (a lab newer
+ * than the checkout sends it): the fields every change carries, read as
+ * they are, so a reader tells it from them rather than stopping at it.
+ */
+const ForeignChange = Schema.Struct({
+  seq: Schema.Int,
+  at: Schema.String,
+  kind: Schema.String,
+  by: Schema.optionalKey(Schema.String),
+  film: Schema.optionalKey(Schema.String),
+  set: Schema.optionalKey(Schema.String),
+  note: Schema.optionalKey(Schema.String),
+  panel: Schema.optionalKey(Schema.String),
+  beat: Schema.optionalKey(Schema.String),
+  try: Schema.optionalKey(Schema.Int),
+  address: Schema.optionalKey(Schema.String),
+  variant: Schema.optionalKey(Schema.String),
+  text: Schema.optionalKey(Schema.String),
+  production: Schema.optionalKey(Schema.String),
+  ask: Schema.optionalKey(Schema.String),
+  step: Schema.optionalKey(Schema.String),
+  summary: Schema.String,
+  links: LabLinks,
+  read: Schema.optionalKey(Schema.Struct({ cli: Schema.String })),
+});
+
+/** A change as a reader of the feed hears it: one of the catalogue's, or one of a kind it does not know. */
+export const HeardChange = Schema.Union([LabChange, ForeignChange]);
+export type HeardChange = typeof HeardChange.Type;
+
+/** Whether `change` is one of the catalogue's, as this checkout reads it. Pure. */
+export const isKnownChange: (change: HeardChange) => change is LabChange = Schema.is(LabChange);
+
 /** A change as it is read, before the feed numbers it, dates it and makes its links. */
 export type LabChangeDraft = Omit<LabChange, 'seq' | 'at' | 'links' | 'read' | 'trimmed'> & {
   /** The lab path it is on (`/films/f/studio?sel=panel:cold.judge`). */

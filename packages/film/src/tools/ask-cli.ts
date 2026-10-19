@@ -26,8 +26,8 @@ import { Console, Effect, Option, Result, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { AskRead, AsksTool } from './asks-mcp.ts';
 import { ASK_WAIT_PACE, type AskFeed, AskLatch, askLines, waitForAsk } from './ask-wait.ts';
-import { labClient, labUrl } from './lab-client.ts';
-import { Changes } from './lab-commands.ts';
+import { isLostLab, labClient, labUrl } from './lab-client.ts';
+import { labFeed } from './lab-stream.ts';
 
 /** A wait asked two ways at once, or neither. */
 class AskWaitInvalid extends Schema.TaggedError<AskWaitInvalid>()('AskWaitInvalid', {
@@ -103,16 +103,11 @@ const wait = Command.make(
     const latch = yield* Effect.fromResult(latchOf(input));
     const client = yield* labClient(yield* labUrl);
     const feed: AskFeed<string, { readonly message: string }> = {
-      session: client.session,
-      changes: (session: string, since: Option.Option<string>, wait: number) =>
-        client.call(session, Changes, {
-          ...Option.match(since, { onNone: () => ({}), onSome: (cursor) => ({ since: cursor }) }),
-          wait,
-        }),
+      ...labFeed(client),
       asks: (session: string) =>
         Effect.map(client.call(session, AsksTool, {}), (listed) => listed.asks),
     };
-    const reads = yield* waitForAsk(feed, latch, ASK_WAIT_PACE, input.timeout);
+    const reads = yield* waitForAsk(feed, latch, ASK_WAIT_PACE, input.timeout, isLostLab);
     for (const read of reads) {
       yield* Effect.log(`ask.wait.latched ask=${read.ask} status=${read.status}`);
       if (input.json) yield* Console.log(readJson(read));

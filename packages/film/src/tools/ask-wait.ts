@@ -26,7 +26,7 @@ import {
   Result,
   Schema,
 } from 'effect';
-import type { LabChange } from '../core/lab-events.ts';
+import type { HeardChange } from '../core/lab-events.ts';
 import { AskUnknown } from '../core/refusals.ts';
 import type { AskRead } from './asks-mcp.ts';
 import { type Heard, type LabFeed, STREAM_PACE, type StreamPace, followLab } from './lab-stream.ts';
@@ -64,7 +64,7 @@ export interface AskFeed<S, E> extends LabFeed<S, E> {
 export const ASK_WAIT_PACE: StreamPace = STREAM_PACE;
 
 /** Whether `change` may move the latch: a reason to read the asks again. */
-const moves = (latch: AskLatch, change: LabChange): boolean =>
+const moves = (latch: AskLatch, change: HeardChange): boolean =>
   AskLatch.$match(latch, {
     One: ({ ask }) => change.ask === ask,
     // An ask that joins the page moves it as much as one answered on it.
@@ -141,6 +141,7 @@ export const waitForAsk = <S, E extends { readonly message: string }>(
   latch: AskLatch,
   pace: StreamPace,
   timeout: Option.Option<Duration.Duration>,
+  isLost: (error: E) => boolean = () => true,
 ) =>
   Effect.gen(function* () {
     const before = yield* Ref.make(Option.none<ReadonlySet<string>>());
@@ -166,7 +167,7 @@ export const waitForAsk = <S, E extends { readonly message: string }>(
     const none = Effect.succeed(Option.none<Latched>());
     const held = yield* followLab(
       feed,
-      { since: Option.none(), pace, isLost: () => true, goneAfter: Option.none() },
+      { since: Option.none(), pace, isLost, goneAfter: Option.none() },
       (heard: Heard<S>) =>
         Match.value(heard).pipe(
           Match.tagsExhaustive({

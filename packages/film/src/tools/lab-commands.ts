@@ -20,7 +20,7 @@
 import { Duration, Effect, type FileSystem, Option, type Path, Record, Schema } from 'effect';
 import { Tool } from 'effect/ai';
 import { pageHref } from '../core/api.ts';
-import { LAB_EVENTS, LabLinks, linksAt } from '../core/lab-events.ts';
+import { LAB_EVENTS, LabLinks, linksAt, namesMatch } from '../core/lab-events.ts';
 import { unresolved } from '../core/notes.ts';
 import type { AskStore } from './ask-store.ts';
 import type { BeatEdits } from './beat-edits.ts';
@@ -147,6 +147,20 @@ const labCommands = [
     run: ({ since, wait, name, film }) =>
       Effect.gen(function* () {
         const events = yield* LabEvents;
+        // A glob no event matches, or a film the lab has not, would wait on nothing: refused.
+        const catalogue = Record.keys(LAB_EVENTS);
+        const unmatched = Option.getOrElse(Option.fromUndefinedOr(name), () => []).filter(
+          (glob) => !catalogue.some((one) => namesMatch([glob], one)),
+        );
+        if (unmatched.length > 0)
+          return yield* LabRefused.make({
+            reason: `no event matches ${unmatched.join(', ')}: the lab's are ${catalogue.join(', ')}`,
+          });
+        const asked = Option.fromUndefinedOr(film);
+        if (Option.isSome(asked))
+          yield* refused(
+            filmNamed(asked.value).pipe(Effect.provideContext(yield* Effect.context<FilmFolder>())),
+          );
         return yield* events.wait(Option.fromUndefinedOr(since), Duration.seconds(wait ?? 0), {
           ...Option.match(Option.fromUndefinedOr(name), {
             onNone: () => ({}),

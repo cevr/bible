@@ -29,10 +29,9 @@ import {
   Stream,
 } from 'effect';
 import { Command } from 'effect/cli';
-import type { LabChange } from '../core/lab-events.ts';
-import { labClient, labUrl } from './lab-client.ts';
-import { Changes } from './lab-commands.ts';
-import { type Heard, STREAM_PACE, followLab } from './lab-stream.ts';
+import type { HeardChange } from '../core/lab-events.ts';
+import { isLostLab, labClient, labUrl } from './lab-client.ts';
+import { type Heard, STREAM_PACE, followLab, labFeed } from './lab-stream.ts';
 
 /** The capability Claude Code reads a channel by. */
 const CHANNEL = 'claude/channel';
@@ -117,7 +116,7 @@ const answerTo = (message: Incoming): Option.Option<Schema.Json> =>
   });
 
 /** The attributes of a change's event: what it is about, each a string, by an identifier key. */
-const metaOf = (change: LabChange): Record<string, string> => {
+const metaOf = (change: HeardChange): Record<string, string> => {
   const about: ReadonlyArray<readonly [string, Option.Option<string | number>]> = [
     ['film', Option.fromUndefinedOr(change.film)],
     ['set', Option.fromUndefinedOr(change.set)],
@@ -142,7 +141,7 @@ const metaOf = (change: LabChange): Record<string, string> => {
 };
 
 /** One change as the channel event Claude Code reads: its summary, its words in full, its links (local, then the phone's). */
-const channelEvent = (change: LabChange): Schema.Json => ({
+const channelEvent = (change: HeardChange): Schema.Json => ({
   jsonrpc: '2.0',
   method: CHANNEL_EVENT,
   params: {
@@ -162,7 +161,7 @@ const channelEvent = (change: LabChange): Schema.Json => ({
 });
 
 /** The changes a reconnect sends on: the newest `CATCH_UP`, and a line for the rest. */
-const caughtUp = (changes: ReadonlyArray<LabChange>): ReadonlyArray<Schema.Json> => {
+const caughtUp = (changes: ReadonlyArray<HeardChange>): ReadonlyArray<Schema.Json> => {
   const dropped = changes.length - CATCH_UP;
   const told = changes.slice(-CATCH_UP).map(channelEvent);
   return Bool.match(dropped > 0, {
@@ -193,19 +192,12 @@ const runChannel = (url: string) =>
     const send = (message: Schema.Json) => Queue.offer(outgoing, `${writeJson(message)}\n`);
     const client = yield* labClient(url);
     /** The lab's feed: a session (ended with its connection), then `changes` past a cursor (none: the cursor now). */
-    const feed = {
-      session: client.session,
-      changes: (session: string, since: Option.Option<string>, wait: number) =>
-        client.call(session, Changes, {
-          ...Option.match(since, { onNone: () => ({}), onSome: (cursor) => ({ since: cursor }) }),
-          wait,
-        }),
-    };
+    const feed = labFeed(client);
 
     /** The lab's changes, relayed for as long as the bridge runs: a lost session is started again. */
     const relay = followLab(
       feed,
-      { since: Option.none(), pace: STREAM_PACE, isLost: () => true, goneAfter: Option.none() },
+      { since: Option.none(), pace: STREAM_PACE, isLost: isLostLab, goneAfter: Option.none() },
       (heard: Heard<string>) =>
         Match.value(heard).pipe(
           Match.tagsExhaustive({

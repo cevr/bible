@@ -17,6 +17,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import {
+  Array as Arr,
   Cause,
   ConfigProvider,
   Console,
@@ -1108,6 +1109,107 @@ const droppable = (lab: LabFetch) =>
     restore: SubscriptionRef.set(down, false),
   }));
 
+/**
+ * The lab's handler behind a line that drops only its feed's polls: `drop`
+ * fails each `changes` call in flight and each one after it, as a lab whose
+ * feed hangs up does, while every other request is answered.
+ */
+const pollsDroppable = (lab: LabFetch) =>
+  Effect.map(SubscriptionRef.make(false), (down) => ({
+    fetch: (request: Request) =>
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const asked = yield* Effect.promise(() => request.clone().text());
+          const answer = Effect.promise(() => lab(request, mcpBound));
+          if (!asked.includes('"name":"changes"')) return yield* answer;
+          return yield* Effect.raceFirst(
+            answer,
+            SubscriptionRef.changes(down).pipe(
+              Stream.filter((isDown) => isDown),
+              Stream.runHead,
+              Effect.andThen(Effect.fail(LineDown.make())),
+            ),
+          );
+        }),
+      ),
+    drop: SubscriptionRef.set(down, true),
+  }));
+
+/** A change as the lab's feed answers it, edited by a test. */
+type ChangeJson = { readonly [key: string]: Schema.Json };
+
+/** A `changes` answer as JSON-RPC carries it: its result's structured content. */
+const ChangesAnswer = Schema.fromJsonString(
+  Schema.Struct({
+    jsonrpc: Schema.String,
+    id: Schema.Json,
+    result: Schema.Struct({
+      structuredContent: Schema.Struct({
+        cursor: Schema.String,
+        changes: Schema.Array(Schema.Record(Schema.String, Schema.Json)),
+        reset: Schema.Boolean,
+      }),
+    }),
+  }),
+);
+const changesAnswer = Schema.decodeUnknownOption(ChangesAnswer);
+
+/**
+ * The lab's handler with each `changes` answer's result passed through
+ * `edit` (its structured content, and its text the same): the feed of a
+ * lab that runs other code than this checkout.
+ */
+const changesEdited =
+  (lab: LabFetch, edit: (result: { readonly changes: ReadonlyArray<ChangeJson> }) => Schema.Json) =>
+  (request: Request) =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const asked = yield* Effect.promise(() => request.clone().text());
+        const answered = yield* Effect.promise(() => lab(request, mcpBound));
+        if (!asked.includes('"name":"changes"')) return answered;
+        const body = yield* Effect.promise(() => answered.text());
+        // The answer's one message with a result, the whole body or an event stream's `data:` line.
+        const { jsonrpc, id, result } = yield* Effect.fromOption(
+          Arr.findFirst(
+            [body, ...Array.from(body.matchAll(/^data: (.*)$/gm), (data) => data[1] ?? '')],
+            (message) => changesAnswer(message),
+          ),
+        );
+        const edited = edit(result.structuredContent);
+        return new Response(
+          writeJson({
+            jsonrpc,
+            id,
+            result: {
+              structuredContent: edited,
+              content: [{ type: 'text', text: writeJson(edited) }],
+            },
+          }),
+          { status: answered.status, headers: { 'content-type': 'application/json' } },
+        );
+      }),
+    );
+
+/** A request on a line that is down, counted on `attempts` as it is made. */
+const countedDroppable = (lab: LabFetch) =>
+  Effect.gen(function* () {
+    const line = yield* droppable(lab);
+    const attempts = yield* Queue.unbounded<true>();
+    const down = yield* SubscriptionRef.make(false);
+    return {
+      fetch: (request: Request) =>
+        Effect.runPromise(
+          Effect.andThen(
+            Effect.when(Queue.offer(attempts, true), SubscriptionRef.get(down)),
+            Effect.promise(() => line.fetch(request)),
+          ),
+        ),
+      attempts,
+      drop: Effect.andThen(SubscriptionRef.set(down, true), line.drop),
+      restore: Effect.andThen(SubscriptionRef.set(down, false), line.restore),
+    };
+  });
+
 /** A `film lab events` line's cursor (`cursor=<epoch>.<seq>`). */
 const cursorIn = (line: string) =>
   Option.getOrThrow(Option.fromNullishOr(/ cursor=(\S+)/.exec(line)?.[1]));
@@ -1198,6 +1300,156 @@ describe('film lab events', () => {
           );
           expect(yield* Queue.take(out)).toMatch(/^note\.added .* note=n2 /);
           expect(yield* Queue.size(err)).toBe(0);
+          yield* Fiber.interrupt(fiber);
+        }),
+      ),
+  );
+});
+
+describe('film lab events, against a lab that runs other code', () => {
+  it.effect(
+    'prints an event of a kind this checkout does not know from the fields every event has, says so once, and reads on',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          // A newer lab's feed: a note whose words are `pinned` is told as a `note.pinned`, a field this checkout has not with it.
+          const newer = changesEdited(lab, (result) => ({
+            ...result,
+            changes: result.changes.map((change) =>
+              Option.match(
+                Option.liftPredicate(change, (c) => c['text'] === 'pinned'),
+                {
+                  onNone: () => change,
+                  onSome: (c) => ({ ...c, kind: 'note.pinned', pin: 'top' }),
+                },
+              ),
+            ),
+          }));
+          const { out, err, fiber } = yield* filmRunning(newer, ['lab', 'events', '--follow']);
+          expect(yield* Queue.take(err)).toContain('lab events: following');
+          yield* ownerNote(lab, 'one');
+          yield* events.look;
+          expect(yield* Queue.take(out)).toMatch(/^note\.added cursor=\w+\.1 .* note=n1 /);
+          yield* ownerNote(lab, 'pinned');
+          yield* events.look;
+          expect(yield* Queue.take(out)).toMatch(
+            /^note\.pinned cursor=\w+\.2 at=\S+ film=f note=n2 summary="f n2: note on scene cold: pinned" read="bun cli\.ts lab notes --film f --status all" link=http:\/\/localhost:4401\/\S+$/,
+          );
+          expect(yield* Queue.take(err)).toBe(
+            'lab events: note.pinned is an event this checkout does not know (the lab runs newer code): printed from the fields every event has',
+          );
+          yield* ownerNote(lab, 'pinned');
+          yield* events.look;
+          expect(yield* Queue.take(out)).toMatch(/^note\.pinned cursor=\w+\.3 .* note=n3 /);
+          yield* ownerNote(lab, 'two');
+          yield* events.look;
+          expect(yield* Queue.take(out)).toMatch(/^note\.added cursor=\w+\.4 .* note=n4 /);
+          // Said once for its kind, and no loss said.
+          expect(yield* Queue.size(err)).toBe(0);
+          yield* Fiber.interrupt(fiber);
+        }),
+      ),
+  );
+
+  it.effect(
+    'ends, non-zero and in its own words, on an answer it cannot read: never told as a lab lost',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab } = yield* labWithMcp;
+          const garbled = changesEdited(lab, () => ({ changes: 'garbled' }));
+          const plain = yield* filmCli(garbled, ['lab', 'events']);
+          expect(plain.ok).toBe(false);
+          expect(plain.failed).toContain('the two run different code, so update the older one');
+          const json = yield* filmCli(garbled, ['lab', 'events', '--follow', '--json']);
+          expect(json.ok).toBe(false);
+          expect(yield* readJson(json.lines.at(-1))).toMatchObject({ _tag: 'LabAnswerUnread' });
+        }),
+      ),
+  );
+
+  it.effect(
+    'refuses a --name no event matches and a --film the lab has not, naming what there is',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab } = yield* labWithMcp;
+          const fetch = (request: Request) => lab(request, mcpBound);
+          const name = yield* filmCli(fetch, ['lab', 'events', '--name', 'nope.*']);
+          expect(name.ok).toBe(false);
+          expect(name.failed).toMatch(/no event matches nope\.\*: the lab's are .*note\.added/);
+          const film = yield* filmCli(fetch, ['lab', 'events', '--follow', '--film', 'zz']);
+          expect(film.ok).toBe(false);
+          expect(film.failed).toContain('zz');
+        }),
+      ),
+  );
+});
+
+describe("film lab events' outages", () => {
+  it.effect(
+    '--gone-after counts from the first loss, though each try opens a session: gone, said as JSON with --json',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab } = yield* labWithMcp;
+          const line = yield* pollsDroppable(lab);
+          const { out, err, fiber } = yield* filmRunning(line.fetch, [
+            'lab',
+            'events',
+            '--follow',
+            '--json',
+            '--gone-after',
+            '5 seconds',
+          ]);
+          expect(yield* Queue.take(err)).toContain('lab events: following');
+          yield* line.drop;
+          expect(yield* Queue.take(err)).toMatch(/^lab events: lost the lab /);
+          // Each try opens a session and its poll is lost again: the try past 5 s since the first loss
+          // (250 ms, 500 ms, 1 s, 2 s, 4 s after one another) ends it.
+          yield* TestClock.adjust('10 seconds');
+          expect(Exit.isFailure(yield* Fiber.await(fiber))).toBe(true);
+          expect(yield* Queue.take(err)).toMatch(/^lab events: reconnected to /);
+          expect(yield* readJson(yield* Queue.take(out))).toMatchObject({
+            _tag: 'LabGone',
+            message: expect.stringMatching(
+              /^the lab has not answered for 7s 750ms \(no lab answered at /,
+            ),
+          });
+        }),
+      ),
+  );
+
+  it.effect(
+    'asks a lab lost after a session that worked again at once: the backoff starts over',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const { lab, events } = yield* labWithMcp;
+          const line = yield* countedDroppable(lab);
+          const { out, err, fiber } = yield* filmRunning(line.fetch, ['lab', 'events', '--follow']);
+          expect(yield* Queue.take(err)).toContain('lab events: following');
+          // A long outage: the tries back off to their 10 s cap.
+          yield* line.drop;
+          expect(yield* Queue.take(err)).toMatch(/^lab events: lost the lab /);
+          for (let n = 0; n < 7; n++) {
+            yield* TestClock.adjust('10 seconds');
+            yield* Queue.take(line.attempts);
+          }
+          yield* line.restore;
+          yield* TestClock.adjust('10 seconds');
+          expect(yield* Queue.take(err)).toMatch(/^lab events: reconnected to /);
+          // A session that works.
+          yield* ownerNote(lab, 'one');
+          yield* events.look;
+          expect(yield* Queue.take(out)).toMatch(/^note\.added .* note=n1 /);
+          // Lost again: asked again within the schedule's first step, not its cap.
+          yield* line.drop;
+          expect(yield* Queue.take(err)).toMatch(/^lab events: lost the lab /);
+          yield* line.restore;
+          yield* TestClock.adjust('300 millis');
+          expect(yield* Queue.take(err)).toMatch(/^lab events: reconnected to /);
           yield* Fiber.interrupt(fiber);
         }),
       ),

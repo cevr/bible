@@ -149,7 +149,7 @@ const rawInput = (
   });
 
 /** A failure as `--json` prints it: its tag and its words, one line. */
-const failureLine = (error: { readonly _tag: string; readonly message: string }): string =>
+export const failureLine = (error: { readonly _tag: string; readonly message: string }): string =>
   jsonText({ _tag: error._tag, message: error.message });
 
 /** One command as `film lab <name>`, answered by `answer` (here, or by the lab). */
@@ -209,7 +209,7 @@ const askedOfLab = (command: LabCommand<unknown>) => (raw: Schema.JsonObject) =>
           LabCommandRefused.make({
             command: command.name,
             tag: 'LabAnswerUnread',
-            reason: `the lab's answer does not read (${error.message}); a lab older than this checkout needs a restart`,
+            reason: `the lab's answer does not read (${error.message}): the lab and this checkout run different code, so update the older one (pull this checkout, or restart the lab on the newer code)`,
           }),
         ),
       );

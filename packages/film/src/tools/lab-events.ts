@@ -147,7 +147,7 @@ const cursorOf = (cursor: string): Option.Option<{ epoch: string; seq: number }>
  * The cursor right after `change`, in the run `cursor` (an answer's) is
  * from: where a reader that has heard it, and nothing past it, reads on. Pure.
  */
-export const cursorAfter = (cursor: string, change: LabChange): string =>
+export const cursorAfter = (cursor: string, change: { readonly seq: number }): string =>
   Option.match(cursorOf(cursor), {
     onNone: () => cursor,
     onSome: ({ epoch }) => `${epoch}.${change.seq}`,

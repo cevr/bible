@@ -14,36 +14,45 @@
 //   ask.answered cursor=k3x.12 at=… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1" link=http://…
 //
 // `--json` prints `{"cursor":…,"event":…}` a line instead, the event as the
-// catalogue's payload schema encodes it. What is not an event goes to
-// stderr: the stream following, the lab lost and asked again, the stream
-// reconnected and reading on from its cursor (`lab-stream.ts`), a cursor
-// the lab no longer knows. Only a lab silent past `--gone-after`, or a
-// refusal of the lab's, ends it, with a non-zero exit.
+// catalogue's payload schema encodes it. An event of a kind this checkout
+// does not know (a newer lab's) is printed from the fields every event has,
+// and said once on stderr. What is not an event goes to stderr: the stream
+// following, the lab lost and asked again, the stream reconnected and
+// reading on from its cursor (`lab-stream.ts`), a cursor the lab no longer
+// knows. A lab silent past `--gone-after`, a refusal of the lab's (a
+// `--name` no event matches, a film it does not have), or an answer this
+// checkout cannot read ends it with a non-zero exit, said as `{"_tag",
+// "message"}` on stdout too with `--json`.
 
 import {
-  Array as Arr,
   Boolean as Bool,
   Console,
   type Duration,
   Effect,
   Match,
   Option,
-  Predicate,
+  Ref,
   Schema,
 } from 'effect';
 import { Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
-import { LabChange } from '../core/lab-events.ts';
-import { labClient, labUrl } from './lab-client.ts';
-import { Changes } from './lab-commands.ts';
-import { type LabChanges, cursorAfter } from './lab-events.ts';
-import { type Heard, type StreamPace, followLab } from './lab-stream.ts';
+import { HeardChange, isKnownChange } from '../core/lab-events.ts';
+import { failureLine } from './lab-cli.ts';
+import { isLostLab, labClient, labUrl } from './lab-client.ts';
+import { cursorAfter } from './lab-events.ts';
+import {
+  type HeardChanges,
+  type Heard,
+  type StreamPace,
+  followLab,
+  labFeed,
+} from './lab-stream.ts';
 
 /** Words in one line, quoted: a newline in them would split the line. */
 const quoted = Schema.encodeSync(Schema.fromJsonString(Schema.String));
 
 const eventJson = Schema.encodeSync(
-  Schema.fromJsonString(Schema.Struct({ cursor: Schema.String, event: LabChange })),
+  Schema.fromJsonString(Schema.Struct({ cursor: Schema.String, event: HeardChange })),
 );
 const cursorJson = Schema.encodeSync(
   Schema.fromJsonString(Schema.Struct({ cursor: Schema.String })),
@@ -53,7 +62,7 @@ const cursorJson = Schema.encodeSync(
 const ABOUT = ['film', 'set', 'note', 'panel', 'address', 'ask', 'step', 'production'] as const;
 
 /** One event as a line: its name, the cursor after it, what it is about, its summary, its read and its link. Pure. */
-const eventLine = (cursor: string, change: LabChange): string =>
+const eventLine = (cursor: string, change: HeardChange): string =>
   [
     change.kind,
     `cursor=${cursor}`,
@@ -62,7 +71,9 @@ const eventLine = (cursor: string, change: LabChange): string =>
       Option.toArray(Option.map(Option.fromUndefinedOr(change[key]), (value) => `${key}=${value}`)),
     ),
     `summary=${quoted(change.summary)}`,
-    `read=${quoted(change.read.cli)}`,
+    ...Option.toArray(
+      Option.map(Option.fromUndefinedOr(change.read), (read) => `read=${quoted(read.cli)}`),
+    ),
     `link=${change.links.local}`,
   ].join(' ');
 
@@ -71,24 +82,36 @@ interface Printing {
   readonly json: boolean;
 }
 
-/** Each event of `answer` printed, a line each, with the cursor after it. */
-const printed = (answer: LabChanges, printing: Printing) =>
+/**
+ * Each event of `answer` printed, a line each, with the cursor after it;
+ * the first of each kind this checkout does not know (kept in `foreign`)
+ * said on stderr.
+ */
+const printed = (answer: HeardChanges, printing: Printing, foreign: Ref.Ref<ReadonlySet<string>>) =>
   Effect.forEach(
     answer.changes,
-    (change) => {
-      const cursor = cursorAfter(answer.cursor, change);
-      return Console.log(
-        Bool.match(printing.json, {
-          onTrue: () => eventJson({ cursor, event: change }),
-          onFalse: () => eventLine(cursor, change),
-        }),
-      );
-    },
+    (change) =>
+      Effect.gen(function* () {
+        const told = yield* Ref.get(foreign);
+        if (!isKnownChange(change) && !told.has(change.kind)) {
+          yield* Ref.set(foreign, new Set([...told, change.kind]));
+          yield* Console.error(
+            `lab events: ${change.kind} is an event this checkout does not know (the lab runs newer code): printed from the fields every event has`,
+          );
+        }
+        const cursor = cursorAfter(answer.cursor, change);
+        yield* Console.log(
+          Bool.match(printing.json, {
+            onTrue: () => eventJson({ cursor, event: change }),
+            onFalse: () => eventLine(cursor, change),
+          }),
+        );
+      }),
     { discard: true },
   );
 
 /** A cursor the lab no longer knows, said: what follows is all it kept. */
-const resetSaid = (answer: LabChanges) =>
+const resetSaid = (answer: HeardChanges) =>
   Effect.when(
     Console.error(
       `lab events: the lab no longer knows that cursor (it restarted, or the events aged out); these are every event it kept, read on from ${answer.cursor}`,
@@ -106,8 +129,66 @@ interface EventsInput {
   readonly goneAfter: Option.Option<Duration.Duration>;
 }
 
-/** No lab answered: what the stream asks again; any other failure is the lab's refusal, which ends it. */
-const isLost = (error: { readonly message: string }) => Predicate.isTagged(error, 'LabUnanswered');
+/** What `film lab events` does with its flags: the events past a cursor, or followed. */
+const events = Effect.fn('film.lab.events')(function* (input: EventsInput, pace: StreamPace) {
+  const url = yield* labUrl;
+  const client = yield* labClient(url);
+  const feed = labFeed(client, {
+    ...Option.match(
+      Option.liftPredicate(input.name, (n) => n.length > 0),
+      {
+        onNone: () => ({}),
+        onSome: (name) => ({ name }),
+      },
+    ),
+    ...Option.match(input.film, { onNone: () => ({}), onSome: (film) => ({ film }) }),
+  });
+  const foreign = yield* Ref.make<ReadonlySet<string>>(new Set());
+  if (!input.follow)
+    return yield* Effect.scoped(
+      Effect.gen(function* () {
+        const answer = yield* feed.changes(yield* feed.session, input.since, 0);
+        yield* resetSaid(answer);
+        yield* printed(answer, input, foreign);
+        yield* Console.log(
+          Bool.match(input.json, {
+            onTrue: () => cursorJson({ cursor: answer.cursor }),
+            onFalse: () => `cursor=${answer.cursor}`,
+          }),
+        );
+      }),
+    );
+  const none = Effect.succeed(Option.none<never>());
+  return yield* followLab(
+    feed,
+    { since: input.since, pace, isLost: isLostLab, goneAfter: input.goneAfter },
+    (heard: Heard<string>) =>
+      Match.value(heard).pipe(
+        Match.tagsExhaustive({
+          Connected: ({ cursor, resumed }) =>
+            Effect.as(
+              Console.error(
+                Bool.match(resumed, {
+                  onTrue: () => `lab events: reconnected to ${url}, reading on from ${cursor}`,
+                  onFalse: () => `lab events: following ${url} from ${cursor}`,
+                }),
+              ),
+              Option.none<never>(),
+            ),
+          Answer: ({ answer }) =>
+            Effect.andThen(
+              Effect.andThen(resetSaid(answer), printed(answer, input, foreign)),
+              none,
+            ),
+          Lost: ({ reason }) =>
+            Effect.as(
+              Console.error(`lab events: lost the lab (${reason}); asking again`),
+              Option.none<never>(),
+            ),
+        }),
+      ),
+  );
+});
 
 /** `film lab events`, its stream read at `pace` (`STREAM_PACE` on a terminal). */
 export const labEventsAt = (pace: StreamPace) =>
@@ -148,61 +229,12 @@ export const labEventsAt = (pace: StreamPace) =>
         ),
       ),
     },
-    Effect.fn('film.lab.events')(function* (input: EventsInput) {
-      const url = yield* labUrl;
-      const client = yield* labClient(url);
-      const of = {
-        ...Arr.match(input.name, { onEmpty: () => ({}), onNonEmpty: (name) => ({ name }) }),
-        ...Option.match(input.film, { onNone: () => ({}), onSome: (film) => ({ film }) }),
-      };
-      const changes = (session: string, since: Option.Option<string>, wait: number) =>
-        client.call(session, Changes, {
-          ...of,
-          ...Option.match(since, { onNone: () => ({}), onSome: (cursor) => ({ since: cursor }) }),
-          wait,
-        });
-      if (!input.follow)
-        return yield* Effect.scoped(
-          Effect.gen(function* () {
-            const answer = yield* changes(yield* client.session, input.since, 0);
-            yield* resetSaid(answer);
-            yield* printed(answer, input);
-            yield* Console.log(
-              Bool.match(input.json, {
-                onTrue: () => cursorJson({ cursor: answer.cursor }),
-                onFalse: () => `cursor=${answer.cursor}`,
-              }),
-            );
-          }),
-        );
-      const none = Effect.succeed(Option.none<never>());
-      return yield* followLab(
-        { session: client.session, changes },
-        { since: input.since, pace, isLost, goneAfter: input.goneAfter },
-        (heard: Heard<string>) =>
-          Match.value(heard).pipe(
-            Match.tagsExhaustive({
-              Connected: ({ cursor, resumed }) =>
-                Effect.as(
-                  Console.error(
-                    Bool.match(resumed, {
-                      onTrue: () => `lab events: reconnected to ${url}, reading on from ${cursor}`,
-                      onFalse: () => `lab events: following ${url} from ${cursor}`,
-                    }),
-                  ),
-                  Option.none<never>(),
-                ),
-              Answer: ({ answer }) =>
-                Effect.andThen(Effect.andThen(resetSaid(answer), printed(answer, input)), none),
-              Lost: ({ reason }) =>
-                Effect.as(
-                  Console.error(`lab events: lost the lab (${reason}); asking again`),
-                  Option.none<never>(),
-                ),
-            }),
-          ),
-      );
-    }),
+    (input: EventsInput) =>
+      events(input, pace).pipe(
+        Effect.tapError((error) =>
+          Effect.when(Console.log(failureLine(error)), Effect.succeed(input.json)),
+        ),
+      ),
   ).pipe(
     Command.withDescription(
       "The lab's events (the catalogue `changes` reads) from the running lab (FILM_LAB_URL): with --follow, one line per event as it happens, for a Monitor to wake on",
