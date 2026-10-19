@@ -33,6 +33,39 @@ export const labOf = (c: Rgb): Rgb => {
 /** ΔE76: the distance of two Lab colours. */
 export const deltaE = (a: Rgb, b: Rgb): number => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
+/** Whether squares `a` and `b` lie too near to tell their roots' order as `Math.hypot` reads it: a billionth apart is far past its error. */
+const tooNear = (a: number, b: number) =>
+  // oxlint-disable-next-line film/one-clock-epsilon -- a distance's float band, no time
+  Math.abs(a - b) <= 1e-9 * Math.max(a, b);
+
+/** Whether `Math.hypot(dx, dy)` is under `limit` (or at it, with `orAt`): on the squares unless they lie too near to tell. */
+export const within2 = (dx: number, dy: number, limit: number, orAt = false): boolean => {
+  const [sq, l] = [dx * dx + dy * dy, limit * limit];
+  if (!tooNear(sq, l)) return sq < l;
+  const d = Math.hypot(dx, dy);
+  return d < limit || (orAt && d === limit);
+};
+
+/** Whether `Math.hypot(dx, dy, dz)` is under `limit`: on the squares unless they lie too near to tell. */
+export const within3 = (dx: number, dy: number, dz: number, limit: number): boolean => {
+  const [sq, l] = [dx * dx + dy * dy + dz * dz, limit * limit];
+  if (!tooNear(sq, l)) return sq < l;
+  return Math.hypot(dx, dy, dz) < limit;
+};
+
+/** `labOf` of each pixel of `r`, each colour worked out once. */
+export const labsOf = (r: Raster) => {
+  const seen = new Map<number, Rgb>();
+  return (i: number): Rgb => {
+    const key = (r.rgba[i * 4]! << 16) | (r.rgba[i * 4 + 1]! << 8) | r.rgba[i * 4 + 2]!;
+    const known = seen.get(key);
+    if (known !== undefined) return known;
+    const lab = labOf(rgbAt(r, i));
+    seen.set(key, lab);
+    return lab;
+  };
+};
+
 /** A colour as a prompt writes it: `#rrggbb`. */
 export const hexOf = (rgb: ReadonlyArray<number>) =>
   `#${rgb.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
@@ -138,27 +171,18 @@ interface Labelled {
   readonly labels: Int32Array;
 }
 
+/** The four neighbours' steps, and the eight's, in the order a flood takes them. */
+const STEPS_FOUR = { dx: Int32Array.of(1, -1, 0, 0), dy: Int32Array.of(0, 0, 1, -1) };
+const STEPS_EIGHT = {
+  dx: Int32Array.of(1, -1, 0, 0, 1, 1, -1, -1),
+  dy: Int32Array.of(0, 0, 1, -1, 1, -1, 1, -1),
+};
+
 export const componentsOf = (mask: Uint8Array, w: number, h: number, eight: boolean): Labelled => {
   const labels = new Int32Array(w * h).fill(-1);
   const components: Array<Component> = [];
   const queue = new Int32Array(w * h);
-  const steps = eight
-    ? [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-        [1, 1],
-        [1, -1],
-        [-1, 1],
-        [-1, -1],
-      ]
-    : [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ];
+  const steps = (eight && STEPS_EIGHT) || STEPS_FOUR;
   for (let s = 0; s < w * h; s++) {
     if (mask[s] !== 1 || labels[s] !== -1) continue;
     const id = components.length;
@@ -174,9 +198,9 @@ export const componentsOf = (mask: Uint8Array, w: number, h: number, eight: bool
       y0 = Math.min(y0, y);
       x1 = Math.max(x1, x + 1);
       y1 = Math.max(y1, y + 1);
-      for (const [dx, dy] of steps) {
-        const nx = x + dx!;
-        const ny = y + dy!;
+      for (let k = 0; k < steps.dx.length; k++) {
+        const nx = x + steps.dx[k]!;
+        const ny = y + steps.dy[k]!;
         if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
         const j = ny * w + nx;
         if (mask[j] === 1 && labels[j] === -1) {
@@ -332,8 +356,10 @@ export const papersOf = (r: Raster, at: ReadonlyArray<number>): ReadonlyArray<Pa
   for (let it = 0; it < 10; it++) {
     assign = Int32Array.from(pts, (p) => {
       let best = 0;
+      let nearest = deltaE(p.lab, centres[0]!);
       centres.forEach((c, k) => {
-        if (deltaE(p.lab, c) < deltaE(p.lab, centres[best]!)) best = k;
+        const d = deltaE(p.lab, c);
+        if (d < nearest) [best, nearest] = [k, d];
       });
       return best;
     });
@@ -394,26 +420,35 @@ export const litSideOf = (r: Raster, rows: ReadonlyArray<ReadonlyArray<number>>)
   return { left, right };
 };
 
+/** Each pixel's luma, row by row. */
+const lumasOf = (r: Raster): Float64Array => {
+  const out = new Float64Array(r.width * r.height);
+  for (let i = 0; i < out.length; i++) out[i] = lumaOf(rgbAt(r, i));
+  return out;
+};
+
 /**
  * The mean luma difference of `a` against `b`, both scaled to one height and
- * one width, `b` flipped left to right or not: near nothing flipped is a
- * mirror; less unflipped than flipped, the two face the same way.
+ * one width, `b` flipped left to right (`flipped`) and not (`straight`): near
+ * nothing flipped is a mirror; less straight than flipped, the two face the
+ * same way. Each is scaled once for both.
  */
-export const pairDiff = (a: Raster, b: Raster, flip: boolean): number => {
+export const pairDiffs = (a: Raster, b: Raster) => {
   const H = 300;
   const sa = scaleRaster(a, H / a.height);
   const sb = scaleRaster(b, H / b.height);
+  const [la, lb] = [lumasOf(sa), lumasOf(sb)];
   const w = Math.min(sa.width, sb.width);
-  let [sum, n] = [0, 0];
+  let [flipped, straight, n] = [0, 0, 0];
   for (let y = 0; y < Math.min(sa.height, sb.height); y++)
     for (let x = 0; x < w; x++) {
       const ia = y * sa.width + Math.round((x * (sa.width - 1)) / Math.max(1, w - 1));
       const xs = Math.round((x * (sb.width - 1)) / Math.max(1, w - 1));
-      const ib = y * sb.width + (flip ? sb.width - 1 - xs : xs);
-      sum += Math.abs(lumaOf(rgbAt(sa, ia)) - lumaOf(rgbAt(sb, ib)));
+      flipped += Math.abs(la[ia]! - lb[y * sb.width + sb.width - 1 - xs]!);
+      straight += Math.abs(la[ia]! - lb[y * sb.width + xs]!);
       n++;
     }
-  return sum / Math.max(1, n);
+  return { flipped: flipped / Math.max(1, n), straight: straight / Math.max(1, n) };
 };
 
 /** The label `labels` gives the first pixel down the column band that `ok` admits, scanning rows `from` to `to` (either way), columns nearest `cx` first within `half`. */

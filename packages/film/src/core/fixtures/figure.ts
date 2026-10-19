@@ -21,6 +21,7 @@
 // as the house lights), a view flipped, and figures side by side on one
 // sheet. Tests only.
 
+import { MutableHashMap, Option } from 'effect';
 import type { Raster } from '../raster.ts';
 
 type Rgb = readonly [number, number, number];
@@ -147,21 +148,43 @@ export const PLAIN: FigureSpec = {
   robeDepth: 330,
 };
 
-/** A canvas over a `Raster`: fills by a pixel test, the last drawn on top. */
+/** A pixel test: whether (x, y) is inside a part, and the box (left, top, right, bottom) that holds every point it admits, when it is known. */
+type PixelTest = ((x: number, y: number) => boolean) & { readonly box?: readonly number[] };
+
+/** `test` with the box that holds every point it admits. */
+const within = (
+  box: readonly number[],
+  test: (x: number, y: number) => boolean,
+): PixelTest & { readonly box: readonly number[] } => Object.assign(test, { box });
+
+/** A canvas over a `Raster`: fills by a pixel test, the last drawn on top; a shape with a box is tested only over it, a pixel past it each way. */
 const canvasOf = (width: number, height: number) => {
   const rgba = new Uint8Array(width * height * 4);
-  const fill = (inside: (x: number, y: number) => boolean, colour: Rgb) => {
-    for (let y = 0; y < height; y++)
-      for (let x = 0; x < width; x++)
-        if (inside(x + 0.5, y + 0.5)) rgba.set([...colour, 255], (y * width + x) * 4);
+  const fill = (inside: PixelTest, colour: Rgb) => {
+    const [r, g, b] = colour;
+    const [x0, y0, x1, y1] = inside.box ?? [0, 0, width, height];
+    const [left, right] = [Math.max(0, Math.floor(x0!) - 1), Math.min(width, Math.ceil(x1!) + 1)];
+    const [top, bottom] = [Math.max(0, Math.floor(y0!) - 1), Math.min(height, Math.ceil(y1!) + 1)];
+    for (let y = top; y < bottom; y++)
+      for (let x = left; x < right; x++)
+        if (inside(x + 0.5, y + 0.5)) {
+          const i = (y * width + x) * 4;
+          rgba[i] = r;
+          rgba[i + 1] = g;
+          rgba[i + 2] = b;
+          rgba[i + 3] = 255;
+        }
   };
   fill(() => true, PAPER);
   return { fill, raster: (): Raster => ({ width, height, rgba }) };
 };
 
 /** Inside the ellipse at (cx, cy) with radii rx, ry. */
-const ellipse = (cx: number, cy: number, rx: number, ry: number) => (x: number, y: number) =>
-  ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
+const ellipse = (cx: number, cy: number, rx: number, ry: number) =>
+  within(
+    [cx - Math.abs(rx), cy - Math.abs(ry), cx + Math.abs(rx), cy + Math.abs(ry)],
+    (x, y) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1,
+  );
 
 type Canvas = ReturnType<typeof canvasOf>;
 
@@ -172,10 +195,16 @@ const frameOf = (spec: FigureSpec) => {
   // The robe: a trapezoid from under the chin to the hem, inside its line.
   const halfAt = (y: number) =>
     spec.robeTop / 2 + ((spec.robeHem - spec.robeTop) / 2) * ((y - chin) / spec.robeDepth);
-  const robe = (pad: number) => (x: number, y: number) =>
-    y >= chin - spec.ry / 2 - pad &&
-    y <= hem + pad &&
-    Math.abs(x - spec.cx) <= halfAt(Math.max(chin, y)) + pad;
+  const robe = (pad: number) => {
+    const half = Math.max(halfAt(chin), halfAt(hem + pad)) + pad;
+    return within(
+      [spec.cx - half, chin - spec.ry / 2 - pad, spec.cx + half, hem + pad],
+      (x, y) =>
+        y >= chin - spec.ry / 2 - pad &&
+        y <= hem + pad &&
+        Math.abs(x - spec.cx) <= halfAt(Math.max(chin, y)) + pad,
+    );
+  };
   const out = spec.arm === 'sleeveReach' || spec.arm === 'bare';
   const hand = out
     ? { x: spec.cx + spec.robeHem / 2 + 40, y: chin + 0.4 * spec.robeDepth, r: 22 }
@@ -190,7 +219,12 @@ const drawRobeFill = (c: Canvas, spec: FigureSpec, f: Frame) => {
   const shade = spec.robeShade;
   const right = spec.lit !== 'right';
   const shaded = (x: number) => (right && x > spec.cx + 6) || (!right && x < spec.cx - 6);
-  if (shade !== undefined) c.fill((x, y) => f.robe(0)(x, y) && shaded(x), shade);
+  const robe = f.robe(0);
+  if (shade !== undefined)
+    c.fill(
+      within(robe.box, (x, y) => robe(x, y) && shaded(x)),
+      shade,
+    );
 };
 
 /** The arm and the hand: a sleeve at rest down the side, a sleeve or bare skin out to the hand, then the hand. */
@@ -198,16 +232,28 @@ const drawArm = (c: Canvas, spec: FigureSpec, f: Frame) => {
   const { cx, line } = spec;
   const { hand } = f;
   if (spec.arm === 'sleeveAtRest') {
-    const band = (pad: number) => (x: number, y: number) =>
-      y >= f.chin + 0.1 * spec.robeDepth - pad &&
-      y <= f.chin + 0.55 * spec.robeDepth + pad &&
-      x >= cx &&
-      x <= cx + f.halfAt(y) + 8 + pad;
+    const band = (pad: number): PixelTest => {
+      const [from, to] = [
+        f.chin + 0.1 * spec.robeDepth - pad,
+        f.chin + 0.55 * spec.robeDepth + pad,
+      ];
+      return within(
+        [cx, from, cx + Math.max(f.halfAt(from), f.halfAt(to)) + 8 + pad, to],
+        (x, y) =>
+          y >= f.chin + 0.1 * spec.robeDepth - pad &&
+          y <= f.chin + 0.55 * spec.robeDepth + pad &&
+          x >= cx &&
+          x <= cx + f.halfAt(y) + 8 + pad,
+      );
+    };
     c.fill(band(line), INK);
     c.fill(band(0), spec.robe ?? ROBE);
   }
-  const reach = (pad: number) => (x: number, y: number) =>
-    Math.abs(y - hand.y) <= 16 + pad && x >= cx && x <= hand.x;
+  const reach = (pad: number): PixelTest =>
+    within(
+      [cx, hand.y - 16 - pad, hand.x, hand.y + 16 + pad],
+      (x, y) => Math.abs(y - hand.y) <= 16 + pad && x >= cx && x <= hand.x,
+    );
   if (spec.arm === 'sleeveReach') {
     c.fill(reach(line), INK);
     c.fill(reach(0), spec.robe ?? ROBE);
@@ -216,7 +262,9 @@ const drawArm = (c: Canvas, spec: FigureSpec, f: Frame) => {
   if (spec.limb !== undefined || spec.handless === true) return;
   if (spec.arm === 'sleeve') {
     const top = f.chin + 0.15 * spec.robeDepth;
-    const along = (w: number) => segment([cx + f.halfAt(top), top], [hand.x, hand.y], w);
+    const [from, to] = [[cx + f.halfAt(top), top] as const, [hand.x, hand.y] as const];
+    const along = (w: number) =>
+      within([from[0] - w, from[1] - w, to[0] + w, to[1] + w], segment(from, to, w));
     c.fill(along(14 + line), INK);
     c.fill(along(14), spec.robeShade ?? spec.robe ?? ROBE);
     c.fill(ellipse(hand.x, hand.y, hand.r + line, hand.r + line), INK);
@@ -247,11 +295,17 @@ const drawLimb = (c: Canvas, spec: FigureSpec, f: Frame) => {
   const { line } = spec;
   const [hx, hy] = limb.hand;
   const head = ellipse(spec.cx, spec.cy, spec.rx + line, spec.ry + line);
-  const off = (p: (x: number, y: number) => boolean) => (x: number, y: number) =>
-    p(x, y) && !f.robe(0)(x, y) && !head(x, y);
+  const robe = f.robe(0);
+  const off = (p: ReturnType<typeof within>): PixelTest =>
+    within(p.box, (x, y) => p(x, y) && !robe(x, y) && !head(x, y));
   const points = [...(limb.from ?? []), limb.hand];
-  const along = (w: number) => (x: number, y: number) =>
-    limb.kind !== 'free' && points.slice(1).some((b, k) => segment(points[k]!, b, w)(x, y));
+  const [xs, ys] = [points.map((q) => q[0]), points.map((q) => q[1])];
+  const along = (w: number) =>
+    within(
+      [Math.min(...xs) - w, Math.min(...ys) - w, Math.max(...xs) + w, Math.max(...ys) + w],
+      (x, y) =>
+        limb.kind !== 'free' && points.slice(1).some((b, k) => segment(points[k]!, b, w)(x, y)),
+    );
   const fill = limb.kind === 'bare' ? SKIN : (spec.robeShade ?? spec.robe ?? ROBE);
   c.fill(off(along(16 + line)), INK);
   c.fill(ellipse(hx, hy, 22 + line, 22 + line), INK);
@@ -270,8 +324,12 @@ const drawBareSkin = (c: Canvas, spec: FigureSpec, f: Frame) => {
     bare.kind === 'yoke' ||
     (bare.kind === 'shoulders' && Math.abs(x - spec.cx) > 30) ||
     (bare.kind === 'chest' && Math.abs(x - spec.cx) <= 20);
+  const robe = f.robe(0);
   c.fill(
-    (x, y) => f.robe(0)(x, y) && y >= top && y <= top + bare.depth && across(x) && !head(x, y),
+    within(
+      robe.box,
+      (x, y) => robe(x, y) && y >= top && y <= top + bare.depth && across(x) && !head(x, y),
+    ),
     SKIN,
   );
 };
@@ -281,26 +339,38 @@ const drawHair = (c: Canvas, spec: FigureSpec) => {
   const { cx, cy, rx, ry, line } = spec;
   const head = ellipse(cx, cy, rx, ry);
   const hairLine = cy - spec.hairAbove;
-  const cap = (x: number, y: number) => head(x, y) && y < hairLine;
+  const box = head.box;
+  const cap = within(box, (x, y) => head(x, y) && y < hairLine);
   const short = (spec.darkHair === true && HAIR_DARK) || HAIR;
   c.fill(cap, (spec.longHair === true && LOCKS) || short);
-  const inLock = (x: number, y: number) =>
-    head(x, y) && y >= hairLine && Math.abs(x - cx) > rx - 14;
+  const inLock = within(box, (x, y) => head(x, y) && y >= hairLine && Math.abs(x - cx) > rx - 14);
   if (spec.longHair === true) c.fill(inLock, LOCKS);
   if (spec.beard !== undefined) {
     const beardTop = cy + spec.eyeBelow + 16;
-    c.fill((x, y) => head(x, y) && y >= beardTop && !inLock(x, y), LOCKS);
-    const seam = (x: number, y: number) =>
-      head(x, y) &&
-      y >= beardTop &&
-      Math.abs(x - cx) > rx - 14 - line &&
-      Math.abs(x - cx) <= rx - 14;
+    c.fill(
+      within(box, (x, y) => head(x, y) && y >= beardTop && !inLock(x, y)),
+      LOCKS,
+    );
+    const seam = within(
+      box,
+      (x, y) =>
+        head(x, y) &&
+        y >= beardTop &&
+        Math.abs(x - cx) > rx - 14 - line &&
+        Math.abs(x - cx) <= rx - 14,
+    );
     if (spec.beard.parted) c.fill(seam, INK);
   }
   if (spec.darkHair === true)
-    c.fill((x, y) => cap(x, y) && (Math.floor(x) + 2 * Math.floor(y)) % 5 === 0, HAIR_SPECK);
+    c.fill(
+      within(box, (x, y) => cap(x, y) && (Math.floor(x) + 2 * Math.floor(y)) % 5 === 0),
+      HAIR_SPECK,
+    );
   if (spec.hairInk)
-    c.fill((x, y) => head(x, y) && y >= hairLine - line / 2 && y < hairLine + line / 2, INK);
+    c.fill(
+      within(box, (x, y) => head(x, y) && y >= hairLine - line / 2 && y < hairLine + line / 2),
+      INK,
+    );
 };
 
 /** The ear, on the face at its right side: its line, its skin, and its rim when it has one. */
@@ -309,9 +379,11 @@ const drawEar = (c: Canvas, spec: FigureSpec) => {
   const ear = { x: spec.cx + 38, y: spec.cy + 8, rx: 10, ry: 18 };
   c.fill(ellipse(ear.x, ear.y, ear.rx + spec.line, ear.ry + spec.line), INK);
   c.fill(ellipse(ear.x, ear.y, ear.rx, ear.ry), SKIN);
-  const rim = (x: number, y: number) =>
-    ellipse(ear.x, ear.y, ear.rx, ear.ry)(x, y) &&
-    !ellipse(ear.x, ear.y, ear.rx - 5, ear.ry - 5)(x, y);
+  const [outer, inner] = [
+    ellipse(ear.x, ear.y, ear.rx, ear.ry),
+    ellipse(ear.x, ear.y, ear.rx - 5, ear.ry - 5),
+  ];
+  const rim = within(outer.box, (x, y) => outer(x, y) && !inner(x, y));
   if (spec.ear.rim) c.fill(rim, SKIN_LIGHT);
 };
 
@@ -337,19 +409,34 @@ const drawFace = (c: Canvas, spec: FigureSpec) => {
   const y = cy + spec.eyeBelow + 25;
   c.fill(
     (open && ellipse(eyeX, y, width / 2, width / 4)) ||
-      ((x, yy) => Math.abs(x - eyeX) <= width / 2 && Math.abs(yy - y) <= 1.5),
+      within(
+        [eyeX - width / 2, y - 1.5, eyeX + width / 2, y + 1.5],
+        (x, yy) => Math.abs(x - eyeX) <= width / 2 && Math.abs(yy - y) <= 1.5,
+      ),
     INK,
   );
 };
 
-/** A drawn figure, 400 × 640, on paper. */
+/** The figures drawn so far, by their spec (held by its fields): a test file draws the same figure many times. */
+const drawn = MutableHashMap.empty<FigureSpec, Raster>();
+
+/** A drawn figure, 400 × 640, on paper: drawn once per spec, and a copy of it handed out each time. */
 export const drawFigure = (spec: FigureSpec = PLAIN): Raster => {
+  const r = Option.getOrElse(MutableHashMap.get(drawn, spec), () => drawnFresh(spec));
+  MutableHashMap.set(drawn, spec, r);
+  return { ...r, rgba: r.rgba.slice() };
+};
+
+const drawnFresh = (spec: FigureSpec): Raster => {
   const c = canvasOf(400, 640);
   const { cx, cy, rx, ry, line } = spec;
   const f = frameOf(spec);
   // The wall's lines, behind everything.
   for (const k of (spec.wall === true && Array.from({ length: 8 }, (_, i) => i)) || [])
-    c.fill((_, y) => y >= 260 + 32 * k && y < 263 + 32 * k, INK);
+    c.fill(
+      within([0, 260 + 32 * k, 400, 263 + 32 * k], (_, y) => y >= 260 + 32 * k && y < 263 + 32 * k),
+      INK,
+    );
   // The feet, under the hem.
   for (const dx of (spec.feet === false && []) || [-40, 40]) {
     c.fill(ellipse(cx + dx, f.hem + 12, 24 + line, 10 + line), INK);
@@ -366,13 +453,20 @@ export const drawFigure = (spec: FigureSpec = PLAIN): Raster => {
   drawHair(c, spec);
   if (spec.headcloth !== undefined) {
     const opening = ellipse(cx + (spec.eyeShift ?? 0), cy + spec.eyeBelow + 8, rx - 16, ry - 20);
-    c.fill((x, y) => ellipse(cx, cy, rx, ry)(x, y) && !opening(x, y), spec.headcloth);
+    const cloth = ellipse(cx, cy, rx, ry);
+    c.fill(
+      within(cloth.box, (x, y) => cloth(x, y) && !opening(x, y)),
+      spec.headcloth,
+    );
   }
   drawEar(c, spec);
   // The rail, in front of the robe's foot: its line, its wood.
   if (spec.rail === true) {
-    const bar = (pad: number) => (x: number, y: number) =>
-      x >= 40 - pad && x <= 360 + pad && y >= f.hem - 30 - pad && y <= f.hem + 40 + pad;
+    const bar = (pad: number): PixelTest =>
+      within(
+        [40 - pad, f.hem - 30 - pad, 360 + pad, f.hem + 40 + pad],
+        (x, y) => x >= 40 - pad && x <= 360 + pad && y >= f.hem - 30 - pad && y <= f.hem + 40 + pad,
+      );
     c.fill(bar(line), INK);
     c.fill(bar(0), WOOD);
   }
@@ -397,7 +491,12 @@ export const drawSheet = (views: ReadonlyArray<Raster>): Raster => {
   const height = Math.max(...views.map((v) => v.height));
   const width = views.reduce((s, v) => s + v.width, 0);
   const rgba = new Uint8Array(width * height * 4);
-  for (let i = 0; i < width * height; i++) rgba.set([...PAPER, 255], i * 4);
+  for (let i = 0; i < width * height; i++) {
+    rgba[i * 4] = PAPER[0];
+    rgba[i * 4 + 1] = PAPER[1];
+    rgba[i * 4 + 2] = PAPER[2];
+    rgba[i * 4 + 3] = 255;
+  }
   let left = 0;
   for (const v of views) {
     for (let y = 0; y < v.height; y++)

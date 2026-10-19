@@ -50,37 +50,42 @@ const paeth = (left: number, up: number, upLeft: number): number => {
   return upLeft;
 };
 
-/** What filter `kind` (0 none, 1 sub, 2 up, 3 average, 4 Paeth) predicts a byte is, from its neighbours. */
-const predicted = (kind: number, left: number, up: number, upLeft: number): number => {
-  switch (kind) {
-    case 1:
-      return left;
-    case 2:
-      return up;
-    case 3:
-      return (left + up) >> 1;
-    case 4:
-      return paeth(left, up, upLeft);
-    default:
-      return 0;
-  }
+/** A row filtered against `above` (zeros for the first row) into `out`. */
+type RowFilter = (row: Uint8Array, above: Uint8Array, out: Uint8Array) => void;
+
+// Each filter's loop: each byte less what the filter predicts from its
+// neighbours. The first pixel has nothing to its left: its left and up-left
+// read as zero, as the standard reads them.
+const none: RowFilter = (row, _above, out) => out.set(row);
+const sub: RowFilter = (row, _above, out) => {
+  for (let i = 0; i < CHANNELS; i++) out[i] = row[i] ?? 0;
+  for (let i = CHANNELS; i < row.length; i++)
+    out[i] = ((row[i] ?? 0) - (row[i - CHANNELS] ?? 0)) & 0xff;
+};
+const up: RowFilter = (row, above, out) => {
+  for (let i = 0; i < row.length; i++) out[i] = ((row[i] ?? 0) - (above[i] ?? 0)) & 0xff;
+};
+const average: RowFilter = (row, above, out) => {
+  for (let i = 0; i < CHANNELS; i++) out[i] = ((row[i] ?? 0) - ((above[i] ?? 0) >> 1)) & 0xff;
+  for (let i = CHANNELS; i < row.length; i++)
+    out[i] = ((row[i] ?? 0) - (((row[i - CHANNELS] ?? 0) + (above[i] ?? 0)) >> 1)) & 0xff;
+};
+const paethRow: RowFilter = (row, above, out) => {
+  for (let i = 0; i < CHANNELS; i++) out[i] = ((row[i] ?? 0) - paeth(0, above[i] ?? 0, 0)) & 0xff;
+  for (let i = CHANNELS; i < row.length; i++)
+    out[i] =
+      ((row[i] ?? 0) - paeth(row[i - CHANNELS] ?? 0, above[i] ?? 0, above[i - CHANNELS] ?? 0)) &
+      0xff;
 };
 
-/** `row` under filter `kind`, against `above` (zeros for the first row), into `out`. */
-const filterRow = (kind: number, row: Uint8Array, above: Uint8Array, out: Uint8Array): void => {
-  // The first pixel has nothing to its left: its left and up-left read as zero, as the standard reads them.
-  for (let i = 0; i < CHANNELS; i++)
-    out[i] = ((row[i] ?? 0) - predicted(kind, 0, above[i] ?? 0, 0)) & 0xff;
-  for (let i = CHANNELS; i < row.length; i++) {
-    const guess = predicted(kind, row[i - CHANNELS] ?? 0, above[i] ?? 0, above[i - CHANNELS] ?? 0);
-    out[i] = ((row[i] ?? 0) - guess) & 0xff;
-  }
-};
+/** The filters by their byte: 0 none, 1 sub, 2 up, 3 average, 4 Paeth. */
+const FILTERS: ReadonlyArray<RowFilter> = [none, sub, up, average, paethRow];
 
 /** A filtered row's cost: its bytes read as signed, summed by size (the standard's heuristic). */
 const costOf = (filtered: Uint8Array): number => {
   let sum = 0;
-  for (const byte of filtered) sum += Math.min(byte, 256 - byte);
+  for (let i = 0; i < filtered.length; i++)
+    sum += Math.min(filtered[i] ?? 0, 256 - (filtered[i] ?? 0));
   return sum;
 };
 
@@ -95,7 +100,7 @@ const filtered = (raster: Raster): Uint8Array => {
     const at = y * (stride + 1);
     let best = Number.POSITIVE_INFINITY;
     for (let kind = 0; kind < 5; kind++) {
-      filterRow(kind, row, above, trial);
+      FILTERS[kind]?.(row, above, trial);
       const cost = costOf(trial);
       if (cost < best) {
         best = cost;
@@ -192,6 +197,22 @@ const headerOf = (head: Option.Option<Uint8Array>) => {
   return Result.succeed({ width, height, layout: layout.value });
 };
 
+/** What filter `kind` (0 none, 1 sub, 2 up, 3 average, 4 Paeth) predicts a byte is, from its neighbours. */
+const predicted = (kind: number, left: number, up: number, upLeft: number): number => {
+  switch (kind) {
+    case 1:
+      return left;
+    case 2:
+      return up;
+    case 3:
+      return (left + up) >> 1;
+    case 4:
+      return paeth(left, up, upLeft);
+    default:
+      return 0;
+  }
+};
+
 /**
  * The rows unfiltered, `channels` bytes a pixel. Each row is unfiltered
  * behind `channels` zero bytes, so the pixel left of a row's first reads 0
@@ -206,8 +227,8 @@ const unfilter = (raw: Uint8Array, width: number, height: number, channels: numb
     const row = new Uint8Array(stride + channels);
     for (let i = 0; i < stride; i++) {
       const byte = raw[y * (stride + 1) + 1 + i] ?? 0;
-      const [left, up, upLeft] = [row[i] ?? 0, above[channels + i] ?? 0, above[i] ?? 0];
-      row[channels + i] = (byte + predicted(kind, left, up, upLeft)) & 0xff;
+      row[channels + i] =
+        (byte + predicted(kind, row[i] ?? 0, above[channels + i] ?? 0, above[i] ?? 0)) & 0xff;
     }
     rows.set(row.subarray(channels), y * stride);
     above = row;

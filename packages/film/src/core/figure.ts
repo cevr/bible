@@ -225,6 +225,48 @@ const rgbAt = (r: Raster, i: number): Rgb => [
 
 const dist = (a: Rgb, b: Rgb): number => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
+/** The square of `dist`. */
+const distSq = (a: Rgb, b: Rgb): number => {
+  const dr = a[0] - b[0];
+  const dg = a[1] - b[1];
+  const db = a[2] - b[2];
+  return dr * dr + dg * dg + db * db;
+};
+
+/** The square of `dist` between pixel `i` of `r` and `c`, read off the bytes. */
+const distSqAt = (r: Raster, i: number, c: Rgb): number => {
+  const dr = r.rgba[i * 4]! - c[0];
+  const dg = r.rgba[i * 4 + 1]! - c[1];
+  const db = r.rgba[i * 4 + 2]! - c[2];
+  return dr * dr + dg * dg + db * db;
+};
+
+/**
+ * Two distances' order (-1, 0 or 1) as their squares tell it, and 0 also
+ * where the squares lie too near to tell, so the caller asks `dist` itself:
+ * squares a billionth apart are far past `Math.hypot`'s error, so where they
+ * tell, they tell as `dist` would.
+ */
+const orderOfSquares = (a: number, b: number): number => {
+  // oxlint-disable-next-line film/one-clock-epsilon -- a colour distance's float band, no time
+  if (Math.abs(a - b) <= 1e-9 * Math.max(a, b)) return 0;
+  return Math.sign(a - b);
+};
+
+/** Whether `dist(a, b) < limit`, on the squares unless they lie too near to tell. */
+const closerThan = (a: Rgb, b: Rgb, limit: number): boolean => {
+  const order = orderOfSquares(distSq(a, b), limit * limit);
+  return order < 0 || (order === 0 && dist(a, b) < limit);
+};
+
+/** Whether `dist` from pixel `i` of `r` to `c` is under `limit` (or at it, with `orAt`), on the squares unless they lie too near to tell. */
+const closerThanAt = (r: Raster, i: number, c: Rgb, limit: number, orAt = false): boolean => {
+  const order = orderOfSquares(distSqAt(r, i, c), limit * limit);
+  if (order !== 0) return order < 0;
+  const d = dist(rgbAt(r, i), c);
+  return d < limit || (orAt && d === limit);
+};
+
 const lumaOf = (c: Rgb): number => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
 
 /** `c` as hue, saturation and value. */
@@ -283,10 +325,12 @@ const clusters = (colours: ReadonlyArray<Rgb>, k: number) => {
     members = centres.map(() => []);
     for (const c of colours) {
       let best = 0;
-      let nearest = dist(c, centres[0]!);
+      let nearest = distSq(c, centres[0]!);
       for (let j = 1; j < centres.length; j++) {
-        const d = dist(c, centres[j]!);
-        if (d < nearest) [best, nearest] = [j, d];
+        const d = distSq(c, centres[j]!);
+        const order = orderOfSquares(d, nearest);
+        if (order < 0 || (order === 0 && dist(c, centres[j]!) < dist(c, centres[best]!)))
+          [best, nearest] = [j, d];
       }
       members[best]!.push(c);
     }
@@ -316,7 +360,7 @@ const INK_NEAR = 34;
  * line more than a rig's flat stroke does).
  */
 const inkLike = (c: Rgb, ink: Rgb): boolean => {
-  if (dist(c, ink) >= 2.5 * INK_NEAR || lumaOf(c) >= 100) return false;
+  if (!closerThan(c, ink, 2.5 * INK_NEAR) || lumaOf(c) >= 100) return false;
   const { hue, saturation } = hsvOf(c);
   return saturation >= 0.5 && hue <= 45;
 };
@@ -342,7 +386,7 @@ const inkOf = (r: Raster): Option.Option<Rgb> => {
     ((best & 31) << 3) + 4,
   ];
   const near: Array<Rgb> = [];
-  for (let i = 0; i < n; i++) if (dist(rgbAt(r, i), centre) <= 14) near.push(rgbAt(r, i));
+  for (let i = 0; i < n; i++) if (closerThanAt(r, i, centre, 14, true)) near.push(rgbAt(r, i));
   const mean = (k: 0 | 1 | 2) => Math.round(near.reduce((s, c) => s + c[k], 0) / near.length);
   return Option.some([mean(0), mean(1), mean(2)]);
 };
@@ -611,7 +655,7 @@ const readCrop = (r: Raster): Option.Option<Read> =>
     const near = new Uint8Array(n);
     for (let i = 0; i < n; i++) {
       const c = rgbAt(r, i);
-      strong[i] = dist(c, inkColour) < INK_NEAR && c[2] <= c[1] + 6 ? 1 : 0;
+      strong[i] = closerThan(c, inkColour, INK_NEAR) && c[2] <= c[1] + 6 ? 1 : 0;
       near[i] = strong[i] === 1 || inkLike(c, inkColour) ? 1 : 0;
     }
     const line = lineWidthOf(strong, w, h);
@@ -902,7 +946,7 @@ const shadeKind = (lit: Hsv, shade: Hsv): Shading['kind'] =>
  */
 const shadingOf = (all: ReadonlyArray<Pixel>): Option.Option<Shading> => {
   const median = medianRgb(all.map((p) => p.c));
-  const pixels = all.filter((p) => dist(p.c, median) < 70);
+  const pixels = all.filter((p) => closerThan(p.c, median, 70));
   if (pixels.length < 40) return Option.none();
   const [first, second] = clusters(
     pixels.map((p) => p.c),
@@ -915,7 +959,10 @@ const shadingOf = (all: ReadonlyArray<Pixel>): Option.Option<Shading> => {
     hsvOf(first.centre).value >= hsvOf(second.centre).value
       ? [first.centre, second.centre]
       : [second.centre, first.centre];
-  const nearer = (p: Pixel, c: Rgb, other: Rgb) => dist(p.c, c) <= dist(p.c, other);
+  const nearer = (p: Pixel, c: Rgb, other: Rgb) => {
+    const order = orderOfSquares(distSq(p.c, c), distSq(p.c, other));
+    return order < 0 || (order === 0 && dist(p.c, c) <= dist(p.c, other));
+  };
   const lit = pixels.filter((p) => nearer(p, litC, shadeC));
   const shade = pixels.filter((p) => !nearer(p, litC, shadeC));
   const centre = (ps: ReadonlyArray<Pixel>) =>
@@ -968,7 +1015,7 @@ const STEP = 40;
 /** The fills: what the ink does not bar, split where neighbouring pixels step `STEP` or more apart. */
 const fillsOf = (read: Read): Labelled => {
   const open = (i: number) => read.regions.labels[i]! >= 0;
-  const step = (i: number, j: number) => dist(rgbAt(read.r, i), rgbAt(read.r, j)) < STEP;
+  const step = (i: number, j: number) => closerThanAt(read.r, i, rgbAt(read.r, j), STEP);
   return label(read.w, read.h, open, false, step);
 };
 
@@ -1413,7 +1460,7 @@ const innerParts = (read: Read, head: Head): Array<Part> => {
 };
 
 /** The hair's own line, the light rim inside the inner parts, and the head's outline: its radii. */
-const hairRatios = (read: Read, head: Head, sink: Sink): Array<number> => {
+const hairRatios = (read: Read, head: Head, sink: Sink, rims: boolean): Array<number> => {
   const { hair, masses, W, span } = head;
   const lightHair = hair.filter((p) => !masses.has(p.id));
   if (hair.length > 0 && lightHair.length === 0)
@@ -1424,8 +1471,8 @@ const hairRatios = (read: Read, head: Head, sink: Sink): Array<number> => {
       interiorInk(read, head.face, new Set(lightHair.map((p) => p.id)), span) / W,
     );
   // A light rim inside the edges of the head's inner parts (an ear, the hair): the concept paints none.
-  const inner = innerParts(read, head);
-  sink.put('innerRim', innerRim(read, inner, W) / W);
+  if (rims) sink.put('innerRim', innerRim(read, innerParts(read, head), W) / W);
+  else sink.lacks('innerRim', 'a lean read reads no rims');
   return headRadii(head.outer, [head.cx, head.cy], W, span);
 };
 
@@ -1668,7 +1715,8 @@ const BODY_RATIOS = [
 
 /** The body as read: its shade, its outline, the feet's box, and its lowest row. */
 interface BodyRead {
-  readonly shading: Option.Option<Shading>;
+  /** The body's shade, read when asked: a lean read leaves it. */
+  readonly shading: () => Option.Option<Shading>;
   readonly edges: ReadonlyArray<BodyEdge>;
   readonly feet: Option.Option<PixelBox>;
   readonly lowest: number;
@@ -1681,14 +1729,14 @@ const bodyOf = (read: Read, head: Head, sink: Sink): BodyRead => {
   if (dominant < 0 || fills.parts[dominant]!.border) {
     const why = dominant < 0 ? 'no body under the chin' : "the body's fill reaches the crop's edge";
     for (const ratio of BODY_RATIOS) sink.lacks(ratio, why);
-    return { shading: Option.none(), edges: [], feet: Option.none(), lowest: read.h };
+    return { shading: () => Option.none(), edges: [], feet: Option.none(), lowest: read.h };
   }
   const gap = read.line + 2;
   const { rows, ids } = bodyRowsOf(read, fills, dominant, head, gap);
   const edge = read.seal + head.outline;
   bodyWidths(rows, head, edge, sink);
   return {
-    shading: bodyShadingOf(read, fills, ids, rows),
+    shading: () => bodyShadingOf(read, fills, ids, rows),
     edges: bodyEdgesOf(rows, head, edge),
     feet: feetRatios(read, rows, head, gap, sink),
     lowest: rows.at(-1)!.y,
@@ -1722,8 +1770,11 @@ const handRatios = (read: Read, head: Head, lowest: number, sink: Sink) => {
     );
 };
 
-/** Measure the figure in `crop`: one figure, with a little room round it. */
-export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, FigureUnread> => {
+/** A figure read without its light rims, its shading or its render artifacts: what a cast sheet's view needs when no concept is held to it. */
+export type FigureRead = Omit<FigureMeasure, 'headShading' | 'bodyShading' | 'artifacts'>;
+
+/** The figure in `crop` read, its rims read or not, with what the full measure reads on from. */
+const readWith = (crop: Raster, rims: boolean) => {
   const maybe = readCrop(crop);
   if (Option.isNone(maybe)) return unread('no dark warm ink in it');
   const read = maybe.value;
@@ -1742,25 +1793,10 @@ export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, Figure
       onSome: ([lo, hi]) => sink.put('jaw', (hi - lo + 1 + 2 * head.rim) / W),
     });
     const mouth = faceRatios(read, head, sink);
-    const radii = hairRatios(read, head, sink);
-    // The outline's own colour only: a dark brown fill (hair, a beard) is a fill here, so a gap between it and the line shows.
-    const inkColoured = new Uint8Array(read.ink.length);
-    for (let i = 0; i < inkColoured.length; i++)
-      inkColoured[i] = dist(rgbAt(read.r, i), read.inkColour) < INK_NEAR ? 1 : 0;
-    const artifacts = headArtifacts({
-      raster: read.r,
-      ink: inkColoured,
-      head: head.outer,
-      face: faceBoxOf(head),
-      line: read.line,
-    });
-    // The head's shade: the face below the eyes.
-    const headShading = shadingOf(
-      pixelsOf(read, new Set([head.face.id]), head.eyeY + 0.1 * W, head.hy1),
-    );
+    const radii = hairRatios(read, head, sink, rims);
     const body = bodyOf(read, head, sink);
     handRatios(read, head, body.lowest, sink);
-    return {
+    const figure: FigureRead = {
       head: [head.hx0, head.hy0, head.hx1, head.hy1] as const,
       ink: read.inkColour,
       ratios: RATIOS.flatMap((ratio) => {
@@ -1772,15 +1808,53 @@ export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, Figure
         body: body.edges,
         ...Option.match(body.feet, { onNone: () => ({}), onSome: (feet) => ({ feet }) }),
       },
-      ...Option.match(headShading, { onNone: () => ({}), onSome: (s) => ({ headShading: s }) }),
-      ...Option.match(body.shading, { onNone: () => ({}), onSome: (s) => ({ bodyShading: s }) }),
       ...Option.match(mouth, { onNone: () => ({}), onSome: (pose) => ({ mouth: pose }) }),
       facing: facingOf(read, head),
-      artifacts,
+      missing,
+    };
+    return { figure, read, head, body };
+  });
+};
+
+/** The head's render artifacts: thin lines of a third colour inside its outline, the outline's own colour only (a dark brown fill, hair or a beard, is a fill here, so a gap between it and the line shows). */
+const artifactsOf = (read: Read, head: Head) => {
+  const inkColoured = new Uint8Array(read.ink.length);
+  for (let i = 0; i < inkColoured.length; i++)
+    inkColoured[i] = closerThanAt(read.r, i, read.inkColour, INK_NEAR) ? 1 : 0;
+  return headArtifacts({
+    raster: read.r,
+    ink: inkColoured,
+    head: head.outer,
+    face: faceBoxOf(head),
+    line: read.line,
+  });
+};
+
+/** Read the figure in `crop` lean: every ratio but its light rims, with no shading and no render artifacts. */
+export const readFigure = (crop: Raster): Result.Result<FigureRead, FigureUnread> =>
+  Result.map(readWith(crop, false), (r) => r.figure);
+
+/** Measure the figure in `crop`: one figure, with a little room round it. */
+export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, FigureUnread> =>
+  Result.map(readWith(crop, true), ({ figure, read, head, body }) => {
+    // The head's shade: the face below the eyes.
+    const headShading = shadingOf(
+      pixelsOf(read, new Set([head.face.id]), head.eyeY + 0.1 * head.W, head.hy1),
+    );
+    const { mouth, facing, missing, ...lines } = figure;
+    return {
+      ...lines,
+      ...Option.match(headShading, { onNone: () => ({}), onSome: (s) => ({ headShading: s }) }),
+      ...Option.match(body.shading(), { onNone: () => ({}), onSome: (s) => ({ bodyShading: s }) }),
+      ...Option.match(Option.fromUndefinedOr(mouth), {
+        onNone: () => ({}),
+        onSome: (pose) => ({ mouth: pose }),
+      }),
+      facing,
+      artifacts: artifactsOf(read, head),
       missing,
     };
   });
-};
 
 /**
  * What a walk from the pixels `seed` picks reaches in a `w` × `h` picture,

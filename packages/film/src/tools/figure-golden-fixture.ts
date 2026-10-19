@@ -10,7 +10,7 @@
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { Console, Effect, Equal, FileSystem, Option, Result, Schema } from 'effect';
-import { FigureMeasure, measureFigure } from '../core/figure.ts';
+import { FigureMeasure, type FigureRead, measureFigure, readFigure } from '../core/figure.ts';
 import { drawFigure, type FigureSpec, PLAIN } from '../core/fixtures/figure.ts';
 import { repoJson } from '../core/schema.ts';
 import { decodePng } from './png.ts';
@@ -100,35 +100,78 @@ const goldenPinned = Effect.gen(function* () {
   return yield* Schema.decodeEffect(GoldenJson)(yield* fs.readFileString(fixture('golden.json')));
 });
 
-/** A case of `set` measured now, beside its pin. */
+/** A case of `set` measured now: its full measure as an entry, its pin, and both reads. */
 interface GoldenRow {
   readonly name: string;
   readonly now: GoldenEntry;
   readonly pinned: Option.Option<GoldenEntry>;
+  readonly full: ReturnType<typeof measureFigure>;
+  readonly lean: ReturnType<typeof readFigure>;
 }
 
-/** Every case of `set` measured now beside its pin; and the pins' names. */
+/** Every case of `set` measured now, in full and lean, beside its pin; and the pins' names. */
 const goldenRows = (set: GoldenSet) =>
   Effect.gen(function* () {
     const pinned = yield* goldenPinned;
     const crops = yield* goldenCrops(set);
-    const rows = crops.map(([name, crop]): GoldenRow => ({
-      name,
-      now: entryOf(measureFigure(crop)),
-      pinned: Option.fromUndefinedOr(pinned[name]),
-    }));
+    const rows = crops.map(([name, crop]): GoldenRow => {
+      const full = measureFigure(crop);
+      return {
+        name,
+        now: entryOf(full),
+        pinned: Option.fromUndefinedOr(pinned[name]),
+        full,
+        lean: readFigure(crop),
+      };
+    });
     const names = Object.keys(pinned).filter((n) => (set === 'drawn') === n.startsWith('drawn: '));
     return { rows, names };
   });
 
-/** What is wrong with a row: its measure off its pin. */
-const rowFaults = (row: GoldenRow): ReadonlyArray<string> =>
-  Option.match(row.pinned, {
+/** The full measure as the lean read gives it: no rims, no shading, no artifacts, and what it lacks less the rims. */
+const leanOf = ({ headShading: _h, bodyShading: _b, artifacts: _a, ...rest }: FigureMeasure) => ({
+  ...rest,
+  ratios: rest.ratios.filter((r) => r.ratio !== 'innerRim'),
+  missing: rest.missing.filter((m) => m.ratio !== 'innerRim'),
+});
+
+/** The lean read with what it lacks less the rims, and the rims' entry alone. */
+const leanParts = (lean: FigureRead) => ({
+  read: { ...lean, missing: lean.missing.filter((m) => m.ratio !== 'innerRim') },
+  rims: lean.missing.filter((m) => m.ratio === 'innerRim'),
+});
+
+const RIMS_LACKED = [{ ratio: 'innerRim', why: 'a lean read reads no rims' }];
+
+/** What is wrong with a row: its measure off its pin, its lean read off its measure. */
+const rowFaults = (row: GoldenRow): ReadonlyArray<string> => {
+  const pinned = Option.match(row.pinned, {
     onNone: () => [`${row.name}: no pin`],
     onSome: (pin) => (Equal.equals(pin, row.now) && []) || [`${row.name}: measured off its pin`],
   });
+  if (Result.isFailure(row.full) || Result.isFailure(row.lean))
+    return [
+      ...pinned,
+      ...((Result.isFailure(row.full) !== Result.isFailure(row.lean) && [
+        `${row.name}: one read reads it, the other does not`,
+      ]) ||
+        []),
+    ];
+  const { read, rims } = leanParts(row.lean.success);
+  return [
+    ...pinned,
+    ...((!Equal.equals(read, leanOf(row.full.success)) && [
+      `${row.name}: the lean read is off the full measure`,
+    ]) ||
+      []),
+    ...((!Equal.equals(rims, RIMS_LACKED) && [
+      `${row.name}: the lean read does not lack its rims`,
+    ]) ||
+      []),
+  ];
+};
 
-/** Every fault of `set`'s cases: a pin with no case, a case off its pin. */
+/** Every fault of `set`'s cases: a pin with no case, a case off its pin, a lean read off its full one. */
 export const goldenFaults = (set: GoldenSet) =>
   Effect.map(goldenRows(set), ({ rows, names }) => [
     ...names

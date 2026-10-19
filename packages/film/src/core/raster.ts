@@ -43,19 +43,30 @@ export const stretchRaster = (r: Raster, fx: number, fy: number): Raster => {
   const width = Math.max(1, Math.round(r.width * fx));
   const height = Math.max(1, Math.round(r.height * fy));
   const rgba = new Uint8Array(width * height * 4);
-  const at = (x: number, y: number, k: number) => r.rgba[(y * r.width + x) * 4 + k] ?? 0;
+  const src = r.rgba;
+  // Each column's two source columns (as byte offsets in a row) and its blend, once.
+  const left = new Int32Array(width);
+  const right = new Int32Array(width);
+  const tx = new Float64Array(width);
+  for (let x = 0; x < width; x++) {
+    const sx = Math.min(r.width - 1, Math.max(0, (x + 0.5) / fx - 0.5));
+    const x0 = Math.floor(sx);
+    left[x] = x0 * 4;
+    right[x] = Math.min(r.width - 1, x0 + 1) * 4;
+    tx[x] = sx - x0;
+  }
   for (let y = 0; y < height; y++) {
     const sy = Math.min(r.height - 1, Math.max(0, (y + 0.5) / fy - 0.5));
-    const [y0, ty] = [Math.floor(sy), sy - Math.floor(sy)];
-    const y1 = Math.min(r.height - 1, y0 + 1);
+    const y0 = Math.floor(sy);
+    const ty = sy - y0;
+    const [top, bottom] = [y0 * r.width * 4, Math.min(r.height - 1, y0 + 1) * r.width * 4];
     for (let x = 0; x < width; x++) {
-      const sx = Math.min(r.width - 1, Math.max(0, (x + 0.5) / fx - 0.5));
-      const [x0, tx] = [Math.floor(sx), sx - Math.floor(sx)];
-      const x1 = Math.min(r.width - 1, x0 + 1);
+      const [a, b, t] = [left[x]!, right[x]!, tx[x]!];
+      const out = (y * width + x) * 4;
       for (let k = 0; k < 4; k++) {
-        const top = at(x0, y0, k) * (1 - tx) + at(x1, y0, k) * tx;
-        const bottom = at(x0, y1, k) * (1 - tx) + at(x1, y1, k) * tx;
-        rgba[(y * width + x) * 4 + k] = Math.round(top * (1 - ty) + bottom * ty);
+        const upper = src[top + a + k]! * (1 - t) + src[top + b + k]! * t;
+        const lower = src[bottom + a + k]! * (1 - t) + src[bottom + b + k]! * t;
+        rgba[out + k] = Math.round(upper * (1 - ty) + lower * ty);
       }
     }
   }

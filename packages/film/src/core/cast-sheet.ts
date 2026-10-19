@@ -49,7 +49,10 @@ import {
   lumaOf,
   opaqueOf,
   outsideOf,
-  pairDiff,
+  labsOf,
+  pairDiffs,
+  within2,
+  within3,
   papersOf,
   type Region,
   regionsOf,
@@ -59,7 +62,13 @@ import {
   type SheetFigure,
   saturationValueOf,
 } from './cast-sheet-pixels.ts';
-import { type FigureMeasure, measureFigure, PixelBox } from './figure.ts';
+import {
+  type FigureMeasure,
+  type FigureRead,
+  measureFigure,
+  PixelBox,
+  readFigure,
+} from './figure.ts';
 import { compareFigures } from './match.ts';
 import { cropRaster, type Raster, type RasterPath, strokeRaster } from './raster.ts';
 
@@ -296,14 +305,17 @@ class SheetUnread extends Schema.TaggedError<SheetUnread>()('SheetUnread', {
 interface ViewRead {
   readonly record: SheetView;
   readonly crop: Raster;
-  readonly measure: Option.Option<FigureMeasure>;
+  /** Its figure read: in full where a concept is held to it, lean elsewhere. */
+  readonly measure: Option.Option<FigureRead>;
+  /** Its figure's full measure, where a concept is held to it. */
+  readonly full: Option.Option<FigureMeasure>;
   readonly unmeasured: ReadonlyArray<SheetUnmeasured>;
 }
 
 /** The room left round a view's crop. */
 const PAD = 12;
 
-const ratioOf = (m: FigureMeasure, ratio: FigureMeasure['ratios'][number]['ratio']) =>
+const ratioOf = (m: FigureRead, ratio: FigureRead['ratios'][number]['ratio']) =>
   Option.map(
     Arr.findFirst(m.ratios, (r) => r.ratio === ratio),
     (r) => r.value,
@@ -325,7 +337,7 @@ interface HeadFrame {
   readonly mouthY: number;
 }
 
-const headFrameOf = (m: FigureMeasure): HeadFrame => {
+const headFrameOf = (m: FigureRead): HeadFrame => {
   const [x0, y0, x1, y1] = m.head;
   const W = x1 - x0;
   const cy = (y0 + y1) / 2;
@@ -436,9 +448,10 @@ type SkinPart =
  */
 const skinRegionsOf = (crop: Raster, inside: Uint8Array, skin: Rgb): ReadonlyArray<Region> => {
   const lab = labOf(skin);
-  const mask = Uint8Array.from(inside, (v, i) =>
-    Number(v === 1 && deltaE(labOf(rgbAt(crop, i)), lab) < SKIN_PAPER),
-  );
+  const labAt = labsOf(crop);
+  const mask = new Uint8Array(inside.length);
+  for (let i = 0; i < inside.length; i++)
+    mask[i] = Number(inside[i] === 1 && deltaE(labAt(i), lab) < SKIN_PAPER);
   return regionsOf(crop, mask, 30);
 };
 
@@ -600,7 +613,7 @@ const beardOf = (
  */
 const hairOf = (
   crop: Raster,
-  m: FigureMeasure,
+  m: FigureRead,
   f: HeadFrame,
 ): Option.Option<{
   readonly crown: number;
@@ -612,7 +625,7 @@ const hairOf = (
   const ink: Rgb = [m.ink[0], m.ink[1], m.ink[2]];
   for (let i = 0; i < dark.length; i++) {
     const c = rgbAt(crop, i);
-    const near = Math.hypot(c[0] - ink[0], c[1] - ink[1], c[2] - ink[2]) < PARTING_INK;
+    const near = within3(c[0] - ink[0], c[1] - ink[1], c[2] - ink[2], PARTING_INK);
     if (lumaOf(c) < DARK_LUMA) {
       dark[i] = Number(!near);
       inkLike[i] = Number(near);
@@ -723,7 +736,7 @@ const sideRowsOf = (
     for (let x = columns.from[y] ?? 0; x < (columns.to[y] ?? 0); x++)
       if (
         closed[y * crop.width + x] === 1 &&
-        !discs.some((d) => Math.hypot(x - d.x, y - d.y) <= d.clear)
+        !discs.some((d) => within2(x - d.x, y - d.y, d.clear, true))
       ) {
         left = Math.min(left, x);
         right = Math.max(right, x);
@@ -842,10 +855,12 @@ interface Closed {
 const closedOf = (crop: Raster): Closed => {
   const lumaInk = inkByLuma(crop);
   const outside = outsideOf(crop, lumaInk);
-  return {
-    inside: Uint8Array.from(outside, (o, i) => Number(o === 0 && lumaInk[i] === 0)),
-    closed: Uint8Array.from(outside, (o) => Number(o === 0)),
-  };
+  const [inside, closed] = [new Uint8Array(outside.length), new Uint8Array(outside.length)];
+  for (let i = 0; i < outside.length; i++) {
+    closed[i] = Number(outside[i] === 0);
+    inside[i] = Number(outside[i] === 0 && lumaInk[i] === 0);
+  }
+  return { inside, closed };
 };
 
 /** A view's reach: each hand's, cut out of the body as the ink closes it, read where it can be and said where it cannot. */
@@ -854,10 +869,13 @@ const reachesOf = (
   closed: Uint8Array,
   frame: Omit<ReachFrame, 'labels' | 'body' | 'width'>,
 ) => {
-  const cut = Uint8Array.from(closed, (v, i) => {
+  const cut = new Uint8Array(closed.length);
+  for (let i = 0; i < closed.length; i++) {
     const [x, y] = [i % crop.width, Math.floor(i / crop.width)];
-    return Number(v === 1 && !frame.discs.some((d) => Math.hypot(x - d.x, y - d.y) <= d.clear));
-  });
+    cut[i] = Number(
+      closed[i] === 1 && !frame.discs.some((d) => within2(x - d.x, y - d.y, d.clear, true)),
+    );
+  }
   const { components, labels } = componentsOf(cut, crop.width, crop.height, false);
   const body = [...components].sort((a, b) => b.area - a.area)[0]?.id ?? -1;
   const full = { ...frame, labels, body, width: crop.width };
@@ -867,7 +885,7 @@ const reachesOf = (
 /** The parts of a view read off its figure's measure: its head, hands, hair, skin, reaches and what it cannot read. */
 const readMeasured = (
   crop: Raster,
-  m: FigureMeasure,
+  m: FigureRead,
   { inside, closed }: Closed,
   ctx: {
     readonly view: number;
@@ -1049,7 +1067,13 @@ const readView = (
   const [ox, oy] = [Math.max(0, x0 - PAD), Math.max(0, y0 - PAD)];
   const crop = cropRaster(sheet, [x0 - PAD, y0 - PAD, x1 + PAD, y1 + PAD]);
   const height = y1 - y0;
-  const measure = Result.getSuccess(measureFigure(crop));
+  // The full measure only where a concept is held to the view: its rims, shading and artifacts are read for the concept's compare alone.
+  const heldToConcept = (options.concepts || []).some((c) => c.view === view);
+  const full = Option.flatMap(
+    Option.liftPredicate(crop, () => heldToConcept),
+    (c) => Result.getSuccess(measureFigure(c)),
+  );
+  const measure = Option.orElse(full, () => Result.getSuccess(readFigure(crop)));
   const span = { top: y0 - oy, height };
   const middle = (figure.body[0] + figure.body[2]) / 2 - ox;
   const closed = closedOf(crop);
@@ -1102,10 +1126,10 @@ const readView = (
       })),
     onSome: (r) => r.unmeasured,
   });
-  return { record, crop, measure, unmeasured };
+  return { record, crop, measure, full, unmeasured };
 };
 
-const facingFields = (m: FigureMeasure) => ({
+const facingFields = (m: FigureRead) => ({
   turn: m.facing.turn,
   roll: m.facing.roll,
   eyes: m.facing.eyes,
@@ -1123,7 +1147,7 @@ const partingOf = (merged: boolean): 'parted' | 'merged' => (merged && 'merged')
 const measuredFields = (
   r: ReturnType<typeof readMeasured>,
   height: number,
-  m: FigureMeasure,
+  m: FigureRead,
   options: SheetOptions,
 ) => {
   const head = Option.match(r.head, {
@@ -1515,8 +1539,7 @@ const pairsOf = (reads: ReadonlyArray<ViewRead>, kind: SheetKind) =>
         onSome: ([ra, rb]) => [
           {
             views: [a, b] as const,
-            flipped: pairDiff(ra.crop, rb.crop, true),
-            straight: pairDiff(ra.crop, rb.crop, false),
+            ...pairDiffs(ra.crop, rb.crop),
             widths: pct(ra.record.widthToHeight, rb.record.widthToHeight),
           },
         ],
@@ -1548,8 +1571,7 @@ const sidesOf = (reads: ReadonlyArray<ViewRead>, kind: SheetKind) =>
           return [
             {
               views: [a, b] as const,
-              flipped: pairDiff(ha, hb, true),
-              straight: pairDiff(ha, hb, false),
+              ...pairDiffs(ha, hb),
             },
           ];
         },
@@ -1608,7 +1630,7 @@ const pairFlags = (pairs: ReadonlyArray<typeof SheetPair.Type>): ReadonlyArray<S
 const conceptRows = (reads: ReadonlyArray<ViewRead>, concepts: ReadonlyArray<SheetConcept>) =>
   concepts.map((c) =>
     Option.match(
-      Option.flatMap(Option.fromUndefinedOr(reads[c.view - 1]), (r) => r.measure),
+      Option.flatMap(Option.fromUndefinedOr(reads[c.view - 1]), (r) => r.full),
       {
         onNone: () => ({
           name: c.name,

@@ -5,7 +5,9 @@
 // the encoder's back, and a PNG built here by hand in another colour type.
 
 import { describe, expect, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 import { deflateSync, inflateSync } from 'node:zlib';
+import { drawFigure, PLAIN } from '../core/fixtures/figure.ts';
 import type { Raster } from '../core/raster.ts';
 import { Result } from 'effect';
 import { decodePng, encodePng } from './png.ts';
@@ -144,6 +146,21 @@ const pngOf = (
     ...chunk('IEND', new Uint8Array()),
   ]);
 };
+
+describe("encodePng's rows", () => {
+  // The filter bytes and filtered rows as the encoder chose them when it was pinned: a faster encoder chooses the same.
+  const rowsOf = (raster: Raster) =>
+    createHash('sha256')
+      .update(inflateSync(chunksOf(encodePng(raster)).find((c) => c.type === 'IDAT')!.data))
+      .digest('hex');
+
+  test('are pinned byte for byte, each row under the filter it was given', () => {
+    expect(rowsOf(RASTER)).toBe('88ed223d5f807a85abd723925beb5c1b0fc4ed39aa343c5b14518ffe43382185');
+    expect(rowsOf(drawFigure(PLAIN))).toBe(
+      '6deab1bae2c0ee90bff8a075ffdc738ded135823c5408f5c69fe8c7028667e82',
+    );
+  });
+});
 
 describe('decodePng', () => {
   test("reads the encoder's PNG back to its raster, byte for byte", () => {
