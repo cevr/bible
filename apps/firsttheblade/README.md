@@ -83,14 +83,12 @@ build, and so does CI's gate job, in the runner's Google Chrome.
 
 ## The art and the fonts
 
-The site's field (`src/art/field-*.webp`, 768 to 3072 px) is brand round 5's
-repaint of round 4's field. The night and the mark (`src/art/`, and `kit/art/`
-at full size) are round 4's paintings, and the YouTube kit keeps round 4's
-field (`kit/art/field.webp`), as YouTube set 6 was picked with it. The series
-emblems are round 3's, in the same colours. The thumbnails' paintings
-(`kit/art/robe.webp`, `kit/art/court.webp`) are from Righteousness by Faith.
-`bun run kit` draws the link cards in `public/og/` from the site's field, and
-the icons from the mark.
+The field (`src/art/field-*.webp`, 768 to 3072 px) is brand round 5's repaint
+of round 4's field. The night and the mark (`src/art/`, and `kit/art/` at full
+size) are round 4's paintings. The series emblems are round 3's, in the same
+colours. The thumbnails' paintings (`kit/art/robe.webp`, `kit/art/court.webp`)
+are from Righteousness by Faith. `bun run kit` draws the YouTube banner and the
+link cards in `public/og/` from the site's field, and the icons from the mark.
 
 Newsreader (`src/fonts/`) is under the SIL Open Font License 1.1, subset to
 Latin and Latin Extended and served from this site.

@@ -12,7 +12,7 @@ You set the channel up by hand in YouTube Studio, because YouTube's API can't se
 | `thumb-court.png`      | A second thumbnail in the same style                                        | 1280 × 720, 2 MB or less           |
 | `channel.md`           | This page: the text to paste                                                |                                    |
 
-The kit is drawn by `bun run kit` in `apps/firsttheblade` (brand round 4: logo 10, YouTube set 6, palette 09).
+The kit is drawn by `bun run kit` in `apps/firsttheblade` (brand round 4: logo 10, YouTube set 6, palette 09; round 5: the banner's field is the site's repaint).
 
 ## The house style
 
