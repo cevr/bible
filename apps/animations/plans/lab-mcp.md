@@ -146,7 +146,9 @@ tools are `film lab look|match|critique|cues|check|journal|journal_note` from a 
 One change feed, `LabEvents` (`tools/lab-events.ts`), read off the files themselves every 2 s: each film's
 `notes.json` and `board.json`, each project folder's `catalogue.json`, each set's `review.json`, each ask, each
 production's ledger. A change the page makes, a terminal's `film lab`, and an agent's MCP call are seen alike, and
-nothing writes twice.
+nothing writes twice. A change to a film's source (the studio's beat moves and holds, an agent's `beat_move`,
+`beat_hold` and `undo`, each undo and redo) is read off the lab's writer, which tells each change that landed in
+order (`SourceWriter.landings`, the newest 200), since the page and the agents write through it alike.
 What changed between two reads is pure (`core/lab-events.ts`). The first read is the baseline: only what happens
 after the lab starts is news. A cursor is `<epoch>.<seq>`; one from another run (the lab restarted) answers every
 change kept, flagged `reset`.
@@ -162,9 +164,10 @@ change kept, flagged `reset`.
 | `ask.step`, `ask.answered`, `ask.closed`                                     | a step answered; the ask's end; closed by agent |
 | `production.decided`, `production.noted`, `production.asked`                 | a word filed on a production's timeline         |
 | `production.forwarded`                                                       | a production moved into its next version        |
+| `source.written`, `source.undone`, `source.redone`                           | a film's source changed, undone, made again     |
 
 The kinds are one catalogue, `LAB_EVENTS` (`core/lab-events.ts`): each name, what it says, and how its record is
-read. Every event has one payload, `LabChange`: `film`, `set`, `note`, `panel`, `beat`, `try`, `address`,
+read. Every event has one payload, `LabChange`: its `id`, `film`, `set`, `note`, `panel`, `beat`, `try`, `address`,
 `variant`, `production`, `version`, `ask`, `step` as they apply, `by`, the words (`text`), an ask's typed
 `answers`, a one-line `summary`, the lab `links`, and `read`: the lab command that reads its whole record (the
 MCP tool and its arguments, `{name: 'ask_read', arguments: {ask}}`, and its terminal line, `bun cli.ts lab
@@ -172,26 +175,36 @@ ask_read --ask a…`; a track's ledger, which no lab command reads, `bun cli.ts 
 payload stays under 240 KiB of JSON, so a webhook body with its envelope stays under 256 KiB: one over it leaves
 its answers out and cuts its words, said as `trimmed: true`, and `read` has them. `changes` reads the feed by the
 catalogue: `name` (globs over its names, `ask.*`) and `film` keep only those; the cursor moves past every change
-either way.
+either way. A `name` no event of the catalogue matches, or a film the lab does not have, is refused.
+
+A change's `id` is made from its kind and the record it was read from (`notes/<film>/<seq>`, a try's
+`board/<film>/<panel>/<n>`, a kept try's with the board's read, an ask's step, a ledger's word,
+`source/<film>/<change>/<step>/<n>`): 16 hex of a 64-bit FNV. Two labs that read one change give it one id, so a
+reader told it twice (during a restart, below) knows it.
 
 How an agent hears them. Every way below but the first reads one stream (`tools/lab-stream.ts`): a session of
 the lab's MCP, the feed long-polled past a cursor (50 s a call), and the cursor the stream's, not the session's.
 A lab that stops answering (restarted, the network dropped) is said once and asked again with backoff (250 ms
-doubling to 10 s); the new session reads on from the last cursor seen, so nothing that changed while it was away
-is skipped, and a cursor the lab no longer knows comes back `reset`.
+doubling to 10 s, started over after each session that answered); the new session reads on from the last cursor
+seen, so nothing that changed while it was away is skipped, and a cursor the lab no longer knows comes back
+`reset`. A change of a kind this checkout does not know (a newer lab's) is read from the fields every change
+carries (`HeardChange`), never as a lab lost.
 
 1. **`changes` with `wait`** — works in every client, session and subagent. Call it with the cursor from
    `overview`; it answers as soon as there is a change (within the feed's 2 s), or empty after `wait`.
 2. **The stream, `film lab events`** (`tools/events-cli.ts`) — `film lab events --follow` keeps running and
    prints one line per event as the lab sees it, so a Claude Code Monitor wakes on each without polling:
-   `ask.answered cursor=k3x.12 at=… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1" link=…`,
-   the event's name first, the cursor after it, what it is about, its summary, the command that reads its whole
-   record, and its link. `--name` (globs over the catalogue, repeated) and `--film` narrow it; `--since <cursor>`
+   `ask.answered cursor=k3x.12 at=… id=3f0c… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1"
+   link=…`, the event's name first, the cursor after it, when the lab saw it, its id, what it is about, its
+   summary, the command that reads its whole record, and its link. An event of a kind this checkout does not know
+   is printed from the shared fields and said once on stderr. `--name` (globs over the catalogue, repeated) and `--film` narrow it; `--since <cursor>`
    reads on from a line's cursor; `--json` prints `{"cursor":…,"event":…}` a line, the event as the catalogue's
    payload. Without `--follow` it prints the events past `--since` and `cursor=<c>`. What is not an event goes to
    stderr (`lab events: following …`, `lost the lab (…); asking again`, `reconnected to …, reading on from …`,
-   the `reset` notice). `--gone-after <dur>` ends it, non-zero, once the lab has been silent that long; without
-   it, only a refusal of the lab's ends it.
+   the `reset` notice). `--gone-after <dur>` ends it, non-zero, once the lab has been silent that long, counted
+   from the first loss since it last answered; without it, only a refusal of the lab's, or an answer this
+   checkout cannot read (`LabAnswerUnread`), ends it. Each end is non-zero, and with `--json` its last line on
+   stdout is `{"_tag","message"}`.
 3. **The channel bridge, `film channel`** — a stdio server Claude Code spawns. It answers the handshake declaring
    `experimental['claude/channel']`, then reads the stream and sends each change as
    `notifications/claude/channel` (`content`: summary, words, link; `meta`: kind, seq, film, note, panel, beat,
@@ -222,20 +235,25 @@ middleware in front of its MCP route (`eventsRoute`), after the gate has admitte
 gains `capabilities.events`, and the three methods are answered there; every other request goes on to Effect's
 server. A request carries the 2026-07-28 headers (`mcp-protocol-version`, `mcp-method`) and `params._meta`.
 
-- **`events/list`** answers the catalogue: each of the 21 names with its description, `delivery: ['webhook']`,
-  its `inputSchema` (`{film?}`: only that film's events) and its `payloadSchema` (`LabChange`).
+- **`events/list`** answers the catalogue: each of the 24 names with its description, `delivery: ['webhook']`,
+  its `inputSchema` (`{film?}`, `additionalProperties: false`: only that film's events) and its `payloadSchema`
+  (`LabChange`). Every events result carries `_meta['io.modelcontextprotocol/serverInfo']`, the lab's server
+  name and version, as the profile asks.
 - **`events/subscribe`** takes `name`, `arguments`, `delivery: {mode: 'webhook', url, secret}`, an optional
   `cursor` and `ttlMs`. The secret is `whsec_` and base64 of 24 to 64 bytes; the URL http or https; arguments
   the input schema's alone. A refusal is -32602 in its words (`no event note.*: the lab's are …`). Before it is
   kept, the callback is verified: posted `{type: 'verification', challenge}`, signed, which it must echo in a
   2xx, as text or `{challenge}` (compared in constant time); otherwise -32015, `CallbackEndpointError`, with
-  `data.reason` `challenge_failed`, `timeout` or `unreachable`. A verified callback stays verified 10 minutes. It answers `id`
+  `data.reason` `challenge_failed`, `timeout` or `unreachable`. The refusal's words name that category alone
+  (`the callback did not verify (unreachable)`); what the callback answered goes to the lab's log
+  (`mcp.events.unverified`), never to the subscriber. A verified callback stays verified 10 minutes. It answers `id`
   (`sub_` and 24 hex of the digest of the URL, name and arguments, so the same subscribe again is the same
   subscription, refreshed: its secret, cursor and expiry replaced), `refreshBefore` (an ISO time; `ttlMs` null
-  asks for none and answers null; left out, a day; at least a minute), `cursor` (where it reads on from) and
-  `truncated` (a cursor asked for whose history the feed no longer keeps).
+  asks for none and answers null; left out, a day; at least a minute; over 30 days, refused -32602), `cursor`
+  (where it reads on from: for a cursor the feed no longer knows, where the replay of every change it kept
+  starts) and `truncated` (a cursor asked for whose history the feed no longer keeps).
 - **`events/unsubscribe`** takes `name`, `arguments` and `delivery: {mode, url}`, and answers `{}`.
-- **Delivery.** One POST per event: `{eventId, name, timestamp, data, cursor}`, `eventId` `evt_<cursor>`, the
+- **Delivery.** One POST per event: `{eventId, name, timestamp, data, cursor}`, `eventId` `evt_<the change's id>`, the
   body written once and at most 256 KiB (the payload's own bound, above; a body over it is skipped, logged
   `outcome="too large"`). Headers `webhook-id` (the event id),
   `webhook-timestamp`, `webhook-signature` (`v1,` and base64 HMAC-SHA256 of `<id>.<timestamp>.<body>`, keyed by
@@ -246,7 +264,23 @@ server. A request carries the 2026-07-28 headers (`mcp-protocol-version`, `mcp-m
 - **The store.** `lab/events/subscriptions.json`, new and the module's own: each subscription's id, name,
   arguments, URL, secret, the cursor after the last event it was sent, `refreshBefore`, `made` and `refreshed`.
   A lab that starts drops the ones expired and delivers the rest on from their cursors (a cursor of an earlier
-  run reads every change the new run has seen); a subscription that passes its `refreshBefore` is dropped.
+  run reads every change the new run has seen); a subscription that passes its `refreshBefore` is dropped. A
+  cursor that cannot be kept (the file unwritable) is logged `mcp.events.cursor.unkept` and delivery goes on.
+- **A restart overlaps.** When the lab is restarted, the old lab goes on answering its open long polls, up to
+  the 50 s a stream's call waits, and goes on delivering, while the new lab has started over the same files.
+  For that window both labs may deliver one event and both write subscription cursors, the last write kept;
+  a cursor of the old run, read by the new lab, replays every change the new run has seen. An event's id is
+  the change's own, the same from both labs (above), so a subscriber that keeps the `webhook-id`s it has had
+  knows a second delivery, and a terminal reader knows a second line by its `id=`. Answering the open long
+  polls at once on shutdown would shorten the window; it is not served.
+- **Callback URLs.** Any http or https callback is taken, loopback and private addresses among them: only this
+  machine and the owner's phone reach `/mcp` (the gate, below), and a subscriber on this machine listens on
+  loopback. So a client that reaches `/mcp` can make the lab post signed bodies to an address this machine or
+  the tailnet reaches. It learns of that address only the category of the answer (above), redirects are not
+  followed, and the body is the lab's own event. That is judged acceptable while only the owner's machines
+  reach the lab. Any public route to the lab's MCP (one made for ChatGPT) is a condition change: before it
+  opens, callbacks must be https alone, and an address that resolves to loopback, link-local, private or
+  tailnet ranges refused (each address the name resolves to, at each delivery).
 - **Not served.** Secret rotation with an overlap (signing with two secrets) is not served: a subscribe again
   with a new secret replaces the old at once. The lab provides no public route: ChatGPT reaches a server only
   over public HTTPS, so a ChatGPT subscriber needs one made for it.

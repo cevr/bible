@@ -2449,7 +2449,7 @@ command's plain lines. The input is read by the command's own parameters on
 both transports, so a terminal is refused in the words an MCP client is
 (`Invalid parameters for tool '<name>': …`, or the command's refusal).
 In `apps/animations`, `bun run lab <command>` runs it; `look`, `match`,
-`critique` and `journal` have scripts of their own.
+`critique`, `journal` and `notes` have scripts of their own.
 
 Where a terminal runs a command follows from what it needs, and the types
 hold it there:
@@ -2485,17 +2485,26 @@ With `--follow` it keeps running and prints one line per event as the lab sees
 it, so a Claude Code Monitor wakes on each without polling:
 
 ```
-ask.answered cursor=k3x.12 at=… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1" link=http://…
+ask.answered cursor=k3x.12 at=… id=3f0c… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1" link=http://…
 ```
 
-`--name` (repeated) and `--film` narrow it, `--since <cursor>` reads on from a
-line's cursor, and `--json` prints `{"cursor":…,"event":…}` a line. What is
-not an event goes to stderr. The stream (`tools/lab-stream.ts`) is what
-`film ask wait` and `film channel` read too: a lab that stops answering is said
-once and asked again with backoff (250 ms doubling to 10 s), and the new
+`id=` is the change's own id, made from its kind and the record it was read
+from (a note's log number, a try's number, an ask's step), so two labs that
+read one change give it one id and a reader told it twice knows it. `--name`
+(repeated) and `--film` narrow it, and a `--name` no event of the catalogue
+matches, or a film the lab does not have, is refused before anything is
+followed. `--since <cursor>` reads on from a line's cursor, and `--json`
+prints `{"cursor":…,"event":…}` a line. An event of a kind this checkout does
+not know (a newer lab's) is printed from the fields every event carries, and
+said once on stderr. What is not an event goes to stderr. The stream
+(`tools/lab-stream.ts`) is what `film ask wait` and `film channel` read too: a
+lab that stops answering is said once and asked again with backoff (250 ms
+doubling to 10 s, started over after each session that answered), and the new
 session reads on from the last cursor seen, so nothing is skipped; a cursor the
-lab no longer knows comes back `reset`. Only `--gone-after <dur>`, or a refusal
-of the lab's, ends it.
+lab no longer knows comes back `reset`. Only `--gone-after <dur>` (counted from
+the first loss since the lab last answered), a refusal of the lab's, or an
+answer this checkout cannot read (`LabAnswerUnread`) ends it, with a non-zero
+exit and, with `--json`, a last `{"_tag","message"}` line on stdout.
 
 The lab's MCP serves the same catalogue as MCP Events (protocol 2026-07-28,
 OpenAI's MCP Events profile; `tools/mcp-events.ts`): `server/discover` says

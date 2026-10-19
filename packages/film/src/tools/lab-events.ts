@@ -8,9 +8,9 @@
 // one an agent makes through the lab's MCP are all seen alike, and nothing
 // writes twice: the feed only reads. A change to a film's source is read off
 // the lab's writer, which tells each one that landed in order (the newest
-// 200: a read every few seconds finds them all). A set or a render it sees drops the
-// review's index (`Review.written`) before its event is told, so the page
-// and an ask read what another process wrote. What a change is, said from
+// 200: a read every few seconds finds them all). A set or a render it sees
+// drops the review's index (`Review.written`) before its event is told, so
+// the page and an ask read what another process wrote. What a change is, said from
 // two reads of a file, is `core/lab-events.ts`.
 //
 // The first read is the baseline: the feed tells only what changed after
