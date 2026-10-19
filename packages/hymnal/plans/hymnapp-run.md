@@ -21,7 +21,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | budgettypes  | testsplit                      | .rifts/manna/budgettypes                           |                           | merged 94bdc7e49 (1 round; verify pass r1)                                                                                                                            |
 | scriptstypes | budgettypes                    | .rifts/manna/scriptstypes                          |                           | merged 29d9b8ae3 (1 round; verify pass r1)                                                                                                                            |
 | selahbuild   | testsplit                      | .rifts/manna/selahbuild                            |                           | merged ebebfdb63 (1 round; verify pass r1)                                                                                                                            |
-| toolnits     | scriptstypes, selahbuild       | .rifts/manna/toolnits2                             | impl a7aba7b (r5 rw2)     |                                                                                                                                                                       |
+| toolnits     | scriptstypes, selahbuild       | .rifts/manna/toolnits2                             | impl ae9df69 (r6 rw3)     |                                                                                                                                                                       |
 | fidelityci   | (CI red on main)               | .rifts/manna/fidelityci                            |                           | dropped (no local defect)                                                                                                                                             |
 | reader       | appbase, compile, glass, manna | .rifts/bible-tools/reader                          |                           |                                                                                                                                                                       |
 | chords       | reader                         | .rifts/manna/chords                                |                           |                                                                                                                                                                       |
@@ -31,6 +31,8 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `inexact` (the 7 MIDI files whose verses do not split: 126 225 262 292 403 453 580), `decks` (syllable splits into feat/hymn-decks, last by the owner's word), `selah` (planned: after reader, see Decisions; macOS stays SwiftUI until react-native-gpui ships a real package).
 
 ## Decisions
+
+- toolnits r5 changes: no census route crosses the node_modules edge; in domain (the rule names both edges). Round 6 (rewrite r3, last) replaces the hand-listed census with one generated over edges × crossings × folds; fresh implementor.
 
 - hymnrows r4 (rewrite r1) changes: M1/M3/M5 repeat r3 classes; round 5 names the premise (a non-blind, non-crop record stands in for the 1985 page) and makes five properties the first deliverable; fresh implementor (r4 impl 6 compactions); new owner photos folded in at the round boundary.
 
