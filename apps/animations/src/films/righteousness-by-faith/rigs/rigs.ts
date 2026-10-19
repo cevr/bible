@@ -4,7 +4,13 @@
 // stands. Canvas 2D is the engine, and every scene draws them the same way.
 
 import type { RivePropSpec } from '@bible/film/rive';
-import { HAND_ART } from '@bible/film/style';
+import {
+  FIGURE_TIMELINES,
+  type FigureTimeline,
+  HAND_ART,
+  HAND_TIMELINES,
+  type HandTimeline,
+} from '@bible/film/style';
 import { Record as Rec } from 'effect';
 import { ARTBOARDS } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
@@ -13,47 +19,21 @@ import {
   CHRIST_FRONT_FACE_CHECK,
   CHRIST_FRONT_KNOBS,
   CHRIST_KNOBS,
-  CHRIST_TIMELINES,
-  type ChristTimeline,
   christ,
   christFront,
 } from './christ-rig.ts';
-import {
-  FARMER_FACE_CHECK,
-  FARMER_KNOBS,
-  FARMER_TIMELINES,
-  type FarmerTimeline,
-  farmer,
-} from './farmer-rig.ts';
+import { FARMER_FACE_CHECK, FARMER_KNOBS, farmer } from './farmer-rig.ts';
 import { HAND_OUT_STEPS } from './hand-rig.ts';
-import {
-  JUDGE_FACE_CHECK,
-  JUDGE_KNOBS,
-  JUDGE_TIMELINES,
-  type JudgeTimeline,
-  judge,
-} from './judge-rig.ts';
-import {
-  LEAD_FACE_CHECK,
-  LEAD_KNOBS,
-  LEAD_TIMELINES,
-  type LeadTimeline,
-  lead,
-} from './lead-rig.ts';
-import {
-  PROSECUTOR_FACE_CHECK,
-  PROSECUTOR_KNOBS,
-  PROSECUTOR_TIMELINES,
-  type ProsecutorTimeline,
-  prosecutor,
-} from './prosecutor-rig.ts';
+import { JUDGE_FACE_CHECK, JUDGE_KNOBS, judge } from './judge-rig.ts';
+import { LEAD_FACE_CHECK, LEAD_KNOBS, lead } from './lead-rig.ts';
+import { PROSECUTOR_FACE_CHECK, PROSECUTOR_KNOBS, prosecutor } from './prosecutor-rig.ts';
 
 /** The plain lead: his feet at our origin. */
-export const leadProp: RivePropSpec<LeadTimeline, keyof typeof LEAD_KNOBS> = {
+export const leadProp: RivePropSpec<FigureTimeline, keyof typeof LEAD_KNOBS> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.lead,
-    timelines: Rec.keys(LEAD_TIMELINES),
+    timelines: FIGURE_TIMELINES,
     numbers: Rec.keys(LEAD_KNOBS),
   },
   engine: 'canvas',
@@ -64,11 +44,11 @@ export const leadProp: RivePropSpec<LeadTimeline, keyof typeof LEAD_KNOBS> = {
 };
 
 /** The judge: his head's centre at our origin. */
-export const judgeProp: RivePropSpec<JudgeTimeline, keyof typeof JUDGE_KNOBS> = {
+export const judgeProp: RivePropSpec<FigureTimeline, keyof typeof JUDGE_KNOBS> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.judge,
-    timelines: Rec.keys(JUDGE_TIMELINES),
+    timelines: FIGURE_TIMELINES,
     numbers: Rec.keys(JUDGE_KNOBS),
   },
   engine: 'canvas',
@@ -79,11 +59,11 @@ export const judgeProp: RivePropSpec<JudgeTimeline, keyof typeof JUDGE_KNOBS> = 
 };
 
 /** The prosecutor: his feet at our origin. */
-export const prosecutorProp: RivePropSpec<ProsecutorTimeline, keyof typeof PROSECUTOR_KNOBS> = {
+export const prosecutorProp: RivePropSpec<FigureTimeline, keyof typeof PROSECUTOR_KNOBS> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.prosecutor,
-    timelines: Rec.keys(PROSECUTOR_TIMELINES),
+    timelines: FIGURE_TIMELINES,
     numbers: Rec.keys(PROSECUTOR_KNOBS),
   },
   engine: 'canvas',
@@ -94,11 +74,11 @@ export const prosecutorProp: RivePropSpec<ProsecutorTimeline, keyof typeof PROSE
 };
 
 /** Christ: His feet at our origin. */
-export const christProp: RivePropSpec<ChristTimeline, keyof typeof CHRIST_KNOBS> = {
+export const christProp: RivePropSpec<FigureTimeline, keyof typeof CHRIST_KNOBS> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.christ,
-    timelines: Rec.keys(CHRIST_TIMELINES),
+    timelines: FIGURE_TIMELINES,
     numbers: Rec.keys(CHRIST_KNOBS),
   },
   engine: 'canvas',
@@ -109,11 +89,11 @@ export const christProp: RivePropSpec<ChristTimeline, keyof typeof CHRIST_KNOBS>
 };
 
 /** Christ turned to us (court.you): His feet at our origin, where `christProp`'s are. */
-export const christFrontProp: RivePropSpec<ChristTimeline, keyof typeof CHRIST_FRONT_KNOBS> = {
+export const christFrontProp: RivePropSpec<FigureTimeline, keyof typeof CHRIST_FRONT_KNOBS> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.christFront,
-    timelines: Rec.keys(CHRIST_TIMELINES),
+    timelines: FIGURE_TIMELINES,
     numbers: Rec.keys(CHRIST_FRONT_KNOBS),
   },
   engine: 'canvas',
@@ -124,11 +104,11 @@ export const christFrontProp: RivePropSpec<ChristTimeline, keyof typeof CHRIST_F
 };
 
 /** The farmer of the rain: his feet at our origin. */
-export const farmerProp: RivePropSpec<FarmerTimeline, keyof typeof FARMER_KNOBS> = {
+export const farmerProp: RivePropSpec<FigureTimeline, keyof typeof FARMER_KNOBS> = {
   source: {
     riv: figuresRiv,
     artboard: ARTBOARDS.farmer,
-    timelines: Rec.keys(FARMER_TIMELINES),
+    timelines: FIGURE_TIMELINES,
     numbers: Rec.keys(FARMER_KNOBS),
   },
   engine: 'canvas',
@@ -139,8 +119,8 @@ export const farmerProp: RivePropSpec<FarmerTimeline, keyof typeof FARMER_KNOBS>
 };
 
 /** A circle hand of `artboard`, its centre at our origin: no view model, only its paper's crawl. */
-const handProp = (artboard: string, key: string, size = 1): RivePropSpec<'boil', never> => ({
-  source: { riv: figuresRiv, artboard, timelines: ['boil'], numbers: [] },
+const handProp = (artboard: string, key: string, size = 1): RivePropSpec<HandTimeline, never> => ({
+  source: { riv: figuresRiv, artboard, timelines: HAND_TIMELINES, numbers: [] },
   engine: 'canvas',
   key: `righteousness-by-faith/${key}`,
   origin: [(HAND_ART.width * size) / 2, (HAND_ART.height * size) / 2],

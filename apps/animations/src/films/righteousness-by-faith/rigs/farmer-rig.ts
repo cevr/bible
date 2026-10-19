@@ -287,13 +287,6 @@ export const farmer = figure({
 /** His numbers at rest: his face lifted to the rain at screen right, the smile rain.rain draws, his far arm down. */
 export const FARMER_KNOBS = farmer.knobs;
 
-/** His timelines: his breath and the paper's boil. */
-export const FARMER_TIMELINES = {
-  breath: { seconds: BREATH.period, move: 5 },
-  boil: { seconds: 4, move: 4 },
-} as const;
-export type FarmerTimeline = keyof typeof FARMER_TIMELINES;
-
 /** The face `check` reads: its node, and his head's height. */
 export const FARMER_FACE_CHECK = (() => {
   const ys = headParts(FACE).map(([, y]) => y);

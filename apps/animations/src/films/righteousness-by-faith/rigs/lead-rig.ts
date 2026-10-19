@@ -135,11 +135,5 @@ export const lead = figure({
 /** The view model's numbers at rest: the face kit's, his eyes on us, upright, stained, in his own tunic. */
 export const LEAD_KNOBS = lead.knobs;
 
-export const LEAD_TIMELINES = {
-  breath: { seconds: BREATH.period, move: 4 },
-  boil: { seconds: 4, move: 4 },
-} as const;
-export type LeadTimeline = keyof typeof LEAD_TIMELINES;
-
 /** The face `check` reads (`RivePropSpec.face`): its node, and his head's height, its width as the sheet measures it. */
 export const LEAD_FACE_CHECK = { node: 'face', height: 2 * LEAD.head.r[0] } as const;

@@ -482,13 +482,6 @@ export const christFront = figure({
 /** His numbers turned to us: His eyes on the viewer, the smile court.you draws. */
 export const CHRIST_FRONT_KNOBS = christFront.knobs;
 
-/** His timelines, either view: His breath and the paper's boil. */
-export const CHRIST_TIMELINES = {
-  breath: { seconds: BREATH.period, move: 5 },
-  boil: { seconds: 4, move: 4 },
-} as const;
-export type ChristTimeline = keyof typeof CHRIST_TIMELINES;
-
 /** The face `check` reads, in a view: its node, and His head's height in that view. */
 const faceCheckOf = (outline: ReadonlyArray<Pt>) => {
   const ys = outline.map(([, y]) => y);

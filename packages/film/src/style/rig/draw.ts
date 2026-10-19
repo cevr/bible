@@ -695,6 +695,18 @@ export const drawFigure = <K extends string>(rig: Figure, f: ComposedFigure<K>):
   return artboard(rig, f.art, [figure], [breath, boilTimeline(rig)], f.knobs);
 };
 
+/**
+ * The timelines the house prints on a figure's artboard, by name: its
+ * breath, as long as its stance's period, and its paper's boil
+ * (`boilTime`). A pose names them; the runtime cannot read their lengths.
+ */
+export const FIGURE_TIMELINES = ['breath', 'boil'] as const;
+export type FigureTimeline = (typeof FIGURE_TIMELINES)[number];
+
+/** The timeline the house prints on a hand's artboard, by name: its paper's boil. */
+export const HAND_TIMELINES = ['boil'] as const;
+export type HandTimeline = (typeof HAND_TIMELINES)[number];
+
 /** A hand's artboard: its circle's centre at the artboard's centre, room round it for its outline. */
 export const HAND_ART = { width: 64, height: 64, r: 19 } as const;
 

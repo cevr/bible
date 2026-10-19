@@ -167,11 +167,5 @@ export const prosecutor = figure(PROSECUTOR_SPEC);
 /** The view model's numbers at rest: the face kit's, stern, his eyes on the dock (screen left), upright. */
 export const PROSECUTOR_KNOBS = prosecutor.knobs;
 
-export const PROSECUTOR_TIMELINES = {
-  breath: { seconds: BREATH.period, move: 4.5 },
-  boil: { seconds: 4, move: 4 },
-} as const;
-export type ProsecutorTimeline = keyof typeof PROSECUTOR_TIMELINES;
-
 /** The face `check` reads: its node, and his head's height. */
 export const PROSECUTOR_FACE_CHECK = { node: 'face', height: 2 * PROSECUTOR.head.ry } as const;

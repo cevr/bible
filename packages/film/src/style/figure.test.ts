@@ -19,7 +19,7 @@ import { Bands } from './parts/over.ts';
 import { Stance } from './parts/stance.ts';
 import { GivenRobe, type State, Stain } from './parts/states.ts';
 import { Stature } from './parts/stature.ts';
-import { drawFigure } from './rig/draw.ts';
+import { FIGURE_TIMELINES, HAND_TIMELINES, drawFigure, drawHand } from './rig/draw.ts';
 import { FACE, type FaceKnob, type Pt, ellipse, kitMarks, figure as rigOf } from './rig/parts.ts';
 import { fragment, ids } from './rig/rml.ts';
 import { roundedPolygon, tucked, tuckedRimmed } from './rig/shapes.ts';
@@ -307,6 +307,15 @@ describe('a traced figure, standing or seated', () => {
     expect(Object.keys(judge.knobs)).toEqual([...Object.keys(FACE), 'lean', 'tilt', 'nod']);
     expectTypeOf(Rec.keys(judge.knobs)).toEqualTypeOf<Array<FaceKnob | 'lean' | 'tilt' | 'nod'>>();
     expect([judge.knobs.gazeX, judge.knobs.gazeY]).toEqual([-900, 160]);
+  });
+
+  test('plays the timelines the house names: a figure its breath and its boil, standing or seated, and a hand its boil', () => {
+    const timelines = (rml: string) =>
+      Array.from(rml.matchAll(/<LinearAnimation [^>]*\bname="([^"]+)"/g), (m) => m[1]);
+    expect(timelines(drawnOf(figure(standingOf())))).toEqual([...FIGURE_TIMELINES]);
+    expect(timelines(drawnOf(figure(seatedOf())))).toEqual([...FIGURE_TIMELINES]);
+    const hand = fragment(drawHand(rigOf(ids(), 'Hand', 1, 0, DIRECTION), SKIN));
+    expect(timelines(hand)).toEqual([...HAND_TIMELINES]);
   });
 
   test("a seated figure leans about its garment's hem, and its breath swells the garment's side", () => {

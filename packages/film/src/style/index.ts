@@ -20,7 +20,9 @@
 // figure's print alone (`lockedPrints`) and every override its figures
 // carry, whatever rule it frees (`figureOverrides`), each saying what it
 // cites (`citedBy`: the owner's words or his pick on an ask); a circle
-// hand's artboard is `HAND_ART` times its size. `@bible/film/style/build`
+// hand's artboard is `HAND_ART` times its size, and the timelines a pose
+// names on each artboard are the house's (`FIGURE_TIMELINES`,
+// `HAND_TIMELINES`). `@bible/film/style/build`
 // builds the file, holding each override's citation to the owner's decision
 // on its figure on his production's ledger (`unsaid`), and each locked
 // figure's print to its lock and the lock to the decision it names
@@ -47,6 +49,13 @@ export { Bands } from './parts/over.ts';
 export { Stance } from './parts/stance.ts';
 export { GivenRobe, Stain } from './parts/states.ts';
 export { Stature } from './parts/stature.ts';
-export { HAND_ART, tunicOutline } from './rig/draw.ts';
+export {
+  FIGURE_TIMELINES,
+  type FigureTimeline,
+  HAND_ART,
+  HAND_TIMELINES,
+  type HandTimeline,
+  tunicOutline,
+} from './rig/draw.ts';
 export { type Pt, boilTime, boxOf, creaseOf, ellipse, reachAbout, smooth } from './rig/parts.ts';
 export { roundedPolygon, shifted } from './rig/shapes.ts';

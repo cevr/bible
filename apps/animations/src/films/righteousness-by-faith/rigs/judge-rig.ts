@@ -176,11 +176,5 @@ export const judge = figure({
 /** The view model's numbers at rest: the face kit's, stern, his eyes on the dock, upright. */
 export const JUDGE_KNOBS = judge.knobs;
 
-export const JUDGE_TIMELINES = {
-  breath: { seconds: BREATH.period, move: 5 },
-  boil: { seconds: 4, move: 4 },
-} as const;
-export type JudgeTimeline = keyof typeof JUDGE_TIMELINES;
-
 /** The face `check` reads: its node, and his head's height. */
 export const JUDGE_FACE_CHECK = { node: 'face', height: 2 * JUDGE.head.ry } as const;
