@@ -185,8 +185,8 @@ ask_read --ask a…`; a track's ledger, which no lab command reads, `bun cli.ts 
 payload stays under 240 KiB of JSON, so a webhook body with its envelope stays under 256 KiB: one over it leaves
 its answers out and cuts its words, said as `trimmed: true`, and `read` has them. `changes` reads the feed by the
 catalogue: `name` (globs over its names, `ask.*`, or a record's name for every event it tells: `notes`,
-`board`, `catalogue`, `set`, `ask`, `production`, `source`) and `film` keep only those, and a follower keeps
-them on its own side too, for a lab that runs other code; the cursor moves past every change
+`board`, `catalogue`, `set`, `ask`, `production`, `source`) and `film` keep only those, and a follower narrows
+on its own side only a change with no `id` (an older lab's, which reads no filter); the cursor moves past every change
 either way. A `name` no event of the catalogue matches, or a film the lab does not have, is refused.
 
 A change's `id` is made from its kind and the record it was read from (a note's
@@ -216,8 +216,8 @@ from the fields every change carries (`HeardChange`), never as a lab lost.
    link=…`, the event's name first, the cursor after it, when the lab saw it, its id, what it is about, its
    summary, the command that reads its whole record, and its link. An event of a kind this checkout does not know
    is printed from the shared fields and said once on stderr. `--name` (globs over the catalogue, or a record's
-   name, repeated: `--name notes` for a film's notes, tweaks among them) and `--film` narrow it, on the
-   follower's side too; `--since <cursor>`
+   name, repeated: `--name notes` for a film's notes, tweaks among them) and `--film` narrow it (the lab
+   narrows; the follower narrows only an older lab's change, which has no `id`); `--since <cursor>`
    reads on from a line's cursor; `--json` prints `{"cursor":…,"event":…}` a line, the event as the catalogue's
    payload. Without `--follow` it prints the events past `--since` and `cursor=<c>`. What is not an event goes to
    stderr (`lab events: following …`, `lost the lab (…); asking again`, `reconnected to …, reading on from …`,

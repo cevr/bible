@@ -2506,9 +2506,9 @@ takes an older note's id. A kept try's id is made from the board file as the
 lab read it, so two labs that read it across a later write give one keep two
 ids. A word on a production's ledger is told by whoever said it: an ask and a
 note with no quote of the owner's are `agent`'s. `--name` (repeated;
-`--name notes` follows a film's notes, tweaks among them) and `--film` narrow it, on
-the follower's side too, so a lab that runs other code and does not narrow is
-narrowed still; a `--name` no event of the catalogue matches, or a film the
+`--name notes` follows a film's notes, tweaks among them) and `--film` narrow it: the
+lab narrows, and the follower narrows only a change with no `id` (an older
+lab's, which reads no filter); a `--name` no event of the catalogue matches, or a film the
 lab does not have, is refused before anything is followed. `--since <cursor>`
 reads on from a line's cursor, and `--json` prints `{"cursor":…,"event":…}` a
 line. An event of a kind this checkout does not know (a newer lab's), or of a

@@ -52,7 +52,8 @@ const namesIn = (command: string) =>
 /**
  * Each follower a doc gives for notes, with its `--name`s: a backticked `lab
  * events --follow` command or a lone `--name <name>` on a line about notes,
- * and a command list's `lab events` line that follows (`[--follow]`).
+ * and a command list's `lab events` line that follows (`[--follow]`). A span
+ * on a line that says it misses something is a warning, not a follower.
  */
 const followersIn = (doc: string) =>
   doc.split('\n').flatMap((line) => [
@@ -61,13 +62,10 @@ const followersIn = (doc: string) =>
       ([, span = '']) => span,
     )
       .filter(() => /note/i.test(line))
-      .map((command) => ({ command, names: namesIn(command) })),
+      .map((command) => ({ command, names: namesIn(command), warns: /\bmiss/i.test(line) })),
     ...Array.from(
       line.matchAll(/^(bun run lab events \[--follow\].*?)\s+#/g),
-      ([, command = '']) => ({
-        command,
-        names: namesIn(command),
-      }),
+      ([, command = '']) => ({ command, names: namesIn(command), warns: false }),
     ),
   ]);
 
@@ -82,7 +80,8 @@ describe('the note follower the docs give', () => {
         const kinds = printedKinds();
         expect(kinds).toEqual(['note.added', 'tweak.requested', 'note.replied']);
         for (const file of DOCS) {
-          const followers = followersIn(yield* fs.readFileString(path.join(root, file)));
+          const spans = followersIn(yield* fs.readFileString(path.join(root, file)));
+          const followers = spans.filter((span) => !span.warns);
           expect({ file, followers: followers.length > 0 }).toEqual({ file, followers: true });
           for (const follower of followers)
             expect({
@@ -90,7 +89,23 @@ describe('the note follower the docs give', () => {
               command: follower.command,
               deaf: kinds.filter((kind) => !namesMatch(follower.names, kind)),
             }).toEqual({ file, command: follower.command, deaf: [] });
+          for (const warning of spans.filter((span) => span.warns))
+            expect({
+              file,
+              command: warning.command,
+              misses: kinds.some((kind) => !namesMatch(warning.names, kind)),
+            }).toEqual({ file, command: warning.command, misses: true });
         }
       }),
+  );
+
+  it.effect('reads a warning apart from a follower', () =>
+    Effect.sync(() => {
+      const [warning] = followersIn("A note follower: `--name 'note.*'` misses `tweak.requested`.");
+      const [follower] = followersIn('A note follower: `--name notes`.');
+      expect(warning).toEqual({ command: "--name 'note.*'", names: ['note.*'], warns: true });
+      expect(follower).toEqual({ command: '--name notes', names: ['notes'], warns: false });
+      expect(printedKinds().some((kind) => !namesMatch(warning?.names ?? [], kind))).toBe(true);
+    }),
   );
 });

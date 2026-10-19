@@ -159,7 +159,7 @@ const OwnerWordParams = Schema.Struct({
     ),
     Schema.isMaxLength(4000),
   ).annotate({
-    description: "The owner's own words that said it, verbatim from the chat: required",
+    description: "The owner's own words that said it, verbatim from the chat",
   }),
   by: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(80)).annotate({
     description: 'Who files it: your name',
