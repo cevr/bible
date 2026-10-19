@@ -202,8 +202,9 @@ A lab that stops answering (restarted, the network dropped) is said once and ask
 doubling to 10 s, started over after each session that answered); the new session reads on from the last cursor
 seen, so while the same lab runs nothing is missed; a restarted lab no longer knows the cursor, which comes back
 `reset`, and the stream hears every change that lab kept (one heard before comes again with its `id`); a change
-made while no lab ran is in the new lab's first read and is never told. A change of a kind this checkout does not know (a newer lab's) is read from the fields every change
-carries (`HeardChange`), never as a lab lost.
+made while no lab ran is in the new lab's first read and is never told. A change of a kind this checkout does
+not know (a newer lab's), or of a known kind in a shape it does not read (an older lab's, with no `id`), is read
+from the fields every change carries (`HeardChange`), never as a lab lost.
 
 1. **`changes` with `wait`** — works in every client, session and subagent. Call it with the cursor from
    `overview`; it answers as soon as there is a change (within the feed's 2 s), or empty after `wait`.
@@ -212,7 +213,9 @@ carries (`HeardChange`), never as a lab lost.
    `ask.answered cursor=k3x.12 at=… id=3f0c… film=f ask=a1 summary="…" read="bun cli.ts lab ask_read --ask a1"
    link=…`, the event's name first, the cursor after it, when the lab saw it, its id, what it is about, its
    summary, the command that reads its whole record, and its link. An event of a kind this checkout does not know
-   is printed from the shared fields and said once on stderr. `--name` (globs over the catalogue, repeated) and `--film` narrow it; `--since <cursor>`
+   is printed from the shared fields and said once on stderr. `--name` (globs over the catalogue, or a record's
+   name, repeated: `--name notes` for a film's notes, tweaks among them) and `--film` narrow it, on the
+   follower's side too; `--since <cursor>`
    reads on from a line's cursor; `--json` prints `{"cursor":…,"event":…}` a line, the event as the catalogue's
    payload. Without `--follow` it prints the events past `--since` and `cursor=<c>`. What is not an event goes to
    stderr (`lab events: following …`, `lost the lab (…); asking again`, `reconnected to …, reading on from …`,

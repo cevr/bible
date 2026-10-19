@@ -2477,7 +2477,8 @@ with one payload (`LabChange`: what it is about, its words, a one-line
 summary, its links, and `read`, the lab command that reads its whole record),
 read off the lab's files by its change feed (`tools/lab-events.ts`). A change
 to a film's source (`source.written`, `source.undone`, `source.redone`: a beat
-moved or a hold trimmed in the studio or by an agent, and each undo and redo)
+moved, a hold trimmed, a cue or a knob set, a pick written or a take kept, in
+the studio or by an agent, and each undo and redo)
 is read off the lab's writer (`SourceWriter.landings`), which the page and the
 agents write through alike. `changes` reads the feed by the catalogue (`name`,
 globs over its names or the name of a record, which names every event that
@@ -2497,15 +2498,18 @@ ask.answered cursor=k3x.12 at=… id=3f0c… film=f ask=a1 summary="…" read="b
 from (a note's id, its time made and its log number; a try's number and
 time made; an ask's step), so two labs that read one change give it one id, a
 reader told it twice knows it, and a note made after its file was reset never
-takes an older note's id. A kept try's id is made from the time the lab read
-the board, so two labs give it two. A word on a production's ledger is told by
-whoever said it: an ask and a note with no quote of the owner's are `agent`'s. `--name`
-(repeated; `--name notes` follows a film's notes, tweaks among them) and `--film` narrow it, kept on the follower's side too, so a lab that runs other code and does not narrow is still narrowed, and a `--name` no event of the catalogue
-matches, or a film the lab does not have, is refused before anything is
-followed. `--since <cursor>` reads on from a line's cursor, and `--json`
-prints `{"cursor":…,"event":…}` a line. An event of a kind this checkout does
-not know (a newer lab's) is printed from the fields every event carries, and
-said once on stderr. What is not an event goes to stderr. The stream
+takes an older note's id. A kept try's id is made from the board file as the
+lab read it, so two labs that read it across a later write give one keep two
+ids. A word on a production's ledger is told by whoever said it: an ask and a
+note with no quote of the owner's are `agent`'s. `--name` (repeated; `--name
+notes` follows a film's notes, tweaks among them) and `--film` narrow it, on
+the follower's side too, so a lab that runs other code and does not narrow is
+narrowed still; a `--name` no event of the catalogue matches, or a film the
+lab does not have, is refused before anything is followed. `--since <cursor>`
+reads on from a line's cursor, and `--json` prints `{"cursor":…,"event":…}` a
+line. An event of a kind this checkout does not know (a newer lab's), or of a
+known kind in a shape it does not read (an older lab's, with no `id`), is
+printed from the fields every event carries, and said once on stderr. What is not an event goes to stderr. The stream
 (`tools/lab-stream.ts`) is what `film ask wait` and `film channel` read too: a
 lab that stops answering is said once and asked again with backoff (250 ms
 doubling to 10 s, started over after each session that answered), and the new
