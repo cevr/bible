@@ -4,6 +4,7 @@
  * of the pages and the origin, so the tests read them without a build.
  */
 import { absolute, type Page } from './pages.ts';
+import { PALETTE } from './palette.ts';
 import { CHANNEL } from './site.ts';
 
 const xmlEscape = (text: string) =>
@@ -23,15 +24,15 @@ export const sitemap = (pages: ReadonlyArray<Page>) =>
 export const robots = () =>
   ['User-agent: *', 'Allow: /', '', `Sitemap: ${absolute('/sitemap.xml')}`, ''].join('\n');
 
-/** The brand's parchment ground (`--color-ground`), for the browser's own chrome. */
-export const THEME_COLOR = '#f5eddb';
+/** The morning sky the header sits on (`--color-sky`), for the browser's own chrome. */
+export const THEME_COLOR = PALETTE.sky;
 
 export const webManifest = () => ({
   name: CHANNEL.name,
   short_name: CHANNEL.name,
   start_url: '/',
   display: 'browser',
-  background_color: THEME_COLOR,
+  background_color: PALETTE.paper,
   theme_color: THEME_COLOR,
   icons: [
     { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },

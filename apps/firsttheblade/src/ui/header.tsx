@@ -1,7 +1,8 @@
 /**
- * The header: the lockup, the links and the subscribe button. On a phone the
- * links fold into a menu (`./phone-menu.tsx`); the page as served carries a
- * link to the footer's links in that place, so the menu works before (and
+ * The header, laid over the top of the page: the lockup, the links and the
+ * subscribe pill. On a phone the links fold into a menu (`./phone-menu.tsx`)
+ * and the pill says only “Subscribe”; the page as served carries a link to
+ * the footer's links in the menu's place, so the menu works before (and
  * without) the script that turns it into a dialog.
  */
 import { For } from '@solidjs/web';
@@ -47,8 +48,8 @@ export const Header = (props: HeaderProps) => (
           </a>
         )}
       </For>
-      <a class="button" href={SUBSCRIBE.href}>
-        {SUBSCRIBE.label}
+      <a class="pill" href={SUBSCRIBE.href}>
+        Subscribe<span class="pill-more"> on YouTube</span>
       </a>
     </nav>
     <div class="menu-slot" id={MENU_SLOT_ID}>

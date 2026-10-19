@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g><clipPath id="k17"><path d="M30 56A20 20 0 0 1 70 56Z"/></clipPath>
+<path d="M30 56A20 20 0 0 1 70 56Z" fill="#fdbf68"/>
+<path d="M50 36A20 20 0 0 1 70 56L50 56Z" fill="#be9463" clip-path="url(#k17)"/>
+<path d="M30 56A20 20 0 0 1 70 56Z" fill="none" stroke="#fcfbf0" stroke-width="3.84" clip-path="url(#k17)" opacity=".85"/>
+<path d="M30 56A20 20 0 0 1 70 56Z" fill="none" stroke="#2c4542" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></g>
+<g><clipPath id="k18"><path d="M12 62C22 58 30 66 40 62C50 58 58 66 68 62C78 58 84 64 90 62L90 84L12 84Z"/></clipPath>
+<path d="M12 62C22 58 30 66 40 62C50 58 58 66 68 62C78 58 84 64 90 62L90 84L12 84Z" fill="#bac9db"/>
+<path d="M50 60C58 66 68 58 78 60C84 62 88 62 90 62L90 84L50 84Z" fill="#355a43" clip-path="url(#k18)"/>
+<path d="M12 62C22 58 30 66 40 62C50 58 58 66 68 62C78 58 84 64 90 62L90 84L12 84Z" fill="none" stroke="#fcfbf0" stroke-width="3.84" clip-path="url(#k18)" opacity=".85"/>
+<path d="M12 62C22 58 30 66 40 62C50 58 58 66 68 62C78 58 84 64 90 62L90 84L12 84Z" fill="none" stroke="#2c4542" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></g>
+<g><clipPath id="k19"><path d="M50 22L50 28M30 30L34 34M70 30L66 34M22 46L28 46M78 46L72 46"/></clipPath>
+<path d="M50 22L50 28M30 30L34 34M70 30L66 34M22 46L28 46M78 46L72 46" fill="#fdbf68"/>
+
+<path d="M50 22L50 28M30 30L34 34M70 30L66 34M22 46L28 46M78 46L72 46" fill="none" stroke="#fcfbf0" stroke-width="3.84" clip-path="url(#k19)" opacity=".85"/>
+<path d="M50 22L50 28M30 30L34 34M70 30L66 34M22 46L28 46M78 46L72 46" fill="none" stroke="#2c4542" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></g></svg>

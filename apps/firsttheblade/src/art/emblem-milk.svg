@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g><clipPath id="k1"><path d="M22 44L44 44L41 76Q33 80 25 76Z"/></clipPath>
+<path d="M22 44L44 44L41 76Q33 80 25 76Z" fill="#fcfbf0"/>
+<path d="M33 44L44 44L41 76Q37 78 33 78Z" fill="#bac9db" clip-path="url(#k1)"/>
+<path d="M22 44L44 44L41 76Q33 80 25 76Z" fill="none" stroke="#fcfbf0" stroke-width="3.84" clip-path="url(#k1)" opacity=".85"/>
+<path d="M22 44L44 44L41 76Q33 80 25 76Z" fill="none" stroke="#2c4542" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></g>
+<g><clipPath id="k2"><path d="M24 49L42 49"/></clipPath>
+<path d="M24 49L42 49" fill="#fcfbf0"/>
+
+<path d="M24 49L42 49" fill="none" stroke="#fcfbf0" stroke-width="3.84" clip-path="url(#k2)" opacity=".85"/>
+<path d="M24 49L42 49" fill="none" stroke="#2c4542" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></g>
+<g><clipPath id="k3"><path d="M48 74C46 58 56 50 68 50C80 50 88 58 86 74Z"/></clipPath>
+<path d="M48 74C46 58 56 50 68 50C80 50 88 58 86 74Z" fill="#fdbf68"/>
+<path d="M67 50C80 50 88 58 86 74L67 74Z" fill="#be9463" clip-path="url(#k3)"/>
+<path d="M48 74C46 58 56 50 68 50C80 50 88 58 86 74Z" fill="none" stroke="#fcfbf0" stroke-width="3.84" clip-path="url(#k3)" opacity=".85"/>
+<path d="M48 74C46 58 56 50 68 50C80 50 88 58 86 74Z" fill="none" stroke="#2c4542" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></g>
+<g><clipPath id="k4"><path d="M60 58L64 66M68 56L72 64M76 58L79 65"/></clipPath>
+<path d="M60 58L64 66M68 56L72 64M76 58L79 65" fill="#be9463"/>
+
+<path d="M60 58L64 66M68 56L72 64M76 58L79 65" fill="none" stroke="#fcfbf0" stroke-width="3.84" clip-path="url(#k4)" opacity=".85"/>
+<path d="M60 58L64 66M68 56L72 64M76 58L79 65" fill="none" stroke="#2c4542" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></g>
+<g><clipPath id="k5"><path d="M14 80L90 80"/></clipPath>
+<path d="M14 80L90 80" fill="#776357"/>
+
+<path d="M14 80L90 80" fill="none" stroke="#fcfbf0" stroke-width="3.84" clip-path="url(#k5)" opacity=".85"/>
+<path d="M14 80L90 80" fill="none" stroke="#2c4542" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></g></svg>

@@ -20,8 +20,8 @@ import { View } from './views.tsx';
 /** The browser build's entry, as Vite's manifest names it. */
 const ENTRY = 'src/client.tsx';
 
-/** The faces the first screen sets (the wordmark, the verse, the nav), preloaded. */
-const FIRST_SCREEN_FONTS = ['Fraunces-normal-latin', 'Fraunces-italic-latin', 'Inter-normal-latin'];
+/** The faces the first screen sets (the wordmark, the nav, the verse in italic), preloaded. */
+const FIRST_SCREEN_FONTS = ['Newsreader-normal-latin', 'Newsreader-italic-latin'];
 
 /** A built font's face, its name without Vite's eight-character fingerprint. */
 const faceOf = (file: string) => file.replace(/-[\w-]{8}\.woff2$/, '');

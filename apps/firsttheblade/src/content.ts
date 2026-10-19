@@ -46,6 +46,12 @@ export interface Series {
   readonly episodes: ReadonlyArray<Episode>;
 }
 
+/** The night verse: the sower sleeps and rises, and the seed grows. */
+export const MARK_4_27: Verse = {
+  text: 'And should sleep, and rise night and day, and the seed should spring and grow up, he knoweth not how.',
+  ref: 'Mark 4:27',
+};
+
 export const MARK_4_28: Verse = {
   text: 'For the earth bringeth forth fruit of herself; first the blade, then the ear, after that the full corn in the ear.',
   ref: 'Mark 4:28',

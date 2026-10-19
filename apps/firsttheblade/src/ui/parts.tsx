@@ -1,14 +1,14 @@
 /**
- * The parts the pages share: the field hero, a series' card, the subscribe
- * band and the footer.
+ * The parts the pages share, in the order a page meets them: the field at
+ * morning (the home page's, tall, and a page's own, shorter), a verse, the
+ * series on torn paper, the dusk, the night close and the footer.
  */
 import { For } from '@solidjs/web';
 import type { JSX } from '@solidjs/web';
 
-import type { Series } from '../content.ts';
+import { MARK_4_27, type Series, type Verse } from '../content.ts';
 import { CHANNEL } from '../site.ts';
-import { COVERS, FIELD, srcset } from './art.ts';
-import { Lockup } from './brand.tsx';
+import { EMBLEMS, FIELD, MARK, NIGHT, srcset } from './art.ts';
 import { FOOTER_NAV_ID, NAV, SUBSCRIBE } from './nav.ts';
 
 export const seriesHref = (series: Series) => `/series/${series.slug}`;
@@ -30,88 +30,121 @@ export const statusOf = (series: Series) => {
   return `${count} ${units.many} out`;
 };
 
-interface FieldHeroProps {
-  /** The short field, for a page below the home page. */
-  readonly short: boolean;
+interface FieldProps {
   readonly children: JSX.Element;
 }
 
-const HERO_CLASS = { true: 'hero-art hero-art-short', false: 'hero-art' } as const;
-const LOADING = { true: 'eager', false: 'lazy' } as const;
+/** The field at morning, the first thing every page paints. */
+const FieldArt = () => (
+  <img
+    class="field-art"
+    src={FIELD.small}
+    srcset={srcset(FIELD)}
+    sizes="100vw"
+    alt=""
+    width="1536"
+    height="1024"
+    fetchpriority="high"
+  />
+);
 
 /**
- * The field, blade to full corn, with a torn strip of paper laid on it: in
- * its sky on a wide screen, over its foot on a phone.
+ * The home page's field: tall, with the verse on a torn strip in its sky and
+ * the soil darkened under the words laid on it.
  */
-export const FieldHero = (props: FieldHeroProps) => (
-  <div class="hero">
-    <picture>
-      <source media="(min-width: 48rem)" srcset={FIELD.wide} />
-      <img
-        class={HERO_CLASS[`${props.short}`]}
-        src={FIELD.narrow}
-        alt=""
-        width="2560"
-        height="640"
-        fetchpriority="high"
-      />
-    </picture>
+export const HomeField = (props: FieldProps) => (
+  <div class="field field-home">
+    <FieldArt />
+    <div class="field-scrim" />
     {props.children}
   </div>
 );
 
-interface SeriesCardProps {
-  readonly series: Series;
-  /** Whether its picture loads with the page (it is in the first screen) or when scrolled to. */
-  readonly eager: boolean;
+/** A page's own field: shorter, with the page's title on a torn strip. */
+export const PageField = (props: FieldProps) => (
+  <div class="field field-page">
+    <FieldArt />
+    {props.children}
+  </div>
+);
+
+interface QuoteProps {
+  readonly verse: Verse;
 }
 
-/** A series: its picture, name, subject and form, its line, and how far it has come. */
+/** A verse in italic, its reference beneath it. */
+export const Quote = (props: QuoteProps) => (
+  <figure class="verse">
+    <blockquote>
+      <p>“{props.verse.text}”</p>
+    </blockquote>
+    <figcaption class="ref">{props.verse.ref}</figcaption>
+  </figure>
+);
+
+interface SeriesCardProps {
+  readonly series: Series;
+}
+
+/** A series on its strip of paper: its emblem, subject and form, name, line, and how far it has come. */
 export const SeriesCard = (props: SeriesCardProps) => {
   const s = props.series;
   return (
-    <li class="card" data-series={s.id}>
-      <img
-        src={COVERS[s.id].small}
-        srcset={srcset(COVERS[s.id])}
-        sizes="(min-width: 72rem) 19rem, (min-width: 40rem) 45vw, 100vw"
-        alt=""
-        width="640"
-        height="360"
-        loading={LOADING[`${props.eager}`]}
-      />
-      <h3>
-        <a href={seriesHref(s)}>{s.name}</a>
-      </h3>
-      <p class="label">
-        {s.subject} · {s.form}
-      </p>
-      <p>{s.line}</p>
-      <p class="status">{statusOf(s)}</p>
+    <li class="card">
+      <img src={EMBLEMS[s.id]} alt="" width="92" height="92" loading="lazy" />
+      <div>
+        <p class="label">
+          <span class="nowrap">{s.subject}</span> · <span class="nowrap">{s.form}</span>
+        </p>
+        <h3>
+          <a href={seriesHref(s)}>{s.name}</a>
+        </h3>
+        <p class="line">{s.line}</p>
+        <p class="status">{statusOf(s)}</p>
+      </div>
     </li>
   );
 };
 
 interface CardsProps {
   readonly series: ReadonlyArray<Series>;
-  readonly eager: boolean;
 }
 
 export const Cards = (props: CardsProps) => (
   <ul class="cards" data-count={props.series.length}>
-    <For each={props.series}>{(s) => <SeriesCard series={s} eager={props.eager} />}</For>
+    <For each={props.series}>{(s) => <SeriesCard series={s} />}</For>
   </ul>
 );
 
-/** The subscribe band: the one thing to do while the first films are made. */
-export const Band = () => (
-  <section class="band" aria-labelledby="band-title">
-    <div class="wrap">
-      <div>
-        <h2 id="band-title">A new film, now and then</h2>
-        <p>Subscribe on YouTube to see each one when it is ready: {CHANNEL.handle}</p>
-      </div>
-      <a class="button button-gold" href={SUBSCRIBE.href}>
+/** The day turning to night between the last band and the close. */
+export const Dusk = () => <div class="dusk" aria-hidden="true" />;
+
+/**
+ * The close, at night: the mark, Mark 4:27 (the sower sleeps and rises, and
+ * the seed grows), and the one thing to do while the first films are made.
+ */
+export const NightClose = () => (
+  <section class="night" aria-labelledby="night-title">
+    <img
+      class="night-art"
+      src={NIGHT.small}
+      srcset={srcset(NIGHT)}
+      sizes="100vw"
+      alt=""
+      width="1536"
+      height="1024"
+      loading="lazy"
+    />
+    <div class="night-veil" />
+    <div class="night-words">
+      <img class="mark" src={MARK.large} alt="" width="320" height="320" loading="lazy" />
+      <Quote verse={MARK_4_27} />
+      <h2 id="night-title">A new film, now and then</h2>
+      <p>
+        Subscribe on YouTube to see each one when it is ready:{' '}
+        <span class="nowrap">{CHANNEL.handle}</span>
+      </p>
+      <a class="button button-night" href={SUBSCRIBE.href}>
         {SUBSCRIBE.label}
       </a>
     </div>
@@ -120,7 +153,6 @@ export const Band = () => (
 
 export const Footer = () => (
   <footer class="site-footer">
-    <Lockup />
     <nav aria-label="Site" id={FOOTER_NAV_ID}>
       <ul class="footer-links">
         <li>
@@ -138,6 +170,11 @@ export const Footer = () => (
         </li>
       </ul>
     </nav>
-    <p class="footer-fine">Scripture quotations from the King James Version · © 2026</p>
+    <p class="footer-fine">
+      <span>
+        Scripture quotations from the <span class="nowrap">King James Version</span>
+      </span>
+      <span class="nowrap">© 2026</span>
+    </p>
   </footer>
 );
