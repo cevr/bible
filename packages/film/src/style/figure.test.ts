@@ -450,10 +450,32 @@ describe('a traced figure, standing or seated', () => {
       );
   });
 
-  test('a given robe over a cut robe is refused', () => {
-    expect(() => figure({ ...standingOf(), states: [robe] })).toThrow(
-      /figure refused: .*a given robe is laid over a tunic only, not a CutRobe/,
-    );
+  test('a given robe is laid over any garment, standing or seated, with arms or none, its node an id of its own', () => {
+    const tracedRobe = Robe.Traced({ outline: TRACED_ROBE, hem: -15, paper: SKIN });
+    const robed = [
+      figure({ ...standingOf(), states: [robe] }),
+      figure({ ...standingOf(), states: [robe], arms: { far: sleeve } }),
+      figure({ ...standingOf(), body: tracedRobe, states: [robe] }),
+      figure({ ...standingOf(), body: tracedRobe, states: [robe], arms: { far: sleeve } }),
+      figure({ ...seatedOf(), states: [robe] }),
+      figure({ ...seatedOf(), states: [robe], arms: { near: resting } }),
+    ];
+    for (const robedFigure of robed) {
+      const rml = drawnOf(robedFigure);
+      const ids = Array.from(rml.matchAll(/ id="([^"]+)"/g), (m) => m[1]);
+      expect(ids.filter((id, i) => ids.indexOf(id) !== i)).toEqual([]);
+      // The given robe's node, shown by its number, lies over the garment's own paper, also named `robe`.
+      const number = rml.match(/<ViewModelPropertyNumber name="robe" id="([^"]+)"\/>/)?.[1];
+      expect(number).toBeDefined();
+      expect(
+        rml.match(
+          /<Node name="robe" id="[^"]+">\s*<DataBindContext sourcePathIds="[^"-]+-([^"]+)"/,
+        )?.[1],
+      ).toBe(number);
+      const given = rml.indexOf('<Node name="robe" id=');
+      expect(given).toBeGreaterThanOrEqual(0);
+      expect(rml.indexOf('<Shape name="robe" id=')).toBeGreaterThan(given);
+    }
   });
 
   test("a seated figure's head off its origin is refused", () => {

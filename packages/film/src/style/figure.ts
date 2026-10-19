@@ -3,7 +3,7 @@
 // a part spread with a field its kind lacks, or a paper copied with a grey
 // shade, is refused as the module that composes it loads, and so are parts
 // the house cannot draw together (hair, a headcloth or a beard on a round
-// head, a given robe over a cut robe). Only a figure `figure` returned is
+// head, a pivot outside its garment). Only a figure `figure` returned is
 // one a film's figures file lays (`isComposed`), and it is frozen through:
 // a copy of it with a part changed was never checked, and a change made in
 // it throws, so a change is composed from the figure's spec again. A figure
@@ -120,16 +120,6 @@ const cutInTracedHead = Schema.makeFilter(
       : true,
 );
 
-/** A given robe is the tunic's outline again, so the house lays it over a tunic only. */
-const robeOverTunic = Schema.makeFilter(
-  (s: { readonly body: unknown; readonly states?: ReadonlyArray<unknown> }) =>
-    isPart(s.body) &&
-    s.body._tag !== 'Tunic' &&
-    (s.states ?? []).some((state) => isPart(state) && state._tag === 'GivenRobe')
-      ? `a given robe is laid over a tunic only, not a ${s.body._tag}`
-      : true,
-);
-
 /** A seated figure's origin is at its head's height, so its head's `y` is 0. */
 const headAtOrigin = Schema.makeFilter((s: { readonly head: unknown }) =>
   Predicate.hasProperty(s.head, 'y') && s.head.y !== 0
@@ -171,13 +161,12 @@ const StandingSlots = Schema.Struct({
   art: StandingArt,
   stance: Schema.Unknown,
   feet: Schema.Unknown,
-}).check(cutInTracedHead, robeOverTunic);
+}).check(cutInTracedHead);
 const decodeStandingSlots = decoder(StandingSlots);
 
 /** A seated figure's slots: every figure's, its artboard and its stance; it has no feet. */
 const SeatedSlots = Schema.Struct({ ...slots, art: SeatedArt, stance: Schema.Unknown }).check(
   cutInTracedHead,
-  robeOverTunic,
   headAtOrigin,
 );
 const decodeSeatedSlots = decoder(SeatedSlots);

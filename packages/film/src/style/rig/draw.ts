@@ -436,11 +436,13 @@ const garmentOf = (rig: Figure, f: Parts, outline: ReadonlyArray<Pt>): Element =
  * The robe he is given, shown by its number (`robe`): the garment's
  * outline again in its paper, and each arm's sleeve again in it, turned by
  * its arm's number and cut in one outline with it (`sleevedOf`), so the robe
- * covers the garment and its sleeves, and its line runs round them all.
+ * covers the garment and its sleeves, and its line runs round them all. Its
+ * node is named `robe` and keyed `givenRobe`, so its id is its own beside a
+ * robe garment's piece `robe`.
  */
 const robeOf = (rig: Figure, f: Parts, robe: GivenRobe, outline: ReadonlyArray<Pt>): Element => {
   const look = looked(robe.paper);
-  return el('Node', { name: 'robe', id: rig.idOf('robe') }, [
+  return el('Node', { name: 'robe', id: rig.idOf('givenRobe') }, [
     rig.bind('robe', KEY.opacity),
     sleevedOf(rig, f, 'robePaper', outline, look, { key: 'RobeSleeve', look: () => look }),
   ]);
