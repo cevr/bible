@@ -661,6 +661,54 @@
       "set": "p6-concept-design-2026-10-18",
       "ask": "a6b607b8a0f",
       "by": "orchestrator"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792349757095,
+      "text": "The flow gains a cast stage on each side of the Board: the concept draws every cast member as a sheet (angles and poses); after the storyboard, each member's rig is rendered to its sheet and kept; only then are scenes rendered.",
+      "quote": "heres the workflow im thinking - concept draws cast in various angles, poses, etc, then storyboard, then we render each cast according to the character sheet, then we can be confident of rendering scenes",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792350230547,
+      "text": "Background filler cast is generated from a set of base rigs of various sizes and genders, mixed and matched, instead of drawing each person.",
+      "quote": "background filler cast can be generated from a set of rigs of various sizes and genders, then we can mix and match these",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792371370167,
+      "text": "RBF within: holding his feet at \"we\", and the step at \"arose\" (ask aa21401c06d)",
+      "set": "rbf-within-2026-10-18",
+      "ask": "aa21401c06d",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792372041085,
+      "text": "RBF within: holding his feet at \"we\", and the step at \"arose\" (ask aa21401c06d): hold: Keep the page strip over his feet · step: Unlock his legs for a one-foot stride, as the kept panel draws it",
+      "set": "rbf-within-2026-10-18",
+      "ask": "aa21401c06d",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792372089220,
+      "text": "The lead's lock: allow the stride at \"arose\" (ask a1cfb45a7cf)",
+      "set": "rbf-within-2026-10-18",
+      "point": "item:lead",
+      "ask": "a1cfb45a7cf",
+      "by": "orchestrator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792372670532,
+      "text": "The lead's lock: allow the stride at \"arose\" (ask a1cfb45a7cf): stride: Yes: add the stride and renew his lock",
+      "set": "rbf-within-2026-10-18",
+      "point": "item:lead",
+      "ask": "a1cfb45a7cf",
+      "by": "orchestrator"
     }
   ],
   "filed": [
