@@ -12,9 +12,7 @@
 // - take: a library sound's takes (`library.lock.json`); heard alone and in
 //   place; kept (picked), unkept or rejected;
 // - voice: a beat's recorded attempts; heard alone; one kept as the take;
-// - look: a look's named levels (`looks` in `palette.ts`); one picked;
-// - level: a sound layer's level (a bed's, an effect's, the score's), a
-//   knob and no variants.
+// - look: a look's named levels (`looks` in `palette.ts`); one picked.
 //
 // The owner's approvals and comments are the catalogue's records
 // (`catalogue.ts`), each on one variant as it was when given (its `key`).
@@ -39,7 +37,7 @@ import { ChangeId, CheckLine, Seconds, maybe, mixedField } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
 /** What a choice point chooses between; each kind has one adapter. */
-const ChoiceKind = Schema.Literals(['render', 'score', 'take', 'voice', 'look', 'level']);
+const ChoiceKind = Schema.Literals(['render', 'score', 'take', 'voice', 'look']);
 type ChoiceKind = typeof ChoiceKind.Type;
 
 /**
@@ -96,18 +94,6 @@ export type ChoiceVariant = typeof ChoiceVariant.Type;
 export const ChoiceMark = Schema.Struct({ t: Seconds, label: Schema.String });
 export type ChoiceMark = typeof ChoiceMark.Type;
 
-/** A number the point sets beside its variants: a sound layer's level, in dB against the voice. */
-const ChoiceKnob = Schema.Struct({
-  value: Schema.Finite,
-  min: Schema.Finite,
-  max: Schema.Finite,
-  step: Schema.Finite,
-  unit: Schema.String,
-  /** Why it cannot be written, when it cannot (its value is computed). */
-  fixed: maybe(Schema.String),
-});
-type ChoiceKnob = typeof ChoiceKnob.Type;
-
 /** A choice point's fields as the wire carries them: everything but its ref, which its id writes. */
 const pointFields = {
   /**
@@ -125,7 +111,6 @@ const pointFields = {
   /** The instants a set's moments view shows, when it names them. */
   moments: maybe(Schema.Array(Seconds)),
   marks: Schema.Array(ChoiceMark),
-  knob: maybe(ChoiceKnob),
   variants: Schema.Array(ChoiceVariant),
 };
 
@@ -137,7 +122,6 @@ const KIND = {
   Take: 'take',
   Voice: 'voice',
   Look: 'look',
-  Level: 'level',
 } as const satisfies { readonly [Tag in PointRef['_tag']]: ChoiceKind };
 
 /**
@@ -183,13 +167,12 @@ export const pointHead = (ref: PointRef): Pick<ChoicePoint, 'id' | 'ref' | 'kind
 /** A point as its adapter describes it: which point it is, and its variants' say still to read. */
 export interface PointDraft extends Omit<
   ChoicePoint,
-  'id' | 'kind' | 'variants' | 'moments' | 'marks' | 'knob' | 'start'
+  'id' | 'kind' | 'variants' | 'moments' | 'marks' | 'start'
 > {
   readonly variants: ReadonlyArray<VariantDraft>;
   readonly start?: number;
   readonly moments?: Option.Option<ReadonlyArray<number>>;
   readonly marks?: ReadonlyArray<ChoiceMark>;
-  readonly knob?: Option.Option<ChoiceKnob>;
 }
 
 /** What the owner's say on `variant` of the point `ref` at `address` is about. */
@@ -206,7 +189,6 @@ const STALE = {
   take: 'it was made for an earlier declaration; approve a take made for the one now',
   voice: 'it was recorded for an earlier line; approve an attempt at the line now',
   look: 'it is no level the look offers now',
-  level: 'it is no level the film sets now',
 } as const satisfies { readonly [K in ChoiceKind]: string };
 
 /** Why a render stale by `StaleBy` is, and how to make it current. */
@@ -254,7 +236,6 @@ export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft):
     start: draft.start ?? 0,
     moments: draft.moments ?? Option.none(),
     marks: draft.marks ?? [],
-    knob: draft.knob ?? Option.none(),
     variants: draft.variants.map((variant): ChoiceVariant => {
       const said = Option.map(
         Option.all({ cat: catalogue, address: draft.address }),
@@ -345,14 +326,10 @@ export const PickPost = Schema.Struct({
 });
 export type PickPost = typeof PickPost.Type;
 
-/** `POST /api/films/<film>/choices/knob`: a level point's knob set. */
-export const KnobPost = Schema.Struct({ point: Schema.String, value: Schema.Finite });
-export type KnobPost = typeof KnobPost.Type;
-
 /** What a pick answers: the file it changed, the film's choices as they now stand, and the check after it. */
 export const ChoiceWrite = Schema.Struct({
   file: Schema.String,
-  /** What changed: `score play piano`, `sound paper.slide keep 3f2a…`, `level PAPER -24`. */
+  /** What changed: `score play piano`, `sound paper.slide keep 3f2a…`. */
   target: Schema.String,
   /**
    * The change it made, by the id the lab's history knows it by (what a

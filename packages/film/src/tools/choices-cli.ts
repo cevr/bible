@@ -24,7 +24,7 @@
 //       the beat's attempt `file` kept as its take (one that says something
 //       else only with --accept-mismatch), and the track remixed
 
-import { Effect, FileSystem, Match, Option, Path, Result } from 'effect';
+import { Effect, Match, Option, Result } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import { ChoiceVerb } from '../core/choice.ts';
 import { PointRef } from '../core/point.ts';
@@ -72,14 +72,6 @@ const beatAttempts = Effect.fn('film.options.beats')(function* (loaded: LoadedFi
   );
 });
 
-/** `sound.ts` beside the film: its path and text, when it has one. */
-const soundSource = Effect.fn('film.options.soundSource')(function* (loaded: LoadedFilm) {
-  const fs = yield* FileSystem.FileSystem;
-  const file = (yield* Path.Path).join(loaded.paths.dir, 'sound.ts');
-  if (!(yield* fs.exists(file))) return Option.none();
-  return Option.some({ file, text: yield* fs.readFileString(file) });
-});
-
 /**
  * The film's choice points as its sources stand, with the catalogue's say on
  * each variant: the derived sounds it places measured here, for each seed's
@@ -89,7 +81,6 @@ const pointsOf = Effect.fn('film.options.points')(function* (loaded: LoadedFilm)
   return filmPoints({
     loaded: yield* measuredFilm(loaded),
     placed: yield* placeFilm(loaded),
-    soundSource: yield* soundSource(loaded),
     beats: yield* beatAttempts(loaded),
     catalogue: Option.some(yield* (yield* RenderCatalogue).read(loaded.paths)),
   });

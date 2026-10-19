@@ -1,7 +1,7 @@
 // A film's choices over HTTP: the handlers of the lab API's `choices` group
 // (`LabHttpApi` in `core/api.ts`), served by `film lab` for every film of the app.
-// A pick or a knob is a write: it lands in the film's source through the
-// SourceWriter and is answered like the lab's knob writes, with the film's
+// A pick is a write: it lands in the film's source through the
+// SourceWriter and is answered like the lab's other writes, with the film's
 // static check after it and the choices as they now stand, both from one
 // fresh run (`Choices.checked`). The page runs the sound check
 // (`soundCheck`, dead air and balance in the mix the film now makes) after a
@@ -63,14 +63,6 @@ export const choicesGroup = HttpApiBuilder.group(LabHttpApi, 'choices', (handler
         Effect.gen(function* () {
           const film = yield* filmNamed(params.film);
           return yield* answer(film, yield* (yield* Choices).pick(film, payload));
-        }),
-      ),
-    )
-    .handle('knob', ({ params, payload }) =>
-      answered(
-        Effect.gen(function* () {
-          const film = yield* filmNamed(params.film);
-          return yield* answer(film, yield* (yield* Choices).knob(film, payload));
         }),
       ),
     )

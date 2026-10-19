@@ -13,14 +13,13 @@
 //   its data, so no verb reaches it (`fixed` says why);
 // - look: each of `palette.ts`'s `looks`, its levels, `play` picked;
 // - voice: each beat's recorded attempts, the one the timings name picked;
-//   heard alone; at the beat's scene;
-// - level: each sound layer's level (a bed's, an effect's, the score's under
-//   and alone) as `sound.ts` writes it, a knob; a constant several layers
-//   name (`PAPER`) is one knob for all of them.
+//   heard alone; at the beat's scene.
+//
+// A sound layer's level is the agents' to set in `sound.ts`: no point offers it.
 //
 // Render sets are the catalogue's (`review.ts`, `project-cli.ts`).
 
-import { Array as Arr, DateTime, Match, Option, Result } from 'effect';
+import { Array as Arr, DateTime, Option, Result } from 'effect';
 import { type Address, sceneAddress } from '../core/address.ts';
 import { counted } from '../core/words.ts';
 import type { Catalogue, VariantState } from '../core/catalogue.ts';
@@ -32,10 +31,9 @@ import {
   type VariantDraft,
   withSay,
 } from '../core/choice.ts';
-import { type LevelTarget, type SoundLayer, pointIdOf } from '../core/point.ts';
 import { type Placed, sceneAt } from '../core/layout.ts';
 import { type MixPlan, type MixPlanError, mixPlan } from '../core/mix.ts';
-import type { Cue, Sound } from '../core/schema.ts';
+import type { Sound } from '../core/schema.ts';
 import {
   type DerivedSource,
   type LibraryEntry,
@@ -44,7 +42,6 @@ import {
   type SoundSource,
   type Variant,
   isDerived,
-  levelOf,
   pendingOf,
   requestKey,
   seedSources,
@@ -52,10 +49,9 @@ import {
   sourceLabel,
   trialSources,
 } from '../core/sfx.ts';
-import { type ScoreOptionState, cueTime, scoreOptionState, scoreOptions } from '../core/sound.ts';
+import { type ScoreOptionState, scoreOptionState, scoreOptions } from '../core/sound.ts';
 import { type LoadedFilm, type MeasuredFilm, voicePiecesOf } from './film-repo.ts';
 import type { Attempt } from './takes.ts';
-import { type LevelWritten, readLevel } from './choice-source.ts';
 
 /** How a score option's state in the store reads as a variant's. */
 const SCORE_STATE: Record<ScoreOptionState['_tag'], VariantState> = {
@@ -432,176 +428,25 @@ export const voicePoints = (
     });
 
 // ---------------------------------------------------------------------------
-// level
-
-/** A layer of the film's sound, as the level adapter lists it. */
-interface LayerLevel {
-  readonly layer: SoundLayer;
-  readonly title: string;
-  /** What plays when `sound.ts` names no level (the library's, else the default). */
-  readonly fallback: Option.Option<number>;
-  readonly scenes: ReadonlyArray<string>;
-  readonly marks: ReadonlyArray<ChoiceMark>;
-  /** Why its placements are not shown: an effect's, when the mix does not build. */
-  readonly unplaced: ReadonlyArray<string>;
-}
-
-/** The ids of the scenes from `from`'s to `to`'s, in film order. */
-const scenesBetween = (placed: ReadonlyArray<Placed>, from: Cue, to: Cue) => {
-  const ids = placed.map((p) => p.spec.id);
-  const a = ids.indexOf(from.scene);
-  const b = ids.indexOf(to.scene);
-  if (a < 0 || b < a) return [from.scene];
-  return ids.slice(a, b + 1);
-};
-
-/** Each layer whose level `sound.ts` sets: the score's two, then each bed, then each effect. */
-const layersOf = (
-  loaded: MeasuredFilm,
-  sound: Sound,
-  placed: ReadonlyArray<Placed>,
-): ReadonlyArray<LayerLevel> => {
-  const plan = planOf(loaded, placed);
-  const where = placementsOf(sound, plan);
-  const entry = (name: string) => soundEntry(loaded.sounds.library, name);
-  const score = Option.match(Option.fromUndefinedOr(sound.score), {
-    onNone: () => [],
-    onSome: (s): ReadonlyArray<LayerLevel> =>
-      (['under', 'alone'] as const).map((which) => ({
-        layer: { _tag: 'Score', which },
-        title: `score ${which}`,
-        fallback: Option.some(s[which]),
-        scenes: [],
-        marks: [],
-        unplaced: [],
-      })),
-  });
-  const beds = Option.getOrElse(Option.fromUndefinedOr(sound.beds), () => []).map(
-    (bed, index): LayerLevel => ({
-      layer: { _tag: 'Bed', index, sound: bed.sound },
-      title: `bed ${bed.sound}`,
-      fallback: Option.map(entry(bed.sound), (e) => levelOf(e, Option.none())),
-      scenes: scenesBetween(placed, bed.from, bed.to),
-      marks: Option.toArray(
-        Option.map(Result.getSuccess(cueTime(bed.from, placed)), (t) => ({
-          t,
-          label: `${bed.sound} from ${bed.from.scene}`,
-        })),
-      ),
-      unplaced: [],
-    }),
-  );
-  const effects = Object.entries(sound.effects).map(([name, effect]): LayerLevel => {
-    const here = where.filter((w) => w.effect === name);
-    return {
-      layer: { _tag: 'Effect', name },
-      title: `effect ${name}`,
-      fallback: Option.map(entry(effect.sound), (e) => levelOf(e, Option.none())),
-      scenes: here.map((w) => sceneOfTime(placed, w.at)),
-      marks: here.map((w) => markOf(placed, w)),
-      unplaced: unplacedLines(plan),
-    };
-  });
-  return [...score, ...beds, ...effects];
-};
-
-const LEVEL_KNOB = { min: -40, max: 0, step: 0.5, unit: 'dB' } as const;
-
-/** A layer's level knob: what it writes (its own level, or a shared constant), its value and whether a write can reach it. */
-const knobOf = (layer: LayerLevel, written: Result.Result<LevelWritten, unknown>) => {
-  const own: LevelTarget = { _tag: 'Layer', layer: layer.layer };
-  const fixed = (why: string) => ({
-    target: own,
-    value: Option.getOrElse(layer.fallback, () => 0),
-    fixed: Option.some(why),
-  });
-  if (Result.isFailure(written)) return fixed(`sound.ts does not read: ${String(written.failure)}`);
-  const w = written.success;
-  if (w._tag === 'Own') return { target: own, value: w.value, fixed: Option.none<string>() };
-  if (w._tag === 'Shared')
-    return {
-      target: { _tag: 'Const', name: w.name } satisfies LevelTarget,
-      value: w.value,
-      fixed: Option.none<string>(),
-    };
-  if (w._tag === 'Computed') return fixed(`its level is \`${w.text}\`, not a literal`);
-  return Option.match(layer.fallback, {
-    onNone: () => fixed('its sound is not in the library'),
-    onSome: (value) => ({ target: own, value, fixed: Option.none<string>() }),
-  });
-};
-
-/**
- * Each sound layer's level as `sound.ts` (`source`, the file's text) writes
- * it, a knob per literal: a layer's own number, or a constant shared by the
- * layers that name it. A level left out shows what plays, and a write adds it.
- */
-export const levelPoints = (
-  loaded: MeasuredFilm,
-  placed: ReadonlyArray<Placed>,
-  file: string,
-  source: string,
-): ReadonlyArray<PointDraft> =>
-  Option.match(loaded.sound, {
-    onNone: () => [],
-    onSome: (sound) => {
-      const knobs = layersOf(loaded, sound, placed).map((layer) => ({
-        layer,
-        knob: knobOf(layer, readLevel(file, source, layer.layer)),
-      }));
-      const byId = Arr.groupBy(knobs, (k) => pointIdOf({ _tag: 'Level', target: k.knob.target }));
-      return Object.values(byId).map((all): PointDraft => {
-        const first = all[0];
-        const scenes = all.flatMap((k) => k.layer.scenes);
-        const title = Match.valueTags(first.knob.target, {
-          Const: ({ name }) => `const:${name} · ${counted(all.length, 'layer')}`,
-          Layer: () => first.layer.title,
-        });
-        return {
-          ref: { _tag: 'Level', target: first.knob.target },
-          address: Option.some(scenesAddress(scenes)),
-          title,
-          lines: [
-            ...Arr.filter(
-              all.map((k) => k.layer.title),
-              () => first.knob.target._tag === 'Const',
-            ),
-            ...Arr.dedupe(all.flatMap((k) => k.layer.unplaced)),
-          ],
-          marks: all.flatMap((k) => k.layer.marks),
-          knob: Option.some({ ...LEVEL_KNOB, value: first.knob.value, fixed: first.knob.fixed }),
-          variants: [],
-        };
-      });
-    },
-  });
-
-// ---------------------------------------------------------------------------
 
 /**
  * What a film's points are read from: the film with the derived sounds it
  * places measured (a seed's line, where each effect plays), and beside it its
- * sound source and its beats' attempts.
+ * beats' attempts.
  */
 interface PointInputs {
   readonly loaded: MeasuredFilm;
   readonly placed: ReadonlyArray<Placed>;
-  /** `sound.ts`: its path and text, when the film has one. */
-  readonly soundSource: Option.Option<{ readonly file: string; readonly text: string }>;
   readonly beats: ReadonlyArray<BeatAttempts>;
   /** The film's catalogue: the owner's approvals and comments. */
   readonly catalogue: Option.Option<Catalogue>;
 }
 
-/** The film's choice points as its sources stand: score, looks, takes, voices, levels. */
+/** The film's choice points as its sources stand: score, looks, takes, voices. */
 export const filmPoints = (inputs: PointInputs): ReadonlyArray<ChoicePoint> =>
   [
     ...Option.toArray(scorePoint(inputs.loaded, inputs.placed)),
     ...lookPoints(inputs.loaded),
     ...takePoints(inputs.loaded, inputs.placed),
     ...voicePoints(inputs.loaded, inputs.beats),
-    ...Option.match(inputs.soundSource, {
-      onNone: () => [],
-      onSome: (s) => levelPoints(inputs.loaded, inputs.placed, s.file, s.text),
-    }),
   ].map((draft) => withSay(inputs.catalogue, draft));

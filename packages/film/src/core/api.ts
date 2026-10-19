@@ -50,7 +50,7 @@ import { AskName, AskRecord, AsksPage, StepValues } from './ask.ts';
 import { sceneOfPoint } from './point.ts';
 import { Gave, OpId, Project, RenderVariantName, Took } from './catalogue.ts';
 import { WaitTimeout } from './wait.ts';
-import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
+import { ChoiceWrite, FilmChoices, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
 import {
   LabDown,
@@ -998,7 +998,7 @@ class AsksGroup extends HttpApiGroup.make('asks').add(
 
 /**
  * A film's choice points (`choice.ts`): listed, a variant picked (or
- * unpicked, or rejected), a level knob set, a variant said of (`Say`), each
+ * unpicked, or rejected), a variant said of (`Say`), each
  * variant heard alone or in the film's mix, and the film's sound checked
  * after a pick.
  */
@@ -1013,13 +1013,6 @@ class ChoicesGroup extends HttpApiGroup.make('choices').add(
   HttpApiEndpoint.post('pick', `${FILM}/choices/pick`, {
     params: film,
     payload: PickPost,
-    success: ChoiceWrite,
-    error: Refusals,
-  }),
-  /** A level point's knob written into `sound.ts`. */
-  HttpApiEndpoint.post('knob', `${FILM}/choices/knob`, {
-    params: film,
-    payload: KnobPost,
     success: ChoiceWrite,
     error: Refusals,
   }),

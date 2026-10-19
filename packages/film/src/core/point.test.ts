@@ -21,22 +21,6 @@ const written: ReadonlyArray<readonly [PointRef, string]> = [
   ],
   [{ _tag: 'Render', address: { _tag: 'Short', id: 'hook' } }, 'render:short:hook'],
   [{ _tag: 'Montage', clip: 'p6-onset-roof' }, 'render:p6-onset-roof'],
-  [
-    {
-      _tag: 'Level',
-      target: { _tag: 'Layer', layer: { _tag: 'Bed', index: 3, sound: 'amb.hall' } },
-    },
-    'level:bed:3:amb.hall',
-  ],
-  [
-    { _tag: 'Level', target: { _tag: 'Layer', layer: { _tag: 'Effect', name: 'gavel' } } },
-    'level:effect:gavel',
-  ],
-  [
-    { _tag: 'Level', target: { _tag: 'Layer', layer: { _tag: 'Score', which: 'under' } } },
-    'level:score:under',
-  ],
-  [{ _tag: 'Level', target: { _tag: 'Const', name: 'PAPER' } }, 'level:const:PAPER'],
 ];
 
 describe('the choice point id', () => {
@@ -72,23 +56,18 @@ describe('the choice point id', () => {
       { _tag: 'Take', sound: '' },
       { _tag: 'Render', address: { _tag: 'Act', act: '' } },
       { _tag: 'Render', address: { _tag: 'Scenes', ids: ['a,b'] } },
-      { _tag: 'Level', target: { _tag: 'Layer', layer: { _tag: 'Bed', index: -1, sound: 'x' } } },
     ])
       expect(Result.isFailure(Schema.decodeUnknownResult(PointRef)(ref))).toBe(true);
   });
 
   test('a string that names no point does not decode', () => {
-    for (const id of ['', 'take:', 'nothing:x', 'level:bed:x:amb', 'level:score:loud', 'level:'])
+    // A sound layer's level is no point: the agents set it in `sound.ts`.
+    for (const id of ['', 'take:', 'nothing:x', 'level:bed:3:amb.hall', 'level:const:PAPER'])
       expect(Result.isFailure(Schema.decodeResult(PointId)(id))).toBe(true);
   });
 
   test('an id no point is written as does not decode', () => {
     for (const id of [
-      'level:bed::amb',
-      'level:bed:01:amb',
-      'level:bed:1e0:amb',
-      'level:bed: 1:amb',
-      'level:bed:0x1:amb',
       'render:scenes:a,',
       'render:scenes:,a',
       // A beat is a scene: its id is a `PartId`.
@@ -103,10 +82,7 @@ describe('the choice point id', () => {
   test('any string that reads as a point is that point’s own id', () => {
     const heads = ['', 'score', 'take:', 'look:', 'render:', 'render:scenes:', 'render:act:'];
     const idLike = Arbitrary.map(
-      Arbitrary.all([
-        Arbitrary.schema(Schema.Literals([...heads, 'level:bed:', 'level:bed:0', 'level:const:'])),
-        Arbitrary.schema(Schema.String),
-      ]),
+      Arbitrary.all([Arbitrary.schema(Schema.Literals(heads)), Arbitrary.schema(Schema.String)]),
       ([head, tail]) => head + tail,
     );
     const result = Effect.runSync(

@@ -195,7 +195,6 @@ packages/film/src/tools/check.ts soundFindings
 packages/film/src/tools/check.ts staleTakes
 packages/film/src/tools/check.ts storyboards
 packages/film/src/tools/check.ts unknownVoices
-packages/film/src/tools/choice-points.ts levelPoints
 packages/film/src/tools/choice-points.ts lookPoints
 packages/film/src/tools/choice-points.ts scorePoint
 packages/film/src/tools/choice-points.ts takePoints

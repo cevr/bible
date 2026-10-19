@@ -415,45 +415,6 @@ describe('Choices: a score picked', () => {
       }).pipe(Effect.provide(layer));
     },
   );
-
-  it.effect("a level's knob mixes the track again at its new level", () => {
-    const mixes: Array<string> = [];
-    const { files, layer } = setup(
-      Effect.sync(() => mixes.push(new TextDecoder().decode(files.get(SOUND_FILE)))),
-      Option.some(() =>
-        Effect.map(scorePoints(), (score) => [
-          ...score,
-          withSay(Option.none(), {
-            ref: {
-              _tag: 'Level',
-              target: { _tag: 'Layer', layer: { _tag: 'Score', which: 'under' } },
-            },
-            address: Option.some({ _tag: 'Film' }),
-            title: 'score under',
-            lines: [],
-            variants: [],
-            knob: Option.some({
-              value: -18,
-              min: -40,
-              max: 0,
-              step: 1,
-              unit: 'dB',
-              fixed: Option.none(),
-            }),
-          }),
-        ]),
-      ),
-    );
-    return Effect.gen(function* () {
-      const point = pointIdOf({
-        _tag: 'Level',
-        target: { _tag: 'Layer', layer: { _tag: 'Score', which: 'under' } },
-      });
-      const set = yield* (yield* Choices).knob(F, { point, value: -12 });
-      expect(mixes.map((m) => m.includes('under: -12'))).toEqual([true]);
-      expect(set.mixed).toEqual(Option.some(1));
-    }).pipe(Effect.provide(layer));
-  });
 });
 
 /** The take files in `narration/` itself (not its attempts), by name. */

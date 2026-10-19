@@ -363,7 +363,6 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
           start: 0,
           moments: Option.none(),
           marks: [],
-          knob: Option.none(),
           variants,
         },
       ];
@@ -500,7 +499,6 @@ export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder 
           start: set.start,
           moments: set.moments,
           marks: [],
-          knob: Option.none(),
           variants,
         },
       ];

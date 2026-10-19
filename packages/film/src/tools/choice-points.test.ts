@@ -3,8 +3,7 @@
 // (and no pick offered on what plays); each look's levels with `play` picked
 // (FL8: `now` is the level drawn today); a beat's attempts newest first, the
 // one its timings name picked, one for an earlier line stale and offered no
-// pick; each sound layer's level a knob (its own number, the constant several
-// layers share as one knob, a computed level fixed); a sound made from data,
+// pick; a sound made from data,
 // its seeds picked and fixed, with a code trial's seeds beside what plays; and
 // the owner's approvals and comments read onto the variant they were given on.
 
@@ -13,14 +12,12 @@ import { Option, Result } from 'effect';
 import { type Catalogue, approve, comment, emptyCatalogue } from '../core/catalogue.ts';
 import { type ChoicePoint, type VariantDraft, subjectAt } from '../core/choice.ts';
 import { layout } from '../core/layout.ts';
-import { pointIdOf } from '../core/point.ts';
 import type { Sound } from '../core/schema.ts';
 import { type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
 import { measuredSounds } from '../core/testing.ts';
 import {
   type BeatAttempts,
   filmPoints,
-  levelPoints,
   lookPoints,
   scorePoint,
   takePoints,
@@ -53,18 +50,6 @@ const SOUND: Sound = {
   ],
   effects: { page: { sound: 'tone.chime', level: -26, at: [{ scene: 'brief', at: 'start' }] } },
 };
-
-/** `sound.ts` as the level adapter reads it: an own level, a shared constant, a computed one. */
-const SOUND_TS = `const PAPER = -24;
-
-export const sound = {
-  score: { play: 'piano', under: -18, alone: PAPER, options: {} },
-  beds: [{ sound: 'room.paper', level: PAPER, from: { scene: 'held' } }],
-  effects: {
-    page: { sound: 'tone.chime', level: PAPER - 2, at: [{ scene: 'brief' }] },
-  },
-};
-`;
 
 const film = (over: Partial<MeasuredFilm> = {}): MeasuredFilm => ({
   ...testFilm(holdScenes, {
@@ -106,7 +91,6 @@ const points = (catalogue: Option.Option<Catalogue>): ReadonlyArray<ChoicePoint>
   filmPoints({
     loaded: film(),
     placed,
-    soundSource: Option.some({ file: 'sound.ts', text: SOUND_TS }),
     beats: BEATS,
     catalogue,
   });
@@ -153,28 +137,6 @@ describe('the adapters', () => {
       ['held-2.flac', 'current', true, []],
       ['held-1.flac', 'stale', false, []],
     ]);
-  });
-
-  test("each layer's level a knob: its own number, a shared constant as one, a computed one fixed", () => {
-    const all = points(Option.none());
-    const knob = (id: string) =>
-      Option.map(
-        Option.flatMap(named(all, id), (p) => p.knob),
-        (k) => [k.value, Option.isSome(k.fixed)],
-      );
-    expect(knob('level:score:under')).toEqual(Option.some([-18, false]));
-    // `PAPER` is named by the score's `alone` and the bed: one knob for both.
-    expect(knob('level:const:PAPER')).toEqual(Option.some([-24, false]));
-    expect(Option.map(named(all, 'level:const:PAPER'), (p) => p.lines)).toEqual(
-      Option.some(['score alone', 'bed room.paper']),
-    );
-    expect(Option.isNone(named(all, 'level:score:alone'))).toBe(true);
-    const computed = Option.flatMap(
-      Option.flatMap(named(all, 'level:effect:page'), (p) => p.knob),
-      (k) => k.fixed,
-    );
-    expect(Option.getOrThrow(computed)).toContain('PAPER - 2');
-    expect(all.map((p) => p.kind)).toEqual(['score', 'look', 'voice', 'level', 'level', 'level']);
   });
 });
 
@@ -241,13 +203,6 @@ describe('a take point when the mix plan does not build', () => {
     const [lost] = takePoints(withEffect([{ scene: 'brief', cue: 'nosuch' }]), placed);
     expect(lost?.marks).toEqual([]);
     expect(lost?.lines.some((line) => line.includes('nosuch'))).toBe(true);
-    const effect = levelPoints(
-      withEffect([{ scene: 'brief', cue: 'nosuch' }]),
-      placed,
-      'sound.ts',
-      SOUND_TS,
-    ).find((p) => pointIdOf(p.ref) === 'level:effect:page');
-    expect(effect?.lines.some((line) => line.includes('nosuch'))).toBe(true);
   });
 });
 

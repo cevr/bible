@@ -2,8 +2,8 @@
 // walk them all (the touch-target guard): one film, `toy`, of an act (open,
 // close) and two loose scenes (coda, end), open rendered so its row links
 // its Stack; its choices are a score of three options, a look of two, a
-// sound's kept take and two candidates in open, a layer across the act and a
-// level's knob; and the review's index holds the film's project folder with
+// sound's kept take and two candidates in open and a layer across the act;
+// and the review's index holds the film's project folder with
 // open's render set and two loose videos (one with its phone proxy ready). What the disclosed states need is there too: two
 // pictures under the Choices transport, a comment on the film, the act, scene open and
 // the score's strings and the set's main version (their counts), and the check's two findings, one at a
@@ -72,13 +72,7 @@ const heard = (
 });
 
 /** A point as the server encodes it. */
-const point = (
-  id: string,
-  kind: string,
-  address: Json,
-  variants: ReadonlyArray<Json>,
-  knob: Option.Option<Json> = Option.none(),
-): Json => ({
+const point = (id: string, kind: string, address: Json, variants: ReadonlyArray<Json>): Json => ({
   id,
   kind,
   address,
@@ -86,7 +80,6 @@ const point = (
   lines: [],
   start: 0,
   marks: [],
-  ...Option.match(knob, { onNone: () => ({}), onSome: (k) => ({ knob: k }) }),
   variants,
 });
 
@@ -126,13 +119,6 @@ const choices: Json = {
     point('take:room.tone', 'take', scenesAt('open', 'close'), [
       heard('c'.repeat(64), { picked: true, verbs: ['unpick'] }),
     ]),
-    point(
-      'level:const:PAPER',
-      'level',
-      scenesAt('open'),
-      [],
-      Option.some({ value: -24, min: -40, max: 0, step: 0.5, unit: 'dB' }),
-    ),
   ],
 };
 

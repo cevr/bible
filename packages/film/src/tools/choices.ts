@@ -21,9 +21,6 @@
 //   remixes), recorded around the timings' rewrite with the takes they name,
 //   so it runs under the writer's lock and Undo brings back the take it
 //   replaced;
-// - level: a sound layer's level (or the constant layers share) written into
-//   `sound.ts` through the SourceWriter, the track mixed again as a score's
-//   pick mixes it;
 // - a say (approve, withdraw, comment): the catalogue's records
 //   (`RenderCatalogue`), on the variant as it is now; the points last read
 //   are said of again from the catalogue it leaves, in this process.
@@ -63,7 +60,6 @@ import {
   type ChoiceVariant,
   type ChoiceVerb,
   type FilmChoices,
-  type KnobPost,
   type PickPost,
   approvalRefused,
   pointNamed,
@@ -72,11 +68,9 @@ import {
   withSay,
 } from '../core/choice.ts';
 import { type Catalogue, said } from '../core/catalogue.ts';
-import { PointRef } from '../core/point.ts';
 import type { CheckLine } from '../core/schema.ts';
-import { clamp } from '../core/time.ts';
 import { type CatalogueError, RenderCatalogue } from './catalogue.ts';
-import { SCORE_PLAY, editLevel, editPick, lookPlay, readPick } from './choice-source.ts';
+import { SCORE_PLAY, editPick, lookPlay, readPick } from './choice-source.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
 import { cacheKey } from './digest.ts';
 import {
@@ -135,11 +129,6 @@ interface ChoicesService {
     film: FilmName,
     pick: PickPost,
   ) => Effect.Effect<Picked, ChoicesError | RewriteError | FormatFailed>;
-  /** A level point's knob, written into `sound.ts`. */
-  readonly knob: (
-    film: FilmName,
-    knob: KnobPost,
-  ) => Effect.Effect<Picked, ChoicesError | RewriteError>;
   /**
    * One variant approved, its approvals withdrawn, or commented on, as it is
    * now; the choices after it (the points last read, said of again).
@@ -242,7 +231,6 @@ export const verbFits = (
   );
   const reason = Match.value(point.kind).pipe(
     Match.when('render', () => 'a render is approved, not picked'),
-    Match.when('level', () => 'a level is set with its knob'),
     Match.orElse(() => `${standing}: it allows ${variant.verbs.join(', ') || 'nothing'}`),
   );
   return Result.fail(VerbRefused.make({ point: point.id, variant: variant.id, verb, reason }));
@@ -512,39 +500,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           Voice: ({ beat }) => voicePicked(film, beat, variant.id, asked.acceptMismatch === true),
           Render: noPick,
           Montage: noPick,
-          Level: noPick,
         });
-      });
-
-      const knob = Effect.fn('Choices.knob')(function* (film: FilmName, asked: KnobPost) {
-        const point = yield* Effect.fromResult(
-          offeredPoint(film, yield* points(film), asked.point),
-        );
-        const refused = (reason: string) =>
-          VerbRefused.make({ point: point.id, variant: '', verb: 'set', reason });
-        const knob = yield* Effect.fromOption(point.knob, () => refused('it has no knob'));
-        if (Option.isSome(knob.fixed)) return yield* refused(knob.fixed.value);
-        if (!PointRef.guards.Level(point.ref)) return yield* refused('it is not a level');
-        const { target } = point.ref;
-        const value = clamp(asked.value, knob.min, knob.max);
-        const file = fileIn(film, 'sound.ts');
-        const [change, , mixed] = yield* writer.write({
-          film,
-          scene: Option.none(),
-          file,
-          target: `${point.id} ${value}`,
-          edit: (source) => editLevel('sound.ts', source, target, value),
-          verify: () => Result.succeed([]),
-          check: () => Effect.void,
-          follows: yield* mixedFrom(film),
-        });
-        const picked: Picked = {
-          file,
-          target: `${point.id} ${value}`,
-          change,
-          mixed,
-        };
-        return picked;
       });
 
       /**
@@ -670,7 +626,6 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         list,
         checked,
         pick,
-        knob,
         say,
         alone,
         inPlace,

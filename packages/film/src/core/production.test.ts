@@ -65,7 +65,6 @@ const choice = (clip: string, variants: ReadonlyArray<ChoiceVariant>): ChoicePoi
   start: 0,
   moments: Option.none(),
   marks: [],
-  knob: Option.none(),
   variants,
 });
 
