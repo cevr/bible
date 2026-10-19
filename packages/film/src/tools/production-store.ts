@@ -112,6 +112,15 @@ interface ProductionStoreService {
     production: ProductionId,
     change: (current: ProductionFile) => Result.Result<ProductionFile, E>,
   ) => Effect.Effect<ProductionFile, E | StoreError>;
+  /**
+   * `modify` that answers `A` beside the ledger it leaves, both decided on
+   * the ledger as read under its lock; a change that fails writes nothing
+   * and fails the call.
+   */
+  readonly attempt: <A, E>(
+    production: ProductionId,
+    change: (current: ProductionFile) => Result.Result<readonly [A, ProductionFile], E>,
+  ) => Effect.Effect<A, E | StoreError>;
   /** Start a production's ledger: one version, opened at `at`; refused when one is kept. */
   readonly start: (
     production: ProductionId,
@@ -201,6 +210,8 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
         list,
         read,
         modify,
+        attempt: (production, change) =>
+          store.transact(manifest(production), (current) => Effect.fromResult(change(current))),
         start: (production, start) =>
           Effect.gen(function* () {
             if (Option.isSome(yield* read(production)))

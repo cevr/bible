@@ -141,7 +141,7 @@ describe("RBF's figures", () => {
           unsaid(LEDGER, freed({ answer: { ask: id, question: 'keep', value } }));
         // No decision on RBF's ledger answers this ask.
         expect((yield* ask('a0000000000', 'lock')).map((u) => u.item)).toEqual(['prosecutor']);
-        // The ask he kept and locked the court figures in (2026-10-17): its decision is the lock's own, at no figure's point and no later than it, and files no pick.
+        // The ask he kept and locked the court figures in (2026-10-17): its decision is the lock's own, at no figure's point and no later than it, so the pick it files (keep=lock) backs nothing.
         for (const value of ['lock', 'revise'])
           expect((yield* ask(PROSECUTOR_LOCK.ask, value)).map((u) => u.item)).toEqual([
             'prosecutor',

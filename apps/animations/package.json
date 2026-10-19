@@ -33,6 +33,7 @@
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",
     "store:keys": "bun infra/keys.ts --stage prod",
     "seed-look": "bun art/seed-look.ts",
+    "fill-picks": "bun productions/fill-picks.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test --parallel ./checkouts.test.ts ./lessons.test.ts ./rules.test.ts ./scripts.test.ts ./src/films/righteousness-by-faith/rigs && bun cli.ts drafts"
   },

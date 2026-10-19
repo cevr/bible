@@ -20,13 +20,17 @@
 // question (when it names a set) as it is made, and once closed, its
 // answers (answered to its end) or its withdrawal. A filing that failed is
 // filed by the next close of the ask, and two closes at once file one word.
-// The page, the MCP and the change feed all read and write through here.
+// A decision an ask filed with no picks of the owner's on it is given those
+// its record files (`fillPicks`, an app's `bun run fill-picks`), so an
+// override may cite them. The page, the MCP and the change feed all read and
+// write through here.
 
 import {
   Array as Arr,
   Clock,
   Config,
   Context,
+  Data,
   DateTime,
   Effect,
   FileSystem,
@@ -71,7 +75,13 @@ import {
 } from '../core/ask.ts';
 import { boardFileUrl } from '../core/api.ts';
 import { panelById, tryOf } from '../core/board.ts';
-import { type Said, aimedWord, setPathOf, withAskSaid } from '../core/production.ts';
+import {
+  type ProductionFile,
+  type Said,
+  aimedWord,
+  setPathOf,
+  withAskSaid,
+} from '../core/production.ts';
 import { AskInvalid, AskRefused, AskUnknown, type WordUnaimed } from '../core/refusals.ts';
 import { AskMaterials } from './ask-materials.ts';
 import { BoardStore } from './board-store.ts';
@@ -156,6 +166,20 @@ const newId = Effect.map(
 
 const ASK_ID = /^a[0-9a-f]{10}$/;
 
+/** The folder the asks are kept in: `FILMS_LAB/asks` (the app's `lab/` under `runFilmCli`, else `<cwd>/lab`). */
+const asksDir = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  const root = yield* Config.String('FILMS_LAB').pipe(Config.withDefault(path.resolve('lab')));
+  return path.join(root, 'asks');
+});
+
+/** The record at `file`, as the store reads and writes it: `empty` when it is not there. */
+const recordAt = (file: string, empty = MISSING): Manifest<AskRecord> => ({
+  file,
+  codec: AskRecordJson,
+  empty,
+});
+
 export class AskStore extends Context.Service<AskStore, AskStoreService>()(
   '@bible/film/tools/AskStore',
 ) {
@@ -170,15 +194,10 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
       const productions = yield* ProductionStore;
       const materials = yield* AskMaterials;
       const films = yield* Effect.context<FilmFolder>();
-      const root = yield* Config.String('FILMS_LAB').pipe(Config.withDefault(path.resolve('lab')));
-      const dir = path.join(root, 'asks');
+      const dir = yield* asksDir;
 
       const file = (id: string) => path.join(dir, `${id}.json`);
-      const manifest = (id: string, empty = MISSING): Manifest<AskRecord> => ({
-        file: file(id),
-        codec: AskRecordJson,
-        empty,
-      });
+      const manifest = (id: string, empty = MISSING) => recordAt(file(id), empty);
       const now = Effect.map(DateTime.now, DateTime.formatIso);
 
       /** `image` with its `src`: a board try's file found on its film's board. */
@@ -607,6 +626,152 @@ const askWords = (record: AskRecord, now: number): ReadonlyArray<Said> => {
   );
   return [...question, ...closing];
 };
+
+/**
+ * What a decision an ask filed with no picks of the owner's on it gets from
+ * the ask's record (`fillPicks`): the picks its close files, or why none.
+ */
+export type PicksFound = Data.TaggedEnum<{
+  /** The picks its close files (`askWords`): each choice's value, by its question's name. */
+  Filled: { readonly ask: string; readonly picks: Readonly<Record<string, string>> };
+  /** None, and why. */
+  Left: { readonly ask: string; readonly why: string };
+}>;
+const PicksFound = Data.taggedEnum<PicksFound>();
+
+/** An ask's record as read for its decision: the record, or why there is none to read. */
+type Read = Result.Result<AskRecord, string>;
+
+/** The asks of the decisions on `file` with no picks on them, each by its id, in the ledger's order. */
+const unpicked = (file: ProductionFile): ReadonlyArray<string> =>
+  file.said.flatMap((s) => Option.toArray(unpickedAsk(s)));
+
+/** The ask a decision names when it carries no picks; none for any other word. */
+const unpickedAsk = (said: Said): Option.Option<string> =>
+  Option.filter(said.ask, () => said._tag === 'Decided' && Option.isNone(said.picks));
+
+/**
+ * What the record of `ask` (or why there is none to read) gives its decision
+ * on `production`'s ledger: the picks its close files there (`askWords`;
+ * the time it files them at plays no part), or why none: the ask files on
+ * another production, it is not closed, it was closed before its end, or he
+ * answered it by no choice.
+ */
+const foundFor = (production: string, ask: string, record: Read): PicksFound =>
+  Result.match(record, {
+    onFailure: (why) => PicksFound.Left({ ask, why }),
+    onSuccess: (r) => {
+      if (r.production !== production)
+        return PicksFound.Left({ ask, why: `its ask files on ${r.production ?? 'no production'}` });
+      const decided = Arr.findFirst(askWords(r, 0), (w) => w._tag === 'Decided');
+      return Option.match(decided, {
+        onNone: () =>
+          PicksFound.Left({
+            ask,
+            why: Match.value(r.state).pipe(
+              Match.tagsExhaustive({
+                Asking: () => 'its ask is not closed: it still asks',
+                Answered: () => 'its ask is not closed: it is answered',
+                Closed: () => 'its ask was closed before its end',
+              }),
+            ),
+          }),
+        onSome: (d) =>
+          Option.match(d.picks, {
+            onNone: () => PicksFound.Left({ ask, why: 'he answered it by no choice' }),
+            onSome: (picks) => PicksFound.Filled({ ask, picks }),
+          }),
+      });
+    },
+  });
+
+/**
+ * `file` with each decision on it that names its ask and carries no picks
+ * given the picks that ask's record files (`foundFor`, the record by
+ * `recordOf`), and what each such decision found. Nothing else changes: the
+ * decision keeps every other field and its place.
+ */
+const picksFiled = (file: ProductionFile, recordOf: (ask: string) => Read) => {
+  const found = unpicked(file).map((ask) => foundFor(file.production, ask, recordOf(ask)));
+  const filled = new Map(
+    Arr.filter(found, PicksFound.$is('Filled')).map((f) => [f.ask, f.picks] as const),
+  );
+  const said = file.said.map((s) =>
+    Option.match(
+      Option.flatMap(unpickedAsk(s), (ask) => Option.fromUndefinedOr(filled.get(ask))),
+      { onNone: () => s, onSome: (picks) => ({ ...s, picks: Option.some(picks) }) },
+    ),
+  );
+  return { file: { ...file, said }, found };
+};
+
+/** A ledger's fill that files no pick: nothing is written, and each decision's find is answered. */
+class NothingFiled extends Data.TaggedError('NothingFiled')<{
+  readonly found: ReadonlyArray<PicksFound>;
+}> {}
+
+/**
+ * The owner's picks filed onto each decision on a production's ledger (the
+ * ledgers `ProductionStore` lists) that names its ask and carries none: the
+ * picks the ask's record in the lab's asks (`FILMS_LAB/asks/<id>.json`)
+ * files at its close (`askWords`), each a choice's value by its question's
+ * name, so an override may cite them (`style/override.ts`). A decision is
+ * left as it is when its ask's record is not there or does not read (it
+ * does not decode, or the platform cannot read it), files on another
+ * production, is not closed or was closed before its end, or was answered by
+ * no choice: no pick is made up. Nothing else on a ledger changes, and a
+ * ledger with nothing to fill is not written, so a second run writes nothing.
+ * Each ledger is filled as read under the lock its write takes, so what each
+ * such decision found, filled or left and why, in the ledger's order, is
+ * what the write did.
+ */
+export const fillPicks = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const store = yield* ContentStore;
+  const productions = yield* ProductionStore;
+  const dir = yield* asksDir;
+  /** The record of `ask`, or why there is none to read. */
+  const recordOf = (ask: string): Effect.Effect<Read> =>
+    Effect.gen(function* () {
+      const file = path.join(dir, `${ask}.json`);
+      if (!ASK_ID.test(ask) || !(yield* fs.exists(file)))
+        return Result.fail(`no record of it at ${file}`);
+      return Result.succeed(yield* store.read(recordAt(file)));
+    }).pipe(
+      Effect.catch((error) =>
+        Effect.succeed(Result.fail(`its record does not read: ${error.message}`)),
+      ),
+    );
+  const ledgers = yield* productions.list;
+  const found = yield* Effect.forEach(ledgers, (ledger) =>
+    Effect.gen(function* () {
+      const asks = Arr.dedupe(unpicked(ledger));
+      if (asks.length === 0) return [];
+      const records = new Map(
+        yield* Effect.forEach(asks, (ask) => Effect.map(recordOf(ask), (r) => [ask, r] as const)),
+      );
+      // A decision filed after the list read the ledger finds no record here: the next run fills it.
+      const recordIn = (ask: string): Read =>
+        records.get(ask) ?? Result.fail('filed after its ledger was read');
+      const filed = yield* productions
+        .attempt(
+          ledger.production,
+          (
+            current,
+          ): Result.Result<readonly [ReadonlyArray<PicksFound>, ProductionFile], NothingFiled> => {
+            const next = picksFiled(current, recordIn);
+            if (next.found.some(PicksFound.$is('Filled')))
+              return Result.succeed([next.found, next.file] as const);
+            return Result.fail(new NothingFiled({ found: next.found }));
+          },
+        )
+        .pipe(Effect.catchTag('NothingFiled', (nothing) => Effect.succeed(nothing.found)));
+      return filed.map((f) => ({ production: ledger.production, found: f }));
+    }),
+  );
+  return found.flat();
+});
 
 /** Whether two steps' answers are the same: the same names, each the same value. */
 const sameValues = (a: StepValues, b: StepValues): boolean => {

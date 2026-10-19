@@ -152,14 +152,28 @@
       "at": 1792029650692,
       "text": "Two open calls for Righteousness by Faith (ask a49cc614a25): church: Try 1 · subtitles: Yes, hide it · notes: nope",
       "quote": "nope",
-      "ask": "a49cc614a25"
+      "ask": "a49cc614a25",
+      "picks": {
+        "church": "1",
+        "subtitles": "yes"
+      }
     },
     {
       "_tag": "Decided",
       "at": 1792029652031,
       "text": "Righteousness by Faith rewrite: the shape (ask a5d4e2f6b76): spine: B · The word is a seed (recommended): it answers \"cover-up?\" with a picture, and makes country living part of the answer · thesis: \"The just shall live by faith.\" (Hab 2:4; Rom 1:17): it answers Job's \"just\" and lands on \"faith\" (recommended) · opening: The verdict first: a guilty man hears \"righteous\", then the verses that seem to clash, then Job's question (recommended) · accused: Max, told as a parable (\"Picture a young man…\"), no name in speech (recommended) · length: About 7 minutes of speech, like the old film, with the time moved to the two stories (recommended) · reach: One short glance ahead: the latter rain, and sins blotted out (Acts 3:19) (recommended) · version: Yes, v3, written from scratch; the new script sits beside the old one until you keep it (recommended) · more: No, go write it",
       "set": "rbf-script-2026-10-14",
-      "ask": "a5d4e2f6b76"
+      "ask": "a5d4e2f6b76",
+      "picks": {
+        "spine": "seed",
+        "thesis": "just",
+        "opening": "verdict",
+        "accused": "max",
+        "length": "seven",
+        "reach": "glance",
+        "version": "v3",
+        "more": "no"
+      }
     },
     {
       "_tag": "Decided",
@@ -214,6 +228,9 @@
       "text": "RBF landing: under 35 s costs its marks (ask a75f3ab3fb6): trim: B: keep the core marks, drop 9 breaths. 36.25 s at 155 wpm, 34.35 s at 165. Measure again from your take. · note: <10 minutes is fine",
       "quote": "<10 minutes is fine",
       "ask": "a75f3ab3fb6",
+      "picks": {
+        "trim": "B"
+      },
       "by": "orchestrator"
     },
     {
@@ -222,6 +239,10 @@
       "text": "Righteousness by Faith v3: the script, its length (ask a086603ff6a): verdict: Keep it: go on to the concept frames · length: Keep the length; trim the landing to under 35 s",
       "set": "rbf-script-2026-10-14",
       "ask": "a086603ff6a",
+      "picks": {
+        "verdict": "keep",
+        "length": "trim-landing"
+      },
       "by": "rbfscript (p5)"
     },
     {
@@ -303,6 +324,14 @@
       "quote": "i like judge of cold.13",
       "set": "rbf-v3-concepts-2026-10-15",
       "ask": "a3c3c0406ea",
+      "picks": {
+        "lead": "a",
+        "cold": "cold.21",
+        "roof": "roof.6",
+        "grain": "grain.7",
+        "robe": "robe.1",
+        "court": "court.9"
+      },
       "by": "rbfconcepts (p5)"
     },
     {
@@ -311,6 +340,13 @@
       "text": "RBF v3: the concept frames in the locked look, with the plain lead (ask a45a6246afe): cold: cold.34: the plain lead, cold.13's judge, the locked look · roof: roof.6: your pick, as it is · grain: grain.21: smooth planes, no arm, solid hand circles · robe: robe.5: heaven's court, the loom large, the accuser lit · court: court.12: the same man, robed, Christ beside him",
       "set": "rbf-v3-concepts-2026-10-15",
       "ask": "a45a6246afe",
+      "picks": {
+        "cold": "cold.34",
+        "roof": "roof.6",
+        "grain": "grain.21",
+        "robe": "robe.5",
+        "court": "court.12"
+      },
       "by": "rbfconcepts (p5)"
     },
     {
@@ -326,6 +362,10 @@
       "text": "RBF v3: the Board (ask a4899924c35): christ: Long brown hair, as in robe.5 and court.12; redraw the Capernaum panels · board: Approve it, once Christ is one look · notes: lets make satan that angular figure from the old boards",
       "quote": "lets make satan that angular figure from the old boards",
       "ask": "a4899924c35",
+      "picks": {
+        "christ": "long-brown",
+        "board": "approve"
+      },
       "by": "Claude (orchestrator)"
     },
     {
@@ -355,6 +395,10 @@
       "text": "RBF v3: the stain and the seal in the cold open (ask a389862e313): stain: A flat scarlet blot soaked into the cloth, no drips or splatter, like a dye stain · seal: A gold wax seal with a ribbon tail, pressed on like a document's seal · words: lets make the seal have a R on it for righteous",
       "quote": "lets make the seal have a R on it for righteous",
       "ask": "a389862e313",
+      "picks": {
+        "stain": "dye",
+        "seal": "wax"
+      },
       "by": "Claude (orchestrator)"
     },
     {
@@ -369,6 +413,9 @@
       "at": 1792161745068,
       "text": "RBF v3: the animatic on the staged voice (ask a483b1fa075): animatic: Accept it: draw the scenes from this Board",
       "ask": "a483b1fa075",
+      "picks": {
+        "animatic": "accept"
+      },
       "by": "Claude (orchestrator)"
     },
     {
@@ -386,6 +433,9 @@
       "quote": "lets keep the body/face shape and proportions the same as the concept",
       "set": "rbf-v3-cold-pilot-2026-10-16",
       "ask": "a0298522031",
+      "picks": {
+        "pilot": "fix"
+      },
       "by": "Claude (orchestrator)"
     },
     {
@@ -411,6 +461,11 @@
       "quote": "i prefer the hair of the concept, how it blends, lets keep this. the way the outline is outside of the head details (hair does not have its own outline only the head in total. as well as the shading and proportions of the concept - see if we can match this and then make it easier to match",
       "set": "rbf-v3-cold-pilot-2026-10-16",
       "ask": "a669b9776fb",
+      "picks": {
+        "turn": "turn",
+        "hair": "fluffy",
+        "pilot": "approve"
+      },
       "by": "Claude (orchestrator)"
     },
     {
@@ -450,6 +505,12 @@
       "text": "The house look as a pit of success: the design (ask acdc31b8a4f): strict: An error until an override names it · override: Your own words, verbatim, plus a reason · shapes: Traced from the kept concept · when: (a) now at the painter's next commit; (b) after round 7 and the Christ and robed rigs",
       "set": "p6-stylepit-design-2026-10-17",
       "ask": "acdc31b8a4f",
+      "picks": {
+        "strict": "error",
+        "override": "quote",
+        "shapes": "traced",
+        "when": "now"
+      },
       "by": "orchestrator"
     },
     {
@@ -482,6 +543,9 @@
       "text": "RBF cold, round 7: face shape, shoes and body (ask a2a01fa05d8): keep: Another round on these figures first",
       "set": "rbf-v3-cold-pilot-2026-10-16",
       "ask": "a2a01fa05d8",
+      "picks": {
+        "keep": "again"
+      },
       "by": "orchestrator"
     },
     {
@@ -490,6 +554,12 @@
       "text": "Sound sources: earshot, Mirelo AI, Fish Audio (ask a8f87c7a1b3): earshot: Trial an `sfx fit` command: a recording becomes a code trial, judged by sfx compare and sfx ab · scope: Only recordings the repo may hold: CC0, or CC BY with its credit · mirelo: No · fish: Stay on ElevenLabs v4",
       "set": "p6-soundsources-2026-10-17",
       "ask": "a8f87c7a1b3",
+      "picks": {
+        "earshot": "trial",
+        "scope": "repo",
+        "mirelo": "no",
+        "fish": "stay"
+      },
       "by": "orchestrator"
     },
     {
@@ -513,6 +583,9 @@
       "text": "RBF cold, round 8: the court figures traced from the concept (ask a92f276635e): keep: Keep and lock them: the first locked rigs. The shoe sole is fixed in passing.",
       "set": "rbf-v3-cold-pilot-2026-10-16",
       "ask": "a92f276635e",
+      "picks": {
+        "keep": "lock"
+      },
       "by": "orchestrator"
     },
     {
@@ -530,6 +603,10 @@
       "quote": "ensure Christ has a consistent body, frame, face",
       "set": "rbf-v3-cold-pilot-2026-10-16",
       "ask": "a14290aca0a",
+      "picks": {
+        "dress": "one-look",
+        "farmer": "robe5"
+      },
       "by": "orchestrator"
     },
     {
@@ -547,6 +624,9 @@
       "quote": "lets also make sure every character has similar heights (other than natural variability - or characters that are desdribed as being tall like Goliath) - Jesus should not be short compared to others",
       "set": "rbf-v3-cold-pilot-2026-10-16",
       "ask": "a5fc41dfe7b",
+      "picks": {
+        "canon": "court"
+      },
       "by": "orchestrator"
     },
     {
@@ -571,6 +651,11 @@
       "quote": "theres some artifacts in the render, and the farmer looks nothing like the concept, face proportions and angles are off",
       "set": "rbf-v3-cast-2026-10-18",
       "ask": "aab16c0cb70",
+      "picks": {
+        "christ": "revise",
+        "farmer": "revise",
+        "scenes": "go"
+      },
       "by": "orchestrator"
     },
     {
@@ -595,6 +680,11 @@
       "text": "RBF spoke: four differences from its panels (ask a69295abfe6): stain: Keep the stain until roof lifts it · cloth: The robe's blue-violet shade, as everywhere else · ground: Keep the peach of word and seed",
       "set": "rbf-v3-spoke-2026-10-18",
       "ask": "a69295abfe6",
+      "picks": {
+        "stain": "stain",
+        "cloth": "house",
+        "ground": "peach"
+      },
       "by": "orchestrator"
     },
     {
@@ -644,6 +734,14 @@
       "quote": "Jesus's render confuses parts of his hair with his beard, look more closely to the concept",
       "set": "p6-concept-design-2026-10-18",
       "ask": "ae44af894e1",
+      "picks": {
+        "four": "members",
+        "drift": "concept",
+        "standard": "full",
+        "sleeve": "rest",
+        "store": "commit",
+        "keep": "flagged"
+      },
       "by": "orchestrator"
     },
     {
@@ -652,6 +750,10 @@
       "text": "Christ's robe cut and the line weight in close shots (ask a9e82d17477): robe: The step from robe-5, as the render has it · line: About 25% thinner in close shots",
       "set": "rbf-v3-cast-2026-10-18",
       "ask": "a9e82d17477",
+      "picks": {
+        "robe": "step",
+        "line": "thin"
+      },
       "by": "orchestrator"
     },
     {
@@ -660,6 +762,10 @@
       "text": "The Num 21 camp: who its people are, and their colours (ask a6b607b8a0f): camp: The crowd kit, with the climber a role built from a kit body and his own face for the close-up · colours: Story cloth, with the locked look's terracotta and blue as two of its cloths, and no scarlet on a person",
       "set": "p6-concept-design-2026-10-18",
       "ask": "a6b607b8a0f",
+      "picks": {
+        "camp": "kit",
+        "colours": "story"
+      },
       "by": "orchestrator"
     },
     {
@@ -690,6 +796,10 @@
       "text": "RBF within: holding his feet at \"we\", and the step at \"arose\" (ask aa21401c06d): hold: Keep the page strip over his feet · step: Unlock his legs for a one-foot stride, as the kept panel draws it",
       "set": "rbf-within-2026-10-18",
       "ask": "aa21401c06d",
+      "picks": {
+        "hold": "strip",
+        "step": "stride"
+      },
       "by": "orchestrator"
     },
     {
@@ -708,6 +818,9 @@
       "set": "rbf-within-2026-10-18",
       "point": "item:lead",
       "ask": "a1cfb45a7cf",
+      "picks": {
+        "stride": "yes"
+      },
       "by": "orchestrator"
     },
     {

@@ -7,10 +7,29 @@
 // was answered and is answered as it is when said again; an ask on a
 // production files its question as it is made and its answers once closed,
 // each once; an ask on disk with a step named by a key every object answers
-// to is not read.
+// to is not read. A decision that names its ask and carries no picks is
+// given those its record files, once (`fillPicks`); one whose record is not
+// there or does not read, whose ask files on another production, still
+// asks, is answered and not closed or was closed before its end, or that was
+// answered by no choice, is left as it is; a run that fills nothing writes
+// nothing; each decision is answered as the write found it, so one filed
+// after the list read its ledger is left for the next run; and a ledger kept
+// in a file not named for its production is not filled, nor any other file
+// written for it.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Boolean as Bool, Effect, Exit, FileSystem, Option, Path, Schema } from 'effect';
+import {
+  Boolean as Bool,
+  Effect,
+  Exit,
+  FileSystem,
+  Layer,
+  Match,
+  Option,
+  Path,
+  Result,
+  Schema,
+} from 'effect';
 import { TestClock } from 'effect/testing';
 import {
   type Ask,
@@ -24,8 +43,11 @@ import {
   pageCountText,
 } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
+import { type OwnerWord, decisionsOf } from '../core/production.ts';
 import { Segment } from '../core/segment.ts';
-import { AskStore } from './ask-store.ts';
+import { type Laid, whyUnbacked } from '../style/override.ts';
+import { AskStore, type PicksFound, fillPicks } from './ask-store.ts';
+import type { ContentStore } from './content-store.ts';
 import { ProductionStore } from './production-store.ts';
 import { labInMemory, NOTES_LAB, text } from './testing.ts';
 
@@ -100,8 +122,63 @@ const proof = (tries: ReadonlyArray<number>): Ask =>
 const draft = (ask: Ask) => ({ title: 'Keep a try', why: 'the beat waits', by: 'agent', ask });
 
 const run = <A, E>(
-  self: Effect.Effect<A, E, AskStore | ProductionStore | FileSystem.FileSystem | Path.Path>,
+  self: Effect.Effect<
+    A,
+    E,
+    AskStore | ContentStore | ProductionStore | FileSystem.FileSystem | Path.Path
+  >,
 ) => self.pipe(Effect.provide(labInMemory(files())));
+
+/** A decision filed by hand at `hour` on 2026-10-18 that names `ask` and carries no picks. */
+const decidedOn = (ask: string, hour: number): OwnerWord => ({
+  _tag: 'Decided',
+  at: Date.UTC(2026, 9, 18, hour),
+  text: `Kept (ask ${ask})`,
+  quote: Option.none(),
+  set: Option.none(),
+  point: Option.none(),
+  variant: Option.none(),
+  ask: Option.some(ask),
+  picks: Option.none(),
+  by: Option.some('agent'),
+});
+
+/** What a fill found, a line each: the production, the ask, and the picks filled or why none. */
+const told = (found: ReadonlyArray<{ production: string; found: PicksFound }>) =>
+  found.map(({ production, found: f }) => [
+    production,
+    f.ask,
+    Match.value(f).pipe(Match.tagsExhaustive({ Filled: (x) => x.picks, Left: (x) => x.why })),
+  ]);
+
+/** `f`'s ledger with no picks on its decisions, as a store that files none writes it. */
+const unpickedF = (productions: ProductionStore['Service']) =>
+  productions.modify('f', (file) =>
+    Result.succeed({ ...file, said: file.said.map((s) => ({ ...s, picks: Option.none() })) }),
+  );
+
+/** The ask a decision filed between the fill's list and its write names (`racing`). */
+const LATE = 'a0000000003';
+
+/**
+ * The production store with a decision on `LATE`, no picks on it, filed on a
+ * ledger just before each `attempt` takes its lock: as if filed after the
+ * fill's list read the ledger.
+ */
+const racing = Layer.effect(
+  ProductionStore,
+  Effect.gen(function* () {
+    const real = yield* ProductionStore;
+    return ProductionStore.of({
+      ...real,
+      attempt: (production, change) =>
+        Effect.andThen(
+          Effect.orDie(real.say(production, decidedOn(LATE, 13))),
+          real.attempt(production, change),
+        ),
+    });
+  }),
+);
 
 describe('the asks on disk', () => {
   it.effect('keeps no ask that may not render, and finds a board try for its picture', () =>
@@ -408,6 +485,152 @@ describe('the asks on disk', () => {
           expect(yield* asks.list).toEqual([]);
         }),
       ),
+  );
+
+  it.effect(
+    'fills the picks a decision that names its ask lacks, as its close files them, once',
+    () =>
+      run(
+        Effect.gen(function* () {
+          const asks = yield* AskStore;
+          const productions = yield* ProductionStore;
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          yield* TestClock.setTime(Date.UTC(2026, 9, 18, 12));
+          yield* productions.start('f', {
+            title: 'F',
+            film: Option.none(),
+            blurb: Option.none(),
+            first: 'v1',
+            at: 0,
+          });
+          // His pick on the lead, and an ask he answered in words alone, each filed by its close.
+          const chosen = yield* asks.make({
+            ...draft(proof([1, 7])),
+            production: 'f',
+            set: 'spare/judge-faces',
+            point: 'item:lead',
+          });
+          yield* asks.answerPage(chosen.id, [{ step: step('pick'), values: { try: '7' } }]);
+          yield* asks.answerPage(chosen.id, [{ step: step('why'), values: { why: 'the light' } }]);
+          yield* asks.close(chosen.id, 'kept try 7');
+          const worded = yield* asks.make({
+            ...draft(
+              oneQuestion(
+                pageOf([{ kind: 'free_text', id: 'more', label: 'Anything?', required: true }]),
+              ),
+            ),
+            production: 'f',
+          });
+          yield* asks.answerPage(worded.id, [{ step: step('ask'), values: { more: 'as it is' } }]);
+          yield* asks.close(worded.id, 'heard');
+          // Asks whose records file no decision on f: one on another production, one answered
+          // and not closed, one closed before its end, one that still asks.
+          const elsewhere = yield* asks.make({ ...draft(proof([1, 7])), production: 'g' });
+          yield* asks.answerPage(elsewhere.id, [{ step: step('pick'), values: { try: '1' } }]);
+          yield* asks.close(elsewhere.id, 'kept try 1');
+          const answered = yield* asks.make({ ...draft(proof([1, 7])), production: 'f' });
+          yield* asks.answerPage(answered.id, [{ step: step('pick'), values: { try: '1' } }]);
+          const withdrawn = yield* asks.make({ ...draft(proof([1, 7])), production: 'f' });
+          yield* asks.close(withdrawn.id, 'not needed');
+          const asking = yield* asks.make({ ...draft(proof([1, 7])), production: 'f' });
+          // A decision on an ask the lab holds no record of, one on an ask whose record the
+          // platform cannot read (a folder where its file would be), and one on each ask above.
+          const lost = 'a0000000001';
+          const unread = 'a0000000002';
+          yield* fs.makeDirectory(`${NOTES_LAB}/asks/${unread}.json`, { recursive: true });
+          yield* Effect.forEach(
+            [lost, unread, elsewhere.id, answered.id, withdrawn.id, asking.id],
+            (ask, i) => productions.say('f', decidedOn(ask, 13 + i)),
+          );
+          const ledger = path.resolve('productions', 'f.json');
+          const filed = yield* fs.readFileString(ledger);
+          yield* unpickedF(productions);
+          expect(yield* fs.readFileString(ledger)).not.toEqual(filed);
+          // An override that cites his pick: backed only once the decision carries it.
+          const stride: Laid = {
+            item: 'lead',
+            override: {
+              rule: 'FigureLock',
+              place: 'lead',
+              reason: 'his stride',
+              answer: { ask: chosen.id, question: 'try', value: '7' },
+            },
+          };
+          const unbacked = Effect.map(productions.read('f'), (file) =>
+            whyUnbacked(stride, decisionsOf(Option.getOrThrow(file))),
+          );
+          expect(Option.isSome(yield* unbacked)).toBe(true);
+          const left = [
+            ['f', worded.id, 'he answered it by no choice'],
+            ['f', lost, `no record of it at ${NOTES_LAB}/asks/${lost}.json`],
+            ['f', unread, expect.stringMatching(/^its record does not read: /)],
+            ['f', elsewhere.id, 'its ask files on g'],
+            ['f', answered.id, 'its ask is not closed: it is answered'],
+            ['f', withdrawn.id, 'its ask was closed before its end'],
+            ['f', asking.id, 'its ask is not closed: it still asks'],
+          ];
+          expect(told(yield* fillPicks)).toEqual([['f', chosen.id, { try: '7' }], ...left]);
+          // The ledger as the close filed it, byte for byte: the picks are all that came back.
+          expect(yield* fs.readFileString(ledger)).toEqual(filed);
+          expect(yield* unbacked).toEqual(Option.none());
+          // A second run fills nothing and writes nothing: the ledger in other bytes that read
+          // the same is left in them.
+          const reflowed = filed.replaceAll('\n', '\n  ');
+          yield* fs.writeFileString(ledger, reflowed);
+          expect(told(yield* fillPicks)).toEqual(left);
+          expect(yield* fs.readFileString(ledger)).toEqual(reflowed);
+        }),
+      ),
+  );
+
+  it.effect(
+    'answers each decision as its write found it: one filed after the list read its ledger waits for the next run',
+    () =>
+      run(
+        Effect.gen(function* () {
+          const asks = yield* AskStore;
+          const productions = yield* ProductionStore;
+          yield* TestClock.setTime(Date.UTC(2026, 9, 18, 12));
+          const chosen = yield* asks.make({ ...draft(proof([1, 7])), production: 'f' });
+          yield* asks.answerPage(chosen.id, [{ step: step('pick'), values: { try: '1' } }]);
+          yield* asks.close(chosen.id, 'kept try 1');
+          yield* unpickedF(productions);
+          expect(told(yield* fillPicks)).toEqual([
+            ['f', chosen.id, { try: '1' }],
+            ['f', LATE, 'filed after its ledger was read'],
+          ]);
+          const ledger = Option.getOrThrow(yield* productions.read('f'));
+          expect(ledger.said.flatMap((s) => Option.toArray(s.ask))).toEqual([chosen.id, LATE]);
+          expect(ledger.said.map((s) => Option.isSome(s.picks))).toEqual([true, false]);
+        }).pipe(Effect.provide(racing)),
+      ),
+  );
+
+  it.effect('fills no ledger kept in a file not named for its production, nor writes one', () =>
+    run(
+      Effect.gen(function* () {
+        const asks = yield* AskStore;
+        const productions = yield* ProductionStore;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        yield* TestClock.setTime(Date.UTC(2026, 9, 18, 12));
+        // His pick, filed on `renamed` by its close and taken off, and that ledger's file renamed.
+        const chosen = yield* asks.make({ ...draft(proof([1, 7])), production: 'renamed' });
+        yield* asks.answerPage(chosen.id, [{ step: step('pick'), values: { try: '1' } }]);
+        yield* asks.close(chosen.id, 'kept try 1');
+        yield* productions.modify('renamed', (file) =>
+          Result.succeed({ ...file, said: file.said.map((s) => ({ ...s, picks: Option.none() })) }),
+        );
+        const named = path.resolve('productions', 'renamed.json');
+        const kept = path.resolve('productions', 'old-name.json');
+        yield* fs.rename(named, kept);
+        const before = yield* fs.readFileString(kept);
+        expect(yield* fillPicks).toEqual([]);
+        expect(yield* fs.readFileString(kept)).toEqual(before);
+        expect(yield* fs.exists(named)).toBe(false);
+      }),
+    ),
   );
 });
 

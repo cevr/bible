@@ -12,6 +12,7 @@
     "infra/**/*.ts",
     "art/**/*.ts",
     "series/**/*.ts",
+    "productions/*.ts",
     "server.ts",
     "cli.ts",
     "checkouts.ts",

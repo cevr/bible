@@ -39,6 +39,7 @@ bun run media list [prefix]                    # what the private store holds un
 bun run plan | deploy                          # the private store's Cloudflare stack (alchemy.run.ts), prod stage; deploy is the owner's call
 bun run store:keys                             # the deployed store's key pair into ./.env (git-ignored)
 bun run seed-look [--seed n] [--count k] [--out dir]  # new art directions for the looks study, drawn from a seed, as style briefs (see New art directions)
+bun run fill-picks                             # the owner's picks onto each ledger decision that names its ask and carries none, from the ask's record in lab/asks (a record not there leaves it)
 bun run mix <film> [--stems]                   # remix full.wav in-process (no API): levels per bus; stems to out/<film>/stems
 bun run cues <film> [scene]                    # scene times, {mark} times, named cues, seam= to the next voice (fails if a cue overruns)
 bun run cues <film> [scene] --sound            # every effect placement's film time and sound, and each bed's span
