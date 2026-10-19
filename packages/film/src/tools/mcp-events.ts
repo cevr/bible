@@ -157,6 +157,17 @@ const readEcho = Schema.decodeUnknownOption(
 );
 const encodeSubscribed = Schema.encodeSync(SubscribeResult);
 
+/**
+ * A callback's origin, as the log names it: a webhook's path and query can be
+ * its secret (an incoming webhook's token), so the log keeps the scheme, host
+ * and port alone.
+ */
+const originOf = (url: string): string =>
+  Bool.match(URL.canParse(url), {
+    onTrue: () => new URL(url).origin,
+    onFalse: () => 'unreadable',
+  });
+
 /** A subscription's id: the digest of its webhook, event and arguments as canonical JSON. Pure. */
 const subscriptionId = (url: string, name: string, args: EventArguments): string =>
   `sub_${sha256Hex(canonicalJson({ url, name, arguments: { ...args } })).slice(0, 24)}`;
@@ -286,7 +297,9 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
           verificationJson({ type: 'verification', challenge }),
         ).pipe(
           Effect.tapError((error) =>
-            Effect.logWarning(`mcp.events.unverified id=${id} url=${url} reason="${error.reason}"`),
+            Effect.logWarning(
+              `mcp.events.unverified id=${id} at=${originOf(url)} reason="${error.reason}"`,
+            ),
           ),
           Effect.mapError((error) =>
             unverified(
@@ -304,7 +317,7 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
         );
         if (answer.status < 200 || answer.status > 299 || !sameText(echoed, challenge)) {
           yield* Effect.logWarning(
-            `mcp.events.unverified id=${id} url=${url} status=${answer.status} echoed=${sameText(echoed, challenge)}`,
+            `mcp.events.unverified id=${id} at=${originOf(url)} status=${answer.status} echoed=${sameText(echoed, challenge)}`,
           );
           return yield* unverified('challenge_failed');
         }
@@ -396,7 +409,7 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
         const of = ofSubscription(subscription);
         const at = yield* Ref.make(subscription.cursor);
         const gone = Effect.andThen(
-          Effect.log(`mcp.events.gone id=${subscription.id} url=${subscription.url}`),
+          Effect.log(`mcp.events.gone id=${subscription.id} at=${originOf(subscription.url)}`),
           drop(subscription.id),
         );
         const loop = Effect.gen(function* () {
@@ -529,7 +542,7 @@ export class McpEvents extends Context.Service<McpEvents, McpEventsService>()(
         );
         yield* run(subscription);
         yield* Effect.log(
-          `mcp.events.subscribed id=${id} name=${params.name} url=${url} cursor=${cursor} truncated=${answer.reset}`,
+          `mcp.events.subscribed id=${id} name=${params.name} at=${originOf(url)} cursor=${cursor} truncated=${answer.reset}`,
         );
         return encodeSubscribed({
           id,

@@ -410,11 +410,6 @@ const asksReads = Effect.fn('LabMcp.asksReads')(function* () {
 /** The work of the asks' and the timelines' commands. */
 const lab = asksReads();
 
-/**
- * The ask, run in the lab alone: an ask made while the same asker's earlier
- * one still asks joins its page, and the store groups them under a lock it
- * holds in memory (`AskStore`).
- */
 /** An ask made, as a terminal reads it: where it waits, its page and its links, and how to wait on its answer. Pure. */
 const askLines = (asked: typeof AskMade.Type): ReadonlyArray<string> => [
   `asked ${asked.ask}${Option.match(Option.fromUndefinedOr(asked.production), {
@@ -441,6 +436,11 @@ const askLines = (asked: typeof AskMade.Type): ReadonlyArray<string> => [
   `then: bun cli.ts ask wait ${asked.ask} in the background (it exits once answered, with the answers; --page ${asked.page.id} for every ask on the page); close_ask it once acted on`,
 ];
 
+/**
+ * The ask, run in the lab alone: an ask made while the same asker's earlier
+ * one still asks joins its page, and the store groups them under a lock it
+ * holds in memory (`AskStore`).
+ */
 export const askInLab = labCommand(AskTool, {
   run: (given) => Effect.flatMap(lab, (l) => l.ask(given)),
   lines: askLines,

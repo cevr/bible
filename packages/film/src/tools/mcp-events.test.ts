@@ -17,6 +17,7 @@ import {
   Effect,
   FileSystem,
   Layer,
+  Logger,
   Option,
   Queue,
   Record as Rec,
@@ -487,7 +488,37 @@ describe('MCP Events on the lab', () => {
       ),
   );
 
-  it.effect('delivers on when its cursor cannot be kept, saying so in the log', () =>
+  it.effect("logs a callback by its origin alone: a webhook's path can be its secret", () => {
+    const lines: Array<string> = [];
+    return provided(
+      Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const hook = yield* callback;
+        yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/hooks/T0SECRET?token=s3`));
+        yield* Queue.take(hook.heard);
+        yield* Ref.set(hook.echo, false);
+        yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/other/T1SECRET`));
+        yield* Queue.take(hook.heard);
+        const said = lines.filter((line) => line.startsWith('mcp.events.'));
+        expect(said.map((line) => line.split(' ')[0])).toEqual([
+          'mcp.events.subscribed',
+          'mcp.events.unverified',
+        ]);
+        expect(said.filter((line) => /SECRET|token|s3/.test(line))).toEqual([]);
+        expect(said.every((line) => line.includes(` at=${hook.url} `))).toBe(true);
+      }).pipe(
+        Effect.provide(
+          Logger.layer([
+            Logger.make(({ message }) => {
+              lines.push([message].flat().join(' '));
+            }),
+          ]),
+        ),
+      ),
+    );
+  });
+
+  it.effect('delivers on when its cursor cannot be kept', () =>
     provided(
       Effect.gen(function* () {
         const { lab, events } = yield* labWithMcp;
