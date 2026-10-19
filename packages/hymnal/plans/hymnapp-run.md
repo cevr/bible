@@ -89,6 +89,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Follow-ups
 
+- Owner photos batch 2026-10-19b filed (28 photos → compile/pages; report hymnrows/owner-photos-2026-10-19b.md): all 24 asked first pages in; second pages still to come for 13, 61, 102, 122, 436 (086-p2.png already covers 86). Data for hymnrows' next round.
+
 - idb on iOS 27: a zero-duration tap does not land; use `idb ui tap X Y --duration 0.15`. `screen_mapper.py` sees 0 interactive elements in RN screens (switches/text are not buttons) and `navigator.py` has no duration flag: patch the skill's source or prefer agent-device (simtools r2).
 - Evaluate `e2e` (tester-army/e2e, Apache-2.0, 0.21.2, ~11k stars; TypeScript tests with deterministic locators plus agent steps, mobile via agent-device, BYO model) as the app's e2e runner and a `verify-hymnal` skill, once `reader` exists (owner pointer, 2026-10-17).
 - A Fabric layout oddity: on the placeholder screen the `Switch` drew at the top while its label sat centred (row, alignItems center). Re-check in glass/reader.
