@@ -361,9 +361,9 @@ a {
   border: var(--border-outline) solid var(--color-night-accent);
   background: transparent;
   color: var(--color-night-accent);
-  transition:
-    color var(--motion-fast) var(--motion-ease),
-    background-color var(--motion-fast) var(--motion-ease);
+  /* Its fill and its words trade colours on hover, so they swap at once: a
+     fade would pass each through the other. */
+  transition: none;
 }
 @media (hover: hover) {
   .button-night:hover {
@@ -768,10 +768,17 @@ a {
 .card h3 a:focus-visible {
   outline: 0;
 }
-/* The ring sits inside the deepest tear, so the torn edge never cuts it. */
-.card:has(h3 a:focus-visible) {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -16px;
+/*
+ * The focus ring is drawn inside the torn edge: the tear reaches 4% of the
+ * card's height into its top and bottom, and the ring's top and bottom sit
+ * past that share, so a card of any height keeps it whole.
+ */
+.card:has(h3 a:focus-visible)::before {
+  content: '';
+  position: absolute;
+  inset: calc(4% + var(--space-3)) var(--space-5);
+  border: 2px solid var(--color-accent);
+  pointer-events: none;
 }
 @media (hover: hover) {
   .card:hover h3 a {
