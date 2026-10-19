@@ -140,6 +140,19 @@ describe("a film's figures file", () => {
     ).toThrow(/figuresFile refused: .*lead's hands are laid on otherHand, a hand of another paper/);
   });
 
+  test("a hand's paper with a grey shade is refused by GreyShade, through the two forms an artboard takes", () => {
+    const grey = { color: '#ece7fa', shade: '#808080', light: '#fffffb' } as const;
+    expect(() =>
+      figuresFile({
+        weight: 1,
+        // @ts-expect-error a hand's paper is one `paper` checked
+        boards: { hand: { name: 'Hand', seed: 1, stage: 0, hand: grey } },
+      }),
+    ).toThrow(
+      /^figuresFile refused by GreyShade, .*\n.*\nits shade #808080 is #ece7fa greyed or blackened: give it a hue of its own\n {2}at \["boards"\]\["hand"\]\["hand"\]$/,
+    );
+  });
+
   test('a copy of a composed figure is refused, a part changed in it or not: its parts were never checked', () => {
     const ear = { _tag: 'RoundEar', at: [40, 0], r: [8, 12] } as const;
     const copies = {

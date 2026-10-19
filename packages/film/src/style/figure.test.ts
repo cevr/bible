@@ -872,17 +872,21 @@ describe('a lock', () => {
     );
   });
 
-  test("an override without the owner's words written out is refused", () => {
+  test("an override without the owner's words written out is refused by FigureLock, saying where", () => {
     for (const quote of ['', ' padded '])
       expect(() =>
         figure({ ...leadOf([]), lock: { ...LOCK, override: { ...OVERRIDE, quote } } }),
-      ).toThrow(/lock refused: /);
+      ).toThrow(
+        /^lock refused by FigureLock, .*\): Expected .*\n {2}at \["override"\]\["quote"\]\n/,
+      );
   });
 
-  test('a rule with no way out has no override', () => {
+  test("a rule with no way out has no override: one laid on a lock is refused by the lock's rule", () => {
     const grey = { ...LOCK, override: { ...OVERRIDE, rule: 'GreyShade' } };
     // @ts-expect-error GreyShade's way is none, so no override of it is a lock's
-    expect(() => figure({ ...leadOf([]), lock: grey })).toThrow(/lock refused: /);
+    expect(() => figure({ ...leadOf([]), lock: grey })).toThrow(
+      /^lock refused by FigureLock, .*\): Expected \{ readonly "rule": "FigureLock", \.\.\. \}\n {2}at \["override"\]$/,
+    );
   });
 
   test("a lock's hash is a sha256, and a lock has no field its file lacks", () => {

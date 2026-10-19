@@ -124,17 +124,24 @@ describe('an override', () => {
     overrideOf('GreyShade', {});
   });
 
-  test("cites the owner's words or his pick, one, never both, nor neither", () => {
+  test("cites the owner's words or his pick, one, never both, nor neither: else its rule refuses it, saying where", () => {
     expect(decodeLock({ ...LOCK_FILE, override: SAID }, 'lock').override).toEqual(SAID);
     expect(decodeLock({ ...LOCK_FILE, override: PICKED }, 'lock').override).toEqual(PICKED);
-    expect(() =>
-      decodeLock({ ...LOCK_FILE, override: { ...PICKED, quote: SAID.quote } }, 'lock'),
-    ).toThrow(/lock refused/);
+    const both = () =>
+      decodeLock({ ...LOCK_FILE, override: { ...PICKED, quote: SAID.quote } }, 'lock');
+    expect(both).toThrow(/^lock refused by FigureLock, /);
+    // Neither form takes the other's citation.
+    expect(both).toThrow(
+      '): Expected no excess property\n  at ["override"]["answer"]\nExpected no excess property\n  at ["override"]["quote"]',
+    );
     const { rule, place, reason, frees } = SAID;
-    expect(() =>
+    const neither = () =>
       // @ts-expect-error an override cites the owner's words or his pick
-      decodeLock({ ...LOCK_FILE, override: { rule, place, reason, frees } }, 'lock'),
-    ).toThrow(/lock refused/);
+      decodeLock({ ...LOCK_FILE, override: { rule, place, reason, frees } }, 'lock');
+    expect(neither).toThrow(/^lock refused by FigureLock, /);
+    expect(neither).toThrow(
+      '): Missing key\n  at ["override"]["quote"]\nMissing key\n  at ["override"]["answer"]',
+    );
   });
 
   test('in his words on its figure after its lock, verbatim, or in his pick there, is his', () => {

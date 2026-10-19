@@ -21,6 +21,7 @@
 
 import { DateTime, Option, Predicate, Schema } from 'effect';
 import type { Decided } from '../core/production.ts';
+import { holding } from './decode.ts';
 import type { RULES, RuleId } from './rules.ts';
 
 /** The rules an override may free: each whose way is `override`. */
@@ -44,7 +45,9 @@ const Answer = Schema.Struct({ ask: Words, question: Words, value: Words });
 /**
  * An override of `rule`: the place it frees it at, why in a line, the fields
  * its rule adds (`own`), and the owner's word that allows it: his words,
- * verbatim (`quote`), or his pick on an ask (`answer`), one, never both.
+ * verbatim (`quote`), or his pick on an ask (`answer`), one, never both. It
+ * holds its rule, so one of neither form (both words and a pick, neither, or
+ * another rule's) is refused by it.
  */
 export const overrideOf = <R extends Freeable, const F extends Schema.Struct.Fields>(
   rule: R,
@@ -53,7 +56,7 @@ export const overrideOf = <R extends Freeable, const F extends Schema.Struct.Fie
   Schema.Union([
     Schema.Struct({ rule: Schema.Literal(rule), ...CARRIED, quote: Words, ...own }),
     Schema.Struct({ rule: Schema.Literal(rule), ...CARRIED, answer: Answer, ...own }),
-  ]);
+  ]).annotate(holding(rule));
 
 /** Any rule's override, as whatever holds it to the owner's word reads it: its rule, what every override carries, and its citation. */
 const AnyOverride = Schema.Union([
