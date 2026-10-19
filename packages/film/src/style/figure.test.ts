@@ -1303,6 +1303,67 @@ describe('the parts', () => {
     expect(Bands({ ...bands, from: 62, to: 126 })).toMatchObject({ from: 62, to: 126 });
   });
 
+  test('an outline whose points all lie at one point, or on one line, is refused', () => {
+    const pivot: Pt = [30, -290];
+    const point: Pt[] = [pivot, pivot, pivot];
+    const flat: Pt[] = [
+      [30, -290],
+      [60, -290],
+      [90, -290],
+      [45, -290],
+    ];
+    expect(() => Arm({ pivot, rest: 0, outline: point, paper: FLAT })).toThrow(
+      /Arm refused: [^]*its points all lie at \(30, -290\), so it encloses no area/,
+    );
+    expect(() => Arm({ pivot, rest: 0, outline: flat, paper: FLAT })).toThrow(
+      /Arm refused: [^]*its points all lie on one line, so it encloses no area/,
+    );
+    // A figure given such a sleeve says so, not how far the sleeve lies from its pivot.
+    expect(() => figure({ ...standingOf(), arms: { far: { ...sleeve, outline: point } } })).toThrow(
+      /arms\.far refused: [^]*its points all lie at \(30, -290\)/,
+    );
+    // A slanting line, a cut robe's corners and a tone's points are refused alike.
+    const slant: Pt[] = [
+      [0, 0],
+      [10, 10],
+      [25, 25],
+    ];
+    expect(() => Hair.Traced({ outline: slant, paper: HAIR })).toThrow(
+      /Hair\.Traced refused: [^]*its points all lie on one line/,
+    );
+    const { _tag, ...cut } = standingOf().body;
+    expect(() => Robe.Cut({ ...cut, corners: flat })).toThrow(
+      /Robe\.Cut refused: [^]*its points all lie on one line/,
+    );
+    const toned = { outline: TRACED_ROBE, hem: -15, paper: SKIN };
+    expect(() => Robe.Traced({ ...toned, tones: [{ pts: slant, color: '#efca9a' }] })).toThrow(
+      /Robe\.Traced refused: [^]*its points all lie on one line/,
+    );
+    // A line whose numbers carry float error lies on one line, and so does a point off a long line by less than a billionth of its length.
+    const along = [0, 10.1, 23.7, 41.3].map((r): Pt => [
+      30 + r * Math.cos(0.7),
+      -290 + r * Math.sin(0.7),
+    ]);
+    expect(() => Arm({ pivot, rest: 0, outline: along, paper: FLAT })).toThrow(
+      /Arm refused: [^]*its points all lie on one line/,
+    );
+    const sliver: Pt[] = [
+      [0, 0],
+      [2000, 0],
+      [1000, 1e-6],
+    ];
+    expect(() => Arm({ pivot, rest: 0, outline: sliver, paper: FLAT })).toThrow(
+      /Arm refused: [^]*its points all lie on one line/,
+    );
+    // Three points, one a hundredth of a unit off the line through the others, do not lie on one line.
+    const thin: Pt[] = [
+      [30, -290],
+      [60, -290],
+      [45, -289.99],
+    ];
+    expect(Arm({ pivot, rest: 0, outline: thin, paper: FLAT }).outline).toEqual(thin);
+  });
+
   test('a paper with an ink of its own is refused by InteriorInk', () => {
     const inked = { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6', ink: '#000000' } as const;
     expect(() => paper(inked, 'inked skin')).toThrow(/inked skin refused by InteriorInk/);
