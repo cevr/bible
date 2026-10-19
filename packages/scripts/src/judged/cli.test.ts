@@ -13,6 +13,7 @@ import { HttpServer, HttpServerResponse } from 'effect/http';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 import { lintJudged } from './cli.js';
+import { JudgedLint, judgedLintLayer } from './config.js';
 import { judgedModel } from './model.js';
 import { env, missing, typesafeHttp } from './testing.js';
 
@@ -65,13 +66,27 @@ const git = (cwd: string, ...args: ReadonlyArray<string>) =>
     ...args,
   ]);
 
+/** The repo's own historyComment and judged settings (`withFs` provides them), with no ignore patterns. */
+const lintConfig = Effect.gen(function* () {
+  const config = yield* JudgedLint;
+  return yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown))({
+    ignorePatterns: [],
+    settings: { judged: config.settings },
+    rules: Object.fromEntries(
+      config.rules
+        .filter((rule) => rule.id === 'historyComment')
+        .map(({ id, severity, ...options }) => [`judged/${id}`, [severity, options]]),
+    ),
+  });
+});
+
 /** A repo whose `main` has `src/a.ts`, and a branch that adds a comment to it, committed. */
 const repo = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-cli-' });
   yield* fs.makeDirectory(path.join(dir, 'src'));
-  yield* fs.writeFileString(path.join(dir, '.oxlintrc.json'), '{ "ignorePatterns": [] }\n');
+  yield* fs.writeFileString(path.join(dir, '.oxlintrc.json'), yield* lintConfig);
   yield* fs.writeFileString(path.join(dir, 'src', 'a.ts'), 'const a = 1;\n');
   yield* git(dir, 'init', '-q', '-b', 'main');
   yield* git(dir, 'add', '-A');
@@ -135,25 +150,27 @@ const historyModel = () => {
     usage: { input_tokens: 10, output_tokens: 3 },
   }));
   return {
-    layer: judgedModel.pipe(
-      Layer.provide(
-        Layer.mergeAll(http.layer, missing().layer, env({ TYPESAFE_API_KEY: 'test-key' })),
+    layer: (model: string) =>
+      judgedModel(model).pipe(
+        Layer.provide(
+          Layer.mergeAll(http.layer, missing().layer, env({ TYPESAFE_API_KEY: 'test-key' })),
+        ),
       ),
-    ),
     requests: http.requests,
   };
 };
 
 /** A model whose every answer is a defect. */
-const dyingModel = Layer.effect(DecisionModel.DecisionModel)(
-  DecisionModel.make({ decide: () => Effect.die('a defect in the model') }),
-);
+const dyingModel = () =>
+  Layer.effect(DecisionModel.DecisionModel)(
+    DecisionModel.make({ decide: () => Effect.die('a defect in the model') }),
+  );
 
 /** The command run in-process in `dir` over `model`: its exit, stdout lines and stderr lines. */
 const inProcess = <E extends { readonly _tag: string }, R>(
   dir: string,
   args: ReadonlyArray<string>,
-  model: Layer.Layer<DecisionModel.DecisionModel, E, R>,
+  model: (name: string) => Layer.Layer<DecisionModel.DecisionModel, E, R>,
 ) =>
   Effect.gen(function* () {
     const out: Array<string> = [];
@@ -177,8 +194,12 @@ const inProcess = <E extends { readonly _tag: string }, R>(
 const FINDING =
   "src/a.ts:1 warning judged(historyComment): the comment tells the code's history: say what it does today and why; how it got here lives in git log p=0.97";
 
+/** `effect` scoped, over Bun's services and the repo's own judged lint. */
 const withFs = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-  effect.pipe(Effect.scoped, Effect.provide(BunServices.layer));
+  effect.pipe(
+    Effect.scoped,
+    Effect.provide(Layer.provideMerge(judgedLintLayer(import.meta.dir), BunServices.layer)),
+  );
 
 describe('the judged lint fails open', () => {
   it.live('skips reason=error, exit 0, when git cannot read the base', () =>
@@ -192,9 +213,7 @@ describe('the judged lint fails open', () => {
           yield* keyless,
         );
         expect(out.code).toBe(0);
-        expect(out.stdout).toBe(
-          '[judged] skipped rule=historyComment reason=error items=0 detail=GitFailed',
-        );
+        expect(out.stdout).toBe('[judged] skipped rule=* reason=error items=0 detail=GitFailed');
         expect(out.stderr).toContain('git merge-base exited 128');
       }),
     ),
@@ -282,9 +301,7 @@ describe('the judged lint fails open', () => {
         const dir = yield* repo;
         const lint = yield* inProcess(dir, ['--base', 'main'], dyingModel);
         expect(Exit.isSuccess(lint.exit)).toBe(true);
-        expect(lint.out).toEqual([
-          '[judged] skipped rule=historyComment reason=error items=1 detail=defect',
-        ]);
+        expect(lint.out).toEqual(['[judged] skipped rule=* reason=error items=1 detail=defect']);
       }),
     ),
   );

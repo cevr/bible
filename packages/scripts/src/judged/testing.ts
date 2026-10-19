@@ -1,10 +1,31 @@
-// Test support for the judged lint: a stubbed keychain (the `security` tool
+// Test support for the judged lint: the historyComment rule, a stubbed keychain (the `security` tool
 // the key is read from), the environment as config, and a fake TypeSafe HTTP
 // client, so no test reads the real keychain or reaches the network.
 
 import { ConfigProvider, Effect, Layer, type Option, Schema, Sink, Stream } from 'effect';
 import { Headers, HttpClient, HttpClientResponse } from 'effect/http';
 import { ChildProcessSpawner } from 'effect/process';
+
+import type { JudgedRule } from './rule.js';
+
+/** historyComment as the repo's `.oxlintrc.json` defines it (config.test.ts holds the two equal). */
+export const historyComment: JudgedRule = {
+  id: 'historyComment',
+  severity: 'warn',
+  version: 1,
+  selector: 'comments',
+  subject: 'code comment',
+  instructions:
+    "HISTORY means the comment narrates the code's own past: an earlier behaviour that no longer holds ('this used to retry', 'before X this read argv', 'we switched to Y'), or which change, review, pass or person altered it. TODAY means anything else: what the code does, why, a constraint, or a noun phrase naming a purpose. 'X used to <verb>' meaning 'X that is used for <verb>ing' is TODAY.",
+  criteria: {
+    today: 'states what the code does now, or why, or a purpose, or shows data',
+    history: "tells the code's past: what it used to do, what changed it, when or by whom",
+  },
+  reports: 'history',
+  threshold: 0.9,
+  message:
+    "the comment tells the code's history: say what it does today and why; how it got here lives in git log",
+};
 
 /** A keychain whose `security` prints `printed` and exits with `exitCode`; it counts the runs. */
 const keychain = (printed: Stream.Stream<string>, exitCode: Effect.Effect<number>) => {

@@ -1,51 +1,63 @@
-// A judged rule is data: which text it reads (its selector), one classify
-// decision a model answers for each item of that text, the label that
-// reports, how sure the model must be, and what the report says. The
-// runner (`run.ts`) asks the model, caches the answers and reports; a rule
-// carries no code of its own.
+// A judged rule is data, written in the repo's `.oxlintrc.json` as the
+// options of `judged/<id>`: which items it reads (its selector), one
+// classify decision a model answers for each item, the label that reports,
+// how sure the model must be, and what the report says. Its severity is its
+// gate: `warn` reports, `error` fails the lint, and `off` judges nothing. The
+// runner (`run.ts`) asks the model and keeps the answers; the oxlint plugin
+// (`packages/scripts/lint/judged.ts`) reports the kept answers. A rule carries no code of its own.
+//
+// This module is read in Node (oxlint's plugin host) as well as in Bun, so it
+// imports nothing of either.
 
-import { Decision } from 'effect/ai';
+import { Schema } from 'effect';
 
-/** The text a judged rule reads; `changedComments` is `comments.ts`'s selector. */
-type Selector = 'changedComments';
+import { SELECTORS } from './items.ts';
 
-export interface JudgedRule<Label extends string> {
+/** A rule's options, as `.oxlintrc.json` writes them. */
+export const RuleOptions = Schema.Struct({
+  /** Raised when the decision's words change, so no cached answer outlives them. */
+  version: Schema.Int,
+  selector: Schema.Literals(SELECTORS),
+  /** What one item is, as each item's instructions name it ("code comment"). */
+  subject: Schema.String,
+  instructions: Schema.String,
+  /** Each label and what it means. */
+  criteria: Schema.Record(Schema.String, Schema.String),
+  /** The label whose probability reports. */
+  reports: Schema.String,
+  /** The probability of `reports` at and above which an item reports. */
+  threshold: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
+  message: Schema.String,
+}).check(
+  Schema.makeFilter(
+    (options) =>
+      Object.hasOwn(options.criteria, options.reports) ||
+      `reports names ${options.reports}, which is none of the criteria's labels`,
+  ),
+);
+
+export type RuleOptions = typeof RuleOptions.Type;
+
+/** A rule as a run reads it: its options, its id (`judged/<id>`), and whether it gates. */
+export interface JudgedRule extends RuleOptions {
   /** The rule's name in its reports and its cache key. */
   readonly id: string;
-  /** Raised when the decision's words change, so no cached answer outlives them. */
-  readonly version: number;
-  readonly selector: Selector;
-  /** What one item is, as each item's instructions name it ("code comment"). */
-  readonly subject: string;
-  readonly decision: Decision.Classify<Label>;
-  /** The label whose probability reports. */
-  readonly reports: Label;
-  /** The probability of `reports` at and above which an item reports. */
-  readonly threshold: number;
-  readonly message: string;
+  readonly severity: 'warn' | 'error';
 }
 
-/**
- * A comment that narrates the code's past (what it used to do, which change
- * or pass altered it) instead of what it does today and why. The words are
- * those measured on TypeSafe's Jev, all 182 corpus cases in one request
- * (`pass6/judged-lint-spike/ts-batch.ts`).
- */
-export const historyComment: JudgedRule<'today' | 'history'> = {
-  id: 'historyComment',
-  version: 1,
-  selector: 'changedComments',
-  subject: 'code comment',
-  decision: Decision.classify({
-    instructions:
-      "HISTORY means the comment narrates the code's own past: an earlier behaviour that no longer holds ('this used to retry', 'before X this read argv', 'we switched to Y'), or which change, review, pass or person altered it. TODAY means anything else: what the code does, why, a constraint, or a noun phrase naming a purpose. 'X used to <verb>' meaning 'X that is used for <verb>ing' is TODAY.",
-    criteria: {
-      today: 'states what the code does now, or why, or a purpose, or shows data',
-      history: "tells the code's past: what it used to do, what changed it, when or by whom",
-    },
-  }),
-  reports: 'history',
-  threshold: 0.9,
-  message:
-    "the comment tells the code's history: say what it does today and why; how it got here lives in git log",
-};
+/** The settings every judged rule shares (`settings.judged`). */
+export const Settings = Schema.Struct({
+  /** The TypeSafe model the rules ask; their thresholds were measured on it. */
+  model: Schema.String,
+  /** Where the answers are kept, from the repo's root. */
+  cache: Schema.String,
+});
+
+export type Settings = typeof Settings.Type;
+
+/** A rule's name in the cache's keys: its id and its version. */
+export const versionedId = (rule: Pick<JudgedRule, 'id' | 'version'>) =>
+  `${rule.id}@${rule.version}`;
+
+/** A model's name in the cache's keys. */
+export const cacheModel = (model: string) => `typesafe/${model}`;

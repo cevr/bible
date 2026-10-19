@@ -5,9 +5,8 @@ import type { ChildProcessSpawner } from 'effect/process';
 import { TestClock } from 'effect/testing';
 
 import { judgedModel } from './model.js';
-import { historyComment } from './rule.js';
 import { LIMITS, ask } from './run.js';
-import { env, hangs, holding, missing, typesafeHttp } from './testing.js';
+import { env, hangs, historyComment, holding, missing, typesafeHttp } from './testing.js';
 
 /** TypeSafe answering every key today. */
 const today = () =>
@@ -25,9 +24,9 @@ const today = () =>
 const askOver = (
   layers: Layer.Layer<HttpClient.HttpClient | ChildProcessSpawner.ChildProcessSpawner>,
 ) =>
-  ask(historyComment, ['A comment.'], LIMITS).pipe(
+  ask([{ rule: historyComment, text: 'A comment.' }], LIMITS).pipe(
     Effect.map((asked) => asked.reason),
-    Effect.provide(judgedModel.pipe(Layer.provide(layers))),
+    Effect.provide(judgedModel('jev-latest').pipe(Layer.provide(layers))),
   );
 
 describe("the lint's TypeSafe key", () => {

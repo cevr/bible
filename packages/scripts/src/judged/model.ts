@@ -12,11 +12,6 @@ import { AiError, DecisionModel } from 'effect/ai';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
-/** The model the rules ask, as config (`JUDGED_MODEL`), and its name in the cache's keys. */
-export const modelName = Config.String('JUDGED_MODEL').pipe(Config.withDefault('jev-latest'));
-
-export const cacheModel = (model: string) => `typesafe/${model}`;
-
 /** How long the keychain may take: a locked one waits on its unlock dialog, and the push with it. */
 const KEYCHAIN_DEADLINE = '2 seconds';
 
@@ -62,23 +57,20 @@ const missingKey = Layer.effect(DecisionModel.DecisionModel)(
 );
 
 /**
- * The model the lint asks: `JUDGED_MODEL` on TypeSafe's own host (no config
- * names another, so the key goes nowhere else), over its key.
+ * The model the lint asks, `model` (the lint config's `settings.judged.model`)
+ * on TypeSafe's own host (no config names another, so the key goes nowhere
+ * else), over its key.
  */
-export const judgedModel = Layer.unwrap(
-  Effect.gen(function* () {
-    const model = yield* modelName;
-    return Layer.unwrap(
-      Effect.map(
-        typesafeKey,
-        Option.match({
-          onNone: () => missingKey,
-          onSome: (apiKey) =>
-            TypeSafeDecisionModel.layer({ model }).pipe(
-              Layer.provide(TypeSafeClient.layer({ apiKey })),
-            ),
-        }),
-      ),
-    );
-  }),
-);
+export const judgedModel = (model: string) =>
+  Layer.unwrap(
+    Effect.map(
+      typesafeKey,
+      Option.match({
+        onNone: () => missingKey,
+        onSome: (apiKey) =>
+          TypeSafeDecisionModel.layer({ model }).pipe(
+            Layer.provide(TypeSafeClient.layer({ apiKey })),
+          ),
+      }),
+    ),
+  );

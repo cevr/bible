@@ -6,7 +6,11 @@
     "perf": "error"
   },
   "plugins": ["typescript", "import", "node"],
-  "jsPlugins": ["oxlint-plugin-effect/plugin", "./packages/film/lint/plugin.ts"],
+  "jsPlugins": [
+    "oxlint-plugin-effect/plugin",
+    "./packages/film/lint/plugin.ts",
+    "./packages/scripts/lint/judged.ts"
+  ],
   "rules": {
     "typescript/no-explicit-any": "error",
     "typescript/no-non-null-assertion": "error",
@@ -80,11 +84,39 @@
     "effect/noInterruptibleMemo": "off",
     // A test waits on the event it asserts (a Deferred, a Latch, a condition
     // wait), never a fixed time: under load the fixed wait guesses wrong.
-    "effect/noFixedWaitInTests": "error"
+    "effect/noFixedWaitInTests": "error",
+    // The judged rules (packages/scripts/src/judged): a model decides each
+    // item its selector reads. `bun run lint:judged` asks it for the changed
+    // items and keeps the answers; oxlint reports the kept ones. Each entry's
+    // options are the rule (rule.ts); a rule is `warn` until its labelled
+    // corpus (judged/fixtures) shows the precision a gate needs, measured by
+    // `bun run --cwd packages/scripts judged:measure --rule <id>`.
+    //
+    // A comment that narrates the code's past instead of what it does today
+    // and why. Measured on Jev, all 182 corpus cases in one request.
+    "judged/historyComment": [
+      "warn",
+      {
+        "version": 1,
+        "selector": "comments",
+        "subject": "code comment",
+        "instructions": "HISTORY means the comment narrates the code's own past: an earlier behaviour that no longer holds ('this used to retry', 'before X this read argv', 'we switched to Y'), or which change, review, pass or person altered it. TODAY means anything else: what the code does, why, a constraint, or a noun phrase naming a purpose. 'X used to <verb>' meaning 'X that is used for <verb>ing' is TODAY.",
+        "criteria": {
+          "today": "states what the code does now, or why, or a purpose, or shows data",
+          "history": "tells the code's past: what it used to do, what changed it, when or by whom"
+        },
+        "reports": "history",
+        "threshold": 0.9,
+        "message": "the comment tells the code's history: say what it does today and why; how it got here lives in git log"
+      }
+    ]
   },
   // Test code besides `*.test.*` and `*.spec.*` modules: the harness helpers
   // the fixed-wait rule and effect's other test-aware rules read as tests.
   "settings": {
+    // The model the judged rules ask (their thresholds were measured on it),
+    // and where their answers are kept, from the repo's root.
+    "judged": { "model": "jev-latest", "cache": "tmp/judged/cache.json" },
     "effect": {
       "testFiles": ["**/fixtures/**", "**/test/**", "**/tests/**", "**/e2e/**"]
     }
@@ -103,6 +135,13 @@
     "apps/hymnal/react-native.config.cjs"
   ],
   "overrides": [
+    {
+      // oxlint runs its plugins in Node: the judged plugin reads the kept
+      // answers with node's file system, and their key is node's sha256,
+      // which the runner, in Bun, computes the same.
+      "files": ["**/packages/scripts/lint/judged.ts", "**/packages/scripts/src/judged/store.ts"],
+      "rules": { "effect/noNodeBuiltinImport": "off" }
+    },
     {
       "files": ["**/packages/core/src/**/*.ts", "**/packages/core/src/**/*.tsx"],
       "rules": {

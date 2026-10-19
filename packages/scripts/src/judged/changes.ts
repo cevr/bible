@@ -1,28 +1,21 @@
-// The changed-comments selector: the comment blocks of the TypeScript files
-// the repo lints that touch a line added or changed against a merge base.
-// A block is a block comment (JSDoc included), or a run of line comments on
-// lines one after another, each the first thing on its line; a line comment
-// after code is a block of its own. Each block goes to a judged rule whole,
-// as one item, with its file and its first line.
+// The changed items: the items of the judged rules' selectors (`items.ts`)
+// in the files the repo lints that touch a line the working tree adds or
+// changes against a merge base. A file is a TypeScript source (no `.d.ts`)
+// that none of the lint's ignore patterns names, or a series script's
+// Markdown, which only `scriptBeats` reads. Each source is read and parsed
+// once for every rule that reads it.
 
-import { Glob, JSONC } from 'bun';
+import { Glob } from 'bun';
 import { Effect, FileSystem, Option, Path, Schema, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
-import { parseSync } from 'oxc-parser';
 
-/** One comment block a judged rule reads: its file, its first line and its words. */
-export interface CommentItem {
+import { type Item, type Selector, itemsOf, markdownBeats, parse, selects } from './items.js';
+
+/** One item of a changed source: its selector, its file and the item. */
+interface ChangedItem extends Item {
+  readonly selector: Selector;
   readonly file: string;
-  readonly line: number;
-  readonly text: string;
-}
-
-/** A comment block of a source: its first and last lines (1-based) and its words. */
-interface Block {
-  readonly line: number;
-  readonly end: number;
-  readonly text: string;
 }
 
 const HUNK = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
@@ -90,80 +83,12 @@ const changedLines = (diff: string): ReadonlyMap<string, ReadonlySet<number>> =>
   return changed;
 };
 
-/** A comment's words: its markers, a JSDoc line's leading `*` and the edges' blank lines gone. */
-const wordsOf = (type: 'Line' | 'Block', value: string) => {
-  if (type === 'Line') return value.replace(/^ /, '').trimEnd();
-  return value
-    .split('\n')
-    .map((line) => line.replace(/^\s*\*? ?/, '').trimEnd())
-    .join('\n')
-    .trim();
-};
-
-/** The 1-based line of each offset in `source`, by its line starts. */
-const lineReader = (source: string) => {
-  const starts = [0];
-  for (let i = 0; i < source.length; i++) if (source[i] === '\n') starts.push(i + 1);
-  return {
-    lineOf: (offset: number) => {
-      let low = 0;
-      let high = starts.length - 1;
-      while (low < high) {
-        const mid = Math.ceil((low + high) / 2);
-        if ((starts[mid] ?? 0) <= offset) low = mid;
-        else high = mid - 1;
-      }
-      return low + 1;
-    },
-    startOf: (line: number) => starts[line - 1] ?? 0,
-  };
-};
-
-/** Each comment block of `source`, in order. */
-const commentBlocks = (file: string, source: string): ReadonlyArray<Block> => {
-  const { comments } = parseSync(file, source);
-  const { lineOf, startOf } = lineReader(source);
-  const blocks: Array<{ line: number; end: number; words: Array<string>; run: boolean }> = [];
-  for (const comment of comments) {
-    const line = lineOf(comment.start);
-    const end = lineOf(comment.end);
-    const alone = source.slice(startOf(line), comment.start).trim() === '';
-    const run = comment.type === 'Line' && alone;
-    const last = blocks.at(-1);
-    const words = wordsOf(comment.type, comment.value);
-    if (run && last?.run === true && last.end === line - 1) {
-      last.end = end;
-      last.words.push(words);
-    } else blocks.push({ line, end, words: [words], run });
-  }
-  return blocks.map((b) => ({ line: b.line, end: b.end, text: b.words.join('\n').trim() }));
-};
-
-/** The blocks of `source` that touch one of `changed`, as items of `file`; a block with no words is none. */
-const changedBlocks = (
-  file: string,
-  source: string,
-  changed: ReadonlySet<number>,
-): ReadonlyArray<CommentItem> =>
-  commentBlocks(file, source)
-    .filter((b) => b.text !== '')
-    .filter((b) => {
-      for (let line = b.line; line <= b.end; line++) if (changed.has(line)) return true;
-      return false;
-    })
-    .map((b) => ({ file, line: b.line, text: b.text }));
-
 const TYPESCRIPT = /\.[cm]?tsx?$/;
 
-/** Whether the repo lints `file`: a TypeScript source (no `.d.ts`) none of the lint's ignore patterns names. */
+/** Whether the judged lint reads `file`: a TypeScript source (no `.d.ts`) none of the lint's ignore patterns names, or Markdown. */
 const linted = (file: string, ignorePatterns: ReadonlyArray<string>) =>
-  TYPESCRIPT.test(file) &&
-  !file.endsWith('.d.ts') &&
+  (file.endsWith('.md') || (TYPESCRIPT.test(file) && !file.endsWith('.d.ts'))) &&
   !ignorePatterns.some((pattern) => new Glob(pattern).match(file));
-
-const LintConfig = Schema.Struct({
-  ignorePatterns: Schema.optional(Schema.Array(Schema.String)),
-});
 
 /** A git command exited non-zero: its subcommand and its code (git's own words are dropped). */
 class GitFailed extends Schema.TaggedError<GitFailed>()('GitFailed', {
@@ -172,16 +97,6 @@ class GitFailed extends Schema.TaggedError<GitFailed>()('GitFailed', {
 }) {
   override get message() {
     return `git ${this.command} exited ${this.code}`;
-  }
-}
-
-/** The repo's lint config is not JSONC, or not the shape it reads. */
-class LintConfigUnreadable extends Schema.TaggedError<LintConfigUnreadable>()(
-  'LintConfigUnreadable',
-  { file: Schema.String },
-) {
-  override get message() {
-    return `${this.file} does not read as a lint config`;
   }
 }
 
@@ -214,24 +129,41 @@ const git = (root: string, args: ReadonlyArray<string>) =>
 export const repoRoot = (cwd: string) =>
   Effect.map(git(cwd, ['rev-parse', '--show-toplevel']), (out) => out.trim());
 
-/** The ignore patterns of the lint config at `file`, from its text. */
-const ignorePatternsOf = (file: string, text: string) =>
-  Effect.try({
-    try: () => JSONC.parse(text),
-    catch: () => LintConfigUnreadable.make({ file }),
-  }).pipe(
-    Effect.flatMap(Schema.decodeUnknownEffect(LintConfig)),
-    Effect.mapError(() => LintConfigUnreadable.make({ file })),
-    Effect.map((config) => config.ignorePatterns ?? []),
+/** The items of `selectors` in one source that touch one of `changed`. */
+const itemsChanged = (
+  file: string,
+  text: string,
+  changed: ReadonlySet<number>,
+  selectors: ReadonlyArray<Selector>,
+): ReadonlyArray<ChangedItem> => {
+  const reading = selectors.filter((selector) => selects(selector, file));
+  if (reading.length === 0) return [];
+  const touched = (item: Item) => {
+    for (let line = item.line; line <= item.end; line++) if (changed.has(line)) return true;
+    return false;
+  };
+  if (file.endsWith('.md'))
+    return markdownBeats(text)
+      .filter(touched)
+      .map((item) => ({ ...item, selector: 'scriptBeats', file }));
+  const source = parse(file, text);
+  return reading.flatMap((selector) =>
+    itemsOf(selector, source)
+      .filter(touched)
+      .map((item) => ({ ...item, selector, file })),
   );
+};
 
 /**
- * The comment items of the linted TypeScript files whose lines the working
- * tree adds or changes against the merge base of `base` and HEAD.
+ * The items of `selectors` in the files the judged lint reads whose lines
+ * the working tree adds or changes against the merge base of `base` and
+ * HEAD, past the lint's `ignorePatterns`.
  */
-export const changedComments = Effect.fn('judged.changedComments')(function* (
+export const changedItems = Effect.fn('judged.changedItems')(function* (
   root: string,
   base: string,
+  ignorePatterns: ReadonlyArray<string>,
+  selectors: ReadonlyArray<Selector>,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -254,17 +186,12 @@ export const changedComments = Effect.fn('judged.changedComments')(function* (
     '--diff-filter=AMR',
     mergeBase,
   ]);
-  const configFile = path.join(root, '.oxlintrc.json');
-  const ignorePatterns = yield* ignorePatternsOf(
-    '.oxlintrc.json',
-    yield* fs.readFileString(configFile),
-  );
   const files = [...changedLines(diff)].filter(([file]) => linted(file, ignorePatterns));
   const items = yield* Effect.forEach(
     files,
     ([file, lines]) =>
-      Effect.map(fs.readFileString(path.join(root, file)), (source) =>
-        changedBlocks(file, source, lines),
+      Effect.map(fs.readFileString(path.join(root, file)), (text) =>
+        itemsChanged(file, text, lines, selectors),
       ),
     { concurrency: 8 },
   );

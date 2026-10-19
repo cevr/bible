@@ -3,7 +3,13 @@ import { Effect, FileSystem, Path, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
-import { changedComments } from './comments.js';
+import { changedItems } from './changes.js';
+
+/** The changed comment blocks of the repo at `dir` against `base`, past the dist folders. */
+const changedComments = (dir: string, base: string) =>
+  Effect.map(changedItems(dir, base, ['**/dist/**'], ['comments']), (items) =>
+    items.map(({ file, line, text }) => ({ file, line, text })),
+  );
 
 /** Runs `git <args>` in `cwd`; answers what it prints. */
 const git = (cwd: string, ...args: ReadonlyArray<string>) =>
@@ -79,7 +85,7 @@ const A = [
   'const c = 3;', // 12
 ];
 
-describe('the changed-comments selector', () => {
+describe('the changed items', () => {
   it.live('takes each block a changed line touches whole, with its first line', () =>
     withFs(
       Effect.gen(function* () {
@@ -252,18 +258,60 @@ describe('the changed-comments selector', () => {
     ),
   );
 
-  it.live('fails, tagged, when git fails or the lint config does not read', () =>
+  it.live('fails, tagged, when git fails', () =>
     withFs(
       Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
         const dir = yield* repo({ 'src/a.ts': A }, {}, {});
         const noBase = yield* Effect.flip(changedComments(dir, 'no-such-ref'));
         expect(noBase._tag).toBe('GitFailed');
-        yield* fs.writeFileString(path.join(dir, '.oxlintrc.json'), '{ "ignorePatterns": [');
-        const badConfig = yield* Effect.flip(changedComments(dir, 'main'));
-        expect(badConfig._tag).toBe('LintConfigUnreadable');
       }),
     ),
+  );
+
+  it.live(
+    "reads a series script's Markdown for scriptBeats alone, and every selector over one parse",
+    () =>
+      withFs(
+        Effect.gen(function* () {
+          const script = [
+            '| #   | Say             | Picture       | Source note |',
+            '| --- | --------------- | ------------- | ----------- |',
+            '| 1   | In the beginning | A dark page   | Gen 1:1     |',
+          ];
+          const dir = yield* repo(
+            {},
+            {
+              'apps/animations/series/health/scripts/01-a.md': script,
+              'notes/plan.md': script,
+              'src/a.ts': ['// One.', 'const a = 1;'],
+            },
+            {},
+          );
+          const items = yield* changedItems(
+            dir,
+            'main',
+            [],
+            ['comments', 'commentedCode', 'scriptBeats'],
+          );
+          expect(
+            items.map(({ selector, file, line, text }) => [selector, file, line, text]),
+          ).toEqual([
+            [
+              'scriptBeats',
+              'apps/animations/series/health/scripts/01-a.md',
+              3,
+              'say: In the beginning',
+            ],
+            [
+              'scriptBeats',
+              'apps/animations/series/health/scripts/01-a.md',
+              3,
+              'picture: A dark page',
+            ],
+            ['comments', 'src/a.ts', 1, 'One.'],
+            ['commentedCode', 'src/a.ts', 1, 'Comment:\nOne.\n\nCode it sits on:\nconst a = 1;'],
+          ]);
+        }),
+      ),
   );
 });

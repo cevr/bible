@@ -3838,28 +3838,41 @@ history takes on its face: a loop pass by number, a batch id, a ledger id and
 a commit hash, each outside a quoted literal and a URL. History told in words
 (what the code used to do, which pass changed it) is a review finding
 (`CLAUDE.md`, **Comments**), since no pattern can read it.
-**Judged rules** (`packages/scripts/src/judged/`, `bun run lint:judged`) are
-the rules a pattern cannot decide, decided by a model, outside oxlint. A rule
-is data (`packages/scripts/src/judged/rule.ts`): a selector, one classify
-decision, the label that reports, a threshold and a message. The first,
-`historyComment`, reads the comment blocks of every linted TypeScript file
+**Judged rules** are the rules a pattern cannot decide, decided by a model
+and reported by oxlint. Each is an entry `judged/<id>` in `.oxlintrc.json`,
+its options its whole definition (`packages/scripts/src/judged/rule.ts`): a
+version, a selector (which items it reads), the subject, the classify
+instructions and criteria, the label that reports, a threshold and a
+message; `settings.judged` names the model, whose measurements set the
+thresholds, and where the answers are kept. Its severity is its gate: `warn`
+reports, `error` fails the lint, `off` judges nothing. The first,
+`historyComment`, reads the comment blocks of every linted TypeScript file.
+`bun run lint:judged` (`packages/scripts/src/lint-judged.ts`) reads the items
 that the working tree adds or changes against the merge base with
-origin/main (`--base` names another), and asks TypeSafe's model about all of
-them in one request, split only past 200 items or about 60,000 input tokens
-(the model refused a request near 65,536). They never block a push: no key
-(`TYPESAFE_API_KEY`, else the keychain item `typesafe-api-key` within 2 s), a timeout, a
-rate limit, an HTTP error or an answer that misses items passes, and prints
-`[judged] skipped rule=<rule> reason=<reason> items=<n>`; any other failure
-(git, the lint config, a defect) is `reason=error` with `detail=<tag>`, and
-answers the cache cannot keep are asked again next run. The answers are
-cached under the repo's ignored tmp folder, keyed by the rule and its version,
-the model and the text, so a rerun asks only for new text and says what it
-said before. The key goes only to TypeSafe's own host, and the lint reads no
-`.env` file (`bun --no-env-file`): none in a checkout sets its key, its model
-or a proxy. A finding is a warning (at p 0.9 or more) until a labelled corpus
-with true positives shows the precision a gate needs; `bun run --cwd
-packages/scripts judged:measure` measures the rule on its corpus. The lefthook
-pre-push runs it; CI, which has no key, does not.
+origin/main (`--base` names another), for every rule at once, and asks
+TypeSafe's model about all of them in one request, split only past 200 items
+or about 60,000 input tokens (the model refused a request near 65,536). It
+keeps each answer, keyed by the rule and its version, the model and the
+text, in the store `settings.judged.cache` names under the repo's ignored tmp
+folder, with the rules judged in each file, so a rerun asks only for new
+text; it prints each finding, and one line a rule. The plugin
+(`packages/scripts/lint/judged.ts`) reads that store in every `bun run lint`
+and reports each kept answer at or over its rule's threshold, at its line;
+it asks no model, so a checkout with no store (CI) reports nothing. A series
+script in Markdown, which oxlint does not read, is reported by the runner
+alone. The runner never blocks a push: no key (`TYPESAFE_API_KEY`, else the
+keychain item `typesafe-api-key` within 2 s), a timeout, a rate limit, an
+HTTP error or an answer that misses items passes, and prints `[judged]
+skipped rule=<rule> reason=<reason> items=<n>`; any other failure (git, the
+lint config, a defect) is `rule=* reason=error` with `detail=<tag>`, and
+answers the store cannot keep are asked again next run. The key goes only to
+TypeSafe's own host, and the runner reads no `.env` file (`bun
+--no-env-file`): none in a checkout sets its key or a proxy. A rule stays at
+`warn` until its labelled corpus (`packages/scripts/src/judged/fixtures/`)
+shows the precision a gate needs; `bun run --cwd packages/scripts
+judged:measure --rule <id>` measures it there and prints its precision and
+recall at its threshold and at others; `--strict` fails on any finding. The
+lefthook pre-push runs the runner; CI, which has no key, does not.
 `film/drawing-literal` and `film/no-unprobed-ink` hold a film's scenes to
 what the lab can locate and what `film check` can probe; the films' README
 (`apps/animations/README.md`, **Lint**) says what each refuses.

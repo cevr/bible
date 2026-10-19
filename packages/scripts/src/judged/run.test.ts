@@ -4,12 +4,15 @@ import { DecisionModel } from 'effect/ai';
 import { describe, expect, it } from 'effect-bun-test';
 import { TestClock } from 'effect/testing';
 
-import { cacheKey, keepAnswers } from './cache.js';
-import type { CommentItem } from './comments.js';
+import { keepAnswers } from './cache.js';
 import { judgedModel } from './model.js';
-import { historyComment } from './rule.js';
+import type { JudgedRule } from './rule.js';
 import { findingLine, judge, partsOf, runLine } from './run.js';
-import { env, missing, typesafeHttp } from './testing.js';
+
+/** An item a judged rule reads. */
+type RuleItem = Parameters<typeof judge>[1][number];
+import { cacheKey } from './store.js';
+import { env, historyComment, missing, typesafeHttp } from './testing.js';
 
 const labelOf = (p: number) => {
   if (p >= 0.5) return 'history';
@@ -65,7 +68,7 @@ const countingModel = (pOf: (text: string) => number) => {
   return { layer, requests };
 };
 
-const ITEMS: ReadonlyArray<CommentItem> = [
+const ITEMS: ReadonlyArray<Omit<RuleItem, 'rule'>> = [
   { file: 'src/a.ts', line: 3, text: 'This used to retry; pass 6 removed that.' },
   { file: 'src/a.ts', line: 9, text: 'The key used to sign each token.' },
   { file: 'src/b.ts', line: 1, text: 'Before the batch this read argv.' },
@@ -95,11 +98,37 @@ const judging = Effect.gen(function* () {
 const withFs = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
+/** Judges `items` by `rule` alone: its one outcome. */
+const judgeBy = (
+  rule: JudgedRule,
+  items: ReadonlyArray<Omit<RuleItem, 'rule'>>,
+  options: Parameters<typeof judge>[2],
+) =>
+  Effect.map(
+    judge(
+      [rule],
+      items.map((item) => ({ ...item, rule })),
+      options,
+    ),
+    (outcomes) => outcomes[0]!,
+  );
+
+/** `texts` asked by `rule`, cut into parts: each part's texts. */
+const partsOfTexts = (
+  rule: JudgedRule,
+  texts: ReadonlyArray<string>,
+  limits: Parameters<typeof partsOf>[1],
+) =>
+  partsOf(
+    texts.map((text) => ({ rule, text })),
+    limits,
+  ).map((part) => part.map((q) => q.text));
+
 describe('a judged rule', () => {
   it.effect('asks for every item in one request, a classify per item under c0…cN', () => {
     const model = countingModel((text) => P.get(text) ?? 0);
     return Effect.gen(function* () {
-      const outcome = yield* judge(historyComment, ITEMS, yield* judging);
+      const outcome = yield* judgeBy(historyComment, ITEMS, yield* judging);
       expect(model.requests.map((r) => r.keys)).toEqual([['c0', 'c1', 'c2']]);
       expect(model.requests[0]?.texts).toEqual(ITEMS.map((i) => i.text));
       expect(model.requests[0]?.instructions[1]).toStartWith(
@@ -110,7 +139,7 @@ describe('a judged rule', () => {
       expect(outcome.findings.map((f) => findingLine(historyComment, f))).toEqual([
         "src/a.ts:3 warning judged(historyComment): the comment tells the code's history: say what it does today and why; how it got here lives in git log p=0.97",
       ]);
-      expect(runLine(historyComment, outcome)).toBe(
+      expect(runLine(outcome)).toBe(
         '[judged] rule=historyComment items=3 cached=0 asked=3 findings=1',
       );
     }).pipe(Effect.provide(model.layer), withFs);
@@ -124,7 +153,7 @@ describe('a judged rule', () => {
     const model = countingModel((text) => at.get(text) ?? 0);
     return Effect.gen(function* () {
       const items = [...at.keys()].map((text, i) => ({ file: 'src/t.ts', line: i + 1, text }));
-      const outcome = yield* judge(historyComment, items, yield* judging);
+      const outcome = yield* judgeBy(historyComment, items, yield* judging);
       expect(outcome.findings).toEqual([{ file: 'src/t.ts', line: 1, p: 0.9 }]);
     }).pipe(Effect.provide(model.layer), withFs);
   });
@@ -133,14 +162,14 @@ describe('a judged rule', () => {
     const model = countingModel(() => 0.95);
     return Effect.gen(function* () {
       const twice = [ITEMS[0]!, { ...ITEMS[0]!, file: 'src/c.ts', line: 7 }];
-      const outcome = yield* judge(historyComment, twice, yield* judging);
+      const outcome = yield* judgeBy(historyComment, twice, yield* judging);
       expect(model.requests.map((r) => r.keys)).toEqual([['c0']]);
       expect(outcome.findings.map((f) => `${f.file}:${f.line}`)).toEqual([
         'src/a.ts:3',
         'src/c.ts:7',
       ]);
       // The line counts items: both were asked about, in one text.
-      expect(runLine(historyComment, outcome)).toBe(
+      expect(runLine(outcome)).toBe(
         '[judged] rule=historyComment items=2 cached=0 asked=2 findings=2',
       );
     }).pipe(Effect.provide(model.layer), withFs);
@@ -149,14 +178,14 @@ describe('a judged rule', () => {
   it.effect('splits past its bound of items or of estimated tokens', () =>
     Effect.sync(() => {
       const texts = ['a', 'b', 'c', 'd', 'e'];
-      expect(partsOf(historyComment, texts, { bound: 2, budget: 60_000 })).toEqual([
+      expect(partsOfTexts(historyComment, texts, { bound: 2, budget: 60_000 })).toEqual([
         ['a', 'b'],
         ['c', 'd'],
         ['e'],
       ]);
-      expect(partsOf(historyComment, texts, { bound: 200, budget: 60_000 })).toEqual([texts]);
+      expect(partsOfTexts(historyComment, texts, { bound: 200, budget: 60_000 })).toEqual([texts]);
       // About 190 tokens an item: a budget of 500 holds two.
-      expect(partsOf(historyComment, texts, { bound: 200, budget: 500 })).toEqual([
+      expect(partsOfTexts(historyComment, texts, { bound: 200, budget: 500 })).toEqual([
         ['a', 'b'],
         ['c', 'd'],
         ['e'],
@@ -165,13 +194,13 @@ describe('a judged rule', () => {
       // two of these 1,000 Greek letters do not fit in 2,500, which two
       // would at a token a unit.
       const greek = 'λόγος'.repeat(200);
-      expect(partsOf(historyComment, [greek, greek], { bound: 200, budget: 2500 })).toEqual([
+      expect(partsOfTexts(historyComment, [greek, greek], { bound: 200, budget: 2500 })).toEqual([
         [greek],
         [greek],
       ]);
       // A text past the budget alone still goes, in a part of its own.
       const long = 'x'.repeat(5000);
-      expect(partsOf(historyComment, ['a', long, 'b'], { bound: 200, budget: 500 })).toEqual([
+      expect(partsOfTexts(historyComment, ['a', long, 'b'], { bound: 200, budget: 500 })).toEqual([
         ['a'],
         [long],
         ['b'],
@@ -201,15 +230,45 @@ describe('a judged rule', () => {
         line: i + 1,
         text,
       }));
-      const outcome = yield* judge(historyComment, items, {
+      const outcome = yield* judgeBy(historyComment, items, {
         ...(yield* judging),
         bound: 2,
         deadline: '2 seconds',
       });
-      expect(runLine(historyComment, outcome)).toBe(
+      expect(runLine(outcome)).toBe(
         '[judged] rule=historyComment items=5 cached=0 asked=5 findings=0',
       );
     }).pipe(Effect.provide(together), withFs);
+  });
+
+  it.effect("asks every rule's items in the one request, each with its own rule's words", () => {
+    const model = countingModel(() => 0.95);
+    const other: JudgedRule = {
+      ...historyComment,
+      id: 'otherRule',
+      subject: 'test case',
+      instructions: 'OTHER means something else.',
+    };
+    return Effect.gen(function* () {
+      const outcomes = yield* judge(
+        [historyComment, other],
+        [
+          { ...ITEMS[0]!, rule: historyComment },
+          { ...ITEMS[0]!, rule: other },
+        ],
+        yield* judging,
+      );
+      expect(model.requests.map((r) => r.instructions)).toEqual([
+        [
+          `Judge the code comment under key c0. ${historyComment.instructions}`,
+          'Judge the test case under key c1. OTHER means something else.',
+        ],
+      ]);
+      expect(outcomes.map(runLine)).toEqual([
+        '[judged] rule=historyComment items=1 cached=0 asked=1 findings=1',
+        '[judged] rule=otherRule items=1 cached=0 asked=1 findings=1',
+      ]);
+    }).pipe(Effect.provide(model.layer), withFs);
   });
 
   it.effect(
@@ -218,23 +277,23 @@ describe('a judged rule', () => {
       const model = countingModel((text) => P.get(text) ?? 0.99);
       return Effect.gen(function* () {
         const options = yield* judging;
-        const first = yield* judge(historyComment, ITEMS, options);
-        const again = yield* judge(historyComment, ITEMS, options);
+        const first = yield* judgeBy(historyComment, ITEMS, options);
+        const again = yield* judgeBy(historyComment, ITEMS, options);
         expect(model.requests).toHaveLength(1);
         expect(again.findings).toEqual(first.findings);
-        expect(runLine(historyComment, again)).toBe(
+        expect(runLine(again)).toBe(
           '[judged] rule=historyComment items=3 cached=3 asked=0 findings=1',
         );
         const added = [...ITEMS, { file: 'src/d.ts', line: 4, text: 'We switched to Rive.' }];
-        const third = yield* judge(historyComment, added, options);
+        const third = yield* judgeBy(historyComment, added, options);
         expect(model.requests.map((r) => r.texts)).toEqual([
           ITEMS.map((i) => i.text),
           ['We switched to Rive.'],
         ]);
         expect(third.findings.map((f) => f.file)).toEqual(['src/a.ts', 'src/d.ts']);
         // Another model's answers, or another version of the rule's, are not these.
-        yield* judge(historyComment, ITEMS, { ...options, model: 'fake/other' });
-        yield* judge({ ...historyComment, version: 2 }, ITEMS, options);
+        yield* judgeBy(historyComment, ITEMS, { ...options, model: 'fake/other' });
+        yield* judgeBy({ ...historyComment, version: 2 }, ITEMS, options);
         expect(model.requests).toHaveLength(4);
       }).pipe(Effect.provide(model.layer), withFs);
     },
@@ -250,7 +309,9 @@ describe('a judged rule', () => {
 const typesafeAnswering = (status: number, body: (keys: ReadonlyArray<string>) => unknown) => {
   const http = typesafeHttp(status, body);
   const over = (vars: Record<string, string>) =>
-    judgedModel.pipe(Layer.provide(Layer.mergeAll(http.layer, missing().layer, env(vars))));
+    judgedModel('jev-latest').pipe(
+      Layer.provide(Layer.mergeAll(http.layer, missing().layer, env(vars))),
+    );
   return {
     layer: over({ TYPESAFE_API_KEY: 'test-key' }),
     keyless: over({}),
@@ -268,9 +329,9 @@ const choice = (label: string, history: number) => ({
 /** Judges ITEMS through `layer`, expects no finding, and answers the run's `[judged]` line. */
 const lineOver = <E>(layer: Layer.Layer<DecisionModel.DecisionModel, E>) =>
   Effect.gen(function* () {
-    const outcome = yield* judge(historyComment, ITEMS, yield* judging);
+    const outcome = yield* judgeBy(historyComment, ITEMS, yield* judging);
     expect(outcome.findings).toEqual([]);
-    return runLine(historyComment, outcome);
+    return runLine(outcome);
   }).pipe(Effect.provide(layer), withFs);
 
 /** The answer TypeSafe gives the first item, history; every other is today. */
@@ -284,7 +345,7 @@ describe('a judged rule never fails on its model', () => {
       usage: { input_tokens: 10, output_tokens: 3 },
     }));
     return Effect.gen(function* () {
-      const outcome = yield* judge(historyComment, ITEMS, yield* judging);
+      const outcome = yield* judgeBy(historyComment, ITEMS, yield* judging);
       expect(typesafe.requests.map((r) => r.url)).toEqual(['https://api.typesafe.ai/v1/systemone']);
       expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.96 }]);
     }).pipe(Effect.provide(typesafe.layer), withFs);
@@ -373,12 +434,11 @@ describe('a judged rule never fails on its model', () => {
               { label: 'history', probabilities: { today: 0.03, history: 0.97 } },
             ],
           ]),
+          new Map(),
         );
-        const outcome = yield* judge(historyComment, ITEMS, options);
+        const outcome = yield* judgeBy(historyComment, ITEMS, options);
         expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97 }]);
-        expect(runLine(historyComment, outcome)).toBe(
-          '[judged] skipped rule=historyComment reason=no-key items=2',
-        );
+        expect(runLine(outcome)).toBe('[judged] skipped rule=historyComment reason=no-key items=2');
       }).pipe(Effect.provide(keyless), withFs);
     },
   );
