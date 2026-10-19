@@ -94,7 +94,9 @@
     // `bun run --cwd packages/scripts judged:measure --rule <id>`.
     //
     // A comment that narrates the code's past instead of what it does today
-    // and why. Measured on Jev, all 182 corpus cases in one request.
+    // and why. Measured on Jev over its 182 cases (169 texts, 3 history) in
+    // one request, two runs: precision and recall 1.00 at 0.9. It warns:
+    // three positives cannot hold a gate.
     "judged/historyComment": [
       "warn",
       {
@@ -109,6 +111,72 @@
         "reports": "history",
         "threshold": 0.9,
         "message": "the comment tells the code's history: say what it does today and why; how it got here lives in git log"
+      }
+    ],
+    // A comment or doc line that claims more than the code it sits on does:
+    // a wider scope, a number, a guarantee, a caller or a behaviour the code
+    // under it lacks or contradicts. Measured on Jev over its 48 cases (14
+    // overclaims), four runs: precision 0.67 to 0.71 at 0.7, its best, recall
+    // 0.36; clean comments whose numbers come from elsewhere reach 0.96. It
+    // warns.
+    "judged/commentClaimsCode": [
+      "warn",
+      {
+        "version": 1,
+        "selector": "commentedCode",
+        "subject": "comment and the code it sits on",
+        "instructions": "Read the comment, then the code it sits on, given after it. OVERCLAIMS means the comment states something about that code which the code shown does not do or contradicts: a wider scope, a number or bound, an order, a guarantee, a case it handles, a caller, an argument or a behaviour that the code plainly lacks or does differently. HOLDS means every claim the comment makes that the code shown can prove or disprove is true of it. A claim about something outside the code shown (a reason, a caller elsewhere, the wider system) cannot be checked here and HOLDS; so does a comment that is vague or tells less than the code does. A number the code has, said in other words, HOLDS, and so does a number that is not the code's own value: one derived from it with other inputs, another thing's value it is compared with or explained against (an engine's default, a margin under a target, a measurement). OVERCLAIMS needs the code shown to state the same quantity, name or case differently, or to plainly lack what the comment says it does.",
+        "criteria": {
+          "holds": "every claim the comment makes that the code shown can check is true of that code",
+          "overclaims": "the comment claims a scope, number, guarantee, caller or behaviour the code shown lacks or contradicts"
+        },
+        "reports": "overclaims",
+        "threshold": 0.7,
+        "message": "the comment claims more than the code under it does: make it say what the code does, or the code do what it says"
+      }
+    ],
+    // A test whose expected value comes from the code it tests, so a defect
+    // there cannot fail it. Measured on Jev over its 47 cases (12
+    // tautological, 9 of them by hand), two runs: precision 1.00 at 0.9 but
+    // recall 0.58, and the 3 real ones from reviews at 0.23 to 0.34 (their
+    // tautology runs through another file); clean cases reach 0.84. It warns.
+    "judged/testOracle": [
+      "warn",
+      {
+        "version": 1,
+        "selector": "testCases",
+        "subject": "test case",
+        "instructions": "The item is one test case, after its file's imports. TAUTOLOGICAL means the test's expected value is computed by the code under test itself, or the data it checks is built by the very function whose defect the test must catch, so the test passes even when that function is wrong: for example the expectation is the same function called again, or a helper made from it, or the fake is laid out with the function the test is about. INDEPENDENT means the expected value is written out (a literal, a fixture stated in full), or computed another way than the code under test, or a property is checked that a defect there would break. Calling the function under test on the actual side only is INDEPENDENT. Judge only what the case shows.",
+        "criteria": {
+          "independent": "the expected value is written out or computed apart from the code under test, so a defect there fails the test",
+          "tautological": "the expected value or the checked data comes from the code under test, so a defect there passes"
+        },
+        "reports": "tautological",
+        "threshold": 0.9,
+        "message": "the test's oracle is the code it tests: write the expected value out, or derive it another way"
+      }
+    ],
+    // A function that, given what it cannot handle, drops it, substitutes a
+    // default or reports work it did not do, and says nothing. Measured on
+    // Jev over its 46 cases (19 silent), two runs: precision 1.00 at every
+    // threshold from 0.5, recall 0.47 to 0.58 at 0.9, the highest said case
+    // at 0.44. Over one branch's 97 changed functions it reported 10 at 0.7,
+    // a documented fallback among them, and 3 at 0.9, so it reports at 0.9.
+    // It warns: its real corpus is 14 cases, too few to hold a gate.
+    "judged/silentDrop": [
+      "warn",
+      {
+        "version": 1,
+        "selector": "functions",
+        "subject": "function",
+        "instructions": "The item is one function, with the comment above it. SILENT means that, given an input or a failure it cannot handle, the function drops it, substitutes a default, or reports success for work it did not do, and says nothing of it: no typed error, no finding, no log line, no field or return type that carries the drop, no comment that names it. SAID means the function refuses with a typed error, reports the case, carries it in its result (an Option, a tagged result, a skip line), or its fallback is said in a comment or a log as deliberate (a documented fail-open), or it drops nothing. An input the function's type or comment says it never receives is not a drop.",
+        "criteria": {
+          "said": "every input or failure the function cannot handle is refused, reported, carried in its result or named as a deliberate fallback",
+          "silent": "the function drops an input or failure, substitutes a default, or reports work it did not do, with nothing said"
+        },
+        "reports": "silent",
+        "threshold": 0.9,
+        "message": "the function drops what it cannot handle and says nothing: refuse it typed, report it, or name the fallback"
       }
     ],
     // A film's speech or picture that quotes or names Ellen White, an Adventist

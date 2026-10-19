@@ -3861,7 +3861,13 @@ version, a selector (which items it reads), the subject, the classify
 instructions and criteria, the label that reports, a threshold and a
 message; `settings.judged` names the model, whose measurements set the
 thresholds, and where the answers are kept. Its severity is its gate: `warn`
-reports, `error` fails the lint, `off` judges nothing. `bun run lint` (and so
+reports, `error` fails the lint, `off` judges nothing. The rules are
+`historyComment` (a comment's history), `commentClaimsCode` (a comment that
+claims more than its code), `testOracle` (a test whose oracle is its code),
+`silentDrop` (a function that drops what it cannot handle unsaid), all at
+`warn`, and `scriptSpeech` (a film beat that names its sources or church
+history), at `error`; over each, `.oxlintrc.json` says what its corpus
+measured. `bun run lint` (and so
 the gate) runs the runner (`packages/scripts/src/lint-judged.ts`, `bun run
 lint:judged`) first and oxlint after it. The runner reads the items that the
 working tree adds or changes against the merge base with origin/main

@@ -25,7 +25,13 @@ import { type Answer, Store, cacheKey } from '../src/judged/store.ts';
 type Source = ReturnType<typeof parse>;
 
 /** The judged rules this plugin defines, by id: each needs its entry in `.oxlintrc.json`. */
-export const RULE_IDS = ['historyComment', 'scriptSpeech'] as const;
+export const RULE_IDS = [
+  'historyComment',
+  'commentClaimsCode',
+  'testOracle',
+  'silentDrop',
+  'scriptSpeech',
+] as const;
 
 const SharedSettings = Schema.Struct({ judged: Settings });
 

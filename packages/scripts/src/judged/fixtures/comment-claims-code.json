@@ -1,0 +1,294 @@
+{
+  "rule": "commentClaimsCode",
+  "about": "Comment blocks with the code they sit on (the commentedCode item), 48 in all: 14 overclaims and 34 holds. The overclaims are comments reviews or fixes found claiming more than their code: the bones tunicWeights JSDoc (review-3 C2), encode.ts's 31 Mbps over a 37 Mbps bitrate (fixed in aaba2cff8), ask-store's doc on the wrong constant (p6-askname N4), aloneArgs' one-case-at-a-time (p6-truegate review-2), a knob post named by the level route (e433ae1e8), callers and hosts that were deleted (4a08d29e4), a board read's name promised the same in every lab (p6-transports review-3), ReviewFilms' choices (ea1a4fa4b) and launchArgs' same-pixels promise (p6-macgpu); 4 hand cases (a retry count, a concurrency, an atomic write, a lower-casing) fill the rest. The holds are near misses: the same comments after their fixes, and comments that state numbers the code has or derives (frames at a rate, dB, bytes, hsv of the hex given, bone lengths summed to the neck). Each real case's text is the item at the revision named.",
+  "cases": [
+    {
+      "source": "a6a477f38:apps/animations/src/films/cold-studies/looks/skinned/accused.ts:85",
+      "label": "overclaims",
+      "text": "Comment:\nThe tunic's weights: hips → chest by height as the chain weighs them (the\njoint at the waist, −70, blended ±25), and the top corners on their\nshoulders: from 100 up to the top (128) and from 6 out to the corner (26),\neach by a smoothstep, so the top edge slopes from the neck to the corner\nand the side curves in below it.\n\nCode it sits on:\nconst tunicWeights = ([x, y]: Pt) => {\n  const chest = smoothstep(-25, 25, -70 - y);\n  const shoulder = smoothstep(80, 128, -y) * smoothstep(0, 33, Math.abs(x));\n  return {\n    hips: (1 - shoulder) * (1 - chest),\n    chest: (1 - shoulder) * chest,\n    shoulderL: x < 0 ? shoulder : 0,\n    shoulderR: x < 0 ? 0 : shoulder,\n  };\n};",
+      "why": "The JSDoc gives the shoulder ramps as 100..128 and 6..26; the code ramps smoothstep(80, 128, -y) and smoothstep(0, 33, |x|) (bones review-3 C2, round-3 o11)."
+    },
+    {
+      "source": "aaba2cff8^:packages/film/src/player/encode.ts:52",
+      "label": "overclaims",
+      "text": "Comment:\nChromium's software H.264 encoder (OpenH264) refuses quantizer rate\ncontrol (\"Unsupported bitrate mode\"), so it takes a bitrate. The master\nasks for the rate the hardware master's quantizer 16 comes to: 31 Mbps\nover righteousness-by-faith, keeping 82–87% of the paper's fine grain\n(packages/film/README.md, \"Encoders\").\n\nCode it sits on:\nmaster: new Quality({ bitrate: 37_000_000, bitrateMode: 'variable' })",
+      "why": "The comment says the master asks for 31 Mbps; the code under it asks for 37_000_000 (fixed in aaba2cff8)."
+    },
+    {
+      "source": "eb0441fef:packages/film/src/tools/ask-store.ts:95",
+      "label": "overclaims",
+      "text": "Comment:\nNo record: what a manifest read gives for an ask that is not on disk.\n\nCode it sits on:\nconst MISSING_END = AskName.make('done');",
+      "why": "The doc describes a missing record (`MISSING`), but it sits on `MISSING_END`, a step name (p6-askname review-1 N4)."
+    },
+    {
+      "source": "fed32968c^:packages/film/src/lab/fixtures/e2e-verdict.ts:129",
+      "label": "overclaims",
+      "text": "Comment:\nThe command that reruns `failure` alone, from the suite's own script\n(`test:e2e`, `bun src/lab/fixtures/run-suite.ts … e2e`): its runner and\nflags but those that size the run (`--parallel`, `--max-concurrency`, as\n`--flag=n` or `--flag n`), so one worker runs one case at a time, on the\nfailure's file, and on the case alone unless the failure is the file's.\n\nCode it sits on:\nexport const aloneArgs = (suite: string, failure: Failure): ReadonlyArray<string> => {\n  const tokens = suite.split(/\\s+/).filter((arg) => arg !== '' && arg !== 'e2e');\n  const kept = tokens.filter((arg, i) => {\n    const sizing = SIZING.some((flag) => arg === flag || arg.startsWith(`${flag}=`));\n    const valueOfSizing = tokens[i - 1] === '--max-concurrency' && /^\\d+$/.test(arg);\n    return !sizing && !valueOfSizing;\n  });\n  return [\n    ...kept,\n    Option.getOrElse(failure.file, () => 'e2e'),\n    ...when(!failure.whole, '-t', casePattern(failure.name)),\n  ];\n};",
+      "why": "Says one worker runs one case at a time, but a whole-file rerun drops --max-concurrency and runs the file's cases at the runner's default (p6-truegate review-2)."
+    },
+    {
+      "source": "e433ae1e8^:packages/film/src/core/choice.ts:335",
+      "label": "overclaims",
+      "text": "Comment:\n`POST /api/films/<film>/choices/level`: a level point's knob set.\n\nCode it sits on:\nexport const KnobPost = Schema.Struct({ point: Schema.String, value: Schema.Finite });",
+      "why": "Names the route `/choices/level` for `KnobPost`, the knob post's schema; the API's route for it is `/choices/knob` (fixed in e433ae1e8)."
+    },
+    {
+      "source": "4a08d29e4^:packages/core/src/bible-rendering/segments.ts:492",
+      "label": "overclaims",
+      "text": "Comment:\nThe reader's whole verse pipeline: the KJV editorial layers plus the wiki\n phrase overlay, in the fixed {@link SEGMENT_APPLICATION_ORDER}.\n\n One function rather than four calls at the call site, because \"the order is\n fixed\" has to be a property of the code and not of two hosts remembering to\n write the same four lines in the same sequence.\n `packages/app/src/reading/match-plan.ts` calls this and nothing else.\n\n Omit `phrases` and this is `segmentVerseText` exactly — the same four layers\n the reader has always needed and never had, with the fourth simply empty.\n\nCode it sits on:\nexport const renderVerseSegments = (input: SegmentComposition): TextSegment[] =>\n  composeSegments(input);",
+      "why": "Names a caller, packages/app's match-plan.ts, that no longer exists (fixed in 4a08d29e4)."
+    },
+    {
+      "source": "4a08d29e4^:packages/core/src/content-update/model.ts:263",
+      "label": "overclaims",
+      "text": "Comment:\nWhere the browser reads it: the same-origin route `apps/web/server/main.ts`\n proxies, mirroring `/api/assets/topics`.\n\nCode it sits on:\nexport const CONTENT_MANIFEST_PROXY_PATH = '/api/content/manifest';",
+      "why": "Names `apps/web/server/main.ts` as the proxy for the path; that host is gone (fixed in 4a08d29e4)."
+    },
+    {
+      "source": "a599a15bb:packages/film/src/tools/lab-events.ts:239",
+      "label": "overclaims",
+      "text": "Comment:\nThe read's name, the same in every lab that reads this file: its stamp, else its bytes' digest.\n\nCode it sits on:\nconst read = Option.getOrElse(stamp, () => sha256Hex(boardText(board)));",
+      "why": "Promises the same name in every lab, but a stamp is mtime:size, which differs between machines that read one synced file (p6-transports review-3 nit 6)."
+    },
+    {
+      "source": "ea1a4fa4b^:packages/film/src/core/review.ts:117",
+      "label": "overclaims",
+      "text": "Comment:\n`GET /api/films`: the app's films, each with its choices at `?film=<film>`.\n\nCode it sits on:\nexport const ReviewFilms = Schema.Struct({ films: Schema.Array(Schema.String) });",
+      "why": "Says each film comes with its choices; the schema holds only the films' names (fixed in ea1a4fa4b)."
+    },
+    {
+      "source": "67a237097^:packages/film/src/tools/browser.ts:208",
+      "label": "overclaims",
+      "text": "Comment:\nChrome's flags on `platform` (`process.platform`). On every platform the\n2D canvas draws in software, so a frame's pixels are the same wherever it\nis drawn, and WebGL (a look drawn in 3D, `canvas/gl.ts`, a `webgl2` rig)\nruns on SwiftShader, Chrome's software GPU, asked for by name: Chrome is\nwithdrawing the fallback it takes to it unasked, and without it a 3D look\nwould draw its 2D fallback in a render, silently. On macOS the GPU process\nruns too (`GPU_FLAG`: `tools/chrome.ts` spawns Chrome through the GPU\nlauncher, `tools/chrome-gpu.ts`, which drops the `--disable-gpu` Bun\nspawns every Chrome with): it holds the hardware H.264 encoder a render\nencodes with. WebGL stays on\nSwiftShader there (`--use-angle=swiftshader`), not the Mac's GPU, so a 3D\nlook draws as the browser tests and a Linux render draw it. Elsewhere the\npage encodes in software when it finds no hardware encoder\n(`chooseEncoder`, player/encode.ts).\n\nCode it sits on:\nexport const launchArgs = (platform: string): ReadonlyArray<string> => [\n  '--disable-gpu-vsync',\n  '--disable-frame-rate-limit',\n  ...Arr.filter([GPU_FLAG, '--use-angle=swiftshader'], () => platform === 'darwin'),\n  '--enable-unsafe-swiftshader',\n  '--disable-accelerated-2d-canvas',\n];",
+      "why": "Promises a frame's pixels are the same on every host; measured, 2D text differs by up to 210 levels between the Mac and Linux (p6-macgpu review-1 minor 5)."
+    },
+    {
+      "source": "a6a477f38:apps/animations/src/films/cold-studies/looks/skinned/accused.ts:80",
+      "label": "holds",
+      "text": "Comment:\nThe tunic's half width: each shoulder's length, from the neck to a top corner.\n\nCode it sits on:\nconst SHOULDER_SPAN = 33;",
+      "why": "33, the half width from the neck to a top corner, is the value the code holds."
+    },
+    {
+      "source": "a6a477f38:apps/animations/src/films/cold-studies/looks/skinned/accused.ts:103",
+      "label": "holds",
+      "text": "Comment:\nThe rig's chain: hips at the waist's foot, chest to the neck (−128), head to\nits centre, jaw back down to the chin; a shoulder each way from the neck\nalong the tunic's top. Its skins: the tunic, with points added so its long\nstraight sides have points to bend; its two stains, along hips → chest; the\nhead, its upper half on the head bone, from the eyes down onto the jaw (the\nrig's weights).\n\nCode it sits on:\nconst BODY = skeleton('hips', { at: [0, -20], angle: UP, length: 50 })\n  .bone('chest', 'hips', { length: 58 })\n  .bone('head', 'chest', { length: 37 })\n  .bone('jaw', 'head', { angle: Math.PI, length: JAW })\n  .bone('shoulderL', 'chest', { angle: -Math.PI / 2, length: SHOULDER_SPAN })\n  .bone('shoulderR', 'chest', { angle: Math.PI / 2, length: SHOULDER_SPAN })\n  .skin('torso', TUNIC_SHAPE, { weigh: tunicWeights }, { spacing: 4 })\n  .skin('stainA', STAIN_A, { chain: ['hips', 'chest'] })\n  .skin('stainB', STAIN_B, { chain: ['hips', 'chest'] })\n  .skin('head', ellipseShape(HEAD[0], HEAD[1], HEAD_RX, HEAD_RY, 64), {\n    weigh: ([, y]) => {\n      const jaw = smoothstep(-168, -140, y);\n      return { head: 1 - jaw, jaw };\n    },\n  });",
+      "why": "Hips at −20 with length 50, then chest 58: the neck lands at −128, as the comment says."
+    },
+    {
+      "source": "a6a477f38:apps/animations/src/films/cold-studies/looks/skinned/accused.ts:358",
+      "label": "holds",
+      "text": "Comment:\nLarger, to read at film scale, and still sincere: a bow, not a lean. The\nchest and head keep the rig's small turns (0.055 and 0.18 rad); the chest\nshortens to 0.84 and widens to 1.09, the shoulders round 0.22 rad down\nfrom the neck and draw in to 0.94, the jaw squashes to 0.75 and the head\nsinks with it (the chin stays on the neck), and the face slides down. The\nlift overshoots to 1.07 along the chest and 1.1 on the jaw before it\nsettles.\n\nCode it sits on:\nexport const AMPLIFIED: Gains = {\n  chestAlong: 2,\n  chestAcross: 2.5,\n  jawAlong: 2.1,\n  faceY: 1.6,\n  faceSy: 1.5,\n  nearY: 1.5,\n  farY: 1.5,\n  bodyY: 1.5,\n};",
+      "why": "Each number follows from the gains over the rig's track: chest 1−2·0.08=0.84, across 1+2.5·0.035≈1.09, jaw 1−2.1·0.12≈0.75, lift 1.07 and 1.1."
+    },
+    {
+      "source": "a6a477f38:apps/animations/src/films/cold-studies/looks/skinned/accused.ts:378",
+      "label": "holds",
+      "text": "Comment:\nWhere cue `cue`'s timeline stands at `f.t` (the Rive look's `cueTime`): 0\nbefore the cue; across it the move stretched to the cue's own length, so a\nlab edit to the cue reshapes it; after, the settle in real seconds.\n\nCode it sits on:\nconst cueTime = (f: CourtFrame, cue: Cue): number => {\n  const { start, dur } = f.cue(cue);\n  const since = f.t - start;\n  if (since <= 0) return 0;\n  const { seconds, move } = TIMELINES[cue];\n  if (since < dur) return (since / dur) * move;\n  return Math.min(seconds, move + since - dur);\n};",
+      "why": "0 before the cue, the move stretched across it, then the settle in real seconds capped at `seconds`: as the code does."
+    },
+    {
+      "source": "82be0827c^:apps/animations/src/films/cold-studies/palette.ts:98",
+      "label": "holds",
+      "text": "Comment:\nThe judge's tan skin, hsv(30, .30, .76) shading to hsv(25, .32, .72): a step as small as the grey paper's, so the face stays one paper.\n\nCode it sits on:\nskin: { base: '#c2a588', shade: '#b8957d' }",
+      "why": "#c2a588 is hsv(30, .30, .76) and #b8957d hsv(24, .32, .72): the comment's numbers, to rounding."
+    },
+    {
+      "source": "82be0827c^:apps/animations/src/films/cold-studies/palette.ts:100",
+      "label": "holds",
+      "text": "Comment:\nThe judge's indigo robe, hsv(248, .30, .32) shading to hsv(262, .35, .24).\n\nCode it sits on:\nrobe: { base: '#3c3952', shade: '#30283d' }",
+      "why": "#3c3952 is hsv(248, .30, .32) and #30283d hsv(262.9, .34, .24): the comment's numbers, to rounding."
+    },
+    {
+      "source": "def7b7624:packages/film/src/player/encode.ts:37",
+      "label": "holds",
+      "text": "Comment:\nThe master: quantizer 16, about 37 Mbps at 1080p30 on this film.\n\nCode it sits on:\nmaster: new Quality({ quantizer: 16 })",
+      "why": "Quantizer 16 is what the code sets; the Mbps is a measured note, not a claim on the code."
+    },
+    {
+      "source": "def7b7624:packages/film/src/player/encode.ts:49",
+      "label": "holds",
+      "text": "Comment:\nChromium's software H.264 encoder (OpenH264) refuses quantizer rate\ncontrol (\"Unsupported bitrate mode\"), so it takes a bitrate: the\nmaster asks for 37 Mbps, variable, about what the hardware master's\nquantizer 16 comes to. What it comes to and the grain it keeps are\nmeasured in packages/film/README.md (\"Encoders\").\n\nCode it sits on:\nmaster: new Quality({ bitrate: 37_000_000, bitrateMode: 'variable' })",
+      "why": "The fixed comment: 37 Mbps, variable, as the code asks (the pair of the 31 Mbps overclaim)."
+    },
+    {
+      "source": "1d8306f54:apps/animations/src/films/cold-studies/looks/rive/rig.ts:513",
+      "label": "holds",
+      "text": "Comment:\nThe contact shadow: the engine's `ground` (100 wide, 12 % as tall, 0.28 at\nits heart, gone at its rim) as a feathered ellipse, matched by eye in the\nRive Renderer. A feather spreads a thin shape's ink, so the ellipse is\nsmaller and darker than the shadow it makes. Rive's Canvas 2D renderer\ndraws no feather: there it is a hard ellipse.\n\nCode it sits on:\nconst GROUND = { width: 84, height: 8, alpha: 0.55, feather: 8 } as const;",
+      "why": "The comment gives the engine's ground and says why this ellipse is smaller and darker; the different numbers are explained."
+    },
+    {
+      "source": "1d8306f54:apps/animations/src/films/cold-studies/looks/rive/rig.ts:179",
+      "label": "holds",
+      "text": "Comment:\nThe body's chain: hips at the waist's foot, chest to the neck (−128, `NECK`), head to its centre, jaw back down to the chin.\n\nCode it sits on:\nconst CHAIN = {\n  hips: { name: 'hips', x: 0, y: -20, rotation: UP, length: 50 },\n  chest: { name: 'chest', parent: 'hips', rotation: 0, length: 58 },\n  head: { name: 'head', parent: 'chest', rotation: 0, length: 37 },\n  jaw: { name: 'jaw', parent: 'head', rotation: Math.PI, length: 38 },\n} satisfies Record<string, BoneSpec>;",
+      "why": "Hips at −20 plus 50 plus the chest's 58 reaches −128, the neck the comment names."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/tools/browser.ts:213",
+      "label": "holds",
+      "text": "Comment:\nChrome's flags on `platform` (`process.platform`). On every platform the\n2D canvas draws in software, and WebGL (a look drawn in 3D, `canvas/gl.ts`,\na `webgl2` rig) runs on SwiftShader, Chrome's software GPU, asked for by\nname: Chrome is withdrawing the fallback it takes to it unasked, and\nwithout it a 3D look would draw its 2D fallback in a render, silently.\nAcross hosts (measured, this Mac against the Linux workbox, the same font\nfile): WebGL draws the same pixels, 2D shapes differ by at most 1 level,\nand 2D text differs (each host's font rasterizer: up to 210 levels at\nglyph edges, the Mac's glyphs heavier). On macOS the GPU process runs too\n(`GPU_FLAG`: `tools/chrome.ts` spawns Chrome through the GPU launcher,\n`tools/chrome-gpu.ts`, which drops the `--disable-gpu` Bun spawns every\nChrome with): it holds the hardware H.264 encoder a render encodes with.\nWebGL stays on SwiftShader there (`--use-angle=swiftshader`), not the\nMac's GPU, so a 3D look draws as the browser tests and a Linux render draw\nit. Elsewhere the page encodes in software when it finds no hardware\nencoder (`chooseEncoder`, player/encode.ts).\n\nCode it sits on:\nexport const launchArgs = (platform: string): ReadonlyArray<string> => [\n  '--disable-gpu-vsync',\n  '--disable-frame-rate-limit',\n  ...Arr.filter([GPU_FLAG, '--use-angle=swiftshader'], () => platform === 'darwin'),\n  '--enable-unsafe-swiftshader',\n  '--disable-accelerated-2d-canvas',\n];",
+      "why": "The fixed launchArgs doc: SwiftShader by name everywhere, the GPU flag and ANGLE only on darwin, as the filter does; cross-host differences said, not denied."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/browser/frame-pane.ts:189",
+      "label": "holds",
+      "text": "Comment:\nHalf a frame at 30 fps: a frame whose start is this close to the clock is due.\n\nCode it sits on:\nconst DUE_S = 1 / 60;",
+      "why": "1/60 s is half a frame at 30 fps."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/canvas/card.ts:137",
+      "label": "holds",
+      "text": "Comment:\nThe reference's word rise: three frames at 60 fps.\n\nCode it sits on:\nconst RISE = 0.05;",
+      "why": "0.05 s is three frames at 60 fps."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/canvas/film.ts:705",
+      "label": "holds",
+      "text": "Comment:\nThe most full-frame light sheets a film keeps of each kind (8 MB each at 1080p).\n\nCode it sits on:\nexport const SHEETS_KEPT = 4;",
+      "why": "4 sheets; a 1920×1080 RGBA sheet is about 8 MB."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/canvas/gl.ts:47",
+      "label": "holds",
+      "text": "Comment:\nHow many canvases are kept live at once: well under a browser's cap on live WebGL contexts (Chrome's is 16).\n\nCode it sits on:\nconst KEPT = 8;",
+      "why": "8 is well under Chrome's 16 live contexts."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/canvas/ground.ts:12",
+      "label": "holds",
+      "text": "Comment:\nHow dark the shadow is at its heart, 0..1: within the 15–30 % the direction asks.\n\nCode it sits on:\nexport const GROUND_ALPHA = 0.28;",
+      "why": "0.28 lies inside 15–30 %."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/canvas/camera.ts:145",
+      "label": "holds",
+      "text": "Comment:\nEvery scene's drift unless it sets its own: 3 % in scale (CRAFT's 1–3 %) and 24 frame px.\n\nCode it sits on:\nexport const DRIFT: Drift = { zoom: 0.03, x: 24 };",
+      "why": "zoom 0.03 is 3 % and x is 24 px, as said."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/audio.ts:98",
+      "label": "holds",
+      "text": "Comment:\nTwo channels. Mono spreads to both sides at −3 dB, as libswresample's\nrematrix does (rematrix.c, `center_mix_level`), which the mix was balanced\nwith; stereo passes through; more channels keep their first two.\n\nCode it sits on:\nexport const toStereo = (pcm: Pcm): Pcm => {\n  const [first, second] = pcm.channels;\n  if (first === undefined) return silence(pcm.rate, pcm.frames, 2);\n  if (second !== undefined) return { ...pcm, channels: [first, second] };\n  const side = first.map((x) => x * Math.SQRT1_2);\n  return { ...pcm, channels: [side, side.slice()] };\n};",
+      "why": "SQRT1_2 is −3 dB, stereo passes, extra channels keep the first two: all as the code does."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/audio.ts:120",
+      "label": "holds",
+      "text": "Comment:\nInterleaved 16-bit samples, converted as libswresample does\n(audioconvert.c: `av_clip_int16(lrint(x * (1 << 15)))`).\n\nCode it sits on:\nexport const toInt16 = (pcm: Pcm): Int16Array => {\n  const n = pcm.channels.length;\n  const out = new Int16Array(pcm.frames * n);\n  for (const [c, channel] of pcm.channels.entries())\n    for (let i = 0; i < pcm.frames; i++)\n      out[i * n + c] = Math.max(-32768, Math.min(32767, lrint((channel[i] ?? 0) * 32768)));\n  return out;\n};",
+      "why": "Multiplies by 32768 (1 << 15), rounds with lrint and clips to int16, as the comment says."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/fixtures/figure.ts:133",
+      "label": "holds",
+      "text": "Comment:\nA plain figure: a head 120 px wide inside its line, a 6 px line, light hair with no ink of its own.\n\nCode it sits on:\nexport const PLAIN: FigureSpec = {\n  cx: 200,\n  cy: 150,\n  rx: 60,\n  ry: 66,\n  line: 6,\n  hairAbove: 30,\n  hairInk: false,\n  eyeW: 8,\n  eyeH: 13,\n  eyeGap: 48,\n  eyeBelow: 10,\n  robeTop: 110,\n  robeHem: 240,\n  robeDepth: 330,\n};",
+      "why": "rx 60 gives a 120 px head, line 6, hairInk false: each claim is in the spec."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/lab-events.ts:266",
+      "label": "holds",
+      "text": "Comment:\nThe most bytes an event's payload takes as JSON: an MCP Events delivery body is at most 256 KiB, with room for its envelope.\n\nCode it sits on:\nconst PAYLOAD_MAX_BYTES = 240 * 1024;",
+      "why": "240 KiB is under the 256 KiB body cap, with room."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/lab-events.ts:367",
+      "label": "holds",
+      "text": "Comment:\nA change's id: its kind and origin hashed to 64 bits (two FNV-1a passes), in hex. Pure.\n\nCode it sits on:\nconst changeId = (kind: string, origin: string): string => {\n  const text = `${kind} ${origin}`;\n  const half = (start: number) => (fnvText(start, text) >>> 0).toString(16).padStart(8, '0');\n  return `${half(FNV_START)}${half(FNV_SECOND)}`;\n};",
+      "why": "Two 32-bit FNV halves, 8 hex digits each: 64 bits in hex."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/synth/compare.ts:213",
+      "label": "holds",
+      "text": "Comment:\nHow far a sound's loudest 10 ms stands over its neighbours for its hit to\nbe heard, in dB: twice their power. The takes' hits stand 17 to 30 dB and\ntheir swells under 1 dB (measured), so the line falls in the gap between.\n\nCode it sits on:\nexport const HEARD_HIT = 3;",
+      "why": "3 dB is twice the power, inside the 1 to 17 dB gap the comment measures."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/synth/compare.ts:59",
+      "label": "holds",
+      "text": "Comment:\nEach band's name and exact centre: 1000·10^(k/10) Hz for k from −15 to 12, the base-ten third octaves.\n\nCode it sits on:\nconst BANDS = NOMINAL.map((name, i) => ({ name, hz: 1000 * 10 ** ((i - 15) / 10) }));",
+      "why": "1000·10^((i−15)/10) over 28 names: k runs −15 to 12."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/synth/graph/kernels.ts:533",
+      "label": "holds",
+      "text": "Comment:\nThe 4 allpasses in series for one frame (feedback 0.5); their places follow the combs' in `at`.\n\nCode it sits on:\nconst allpasses = (lines: RoomLines, at: Int32Array, input: number) => {\n  let acc = input;\n  for (let a = 0; a < lines.allpasses.length; a++) {\n    const line = lines.allpasses[a];\n    if (line === undefined) continue;\n    const k = at[lines.combs.length + a] ?? 0;\n    const back = line[k] ?? 0;\n    line[k] = acc + back * 0.5;\n    acc = back - acc;\n    at[lines.combs.length + a] = (k + 1) % line.length;\n  }\n  return acc;\n};",
+      "why": "Feedback 0.5 in series, places after the combs' in `at`: as the loop does."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/figure.ts:2095",
+      "label": "holds",
+      "text": "Comment:\nA band lighter than its part's fill by this much luma (0–255) is a rim; the house rim is 20 to 25 lighter.\n\nCode it sits on:\nconst RIM_LIFT = 10;",
+      "why": "The threshold 10 sits under the house rim's 20–25, so the house rim reads as a rim; the numbers are a margin, not a contradiction."
+    },
+    {
+      "source": "992549341:packages/film/src/lab/take.ts:21",
+      "label": "holds",
+      "text": "Comment:\nFilm `film`'s take of the beat `read` lists: the attempt `attempt` names\nwhen it names one, else the one kept, else the staging take the timings\nname; none when there is none of these.\n\nCode it sits on:\nexport const takeHeard = (\n  film: string,\n  read: StudioAttempts,\n  attempt: Option.Option<string>,\n): Option.Option<TakeHeard> =>\n  Option.match(attempt, {\n    onSome: (file) =>\n      Option.map(\n        Arr.findFirst(read.attempts, (a) => a.file === file),\n        (a): TakeHeard => ({\n          url: attemptUrl(film, read.beat, a.file),\n          source: 'recorded',\n          heard: Option.some(a.transcript),\n          duration: a.duration,\n        }),\n      ),\n    onNone: () =>\n      Option.orElse(\n        Option.map(\n          Arr.findFirst(read.attempts, (a) => a.kept),\n          (a): TakeHeard => ({\n            url: attemptUrl(film, read.beat, a.file),\n            source: 'recorded',\n            heard: Option.some(a.transcript),\n            duration: a.duration,\n          }),\n        ),\n        () =>\n          Option.map(Option.fromUndefinedOr(read.staged), (s): TakeHeard => ({\n            url: narrationFileUrl(film, s.file),\n            source: 'staging',\n            heard: Option.none(),\n            duration: s.duration,\n          })),\n      ),\n  });",
+      "why": "Attempt named, else the kept one, else the staged take: the Option chain in that order."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/tools/ask-store.ts:139",
+      "label": "holds",
+      "text": "Comment:\nNo record: what a manifest read gives for an ask that is not on disk.\n\nCode it sits on:\nconst MISSING: AskRecord = {\n  id: AskName.make('missing'),\n  title: '-',\n  why: '-',\n  by: '-',\n  created: '',\n  ask: MISSING_ASK,\n  state: askStart(MISSING_ASK),\n  answered: [],\n};",
+      "why": "The same doc on `MISSING`, the record it describes (the pair of the misplaced doc)."
+    },
+    {
+      "source": "ea1a4fa4b:packages/film/src/core/review.ts:117",
+      "label": "holds",
+      "text": "Comment:\n`GET /api/films`: the app's films, by name.\n\nCode it sits on:\nexport const ReviewFilms = Schema.Struct({ films: Schema.Array(Schema.String) });",
+      "why": "The films by name: an array of strings."
+    },
+    {
+      "source": "e433ae1e8:packages/film/src/core/choice.ts:336",
+      "label": "holds",
+      "text": "Comment:\n`POST /api/films/<film>/choices/knob`: a level point's knob set.\n\nCode it sits on:\nexport const KnobPost = Schema.Struct({ point: Schema.String, value: Schema.Finite });",
+      "why": "The fixed comment names the knob route for KnobPost."
+    },
+    {
+      "source": "fed32968c:packages/film/src/lab/fixtures/e2e-verdict.ts:141",
+      "label": "holds",
+      "text": "Comment:\nThe command that reruns `failure` alone, from the suite's own script\n(`test:e2e`, `bun src/lab/fixtures/run-suite.ts … e2e`): its runner and\nflags but `--parallel` (as `--parallel=n` or `--parallel n`), so one\nworker runs it at the suite's own concurrency, on the failure's file, and\non the case alone unless the failure is the file's.\n\nCode it sits on:\nexport const aloneArgs = (suite: string, failure: Failure): ReadonlyArray<string> => {\n  const tokens = suite.split(/\\s+/).filter((arg) => arg !== '' && arg !== 'e2e');\n  const kept = tokens.filter((arg, i) => {\n    const workers = arg === WORKERS || arg.startsWith(`${WORKERS}=`);\n    const valueOfWorkers = tokens[i - 1] === WORKERS && /^\\d+$/.test(arg);\n    return !workers && !valueOfWorkers;\n  });\n  return [\n    ...kept,\n    Option.getOrElse(failure.file, () => 'e2e'),\n    ...when(!failure.whole, '-t', casePattern(failure.name)),\n  ];\n};",
+      "why": "The fixed aloneArgs doc: it drops only `--parallel` (the WORKERS flag and its value) and runs at the suite's own concurrency, as the filter does."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/synth/fit/fit.ts:80",
+      "label": "holds",
+      "text": "Comment:\nA source whose share under 30 Hz is at most this (−20 dB) has little rumble: its fit is high-passed.\n\nCode it sits on:\nconst QUIET_RUMBLE = 0.01;",
+      "why": "0.01 of the power is −20 dB."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/cast-sheet-pixels.ts:87",
+      "label": "holds",
+      "text": "Comment:\nA colour's hue in degrees, 0–360: its red, green and blue as shares, their largest, and its spread over the smallest.\n\nCode it sits on:\nconst hueOf = (r: number, g: number, b: number, max: number, d: number): number =>\n  60 * (max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4);",
+      "why": "The standard hue formula over max and spread, 0–360."
+    },
+    {
+      "source": "ebad57edf:packages/film/src/core/synth/graph/draw.ts:11",
+      "label": "holds",
+      "text": "Comment:\n2^32: a hash in [0, 1) times this is its unsigned 32-bit integer, exactly.\n\nCode it sits on:\nconst TWO_32 = 4294967296;",
+      "why": "4294967296 is 2^32."
+    },
+    {
+      "source": "hand",
+      "label": "overclaims",
+      "text": "Comment:\nThe read, tried up to five times, a second apart, before it fails.\n\nCode it sits on:\nconst readWithRetry = (path: string) =>\n  read(path).pipe(Effect.retry(Schedule.spaced('1 second').pipe(Schedule.both(Schedule.recurs(3)))));",
+      "why": "Says five tries; recurs(3) gives four."
+    },
+    {
+      "source": "hand",
+      "label": "overclaims",
+      "text": "Comment:\nEach scene of `film`, checked four at a time.\n\nCode it sits on:\nexport const checkFilm = (film: Film) =>\n  Effect.forEach(film.scenes, (scene) => checkScene(film, scene), { concurrency: 'unbounded' });",
+      "why": "Says four at a time; the concurrency is unbounded."
+    },
+    {
+      "source": "hand",
+      "label": "overclaims",
+      "text": "Comment:\nThe take's file, written atomically: a reader never sees half a take.\n\nCode it sits on:\nconst writeTake = (fs: FileSystem.FileSystem, file: string, bytes: Uint8Array) =>\n  fs.writeFile(file, bytes);",
+      "why": "Promises atomicity; a plain writeFile has no temp file and rename."
+    },
+    {
+      "source": "hand",
+      "label": "overclaims",
+      "text": "Comment:\nThe lookup key of a beat's words: trimmed and lower-cased, so a lookup ignores case and the edges' spaces.\n\nCode it sits on:\nconst keyOf = (words: string) => words.trim();",
+      "why": "Claims lower-casing the code does not do."
+    }
+  ]
+}
