@@ -1394,8 +1394,18 @@ the owner opens or shuts stays so while the selection stands.
   cue's literal, a meter under its line, and each call that reads the clock
   while the frame read it and the clock plays it (`Player.hearClock`), its
   line glowing and fading after. The band over the code names the beat and
-  what plays. A tap on a line puts the playhead where it next plays
-  (`nextFiring`), and selects nothing. With no staged film (a version kept
+  what plays, and sets the beat's line as the script says it now (the
+  reader's words, `lab/words/line.ts`) with a chip at each `{mark}`, the
+  mark last said lit, three whole rows of it in sight (each as tall as a
+  chip, the scroll on a row's top); a chip puts the playhead on
+  its mark's word. The band says what plays, or that nothing does: a field
+  the parse refuses lights nothing, and why is `film check`'s and the lab
+  MCP's to say. A tap on a line, its number or its text (Enter on its
+  number too), puts the playhead where the line next plays, once
+  (`nextFiring`, over the scene's `firingsOf`, built once for the scene as
+  staged, never per frame), and selects nothing. The number seeks whatever
+  the page holds selected; a drag that selects a line's text seeks nothing.
+  With no staged film (a version kept
   in its own folder) the code is the film's as it stands, unlit (`Lit for
   the open version`). A note cannot cite one of its lines.
 - **Notes and asks**: the beat's open notes, each with its thread and a
@@ -2030,7 +2040,10 @@ joins the `Layer.mergeAll` in `labHandler`, and the page calls
 
 The studio's Words section reads a film's script beside its staged film. What the film
 plays (each beat's line, its words and their times, its marks and cues) is
-the staged film's; what it leaves out (`scenesOf` drops each beat's
+the staged film's; the reader lays each line out with its `{mark}`s kept by
+the word each stands before (`lineRows`, `lab/words/line.ts`), drawing no
+chip for them at rest, and the code view's band sets the line with a chip at
+each (`piecesOf`). What it leaves out (`scenesOf` drops each beat's
 `picture` and `cite`) the page reads from the script as it stands, through a
 fresh process (`film read script <film>`, `FreshFilm.script`) kept under the
 film's source stamp, so a brief fixed while the lab is open is read again

@@ -3,7 +3,9 @@
 // lit by the playhead as the staged film plays it (`code-lit.ts`): a cue's
 // literal while its cue plays, a meter under its line, and each call that
 // reads the clock while it fires, its line glowing and fading after. The
-// band over the code names the beat the frame is on and what plays. A tap on
+// band over the code names the beat the frame is on and what plays, and sets
+// the beat's line (the reader's words, `words/line.ts`) with a chip at each
+// mark, the live one lit; a chip seeks to its mark. A tap on
 // a line, its number or its text, seeks to where it next fires
 // (`nextFiring`, over the scene's `firingsOf`); nothing selects. The
 // view is read only: an agent writes the code, the owner reads it.
@@ -39,11 +41,15 @@ import {
   firingsOf,
   followLine,
   litNow,
+  liveMark,
   liveWords,
   metersOn,
   nextFiring,
   rowsOf,
+  saidAt,
 } from './code-lit.ts';
+import { LinePiece, piecesOf } from '../words/line.ts';
+import { parse } from '../../core/narration.ts';
 import { useStudio } from './context.tsx';
 import { CODE_CSS } from './style.ts';
 import { StudioIcon } from './icons.tsx';
@@ -204,27 +210,95 @@ const Band = (props: {
   readonly light: Option.Option<SceneLight>;
   readonly lit: Option.Option<Lit>;
   readonly unlit: Option.Option<string>;
-}) => (
-  <div class="st-code-band">
-    <span class="st-code-beat" data-role="beat">
-      {Option.getOrElse(
-        Option.map(props.light, (l) => beatWords(props.code.scene, l.clock.voice, l.clock.t)),
-        () => props.code.scene,
-      )}
-    </span>
-    <span
-      class="st-code-live"
-      data-empty={pressed(
-        Option.match(props.lit, { onNone: () => true, onSome: (l) => l.names.length === 0 }),
-      )}
-    >
-      {Option.getOrElse(
-        Option.orElse(Option.map(props.lit, liveWords), () => props.unlit),
-        () => '',
-      )}
-    </span>
-  </div>
-);
+  readonly said: ReadonlyArray<LinePiece>;
+  readonly toMark: (name: string) => void;
+}) => {
+  const live = () => Option.flatMap(props.light, (l) => liveMark(l.clock.voice, l.clock.t));
+  // A chip seeks while the view is lit: the mark's time is the staged film's.
+  const seeks = (name: string) =>
+    Option.exists(props.light, (l) => Option.isSome(saidAt(l.clock.voice, name)));
+  // The line shows three rows at a time (`--said-row`, as tall as a chip's): the live chip's row is its top, so
+  // the words said now are in sight.
+  let line = Option.none<HTMLElement>();
+  createEffect(
+    () => Option.getOrElse(live(), () => ''),
+    (name) => {
+      Option.map(line, (box) =>
+        Option.match(
+          Option.fromNullishOr(box.querySelector<HTMLElement>(`[data-mark="${name}"]`)),
+          {
+            onNone: () => box.scrollTo({ top: 0 }),
+            onSome: (chip) => {
+              const row = Number.parseFloat(getComputedStyle(box).lineHeight) || 1;
+              box.scrollTo({ top: Math.floor(chip.offsetTop / row) * row });
+            },
+          },
+        ),
+      );
+    },
+  );
+  return (
+    <div class="st-code-band">
+      <div class="st-code-band-top">
+        <span class="st-code-beat" data-role="beat">
+          {Option.getOrElse(
+            Option.map(props.light, (l) => beatWords(props.code.scene, l.clock.voice, l.clock.t)),
+            () => props.code.scene,
+          )}
+        </span>
+        <span
+          class="st-code-live"
+          data-empty={pressed(
+            Option.match(props.lit, { onNone: () => true, onSome: (l) => l.names.length === 0 }),
+          )}
+        >
+          {Option.getOrElse(
+            Option.orElse(Option.map(props.lit, liveWords), () => props.unlit),
+            () => '',
+          )}
+        </span>
+      </div>
+      <Show when={props.said.length > 0}>
+        <p
+          class="st-code-said"
+          data-role="said"
+          ref={(el: HTMLParagraphElement) => {
+            line = Option.some(el);
+          }}
+        >
+          <For each={props.said}>
+            {(piece) =>
+              LinePiece.$match(piece, {
+                Said: (p) => <span>{p.text}</span>,
+                Mark: (m) => (
+                  <Show
+                    when={seeks(m.name)}
+                    fallback={
+                      <span class="st-code-chip" data-mark={m.name}>
+                        {m.name}
+                      </span>
+                    }
+                  >
+                    <button
+                      type="button"
+                      class="st-code-chip"
+                      data-mark={m.name}
+                      data-live={pressed(Option.contains(live(), m.name))}
+                      aria-label={`To the mark ${m.name}`}
+                      onClick={() => props.toMark(m.name)}
+                    >
+                      {m.name}
+                    </button>
+                  </Show>
+                ),
+              })
+            }
+          </For>
+        </p>
+      </Show>
+    </div>
+  );
+};
 
 /**
  * A scene's code, lit by `light` (none: unlit, `unlit` saying why when it is
@@ -237,6 +311,8 @@ const CodeView = (props: {
   readonly light: Accessor<Option.Option<SceneLight>>;
   readonly unlit: Accessor<Option.Option<string>>;
   readonly steps: Accessor<ReadonlyArray<LitStep>>;
+  /** The beat's line split at its marks (the reader's words), set in the band. */
+  readonly said: Accessor<ReadonlyArray<LinePiece>>;
   readonly seek: (T: number) => void;
   /** The page's clock as Follow hears it. */
   readonly clock: FollowClock;
@@ -273,6 +349,15 @@ const CodeView = (props: {
       ),
     );
 
+  /** Seek to mark `name`'s word, half a frame in, so the frame landed on is the one it is said on. */
+  const toMark = (name: string) =>
+    Option.map(untrack(props.light), (l) =>
+      Option.map(saidAt(l.clock.voice, name), (at) => {
+        setFollowing(true);
+        props.seek(l.start + at + 0.5 / l.clock.fps);
+      }),
+    );
+
   let page = Option.none<HTMLElement>();
   let scroller = Option.none<HTMLElement>();
   // The line the view looks at: what began last by the frame (`followLine`), so it moves only as a read or a cue
@@ -298,14 +383,19 @@ const CodeView = (props: {
           ),
           (row) => ({ first: row, last: row }),
         ),
-      // Two lines clear of each edge, and of the band at the top.
-      clear: () => {
-        const lh = Option.match(page, {
-          onNone: () => 0,
-          onSome: (root) => Number.parseFloat(getComputedStyle(root).lineHeight) || 0,
-        });
-        return { top: 3 * lh, bottom: 2 * lh };
-      },
+      // Two lines clear of each edge, the top's under the band.
+      clear: () =>
+        Option.match(page, {
+          onNone: () => ({ top: 0, bottom: 0 }),
+          onSome: (root) => {
+            const lh = Number.parseFloat(getComputedStyle(root).lineHeight) || 0;
+            const band = Option.match(
+              Option.fromNullishOr(root.querySelector<HTMLElement>('.st-code-band')),
+              { onNone: () => 0, onSome: (b) => b.offsetHeight },
+            );
+            return { top: band + 2 * lh, bottom: 2 * lh };
+          },
+        }),
       placing: following,
       reader: () => setFollowing(false),
       played: () => setFollowing(true),
@@ -364,7 +454,14 @@ const CodeView = (props: {
             el.addEventListener('click', tapped);
           }}
         >
-          <Band code={props.code} light={props.light()} lit={lit()} unlit={props.unlit()} />
+          <Band
+            code={props.code}
+            light={props.light()}
+            lit={lit()}
+            unlit={props.unlit()}
+            said={props.said()}
+            toMark={toMark}
+          />
           <For each={rows()}>
             {(row) => (
               <div
@@ -428,6 +525,21 @@ export const StudioCode = (props: { readonly scene: string; readonly lit: Access
   const read = meta.runtime.atom(LabApi.use((api) => api.code(scene)));
   const code = useAtomValue(() => read);
   const light = useSceneLight(() => scene, props.lit);
+  // The beat's line as the script says it now, split at its marks: the reader's words, set over the code.
+  const script = useAtomValue(() => meta.script);
+  const said = createMemo((): ReadonlyArray<LinePiece> =>
+    Option.getOrElse(
+      Option.flatMap(AsyncResult.value(script()), (read) =>
+        Option.flatMap(
+          Option.flatMap(Option.fromUndefinedOr(read.beats.find((b) => b.id === scene)), (b) =>
+            Option.fromUndefinedOr(b.say),
+          ),
+          (say) => Option.map(Result.getSuccess(parse(scene, say)), piecesOf),
+        ),
+      ),
+      () => [],
+    ),
+  );
   return (
     <Show
       when={Option.getOrUndefined(AsyncResult.value(code()))}
@@ -454,6 +566,7 @@ export const StudioCode = (props: { readonly scene: string; readonly lit: Access
           light={light}
           unlit={() => Option.liftPredicate(UNLIT, () => Option.isNone(meta.drawn()))}
           steps={() => []}
+          said={said}
           seek={actions.seek}
           clock={{ drawn: state.T, playing: state.playing }}
         />

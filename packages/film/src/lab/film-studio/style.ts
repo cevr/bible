@@ -429,8 +429,17 @@ export const CODE_CSS = `
 .st-code-follow { flex: none; }
 .st-code-scroll { max-height: 360px; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; overflow-anchor: none; border-radius: var(--r-1); background: var(--surface-2); }
 .st-code-page { --code-lh: var(--lh-2); --code-gutter: calc(var(--digits) * 1ch + var(--s-3) + var(--s-2)); position: relative; padding-bottom: var(--s-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--code-lh); tab-size: 2; color: var(--text-1); }
-.st-code-band { position: sticky; top: 0; z-index: 3; display: flex; gap: var(--s-2); min-height: var(--code-lh); padding: var(--s-1) var(--s-3); background: var(--surface-2); border-bottom: var(--border); color: var(--text-2); user-select: none; -webkit-user-select: none; }
-.st-code-band > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-code-band { position: sticky; top: 0; z-index: 3; display: flex; flex-direction: column; gap: var(--s-1); min-height: var(--code-lh); padding: var(--s-1) var(--s-3); background: var(--surface-2); border-bottom: var(--border); color: var(--text-2); user-select: none; -webkit-user-select: none; }
+.st-code-band-top { display: flex; gap: var(--s-2); min-width: 0; }
+.st-code-band-top > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The beat's line in the reading face, a chip at each mark: the live one in the live ink. */
+/* Three rows of it at a time, the live chip's row on top (\`Band\`); the rest scrolls under a hand. A row is as
+   tall as a chip (its line and its border), and a chip stands centred in its row, so three rows fit the box whole. */
+.st-code-said { --chip-h: calc(var(--lh-1) + 2px); --said-row: max(var(--lh-2), var(--chip-h)); position: relative; margin: 0; max-height: calc(3 * var(--said-row)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; font-family: var(--font); font-size: var(--fs-2); line-height: var(--said-row); color: var(--text-1); text-wrap: pretty; }
+.st-code-chip { display: inline-block; box-sizing: border-box; height: var(--chip-h); margin: calc((var(--said-row) - var(--chip-h)) / 2) 0.3em; padding: 0 var(--s-1); border-radius: var(--r-1); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); vertical-align: top; overflow: clip; }
+.st-app button.st-code-chip { border: 1px solid var(--line-strong); padding: 0 var(--s-1); }
+.st-app button.st-code-chip:hover { color: var(--text-1); border-color: var(--text-2); }
+.st-app button.st-code-chip[data-live="true"] { color: var(--state-live); border-color: var(--state-live); }
 .st-code-live { flex: 1 1 auto; text-align: right; color: var(--state-live); }
 .st-code-live[data-empty="true"] { color: var(--text-3); }
 .st-code-line { position: relative; display: grid; grid-template-columns: var(--code-gutter) minmax(0, 1fr); min-height: var(--code-lh); background: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 12%), transparent); }

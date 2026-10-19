@@ -68,8 +68,8 @@ const glowOf = (span: Span, t: number): number => {
   return Math.max(0, 1 - (t - span.end) / TRAIL);
 };
 
-/** Where `voice` says mark `name`, in scene seconds; none for a mark it does not say. */
-const saidAt = (voice: Voice, name: string): Option.Option<number> =>
+/** Where `voice` says mark `name`, in scene seconds; none for a mark it does not say: where its chip seeks. */
+export const saidAt = (voice: Voice, name: string): Option.Option<number> =>
   Option.map(Option.fromUndefinedOr(voice.marks.get(name)), (at) => voice.speechStart + at);
 
 /**
@@ -296,24 +296,28 @@ export const liveWords = (lit: Lit): string =>
     () => 'nothing playing',
   );
 
+/** The mark `voice` last said by scene time `t`: the band's live chip. None before its first. */
+export const liveMark = (voice: Voice, t: number): Option.Option<string> =>
+  Option.map(
+    Arr.last(
+      Arr.sort(
+        [...voice.marks].filter(([, at]) => voice.speechStart + at <= t),
+        Order.mapInput(Order.Number, ([, at]: readonly [string, number]) => at),
+      ),
+    ),
+    ([name]) => name,
+  );
+
 /**
  * The beat the frame is on, as the band over the code names it: the scene,
  * and the mark its voice last said by scene time `t`, `cold · {job}`; the
  * scene alone before its first mark.
  */
 export const beatWords = (scene: string, voice: Voice, t: number): string =>
-  Option.match(
-    Option.map(
-      Arr.last(
-        Arr.sort(
-          [...voice.marks].filter(([, at]) => voice.speechStart + at <= t),
-          Order.mapInput(Order.Number, ([, at]: readonly [string, number]) => at),
-        ),
-      ),
-      ([name]) => name,
-    ),
-    { onNone: () => scene, onSome: (mark) => `${scene} · {${mark}}` },
-  );
+  Option.match(liveMark(voice, t), {
+    onNone: () => scene,
+    onSome: (mark) => `${scene} · {${mark}}`,
+  });
 
 /** Every meter of the playing literals written on `line`: a line that writes two playing cues wears both. */
 export const metersOn = (meters: ReadonlyArray<Meter>, line: number): ReadonlyArray<Meter> =>

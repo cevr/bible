@@ -57,6 +57,7 @@ import {
   stressAttr,
 } from '../script/voiced.tsx';
 import { type Row, type SectionRows, type WordAt, rangesOf, rowOf } from '../transcript/lit.ts';
+import { lineRows } from './line.ts';
 import { usePainted, wordsReleased } from '../transcript/words.ts';
 import type { ReviewApi } from '../review/api.ts';
 
@@ -99,7 +100,9 @@ interface ReadBeat {
 /**
  * The beats laid out: each spoken line's words as the voice says them
  * (`parse`: its cues and marks in braces never shown), each word with its
- * offset in the one text, running on across the beats, as the Script's do.
+ * offset in the one text, running on across the beats, as the Script's do,
+ * and each `{mark}` kept by the word it stands before (`lineRows`): the
+ * reader draws no chip for one, and the studio's code view does.
  */
 const laidOut = (beats: ReadonlyArray<DraftBeatRead>): ReadonlyArray<ReadBeat> => {
   let at = 0;
@@ -109,16 +112,11 @@ const laidOut = (beats: ReadonlyArray<DraftBeatRead>): ReadonlyArray<ReadBeat> =
     );
     const line = Option.map(
       Option.filter(parsed, (p) => p.spoken !== ''),
-      (p): SectionRows => ({
-        id: read.id,
-        take: '',
-        marks: {},
-        rows: p.spoken.split(' ').map((text, index): Row => {
-          const from = at;
-          at += text.length + 1;
-          return { index, text, struck: false, from, start: Option.none() };
-        }),
-      }),
+      (p): SectionRows => {
+        const rows = lineRows(read.id, p, at);
+        at += p.spoken.length + 1;
+        return rows;
+      },
     );
     return {
       read,

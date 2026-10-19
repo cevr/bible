@@ -9,6 +9,8 @@ import { describe, expect, test } from 'effect-bun-test';
 import type { ResolvedCue, SceneCode } from '../../core/schema.ts';
 import {
   beatWords,
+  liveMark,
+  saidAt,
   followLine,
   litNow,
   liveWords,
@@ -353,6 +355,18 @@ describe('the band over the code', () => {
     expect(beatWords('cold', VOICE, 2.4)).toBe('cold · {take}');
     expect(beatWords('cold', VOICE, 9)).toBe('cold · {held}');
     expect(beatWords('cold', SILENT, 9)).toBe('cold');
+  });
+
+  test("lights the chip of the mark last said, from its word's time; none before the first", () => {
+    expect(liveMark(VOICE, 1.49)).toEqual(Option.none());
+    expect(liveMark(VOICE, 1.5)).toEqual(Option.some('take'));
+    expect(liveMark(VOICE, 2.6)).toEqual(Option.some('held'));
+    expect(liveMark(SILENT, 9)).toEqual(Option.none());
+  });
+
+  test("a chip seeks to its mark's word, in scene seconds; a mark the voice does not say seeks nowhere", () => {
+    expect(saidAt(VOICE, 'held')).toEqual(Option.some(2.5));
+    expect(saidAt(VOICE, 'gone')).toEqual(Option.none());
   });
 });
 

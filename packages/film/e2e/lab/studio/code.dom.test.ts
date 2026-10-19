@@ -2,13 +2,20 @@
 // phone (390 × 844): the inspector's Code section shows scene one's file lit
 // by the playhead while it is in the beat (the playing cue's literal and the
 // read that fires, a meter under its line, the band naming it), unlit once it
-// leaves, and unlit on a version kept in its own folder; a tap on a line puts
-// the playhead where the line next plays, and selects nothing. The Script
+// leaves, and unlit on a version kept in its own folder; the band sets the
+// beat's line with a chip at each mark, the live one lit, three whole rows of
+// a long line in sight, and a chip seeks to its mark; a tap on a line, its
+// text or its number, and Enter on its number, put the playhead where the
+// line next plays, once, and select nothing; the number seeks with text
+// selected in the code or outside the pane, and a drag that selects a line's
+// text seeks nothing. The Script
 // pane: closed at rest, S opens it on the beat at the playhead, Play lights a
 // line and the view follows it, a scrub lights the frame's lines, a tap on a
 // line seeks, a selection's inspector covers it and Escape shows it again,
-// Escape and S close it, `?pane=script` holds it through Back, and on a
-// phone a tap on the reading block's head opens it. Every wait is on what
+// Escape and S close it, `?pane=script` holds it through Back; under a
+// selection S shows it, the selection let go, and Back gives the selection
+// back; on a phone a tap on the reading block's head opens it, and no Script
+// key takes the timecode's room. Every wait is on what
 // the page shows, never on time.
 
 import { Effect, Option } from 'effect';
@@ -162,8 +169,39 @@ const FOLDER_WITH_SCENES = {
   ],
 };
 
-/** Scene one's file read at its route. */
-const ROUTES = [route('GET', /^\/scenes\/one\/code$/, () => json(CODE))];
+/** Scene one's line as the script says it, its marks in braces. */
+const SAY = 'The ball {rise}rises slowly, and then it {fall}falls down again.';
+
+/** Scene one's line said at length: many rows of it before the fall's mark, on its last row. */
+const LONG_SAY = `The ball {rise}rises slowly, ${'and it climbs a little higher, '.repeat(16)}and then it falls down {fall}again.`;
+
+/** Scene one's file, and the script with `say` as its line, read at their routes. */
+const routesSaying = (say: string) => [
+  route('GET', /^\/scenes\/one\/code$/, () => json(CODE)),
+  route('GET', /^\/script$/, () => json({ film: PROBE, beats: [{ id: 'one', say, cite: [] }] })),
+];
+
+/** Scene one's file, and the script with its line, read at their routes. */
+const ROUTES = routesSaying(SAY);
+
+/**
+ * Whether the band over the code shows three whole rows of its line, scrolled past its first, and the live
+ * chip whole among them.
+ */
+const THREE_ROWS = (band: string) => `(() => {
+  const box = document.querySelector('${band}');
+  const chip = box.querySelector('[data-live="true"]');
+  const row = Number.parseFloat(getComputedStyle(box).lineHeight);
+  const whole = (px) => Math.abs(px / row - Math.round(px / row)) * row < 0.5;
+  const b = box.getBoundingClientRect();
+  const c = chip.getBoundingClientRect();
+  return (
+    Math.abs(box.clientHeight - 3 * row) < 0.5 &&
+    box.scrollTop > 0 &&
+    whole(box.scrollTop) &&
+    c.top >= b.top && c.bottom <= b.bottom
+  );
+})()`;
 
 /** The studio at `T` with nothing selected, the Script pane open or not, its timeline drawn. */
 const studioAt = (viewport: Viewport, T: number, pane: 'closed' | 'script' = 'closed') =>
@@ -241,13 +279,13 @@ const textStands = (selector: string) => `(() => {
   );
 })()`;
 
-/** The studio at `T` with beat one selected and its Code section open, its code read. */
-const codeAt = (viewport: Viewport, T: number, v = 0) =>
+/** The studio at `T` with beat one selected and its Code section open, its code read, the beat's line `say`. */
+const codeAt = (viewport: Viewport, T: number, v = 0, say = SAY) =>
   Effect.gen(function* () {
     const open = yield* openPlayer(
       { href: pageHref.studio(PROBE, { v, sel: 'beat:one' }, Option.some(T)), viewport },
       '.st-timeline .st-clip',
-      [...ROUTES, route('GET', /^\/timeline\?v=1(&|$)/, () => json(FOLDER_WITH_SCENES))],
+      [...routesSaying(say), route('GET', /^\/timeline\?v=1(&|$)/, () => json(FOLDER_WITH_SCENES))],
     );
     yield* open.page.click(`${CODE_SECTION} > summary`);
     yield* waitFor(open.page, `${CODE_SECTION}[open] .st-code-line[data-line="${RISE_LINE}"]`);
@@ -364,6 +402,43 @@ for (const size of SIZES)
           const { page, errors } = yield* codeAt(size.viewport, (two?.start ?? 0) + 0.1);
           yield* attributeIs(page, `${CODE_SECTION} .st-code`, 'data-lit', 'false');
           yield* evaluates(page, PAINTED, []);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    it.live(
+      "sets the beat's line over the code, a chip at each mark, the live one lit; a chip seeks to its mark",
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* codeAt(size.viewport, middle('rise'));
+          const band = `${CODE_SECTION} .st-code-said`;
+          yield* evaluates(
+            page,
+            `[...document.querySelectorAll('${band} > *')].map((e) => e.textContent)`,
+            ['The ball', 'rise', 'rises slowly, and then it', 'fall', 'falls down again.'],
+          );
+          yield* attributeIs(page, `${band} .st-code-chip[data-mark="rise"]`, 'data-live', 'true');
+          yield* attributeIs(page, `${band} .st-code-chip[data-mark="fall"]`, 'data-live', 'false');
+          yield* page.click(`${band} .st-code-chip[data-mark="fall"]`);
+          yield* until(page, `Math.abs(${HASH_T} - ${into(said('fall'))}) < 0.002`);
+          yield* attributeIs(page, `${band} .st-code-chip[data-mark="fall"]`, 'data-live', 'true');
+          yield* attributeIs(page, `${band} .st-code-chip[data-mark="rise"]`, 'data-live', 'false');
+          yield* evaluates(page, `new URLSearchParams(location.search).get('sel')`, 'beat:one');
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    it.live(
+      "keeps three whole rows of a long line in sight, the live chip's among them, at the line's end too",
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* codeAt(size.viewport, middle('rise'), 0, LONG_SAY);
+          const band = `${CODE_SECTION} .st-code-said`;
+          yield* page.click(`${band} .st-code-chip[data-mark="fall"]`);
+          yield* attributeIs(page, `${band} .st-code-chip[data-mark="fall"]`, 'data-live', 'true');
+          yield* until(page, THREE_ROWS(band));
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,
