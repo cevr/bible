@@ -335,12 +335,6 @@ export const INSPECTOR_CSS = `
 .st-facts dd { margin: 0; font-variant-numeric: tabular-nums slashed-zero; }
 .st-sec-body > .st-btn { align-self: flex-start; }
 .st-heard { margin: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
-/* Code: the scene's file, read only, its lines numbered. */
-.st-code { margin: 0; display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
-.st-code-file { font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
-.st-code pre { margin: 0; max-height: 360px; overflow: auto; padding: var(--s-2) 0; border-radius: var(--r-1); background: var(--surface-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-2); counter-reset: line; }
-.st-code-line { display: block; white-space: pre; padding: 0 var(--s-3) 0 0; }
-.st-code-line::before { counter-increment: line; content: counter(line); display: inline-block; width: 4ch; margin-right: var(--s-3); text-align: right; color: var(--text-3); user-select: none; -webkit-user-select: none; }
 /* Notes and asks: each open note a disclosure with its thread, each ask a link to its page. */
 .st-note > summary { list-style: none; display: flex; align-items: center; gap: var(--s-2); min-height: var(--s-8); cursor: pointer; font-size: var(--fs-2); line-height: var(--lh-2); }
 .st-note > summary::-webkit-details-marker { display: none; }
@@ -408,4 +402,36 @@ export const INSPECTOR_CSS = `
   .st-app .st-panel-head, .st-app .st-panel-note, .st-note > summary, .st-ask { min-height: var(--hit); }
   .st-markup-text, .st-words-text, .lab-sketch-input { font-size: var(--fs-5); line-height: var(--lh-5); }
 }
+`;
+
+/**
+ * The studio's code view (`code.tsx`): the scene's file in the mono face on
+ * the panel's surface, a row to a line, a long line wrapping under its
+ * number; what plays lit by `::highlight(code-live)`, a meter under each
+ * playing literal's line, a line a read fires on glowing (`--glow`, 1 to 0),
+ * and the band held over the code. It rides with the view, out of the
+ * page's head.
+ */
+export const CODE_CSS = `
+.st-code { margin: 0; display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; min-height: 0; }
+.st-code-head { display: flex; align-items: center; gap: var(--s-2); min-width: 0; }
+.st-code-where { flex: 1; min-width: 0; margin: 0; font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); overflow-wrap: anywhere; font-variant-numeric: tabular-nums slashed-zero; }
+.st-code-follow { flex: none; }
+.st-code-scroll { max-height: 360px; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; overflow-anchor: none; border-radius: var(--r-1); background: var(--surface-2); }
+.st-code-page { --code-lh: var(--lh-2); --code-gutter: calc(var(--digits) * 1ch + var(--s-3) + var(--s-2)); position: relative; padding-bottom: var(--s-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--code-lh); tab-size: 2; color: var(--text-1); }
+.st-code-band { position: sticky; top: 0; z-index: 3; display: flex; gap: var(--s-2); min-height: var(--code-lh); padding: var(--s-1) var(--s-3); background: var(--surface-2); border-bottom: var(--border); color: var(--text-2); user-select: none; -webkit-user-select: none; }
+.st-code-band > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-code-live { flex: 1 1 auto; text-align: right; color: var(--state-live); }
+.st-code-live[data-empty="true"] { color: var(--text-3); }
+.st-code-line { position: relative; display: grid; grid-template-columns: var(--code-gutter) minmax(0, 1fr); min-height: var(--code-lh); background: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 12%), transparent); }
+.st-code-line::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--state-live); opacity: var(--glow, 0); pointer-events: none; }
+/* A hand only where a tap seeks: a line that reads or writes what the clock plays. */
+.st-code-line[data-seeks="true"] { cursor: pointer; }
+/* A wrapped line's number stays on its first row, a button's as a plain one's. */
+.st-code-n { align-self: start; padding: 0 var(--s-2) 0 var(--s-3); text-align: right; user-select: none; -webkit-user-select: none; color: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 100%), var(--text-3)); }
+.st-app button.st-code-n { width: auto; height: auto; min-height: 0; padding: 0 var(--s-2) 0 var(--s-3); border: 0; border-radius: 0; background: none; font: inherit; cursor: pointer; }
+.st-app button.st-code-n:hover { color: var(--text-1); text-decoration: underline; }
+.st-code-t { padding: 0 var(--s-3) 0 var(--s-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.st-code-meter { position: absolute; pointer-events: none; --meter-from: calc(var(--code-gutter) + var(--s-2)); z-index: 2; bottom: 0; left: var(--meter-from); height: 2px; width: calc(var(--done) * (100% - var(--meter-from) - var(--s-3))); background: var(--state-live); }
+::highlight(code-live) { background-color: color-mix(in srgb, var(--state-live) 26%, transparent); color: var(--text-1); }
 `;

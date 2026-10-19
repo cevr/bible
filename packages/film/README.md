@@ -1372,9 +1372,15 @@ the owner opens or shuts stays so while the selection stands.
   a phone (`RecordOver`); the recorder is the inspector's, so a beat selected or the
   recorder hidden never ends a take. Close, Escape or a swipe while it holds
   a take only this page has first asks to discard it (Discard, Keep).
-- **Code**: the scene's file read only, as a plain `<pre>`
-  (`GET …/scenes/<scene>/code`), only when the beat has a scene. It marks no
-  line the frame draws, and a note cannot cite one of its lines.
+- **Code**: the scene's file read only (`GET …/scenes/<scene>/code`), only
+  when the beat has a scene: the studio's code view (`code.tsx`), a row to a
+  line, lit while the playhead is in the beat (`code-lit.ts`): a playing
+  cue's literal, a meter under its line, and each call that reads the clock
+  while the frame read it and the clock plays it (`Player.hearClock`), its
+  line glowing and fading after. The band over the code names the beat and
+  what plays. A tap on a line puts the playhead where it next plays
+  (`nextFiring`), and selects nothing. With no staged film the code shows
+  unlit (`Lit for the open version`). A note cannot cite one of its lines.
 - **Notes and asks**: the beat's open notes, each with its thread and a
   reply (`lab/notes/thread.tsx`), and the open asks at its time, each a link
   to its page. The note open is the address's (`?note=<id>`): a note's link

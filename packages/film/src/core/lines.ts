@@ -1,7 +1,8 @@
 // The lines of a text: where each starts, and the line (from 1) an offset
-// falls on, for the lab's server (the line that writes a cue or a knob,
-// `tools/scene-source.ts`). A line ends at its `\n`, which is its own; a
-// `\r` before it is the line's text. Pure.
+// falls on, counted one way for the lab's server (the line that writes a cue
+// or a knob, `tools/scene-source.ts`) and the studio's code view (its rows
+// and what it lights, `lab/film-studio/code-lit.ts`). A line ends at its
+// `\n`, which is its own; a `\r` before it is the line's text. Pure.
 
 /** Where each line of `text` starts, as offsets (line 1 first). */
 export const lineStarts = (text: string): ReadonlyArray<number> => {
@@ -9,6 +10,10 @@ export const lineStarts = (text: string): ReadonlyArray<number> => {
   for (let i = 0; i < text.length; i += 1) if (text[i] === '\n') starts.push(i + 1);
   return starts;
 };
+
+/** The last line (from 1) of `text`, whose lines `starts`: a final newline ends that line and opens none. */
+export const lastLineOf = (text: string, starts: ReadonlyArray<number>): number =>
+  Math.max(1, starts.length - Number(text.endsWith('\n')));
 
 /** The line (from 1) `offset` falls on, given where the lines `starts`: the last that starts at or before it. */
 export const lineOf = (starts: ReadonlyArray<number>, offset: number): number => {

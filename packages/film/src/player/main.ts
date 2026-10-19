@@ -5,7 +5,7 @@
 // (`mountFilmStudio`, lab/film-studio/mount.tsx). So the render page never
 // loads Solid, and the studio's pages never load the encoder.
 
-import type { Film, RenderOptions } from '../canvas/film.ts';
+import type { ClockReads, Film, RenderOptions } from '../canvas/film.ts';
 import type { FilmUnloadable } from './narrated.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { timecode } from '../core/time.ts';
@@ -86,6 +86,14 @@ export interface Player {
    * and its canvas nothing.
    */
   drawable(): boolean;
+  /**
+   * Hear the names each frame drawn reads off its scenes' clocks
+   * (`RenderOptions.clock`), from the frame shown now (drawn again, heard)
+   * until `stop`: the studio's code view lights a read of the clock only
+   * while the frame read it. `reads` is the last frame drawn heard's. A
+   * frame drawn while no one hears records nothing.
+   */
+  hearClock(): { readonly reads: () => ClockReads; readonly stop: () => void };
   /** Called after every frame the preview draws (none while it is not `drawable`), until the returned function is called. */
   onDraw(listener: (T: number) => void): () => void;
   /**
@@ -302,6 +310,10 @@ export const mountPreview = (
   const drawnTo = listenersOf();
   /** Hears the time each time it is shown, drawn or not (no frame is drawn until the faces load). */
   const movedTo = listenersOf();
+  /** How many `hearClock`s hear the frames drawn: while any does, each records the names it reads off its clock. */
+  let hearers = 0;
+  /** The names the last frame drawn heard read off its scenes' clocks. */
+  let heard: ClockReads = { cues: new Map(), marks: new Map() };
   /**
    * T in the URL (`time`, the page's own place), so a reload lands on this
    * frame (`tInUrl`): written at most every `TIME_EVERY_MS` (the time key's
@@ -358,9 +370,12 @@ export const mountPreview = (
         ),
       ),
     );
-  /** Frame `at` drawn as the preview shows it. */
+  /** Frame `at` drawn as the preview shows it, and what it reads off its clocks while heard. */
   const paintShown = (at: number, shown: FootageShown) => {
-    film.render(ctx, at, shownOptions(shown));
+    const clock: ClockReads | undefined =
+      hearers > 0 ? { cues: new Map(), marks: new Map() } : undefined;
+    film.render(ctx, at, shownOptions({ clock, ...shown }));
+    if (clock !== undefined) heard = clock;
     drawnTo.call(at);
   };
 
@@ -571,6 +586,20 @@ export const mountPreview = (
         ).pipe(Effect.provideContext(host));
       }),
     drawable: () => drawable,
+    hearClock: () => {
+      hearers += 1;
+      // The frame shown now was drawn unheard: drawn again, so a still frame is heard too.
+      if (hearers === 1) draw();
+      let stopped = false;
+      return {
+        reads: () => heard,
+        stop: () => {
+          if (stopped) return;
+          stopped = true;
+          hearers -= 1;
+        },
+      };
+    },
     onDraw: drawnTo.add,
     onMove: movedTo.add,
   };

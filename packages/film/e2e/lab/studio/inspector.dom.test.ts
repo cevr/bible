@@ -251,7 +251,7 @@ for (const size of SIZES)
           yield* textIs(page, `${section('Voice')} [data-role="take-source"]`, 'the staging voice');
           yield* waitFor(page, `${section('Voice')} [data-act="hear-take"]`);
           yield* openSection(page, 'Code');
-          yield* textHas(page, `${section('Code')} .st-code-file`, 'scenes/one.ts');
+          yield* textHas(page, `${section('Code')} .st-code-head`, 'scenes/one.ts');
           yield* textHas(page, `${section('Code')} .st-code-line`, "const rise = cue('rise');");
           yield* openSection(page, 'Notes and asks');
           yield* textHas(page, `${section('Notes and asks')} .st-line`, 'Nothing waits');

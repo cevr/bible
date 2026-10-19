@@ -463,13 +463,14 @@ interface Reads {
 
 /**
  * Where a frame records the names it read off each scene's clock
- * (`RenderOptions.clock`), by scene id, so a branch the frame did not take
- * records nothing. A name is recorded once however often the frame reads
+ * (`RenderOptions.clock`), by scene id: what the studio's code view fires a
+ * read of the clock by (`Player.hearClock`), so a branch the frame did not
+ * take stays dark and records nothing. A name is recorded once however often the frame reads
  * it, by the scene's draw, its light or its card alike; the engine's own
  * reads (a card's flood) and a draw it lets go (`sheet`'s first guess)
  * record none.
  */
-interface ClockReads {
+export interface ClockReads {
   /** Each cue read by name: `f.cue`, and `f.at`, `f.keys`, `f.stagger` and `f.staggerAt` through it. */
   readonly cues: Map<string, Set<string>>;
   /** Each mark read by name: `f.mark`, and both ends of `f.spoken` through it. */
@@ -500,7 +501,7 @@ const HEARD_NOTHING = (): void => {};
 /**
  * Scene `id`'s clock reads in `clock` as they stand now, and how to let go of
  * every name heard after: a frame drawn again keeps only the draw it shows.
- * With no clock to record into, a draw makes nothing.
+ * With no clock (no code view hears) a draw makes nothing.
  */
 const heardSince = (clock: ClockReads | undefined, id: string): (() => void) => {
   if (clock === undefined) return HEARD_NOTHING;

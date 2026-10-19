@@ -11,18 +11,13 @@ import type { CodeRange } from '../core/schema.ts';
 
 /**
  * The highlights a page paints, each styled by `::highlight(<name>)`: the
- * word or line playing (and in the code, the reads of the clock firing), what
- * a selection reads, what is selected, in the code the knobs the frame read
- * (`lab-knob-read`), and on the Script the words a note is on (`lab-noted`)
- * or would cut or change (`lab-struck`).
+ * word playing (`lab-live`), what is selected (`lab-picked`), in the studio's
+ * code view what plays (`code-live`: a playing cue's literal, a read of the
+ * clock firing), and on the Script the words a note is on (`lab-noted`) or
+ * would cut or change (`lab-struck`). The words and the code are painted
+ * under names of their own, so a pane that shows both lights each.
  */
-export type HighlightName =
-  | 'lab-live'
-  | 'lab-read'
-  | 'lab-picked'
-  | 'lab-knob-read'
-  | 'lab-noted'
-  | 'lab-struck';
+export type HighlightName = 'lab-live' | 'lab-picked' | 'code-live' | 'lab-noted' | 'lab-struck';
 
 interface HighlightsOps {
   /**

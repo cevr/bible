@@ -10,7 +10,8 @@
 //                   try (the board's routes, `board-writes.ts`)
 //   Voice           the beat's take, played; Record opens the recorder
 //                   (a Dialog on a laptop, a Sheet on a phone)
-//   Code            the scene's source, read only
+//   Code            the scene's source, read only, lit while the playhead
+//                   is in the beat (`code.tsx`)
 //   Notes and asks  the owner's open notes on the beat with their threads
 //                   (reply, resolve), and the open asks flagged in its span
 //
@@ -80,6 +81,7 @@ import {
   spawnBoardWrites,
   writesLine,
 } from './board-writes.ts';
+import { StudioCode } from './code.tsx';
 import { useStudio } from './context.tsx';
 import { StudioIcon } from './icons.tsx';
 import { PanelMarkup } from './panel-markup.tsx';
@@ -922,44 +924,6 @@ const VoiceBody = (props: { readonly beat: ScriptClip; readonly timeline: FilmTi
   );
 };
 
-// ---------------------------------------------------------------- Code
-
-/** The scene's source as its file stands, read only, a line each: an agent edits it, the owner reads it. */
-const CodeBody = (props: { readonly scene: string }) => {
-  const { meta } = useStudio();
-  // The pane is the beat's alone, so the scene read is the one it opened on.
-  const scene = untrack(() => props.scene);
-  const read = meta.runtime.atom(LabApi.use((api) => api.code(scene)));
-  const code = useAtomValue(() => read);
-  return (
-    <Show
-      when={Option.getOrUndefined(AsyncResult.value(code()))}
-      fallback={
-        <ReadLine failed={AsyncResult.isFailure(code())}>
-          {AsyncResult.match(code(), {
-            onInitial: () => 'Reading the scene…',
-            onFailure: () => 'The scene could not be read.',
-            onSuccess: () => '',
-          })}
-        </ReadLine>
-      }
-    >
-      {(c) => (
-        <figure class="st-code" data-file={c().file}>
-          <figcaption class="st-code-file">{c().file}</figcaption>
-          <pre aria-label={`${c().file}, read only`}>
-            <code>
-              <For each={c().text.split('\n')}>
-                {(line) => <span class="st-code-line">{line}</span>}
-              </For>
-            </code>
-          </pre>
-        </figure>
-      )}
-    </Show>
-  );
-};
-
 // ---------------------------------------------------------------- Notes and asks
 
 /** The owner's open notes on the beat, each with its thread and a reply, and the open asks in its span. */
@@ -1193,7 +1157,10 @@ const Pane = (props: {
         }
       >
         <Section {...section('Code')} kind="scenes" count="read only">
-          <CodeBody scene={props.beat.beat} />
+          <StudioCode
+            scene={props.beat.beat}
+            lit={() => Option.exists(state.current(), (b) => b.beat === props.beat.beat)}
+          />
         </Section>
       </Show>
       <Section
