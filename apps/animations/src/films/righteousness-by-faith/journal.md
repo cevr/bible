@@ -461,3 +461,7 @@ board style 9005 re-run from docs/ref/house-look.txt at 81859a6d0: a word diff o
 ## 2026-10-19T13:32:06Z · film
 
 board style 9005 world text: the plain lead's "two circle hands floating beside him" now reads "two circle hands at the ends of his arms in their sleeves, never floating free of him"; a word diff of board.json shows only that clause changed (block, ref sha and name as before); v2/board.json is left as the record. The rest of the lead's world text waits for the keep of candidate 9's sheets (ask a8fb2170353).
+
+## 2026-10-19T13:37:50Z · film
+
+The owner kept candidate 9's three cast sheets as the lead (ask a8fb2170353, set rbf-lead-sheets-2026-10-19). The cold picture brief and the Board world now describe him (wavy brown hair, no beard, teal top, khaki trousers, arms in sleeves, about 3.36 heads, chin by a shade step); the accused's "tunic" in the briefs reads "top"; the world's grandmother is Rosa as docs/ensemble.md draws her. The Board's kept tries and lead-rig.ts still draw the plain grey lead until the rig is traced from the sheets.
