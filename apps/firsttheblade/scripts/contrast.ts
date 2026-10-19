@@ -8,10 +8,11 @@
  * text transparent, and each box's pixels are compared with the text's own
  * colour. A run passes when 95% of its pixels meet WCAG 2.2 AA: 4.5:1, or
  * 3:1 for large text (24 px, or 18.66 px bold). The wordmark is a logo
- * (`data-logo`), which AA exempts. At the desktop board each link and button
- * is also measured under the pointer, since a hover may change its colours
- * (phones have no hover). Build first (`bun run build`); the run fails when
- * any text falls short.
+ * (`data-logo`), which AA exempts. At the desktop board the page is measured
+ * again with the pointer on each link and button drawn on it, since a hover may
+ * change any colour (phones have no hover); one the pointer cannot reach fails
+ * the run. Build first (`bun run build`); the run fails when any text falls
+ * short.
  */
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
 import { chromium, type Browser, type Page } from '@playwright/test';
@@ -29,6 +30,8 @@ const WIDTHS = [1440, 390] as const;
 const HOVER_WIDTH = 1440;
 const HIDE = 'contrast-hide';
 const TARGET = 'data-contrast-target';
+/** How long a hover, or the transitions it starts, may take. */
+const STEP_TIMEOUT = 5000;
 
 /** A run of text as the page lays it out: its boxes, in page pixels. */
 interface Run {
@@ -51,7 +54,11 @@ interface Measured {
 class BrowserError extends Data.TaggedError('BrowserError')<{
   readonly step: string;
   readonly cause: unknown;
-}> {}
+}> {
+  override get message() {
+    return `the browser failed at ${this.step}: ${String(this.cause)}`;
+  }
+}
 
 class ContrastShort extends Data.TaggedError('ContrastShort')<{ readonly under: number }> {}
 
@@ -70,14 +77,10 @@ const eager = () => {
 const settled = () =>
   document.fonts.status === 'loaded' && [...document.images].every((image) => image.complete);
 
-/** In the page: each visible run of text under `root` and its boxes; then all text is hidden. */
-const collectRuns = (input: {
-  readonly root: string;
-  readonly hide: string;
-}): ReadonlyArray<Run> => {
+/** In the page: each visible run of text and its boxes; then all text is hidden. */
+const collectRuns = (hideId: string): ReadonlyArray<Run> => {
   const found: Array<Run> = [];
-  const root = document.querySelector(input.root) || document.body;
-  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   while (walk.nextNode()) {
     const node = walk.currentNode;
     const text = (node.nodeValue || '').trim();
@@ -101,16 +104,20 @@ const collectRuns = (input: {
     }
   }
   const hide = document.createElement('style');
-  hide.id = input.hide;
+  hide.id = hideId;
   hide.textContent =
     '*{color:transparent!important;text-shadow:none!important;-webkit-text-fill-color:transparent!important;text-decoration-color:transparent!important}';
   document.head.append(hide);
   return found;
 };
 
-/** In the page: every transition and animation has finished. */
+/** In the page: every transition has finished (an endless animation never does, so it is not waited on). */
 const still = () =>
-  document.getAnimations().every((animation) => animation.playState !== 'running');
+  document
+    .getAnimations()
+    .every(
+      (animation) => !(animation instanceof CSSTransition) || animation.playState !== 'running',
+    );
 
 /** In the page: the text drawn again. */
 const reveal = (hide: string) => {
@@ -118,18 +125,30 @@ const reveal = (hide: string) => {
   if (style) style.remove();
 };
 
-/** In the page: each link and button drawn on the page, named by an index; answers how many. */
+/**
+ * In the page: each link and button drawn on the page, marked by an index,
+ * and its name; and the names of those left out (off the page until focused,
+ * hidden, or with no words to measure).
+ */
 const markTargets = (attribute: string) => {
+  const nameOf = (element: Element) =>
+    (element.textContent || '').trim().replace(/\s+/g, ' ') ||
+    element.getAttribute('aria-label') ||
+    '?';
   const onPage = (element: Element) => {
     const box = element.getBoundingClientRect();
     return box.width > 2 && box.left + scrollX >= 0 && box.top + scrollY >= 0;
   };
-  const targets = [...document.querySelectorAll('a, button')].filter(
+  const all = [...document.querySelectorAll('a, button')];
+  const drawn = all.filter(
     (element) =>
       element.checkVisibility() && onPage(element) && (element.textContent || '').trim() !== '',
   );
-  targets.forEach((element, index) => element.setAttribute(attribute, String(index)));
-  return targets.length;
+  drawn.forEach((element, index) => element.setAttribute(attribute, String(index)));
+  return {
+    names: drawn.map(nameOf),
+    skipped: all.filter((element) => !drawn.includes(element)).map(nameOf),
+  };
 };
 
 /** In the page: each run's contrast against the text-free drawing behind it. */
@@ -198,23 +217,33 @@ const measure = Effect.fn('Contrast.measure')(function* (
   yield* step('goto', () => page.goto(BASE + path, { waitUntil: 'networkidle' }));
   yield* step('eager', () => page.evaluate(eager));
   yield* step('settle', () => page.waitForFunction(settled));
-  const rest = yield* measureRuns(page, 'body');
-  if (width !== HOVER_WIDTH) return { rest, hover: [] };
-  const hover: Array<Measured> = [];
+  const rest = yield* measureRuns(page);
+  if (width !== HOVER_WIDTH) return { rest, hover: [], hovered: 0 };
   const targets = yield* step('targets', () => page.evaluate(markTargets, TARGET));
-  for (let index = 0; index < targets; index += 1) {
-    const target = `[${TARGET}="${index}"]`;
-    yield* step('hover', () => page.hover(target, { force: true }));
-    yield* step('still', () => page.waitForFunction(still));
-    const runs = yield* measureRuns(page, target);
-    hover.push(...runs.map((run) => ({ ...run, text: `hover: ${run.text}` })));
+  if (targets.skipped.length > 0) {
+    yield* Effect.logInfo('contrast.skipped').pipe(
+      Effect.annotateLogs({ page: path, links: targets.skipped.join(' | ') }),
+    );
   }
-  return { rest, hover };
+  const hover: Array<Measured> = [];
+  for (const [index, name] of targets.names.entries()) {
+    // Without force, the pointer must land on the link itself: one under
+    // another element fails here, named, rather than measuring as at rest.
+    yield* step(`hover "${name}"`, () =>
+      page.hover(`[${TARGET}="${index}"]`, { timeout: STEP_TIMEOUT }),
+    );
+    yield* step(`still "${name}"`, () =>
+      page.waitForFunction(still, [], { timeout: STEP_TIMEOUT }),
+    );
+    const runs = yield* measureRuns(page);
+    hover.push(...runs.map((run) => ({ ...run, text: `hover "${name}": ${run.text}` })));
+  }
+  return { rest, hover, hovered: targets.names.length };
 }, Effect.scoped);
 
-/** The runs under `root`, measured against the page as drawn without its text. */
-const measureRuns = Effect.fn('Contrast.measureRuns')(function* (page: Page, root: string) {
-  const runs = yield* step('runs', () => page.evaluate(collectRuns, { root, hide: HIDE }));
+/** Every run on the page, measured against the page as drawn without its text. */
+const measureRuns = Effect.fn('Contrast.measureRuns')(function* (page: Page) {
+  const runs = yield* step('runs', () => page.evaluate(collectRuns, HIDE));
   const shot = yield* step('shot', () => page.screenshot({ fullPage: true, type: 'png' }));
   const measured = yield* step('contrast', () =>
     page.evaluate(contrastOf, { data: shot.toString('base64'), runs }),
@@ -243,7 +272,7 @@ const contrast = Effect.gen(function* () {
           page: path,
           width,
           runs: measured.rest.length,
-          hovered: measured.hover.length,
+          hovered: measured.hovered,
           under: failing.length,
           lowest: Option.match(lowest, {
             onNone: () => 'none',
