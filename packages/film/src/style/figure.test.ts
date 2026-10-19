@@ -4,7 +4,7 @@ import { DIRECTION } from './house.ts';
 import { figure, isComposed } from './figure.ts';
 import { overridesIn } from './override.ts';
 import { paper } from './paper.ts';
-import { Arm } from './parts/arm.ts';
+import { ARM_SIDES, Arm } from './parts/arm.ts';
 import { Beard } from './parts/beard.ts';
 import { Robe, Tunic } from './parts/body.ts';
 import { Ear } from './parts/ear.ts';
@@ -225,6 +225,56 @@ const sleeve = Arm({
   paper: FLAT,
   tones: [{ pts: SLEEVE_LIT, color: '#efca9a' }],
 });
+
+/** The plain lead's arms hanging at his sides at rest: each pivot inside his tunic and its sleeve, the far one lit. */
+const HANGING: Pt[] = [
+  [20, -215],
+  [50, -220],
+  [80, -100],
+  [60, -95],
+];
+const HANGING_LIT: Pt[] = [
+  [50, -220],
+  [80, -100],
+  [70, -98],
+];
+const hanging = {
+  near: Arm({
+    pivot: [-30, -200],
+    rest: 0,
+    outline: [
+      [-50, -220],
+      [-20, -215],
+      [-60, -95],
+      [-80, -100],
+    ],
+    paper: FLAT,
+  }),
+  far: Arm({
+    pivot: [30, -200],
+    rest: 0,
+    outline: HANGING,
+    paper: FLAT,
+    tones: [{ pts: HANGING_LIT, color: '#efca9a' }],
+  }),
+};
+
+/** A seated tunic down behind its bench, and a near arm resting in its lap: its pivot inside the tunic and its sleeve. */
+const seatedTunic = Tunic({
+  neck: 28,
+  hem: 300,
+  half: { neck: 40, hem: 200 },
+  radius: 10,
+  bow: 0,
+  paper: SKIN,
+});
+const RESTING: Pt[] = [
+  [-50, 65],
+  [-20, 70],
+  [-70, 205],
+  [-90, 200],
+];
+const resting = Arm({ pivot: [-30, 80], rest: 0, outline: RESTING, paper: FLAT });
 
 /** Sandals: each bare foot cut from its corners, a strap across the near one. */
 const NEAR_FOOT: Pt[] = [
@@ -680,6 +730,18 @@ describe('an arm in its sleeve', () => {
   /** The id of the view model's number named `knob`, in `rml`. */
   const numberIn = (rml: string, knob: string) =>
     rml.match(new RegExp(`<ViewModelPropertyNumber name="${knob}" id="([^"]+)"/>`))?.[1];
+  /** The colours of the shape `key`'s paper, in `rml`, in order. */
+  const paperIn = (rml: string, key: string) =>
+    Array.from(
+      rml
+        .match(
+          new RegExp(
+            `<Shape name="${key}" id="[^"]+">(?:(?!</Shape>)[^])*?<Fill name="Paper">((?:(?!</Fill>)[^])*)</Fill>`,
+          ),
+        )?.[1]
+        ?.matchAll(/colorValue="([^"]+)"/g) ?? [],
+      (m) => m[1],
+    );
 
   test("adds its side's number after the stance's, at its rest", () => {
     const armed = figure({ ...standingOf(), arms: { far: sleeve } });
@@ -776,6 +838,61 @@ describe('an arm in its sleeve', () => {
     expect(boundIn(rml, 'nearSleeveArm')).toBe(numberIn(rml, 'nearArm'));
     expect(boundIn(rml, 'farSleeveArm')).toBe(numberIn(rml, 'farArm'));
     expect(drawnOf(figure(standingOf()))).not.toContain('name="robeCut"');
+  });
+
+  test("a given robe on a figure with arms is cut with each sleeve again, in its paper, turned by that arm's number, standing or seated", () => {
+    const lead = figure({ ...leadOf([robe]), arms: hanging });
+    expect(isComposed(lead)).toBe(true);
+    const rml = drawnOf(lead);
+    // The robe and its sleeves, cut in one outline, over the garment and its own.
+    const places = placesOf(rml, [
+      'robePaperCut',
+      'robePaper',
+      'nearRobeSleeveArm',
+      'nearRobeSleeve',
+      'farRobeSleeveArm',
+      'farRobeSleeve',
+      'robePaperCutInk',
+      'tunicCut',
+      'tunic',
+      'nearSleeveArm',
+      'farSleeveArm',
+      'tunicCutInk',
+    ]);
+    expect(places.every((at) => at >= 0)).toBe(true);
+    expect(places).toEqual(places.toSorted((a, b) => a - b));
+    for (const side of ARM_SIDES) {
+      // Each sleeve of the robe is its arm's, turned by its arm's number, in the robe's paper and none of the arm's.
+      expect(boundIn(rml, `${side}RobeSleeveArm`)).toBe(numberIn(rml, `${side}Arm`));
+      expect(printed(rml, `${side}RobeSleeve`)).toEqual([...hanging[side].outline]);
+      expect(paperIn(rml, `${side}RobeSleeve`)).toEqual(paperIn(rml, 'robePaper'));
+      expect(paperIn(rml, `${side}RobeSleeve`)).not.toEqual(paperIn(rml, `${side}Sleeve`));
+      // It inks its own line, hidden under the robe's paper inside it.
+      expect(rml).toMatch(
+        new RegExp(
+          `<Shape name="${side}RobeSleeve" id="[^"]+">(?:(?!</Shape>)[^])*?<Stroke [^>]*name="Ink">`,
+        ),
+      );
+    }
+    expect(numberIn(rml, 'nearArm')).not.toBe(numberIn(rml, 'farArm'));
+    expect(printed(rml, 'farSleeveTone0')).toEqual(HANGING_LIT);
+    expect(rml).not.toContain('name="farRobeSleeveTone0.0"');
+    // The robe's line runs round the robe and its sleeves: its paper inside the cut lays none.
+    expect(rml).toContain('name="robePaperCutInkrobePaper.0"');
+    expect(rml).not.toMatch(
+      /<Shape name="robePaper" id="[^"]+">(?:(?!<\/Shape>)[^])*?<Stroke [^>]*name="Ink">/,
+    );
+    const seated = drawnOf(
+      figure({ ...seatedOf(), body: seatedTunic, states: [robe], arms: { near: resting } }),
+    );
+    expect(boundIn(seated, 'nearRobeSleeveArm')).toBe(numberIn(seated, 'nearArm'));
+    expect(printed(seated, 'nearRobeSleeve')).toEqual(RESTING);
+    // With no arms the robe is one piece, its line its own.
+    const bare = drawnOf(figure(leadOf([robe])));
+    expect(bare).not.toContain('name="robePaperCut"');
+    expect(bare).toMatch(
+      /<Shape name="robePaper" id="[^"]+">(?:(?!<\/Shape>)[^])*?<Stroke [^>]*name="Ink">/,
+    );
   });
 });
 

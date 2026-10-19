@@ -27,7 +27,7 @@ import type { KitA } from '../parts/kit.ts';
 import type { OpenMouth } from '../parts/mouth.ts';
 import type { Bands } from '../parts/over.ts';
 import type { Seated, Standing } from '../parts/stance.ts';
-import type { Stain } from '../parts/states.ts';
+import type { GivenRobe, Stain } from '../parts/states.ts';
 import {
   type Figure,
   type PieceLook,
@@ -380,35 +380,42 @@ const bandsOf = (rig: Figure, b: Bands) =>
   );
 
 /**
- * An arm in its sleeve on its pivot, turned there by its side's number
- * (`nearArm`, `farArm`): the sleeve's paper in the pose it is traced in,
- * the colour on it laid on it as tones.
+ * An arm's sleeve `key` on its pivot, in `look` and in the pose it is
+ * traced in, turned there by its side's number (`nearArm`, `farArm`).
  */
-const armOf = (rig: Figure, side: ArmSide, arm: Arm): Element => {
-  const key = `${side}Sleeve`;
-  return el(
-    'Node',
-    { x: arm.pivot[0], y: arm.pivot[1], name: `${key}Arm`, id: rig.idOf(`${key}Arm`) },
-    [
-      rig.bind(`${side}Arm`, KEY.rotation),
-      el('Node', { x: -arm.pivot[0], y: -arm.pivot[1], name: `${key}At` }, [
-        piece(rig, key, arm.outline, looked(arm.paper, { tones: arm.tones ?? [] })),
-      ]),
-    ],
-  );
-};
+const sleeveOf = (rig: Figure, side: ArmSide, arm: Arm, key: string, look: PieceLook): Element =>
+  el('Node', { x: arm.pivot[0], y: arm.pivot[1], name: `${key}Arm`, id: rig.idOf(`${key}Arm`) }, [
+    rig.bind(`${side}Arm`, KEY.rotation),
+    el('Node', { x: -arm.pivot[0], y: -arm.pivot[1], name: `${key}At` }, [
+      piece(rig, key, arm.outline, look),
+    ]),
+  ]);
+
+/** The sleeves a cut lays: each named for its side and `key` (`farSleeve`), in its arm's `look`. */
+interface Sleeves {
+  readonly key: string;
+  readonly look: (arm: Arm) => PieceLook;
+}
 
 /**
- * A garment's own paper: with arms, the arms behind it, the near one first,
- * cut in one outline with it (`silhouette`), so a sleeve grows out of the
- * garment with no line where it leaves it. The arms are made before it.
+ * The paper `key` cut to `outline` in `look`: with arms, each arm's
+ * sleeve behind it, the near one first, cut in one outline with it
+ * (`silhouette`), so a sleeve grows out of the paper with no line where it
+ * leaves it. The sleeves are made before the paper.
  */
-const garmentOf = (rig: Figure, f: Parts, outline: ReadonlyArray<Pt>): Element => {
-  const key = garmentKey(f.body);
-  const look = looked(f.body.paper, { tones: tonesOn(f.body) });
+const sleevedOf = (
+  rig: Figure,
+  f: Parts,
+  key: string,
+  outline: ReadonlyArray<Pt>,
+  look: PieceLook,
+  sleeves: Sleeves,
+): Element => {
   const arms = ARM_SIDES.flatMap((side) => {
     const arm = f.arms[side];
-    return arm === undefined ? [] : [armOf(rig, side, arm)];
+    return arm === undefined
+      ? []
+      : [sleeveOf(rig, side, arm, `${side}${sleeves.key}`, sleeves.look(arm))];
   });
   return arms.length === 0
     ? piece(rig, key, outline, look)
@@ -416,10 +423,35 @@ const garmentOf = (rig: Figure, f: Parts, outline: ReadonlyArray<Pt>): Element =
 };
 
 /**
+ * A garment's own paper, the colour laid on it, and its arms behind it,
+ * each sleeve in its own paper and the colour laid on that (`sleevedOf`).
+ */
+const garmentOf = (rig: Figure, f: Parts, outline: ReadonlyArray<Pt>): Element =>
+  sleevedOf(rig, f, garmentKey(f.body), outline, looked(f.body.paper, { tones: tonesOn(f.body) }), {
+    key: 'Sleeve',
+    look: (arm) => looked(arm.paper, { tones: arm.tones ?? [] }),
+  });
+
+/**
+ * The robe he is given, shown by its number (`robe`): the garment's
+ * outline again in its paper, and each arm's sleeve again in it, turned by
+ * its arm's number and cut in one outline with it (`sleevedOf`), so the robe
+ * covers the garment and its sleeves, and its line runs round them all.
+ */
+const robeOf = (rig: Figure, f: Parts, robe: GivenRobe, outline: ReadonlyArray<Pt>): Element => {
+  const look = looked(robe.paper);
+  return el('Node', { name: 'robe', id: rig.idOf('robe') }, [
+    rig.bind('robe', KEY.opacity),
+    sleevedOf(rig, f, 'robePaper', outline, look, { key: 'RobeSleeve', look: () => look }),
+  ]);
+};
+
+/**
  * What lies on a garment's side, front first: what lies on it with no line
- * of its own (`over`, made before the body), the given robe, the stain
- * (made before the head), and the garment's own paper with its arms. The
- * given robe and the garment's paper are made here, inside the side's node.
+ * of its own (`over`, made before the body), the given robe and its
+ * sleeves, the stain (made before the head), and the garment's own paper
+ * with its arms. The given robe and the garment's paper are made here,
+ * inside the side's node.
  */
 const clothOf = (
   rig: Figure,
@@ -430,14 +462,7 @@ const clothOf = (
   const outline = garmentOutline(f.body);
   return [
     ...over,
-    ...(f.states.robe === undefined
-      ? []
-      : [
-          el('Node', { name: 'robe', id: rig.idOf('robe') }, [
-            rig.bind('robe', KEY.opacity),
-            piece(rig, 'robePaper', outline, looked(f.states.robe.paper)),
-          ]),
-        ]),
+    ...(f.states.robe === undefined ? [] : [robeOf(rig, f, f.states.robe, outline)]),
     ...stain,
     garmentOf(rig, f, outline),
   ];
@@ -643,9 +668,9 @@ const seatedBreath = (rig: Figure, stance: Seated, side: string, neck: number) =
  * A composed figure's artboard and view model. Rive draws a node's
  * children front first: the head over the garment, the garment over the
  * feet, and on the garment what lies on it with no line of its own, then the
- * given robe, the stain, the garment's own paper and its arms behind it.
- * The stain's node is made before the head's, what lies on the garment
- * after it, and the gaze's binds after the body.
+ * given robe and its sleeves, the stain, the garment's own paper and its
+ * arms behind it. The stain's node is made before the head's, what lies on
+ * the garment after it, and the gaze's binds after the body.
  */
 export const drawFigure = <K extends string>(rig: Figure, f: ComposedFigure<K>): Element[] => {
   const stain = f.states.stain === undefined ? [] : [stainOf(rig, f.states.stain)];

@@ -26,7 +26,7 @@ const StainPart = Schema.TaggedStruct('Stain', {
 });
 export type Stain = typeof StainPart.Type;
 
-/** The robe he is given: his garment's outline again, in its paper. */
+/** The robe he is given: his garment's outline again, and each of his sleeves, in its paper. */
 const GivenRobePart = Schema.TaggedStruct('GivenRobe', { paper: Paper });
 export type GivenRobe = typeof GivenRobePart.Type;
 
