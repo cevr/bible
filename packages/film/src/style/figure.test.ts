@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, test } from 'bun:test';
 import { Record as Rec } from 'effect';
 import { DIRECTION } from './house.ts';
-import { figure } from './figure.ts';
+import { figure, isComposed } from './figure.ts';
 import { overridesIn } from './override.ts';
 import { paper } from './paper.ts';
 import { Arm } from './parts/arm.ts';
@@ -95,6 +95,24 @@ describe('a composed figure', () => {
     expectTypeOf(Rec.keys(bare.knobs)).toEqualTypeOf<
       Array<FaceKnob | 'lean' | 'tilt' | 'nod' | 'faceY'>
     >();
+  });
+
+  test('it is frozen through: a change made in it throws, so it stays the figure its parts were checked as', () => {
+    const lead = figure(leadOf([robe, stain]));
+    const head = lead.head;
+    expect(() => Object.assign(lead, { head: { ...head, y: 0 } })).toThrow(TypeError);
+    expect(() => Object.assign(lead.head, { y: 0 })).toThrow(TypeError);
+    expect(() => Object.assign(lead.concept.image, { file: 'images/other.png' })).toThrow(
+      TypeError,
+    );
+    expect(() => Object.assign(lead.knobs, { stain: 0 })).toThrow(TypeError);
+    expect(() => Object.assign(lead.concept.box, [1])).toThrow(TypeError);
+    expect(lead.head).toBe(head);
+    expect(lead.head.y).toBe(-300);
+    expect(lead.concept.image).toEqual({ set: 'concepts', file: 'images/lead.png' });
+    expect(lead.concept.box).toEqual([0, 0, 100, 200]);
+    expect(lead.knobs.stain).toBe(1);
+    expect(isComposed(lead)).toBe(true);
   });
 
   test('its numbers, as typed, are never more than its parts add: a part typed wider than its kind adds none', () => {
@@ -705,6 +723,18 @@ describe('an arm in its sleeve', () => {
     expect(rml).toContain('name="robeCutInkrobe.0"');
     expect(rml).not.toContain('name="robeCutInkfarSleeve.0"');
     expect(rml).toMatch(/<Shape name="farSleeve" id="[^"]+">[^]*?<Stroke [^>]*name="Ink">/);
+  });
+
+  test('is frozen with its figure: a change made in it throws, and it stays as composed', () => {
+    const armed = figure({ ...standingOf(), arms: { far: sleeve } });
+    const far = armed.arms.far;
+    expect(far).toBeDefined();
+    expect(() => Object.assign(armed.arms, { near: sleeve })).toThrow(TypeError);
+    expect(() => Object.assign(far ?? {}, { rest: 0 })).toThrow(TypeError);
+    expect(() => Object.assign(far?.outline ?? [], [[0, 0]])).toThrow(TypeError);
+    expect(armed.arms.near).toBeUndefined();
+    expect(far?.rest).toBe(1.2);
+    expect(far?.outline).toEqual(SLEEVE);
   });
 
   test('the near arm lies in front of the far one, and a figure with none draws its garment uncut', () => {
