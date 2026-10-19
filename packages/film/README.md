@@ -1513,7 +1513,9 @@ film's newest change (or, given `change`, that change alone, refused while
 another stands before it); `beat_hold` answers the seams into and out of
 its beat as the version reads after it (`seamsAround`: from the end of a
 beat's take to the next beat's words). `BeatEdits` makes them as the page makes them,
-so the owner and the agents step one history.
+so the owner and the agents step one history, and the lab's change feed tells
+each change, its undo and its redo as it lands (`source.written`,
+`source.undone`, `source.redone`; The lab's events, below).
 
 **A newer build.** The studio loads again at its place onto new code when
 the lab answers a newer build of the pages (`reloadOnRebuild`,
