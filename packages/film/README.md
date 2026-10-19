@@ -2483,8 +2483,12 @@ is read off the lab's writer (`SourceWriter.landings`), which the page and the
 agents write through alike. `changes` reads the feed by the catalogue (`name`,
 globs over its names or the name of a record, which names every event that
 record tells: `notes`, `board`, `catalogue`, `set`, `ask`, `production`,
-`source`; `film`). A note the owner withdraws is told as `note.withdrawn`, read
-as a note the file held at the last read and holds no more.
+`source`; `film`). The records tell: `notes` the `note.*` events and
+`tweak.requested`; `board` `board.tried`, `board.kept`, `beat.approved` and
+`beat.withdrawn`; `catalogue` the `render.*` events; `set`, `ask`,
+`production` and `source` the events named for them. A note the owner
+withdraws is told as `note.withdrawn`, read as a note the file held at the
+last read and holds no more.
 
 `film lab events` (`tools/events-cli.ts`) prints them from the running lab.
 With `--follow` it keeps running and prints one line per event as the lab sees
@@ -2501,8 +2505,8 @@ reader told it twice knows it, and a note made after its file was reset never
 takes an older note's id. A kept try's id is made from the board file as the
 lab read it, so two labs that read it across a later write give one keep two
 ids. A word on a production's ledger is told by whoever said it: an ask and a
-note with no quote of the owner's are `agent`'s. `--name` (repeated; `--name
-notes` follows a film's notes, tweaks among them) and `--film` narrow it, on
+note with no quote of the owner's are `agent`'s. `--name` (repeated;
+`--name notes` follows a film's notes, tweaks among them) and `--film` narrow it, on
 the follower's side too, so a lab that runs other code and does not narrow is
 narrowed still; a `--name` no event of the catalogue matches, or a film the
 lab does not have, is refused before anything is followed. `--since <cursor>`
@@ -2514,7 +2518,10 @@ printed from the fields every event carries, and said once on stderr. What is no
 lab that stops answering is said once and asked again with backoff (250 ms
 doubling to 10 s, started over after each session that answered), and the new
 session reads on from the last cursor seen, so while the same lab runs nothing
-is missed; a restarted lab no longer knows the cursor, which comes back `reset`,
+is missed, unless a reader falls more than the 1000 changes the feed keeps
+behind (its cursor comes back `reset`, the older ones gone), and a notes file
+trashed or restored is told whole again (each change with the `id` it had); a
+restarted lab no longer knows the cursor, which comes back `reset`,
 and the stream prints every event that lab kept (one told before comes again
 with its `id`); a change made while no lab ran is in the new lab's first read
 and is never told. Only `--gone-after <dur>` (counted from

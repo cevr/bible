@@ -1,7 +1,7 @@
 // The note follower the docs give an agent hears every note the owner makes:
-// each `lab events --follow` command a doc names for notes, read with its
-// `--name`s, matches every event the old `film notes --watch` printed (a
-// note made, a tweak asked of a panel among them, and the owner's reply).
+// each follower a doc names for notes, read with its `--name`s, matches every
+// event the old `film notes --watch` printed (a note made, a tweak asked of a
+// panel among them, and the owner's reply).
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -15,6 +15,8 @@ const DOCS = [
   '.claude/skills/film/SKILL.md',
   'packages/film/README.md',
   'apps/animations/plans/lab.md',
+  'apps/animations/plans/lab-mcp.md',
+  'apps/animations/README.md',
 ];
 
 /** What the old watch printed of a change: a note made, and a reply of the owner's. */
@@ -40,20 +42,34 @@ const printedKinds = () => {
   return noteChanges(eventsSince(replied, 0).events.filter(watchPrinted)).map((c) => c.kind);
 };
 
-/** Each `lab events --follow` command a doc's line about notes names, with its `--name`s. */
+/** The `--name`s a follower's command or its span gives, its brackets and quotes taken off. */
+const namesIn = (command: string) =>
+  Array.from(
+    command.replace(/[[\]]/g, ' ').matchAll(/--name\s+(?:'([^']*)'|"([^"]*)"|(\S+))/g),
+    ([, single, double, bare]) => single ?? double ?? bare ?? '',
+  );
+
+/**
+ * Each follower a doc gives for notes, with its `--name`s: a backticked `lab
+ * events --follow` command or a lone `--name <name>` on a line about notes,
+ * and a command list's `lab events` line that follows (`[--follow]`).
+ */
 const followersIn = (doc: string) =>
-  doc
-    .split('\n')
-    .filter((line) => /note/i.test(line))
-    .flatMap((line) =>
-      Array.from(line.matchAll(/`([^`]*lab events --follow[^`]*)`/g), ([, command = '']) => ({
+  doc.split('\n').flatMap((line) => [
+    ...Array.from(
+      line.matchAll(/`([^`]*lab events --follow[^`]*|--name \S+)`/g),
+      ([, span = '']) => span,
+    )
+      .filter(() => /note/i.test(line))
+      .map((command) => ({ command, names: namesIn(command) })),
+    ...Array.from(
+      line.matchAll(/^(bun run lab events \[--follow\].*?)\s+#/g),
+      ([, command = '']) => ({
         command,
-        names: Array.from(
-          command.matchAll(/--name\s+(?:'([^']*)'|"([^"]*)"|(\S+))/g),
-          ([, single, double, bare]) => single ?? double ?? bare ?? '',
-        ),
-      })),
-    );
+        names: namesIn(command),
+      }),
+    ),
+  ]);
 
 describe('the note follower the docs give', () => {
   it.effect.layer(BunServices.layer)(

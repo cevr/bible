@@ -200,7 +200,9 @@ How an agent hears them. Every way below but the first reads one stream (`tools/
 the lab's MCP, the feed long-polled past a cursor (50 s a call), and the cursor the stream's, not the session's.
 A lab that stops answering (restarted, the network dropped) is said once and asked again with backoff (250 ms
 doubling to 10 s, started over after each session that answered); the new session reads on from the last cursor
-seen, so while the same lab runs nothing is missed; a restarted lab no longer knows the cursor, which comes back
+seen, so while the same lab runs nothing is missed, unless a reader falls more than the 1000 changes the feed
+keeps behind (its cursor comes back `reset`, the older ones gone), and a notes file trashed or restored is told
+whole again (each change with the `id` it had); a restarted lab no longer knows the cursor, which comes back
 `reset`, and the stream hears every change that lab kept (one heard before comes again with its `id`); a change
 made while no lab ran is in the new lab's first read and is never told. A change of a kind this checkout does
 not know (a newer lab's), or of a known kind in a shape it does not read (an older lab's, with no `id`), is read
