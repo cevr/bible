@@ -231,11 +231,15 @@ interface RuleItem {
   readonly text: string;
 }
 
-/** An item the rule reports, with the model's probability for the reporting label. */
+/**
+ * An item the rule reports, with the model's probability for the reporting
+ * label, and whether its answer is in the store, where the plugin reads it.
+ */
 interface Finding {
   readonly file: string;
   readonly line: number;
   readonly p: number;
+  readonly kept: boolean;
 }
 
 /**
@@ -277,14 +281,16 @@ export const judge = Effect.fn('judged.judge')(function* (
     ).values(),
   ].map(({ rule, text }) => ({ rule, text }));
   const asked = yield* ask(fresh, judging);
-  // Answers that cannot be kept are asked again next run; the findings still print.
+  // Answers that cannot be kept are asked again next run, and their findings
+  // are the runner's to print: the plugin cannot see them.
+  let kept = true;
   if (asked.answers.size > 0) {
     const answered = fresh.filter((question) => asked.answers.has(questionKey(question)));
     const judged = new Map<string, Set<string>>();
     for (const item of items)
       if (isCached(item) || asked.answers.has(questionKey(item)))
         judged.set(item.file, new Set([...(judged.get(item.file) ?? []), item.rule.id]));
-    yield* keepAnswers(
+    kept = yield* keepAnswers(
       judging.cacheFile,
       new Map(
         answered.flatMap((question) =>
@@ -298,10 +304,11 @@ export const judge = Effect.fn('judged.judge')(function* (
       ),
       judged,
     ).pipe(
+      Effect.as(true),
       Effect.catch((error) =>
         Console.error(
           `[judged] answers not kept rule=${[...new Set(answered.map((q) => q.rule.id))].join(',')} detail=${detailOf(error)}`,
-        ),
+        ).pipe(Effect.as(false)),
       ),
     );
   }
@@ -319,7 +326,12 @@ export const judge = Effect.fn('judged.judge')(function* (
         Option.toArray(
           Option.flatMap(answerOf(item), (answer) =>
             Option.liftPredicate(
-              { file: item.file, line: item.line, p: answer.probabilities[rule.reports] ?? 0 },
+              {
+                file: item.file,
+                line: item.line,
+                p: answer.probabilities[rule.reports] ?? 0,
+                kept: isCached(item) || kept,
+              },
               (finding) => finding.p >= rule.threshold,
             ),
           ),

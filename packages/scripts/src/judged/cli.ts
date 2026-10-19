@@ -1,6 +1,6 @@
 // The judged lint's command (`lint-judged.ts` runs it): its flags, the run
-// of every judged rule of the lint config over the changed items, and the
-// boundary that turns every failure but a gating finding and an interrupt
+// of every judged rule of the lint config over the changed items, the
+// findings oxlint cannot report printed, and the boundary that turns every failure but a gating finding and an interrupt
 // into one `reason=error` skip line and success. It takes its model as a
 // layer for the config's model name, so a test runs the whole command
 // in-process over a model of its own.
@@ -10,6 +10,7 @@ import type { DecisionModel } from 'effect/ai';
 import { Command, Flag } from 'effect/cli';
 
 import { changedItems } from './changes.js';
+import { readByOxlint } from './items.js';
 import { JudgedLint, judgedLintLayer } from './config.js';
 import { cacheModel } from './rule.js';
 import { LIMITS, detailOf, findingLine, judge, runLine } from './run.js';
@@ -49,12 +50,21 @@ const lint = Effect.fn('lintJudged')(function* (
     cacheFile: path.join(root, config.settings.cache),
     ...LIMITS,
   });
-  for (const outcome of outcomes)
+  // oxlint reports, at the rule's severity, every finding the plugin can
+  // read; the runner prints and gates on the rest (a series script, an
+  // answer the store could not keep), or on every one under --strict.
+  const own = outcomes.map((outcome) => ({
+    rule: outcome.rule,
+    findings: outcome.findings.filter(
+      (finding) => strict || !finding.kept || !readByOxlint(finding.file),
+    ),
+  }));
+  for (const outcome of own)
     yield* Effect.forEach(outcome.findings, (finding) =>
       Console.log(findingLine(outcome.rule, finding)),
     );
   yield* Effect.forEach(outcomes, (outcome) => Console.log(runLine(outcome)));
-  const gating = outcomes
+  const gating = own
     .filter((outcome) => strict || outcome.rule.severity === 'error')
     .reduce((n, outcome) => n + outcome.findings.length, 0);
   if (gating > 0) return yield* GatingFindings.make({ findings: gating });
@@ -73,7 +83,7 @@ const commandOf = (read: Ref.Ref<number>) =>
       strict: Flag.Boolean('strict').pipe(
         Flag.withDefault(false),
         Flag.withDescription(
-          'exit non-zero on any finding (off: only a rule at severity error fails the run)',
+          "print every finding, oxlint's too, and exit non-zero on any (off: only a finding oxlint cannot report, of a rule at severity error, fails the run)",
         ),
       ),
     },

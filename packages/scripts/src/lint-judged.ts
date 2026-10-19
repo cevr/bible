@@ -1,31 +1,34 @@
 #!/usr/bin/env bun
-// The judged lint: the rules a model decides, each a `judged/<id>` entry of
-// the repo's `.oxlintrc.json` (`judged/rule.ts`), run over the items its
-// selector reads that the working tree adds or changes against the merge base
-// of `--base` (origin/main) and HEAD. Every item the cache (the config's
+// The judged lint's runner: the rules a model decides, each a `judged/<id>`
+// entry of the repo's `.oxlintrc.json` (`judged/rule.ts`), run over the items
+// its selector reads that the working tree adds or changes against the merge
+// base of `--base` (origin/main) and HEAD. Every item the store (the config's
 // `settings.judged.cache`) does not answer, of every rule, goes to TypeSafe's
-// model in one request. oxlint reports the kept answers at their lines
-// (`packages/scripts/lint/judged.ts`); this prints each finding too, Markdown's among them,
-// as
+// model in one request, and the answers are kept. `bun run lint` runs this
+// first and oxlint after it, and oxlint reports the kept answers at their
+// lines at each rule's severity (`packages/scripts/lint/judged.ts`). This
+// prints and gates on the findings oxlint cannot report (a Markdown series
+// script, an answer the store could not keep), or on every finding under
+// `--strict`, as
 //
 //   <file>:<line> warning judged(<rule>): <message> p=<p>
 //
 // and each rule ends on one `[judged]` line: what it read
 // (`[judged] rule=<rule> items=<n> cached=<n> asked=<n> findings=<n>`: the
-// items read, those the cache answered and those the model was asked about;
+// items read, those the store answered and those the model was asked about;
 // two items of one text go in the request once), or why it skipped
 // (`[judged] skipped rule=<rule> reason=<reason> items=<n>`, the items it
 // could not judge). The model's reasons are no-key, timeout, rate-limit, http
 // and incomplete. Any other failure (git, the lint config, a defect) is one
 // `[judged] skipped rule=* reason=error` line, its `detail=` the failure's tag
-// and its words on one stderr line; answers the cache cannot keep are asked
-// again next run. Every one passes: the lint never blocks a push on its model
-// or its host. A finding passes too, unless its rule's severity is `error` or
-// the run is `--strict` (no rule is at `error` until its labelled corpus
-// shows the precision a gate needs); an interrupt stops it.
+// and its words on one stderr line; answers the store cannot keep are asked
+// again next run. Every one passes: the lint never fails on its model or its
+// host. A finding it prints fails the run when its rule's severity is
+// `error`, or under `--strict`; an interrupt stops it.
 //
 //   bun run lint:judged                  # against origin/main
 //   bun run lint:judged --base <ref>     # against another base
+//   bun run lint:judged --strict         # print every finding, fail on any
 //
 // The model is the config's `settings.judged.model`; the key
 // `TYPESAFE_API_KEY`, else the macOS keychain item `typesafe-api-key`

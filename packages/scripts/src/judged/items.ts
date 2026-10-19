@@ -82,6 +82,12 @@ export const selects = (selector: Selector, file: string): boolean => {
   }
 };
 
+/**
+ * Whether oxlint lints `file`, and so the plugin reports its findings: every
+ * file the runner reads but a Markdown series script.
+ */
+export const readByOxlint = (file: string) => !file.endsWith('.md');
+
 /** The 1-based line of each offset in `text`, by its line starts. */
 const lineReader = (text: string) => {
   const starts = [0];

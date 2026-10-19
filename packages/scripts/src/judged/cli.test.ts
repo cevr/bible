@@ -1,4 +1,4 @@
-// The judged lint at its command boundary, as the pre-push hook runs it: a
+// The judged lint at its command boundary, as `bun run lint` runs it: a
 // failure of any kind is one skip line and success. The cases that need a
 // model's answer run the command in-process over a test model layer; the
 // two that run the real program as a process have no key and no `security`
@@ -66,39 +66,49 @@ const git = (cwd: string, ...args: ReadonlyArray<string>) =>
     ...args,
   ]);
 
-/** The repo's own historyComment and judged settings (`withFs` provides them), with no ignore patterns. */
-const lintConfig = Effect.gen(function* () {
-  const config = yield* JudgedLint;
-  return yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown))({
-    ignorePatterns: [],
-    settings: { judged: config.settings },
-    rules: Object.fromEntries(
-      config.rules
-        .filter((rule) => rule.id === 'historyComment')
-        .map(({ id, severity, ...options }) => [`judged/${id}`, [severity, options]]),
-    ),
+/** The repo's own rule `id` and judged settings (`withFs` provides them), with no ignore patterns. */
+const lintConfig = (id: string) =>
+  Effect.gen(function* () {
+    const config = yield* JudgedLint;
+    return yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown))({
+      ignorePatterns: [],
+      settings: { judged: config.settings },
+      rules: Object.fromEntries(
+        config.rules
+          .filter((rule) => rule.id === id)
+          .map(({ id, severity, ...options }) => [`judged/${id}`, [severity, options]]),
+      ),
+    });
   });
-});
 
-/** A repo whose `main` has `src/a.ts`, and a branch that adds a comment to it, committed. */
-const repo = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-cli-' });
-  yield* fs.makeDirectory(path.join(dir, 'src'));
-  yield* fs.writeFileString(path.join(dir, '.oxlintrc.json'), yield* lintConfig);
-  yield* fs.writeFileString(path.join(dir, 'src', 'a.ts'), 'const a = 1;\n');
-  yield* git(dir, 'init', '-q', '-b', 'main');
-  yield* git(dir, 'add', '-A');
-  yield* git(dir, 'commit', '-qm', 'base');
-  yield* git(dir, 'checkout', '-q', '-b', 'topic');
-  yield* fs.writeFileString(
-    path.join(dir, 'src', 'a.ts'),
-    '// This used to retry; pass 6 removed that.\nconst a = 1;\n',
-  );
-  yield* git(dir, 'commit', '-qam', 'comment');
-  return dir;
-});
+/**
+ * A repo linted by the repo's own rule `id` whose `main` has `file` as
+ * `before`, and a branch that makes it `after`, committed.
+ */
+const repoOf = (id: string, file: string, before: string, after: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-cli-' });
+    yield* fs.makeDirectory(path.dirname(path.join(dir, file)), { recursive: true });
+    yield* fs.writeFileString(path.join(dir, '.oxlintrc.json'), yield* lintConfig(id));
+    yield* fs.writeFileString(path.join(dir, file), before);
+    yield* git(dir, 'init', '-q', '-b', 'main');
+    yield* git(dir, 'add', '-A');
+    yield* git(dir, 'commit', '-qm', 'base');
+    yield* git(dir, 'checkout', '-q', '-b', 'topic');
+    yield* fs.writeFileString(path.join(dir, file), after);
+    yield* git(dir, 'commit', '-qam', 'change');
+    return dir;
+  });
+
+/** A repo whose branch adds a comment that tells history to `src/a.ts`. */
+const repo = repoOf(
+  'historyComment',
+  'src/a.ts',
+  'const a = 1;\n',
+  '// This used to retry; pass 6 removed that.\nconst a = 1;\n',
+);
 
 /**
  * An environment with no key and a PATH of only `git` and `bun`: no
@@ -132,8 +142,8 @@ const counting = Effect.gen(function* () {
   return { url: HttpServer.formatAddress(http.address), seen };
 });
 
-/** The lint's own model over a fake TypeSafe that answers every key history at 0.97. */
-const historyModel = () => {
+/** The lint's own model over a fake TypeSafe that answers every key `choice` at 0.97, `other` at 0.03. */
+const answering = (choice: string, other: string) => {
   const http = typesafeHttp(200, (keys) => ({
     model: 'jev-latest',
     answers: Object.fromEntries(
@@ -141,8 +151,8 @@ const historyModel = () => {
         key,
         {
           type: 'choice',
-          choice: 'history',
-          probabilities: { today: 0.03, history: 0.97 },
+          choice,
+          probabilities: { [other]: 0.03, [choice]: 0.97 },
           confidence: 0.97,
         },
       ]),
@@ -159,6 +169,9 @@ const historyModel = () => {
     requests: http.requests,
   };
 };
+
+/** The model answering every key history. */
+const historyModel = () => answering('history', 'today');
 
 /** A model whose every answer is a defect. */
 const dyingModel = () =>
@@ -226,8 +239,8 @@ describe('the judged lint fails open', () => {
         const path = yield* Path.Path;
         const host = yield* counting;
         const dir = yield* repo;
-        // The repo's own `lint:judged` line, run by `bun run` as the hook
-        // runs it, in a repo whose untracked `.env.development` names a key,
+        // The repo's own `lint:judged` line, run by `bun run` as `bun run
+        // lint` runs it, in a repo whose untracked `.env.development` names a key,
         // a counting host as TypeSafe's, and a proxy that answers nothing.
         const root = yield* Schema.decodeEffect(Scripts)(yield* fs.readFileString(ROOT_PACKAGE));
         yield* fs.writeFileString(
@@ -282,15 +295,54 @@ describe('the judged lint fails open', () => {
     ),
   );
 
-  it.live('still fails on a finding under --strict', () =>
+  it.live(
+    'leaves a kept finding in a file oxlint lints to oxlint: it prints the run line alone',
+    () =>
+      withFs(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const dir = yield* repo;
+          const lint = yield* inProcess(dir, ['--base', 'main'], historyModel().layer);
+          expect(Exit.isSuccess(lint.exit)).toBe(true);
+          expect(lint.out).toEqual([
+            '[judged] rule=historyComment items=1 cached=0 asked=1 findings=1',
+          ]);
+          const store = yield* fs.readFileString(path.join(dir, 'tmp', 'judged', 'cache.json'));
+          expect(store).toContain('"src/a.ts":["historyComment"]');
+        }),
+      ),
+  );
+
+  it.live('prints and fails on a finding oxlint cannot report, of a rule at error', () =>
+    withFs(
+      Effect.gen(function* () {
+        const dir = yield* repoOf(
+          'scriptSpeech',
+          'apps/animations/series/s/scripts/01-a.md',
+          '| # | Say | Picture |\n| - | - | - |\n| 1 | Rest. |  |\n',
+          '| # | Say | Picture |\n| - | - | - |\n| 1 | Ellen White said, "Rest." |  |\n',
+        );
+        const lint = yield* inProcess(dir, ['--base', 'main'], answering('breach', 'clean').layer);
+        expect(Exit.isFailure(lint.exit)).toBe(true);
+        expect(lint.out).toEqual([
+          'apps/animations/series/s/scripts/01-a.md:3 error judged(scriptSpeech): the beat names its sources or church history: teach it from Scripture, the idea unnamed p=0.97',
+          '[judged] rule=scriptSpeech items=1 cached=0 asked=1 findings=1',
+        ]);
+      }),
+    ),
+  );
+
+  it.live('prints every finding and fails on one under --strict', () =>
     withFs(
       Effect.gen(function* () {
         const dir = yield* repo;
         const lint = yield* inProcess(dir, ['--base', 'main', '--strict'], historyModel().layer);
         expect(Exit.isFailure(lint.exit)).toBe(true);
-        expect(lint.out.at(-1)).toBe(
+        expect(lint.out).toEqual([
+          FINDING,
           '[judged] rule=historyComment items=1 cached=0 asked=1 findings=1',
-        );
+        ]);
       }),
     ),
   );

@@ -86,8 +86,9 @@
     // wait), never a fixed time: under load the fixed wait guesses wrong.
     "effect/noFixedWaitInTests": "error",
     // The judged rules (packages/scripts/src/judged): a model decides each
-    // item its selector reads. `bun run lint:judged` asks it for the changed
-    // items and keeps the answers; oxlint reports the kept ones. Each entry's
+    // item its selector reads. `bun run lint` runs `lint:judged` first, which
+    // asks it about the changed items and keeps the answers, then oxlint,
+    // which reports the kept ones at each rule's severity. Each entry's
     // options are the rule (rule.ts); a rule is `warn` until its labelled
     // corpus (judged/fixtures) shows the precision a gate needs, measured by
     // `bun run --cwd packages/scripts judged:measure --rule <id>`.
@@ -108,6 +109,27 @@
         "reports": "history",
         "threshold": 0.9,
         "message": "the comment tells the code's history: say what it does today and why; how it got here lives in git log"
+      }
+    ],
+    // A film's speech or picture that quotes or names Ellen White, an Adventist
+    // pioneer or their books, names a denomination, or tells church history.
+    // Measured on Jev over its 60 cases (24 breach), five runs: precision 1.00
+    // at 0.7, recall 0.92 to 0.96, the highest clean case at 0.49; so it
+    // gates.
+    "judged/scriptSpeech": [
+      "error",
+      {
+        "version": 1,
+        "selector": "scriptBeats",
+        "subject": "film beat's speech or picture",
+        "instructions": "The item is what a narrated Bible film says (say:) or shows (picture:) in one beat. The films teach from Scripture alone and never source themselves overtly. BREACH means the words quote or name Ellen White, an Adventist pioneer (Waggoner, Jones, Uriah Smith, William Miller and the like) or one of their books by title, name a denomination or church as an authority, or tell church history (1844, the Millerites, Minneapolis 1888, a church's statement of beliefs), in speech or on screen. CLEAN means anything else: Scripture quoted or retold, \"the Bible\" named, plain teaching (the Sabbath, the sanctuary, the latter rain, the day of atonement) with no church, person or date of church history named, a pioneer's idea paraphrased with no name, or Bible-era history.",
+        "criteria": {
+          "clean": "Scripture, plain teaching or an idea told with no pioneer, book, denomination or church history named",
+          "breach": "quotes or names Ellen White, a pioneer or their book, names a denomination, or tells church history"
+        },
+        "reports": "breach",
+        "threshold": 0.7,
+        "message": "the beat names its sources or church history: teach it from Scripture, the idea unnamed"
       }
     ]
   },

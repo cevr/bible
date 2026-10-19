@@ -15,7 +15,8 @@
 // cases=<n> n=<n> conflicts=<n> sent=<n> right=<n> wrong=<n> unanswered=<n>
 // hand-right=<n>/<n> positives=<n> threshold=<t> reported=<n> true=<n>
 // precision=<p> recall=<r> wall=<ms> in=<tokens> out=<tokens>`, then the
-// precision and recall at other thresholds, then each wrong case. `n` is the
+// precision and recall at other thresholds, then the spread (the lowest p
+// of a positive and the highest of any other case), then each wrong case. `n` is the
 // distinct texts of the `cases`, each scored once (the model answers a text
 // once); `conflicts` the texts whose cases disagree on a label; `sent` the
 // texts asked about (`n` times `--repeat`); `positives` the scored texts
@@ -136,6 +137,14 @@ const measure = Effect.fn('judged.measure')(function* (
       const { reported, right } = at(threshold);
       return `${threshold}:p=${share(right, reported)},r=${share(right, positives)},n=${reported}`;
     }).join(' ')}`,
+  );
+  // How far apart the labels sit: the lowest p a positive got, and the
+  // highest any other case got. A threshold between them reports every
+  // positive and nothing else; the gap is its margin.
+  const ps = (positive: boolean) =>
+    judged.filter((c) => (c.label === rule.reports) === positive).map((c) => c.p);
+  yield* Console.log(
+    `  spread ${rule.reports} min=${Math.min(...ps(true)).toFixed(2)} other max=${Math.max(...ps(false)).toFixed(2)}`,
   );
   yield* Effect.forEach(wrong, (c) =>
     Console.log(

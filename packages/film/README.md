@@ -3838,6 +3838,22 @@ history takes on its face: a loop pass by number, a batch id, a ledger id and
 a commit hash, each outside a quoted literal and a URL. History told in words
 (what the code used to do, which pass changed it) is a review finding
 (`CLAUDE.md`, **Comments**), since no pattern can read it.
+**A mistake found once** becomes a check, so the gate (`bun run gate`, the
+feedback cycle) finds it the next time: a mistake a syntax tree shows is a
+deterministic rule; one only a reader can see is a judged rule with its
+labelled corpus; one of taste or process that no item shows is a line in a
+skill. For example, a review found a `describe.skip` and a test's timeout
+raised to 120 s, which a tree shows, so `film/tests-keep-their-strength` is
+a rule of the house plugin (`lint/tests-keep-their-strength.ts`, its cases in
+`lint/fixtures/` held by `lint/plugin.test.ts`, on in `.oxlintrc.json`). The
+owner twice took Ellen White, the pioneers and 1888 out of a film's
+narration; no pattern tells a pioneer named from his idea told unnamed, so
+`judged/scriptSpeech` is an entry in `.oxlintrc.json`, its corpus of the
+removed beats and their clean rewrites in
+`packages/scripts/src/judged/fixtures/script-speech.json`, its threshold set
+from `judged:measure`. A film that ended somewhere else than it opened is no
+item of any file, so it is a line of the film skill
+(`.claude/skills/film/CRAFT.md`, **Bookend the setting**).
 **Judged rules** are the rules a pattern cannot decide, decided by a model
 and reported by oxlint. Each is an entry `judged/<id>` in `.oxlintrc.json`,
 its options its whole definition (`packages/scripts/src/judged/rule.ts`): a
@@ -3845,34 +3861,33 @@ version, a selector (which items it reads), the subject, the classify
 instructions and criteria, the label that reports, a threshold and a
 message; `settings.judged` names the model, whose measurements set the
 thresholds, and where the answers are kept. Its severity is its gate: `warn`
-reports, `error` fails the lint, `off` judges nothing. The first,
-`historyComment`, reads the comment blocks of every linted TypeScript file.
-`bun run lint:judged` (`packages/scripts/src/lint-judged.ts`) reads the items
-that the working tree adds or changes against the merge base with
-origin/main (`--base` names another), for every rule at once, and asks
-TypeSafe's model about all of them in one request, split only past 200 items
-or about 60,000 input tokens (the model refused a request near 65,536). It
-keeps each answer, keyed by the rule and its version, the model and the
-text, in the store `settings.judged.cache` names under the repo's ignored tmp
-folder, with the rules judged in each file, so a rerun asks only for new
-text; it prints each finding, and one line a rule. The plugin
-(`packages/scripts/lint/judged.ts`) reads that store in every `bun run lint`
+reports, `error` fails the lint, `off` judges nothing. `bun run lint` (and so
+the gate) runs the runner (`packages/scripts/src/lint-judged.ts`, `bun run
+lint:judged`) first and oxlint after it. The runner reads the items that the
+working tree adds or changes against the merge base with origin/main
+(`--base` names another), for every rule at once, and asks TypeSafe's model
+about all those the store does not answer in one request, split only past
+200 items or about 60,000 input tokens (the model refused a request near
+65,536). It keeps each answer in the store `settings.judged.cache` names
+under the repo's ignored tmp folder, keyed by the rule and its version, the
+model and the text, with the rules judged in each file, so a rerun asks only
+for new text. The plugin (`packages/scripts/lint/judged.ts`) reads that store
 and reports each kept answer at or over its rule's threshold, at its line;
-it asks no model, so a checkout with no store (CI) reports nothing. A series
-script in Markdown, which oxlint does not read, is reported by the runner
-alone. The runner never blocks a push: no key (`TYPESAFE_API_KEY`, else the
-keychain item `typesafe-api-key` within 2 s), a timeout, a rate limit, an
-HTTP error or an answer that misses items passes, and prints `[judged]
-skipped rule=<rule> reason=<reason> items=<n>`; any other failure (git, the
-lint config, a defect) is `rule=* reason=error` with `detail=<tag>`, and
-answers the store cannot keep are asked again next run. The key goes only to
-TypeSafe's own host, and the runner reads no `.env` file (`bun
---no-env-file`): none in a checkout sets its key or a proxy. A rule stays at
-`warn` until its labelled corpus (`packages/scripts/src/judged/fixtures/`)
-shows the precision a gate needs; `bun run --cwd packages/scripts
-judged:measure --rule <id>` measures it there and prints its precision and
-recall at its threshold and at others; `--strict` fails on any finding. The
-lefthook pre-push runs the runner; CI, which has no key, does not.
+it asks no model, so a checkout with no store reports nothing. The runner
+prints, and gates on, only the findings oxlint cannot report (a Markdown
+series script, an answer the store could not keep), and one line a rule;
+`--strict` prints every finding and fails on any. It never fails on its
+model or its host: no key (`TYPESAFE_API_KEY`, else the keychain item
+`typesafe-api-key` within 2 s), a timeout, a rate limit, an HTTP error or an
+answer that misses items passes, and prints `[judged] skipped rule=<rule>
+reason=<reason> items=<n>`; any other failure (git, the lint config, a
+defect) is `rule=* reason=error` with `detail=<tag>`, and answers the store
+cannot keep are asked again next run. The key goes only to TypeSafe's own
+host, and the runner reads no `.env` file (`bun --no-env-file`): none in a
+checkout sets its key or a proxy. A rule stays at `warn` until its labelled
+corpus (`packages/scripts/src/judged/fixtures/`) shows the precision a gate
+needs; `bun run --cwd packages/scripts judged:measure --rule <id>` measures it
+there and prints its precision and recall at its threshold and at others.
 `film/drawing-literal` and `film/no-unprobed-ink` hold a film's scenes to
 what the lab can locate and what `film check` can probe; the films' README
 (`apps/animations/README.md`, **Lint**) says what each refuses.

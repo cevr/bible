@@ -1,0 +1,366 @@
+{
+  "rule": "scriptSpeech",
+  "about": "Film speech and pictures as the scriptBeats selector reads them: righteousness-by-faith's script.ts before 6fd4ceb61 (when its narration named Ellen White, Waggoner and Jones and told of 1888), at 6fd4ceb61 (pioneers unnamed, 1888 still told, which the owner then removed in aefe4071b), at aefe4071b and at ebad57edf (the clean rewrites, kept as near misses), the frozen first cut righteousness-by-faith-v1 at f0b610b50, cold-studies, and the say/picture cells of the education and health series scripts' tables. 24 breach and 36 clean; 53 from the repo and 7 by hand (5 breach: Millerites, a denomination, a pioneer and two book titles, which no repo beat names; 2 clean near misses). Near misses on the clean side quote Scripture, say \"the Bible\", paraphrase a pioneer's idea unnamed, or teach the Sabbath, the latter rain and the day of atonement with no church, name or date.",
+  "cases": [
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:99",
+      "label": "breach",
+      "text": "say: Righteousness. {church}A word most of us only hear in church. {fair}But it is simple. {right}It just means right doing. {whose}Right by whose measure? {psalm}The psalmist answers, {all}“All thy commandments are righteousness.” {char}Waggoner called God's law a transcript of his character, {circle}a circle as big as the universe.",
+      "why": "names Waggoner and his phrase \"a transcript of his character\"; removed in 6fd4ceb61 (owner: no overt pioneer quotes)"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:127",
+      "label": "breach",
+      "text": "say: {how}So how does anyone become righteous? {year}In Minneapolis in 1888, {two}two preachers, Ellet Waggoner and Alonzo Jones, took that question head on. {rep}Their church had a reputation: Adventists talk the law, the law, but do not preach Christ. {ew}Ellen White said God sent {precious}“a most precious message” through those two. {what}So what was the message? {answer}It was {angel}the third angel's message: {banner}the commandments of God, and the faith of Jesus. {hand}The law and the gospel, hand in hand. {three}God does not just call us righteous. {makes}He makes us righteous, {gifts}with three gifts: {faith}faith, {forgiveness}forgiveness, {power}and power. {daily}And every day, we choose to keep receiving them.",
+      "why": "tells 1888 Minneapolis history, names Waggoner, Jones, Ellen White and Adventists"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:138",
+      "label": "breach",
+      "text": "picture: STORY: on `how` the scene opens outside a cardboard meeting hall at dusk, one tall window lit warm; the fig-leaf figure from `mirror`, small and screen-left, looks up at it. On `year` the camera pushes through the lit window into the hall of 1888, warm peach light through tall windows. Two men at the front, one with a Bible open, faces toward a crowd of grey figures. On `rep` the crowd splits: half hold small stone tablets up in their hands, half look for something missing; the tablets have no one with them. On `answer` every grey face turns toward a warm gold light rising behind the pulpit. On `angel` the roof lifts away and an angel flies across a teal sky trailing a banner; on `banner` it reads: the commandments of God, and the faith of Jesus. On `hand` a stone tablet and a cross come together into one gold emblem. On `three` push through into IDEA, the parchment page, on the same row. On `makes` the grey figure stands centre, and a warm light rises in their chest. On `gifts` three icons come in left to right, each set into an open hand held palm up (the figure's own hand, pushed into): the gold word-bubble, faith (`faith`); the white robe, forgiveness (`forgiveness`); the heart with two small tablets inside, power (`power`). On `daily` a small sun arcs over the row, rising and setting two or three times, and each time the hand opens again.",
+      "why": "the picture stages the hall of 1888 with the two preachers: church history on screen"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:165",
+      "label": "breach",
+      "text": "say: {gift}The first gift: faith. {where}Where does it come from? {from}From God's word. {back}Jones went back to the beginning. {dark}The world starts dark and empty. {then}The psalm says, {spake}“He spake, and it was done.” {only}Jones noticed something amazing: God spoke the word only, {itself}and the word itself produced the thing.",
+      "why": "credits the reading of Genesis to Jones by name"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:176",
+      "label": "breach",
+      "text": "say: {same}He saw it again in a Roman soldier, {servant}whose servant was dying. {offer}Jesus offered to come. {only}You need not come, said the soldier. Just speak the word. {healed}The servant was healed, {room}with Jesus nowhere in the room. {def}From that, Jones defined faith: {faith}“Faith is the expecting the word of God to do what it says and the depending upon that word to do what it says.” {gift}And even that faith is God's gift.",
+      "why": "quotes Jones's definition of faith by name"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:191",
+      "label": "breach",
+      "text": "say: {faith}So what does faith do? {saviour}Faith is not our Saviour, Ellen White said. It earns nothing. {hand}It is the hand that takes hold of Christ. {desert}Remember Israel, bitten by snakes? {pole}Whoever looked at the serpent on the pole lived. {harder}We still make it harder. {climb}She put it so simply: “Do not climb the pole, but only look. I present Christ to you. Look and live.”",
+      "why": "quotes Ellen White by name (\"Do not climb the pole\")"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:202",
+      "label": "breach",
+      "text": "say: {now}The second gift: forgiveness. {paul}Paul calls it being {justified}justified. {still}Justified? But we are still guilty. {cover}Is that the cover-up again? {would}It would be, if God only said the words. {subst}But Waggoner saw it: {w}“People are not simply counted righteous, but actually made righteous.” {voice}The voice that said, let there be light, {speaks}speaks righteousness into a life {made}where there was none before.",
+      "why": "quotes Waggoner by name"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:216",
+      "label": "breach",
+      "text": "say: But how can God make the guilty righteous {fair}and still be fair? {notes}Ellen White's answer, in 1888: {treated}“He was treated as we deserve to be treated. He came to our world and {took}took our sins that we might take His righteousness.” {cross}He bore them on the cross. {rose}But the story does not end there. He rose, {up}and went up to heaven as our high priest. {now}Right now, she wrote, he pleads for us there.",
+      "why": "quotes Ellen White by name and dates it to 1888"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:229",
+      "label": "breach",
+      "text": "say: {zech}The prophet Zechariah saw that very court. {joshua}Joshua the high priest, {filthy}in filthy clothes, stands before the Angel, {satan}and Satan stands at his right hand to accuse him. {room}The accuser is right there. {points}He is not wrong about the clothes. {ew}Ellen White applied it to God's people {day}“in the closing up of the great day of atonement.” {angel}But the Angel, Christ himself, {silence}silences the accuser.",
+      "why": "quotes Ellen White by name on the day of atonement"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:241",
+      "label": "breach",
+      "text": "say: {take}He says, take the filthy clothes off him. {pass}I have taken your sin away, {clothe}and I will clothe you anew. {loom}A robe from heaven's loom, Ellen White said, {woven}not one thread of it ours. {nicer}A cover-up, {just}just a nicer one? {no}No. {cloak}Christ gives no cloak for sin, Waggoner said. {away}He takes it away. {judicial}More than a ruling, she wrote: {reclaim}“It is not only forgiveness for sin, but {reclaiming}reclaiming from sin.”",
+      "why": "names Ellen White and Waggoner and quotes her"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:253",
+      "label": "breach",
+      "text": "say: {power}The third gift: power. {out}So is the law out of the picture? {never}No, it moves in. {write}God writes it on the heart. {bed}Christ gave the paralysed man power to walk. {not}Not just the right to be called God's children, Waggoner said, {become}but the power to become them. {plain}The church's 1889 statement: {first}we depend on Christ first to be justified from our past sins, {second}then for grace to obey his law from now on.",
+      "why": "names Waggoner and the church's 1889 statement of beliefs"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:267",
+      "label": "breach",
+      "text": "say: Once made righteous, {done}are we done? {joy}Heaven would be no joy to a heart that still loves sin. {keep}So how do we stay changed? {will}We cannot change our hearts, Ellen White said, {choose}but we can choose to give God our will. {matter}“This is a daily matter.” {sab}And the Sabbath, Waggoner said, is righteousness by faith: {rest}we stop our own works, and rest in his.",
+      "why": "quotes Ellen White and Waggoner by name"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:282",
+      "label": "breach",
+      "text": "say: Where was all this heading? {big}Somewhere big. {spirit}Jones tied it to the latter rain. The Spirit's outpouring. {blot}And to the blotting out of sins, in the cleansing of the sanctuary. {loud}A message for a loud voice, Ellen White said.",
+      "why": "names Jones and Ellen White as the authorities for the latter rain"
+    },
+    {
+      "source": "6fd4ceb61:apps/animations/src/films/righteousness-by-faith/script.ts:129",
+      "label": "breach",
+      "text": "say: {how}So how does anyone become righteous? {year}In Minneapolis in 1888, {two}two young preachers took that question head on. {rep}Their church had a reputation: they talked the law, the law, but did not preach Christ. {ew}Many had lost sight of Jesus. {precious}God was sending them a precious message, to turn their eyes back to him. {what}So what was the message? {answer}It was {angel}the third angel's message, {banner}“the commandments of God, and the faith of Jesus.” {hand}The law and the gospel, never apart. {three}God does not just call us righteous. {makes}He makes us righteous, {gifts}with three gifts: {faith}faith, {forgiveness}forgiveness, {power}and power. {daily}And every day, we choose to keep receiving them.",
+      "why": "names no one but still tells 1888 Minneapolis church history; owner: \"still mentions adventist history like 1888, lets remove that\""
+    },
+    {
+      "source": "f0b610b50:apps/animations/src/films/righteousness-by-faith-v1/script.ts:27",
+      "label": "breach",
+      "text": "picture: Title card. 'Righteousness by Faith' pasted in, letter by letter, over a torn gold sun. Small caption: 'A. T. Jones · E. J. Waggoner · Ellen G. White'.",
+      "why": "the title card captions the pioneers by name: A. T. Jones, E. J. Waggoner, Ellen G. White"
+    },
+    {
+      "source": "f0b610b50:apps/animations/src/films/righteousness-by-faith-v1/script.ts:53",
+      "label": "breach",
+      "text": "say: So where does righteousness come from? {back}Go back to the beginning. {dark}Darkness. Emptiness. Nothing at all. And then God {spoke}spoke. {spake}“He spake, and it was done.” {atj}A. T. Jones noticed something simple here: {jones}“He spoke the word only, and it was so. {produced}The word spoken, itself produced the thing.”",
+      "why": "quotes A. T. Jones by name"
+    },
+    {
+      "source": "f0b610b50:apps/animations/src/films/righteousness-by-faith-v1/script.ts:96",
+      "label": "breach",
+      "text": "say: So what is faith? It isn't the thing that saves us. {saviour}“Faith is not our Saviour,” Ellen White wrote. {earns}“It earns nothing. {hand}It is the hand by which we lay hold upon Christ.” {open}An empty hand, held open to {receive}receive a {gift}gift.",
+      "why": "quotes Ellen White by name"
+    },
+    {
+      "source": "f0b610b50:apps/animations/src/films/righteousness-by-faith-v1/script.ts:122",
+      "label": "breach",
+      "text": "say: In {year}1888, two young editors, {names}Alonzo Jones and Ellet Waggoner, brought this message to a church {lost}where many had lost sight of Jesus. Ellen White called it {precious}“a most precious message.” {asked}And when she was asked whether it was the third angel's message of Revelation 14, she answered: {verity}“It is the third angel's message in verity.”",
+      "why": "tells 1888 history, names Jones, Waggoner and Ellen White"
+    },
+    {
+      "source": "f0b610b50:apps/animations/src/films/righteousness-by-faith-v1/script.ts:127",
+      "label": "breach",
+      "text": "picture: Collage of 1888: a torn newspaper masthead 'Minneapolis 1888', two small portrait silhouettes with name tags. A stamp: A MOST PRECIOUS MESSAGE. An angel with a trumpet flies across a wide sky.",
+      "why": "the picture shows a Minneapolis 1888 masthead and the two preachers' portraits"
+    },
+    {
+      "source": "hand",
+      "label": "breach",
+      "text": "say: {year}In 1844, {wait}thousands of Millerites waited all night for Jesus to {*}come. {/} {came}He did not come.",
+      "why": "tells Millerite church history (1844)"
+    },
+    {
+      "source": "hand",
+      "label": "breach",
+      "text": "say: As the Seventh-day Adventist Church has always taught, {/} the Sabbath is a {*}sign.",
+      "why": "names a denomination as the authority"
+    },
+    {
+      "source": "hand",
+      "label": "breach",
+      "text": "picture: Scripture card, then a second card with a line from Steps to Christ, its title small at the foot.",
+      "why": "puts an Ellen White book on screen by title"
+    },
+    {
+      "source": "hand",
+      "label": "breach",
+      "text": "say: {smith}Uriah Smith read it this way: {/} the sanctuary of Daniel 8 is in {*}heaven.",
+      "why": "names a pioneer (Uriah Smith) as the reader of the prophecy"
+    },
+    {
+      "source": "hand",
+      "label": "breach",
+      "text": "say: {nature}In The Desire of Ages we read that Jesus learned from {*}nature, {/} from the things His own hand had made.",
+      "why": "quotes from The Desire of Ages by title"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:87",
+      "label": "clean",
+      "text": "say: Imagine standing in a courtroom. {evidence}The evidence is overwhelming. {did}You did it. {judge}And the judge looks at you and says, {righteous}righteous. {wait}Wait. That is not justice. {cover}That is a cover-up. {right}Right? {bible}And yet the Bible says God justifies the ungodly. {oldest}So what is God doing? It is one of the oldest questions there is. Job asked it: {job}“How should man be just with God?”",
+      "why": "near miss: \"the Bible says\" and Job 9:2 quoted; no pioneer or history"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:113",
+      "label": "clean",
+      "text": "say: {short}How do we measure up? Every one of us comes up short. {fig}So we do what Adam and Eve did. We sew fig leaves. {harder}We try harder. {promise}We make promises. {going}How is that going? {rags}Isaiah's verdict: “All our righteousnesses are as filthy rags.” {mirror}And the law? It is a mirror. {stain}It shows every stain, {wash}but you cannot wash your face with a mirror.",
+      "why": "quotes Isaiah (KJV) and teaches plainly"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:148",
+      "label": "clean",
+      "text": "say: {see}What do these gifts look like? {roof}In Capernaum, four friends open a roof and lower a paralysed man on his bed to Jesus. {saw}Jesus saw their faith, {son}and said, “Son, thy sins be forgiven thee.” {scribes}Only God forgives sins, the scribes think. {easy}Easy to say, right? No one can see a sin forgiven. {arise}So Jesus says, arise, take up your bed, and go home. {went}And he walks out in front of them all. {count}Count what he received. {one}One: faith. They believed, and he took Jesus at his word. {two}Two: forgiveness, before a word about his legs. {three}Three: power, to get up and walk, {proof}the proof that two was real.",
+      "why": "retells Mark 2 and quotes Jesus (KJV)"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:157",
+      "label": "clean",
+      "text": "say: {court}Then a woman is brought into the temple court, caught in adultery. {law}Moses said to stone her, they say. {dust}Jesus stoops and writes in the dust. {first}Let the one without sin throw the first stone. {leave}One by one, they go. {alone}Only the two of them are left. {none}Has no man condemned you? {lord}No man, Lord. {told}And Jesus said: “Neither do I condemn thee: go, and sin no more.” {again}Count again. {one}One: faith. She calls him Lord. {two}Two: forgiveness. No condemnation. {three}Three: power, to go and sin no more. {order}The same three, in the same order.",
+      "why": "retells John 8 and quotes Jesus (KJV)"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:297",
+      "label": "clean",
+      "text": "say: So, back to Job's question. {how}How should man be just with God? {not}Not by sewing a better garment. {taking}By taking God at his word, {receive}receiving his robe, {heart}and a new heart with it, {every}every day. {verdict}When God says righteous, it is not a cover-up. {real}God never deals in make-believe. {true}He makes it true. {jer}And Jeremiah gave the coming King his name.",
+      "why": "returns to Job and Jeremiah; Scripture only"
+    },
+    {
+      "source": "6fd4ceb61^:apps/animations/src/films/righteousness-by-faith/script.ts:311",
+      "label": "clean",
+      "text": "say: The Lord our righteousness.",
+      "why": "a Scripture title (Jer 23:6)"
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:101",
+      "label": "clean",
+      "text": "say: Righteousness. {church}A word most of us only hear in church. {fair}But it is simple. {right}It just means right doing. {whose}Right by whose measure? {psalm}The psalmist answers, {all}“All thy commandments are righteousness.” {char}His law is a portrait of his own character, {circle}a circle as big as the universe.",
+      "why": "near miss: the pioneer's idea paraphrased with no name (\"a portrait of his own character\")"
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:129",
+      "label": "clean",
+      "text": "say: {how}So how does anyone become righteous? {year}Christians have wrestled with that for centuries. {two}Some hold up the law, {rep}and lose sight of Christ. {ew}Others hold up Christ, {precious}and set the law aside. {what}So what does the Bible say? {answer}Revelation pictures {angel}an angel carrying God's last message to the world: {banner}“the commandments of God, and the faith of Jesus.” {hand}The law and the gospel, never apart. {three}God does not just call us righteous. {makes}He makes us righteous, {gifts}with three gifts: {faith}faith, {forgiveness}forgiveness, {power}and power. {daily}And every day, we choose to keep receiving them.",
+      "why": "near miss: \"Christians have wrestled with that for centuries\" and Revelation 14 quoted, no denomination or date; the owner's accepted fix of the 1888 beat"
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:140",
+      "label": "clean",
+      "text": "picture: STORY: on `how` the scene opens outside a cardboard meeting hall at dusk, one tall window lit warm; the fig-leaf figure from `mirror`, small and screen-left, looks up at it. On `year` the camera pushes through the lit window into a hall of no time or place in warm peach light: a pulpit with an open Bible at the front and no one in it, a crowd of grey figures in rows. On `two` the camera pushes in on the left half of the crowd as they lift small stone tablets high; on `rep` they look about, puzzled, for something missing: there is no cross among them. On `ew` the right half lift small wooden crosses; on `precious` they set their own tablets down on the floor. On `what` faces turn, curious. On `answer` every grey face turns toward a warm gold light rising behind the pulpit; the tablets and the crosses stay up. On `angel` the roof lifts away and an angel flies across a teal sky trailing a banner; on `banner` it reads: the commandments of God, and the faith of Jesus. On `hand` a stone tablet from the left and a cross from the right come together into one gold emblem. On `three` push through into IDEA, the parchment page, on the same row. On `makes` the grey figure stands centre, and a warm light rises in their chest. On `gifts` three icons come in left to right, each set into an open hand held palm up (the figure's own hand, pushed into): the gold word-bubble, faith (`faith`); the white robe, forgiveness (`forgiveness`); the heart with two small tablets inside, power (`power`). On `daily` a small sun arcs over the row, rising and setting two or three times, and each time the hand opens again.",
+      "why": "near miss: the 1888 hall redrawn as \"a hall of no time or place\""
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:167",
+      "label": "clean",
+      "text": "say: {gift}The first gift: faith. {where}Where does it come from? {from}From God's word. {back}Go back to the beginning. {dark}The world starts dark and empty. {then}The psalm says, {spake}“He spake, and it was done.” {only}Notice something amazing: God only spoke the word, {itself}and the word itself made the thing.",
+      "why": "paraphrases the reading of Genesis unnamed and quotes a psalm"
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:193",
+      "label": "clean",
+      "text": "say: {faith}So what does faith do? {saviour}Faith is not our Saviour. It earns nothing. {hand}It is only the hand that takes hold of Christ. {desert}Remember Israel, bitten by snakes? {pole}Whoever looked at the serpent on the pole lived. {harder}We still make it harder. {climb}But no one has to climb the pole. Just look to Christ: “Look unto me, and be ye saved.”",
+      "why": "quotes Isaiah 45:22 where the pioneer quote stood"
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:206",
+      "label": "clean",
+      "text": "say: {now}The second gift: forgiveness. {paul}Paul calls it being {justified}justified. {still}Justified? But we are still guilty. {cover}Is that the cover-up again? {would}It would be, if God only said the words. {subst}But Paul goes further: {w}“by the obedience of one shall many be made righteous.” {voice}The voice that said, let there be light, {speaks}speaks righteousness into a life {made}where there was none before.",
+      "why": "quotes Paul (Rom 5:19) where the Waggoner quote stood"
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:236",
+      "label": "clean",
+      "text": "say: {zech}The prophet Zechariah saw that very court. {joshua}Joshua the high priest, {filthy}in filthy clothes, stands before the Angel, {satan}and Satan stands at his right hand to accuse him. {room}The accuser is right there. {points}He is not wrong about the clothes. {ew}And the vision speaks to God's people {day}as the great day of atonement closes. {angel}But the Angel, Christ himself, {silence}silences the accuser: “The LORD rebuke thee, O Satan.”",
+      "why": "near miss: \"the great day of atonement\" said as teaching, Zechariah 3 quoted, no source named"
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:261",
+      "label": "clean",
+      "text": "say: {power}The third gift: power. {out}So is the law out of the picture? {never}No, it moves in. {write}God writes it on the heart. {bed}Christ gave the paralysed man power to walk. {not}Not just the right to be called God's children, {become}but “power to become the sons of God.” {plain}So we depend on Christ for both: {first}first, to be justified from our past sins, {second}then for grace to obey his law from now on.",
+      "why": "quotes John 1:12; the 1889 statement's idea kept with no name or date"
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:275",
+      "label": "clean",
+      "text": "say: Once made righteous, {done}are we done? {joy}Heaven would be no joy to a heart that still loves sin. {keep}So how do we stay changed? {will}We cannot change our own hearts, {choose}but we can choose to give God our will. {matter}“Choose you this day whom ye will serve.” Every day, again. {sab}And the Sabbath is righteousness by faith: {rest}we stop our own works, and rest in his.",
+      "why": "near miss: the Sabbath taught plainly, Joshua 24:15 quoted, no church named"
+    },
+    {
+      "source": "aefe4071b:apps/animations/src/films/righteousness-by-faith/script.ts:293",
+      "label": "clean",
+      "text": "say: Where was all this heading? {big}Somewhere big. {spirit}To the latter rain, the Spirit poured out. {blot}To the blotting out of sins, as the sanctuary is cleansed. {loud}A message cried “with a loud voice.”",
+      "why": "near miss: latter rain and the sanctuary cleansed as teaching, Rev 14 phrase quoted, no names"
+    },
+    {
+      "source": "ebad57edf:apps/animations/src/films/righteousness-by-faith/script.ts:195",
+      "label": "clean",
+      "text": "say: So is God's verdict a cover-up? {//} What does the word mean? {/} {right}Righteousness is right {*}doing. {/} {measure}Right by {*}whose measure? {/} {all}The psalm says, “All thy {*}commandments are righteousness.” {/} His law is a picture of His {*}character. {/} So how do we measure up? {/} {short}We {*}all come up short. {/} {cover}And we do what Adam and Eve did: {/} we cover up. {/} {fig}Fig leaves, excuses, a nicer coat over the stain. {/} {going}And how is that going?",
+      "why": "Psalm 119:172 quoted; plain teaching"
+    },
+    {
+      "source": "ebad57edf:apps/animations/src/films/righteousness-by-faith/script.ts:216",
+      "label": "clean",
+      "text": "say: {first}How can a {*}word do that? {//} {dark}On the Bible's first page, the world is dark. {/} {light}God says, Let there be light, and there {*}is light. {/} {itself}No tools, just His {*}word. {/} {calleth}Paul says He “calleth those things which be {*}not as though they were.” {/} When He calls them, they {*}are. {//} {verdict}So is His verdict {cover}a cover-up? {/} {seed}No. {/} It's a {*}seed, and His word makes it {*}true. {/} {brings}And His word brings three things. {/} {faith}It brings faith. {/} {forgiveness}It brings forgiveness. {/} {power}It brings power.",
+      "why": "near miss: \"the Bible's first page\"; Genesis and Romans 4:17"
+    },
+    {
+      "source": "ebad57edf:apps/animations/src/films/righteousness-by-faith/script.ts:377",
+      "label": "clean",
+      "text": "say: {heading}So where is all this heading? {//} {harvest}To a {*}harvest. {/} In Israel the latter rain, the last rain of spring, ripened the grain. {/} {like}And God's {*}word comes down like the rain. {/} {rain}Seek the LORD, the prophet says, {/} “till he come and rain {*}righteousness upon you.” {//} {blot}Even the {*}record of our sins will be blotted out. {/} {ripe}And sin in our lives will {*}end.",
+      "why": "latter rain from Hosea 10:12 and the land of Israel; Scripture only"
+    },
+    {
+      "source": "ebad57edf:apps/animations/src/films/righteousness-by-faith/script.ts:414",
+      "label": "clean",
+      "text": "say: “The just shall live by {*}faith.”",
+      "why": "quotes Habakkuk/Romans (KJV)"
+    },
+    {
+      "source": "ebad57edf:apps/animations/src/films/righteousness-by-faith/script.ts:191",
+      "label": "clean",
+      "text": "picture: IDEA: the court pulled wide from high in its back wall: the accused small in the dock, the crack across the floor at his feet, warm sunlight falling through the high window across the floor. The title is the only text: Righteousness by Faith, in the film's display type, cream. ${CARDS}",
+      "why": "a title picture; no names"
+    },
+    {
+      "source": "ebad57edf:apps/animations/src/films/cold-studies/script.ts:32",
+      "label": "clean",
+      "text": "say: Job asked it: {job}“How should man be just with God?”",
+      "why": "Job 9:2 quoted"
+    },
+    {
+      "source": "ebad57edf:apps/animations/src/films/cold-studies/script.ts:38",
+      "label": "clean",
+      "text": "picture: Job 9:2 on its page (I know it is so of a truth: but how should man be just with God?). As \"Job asked it\" is said, the phrase \"how should man be just with God?\" is highlighted in reading order; on `job` the highlight floods out to fill the frame and becomes the full-screen card, the words landing as they are spoken, \"just\" set large in gold. Hard cut out.",
+      "why": "a picture of a Scripture page"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/education/scripts/01-what-is-school-for.md:21",
+      "label": "clean",
+      "text": "say: But start on the Bible's first {*}page.",
+      "why": "near miss: \"the Bible's first page\""
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/education/scripts/01-what-is-school-for.md:22",
+      "label": "clean",
+      "text": "say: \"So God created man in his own {*}image.\"",
+      "why": "Genesis 1:27 quoted"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/education/scripts/01-what-is-school-for.md:28",
+      "label": "clean",
+      "text": "say: In the highest sense, teaching a child and redeeming a child are one {*}work. {/} Saving a soul means training it for {*}heaven.",
+      "why": "near miss: an Education (1903) idea paraphrased unnamed"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/education/scripts/17-did-jesus-go-to-school.md:21",
+      "label": "clean",
+      "text": "say: That doesn't mean He couldn't {*}read. {/} It means He never sat under the {*}rabbis. {/} Their schools made much of small things, and little of {*}great ones. {/} So where did Jesus get His education?",
+      "why": "near miss: the rabbis' schools are Bible-era history, not church history"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/education/scripts/19-daniels-education.md:24",
+      "label": "clean",
+      "text": "say: Not at Jerusalem's {*}court. {/} The princes there were raised for show and {*}pleasure. {/} As an old Jewish saying goes, Jerusalem fell because it neglected the education of its {*}children.",
+      "why": "near miss: \"an old Jewish saying\", no pioneer named (the Haskell source sits in the notes)"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/education/scripts/19-daniels-education.md:20",
+      "label": "clean",
+      "text": "picture: Series card over B-roll of Babylon (generated, labeled \"Illustration\").",
+      "why": "a series card over Babylon"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/education/scripts/44-should-kids-compete-for-grades.md:24",
+      "label": "clean",
+      "text": "say: \"Whosoever will be great among you, shall be your {*}minister.\"",
+      "why": "Mark 10:43 quoted"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/education/scripts/52-three-ways-to-make-a-child-obey.md:20",
+      "label": "clean",
+      "text": "say: This is Taught of the Lord. {/} Today, an old story of one girl, one carriage, and three mothers.",
+      "why": "near miss: \"an old story\" told without naming whose"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/education/scripts/52-three-ways-to-make-a-child-obey.md:29",
+      "label": "clean",
+      "text": "say: \"For I know him, that he will {*}command his children and his household after him, and they shall keep the way of the LORD.\"",
+      "why": "Genesis 18:19 quoted"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/health/scripts/01-the-lord-that-healeth-thee.md:30",
+      "label": "clean",
+      "text": "say: Right there, God makes a {*}promise. {/} Listen to His voice, keep His laws, and He will put {*}none of Egypt's diseases on you, {/} \"for I am the LORD that healeth thee.\"",
+      "why": "Exodus 15:26 paraphrased and quoted"
+    },
+    {
+      "source": "ebad57edf:apps/animations/series/health/scripts/01-the-lord-that-healeth-thee.md:37",
+      "label": "clean",
+      "text": "say: Sickness has {*}causes. {/} Your body runs by {*}laws. {/} The God who wrote the Ten Commandments wrote those laws too, into every nerve and every muscle.",
+      "why": "plain teaching: the body's laws"
+    },
+    {
+      "source": "hand",
+      "label": "clean",
+      "text": "say: The Bible says, \"Remember the sabbath day, to keep it {*}holy.\" {/} It is the first thing God ever called holy.",
+      "why": "near miss: names the Sabbath and quotes Exodus 20:8 (KJV), no church"
+    },
+    {
+      "source": "hand",
+      "label": "clean",
+      "text": "picture: Speaker holds the Bible open at Revelation 14; three paper angels fly across the page (labeled \"Illustration\").",
+      "why": "near miss: Revelation 14's angels on screen, Scripture only"
+    }
+  ]
+}

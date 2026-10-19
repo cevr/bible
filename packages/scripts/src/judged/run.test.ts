@@ -135,7 +135,7 @@ describe('a judged rule', () => {
         'Judge the code comment under key c1. HISTORY means',
       );
       // The texts are at 0.97, 0.02 and 0.89: the first alone is a finding.
-      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97 }]);
+      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97, kept: true }]);
       expect(outcome.findings.map((f) => findingLine(historyComment, f))).toEqual([
         "src/a.ts:3 warning judged(historyComment): the comment tells the code's history: say what it does today and why; how it got here lives in git log p=0.97",
       ]);
@@ -154,7 +154,7 @@ describe('a judged rule', () => {
     return Effect.gen(function* () {
       const items = [...at.keys()].map((text, i) => ({ file: 'src/t.ts', line: i + 1, text }));
       const outcome = yield* judgeBy(historyComment, items, yield* judging);
-      expect(outcome.findings).toEqual([{ file: 'src/t.ts', line: 1, p: 0.9 }]);
+      expect(outcome.findings).toEqual([{ file: 'src/t.ts', line: 1, p: 0.9, kept: true }]);
     }).pipe(Effect.provide(model.layer), withFs);
   });
 
@@ -347,7 +347,7 @@ describe('a judged rule never fails on its model', () => {
     return Effect.gen(function* () {
       const outcome = yield* judgeBy(historyComment, ITEMS, yield* judging);
       expect(typesafe.requests.map((r) => r.url)).toEqual(['https://api.typesafe.ai/v1/systemone']);
-      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.96 }]);
+      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.96, kept: true }]);
     }).pipe(Effect.provide(typesafe.layer), withFs);
   });
 
@@ -437,7 +437,7 @@ describe('a judged rule never fails on its model', () => {
           new Map(),
         );
         const outcome = yield* judgeBy(historyComment, ITEMS, options);
-        expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97 }]);
+        expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97, kept: true }]);
         expect(runLine(outcome)).toBe('[judged] skipped rule=historyComment reason=no-key items=2');
       }).pipe(Effect.provide(keyless), withFs);
     },
