@@ -193,7 +193,7 @@ The rules, in the order a figure is built:
 - Use pure black, except the cross; use more than three accents, or let anything but gold glow.
 - Hold a picture still for more than 4 s while someone speaks. _(#1.)_
 - Clone a crowd, float a giant hand in from nowhere, or mix hand designs.
-- Draw an arm or a forearm, anywhere, at any scale. Move a hand in a straight lerp, pop it to a new place in one frame, or send it past its reach.
+- Draw a hand floating free of its sleeve, or an arm bare of one (Hands, above; owner 2026-10-18). Move a hand in a straight lerp, pop it to a new place in one frame, or send it past its reach.
 - Gild a joint or a hand: gold is the word.
 - Draw God the Father as a sharp figure with a face: He is a hazy human form veiled in light (character-design 3.3, owner 2026-10-13). Show anything the topic's MUST NOT SAY-OR-SHOW forbids. _(frame.)_
 - Leave dead air: silence below −60 dBFS that no one designed. End on a 3 s card.
