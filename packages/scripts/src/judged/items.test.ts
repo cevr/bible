@@ -1,6 +1,6 @@
 // The judged selectors over sources written out: which items each reads,
-// with which lines and which words. The runner and the plugin both read
-// through these, so an item's text here is its cache key's text in both.
+// with which lines, which words and which key. The runner and the plugin
+// both read through these, so an item's key here is its cache key's in both.
 
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Glob } from 'bun';
@@ -16,6 +16,65 @@ const read = (
   lines: ReadonlyArray<string>,
 ) =>
   itemsOf(selector, parse(file, lines.join('\n'))).map((item) => [item.line, item.end, item.text]);
+
+/** `selector`'s keys of `lines` as the file `file`. */
+const keys = (
+  selector: Parameters<typeof itemsOf>[0],
+  file: string,
+  lines: ReadonlyArray<string>,
+) => itemsOf(selector, parse(file, lines.join('\n'))).map((item) => item.key);
+
+describe('the judged keys', () => {
+  it.effect('fold the whitespace a formatter moves: an indent, a wrap, a space beside a mark', () =>
+    Effect.sync(() => {
+      const kept = keys('functions', 'src/a.ts', [
+        '/** Joins the two. */',
+        'const join = (a: string, b: string) => {',
+        '  return [a, b].join("-");',
+        '};',
+      ]);
+      expect(
+        keys('functions', 'src/a.ts', [
+          '  /**',
+          '   * Joins the two.',
+          '   */',
+          '  const join = ( a: string,',
+          '      b: string ) => { return [ a,b ].join( "-" ); };',
+        ]),
+      ).toEqual(kept);
+      expect(keys('comments', 'src/b.ts', ['// One line,', '// then another.'])).toEqual(
+        keys('comments', 'src/b.ts', ['    // One line, then', '    // another.']),
+      );
+    }),
+  );
+
+  it.effect(
+    "keep a literal's text as written: a string, a template's text, a pattern, JSX text",
+    () =>
+      Effect.sync(() => {
+        const pairs: ReadonlyArray<readonly [string, string, string]> = [
+          ['src/a.ts', 'const f = () => "a - b";', 'const f = () => "a-b";'],
+          ['src/a.ts', "const f = () => 'a  b';", "const f = () => 'a b';"],
+          [
+            'src/a.ts',
+            'const f = (x: string) => `${x} - b`;',
+            'const f = (x: string) => `${x}-b`;',
+          ],
+          [
+            'src/a.ts',
+            'const f = (x: string) => /a \\d/.test(x);',
+            'const f = (x: string) => /a\\d/.test(x);',
+          ],
+          ['src/a.tsx', 'const f = () => <p>a - b</p>;', 'const f = () => <p>a-b</p>;'],
+        ];
+        for (const [file, one, other] of pairs)
+          expect(keys('functions', file, [one])).not.toEqual(keys('functions', file, [other]));
+        expect(keys('comments', 'src/b.ts', ['// a - b'])).not.toEqual(
+          keys('comments', 'src/b.ts', ['// a-b']),
+        );
+      }),
+  );
+});
 
 describe('the judged selectors', () => {
   it.effect('commentedCode takes a comment first on its line with the node under it, whole', () =>

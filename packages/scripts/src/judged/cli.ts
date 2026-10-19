@@ -38,7 +38,13 @@ const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<n
   const items = config.rules.flatMap((rule) =>
     found
       .filter((item) => item.selector === rule.selector)
-      .map((item) => ({ rule, file: item.file, line: item.line, text: item.text })),
+      .map((item) => ({
+        rule,
+        file: item.file,
+        line: item.line,
+        text: item.text,
+        key: item.key,
+      })),
   );
   yield* Ref.set(read, items.length);
   const outcomes = yield* judge(config.rules, items, {

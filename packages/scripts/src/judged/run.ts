@@ -266,12 +266,13 @@ export const detailOf = (error: { readonly _tag: string }) =>
     onSome: ({ reason }) => `${error._tag}.${reason._tag}`,
   });
 
-/** An item a judged rule reads: its rule, its file, its first line and its text. */
+/** An item a judged rule reads: its rule, its file, its first line, its text and its key (`items.ts`). */
 interface RuleItem {
   readonly rule: JudgedRule;
   readonly file: string;
   readonly line: number;
   readonly text: string;
+  readonly key: string;
 }
 
 /**
@@ -288,7 +289,7 @@ interface Finding {
 /**
  * What a rule's run came to: its findings, how many items it read, how many
  * of those the cache answered and how many it asked about (`items` is
- * `cached + asked`; items of one folded text go in the request once), and its skip.
+ * `cached + asked`; items of one key go in the request once), and its skip.
  */
 interface Outcome {
   readonly rule: JudgedRule;
@@ -308,22 +309,24 @@ interface Judging extends Limits {
 /**
  * Judges `items` by their rules: the cache's answers first, then one request
  * for the rest of every rule, kept; answers an outcome for each of `rules`.
+ * The store keeps the answers of `items` alone: an answer no item has a key
+ * for (an edited or deleted item's, an old rule's or model's) is dropped.
  */
 export const judge = Effect.fn('judged.judge')(function* (
   rules: ReadonlyArray<JudgedRule>,
   items: ReadonlyArray<RuleItem>,
   judging: Judging,
 ) {
-  // Each rule's words and each question's text are hashed once a run.
+  // Each rule's words and each question's key are hashed once a run.
   const ruleKeys = new Map(rules.map((rule) => [rule.id, ruleKey(rule)]));
   const keys = new Map<string, string>();
-  const keyOf = (question: Question) => {
-    const name = questionKey(question);
+  const keyOf = (question: Pick<RuleItem, 'rule' | 'key'>) => {
+    const name = `${question.rule.id}\0${question.key}`;
     return Option.getOrElse(Option.fromUndefinedOr(keys.get(name)), () => {
       const key = cacheKey(
         ruleKeys.get(question.rule.id) ?? ruleKey(question.rule),
         judging.model,
-        question.text,
+        question.key,
       );
       keys.set(name, key);
       return key;
@@ -333,7 +336,7 @@ export const judge = Effect.fn('judged.judge')(function* (
   const isCached = (item: RuleItem) => cache.has(keyOf(item));
   const fresh = [
     ...new Map(items.filter((item) => !isCached(item)).map((item) => [keyOf(item), item])).values(),
-  ].map(({ rule, text }) => ({ rule, text }));
+  ];
   const asked = yield* ask(fresh, judging);
   // Answers that cannot be kept are asked again next run, and their findings
   // are the runner's to print: the plugin cannot see them.
@@ -347,9 +350,11 @@ export const judge = Effect.fn('judged.judge')(function* (
       ),
     ),
   );
+  const live = new Set(items.map(keyOf));
+  const stale = new Set([...cache.keys()].filter((key) => !live.has(key)));
   const kept =
-    answered.size === 0 ||
-    (yield* keepAnswers(judging.cacheFile, answered).pipe(
+    (answered.size === 0 && stale.size === 0) ||
+    (yield* keepAnswers(judging.cacheFile, answered, stale).pipe(
       Effect.as(true),
       Effect.catch((error) =>
         Console.error(
@@ -361,7 +366,10 @@ export const judge = Effect.fn('judged.judge')(function* (
     Option.orElse(Option.fromUndefinedOr(cache.get(keyOf(item))), () =>
       Option.fromUndefinedOr(answered.get(keyOf(item))),
     );
-  const unanswered = new Set(asked.unanswered.map(keyOf));
+  const freshKeys = new Map(fresh.map((item) => [questionKey(item), keyOf(item)]));
+  const unanswered = new Set(
+    asked.unanswered.map((question) => freshKeys.get(questionKey(question))),
+  );
   return rules.map((rule): Outcome => {
     const own = items.filter((item) => item.rule.id === rule.id);
     const skipped = own.filter((item) => unanswered.has(keyOf(item))).length;

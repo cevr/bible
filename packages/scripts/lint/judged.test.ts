@@ -94,7 +94,7 @@ const storeOf = (ps: ReadonlyArray<number>) => {
   return Schema.encodeEffect(Store)({
     answers: Object.fromEntries(
       comments.map((item, i) => [
-        keyOf(item.text),
+        keyOf(item.key),
         {
           label: 'history',
           probabilities: { today: 1 - (ps[i] ?? 0), history: ps[i] ?? 0 },

@@ -421,6 +421,41 @@ describe('the judged lint reads the whole repo, by content', () => {
     ),
   );
 
+  it.live(
+    "asks again for code whose literal's spacing an edit changed, and not for a re-indent",
+    () =>
+      withFs(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const code = (indent: string, literal: string) =>
+            `${indent}// Joins with a spaced dash.\n${indent}export const join = () => '${literal}';\n`;
+          const file = 'src/a.ts';
+          const dir = yield* repoOf(
+            'commentClaimsCode',
+            file,
+            code('', 'a - b'),
+            code('', 'a - b'),
+          );
+          const model = answering('holds', 'overclaims');
+          const first = yield* inProcess(dir, [], model.layer);
+          expect(first.out).toEqual([
+            '[judged] rule=commentClaimsCode items=1 cached=0 asked=1 findings=0',
+          ]);
+          yield* fs.writeFileString(path.join(dir, file), code('  ', 'a - b'));
+          const reindented = yield* inProcess(dir, [], model.layer);
+          expect(reindented.out).toEqual([
+            '[judged] rule=commentClaimsCode items=1 cached=1 asked=0 findings=0',
+          ]);
+          yield* fs.writeFileString(path.join(dir, file), code('', 'a-b'));
+          const respaced = yield* inProcess(dir, [], model.layer);
+          expect(respaced.out).toEqual([
+            '[judged] rule=commentClaimsCode items=1 cached=0 asked=1 findings=0',
+          ]);
+        }),
+      ),
+  );
+
   it.live('asks again for a test case whose only expect a change deleted, and for no other', () =>
     withFs(
       Effect.gen(function* () {

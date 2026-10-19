@@ -130,7 +130,7 @@ const judgedRule = (id: string) =>
             Option.match(
               Option.filter(
                 Option.map(
-                  Option.fromUndefinedOr(kept.value.get(cacheKey(rule, model, item.text))),
+                  Option.fromUndefinedOr(kept.value.get(cacheKey(rule, model, item.key))),
                   (answer) => answer.probabilities[options.reports] ?? 0,
                 ),
                 (p) => p >= options.threshold,

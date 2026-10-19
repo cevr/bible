@@ -1,9 +1,10 @@
 // The judged rules' kept answers, as one JSON file under the repo's ignored
 // `tmp/`, addressed by content: each answer keyed by a hash of the words the
 // model reads for the rule (its subject, instructions and criteria), the
-// model, and the item's text with its whitespace folded, so a moved, copied
-// or re-indented item keeps its answer and a rule whose words change asks
-// again. No path is kept: the oxlint plugin hashes each item of the file it
+// model, and the item's key (`items.ts`: its text with the whitespace a
+// formatter moves folded, its literals as written), so a moved, copied or
+// re-indented item keeps its answer, an item whose words change asks again,
+// and so does a rule whose words change. No path is kept: the oxlint plugin hashes each item of the file it
 // lints and reports the answer kept for that text, wherever it now lives.
 // The runner (`cache.ts`) writes it; the plugin reads it. The model is not
 // deterministic at temperature 0, so the kept answer is what keeps a rule's
@@ -29,18 +30,11 @@ export const Store = Schema.fromJsonString(
 export type Store = typeof Store.Type;
 
 /**
- * `text` as its key reads it: each run of whitespace one space, none beside
- * a mark that is not a letter, a digit or `_`, and none at the edges, so
- * indenting, re-wrapping or re-spacing an item changes no key.
+ * The form of the keys this module makes, hashed into each: an answer kept
+ * under another form is never found, and is asked again.
  */
-const folded = (text: string) =>
-  text
-    .replace(/\s+/g, ' ')
-    .replace(/ ?([^\p{L}\p{N}_ ]) ?/gu, '$1')
-    .trim();
+const KEY_FORM = 'items-literals-exact';
 
-/** The key of `text` judged by the rule whose words hash to `rule` on `model`. */
-export const cacheKey = (rule: string, model: string, text: string) =>
-  createHash('sha256')
-    .update(`${rule}\0${model}\0${folded(text)}`)
-    .digest('hex');
+/** The store's key of the item whose key is `item`, judged by the rule whose words hash to `rule` on `model`. */
+export const cacheKey = (rule: string, model: string, item: string) =>
+  createHash('sha256').update(`${KEY_FORM}\0${rule}\0${model}\0${item}`).digest('hex');

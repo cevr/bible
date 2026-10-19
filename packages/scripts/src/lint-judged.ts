@@ -17,7 +17,7 @@
 // and each rule ends on one `[judged]` line: what it read
 // (`[judged] rule=<rule> items=<n> cached=<n> asked=<n> findings=<n>`: the
 // items read, those the store answered and those the model was asked about;
-// two items of one folded text go in the request once), or why it skipped
+// two items of one key go in the request once), or why it skipped
 // (`[judged] skipped rule=<rule> reason=<reason> items=<n>`, the items it
 // could not judge). The model's reasons are no-key, timeout, rate-limit,
 // http, too-big (one item alone past the model's input limit) and

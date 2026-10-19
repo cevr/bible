@@ -68,7 +68,10 @@ const countingModel = (pOf: (text: string) => number) => {
   return { layer, requests };
 };
 
-const ITEMS: ReadonlyArray<Omit<RuleItem, 'rule'>> = [
+/** An item as a case writes it: its key is its text unless the case names one. */
+type CaseItem = Omit<RuleItem, 'rule' | 'key'> & { readonly key?: string };
+
+const ITEMS: ReadonlyArray<CaseItem> = [
   { file: 'src/a.ts', line: 3, text: 'This used to retry; pass 6 removed that.' },
   { file: 'src/a.ts', line: 9, text: 'The key used to sign each token.' },
   { file: 'src/b.ts', line: 1, text: 'Before the batch this read argv.' },
@@ -101,13 +104,13 @@ const withFs = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
 /** Judges `items` by `rule` alone: its one outcome. */
 const judgeBy = (
   rule: JudgedRule,
-  items: ReadonlyArray<Omit<RuleItem, 'rule'>>,
+  items: ReadonlyArray<CaseItem>,
   options: Parameters<typeof judge>[2],
 ) =>
   Effect.map(
     judge(
       [rule],
-      items.map((item) => ({ ...item, rule })),
+      items.map((item) => ({ ...item, key: item.key ?? item.text, rule })),
       options,
     ),
     (outcomes) => outcomes[0]!,
@@ -253,8 +256,8 @@ describe('a judged rule', () => {
       const outcomes = yield* judge(
         [historyComment, other],
         [
-          { ...ITEMS[0]!, rule: historyComment },
-          { ...ITEMS[0]!, rule: other },
+          { ...ITEMS[0]!, key: ITEMS[0]!.text, rule: historyComment },
+          { ...ITEMS[0]!, key: ITEMS[0]!.text, rule: other },
         ],
         yield* judging,
       );
@@ -305,6 +308,15 @@ describe('a judged rule', () => {
       return Effect.gen(function* () {
         const options = yield* judging;
         yield* judgeBy(historyComment, ITEMS, options);
+        const retuned = yield* judgeBy(
+          { ...historyComment, threshold: 0.85, message: 'other words' },
+          ITEMS,
+          options,
+        );
+        expect(model.requests).toHaveLength(1);
+        expect(runLine(retuned)).toBe(
+          '[judged] rule=historyComment items=3 cached=3 asked=0 findings=2',
+        );
         const reworded = [
           { ...historyComment, subject: 'source comment' },
           { ...historyComment, instructions: `${historyComment.instructions} Be strict.` },
@@ -312,21 +324,12 @@ describe('a judged rule', () => {
         ];
         for (const rule of reworded) yield* judgeBy(rule, ITEMS, options);
         expect(model.requests).toHaveLength(4);
-        const retuned = yield* judgeBy(
-          { ...historyComment, threshold: 0.85, message: 'other words' },
-          ITEMS,
-          options,
-        );
-        expect(model.requests).toHaveLength(4);
-        expect(runLine(retuned)).toBe(
-          '[judged] rule=historyComment items=3 cached=3 asked=0 findings=2',
-        );
       }).pipe(Effect.provide(model.layer), withFs);
     },
   );
 
   it.effect(
-    'keeps an answer for its text wherever it lives, re-indented or re-wrapped, and asks for a text an edit changed',
+    'keeps an answer for its key wherever its item lives, whatever its text, and asks for a key an edit changed',
     () => {
       const model = countingModel((text) => P.get(text.replace(/\s+/g, ' ')) ?? 0.99);
       return Effect.gen(function* () {
@@ -339,8 +342,14 @@ describe('a judged rule', () => {
               file: 'src/elsewhere/z.ts',
               line: 40,
               text: 'This used to retry;\n  pass 6 removed that.',
+              key: 'This used to retry; pass 6 removed that.',
             },
-            { file: 'src/y.ts', line: 2, text: '  The key used to sign each token.  ' },
+            {
+              file: 'src/y.ts',
+              line: 2,
+              text: '  The key used to sign each token.  ',
+              key: 'The key used to sign each token.',
+            },
           ],
           options,
         );
@@ -410,23 +419,141 @@ describe("a judged rule's store", () => {
         (_, run) =>
           new Map(Array.from({ length: 50 }, (_, i) => [`run${run}-key${i}`, answer] as const)),
       );
-      yield* Effect.forEach(runs, (fresh) => keepAnswers(cacheFile, fresh), { concurrency: 6 });
+      yield* Effect.forEach(runs, (fresh) => keepAnswers(cacheFile, fresh, new Set()), {
+        concurrency: 6,
+      });
       expect((yield* readCache(cacheFile)).size).toBe(300);
     }).pipe(withFs),
   );
 
-  it.live('takes a lock a dead run left over 10 s ago, and waits for a live one', () =>
+  /** A lock file at `cacheFile`'s, written `ago` minutes back, held by `holder`. */
+  const lockOf = (cacheFile: string, holder: string, ago: number) =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      yield* fs.makeDirectory(path.dirname(cacheFile), { recursive: true });
+      yield* fs.writeFileString(`${cacheFile}.lock`, `${holder}\n`);
+      const at = DateTime.toDateUtc(DateTime.subtract(yield* DateTime.now, { minutes: ago }));
+      yield* fs.utimes(`${cacheFile}.lock`, at, at);
+    });
+
+  it.live('takes a lock whose run is gone, at any age', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const { cacheFile } = yield* judging;
+      yield* lockOf(cacheFile, '99999999 7', 0);
+      yield* keepAnswers(cacheFile, new Map([['a', answer]]), new Set());
+      expect([...(yield* readCache(cacheFile)).keys()]).toEqual(['a']);
+      expect(yield* fs.exists(`${cacheFile}.lock`)).toBe(false);
+    }).pipe(withFs),
+  );
+
+  /** The real file system with `hooks` in place of its own members, over Bun's services. */
+  const hooked = (hooks: (fs: FileSystem.FileSystem) => Partial<FileSystem.FileSystem>) =>
+    Layer.effect(
+      FileSystem.FileSystem,
+      Effect.map(FileSystem.FileSystem, (fs) => FileSystem.makeNoop({ ...fs, ...hooks(fs) })),
+    ).pipe(Layer.provideMerge(BunServices.layer));
+
+  /** The real file system, but writing the store's partial file first does `before` to that path. */
+  const writingPartial = (
+    before: (fs: FileSystem.FileSystem, partial: string) => Effect.Effect<void, unknown>,
+  ) =>
+    hooked((fs) => ({
+      writeFileString: (file, data, options) =>
+        Effect.flatMap(
+          Effect.orDie(Effect.when(before(fs, file), Effect.succeed(file.endsWith('.partial')))),
+          () => fs.writeFileString(file, data, options),
+        ),
+    }));
+
+  it.live(
+    'waits for a live run however long it writes, short of 10 minutes, and takes a hung one',
+    () => {
+      const tried = Deferred.makeUnsafe<boolean>();
+      const reading = hooked((fs) => ({
+        readFileString: (file, encoding) =>
+          Effect.andThen(
+            Effect.when(Deferred.succeed(tried, true), Effect.succeed(file.endsWith('.lock'))),
+            fs.readFileString(file, encoding),
+          ),
+      }));
+      return Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const { cacheFile } = yield* judging;
+        const lock = `${cacheFile}.lock`;
+        yield* lockOf(cacheFile, `${process.pid} 7`, 5);
+        const waiting = yield* Effect.forkChild(
+          keepAnswers(cacheFile, new Map([['a', answer]]), new Set()),
+        );
+        yield* Deferred.await(tried);
+        expect(yield* fs.readFileString(lock)).toBe(`${process.pid} 7\n`);
+        expect(yield* fs.exists(cacheFile)).toBe(false);
+        yield* fs.remove(lock);
+        yield* Fiber.join(waiting);
+        expect([...(yield* readCache(cacheFile)).keys()]).toEqual(['a']);
+        yield* lockOf(cacheFile, `${process.pid} 7`, 11);
+        yield* keepAnswers(cacheFile, new Map([['b', answer]]), new Set());
+        expect([...(yield* readCache(cacheFile)).keys()].sort()).toEqual(['a', 'b']);
+      }).pipe(Effect.scoped, Effect.provide(reading));
+    },
+  );
+
+  it.live('writes nothing, and leaves the lock, when another run took the lock meanwhile', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const { cacheFile } = yield* judging;
-      yield* fs.makeDirectory(path.dirname(cacheFile), { recursive: true });
-      yield* fs.writeFileString(`${cacheFile}.lock`, '1\n');
-      const old = DateTime.toDateUtc(DateTime.subtract(yield* DateTime.now, { minutes: 1 }));
-      yield* fs.utimes(`${cacheFile}.lock`, old, old);
-      yield* keepAnswers(cacheFile, new Map([['a', answer]]));
-      expect([...(yield* readCache(cacheFile)).keys()]).toEqual(['a']);
-      expect(yield* fs.exists(`${cacheFile}.lock`)).toBe(false);
+      const written = yield* Effect.exit(
+        keepAnswers(cacheFile, new Map([['a', answer]]), new Set()),
+      );
+      expect(written._tag).toBe('Failure');
+      expect(yield* fs.exists(cacheFile)).toBe(false);
+      expect(yield* fs.readFileString(`${cacheFile}.lock`)).toBe('another run\n');
+      expect(yield* fs.readDirectory(path.dirname(cacheFile))).toEqual(['cache.json.lock']);
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        writingPartial((fs, partial) =>
+          fs.writeFileString(partial.replace(/\.\d+\.partial$/, '.lock'), 'another run\n'),
+        ),
+      ),
+    ),
+  );
+
+  it.live('leaves no partial file and no lock when the write fails part way', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const { cacheFile } = yield* judging;
+      const written = yield* Effect.exit(
+        keepAnswers(cacheFile, new Map([['a', answer]]), new Set()),
+      );
+      expect(written._tag).toBe('Failure');
+      expect(yield* fs.readDirectory(path.dirname(cacheFile))).toEqual([]);
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        writingPartial((fs, partial) =>
+          Effect.andThen(fs.writeFileString(partial, 'a part'), Effect.fail('disk full')),
+        ),
+      ),
+    ),
+  );
+
+  it.effect('drops the answers it is told are stale, and keeps one another run added', () =>
+    Effect.gen(function* () {
+      const { cacheFile } = yield* judging;
+      yield* keepAnswers(
+        cacheFile,
+        new Map([
+          ['old', answer],
+          ['other', answer],
+        ]),
+        new Set(),
+      );
+      yield* keepAnswers(cacheFile, new Map([['new', answer]]), new Set(['old']));
+      expect([...(yield* readCache(cacheFile)).keys()].sort()).toEqual(['new', 'other']);
     }).pipe(withFs),
   );
 
@@ -583,6 +710,7 @@ describe('a judged rule never fails on its model', () => {
               { label: 'history', probabilities: { today: 0.03, history: 0.97 } },
             ],
           ]),
+          new Set(),
         );
         const outcome = yield* judgeBy(historyComment, ITEMS, options);
         expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97, kept: true }]);
