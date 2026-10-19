@@ -239,11 +239,34 @@ const hsvOf = (c: Rgb): Hsv => {
   return { hue, saturation: max === 0 ? 0 : d / max, value: max };
 };
 
-/** The median of each channel. */
+/** Whether every channel of `colours` is a byte, as a pixel's is. */
+const allBytes = (colours: ReadonlyArray<Rgb>): boolean =>
+  colours.every((c) => c.every((v) => Number.isInteger(v) && v >= 0 && v <= 255));
+
+/** The value at `rank` of one channel of bytes, counted rather than sorted: the same value a sort puts there. */
+const byteAtRank = (colours: ReadonlyArray<Rgb>, k: 0 | 1 | 2, rank: number): number => {
+  const counts = new Int32Array(256);
+  for (const c of colours) counts[c[k]]!++;
+  let seen = 0;
+  for (let v = 0; v < 256; v++) {
+    seen += counts[v]!;
+    if (seen > rank) return v;
+  }
+  return 0;
+};
+
+/** The median of each channel: the middle of each channel's sorted values. */
 const medianRgb = (colours: ReadonlyArray<Rgb>): Rgb => {
+  const rank = Math.floor(colours.length / 2);
+  if (allBytes(colours))
+    return [
+      byteAtRank(colours, 0, rank),
+      byteAtRank(colours, 1, rank),
+      byteAtRank(colours, 2, rank),
+    ];
   const mid = (k: 0 | 1 | 2) => {
     const sorted = colours.map((c) => c[k]).sort((a, b) => a - b);
-    return sorted[Math.floor(sorted.length / 2)] ?? 0;
+    return sorted[rank] ?? 0;
   };
   return [mid(0), mid(1), mid(2)];
 };
@@ -260,8 +283,11 @@ const clusters = (colours: ReadonlyArray<Rgb>, k: number) => {
     members = centres.map(() => []);
     for (const c of colours) {
       let best = 0;
-      for (let j = 1; j < centres.length; j++)
-        if (dist(c, centres[j]!) < dist(c, centres[best]!)) best = j;
+      let nearest = dist(c, centres[0]!);
+      for (let j = 1; j < centres.length; j++) {
+        const d = dist(c, centres[j]!);
+        if (d < nearest) [best, nearest] = [j, d];
+      }
       members[best]!.push(c);
     }
     centres = members.map((m, j) => (m.length === 0 ? centres[j]! : medianRgb(m)));
@@ -350,6 +376,29 @@ const edt1 = (f: Float64Array, n: number, d: Float64Array, v: Int32Array, z: Flo
   }
 };
 
+/**
+ * The first pass down column `x` of a field of seeds (0) and the rest (FAR):
+ * each pixel's squared distance to the nearest seed in its column, found by
+ * a walk down and a walk up, which is what the lower envelope gives on it.
+ * A column with no seed is left as it is (false), for the envelope.
+ */
+const columnFromSeeds = (out: Float64Array, w: number, h: number, x: number): boolean => {
+  let last = -1;
+  for (let y = 0; y < h; y++) {
+    const i = y * w + x;
+    if (out[i] === 0) last = y;
+    else if (last >= 0) out[i] = (y - last) * (y - last);
+  }
+  if (last < 0) return false;
+  let next = -1;
+  for (let y = h - 1; y >= 0; y--) {
+    const i = y * w + x;
+    if (out[i] === 0) next = y;
+    else if (next >= 0 && (next - y) * (next - y) < out[i]!) out[i] = (next - y) * (next - y);
+  }
+  return true;
+};
+
 /** Each pixel's squared distance to the nearest pixel where `seed` holds. */
 const distanceTo = (w: number, h: number, seed: (i: number) => boolean): Float64Array => {
   const out = new Float64Array(w * h);
@@ -362,14 +411,15 @@ const distanceTo = (w: number, h: number, seed: (i: number) => boolean): Float64
     new Float64Array(m + 1),
   ];
   for (let x = 0; x < w; x++) {
-    for (let y = 0; y < h; y++) f[y] = out[y * w + x]!;
-    edt1(f, h, d, v, z);
-    for (let y = 0; y < h; y++) out[y * w + x] = d[y]!;
+    if (!columnFromSeeds(out, w, h, x)) {
+      for (let y = 0; y < h; y++) f[y] = out[y * w + x]!;
+      edt1(f, h, d, v, z);
+      for (let y = 0; y < h; y++) out[y * w + x] = d[y]!;
+    }
   }
   for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) f[x] = out[y * w + x]!;
-    edt1(f, w, d, v, z);
-    for (let x = 0; x < w; x++) out[y * w + x] = d[x]!;
+    edt1(out.subarray(y * w, y * w + w), w, d, v, z);
+    out.set(d.subarray(0, w), y * w);
   }
   return out;
 };
@@ -394,59 +444,59 @@ interface Labelled {
   readonly parts: ReadonlyArray<Part>;
 }
 
-const STEPS_FOUR: ReadonlyArray<readonly [number, number]> = [
-  [1, 0],
-  [-1, 0],
-  [0, 1],
-  [0, -1],
-];
-const STEPS_EIGHT: ReadonlyArray<readonly [number, number]> = [
-  ...STEPS_FOUR,
-  [1, 1],
-  [1, -1],
-  [-1, 1],
-  [-1, -1],
-];
-
-/** Counts pixel (`x`, `y`) into `part`: its area, its box, and whether it is on the crop's edge. */
-const takeInto = (part: Part, x: number, y: number, w: number, h: number) => {
-  part.area++;
-  part.x0 = Math.min(part.x0, x);
-  part.x1 = Math.max(part.x1, x);
-  part.y0 = Math.min(part.y0, y);
-  part.y1 = Math.max(part.y1, y);
-  if (x === 0 || y === 0 || x === w - 1 || y === h - 1) part.border = true;
+/** The steps to a pixel's neighbours, in the order a flood tries them: four ways, then the diagonals. */
+const STEPS_FOUR = { dx: Int32Array.of(1, -1, 0, 0), dy: Int32Array.of(0, 0, 1, -1) };
+const STEPS_EIGHT = {
+  dx: Int32Array.of(1, -1, 0, 0, 1, 1, -1, -1),
+  dy: Int32Array.of(0, 0, 1, -1, 1, -1, 1, -1),
 };
 
-/** Floods `part` from `start`: each step to a neighbour unlabelled and `admit`ted takes that neighbour. */
+/** Every step joins: a part is all its pixels `inside`. */
+const ALWAYS = () => true;
+
+/**
+ * Floods `part` from `start`: each step to a neighbour unlabelled and
+ * `admit`ted takes that neighbour, counted into the part's area, its box and
+ * whether it is on the crop's edge. The steps are `dx` and `dy`, tried in
+ * their order.
+ */
 const flood = (
   start: number,
   part: Part,
   size: readonly [number, number],
-  steps: ReadonlyArray<readonly [number, number]>,
+  steps: { readonly dx: Int32Array; readonly dy: Int32Array },
   admit: (i: number, j: number) => boolean,
   labels: Int32Array,
   stack: Int32Array,
 ) => {
   const [w, h] = size;
+  const { dx, dy } = steps;
+  const id = part.id;
+  let { area, x0, y0, x1, y1, border } = part;
   let top = 0;
   stack[top++] = start;
-  labels[start] = part.id;
+  labels[start] = id;
   while (top > 0) {
     const i = stack[--top]!;
     const x = i % w;
     const y = (i - x) / w;
-    takeInto(part, x, y, w, h);
-    for (let s = 0; s < steps.length; s++) {
-      const nx = x + steps[s]![0];
-      const ny = y + steps[s]![1];
+    area++;
+    x0 = Math.min(x0, x);
+    x1 = Math.max(x1, x);
+    y0 = Math.min(y0, y);
+    y1 = Math.max(y1, y);
+    if (x === 0 || y === 0 || x === w - 1 || y === h - 1) border = true;
+    for (let s = 0; s < dx.length; s++) {
+      const nx = x + dx[s]!;
+      const ny = y + dy[s]!;
       if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
       const j = ny * w + nx;
       if (labels[j] !== -1 || !admit(i, j)) continue;
-      labels[j] = part.id;
+      labels[j] = id;
       stack[top++] = j;
     }
   }
+  Object.assign(part, { area, x0, y0, x1, y1, border });
 };
 
 /** The components of the pixels where `inside` holds, 4- or 8-connected, each step between neighbours where `joins` holds. */
@@ -455,13 +505,15 @@ const label = (
   h: number,
   inside: (i: number) => boolean,
   eight: boolean,
-  joins: (i: number, j: number) => boolean = () => true,
+  joins: (i: number, j: number) => boolean = ALWAYS,
 ): Labelled => {
   const labels = new Int32Array(w * h).fill(-1);
   const parts: Array<Part> = [];
   const stack = new Int32Array(w * h);
   const steps = eight ? STEPS_EIGHT : STEPS_FOUR;
-  const admit = (i: number, j: number) => inside(j) && joins(i, j);
+  const admit =
+    (joins === ALWAYS && ((_i: number, j: number) => inside(j))) ||
+    ((i: number, j: number) => inside(j) && joins(i, j));
   for (let start = 0; start < w * h; start++) {
     if (labels[start] !== -1 || !inside(start)) continue;
     const part: Part = { id: parts.length, area: 0, x0: w, y0: h, x1: -1, y1: -1, border: false };
