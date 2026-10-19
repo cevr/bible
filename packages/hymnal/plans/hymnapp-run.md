@@ -16,7 +16,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | r2flag       | r2                             | .rifts/bible-tools/r2flag                          |                           | merged eef3fb00e (1 round; the real copy run was its verify)                                                                                                          |
 | testsplit    | —                              | .rifts/bible-tools/testsplit                       |                           | merged 57bbe7891 (4 rounds; verify pass r4)                                                                                                                           |
 | manna        | testsplit, compile, glass      | .rifts/bible-tools/manna                           |                           |                                                                                                                                                                       |
-| hymnrows     | compile                        | .rifts/manna/hymnrows2                             | impl af8bdf6 (r4 rw1)     |                                                                                                                                                                       |
+| hymnrows     | compile                        | .rifts/manna/hymnrows2                             | impl a7db51f (r5 rw2)     |                                                                                                                                                                       |
 | zigpin       | —                              | .rifts/manna/zigpin                                |                           | dropped: superseded by main 6ba50fee6 (stamps each artifact with its C's sha and zig); r1 head 977f6ee39 kept as zigpin-r1.bundle                                     |
 | budgettypes  | testsplit                      | .rifts/manna/budgettypes                           |                           | merged 94bdc7e49 (1 round; verify pass r1)                                                                                                                            |
 | scriptstypes | budgettypes                    | .rifts/manna/scriptstypes                          |                           | merged 29d9b8ae3 (1 round; verify pass r1)                                                                                                                            |
@@ -31,6 +31,8 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `inexact` (the 7 MIDI files whose verses do not split: 126 225 262 292 403 453 580), `decks` (syllable splits into feat/hymn-decks, last by the owner's word), `selah` (planned: after reader, see Decisions; macOS stays SwiftUI until react-native-gpui ships a real package).
 
 ## Decisions
+
+- hymnrows r4 (rewrite r1) changes: M1/M3/M5 repeat r3 classes; round 5 names the premise (a non-blind, non-crop record stands in for the 1985 page) and makes five properties the first deliverable; fresh implementor (r4 impl 6 compactions); new owner photos folded in at the round boundary.
 
 - fidelityci opened 2026-10-19: CI red on main, fidelity chunks 1-300 time out at 5 s on the 4-vCPU runner; a new unit, not a round of hymnrows (scope never grows inside a running unit); no timeout raised (owner rule).
 
