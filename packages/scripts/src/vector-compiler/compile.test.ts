@@ -84,7 +84,7 @@ describe('§9.2 the per-book manifest', () => {
 
   it('handles a single book and a single paragraph', () => {
     expect(bookRanges([]).length).toBe(0);
-    const one = bookRanges([row('GC', 'GC 1.1', 'text')]);
+    const one = bookRanges([row('GC', 'GC 1.1', 'text', '1.1')]);
     expect(one).toEqual([VectorBookRange.make({ bookCode: 'GC', offset: 0, count: 1 })]);
   });
 

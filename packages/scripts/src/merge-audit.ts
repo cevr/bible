@@ -59,12 +59,12 @@ const git = (args: ReadonlyArray<string>) =>
 const shaOf = (ref: string) =>
   git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]).pipe(
     Effect.map((out) => Option.liftPredicate(out.trim(), (sha) => sha !== '')),
-    Effect.catch(() => Effect.succeed(Option.none<string>())),
+    Effect.orElseSucceed(() => Option.none<string>()),
   );
 
 /** A file's text at a commit or tree; empty where it does not exist. */
 const textAt = (tree: string, file: string) =>
-  git(['show', `${tree}:${file}`]).pipe(Effect.catch(() => Effect.succeed('')));
+  git(['show', `${tree}:${file}`]).pipe(Effect.orElseSucceed(() => ''));
 
 const lines = (out: string) => out.split('\n').filter((line) => line !== '');
 
@@ -212,7 +212,7 @@ const each = Effect.fn('mergeAudit.each')(function* (base: string) {
     Effect.flatMap(
       outcome('git', ['worktree', 'add', '--detach', dir, `${base}^{commit}`], root),
       ({ ok, output }) =>
-        Effect.when(Effect.fail(new NoTree({ base, output })), Effect.succeed(!ok)),
+        Effect.when(Effect.fail(NoTree.make({ base, output })), Effect.succeed(!ok)),
     ),
     () => Effect.ignore(git(['worktree', 'remove', '--force', dir])),
   );
@@ -247,17 +247,17 @@ const command = Command.make(
     ),
   },
   ({ merge, each: base }) =>
-    Option.match(base, {
-      onSome: (from) =>
-        Effect.scoped(each(from)).pipe(
+    Effect.gen(function* () {
+      if (Option.isSome(base)) {
+        return yield* Effect.scoped(each(base.value)).pipe(
           Effect.tapErrorTag('GuardRed', (error) => Console.error(error.message)),
           Effect.tapErrorTag('StepFailed', (error) => Console.error(error.message)),
           Effect.tapErrorTag('GitFailed', (error) => Console.error(error.message)),
-        ),
-      onNone: () =>
-        audit(Option.getOrElse(merge, () => 'HEAD')).pipe(
-          Effect.tapErrorTag('NotAMerge', (error) => Console.error(error.message)),
-        ),
+        );
+      }
+      return yield* audit(Option.getOrElse(merge, () => 'HEAD')).pipe(
+        Effect.tapErrorTag('NotAMerge', (error) => Console.error(error.message)),
+      );
     }),
 ).pipe(
   Command.withDescription(

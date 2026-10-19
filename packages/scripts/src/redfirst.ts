@@ -47,7 +47,7 @@ import {
 /** A step that did not do its work: the command, its exit code and what it printed. */
 class StepFailed extends Schema.TaggedError<StepFailed>()('StepFailed', {
   command: Schema.String,
-  code: Schema.Number,
+  code: Schema.Finite,
   output: Schema.String,
 }) {
   override get message() {
@@ -56,7 +56,7 @@ class StepFailed extends Schema.TaggedError<StepFailed>()('StepFailed', {
   override readonly [Runtime.errorReported] = false;
 }
 
-const text = (stream: Stream.Stream<Uint8Array, unknown>) =>
+const text = <E>(stream: Stream.Stream<Uint8Array, E>) =>
   Stream.mkString(Stream.decodeText(stream));
 
 /** A command's stdout, its stderr and its exit code. */

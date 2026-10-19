@@ -41,12 +41,12 @@ const parsePdfContent = Effect.fn('parsePdfContent')(function* (filePath: string
     (parser) =>
       Effect.tryPromise({
         try: () => parser.getText(),
-        catch: (cause) => new PdfParseError({ message: 'Failed to parse file', cause }),
+        catch: (cause) => PdfParseError.make({ message: 'Failed to parse file', cause }),
       }).pipe(Effect.map((result) => result.text)),
     (parser) =>
       Effect.tryPromise({
         try: () => parser.destroy(),
-        catch: (cause) => new PdfParseError({ message: 'Failed to release PDF parser', cause }),
+        catch: (cause) => PdfParseError.make({ message: 'Failed to release PDF parser', cause }),
       }).pipe(Effect.ignore),
   );
 });
@@ -154,8 +154,8 @@ const writeChapterFile = Effect.fn('writeChapterFile')(function* (
   yield* fs
     .writeFileString(filePath, content)
     .pipe(
-      Effect.mapError(
-        (cause) => new FileWriteError({ message: 'Failed to write chapter file', cause, filePath }),
+      Effect.mapError((cause) =>
+        FileWriteError.make({ message: 'Failed to write chapter file', cause, filePath }),
       ),
     );
   yield* Console.log(`✓ Created: ${fileName}`);
@@ -166,9 +166,10 @@ const processPdf = Effect.fn('processPdf')(function* (pdfPath: string, outputDir
   const pathService = yield* Path.Path;
   const fileExists = yield* fs.exists(pdfPath);
   if (!fileExists) {
-    return yield* Effect.fail(
-      new PdfParseError({ message: `PDF file not found: ${pdfPath}`, cause: 'File not found' }),
-    );
+    return yield* PdfParseError.make({
+      message: `PDF file not found: ${pdfPath}`,
+      cause: 'File not found',
+    });
   }
 
   yield* fs.makeDirectory(outputDirectory, { recursive: true });

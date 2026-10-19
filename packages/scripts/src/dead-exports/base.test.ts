@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import * as BunServices from '@effect/platform-bun/BunServices';
+import type { Scope } from 'effect';
 import { Effect, Exit, FileSystem, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
@@ -65,7 +66,7 @@ const run = <A, E>(
   effect: Effect.Effect<
     A,
     E,
-    FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner
+    FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner | Scope.Scope
   >,
 ) => Effect.runPromise(effect.pipe(Effect.scoped, Effect.provide(BunServices.layer)));
 

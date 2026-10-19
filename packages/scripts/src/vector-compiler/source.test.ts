@@ -199,7 +199,7 @@ describe('readVectorSource — the handle is released on every exit (F15)', () =
           const counter = { closes: 0, original };
           Database.prototype.close = function patched(this: Database, ...args: readonly unknown[]) {
             counter.closes += 1;
-            return (original as (...rest: readonly unknown[]) => unknown).apply(this, args);
+            return Reflect.apply(original, this, args);
           } as typeof Database.prototype.close;
           return counter;
         }),
