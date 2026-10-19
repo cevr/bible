@@ -911,6 +911,38 @@ describe('the parts', () => {
         );
   });
 
+  test('an outline cut from its corners with two in turn at one point is refused, as is a tunic whose neck is not above its hem', () => {
+    const doubled: Pt[] = [
+      [-40, -330],
+      [-40, -330],
+      [90, -30],
+      [-90, -30],
+    ];
+    const { _tag, ...cut } = standingOf().body;
+    expect(() => Robe.Cut({ ...cut, corners: doubled })).toThrow(
+      /Robe\.Cut refused: [^]*corners 0 and 1 lie at one point/,
+    );
+    expect(() =>
+      figure({ ...standingOf(), body: { ...standingOf().body, corners: doubled } }),
+    ).toThrow(/body refused: [^]*corners 0 and 1 lie at one point/);
+    // A foot whose last corner is its first again.
+    const closed: Pt[] = [
+      [18, -1],
+      [18, -16],
+      [60, -8],
+      [18, -1],
+    ];
+    const foot = { corners: closed, radii: [2] };
+    expect(() => Sandals({ paper: SKIN, near: foot, far: foot, sole: '#43291c' })).toThrow(
+      /Sandals refused: [^]*corners 3 and 0 lie at one point/,
+    );
+    const { _tag: _tunic, ...tunic } = leadOf([]).body;
+    expect(() => Tunic({ ...tunic, hem: tunic.neck })).toThrow(
+      /Tunic refused: [^]*its neck \(-236\) lies at or below its hem \(-236\)/,
+    );
+    expect(() => Tunic({ ...tunic, neck: tunic.hem, hem: tunic.neck })).toThrow(/Tunic refused/);
+  });
+
   test('a paper with an ink of its own is refused by InteriorInk', () => {
     const inked = { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6', ink: '#000000' } as const;
     expect(() => paper(inked, 'inked skin')).toThrow(/inked skin refused by InteriorInk/);

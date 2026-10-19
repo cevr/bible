@@ -1,17 +1,24 @@
 // What a figure wears: the garment its body is cut as, one piece in its
 // paper, the papers of its states laid inside it (`states.ts`) and what lies
 // on it with no line of its own (`over.ts`). A tunic is cut from its neck
-// and hem: narrow at one, wide at the other, its sides bowed out, its corners
-// rounded. A cut robe is its corners, each rounded by its own radius, down to
-// its hem; a traced robe is its concept's outline, as the concept cuts it.
-// On a robe lies the colour laid on it, clipped to it (a sash, a sleeve, a
-// vest, the shade past them, the skin in its neckline). How each is cut and inked is
-// the house's (`rig/draw.ts`). Pure.
+// down to its hem: narrow at one, wide at the other, its sides bowed out, its
+// corners rounded. A cut robe is its corners, each rounded by its own radius,
+// down to its hem; a traced robe is its concept's outline, as the concept
+// cuts it. On a robe lies the colour laid on it, clipped to it (a sash, a
+// sleeve, a vest, the shade past them, the skin in its neckline). How each is
+// cut and inked is the house's (`rig/draw.ts`). Pure.
 
 import { Match, Schema } from 'effect';
 import { decoder } from '../decode.ts';
 import { Paper, Tones } from '../paper.ts';
-import { Length, Outline, Units, oneRadiusOrEach } from './measure.ts';
+import { Corners, Length, Outline, Units, oneRadiusOrEach } from './measure.ts';
+
+/** A tunic is cut from its neck down to its hem, so its neck lies above its hem. */
+const neckAboveHem = Schema.makeFilter((t: { readonly neck: number; readonly hem: number }) =>
+  t.neck < t.hem
+    ? true
+    : `its neck (${t.neck}) lies at or below its hem (${t.hem}): a tunic is cut from its neck down to its hem`,
+);
 
 /** A tunic: its neck's and hem's heights, its half-width at each, its corners' radius, its sides' bow, its paper. */
 const TunicPart = Schema.TaggedStruct('Tunic', {
@@ -24,13 +31,13 @@ const TunicPart = Schema.TaggedStruct('Tunic', {
   /** How far its sides bow out at their middle, units. */
   bow: Units,
   paper: Paper,
-});
+}).check(neckAboveHem);
 export type Tunic = typeof TunicPart.Type;
 
 /** A cut robe: its corners, their radii, its hem's height, its paper and the colour on it. */
 const CutRobePart = Schema.TaggedStruct('CutRobe', {
   /** Its corners, clockwise from the left of its neck, units from the figure's origin. */
-  corners: Outline,
+  corners: Corners,
   radii: Schema.Array(Length).check(Schema.isMinLength(1)),
   /**
    * Its hem's height, units from the origin: where a standing figure's

@@ -11,7 +11,7 @@ import { Match, Schema } from 'effect';
 import { decoder } from '../decode.ts';
 import { HexColour, Paper, Tones } from '../paper.ts';
 import { SHOE_POINTS } from '../rig/shapes.ts';
-import { Length, Outline, oneRadiusOrEach } from './measure.ts';
+import { Corners, Length, oneRadiusOrEach } from './measure.ts';
 
 /** Stub legs: each one's middle either side of the figure's, its half-width (its foot's radius), their paper. */
 const StubLegsPart = Schema.TaggedStruct('StubLegs', {
@@ -57,7 +57,7 @@ export type Shoes = typeof ShoesPart.Type;
 
 /** One bare foot in a sandal: its corners, units from the figure's origin, their radii, and what lies on it. */
 const SandalFoot = Schema.Struct({
-  corners: Outline,
+  corners: Corners,
   radii: Schema.Array(Length).check(Schema.isMinLength(1)),
   /** Colour laid on the foot, clipped to it: a strap across it. */
   tones: Schema.optionalKey(Tones),
