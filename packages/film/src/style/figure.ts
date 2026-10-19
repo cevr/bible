@@ -234,24 +234,33 @@ const isSeatedSpec = (spec: FigureSpec): spec is SeatedSpec => spec.stance._tag 
 /** The stance's numbers, every stance's, at rest: upright, his head level and up. */
 const STANCE = { lean: 0, tilt: 0, nod: 0 } as const;
 
-/** The number a head adds: a face drawn on a round head slides down it as he bows. */
-type HeadKnob<H> = H extends RoundHead ? 'faceY' : never;
+/** The number a round head adds (a face drawn on it slides down it as he bows); none for a head typed as either kind. */
+type HeadKnob<H> = [H] extends [RoundHead] ? 'faceY' : never;
 
 /** The number each state adds. */
 type StateKnob<S> = S extends Stain ? 'stain' : S extends GivenRobe ? 'robe' : never;
 
-/** The number each arm adds, by its side: `nearArm`, `farArm`. */
+/** The numbers states written as a list of known length add; none for states typed as any list. */
+type StatesKnob<T> =
+  T extends ReadonlyArray<infer S> ? (number extends T['length'] ? never : StateKnob<S>) : never;
+
+/** The number each arm adds, by its side (`nearArm`, `farArm`); none for a side typed as one that may be missing. */
 type ArmKnob<A> = {
   readonly [Side in keyof A & ArmSide]-?: A[Side] extends Arm ? `${Side}Arm` : never;
 }[keyof A & ArmSide];
 
-/** The names of a figure's numbers (`knobsOf`'s, as types). */
+/**
+ * The names of a figure's numbers (`knobsOf`'s, as types), read off its
+ * spec's types: never a name its parts may not add, so a part typed wider
+ * than its kind (a `Head`, states as any list, an arm's side that may be
+ * missing) adds none.
+ */
 type KnobsOf<S extends FigureSpec> =
   | FaceKnob
   | keyof typeof STANCE
   | HeadKnob<S['head']>
   | (S extends { readonly mouth: OpenMouth } ? 'shout' : never)
-  | (S extends { readonly states: ReadonlyArray<infer T> } ? StateKnob<T> : never)
+  | (S extends { readonly states: infer T } ? StatesKnob<T> : never)
   | (S extends { readonly arms: infer A } ? ArmKnob<A> : never);
 
 /** The centre of `head`, units from the origin: where its face's gaze is measured from. */

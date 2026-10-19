@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, expectTypeOf, test } from 'bun:test';
+import { Record as Rec } from 'effect';
 import { DIRECTION } from './house.ts';
 import { figure } from './figure.ts';
 import { overridesIn } from './override.ts';
@@ -16,10 +17,10 @@ import { KitA, tracedKit } from './parts/kit.ts';
 import { OpenMouth } from './parts/mouth.ts';
 import { Bands } from './parts/over.ts';
 import { Stance } from './parts/stance.ts';
-import { GivenRobe, Stain } from './parts/states.ts';
+import { GivenRobe, type State, Stain } from './parts/states.ts';
 import { Stature } from './parts/stature.ts';
 import { drawFigure } from './rig/draw.ts';
-import { FACE, type Pt, ellipse, kitMarks, figure as rigOf } from './rig/parts.ts';
+import { FACE, type FaceKnob, type Pt, ellipse, kitMarks, figure as rigOf } from './rig/parts.ts';
 import { fragment, ids } from './rig/rml.ts';
 import { roundedPolygon, tucked, tuckedRimmed } from './rig/shapes.ts';
 
@@ -45,8 +46,8 @@ const stain = Stain({
 });
 const robe = GivenRobe(WHITE);
 
-/** A plain lead's parts, its states written as `states`. */
-const leadOf = (states: ReadonlyArray<typeof stain | typeof robe>) => ({
+/** A plain lead's parts, its states written as `states`, as their list is typed. */
+const leadOf = <const S extends ReadonlyArray<State>>(states: S) => ({
   concept: { image: { set: 'concepts', file: 'images/lead.png' }, box: [0, 0, 100, 200] as const },
   art: { width: 360, height: 470, feet: [180, 440] as const },
   stature: Stature.PlainLead(),
@@ -78,6 +79,10 @@ describe('a composed figure', () => {
       'stain',
       'robe',
     ]);
+    // Its type names the same numbers, read off its parts' types.
+    expectTypeOf(Rec.keys(lead.knobs)).toEqualTypeOf<
+      Array<FaceKnob | 'lean' | 'tilt' | 'nod' | 'faceY' | 'stain' | 'robe'>
+    >();
     // His eyes on us at rest: the face's place on his head, from the head's centre.
     expect(lead.knobs.gazeY).toBe(-288);
     expect(lead.knobs.stain).toBe(1);
@@ -85,7 +90,32 @@ describe('a composed figure', () => {
   });
 
   test('a figure with no states has no state numbers', () => {
-    expect(Object.keys(figure(leadOf([])).knobs)).not.toContain('stain');
+    const bare = figure(leadOf([]));
+    expect(Object.keys(bare.knobs)).toEqual([...Object.keys(FACE), 'lean', 'tilt', 'nod', 'faceY']);
+    expectTypeOf(Rec.keys(bare.knobs)).toEqualTypeOf<
+      Array<FaceKnob | 'lean' | 'tilt' | 'nod' | 'faceY'>
+    >();
+  });
+
+  test('its numbers, as typed, are never more than its parts add: a part typed wider than its kind adds none', () => {
+    /** A head and states as a slot types them: either kind of head, and any list of states. */
+    const anyHead = (head: Head): Head => head;
+    const anyStates = (states: ReadonlyArray<State>) => states;
+    const wide = figure({
+      ...leadOf([]),
+      head: anyHead(leadOf([]).head),
+      states: anyStates([stain, robe]),
+    });
+    expect(Object.keys(wide.knobs)).toEqual([
+      ...Object.keys(FACE),
+      'lean',
+      'tilt',
+      'nod',
+      'faceY',
+      'stain',
+      'robe',
+    ]);
+    expectTypeOf(Rec.keys(wide.knobs)).toEqualTypeOf<Array<FaceKnob | 'lean' | 'tilt' | 'nod'>>();
   });
 
   test('its states lie in one order whatever order they are written in', () => {
@@ -259,18 +289,23 @@ const drawnOf = (f: Parameters<typeof drawFigure>[1]) =>
 
 describe('a traced figure, standing or seated', () => {
   test("an open mouth adds `shout`, after the kit's numbers and before the stance's", () => {
-    expect(Object.keys(figure(standingOf()).knobs)).toEqual([
+    const standing = figure(standingOf());
+    expect(Object.keys(standing.knobs)).toEqual([
       ...Object.keys(FACE),
       'shout',
       'lean',
       'tilt',
       'nod',
     ]);
+    expectTypeOf(Rec.keys(standing.knobs)).toEqualTypeOf<
+      Array<FaceKnob | 'shout' | 'lean' | 'tilt' | 'nod'>
+    >();
   });
 
   test("a seated figure's gaze is measured from its head's centre, its origin", () => {
     const judge = figure(seatedOf());
     expect(Object.keys(judge.knobs)).toEqual([...Object.keys(FACE), 'lean', 'tilt', 'nod']);
+    expectTypeOf(Rec.keys(judge.knobs)).toEqualTypeOf<Array<FaceKnob | 'lean' | 'tilt' | 'nod'>>();
     expect([judge.knobs.gazeX, judge.knobs.gazeY]).toEqual([-900, 160]);
   });
 
@@ -620,9 +655,25 @@ describe('an arm in its sleeve', () => {
       'nod',
       'farArm',
     ]);
+    expectTypeOf(Rec.keys(armed.knobs)).toEqualTypeOf<
+      Array<FaceKnob | 'shout' | 'lean' | 'tilt' | 'nod' | 'farArm'>
+    >();
     expect(armed.knobs.farArm).toBe(1.2);
     const both = figure({ ...standingOf(), arms: { far: sleeve, near: sleeve } });
     expect(Object.keys(both.knobs).slice(-2)).toEqual(['nearArm', 'farArm']);
+    expectTypeOf(Rec.keys(both.knobs)).toEqualTypeOf<
+      Array<FaceKnob | 'shout' | 'lean' | 'tilt' | 'nod' | 'nearArm' | 'farArm'>
+    >();
+  });
+
+  test('an arm whose side is typed as one that may be missing adds no number to the type', () => {
+    /** Arms as the slot types them: either side may be missing. */
+    const anyArms = (arms: { readonly near?: Arm; readonly far?: Arm }) => arms;
+    const wide = figure({ ...standingOf(), arms: anyArms({ far: sleeve }) });
+    expect(Object.keys(wide.knobs).at(-1)).toBe('farArm');
+    expectTypeOf(Rec.keys(wide.knobs)).toEqualTypeOf<
+      Array<FaceKnob | 'shout' | 'lean' | 'tilt' | 'nod'>
+    >();
   });
 
   test('lies behind its garment, cut in one outline with it, and turns about its pivot by its number', () => {
