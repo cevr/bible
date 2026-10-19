@@ -727,6 +727,15 @@
       "set": "rbf-v3-cast-2026-10-18",
       "point": "item:lead",
       "by": "Claude (orchestrator, p6)"
+    },
+    {
+      "_tag": "Noted",
+      "at": 1792379520566,
+      "text": "Before the new lead's sheets: one character sheet of many candidate leads, the new man among them, for the owner to choose from.",
+      "quote": "let's make a character sheet with the new main character, with a many different characters we can choose from",
+      "set": "rbf-v3-cast-2026-10-18",
+      "point": "item:lead",
+      "by": "Claude (orchestrator, p6)"
     }
   ],
   "filed": [
