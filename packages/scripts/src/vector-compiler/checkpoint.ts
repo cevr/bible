@@ -99,7 +99,15 @@ const resumePoint = (
     if (stat.value.size > wanted) {
       // The crash window between an append and its checkpoint: the tail bytes
       // are real vectors, but nothing records which rows they belong to.
-      yield* fs.truncate(partPath(out), Number(wanted)).pipe(Effect.ignore);
+      yield* fs
+        .truncate(partPath(out), Number(wanted))
+        .pipe(
+          Effect.catch((error) =>
+            Console.error(
+              `  could not cut the unaccounted tail of ${partPath(out)} (${error.message}) — starting over`,
+            ),
+          ),
+        );
       const repaired = yield* fs.stat(partPath(out)).pipe(Effect.option);
       const exact = Option.filter(repaired, (info) => info.size === wanted);
       if (Option.isNone(exact)) return yield* fresh;

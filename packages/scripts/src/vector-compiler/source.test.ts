@@ -197,10 +197,13 @@ describe('readVectorSource — the handle is released on every exit (F15)', () =
         Effect.sync(() => {
           const original = Database.prototype.close;
           const counter = { closes: 0, original };
-          Database.prototype.close = function patched(this: Database, ...args: readonly unknown[]) {
+          Database.prototype.close = function patched(
+            this: Database,
+            ...args: Parameters<typeof original>
+          ) {
             counter.closes += 1;
-            return Reflect.apply(original, this, args);
-          } as typeof Database.prototype.close;
+            return original.apply(this, args);
+          };
           return counter;
         }),
         (counter) => Effect.sync(() => ({ outcome: run(filename), closes: counter.closes })),

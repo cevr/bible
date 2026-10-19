@@ -15,7 +15,8 @@
 import { describe, expect, it } from 'bun:test';
 import { DIMENSIONS, QueryEmbedder, QueryEmbedderUnavailable } from '@bible/core/search';
 import { BunServices } from '@effect/platform-bun';
-import { Effect, FileSystem, Layer, Option } from 'effect';
+import { Console, Effect, FileSystem, Layer, Option } from 'effect';
+import { systemError } from 'effect/PlatformError';
 
 import { checkpointPath, clearCheckpoint, embedAllResumable, partPath } from './checkpoint.js';
 import type { VectorSourceRow } from './emit.js';
@@ -129,6 +130,51 @@ describe('resumable vector embedding', () => {
       budget.remaining = Option.none();
       const single = yield* embedAllResumable(ROWS, `${dir}/single.bvi`);
       expect(Buffer.from(resumed).equals(Buffer.from(single))).toBe(true);
+    }).pipe(Effect.scoped, Effect.provide(testLayer), Effect.runPromise));
+
+  it('says why it starts over when the tail cannot be cut', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const dir = yield* fs.makeTempDirectoryScoped();
+      const out = `${dir}/vectors.bvi`;
+
+      budget.remaining = Option.some(700);
+      const first = yield* embedAllResumable(ROWS, out).pipe(Effect.exit);
+      expect(first._tag).toBe('Failure');
+      yield* Effect.scoped(
+        Effect.gen(function* () {
+          const handle = yield* fs.open(partPath(out), { flag: 'a' });
+          yield* handle.writeAll(new Uint8Array(37));
+        }),
+      );
+
+      // A file system whose truncate fails (a full disk, a lost permission).
+      const lines: string[] = [];
+      const failingTruncate = FileSystem.FileSystem.of({
+        ...fs,
+        truncate: (path) =>
+          Effect.fail(
+            systemError({
+              _tag: 'PermissionDenied',
+              module: 'FileSystem',
+              method: 'truncate',
+              pathOrDescriptor: path,
+              description: 'denied for the test',
+            }),
+          ),
+      });
+      budget.remaining = Option.none();
+      const console = yield* Console.Console;
+      yield* embedAllResumable(ROWS, out).pipe(
+        Effect.provideService(FileSystem.FileSystem, failingTruncate),
+        Effect.provideService(Console.Console, {
+          ...console,
+          error: (...args: ReadonlyArray<unknown>) => {
+            lines.push(args.map(String).join(' '));
+          },
+        }),
+      );
+      expect(lines.some((line) => line.includes('could not cut the unaccounted tail'))).toBe(true);
     }).pipe(Effect.scoped, Effect.provide(testLayer), Effect.runPromise));
 
   it('starts over when the checkpoint does not match the source order', () =>
