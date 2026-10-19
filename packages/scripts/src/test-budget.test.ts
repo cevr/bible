@@ -48,6 +48,8 @@ interface Case {
   readonly exit: 0 | 1;
   readonly ownMs: number;
   readonly foreign: ReadonlyArray<Foreign>;
+  /** x's `test` script as turbo's dry run names it (`bun test` when none). */
+  readonly command?: string;
 }
 
 const OWN_FILE = 'own.json';
@@ -102,7 +104,7 @@ const standIn = (each: Case) => {
   };
   const dry = json({
     tasks: [
-      { taskId: 'x#test', package: 'x', command: 'bun test' },
+      { taskId: 'x#test', package: 'x', command: each.command ?? 'bun test' },
       { taskId: 'y#test', package: 'y', command: 'bun test' },
     ],
   });
@@ -378,6 +380,24 @@ describe("test:budget's run summaries on a shared machine", () => {
   test(
     'over generated runs: no foreign time, no foreign file removed, nothing measured without its own summary',
     () => check(Effect.map(seed, (each) => generate(each, 30))),
+    30_000,
+  );
+
+  test(
+    'a workspace whose test script weakens its tests is refused, and nothing is measured',
+    () =>
+      Effect.runPromise(
+        Effect.map(
+          run({ ...fixed('weakened', 'whole', 0, []), command: 'bun test --timeout 60000' }),
+          (result) => {
+            expect(result.code).toBe(1);
+            expect(result.stderr).toContain(
+              "test:budget: nothing is measured; a workspace's test script weakens its tests:\nx: --timeout 60000",
+            );
+            expect(result.stdout).not.toContain('x:test: the tests ran');
+          },
+        ).pipe(Effect.provide(BunServices.layer)),
+      ),
     30_000,
   );
 });

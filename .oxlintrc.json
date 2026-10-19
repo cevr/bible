@@ -1371,14 +1371,16 @@
       // (packages/film/lint/tests-keep-their-strength.ts). A slow test is made
       // fast, never given more time, so each workspace's tests stay inside the
       // ten-second budget (`bun run test:budget`). The fixtures and preloads
-      // are read too: a preload's default timeout raises every test after it.
+      // are read too: a preload's default timeout raises every test after it
+      // (strength.test.ts holds every bunfig's preload to these globs).
       "files": [
         "**/*.test.ts",
         "**/*.test.tsx",
         "**/*.spec.ts",
         "**/*.spec.tsx",
         "**/fixtures/**/*.ts",
-        "**/e2e/**/*.ts"
+        "**/e2e/**/*.ts",
+        "**/test/setup.ts"
       ],
       "rules": {
         "film/tests-keep-their-strength": "error"

@@ -1,10 +1,27 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Glob } from 'bun';
+import { Glob, JSONC, TOML } from 'bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { weakeningFlags } from './strength.ts';
 
 const Root = Schema.fromJsonString(Schema.Struct({ workspaces: Schema.Array(Schema.String) }));
+
+/** The lint config's overrides, as far as their files and rules. */
+const LintConfig = Schema.Struct({
+  overrides: Schema.Array(
+    Schema.Struct({
+      files: Schema.Array(Schema.String),
+      rules: Schema.Record(Schema.String, Schema.Unknown),
+    }),
+  ),
+});
+
+/** A bunfig's test preloads. */
+const Bunfig = Schema.Struct({
+  test: Schema.optionalKey(
+    Schema.Struct({ preload: Schema.optionalKey(Schema.Array(Schema.String)) }),
+  ),
+});
 const Manifest = Schema.fromJsonString(
   Schema.Struct({
     scripts: Schema.optionalKey(Schema.Struct({ test: Schema.optionalKey(Schema.String) })),
@@ -65,6 +82,43 @@ describe("a workspace's test script", () => {
           ),
         );
         expect(weak.flat()).toEqual([]);
+      }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "every workspace's test preload is a file the strength rule reads",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = path.join(import.meta.dir, '..', '..', '..', '..');
+        const config = yield* Schema.decodeUnknownEffect(LintConfig)(
+          JSONC.parse(yield* fs.readFileString(path.join(root, '.oxlintrc.json'))),
+        );
+        const globs = config.overrides
+          .filter((override) => override.rules['film/tests-keep-their-strength'] === 'error')
+          .flatMap((override) => override.files.map((pattern) => new Glob(pattern)));
+        const { workspaces } = yield* Schema.decodeEffect(Root)(
+          yield* fs.readFileString(path.join(root, 'package.json')),
+        );
+        const bunfigs = workspaces.flatMap((pattern) => [
+          ...new Glob(`${pattern}/bunfig.toml`).scanSync({ cwd: root }),
+        ]);
+        const preloads = yield* Effect.forEach(bunfigs, (bunfig) =>
+          Effect.map(
+            Effect.flatMap(fs.readFileString(path.join(root, bunfig)), (text) =>
+              Schema.decodeEffect(Bunfig)(TOML.parse(text)),
+            ),
+            (read) =>
+              (read.test?.preload ?? []).map((preload) =>
+                path.relative(root, path.resolve(root, path.dirname(bunfig), preload)),
+              ),
+          ),
+        );
+        expect(preloads.flat().length).toBeGreaterThan(0);
+        expect(preloads.flat().filter((file) => !globs.some((glob) => glob.match(file)))).toEqual(
+          [],
+        );
       }),
   );
 });
