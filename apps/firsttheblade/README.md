@@ -62,12 +62,28 @@ same value.
 `WORKERS_DEV_SUBDOMAIN` in the same file is the account's `workers.dev`
 subdomain; the canonical URL on the `workers.dev` host is built from it.
 
+## The look
+
+The site is brand round 4's choice (2026-10-19): logo 10 (the painted shoot in
+its disc beside the Newsreader wordmark), site mix 1 “Day into night as you
+read” (the morning field, the series on torn paper, a dusk band, the night
+close with Mark 4:27), and palette 09, “Morning under a blue sky”, from Sanzo
+Wada's combination no. 294. The colours have one source, `src/palette.ts`;
+the stylesheet's `--color-*` tokens repeat them, and the tests hold the two
+together.
+
+```bash
+bun run contrast   # every built page at 390 and 1440 px against WCAG AA, as drawn (build first)
+bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
+```
+
 ## The art and the fonts
 
-The mark, the field, the torn strips, the series pictures and the link cards
-(`src/art/`, `public/`) are drawn from the brand prototype
-(`brand/prototypes/brand/src`, the boards the owner approved), the same
-cut-paper world as the films.
+The field, the night and the mark (`src/art/`, and `kit/art/` at full size)
+are brand round 4's paintings; the series emblems are round 3's, in the same
+colours. The thumbnails' paintings (`kit/art/robe.webp`, `kit/art/court.webp`)
+are from Righteousness by Faith. The link cards and icons in `public/` are drawn
+from them by `bun run kit`.
 
-Fraunces and Inter (`src/fonts/`) are under the SIL Open Font License 1.1,
-subset to Latin and Latin Extended and served from this site.
+Newsreader (`src/fonts/`) is under the SIL Open Font License 1.1, subset to
+Latin and Latin Extended and served from this site.

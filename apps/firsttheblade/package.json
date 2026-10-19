@@ -8,6 +8,8 @@
     "preview": "bun src/worker/preview.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
+    "contrast": "bun scripts/contrast.ts",
+    "kit": "bun kit/draw.ts",
     "plan": "bun run build && alchemy plan alchemy.run.ts --stage prod",
     "deploy": "bun run build && alchemy deploy alchemy.run.ts --stage prod"
   },
@@ -20,6 +22,7 @@
   "devDependencies": {
     "@effect/platform-bun": "catalog:",
     "@effect/platform-node": "catalog:",
+    "@playwright/test": "1.64.0",
     "alchemy": "2.0.0-beta.83",
     "effect-bun-test": "catalog:",
     "vite": "^8.3.4",

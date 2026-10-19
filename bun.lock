@@ -72,6 +72,7 @@
       "devDependencies": {
         "@effect/platform-bun": "catalog:",
         "@effect/platform-node": "catalog:",
+        "@playwright/test": "1.64.0",
         "alchemy": "2.0.0-beta.83",
         "effect-bun-test": "catalog:",
         "vite": "^8.3.4",
