@@ -1291,6 +1291,18 @@ describe('the parts', () => {
     expect(() => Tunic({ ...tunic, neck: tunic.hem, hem: tunic.neck })).toThrow(/Tunic refused/);
   });
 
+  test('bands whose top is not above their ends are refused', () => {
+    const bands = { x: 0, gap: 3, top: 17, bottom: 25, splay: 4, paper: FLAT };
+    // A top at the ends' height, with no splay: each tab flat, its outline NaN.
+    expect(() => Bands({ ...bands, splay: 0, from: -200, to: -200 })).toThrow(
+      /Bands refused: [^]*their top \(-200\) lies at or below their ends \(-200\)/,
+    );
+    expect(() => Bands({ ...bands, from: 126, to: 62 })).toThrow(
+      /Bands refused: [^]*their top \(126\) lies at or below their ends \(62\)/,
+    );
+    expect(Bands({ ...bands, from: 62, to: 126 })).toMatchObject({ from: 62, to: 126 });
+  });
+
   test('a paper with an ink of its own is refused by InteriorInk', () => {
     const inked = { color: '#f7b284', shade: '#f0a27c', light: '#fbd2b6', ink: '#000000' } as const;
     expect(() => paper(inked, 'inked skin')).toThrow(/inked skin refused by InteriorInk/);
