@@ -5,15 +5,18 @@
 // hides its own errors, so the check refuses it.
 //
 // tsc may spell a program file otherwise than the disk does (`./foo.js` finds
-// `foo.d.TS` as `foo.d.ts` on a disk that folds case), so the check knows each
-// program file by its real path: that decides which listed file it is and
-// whether it is the package's, and tsc's own spelling decides the rule.
+// `foo.d.TS` as `foo.d.ts` on a disk that folds case; a path through a
+// symlink), and so may the listing (a symlinked source). So the check knows
+// each listed source and each program file by its real path: that decides
+// which listed file a program file is and whether it is the package's, and
+// tsc's own spelling decides the rule. A file whose real path is outside the
+// package, linked in, is not the package's: its declaration file passes.
 
 import { Console, Effect, FileSystem, Path, Runtime, Schema, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
-import { declarations, listedFiles, uncovered } from './coverage.js';
+import { declarations, isSource, listedFiles, uncovered } from './coverage.js';
 import { tscScript } from './tsc.js';
 
 /** tsc could not list the program: its exit code and what it printed. */
@@ -87,7 +90,15 @@ export const check = (packageRoot: string) =>
       [fs.readDirectory(root, { recursive: true }), programOf(path.join(root, 'tsconfig.json'))],
       { concurrency: 2 },
     );
-    const files = listing.map((file) => file.split(path.sep).join('/'));
+    const files = yield* Effect.forEach(
+      listing.map((file) => file.split(path.sep).join('/')).filter(isSource),
+      (listed) =>
+        Effect.map(fs.realPath(path.join(root, listed)), (real) => ({
+          listed,
+          disk: relative(real),
+        })),
+      { concurrency: 64 },
+    );
     const known = yield* Effect.forEach(
       program,
       (spelled) => Effect.map(fs.realPath(spelled), (real) => ({ spelled, disk: relative(real) })),

@@ -2,10 +2,14 @@ import { describe, expect, test } from 'bun:test';
 
 import { declarations, listedFiles, uncovered } from './coverage.js';
 
+/** Listed files whose real path is their listed path. */
+const asListed = (files: ReadonlyArray<string>) =>
+  files.map((file) => ({ listed: file, disk: file }));
+
 describe("the files a tsconfig's program leaves out", () => {
   test('names each TypeScript file outside the program, sorted', () => {
     const files = ['src/b.ts', 'src/a.test.ts', 'src/in.ts', 'src/deep/c.tsx'];
-    expect(uncovered(files, ['src/in.ts'])).toEqual([
+    expect(uncovered(asListed(files), ['src/in.ts'])).toEqual([
       'src/a.test.ts',
       'src/b.ts',
       'src/deep/c.tsx',
@@ -14,17 +18,28 @@ describe("the files a tsconfig's program leaves out", () => {
 
   test('a package the program holds whole leaves nothing out', () => {
     const files = ['src/a.ts', 'src/a.test.ts'];
-    expect(uncovered(files, ['../../node_modules/lib.d.ts', ...files])).toEqual([]);
+    expect(uncovered(asListed(files), ['../../node_modules/lib.d.ts', ...files])).toEqual([]);
   });
 
   test('files that are not TypeScript, and installed packages, are not asked for', () => {
     const files = ['README.md', 'src/data.json', 'node_modules/effect/src/Effect.ts', 'src/x.ts'];
-    expect(uncovered(files, [])).toEqual(['src/x.ts']);
+    expect(uncovered(asListed(files), [])).toEqual(['src/x.ts']);
   });
 
   test('every TypeScript extension counts, a declaration file included', () => {
     const typescript = ['a.cts', 'a.d.ts', 'a.mts', 'a.ts', 'a.tsx'];
-    expect(uncovered([...typescript, 'a.js', 'a.json', 'a.ts.md', 'ts'], [])).toEqual(typescript);
+    const listed = asListed([...typescript, 'a.js', 'a.json', 'a.ts.md', 'ts']);
+    expect(uncovered(listed, [])).toEqual(typescript);
+  });
+
+  test('a listed file is held by its real path, and named by its listed path', () => {
+    const files = [
+      { listed: 'src/alias.ts', disk: 'src/real.ts' },
+      { listed: 'src/real.ts', disk: 'src/real.ts' },
+      { listed: 'src/vendor/x.ts', disk: '../outside/lib/x.ts' },
+      { listed: 'src/vendor/y.ts', disk: '../outside/lib/y.ts' },
+    ];
+    expect(uncovered(files, ['src/real.ts', '../outside/lib/x.ts'])).toEqual(['src/vendor/y.ts']);
   });
 
   test("tsc's listing is read a path a line, blank lines dropped", () => {
@@ -60,7 +75,13 @@ describe('declaration files', () => {
       { spelled: '/r/src/z.d.ts', disk: '../other/src/z.d.ts' },
       { spelled: '/r/src/w.d.ts', disk: 'node_modules/w/index.d.ts' },
       { spelled: '/r/src/FOO.d.ts', disk: 'src/foo.d.TS' },
+      { spelled: '/r/..x.d.ts', disk: '..x.d.ts' },
     ];
-    expect(declarations(program)).toEqual(['src/bar.d.tſ', 'src/foo.d.TS', 'src/y.d.ts']);
+    expect(declarations(program)).toEqual([
+      '..x.d.ts',
+      'src/bar.d.tſ',
+      'src/foo.d.TS',
+      'src/y.d.ts',
+    ]);
   });
 });

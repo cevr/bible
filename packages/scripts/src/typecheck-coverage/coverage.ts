@@ -1,8 +1,9 @@
 // Which TypeScript files of a package its tsconfig's program leaves out, so
 // `tsc --noEmit` never checks them, and which program files are declaration
 // files, whose own errors `skipLibCheck` hides. A file is known by its disk
-// spelling (its real path); tsc may spell a program file otherwise (a relative
-// import on a disk that folds case), and TypeScript's rule reads tsc's
+// spelling, its real path: tsc may spell a program file otherwise (a relative
+// import on a disk that folds case, a path through a symlink), and so may the
+// package's listing (a symlinked source). TypeScript's rule reads tsc's
 // spelling.
 
 /** A TypeScript source, by its extension (a declaration file included). */
@@ -11,8 +12,11 @@ const isTypeScript = (file: string) => /\.(?:[cm]?ts|tsx)$/.test(file);
 /** A path inside an installed package, which no program of ours is meant to check. */
 const installed = (file: string) => file.split('/').includes('node_modules');
 
+/** A listed TypeScript file outside installed packages: one the program must hold. */
+export const isSource = (file: string) => isTypeScript(file) && !installed(file);
+
 /** A path relative to the package that leaves it. */
-const outside = (file: string) => file === '..' || file.startsWith('../') || file.startsWith('/');
+const outside = (file: string) => file === '..' || file.startsWith('../');
 
 /** The files `tsc --listFilesOnly` prints, one path a line. */
 export const listedFiles = (stdout: string) =>
@@ -21,15 +25,22 @@ export const listedFiles = (stdout: string) =>
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
+/** A file of the package's listing: its listed path, and its real path. */
+interface ListedFile {
+  readonly listed: string;
+  readonly disk: string;
+}
+
 /**
- * The TypeScript files of `files` that `program` does not hold, sorted; every
- * path in both is a disk spelling relative to the package, with `/` between
- * its parts.
+ * The listed paths of the sources in `files` whose real path no file of
+ * `program` has, sorted; `program` holds real paths. Every path is relative to
+ * the package, with `/` between its parts.
  */
-export const uncovered = (files: ReadonlyArray<string>, program: ReadonlyArray<string>) => {
+export const uncovered = (files: ReadonlyArray<ListedFile>, program: ReadonlyArray<string>) => {
   const held = new Set(program);
   return files
-    .filter((file) => isTypeScript(file) && !installed(file) && !held.has(file))
+    .filter(({ listed, disk }) => isSource(listed) && !held.has(disk))
+    .map(({ listed }) => listed)
     .toSorted();
 };
 
