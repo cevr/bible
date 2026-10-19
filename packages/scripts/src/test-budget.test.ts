@@ -1,13 +1,26 @@
 // `bun run test:budget` over a stand-in turbo, as a shared machine runs it:
 // the run's own summary whole, missing or truncated, and other writers'
 // summaries (another budget run, a hand-run turbo) landing in the same
-// `.turbo/runs` before, during or after it. A run never reports a time from a
-// summary it did not write, never removes one, and measures nothing when its
-// own summary cannot be read.
+// `.turbo/runs` before, during or after it, at turbo's exit 0 and 1. A run
+// never reports a time from a summary it did not write, never removes one,
+// and measures nothing when its own summary cannot be read, at any exit: it
+// fails, and at a non-zero exit names the workspace's exit with no time.
+// `TEST_BUDGET_SEED=<n>` replays the generated cases of a failing seed.
 
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, test } from 'bun:test';
-import { Clock, Config, Effect, Fiber, FileSystem, Path, Schedule, Schema, Stream } from 'effect';
+import {
+  Clock,
+  Config,
+  Effect,
+  Fiber,
+  FileSystem,
+  Option,
+  Path,
+  Schedule,
+  Schema,
+  Stream,
+} from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
@@ -17,7 +30,9 @@ type Own =
   | 'no-line' // not written, no `Summary:` line (turbo 2.11.7 when the write fails, exit 0)
   | 'line-no-file' // the `Summary:` line printed, the file gone (another writer removed it)
   | 'truncated' // written in part, its line printed
-  | 'no-task'; // whole, but without `x#test` (a `test` that never ran)
+  | 'no-task' // whole, but without `x#test` (a `test` that never ran)
+  | 'two-lines' // whole, and its `Summary:` line printed twice
+  | 'outside'; // whole, but written outside `.turbo/runs`, and that path printed
 
 /** Another writer's summary: which workspaces it names, and when it lands beside the run. */
 interface Foreign {
@@ -36,6 +51,8 @@ interface Case {
 }
 
 const OWN_FILE = 'own.json';
+/** Where the `outside` case writes its summary, relative to the scratch root. */
+const OUTSIDE_DIR = 'elsewhere';
 
 const json = Schema.encodeSync(Schema.UnknownFromJsonString);
 
@@ -70,6 +87,8 @@ const standIn = (each: Case) => {
     'line-no-file': [],
     truncated: [write(OWN_FILE, whole.slice(0, 30))],
     'no-task': [write(OWN_FILE, summary(['x#build'], each.ownMs))],
+    'two-lines': [write(OWN_FILE, whole)],
+    outside: [`mkdir -p ${OUTSIDE_DIR}`, `printf '%s' '${whole}' > ${OUTSIDE_DIR}/${OWN_FILE}`],
   };
   const printed = `echo "Summary:    $PWD/.turbo/runs/${OWN_FILE}"`;
   const line: Record<Own, ReadonlyArray<string>> = {
@@ -78,6 +97,8 @@ const standIn = (each: Case) => {
     'line-no-file': [printed],
     truncated: [printed],
     'no-task': [printed],
+    'two-lines': [printed, printed],
+    outside: [`echo "Summary:    $PWD/${OUTSIDE_DIR}/${OWN_FILE}"`],
   };
   const dry = json({
     tasks: [
@@ -165,7 +186,8 @@ const run = (each: Case) =>
     );
     yield* Fiber.join(writer);
     const left = new Set(yield* fs.readDirectory(path.join(root, '.turbo', 'runs')));
-    return { stdout, stderr, code: Number(code), left };
+    const outsideLeft = yield* fs.exists(path.join(root, OUTSIDE_DIR, OWN_FILE));
+    return { stdout, stderr, code: Number(code), left, outsideLeft };
   }).pipe(Effect.scoped);
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
@@ -173,7 +195,13 @@ const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 /** Every way the run breaks the rule in `each`; none when it holds. */
 const violations = (
   each: Case,
-  result: { stdout: string; stderr: string; code: number; left: ReadonlySet<string> },
+  result: {
+    stdout: string;
+    stderr: string;
+    code: number;
+    left: ReadonlySet<string>;
+    outsideLeft: boolean;
+  },
 ) => {
   const found: Array<string> = [];
   const times = [...result.stdout.matchAll(/^\s+(\d+\.\d s) {2}x$/gm)].map((match) => match[1]);
@@ -193,10 +221,17 @@ const violations = (
     return found;
   }
   if (result.code !== 1) found.push(`exits ${result.code} with its own summary unreadable`);
-  if (each.exit === 0 && times.length > 0)
-    found.push(`reports [${times.join()}] with no summary of its own`);
-  if ((each.own === 'truncated' || each.own === 'no-task') && !result.left.has(OWN_FILE))
+  if (times.length > 0) found.push(`reports [${times.join()}] with no summary of its own`);
+  if (
+    each.exit !== 0 &&
+    !new RegExp(`^\\s+no time {2}x: exit ${each.exit}\\b`, 'm').test(result.stdout)
+  )
+    found.push(`names no exit ${each.exit} with no time for x`);
+  const unread: ReadonlyArray<Own> = ['truncated', 'no-task', 'two-lines'];
+  if (unread.includes(each.own) && !result.left.has(OWN_FILE))
     found.push('removes an own summary it could not read');
+  if (each.own === 'outside' && !result.outsideLeft)
+    found.push('removes a summary outside .turbo/runs');
   return found;
 };
 
@@ -230,7 +265,15 @@ const random = (seed: number) => {
   };
 };
 
-const OWNS: ReadonlyArray<Own> = ['whole', 'no-line', 'line-no-file', 'truncated', 'no-task'];
+const OWNS: ReadonlyArray<Own> = [
+  'whole',
+  'no-line',
+  'line-no-file',
+  'truncated',
+  'no-task',
+  'two-lines',
+  'outside',
+];
 const NAMES: ReadonlyArray<Foreign['names']> = ['same', 'other', 'both'];
 const WHENS: ReadonlyArray<Foreign['when']> = [
   'before',
@@ -278,36 +321,66 @@ const sameDuring: Foreign = {
   ms: 7_000,
 };
 
+/** The seed of the generated cases: `TEST_BUDGET_SEED` when set, else the clock. */
+const seed = Effect.gen(function* () {
+  const given = yield* Config.option(Config.Int('TEST_BUDGET_SEED'));
+  return yield* Option.match(given, {
+    onNone: () => Clock.currentTimeMillis,
+    onSome: (value) => Effect.succeed(value),
+  });
+}).pipe(Effect.orDie);
+
 describe("test:budget's run summaries on a shared machine", () => {
   test(
-    "r1 m2: another workspace's summary written during the run is left, and the run reads its own",
-    () => check(Effect.succeed([fixed('r1 m2', 'whole', 0, [{ ...sameDuring, names: 'other' }])])),
-    30_000,
-  );
-
-  test(
-    "r1 m2: a second run of the same workspace beside it leaves the run its own time and the other run's file",
-    () => check(Effect.succeed([fixed('r1 m2 same', 'whole', 0, [sameDuring])])),
-    30_000,
-  );
-
-  test(
-    "r2 M1: a run whose own summary is missing, truncated or without x#test takes no other run's",
+    "another workspace's summary written during the run is left, and the run reads its own",
     () =>
       check(
         Effect.succeed([
-          fixed('r2 M1 missing', 'no-line', 0, [sameDuring]),
-          fixed('r2 M1 line, no file', 'line-no-file', 0, [sameDuring]),
-          fixed('r2 M1 truncated', 'truncated', 0, [sameDuring]),
-          fixed('r2 M1 no task', 'no-task', 1, [sameDuring]),
+          fixed('other workspace during', 'whole', 0, [{ ...sameDuring, names: 'other' }]),
         ]),
       ),
     30_000,
   );
 
   test(
+    "a second run of the same workspace beside it leaves the run its own time and the other run's file",
+    () => check(Effect.succeed([fixed('same workspace during', 'whole', 0, [sameDuring])])),
+    30_000,
+  );
+
+  test(
+    "a run whose own summary is missing, truncated or without x#test takes no other run's, at exit 0 and 1",
+    () =>
+      check(
+        Effect.succeed(
+          ([0, 1] as const).flatMap((exit) => [
+            fixed(`missing, exit ${exit}`, 'no-line', exit, [sameDuring]),
+            fixed(`line, no file, exit ${exit}`, 'line-no-file', exit, [sameDuring]),
+            fixed(`truncated, exit ${exit}`, 'truncated', exit, [sameDuring]),
+            fixed(`no task, exit ${exit}`, 'no-task', exit, [sameDuring]),
+          ]),
+        ),
+      ),
+    30_000,
+  );
+
+  test(
+    'a run whose turbo prints two summary paths, or one outside .turbo/runs, measures and removes nothing',
+    () =>
+      check(
+        Effect.succeed(
+          ([0, 1] as const).flatMap((exit) => [
+            fixed(`two lines, exit ${exit}`, 'two-lines', exit, []),
+            fixed(`outside, exit ${exit}`, 'outside', exit, []),
+          ]),
+        ),
+      ),
+    30_000,
+  );
+
+  test(
     'over generated runs: no foreign time, no foreign file removed, nothing measured without its own summary',
-    () => check(Effect.map(Clock.currentTimeMillis, (seed) => generate(seed, 30))),
+    () => check(Effect.map(seed, (each) => generate(each, 30))),
     30_000,
   );
 });
