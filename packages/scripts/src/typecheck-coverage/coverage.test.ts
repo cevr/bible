@@ -32,17 +32,35 @@ describe("the files a tsconfig's program leaves out", () => {
   });
 });
 
+/** Program files that tsc spells as the disk does. */
+const asOnDisk = (files: ReadonlyArray<string>) =>
+  files.map((file) => ({ spelled: `/r/${file}`, disk: file }));
+
 describe('declaration files', () => {
   test("each form of TypeScript's rule outside installed packages is named, sorted", () => {
     const named = ['a.d.css.ts', 'a.d.cts', 'a.d.json.ts', 'a.d.mts', 'a.d.ts'];
     const not = [
       'a.D.ts',
       'a.d.TS',
+      'a.d.Mts',
       'a.dd.ts',
       'a.data.ts',
       'dir.d.css/ordinary.ts',
       'node_modules/x/y.d.css.ts',
     ];
-    expect(declarations([...not, ...named])).toEqual(named);
+    expect(declarations(asOnDisk([...not, ...named]))).toEqual(named);
+  });
+
+  test("the rule reads tsc's spelling, and the disk's names the file and places it", () => {
+    const program = [
+      { spelled: '/r/src/foo.d.ts', disk: 'src/foo.d.TS' },
+      { spelled: '/PKG/src/bar.d.ts', disk: 'src/bar.d.tſ' },
+      { spelled: '/r/src/baz.ts', disk: 'src/baz.d.ts' },
+      { spelled: '/r/node_modules/x/y.d.ts', disk: 'src/y.d.ts' },
+      { spelled: '/r/src/z.d.ts', disk: '../other/src/z.d.ts' },
+      { spelled: '/r/src/w.d.ts', disk: 'node_modules/w/index.d.ts' },
+      { spelled: '/r/src/FOO.d.ts', disk: 'src/foo.d.TS' },
+    ];
+    expect(declarations(program)).toEqual(['src/bar.d.tſ', 'src/foo.d.TS', 'src/y.d.ts']);
   });
 });

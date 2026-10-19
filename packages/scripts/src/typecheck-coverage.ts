@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 // Every TypeScript file under packages/scripts is in the scripts tsconfig's
 // program and is not a declaration file, so `tsc --noEmit` reports its errors.
-// Asks tsc for the program's files (`--listFilesOnly`), names each TypeScript
-// file of the package outside it (installed packages aside) and each
-// declaration file, by TypeScript's rule (`skipLibCheck` hides its errors), and
-// exits 1 when there is one. The package's `typecheck` runs it after tsc, so
-// the gate holds it.
+// Asks tsc for the program's files (`--listFilesOnly`), knows each by its real
+// path, names each TypeScript file of the package outside it (installed
+// packages aside) and each of its declaration files, by TypeScript's rule on
+// tsc's spelling (`skipLibCheck` hides its errors), and exits 1 when there is
+// one. The package's `typecheck` runs it after tsc, so the gate holds it.
 //
 //   bun src/typecheck-coverage.ts
 

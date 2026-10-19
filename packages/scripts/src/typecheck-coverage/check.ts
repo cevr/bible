@@ -3,6 +3,11 @@
 // reports its errors. A declaration file (TypeScript's rule: `a.d.ts`,
 // `style.d.css.ts`) is in the program, but `skipLibCheck` (the root tsconfig)
 // hides its own errors, so the check refuses it.
+//
+// tsc may spell a program file otherwise than the disk does (`./foo.js` finds
+// `foo.d.TS` as `foo.d.ts` on a disk that folds case), so the check knows each
+// program file by its real path: that decides which listed file it is and
+// whether it is the package's, and tsc's own spelling decides the rule.
 
 import { Console, Effect, FileSystem, Path, Runtime, Schema, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
@@ -83,9 +88,17 @@ export const check = (packageRoot: string) =>
       { concurrency: 2 },
     );
     const files = listing.map((file) => file.split(path.sep).join('/'));
-    const missing = uncovered(files, program.map(relative));
+    const known = yield* Effect.forEach(
+      program,
+      (spelled) => Effect.map(fs.realPath(spelled), (real) => ({ spelled, disk: relative(real) })),
+      { concurrency: 64 },
+    );
+    const missing = uncovered(
+      files,
+      known.map(({ disk }) => disk),
+    );
     if (missing.length > 0) return yield* Uncovered.make({ files: missing });
-    const declared = declarations(files);
+    const declared = declarations(known);
     if (declared.length > 0) return yield* Unchecked.make({ files: declared });
     yield* Console.log(
       `typecheck-coverage: every TypeScript file under ${root} is in its tsconfig's program and checked`,

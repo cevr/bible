@@ -1,8 +1,10 @@
-// The check's answer to "is this a declaration file" against TypeScript's own,
-// over generated file names. TypeScript's answer is read from its program: with
-// `skipLibCheck` on, tsc reports a file's type error only when the file is not
-// a declaration file, so each file carries one and the silent ones are
-// TypeScript's declaration files.
+// The check's copy of TypeScript's rule against TypeScript's own, over
+// generated names, each judged as written: a `files` entry keeps its spelling,
+// so tsc judges the name the test wrote. TypeScript's answer is read from its
+// program: with `skipLibCheck` on, tsc reports a file's type error only when
+// the file is not a declaration file, so each file carries one and the silent
+// ones are TypeScript's declaration files. The routes where tsc spells a file
+// otherwise than the disk are check.test.ts's census.
 
 import { describe, expect, it } from 'bun:test';
 import { BunServices } from '@effect/platform-bun';
@@ -46,7 +48,7 @@ const extensions = ['.ts', '.tsx', '.mts', '.cts'];
 const pick = <A>(next: () => number, from: ReadonlyArray<A>): A =>
   from[Math.floor(next() * from.length)] as A;
 
-/** Names across the rule's domain, plus fixed forms on each side of its edges. */
+/** Generated names, plus fixed forms on each side of the rule's edges. */
 const generated = (count: number, seed: number) => {
   const next = random(seed);
   const names = new Set([
@@ -128,10 +130,11 @@ const typescriptDeclarations = (names: ReadonlyArray<string>) =>
   }).pipe(Effect.scoped);
 
 describe('a declaration file, as TypeScript decides it', () => {
-  it('the check names exactly the files TypeScript checks as declarations', () =>
+  it("the check's rule, on the name tsc judges, holds exactly for TypeScript's declaration files", () =>
     Effect.gen(function* () {
       const names = generated(400, 0x5eed);
       const theirs = yield* typescriptDeclarations(names);
-      expect(declarations(names)).toEqual(theirs.toSorted());
+      const asWritten = names.map((name) => ({ spelled: name, disk: name }));
+      expect(declarations(asWritten)).toEqual(theirs.toSorted());
     }).pipe(Effect.provide(BunServices.layer), Effect.runPromise));
 });
