@@ -50,9 +50,10 @@ export const ruleCheck = <T>(rule: RuleId, holds: (input: T) => true | string) =
   Schema.makeFilter(holds, holding(rule));
 
 /**
- * The rule a kind breaks with a field it lacks: `any`, whatever the field (a
- * hand is its paper and its share, nothing else); else the one its `fields`
- * name for that field (ink or a rim on a part laid within another).
+ * The rule a kind breaks with a field it lacks: the one its `fields` name
+ * for that field (ink or a rim on a part laid within another, an ink on a
+ * hand); else `any`, whatever the field (a hand is its paper and its share,
+ * nothing else).
  */
 interface Refuses {
   readonly any?: RuleId;

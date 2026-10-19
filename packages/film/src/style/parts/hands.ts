@@ -1,9 +1,10 @@
 // A figure's hands: a circle of one paper, the share of its head's width its
 // concept draws, and nothing else: no thumb, no fingers, ever (K1, owner
-// 2026-10-12). A field a hand lacks is refused by CircleHands, which nothing
-// frees. The host draws each where it works, from the hand's own artboard
-// (`drawHand`): a hand at the end of an arm, at its sleeve's cuff (`arm.ts`;
-// the owner's sleeves, look ledger, 2026-10-18). Pure.
+// 2026-10-12). An ink of its own is refused by InteriorInk, as on every
+// part with a paper, and any other field a hand lacks by CircleHands,
+// which nothing frees. The host draws each where it works, from the hand's
+// own artboard (`drawHand`): a hand at the end of an arm, at its sleeve's
+// cuff (`arm.ts`; the owner's sleeves, look ledger, 2026-10-18). Pure.
 
 import { Schema } from 'effect';
 import { decoder } from '../decode.ts';
@@ -21,8 +22,11 @@ const HandsPart = Schema.TaggedStruct('Hands', {
 });
 export type Hands = typeof HandsPart.Type;
 
-/** Hands, checked: a circle of a paper and a share, refused otherwise by CircleHands. */
-export const decodeHands = decoder(HandsPart, { any: 'CircleHands' });
+/** Hands, checked: a circle of a paper and a share; an ink of its own is refused by InteriorInk, any other field by CircleHands. */
+export const decodeHands = decoder(HandsPart, {
+  any: 'CircleHands',
+  fields: { ink: 'InteriorInk' },
+});
 
 /** A figure's two circle hands. */
 export const Hands = (o: Omit<Hands, '_tag'>): Hands =>

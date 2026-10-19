@@ -766,9 +766,18 @@ describe('the parts', () => {
     expect(() => paper(inked, 'inked skin')).toThrow(/inked skin refused by InteriorInk/);
   });
 
-  test('a hand with any field but its paper and its share is refused by CircleHands', () => {
+  test('a hand with a thumb is refused by CircleHands', () => {
     const thumbed = { paper: SKIN, share: 0.3, thumb: 1 };
     expect(() => Hands(thumbed)).toThrow(/Hands refused by CircleHands/);
+  });
+
+  test('a hand with an ink of its own is refused by InteriorInk, alone and as a figure takes it', () => {
+    const inked = { paper: SKIN, share: 0.3, ink: '#000000' };
+    expect(() => Hands(inked)).toThrow(/Hands refused by InteriorInk/);
+    const inkedHands = { ...leadOf([]).hands, ink: '#000000' };
+    expect(() => figure({ ...leadOf([]), hands: inkedHands })).toThrow(
+      /hands refused by InteriorInk/,
+    );
   });
 
   test('a hand is checked again as a figure takes it', () => {
