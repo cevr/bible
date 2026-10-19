@@ -30,9 +30,9 @@
 // by either average measures nothing (the 5-minute one keeps a lull of a
 // minute in a busy period from admitting the run): the run prints "not
 // measured (load average N over 1 min and M over 5 min, on C cores)" as its
-// last line and exits 0, and nothing measures it again. At or below the core
-// count, a workspace at or over the budget fails (`test-budget/budget.ts`). A
-// test that fails still fails, at any load.
+// last line, and nothing measures it again. At or below the core count, a
+// workspace at or over the budget fails. The verdict and its exit code are the
+// judge's (`test-budget/budget.ts`, its header).
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';

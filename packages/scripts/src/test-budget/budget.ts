@@ -13,7 +13,8 @@
 // keeps a lull of a minute in a busy period from admitting the run. At or
 // below the core count, a workspace over budget fails. A workspace whose
 // tests fail fails the run at any load, and so does one with no time (its own
-// summary did not read): its line names its exit code and no time.
+// summary did not read): its line names its exit code and no time. A run that
+// fails exits 1; every other run exits 0, a busy machine's included.
 
 import { Option } from 'effect';
 
