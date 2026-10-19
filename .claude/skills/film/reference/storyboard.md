@@ -30,11 +30,12 @@ The image route letters a sign well enough, yet a word the narration says always
 
 Learned on RBF (style 9005): it holds the style when its reference image rides along; asked for several recipes of one scene it collapses them into one family, so a second idea is a second panel, never a second recipe in one prompt; a fine stylistic trait (a value-stepped beard) appears only sometimes, so a trait the cast must carry is checked in each kept try; and it spells lettering reliably, which is why a prompt asks for no words in the picture rather than trusting it to leave them out (none of RBF's 100 tries carried a stray letter).
 
-What it gets wrong, so a pick checks for it and a tweak names it:
+What it gets wrong, so a pick checks for it and a tweak names it. The first three are counted on RBF's v2 Board (`apps/animations/src/films/righteousness-by-faith/v2/board.json`: 52 kept panels, drawn and kept on 2026-10-14, as each keep's why names them, the arms as each try's image shows them). That Board's block asks for hands that float free, so these counts take no sleeve and no free hand as a fault. The faults stand most common first: check a pick for them in this order (a dated count, after taste-skill's tells registry, MIT).
 
-- **Callbacks.** Only the style ref rides along, so a frame that calls back an earlier beat (the cold open's court, the robed figure, a recurring prop row) is redrawn from words and drifts. Name the called-back panel in the tweak and draw over it.
+- **The cast.** Crowds and named people drift toward the style ref's people: skin tones, hair, bright clothes, its props (4 of the 52). A head warms off its sheet's colour: the v2 everyman's grey head warmed in 6, and a grey crowd took skin tones in 2 more. Stick arms or bare arms appear on gestures (4 of the 52, kept in 1 at most). The house hand is a circle at the end of an arm in its sleeve (CRAFT.md), and the style ref's hands float, so check that each hand has its sleeve.
+- **A part both tries drop.** Two draws of one prompt can fail the same way. In 8 of the 52, both tries shared a fault: a part the brief named was missing in 7 (the gold word-bubble in 3, the white robe in 2), a called-back layout was lost in 2, and one panel had both. Name the part in a tweak, or give it a panel of its own.
+- **Callbacks.** Only the style ref rides along, so a frame that calls back an earlier beat (the cold open's court, the robed figure, a recurring prop row) is redrawn from words and drifts: a callback or the beat's own place was lost in 6 of the 52. Name the called-back panel in the tweak and draw over it.
 - **Character sheets.** The route does not attach a film's character sheets yet ([film-flow-audit.md](../../../../apps/animations/plans/film-flow-audit.md), `concepttool`). Unattached, the plain lead drifts taller, slimmer or into another hue. Until the route attaches them, draw a try of a sheet's figure with its sheet attached (the plain lead's `apps/animations/docs/ref/plain-lead-sheet.png`, the robe sheet where the story clothes him), and measure the try against the sheet before you pick it (character-design 2.3).
-- **The cast.** Crowds and named people drift toward the style ref's people: skin tones, hair, bright clothes, its props. The everyman's grey head warms. Stick arms or bare arms appear on gestures, though the house hand is a circle at the end of an arm in its sleeve (CRAFT.md).
 - **Big changes inside a beat.** A beat's later panels copy its first, which holds continuity and drops the change the brief asks for (a circle that keeps growing, specks winking out).
 - **Tweaks.** Sent the try with "keep everything", the route returns near copies; the tweak prompt therefore asks for the change plainly, seen at a glance.
 
@@ -56,5 +57,7 @@ The kept panel at a mark is the frame the scene shows at that mark: its staging,
 
 - In the studio, the panel's clip on the Board lane shows the kept try; the scene plays in the viewer at the same mark.
 - From the terminal, `bun run look --film <film> --scene <id> --at mark:<at>` gives the scene's still at the mark, to view beside `board/<file>`.
+
+A framing that no kept panel shows (a cut-in, a reverse) takes the beat's kept panels as its source: the same light, places, cast and colours, framed by DIRECTION's staging grammar ([director-vision.md](director-vision.md), "Camera and staging grammar"). Never invent a new design in code. The painter names each one in its report, with its still, and whoever started it shows each one to the owner before a render.
 
 Done when every kept panel's staging reads in its scene's frame at its mark, or the owner has accepted the difference on the board.
