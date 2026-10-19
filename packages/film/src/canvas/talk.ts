@@ -183,7 +183,7 @@ export const createTalk = (
 
   const footageAt = (T: number): ReadonlyArray<FootageRead> => Option.toArray(readAt(T));
 
-  /** The take's frame at `T`, cropped by its section's knobs (the lab's drag, if it shows one). */
+  /** The take's frame at `T`, cropped by its section's knobs. */
   const drawTake = (ctx: CanvasRenderingContext2D, T: number, opts: RenderOptions) => {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -192,7 +192,7 @@ export const createTalk = (
     ctx.fillStyle = BARE;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     for (const { take, p } of Option.toArray(playing(T))) {
-      const knobs = opts.edits?.get(p.spec.id)?.knobs ?? p.knobs;
+      const { knobs } = p;
       const frame = Option.getOrElse(pointKnob(knobs, 'frame'), (): Point => [
         take.width / 2,
         take.height / 2,

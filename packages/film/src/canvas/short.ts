@@ -137,7 +137,6 @@ export const createShort = (film: Film, declared: Short): Film => {
     const sink = opts.probe;
     // A probed frame (a check, never the export's draw) collects the band's records apart.
     const probed: ProbeSink | undefined = sink === undefined ? undefined : { texts: [], inks: [] };
-    bandOptions.edits = opts.edits;
     bandOptions.knobs = opts.knobs;
     bandOptions.probe = probed;
     film.render(frame.ctx, at, bandOptions);
@@ -202,7 +201,6 @@ export const createShort = (film: Film, declared: Short): Film => {
     look: film.look,
     sceneAt,
     render,
-    edit: film.edit,
     // The film's own rigs: the page draws the film's frames, so it draws with what the film loaded.
     rigs: film.rigs,
   };

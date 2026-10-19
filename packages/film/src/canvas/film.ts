@@ -13,34 +13,24 @@ import {
   everyTakeRecorded,
   filmEnd,
   layout,
-  sceneClock,
   sceneIndexAt,
-  sceneOf,
   transitionDur,
 } from '../core/layout.ts';
-import { CardsOverlap, FloodInTransition, type UnknownScene } from '../core/errors.ts';
+import { CardsOverlap, FloodInTransition } from '../core/errors.ts';
 import {
   type Knob,
-  Knobs,
+  type Knobs,
   type ResolvedCue,
   type Point,
   type Sound,
   type Span,
   type Timed,
-  Timeline,
+  type Timeline,
   type Timings,
   type Transition,
   type Word,
 } from '../core/schema.ts';
-import {
-  cueKeys,
-  cueProgress,
-  endsLate,
-  type TimelineError,
-  resolveTimeline,
-  staggerAt,
-  staggerProgress,
-} from '../core/timeline.ts';
+import { cueKeys, cueProgress, endsLate, staggerAt, staggerProgress } from '../core/timeline.ts';
 import {
   type Grain,
   type Offscreen,
@@ -129,8 +119,8 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs, R ext
   /**
    * Keyframes across a named cue (`cueKeys`): each key's time is a fraction of
    * the cue, 0 its start and 1 its end, and its ease a name; a key that names
-   * none takes the cue's `ease`. So the lab's `dur` and `ease` edits reshape the
-   * motion: `f.keys('gavel', [[0, 0.35], [0.4, -0.2], [1, 1.5, 'outQuad']])`.
+   * none takes the cue's `ease`. So a change of the cue's `dur` or `ease`
+   * reshapes the motion: `f.keys('gavel', [[0, 0.35], [0.4, -0.2], [1, 1.5, 'outQuad']])`.
    */
   keys(name: C, frames: ReadonlyArray<Key>): number;
   /**
@@ -174,10 +164,9 @@ export interface Frame<C extends string = string, K extends Knobs = Knobs, R ext
    */
   handsOf(of: KnobsOwner<Knobs>): (key: string | number) => Hand;
   /**
-   * Another scene's knobs, as that scene reads them on this frame (a lab
-   * edit to them included), found by its drawing: a callback that frames
-   * what another scene framed reads it there, so a drag of that knob moves
-   * both: `f.knobsOf(thesis)('city')`. Throws, naming it, for a drawing no
+   * Another scene's knobs, as that scene reads them on this frame, found by
+   * its drawing: a callback that frames what another scene framed reads it
+   * there, so a change of that knob moves both: `f.knobsOf(thesis)('city')`. Throws, naming it, for a drawing no
    * scene of the film draws, or that more than one does.
    */
   knobsOf<K extends Knobs>(drawing: KnobsOwner<K>): KnobReader<K>;
@@ -513,31 +502,6 @@ const heardSince = (clock: ClockReads | undefined, id: string): (() => void) => 
   };
 };
 
-/** A scene's timeline or knobs, standing in for its drawing's in a frame drawn with it (`RenderOptions.edits`). */
-const SceneEdit = Schema.Struct({
-  timeline: Schema.optionalKey(Timeline),
-  knobs: Schema.optionalKey(Knobs),
-});
-type SceneEdit = typeof SceneEdit.Type;
-
-/**
- * An edit resolved for its scene (`Film.edit`), on the scene's own clock as
- * `layout()` resolves its drawing's: the cues and knobs a frame draws with in
- * place of the scene's own, and the literals they came from.
- */
-interface ShownEdit {
-  readonly edit: SceneEdit;
-  readonly cues: ReadonlyMap<string, ResolvedCue>;
-  readonly knobs: ReadonlyMap<string, Knob>;
-}
-
-/**
- * Why an edit does not resolve: the film has no such scene, its timeline
- * names what the scene lacks, it moves a card's flood into a transition, or
- * it makes two of the scene's cards hold the frame at once.
- */
-type EditError = UnknownScene | TimelineError | FloodInTransition | CardsOverlap;
-
 /**
  * One frame of footage a frame of a film reads (`Film.footageAt`): a derived
  * file of the footage library by its content (`source`, `<name>/<sha12>`,
@@ -567,12 +531,6 @@ export interface RenderOptions {
    * host. A film that reads none (a drawn film) is never given any.
    */
   readonly footage?: FootageFrames;
-  /**
-   * Draw each scene named here with its resolved edit's cues and knobs in
-   * place of its drawing's, for this frame only: a preview of an edit not
-   * yet written. Nothing is kept: the next frame draws what it is given.
-   */
-  readonly edits?: ReadonlyMap<string, ShownEdit>;
   /** Collect every knob the frame reads into this array. The pixels are the same either way. */
   readonly knobs?: KnobRead[];
   /** Collect the names each scene's frame reads off its clock into these sets. The pixels are the same either way. */
@@ -608,12 +566,6 @@ export interface Film {
    */
   readonly footageAt?: (T: number) => ReadonlyArray<FootageRead>;
   render(ctx: CanvasRenderingContext2D, T: number, opts?: RenderOptions): void;
-  /**
-   * `edit` resolved for `scene` as a frame draws it (`RenderOptions.edits`):
-   * its timeline on the scene's clock, else the scene's cues; its knobs, else
-   * the scene's. Fails as `layout()` would for a timeline that cannot resolve.
-   */
-  edit(scene: string, edit: SceneEdit): Result.Result<ShownEdit, EditError>;
   /** The Rive rigs its scenes' drawings declare, and the loaded ones it draws with. */
   readonly rigs: FilmRigs;
 }
@@ -741,12 +693,12 @@ interface BreathNow {
 }
 
 /**
- * Scene `p`'s cues (`cues`: its own, or an edit's) unless a card's flood
+ * Scene `p`'s cues (`cues`) unless a card's flood
  * would fall inside a transition: a flood is drawn over its scene's own frame
  * alone, never over a transition's two layers, so one that starts inside the
  * scene's way in (`enter`, not a cut) or runs past its end (`endsLate`, the
  * one judgement of a late end) into the next scene's way in is refused, where
- * the film is made and where an edit is, rather than silently not drawn. A
+ * the film is made, rather than silently not drawn. A
  * flood naming a cue the scene lacks is the frame's to refuse (`holds`).
  */
 const floodInTransition = (
@@ -778,10 +730,10 @@ const floodInTransition = (
 };
 
 /**
- * Scene `p`'s cues (`cues`: its own, or an edit's) unless two of its cards
+ * Scene `p`'s cues (`cues`) unless two of its cards
  * would hold the frame at one instant: a frame shows one card, so cues that
  * overlap by more than float noise (`CLOCK_EPSILON`) are refused, where the
- * film is made and where an edit is, rather than one card silently hiding
+ * film is made, rather than one card silently hiding
  * the other. A card naming a cue the scene lacks is the frame's to refuse
  * (`holds`).
  */
@@ -811,7 +763,7 @@ const cardsOverlap = (
   return Result.succeed(cues);
 };
 
-/** Scene `p`'s cues (`cues`: its own, or an edit's) unless its cards' cues break a rule a frame keeps. */
+/** Scene `p`'s cues (`cues`) unless its cards' cues break a rule a frame keeps. */
 const cardsHold = (
   p: Placed<SceneSpec>,
   next: Placed<SceneSpec> | undefined,
@@ -1020,30 +972,6 @@ export const createFilm = (spec: FilmSpec): Film => {
     },
   };
 
-  const edit = (scene: string, e: SceneEdit): Result.Result<ShownEdit, EditError> =>
-    Result.flatMap(sceneOf(placed, scene), (p) =>
-      Result.map(
-        Result.flatMap(
-          e.timeline === undefined
-            ? Result.succeed(p.cues)
-            : resolveTimeline(e.timeline, sceneClock(p)),
-          // An edit is refused cards that would overlap or a flood it would move
-          // into a transition, as the source is.
-          (cues): Result.Result<ReadonlyMap<string, ResolvedCue>, EditError> =>
-            cardsHold(p, placed[p.index + 1], cues),
-        ),
-        (cues): ShownEdit => ({
-          edit: e,
-          cues,
-          knobs: e.knobs === undefined ? p.knobs : new Map(Object.entries(e.knobs)),
-        }),
-      ),
-    );
-
-  /** Scene `p` as `edits` show it: its edit's cues and knobs, or its own. */
-  const shownOf = (p: Placed<SceneSpec>, edits: ReadonlyMap<string, ShownEdit> | undefined) =>
-    edits?.get(p.spec.id) ?? p;
-
   /**
    * Each scene's captions, built once from its words when the film has a
    * caption style: a captioned frame only finds its line.
@@ -1077,12 +1005,10 @@ export const createFilm = (spec: FilmSpec): Film => {
     T: number,
     boil: number,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
     unframed: number[],
   ): Frame => {
     const t = T - p.start;
     const words = localWords.get(p) ?? [];
-    const shown = shownOf(p, edits);
     const hears = hearing === undefined ? undefined : hearsOf(hearing, p.spec.id);
     const frame: Frame = {
       ctx,
@@ -1100,7 +1026,7 @@ export const createFilm = (spec: FilmSpec): Film => {
         return p.speechStart + at;
       },
       cue: (name) => {
-        const c = shown.cues.get(name);
+        const c = p.cues.get(name);
         if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
         hears?.cues.add(name);
         return c;
@@ -1110,7 +1036,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       stagger: (name, i, n) => staggerProgress(frame.cue(name), t, i, n),
       staggerAt: (name, at) => staggerAt(frame.cue(name), t, at),
       knob: (name) => {
-        const k = shown.knobs.get(name);
+        const k = p.knobs.get(name);
         if (k === undefined) throw new Error(`scene ${p.spec.id} has no knob "${name}"`);
         if (reads?.direct === true && !insideCamera(ctx)) unframed.push(reads.list.length);
         reads?.list.push({
@@ -1139,9 +1065,8 @@ export const createFilm = (spec: FilmSpec): Film => {
       },
       knobsOf: <K extends Knobs>(of: KnobsOwner<K>) => {
         const q = drawnBy(of.draw, p.spec.id);
-        const knobs = shownOf(q, edits).knobs;
         // The scene is the one `of` draws, so each name holds the kind `of` declares.
-        return knobReader<K>(knobs, q.spec.id);
+        return knobReader<K>(q.knobs, q.spec.id);
       },
       words,
       spoken: (from, to) => {
@@ -1164,7 +1089,6 @@ export const createFilm = (spec: FilmSpec): Film => {
     T: number,
     boil: number,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     // The reads made outside every camera and not yet framed by one: the next camera frames them.
     const unframed: number[] = [];
@@ -1176,7 +1100,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       }
       unframed.length = 0;
     };
-    const frame = frameOf(ctx, p, T, boil, reads, edits, unframed);
+    const frame = frameOf(ctx, p, T, boil, reads, unframed);
     drawnFrame = frame;
     drawnBox = undefined;
     ctx.save();
@@ -1209,28 +1133,19 @@ export const createFilm = (spec: FilmSpec): Film => {
   const still: BreathNow = { through: 0, drift: 0, outer: false, width, height };
 
   /**
-   * Cue `name` of scene `p` as `edits` show it, read by the engine itself (a
+   * Cue `name` of scene `p`, read by the engine itself (a
    * card's cue and its flood's): no frame's read, so the clock heard
    * (`RenderOptions.clock`) holds only what the scene's own code reads.
    */
-  const shownCue = (
-    p: Placed<SceneSpec>,
-    name: string,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
-  ) => {
-    const c = shownOf(p, edits).cues.get(name);
+  const cueOf = (p: Placed<SceneSpec>, name: string) => {
+    const c = p.cues.get(name);
     if (c === undefined) throw new Error(`scene ${p.spec.id} has no cue "${name}"`);
     return c;
   };
 
-  /** Whether cue `name` of scene `p` (as `edits` show it) holds at film time `T`: from its start, up to its end. */
-  const holds = (
-    p: Placed<SceneSpec>,
-    name: string,
-    T: number,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
-  ) => {
-    const c = shownCue(p, name, edits);
+  /** Whether cue `name` of scene `p` holds at film time `T`: from its start, up to its end. */
+  const holds = (p: Placed<SceneSpec>, name: string, T: number) => {
+    const c = cueOf(p, name);
     const t = T - p.start;
     return t >= c.start && t < c.end;
   };
@@ -1239,11 +1154,8 @@ export const createFilm = (spec: FilmSpec): Film => {
   const cardsOf = (p: Placed<SceneSpec>): ReadonlyArray<SetCard> => cards.get(p.spec.id) ?? [];
 
   /** The card of scene `p` that is the frame at `T`: the one whose cue holds (at most one does, `cardsOverlap`). */
-  const carded = (
-    p: Placed<SceneSpec>,
-    T: number,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
-  ): SetCard | undefined => cardsOf(p).find((card) => holds(p, card.spec.cue, T, edits));
+  const carded = (p: Placed<SceneSpec>, T: number): SetCard | undefined =>
+    cardsOf(p).find((card) => holds(p, card.spec.cue, T));
 
   /** A scene's `card` on `ctx` as frame `f` draws it, probed as the scene's own text. */
   const drawCard = (
@@ -1274,25 +1186,20 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     ctx.drawImage(getAssets().paper, 0, 0);
-    drawCard(ctx, card, frameOf(ctx, p, T, boil, reads, edits, []), probe);
+    drawCard(ctx, card, frameOf(ctx, p, T, boil, reads, []), probe);
   };
 
   /**
-   * The card of scene `p` that holds to its scene's end (as `edits` show it),
+   * The card of scene `p` that holds to its scene's end,
    * none when the last card to end ends before it: that card is then what the
    * scene leaves on screen, so a transition out of it carries the card, never
    * the picture under it.
    */
-  const cardToEnd = (
-    p: Placed<SceneSpec>,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
-  ): SetCard | undefined => {
-    const cues = shownOf(p, edits).cues;
+  const cardToEnd = (p: Placed<SceneSpec>): SetCard | undefined => {
     const ending = cardsOf(p).flatMap((card) => {
-      const c = cues.get(card.spec.cue);
+      const c = p.cues.get(card.spec.cue);
       return c === undefined ? [] : [{ card, end: c.end }];
     });
     const last = ending.reduce<(typeof ending)[number] | undefined>(
@@ -1311,12 +1218,11 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
     target.ctx.globalCompositeOperation = 'source-over';
-    cardFrame(target.ctx, p, card, T, boil, probe, reads, edits);
+    cardFrame(target.ctx, p, card, T, boil, probe, reads);
     return target.c;
   };
 
@@ -1332,12 +1238,11 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     const f = drawnFrame;
     if (f === undefined) return;
     const card = cardsOf(p).find(
-      (c) => c.spec.flood !== undefined && holds(p, c.spec.flood.cue, T, edits),
+      (c) => c.spec.flood !== undefined && holds(p, c.spec.flood.cue, T),
     );
     const flood = card?.spec.flood;
     if (card === undefined || flood === undefined) return;
@@ -1350,7 +1255,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     // transform it drew under), so the clip is laid with none, whatever scale
     // the frame is drawn at, and the card drawn under the frame's.
     const frame = ctx.getTransform();
-    const at = cueProgress(shownCue(p, flood.cue, edits), T - p.start);
+    const at = cueProgress(cueOf(p, flood.cue), T - p.start);
     const box = floodBox(from, ctx.canvas.width, ctx.canvas.height, at);
     const mask = flood.mask;
     if (mask !== undefined) {
@@ -1361,7 +1266,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       b.ctx.globalCompositeOperation = 'source-over';
       b.ctx.clearRect(0, 0, width, height);
       b.ctx.setTransform(frame);
-      drawCard(b.ctx, card, frameOf(b.ctx, p, T, boil, reads, edits, []), probe);
+      drawCard(b.ctx, card, frameOf(b.ctx, p, T, boil, reads, []), probe);
       b.ctx.setTransform(1, 0, 0, 1, 0, 0);
       b.ctx.globalCompositeOperation = 'destination-in';
       mask(b.ctx, box, at, f);
@@ -1405,7 +1310,6 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     const { paper } = getAssets();
     const id = p.spec.id;
@@ -1420,7 +1324,7 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx.drawImage(paper, 0, 0);
     let shot = false;
     probing(ctx, probe, () => {
-      shot = drawScene(ctx, p, T, boil, reads, edits);
+      shot = drawScene(ctx, p, T, boil, reads);
     });
     // Guessed whole but it framed a shot, or guessed a shot and it framed none: draw it the other way.
     if (moving && shot === breath.outer) {
@@ -1429,7 +1333,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       unhear();
       breath.outer = !shot;
       ctx.drawImage(paper, 0, 0);
-      probing(ctx, probe, () => drawScene(ctx, p, T, boil, reads, edits));
+      probing(ctx, probe, () => drawScene(ctx, p, T, boil, reads));
     }
     if (moving && shot) unshot.delete(id);
     else if (moving) unshot.add(id);
@@ -1443,12 +1347,11 @@ export const createFilm = (spec: FilmSpec): Film => {
     boil: number,
     probe: Probe | undefined,
     reads: Reads | undefined,
-    edits: ReadonlyMap<string, ShownEdit> | undefined,
   ) => {
     target.ctx.setTransform(1, 0, 0, 1, 0, 0);
     target.ctx.globalAlpha = 1;
     target.ctx.globalCompositeOperation = 'source-over';
-    sheet(target.ctx, p, T, boil, probe, reads, edits);
+    sheet(target.ctx, p, T, boil, probe, reads);
     if (drawnLight !== undefined) lightUp(target.ctx, drawnLight);
     return target.c;
   };
@@ -1517,7 +1420,6 @@ export const createFilm = (spec: FilmSpec): Film => {
     const local = T - cur.start;
     const sink = opts.probe;
     const knobs = opts.knobs;
-    const edits = opts.edits;
     hearing = opts.clock;
     /** Knob reads straight onto the frame, or from a transition's layer. */
     const reads = (direct: boolean): Reads | undefined =>
@@ -1528,15 +1430,15 @@ export const createFilm = (spec: FilmSpec): Film => {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    const shown = carded(cur, T, edits);
+    const shown = carded(cur, T);
     if (shown !== undefined) {
       // A full-screen card: the frame is the card alone, cut to and from.
-      cardFrame(ctx, cur, shown, T, boil, probe(cur, 0, 1), reads(true), edits);
+      cardFrame(ctx, cur, shown, T, boil, probe(cur, 0, 1), reads(true));
     } else if (prev === undefined || enter === undefined || enter.kind === 'cut' || local >= tr) {
-      sheet(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
+      sheet(ctx, cur, T, boil, probe(cur, 0, 1), reads(true));
       // The scene's light over its page and all on it, with the vignette.
       lightAndVignette(ctx, drawnLight, drawnFixed);
-      floodOver(ctx, cur, T, boil, probe(cur, 0, 1), reads(true), edits);
+      floodOver(ctx, cur, T, boil, probe(cur, 0, 1), reads(true));
     } else {
       const p = ease.inOutCubic(clamp(local / tr));
       // The incoming sheet covers the outgoing one as it arrives.
@@ -1544,12 +1446,12 @@ export const createFilm = (spec: FilmSpec): Film => {
       const dx = enter.kind === 'pan' ? -dir * p * width : 0;
       const fading = enter.kind === 'pan' ? 0 : 1;
       // A card held to its scene's end leaves as the card, not the picture under it.
-      const leaving = cardToEnd(prev, edits);
+      const leaving = cardToEnd(prev);
       const outProbe = probe(prev, dx, 1 - fading * p);
       const out =
         leaving === undefined
-          ? layer(a, prev, T, boil, outProbe, reads(false), edits)
-          : cardLayer(a, prev, leaving, T, boil, outProbe, reads(false), edits);
+          ? layer(a, prev, T, boil, outProbe, reads(false))
+          : cardLayer(a, prev, leaving, T, boil, outProbe, reads(false));
       // A card takes no vignette; a scene its light's share of it (read as its layer is drawn).
       const from = leaving === undefined ? vignetteOf(drawnLight) : 0;
       const inn = layer(
@@ -1559,7 +1461,6 @@ export const createFilm = (spec: FilmSpec): Film => {
         boil,
         probe(cur, enter.kind === 'pan' ? dx + dir * width : 0, 1 - fading * (1 - p)),
         reads(false),
-        edits,
       );
       composite(ctx, enter, out, inn, p, dx, dir);
       const to = vignetteOf(drawnLight);
@@ -1588,7 +1489,6 @@ export const createFilm = (spec: FilmSpec): Film => {
     look: { paper: spec.paper, shade: spec.shade, finish, short, card: spec.card },
     sceneAt,
     render,
-    edit,
     rigs,
   };
 };

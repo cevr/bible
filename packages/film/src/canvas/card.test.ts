@@ -502,39 +502,6 @@ describe('a scene with a card', () => {
     ).toThrow('way in');
   });
 
-  test('refuses an edit that moves the flood into its way in, as the film is refused it', () => {
-    const job = drawing({
-      timeline: {
-        flood: { mark: 'job', dur: 0.3 },
-        card: { mark: 'job', until: { at: 'end' } },
-      },
-      draw: () => ({ x: 0, y: 0, w: 10, h: 10 }),
-      cards: [
-        {
-          cue: 'card',
-          from: 'job',
-          payoff: 'just',
-          flood: { cue: 'flood' },
-          draw: () => undefined,
-        },
-      ],
-    });
-    const first = drawing({ timeline: {}, draw: () => undefined });
-    const film = createFilm({
-      title: 'card',
-      paper: { base: '#fff', tone: '#000', seed: 1 },
-      shade: '#000',
-      scenes: [
-        { id: 'first', say: 'First a line.', ...first },
-        { id: 'job', say: LINE, enter: { kind: 'fade', dur: 1 }, ...job },
-      ],
-    });
-    expect(Result.isSuccess(film.edit('job', {}))).toBe(true);
-    const moved = film.edit('job', { timeline: { flood: { at: 'start', dur: 0.3 } } });
-    expect(Result.isFailure(moved) && moved.failure._tag).toBe('FloodInTransition');
-    expect(Result.isFailure(moved) && moved.failure.message).toContain('way in');
-  });
-
   test('eases the vignette in out of a card, which has none, rather than laying it on at once', () => {
     const job = drawing({
       timeline: { card: { mark: 'job', until: { at: 'end' } } },

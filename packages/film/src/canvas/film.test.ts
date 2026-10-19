@@ -4,7 +4,6 @@
 // or silently in it. Laying out a film needs no DOM, so bun can make one.
 
 import { describe, expect, test } from 'bun:test';
-import { Result } from 'effect';
 import { type Drift, camera } from './camera.ts';
 import { type CaptionStyle, type FilmSpec, type FinishStyle, createFilm, drawing } from './film.ts';
 import { recorder, withDom } from './fixtures/stand-in.ts';
@@ -66,65 +65,6 @@ describe('createFilm finish and caption plate', () => {
     ['bottom', { bottom: Number.NaN }],
   ])('refuses a caption plate whose %s the canvas cannot draw', (field, plate) => {
     expect(() => createFilm(spec({}, plate))).toThrow(field);
-  });
-});
-
-describe('an edit is a value a frame draws with', () => {
-  /** A film whose one scene reads knob `x` and cue `go`, logging what each frame saw. */
-  const seeing = () => {
-    const seen: Array<readonly [unknown, number]> = [];
-    const film = createFilm({
-      ...spec(),
-      scenes: [
-        {
-          id: 'a',
-          say: 'A line.',
-          min: 4,
-          knobs: { x: 3 },
-          timeline: { go: { at: 'start', dur: 2 } },
-          draw: (f) => {
-            seen.push([f.knob('x'), f.at('go')]);
-          },
-        },
-      ],
-    });
-    return { film, seen };
-  };
-  const edit = { knobs: { x: 7 }, timeline: { go: { at: 'start' as const, dur: 1 } } };
-
-  test('draws the edit it is handed, and the frame after with none draws the scene as declared', () => {
-    const { film, seen } = seeing();
-    const shown = Result.getOrThrow(film.edit('a', edit));
-    withDom(
-      () => {
-        film.render(recorder().ctx, 0.5);
-        film.render(recorder().ctx, 0.5, { edits: new Map([['a', shown]]) });
-        film.render(recorder().ctx, 0.5);
-      },
-      { record: false },
-    );
-    const [declared, edited, after] = seen.slice(-3);
-    // Half of the edit's one-second cue, eased; a quarter of the declared two.
-    expect(edited).toEqual([7, 0.5]);
-    expect(declared?.[0]).toBe(3);
-    expect(declared?.[1]).toBeLessThan(0.5);
-    expect(after).toEqual(declared);
-  });
-
-  test("an edit resolves on the scene's clock, keeping what it does not name", () => {
-    const { film } = seeing();
-    const shown = Result.getOrThrow(film.edit('a', { timeline: edit.timeline }));
-    expect(shown.cues.get('go')).toMatchObject({ start: 0, end: 1 });
-    expect(shown.knobs.get('x')).toBe(3);
-    expect(film.placed[0]?.cues.get('go')).toMatchObject({ start: 0, end: 2 });
-  });
-
-  test('an edit that does not resolve is a value naming why, never a throw', () => {
-    const { film } = seeing();
-    const missing = film.edit('a', { timeline: { go: { mark: 'there', dur: 1 } } });
-    expect(Result.isFailure(missing) && missing.failure.message).toContain('has no mark {there}');
-    const unknown = film.edit('nowhere', edit);
-    expect(Result.isFailure(unknown) && unknown.failure._tag).toBe('UnknownScene');
   });
 });
 
@@ -327,16 +267,6 @@ describe('a scene with more than one card', () => {
     expect(make).toThrow('scene "a": its cards over "one"');
     expect(make).toThrow('and "two"');
   });
-
-  test('refuses an edit that makes two cards hold the frame at once, as the film is refused it', () => {
-    const film = twoCards(apart).make();
-    expect(Result.isSuccess(film.edit('a', {}))).toBe(true);
-    const moved = film.edit('a', {
-      timeline: { ...apart, one: { mark: 'righteous', dur: 30 } },
-    });
-    expect(Result.isFailure(moved) && moved.failure._tag).toBe('CardsOverlap');
-    expect(Result.isFailure(moved) && moved.failure.message).toContain('hold the frame at once');
-  });
 });
 
 describe("a callback reads another scene's knobs", () => {
@@ -361,24 +291,11 @@ describe("a callback reads another scene's knobs", () => {
     return { film, seen, back };
   };
 
-  test('as that scene reads them, a lab edit to them included', () => {
+  test('as that scene reads them', () => {
     const { film, seen } = calling();
     const T = film.placed[1]?.start ?? 0;
-    withDom(
-      () => {
-        film.render(recorder().ctx, T + 0.1);
-        film.render(recorder().ctx, T + 0.1, {
-          edits: new Map([
-            ['city', Result.getOrThrow(film.edit('city', { knobs: { at: [1000, 500], zoom: 2 } }))],
-          ]),
-        });
-      },
-      { record: false },
-    );
-    expect(seen.slice(-2)).toEqual([
-      [[1200, 640], 1.3],
-      [[1000, 500], 2],
-    ]);
+    withDom(() => film.render(recorder().ctx, T + 0.1), { record: false });
+    expect(seen.at(-1)).toEqual([[1200, 640], 1.3]);
   });
 
   test('throws, naming the scene, for a drawing the film does not draw', () => {
