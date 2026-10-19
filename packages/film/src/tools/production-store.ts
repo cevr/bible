@@ -6,7 +6,10 @@
 // writer at a time across processes, so the lab's Move forward and an
 // agent's `film production` in a terminal never lose each other's write.
 // A ledger that does not decode is left out of the list with a warning,
-// never rewritten: the front door still opens.
+// never rewritten: the front door still opens. A ledger decodes from, and is
+// written to, only the file named for its production: a caller addresses a
+// ledger by the production it names, so one kept in another file would be
+// read from one file and written to another.
 //
 // The store is the timeline's one write path: the lab's Move forward (the
 // `productions` HTTP group), `film production` and `film publish` in a
@@ -47,6 +50,19 @@ import { ContentStore, type Manifest, type StoreError, writeWhole } from './cont
 
 const ProductionFileJson = repoJson(ProductionFileSchema);
 
+/** Words in one line, quoted: a newline in them would split the line. */
+const quoted = Schema.encodeSync(Schema.fromJsonString(Schema.String));
+
+/** The codec of the file named for `production`: a ledger of another production does not decode from it, nor is written to it. */
+const ledgerOf = (production: ProductionId) =>
+  ProductionFileJson.check(
+    Schema.makeFilter(
+      (file) =>
+        file.production === production ||
+        `it holds the production ${file.production}, not ${production}, the one its file is named for`,
+    ),
+  );
+
 /** `start` on a production that already has a ledger. */
 class ProductionKept extends Schema.TaggedError<ProductionKept>()('ProductionKept', {
   production: Schema.String,
@@ -78,7 +94,10 @@ interface Start {
 }
 
 interface ProductionStoreService {
-  /** Every ledger there is, by name. */
+  /**
+   * Every ledger there is, by name; one that does not decode, as one kept in
+   * a file not named for its production does not, is left out with a warning.
+   */
   readonly list: Effect.Effect<ReadonlyArray<ProductionFile>, StoreError>;
   /** The production's ledger, when one is kept. */
   readonly read: (
@@ -143,7 +162,7 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
 
       const manifest = (production: ProductionId): Manifest<ProductionFile> => ({
         file: path.join(dir, `${production}.json`),
-        codec: ProductionFileJson,
+        codec: ledgerOf(production),
         empty: newProduction(production, production, 0),
       });
 
@@ -162,10 +181,9 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
             Effect.asSome,
             Effect.catchTag('FileInvalid', (invalid) =>
               Effect.as(
-                Effect.logWarning('production.ledger.invalid', {
-                  file: name,
-                  reason: invalid.message,
-                }),
+                Effect.logWarning(
+                  `production.ledger.invalid file=${name} reason=${quoted(invalid.message)}`,
+                ),
                 Option.none<ProductionFile>(),
               ),
             ),

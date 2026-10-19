@@ -1,11 +1,13 @@
 // ProductionStore and `film publish`'s stamp: a ledger starts on its first
 // change and lists by name; two moves forward from the same version, at
 // once, land one and refuse the other with the version now; a ledger that
-// does not decode is left out of the list and never rewritten; the verbs
-// refuse a second start and a filing in a version the ledger lacks; a
-// set's review.json is stamped with its production, version
-// and time, every other field as written, and a stamp that would make it no
-// manifest is refused.
+// does not decode is left out of the list and never rewritten, and so is one
+// kept in a file not named for its production: a read or a change by that
+// file's name fails, as a change that names another production does; the
+// verbs refuse a second start and a filing in a version the ledger lacks; a
+// set's review.json is stamped with its production, version and time, every
+// other field as written, and a stamp that would make it no manifest is
+// refused.
 
 import { describe, expect, it } from 'effect-bun-test';
 import {
@@ -22,6 +24,7 @@ import {
 import { type OwnerWord, type ProductionFile, moveForward, withSaid } from '../core/production.ts';
 import { VersionMoved } from '../core/refusals.ts';
 import { ContentStore } from './content-store.ts';
+import { FileInvalid } from './errors.ts';
 import { ManifestLock } from './manifest-lock.ts';
 import { ProductionStore } from './production-store.ts';
 import { memoryFileSystem, memoryManifestLock } from './testing.ts';
@@ -102,6 +105,53 @@ describe('ProductionStore', () => {
       yield* store.modify('look', forward(1, 'K1'));
       expect((yield* store.list).map((p) => p.production)).toEqual(['look']);
       expect(yield* fs.readFileString('/productions/broken.json')).toBe('{"production": 4}');
+    }).pipe(Effect.provide(Layer.merge(storeOver(files), memoryFileSystem(files))));
+  });
+
+  it.effect(
+    'a ledger kept in a file not named for its production is left out of the list, refused by that name, never rewritten',
+    () => {
+      const files = new Map<string, Uint8Array>();
+      return Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const store = yield* ProductionStore;
+        yield* store.modify('renamed', forward(1, 'K1'));
+        yield* fs.rename('/productions/renamed.json', '/productions/old-name.json');
+        const kept = yield* fs.readFileString('/productions/old-name.json');
+        yield* store.modify('look', forward(1, 'K1'));
+        expect((yield* store.list).map((p) => p.production)).toEqual(['look']);
+        // By its file's name, a read and a change that would land are refused as a ledger
+        // that does not decode is.
+        const read = yield* Effect.flip(store.read('old-name'));
+        const changed = yield* Effect.flip(store.modify('old-name', forward(2, 'K2')));
+        for (const refused of [read, changed]) {
+          expect(refused).toBeInstanceOf(FileInvalid);
+          expect(refused.message).toContain(
+            'it holds the production renamed, not old-name, the one its file is named for',
+          );
+        }
+        expect(yield* fs.readFileString('/productions/old-name.json')).toBe(kept);
+        expect(yield* fs.exists('/productions/renamed.json')).toBe(false);
+      }).pipe(Effect.provide(Layer.merge(storeOver(files), memoryFileSystem(files))));
+    },
+  );
+
+  it.effect('a change that names another production is refused, and its file is as it was', () => {
+    const files = new Map<string, Uint8Array>();
+    return Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const store = yield* ProductionStore;
+      yield* store.modify('look', forward(1, 'K1'));
+      const kept = yield* fs.readFileString('/productions/look.json');
+      const refused = yield* Effect.flip(
+        store.modify('look', (current) => Result.succeed({ ...current, production: 'other' })),
+      );
+      expect(refused).toBeInstanceOf(FileInvalid);
+      expect(refused.message).toContain(
+        'it holds the production other, not look, the one its file is named for',
+      );
+      expect(yield* fs.readFileString('/productions/look.json')).toBe(kept);
+      expect(yield* fs.exists('/productions/other.json')).toBe(false);
     }).pipe(Effect.provide(Layer.merge(storeOver(files), memoryFileSystem(files))));
   });
 });
