@@ -105,9 +105,6 @@ import { fillBeside, ScriptVoices, stagingFill } from './script-voice.ts';
 import { SeriesDrafts, draftKey } from './series-drafts.ts';
 import { ask } from './ask-cli.ts';
 import { concept } from './concept-cli.ts';
-import { labCliCommands } from './lab-cli.ts';
-import { STREAM_PACE } from './lab-stream.ts';
-import { hereCommands, inLabCommands } from './lab-commands.ts';
 import { review } from './review-cli.ts';
 import { Counsel } from './counsel.ts';
 import { Critic } from './critique.ts';
@@ -117,7 +114,7 @@ import { judge } from './judge-cli.ts';
 import type { JudgeRule } from '../core/judge.ts';
 import type { CritiqueRule } from '../core/critique.ts';
 import { Review, type ReviewRoot } from './review.ts';
-import { labEventsAt } from './events-cli.ts';
+import { labSubcommands } from './events-cli.ts';
 import { read } from './read-cli.ts';
 import { PreviewServer } from './preview-server.ts';
 import {
@@ -1126,10 +1123,7 @@ export const runFilmCli = <E>({
       chaptersCommand,
       doctor(previewServer),
       lab(labApp, films, footageAt, critiquing.rules).pipe(
-        Command.withSubcommands([
-          ...labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films }),
-          labEventsAt(STREAM_PACE),
-        ]),
+        Command.withSubcommands(labSubcommands(films)),
       ),
       channel.pipe(Command.provide(FetchHttpClient.layer)),
       review(films, critiquing.rules),

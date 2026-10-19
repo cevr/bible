@@ -57,12 +57,10 @@ import type { ContentStore } from './content-store.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { production } from './production-cli.ts';
 import { ProductionStore } from './production-store.ts';
-import { labEventsAt } from './events-cli.ts';
+import { labSubcommands } from './events-cli.ts';
 import { channel } from './lab-channel.ts';
-import { STREAM_PACE } from './lab-stream.ts';
 import { labClient } from './lab-client.ts';
-import { labCliCommands } from './lab-cli.ts';
-import { Changes, hereCommands, inLabCommands } from './lab-commands.ts';
+import { Changes } from './lab-commands.ts';
 import { Review } from './review.ts';
 import {
   type LabFetch,
@@ -999,12 +997,7 @@ describe('asks through the MCP', () => {
 const filmCommand = Command.make('film').pipe(
   Command.withSubcommands([
     production,
-    Command.make('lab').pipe(
-      Command.withSubcommands([
-        ...labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films: '/films' }),
-        labEventsAt(STREAM_PACE),
-      ]),
-    ),
+    Command.make('lab').pipe(Command.withSubcommands(labSubcommands('/films'))),
   ]),
 );
 

@@ -7,15 +7,27 @@
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Boolean as Bool, Effect, Layer, Option, Schema } from 'effect';
+import {
+  Boolean as Bool,
+  ConfigProvider,
+  Console,
+  Effect,
+  Layer,
+  Option,
+  Queue,
+  Schema,
+  Stdio,
+} from 'effect';
+import { BunTerminal } from '@effect/platform-bun';
 import { Tool } from 'effect/ai';
-import { labCliCommands } from './lab-cli.ts';
+import { Command } from 'effect/cli';
+import { labSubcommands } from './events-cli.ts';
 import { fieldsOf } from './lab-fields.ts';
 import { labCommand } from './lab-command.ts';
 import { allCommands, hereCommands, inLabCommands } from './lab-commands.ts';
 import { LabRefused } from './lab-mcp-parts.ts';
 import { RenderCatalogue } from './catalogue.ts';
-import { labInMemory, labWithMcp, mcpSession } from './testing.ts';
+import { formatAsIs, labInMemory, labWithMcp, mcpSession, printingTo } from './testing.ts';
 
 /** A command over a word, a count, a switch, a list and a record. */
 const Sample = Tool.make('sample', {
@@ -145,6 +157,47 @@ describe('a lab command', () => {
   );
 });
 
+/** `film lab …` as the CLI registers it (`labSubcommands`, what `cli.ts` serves). */
+const filmLab = Command.make('film').pipe(
+  Command.withSubcommands([
+    Command.make('lab').pipe(Command.withSubcommands(labSubcommands('/films'))),
+  ]),
+);
+
+/** The subcommands `film lab --help` lists, and the flags `film lab <name> --help` lists for one: what a terminal is offered. */
+const helpOf = (args: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const lines = yield* Queue.unbounded<string>();
+    yield* Effect.exit(
+      Command.runWith(filmLab, { version: '0' })(['lab', ...args, '--help']).pipe(
+        Effect.provideService(Console.Console, printingTo(lines)),
+        // oxlint-disable-next-line effect/noInlineProvide -- each help run's terminal is this run's own, printing to its lines
+        Effect.provide(
+          Layer.mergeAll(
+            Stdio.layerTest({}),
+            formatAsIs,
+            BunTerminal.layer,
+            ConfigProvider.layer(ConfigProvider.fromUnknown({})),
+          ),
+        ),
+      ),
+    );
+    const help = (yield* Queue.clear(lines)).join('\n').split('\n');
+    /** The first word of each line of the section headed `heading`, up to its blank line or the end. */
+    const section = (heading: string) => {
+      const from = help.indexOf(heading);
+      const rest = help.slice(from + 1);
+      const end = rest.findIndex((line) => line.trim() === '');
+      return rest
+        .slice(0, Bool.match(end < 0, { onTrue: () => rest.length, onFalse: () => end }))
+        .flatMap((line) => Option.toArray(Option.fromNullishOr(/^\s+(\S+)/.exec(line)?.[1])));
+    };
+    return {
+      subcommands: section('SUBCOMMANDS').map((name) => name.replace(/:$/, '')),
+      flags: section('FLAGS').map((flag) => flag.replace(/^--/, '')),
+    };
+  });
+
 describe('the command set on each transport', () => {
   test('is one set: each command once, by its own name, here or in the lab', () => {
     const names = allCommands.map((c) => c.name);
@@ -160,16 +213,11 @@ describe('the command set on each transport', () => {
       const { lab } = yield* labWithMcp;
       const { call } = yield* mcpSession(lab);
       const { tools } = yield* call('tools/list', {});
-      const cli = labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films: '/films' });
-      const listed = (
-        tools as ReadonlyArray<{
-          name: string;
-          inputSchema: { properties?: object; required?: ReadonlyArray<string> };
-        }>
-      )
-        .map((tool) => tool.name)
-        .toSorted();
-      expect(cli.map((command) => command.name).toSorted()).toEqual(listed);
+      const listed = (tools as ReadonlyArray<{ name: string }>).map((tool) => tool.name);
+      // What the CLI offers, read off its own help: each tool a subcommand beside `events`.
+      const offered = yield* helpOf([]);
+
+      expect(offered.subcommands.toSorted()).toEqual([...listed, 'events'].toSorted());
       for (const tool of tools as ReadonlyArray<{
         name: string;
         inputSchema: { properties?: object; required?: ReadonlyArray<string> };
@@ -187,6 +235,11 @@ describe('the command set on each transport', () => {
             .map((f) => f.name)
             .toSorted(),
         ]).toEqual([tool.name, [...(tool.inputSchema.required ?? [])].toSorted()]);
+        // Each field a flag the terminal is offered, beside `--input` and `--json`.
+        expect([tool.name, (yield* helpOf([tool.name])).flags.toSorted()]).toEqual([
+          tool.name,
+          [...Object.keys(tool.inputSchema.properties ?? {}), 'input', 'json'].toSorted(),
+        ]);
       }
     }).pipe(
       Effect.scoped,

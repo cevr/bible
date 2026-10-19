@@ -39,12 +39,14 @@ import {
 import { Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 import { HeardChange, isKnownChange } from '../core/lab-events.ts';
-import { failureLine } from './lab-cli.ts';
+import { failureLine, labCliCommands } from './lab-cli.ts';
+import { hereCommands, inLabCommands } from './lab-commands.ts';
 import { isLostLab, labClient, labUrl } from './lab-client.ts';
 import { cursorAfter } from './lab-events.ts';
 import {
   type HeardChanges,
   type Heard,
+  STREAM_PACE,
   type StreamPace,
   followLab,
   labFeed,
@@ -194,7 +196,7 @@ const events = Effect.fn('film.lab.events')(function* (input: EventsInput, pace:
 });
 
 /** `film lab events`, its stream read at `pace` (`STREAM_PACE` on a terminal). */
-export const labEventsAt = (pace: StreamPace) =>
+const labEventsAt = (pace: StreamPace) =>
   Command.make(
     'events',
     {
@@ -244,3 +246,9 @@ export const labEventsAt = (pace: StreamPace) =>
     ),
     Command.provide(FetchHttpClient.layer),
   );
+
+/** Every `film lab` subcommand over the films in `films`: each lab command (`lab-cli.ts`), and `film lab events` at a terminal's pace. */
+export const labSubcommands = (films: string) => [
+  ...labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films }),
+  labEventsAt(STREAM_PACE),
+];
