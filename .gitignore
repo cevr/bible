@@ -182,11 +182,14 @@ packages/core/data/*.bvi.checkpoint.json
 # negation would leave the wasm unstageable.
 packages/core/dist-native/*
 !packages/core/dist-native/vector-scan.wasm
+# Its stamp (the hash of its C and the zig that built it), which `check` reads.
+!packages/core/dist-native/vector-scan.wasm.stamp
 # The deployment's native tier, cross-compiled and committed for the same
 # reason: Railway's build has no C toolchain. Named for its triple so it cannot
 # shadow a Linux developer's own `vector-scan.so`, and built with -mavx2, which
 # the container's AMD EPYC 9655P reports on every core.
 !packages/core/dist-native/vector-scan-x86_64-linux-gnu.so
+!packages/core/dist-native/vector-scan-x86_64-linux-gnu.so.stamp
 
 # Alchemy local state (apps/egw-search/.alchemy). It holds adopted resource ids
 # and, in plain text, any secret a deploy was given. Never commit it.

@@ -8,7 +8,7 @@
 #
 #   ./scripts/build-native.sh          # host native + wasm
 #   ./scripts/build-native.sh wasm     # wasm only (portable, all hosts)
-#   ./scripts/build-native.sh check    # committed wasm still matches its C
+#   ./scripts/build-native.sh check    # committed artifacts still match their C
 #   TARGET=aarch64-linux-gnu ./scripts/build-native.sh native   # cross-compile
 #
 # `vector-scan.wasm` is committed and the rest of dist-native/ is not: see the
@@ -30,6 +30,28 @@ what="${1:-all}"
 
 mkdir -p "$out"
 
+# A committed artifact carries a stamp beside it (`<artifact>.stamp`): the
+# sha256 of the C it was built from, and the zig release that built it. `check`
+# holds the C to its stamp on every machine, zig or not, so a C edited without
+# a rebuild fails even where no toolchain is installed. It compares bytes only
+# under the zig the stamp names: one zig release makes the same bytes from the
+# same C, but another release makes other bytes, which says nothing about the C.
+sha_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | cut -d' ' -f1
+  else
+    shasum -a 256 "$1" | cut -d' ' -f1
+  fi
+}
+
+stamp() { # <artifact> <its C>
+  printf 'c=%s\nzig=%s\n' "$(sha_of "$2")" "$(zig version)" > "$1.stamp"
+}
+
+stamp_field() { # <artifact> <field>
+  sed -n "s/^$2=//p" "$1.stamp"
+}
+
 build_wasm() {
   echo "wasm32 simd128 -> $out/vector-scan.wasm"
   # `--initial-memory=0` so the *host* decides how much linear memory to
@@ -40,6 +62,7 @@ build_wasm() {
   zig cc --target=wasm32-freestanding -msimd128 -O3 -g0 -nostdlib \
     -Wl,--no-entry -Wl,--import-memory -Wl,--initial-memory=0 \
     -o "$out/vector-scan.wasm" "$src/vector-scan-wasm.c"
+  stamp "$out/vector-scan.wasm" "$src/vector-scan-wasm.c"
 }
 
 build_native() {
@@ -68,6 +91,7 @@ build_native() {
     zig cc --target="$TARGET" ${TARGET_CFLAGS:-} -O3 -g0 -shared -fPIC \
       -o "$out/vector-scan-$TARGET.so" "$src/vector-scan.c"
     verify_isa "$out/vector-scan-$TARGET.so"
+    stamp "$out/vector-scan-$TARGET.so" "$src/vector-scan.c"
   else
     echo "host native -> $out/vector-scan.$ext"
     # -O3 only: never -march=native, which bakes in whatever the *build*
@@ -112,51 +136,53 @@ verify_isa() {
   esac
 }
 
-check_wasm() {
-  # No toolchain is not a failure. This runs in `bun test` on every machine
-  # that clones the repository, and most of them have no reason to have zig;
-  # the committed artifact is what they use, and they cannot have changed it
-  # without also changing the C, which review catches.
+# One committed artifact against its C: the stamp's hash always, the bytes
+# under the stamp's zig.
+check_artifact() { # <artifact> <its C> <how to rebuild> <zig cc flags...>
+  artifact="$1"; c="$2"; rebuild="$3"; shift 3
+  name="$(basename "$artifact")"
+  if [ ! -f "$artifact" ] || [ ! -f "$artifact.stamp" ]; then
+    echo "missing $artifact or its stamp -- run: $rebuild" >&2
+    exit 1
+  fi
+  if [ "$(stamp_field "$artifact" c)" != "$(sha_of "$c")" ]; then
+    echo "$artifact is stale: $(basename "$c") changed since it was built -- rebuild and commit it: $rebuild" >&2
+    exit 1
+  fi
+  built_with="$(stamp_field "$artifact" zig)"
   if ! command -v zig >/dev/null 2>&1; then
-    echo "zig not installed -- skipping the wasm freshness check"
+    echo "$name matches $(basename "$c") (no zig here: bytes not compared)"
     return 0
   fi
-  committed="$out/vector-scan.wasm"
-  if [ ! -f "$committed" ]; then
-    echo "missing $committed -- run: $0 wasm" >&2
+  if [ "$(zig version)" != "$built_with" ]; then
+    echo "$name matches $(basename "$c") (built by zig $built_with, this is zig $(zig version): bytes not compared)"
+    return 0
+  fi
+  zig cc "$@" -o "$tmp/$name" "$c"
+  if cmp -s "$tmp/$name" "$artifact"; then
+    echo "$name matches $(basename "$c"), byte for byte under zig $built_with"
+  else
+    echo "$artifact differs from a build of $(basename "$c") under zig $built_with -- rebuild and commit it: $rebuild" >&2
     exit 1
   fi
+}
+
+check_committed() {
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
-  zig cc --target=wasm32-freestanding -msimd128 -O3 -g0 -nostdlib \
-    -Wl,--no-entry -Wl,--import-memory -Wl,--initial-memory=0 \
-    -o "$tmp/vector-scan.wasm" "$src/vector-scan-wasm.c"
-  if cmp -s "$tmp/vector-scan.wasm" "$committed"; then
-    echo "wasm matches vector-scan-wasm.c"
-  else
-    echo "$committed is stale -- rebuild and commit it: $0 wasm" >&2
-    exit 1
-  fi
-
+  check_artifact "$out/vector-scan.wasm" "$src/vector-scan-wasm.c" "$0 wasm" \
+    --target=wasm32-freestanding -msimd128 -O3 -g0 -nostdlib \
+    -Wl,--no-entry -Wl,--import-memory -Wl,--initial-memory=0
   # The committed x86-64 library, checked the same way and for the same reason.
-  linux="$out/vector-scan-x86_64-linux-gnu.so"
-  if [ -f "$linux" ]; then
-    zig cc --target=x86_64-linux-gnu -mavx2 -O3 -g0 -shared -fPIC \
-      -o "$tmp/vector-scan-x86_64-linux-gnu.so" "$src/vector-scan.c"
-    if cmp -s "$tmp/vector-scan-x86_64-linux-gnu.so" "$linux"; then
-      echo "x86_64 avx2 matches vector-scan.c"
-    else
-      echo "$linux is stale -- rebuild and commit it:" >&2
-      echo "  TARGET=x86_64-linux-gnu TARGET_CFLAGS=-mavx2 $0 native" >&2
-      exit 1
-    fi
-  fi
+  check_artifact "$out/vector-scan-x86_64-linux-gnu.so" "$src/vector-scan.c" \
+    "TARGET=x86_64-linux-gnu TARGET_CFLAGS=-mavx2 $0 native" \
+    --target=x86_64-linux-gnu -mavx2 -O3 -g0 -shared -fPIC
 }
 
 case "$what" in
   wasm)   build_wasm ;;
   native) build_native ;;
-  check)  check_wasm ;;
+  check)  check_committed ;;
   all)    build_native; build_wasm ;;
   *) echo "usage: $0 [all|wasm|native|check]" >&2; exit 2 ;;
 esac
