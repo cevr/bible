@@ -10,10 +10,14 @@
 // it (or none). For a cast sheet's tests (`cast-sheet.test.ts`): the eyes
 // turned off the face's middle, long dark hair down the head's sides and a
 // beard (parted from the hair by a line, or running into it), a sleeve
-// hanging at rest or reaching to the hand, a bare arm, a head tipped, a robe
-// of another colour, the robe lit on its right (so a view drawn facing left
-// and flipped is lit as the house lights), a view flipped, and figures side
-// by side on one sheet. Tests only.
+// hanging at rest or reaching to the hand, a bare arm, a limb (a sleeve, a
+// bare forearm or nothing) bent from the shoulder into a hand at any place
+// and angle, its cuff inked or not, no hands at all, bare skin on the robe
+// (a yoke, two shoulders, a patch on the chest), one eye (a profile), a
+// headcloth with its face opening, a head tipped, a robe of another colour,
+// the robe lit on its right (so a view drawn facing left and flipped is lit
+// as the house lights), a view flipped, and figures side by side on one
+// sheet. Tests only.
 
 import type { Raster } from '../raster.ts';
 
@@ -90,6 +94,34 @@ export interface FigureSpec {
   readonly roll?: number;
   /** The robe's lit half, the light's side, when it is shaded: its `left` (the shade on the right, as the house lights) or its `right`. */
   readonly lit?: 'left' | 'right';
+  /**
+   * The hand placed anywhere (raised beside the head, held out and down),
+   * in place of the one `arm` puts, with what joins it to the body: nothing,
+   * a sleeve or a bare arm along `from` (a shoulder on the robe, then an
+   * elbow) to it, drawn outside the robe's fill and the head. A sleeve meets the
+   * hand as flat colour, as the house look draws a join with no ink inside
+   * the silhouette, or with the hand's own ring between them (`cuff`).
+   */
+  readonly limb?: {
+    readonly hand: readonly [number, number];
+    /** The sleeve's or the arm's points from the body to the hand: a shoulder, then an elbow, if any. */
+    readonly from?: ReadonlyArray<readonly [number, number]>;
+    readonly kind: 'free' | 'sleeve' | 'bare';
+    readonly cuff?: boolean;
+  };
+  /** No hand at all: a bust on a heads sheet. */
+  readonly handless?: boolean;
+  /**
+   * Bare skin on the robe with no line round it: a band from shoulder to
+   * shoulder joined to the neck (`yoke`), two bare shoulders apart from it
+   * (`shoulders`), or a 40 px wide patch on the chest (`chest`), each
+   * `depth` px deep.
+   */
+  readonly bareSkin?: { readonly kind: 'yoke' | 'shoulders' | 'chest'; readonly depth: number };
+  /** One eye only, on the side the eyes are shifted to: a head in profile. */
+  readonly oneEye?: boolean;
+  /** A headcloth: the head's fill in this cloth but for an oval face opening round the eyes. */
+  readonly headcloth?: Rgb;
 }
 
 /** A plain figure: a head 120 px wide inside its line, a 6 px line, light hair with no ink of its own. */
@@ -176,11 +208,57 @@ const drawArm = (c: Canvas, spec: FigureSpec, f: Frame) => {
     c.fill(reach(0), spec.robe ?? ROBE);
   }
   if (spec.arm === 'bare') c.fill(reach(line), INK);
+  if (spec.limb !== undefined || spec.handless === true) return;
   c.fill(ellipse(hand.x, hand.y, hand.r + line, hand.r + line), INK);
   if (spec.arm === 'bare') c.fill(reach(0), SKIN);
   c.fill(ellipse(hand.x, hand.y, hand.r, hand.r), SKIN);
   // The robe over the arm's root, so the arm leaves from its side.
   if (spec.arm !== undefined) drawRobeFill(c, spec, f);
+};
+
+/** Inside a band of half-width `w` round the segment from `a` to `b`. */
+const segment =
+  (a: readonly [number, number], b: readonly [number, number], w: number) =>
+  (x: number, y: number) => {
+    const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
+    const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(x - (a[0] + t * dx), y - (a[1] + t * dy)) <= w;
+  };
+
+/** A hand placed by `limb`, the robe's fill and the head left as they are under its sleeve or arm. */
+const drawLimb = (c: Canvas, spec: FigureSpec, f: Frame) => {
+  const limb = spec.limb;
+  if (limb === undefined) return;
+  const { line } = spec;
+  const [hx, hy] = limb.hand;
+  const head = ellipse(spec.cx, spec.cy, spec.rx + line, spec.ry + line);
+  const off = (p: (x: number, y: number) => boolean) => (x: number, y: number) =>
+    p(x, y) && !f.robe(0)(x, y) && !head(x, y);
+  const points = [...(limb.from ?? []), limb.hand];
+  const along = (w: number) => (x: number, y: number) =>
+    limb.kind !== 'free' && points.slice(1).some((b, k) => segment(points[k]!, b, w)(x, y));
+  const fill = limb.kind === 'bare' ? SKIN : (spec.robeShade ?? spec.robe ?? ROBE);
+  c.fill(off(along(16 + line)), INK);
+  c.fill(ellipse(hx, hy, 22 + line, 22 + line), INK);
+  c.fill(off(along(16)), fill);
+  if (limb.cuff === true) c.fill(ellipse(hx, hy, 22 + line, 22 + line), INK);
+  c.fill(ellipse(hx, hy, 22, 22), SKIN);
+};
+
+/** Bare skin on the robe's fill, with no line round it. */
+const drawBareSkin = (c: Canvas, spec: FigureSpec, f: Frame) => {
+  const bare = spec.bareSkin;
+  if (bare === undefined) return;
+  const head = ellipse(spec.cx, spec.cy, spec.rx + spec.line, spec.ry + spec.line);
+  const top = bare.kind === 'chest' ? f.chin + 80 : f.chin - 4;
+  const across = (x: number) =>
+    bare.kind === 'yoke' ||
+    (bare.kind === 'shoulders' && Math.abs(x - spec.cx) > 30) ||
+    (bare.kind === 'chest' && Math.abs(x - spec.cx) <= 20);
+  c.fill(
+    (x, y) => f.robe(0)(x, y) && y >= top && y <= top + bare.depth && across(x) && !head(x, y),
+    SKIN,
+  );
 };
 
 /** The hair: a cap above the hair line, long locks down the face's sides, a beard, its grain and its own ink. */
@@ -228,7 +306,8 @@ const drawFace = (c: Canvas, spec: FigureSpec) => {
   const eyeX = spec.cx + (spec.eyeShift ?? 0);
   // A head tipped `roll` px: the right eye that much lower than the left.
   const tip = spec.roll ?? 0;
-  for (const side of [-1, 1])
+  const sides = spec.oneEye === true ? [Math.sign(spec.eyeShift ?? 0) || 1] : [-1, 1];
+  for (const side of sides)
     c.fill(
       ellipse(
         eyeX + (side * spec.eyeGap) / 2,
@@ -264,10 +343,16 @@ export const drawFigure = (spec: FigureSpec = PLAIN): Raster => {
   c.fill(f.robe(line), INK);
   drawRobeFill(c, spec, f);
   drawArm(c, spec, f);
+  drawBareSkin(c, spec, f);
+  drawLimb(c, spec, f);
   // The head over the robe's top: its line and its skin, then its hair.
   c.fill(ellipse(cx, cy, rx + line, ry + line), INK);
   c.fill(ellipse(cx, cy, rx, ry), SKIN);
   drawHair(c, spec);
+  if (spec.headcloth !== undefined) {
+    const opening = ellipse(cx + (spec.eyeShift ?? 0), cy + spec.eyeBelow + 8, rx - 16, ry - 20);
+    c.fill((x, y) => ellipse(cx, cy, rx, ry)(x, y) && !opening(x, y), spec.headcloth);
+  }
   drawEar(c, spec);
   // The rail, in front of the robe's foot: its line, its wood.
   if (spec.rail === true) {

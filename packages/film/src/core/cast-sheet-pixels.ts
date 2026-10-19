@@ -155,17 +155,23 @@ const BODY_SHARE = 0.15;
  * The `count` figures on a sheet, left to right: its `count` largest ink
  * rings by box, each at least `BODY_SHARE` of the largest, each joined by the
  * smaller ink nearest it (a hand, a foot, a mark) within six tenths of its
- * width. A sheet with fewer figures than `count` answers fewer.
+ * width. A sheet with fewer figures than `count` answers fewer; `found`
+ * counts every ring that big, so a sheet that draws more is said.
  */
-export const figuresOf = (r: Raster, count: number): ReadonlyArray<SheetFigure> => {
+/** The figures a sheet's measure reads, and how many it found. */
+interface SheetFigures {
+  readonly figures: ReadonlyArray<SheetFigure>;
+  /** Every ink ring big enough to be a figure, read or not. */
+  readonly found: number;
+}
+
+export const figuresOf = (r: Raster, count: number): SheetFigures => {
   const { width: w, height: h } = r;
   const { components } = componentsOf(inkByLuma(r), w, h, true);
   const largest = [...components].sort((a, b) => boxArea(b.box) - boxArea(a.box));
   const least = BODY_SHARE * boxArea(largest[0]?.box ?? [0, 0, 0, 0]);
-  const bodies = largest
-    .filter((c) => boxArea(c.box) >= least)
-    .slice(0, count)
-    .sort((a, b) => a.box[0] - b.box[0]);
+  const big = largest.filter((c) => boxArea(c.box) >= least);
+  const bodies = big.slice(0, count).sort((a, b) => a.box[0] - b.box[0]);
   const boxes = bodies.map((b): [number, number, number, number] => [...b.box]);
   for (const c of components) {
     if (bodies.includes(c) || c.area <= 40) continue;
@@ -185,7 +191,8 @@ export const figuresOf = (r: Raster, count: number): ReadonlyArray<SheetFigure> 
     into[2] = Math.max(into[2], c.box[2]);
     into[3] = Math.max(into[3], c.box[3]);
   }
-  return bodies.map((b, k) => ({ body: b.box, box: boxes[k]! }));
+  const figures = bodies.map((b, k) => ({ body: b.box, box: boxes[k] ?? b.box }));
+  return { figures, found: big.length } satisfies SheetFigures;
 };
 
 /** A sheet's ink by its darkness alone: 1 darker than a line's luma. */
@@ -356,5 +363,131 @@ export const firstLabelIn = (
         const id = labels[y * w + x];
         if (x >= 0 && x < w && id !== undefined && id >= 0 && ok(id)) return id;
       }
+  return -1;
+};
+
+/**
+ * The share of the ring round a region, `near` to `depth` steps out from it
+ * (four-connected), that `test` admits: what a region meets just past its
+ * own edge, the soft pixels on that edge left out.
+ */
+export const ringShareOf = (
+  r: Raster,
+  region: Region,
+  ring: { readonly near: number; readonly depth: number },
+  test: (i: number) => boolean,
+): number => {
+  const { width: w, height: h } = r;
+  const { depth } = ring;
+  const [x0, y0, x1, y1] = region.box;
+  const bx0 = Math.max(0, x0 - depth);
+  const by0 = Math.max(0, y0 - depth);
+  const bw = Math.min(w - 1, x1 + depth) - bx0 + 1;
+  const bh = Math.min(h - 1, y1 + depth) - by0 + 1;
+  const dist = new Int16Array(bw * bh).fill(-1);
+  const queue = new Int32Array(bw * bh);
+  let [head, tail] = [0, 0];
+  for (const i of region.pixels) {
+    const k = (Math.floor(i / w) - by0) * bw + ((i % w) - bx0);
+    if (dist[k] === -1) {
+      dist[k] = 0;
+      queue[tail++] = k;
+    }
+  }
+  let [admitted, total] = [0, 0];
+  while (head < tail) {
+    const k = queue[head++]!;
+    const d = dist[k]!;
+    const [x, y] = [k % bw, Math.floor(k / bw)];
+    if (d >= ring.near) {
+      total++;
+      if (test((by0 + y) * w + bx0 + x)) admitted++;
+    }
+    if (d === depth) continue;
+    for (const [dx, dy] of FOUR) {
+      const [nx, ny] = [x + dx, y + dy];
+      if (nx < 0 || ny < 0 || nx >= bw || ny >= bh || dist[ny * bw + nx] !== -1) continue;
+      dist[ny * bw + nx] = d + 1;
+      queue[tail++] = ny * bw + nx;
+    }
+  }
+  return total === 0 ? 0 : admitted / total;
+};
+
+const FOUR: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+
+/** How long an arc of the circle of `radius` round (`x`, `y`), two pixels wide, `labels` gives `id`: where a thing joined to it crosses that circle. */
+export const arcOf = (
+  labels: Int32Array,
+  w: number,
+  circle: { readonly x: number; readonly y: number; readonly radius: number },
+  id: number,
+): number => {
+  const h = labels.length / w;
+  const reach = Math.ceil(circle.radius + 2);
+  let n = 0;
+  for (
+    let y = Math.max(0, Math.floor(circle.y - reach));
+    y <= Math.min(h - 1, circle.y + reach);
+    y++
+  )
+    for (
+      let x = Math.max(0, Math.floor(circle.x - reach));
+      x <= Math.min(w - 1, circle.x + reach);
+      x++
+    ) {
+      const d = Math.hypot(x - circle.x, y - circle.y);
+      if (d >= circle.radius && d < circle.radius + 2 && labels[y * w + x] === id) n++;
+    }
+  return n / 2;
+};
+
+/**
+ * The label `labels` gives the first pixel `ok` admits down the columns of a
+ * band, columns nearest `cx` first, each column walked from `from` until it
+ * meets `ink` after something else: what lies under a mark inside one
+ * outline. Ink at a column's top (the mark itself) is passed over.
+ */
+export const firstLabelInside = (
+  labels: Int32Array,
+  ink: Uint8Array,
+  w: number,
+  scan: { readonly from: number; readonly to: number; readonly cx: number; readonly half: number },
+  ok: (id: number) => boolean,
+): number => {
+  for (let d = 0; d <= scan.half; d++)
+    for (const x of d === 0
+      ? [Math.round(scan.cx)]
+      : [Math.round(scan.cx - d), Math.round(scan.cx + d)]) {
+      if (x < 0 || x >= w) continue;
+      const id = firstInColumn(labels, ink, w, x, scan, ok);
+      if (id >= 0) return id;
+    }
+  return -1;
+};
+
+/** One column of `firstLabelInside`'s walk: the first label `ok` admits before ink met after something else, -1 when none. */
+const firstInColumn = (
+  labels: Int32Array,
+  ink: Uint8Array,
+  w: number,
+  x: number,
+  scan: { readonly from: number; readonly to: number },
+  ok: (id: number) => boolean,
+): number => {
+  const h = labels.length / w;
+  let past = false;
+  for (let y = Math.max(0, Math.round(scan.from)); y <= scan.to && y < h; y++) {
+    const i = y * w + x;
+    if (ink[i] === 1 && past) return -1;
+    past = past || ink[i] !== 1;
+    const id = labels[i] ?? -1;
+    if (ink[i] !== 1 && id >= 0 && ok(id)) return id;
+  }
   return -1;
 };

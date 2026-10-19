@@ -34,8 +34,8 @@ describe("a pose sheet's sleeves and arms", () => {
 describe("a heads sheet's hair and beard", () => {
   const m = read(
     [
-      at({ longHair: true, beard: { parted: true } }),
-      at({ longHair: true, beard: { parted: false } }),
+      at({ longHair: true, beard: { parted: true }, handless: true }),
+      at({ longHair: true, beard: { parted: false }, handless: true }),
     ],
     { kind: 'heads', count: 2, anchor: 1 },
   );
@@ -99,5 +99,107 @@ describe('a figure under headgear', () => {
     expect(flagsOf(m)).toEqual([]);
     expect(m.canon).toEqual({});
     expect(m.unmeasured.map((u) => u.check)).toContain('squash');
+  });
+});
+
+describe('a heads sheet of level, bowed and lifted heads', () => {
+  // Busts with no hands; a turned head is narrower than a front one, a bowed head shorter on the page with its eyes lower, a lifted one's higher.
+  const bust = (extra: Partial<FigureSpec>) =>
+    at({ handless: true, feet: false, robeDepth: 120, longHair: true, ...extra });
+  const turned = { eyeShift: -14, rx: 52 };
+  const bowed = { ry: 56, eyeBelow: 22 };
+  const lifted = { ry: 58, eyeBelow: -4 };
+  const sheet = (last: Partial<FigureSpec>) =>
+    read(
+      [
+        bust(turned),
+        bust({ ...turned, ...bowed }),
+        bust({ ...turned, ...lifted }),
+        bust({}),
+        bust(bowed),
+        bust(last),
+      ],
+      {
+        kind: 'heads',
+        count: 6,
+        anchor: 1,
+        slots: ['left', 'left', 'left', 'front', 'front', 'front'],
+        level: [1, 4, 6],
+      },
+    );
+  const m = sheet({});
+
+  test('holds each head by its width among the heads of its turn, and by its height on the level heads, and reads no hand', () => {
+    expect(flagsOf(m)).toEqual([]);
+    expect(m.views.filter((v) => 'hand' in v)).toEqual([]);
+    expect(m.unmeasured).toContainEqual({
+      check: 'hand',
+      view: 0,
+      why: 'a heads sheet draws no hands',
+    });
+  });
+
+  test("flags a head drawn wider than its turn's first", () => {
+    const wide = sheet({ rx: 68 });
+    expect(flagsOf(wide)).toEqual(['head:6,4']);
+    expect(wide.flags[0]?.note).toContain("view 4's, its turn's first");
+  });
+});
+
+describe('a beard read under the mouth', () => {
+  // No beard over a dark robe; a beard run into the locks under a hair line inked across them.
+  const m = read(
+    [
+      at({ longHair: true, robe: [104, 70, 46], robeShade: [88, 62, 84] }),
+      at({ longHair: true, beard: { parted: false }, hairInk: true }),
+    ],
+    { kind: 'poses', count: 2, anchor: 1 },
+  );
+
+  test('says a view with no beard is not measured, never parted, and reads a beard run into the locks as merged', () => {
+    expect(m.views.map((v) => v.hairBeard ?? 'not read')).toEqual(['not read', 'merged']);
+    expect(m.unmeasured).toContainEqual({
+      check: 'hairBeard',
+      view: 1,
+      why: 'no beard reads under the mouth',
+    });
+  });
+});
+
+describe('a figure under a headcloth', () => {
+  const cloth = { headcloth: [196, 170, 120] as const };
+  const m = read([at(cloth), at({ ...cloth, robeDepth: 380 })], {
+    kind: 'poses',
+    count: 2,
+    anchor: 1,
+    headgear: true,
+    standing: [1, 2],
+  });
+
+  test('holds the head to its face opening, not the cloth round it', () => {
+    expect(m.views[0]?.head).toBeGreaterThan(80);
+    expect(m.views[0]?.head).toBeLessThan(100);
+    expect(flagsOf(m)).toEqual(['height:2,1', 'ground:2']);
+  });
+});
+
+describe('a beard under a dark headcloth', () => {
+  // The cloth's dark band meets the beard at the cheeks: no hair shows, so no parting is read.
+  const dark = { headcloth: [112, 74, 50] as const, beard: { parted: false } };
+  const m = read([at(dark), at(dark)], {
+    kind: 'poses',
+    count: 2,
+    anchor: 1,
+    headgear: true,
+    standing: [1, 2],
+  });
+
+  test('reads no hair under the cloth, and says so', () => {
+    expect(flagsOf(m)).toEqual([]);
+    expect(m.views.map((v) => v.hairBeard ?? 'not read')).toEqual(['not read', 'not read']);
+    expect(m.unmeasured.filter((u) => u.check === 'hairBeard').map((u) => u.why)).toEqual([
+      'headgear: the cloth hides the hair, so no parting is read',
+      'headgear: the cloth hides the hair, so no parting is read',
+    ]);
   });
 });

@@ -11,7 +11,7 @@
 //
 //   film concept measure <sheet.png> --kind turnaround|poses|heads
 //       --count <n> --anchor <view> [--slot <slot> ...] [--standing <view> ...]
-//       [--headgear] [--concept <crop.png>:<view> ...] [--out <dir>]
+//       [--level <view> ...] [--headgear] [--concept <crop.png>:<view> ...] [--out <dir>]
 //     measure a try (`core/cast-sheet.ts`): print a line for the sheet and one
 //     per flag, and write `<stem>.measure.md`, `<stem>.measure.json` and
 //     `<stem>.overlay.png` beside it (or in `--out`). Facing is read first;
@@ -113,6 +113,12 @@ const measure = Command.make(
         "a view whose height is held to the anchor's (a turnaround: all of them)",
       ),
     ),
+    level: Flag.Int('level').pipe(
+      Flag.atLeast(0),
+      Flag.withDescription(
+        "a view whose head is level, neither bowed nor lifted: the hair's fall, and on a heads sheet the head's height, are held on these (all of them)",
+      ),
+    ),
     headgear: Flag.Boolean('headgear').pipe(
       Flag.withDefault(false),
       Flag.withDescription(
@@ -143,6 +149,7 @@ const measure = Command.make(
       anchor: input.anchor,
       ...((input.slot.length > 0 && { slots: input.slot }) || {}),
       ...((input.standing.length > 0 && { standing: input.standing }) || {}),
+      ...((input.level.length > 0 && { level: input.level }) || {}),
       headgear: input.headgear,
       concepts,
     };

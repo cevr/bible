@@ -76,7 +76,7 @@ describe('a clean turnaround', () => {
 describe('a turnaround drawn wrong', () => {
   const v2 = at(-14);
   const v3 = at(-26);
-  // The front tipped, the back's robe wider, view 5 a copy of view 3, and view 6 view 2 flipped (lit on its right).
+  // The front tipped, the back's robe wider, view 5 a copy of view 3 (so it faces away from view 6), and view 6 view 2 flipped (lit on its right).
   const sheet = drawSheet([
     at(0, { roll: 6 }),
     v2,
@@ -94,6 +94,7 @@ describe('a turnaround drawn wrong', () => {
       'width:1,4',
       'mirror:2,6',
       'sameWay:3,5',
+      'profileWay:6,5',
       'lit:6',
     ]);
   });
@@ -123,5 +124,56 @@ describe('a sheet that does not read as asked', () => {
     expect(reason({ kind: 'poses', count: 2, anchor: 3 })).toBe(
       'the sheet does not read: the anchor 3 is not one of the 2 views',
     );
+  });
+});
+
+describe("a turnaround's partners with a hand against the robe", () => {
+  // View 6's hand touches the robe's ink, so the figure's ink ring spans it; its body is as wide as view 2's.
+  const sheet = drawSheet([
+    at(0),
+    at(-14),
+    at(-26),
+    at(0, { eyeW: 0 }),
+    turned(26),
+    flipRaster(at(-14, { lit: 'right', limb: { hand: [326, 414], kind: 'free' } })),
+  ]);
+  const m = read(sheet, turnaround);
+
+  test("holds the partners' widths on the body under the hands, never on where the hands float", () => {
+    expect(flagsOf(m)).toEqual([]);
+    expect(Math.abs(m.pairs[1]?.widths ?? 99)).toBeLessThan(1);
+  });
+});
+
+describe('a turnaround whose profiles are swapped', () => {
+  // Each profile shows one eye, so neither reads a face; the hair falls behind it, away from the eye.
+  const profile = (eyeShift: number) => at(eyeShift, { oneEye: true });
+  const profileRight = flipRaster(at(-26, { oneEye: true, lit: 'right' }));
+  const views = (three: ReturnType<typeof at>, five: ReturnType<typeof at>) =>
+    drawSheet([at(0), at(-14), three, at(0, { eyeW: 0 }), five, turned(14)]);
+  const right = read(views(profile(-26), profileRight), turnaround);
+  const swapped = read(views(profileRight, profile(-26)), turnaround);
+
+  test('holds each profile to the three-quarter on its side, and flags both when they face away', () => {
+    expect(right.unmeasured.filter((u) => u.check === 'facing').map((u) => u.view)).toEqual([
+      3, 4, 5,
+    ]);
+    expect(flagsOf(right)).toEqual([]);
+    expect(flagsOf(swapped)).toEqual(['profileWay:2,3', 'profileWay:6,5']);
+  });
+});
+
+describe('a sheet that draws more figures than it names', () => {
+  const sheet = drawSheet([
+    at(0),
+    at(0, { rx: 50, ry: 55, robeDepth: 280, robeHem: 200 }),
+    at(-14),
+  ]);
+  const m = read(sheet, { kind: 'poses', count: 2, anchor: 1, slots: ['front', 'left'] });
+
+  test('reads the largest it names, and says how many it found', () => {
+    expect(m.found).toBe(3);
+    expect(sheetTable('three', m)).toContain('3 figures found, the sheet names 2');
+    expect(sheetLines('three', m)[0]).toContain('found=3');
   });
 });
