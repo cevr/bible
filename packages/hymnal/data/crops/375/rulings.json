@@ -13,9 +13,15 @@
       "printed": "",
       "sung": "",
       "kind": "words",
-      "image": "375.jpg",
-      "crop": "375-35.jpg",
-      "box": [0, 35, 2268, 1342],
+      "crops": [
+        {
+          "image": "375.jpg",
+          "crop": "375-35.jpg",
+          "box": [0, 35, 2268, 1342],
+          "sha": "ae3393fe7c2de5b0",
+          "shows": ""
+        }
+      ],
       "judge": "judge-284 (Opus, effort max)",
       "why": "Row 3 of the second system prints 'Work for day - light flies;' with nothing between 'for' and 'daylight' (12 syllables to the system's 12 notes)."
     }

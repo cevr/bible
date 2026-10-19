@@ -13,9 +13,15 @@
       "printed": "dwelt",
       "sung": "dwelt",
       "kind": "words",
-      "image": "461.jpg",
-      "crop": "461-1800.jpg",
-      "box": [0, 1800, 2268, 610],
+      "crops": [
+        {
+          "image": "461.jpg",
+          "crop": "461-1800.jpg",
+          "box": [0, 1800, 2268, 610],
+          "sha": "98a31c483dbdffbf",
+          "shows": "dwelt"
+        }
+      ],
       "judge": "judge-443 (Opus, effort max)",
       "why": "Row 2 of the last system prints 'His voice who ruled them while He dwelt be - low' plainly."
     }

@@ -13,9 +13,15 @@
       "printed": "itself",
       "sung": "itself",
       "kind": "words",
-      "image": "589.jpg",
-      "crop": "589-1728.jpg",
-      "box": [0, 1728, 2268, 568],
+      "crops": [
+        {
+          "image": "589.jpg",
+          "crop": "589-1728.jpg",
+          "box": [0, 1728, 2268, 568],
+          "sha": "46b75d1ee72f4d55",
+          "shows": "itself"
+        }
+      ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 4 of 589-978.jpg ends 'Love than death it -' and row 4 of 589-1728.jpg begins 'self more strong:', so the page prints 'it - self'."
     },
@@ -31,9 +37,15 @@
       "printed": "hand",
       "sung": "hand",
       "kind": "words",
-      "image": "589.jpg",
-      "crop": "589-978.jpg",
-      "box": [0, 978, 2268, 676],
+      "crops": [
+        {
+          "image": "589.jpg",
+          "crop": "589-978.jpg",
+          "box": [0, 978, 2268, 676],
+          "sha": "129571d1950ba622",
+          "shows": "hand"
+        }
+      ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 6 prints 'hand in hand a - gree—' plainly, with the n in both."
     }

@@ -13,9 +13,15 @@
       "printed": "1-4.",
       "sung": "",
       "kind": "repeat",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "1-4."
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "Row 1. of the last stanza system (p137-755) ends 'na-tiv-i-ty.' and the refrain's first row on p137-2031 opens with the label '1-4.', a stanza-range sign that is not sung."
     },
@@ -31,9 +37,15 @@
       "printed": "",
       "sung": "",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": ""
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The refrain row labelled '1-4.' on p137-2031 ends 'for Thee.' and has no repeat sign, so nothing more is sung after stanza 1's refrain."
     },
@@ -49,9 +61,15 @@
       "printed": "O come to",
       "sung": "O come to",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "O come to"
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "Stanza 2 takes the refrain row labelled '1-4.' on p137-2031, which prints 'O come to'; the '5.' row is stanza 5's refrain."
     },
@@ -67,9 +85,15 @@
       "printed": "",
       "sung": "",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": ""
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The '1-4.' refrain row on p137-2031 prints 'my heart, Lord Je-sus' with nothing between; 'shall re-joice' is in the '5.' row."
     },
@@ -85,9 +109,15 @@
       "printed": "There is room in my heart",
       "sung": "There is room in my heart",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "There is room in my heart"
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The '1-4.' refrain row on p137-2031 prints 'There is room in my heart'; 'When Thou com-est and call-est' is in the '5.' row."
     },
@@ -103,9 +133,15 @@
       "printed": "Thee",
       "sung": "Thee",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "Thee"
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The '1-4.' refrain row on p137-2031 ends 'for Thee.'; 'me' ends the '5.' row."
     },
@@ -121,9 +157,15 @@
       "printed": "",
       "sung": "",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": ""
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The '1-4.' refrain row on p137-2031 ends 'Thee.' for stanza 2; the '5.' row under it is stanza 5's refrain, not sung after stanza 2."
     },
@@ -139,9 +181,15 @@
       "printed": "O come to my heart Lord Jesus There is room in my heart for Thee",
       "sung": "O come to my heart Lord Jesus There is room in my heart for Thee",
       "kind": "repeat",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "O come to my heart Lord Jesus There is room in my heart for Thee"
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The refrain row labelled '1-4.' on p137-2031 prints this line once for stanzas 1 to 4, so it is sung after stanza 3."
     },
@@ -157,9 +205,15 @@
       "printed": "O come to my heart Lord Jesus There is room in my heart for Thee",
       "sung": "O come to my heart Lord Jesus There is room in my heart for Thee",
       "kind": "repeat",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "O come to my heart Lord Jesus There is room in my heart for Thee"
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The refrain row labelled '1-4.' on p137-2031 prints this line once for stanzas 1 to 4, so it is sung after stanza 4."
     },
@@ -175,9 +229,15 @@
       "printed": "",
       "sung": "",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": ""
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "Stanza 5's refrain is the row labelled '5.' on p137-2031, which opens 'My heart' with only the label before it; 'O come to' is the '1-4.' row's."
     },
@@ -193,9 +253,15 @@
       "printed": "My heart shall rejoice Lord Jesus When Thou comest and callest for me",
       "sung": "My heart shall rejoice Lord Jesus When Thou comest and callest for me",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "My heart shall rejoice Lord Jesus When Thou comest and callest for me"
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The refrain row labelled '5.' on p137-2031 prints 'My heart shall re-joice, Lord Je-sus, When Thou com-est and call-est for me.' as stanza 5's own refrain."
     },
@@ -211,9 +277,15 @@
       "printed": "shall rejoice",
       "sung": "shall rejoice",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "shall rejoice"
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The '5.' refrain row on p137-2031 prints 'shall re-joice' after 'My heart'."
     },
@@ -229,9 +301,15 @@
       "printed": "When Thou comest and callest",
       "sung": "When Thou comest and callest",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "When Thou comest and callest"
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The '5.' refrain row on p137-2031 prints 'When Thou com-est and call-est' after 'Lord Je-sus,'."
     },
@@ -247,9 +325,15 @@
       "printed": "me",
       "sung": "me",
       "kind": "words",
-      "image": "p137.jpg",
-      "crop": "p137-2031.jpg",
-      "box": [0, 2031, 1759, 352],
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-2031.jpg",
+          "box": [0, 2031, 1759, 352],
+          "sha": "68fac6873d9a5969",
+          "shows": "me"
+        }
+      ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The '5.' refrain row on p137-2031 ends 'for me.'"
     }

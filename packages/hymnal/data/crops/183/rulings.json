@@ -13,9 +13,15 @@
       "printed": "(I will sing)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-223.jpg",
-      "box": [0, 223, 1759, 398],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-223.jpg",
+          "box": [0, 223, 1759, 398],
+          "sha": "2183bbf91b0b9807",
+          "shows": "(I will sing)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "Row 1. of p178-223.jpg prints 'I will sing (I will sing) of', a parenthesized echo the database leaves out."
     },
@@ -31,9 +37,15 @@
       "printed": "(sing of Him)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-732.jpg",
-      "box": [0, 732, 1759, 393],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-732.jpg",
+          "box": [0, 732, 1759, 393],
+          "sha": "85f9735d3a059687",
+          "shows": "(sing of Him)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "Stanza 1's row (top) of p178-732.jpg prints 'Him (sing of Him) who', a parenthesized echo the database leaves out."
     },
@@ -49,9 +61,15 @@
       "printed": "(for He left)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-732.jpg",
-      "box": [0, 732, 1759, 393],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-732.jpg",
+          "box": [0, 732, 1759, 393],
+          "sha": "85f9735d3a059687",
+          "shows": "(for He left)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "Stanza 1's row (top) of p178-732.jpg prints 'left (for He left) bright', a parenthesized echo the database leaves out."
     },
@@ -67,9 +85,15 @@
       "printed": "(I will sing)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-1268.jpg",
-      "box": [0, 1268, 1759, 389],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-1268.jpg",
+          "box": [0, 1268, 1759, 389],
+          "sha": "68311a2e277e28c7",
+          "shows": "(I will sing)"
+        }
+      ],
       "judge": "judge-183-2 (Opus, effort max)",
       "why": "The refrain, printed once on the middle row of p178-1268.jpg after the double bar, reads 'I will sing (I will sing) of'; the second 'I will sing' is the parenthesised echo, which the database leaves out (as it does '(end-less praise)' and '(He has died)')."
     },
@@ -85,9 +109,15 @@
       "printed": "(endless praise)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-1779.jpg",
-      "box": [0, 1779, 1759, 313],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-1779.jpg",
+          "box": [0, 1779, 1759, 313],
+          "sha": "ae5d9e2fd2f2ed62",
+          "shows": "(endless praise)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "The refrain row of p178-1779.jpg prints 'praise (end - less praise) my', a parenthesized echo the database leaves out."
     },
@@ -103,9 +133,15 @@
       "printed": "(He has died)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-1970.jpg",
-      "box": [0, 1970, 1759, 659],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-1970.jpg",
+          "box": [0, 1970, 1759, 659],
+          "sha": "60d6de508ac9d1c9",
+          "shows": "(He has died)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "The refrain row of p178-1970.jpg prints 'died (He has died) that', a parenthesized echo the database leaves out."
     },
@@ -121,9 +157,15 @@
       "printed": "(O the depths)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-223.jpg",
-      "box": [0, 223, 1759, 398],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-223.jpg",
+          "box": [0, 223, 1759, 398],
+          "sha": "2183bbf91b0b9807",
+          "shows": "(O the depths)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "Row 2. of p178-223.jpg prints 'O the depths (O the depths) of', a parenthesized echo the database leaves out."
     },
@@ -139,9 +181,15 @@
       "printed": "(earth or heaven)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-732.jpg",
-      "box": [0, 732, 1759, 393],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-732.jpg",
+          "box": [0, 732, 1759, 393],
+          "sha": "85f9735d3a059687",
+          "shows": "(earth or heaven)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "Stanza 2's row (middle) of p178-732.jpg prints 'heaven (earth or heaven) can', a parenthesized echo the database leaves out."
     },
@@ -157,9 +205,15 @@
       "printed": "(how that sins)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-732.jpg",
-      "box": [0, 732, 1759, 393],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-732.jpg",
+          "box": [0, 732, 1759, 393],
+          "sha": "85f9735d3a059687",
+          "shows": "(how that sins)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "Stanza 2's row (middle) of p178-732.jpg prints 'sins (how that sins) as', a parenthesized echo the database leaves out."
     },
@@ -175,9 +229,15 @@
       "printed": "(I will sing)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-1268.jpg",
-      "box": [0, 1268, 1759, 389],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-1268.jpg",
+          "box": [0, 1268, 1759, 389],
+          "sha": "68311a2e277e28c7",
+          "shows": "(I will sing)"
+        }
+      ],
       "judge": "judge-183-2 (Opus, effort max)",
       "why": "Same refrain after stanza 2, on the middle row of p178-1268.jpg: 'I will sing (I will sing) of', the repeat being the parenthesised echo the database leaves out."
     },
@@ -193,9 +253,15 @@
       "printed": "(endless praise)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-1779.jpg",
-      "box": [0, 1779, 1759, 313],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-1779.jpg",
+          "box": [0, 1779, 1759, 313],
+          "sha": "ae5d9e2fd2f2ed62",
+          "shows": "(endless praise)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "The refrain row of p178-1779.jpg prints 'praise (end - less praise) my', a parenthesized echo the database leaves out."
     },
@@ -211,9 +277,15 @@
       "printed": "(He has died)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-1970.jpg",
-      "box": [0, 1970, 1759, 659],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-1970.jpg",
+          "box": [0, 1970, 1759, 659],
+          "sha": "60d6de508ac9d1c9",
+          "shows": "(He has died)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "The refrain row of p178-1970.jpg prints 'died (He has died) that', a parenthesized echo the database leaves out."
     },
@@ -229,9 +301,15 @@
       "printed": "(nothing good)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-223.jpg",
-      "box": [0, 223, 1759, 398],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-223.jpg",
+          "box": [0, 223, 1759, 398],
+          "sha": "2183bbf91b0b9807",
+          "shows": "(nothing good)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "Row 3. of p178-223.jpg prints 'good (noth - ing good) for', a parenthesized echo the database leaves out."
     },
@@ -247,9 +325,15 @@
       "printed": "(how could He)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-732.jpg",
-      "box": [0, 732, 1759, 393],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-732.jpg",
+          "box": [0, 732, 1759, 393],
+          "sha": "85f9735d3a059687",
+          "shows": "(how could He)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "Stanza 3's row (bottom) of p178-732.jpg prints 'He (how could He) such', a parenthesized echo the database leaves out."
     },
@@ -265,9 +349,15 @@
       "printed": "(Lord, I own)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-732.jpg",
-      "box": [0, 732, 1759, 393],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-732.jpg",
+          "box": [0, 732, 1759, 393],
+          "sha": "85f9735d3a059687",
+          "shows": "(Lord, I own)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "Stanza 3's row (bottom) of p178-732.jpg prints 'own (Lord, I own) my', a parenthesized echo the database leaves out."
     },
@@ -283,9 +373,15 @@
       "printed": "(I will sing)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-1268.jpg",
-      "box": [0, 1268, 1759, 389],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-1268.jpg",
+          "box": [0, 1268, 1759, 389],
+          "sha": "68311a2e277e28c7",
+          "shows": "(I will sing)"
+        }
+      ],
       "judge": "judge-183-2 (Opus, effort max)",
       "why": "Same refrain after stanza 3, printed once on the middle row of p178-1268.jpg: 'I will sing (I will sing) of', the repeat being the parenthesised echo the database leaves out."
     },
@@ -301,9 +397,15 @@
       "printed": "(endless praise)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-1779.jpg",
-      "box": [0, 1779, 1759, 313],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-1779.jpg",
+          "box": [0, 1779, 1759, 313],
+          "sha": "ae5d9e2fd2f2ed62",
+          "shows": "(endless praise)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "The refrain row of p178-1779.jpg prints 'praise (end - less praise) my', a parenthesized echo the database leaves out."
     },
@@ -319,9 +421,15 @@
       "printed": "(He has died)",
       "sung": "",
       "kind": "echo",
-      "image": "p178.jpg",
-      "crop": "p178-1970.jpg",
-      "box": [0, 1970, 1759, 659],
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-1970.jpg",
+          "box": [0, 1970, 1759, 659],
+          "sha": "60d6de508ac9d1c9",
+          "shows": "(He has died)"
+        }
+      ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "The refrain row of p178-1970.jpg prints 'died (He has died) that', a parenthesized echo the database leaves out."
     }

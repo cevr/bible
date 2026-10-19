@@ -13,9 +13,15 @@
       "printed": "within",
       "sung": "within",
       "kind": "words",
-      "image": "276.png",
-      "crop": "276-112.jpg",
-      "box": [0, 112, 1275, 249],
+      "crops": [
+        {
+          "image": "276.png",
+          "crop": "276-112.jpg",
+          "box": [0, 112, 1275, 249],
+          "sha": "34fddff5cff22cc6",
+          "shows": "within"
+        }
+      ],
       "judge": "judge-261 (Opus, effort max)",
       "why": "Crop 276-481.jpg does not hold the place; row 3. of crop 276-112.jpg prints 'By the Spir-it's voice with-in' plainly."
     }

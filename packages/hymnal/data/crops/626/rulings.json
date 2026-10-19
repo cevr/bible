@@ -13,9 +13,15 @@
       "printed": "my",
       "sung": "my",
       "kind": "words",
-      "image": "626.png",
-      "crop": "626-560.jpg",
-      "box": [0, 560, 1275, 170],
+      "crops": [
+        {
+          "image": "626.png",
+          "crop": "626-560.jpg",
+          "box": [0, 560, 1275, 170],
+          "sha": "712020be0ddf225d",
+          "shows": "my"
+        }
+      ],
       "judge": "judge-580 (Opus, effort max)",
       "why": "Crop 626-560, row 3 of the second system (re-engraved page), prints 'And my lov - ing hearts' plainly: two letters, 'my', not 'may'."
     }

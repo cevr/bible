@@ -13,9 +13,15 @@
       "printed": "Amen",
       "sung": "Amen",
       "kind": "words",
-      "image": "690.png",
-      "crop": "690-922.jpg",
-      "box": [0, 922, 1275, 289],
+      "crops": [
+        {
+          "image": "690.png",
+          "crop": "690-922.jpg",
+          "box": [0, 922, 1275, 289],
+          "sha": "79ad4e632a69b6d1",
+          "shows": "Amen"
+        }
+      ],
       "judge": "judge-663 (Opus, effort max)",
       "why": "The crop's row prints 'Save in Thy king - dom Thine be the praise.' and then 'A - men.' under the last two bars."
     }

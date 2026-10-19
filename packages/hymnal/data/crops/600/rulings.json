@@ -13,9 +13,15 @@
       "printed": "others",
       "sung": "others",
       "kind": "words",
-      "image": "p585.jpg",
-      "crop": "p585-171.jpg",
-      "box": [0, 171, 1759, 400],
+      "crops": [
+        {
+          "image": "p585.jpg",
+          "crop": "p585-171.jpg",
+          "box": [0, 171, 1759, 400],
+          "sha": "04aab67b15569e25",
+          "shows": "others"
+        }
+      ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 2. ends 'He comes to all oth - ers', plural with the s."
     }

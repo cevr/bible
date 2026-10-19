@@ -13,9 +13,15 @@
       "printed": "her",
       "sung": "her",
       "kind": "words",
-      "image": "p050.jpg",
-      "crop": "p050-901.jpg",
-      "box": [0, 901, 1759, 431],
+      "crops": [
+        {
+          "image": "p050.jpg",
+          "crop": "p050-901.jpg",
+          "box": [0, 901, 1759, 431],
+          "sha": "1a0833b82f3ef6f4",
+          "shows": "her"
+        }
+      ],
       "judge": "judge-006 (Opus, effort max)",
       "why": "Row 1 of crop p050-901.jpg prints 'Sets her eve - ning lamps a - light' plainly."
     }

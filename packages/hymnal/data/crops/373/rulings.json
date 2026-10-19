@@ -13,9 +13,15 @@
       "printed": "Going afar upon",
       "sung": "Going afar upon",
       "kind": "repeat",
-      "image": "p363.jpg",
-      "crop": "p363-2004.jpg",
-      "box": [0, 2004, 1759, 348],
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-2004.jpg",
+          "box": [0, 2004, 1759, 348],
+          "sha": "105d181f8b29c3af",
+          "shows": "Going afar upon"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "The refrain is printed once under a repeat sign: brace row 1 of p363-2004 opens it with 'Go-ing a-far ... up-on' after every stanza, and row 2 'In-to the fold' is the repeat's words, not stanza 2's."
     },
@@ -31,9 +37,15 @@
       "printed": "mountain Bringing",
       "sung": "mountain Bringing",
       "kind": "repeat",
-      "image": "p363.jpg",
-      "crop": "p363-2004.jpg",
-      "box": [0, 2004, 1759, 348],
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-2004.jpg",
+          "box": [0, 2004, 1759, 348],
+          "sha": "105d181f8b29c3af",
+          "shows": "mountain Bringing"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Brace row 1 of p363-2004 ends 'the moun-tain,' and row 1 of p364-140 goes on 'Bring-ing the'; row 2's 'fold of my Re-deem-er, Je-sus' comes only on the repeat."
     },
@@ -49,9 +61,15 @@
       "printed": "wand'rer back again back again",
       "sung": "wand'rer back again back again",
       "kind": "repeat",
-      "image": "p364.jpg",
-      "crop": "p364-140.jpg",
-      "box": [0, 140, 1759, 348],
+      "crops": [
+        {
+          "image": "p364.jpg",
+          "crop": "p364-140.jpg",
+          "box": [0, 140, 1759, 348],
+          "sha": "63ff73f423cf336d",
+          "shows": "wand'rer back again back again"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 1 of p364-140 prints 'wan-d'rer back a-gain, back a-gain,' into the first ending; row 2's 'Lamb for sin-ners slain, for sin-ners slain' goes with the repeat's second ending."
     }

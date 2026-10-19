@@ -13,9 +13,15 @@
       "printed": "my",
       "sung": "my",
       "kind": "words",
-      "image": "547.jpg",
-      "crop": "547-922.jpg",
-      "box": [0, 922, 2268, 664],
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-922.jpg",
+          "box": [0, 922, 2268, 664],
+          "sha": "bdbc262b83ee7082",
+          "shows": "my"
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 3 of the second system prints 'Thou my in - her - it - ance, Now and al - ways:' with 'my', not 'mine'."
     }

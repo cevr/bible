@@ -13,9 +13,15 @@
       "printed": "your",
       "sung": "your",
       "kind": "words",
-      "image": "p586.jpg",
-      "crop": "p586-1401.jpg",
-      "box": [0, 1401, 1759, 433],
+      "crops": [
+        {
+          "image": "p586.jpg",
+          "crop": "p586-1401.jpg",
+          "box": [0, 1401, 1759, 433],
+          "sha": "0036369adfe21d25",
+          "shows": "your"
+        }
+      ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 4 of this third system (the line's first singing) prints 'Sound a - loud your ho - ly cheer;' with the y, as the fourth system's repeat does."
     }

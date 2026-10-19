@@ -13,9 +13,15 @@
       "printed": "ringing",
       "sung": "ringing",
       "kind": "words",
-      "image": "023.jpg",
-      "crop": "023-303.jpg",
-      "box": [0, 303, 2268, 2572],
+      "crops": [
+        {
+          "image": "023.jpg",
+          "crop": "023-303.jpg",
+          "box": [0, 303, 2268, 2572],
+          "sha": "c57cf8826a230352",
+          "shows": "ringing"
+        }
+      ],
       "judge": "judge-006 (Opus, effort max)",
       "why": "Row 1. of the first system prints 'bells a - ring - ing,' so the word after 'a' is 'ringing'."
     },
@@ -31,9 +37,15 @@
       "printed": "praise",
       "sung": "praise",
       "kind": "words",
-      "image": "023.jpg",
-      "crop": "023-303.jpg",
-      "box": [0, 303, 2268, 2572],
+      "crops": [
+        {
+          "image": "023.jpg",
+          "crop": "023-303.jpg",
+          "box": [0, 303, 2268, 2572],
+          "sha": "c57cf8826a230352",
+          "shows": "praise"
+        }
+      ],
       "judge": "judge-006 (Opus, effort max)",
       "why": "Row 1. of the first system prints 'All ye moun - tains, praise the Lord!' with 'praise', not 'of'."
     },
@@ -49,9 +61,15 @@
       "printed": "hearths",
       "sung": "hearths",
       "kind": "words",
-      "image": "023.jpg",
-      "crop": "023-303.jpg",
-      "box": [0, 303, 2268, 2572],
+      "crops": [
+        {
+          "image": "023.jpg",
+          "crop": "023-303.jpg",
+          "box": [0, 303, 2268, 2572],
+          "sha": "c57cf8826a230352",
+          "shows": "hearths"
+        }
+      ],
       "judge": "judge-006 (Opus, effort max)",
       "why": "Row 3 of the fourth system prints 'Bright our hearths the sig - nal flar - ing,' with 'hearths'."
     }

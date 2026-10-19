@@ -13,9 +13,15 @@
       "printed": "hath",
       "sung": "hath",
       "kind": "words",
-      "image": "509.jpg",
-      "crop": "509-1286.jpg",
-      "box": [0, 1286, 2268, 504],
+      "crops": [
+        {
+          "image": "509.jpg",
+          "crop": "509-1286.jpg",
+          "box": [0, 1286, 2268, 504],
+          "sha": "8af3604b5f47d47c",
+          "shows": "hath"
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 1 of the third system prints 'What more can He say than to you He hath said,' with 'hath' plainly."
     },
@@ -31,9 +37,15 @@
       "printed": "righteous",
       "sung": "righteous",
       "kind": "words",
-      "image": "509.jpg",
-      "crop": "509-1593.jpg",
-      "box": [0, 1593, 2268, 550],
+      "crops": [
+        {
+          "image": "509.jpg",
+          "crop": "509-1593.jpg",
+          "box": [0, 1593, 2268, 550],
+          "sha": "30053edb9ad93071",
+          "shows": "righteous"
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 2 of the last system prints 'Up-held by My righ - teous, om-nip-o-tent hand', which joins to 'righteous'."
     },
@@ -49,9 +61,15 @@
       "printed": "I",
       "sung": "I",
       "kind": "words",
-      "image": "509.jpg",
-      "crop": "509-125.jpg",
-      "box": [0, 125, 2268, 1666],
+      "crops": [
+        {
+          "image": "509.jpg",
+          "crop": "509-125.jpg",
+          "box": [0, 125, 2268, 1666],
+          "sha": "b274cd96ad9fc508",
+          "shows": "I"
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 3. of the first system prints 'When thro' the deep wa - ters I call thee to go', with 'I' between 'waters' and 'call'."
     },
@@ -67,9 +85,15 @@
       "printed": "",
       "sung": "",
       "kind": "words",
-      "image": "509.jpg",
-      "crop": "509-125.jpg",
-      "box": [0, 125, 2268, 1666],
+      "crops": [
+        {
+          "image": "509.jpg",
+          "crop": "509-125.jpg",
+          "box": [0, 125, 2268, 1666],
+          "sha": "b274cd96ad9fc508",
+          "shows": ""
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 3 of the second system prints 'The riv - ers of sor - row shall not o - ver - flow;' with no 'go' between 'not' and 'overflow'."
     },
@@ -85,9 +109,15 @@
       "printed": "distress",
       "sung": "distress",
       "kind": "words",
-      "image": "509.jpg",
-      "crop": "509-1593.jpg",
-      "box": [0, 1593, 2268, 550],
+      "crops": [
+        {
+          "image": "509.jpg",
+          "crop": "509-1593.jpg",
+          "box": [0, 1593, 2268, 550],
+          "sha": "30053edb9ad93071",
+          "shows": "distress"
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 3 of the last system prints 'And sanc-ti-fy to thee thy deep - est dis - tress', which joins to 'distress'."
     }

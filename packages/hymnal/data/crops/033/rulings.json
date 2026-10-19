@@ -13,9 +13,15 @@
       "printed": "judgement",
       "sung": "judgement",
       "kind": "words",
-      "image": "033.png",
-      "crop": "033-492.jpg",
-      "box": [0, 492, 1275, 279],
+      "crops": [
+        {
+          "image": "033.png",
+          "crop": "033-492.jpg",
+          "box": [0, 492, 1275, 279],
+          "sha": "82b2b6d295735c4d",
+          "shows": "judgement"
+        }
+      ],
       "judge": "judge-006-2 (Opus, effort max)",
       "why": "Row 4 of the second system prints 'In judg - - - - - ement and', the syllables joining to 'judgement' with an e before 'ment'."
     }

@@ -13,9 +13,15 @@
       "printed": "these",
       "sung": "these",
       "kind": "words",
-      "image": "657.png",
-      "crop": "657-883.jpg",
-      "box": [0, 883, 1275, 344],
+      "crops": [
+        {
+          "image": "657.png",
+          "crop": "657-883.jpg",
+          "box": [0, 883, 1275, 344],
+          "sha": "cd021d00c210d0cf",
+          "shows": "these"
+        }
+      ],
       "judge": "judge-634 (Opus, effort max)",
       "why": "Row 1 prints 'Be with these two who now be-fore You wait;' plainly."
     }

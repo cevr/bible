@@ -13,9 +13,15 @@
       "printed": "force",
       "sung": "force",
       "kind": "words",
-      "image": "641.png",
-      "crop": "641-498.jpg",
-      "box": [0, 498, 1275, 277],
+      "crops": [
+        {
+          "image": "641.png",
+          "crop": "641-498.jpg",
+          "box": [0, 498, 1275, 277],
+          "sha": "e96d730ba757079d",
+          "shows": "force"
+        }
+      ],
       "judge": "judge-634 (Opus, effort max)",
       "why": "Row 3 prints 'Long has earth bowed to the ter-ror of force;' plainly."
     }

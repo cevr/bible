@@ -15,8 +15,8 @@
       "source": "photo",
       "pages": ["001.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -36,8 +36,8 @@
       "source": "scan",
       "pages": ["p002.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -57,8 +57,8 @@
       "source": "photo",
       "pages": ["003.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -78,8 +78,8 @@
       "source": "scan",
       "pages": ["p004.jpg", "p005.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -99,8 +99,8 @@
       "source": "sdahimages",
       "pages": ["005.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -120,8 +120,8 @@
       "source": "scan",
       "pages": ["p007.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -141,8 +141,8 @@
       "source": "scan",
       "pages": ["p008.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -162,8 +162,8 @@
       "source": "scan",
       "pages": ["p009.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -183,8 +183,8 @@
       "source": "sdahimages",
       "pages": ["009.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -204,8 +204,8 @@
       "source": "photo",
       "pages": ["010.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -225,8 +225,8 @@
       "source": "scan",
       "pages": ["p012.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -246,8 +246,8 @@
       "source": "scan",
       "pages": ["p013.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -267,8 +267,8 @@
       "source": "sdahimages",
       "pages": ["013.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -289,8 +289,8 @@
       "source": "photo",
       "pages": ["014.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -310,8 +310,8 @@
       "source": "scan",
       "pages": ["p016.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -331,8 +331,8 @@
       "source": "scan",
       "pages": ["p016.jpg", "p017.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -352,8 +352,8 @@
       "source": "scan",
       "pages": ["p017.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -373,8 +373,8 @@
       "source": "sdahimages",
       "pages": ["018.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -394,8 +394,8 @@
       "source": "sdahimages",
       "pages": ["019.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -415,8 +415,8 @@
       "source": "scan",
       "pages": ["p020.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -436,8 +436,8 @@
       "source": "scan",
       "pages": ["p021.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -457,8 +457,8 @@
       "source": "sdahimages",
       "pages": ["022.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -478,8 +478,8 @@
       "source": "photo",
       "pages": ["023.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 3,
@@ -499,8 +499,8 @@
       "source": "sdahimages",
       "pages": ["024.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -520,8 +520,8 @@
       "source": "scan",
       "pages": ["p025.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -541,8 +541,8 @@
       "source": "scan",
       "pages": ["p026.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -562,8 +562,8 @@
       "source": "scan",
       "pages": ["p027.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -583,8 +583,8 @@
       "source": "sdahimages",
       "pages": ["028.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -604,8 +604,8 @@
       "source": "scan",
       "pages": ["p029.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -625,8 +625,8 @@
       "source": "scan",
       "pages": ["p030.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -646,8 +646,8 @@
       "source": "sdahimages",
       "pages": ["031.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -667,8 +667,8 @@
       "source": "sdahimages",
       "pages": ["032.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -688,8 +688,8 @@
       "source": "sdahimages",
       "pages": ["033.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -710,8 +710,8 @@
       "source": "scan",
       "pages": ["p034.jpg", "p035.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -731,8 +731,8 @@
       "source": "scan",
       "pages": ["p035.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -752,8 +752,8 @@
       "source": "scan",
       "pages": ["p036.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -773,8 +773,8 @@
       "source": "scan",
       "pages": ["p037.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -794,8 +794,8 @@
       "source": "sdahimages",
       "pages": ["038.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -815,8 +815,8 @@
       "source": "sdahimages",
       "pages": ["039.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -836,8 +836,8 @@
       "source": "scan",
       "pages": ["p040.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -857,8 +857,8 @@
       "source": "photo",
       "pages": ["041.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -878,8 +878,8 @@
       "source": "sdahimages",
       "pages": ["042.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -899,8 +899,8 @@
       "source": "scan",
       "pages": ["p043.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -920,8 +920,8 @@
       "source": "sdahimages",
       "pages": ["044.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -941,8 +941,8 @@
       "source": "scan",
       "pages": ["p045.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -962,8 +962,8 @@
       "source": "scan",
       "pages": ["p046.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -983,8 +983,8 @@
       "source": "scan",
       "pages": ["p047.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1004,8 +1004,8 @@
       "source": "scan",
       "pages": ["p048.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1025,8 +1025,8 @@
       "source": "scan",
       "pages": ["p048.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1046,8 +1046,8 @@
       "source": "scan",
       "pages": ["p049.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1067,8 +1067,8 @@
       "source": "scan",
       "pages": ["p050.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -1088,8 +1088,8 @@
       "source": "scan",
       "pages": ["p051.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -1109,8 +1109,8 @@
       "source": "scan",
       "pages": ["p051.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1130,8 +1130,8 @@
       "source": "photo",
       "pages": ["054.jpg", "055.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -1151,8 +1151,8 @@
       "source": "photo",
       "pages": ["054.jpg", "055.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1172,8 +1172,8 @@
       "source": "scan",
       "pages": ["p053.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1193,8 +1193,8 @@
       "source": "scan",
       "pages": ["p054.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1214,8 +1214,8 @@
       "source": "sdahimages",
       "pages": ["058.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1235,8 +1235,8 @@
       "source": "sdahimages",
       "pages": ["059.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1256,8 +1256,8 @@
       "source": "scan",
       "pages": ["p057.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1277,8 +1277,8 @@
       "source": "sdahimages",
       "pages": ["061.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -1299,8 +1299,8 @@
       "source": "sdahimages",
       "pages": ["062.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1320,8 +1320,8 @@
       "source": "scan",
       "pages": ["p060.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1341,8 +1341,8 @@
       "source": "scan",
       "pages": ["p061.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1362,8 +1362,8 @@
       "source": "scan",
       "pages": ["p062.jpg", "p063.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1383,8 +1383,8 @@
       "source": "scan",
       "pages": ["p063.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1404,8 +1404,8 @@
       "source": "sdahimages",
       "pages": ["067.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1425,8 +1425,8 @@
       "source": "scan",
       "pages": ["p065.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1446,8 +1446,8 @@
       "source": "sdahimages",
       "pages": ["069.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1467,8 +1467,8 @@
       "source": "scan",
       "pages": ["p067.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1488,8 +1488,8 @@
       "source": "sdahimages",
       "pages": ["071.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1509,8 +1509,8 @@
       "source": "scan",
       "pages": ["p069.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1530,8 +1530,8 @@
       "source": "scan",
       "pages": ["p070.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1551,8 +1551,8 @@
       "source": "scan",
       "pages": ["p072.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -1572,8 +1572,8 @@
       "source": "sdahimages",
       "pages": ["075.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1593,8 +1593,8 @@
       "source": "sdahimages",
       "pages": ["076.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1614,8 +1614,8 @@
       "source": "sdahimages",
       "pages": ["077.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1635,8 +1635,8 @@
       "source": "sdahimages",
       "pages": ["078.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1656,8 +1656,8 @@
       "source": "sdahimages",
       "pages": ["079.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1677,8 +1677,8 @@
       "source": "sdahimages",
       "pages": ["080.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1698,8 +1698,8 @@
       "source": "sdahimages",
       "pages": ["081.png", "Though_I_Speak_With_Tongues2.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1719,8 +1719,8 @@
       "source": "scan",
       "pages": ["p081.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1740,8 +1740,8 @@
       "source": "scan",
       "pages": ["p082.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1761,8 +1761,8 @@
       "source": "scan",
       "pages": ["p083.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1782,8 +1782,8 @@
       "source": "scan",
       "pages": ["p084.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1803,8 +1803,8 @@
       "source": "sdahimages",
       "pages": ["086.png", "How_Great_Thou_Art2.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -1825,8 +1825,8 @@
       "source": "sdahimages",
       "pages": ["087.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1846,8 +1846,8 @@
       "source": "scan",
       "pages": ["p087.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1867,8 +1867,8 @@
       "source": "sdahimages",
       "pages": ["089.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1888,8 +1888,8 @@
       "source": "scan",
       "pages": ["p089.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1909,8 +1909,8 @@
       "source": "photo",
       "pages": ["091.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1930,8 +1930,8 @@
       "source": "scan",
       "pages": ["p091.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1951,8 +1951,8 @@
       "source": "sdahimages",
       "pages": ["093.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 24,
@@ -1972,8 +1972,8 @@
       "source": "scan",
       "pages": ["p093.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -1993,8 +1993,8 @@
       "source": "photo",
       "pages": ["095.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -2014,8 +2014,8 @@
       "source": "sdahimages",
       "pages": ["096.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2035,8 +2035,8 @@
       "source": "sdahimages",
       "pages": ["097.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2056,8 +2056,8 @@
       "source": "scan",
       "pages": ["p097.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2077,8 +2077,8 @@
       "source": "scan",
       "pages": ["p098.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2098,8 +2098,8 @@
       "source": "scan",
       "pages": ["p099.jpg", "p100.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2119,8 +2119,8 @@
       "source": "scan",
       "pages": ["p100.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -2140,8 +2140,8 @@
       "source": "sdahimages",
       "pages": ["102.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -2162,8 +2162,8 @@
       "source": "sdahimages",
       "pages": ["103.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2183,8 +2183,8 @@
       "source": "sdahimages",
       "pages": ["104.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2204,8 +2204,8 @@
       "source": "scan",
       "pages": ["p104.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2225,8 +2225,8 @@
       "source": "scan",
       "pages": ["p105.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2246,8 +2246,8 @@
       "source": "sdahimages",
       "pages": ["107.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2267,8 +2267,8 @@
       "source": "photo",
       "pages": ["108.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -2288,8 +2288,8 @@
       "source": "scan",
       "pages": ["p107.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2309,8 +2309,8 @@
       "source": "scan",
       "pages": ["p108.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2330,8 +2330,8 @@
       "source": "sdahimages",
       "pages": ["111.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2351,8 +2351,8 @@
       "source": "photo",
       "pages": ["112.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2372,8 +2372,8 @@
       "source": "scan",
       "pages": ["p111.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2393,8 +2393,8 @@
       "source": "scan",
       "pages": ["p111.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2414,8 +2414,8 @@
       "source": "scan",
       "pages": ["p112.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2435,8 +2435,8 @@
       "source": "scan",
       "pages": ["p113.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2456,8 +2456,8 @@
       "source": "scan",
       "pages": ["p114.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2477,8 +2477,8 @@
       "source": "scan",
       "pages": ["p115.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2498,8 +2498,8 @@
       "source": "scan",
       "pages": ["p116.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2519,8 +2519,8 @@
       "source": "photo",
       "pages": ["120.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2540,8 +2540,8 @@
       "source": "scan",
       "pages": ["p118.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2561,8 +2561,8 @@
       "source": "sdahimages",
       "pages": ["122.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -2583,8 +2583,8 @@
       "source": "photo",
       "pages": ["123.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -2604,8 +2604,8 @@
       "source": "sdahimages",
       "pages": ["124.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2625,8 +2625,8 @@
       "source": "photo",
       "pages": ["125.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2646,8 +2646,8 @@
       "source": "photo",
       "pages": ["126.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -2667,8 +2667,8 @@
       "source": "photo",
       "pages": ["127.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2688,8 +2688,8 @@
       "source": "sdahimages",
       "pages": ["128.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -2709,8 +2709,8 @@
       "source": "sdahimages",
       "pages": ["129.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2730,8 +2730,8 @@
       "source": "scan",
       "pages": ["p127.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2751,8 +2751,8 @@
       "source": "scan",
       "pages": ["p128.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -2772,8 +2772,8 @@
       "source": "scan",
       "pages": ["p129.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2793,8 +2793,8 @@
       "source": "sdahimages",
       "pages": ["133.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2814,8 +2814,8 @@
       "source": "sdahimages",
       "pages": ["134.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2835,8 +2835,8 @@
       "source": "scan",
       "pages": ["p132.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -2856,8 +2856,8 @@
       "source": "scan",
       "pages": ["p133.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2877,8 +2877,8 @@
       "source": "scan",
       "pages": ["p134.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 5,
@@ -2898,8 +2898,8 @@
       "source": "sdahimages",
       "pages": ["138.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2919,8 +2919,8 @@
       "source": "sdahimages",
       "pages": ["139.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2940,8 +2940,8 @@
       "source": "scan",
       "pages": ["p137.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 14,
@@ -2961,8 +2961,8 @@
       "source": "scan",
       "pages": ["p138.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -2982,8 +2982,8 @@
       "source": "sdahimages",
       "pages": ["142.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3003,8 +3003,8 @@
       "source": "sdahimages",
       "pages": ["143.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3024,8 +3024,8 @@
       "source": "scan",
       "pages": ["p141.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3045,8 +3045,8 @@
       "source": "photo",
       "pages": ["145.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3066,8 +3066,8 @@
       "source": "scan",
       "pages": ["p143.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3087,8 +3087,8 @@
       "source": "sdahimages",
       "pages": ["147.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3108,8 +3108,8 @@
       "source": "sdahimages",
       "pages": ["148.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3129,8 +3129,8 @@
       "source": "scan",
       "pages": ["p146.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3150,8 +3150,8 @@
       "source": "sdahimages",
       "pages": ["150.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3171,8 +3171,8 @@
       "source": "scan",
       "pages": ["p148.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3192,8 +3192,8 @@
       "source": "sdahimages",
       "pages": ["152.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3213,8 +3213,8 @@
       "source": "sdahimages",
       "pages": ["153.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3234,8 +3234,8 @@
       "source": "scan",
       "pages": ["p151.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3255,8 +3255,8 @@
       "source": "scan",
       "pages": ["p151.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3276,8 +3276,8 @@
       "source": "scan",
       "pages": ["p152.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3297,8 +3297,8 @@
       "source": "scan",
       "pages": ["p153.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3318,8 +3318,8 @@
       "source": "scan",
       "pages": ["p154.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 10,
@@ -3339,8 +3339,8 @@
       "source": "sdahimages",
       "pages": ["159.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3360,8 +3360,8 @@
       "source": "sdahimages",
       "pages": ["160.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3381,8 +3381,8 @@
       "source": "scan",
       "pages": ["p157.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3402,8 +3402,8 @@
       "source": "sdahimages",
       "pages": ["162.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3423,8 +3423,8 @@
       "source": "scan",
       "pages": ["p159.jpg", "p160.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3444,8 +3444,8 @@
       "source": "scan",
       "pages": ["p160.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3465,8 +3465,8 @@
       "source": "scan",
       "pages": ["p161.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -3486,8 +3486,8 @@
       "source": "scan",
       "pages": ["p162.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3507,8 +3507,8 @@
       "source": "sdahimages",
       "pages": ["167.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3528,8 +3528,8 @@
       "source": "sdahimages",
       "pages": ["168.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3549,8 +3549,8 @@
       "source": "scan",
       "pages": ["p165.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3570,8 +3570,8 @@
       "source": "scan",
       "pages": ["p166.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3591,8 +3591,8 @@
       "source": "scan",
       "pages": ["p167.jpg", "p168.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 8,
@@ -3612,8 +3612,8 @@
       "source": "scan",
       "pages": ["p168.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3633,8 +3633,8 @@
       "source": "sdahimages",
       "pages": ["173.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3654,8 +3654,8 @@
       "source": "sdahimages",
       "pages": ["174.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3675,8 +3675,8 @@
       "source": "photo",
       "pages": ["175.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3696,8 +3696,8 @@
       "source": "scan",
       "pages": ["p171.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3717,8 +3717,8 @@
       "source": "scan",
       "pages": ["p172.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3738,8 +3738,8 @@
       "source": "photo",
       "pages": ["178-p2.jpg", "178.jpg", "179.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3759,8 +3759,8 @@
       "source": "photo",
       "pages": ["178-p2.jpg", "179.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3780,8 +3780,8 @@
       "source": "scan",
       "pages": ["p175.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3801,8 +3801,8 @@
       "source": "scan",
       "pages": ["p176.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 3,
@@ -3822,8 +3822,8 @@
       "source": "sdahimages",
       "pages": ["182.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3843,8 +3843,8 @@
       "source": "scan",
       "pages": ["p178.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 18,
@@ -3864,8 +3864,8 @@
       "source": "scan",
       "pages": ["p179.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3885,8 +3885,8 @@
       "source": "scan",
       "pages": ["p180.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3906,8 +3906,8 @@
       "source": "scan",
       "pages": ["p181.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3927,8 +3927,8 @@
       "source": "scan",
       "pages": ["p182.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3948,8 +3948,8 @@
       "source": "sdahimages",
       "pages": ["188.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3969,8 +3969,8 @@
       "source": "scan",
       "pages": ["p184.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -3990,8 +3990,8 @@
       "source": "scan",
       "pages": ["p185.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4011,8 +4011,8 @@
       "source": "scan",
       "pages": ["p186.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4032,8 +4032,8 @@
       "source": "sdahimages",
       "pages": ["192.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4053,8 +4053,8 @@
       "source": "sdahimages",
       "pages": ["193.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4074,8 +4074,8 @@
       "source": "sdahimages",
       "pages": ["194.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -4096,8 +4096,8 @@
       "source": "scan",
       "pages": ["p190.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4117,8 +4117,8 @@
       "source": "scan",
       "pages": ["p191.jpg", "p192.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4138,8 +4138,8 @@
       "source": "scan",
       "pages": ["p192.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4159,8 +4159,8 @@
       "source": "sdahimages",
       "pages": ["198.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4180,8 +4180,8 @@
       "source": "sdahimages",
       "pages": ["199.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4201,8 +4201,8 @@
       "source": "sdahimages",
       "pages": ["200.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4222,8 +4222,8 @@
       "source": "scan",
       "pages": ["p196.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4243,8 +4243,8 @@
       "source": "scan",
       "pages": ["p197.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4264,8 +4264,8 @@
       "source": "sdahimages",
       "pages": ["203.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -4286,8 +4286,8 @@
       "source": "scan",
       "pages": ["p199.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4307,8 +4307,8 @@
       "source": "scan",
       "pages": ["p200.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4328,8 +4328,8 @@
       "source": "scan",
       "pages": ["p201.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4349,8 +4349,8 @@
       "source": "scan",
       "pages": ["p202.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4370,8 +4370,8 @@
       "source": "scan",
       "pages": ["p203.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4391,8 +4391,8 @@
       "source": "photo",
       "pages": ["209.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -4412,8 +4412,8 @@
       "source": "scan",
       "pages": ["p205.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4433,8 +4433,8 @@
       "source": "scan",
       "pages": ["p206.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4454,8 +4454,8 @@
       "source": "scan",
       "pages": ["p207.jpg", "p208.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4475,8 +4475,8 @@
       "source": "scan",
       "pages": ["p208.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4496,8 +4496,8 @@
       "source": "photo",
       "pages": ["214.jpg", "215.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -4517,8 +4517,8 @@
       "source": "photo",
       "pages": ["215.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4538,8 +4538,8 @@
       "source": "scan",
       "pages": ["p211.jpg", "p212.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4559,8 +4559,8 @@
       "source": "scan",
       "pages": ["p212.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4580,8 +4580,8 @@
       "source": "scan",
       "pages": ["p213.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4601,8 +4601,8 @@
       "source": "photo",
       "pages": ["219.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4622,8 +4622,8 @@
       "source": "sdahimages",
       "pages": ["220.png", "When_He_Comes2.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 21,
@@ -4643,8 +4643,8 @@
       "source": "scan",
       "pages": ["p217.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4664,8 +4664,8 @@
       "source": "scan",
       "pages": ["p218.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4685,8 +4685,8 @@
       "source": "scan",
       "pages": ["p219.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4706,8 +4706,8 @@
       "source": "photo",
       "pages": ["224.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4727,8 +4727,8 @@
       "source": "photo",
       "pages": ["225-p2.jpg", "225.jpg", "226.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -4748,8 +4748,8 @@
       "source": "photo",
       "pages": ["225-p2.jpg", "226.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4769,8 +4769,8 @@
       "source": "sdahimages",
       "pages": ["227.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4790,8 +4790,8 @@
       "source": "sdahimages",
       "pages": ["228.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4811,8 +4811,8 @@
       "source": "scan",
       "pages": ["p225.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4832,8 +4832,8 @@
       "source": "scan",
       "pages": ["p226.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4853,8 +4853,8 @@
       "source": "sdahimages",
       "pages": ["231.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 6,
@@ -4875,8 +4875,8 @@
       "source": "photo",
       "pages": ["232.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -4896,8 +4896,8 @@
       "source": "scan",
       "pages": ["p229.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4917,8 +4917,8 @@
       "source": "sdahimages",
       "pages": ["234.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4938,8 +4938,8 @@
       "source": "sdahimages",
       "pages": ["235.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4959,8 +4959,8 @@
       "source": "scan",
       "pages": ["p232.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -4980,8 +4980,8 @@
       "source": "scan",
       "pages": ["p233.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5001,8 +5001,8 @@
       "source": "scan",
       "pages": ["p233.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5022,8 +5022,8 @@
       "source": "scan",
       "pages": ["p234.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5043,8 +5043,8 @@
       "source": "scan",
       "pages": ["p235.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5064,8 +5064,8 @@
       "source": "scan",
       "pages": ["p235.jpg", "p236.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5085,8 +5085,8 @@
       "source": "scan",
       "pages": ["p236.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5106,8 +5106,8 @@
       "source": "scan",
       "pages": ["p237.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5127,8 +5127,8 @@
       "source": "sdahimages",
       "pages": ["244.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5148,8 +5148,8 @@
       "source": "scan",
       "pages": ["p239.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5169,8 +5169,8 @@
       "source": "scan",
       "pages": ["p240.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5190,8 +5190,8 @@
       "source": "sdahimages",
       "pages": ["247.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5211,8 +5211,8 @@
       "source": "scan",
       "pages": ["p242.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5232,8 +5232,8 @@
       "source": "scan",
       "pages": ["p243.jpg", "p244.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5253,8 +5253,8 @@
       "source": "scan",
       "pages": ["p244.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5274,8 +5274,8 @@
       "source": "sdahimages",
       "pages": ["251.png", "He_Lives2.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5295,8 +5295,8 @@
       "source": "sdahimages",
       "pages": ["252.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5316,8 +5316,8 @@
       "source": "scan",
       "pages": ["p247.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5337,8 +5337,8 @@
       "source": "scan",
       "pages": ["p248.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5358,8 +5358,8 @@
       "source": "photo",
       "pages": ["255-p2.jpg", "255.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -5379,8 +5379,8 @@
       "source": "scan",
       "pages": ["p251.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5400,8 +5400,8 @@
       "source": "scan",
       "pages": ["p252.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5421,8 +5421,8 @@
       "source": "scan",
       "pages": ["p253.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 9,
@@ -5442,8 +5442,8 @@
       "source": "photo",
       "pages": ["259.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -5463,8 +5463,8 @@
       "source": "scan",
       "pages": ["p255.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5484,8 +5484,8 @@
       "source": "photo",
       "pages": ["261.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -5505,8 +5505,8 @@
       "source": "sdahimages",
       "pages": ["262.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5526,8 +5526,8 @@
       "source": "sdahimages",
       "pages": ["263.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5547,8 +5547,8 @@
       "source": "scan",
       "pages": ["p259.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5568,8 +5568,8 @@
       "source": "scan",
       "pages": ["p259.jpg", "p260.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5589,8 +5589,8 @@
       "source": "scan",
       "pages": ["p260.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5610,8 +5610,8 @@
       "source": "photo",
       "pages": ["267.jpg", "268.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5631,8 +5631,8 @@
       "source": "scan",
       "pages": ["p261.jpg", "p262.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5652,8 +5652,8 @@
       "source": "scan",
       "pages": ["p262.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5673,8 +5673,8 @@
       "source": "sdahimages",
       "pages": ["270.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5694,8 +5694,8 @@
       "source": "scan",
       "pages": ["p264.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5715,8 +5715,8 @@
       "source": "scan",
       "pages": ["p265.jpg", "p266.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 4,
@@ -5736,8 +5736,8 @@
       "source": "scan",
       "pages": ["p266.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5757,8 +5757,8 @@
       "source": "scan",
       "pages": ["p267.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5778,8 +5778,8 @@
       "source": "photo",
       "pages": ["275.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5799,8 +5799,8 @@
       "source": "sdahimages",
       "pages": ["276.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -5821,8 +5821,8 @@
       "source": "sdahimages",
       "pages": ["277.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5842,8 +5842,8 @@
       "source": "sdahimages",
       "pages": ["278.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5863,8 +5863,8 @@
       "source": "scan",
       "pages": ["p272.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5884,8 +5884,8 @@
       "source": "sdahimages",
       "pages": ["280.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5905,8 +5905,8 @@
       "source": "scan",
       "pages": ["p274.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5926,8 +5926,8 @@
       "source": "photo",
       "pages": ["282-1.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5947,8 +5947,8 @@
       "source": "scan",
       "pages": ["p276.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -5968,8 +5968,8 @@
       "source": "scan",
       "pages": ["p277.jpg", "p278.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -5989,8 +5989,8 @@
       "source": "scan",
       "pages": ["p278.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6010,8 +6010,8 @@
       "source": "scan",
       "pages": ["p279.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6031,8 +6031,8 @@
       "source": "scan",
       "pages": ["p280.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6052,8 +6052,8 @@
       "source": "sdahimages",
       "pages": ["288.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6073,8 +6073,8 @@
       "source": "sdahimages",
       "pages": ["289.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6094,8 +6094,8 @@
       "source": "sdahimages",
       "pages": ["290.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6115,8 +6115,8 @@
       "source": "scan",
       "pages": ["p284.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -6136,8 +6136,8 @@
       "source": "scan",
       "pages": ["p285.jpg", "p286.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6157,8 +6157,8 @@
       "source": "scan",
       "pages": ["p286.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6178,8 +6178,8 @@
       "source": "scan",
       "pages": ["p287.jpg", "p288.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6199,8 +6199,8 @@
       "source": "scan",
       "pages": ["p288.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6220,8 +6220,8 @@
       "source": "scan",
       "pages": ["p289.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6241,8 +6241,8 @@
       "source": "scan",
       "pages": ["p290.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6262,8 +6262,8 @@
       "source": "sdahimages",
       "pages": ["298.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6283,8 +6283,8 @@
       "source": "sdahimages",
       "pages": ["299.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6304,8 +6304,8 @@
       "source": "sdahimages",
       "pages": ["300.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6325,8 +6325,8 @@
       "source": "scan",
       "pages": ["p293.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6346,8 +6346,8 @@
       "source": "scan",
       "pages": ["p294.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6367,8 +6367,8 @@
       "source": "scan",
       "pages": ["p295.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6388,8 +6388,8 @@
       "source": "scan",
       "pages": ["p296.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6409,8 +6409,8 @@
       "source": "sdahimages",
       "pages": ["305.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6430,8 +6430,8 @@
       "source": "scan",
       "pages": ["p298.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 3,
@@ -6451,8 +6451,8 @@
       "source": "scan",
       "pages": ["p299.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6472,8 +6472,8 @@
       "source": "scan",
       "pages": ["p300.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6493,8 +6493,8 @@
       "source": "scan",
       "pages": ["p301.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6514,8 +6514,8 @@
       "source": "scan",
       "pages": ["p302.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6535,8 +6535,8 @@
       "source": "scan",
       "pages": ["p303.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6556,8 +6556,8 @@
       "source": "scan",
       "pages": ["p304.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6577,8 +6577,8 @@
       "source": "photo",
       "pages": ["313.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -6598,8 +6598,8 @@
       "source": "scan",
       "pages": ["p306.jpg", "313.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 5,
@@ -6619,8 +6619,8 @@
       "source": "scan",
       "pages": ["p306.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6640,8 +6640,8 @@
       "source": "scan",
       "pages": ["p307.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6661,8 +6661,8 @@
       "source": "scan",
       "pages": ["p308.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6682,8 +6682,8 @@
       "source": "scan",
       "pages": ["p309.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6703,8 +6703,8 @@
       "source": "scan",
       "pages": ["p310.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6724,8 +6724,8 @@
       "source": "photo",
       "pages": ["320.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6745,8 +6745,8 @@
       "source": "scan",
       "pages": ["p312.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6766,8 +6766,8 @@
       "source": "sdahimages",
       "pages": ["322.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6787,8 +6787,8 @@
       "source": "scan",
       "pages": ["p314.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6808,8 +6808,8 @@
       "source": "scan",
       "pages": ["p314.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6829,8 +6829,8 @@
       "source": "scan",
       "pages": ["p315.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6850,8 +6850,8 @@
       "source": "scan",
       "pages": ["p316.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -6871,8 +6871,8 @@
       "source": "scan",
       "pages": ["p317.jpg", "p318.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6892,8 +6892,8 @@
       "source": "scan",
       "pages": ["p318.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6913,8 +6913,8 @@
       "source": "scan",
       "pages": ["p319.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6934,8 +6934,8 @@
       "source": "scan",
       "pages": ["p320.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6955,8 +6955,8 @@
       "source": "scan",
       "pages": ["p321.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6976,8 +6976,8 @@
       "source": "scan",
       "pages": ["p322.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -6997,8 +6997,8 @@
       "source": "scan",
       "pages": ["p323.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7018,8 +7018,8 @@
       "source": "scan",
       "pages": ["p324.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7039,8 +7039,8 @@
       "source": "scan",
       "pages": ["p325.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7060,8 +7060,8 @@
       "source": "scan",
       "pages": ["p326.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 8,
@@ -7081,8 +7081,8 @@
       "source": "scan",
       "pages": ["p327.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7102,8 +7102,8 @@
       "source": "sdahimages",
       "pages": ["338.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7123,8 +7123,8 @@
       "source": "scan",
       "pages": ["p329.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7144,8 +7144,8 @@
       "source": "scan",
       "pages": ["p330.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7165,8 +7165,8 @@
       "source": "photo",
       "pages": ["341-p2.jpg", "341.jpg", "342.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7186,8 +7186,8 @@
       "source": "photo",
       "pages": ["341-p2.jpg", "342.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7207,8 +7207,8 @@
       "source": "scan",
       "pages": ["p333.jpg", "p334.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7228,8 +7228,8 @@
       "source": "scan",
       "pages": ["p334.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7249,8 +7249,8 @@
       "source": "sdahimages",
       "pages": ["345.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7270,8 +7270,8 @@
       "source": "sdahimages",
       "pages": ["346.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7291,8 +7291,8 @@
       "source": "sdahimages",
       "pages": ["347.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7312,8 +7312,8 @@
       "source": "scan",
       "pages": ["p338.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7333,8 +7333,8 @@
       "source": "sdahimages",
       "pages": ["349.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7354,8 +7354,8 @@
       "source": "sdahimages",
       "pages": ["350.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7375,8 +7375,8 @@
       "source": "sdahimages",
       "pages": ["351.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7396,8 +7396,8 @@
       "source": "sdahimages",
       "pages": ["352.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7417,8 +7417,8 @@
       "source": "sdahimages",
       "pages": ["353.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7438,8 +7438,8 @@
       "source": "sdahimages",
       "pages": ["354.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7459,8 +7459,8 @@
       "source": "photo",
       "pages": ["355.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7480,8 +7480,8 @@
       "source": "photo",
       "pages": ["356.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7501,8 +7501,8 @@
       "source": "sdahimages",
       "pages": ["357.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7522,8 +7522,8 @@
       "source": "scan",
       "pages": ["p348.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7543,8 +7543,8 @@
       "source": "scan",
       "pages": ["p349.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7564,8 +7564,8 @@
       "source": "sdahimages",
       "pages": ["360.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7585,8 +7585,8 @@
       "source": "scan",
       "pages": ["p351.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7606,8 +7606,8 @@
       "source": "photo",
       "pages": ["362.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -7627,8 +7627,8 @@
       "source": "sdahimages",
       "pages": ["363.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7648,8 +7648,8 @@
       "source": "sdahimages",
       "pages": ["364.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7669,8 +7669,8 @@
       "source": "scan",
       "pages": ["p355.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7690,8 +7690,8 @@
       "source": "scan",
       "pages": ["p356.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7711,8 +7711,8 @@
       "source": "scan",
       "pages": ["p357.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7732,8 +7732,8 @@
       "source": "scan",
       "pages": ["p358.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7753,8 +7753,8 @@
       "source": "scan",
       "pages": ["p359.jpg", "p360.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7774,8 +7774,8 @@
       "source": "scan",
       "pages": ["p360.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7795,8 +7795,8 @@
       "source": "scan",
       "pages": ["p361.jpg", "p362.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7816,8 +7816,8 @@
       "source": "scan",
       "pages": ["p362.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7837,8 +7837,8 @@
       "source": "scan",
       "pages": ["p363.jpg", "p364.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 3,
@@ -7858,8 +7858,8 @@
       "source": "scan",
       "pages": ["p364.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7879,8 +7879,8 @@
       "source": "photo",
       "pages": ["375.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -7900,8 +7900,8 @@
       "source": "scan",
       "pages": ["p366.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7921,8 +7921,8 @@
       "source": "scan",
       "pages": ["p367.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7942,8 +7942,8 @@
       "source": "scan",
       "pages": ["p368.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -7963,8 +7963,8 @@
       "source": "sdahimages",
       "pages": ["379.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -7984,8 +7984,8 @@
       "source": "sdahimages",
       "pages": ["380.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8005,8 +8005,8 @@
       "source": "scan",
       "pages": ["p370.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8026,8 +8026,8 @@
       "source": "scan",
       "pages": ["p371.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8047,8 +8047,8 @@
       "source": "scan",
       "pages": ["p372.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8068,8 +8068,8 @@
       "source": "scan",
       "pages": ["p373.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8089,8 +8089,8 @@
       "source": "sdahimages",
       "pages": ["385.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8110,8 +8110,8 @@
       "source": "sdahimages",
       "pages": ["386.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8131,8 +8131,8 @@
       "source": "sdahimages",
       "pages": ["387.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8152,8 +8152,8 @@
       "source": "scan",
       "pages": ["p377.jpg", "p378.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8173,8 +8173,8 @@
       "source": "scan",
       "pages": ["p378.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8194,8 +8194,8 @@
       "source": "sdahimages",
       "pages": ["390.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8215,8 +8215,8 @@
       "source": "sdahimages",
       "pages": ["391.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8236,8 +8236,8 @@
       "source": "sdahimages",
       "pages": ["392.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8257,8 +8257,8 @@
       "source": "scan",
       "pages": ["p381.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8278,8 +8278,8 @@
       "source": "scan",
       "pages": ["p382.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8299,8 +8299,8 @@
       "source": "sdahimages",
       "pages": ["395.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8320,8 +8320,8 @@
       "source": "sdahimages",
       "pages": ["396.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8341,8 +8341,8 @@
       "source": "sdahimages",
       "pages": ["397.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -8363,8 +8363,8 @@
       "source": "sdahimages",
       "pages": ["398.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8384,8 +8384,8 @@
       "source": "sdahimages",
       "pages": ["399.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8405,8 +8405,8 @@
       "source": "sdahimages",
       "pages": ["400.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8426,8 +8426,8 @@
       "source": "photo",
       "pages": ["401.jpg", "402.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8447,8 +8447,8 @@
       "source": "photo",
       "pages": ["401.jpg", "402.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8468,8 +8468,8 @@
       "source": "sdahimages",
       "pages": ["403.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8489,8 +8489,8 @@
       "source": "sdahimages",
       "pages": ["404.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8510,8 +8510,8 @@
       "source": "sdahimages",
       "pages": ["405.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8531,8 +8531,8 @@
       "source": "sdahimages",
       "pages": ["406.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8552,8 +8552,8 @@
       "source": "sdahimages",
       "pages": ["407.png", "Sent_Forth_by_God's_Blessing2.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8573,8 +8573,8 @@
       "source": "scan",
       "pages": ["p395.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -8594,8 +8594,8 @@
       "source": "sdahimages",
       "pages": ["409.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8615,8 +8615,8 @@
       "source": "sdahimages",
       "pages": ["410.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8636,8 +8636,8 @@
       "source": "sdahimages",
       "pages": ["411.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8657,8 +8657,8 @@
       "source": "scan",
       "pages": ["p398.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8678,8 +8678,8 @@
       "source": "sdahimages",
       "pages": ["413.png", "God_Has_Spoken_by_His_Prophets2.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8699,8 +8699,8 @@
       "source": "sdahimages",
       "pages": ["414.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8720,8 +8720,8 @@
       "source": "sdahimages",
       "pages": ["415.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8741,8 +8741,8 @@
       "source": "scan",
       "pages": ["p402.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8762,8 +8762,8 @@
       "source": "photo",
       "pages": ["417.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -8783,8 +8783,8 @@
       "source": "scan",
       "pages": ["p404.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8804,8 +8804,8 @@
       "source": "photo",
       "pages": ["419.jpg", "420.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -8825,8 +8825,8 @@
       "source": "photo",
       "pages": ["419.jpg", "420.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 3,
@@ -8846,8 +8846,8 @@
       "source": "scan",
       "pages": ["p406.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8867,8 +8867,8 @@
       "source": "scan",
       "pages": ["p407.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 3,
@@ -8888,8 +8888,8 @@
       "source": "scan",
       "pages": ["p408.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8909,8 +8909,8 @@
       "source": "scan",
       "pages": ["p409.jpg", "p410.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -8930,8 +8930,8 @@
       "source": "scan",
       "pages": ["p411.jpg", "p412.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8951,8 +8951,8 @@
       "source": "scan",
       "pages": ["p413.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8972,8 +8972,8 @@
       "source": "sdahimages",
       "pages": ["427.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -8993,8 +8993,8 @@
       "source": "photo",
       "pages": ["428-a.jpg", "428-b.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9014,8 +9014,8 @@
       "source": "scan",
       "pages": ["p416.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9035,8 +9035,8 @@
       "source": "scan",
       "pages": ["p417.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9056,8 +9056,8 @@
       "source": "scan",
       "pages": ["p418.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9077,8 +9077,8 @@
       "source": "scan",
       "pages": ["p419.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9098,8 +9098,8 @@
       "source": "scan",
       "pages": ["p420.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9119,8 +9119,8 @@
       "source": "scan",
       "pages": ["p421.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9140,8 +9140,8 @@
       "source": "sdahimages",
       "pages": ["435.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9161,8 +9161,8 @@
       "source": "sdahimages",
       "pages": ["436.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -9183,8 +9183,8 @@
       "source": "scan",
       "pages": ["p424.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -9204,8 +9204,8 @@
       "source": "photo",
       "pages": ["438.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9225,8 +9225,8 @@
       "source": "scan",
       "pages": ["p426.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9246,8 +9246,8 @@
       "source": "scan",
       "pages": ["p427.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 11,
@@ -9267,8 +9267,8 @@
       "source": "scan",
       "pages": ["p428.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9288,8 +9288,8 @@
       "source": "scan",
       "pages": ["p429.jpg", "p430.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9309,8 +9309,8 @@
       "source": "scan",
       "pages": ["p430.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 4,
@@ -9330,8 +9330,8 @@
       "source": "scan",
       "pages": ["p431.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9351,8 +9351,8 @@
       "source": "scan",
       "pages": ["p432.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9372,8 +9372,8 @@
       "source": "scan",
       "pages": ["p433.jpg", "p434.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9393,8 +9393,8 @@
       "source": "scan",
       "pages": ["p435.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9414,8 +9414,8 @@
       "source": "sdahimages",
       "pages": ["448.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9435,8 +9435,8 @@
       "source": "sdahimages",
       "pages": ["449.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9456,8 +9456,8 @@
       "source": "sdahimages",
       "pages": ["450.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9477,8 +9477,8 @@
       "source": "sdahimages",
       "pages": ["451.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9498,8 +9498,8 @@
       "source": "scan",
       "pages": ["p440.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9519,8 +9519,8 @@
       "source": "sdahimages",
       "pages": ["453.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9540,8 +9540,8 @@
       "source": "sdahimages",
       "pages": ["454.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9561,8 +9561,8 @@
       "source": "scan",
       "pages": ["p443.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9582,8 +9582,8 @@
       "source": "scan",
       "pages": ["p444.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9603,8 +9603,8 @@
       "source": "scan",
       "pages": ["p445.jpg", "p446.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9624,8 +9624,8 @@
       "source": "scan",
       "pages": ["p447.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9645,8 +9645,8 @@
       "source": "photo",
       "pages": ["459.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -9666,8 +9666,8 @@
       "source": "sdahimages",
       "pages": ["460.png", "As_Water_to_the_Thirsty2.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9687,8 +9687,8 @@
       "source": "photo",
       "pages": ["461.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -9708,8 +9708,8 @@
       "source": "scan",
       "pages": ["p451.jpg", "p452.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9729,8 +9729,8 @@
       "source": "scan",
       "pages": ["p452.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9750,8 +9750,8 @@
       "source": "photo",
       "pages": ["464.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -9771,8 +9771,8 @@
       "source": "photo",
       "pages": ["465.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9792,8 +9792,8 @@
       "source": "scan",
       "pages": ["p455.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9813,8 +9813,8 @@
       "source": "photo",
       "pages": ["467.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -9834,8 +9834,8 @@
       "source": "scan",
       "pages": ["p457.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9855,8 +9855,8 @@
       "source": "scan",
       "pages": ["p458.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9876,8 +9876,8 @@
       "source": "scan",
       "pages": ["p459.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9897,8 +9897,8 @@
       "source": "photo",
       "pages": ["471.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 7,
@@ -9918,8 +9918,8 @@
       "source": "scan",
       "pages": ["p461.jpg", "p462.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9939,8 +9939,8 @@
       "source": "scan",
       "pages": ["p462.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -9960,8 +9960,8 @@
       "source": "scan",
       "pages": ["p463.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -9981,8 +9981,8 @@
       "source": "scan",
       "pages": ["p464.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10002,8 +10002,8 @@
       "source": "sdahimages",
       "pages": ["476.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10023,8 +10023,8 @@
       "source": "scan",
       "pages": ["p466.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10044,8 +10044,8 @@
       "source": "scan",
       "pages": ["p467.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10065,8 +10065,8 @@
       "source": "scan",
       "pages": ["p468.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10086,8 +10086,8 @@
       "source": "scan",
       "pages": ["p469.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10107,8 +10107,8 @@
       "source": "scan",
       "pages": ["p469.jpg", "p470.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10128,8 +10128,8 @@
       "source": "scan",
       "pages": ["p470.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10149,8 +10149,8 @@
       "source": "scan",
       "pages": ["p471.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10170,8 +10170,8 @@
       "source": "scan",
       "pages": ["p472.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10191,8 +10191,8 @@
       "source": "scan",
       "pages": ["p473.jpg", "p474.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10212,8 +10212,8 @@
       "source": "scan",
       "pages": ["p474.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10233,8 +10233,8 @@
       "source": "scan",
       "pages": ["p475.jpg", "p476.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10254,8 +10254,8 @@
       "source": "scan",
       "pages": ["p476.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10275,8 +10275,8 @@
       "source": "scan",
       "pages": ["p477.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10296,8 +10296,8 @@
       "source": "scan",
       "pages": ["p478.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10317,8 +10317,8 @@
       "source": "scan",
       "pages": ["p479.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10338,8 +10338,8 @@
       "source": "scan",
       "pages": ["p480.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10359,8 +10359,8 @@
       "source": "photo",
       "pages": ["493.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -10380,8 +10380,8 @@
       "source": "scan",
       "pages": ["p482.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10401,8 +10401,8 @@
       "source": "scan",
       "pages": ["p483.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10422,8 +10422,8 @@
       "source": "sdahimages",
       "pages": ["496.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10443,8 +10443,8 @@
       "source": "sdahimages",
       "pages": ["497.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -10465,8 +10465,8 @@
       "source": "sdahimages",
       "pages": ["498.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10486,8 +10486,8 @@
       "source": "scan",
       "pages": ["p487.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10507,8 +10507,8 @@
       "source": "scan",
       "pages": ["p488.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10528,8 +10528,8 @@
       "source": "scan",
       "pages": ["p489.jpg", "p490.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10549,8 +10549,8 @@
       "source": "scan",
       "pages": ["p490.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10570,8 +10570,8 @@
       "source": "sdahimages",
       "pages": ["503.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10591,8 +10591,8 @@
       "source": "sdahimages",
       "pages": ["504.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10612,8 +10612,8 @@
       "source": "photo",
       "pages": ["505.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10633,8 +10633,8 @@
       "source": "photo",
       "pages": ["506.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10654,8 +10654,8 @@
       "source": "scan",
       "pages": ["p495.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10675,8 +10675,8 @@
       "source": "scan",
       "pages": ["p496.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10696,8 +10696,8 @@
       "source": "photo",
       "pages": ["509.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 5,
@@ -10717,8 +10717,8 @@
       "source": "sdahimages",
       "pages": ["510.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10738,8 +10738,8 @@
       "source": "scan",
       "pages": ["p499.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10759,8 +10759,8 @@
       "source": "scan",
       "pages": ["p500.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10780,8 +10780,8 @@
       "source": "scan",
       "pages": ["p501.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 3,
@@ -10801,8 +10801,8 @@
       "source": "scan",
       "pages": ["p502.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10822,8 +10822,8 @@
       "source": "photo",
       "pages": ["515-1.jpg", "515-2.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10843,8 +10843,8 @@
       "source": "scan",
       "pages": ["p505.jpg", "p506.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10864,8 +10864,8 @@
       "source": "scan",
       "pages": ["p506.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10885,8 +10885,8 @@
       "source": "scan",
       "pages": ["p507.jpg", "p508.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10906,8 +10906,8 @@
       "source": "scan",
       "pages": ["p508.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10927,8 +10927,8 @@
       "source": "scan",
       "pages": ["p509.jpg", "p510.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10948,8 +10948,8 @@
       "source": "scan",
       "pages": ["p510.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10969,8 +10969,8 @@
       "source": "scan",
       "pages": ["p511.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -10990,8 +10990,8 @@
       "source": "scan",
       "pages": ["p512.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11011,8 +11011,8 @@
       "source": "scan",
       "pages": ["p513.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11032,8 +11032,8 @@
       "source": "scan",
       "pages": ["p514.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11053,8 +11053,8 @@
       "source": "sdahimages",
       "pages": ["526.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11074,8 +11074,8 @@
       "source": "photo",
       "pages": ["527.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11095,8 +11095,8 @@
       "source": "scan",
       "pages": ["p517.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11116,8 +11116,8 @@
       "source": "scan",
       "pages": ["p518.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11137,8 +11137,8 @@
       "source": "scan",
       "pages": ["p519.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -11158,8 +11158,8 @@
       "source": "scan",
       "pages": ["p520.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11179,8 +11179,8 @@
       "source": "sdahimages",
       "pages": ["532.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -11201,8 +11201,8 @@
       "source": "sdahimages",
       "pages": ["533.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11222,8 +11222,8 @@
       "source": "scan",
       "pages": ["p523.jpg", "p524.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11243,8 +11243,8 @@
       "source": "scan",
       "pages": ["p524.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11264,8 +11264,8 @@
       "source": "sdahimages",
       "pages": ["536.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11285,8 +11285,8 @@
       "source": "scan",
       "pages": ["p526.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11306,8 +11306,8 @@
       "source": "scan",
       "pages": ["p527.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11327,8 +11327,8 @@
       "source": "scan",
       "pages": ["p528.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11348,8 +11348,8 @@
       "source": "photo",
       "pages": ["540.jpg", "541.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11369,8 +11369,8 @@
       "source": "photo",
       "pages": ["540.jpg", "541.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11390,8 +11390,8 @@
       "source": "sdahimages",
       "pages": ["542.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11411,8 +11411,8 @@
       "source": "sdahimages",
       "pages": ["543.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11432,8 +11432,8 @@
       "source": "sdahimages",
       "pages": ["544.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11453,8 +11453,8 @@
       "source": "scan",
       "pages": ["p532.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11474,8 +11474,8 @@
       "source": "sdahimages",
       "pages": ["546.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11495,8 +11495,8 @@
       "source": "photo",
       "pages": ["547.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -11516,8 +11516,8 @@
       "source": "sdahimages",
       "pages": ["548.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -11538,8 +11538,8 @@
       "source": "sdahimages",
       "pages": ["549.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11559,8 +11559,8 @@
       "source": "sdahimages",
       "pages": ["550.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11580,8 +11580,8 @@
       "source": "scan",
       "pages": ["p537.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11601,8 +11601,8 @@
       "source": "scan",
       "pages": ["p537.jpg", "p538.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11622,8 +11622,8 @@
       "source": "scan",
       "pages": ["p538.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11643,8 +11643,8 @@
       "source": "scan",
       "pages": ["p539.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -11664,8 +11664,8 @@
       "source": "scan",
       "pages": ["p540.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11685,8 +11685,8 @@
       "source": "sdahimages",
       "pages": ["556.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11706,8 +11706,8 @@
       "source": "scan",
       "pages": ["p542.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11727,8 +11727,8 @@
       "source": "sdahimages",
       "pages": ["558.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11748,8 +11748,8 @@
       "source": "scan",
       "pages": ["p544.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11769,8 +11769,8 @@
       "source": "sdahimages",
       "pages": ["560.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11790,8 +11790,8 @@
       "source": "sdahimages",
       "pages": ["561.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11811,8 +11811,8 @@
       "source": "sdahimages",
       "pages": ["562.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -11833,8 +11833,8 @@
       "source": "sdahimages",
       "pages": ["563.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11854,8 +11854,8 @@
       "source": "sdahimages",
       "pages": ["564.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11875,8 +11875,8 @@
       "source": "scan",
       "pages": ["p551.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11896,8 +11896,8 @@
       "source": "sdahimages",
       "pages": ["566.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11917,8 +11917,8 @@
       "source": "scan",
       "pages": ["p553.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11938,8 +11938,8 @@
       "source": "scan",
       "pages": ["p554.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11959,8 +11959,8 @@
       "source": "scan",
       "pages": ["p555.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -11980,8 +11980,8 @@
       "source": "scan",
       "pages": ["p556.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12001,8 +12001,8 @@
       "source": "sdahimages",
       "pages": ["571.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12022,8 +12022,8 @@
       "source": "scan",
       "pages": ["p558.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12043,8 +12043,8 @@
       "source": "scan",
       "pages": ["p559.jpg", "p560.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12064,8 +12064,8 @@
       "source": "scan",
       "pages": ["p560.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12085,8 +12085,8 @@
       "source": "photo",
       "pages": ["575.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -12106,8 +12106,8 @@
       "source": "scan",
       "pages": ["p562.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12127,8 +12127,8 @@
       "source": "scan",
       "pages": ["p563.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12148,8 +12148,8 @@
       "source": "sdahimages",
       "pages": ["578.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12169,8 +12169,8 @@
       "source": "scan",
       "pages": ["p565.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12190,8 +12190,8 @@
       "source": "photo",
       "pages": ["580.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 6,
@@ -12211,8 +12211,8 @@
       "source": "sdahimages",
       "pages": ["581.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -12233,8 +12233,8 @@
       "source": "scan",
       "pages": ["p568.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12254,8 +12254,8 @@
       "source": "sdahimages",
       "pages": ["583.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -12276,8 +12276,8 @@
       "source": "sdahimages",
       "pages": ["584.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -12298,8 +12298,8 @@
       "source": "photo",
       "pages": ["585.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -12319,8 +12319,8 @@
       "source": "sdahimages",
       "pages": ["586.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12340,8 +12340,8 @@
       "source": "sdahimages",
       "pages": ["587.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12361,8 +12361,8 @@
       "source": "photo",
       "pages": ["588.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -12382,8 +12382,8 @@
       "source": "photo",
       "pages": ["589.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -12403,8 +12403,8 @@
       "source": "scan",
       "pages": ["p575.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12424,8 +12424,8 @@
       "source": "scan",
       "pages": ["p576.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12445,8 +12445,8 @@
       "source": "scan",
       "pages": ["p577.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12466,8 +12466,8 @@
       "source": "sdahimages",
       "pages": ["593.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12487,8 +12487,8 @@
       "source": "scan",
       "pages": ["p579.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12508,8 +12508,8 @@
       "source": "scan",
       "pages": ["p580.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12529,8 +12529,8 @@
       "source": "sdahimages",
       "pages": ["596.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12550,8 +12550,8 @@
       "source": "sdahimages",
       "pages": ["597.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12571,8 +12571,8 @@
       "source": "scan",
       "pages": ["p583.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12592,8 +12592,8 @@
       "source": "scan",
       "pages": ["p584.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12613,8 +12613,8 @@
       "source": "scan",
       "pages": ["p585.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -12634,8 +12634,8 @@
       "source": "scan",
       "pages": ["p586.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -12655,8 +12655,8 @@
       "source": "scan",
       "pages": ["p587.jpg", "p588.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12676,8 +12676,8 @@
       "source": "scan",
       "pages": ["p588.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12697,8 +12697,8 @@
       "source": "scan",
       "pages": ["p589.jpg", "p590.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12718,8 +12718,8 @@
       "source": "scan",
       "pages": ["p590.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12739,8 +12739,8 @@
       "source": "photo",
       "pages": ["606.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -12760,8 +12760,8 @@
       "source": "scan",
       "pages": ["p592.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12781,8 +12781,8 @@
       "source": "scan",
       "pages": ["p593.jpg", "p594.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12802,8 +12802,8 @@
       "source": "scan",
       "pages": ["p594.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12823,8 +12823,8 @@
       "source": "scan",
       "pages": ["p595.jpg", "p596.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12844,8 +12844,8 @@
       "source": "scan",
       "pages": ["p596.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12865,8 +12865,8 @@
       "source": "scan",
       "pages": ["p597.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12886,8 +12886,8 @@
       "source": "scan",
       "pages": ["p598.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12907,8 +12907,8 @@
       "source": "sdahimages",
       "pages": ["614.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12928,8 +12928,8 @@
       "source": "sdahimages",
       "pages": ["615.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12949,8 +12949,8 @@
       "source": "sdahimages",
       "pages": ["616.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12970,8 +12970,8 @@
       "source": "scan",
       "pages": ["p602.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -12991,8 +12991,8 @@
       "source": "scan",
       "pages": ["p603.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13012,8 +13012,8 @@
       "source": "scan",
       "pages": ["p604.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13033,8 +13033,8 @@
       "source": "photo",
       "pages": ["620.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13054,8 +13054,8 @@
       "source": "scan",
       "pages": ["p606.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13075,8 +13075,8 @@
       "source": "sdahimages",
       "pages": ["622.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13096,8 +13096,8 @@
       "source": "scan",
       "pages": ["p608.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13117,8 +13117,8 @@
       "source": "sdahimages",
       "pages": ["624.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13138,8 +13138,8 @@
       "source": "scan",
       "pages": ["p610.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13159,8 +13159,8 @@
       "source": "sdahimages",
       "pages": ["626.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -13181,8 +13181,8 @@
       "source": "sdahimages",
       "pages": ["627.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13202,8 +13202,8 @@
       "source": "photo",
       "pages": ["628-p2.jpg", "628.jpg", "629.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13223,8 +13223,8 @@
       "source": "photo",
       "pages": ["628-p2.jpg", "629.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13244,8 +13244,8 @@
       "source": "scan",
       "pages": ["p615.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13265,8 +13265,8 @@
       "source": "sdahimages",
       "pages": ["631.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13286,8 +13286,8 @@
       "source": "sdahimages",
       "pages": ["632.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -13308,8 +13308,8 @@
       "source": "scan",
       "pages": ["p619.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13329,8 +13329,8 @@
       "source": "sdahimages",
       "pages": ["634.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -13351,8 +13351,8 @@
       "source": "sdahimages",
       "pages": ["635.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13372,8 +13372,8 @@
       "source": "photo",
       "pages": ["636.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13393,8 +13393,8 @@
       "source": "sdahimages",
       "pages": ["637.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13414,8 +13414,8 @@
       "source": "photo",
       "pages": ["638.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -13435,8 +13435,8 @@
       "source": "photo",
       "pages": ["639.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -13456,8 +13456,8 @@
       "source": "sdahimages",
       "pages": ["640.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13477,8 +13477,8 @@
       "source": "sdahimages",
       "pages": ["641.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -13499,8 +13499,8 @@
       "source": "sdahimages",
       "pages": ["642.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13520,8 +13520,8 @@
       "source": "photo",
       "pages": ["643.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -13541,8 +13541,8 @@
       "source": "scan",
       "pages": ["p630.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13562,8 +13562,8 @@
       "source": "scan",
       "pages": ["p631.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13583,8 +13583,8 @@
       "source": "scan",
       "pages": ["p632.jpg"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -13604,8 +13604,8 @@
       "source": "scan",
       "pages": ["p633.jpg", "p634.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13625,8 +13625,8 @@
       "source": "sdahimages",
       "pages": ["648.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13646,8 +13646,8 @@
       "source": "sdahimages",
       "pages": ["649.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13667,8 +13667,8 @@
       "source": "photo",
       "pages": ["650.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 2,
@@ -13688,8 +13688,8 @@
       "source": "photo",
       "pages": ["651.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13709,8 +13709,8 @@
       "source": "scan",
       "pages": ["p639.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13730,8 +13730,8 @@
       "source": "scan",
       "pages": ["p640.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13751,8 +13751,8 @@
       "source": "photo",
       "pages": ["654-p2.jpg", "654.jpg", "655.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -13772,8 +13772,8 @@
       "source": "photo",
       "pages": ["654-p2.jpg", "655.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13793,8 +13793,8 @@
       "source": "scan",
       "pages": ["p643.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13814,8 +13814,8 @@
       "source": "sdahimages",
       "pages": ["657.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -13836,8 +13836,8 @@
       "source": "sdahimages",
       "pages": ["658.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13857,8 +13857,8 @@
       "source": "scan",
       "pages": ["p646.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13878,8 +13878,8 @@
       "source": "scan",
       "pages": ["p646.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13899,8 +13899,8 @@
       "source": "scan",
       "pages": ["p647.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13920,8 +13920,8 @@
       "source": "scan",
       "pages": ["p648.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13941,8 +13941,8 @@
       "source": "photo",
       "pages": ["663.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 5,
@@ -13962,8 +13962,8 @@
       "source": "scan",
       "pages": ["p650.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -13983,8 +13983,8 @@
       "source": "scan",
       "pages": ["p650.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14004,8 +14004,8 @@
       "source": "scan",
       "pages": ["p651.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14025,8 +14025,8 @@
       "source": "scan",
       "pages": ["p652.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14046,8 +14046,8 @@
       "source": "scan",
       "pages": ["p652.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14067,8 +14067,8 @@
       "source": "sdahimages",
       "pages": ["669.png", "The_Lord_Bless_You_and_Keep_You2.png"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14088,8 +14088,8 @@
       "source": "sdahimages",
       "pages": ["670.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14109,8 +14109,8 @@
       "source": "sdahimages",
       "pages": ["671.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14130,8 +14130,8 @@
       "source": "sdahimages",
       "pages": ["672.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14151,8 +14151,8 @@
       "source": "sdahimages",
       "pages": ["673.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14172,8 +14172,8 @@
       "source": "sdahimages",
       "pages": ["674.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14193,8 +14193,8 @@
       "source": "sdahimages",
       "pages": ["675.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14214,8 +14214,8 @@
       "source": "sdahimages",
       "pages": ["676.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14235,8 +14235,8 @@
       "source": "photo",
       "pages": ["677.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14256,8 +14256,8 @@
       "source": "sdahimages",
       "pages": ["678.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14277,8 +14277,8 @@
       "source": "sdahimages",
       "pages": ["679.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14298,8 +14298,8 @@
       "source": "scan",
       "pages": ["p663.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14319,8 +14319,8 @@
       "source": "scan",
       "pages": ["p663.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14340,8 +14340,8 @@
       "source": "sdahimages",
       "pages": ["682.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14361,8 +14361,8 @@
       "source": "scan",
       "pages": ["p665.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14382,8 +14382,8 @@
       "source": "scan",
       "pages": ["p665.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14403,8 +14403,8 @@
       "source": "sdahimages",
       "pages": ["685.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -14424,8 +14424,8 @@
       "source": "photo",
       "pages": ["687.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14445,8 +14445,8 @@
       "source": "photo",
       "pages": ["687.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14466,8 +14466,8 @@
       "source": "photo",
       "pages": ["687.jpg"],
       "readings": {
-        "blind": 0,
-        "proof": 2
+        "reader": 0,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14487,8 +14487,8 @@
       "source": "sdahimages",
       "pages": ["689.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14508,8 +14508,8 @@
       "source": "sdahimages",
       "pages": ["690.png"],
       "readings": {
-        "blind": 2,
-        "proof": 0
+        "reader": 2,
+        "ocr": 0
       },
       "rulings": {
         "all": 1,
@@ -14529,8 +14529,8 @@
       "source": "sdahimages",
       "pages": ["691.png"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14550,8 +14550,8 @@
       "source": "scan",
       "pages": ["p671.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14571,8 +14571,8 @@
       "source": "scan",
       "pages": ["p671.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14592,8 +14592,8 @@
       "source": "scan",
       "pages": ["p672.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,
@@ -14613,8 +14613,8 @@
       "source": "scan",
       "pages": ["p672.jpg"],
       "readings": {
-        "blind": 1,
-        "proof": 0
+        "reader": 1,
+        "ocr": 0
       },
       "rulings": {
         "all": 0,

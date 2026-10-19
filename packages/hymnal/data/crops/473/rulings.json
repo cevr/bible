@@ -13,9 +13,15 @@
       "printed": "I'll",
       "sung": "I'll",
       "kind": "words",
-      "image": "p462.jpg",
-      "crop": "p462-1533.jpg",
-      "box": [0, 1533, 1759, 468],
+      "crops": [
+        {
+          "image": "p462.jpg",
+          "crop": "p462-1533.jpg",
+          "box": [0, 1533, 1759, 468],
+          "sha": "c6bd5a647f5eada2",
+          "shows": "I'll"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 4 ('ston - y griefs Beth - el I'll raise;') prints 'I'll' plainly, apostrophe and double l, not 'I'."
     }

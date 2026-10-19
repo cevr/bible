@@ -13,9 +13,15 @@
       "printed": "",
       "sung": "",
       "kind": "words",
-      "image": "p501.jpg",
-      "crop": "p501-892.jpg",
-      "box": [0, 892, 1759, 391],
+      "crops": [
+        {
+          "image": "p501.jpg",
+          "crop": "p501-892.jpg",
+          "box": [0, 892, 1759, 391],
+          "sha": "40061327818a9655",
+          "shows": ""
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 3 prints 'Bright skies will soon be o'er me, Where dark - est clouds have been.' with nothing between 'Where' and 'darkest'."
     },
@@ -31,9 +37,15 @@
       "printed": "My",
       "sung": "My",
       "kind": "words",
-      "image": "p501.jpg",
-      "crop": "p501-1416.jpg",
-      "box": [0, 1416, 1759, 393],
+      "crops": [
+        {
+          "image": "p501.jpg",
+          "crop": "p501-1416.jpg",
+          "box": [0, 1416, 1759, 393],
+          "sha": "2556eebdd17ff44a",
+          "shows": "My"
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 3 prints 'My hope I can - not mea - sure, My path to life is free;' with 'My' before 'path'."
     },
@@ -49,9 +61,15 @@
       "printed": "Savior",
       "sung": "Savior",
       "kind": "words",
-      "image": "p501.jpg",
-      "crop": "p501-1978.jpg",
-      "box": [0, 1978, 1759, 651],
+      "crops": [
+        {
+          "image": "p501.jpg",
+          "crop": "p501-1978.jpg",
+          "box": [0, 1978, 1759, 651],
+          "sha": "853bd12a513ad538",
+          "shows": "Savior"
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 3 prints 'My Sav - ior has my trea - sure', which joins to 'Savior' (no u)."
     }

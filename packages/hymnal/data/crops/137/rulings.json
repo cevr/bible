@@ -13,9 +13,15 @@
       "printed": "O",
       "sung": "O",
       "kind": "words",
-      "image": "p134.jpg",
-      "crop": "p134-1547.jpg",
-      "box": [0, 1547, 1759, 312],
+      "crops": [
+        {
+          "image": "p134.jpg",
+          "crop": "p134-1547.jpg",
+          "box": [0, 1547, 1759, 312],
+          "sha": "dbdf4565466cb683",
+          "shows": "O"
+        }
+      ],
       "judge": "judge-074 (Opus, effort max)",
       "why": "The Refrain's one lyric row prints 'O star of won-der', a lone 'O' with no 'h'."
     },
@@ -31,9 +37,15 @@
       "printed": "O",
       "sung": "O",
       "kind": "words",
-      "image": "p134.jpg",
-      "crop": "p134-1547.jpg",
-      "box": [0, 1547, 1759, 312],
+      "crops": [
+        {
+          "image": "p134.jpg",
+          "crop": "p134-1547.jpg",
+          "box": [0, 1547, 1759, 312],
+          "sha": "dbdf4565466cb683",
+          "shows": "O"
+        }
+      ],
       "judge": "judge-074 (Opus, effort max)",
       "why": "The Refrain's one lyric row, sung after every stanza, prints 'O star of won-der', a lone 'O' with no 'h'."
     },
@@ -49,9 +61,15 @@
       "printed": "O",
       "sung": "O",
       "kind": "words",
-      "image": "p134.jpg",
-      "crop": "p134-1547.jpg",
-      "box": [0, 1547, 1759, 312],
+      "crops": [
+        {
+          "image": "p134.jpg",
+          "crop": "p134-1547.jpg",
+          "box": [0, 1547, 1759, 312],
+          "sha": "dbdf4565466cb683",
+          "shows": "O"
+        }
+      ],
       "judge": "judge-074 (Opus, effort max)",
       "why": "The listed p134-768 holds the stanzas' second system, not the refrain; the Refrain row on p134-1547 prints 'O star of won-der', a lone 'O'."
     },
@@ -67,9 +85,15 @@
       "printed": "O",
       "sung": "O",
       "kind": "words",
-      "image": "p134.jpg",
-      "crop": "p134-1547.jpg",
-      "box": [0, 1547, 1759, 312],
+      "crops": [
+        {
+          "image": "p134.jpg",
+          "crop": "p134-1547.jpg",
+          "box": [0, 1547, 1759, 312],
+          "sha": "dbdf4565466cb683",
+          "shows": "O"
+        }
+      ],
       "judge": "judge-074 (Opus, effort max)",
       "why": "The Refrain's one lyric row, sung after every stanza, prints 'O star of won-der', a lone 'O' with no 'h'."
     },
@@ -85,9 +109,15 @@
       "printed": "O",
       "sung": "O",
       "kind": "words",
-      "image": "p134.jpg",
-      "crop": "p134-1547.jpg",
-      "box": [0, 1547, 1759, 312],
+      "crops": [
+        {
+          "image": "p134.jpg",
+          "crop": "p134-1547.jpg",
+          "box": [0, 1547, 1759, 312],
+          "sha": "dbdf4565466cb683",
+          "shows": "O"
+        }
+      ],
       "judge": "judge-074 (Opus, effort max)",
       "why": "The listed p134-768 holds the stanzas' second system, not the refrain; the Refrain row on p134-1547 prints 'O star of won-der', a lone 'O'."
     }

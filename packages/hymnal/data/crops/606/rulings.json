@@ -13,9 +13,15 @@
       "printed": "Keeping",
       "sung": "Keeping",
       "kind": "words",
-      "image": "606.jpg",
-      "crop": "606-1369.jpg",
-      "box": [0, 1369, 2268, 1394],
+      "crops": [
+        {
+          "image": "606.jpg",
+          "crop": "606-1369.jpg",
+          "box": [0, 1369, 2268, 1394],
+          "sha": "7869ab05ae00421e",
+          "shows": "Keeping"
+        }
+      ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 4 of the lower system (stanza 4) prints 'shad - ow, Keep-ing watch a - bove His own.' with the final g."
     }

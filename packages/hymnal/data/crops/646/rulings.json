@@ -13,9 +13,15 @@
       "printed": "foreswear",
       "sung": "foreswear",
       "kind": "words",
-      "image": "p632.jpg",
-      "crop": "p632-1390.jpg",
-      "box": [0, 1390, 1759, 389],
+      "crops": [
+        {
+          "image": "p632.jpg",
+          "crop": "p632-1390.jpg",
+          "box": [0, 1390, 1759, 389],
+          "sha": "045a01707501e3c4",
+          "shows": "foreswear"
+        }
+      ],
       "judge": "judge-634 (Opus, effort max)",
       "why": "Row 2 prints 'Now fore-swear their en-mi-ty', the syllables joining to 'foreswear'."
     }

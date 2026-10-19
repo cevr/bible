@@ -13,9 +13,15 @@
       "printed": "us all to",
       "sung": "us all to",
       "kind": "words",
-      "image": "362.jpg",
-      "crop": "362-1944.jpg",
-      "box": [0, 1944, 2268, 738],
+      "crops": [
+        {
+          "image": "362.jpg",
+          "crop": "362-1944.jpg",
+          "box": [0, 1944, 2268, 738],
+          "sha": "75af4dccedda81a5",
+          "shows": "us all to"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 4 of the second system (362-1944, under 'Bear on their brows' and sloping up with the photo) prints 'As Thou hast prom-ised, draw us all to Thee.'"
     }

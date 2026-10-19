@@ -13,9 +13,15 @@
       "printed": "an",
       "sung": "an",
       "kind": "words",
-      "image": "061.png",
-      "crop": "061-114.jpg",
-      "box": [0, 114, 1275, 278],
+      "crops": [
+        {
+          "image": "061.png",
+          "crop": "061-114.jpg",
+          "box": [0, 114, 1275, 278],
+          "sha": "82c96643d4304cca",
+          "shows": "an"
+        }
+      ],
       "judge": "judge-006-2 (Opus, effort max)",
       "why": "Row 4. prints 'king-dom, in an age of change and doubt', so 'an' stands between 'in' and 'age'."
     }

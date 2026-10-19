@@ -13,9 +13,15 @@
       "printed": "Thy",
       "sung": "Thy",
       "kind": "words",
-      "image": "419.jpg",
-      "crop": "419-2095.jpg",
-      "box": [0, 2095, 2268, 818],
+      "crops": [
+        {
+          "image": "419.jpg",
+          "crop": "419-2095.jpg",
+          "box": [0, 2095, 2268, 818],
+          "sha": "558bab58c4624901",
+          "shows": "Thy"
+        }
+      ],
       "judge": "judge-284 (Opus, effort max)",
       "why": "Row 1 of the second system prints 'have an end, Thy joys when shall I see?' plainly."
     },
@@ -31,9 +37,15 @@
       "printed": "Thy",
       "sung": "Thy",
       "kind": "words",
-      "image": "419.jpg",
-      "crop": "419-1176.jpg",
-      "box": [0, 1176, 2268, 1114],
+      "crops": [
+        {
+          "image": "419.jpg",
+          "crop": "419-1176.jpg",
+          "box": [0, 1176, 2268, 1114],
+          "sha": "f221787e1a4d7d30",
+          "shows": "Thy"
+        }
+      ],
       "judge": "judge-284 (Opus, effort max)",
       "why": "Row 2. of the first system begins '2. Thy walls are all' plainly."
     },
@@ -49,9 +61,15 @@
       "printed": "blest",
       "sung": "blest",
       "kind": "words",
-      "image": "419.jpg",
-      "crop": "419-2095.jpg",
-      "box": [0, 2095, 2268, 818],
+      "crops": [
+        {
+          "image": "419.jpg",
+          "crop": "419-2095.jpg",
+          "box": [0, 2095, 2268, 818],
+          "sha": "558bab58c4624901",
+          "shows": "blest"
+        }
+      ],
       "judge": "judge-284 (Opus, effort max)",
       "why": "The named crop 419-1176.jpg holds only stanza 4's first line; row 4 of 419-2095.jpg prints 'To that blest par - a - dise.' plainly."
     }

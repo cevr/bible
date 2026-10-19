@@ -13,9 +13,15 @@
       "printed": "beheld",
       "sung": "beheld",
       "kind": "words",
-      "image": "p128.jpg",
-      "crop": "p128-896.jpg",
-      "box": [0, 896, 1759, 352],
+      "crops": [
+        {
+          "image": "p128.jpg",
+          "crop": "p128-896.jpg",
+          "box": [0, 896, 1759, 352],
+          "sha": "f4c78f0a2e983bc5",
+          "shows": "beheld"
+        }
+      ],
       "judge": "judge-095 (Opus, effort max)",
       "why": "Row 2 (stanza 2) prints 'With Ma - ry we be - held it,' with an e in 'held'."
     }

@@ -13,9 +13,15 @@
       "printed": "bright",
       "sung": "bright",
       "kind": "words",
-      "image": "p368.jpg",
-      "crop": "p368-266.jpg",
-      "box": [0, 266, 1759, 456],
+      "crops": [
+        {
+          "image": "p368.jpg",
+          "crop": "p368-266.jpg",
+          "box": [0, 266, 1759, 456],
+          "sha": "4b320af8b94d370d",
+          "shows": "bright"
+        }
+      ],
       "judge": "judge-284 (Opus, effort max)",
       "why": "Row 4. of the first system ends 'On a bright' plainly; the database's 'brigh' is cut short."
     }

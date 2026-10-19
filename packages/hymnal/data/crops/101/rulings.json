@@ -13,9 +13,15 @@
       "printed": "bosom",
       "sung": "bosom",
       "kind": "words",
-      "image": "p100.jpg",
-      "crop": "p100-1260.jpg",
-      "box": [0, 1260, 1759, 480],
+      "crops": [
+        {
+          "image": "p100.jpg",
+          "crop": "p100-1260.jpg",
+          "box": [0, 1260, 1759, 480],
+          "sha": "dfd64c088074d0e1",
+          "shows": "bosom"
+        }
+      ],
       "judge": "judge-095 (Opus, effort max)",
       "why": "Row 1. prints 'Safe - ly in His bos - om gath - er;' with one s."
     }

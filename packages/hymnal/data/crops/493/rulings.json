@@ -13,9 +13,15 @@
       "printed": "",
       "sung": "",
       "kind": "words",
-      "image": "493.jpg",
-      "crop": "493-0.jpg",
-      "box": [0, 0, 2268, 1922],
+      "crops": [
+        {
+          "image": "493.jpg",
+          "crop": "493-0.jpg",
+          "box": [0, 0, 2268, 1922],
+          "sha": "63d98f8dd1bac6d5",
+          "shows": ""
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 1 of the third system prints 'from My well that nev - er shall run dry', so nothing stands between 'that' and 'never'."
     },
@@ -31,9 +37,15 @@
       "printed": "shall",
       "sung": "shall",
       "kind": "words",
-      "image": "493.jpg",
-      "crop": "493-0.jpg",
-      "box": [0, 0, 2268, 1922],
+      "crops": [
+        {
+          "image": "493.jpg",
+          "crop": "493-0.jpg",
+          "box": [0, 0, 2268, 1922],
+          "sha": "63d98f8dd1bac6d5",
+          "shows": "shall"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 1 of the third system prints 'shall' between 'nev - er' and 'run dry'."
     }

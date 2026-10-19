@@ -13,9 +13,15 @@
       "printed": "Lose all their guilty stains",
       "sung": "Lose all their guilty stains",
       "kind": "words",
-      "image": "p326.jpg",
-      "crop": "p326-1349.jpg",
-      "box": [0, 1349, 1759, 495],
+      "crops": [
+        {
+          "image": "p326.jpg",
+          "crop": "p326-1349.jpg",
+          "box": [0, 1349, 1759, 495],
+          "sha": "1a95c0bd7071dc5c",
+          "shows": "Lose all their guilty stains"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 1 of p326-794 ends 'Lose all their guilt-y stains,' and row 1 of p326-1349 prints it twice more; this place is the second of those, the third in all."
     },
@@ -31,9 +37,15 @@
       "printed": "theif",
       "sung": "thief",
       "kind": "misprint",
-      "image": "p326.jpg",
-      "crop": "p326-239.jpg",
-      "box": [0, 239, 1759, 505],
+      "crops": [
+        {
+          "image": "p326.jpg",
+          "crop": "p326-239.jpg",
+          "box": [0, 239, 1759, 505],
+          "sha": "b779b237c2d8b6ff",
+          "shows": "theif"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 2. of p326-239 prints 'dy-ing theif re-joiced', the i and e swapped, plainly meaning 'thief'."
     },
@@ -49,9 +61,15 @@
       "printed": "Wash all my sins away",
       "sung": "Wash all my sins away",
       "kind": "words",
-      "image": "p326.jpg",
-      "crop": "p326-1349.jpg",
-      "box": [0, 1349, 1759, 495],
+      "crops": [
+        {
+          "image": "p326.jpg",
+          "crop": "p326-1349.jpg",
+          "box": [0, 1349, 1759, 495],
+          "sha": "1a95c0bd7071dc5c",
+          "shows": "Wash all my sins away"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 2 of p326-1349 prints 'Wash all my sins a-way' twice after row 2 of p326-794 ends with it; this place is the second on p326-1349."
     },
@@ -67,9 +85,15 @@
       "printed": "Are saved to sin no more",
       "sung": "Are saved to sin no more",
       "kind": "words",
-      "image": "p326.jpg",
-      "crop": "p326-1349.jpg",
-      "box": [0, 1349, 1759, 495],
+      "crops": [
+        {
+          "image": "p326.jpg",
+          "crop": "p326-1349.jpg",
+          "box": [0, 1349, 1759, 495],
+          "sha": "1a95c0bd7071dc5c",
+          "shows": "Are saved to sin no more"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 3 of p326-1349 prints 'Are saved, to sin no more' twice after row 3 of p326-794 ends with it; this place is the second on p326-1349."
     },
@@ -85,9 +109,15 @@
       "printed": "And shall be till I die",
       "sung": "And shall be till I die",
       "kind": "words",
-      "image": "p326.jpg",
-      "crop": "p326-1349.jpg",
-      "box": [0, 1349, 1759, 495],
+      "crops": [
+        {
+          "image": "p326.jpg",
+          "crop": "p326-1349.jpg",
+          "box": [0, 1349, 1759, 495],
+          "sha": "1a95c0bd7071dc5c",
+          "shows": "And shall be till I die"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 4 of p326-1349 prints 'And shall be till I die' twice after row 4 of p326-794 ends with it; this place is the second on p326-1349."
     },
@@ -103,9 +133,15 @@
       "printed": "A golden harp",
       "sung": "A golden harp",
       "kind": "words",
-      "image": "p326.jpg",
-      "crop": "p326-1349.jpg",
-      "box": [0, 1349, 1759, 495],
+      "crops": [
+        {
+          "image": "p326.jpg",
+          "crop": "p326-1349.jpg",
+          "box": [0, 1349, 1759, 495],
+          "sha": "1a95c0bd7071dc5c",
+          "shows": "A golden harp"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 5 of p326-1349 prints 'A gold-en harp for me!' twice after row 5 of p326-794 ends with it; this place is the second one's 'A gold-en harp'."
     },
@@ -121,9 +157,15 @@
       "printed": "For me",
       "sung": "For me",
       "kind": "words",
-      "image": "p326.jpg",
-      "crop": "p326-1749.jpg",
-      "box": [0, 1749, 1759, 880],
+      "crops": [
+        {
+          "image": "p326.jpg",
+          "crop": "p326-1749.jpg",
+          "box": [0, 1749, 1759, 880],
+          "sha": "1394c9dc5b0ace07",
+          "shows": "For me"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 5 of the last system (p326-1749) opens 'For me a blood-bought, free re-ward', right after row 5 of p326-1349 ends 'for me!'."
     },
@@ -139,9 +181,15 @@
       "printed": "Is ransomed from the grave",
       "sung": "Is ransomed from the grave",
       "kind": "words",
-      "image": "p326.jpg",
-      "crop": "p326-1349.jpg",
-      "box": [0, 1349, 1759, 495],
+      "crops": [
+        {
+          "image": "p326.jpg",
+          "crop": "p326-1349.jpg",
+          "box": [0, 1349, 1759, 495],
+          "sha": "1a95c0bd7071dc5c",
+          "shows": "Is ransomed from the grave"
+        }
+      ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 6 of p326-1349 prints 'Is ran-somed from the grave' twice after row 6 of p326-794 ends with it; this place is the second on p326-1349."
     }

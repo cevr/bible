@@ -13,9 +13,15 @@
       "printed": "Thy",
       "sung": "Thy",
       "kind": "words",
-      "image": "p051.jpg",
-      "crop": "p051-736.jpg",
-      "box": [0, 736, 1759, 391],
+      "crops": [
+        {
+          "image": "p051.jpg",
+          "crop": "p051-736.jpg",
+          "box": [0, 736, 1759, 391],
+          "sha": "2351ec169f54886e",
+          "shows": "Thy"
+        }
+      ],
       "judge": "judge-006-2 (Opus, effort max)",
       "why": "Row 2 of the second system (stanza 2, under 'Fa-ther, give the wea-ry' on the page) prints 'With Thy ten-derest bless-ing' plainly."
     },
@@ -31,9 +37,15 @@
       "printed": "Thine",
       "sung": "Thine",
       "kind": "words",
-      "image": "p051.jpg",
-      "crop": "p051-252.jpg",
-      "box": [0, 252, 1759, 350],
+      "crops": [
+        {
+          "image": "p051.jpg",
+          "crop": "p051-252.jpg",
+          "box": [0, 252, 1759, 350],
+          "sha": "56e9fee612b77a6a",
+          "shows": "Thine"
+        }
+      ],
       "judge": "judge-006 (Opus, effort max)",
       "why": "Row 3. of crop p051-252.jpg prints 'May Thine an - gels spread' plainly."
     }

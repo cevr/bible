@@ -13,9 +13,15 @@
       "printed": "up",
       "sung": "up",
       "kind": "words",
-      "image": "417.jpg",
-      "crop": "417-876.jpg",
-      "box": [0, 876, 2268, 526],
+      "crops": [
+        {
+          "image": "417.jpg",
+          "crop": "417-876.jpg",
+          "box": [0, 876, 2268, 526],
+          "sha": "442f8d5444182e7b",
+          "shows": "up"
+        }
+      ],
       "judge": "judge-284 (Opus, effort max)",
       "why": "Row 2 of the second system prints 'as - cend - ed up on high' with 'up' and 'on' as two separate words."
     }

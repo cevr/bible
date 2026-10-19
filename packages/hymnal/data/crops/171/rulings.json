@@ -13,9 +13,15 @@
       "printed": "victory",
       "sung": "victory",
       "kind": "words",
-      "image": "p167.jpg",
-      "crop": "p167-692.jpg",
-      "box": [0, 692, 1759, 720],
+      "crops": [
+        {
+          "image": "p167.jpg",
+          "crop": "p167-692.jpg",
+          "box": [0, 692, 1759, 720],
+          "sha": "dfdf510c62563c3b",
+          "shows": "victory"
+        }
+      ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Stanza 1's own line runs 'End - less is the' at the end of system 1 (crop p167-311) into 'vic - tory Thou o'er death hast won.' on the top row of crop p167-692; the listed crop p168-94 holds only the refrain's line."
     },
@@ -31,9 +37,15 @@
       "printed": "victory",
       "sung": "victory",
       "kind": "words",
-      "image": "p168.jpg",
-      "crop": "p168-94.jpg",
-      "box": [0, 94, 1759, 462],
+      "crops": [
+        {
+          "image": "p168.jpg",
+          "crop": "p168-94.jpg",
+          "box": [0, 94, 1759, 462],
+          "sha": "598d59d73702c6d2",
+          "shows": "victory"
+        }
+      ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop p168-94, the refrain's one row prints 'End - less is the vic - tory Thou o'er death hast won.'"
     },
@@ -49,9 +61,15 @@
       "printed": "victory",
       "sung": "victory",
       "kind": "words",
-      "image": "p168.jpg",
-      "crop": "p168-94.jpg",
-      "box": [0, 94, 1759, 462],
+      "crops": [
+        {
+          "image": "p168.jpg",
+          "crop": "p168-94.jpg",
+          "box": [0, 94, 1759, 462],
+          "sha": "598d59d73702c6d2",
+          "shows": "victory"
+        }
+      ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop p168-94, the refrain's one row (sung after every stanza) prints 'vic - tory'."
     },
@@ -67,9 +85,15 @@
       "printed": "nought",
       "sung": "nought",
       "kind": "words",
-      "image": "p167.jpg",
-      "crop": "p167-311.jpg",
-      "box": [0, 311, 1759, 398],
+      "crops": [
+        {
+          "image": "p167.jpg",
+          "crop": "p167-311.jpg",
+          "box": [0, 311, 1759, 398],
+          "sha": "ce35b97ffc8bce17",
+          "shows": "nought"
+        }
+      ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop p167-311, row 3. prints 'Life is nought with-' with an o."
     },
@@ -85,9 +109,15 @@
       "printed": "conquerors",
       "sung": "conquerors",
       "kind": "words",
-      "image": "p167.jpg",
-      "crop": "p167-692.jpg",
-      "box": [0, 692, 1759, 720],
+      "crops": [
+        {
+          "image": "p167.jpg",
+          "crop": "p167-692.jpg",
+          "box": [0, 692, 1759, 720],
+          "sha": "dfdf510c62563c3b",
+          "shows": "conquerors"
+        }
+      ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop p167-692, third (stanza 3) row prints 'Make us more than con-querors,'."
     },
@@ -103,9 +133,15 @@
       "printed": "To",
       "sung": "To",
       "kind": "words",
-      "image": "p167.jpg",
-      "crop": "p167-1952.jpg",
-      "box": [0, 1952, 1759, 381],
+      "crops": [
+        {
+          "image": "p167.jpg",
+          "crop": "p167-1952.jpg",
+          "box": [0, 1952, 1759, 381],
+          "sha": "c2f8899cfd9e93e7",
+          "shows": "To"
+        }
+      ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Stanza 3's row of system 3 (page p167) ends 'Bring us safe through Jor - dan' and its third row in crop p167-1952 goes on 'To Thy home a - bove.'; the listed crops p167-692 and p167-311 do not hold this line."
     },
@@ -121,9 +157,15 @@
       "printed": "home above",
       "sung": "home above",
       "kind": "words",
-      "image": "p167.jpg",
-      "crop": "p167-1952.jpg",
-      "box": [0, 1952, 1759, 381],
+      "crops": [
+        {
+          "image": "p167.jpg",
+          "crop": "p167-1952.jpg",
+          "box": [0, 1952, 1759, 381],
+          "sha": "c2f8899cfd9e93e7",
+          "shows": "home above"
+        }
+      ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop p167-1952, third (stanza 3) row prints 'To Thy home a - bove.' plainly."
     },
@@ -139,9 +181,15 @@
       "printed": "victory",
       "sung": "victory",
       "kind": "words",
-      "image": "p168.jpg",
-      "crop": "p168-94.jpg",
-      "box": [0, 94, 1759, 462],
+      "crops": [
+        {
+          "image": "p168.jpg",
+          "crop": "p168-94.jpg",
+          "box": [0, 94, 1759, 462],
+          "sha": "598d59d73702c6d2",
+          "shows": "victory"
+        }
+      ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop p168-94, the refrain's one row (sung after every stanza) prints 'vic - tory'."
     }

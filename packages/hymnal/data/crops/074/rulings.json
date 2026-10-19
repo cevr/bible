@@ -13,9 +13,15 @@
       "printed": "Those",
       "sung": "Those",
       "kind": "words",
-      "image": "p072.jpg",
-      "crop": "p072-1176.jpg",
-      "box": [0, 1176, 1759, 385],
+      "crops": [
+        {
+          "image": "p072.jpg",
+          "crop": "p072-1176.jpg",
+          "box": [0, 1176, 1759, 385],
+          "sha": "f6957d02dc483571",
+          "shows": "Those"
+        }
+      ],
       "judge": "judge-074 (Opus, effort max)",
       "why": "Row 3 (stanza 3) prints 'us to do— Those who trust Him whol - ly', plainly 'Those', not 'They'."
     }

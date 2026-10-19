@@ -13,9 +13,15 @@
       "printed": "we",
       "sung": "we",
       "kind": "words",
-      "image": "581.png",
-      "crop": "581-1213.jpg",
-      "box": [0, 1213, 1275, 248],
+      "crops": [
+        {
+          "image": "581.png",
+          "crop": "581-1213.jpg",
+          "box": [0, 1213, 1275, 248],
+          "sha": "e0d26b8adb0227f8",
+          "shows": "we"
+        }
+      ],
       "judge": "judge-554 (Opus, effort max)",
       "why": "The first row of the last system (stanza 1's ending) prints 'That the world we ban - ish Is our Chris - tian care.' plainly."
     }

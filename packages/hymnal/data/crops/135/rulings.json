@@ -13,9 +13,15 @@
       "printed": "Oh",
       "sung": "Oh",
       "kind": "words",
-      "image": "p132.jpg",
-      "crop": "p132-1817.jpg",
-      "box": [0, 1817, 1759, 812],
+      "crops": [
+        {
+          "image": "p132.jpg",
+          "crop": "p132-1817.jpg",
+          "box": [0, 1817, 1759, 812],
+          "sha": "b9caecf5f2059642",
+          "shows": "Oh"
+        }
+      ],
       "judge": "judge-095 (Opus, effort max)",
       "why": "Row 4 of the last system prints 'Oh, come to us, a - bide with us,' plainly."
     }

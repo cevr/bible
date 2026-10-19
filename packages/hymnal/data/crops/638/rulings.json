@@ -13,9 +13,15 @@
       "printed": "shall",
       "sung": "shall",
       "kind": "words",
-      "image": "638.jpg",
-      "crop": "638-1600.jpg",
-      "box": [0, 1600, 2268, 670],
+      "crops": [
+        {
+          "image": "638.jpg",
+          "crop": "638-1600.jpg",
+          "box": [0, 1600, 2268, 670],
+          "sha": "45493a6480ddc711",
+          "shows": "shall"
+        }
+      ],
       "judge": "judge-634 (Opus, effort max)",
       "why": "Row 2 of the system prints 'And these shall be the trea-sures We of-fer to the King' plainly."
     },
@@ -31,9 +37,15 @@
       "printed": "gifts",
       "sung": "gifts",
       "kind": "words",
-      "image": "638.jpg",
-      "crop": "638-2174.jpg",
-      "box": [0, 2174, 2268, 806],
+      "crops": [
+        {
+          "image": "638.jpg",
+          "crop": "638-2174.jpg",
+          "box": [0, 2174, 2268, 806],
+          "sha": "f5611d669990dbd5",
+          "shows": "gifts"
+        }
+      ],
       "judge": "judge-634 (Opus, effort max)",
       "why": "Row 3 of the last system prints 'Than rich-est gifts with-out them', the same 'gifts' as row 2's 'are gifts that ev-er'."
     }

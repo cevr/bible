@@ -13,9 +13,15 @@
       "printed": "midwinter",
       "sung": "midwinter",
       "kind": "words",
-      "image": "126.jpg",
-      "crop": "126-2022.jpg",
-      "box": [0, 2022, 2268, 542],
+      "crops": [
+        {
+          "image": "126.jpg",
+          "crop": "126-2022.jpg",
+          "box": [0, 2022, 2268, 542],
+          "sha": "c16a1fbf59a48c4a",
+          "shows": "midwinter"
+        }
+      ],
       "judge": "judge-074 (Opus, effort max)",
       "why": "Row 1 (stanza 1) of the last system prints 'In the bleak mid - win - ter, Long a - go.', so the database's 'minwinter' is its own slip."
     }

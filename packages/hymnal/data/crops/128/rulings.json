@@ -13,9 +13,15 @@
       "printed": "infancy",
       "sung": "infancy",
       "kind": "words",
-      "image": "128.png",
-      "crop": "128-800.jpg",
-      "box": [0, 800, 1275, 360],
+      "crops": [
+        {
+          "image": "128.png",
+          "crop": "128-800.jpg",
+          "box": [0, 800, 1275, 360],
+          "sha": "6741ff3a5410181f",
+          "shows": "infancy"
+        }
+      ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop 128-800, top (stanza 1) row of the fourth system opens 'in fan - cy,' after 'now weak in' ends the third system (crop 128-696): the syllables of 'infancy' (this re-engraving drops the hyphen after 'in', as it does in 'beau teous'), so the reading lost the 'in' syllable."
     }

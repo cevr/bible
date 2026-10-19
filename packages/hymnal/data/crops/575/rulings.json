@@ -13,9 +13,15 @@
       "printed": "Privileged",
       "sung": "Privileged",
       "kind": "words",
-      "image": "575.jpg",
-      "crop": "575-81.jpg",
-      "box": [0, 81, 2268, 1482],
+      "crops": [
+        {
+          "image": "575.jpg",
+          "crop": "575-81.jpg",
+          "box": [0, 81, 2268, 1482],
+          "sha": "30d9d729bace43df",
+          "shows": "Privileged"
+        }
+      ],
       "judge": "judge-554 (Opus, effort max)",
       "why": "Row 3. of the first system prints 'bless-ing, Priv - i-leged to care,' with the final 'd', joined as 'Privileged'."
     }

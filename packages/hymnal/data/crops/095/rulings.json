@@ -13,9 +13,15 @@
       "printed": "leisure",
       "sung": "leisure",
       "kind": "words",
-      "image": "095.jpg",
-      "crop": "095-0.jpg",
-      "box": [0, 0, 2268, 808],
+      "crops": [
+        {
+          "image": "095.jpg",
+          "crop": "095-0.jpg",
+          "box": [0, 0, 2268, 808],
+          "sha": "af526d2c60a1654a",
+          "shows": "leisure"
+        }
+      ],
       "judge": "judge-095 (Opus, effort max)",
       "why": "Row 2. prints 'Slum-bered at their lei - sure,' plainly; no 'leisurek' is on the page."
     }

@@ -13,9 +13,15 @@
       "printed": "Counsellor",
       "sung": "Counsellor",
       "kind": "words",
-      "image": "532.png",
-      "crop": "532-520.jpg",
-      "box": [0, 520, 1275, 160],
+      "crops": [
+        {
+          "image": "532.png",
+          "crop": "532-520.jpg",
+          "box": [0, 520, 1275, 160],
+          "sha": "e87100654df72bd1",
+          "shows": "Counsellor"
+        }
+      ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 2 of the second system prints 'He whose name is Coun - sel - lor and power', which joins to 'Counsellor' (double l)."
     }

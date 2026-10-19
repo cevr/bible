@@ -13,9 +13,15 @@
       "printed": "O Sometimes it causes me to tremble tremble tremble",
       "sung": "O Sometimes it causes me to tremble tremble tremble",
       "kind": "shared",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": "O Sometimes it causes me to tremble tremble tremble"
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "The page prints 'O!' once in the middle row of its second system (rows 1, 2, 4, 5 blank there) and 'Some-times it caus-es me to trem-ble, trem-ble, trem-ble.' once as the lone row of p154-1489.jpg, both under bars every stanza sings."
     },
@@ -31,9 +37,15 @@
       "printed": "",
       "sung": "",
       "kind": "layout",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": ""
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "Nothing follows stanza 1's last 'Were you there when they cru-ci-fied my Lord?' in the fourth system (final bar); the 'Some-times' row of p154-1489.jpg is the third system, sung before that line, where the database has it."
     },
@@ -49,9 +61,15 @@
       "printed": "O Sometimes it causes me to tremble tremble tremble",
       "sung": "O Sometimes it causes me to tremble tremble tremble",
       "kind": "shared",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": "O Sometimes it causes me to tremble tremble tremble"
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "'O!' is printed once in the middle row of the page's second system (row 2 blank there) and the 'Some-times ... trem-ble.' line once as the lone row of p154-1489.jpg, both under bars every stanza sings."
     },
@@ -67,9 +85,15 @@
       "printed": "",
       "sung": "",
       "kind": "layout",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": ""
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "Nothing follows stanza 2's last 'Were you there when they nailed Him to the tree?' in the fourth system (final bar); the 'Some-times' row of p154-1489.jpg is the third system, sung before that line, where the database has it."
     },
@@ -85,9 +109,15 @@
       "printed": "Sometimes it causes me to tremble tremble tremble",
       "sung": "Sometimes it causes me to tremble tremble tremble",
       "kind": "shared",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": "Sometimes it causes me to tremble tremble tremble"
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "Row 3 of the page's second system ends 'side? O!', and 'Some-times it caus-es me to trem-ble, trem-ble, trem-ble.' follows once as the lone row of p154-1489.jpg, under bars every stanza sings."
     },
@@ -103,9 +133,15 @@
       "printed": "",
       "sung": "",
       "kind": "layout",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": ""
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "Nothing follows stanza 3's last 'Were you there when they pierced Him in the side?' in the fourth system (final bar); the 'Some-times' row of p154-1489.jpg is the third system, sung before that line, where the database has it."
     },
@@ -121,9 +157,15 @@
       "printed": "O Sometimes it causes me to tremble tremble tremble",
       "sung": "O Sometimes it causes me to tremble tremble tremble",
       "kind": "shared",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": "O Sometimes it causes me to tremble tremble tremble"
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "'O!' is printed once in the middle row of the page's second system (row 4 blank there) and the 'Some-times ... trem-ble.' line once as the lone row of p154-1489.jpg, both under bars every stanza sings."
     },
@@ -139,9 +181,15 @@
       "printed": "",
       "sung": "",
       "kind": "layout",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": ""
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "Nothing follows stanza 4's last 'Were you there when the sun re-fused to shine?' in the fourth system (final bar); the 'Some-times' row of p154-1489.jpg is the third system, sung before that line, where the database has it."
     },
@@ -157,9 +205,15 @@
       "printed": "O Sometimes it causes me to tremble tremble tremble",
       "sung": "O Sometimes it causes me to tremble tremble tremble",
       "kind": "shared",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": "O Sometimes it causes me to tremble tremble tremble"
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "'O!' is printed once in the middle row of the page's second system (row 5 blank there) and the 'Some-times ... trem-ble.' line once as the lone row of p154-1489.jpg, both under bars every stanza sings."
     },
@@ -175,9 +229,15 @@
       "printed": "",
       "sung": "",
       "kind": "layout",
-      "image": "p154.jpg",
-      "crop": "p154-1489.jpg",
-      "box": [0, 1489, 1759, 313],
+      "crops": [
+        {
+          "image": "p154.jpg",
+          "crop": "p154-1489.jpg",
+          "box": [0, 1489, 1759, 313],
+          "sha": "a2fcb307fa4cef47",
+          "shows": ""
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "Nothing follows stanza 5's last 'Were you there when they laid Him in the tomb?' in the fourth system (final bar); the 'Some-times' row of p154-1489.jpg is the third system, sung before that line, where the database has it."
     }

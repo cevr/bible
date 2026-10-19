@@ -13,9 +13,15 @@
       "printed": "everywhere",
       "sung": "everywhere",
       "kind": "words",
-      "image": "p316.jpg",
-      "crop": "p316-310.jpg",
-      "box": [0, 310, 1759, 391],
+      "crops": [
+        {
+          "image": "p316.jpg",
+          "crop": "p316-310.jpg",
+          "box": [0, 310, 1759, 391],
+          "sha": "01b7883bc157280e",
+          "shows": "everywhere"
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 3. of p316-310.jpg prints 'ev - ery-where', which joins to 'everywhere', not 'ev'rywhere'."
     }

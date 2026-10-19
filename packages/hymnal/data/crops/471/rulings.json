@@ -13,9 +13,15 @@
       "printed": "us",
       "sung": "us",
       "kind": "words",
-      "image": "471.jpg",
-      "crop": "471-0.jpg",
-      "box": [0, 0, 2268, 1470],
+      "crops": [
+        {
+          "image": "471.jpg",
+          "crop": "471-0.jpg",
+          "box": [0, 0, 2268, 1470],
+          "sha": "5b5ca0a8a3d86a14",
+          "shows": "us"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 2 of the third system prints 'Grant us, grant us, grant us Your peace', with 'us' between the third 'grant' and 'Your'."
     },
@@ -31,9 +37,15 @@
       "printed": "Accorde-nous",
       "sung": "Accorde-nous",
       "kind": "words",
-      "image": "471.jpg",
-      "crop": "471-0.jpg",
-      "box": [0, 0, 2268, 1470],
+      "crops": [
+        {
+          "image": "471.jpg",
+          "crop": "471-0.jpg",
+          "box": [0, 0, 2268, 1470],
+          "sha": "5b5ca0a8a3d86a14",
+          "shows": "Accorde-nous"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 3. of the first system prints 'Ac - cor - de - nous ta paix', one o in 'cor' and no separate 'a'."
     },
@@ -49,9 +61,15 @@
       "printed": "Accorde-nous",
       "sung": "Accorde-nous",
       "kind": "words",
-      "image": "471.jpg",
-      "crop": "471-353.jpg",
-      "box": [0, 353, 2268, 822],
+      "crops": [
+        {
+          "image": "471.jpg",
+          "crop": "471-353.jpg",
+          "box": [0, 353, 2268, 822],
+          "sha": "096b3d02c6ff1d22",
+          "shows": "Accorde-nous"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 3 prints 'Ac - cor -' at the end of the first system and 'de - nous' at the start of the second system."
     },
@@ -67,9 +85,15 @@
       "printed": "Accorde-nous",
       "sung": "Accorde-nous",
       "kind": "words",
-      "image": "471.jpg",
-      "crop": "471-353.jpg",
-      "box": [0, 353, 2268, 822],
+      "crops": [
+        {
+          "image": "471.jpg",
+          "crop": "471-353.jpg",
+          "box": [0, 353, 2268, 822],
+          "sha": "096b3d02c6ff1d22",
+          "shows": "Accorde-nous"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 3 of the second system prints 'Ac - cor - de - nous ta paix;' after 'ta paix.'."
     },
@@ -85,9 +109,15 @@
       "printed": "Accorde-nous",
       "sung": "Accorde-nous",
       "kind": "words",
-      "image": "471.jpg",
-      "crop": "471-353.jpg",
-      "box": [0, 353, 2268, 822],
+      "crops": [
+        {
+          "image": "471.jpg",
+          "crop": "471-353.jpg",
+          "box": [0, 353, 2268, 822],
+          "sha": "096b3d02c6ff1d22",
+          "shows": "Accorde-nous"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 3 of the third system begins 'Ac - cor - de - nous ta paix.'."
     },
@@ -103,9 +133,15 @@
       "printed": "Accorde-nous",
       "sung": "Accorde-nous",
       "kind": "words",
-      "image": "471.jpg",
-      "crop": "471-0.jpg",
-      "box": [0, 0, 2268, 1470],
+      "crops": [
+        {
+          "image": "471.jpg",
+          "crop": "471-0.jpg",
+          "box": [0, 0, 2268, 1470],
+          "sha": "5b5ca0a8a3d86a14",
+          "shows": "Accorde-nous"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 3 prints 'Ac - cor -' at the end of the third system and 'de - nous' at the start of the fourth system, which only 471-0.jpg shows."
     },
@@ -121,9 +157,15 @@
       "printed": "Accorde-nous",
       "sung": "Accorde-nous",
       "kind": "words",
-      "image": "471.jpg",
-      "crop": "471-0.jpg",
-      "box": [0, 0, 2268, 1470],
+      "crops": [
+        {
+          "image": "471.jpg",
+          "crop": "471-0.jpg",
+          "box": [0, 0, 2268, 1470],
+          "sha": "5b5ca0a8a3d86a14",
+          "shows": "Accorde-nous"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 3 of the fourth system prints 'Ac - cor - de - nous ta - paix.'; 471-353.jpg stops above this system's words."
     }

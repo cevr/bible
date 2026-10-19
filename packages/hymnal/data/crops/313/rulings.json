@@ -13,9 +13,15 @@
       "printed": "a",
       "sung": "a",
       "kind": "words",
-      "image": "313.jpg",
-      "crop": "313-368.jpg",
-      "box": [0, 368, 2268, 730],
+      "crops": [
+        {
+          "image": "313.jpg",
+          "crop": "313-368.jpg",
+          "box": [0, 368, 2268, 730],
+          "sha": "49548f38ac94fc56",
+          "shows": "a"
+        }
+      ],
       "judge": "judge-261 (Opus, effort max)",
       "why": "Row 3. of the crop ends 'With man-y a', and the next system on the page begins 'con-flict', so the page prints 'a' between 'many' and 'conflict'."
     }

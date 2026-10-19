@@ -13,9 +13,15 @@
       "printed": "worlds",
       "sung": "worlds",
       "kind": "words",
-      "image": "086.png",
-      "crop": "086-0.jpg",
-      "box": [0, 0, 1275, 390],
+      "crops": [
+        {
+          "image": "086.png",
+          "crop": "086-0.jpg",
+          "box": [0, 0, 1275, 390],
+          "sha": "60150ecd9de027bb",
+          "shows": "worlds"
+        }
+      ],
       "judge": "judge-006-2 (Opus, effort max)",
       "why": "Row 1. prints 'Con-sid-er all the worlds Thy hands have' plainly, w-o-r-l-d-s."
     }

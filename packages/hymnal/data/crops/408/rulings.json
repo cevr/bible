@@ -13,9 +13,15 @@
       "printed": "when",
       "sung": "when",
       "kind": "words",
-      "image": "p395.jpg",
-      "crop": "p395-273.jpg",
-      "box": [0, 273, 1759, 433],
+      "crops": [
+        {
+          "image": "p395.jpg",
+          "crop": "p395-273.jpg",
+          "box": [0, 273, 1759, 433],
+          "sha": "c638b983058402be",
+          "shows": "when"
+        }
+      ],
       "judge": "judge-284 (Opus, effort max)",
       "why": "Row 3. ends 'Once for all when', and the next system (p395-879.jpg) goes on 'You were slain'."
     }

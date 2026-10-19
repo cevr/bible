@@ -1,5 +1,5 @@
 {
-  "print": "Every page image of the 1985 Seventh-day Adventist Hymnal that shows each hymn 1-695. `scan`: hymnary.org's scan of the book, page by page at `url` ({page} its page); `withheld` lists the pages hymnary.org does not show; `copies` the pages it serves another page's scan for, so their own print is not shown either. `scans`: each scan page and the hymns printed on it, a hymn's start read from its title number on the shown page (Vision OCR, checked against the blind readers' page lists), the hymns between two shown starts put on every withheld page between them. `photos`: the owner's photos (data/photos/sdah-1985/) and the hymns each shows; `partial` the hymns the photos show only part of, and what they leave out. `lent`: a hymn whose page sends the singer to another hymn for its other stanzas, which that hymn's page decides. `engravings`: the SDAHImages engravings at the pinned commit and the hymn each shows. A hymn's deciding page is its photo, when the photos show it whole; else its scan, when every scan page of it is shown; else its engraving.",
+  "print": "Every page image of the 1985 Seventh-day Adventist Hymnal that shows each hymn 1-695. `scan`: hymnary.org's scan of the book, page by page at `url` ({page} its page); `withheld` lists the pages hymnary.org does not show; `copies` the pages it serves another page's scan for, so their own print is not shown either. `scans`: each scan page and the hymns printed on it. A hymn's start is read from its title number on a shown page (Vision OCR, checked against the blind readers' page lists). The hymns between two shown starts are put on every unshown page between them, inferred, not seen; a hymn a complete reading or a look at the page saw end on a shown page is not carried onto the unshown pages after it. `photos`: the owner's photos (data/photos/sdah-1985/) and the hymns each shows; `partial` the hymns the photos show only part of, and what they leave out. `lent`: a hymn whose page sends the singer to another hymn for its other stanzas, which that hymn's page decides. `engravings`: the SDAHImages engravings at the pinned commit and the hymn each shows; `revised` quotes an engraving's credit line where it dates a words revision after 1985. A hymn's deciding page is its photo, when the photos show it whole; else its scan, when every scan page of it is shown; else its engraving, unless revised; else none. A photo that shows part of a hymn stands beside its deciding page and rules the places it shows.",
   "scan": {
     "url": "https://hymnary.org/page/fetch/SDAH1985/{page}/high/1",
     "pages": 700,
@@ -2741,12 +2741,28 @@
       "hymns": [10]
     },
     {
+      "file": "013-c.jpg",
+      "hymns": [13]
+    },
+    {
+      "file": "013-p2.jpg",
+      "hymns": [13, 14]
+    },
+    {
+      "file": "013.jpg",
+      "hymns": [13]
+    },
+    {
       "file": "014.jpg",
       "hymns": [14]
     },
     {
       "file": "023.jpg",
       "hymns": [23]
+    },
+    {
+      "file": "033.jpg",
+      "hymns": [33]
     },
     {
       "file": "041.jpg",
@@ -2761,6 +2777,22 @@
       "hymns": [54, 55]
     },
     {
+      "file": "061-c.jpg",
+      "hymns": [61]
+    },
+    {
+      "file": "061-p2.jpg",
+      "hymns": [61, 62]
+    },
+    {
+      "file": "061.jpg",
+      "hymns": [61]
+    },
+    {
+      "file": "086.jpg",
+      "hymns": [86]
+    },
+    {
       "file": "091.jpg",
       "hymns": [91]
     },
@@ -2771,6 +2803,18 @@
     {
       "file": "100.jpg",
       "hymns": [100]
+    },
+    {
+      "file": "102-b-p2.jpg",
+      "hymns": [102, 103]
+    },
+    {
+      "file": "102-b.jpg",
+      "hymns": [102]
+    },
+    {
+      "file": "102-c.jpg",
+      "hymns": [102]
     },
     {
       "file": "102.jpg",
@@ -2787,6 +2831,18 @@
     {
       "file": "120.jpg",
       "hymns": [120]
+    },
+    {
+      "file": "122-b-p2.jpg",
+      "hymns": [122, 123]
+    },
+    {
+      "file": "122-b.jpg",
+      "hymns": [122]
+    },
+    {
+      "file": "122-c.jpg",
+      "hymns": [122]
     },
     {
       "file": "122.jpg",
@@ -2837,6 +2893,14 @@
       "hymns": [178, 179]
     },
     {
+      "file": "194.jpg",
+      "hymns": [194]
+    },
+    {
+      "file": "203.jpg",
+      "hymns": [203]
+    },
+    {
       "file": "209.jpg",
       "hymns": [209]
     },
@@ -2869,6 +2933,10 @@
       "hymns": [225, 226]
     },
     {
+      "file": "231.jpg",
+      "hymns": [231]
+    },
+    {
       "file": "232.jpg",
       "hymns": [232]
     },
@@ -2899,6 +2967,10 @@
     {
       "file": "275.jpg",
       "hymns": [275]
+    },
+    {
+      "file": "276.jpg",
+      "hymns": [276]
     },
     {
       "file": "282-1.jpg",
@@ -2945,6 +3017,10 @@
       "hymns": [375]
     },
     {
+      "file": "397.jpg",
+      "hymns": [397, 398]
+    },
+    {
       "file": "401.jpg",
       "hymns": [401, 402]
     },
@@ -2971,6 +3047,18 @@
     {
       "file": "428-b.jpg",
       "hymns": [428]
+    },
+    {
+      "file": "436-b-p2.jpg",
+      "hymns": [436, 437]
+    },
+    {
+      "file": "436-b.jpg",
+      "hymns": [436]
+    },
+    {
+      "file": "436-c.jpg",
+      "hymns": [436]
     },
     {
       "file": "436.jpg",
@@ -3009,6 +3097,14 @@
       "hymns": [493]
     },
     {
+      "file": "497-b-p2.jpg",
+      "hymns": [497, 498]
+    },
+    {
+      "file": "497-b.jpg",
+      "hymns": [497]
+    },
+    {
       "file": "497.jpg",
       "hymns": [497]
     },
@@ -3037,6 +3133,14 @@
       "hymns": [527]
     },
     {
+      "file": "532-b-p2.jpg",
+      "hymns": [532, 533]
+    },
+    {
+      "file": "532-b.jpg",
+      "hymns": [532]
+    },
+    {
       "file": "532.jpg",
       "hymns": [532]
     },
@@ -3053,12 +3157,36 @@
       "hymns": [547]
     },
     {
+      "file": "548.jpg",
+      "hymns": [548, 549]
+    },
+    {
+      "file": "562.jpg",
+      "hymns": [561, 562]
+    },
+    {
       "file": "575.jpg",
       "hymns": [575]
     },
     {
       "file": "580.jpg",
       "hymns": [580]
+    },
+    {
+      "file": "581.jpg",
+      "hymns": [581]
+    },
+    {
+      "file": "583-p2.jpg",
+      "hymns": [583, 584]
+    },
+    {
+      "file": "583.jpg",
+      "hymns": [583]
+    },
+    {
+      "file": "584.jpg",
+      "hymns": [583, 584]
     },
     {
       "file": "585.jpg",
@@ -3081,6 +3209,14 @@
       "hymns": [620]
     },
     {
+      "file": "626-b-p2.jpg",
+      "hymns": [626, 627]
+    },
+    {
+      "file": "626-b.jpg",
+      "hymns": [626]
+    },
+    {
       "file": "626.jpg",
       "hymns": [626]
     },
@@ -3097,6 +3233,18 @@
       "hymns": [628, 629]
     },
     {
+      "file": "632-p2.jpg",
+      "hymns": [632]
+    },
+    {
+      "file": "632.jpg",
+      "hymns": [632]
+    },
+    {
+      "file": "634.jpg",
+      "hymns": [633, 634]
+    },
+    {
       "file": "636.jpg",
       "hymns": [636]
     },
@@ -3107,6 +3255,10 @@
     {
       "file": "639.jpg",
       "hymns": [639]
+    },
+    {
+      "file": "641.jpg",
+      "hymns": [641]
     },
     {
       "file": "643.jpg",
@@ -3133,6 +3285,10 @@
       "hymns": [654, 655]
     },
     {
+      "file": "657.jpg",
+      "hymns": [657]
+    },
+    {
       "file": "663.jpg",
       "hymns": [663]
     },
@@ -3151,16 +3307,12 @@
   ],
   "partial": [
     {
+      "hymn": 86,
+      "missing": "the refrain's end, on its second page, which no photo shows"
+    },
+    {
       "hymn": 100,
       "missing": "the refrain's end, on the page after the photo"
-    },
-    {
-      "hymn": 102,
-      "missing": "the end of each stanza, on the facing page the photo cuts off"
-    },
-    {
-      "hymn": 122,
-      "missing": "the refrain, on the facing page the photo cuts off"
     },
     {
       "hymn": 128,
@@ -3179,24 +3331,20 @@
       "missing": "the refrain's end, on the facing page the photo cuts off"
     },
     {
-      "hymn": 436,
-      "missing": "its last system, on the facing page the photo cuts off"
+      "hymn": 398,
+      "missing": "all but its first system, on the page after the photo"
     },
     {
-      "hymn": 497,
-      "missing": "its last system, on the facing page the photo cuts off"
-    },
-    {
-      "hymn": 532,
-      "missing": "the end of each stanza, on the facing page the photo cuts off"
+      "hymn": 561,
+      "missing": "all but its refrain's end, on the page before the photo"
     },
     {
       "hymn": 586,
       "missing": "all but its first system, on the page after the photo"
     },
     {
-      "hymn": 626,
-      "missing": "the refrain's end, on the facing page the photo cuts off"
+      "hymn": 633,
+      "missing": "all but its end, which the photo cuts at the left edge"
     },
     {
       "hymn": 669,
@@ -3817,7 +3965,8 @@
     },
     {
       "file": "147.png",
-      "hymns": [147]
+      "hymns": [147],
+      "revised": "Words © 1977, Rev. 1995 Hope Publishing Co."
     },
     {
       "file": "148.png",
@@ -3957,7 +4106,8 @@
     },
     {
       "file": "182.png",
-      "hymns": [182]
+      "hymns": [182],
+      "revised": "Words © 1975, rev. 1995 Hope Publishing Co."
     },
     {
       "file": "183.png",
@@ -4393,7 +4543,8 @@
     },
     {
       "file": "288.png",
-      "hymns": [288]
+      "hymns": [288],
+      "revised": "Words © 1983, rev. 1996 Hope Publishing Co."
     },
     {
       "file": "289.png",
@@ -4833,7 +4984,8 @@
     },
     {
       "file": "400.png",
-      "hymns": [400]
+      "hymns": [400],
+      "revised": "Words © 1971, Rev. 1995 Hope Publishing Co."
     },
     {
       "file": "401.png",

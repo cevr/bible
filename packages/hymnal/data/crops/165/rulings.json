@@ -13,9 +13,15 @@
       "printed": "brings",
       "sung": "brings",
       "kind": "words",
-      "image": "p161.jpg",
-      "crop": "p161-312.jpg",
-      "box": [0, 312, 1759, 431],
+      "crops": [
+        {
+          "image": "p161.jpg",
+          "crop": "p161-312.jpg",
+          "box": [0, 312, 1759, 431],
+          "sha": "d63cf44da15b00af",
+          "shows": "brings"
+        }
+      ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "Row 2. of p161-312.jpg ends 'Je - sus brings;' with a plain final s."
     }

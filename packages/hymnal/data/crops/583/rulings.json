@@ -13,9 +13,15 @@
       "printed": "a",
       "sung": "a",
       "kind": "words",
-      "image": "583.png",
-      "crop": "583-114.jpg",
-      "box": [0, 114, 1275, 246],
+      "crops": [
+        {
+          "image": "583.png",
+          "crop": "583-114.jpg",
+          "box": [0, 114, 1275, 246],
+          "sha": "8b2e991ba6adb607",
+          "shows": "a"
+        }
+      ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 1. prints 'You for whom a cor - ner - stone', with 'a' between 'whom' and 'cornerstone'."
     },
@@ -31,9 +37,15 @@
       "printed": "allotted",
       "sung": "allotted",
       "kind": "words",
-      "image": "583.png",
-      "crop": "583-114.jpg",
-      "box": [0, 114, 1275, 246],
+      "crops": [
+        {
+          "image": "583.png",
+          "crop": "583-114.jpg",
+          "box": [0, 114, 1275, 246],
+          "sha": "8b2e991ba6adb607",
+          "shows": "allotted"
+        }
+      ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 2. prints 'Each to his al - lot - ted place', double l: 'allotted'."
     }

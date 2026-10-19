@@ -13,9 +13,15 @@
       "printed": "brings",
       "sung": "brings",
       "kind": "words",
-      "image": "632.png",
-      "crop": "632-759.jpg",
-      "box": [0, 759, 1275, 297],
+      "crops": [
+        {
+          "image": "632.png",
+          "crop": "632-759.jpg",
+          "box": [0, 759, 1275, 297],
+          "sha": "3e14b2c30f921b1a",
+          "shows": "brings"
+        }
+      ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 2 (stanza 2) of this re-engraving prints 'will on - ly brings a smile.' with a plain final s; odd after 'will', but a real word, so not a misprint."
     }

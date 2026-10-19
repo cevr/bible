@@ -13,9 +13,15 @@
       "printed": "I'll",
       "sung": "I'll",
       "kind": "words",
-      "image": "p539.jpg",
-      "crop": "p539-275.jpg",
-      "box": [0, 275, 1759, 403],
+      "crops": [
+        {
+          "image": "p539.jpg",
+          "crop": "p539-275.jpg",
+          "box": [0, 275, 1759, 403],
+          "sha": "d59511662baeaad9",
+          "shows": "I'll"
+        }
+      ],
       "judge": "judge-554 (Opus, effort max)",
       "why": "Row 3. of the crop prints 'in Thine, I'll count the joys' plainly; the database's 'iil' is not on the page."
     }

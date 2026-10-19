@@ -15,9 +15,15 @@
       "printed": "Surely, this Lord Jesus Shall return again, With His Father's glory, With His angel train; For all wreaths of empire Meet upon His brow, And our hearts confess Him King of glory now.",
       "sung": "Surely, this Lord Jesus Shall return again, With His Father's glory, With His angel train; For all wreaths of empire Meet upon His brow, And our hearts confess Him King of glory now.",
       "kind": "words",
-      "image": "232.jpg",
-      "crop": "232-817.jpg",
-      "box": [0, 817, 2268, 826],
+      "crops": [
+        {
+          "image": "232.jpg",
+          "crop": "232-817.jpg",
+          "box": [0, 817, 2268, 826],
+          "sha": "7f3ce52f6ae4f8bb",
+          "shows": "Surely, this Lord Jesus Shall return again, With His Father's glory, With His angel train; For all wreaths of empire Meet upon His brow, And our hearts confess Him King of glory now."
+        }
+      ],
       "judge": "judge-225 (Opus, effort max)",
       "why": "The page prints a numbered fifth stanza in full-size type: row 5. of systems 1-2 on 232-817.jpg and row 5 of systems 3-4 on page 232.jpg."
     }

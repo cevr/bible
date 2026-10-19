@@ -13,9 +13,15 @@
       "printed": "or",
       "sung": "or",
       "kind": "words",
-      "image": "497.png",
-      "crop": "497-497.jpg",
-      "box": [0, 497, 1275, 277],
+      "crops": [
+        {
+          "image": "497.png",
+          "crop": "497-497.jpg",
+          "box": [0, 497, 1275, 277],
+          "sha": "323920df19fafc35",
+          "shows": "or"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 2 prints 'Wrought out or un - ex - pressed.', with 'or', not 'our'."
     },
@@ -31,9 +37,15 @@
       "printed": "with",
       "sung": "with",
       "kind": "words",
-      "image": "497.png",
-      "crop": "497-881.jpg",
-      "box": [0, 881, 1275, 286],
+      "crops": [
+        {
+          "image": "497.png",
+          "crop": "497-881.jpg",
+          "box": [0, 881, 1275, 286],
+          "sha": "322b54e4a03a0d7f",
+          "shows": "with"
+        }
+      ],
       "judge": "judge-471 (Opus, effort max)",
       "why": "Row 3 prints 'But blend our wills with Thine;', with 'with', not 'to'."
     }

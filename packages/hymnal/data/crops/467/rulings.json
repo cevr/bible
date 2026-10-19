@@ -13,9 +13,15 @@
       "printed": "Shops",
       "sung": "Shops",
       "kind": "words",
-      "image": "467.jpg",
-      "crop": "467-0.jpg",
-      "box": [0, 0, 2268, 1250],
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-0.jpg",
+          "box": [0, 0, 2268, 1250],
+          "sha": "959d90b3f190927b",
+          "shows": "Shops"
+        }
+      ],
       "judge": "judge-443 (Opus, effort max)",
       "why": "Row 1 of the second system prints 'Shops and bus - es, towns and peo - ple' with a plain final 's'."
     }

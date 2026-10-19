@@ -13,9 +13,15 @@
       "printed": "When",
       "sung": "When",
       "kind": "words",
-      "image": "436.png",
-      "crop": "436-0.jpg",
-      "box": [0, 0, 1275, 361],
+      "crops": [
+        {
+          "image": "436.png",
+          "crop": "436-0.jpg",
+          "box": [0, 0, 1275, 361],
+          "sha": "fe3c54bdf126af7a",
+          "shows": "When"
+        }
+      ],
       "judge": "judge-422 (Opus, effort max)",
       "why": "Row 3. of the first system of the SDAHImages re-engraving ends 'Are beckon-ing me to come, When', and system 2 goes on 'nei-ther death nor sor-row'."
     }

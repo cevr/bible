@@ -13,9 +13,15 @@
       "printed": "These",
       "sung": "These",
       "kind": "words",
-      "image": "p007.jpg",
-      "crop": "p007-1933.jpg",
-      "box": [0, 1933, 1734, 433],
+      "crops": [
+        {
+          "image": "p007.jpg",
+          "crop": "p007-1933.jpg",
+          "box": [0, 1933, 1734, 433],
+          "sha": "7c4bebead8b6c2fc",
+          "shows": "These"
+        }
+      ],
       "judge": "judge-006-2 (Opus, effort max)",
       "why": "Row 3 of the last system (stanza 3's closing line) prints 'These are the of-ferings to lay on His shrine' plainly."
     }

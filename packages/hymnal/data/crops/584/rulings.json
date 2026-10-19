@@ -13,9 +13,15 @@
       "printed": "",
       "sung": "",
       "kind": "words",
-      "image": "584.png",
-      "crop": "584-114.jpg",
-      "box": [0, 114, 1275, 362],
+      "crops": [
+        {
+          "image": "584.png",
+          "crop": "584-114.jpg",
+          "box": [0, 114, 1275, 362],
+          "sha": "4853c7308f964487",
+          "shows": ""
+        }
+      ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 5. prints 'not a - lone,': that 'a' is the first syllable of 'alone', and no separate 'a' stands before it."
     }

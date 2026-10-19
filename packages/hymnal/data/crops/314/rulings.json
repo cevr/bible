@@ -15,9 +15,15 @@
       "printed": "Just as I am and waiting not To rid my soul of one dark blot To Thee whose blood can cleanse each spot O Lamb of God I come",
       "sung": "Just as I am and waiting not To rid my soul of one dark blot To Thee whose blood can cleanse each spot O Lamb of God I come I come",
       "kind": "repeat",
-      "image": "313.jpg",
-      "crop": "313-200x580.jpg",
-      "box": [200, 580, 1550, 1500],
+      "crops": [
+        {
+          "image": "313.jpg",
+          "crop": "313-200x580.jpg",
+          "box": [200, 580, 1550, 1500],
+          "sha": "4c3188b4f528a78a",
+          "shows": "Just as I am and waiting not To rid my soul of one dark blot To Thee whose blood can cleanse each spot O Lamb of God I come"
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 2. of 313-200x580.jpg prints this stanza, its last line 'O Lamb of God, I come.' printed once for all six stanzas, and 314's tune sings that line 'I come, I come.' (p306-642.jpg)."
     },
@@ -35,9 +41,15 @@
       "printed": "Just as I am though tossed about With many a conflict many a doubt Fightings within and fears without O Lamb of God I come",
       "sung": "Just as I am though tossed about With many a conflict many a doubt Fightings within and fears without O Lamb of God I come I come",
       "kind": "repeat",
-      "image": "313.jpg",
-      "crop": "313-200x580.jpg",
-      "box": [200, 580, 1550, 1500],
+      "crops": [
+        {
+          "image": "313.jpg",
+          "crop": "313-200x580.jpg",
+          "box": [200, 580, 1550, 1500],
+          "sha": "4c3188b4f528a78a",
+          "shows": "Just as I am though tossed about With many a conflict many a doubt Fightings within and fears without O Lamb of God I come"
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 3. of 313-200x580.jpg prints this stanza (the dot after 'tossed' is a speck, not a word), its last line 'O Lamb of God, I come.' printed once for all six stanzas, and 314's tune sings that line 'I come, I come.' (p306-642.jpg)."
     },
@@ -55,9 +67,15 @@
       "printed": "Just as I am poor wretched blind Sight riches healing of the mind Yea all I need in Thee I find O Lamb of God I come",
       "sung": "Just as I am poor wretched blind Sight riches healing of the mind Yea all I need in Thee I find O Lamb of God I come I come",
       "kind": "repeat",
-      "image": "313.jpg",
-      "crop": "313-200x580.jpg",
-      "box": [200, 580, 1550, 1500],
+      "crops": [
+        {
+          "image": "313.jpg",
+          "crop": "313-200x580.jpg",
+          "box": [200, 580, 1550, 1500],
+          "sha": "4c3188b4f528a78a",
+          "shows": "Just as I am poor wretched blind Sight riches healing of the mind Yea all I need in Thee I find O Lamb of God I come"
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 4. of 313-200x580.jpg prints this stanza, its last line 'O Lamb of God, I come.' printed once for all six stanzas, and 314's tune sings that line 'I come, I come.' (p306-642.jpg)."
     },
@@ -75,9 +93,15 @@
       "printed": "Just as I am Thou wilt receive Wilt welcome pardon cleanse relieve Because Thy promise I believe O Lamb of God I come",
       "sung": "Just as I am Thou wilt receive Wilt welcome pardon cleanse relieve Because Thy promise I believe O Lamb of God I come I come",
       "kind": "repeat",
-      "image": "313.jpg",
-      "crop": "313-200x580.jpg",
-      "box": [200, 580, 1550, 1500],
+      "crops": [
+        {
+          "image": "313.jpg",
+          "crop": "313-200x580.jpg",
+          "box": [200, 580, 1550, 1500],
+          "sha": "4c3188b4f528a78a",
+          "shows": "Just as I am Thou wilt receive Wilt welcome pardon cleanse relieve Because Thy promise I believe O Lamb of God I come"
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 5. of 313-200x580.jpg prints this stanza, its last line 'O Lamb of God, I come.' printed once for all six stanzas, and 314's tune sings that line 'I come, I come.' (p306-642.jpg)."
     },
@@ -95,9 +119,15 @@
       "printed": "Just as I am Thy love I own Has broken every barrier down Now to be Thine and Thine alone O Lamb of God I come",
       "sung": "Just as I am Thy love I own Has broken every barrier down Now to be Thine and Thine alone O Lamb of God I come I come",
       "kind": "repeat",
-      "image": "313.jpg",
-      "crop": "313-200x580.jpg",
-      "box": [200, 580, 1550, 1500],
+      "crops": [
+        {
+          "image": "313.jpg",
+          "crop": "313-200x580.jpg",
+          "box": [200, 580, 1550, 1500],
+          "sha": "4c3188b4f528a78a",
+          "shows": "Just as I am Thy love I own Has broken every barrier down Now to be Thine and Thine alone O Lamb of God I come"
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 6. of 313-200x580.jpg prints this stanza ('ev - ery bar - rier'), its last line 'O Lamb of God, I come.' printed once for all six stanzas, and 314's tune sings that line 'I come, I come.' (p306-642.jpg)."
     }

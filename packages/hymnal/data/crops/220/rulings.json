@@ -13,9 +13,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-113.jpg",
-      "box": [0, 113, 1275, 248],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-113.jpg",
+          "box": [0, 113, 1275, 248],
+          "sha": "f03b2dbc3f7e2371",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "Row 1. of 220-113.jpg prints nothing between the first 'comes,' and 'When He comes,' while the lower voices move under the held note: an echo this page leaves unworded."
     },
@@ -31,9 +37,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-113.jpg",
-      "box": [0, 113, 1275, 248],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-113.jpg",
+          "box": [0, 113, 1275, 248],
+          "sha": "f03b2dbc3f7e2371",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "The place is in measure 2 on 220-113.jpg (not 220-482.jpg): row 1. prints nothing between the second 'comes,' and 'We shall' while the lower voices move under the held note, an unworded echo."
     },
@@ -49,9 +61,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-482.jpg",
-      "box": [0, 482, 1275, 247],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-482.jpg",
+          "box": [0, 482, 1275, 247],
+          "sha": "96089dced923d39f",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "Row 1. of 220-482.jpg prints nothing between 'when He comes!' and 'As I read' while the lower voices move under the held note, an unworded echo."
     },
@@ -67,9 +85,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-860.jpg",
-      "box": [0, 860, 1275, 220],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-860.jpg",
+          "box": [0, 860, 1275, 220],
+          "sha": "bfffd88017e4aa37",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 1 of 220-860.jpg ends 'when He comes!' at the double bar with no words after it, while the alto and bass answer the held 'comes!' there: an echo this re-engraving prints no words for."
     },
@@ -85,9 +109,15 @@
       "printed": "",
       "sung": "to the sky",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-1180.jpg",
-      "box": [0, 1180, 1275, 260],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1180.jpg",
+          "box": [0, 1180, 1275, 260],
+          "sha": "63a906852e6e7fcc",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "The refrain row of 220-1180.jpg prints nothing between 'sky,' and 'With the', while the alto answers the held 'sky,' there: an echo this re-engraving prints no words for."
     },
@@ -103,9 +133,15 @@
       "printed": "",
       "sung": "to the sky",
       "kind": "echo",
-      "image": "When_He_Comes2.png",
-      "crop": "When_He_Comes2-0.jpg",
-      "box": [0, 0, 1275, 328],
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0.jpg",
+          "box": [0, 0, 1275, 328],
+          "sha": "5128313599827537",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "When_He_Comes2-0.jpg prints nothing between the shared 'to the sky!' and row 1's 'As I read' while the lower staff moves under the held chord, an unworded echo."
     },
@@ -121,9 +157,15 @@
       "printed": "",
       "sung": "to the sky",
       "kind": "echo",
-      "image": "When_He_Comes2.png",
-      "crop": "When_He_Comes2-356.jpg",
-      "box": [0, 356, 1275, 459],
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-356.jpg",
+          "box": [0, 356, 1275, 459],
+          "sha": "21230e697f509fc5",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "The place is on When_He_Comes2-356.jpg (not When_He_Comes2-0.jpg): the shared row 2 ends 'to the sky,' and prints nothing after it while the alto and tenor move under the held note, an unworded echo."
     },
@@ -139,9 +181,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-113.jpg",
-      "box": [0, 113, 1275, 248],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-113.jpg",
+          "box": [0, 113, 1275, 248],
+          "sha": "f03b2dbc3f7e2371",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "Row 2. of 220-113.jpg prints nothing between the first 'comes,' and 'When He comes,' while the lower voices move under the held note, an unworded echo."
     },
@@ -157,9 +205,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-113.jpg",
-      "box": [0, 113, 1275, 248],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-113.jpg",
+          "box": [0, 113, 1275, 248],
+          "sha": "f03b2dbc3f7e2371",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "The place is in measure 2 on 220-113.jpg (not 220-482.jpg): row 2. prints nothing between the second 'comes,' and 'We shall' while the lower voices move under the held note, an unworded echo."
     },
@@ -175,9 +229,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-482.jpg",
-      "box": [0, 482, 1275, 247],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-482.jpg",
+          "box": [0, 482, 1275, 247],
+          "sha": "96089dced923d39f",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "Row 2. of 220-482.jpg prints nothing between 'when He comes!' and 'We shall hear' while the lower voices move under the held note, an unworded echo."
     },
@@ -193,9 +253,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-860.jpg",
-      "box": [0, 860, 1275, 220],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-860.jpg",
+          "box": [0, 860, 1275, 220],
+          "sha": "bfffd88017e4aa37",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 2 of 220-860.jpg ends 'sound-ed when He comes!' at the double bar with no words after it, while the alto and bass answer the held 'comes!' there: an echo this re-engraving prints no words for."
     },
@@ -211,9 +277,15 @@
       "printed": "",
       "sung": "to the sky",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-1180.jpg",
-      "box": [0, 1180, 1275, 260],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1180.jpg",
+          "box": [0, 1180, 1275, 260],
+          "sha": "63a906852e6e7fcc",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "The one refrain row of 220-1180.jpg prints nothing between 'sky,' and 'With the', while the alto answers the held 'sky,' there: an echo this re-engraving prints no words for."
     },
@@ -229,9 +301,15 @@
       "printed": "",
       "sung": "to the sky",
       "kind": "echo",
-      "image": "When_He_Comes2.png",
-      "crop": "When_He_Comes2-0.jpg",
-      "box": [0, 0, 1275, 328],
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0.jpg",
+          "box": [0, 0, 1275, 328],
+          "sha": "5128313599827537",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "When_He_Comes2-0.jpg prints nothing between the shared 'to the sky!' and row 2's 'We shall hear' while the lower staff moves under the held chord, an unworded echo."
     },
@@ -247,9 +325,15 @@
       "printed": "",
       "sung": "to the sky",
       "kind": "echo",
-      "image": "When_He_Comes2.png",
-      "crop": "When_He_Comes2-356.jpg",
-      "box": [0, 356, 1275, 459],
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-356.jpg",
+          "box": [0, 356, 1275, 459],
+          "sha": "21230e697f509fc5",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "The place is on When_He_Comes2-356.jpg (not When_He_Comes2-0.jpg): row 2 ends 'to the sky,' and prints nothing after it while the alto and tenor move under the held note, an unworded echo."
     },
@@ -265,9 +349,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-113.jpg",
-      "box": [0, 113, 1275, 248],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-113.jpg",
+          "box": [0, 113, 1275, 248],
+          "sha": "f03b2dbc3f7e2371",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "Row 3. of 220-113.jpg prints nothing between the first 'comes,' and 'When He comes,' while the lower voices move under the held note, an unworded echo."
     },
@@ -283,9 +373,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-113.jpg",
-      "box": [0, 113, 1275, 248],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-113.jpg",
+          "box": [0, 113, 1275, 248],
+          "sha": "f03b2dbc3f7e2371",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "The place is in measure 2 on 220-113.jpg (not 220-482.jpg): row 3. prints nothing between the second 'comes,' and 'We shall' while the lower voices move under the held note, an unworded echo."
     },
@@ -301,9 +397,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-482.jpg",
-      "box": [0, 482, 1275, 247],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-482.jpg",
+          "box": [0, 482, 1275, 247],
+          "sha": "96089dced923d39f",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "Row 3. of 220-482.jpg prints nothing between 'when He comes!' and 'We shall all' while the lower voices move under the held note, an unworded echo."
     },
@@ -319,9 +421,15 @@
       "printed": "",
       "sung": "when he comes",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-860.jpg",
-      "box": [0, 860, 1275, 220],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-860.jpg",
+          "box": [0, 860, 1275, 220],
+          "sha": "bfffd88017e4aa37",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 3 of 220-860.jpg ends 'meet Him when He comes!' at the double bar with no words after it, while the alto and bass answer the held 'comes!' there: an echo this re-engraving prints no words for."
     },
@@ -337,9 +445,15 @@
       "printed": "",
       "sung": "to the sky",
       "kind": "echo",
-      "image": "220.png",
-      "crop": "220-1180.jpg",
-      "box": [0, 1180, 1275, 260],
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1180.jpg",
+          "box": [0, 1180, 1275, 260],
+          "sha": "63a906852e6e7fcc",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "The one refrain row of 220-1180.jpg prints nothing between 'sky,' and 'With the', while the alto answers the held 'sky,' there: an echo this re-engraving prints no words for."
     },
@@ -355,9 +469,15 @@
       "printed": "",
       "sung": "to the sky",
       "kind": "echo",
-      "image": "When_He_Comes2.png",
-      "crop": "When_He_Comes2-0.jpg",
-      "box": [0, 0, 1275, 328],
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0.jpg",
+          "box": [0, 0, 1275, 328],
+          "sha": "5128313599827537",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "When_He_Comes2-0.jpg prints nothing between the shared 'to the sky!' and row 3's 'We shall all' while the lower staff moves under the held chord, an unworded echo."
     },
@@ -373,9 +493,15 @@
       "printed": "",
       "sung": "to the sky",
       "kind": "echo",
-      "image": "When_He_Comes2.png",
-      "crop": "When_He_Comes2-356.jpg",
-      "box": [0, 356, 1275, 459],
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-356.jpg",
+          "box": [0, 356, 1275, 459],
+          "sha": "21230e697f509fc5",
+          "shows": ""
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "The place is on When_He_Comes2-356.jpg (not When_He_Comes2-0.jpg): the shared row 2 ends 'to the sky,' and prints nothing after it while the alto and tenor move under the held note, an unworded echo."
     }

@@ -13,9 +13,15 @@
       "printed": "heav'ns",
       "sung": "heav'ns",
       "kind": "words",
-      "image": "214.jpg",
-      "crop": "214-1912.jpg",
-      "box": [0, 1912, 2268, 530],
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-1912.jpg",
+          "box": [0, 1912, 2268, 530],
+          "sha": "abc5a036885a61c9",
+          "shows": "heav'ns"
+        }
+      ],
       "judge": "judge-209 (Opus, effort max)",
       "why": "The second lyric row (stanza 2) of 214-1912 prints 'Soon the heav'ns will o-pen wide' plainly; 'heanns' is not on the page."
     }

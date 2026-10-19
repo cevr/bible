@@ -13,9 +13,15 @@
       "printed": "Amen",
       "sung": "Amen",
       "kind": "words",
-      "image": "685.png",
-      "crop": "685-1135.jpg",
-      "box": [0, 1135, 1275, 188],
+      "crops": [
+        {
+          "image": "685.png",
+          "crop": "685-1135.jpg",
+          "box": [0, 1135, 1275, 188],
+          "sha": "9dd1f1eef732f721",
+          "shows": "Amen"
+        }
+      ],
       "judge": "judge-663 (Opus, effort max)",
       "why": "The crop's row ends 'lift up my soul to Thee.' and then prints 'A - - - - - - - - men.' under the closing bars."
     }

@@ -13,9 +13,15 @@
       "printed": "",
       "sung": "",
       "kind": "echo",
-      "image": "p407.jpg",
-      "crop": "p407-1946.jpg",
-      "box": [0, 1946, 1759, 534],
+      "crops": [
+        {
+          "image": "p407.jpg",
+          "crop": "p407-1946.jpg",
+          "box": [0, 1946, 1759, 534],
+          "sha": "7b56ea112c645040",
+          "shows": ""
+        }
+      ],
       "judge": "judge-422 (Opus, effort max)",
       "why": "Refrain system 1: the main row prints 'We're march-ing to Zi-on' with nothing between; 'on' is only in the men's answering row under it ('We're march-ing on to Zi-on,'), which the reading took for stanza 2."
     },
@@ -31,9 +37,15 @@
       "printed": "Beautiful beautiful Zion We're marching upward to",
       "sung": "Beautiful beautiful Zion We're marching upward to",
       "kind": "echo",
-      "image": "p407.jpg",
-      "crop": "p407-1946.jpg",
-      "box": [0, 1946, 1759, 534],
+      "crops": [
+        {
+          "image": "p407.jpg",
+          "crop": "p407-1946.jpg",
+          "box": [0, 1946, 1759, 534],
+          "sha": "7b56ea112c645040",
+          "shows": "Beautiful beautiful Zion We're marching upward to"
+        }
+      ],
       "judge": "judge-422 (Opus, effort max)",
       "why": "The main refrain rows print 'Beau-ti-ful, beau-ti-ful Zi-on; We're march-ing up-ward to'; 'heaven-ly' is from the men's answering row 'heaven-ly Zi-on,' under refrain system 2, which the reading took instead."
     },
@@ -49,9 +61,15 @@
       "printed": "The beautiful city of God",
       "sung": "The beautiful city of God",
       "kind": "echo",
-      "image": "p407.jpg",
-      "crop": "p407-1946.jpg",
-      "box": [0, 1946, 1759, 534],
+      "crops": [
+        {
+          "image": "p407.jpg",
+          "crop": "p407-1946.jpg",
+          "box": [0, 1946, 1759, 534],
+          "sha": "7b56ea112c645040",
+          "shows": "The beautiful city of God"
+        }
+      ],
       "judge": "judge-422 (Opus, effort max)",
       "why": "Refrain system 2's main row prints 'The beau-ti-ful cit-y of God.'; the men's answering row under it stops at 'heaven-ly Zi-on,', so the reading that took that row has nothing here."
     }

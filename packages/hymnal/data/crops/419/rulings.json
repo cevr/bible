@@ -13,9 +13,15 @@
       "printed": "an",
       "sung": "an",
       "kind": "words",
-      "image": "419.jpg",
-      "crop": "419-855.jpg",
-      "box": [0, 855, 2268, 444],
+      "crops": [
+        {
+          "image": "419.jpg",
+          "crop": "419-855.jpg",
+          "box": [0, 855, 2268, 444],
+          "sha": "589a68bf13913820",
+          "shows": "an"
+        }
+      ],
       "judge": "judge-284 (Opus, effort max)",
       "why": "Row 3 prints 'That which was sown an earth-ly seed' plainly, and the cut top row of 419-1176.jpg shows 'an' too."
     }

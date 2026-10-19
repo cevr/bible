@@ -13,9 +13,15 @@
       "printed": "as",
       "sung": "as",
       "kind": "words",
-      "image": "259.jpg",
-      "crop": "259-337.jpg",
-      "box": [0, 337, 2268, 518],
+      "crops": [
+        {
+          "image": "259.jpg",
+          "crop": "259-337.jpg",
+          "box": [0, 337, 2268, 518],
+          "sha": "b9c57fe412735cd5",
+          "shows": "as"
+        }
+      ],
       "judge": "judge-209 (Opus, effort max)",
       "why": "Row 3. of 259-337 prints 'Make as sac-ra-', the word after 'Make' an 'a' with a closed bowl, not 'us'."
     }

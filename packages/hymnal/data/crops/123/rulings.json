@@ -13,9 +13,15 @@
       "printed": "gracious",
       "sung": "gracious",
       "kind": "words",
-      "image": "123.jpg",
-      "crop": "123-1606.jpg",
-      "box": [0, 1606, 2268, 444],
+      "crops": [
+        {
+          "image": "123.jpg",
+          "crop": "123-1606.jpg",
+          "box": [0, 1606, 2268, 444],
+          "sha": "14e5741cf8fe6611",
+          "shows": "gracious"
+        }
+      ],
       "judge": "judge-095 (Opus, effort max)",
       "why": "Row 1 of the last system prints 'So, most gra - cious Lord, may we' plainly."
     },
@@ -31,9 +37,15 @@
       "printed": "heav'nly",
       "sung": "heav'nly",
       "kind": "words",
-      "image": "123.jpg",
-      "crop": "123-1606.jpg",
-      "box": [0, 1606, 2268, 444],
+      "crops": [
+        {
+          "image": "123.jpg",
+          "crop": "123-1606.jpg",
+          "box": [0, 1606, 2268, 444],
+          "sha": "14e5741cf8fe6611",
+          "shows": "heav'nly"
+        }
+      ],
       "judge": "judge-095 (Opus, effort max)",
       "why": "Row 3 of the last system prints 'Christ, to Thee our heav'n - ly King.' with the apostrophe."
     }
