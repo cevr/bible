@@ -43,6 +43,7 @@ House rules for every episode (owner's, binding): quote only Scripture, KJV, ver
 - One small dose of the problem, answered within seconds.
 - The deepest turn at 55–65 %, the landing back in the cold open's layout, a thesis line of Scripture, about 30 s of music alone, credits. The thesis and the credits stay in the cold open's place (CRAFT rule 4, bookend the setting).
 - A recurring series motif: **the six stones** of Heb 6:1–2 (Tier One's map, each episode lights its stone), **the veil with gold light behind it** (Tier Two), **the hill path to the city** (Tier Three), all inside the widening light of the cross.
+- **The dictionary** (owner, 2026-10-19): the small cut-paper book with a gold ribbon from 02b. Each later episode that reads a word opens it to one entry before it reads, two pictures side by side, no lettering (sleep beside death in 12, beasts beside kingdoms in 28, rain beside teaching in 32, fire beside an end in 36, the pattern beside the real place in 16).
 
 ## Episodes
 
@@ -74,7 +75,7 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 
 **02b · As It Reads** (new, owner 2026-10-19; draft notes: [`as-it-reads.md`](as-it-reads.md); numbers settle when the list is renumbered)
 
-- **Promise:** Every error starts from one choice: read the Bible as it reads, or as you read it. The second way has no end of meanings. The Bible crosses every time and culture because it defines its own words, and anyone can learn to use its dictionary.
+- **Promise:** Much error starts from one choice: read the Bible as it reads, or as you read it. The second way has no end of meanings. The Bible crosses every time and culture because it defines its own words, and anyone can learn to use its dictionary.
 - **Core KJV:** 2 Pet 1:20; Prov 30:5–6; Rev 17:15; Rev 1:20; Dan 7:17; Matt 1:23; Deut 32:2; 1 Cor 2:13–14; Isa 28:10; Rom 15:4; Rom 12:2.
 - **Sources:** MWV1 21.6, 22.3, 22.5, 22.6 (William Miller, rules IX, XI, XII, XIII); GC 598.3; Ed 190.2; GC 674 (via LDE 286.2) (EGW).
 - **Builds on:** 01, 02. 02's `plain` and `figure` beats hand off to it in one line (owner, 2026-10-19, "A is fine": a new episode after 02). **Length:** about 6 min. **History:** OK.
