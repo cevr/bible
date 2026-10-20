@@ -1,7 +1,27 @@
 # @bible/hymnal-app
 
-The hymnal app (One). This section covers where its hymn recordings live and
-how they got there.
+The hymnal app (One). This README covers how the app reads the hymns, and
+where the hymn recordings live and how they got there.
+
+## The reader
+
+Three native tabs: Hymns (all 695, number and title), Search (number, title
+or first line, in the native header's search field) and Settings
+(appearance). A hymn shows its words in the order they are sung: each stanza
+under its number, and the refrain written out each time it is sung.
+
+- The words come from the compiled 1985 set (`@bible/hymnal`). The
+  `virtual:hymnal` plugin (`vite/hymnal.ts`) derives them when the app is
+  bundled, for the web and the native bundle alike, so the app opens offline
+  and no derived file is committed.
+- The one accent is `src/theme.ts`. Every other colour is the system's:
+  `PlatformColor` on a phone (`src/color.native.ts`) and CSS `light-dark()`
+  on the web (`src/color.ts`).
+- One's web navigators are headless, so `src/web/` draws a small tab bar,
+  header and search field on the web. A phone never renders them.
+- `bun run test` runs the app's tests (`src`, with `src/test/setup.ts` as the
+  preload: react-native-web for `react-native`, the real words for
+  `virtual:hymnal`) and the infra's.
 
 ## Recordings: R2 at hymns.cvr.im
 
