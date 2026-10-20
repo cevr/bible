@@ -23,7 +23,7 @@
  *   with a finger.
  * The visits and the cold loads are drawn from the property's whole domain
  * by a seeded sampler (`visits.ts`): every pair of values it names meets in
- * each run, and the seed, printed with every miss, decides the rest
+ * each run, and the seed, printed once a run and with every miss, decides the rest
  * (`HYMNAL_LIST_SEED=<seed>` runs a run's cases again).
  * A row is a real link: Enter opens it inside the app, and a Cmd- or
  * Ctrl-click leaves it to the browser, which opens the hymn in a new tab.
@@ -348,7 +348,7 @@ console.log(`hymnal browser test: HYMNAL_LIST_SEED=${seed}`);
 
 /**
  * The ways back to a list after the reader leaves it, and how he leaves it
- * for each: `when` he presses or clicks after his scroll to `top`. Each
+ * for each: `when` he presses or clicks after his scroll to `at`. Each
  * answers where he left the list, and the first frame of the list come back.
  */
 const paths = {
@@ -491,9 +491,9 @@ const missed = (visits: ReadonlyArray<Seen>) =>
 /**
  * On a page of its own, cold-loaded at `list`, makes each visit in turn: in
  * a window of the visit's height, the reader scrolls to its share of the
- * list's height and leaves the list (pressing or clicking after a pause, or
- * in the same task as a last small scroll); he comes back the visit's way,
- * then makes its move.
+ * list's height and leaves the list from there, within one row (pressing
+ * or clicking after a pause, or in the same task as his scroll back there
+ * from three rows away); he comes back the visit's way, then makes its move.
  */
 const visit = async (list: ListName, visits: ReadonlyArray<Visit>) => {
   await using app = await open({ path: lists[list].path });
