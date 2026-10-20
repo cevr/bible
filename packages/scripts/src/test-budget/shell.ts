@@ -68,6 +68,15 @@ export const commandsOf = (script: string): ReadonlyArray<ReadonlyArray<string>>
   readOf(script).commands.map(programOf);
 
 /**
+ * Whether a command of a script sets a variable for itself, bare or through
+ * `env` (`CI=1 bun test`, `env BUN_OPTIONS=-t bun test`): a variable such
+ * as `BUN_OPTIONS` or `NODE_OPTIONS` hands a program flags its words do not
+ * show.
+ */
+export const setsVariables = (script: string) =>
+  readOf(script).commands.some((words) => words[0] === 'env' || ASSIGNMENT.test(words[0] ?? ''));
+
+/**
  * Whether a script's commands are joined by `&&` alone: each runs only when
  * the one before it passed, so every command runs or the script fails. One
  * joined by `||`, `;`, `&`, `|` or a line's end may skip a command, or pass

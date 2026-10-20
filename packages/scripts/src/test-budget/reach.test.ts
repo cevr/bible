@@ -343,24 +343,29 @@ describe("a workspace's test files", () => {
     }),
   );
 
-  it.effect('are reached by no script whose commands are joined by anything but &&', () =>
-    Effect.sync(() => {
-      for (const test of [
-        'true || bun test',
-        'bun test; true',
-        'bun test | tee out.txt',
-        'bun test &',
-        'false\nbun test',
-        'bun test src # all\nbun test',
-      ])
-        expect([test, ...reaches({ test }, ['src/a.test.ts'])]).toEqual([
-          test,
-          'src/a.test.ts: none',
+  it.effect(
+    'are reached by no script whose commands are joined by anything but && or set a variable',
+    () =>
+      Effect.sync(() => {
+        for (const test of [
+          'true || bun test',
+          'bun test; true',
+          'bun test | tee out.txt',
+          'bun test &',
+          'false\nbun test',
+          'bun test src # all\nbun test',
+          'BUN_OPTIONS=-tfast bun test',
+          'env BUN_OPTIONS=-tfast bun test',
+          'bun run build && CI=1 bun test',
+        ])
+          expect([test, ...reaches({ test }, ['src/a.test.ts'])]).toEqual([
+            test,
+            'src/a.test.ts: none',
+          ]);
+        expect(reaches({ test: 'bun run build && bun test' }, ['src/a.test.ts'])).toEqual([
+          'src/a.test.ts: test',
         ]);
-      expect(reaches({ test: 'bun run build && bun test' }, ['src/a.test.ts'])).toEqual([
-        'src/a.test.ts: test',
-      ]);
-    }),
+      }),
   );
 
   it.effect('are reached by no script that hands a script it runs more words', () =>

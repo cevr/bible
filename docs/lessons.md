@@ -872,4 +872,4 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-11.md F3
 - **Wrong:** The reach check called every test file reached by `true || bun test`, which passes and runs no test.
 - **Cause:** The shell reader dropped the separators between commands, so the reader counted a command that `||`, `;`, `&` or `|` may skip, or whose failure they hide.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but &&`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`

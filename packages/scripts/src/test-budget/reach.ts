@@ -8,7 +8,8 @@
 // The reader reproduces a narrow grammar of scripts and refuses the rest: a
 // script it cannot read reaches nothing, so the check can call a file
 // unreached that runs, never the reverse. A script reaches files only when
-// its commands are joined by `&&` alone (`andChained`), none runs in another
+// its commands are joined by `&&` alone (`andChained`), none sets a variable
+// (`setsVariables`: `BUN_OPTIONS` hands bun flags), none runs in another
 // folder (`movesFolder`: `cd`, a subshell, `--cwd`), and each holds only
 // flags that leave what runs as it is (`BUN_FLAGS`, `PLAYWRIGHT_FLAGS`; an
 // unknown one, a narrowing one such as `--changed`, `-t`, `--grep`,
@@ -51,7 +52,7 @@ import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
 import { Minimatch, minimatch } from 'minimatch';
 import { type Expression, type ObjectExpression, parseSync } from 'oxc-parser';
 import { gateFiles } from '../guard/files.ts';
-import { andChained, commandsOf } from './shell.ts';
+import { andChained, commandsOf, setsVariables } from './shell.ts';
 
 /** Whether bun's runner takes a file for a test by its name. */
 const isTestFile = (file: string) => /(?:\.test|_test|\.spec|_spec)\.[cm]?[jt]sx?$/.test(file);
@@ -667,7 +668,8 @@ const movesFolder = (words: ReadonlyArray<string>) =>
  * What the script `name` of a workspace runs, the scripts it runs with `bun
  * run` followed, each in a shell of its own. It runs nothing this can read
  * when its commands are joined by anything but `&&` (`andChained`: one may
- * not run, or fail unseen), when one runs in another folder (`movesFolder`,
+ * not run, or fail unseen), when one sets a variable (`setsVariables`: it
+ * may hand a program flags), when one runs in another folder (`movesFolder`,
  * wherever it stands: the reader reads every path from the workspace's
  * folder), or when it hands a script it runs more words.
  */
@@ -682,7 +684,8 @@ const runsOf = (
   if (Option.isNone(script)) return [];
   const within = new Set([...seen, name]);
   const commands = commandsOf(script.value);
-  if (!andChained(script.value) || commands.some(movesFolder)) return [];
+  if (!andChained(script.value) || setsVariables(script.value) || commands.some(movesFolder))
+    return [];
   return commands.flatMap((command): ReadonlyArray<Run> => {
     const words = programWords(command);
     if (words[0] === 'playwright' && words[1] === 'test')
