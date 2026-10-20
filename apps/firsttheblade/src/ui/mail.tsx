@@ -151,15 +151,19 @@ export const Notice = (props: NoticeProps) => {
 
 /**
  * The confirm page. Opening the link in the confirm letter only shows it,
- * since mail scanners open links; in a browser its script presses the button
- * at once (`../client.tsx`), so confirming is one step, and with no script
- * the button is there to press. Its form names no action, so it posts back
- * to the page's own address, the token with it.
+ * since mail scanners open links; in a browser its script posts the form at
+ * once and draws the page it leads to in place (`../client.tsx`), so
+ * confirming is one step with no reload. The words and the button stay
+ * hidden for three seconds (`.confirm-press`), so they show only where no
+ * script confirmed first. Its form names no action, so it posts back to the
+ * page's own address, the token with it.
  */
 export const Confirm = () => (
   <Lost title="Confirm your email">
-    <p>Press the button and we will send you one email for each new film, and nothing else.</p>
-    <form method="post" id={CONFIRM_FORM_ID}>
+    <p class="confirm-press">
+      Press the button and we will send you one email for each new film, and nothing else.
+    </p>
+    <form method="post" id={CONFIRM_FORM_ID} class="confirm-press">
       <button class="button" type="submit">
         <span class="button-label">Confirm my email</span>
       </button>

@@ -1612,7 +1612,7 @@ The form of an entry, each field on its own line:
 - **Source:** the owner's live test of the email list on the stage agent-mailtest, 2026-10-20
 - **Wrong:** Confirming took two presses: the button in the letter, then the button on the confirm page.
 - **Cause:** The confirm page waited for its button so mail scanners, which open links, would confirm no one, and nothing pressed it for a person who had already pressed once in the letter.
-- **Guard:** code: `apps/firsttheblade/src/confirm.test.ts` `is one step: the confirm page's form carries the id the browser's entry submits as it opens`
+- **Guard:** code: `apps/firsttheblade/src/confirm.test.ts` `is one step: the confirm page's form carries the id the browser's entry posts as it opens`
 
 ### kit-return-focus-states-the-ring
 
@@ -1713,3 +1713,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The film's `script.ts` header said how the draft drew the thesis and how the film now differs, which is the text's history; it now says what the card holds and why.
 - **Cause:** The comment was written while the draft and the film were being compared, and kept that comparison.
 - **Guard:** skill: the judged history rule only warns (now 4 positives in its corpus, `packages/scripts/src/judged/fixtures/history-comment.json`), so a reader holds it. Carried by `CLAUDE.md`: "A comment says what the code does now and why"
+
+### confirm-without-reload
+
+- **Date:** 2026-10-20
+- **Kind:** owner
+- **Said:** "when we open the confirm link, it kind of flashes. It goes from one state to the next. It's kind of janky a bit."
+- **Source:** the owner's confirm of the live email list, 2026-10-20
+- **Wrong:** The confirm page showed its words and button, then reloaded into the confirmed page: two pages and a flash for one step.
+- **Cause:** The one-step confirm submitted the form as the page opened, so the browser loaded a second page, and the press stayed visible until it did.
+- **Guard:** code: `apps/firsttheblade/src/confirm.test.ts` `never reloads: the answer is drawn in place, and the press waits hidden for a browser with no script`

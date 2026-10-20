@@ -1044,6 +1044,19 @@ button.button-night {
 .lost form {
   display: contents;
 }
+/* The confirm page's press shows only when the browser's entry has not
+   confirmed in place within three seconds: a browser with no script. */
+.confirm-press {
+  animation: confirm-press-shown 0s 3s both;
+}
+@keyframes confirm-press-shown {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
 
 /* ── Not found ────────────────────────────────────────────────────────── */
 
