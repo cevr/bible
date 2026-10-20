@@ -24,17 +24,20 @@ export function Scrubber(props: ScrubberProps) {
       accessibilityValue={{ text: scrub.said }}
       value={scrub.value}
       onValueChange={scrub.change}
-      minimumValue={0}
-      // SwiftUI's slider needs a range: a length not yet known draws a still bar.
-      maximumValue={Option.getOrElse(
-        Option.liftPredicate(scrub.max, (max) => max > 0),
-        () => 1,
-      )}
+      // SwiftUI's slider needs a non-empty range: a length not yet known
+      // draws a still bar over [0, 1].
+      in={[
+        0,
+        Option.getOrElse(
+          Option.liftPredicate(scrub.max, (max) => max > 0),
+          () => 1,
+        ),
+      ]}
       // A second a step. iOS 26 draws a stepped slider's ticks, a faint line
       // under the bar; One's slider has no form without a step.
       step={1}
-      disabled={scrub.still}
-      swiftStyle={{ tint: accent }}
+      // One's SwiftUI hosts take `disabled` as a style, beside the tint.
+      swiftStyle={{ tint: accent, disabled: scrub.still }}
       style={styles.slider}
     />
   );
