@@ -126,7 +126,7 @@ describe('the player', () => {
       app.device.lagging = true;
       app.send(Command.Seek({ seconds: 120 }));
       app.device.now = { state: 'loading', positionMs: 120_000 };
-      app.send(Command.Follow({ remote: 'seek' }));
+      app.send(Command.Follow());
       expect(
         yield* app.until((player) => Player.$is('Paused')(player) && player.at === 120),
       ).toEqual(Player.Paused({ track: morning, at: 120, length: Option.some(151) }));

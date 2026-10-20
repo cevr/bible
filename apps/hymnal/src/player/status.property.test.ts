@@ -66,7 +66,7 @@ import {
   PlaybackError,
   Player,
   playerOn,
-  type Remote,
+  Remote,
   type Status,
   statusEvery,
 } from './player';
@@ -144,6 +144,8 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
     askedAt: 0,
     /** When the app last read the status. */
     readAt: 0,
+    /** The place the app last asked the device to seek to (seconds). */
+    sought: Option.none<number>(),
   };
   const failed = () => media.loaded && now() >= media.failsAt;
   const endOf = (range: Range, t: number) =>
@@ -289,20 +291,25 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
     advance();
     media.paused = true;
   };
+  /** The playback moves to `at` (seconds), and asks for it if no request holds it. */
+  const place = (at: number) => {
+    media.position = at;
+    media.ended = false;
+    const covered = media.ranges.some((range) => range.start <= at && endOf(range, now()) >= at);
+    if (!covered) request(at);
+  };
   const seek = (positionMs: number) =>
     Effect.suspend(() => {
       advance();
+      const at = Math.min(positionMs / 1000, length);
+      media.sought = Option.some(at);
       const notReady = Match.value(platform).pipe(
         Match.when('android', () => !media.prepared),
         Match.orElse(() => !ready(now())),
       );
       if (notReady || failed()) return refused('seek');
-      const at = Math.min(positionMs / 1000, length);
       if (platform === 'web' && at === media.position) return answer(Effect.sync(status));
-      media.position = at;
-      media.ended = false;
-      const covered = media.ranges.some((range) => range.start <= at && endOf(range, now()) >= at);
-      if (!covered) request(at);
+      place(at);
       return answering(sought(at));
     });
   const layer = Layer.succeed(
@@ -352,15 +359,28 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
     }),
   );
   /**
-   * The lock screen or the Media Session presses `kind`. A phone's session
-   * acts, then tells the app; the web's Media Session tells the app at the
-   * press and does nothing itself.
+   * The lock screen or the Media Session presses `kind` (a seek to `to`
+   * seconds). A phone's session acts, then tells the app; the web's Media
+   * Session tells the app at the press and does nothing itself.
    */
-  const press = (kind: 'play' | 'pause') =>
+  const press = (kind: 'play' | 'pause' | 'seek', to: number) =>
     Effect.sync(() => {
-      if (platform !== 'web')
-        Match.value(kind).pipe(Match.when('play', resume), Match.orElse(pause));
-      Queue.offerUnsafe(remote, kind);
+      if (platform !== 'web') {
+        advance();
+        Match.value(kind).pipe(
+          Match.when('play', resume),
+          Match.when('pause', pause),
+          Match.orElse(() => place(to)),
+        );
+      }
+      Queue.offerUnsafe(
+        remote,
+        Match.value(kind).pipe(
+          Match.when('play', () => Remote.Play()),
+          Match.when('pause', () => Remote.Pause()),
+          Match.orElse(() => Remote.Seek({ seconds: Option.some(to) })),
+        ),
+      );
     });
   /** The connection drops: every request stops where it is, with no error. */
   const drop = () => {
@@ -404,6 +424,8 @@ type Act =
   /** The bar: near the place, just past what is loaded there, far into the recording, or near its end. */
   | { readonly _tag: 'Seek'; readonly to: 'near' | 'edge' | 'far' | 'end'; readonly share: number }
   | { readonly _tag: 'Remote'; readonly kind: 'play' | 'pause' }
+  /** The lock screen's or the Media Session's seek, to a share of the recording. */
+  | { readonly _tag: 'Scrub'; readonly share: number }
   | { readonly _tag: 'Retry' }
   | { readonly _tag: 'Drop' }
   | { readonly _tag: 'Back' }
@@ -416,6 +438,7 @@ const said: (act: Act) => string = Match.type<Act>().pipe(
     Resume: () => 'play',
     Seek: ({ to, share }) => `seek ${to} (${share.toFixed(2)})`,
     Remote: ({ kind }) => `remote ${kind}`,
+    Scrub: ({ share }) => `remote seek (${share.toFixed(2)})`,
     Retry: () => 'retry',
     Drop: () => 'connection lost',
     Back: () => 'connection back',
@@ -432,12 +455,13 @@ const actOf = Effect.gen(function* () {
     const to = yield* Random.choice(['near', 'edge', 'far', 'end'] as const);
     return { _tag: 'Seek', to, share: yield* Random.nextBetween(0, 1) } satisfies Act;
   }
-  if (kind < 0.86) {
+  if (kind < 0.83) {
     return {
       _tag: 'Remote',
       kind: yield* Random.choice(['play', 'pause'] as const),
     } satisfies Act;
   }
+  if (kind < 0.86) return { _tag: 'Scrub', share: yield* Random.nextBetween(0, 1) } satisfies Act;
   if (kind < 0.9) return { _tag: 'Retry' } satisfies Act;
   if (kind < 0.95) return { _tag: 'Drop' } satisfies Act;
   if (kind < 0.98) return { _tag: 'Back' } satisfies Act;
@@ -487,6 +511,8 @@ const session = (platform: Platform, network: Network, clock: TestClock.TestCloc
   const reader = { wants: 'play' as 'play' | 'pause', at: 0 };
   /** Since when the page has shown the spinner, and since when the device has failed. */
   const since = { loading: Option.none<number>(), failed: Option.none<number>() };
+  /** A remote seek the player has not yet asked of the device: its place, and when. */
+  let scrub = Option.none<{ readonly to: number; readonly at: number }>();
   const fibers = new Array<Fiber.Fiber<void>>();
   const shown = () => registry.get(player.state);
   const where = () =>
@@ -534,6 +560,9 @@ const session = (platform: Platform, network: Network, clock: TestClock.TestCloc
       broken.push(`the device failed and the page shows ${page._tag}: ${where()}`);
     if (reader.wants === 'pause' && now - reader.at > within && device.state() === 'playing')
       broken.push(`the reader paused and the device plays: ${where()}`);
+    scrub = Option.filter(scrub, ({ to }) => !Option.contains(device.media.sought, to));
+    if (Option.exists(scrub, ({ at }) => now - at > within))
+      broken.push(`a remote seek was never asked of the device: ${where()}`);
   };
   /** Moves the clock `ms` on, looking at the page every `look`. */
   const pass = (ms: number) =>
@@ -567,6 +596,7 @@ const session = (platform: Platform, network: Network, clock: TestClock.TestCloc
         Resume: () => Player.$is('Paused')(now) || Player.$is('Ended')(now),
         Seek: () => plays || Player.$is('Paused')(now),
         Remote: ({ kind }) => device.media.loaded && device.media.paused === (kind === 'play'),
+        Scrub: () => (plays || Player.$is('Paused')(now)) && !device.failed(),
         Retry: () => Player.$is('Failed')(now),
         Drop: () => device.media.online && device.media.loaded,
         Back: () => !device.media.online,
@@ -607,7 +637,15 @@ const session = (platform: Platform, network: Network, clock: TestClock.TestCloc
       Remote: ({ kind }) =>
         Effect.gen(function* () {
           ask(kind);
-          fibers.push(yield* Effect.forkChild(device.press(kind)));
+          fibers.push(yield* Effect.forkChild(device.press(kind, 0)));
+          yield* settle;
+          judge(shown());
+        }),
+      Scrub: ({ share }) =>
+        Effect.gen(function* () {
+          const to = Math.floor(share * (length - 10));
+          scrub = Option.some({ to, at: t() });
+          fibers.push(yield* Effect.forkChild(device.press('seek', to)));
           yield* settle;
           judge(shown());
         }),

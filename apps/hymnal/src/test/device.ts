@@ -10,13 +10,7 @@
 
 import { Effect, Layer, Match, Option, Queue, Stream } from 'effect';
 
-import {
-  type Announcement,
-  Playback,
-  PlaybackError,
-  type Remote,
-  type Status,
-} from '../player/player';
+import { type Announcement, Playback, PlaybackError, Remote, type Status } from '../player/player';
 
 export const fakeDevice = () => {
   const remote = Effect.runSync(Queue.unbounded<Remote>());
@@ -37,10 +31,16 @@ export const fakeDevice = () => {
      */
     waiting: 0,
     announced: new Array<Announcement>(),
-    /** The lock screen's play, pause or seek: the session moves to `next`, then tells the app. */
-    press: (kind: Remote, next: Status) => {
+    /** The lock screen's play or pause: the session moves to `next`, then tells the app. */
+    press: (kind: 'play' | 'pause', next: Status) => {
       device.now = next;
-      Queue.offerUnsafe(remote, kind);
+      Queue.offerUnsafe(
+        remote,
+        Match.value(kind).pipe(
+          Match.when('play', () => Remote.Play()),
+          Match.orElse(() => Remote.Pause()),
+        ),
+      );
     },
   };
   /** What the device says of `status`: `loading` while it waits. */

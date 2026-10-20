@@ -72,13 +72,22 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   (a Play buffers, a Pause pauses), before the device answers it. One's
   `Audio` sends no status events, so the player reads the status every
   250 ms while the device says it loads or plays, and while it has not
-  answered a resume or a seek (the web's `play()` waits until the element
-  plays), whatever the page shows.
+  answered a play, a resume or a seek (the web's `play()` waits until the
+  element plays), whatever the page shows. Each ask runs beside the reads,
+  so a Start or a Retry is read from its press.
 - A recording that cannot play says so on the page: "The recording needs a
   connection." when the device is offline, else "The recording could not be
-  played.", with Retry beside it.
+  played.", with Retry beside it. A recording that still loads 15 s
+  after its Start or Retry (the web's element waits with no error when the
+  connection drops mid-load) fails the same way.
 - The app announces the hymn to the lock screen and Control Center, and
-  follows their play, pause and seek. `vite.config.ts` turns on
+  follows their play, pause and seek: each press is a command of the
+  player, as the page's own buttons are. On a phone the session moves
+  first and tells the app; on the web the page sets the Media Session's
+  handlers itself, after One's `play` and `setNowPlayingInfo` (One's
+  handlers wait for the element to play before they tell), so a press
+  shows on the page at once (`src/player/playback.live.test.ts`).
+  `vite.config.ts` turns on
   `native.app.audio.background`, so the prebuild writes the `audio`
   background mode (iOS) and the media playback service (Android).
 - The bar above the tabs is the native tab bar's bottom accessory on iOS 26
@@ -107,8 +116,11 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   Chrome's event order.
 - `src/player/status.property.test.ts` holds the page to the reader's Play
   over seeded runs on each device's playback (the web, iOS, Android) and a
-  network that loads at once, at Slow 4G or at 3G: after a Play the page
-  never shows Paused, and the status is read while the device answers.
+  network that loads at once, at Slow 4G or at 3G, with Plays and Pauses
+  from the page, the bar's seeks and the lock screen or Media Session, the
+  connection dropped and back, and errors with Retry: after a Play the page
+  never shows Paused, the status is read while the device answers, a
+  spinner ends, and a device that fails shows Failed with Retry.
 - The tests run the player over a device the test holds
   (`src/test/device.ts`): each state and move in `src/player/player.test.ts`,
   and the page's control and the bar, pressed in a document, in

@@ -38,3 +38,6 @@ export function useLinkTo({ href }: { readonly href: string }) {
 export const Link = { resolveHref: (href: string) => href };
 
 export const Stack = { Screen: (_: { readonly options: object }) => <></> };
+
+/** One's device modules, which no test reaches: the player's tests hand in their own (`playbackOn`). */
+export const One = {};
