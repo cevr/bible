@@ -206,14 +206,20 @@ describe("a workspace's test files", () => {
           "testIgnore: 'A.spec.ts'",
           "testIgnore: '*.@(spec|xyz).ts'",
           '"testIgnore": /a\\.spec/',
+          "'testIgnore': '**/a.spec.ts'",
           'testIgnore: /\\/test\\/browser\\/a\\.spec\\.ts$/',
           'testIgnore: /^\\/repo\\/w\\/test\\/browser\\/a/',
         ])
-          expect(reaches(scripts, files, config(`export default { ${ignore} };`))).toEqual([
-            'test/browser/a.spec.ts: none',
-            'test/browser/b.test.ts: test:browser',
-            'test/c.spec.ts: none',
-          ]);
+          for (const text of [
+            `export default { ${ignore} };`,
+            // A setting in a comment, or of another object, sets nothing.
+            `// testIgnore: '**/b.test.ts'\nconst other = { testIgnore: '**/b.test.ts' };\nexport default defineConfig({ ${ignore} });`,
+          ])
+            expect(reaches(scripts, files, config(text))).toEqual([
+              'test/browser/a.spec.ts: none',
+              'test/browser/b.test.ts: test:browser',
+              'test/c.spec.ts: none',
+            ]);
         // A regex anchored at a path from the workspace matches no absolute path, in playwright too.
         expect(
           reaches(scripts, files, config('export default { testMatch: /^test\\/browser\\// };')),
@@ -229,6 +235,11 @@ describe("a workspace's test files", () => {
           config("const testIgnore = '**/a.spec.ts';\nexport default { testIgnore };"),
           config('export default { projects: [] };'),
           config("export default { 'projects': [] };"),
+          config("export default { ...base, testDir: '.' };"),
+          config("const key = 'testDir';\nexport default { [key]: 'elsewhere' };"),
+          config("const config = { testDir: '.' };\nexport default config;"),
+          config("export default defineConfig(base, { testDir: '.' });"),
+          config('export default { testDir: '),
           {},
         ])
           expect(reaches(scripts, files, configs).map((line) => line.endsWith(': none'))).toEqual([

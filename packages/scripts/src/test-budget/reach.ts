@@ -15,16 +15,19 @@
 // under the config's `testDir`, its absolute path matched by its
 // `testMatch` and not by its `testIgnore`, each read as playwright's file
 // matcher reads it (a regex as written, a glob by `globMatcher`), and by one
-// of the command's filters when it names any; a config the reader cannot
-// read (none, a `testDir`, `testMatch` or `testIgnore` named as anything but
-// a literal, `projects`) takes none. A by-hand script's other commands (a
+// of the command's filters when it names any. The reader parses the config
+// and reads the object it exports (`settingsOf`); a config it cannot read
+// (none, one that does not parse or exports anything else, a spread or a
+// computed key in it, a `testDir`, `testMatch` or `testIgnore` set as
+// anything but a literal, `projects`) takes none. A by-hand script's other commands (a
 // wrapper of `bun test`) reach a file only by naming it, or a folder that
 // holds it, by its path. A file named as a test that registers none
 // (`holdsTests`) needs no script.
 
 import { Glob } from 'bun';
-import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
 import { minimatch } from 'minimatch';
+import { type Expression, type ObjectExpression, parseSync } from 'oxc-parser';
 import { gateFiles } from '../guard/files.ts';
 import { commandsOf } from './shell.ts';
 
@@ -177,22 +180,6 @@ const PLAYWRIGHT_CONFIGS = ['ts', 'js', 'mts', 'mjs', 'cts', 'cjs'].map(
 /** Playwright's own `testMatch` when its config sets none. */
 const PLAYWRIGHT_MATCH = '**/*.@(spec|test).?(c|m)[jt]s?(x)';
 
-/** Where a config sets `key`: the key, bare or quoted, and its colon. */
-const keyAt = (key: string) => `\\b${key}['"]?\\s*:\\s*`;
-
-/**
- * A config's `key`: none when the config names it anywhere but as a quoted
- * string (a list, a variable, a key in shorthand), else the string, or none
- * inside when the config does not name it.
- */
-const literalOf = (text: string, key: string): Option.Option<Option.Option<string>> => {
-  if (!new RegExp(`\\b${key}\\b`).test(text)) return Option.some(Option.none());
-  return Option.map(
-    Option.fromNullishOr(new RegExp(`${keyAt(key)}(['"])([^'"\n]*)\\1`).exec(text)),
-    (m) => Option.some(m[2] ?? ''),
-  );
-};
-
 /**
  * A test of a file's absolute path by a glob, as playwright's
  * `createFileMatcher` makes one: `**\/` before it unless it starts so, read
@@ -206,31 +193,73 @@ const globMatcher = (pattern: string) => {
 };
 
 /**
- * A config's `key` (`testMatch`, `testIgnore`) as a test of a file's
- * absolute path, as playwright tests it: a regex literal or a quoted
- * glob, `absent` when the config sets none; none when it sets it some other
- * way (a list, a name), which this does not read.
+ * The settings a config's default export sets, each by its key: the object
+ * it exports, as written or passed alone to `defineConfig`. None when the
+ * config does not parse, exports anything else, or sets a key the reader
+ * cannot name (a spread, a computed key), which could set any setting.
+ */
+const settingsOf = (file: string, text: string): Option.Option<ReadonlyMap<string, Expression>> => {
+  const parsed = parseSync(file, text);
+  if (parsed.errors.length > 0) return Option.none();
+  const exported = parsed.program.body.flatMap((node) => {
+    if (node.type !== 'ExportDefaultDeclaration') return [];
+    return [node.declaration];
+  });
+  const [declaration, ...more] = exported;
+  if (more.length > 0) return Option.none();
+  return Option.flatMap(Option.fromUndefinedOr(declaration), (node) => {
+    let object = Option.none<ObjectExpression>();
+    if (node.type === 'ObjectExpression') object = Option.some(node);
+    if (
+      node.type === 'CallExpression' &&
+      node.callee.type === 'Identifier' &&
+      node.callee.name === 'defineConfig' &&
+      node.arguments.length === 1
+    )
+      Option.map(Option.fromUndefinedOr(node.arguments[0]), (argument) => {
+        if (argument.type === 'ObjectExpression') object = Option.some(argument);
+      });
+    return Option.flatMap(object, (config) => {
+      const settings = new Map<string, Expression>();
+      for (const property of config.properties) {
+        if (property.type === 'SpreadElement' || property.computed) return Option.none();
+        if (property.key.type === 'Identifier') settings.set(property.key.name, property.value);
+        else if (property.key.type === 'Literal')
+          settings.set(String(property.key.value), property.value);
+        else return Option.none();
+      }
+      return Option.some(settings);
+    });
+  });
+};
+
+/** A setting's string: none when it is set as anything but a string literal. */
+const stringOf = (value: Expression): Option.Option<string> => {
+  if (value.type !== 'Literal' || !Predicate.isString(value.value)) return Option.none();
+  return Option.some(value.value);
+};
+
+/**
+ * A `testMatch` or `testIgnore` setting as a test of a file's absolute
+ * path, as playwright tests it: a regex literal as written, a string
+ * literal by `globMatcher`, `absent` when the config sets none; none when it
+ * sets it some other way (a list, a name), which this does not read.
  */
 const patternOf = (
-  text: string,
+  settings: ReadonlyMap<string, Expression>,
   key: string,
   absent: (file: string) => boolean,
 ): Option.Option<(file: string) => boolean> =>
-  Option.match(
-    Option.fromNullishOr(
-      new RegExp(`${keyAt(key)}\\/((?:\\\\.|[^/\\\\\\n])+)\\/([a-z]*)`).exec(text),
-    ),
-    {
-      onSome: (regex) => {
-        const match = new RegExp(regex[1] ?? '', regex[2]);
+  Option.match(Option.fromUndefinedOr(settings.get(key)), {
+    onNone: () => Option.some(absent),
+    onSome: (value) => {
+      if (value.type === 'Literal' && 'regex' in value) {
+        const match = new RegExp(value.regex.pattern, value.regex.flags);
         return Option.some((file: string) => match.test(file));
-      },
-      onNone: () =>
-        Option.map(literalOf(text, key), (glob) =>
-          Option.match(glob, { onNone: () => absent, onSome: globMatcher }),
-        ),
+      }
+      return Option.map(stringOf(value), globMatcher);
     },
-  );
+  });
 
 /**
  * The files `playwright test` takes with `words` (the command's words past
@@ -269,27 +298,34 @@ const playwrightRun = (
     Option.fromUndefinedOr(PLAYWRIGHT_CONFIGS.find((name) => name in configs)),
   );
   const takes = Option.flatMap(file, (at) =>
-    Option.flatMap(Option.fromUndefinedOr(configs[at]), (text) => {
-      if (/\bprojects\b/.test(text)) return Option.none();
-      const folder = at.split('/').slice(0, -1);
-      return Option.flatMap(literalOf(text, 'testDir'), (dir) =>
-        Option.flatMap(pathOf([...folder, Option.getOrElse(dir, () => '.')].join('/')), (root) =>
-          Option.map(
-            Option.all([
-              patternOf(text, 'testMatch', globMatcher(PLAYWRIGHT_MATCH)),
-              patternOf(text, 'testIgnore', () => false),
-            ]),
-            ([matches, ignored]) =>
-              (path: string) => {
-                const under = root === '' || path.startsWith(`${root}/`);
-                const file = `${absolute}/${path}`;
-                const named = filters.length === 0 || filters.some((f) => new RegExp(f).test(file));
-                return under && matches(file) && !ignored(file) && named;
-              },
+    Option.flatMap(Option.fromUndefinedOr(configs[at]), (text) =>
+      Option.flatMap(settingsOf(at, text), (settings) => {
+        if (settings.has('projects')) return Option.none();
+        const folder = at.split('/').slice(0, -1);
+        const dir = Option.match(Option.fromUndefinedOr(settings.get('testDir')), {
+          onNone: () => Option.some('.'),
+          onSome: stringOf,
+        });
+        return Option.flatMap(dir, (dir) =>
+          Option.flatMap(pathOf([...folder, dir].join('/')), (root) =>
+            Option.map(
+              Option.all([
+                patternOf(settings, 'testMatch', globMatcher(PLAYWRIGHT_MATCH)),
+                patternOf(settings, 'testIgnore', () => false),
+              ]),
+              ([matches, ignored]) =>
+                (path: string) => {
+                  const under = root === '' || path.startsWith(`${root}/`);
+                  const file = `${absolute}/${path}`;
+                  const named =
+                    filters.length === 0 || filters.some((f) => new RegExp(f).test(file));
+                  return under && matches(file) && !ignored(file) && named;
+                },
+            ),
           ),
-        ),
-      );
-    }),
+        );
+      }),
+    ),
   );
   return {
     kind: 'playwright',
