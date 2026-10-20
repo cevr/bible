@@ -85,7 +85,8 @@
       ],
       "judge": "reach-judge-reach-t01 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p035-strip0.jpg refrain system 1, upper row: the word that opens the database's line 2 is printed lowercase (\"the\"), so no capital marks a line there, and the header's \"Ref.\" gives the refrain no syllable counts. The page fits the joined line at least as well as the database's two.",
-      "unreachable": ["join:refrain.1.1"]
+      "unreachable": ["join:refrain.1.1"],
+      "layout": "3c28b07881b7d43a"
     }
   ]
 }

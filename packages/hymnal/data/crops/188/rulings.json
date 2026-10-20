@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t09 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:2.4: 188-strip0.jpg system 2, stanza 2's row: line 4 ends on a full stop, so the moved word takes its capital anyway, and the word it leaves to open line 5 is the interjection O, always a capital. The page prints no metre. movedown:3.4: 188-strip0.jpg system 2, stanza 3's row: the moved word is a title of Christ, printed with a capital where it ends a line in the database's layout (here, and in stanza 6's row of the same system), and line 5's first word follows a full stop. The page prints no metre. moveup:3.4: 188-strip0.jpg system 2, stanza 3's row: line 4 ends on a full stop, so the moved word takes its capital anyway, and the word it leaves to open line 5 opens a quotation and is printed with a capital as line 5's second word in the database's layout. The page prints no metre. movedown:6.4: 188-strip0.jpg system 2, stanza 6's row (repeated at the top of 188-strip800.jpg): the moved word is a pronoun for Christ, printed with a capital where it ends line 4 in the database's layout, and line 5's first word follows an exclamation mark that closes a sentence (the page's lowercase after an exclamation mark, stanza 4's row of system 3, comes only inside a sentence). The page prints no metre.",
-      "unreachable": ["moveup:2.4", "movedown:3.4", "moveup:3.4", "movedown:6.4"]
+      "unreachable": ["moveup:2.4", "movedown:3.4", "moveup:3.4", "movedown:6.4"],
+      "layout": "5acdabaaddfe1a13"
     }
   ]
 }

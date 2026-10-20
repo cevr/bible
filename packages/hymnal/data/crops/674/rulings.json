@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t36 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:3.2: 674-strip0.jpg system 1, stanza 3's row, last word: the moved word follows a full stop, so its capital is expected anyway, and the word that would open line 3 instead (system 2, first word) is a name of God, capital anyway; the header prints no metre. 674-strip800.jpg is blank.",
-      "unreachable": ["moveup:3.2"]
+      "unreachable": ["moveup:3.2"],
+      "layout": "f55e6a5465dd3cbf"
     }
   ]
 }

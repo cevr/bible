@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-r02 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: p027-strip1600.jpg system 3, the Refrain's top row: the first two words are the same word, each printed with a capital and an exclamation mark, so the second has a capital anyway after a sentence end. The header's S.M.Ref. gives the refrain no syllable count. join:refrain.1.1: p027-strip1600.jpg system 3, the Refrain's top row: line 2's opener follows an exclamation mark, so its capital is there anyway and marks no line. The header's S.M.Ref. gives the refrain no syllable count. movedown:refrain.1.1: p027-strip1600.jpg system 3, the Refrain's top row: the moved word and line 2's opener are the same word, each with a capital after an exclamation mark, so either can open the line. The header's S.M.Ref. gives the refrain no syllable count.",
-      "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "movedown:refrain.1.1"]
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "movedown:refrain.1.1"],
+      "layout": "cb4eb66264420983"
     }
   ]
 }

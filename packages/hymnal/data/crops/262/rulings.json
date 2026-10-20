@@ -320,7 +320,8 @@
       ],
       "judge": "reach-judge-reach-t14 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.7: System 4's row (measure 23): the word that opens the database's line 8 is printed lowercase, after a word with no mark, so the page marks no line opening there. The page prints no metre, so the joined layout fits it as well as the database's.",
-      "unreachable": ["join:refrain.1.7"]
+      "unreachable": ["join:refrain.1.7"],
+      "layout": "e1f1dafd8ccfd9d4"
     },
     {
       "sites": [],
@@ -340,7 +341,8 @@
       ],
       "judge": "reach-judge-reach-t14 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.1: can: System 1, stanza 2's row (measure 4): the moved word is printed lowercase, so it cannot open a line. The plain conjunction after it is printed with a capital after a comma, which marks the line opening the change removes. moveup:2.1: can: System 1, stanza 2's row (measures 4 to 5): the moved word, a plain conjunction, is printed with a capital right after a comma. That capital marks it as a line's first word, not the last word of the line before.",
-      "gaps": ["movedown:2.1", "moveup:2.1"]
+      "gaps": ["movedown:2.1", "moveup:2.1"],
+      "layout": "e1f1dafd8ccfd9d4"
     }
   ]
 }

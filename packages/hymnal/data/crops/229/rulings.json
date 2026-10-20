@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t12 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.4: can: p225-strip0.jpg header prints C.M. (8.6.8.6.); p225-strip800.jpg system 3, stanza 2's row: line 4 is 6 syllables ending in an exclamation mark, and the moved word makes it 7, which the metre's fourth line rejects. The capitals alone would not tell: the moved word follows the exclamation mark and the next is a pronoun of God. moveup:3.4: can: p225-strip0.jpg header prints C.M. (8.6.8.6.); p225-strip800.jpg system 3, stanza 3's row: line 4 is 6 syllables ending in an exclamation mark, and the moved word makes it 7, which the metre's fourth line rejects. The capitals alone would not tell: the moved word follows the exclamation mark and the next is a pronoun of God.",
-      "gaps": ["moveup:2.4", "moveup:3.4"]
+      "gaps": ["moveup:2.4", "moveup:3.4"],
+      "layout": "8e7d62ec35a9f8df"
     }
   ]
 }

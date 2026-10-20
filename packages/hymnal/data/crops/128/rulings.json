@@ -50,7 +50,8 @@
       ],
       "judge": "reach-judge-reach-t05 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:1.4: 128-strip0.jpg system 3 (bars 7-9), stanza 1's row: the moved word (This) follows a full stop (warning.), a capital anyway, and the change opens line 5 on Child, a title of Christ printed with a capital. The page prints no metre; the fermata on the note before is a pause in the tune (it falls only at every second line's end), not a line mark.",
-      "unreachable": ["moveup:1.4"]
+      "unreachable": ["moveup:1.4"],
+      "layout": "2817b0fb253649cc"
     }
   ]
 }

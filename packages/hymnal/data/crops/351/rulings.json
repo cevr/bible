@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t19 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:3.2: 351-strip0.jpg, stanza 3's row: the moved word, last on system 1, is a pronoun of God printed with a capital (the page capitalizes every such pronoun mid-line), and the word after it, opening system 2 and the new opener, is a name of God with a capital. The header prints no metre.",
-      "unreachable": ["moveup:3.2"]
+      "unreachable": ["moveup:3.2"],
+      "layout": "7ae4e47862a1853d"
     }
   ]
 }

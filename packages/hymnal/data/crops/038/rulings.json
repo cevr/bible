@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-r03 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:1.3: 038-strip0.jpg system 2, stanza 1's row: the moved word is a name of God, printed with a capital anyway and followed by a full stop, so the word after it takes a capital either way; the header prints no metre. movedown:1.6: 038-strip0.jpg system 3, stanza 1's row (again atop 038-strip800.jpg): the moved word is a name of God followed by a full stop, and the word after it is a pronoun of God, so both print with a capital either way; the header prints no metre. join:1.11: 038-strip800.jpg system 5: the joined-on line is printed once, between the two stanzas' rows, and opens with a capital after the colon that ends stanza 1's row and introduces it as the words the voice sings (its repeats print lowercase); that capital reads the same whether a line opens there or not, and the header prints no metre. join:2.11: 038-strip800.jpg system 5: the joined-on line, printed once between the two stanzas' rows, opens with a capital after the full stop that ends stanza 2's row, so the capital reads the same with or without a line opening; the header prints no metre.",
-      "unreachable": ["movedown:1.3", "movedown:1.6", "join:1.11", "join:2.11"]
+      "unreachable": ["movedown:1.3", "movedown:1.6", "join:1.11", "join:2.11"],
+      "layout": "dcc7e8386bb6ecf2"
     }
   ]
 }

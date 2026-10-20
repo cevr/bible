@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t20 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: p378-strip0.jpg system 1, refrain row: line 2's word 2 is the day's name, which the page capitalises anyway, also mid-line in stanzas 1 and 2 on p377-strip0.jpg system 1. The header gives the refrain no metre (Ref. only). join:refrain.1.2: p378-strip0.jpg system 1, refrain row: line 3's first word follows the full stop that ends line 2, so its capital comes anyway. The header gives the refrain no metre, so the joined layout looks the same. split:refrain.1.4: p378-strip0.jpg system 1, refrain row: line 4's word 2 is the day's name, capitalised anyway (stanzas 1 and 2 on p377-strip0.jpg print it so mid-line). No refrain metre is printed, so the split cannot be told apart.",
-      "unreachable": ["split:refrain.1.2", "join:refrain.1.2", "split:refrain.1.4"]
+      "unreachable": ["split:refrain.1.2", "join:refrain.1.2", "split:refrain.1.4"],
+      "layout": "8bcbeda42095fac1"
     },
     {
       "sites": [],
@@ -53,7 +54,8 @@
       ],
       "judge": "reach-judge-reach-t20 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.4: can: The header on p377-strip0.jpg prints 12.13.13.13.Ref., each number a pair of the database's lines; counted on stanza 3's row (p377-strip0.jpg system 1, p377-strip800.jpg system 2), the second 13 ends on the moved word. The move makes those pairs 12 and 14, though the capitals at the place come anyway (a title of Christ, an interjection). swaplines:1.3: can: Stanza 1's row (end of p377-strip0.jpg system 1, p377-strip800.jpg system 2) prints line 3, the one ending on the longer superlative, before line 4, whose last word differs. The swap puts them in an order the page does not sing.",
-      "gaps": ["movedown:3.4", "swaplines:1.3"]
+      "gaps": ["movedown:3.4", "swaplines:1.3"],
+      "layout": "8bcbeda42095fac1"
     }
   ]
 }

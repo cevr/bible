@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t30 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p528-strip800.jpg system 3 (Refrain), its one row: line 2 opens on a name of Christ, printed with a capital wherever it stands, after a comma. The header on p528-strip0.jpg gives counts (8.7.8.7.) for the stanzas only and prints the refrain as Ref. with no counts, and no text block prints the lines. join:refrain.1.2: p528-strip1600.jpg: the refrain's first row ends on a full stop, and its second row (system 2) opens on the same name of Christ, printed with a capital anyway. The header prints the refrain as Ref. with no counts, so nothing fixes where its lines break. split:refrain.1.4: p528-strip1600.jpg system 2, the refrain's second row: the word the split opens a line on is the first-person pronoun, printed with a capital wherever it stands. The header gives the refrain no counts (Ref. only), so nothing on the page fixes the line.",
-      "unreachable": ["join:refrain.1.1", "join:refrain.1.2", "split:refrain.1.4"]
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2", "split:refrain.1.4"],
+      "layout": "ef093dcd6f28f7e2"
     }
   ]
 }

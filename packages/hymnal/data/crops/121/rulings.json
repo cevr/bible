@@ -57,7 +57,8 @@
       ],
       "judge": "reach-judge-reach-t05 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.4: p118-strip800.jpg system 2, the refrain row: the word the split opens on (word 3 of line 4) is a name of Christ, printed with a capital anyway. The header's 7.6.7.6. fits the stanzas only (the refrain's line 2 runs 8 syllables), so no metre fixes the refrain's lines.",
-      "unreachable": ["split:refrain.1.4"]
+      "unreachable": ["split:refrain.1.4"],
+      "layout": "9e31dbd7861e7cdf"
     }
   ]
 }

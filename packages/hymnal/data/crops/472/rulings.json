@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t25 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.3: p462-strip0.jpg system 1, the refrain's row: word 4, where the split opens a line, is printed with a capital (as is word 6), so the capital fits a line opening there. The header's 7.6.7.6.D.R (p461-strip0.jpg) doubles the eight-line stanza and prints no metre for the refrain, so nothing fixes its lines. split:refrain.1.4: p462-strip0.jpg system 1, the refrain's row: word 3, where the split opens a line, is a name of God, printed with a capital anyway. The header's 7.6.7.6.D.R prints no metre for the refrain, so nothing fixes its lines.",
-      "unreachable": ["split:refrain.1.3", "split:refrain.1.4"]
+      "unreachable": ["split:refrain.1.3", "split:refrain.1.4"],
+      "layout": "7835255a51fde91e"
     }
   ]
 }

@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-r04 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.4: can: p046-strip800.jpg, stanza 2's row: system 2 ends 'with Thee.' (a 6-syllable line) and system 3 opens 'Thy ear-nest' (an 8-syllable line); both capitals are divine pronouns, but the header's C.M.D. (p046-strip0.jpg) fixes lines of 8 and 6 syllables, and the move makes these 5 and 9. join:refrain.1.2: can: The capital on 'O' (p046-strip1600.jpg, refrain system 2's first word, after 'e-ven-tide!') would not tell, but the header's C.M.D. counts eight lines of 8 and 6 while the stanza rows hold six, so its eighth is the refrain's 6-syllable 'Be-hold, 'tis e-ven-tide!' at the end of refrain system 1; the join makes that line 14 syllables. moveup:refrain.1.2: can: 'O' and 'Sav-ior' (p046-strip1600.jpg, refrain system 2's row) are printed with capitals anyway, but the header's C.M.D. counts eight lines while the stanza rows hold six, so the refrain's 'Be-hold, 'tis e-ven-tide!' (end of refrain system 1) is its 6-syllable eighth line; ending it on 'O' makes it 7.",
-      "gaps": ["movedown:2.4", "join:refrain.1.2", "moveup:refrain.1.2"]
+      "gaps": ["movedown:2.4", "join:refrain.1.2", "moveup:refrain.1.2"],
+      "layout": "6c181b3fad75b005"
     }
   ]
 }

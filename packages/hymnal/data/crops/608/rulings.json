@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t32 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p594-strip0.jpg the refrain's first system: line 1 ends with an exclamation mark, so line 2's first word carries a capital anyway (lines 1 and 2 are printed with the same words); the header prints C.M.D. for the stanzas and only Ref. for the refrain, so no metre fixes the refrain's lines. join:refrain.1.2: p594-strip0.jpg the refrain's two systems: line 2 ends the first with an exclamation mark, and line 3's first word is the vocative O, capitalised either way; the refrain has no printed metre, so nothing tells the joined line from two.",
-      "unreachable": ["join:refrain.1.1", "join:refrain.1.2"]
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2"],
+      "layout": "ae93ecf31076232c"
     }
   ]
 }

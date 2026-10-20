@@ -206,7 +206,8 @@
       ],
       "judge": "reach-judge-reach-t01 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:1.7: 003-strip1600.jpg system 4, stanza 1's row: \"God\" is printed with a capital (a name of God), and the metre's 3.3.6.6. puts it at the head of the 6-syllable line, so the page fits the moved layout, not the database's, whose line 8 opens on \"in\", printed lowercase. The page shows the database's own break here as off, not the change.",
-      "unreachable": ["movedown:1.7"]
+      "unreachable": ["movedown:1.7"],
+      "layout": "ea6ac8c4d1f1460a"
     },
     {
       "sites": [],
@@ -240,7 +241,8 @@
       ],
       "judge": "reach-judge-reach-t01 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.3: can: 003-strip800.jpg system 2, stanza 1's row: \"Him.\" (with a full stop) is the 8th syllable of line 3, and the header metre 6.6.8.6. fixes line 3 at 8 and line 4 at 6. The move makes them 7 and 7; the capital on \"Him\" alone would not tell. movedown:1.6: can: System 3, stanza 1's row (003-strip800.jpg and 003-strip1600.jpg): \"Him.\" with a full stop is the 8th syllable of line 6, which the header metre fixes at 8. The move leaves line 6 at 7 syllables; the capital on \"Him\" alone would not tell. moveup:1.6: can: System 3, stanza 1's row: \"Now\" follows \"Him.\", and the header metre fixes line 6 at 8 syllables; the move makes it 9. Capitals alone would not tell (\"Now\" follows a full stop, the next word is a divine pronoun). moveup:2.3: can: 003-strip800.jpg system 2, stanza 2's row: the word after \"Come,\" is printed lowercase (\"in-\"), and the move opens line 4 on it. The header metre also fixes line 3 at 8 syllables, which the move makes 9. moveup:2.6: can: System 3, stanza 2's row: \"Where\" follows a full stop and the new line would open on \"I\", capital anyway, so capitals would not tell. The header metre fixes line 6 at 8 syllables, which the move makes 9.",
-      "gaps": ["movedown:1.3", "movedown:1.6", "moveup:1.6", "moveup:2.3", "moveup:2.6"]
+      "gaps": ["movedown:1.3", "movedown:1.6", "moveup:1.6", "moveup:2.3", "moveup:2.6"],
+      "layout": "ea6ac8c4d1f1460a"
     }
   ]
 }

@@ -282,7 +282,8 @@
       ],
       "judge": "reach-judge-reach-t03 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:3.7: 080-strip800.jpg system 4 (from bar 16), stanza 3's row: \"the\" after \"God,\" is printed lowercase, as the page prints every even line's opener in this hymn, so nothing marks a line opening there; the header prints no metre and no text block is printed. movedown:3.7: 080-strip800.jpg system 4 (from bar 16), stanza 3's row: the moved word \"God\" is printed with a capital (a name of God) and the old opener \"the\" is lowercase, so a line opening on \"God\" reads the same; no metre is printed.",
-      "unreachable": ["join:3.7", "movedown:3.7"]
+      "unreachable": ["join:3.7", "movedown:3.7"],
+      "layout": "9b3d87bf449804d6"
     }
   ]
 }

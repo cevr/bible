@@ -135,7 +135,8 @@
       ],
       "judge": "reach-judge-reach-t22 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: p407-strip1600.jpg, the first Refrain system, top row: the word that stops opening a line is printed with a capital after a comma (\"Zi-on, Beau-ti-ful,\") while its repeat right after is lowercase; it is no name, I or O and follows no stop, so only a line's opening explains that capital. movedown:refrain.1.1: can: p407-strip1600.jpg, the first Refrain system, top row: the moved name is capitalised either way, but the old opener after it is printed with a capital after a comma and its repeat is lowercase, so the change leaves that capital mid-line with nothing to explain it.",
-      "gaps": ["join:refrain.1.1", "movedown:refrain.1.1"]
+      "gaps": ["join:refrain.1.1", "movedown:refrain.1.1"],
+      "layout": "64befc6bdfddfa15"
     }
   ]
 }

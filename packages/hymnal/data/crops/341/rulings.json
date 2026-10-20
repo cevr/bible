@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t18 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.4: 341-strip1600.jpg system 5 (the refrain's second system), its one row: line 5 opens mid-row, after a semicolon, on the interjection 'O', printed with a capital anyway. The header's '11.11.11.11. Ref.' gives the stanzas' metre only; the refrain has none printed, and the page prints no text below the music. split:refrain.1.5: 341-strip1600.jpg system 5, its one row: the word the split opens a line on is 'Father', a name of God printed with a capital anyway; the line runs on to the right page's first system (341-p2-strip0.jpg). The refrain has no printed metre that fixes its lines.",
-      "unreachable": ["join:refrain.1.4", "split:refrain.1.5"]
+      "unreachable": ["join:refrain.1.4", "split:refrain.1.5"],
+      "layout": "688b6b2888bbde5c"
     }
   ]
 }

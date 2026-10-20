@@ -77,7 +77,8 @@
       ],
       "judge": "reach-judge-reach-t37 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:1.5: 682-strip800.jpg system 4, the one lyric row: line 6's first word is printed lowercase after a comma, with no rest or bar mark before it, so the page marks no line opening there. The header prints no metre. split:1.6: 682-strip800.jpg system 4: line 6's word 4 is a divine pronoun printed with a capital, as the page prints those pronouns mid-line in lines 1 to 3 (682-strip0.jpg systems 1 and 2). No rest, bar mark or metre fixes a break there.",
-      "unreachable": ["join:1.5", "split:1.6"]
+      "unreachable": ["join:1.5", "split:1.6"],
+      "layout": "ee4859b8bd53a853"
     }
   ]
 }

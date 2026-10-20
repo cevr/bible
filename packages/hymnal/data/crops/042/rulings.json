@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-r03 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:4.1: 042-strip0.jpg system 1, stanza 4's row: the moved word is a name of God, printed with a capital anyway and followed by an exclamation mark, so the word after it takes a capital either way; the header prints no metre. movedown:4.2: 042-strip0.jpg system 2, stanza 4's row: the moved word is a title of Christ, printed with a capital anyway and followed by an exclamation mark, so the word after it takes a capital either way; the header prints no metre.",
-      "unreachable": ["movedown:4.1", "movedown:4.2"]
+      "unreachable": ["movedown:4.1", "movedown:4.2"],
+      "layout": "1a49bb3545c868eb"
     }
   ]
 }

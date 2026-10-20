@@ -104,7 +104,8 @@
       ],
       "judge": "reach-judge-reach-t07 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:2.2: 162-strip0.jpg, stanza 2's row: \"To\" closes the system from bar 1 (off a line opening in the database's layout and the changed one alike) and \"God\" opens the system from bar 5 with a capital (a name of God); the header prints no metre, so nothing on the page tells the two apart. movedown:2.2: 162-strip0.jpg, the system from bar 5, stanza 2's row: the moved word \"Lamb\" is printed with a capital (a name of Christ), and \"I\", which no longer opens a line, is a capital anyway; the header prints no metre. split:2.3: 162-strip0.jpg, the system from bar 5, stanza 2's row: the second \"To God\" prints \"God\" with a capital (a name of God), and \"To\" stays off a line opening in both layouts; the header prints no metre, so nothing on the page tells the two apart. split:2.5: 162-strip800.jpg, the system from bar 10, stanza 2's row: the word after \"theme,\" is \"I\", printed with a capital anyway, and the header prints no metre, so nothing on the page marks whether a line opens there.",
-      "unreachable": ["split:2.2", "movedown:2.2", "split:2.3", "split:2.5"]
+      "unreachable": ["split:2.2", "movedown:2.2", "split:2.3", "split:2.5"],
+      "layout": "63c7c29dec49ddc2"
     }
   ]
 }

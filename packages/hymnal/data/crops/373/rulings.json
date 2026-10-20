@@ -434,7 +434,8 @@
       ],
       "judge": "reach-judge-reach-t20 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.3: p364-strip0.jpg system 1, second-time row: line 4 opens on a name of Christ, printed with a capital anyway, after the comma that ends line 3 on p363-strip1600.jpg. The header prints 10.9.10.9.Ref., no metre for the refrain, so nothing marks the break. movedown:refrain.1.3: The moved word, line 3's last on p363-strip1600.jpg system 1's second-time row, is a name of Christ printed with a capital anyway, and line 4's first word on p364-strip0.jpg is a name too. With no refrain metre printed, the shifted break looks the same.",
-      "unreachable": ["join:refrain.1.3", "movedown:refrain.1.3"]
+      "unreachable": ["join:refrain.1.3", "movedown:refrain.1.3"],
+      "layout": "ab25450617e6bc23"
     },
     {
       "sites": [],
@@ -478,7 +479,8 @@
         "split:refrain.1.3",
         "moveup:refrain.1.3",
         "split:refrain.1.4"
-      ]
+      ],
+      "layout": "ab25450617e6bc23"
     }
   ]
 }

@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t09 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:1.4: p180-strip800.jpg, stanza 1's row: line 4 ends system 2 on a full stop, so the moved word takes its capital anyway, and the word it leaves to open line 5 (system 3) is the first-person pronoun, always a capital. The header prints the metre as Irregular (p180-strip0.jpg), so no metre fixes the lines. moveup:3.4: p180-strip800.jpg, stanza 3's row: line 4 ends system 2 on a question mark that ends the sentence, so the moved word takes its capital anyway, and the word it leaves to open line 5 (system 3) is a pronoun for Christ, printed with a capital mid-line in stanza 1's row of system 2. The header's metre is Irregular.",
-      "unreachable": ["moveup:1.4", "moveup:3.4"]
+      "unreachable": ["moveup:1.4", "moveup:3.4"],
+      "layout": "b526ef04c8fbd131"
     }
   ]
 }

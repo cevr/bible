@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t10 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: p197-strip800.jpg system 3 (again at the top of p197-strip1600.jpg), the refrain's row: \"King\" is printed with a capital anyway (a name of Christ). The header (p197-strip0.jpg) prints 10.5.10.6. for the stanzas and only \"Ref.\" for the refrain, so no metre fixes the refrain's lines. join:refrain.1.3: p197-strip1600.jpg system 4, the refrain's row: \"Jesus\" is printed with a capital anyway (a name of Christ, inside an opening quotation mark), and nothing else marks a line there. The header (p197-strip0.jpg) prints only \"Ref.\" for the refrain, so no metre fixes its lines.",
-      "unreachable": ["split:refrain.1.1", "join:refrain.1.3"]
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.3"],
+      "layout": "cbe11a4bdb00b2e8"
     }
   ]
 }

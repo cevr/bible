@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-r01 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.4: can: In p016-strip800.jpg system 3, stanza 2's row, the moved 'My' follows the full stop that ends system 2, and 'God' is a name of God, so capitals do not separate the layouts. But the header's S.M. (6.6.8.6.) fixes line 4 at 6 syllables, and the change gives it 7. Line 5, the repeat of line 3's 8, gets 7. movedown:4.4: can: In p016-strip800.jpg, systems 2 and 3, stanza 4's row, the moved 'Thine' has a capital (a name of God) and 'Let' follows a full stop, so capitals do not separate the layouts. But the header's S.M. (6.6.8.6.) fixes line 4 at 6 syllables, and the change gives it 5. Line 5, a repeat of line 3's 8, gets 9.",
-      "gaps": ["moveup:2.4", "movedown:4.4"]
+      "gaps": ["moveup:2.4", "movedown:4.4"],
+      "layout": "db2866d1b2b8fa65"
     }
   ]
 }

@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t27 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:2.4: 510-strip800.jpg system 3 (bars 13-18), stanza 2's row: the moved word (line 5's first) follows the question mark that ends line 4 and opens a new sentence, so it carries a capital either way, and the word the change makes open line 5 is a pronoun of God, also a capital either way. The page (510-strip0.jpg) prints no metre and no text below the music to fix the lines.",
-      "unreachable": ["moveup:2.4"]
+      "unreachable": ["moveup:2.4"],
+      "layout": "9f4d09696750f53e"
     }
   ]
 }

@@ -114,39 +114,6 @@
     {
       "sites": [],
       "row": "",
-      "readings": ["the shape readings of the page (data/shapes.json)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "138.png",
-          "crop": "138-strip0.jpg",
-          "box": [0, 0, 1274, 1000],
-          "sha": "ab34492cca287350",
-          "shows": ""
-        },
-        {
-          "image": "138.png",
-          "crop": "138-strip800.jpg",
-          "box": [0, 800, 1274, 850],
-          "sha": "f959094319b78516",
-          "shows": ""
-        }
-      ],
-      "judge": "reach-judge-reach-t06 (Opus, effort max)",
-      "why": "The page cannot tell these changes from the row: join:refrain.1.2: 138-strip0.jpg system 3 (bars 10-14), refrain row: 'Leave' (ewes) is printed with a capital, but it follows 'fol-low.' with a full stop, so the capital is printed anyway; the header prints no metre. join:refrain.1.4: 138-strip800.jpg system 1 (bars 15-19), refrain row: the first 'Fol-low,' is printed with a capital right after 'fol-low.' with a full stop, so its capital is printed anyway; no metre fixes the lines. moveup:refrain.1.4: 138-strip800.jpg system 1, bars 17-18: both 'Fol-low,' words are printed with a capital, the first after 'fol-low.' (full stop), the second after a comma, so a line can open on either; no metre. split:refrain.1.5: 138-strip800.jpg system 1, bar 18: the second 'Fol-low,' is printed with a capital, so the page shows a word that can open a line where the split opens one; no metre fixes the lines. join:refrain.1.6: 138-strip800.jpg system 2 (bars 20-24): 'Fol-low the star' is printed with a capital right after 'fol-low.' with a full stop, so the capital is printed anyway; no metre.",
-      "unreachable": [
-        "join:refrain.1.2",
-        "join:refrain.1.4",
-        "moveup:refrain.1.4",
-        "split:refrain.1.5",
-        "join:refrain.1.6"
-      ]
-    },
-    {
-      "sites": [],
-      "row": "",
       "readings": ["shape2-16 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
@@ -187,6 +154,40 @@
       "settles": [
         "138 shape (shape2-16): the refrain after stanza 2: row 3 prints word 7 with a capital inside a line of stanza 2, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "138.png",
+          "crop": "138-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ab34492cca287350",
+          "shows": ""
+        },
+        {
+          "image": "138.png",
+          "crop": "138-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "f959094319b78516",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t06 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.2: 138-strip0.jpg system 3 (bars 10-14), refrain row: 'Leave' (ewes) is printed with a capital, but it follows 'fol-low.' with a full stop, so the capital is printed anyway; the header prints no metre. join:refrain.1.4: 138-strip800.jpg system 1 (bars 15-19), refrain row: the first 'Fol-low,' is printed with a capital right after 'fol-low.' with a full stop, so its capital is printed anyway; no metre fixes the lines. moveup:refrain.1.4: 138-strip800.jpg system 1, bars 17-18: both 'Fol-low,' words are printed with a capital, the first after 'fol-low.' (full stop), the second after a comma, so a line can open on either; no metre. split:refrain.1.5: 138-strip800.jpg system 1, bar 18: the second 'Fol-low,' is printed with a capital, so the page shows a word that can open a line where the split opens one; no metre fixes the lines. join:refrain.1.6: 138-strip800.jpg system 2 (bars 20-24): 'Fol-low the star' is printed with a capital right after 'fol-low.' with a full stop, so the capital is printed anyway; no metre.",
+      "unreachable": [
+        "join:refrain.1.2",
+        "join:refrain.1.4",
+        "moveup:refrain.1.4",
+        "split:refrain.1.5",
+        "join:refrain.1.6"
+      ],
+      "layout": "3692ae540c3ae8ea"
     }
   ]
 }

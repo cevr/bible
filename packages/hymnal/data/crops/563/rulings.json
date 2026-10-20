@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t30 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:1.2: 563-strip0.jpg: system 2's one row ends on a full stop, and system 3's row opens on a word printed with a capital after that full stop, so the capital needs no line opening. The hymn has one stanza (no other row under its notes), and the header prints no metre.",
-      "unreachable": ["join:1.2"]
+      "unreachable": ["join:1.2"],
+      "layout": "e180781ef6b52e8b"
     }
   ]
 }

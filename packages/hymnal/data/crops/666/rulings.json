@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t35 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:1.2: p651-strip0.jpg system 1 row: line 3 opens after a semicolon on a pronoun of God, printed with a capital, and the same row prints that pronoun with a capital mid-line in line 2. The header prints BIRMINGHAM Irregular, so no metre fixes the lines. join:1.3: p651-strip800.jpg system 2 row: line 4 opens after a semicolon on the same pronoun of God, printed with a capital as it is mid-line in line 2 (p651-strip0.jpg system 1). The metre is Irregular, so nothing fixes the break. join:1.4: p651-strip800.jpg system 3 row (again atop p651-strip1600.jpg): line 5 opens on a possessive addressed to the Lord right after a full stop, so it is printed with a capital anyway. The header's metre is Irregular, so nothing fixes the break.",
-      "unreachable": ["join:1.2", "join:1.3", "join:1.4"]
+      "unreachable": ["join:1.2", "join:1.3", "join:1.4"],
+      "layout": "b4b13ac0cd98fff5"
     }
   ]
 }

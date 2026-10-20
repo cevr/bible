@@ -55,7 +55,8 @@
       ],
       "judge": "reach-judge-reach-t36 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:1.5: 672-strip0.jpg system 3 (repeated at the top of 672-strip800.jpg), the one row: line 6's first word is printed lowercase after a comma, so nothing marks a line opening there, and the header prints no metre. join:1.6: 672-strip800.jpg, system 3's row ends on an exclamation mark and system 4 opens on line 7's first word: its capital is expected anyway (after a sentence's end, and a name of the Spirit), and the header prints no metre.",
-      "unreachable": ["join:1.5", "join:1.6"]
+      "unreachable": ["join:1.5", "join:1.6"],
+      "layout": "b437337aac3d8bce"
     }
   ]
 }

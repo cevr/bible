@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t22 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:2.2: 410-strip0.jpg system 2, stanza 2's row: the moved word is printed with a capital (a pronoun of God), and the word after it, line 3's opener, is a capitalised pronoun of God too, so every capital is explained in either layout; the header prints only the title, no metre.",
-      "unreachable": ["movedown:2.2"]
+      "unreachable": ["movedown:2.2"],
+      "layout": "55daf9b16aedf0e8"
     }
   ]
 }

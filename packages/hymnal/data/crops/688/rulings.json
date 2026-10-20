@@ -74,7 +74,8 @@
       ],
       "judge": "reach-judge-reach-t37 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: split:1.1: can: 687-strip800.jpg, right page: the header prints 9.8.8.9., and system 1's row sings line 1 in 9 syllables. Split before its word 4 (a name of God, capitalized anyway), it gives lines of 5 and 4 syllables and a 5-line stanza, which the metre rules out. join:1.2: can: Header 9.8.8.9. (687-strip800.jpg, right page): line 2 (8 syllables, end of system 1 into system 2) and line 3 (8 syllables, from system 2, also atop 687-strip1600.jpg) joined make a 16-syllable line in a 3-line stanza, which the metre rules out. The word at the join is the first-person pronoun, capitalized anyway. join:1.3: can: Header 9.8.8.9. (687-strip800.jpg): line 3 (8 syllables, end of system 2 into system 3) and line 4 (9 syllables, system 3 on 687-strip1600.jpg) joined make a 17-syllable line in a 3-line stanza, which the metre rules out. The word at the join is the first-person pronoun, capitalized anyway. split:1.4: can: 687-strip1600.jpg, right page, system 3: line 4 sings 9 syllables, as the header's 9.8.8.9. (687-strip800.jpg) fixes. Split before its word 5 (the first-person pronoun, capitalized anyway), it gives lines of 5 and 4 syllables and a 5-line stanza, which the metre rules out.",
-      "gaps": ["split:1.1", "join:1.2", "join:1.3", "split:1.4"]
+      "gaps": ["split:1.1", "join:1.2", "join:1.3", "split:1.4"],
+      "layout": "6c88e453dba0e1b3"
     }
   ]
 }

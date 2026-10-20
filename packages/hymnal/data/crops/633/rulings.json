@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t34 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.2: p619-strip1600.jpg system 4, the refrain's row: the word that opens line 3 is printed with a capital, but it follows a word that ends in an exclamation mark, so it takes a capital anyway. The header (p619-strip0.jpg) prints 8.7.8.7. Ref., no metre for the refrain's lines.",
-      "unreachable": ["join:refrain.1.2"]
+      "unreachable": ["join:refrain.1.2"],
+      "layout": "3427e63e37b41ffb"
     }
   ]
 }

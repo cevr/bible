@@ -329,7 +329,8 @@
       ],
       "judge": "reach-judge-reach-t23 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: 436-b-p2-strip1600.jpg, hymn 437's system 1, the Ref. row: the line's two halves are printed alike, and the second opens on a contraction of I, printed with a capital wherever it stands. The header prints L.M.Ref.: L.M. is the stanzas' metre, the refrain row gets none of its own, and the shared notes carry the same syllables as one line or two. join:refrain.1.1: 436-b-p2-strip1600.jpg, hymn 437's system 1, the Ref. row: refrain line 2 opens on a contraction of I, printed with a capital wherever it stands, after a comma. The header's L.M. is the stanzas' metre and gives the refrain row none, so nothing fixes where its lines break. join:refrain.1.3: 436-b-p2-strip2400.jpg, hymn 437's system 2, the Ref. row: refrain line 4 opens on a contraction of I, printed with a capital wherever it stands, after a dash. The header's L.M. is the stanzas' metre and gives the refrain row none, so nothing fixes where its lines break.",
-      "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "join:refrain.1.3"]
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "join:refrain.1.3"],
+      "layout": "52253f61a7c33770"
     }
   ]
 }

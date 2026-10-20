@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t12 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.6: can: p218-strip0.jpg header prints 8.7.8.7.7.7.8.6.; stanza 1's line 6 is 7 syllables (p218-strip800.jpg system 3, top row, ending on p218-strip1600.jpg system 4 with a full stop), so ending it with the 4-syllable moved word makes 11, which the metre's sixth line rejects. The capitals alone would not tell: each Alleluia follows a full stop or exclamation mark. moveup:2.6: can: p218-strip0.jpg header prints 8.7.8.7.7.7.8.6.; stanza 2's line 6 is 7 syllables (p218-strip800.jpg system 3, third row, ending on p218-strip1600.jpg system 4 with a full stop), so ending it with the 4-syllable moved word makes 11, which the metre's sixth line rejects. movedown:3.6: can: p218-strip0.jpg header prints 8.7.8.7.7.7.8.6.; stanza 3's line 6 is 7 syllables (p218-strip800.jpg system 3, fifth row, ending on p218-strip1600.jpg system 4), so moving its last word off leaves 6, which the metre's sixth line rejects. The moved word is a title of Christ, capital anyway, so the capitals alone would not tell. moveup:3.6: can: p218-strip0.jpg header prints 8.7.8.7.7.7.8.6.; stanza 3's line 6 is 7 syllables (p218-strip800.jpg system 3, fifth row, ending on p218-strip1600.jpg system 4 with an exclamation mark), so ending it with the 4-syllable moved word makes 11, which the metre's sixth line rejects.",
-      "gaps": ["moveup:1.6", "moveup:2.6", "movedown:3.6", "moveup:3.6"]
+      "gaps": ["moveup:1.6", "moveup:2.6", "movedown:3.6", "moveup:3.6"],
+      "layout": "7bb1ef5f02e063b0"
     }
   ]
 }

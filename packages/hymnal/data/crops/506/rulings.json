@@ -356,7 +356,8 @@
       ],
       "judge": "reach-judge-reach-t27 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.6: can: 506-strip800.jpg system 3, stanza 2's row: the moved word 'He' is printed with a capital either way, but the header's metre on 506-strip0.jpg (8.7.8.7.6.6.6.6.7.) gives lines 6 and 7 six syllables each, as the database has them. The change makes them 5 and 7 (line 7 runs on to system 4 on 506-strip1600.jpg), which breaks the metre.",
-      "gaps": ["movedown:2.6"]
+      "gaps": ["movedown:2.6"],
+      "layout": "206041be7ec81f5e"
     }
   ]
 }

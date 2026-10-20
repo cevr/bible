@@ -149,7 +149,8 @@
       ],
       "judge": "reach-judge-reach-t27 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p499-strip800.jpg refrain system 1 (repeated at the top of p499-strip1600.jpg): the word that opens database line 2, 'and', is printed lowercase after 'be-liev-ed,', so the page marks no line opening there, unlike the capitals that open lines 3 and 4 on system 2. The header's metre on p499-strip0.jpg ('C.M.Re', cut at the strip's edge) numbers only the stanza, so nothing shows the join wrong; the lowercase fits the join rather than the database's break.",
-      "unreachable": ["join:refrain.1.1"]
+      "unreachable": ["join:refrain.1.1"],
+      "layout": "a77038b4d596fe3d"
     }
   ]
 }

@@ -495,7 +495,8 @@
       ],
       "judge": "reach-judge-reach-t29 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.4: can: 532-b-strip1600.jpg system 3, stanza 3's row: capitals do not decide it (the moved word is a sacred title with a capital, and the next word follows a full stop), but the header's metre 10.9.10.9.D. (532-b-strip0.jpg) gives lines 4 and 5 nine and ten syllables, which the database's lines have in all three stanzas, and the change makes them eight and eleven. (The metre's last figure does not fit line 8, seven syllables in each stanza, but lines 4 and 5 fit it everywhere.)",
-      "gaps": ["movedown:3.4"]
+      "gaps": ["movedown:3.4"],
+      "layout": "2ceb1468b3b8880d"
     }
   ]
 }

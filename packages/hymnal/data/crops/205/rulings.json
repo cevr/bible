@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t10 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.2: p200-strip3200.jpg system 4, the refrain's row: \"O\" is printed with a capital anyway (the vocative O, after an exclamation mark), and the header on p200-strip0.jpg prints only \"Ref.\" after the stanzas' 10.5.10.5., so no metre fixes the refrain's lines. The fermata over the word before marks the music, not the line (the refrain's line 1, on p200-strip2400.jpg, ends with none).",
-      "unreachable": ["join:refrain.1.2"]
+      "unreachable": ["join:refrain.1.2"],
+      "layout": "6aba9abdca277f21"
     }
   ]
 }

@@ -204,6 +204,28 @@
     {
       "sites": [],
       "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8464a05341f758f7",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f04 (Opus, effort max)",
+      "why": "596-strip0.jpg system 2, row 3 (stanza 3): 'And' is capitalised after 'com-ing,' at the start of bar 8, after bar 7's fermata, where every stanza's last line has a capital ('Look' after 'stand-ing?', 'Where' after 'scep-ter'). Each database line 4 is the whole 10-syllable phrase of bars 7-8, opening at 'Christ' as the page does, so the capital opens at most a half-line: a whole join, the words the same.",
+      "settles": [
+        "596 shape (shape2-66): stanza 3 row 2 prints word 13 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
       "readings": ["the shape readings of the page (data/shapes.json)"],
       "printed": "",
       "sung": "",
@@ -219,7 +241,8 @@
       ],
       "judge": "reach-judge-reach-t32 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.2: 596-strip800.jpg systems 3 and 4: line 2's last word ends system 3 with a full stop, so line 3's first word (opening system 4) carries a capital anyway; the header prints no metre, so nothing tells the joined line from two.",
-      "unreachable": ["join:refrain.1.2"]
+      "unreachable": ["join:refrain.1.2"],
+      "layout": "6cdb0b8bfa3bc105"
     },
     {
       "sites": [],
@@ -261,29 +284,8 @@
         "movedown:refrain.1.3",
         "moveup:refrain.1.3",
         "split:refrain.1.4"
-      ]
-    },
-    {
-      "sites": [],
-      "row": "",
-      "readings": ["shape2-66 (the shape reading of the page)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "596.png",
-          "crop": "596-strip0.jpg",
-          "box": [0, 0, 1274, 1000],
-          "sha": "8464a05341f758f7",
-          "shows": ""
-        }
       ],
-      "judge": "shape-judge-judge-f04 (Opus, effort max)",
-      "why": "596-strip0.jpg system 2, row 3 (stanza 3): 'And' is capitalised after 'com-ing,' at the start of bar 8, after bar 7's fermata, where every stanza's last line has a capital ('Look' after 'stand-ing?', 'Where' after 'scep-ter'). Each database line 4 is the whole 10-syllable phrase of bars 7-8, opening at 'Christ' as the page does, so the capital opens at most a half-line: a whole join, the words the same.",
-      "settles": [
-        "596 shape (shape2-66): stanza 3 row 2 prints word 13 with a capital inside a line of stanza 3, where no line or sentence opens"
-      ]
+      "layout": "6cdb0b8bfa3bc105"
     }
   ]
 }

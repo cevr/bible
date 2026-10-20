@@ -170,7 +170,8 @@
       ],
       "judge": "reach-judge-reach-r02 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: Positions only as a precaution (the page prints no credits). 024-strip800.jpg system 3, the one Refrain row: the word where the split opens a line (the row's 3rd) has a capital after a comma, and it is a title paired with the divine name that opens the row, so its capital fits a line opening and a mid-line word alike. The page prints no metre.",
-      "unreachable": ["split:refrain.1.1"]
+      "unreachable": ["split:refrain.1.1"],
+      "layout": "aab0d17158fb060c"
     }
   ]
 }

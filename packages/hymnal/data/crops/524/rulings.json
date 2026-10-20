@@ -40,7 +40,8 @@
         "moveup:refrain.1.2",
         "join:refrain.1.3",
         "movedown:refrain.1.3"
-      ]
+      ],
+      "layout": "0f12b01663b9478f"
     }
   ]
 }

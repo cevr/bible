@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t13 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:2.3: 252-strip800.jpg system 4, stanza 2's row opens on 'God:', a name of God printed with a capital, and the quoted 'Wor-thy' after it is a capital too; 252-strip0.jpg shows the header prints no metre, so nothing fixes which line holds it.",
-      "unreachable": ["movedown:2.3"]
+      "unreachable": ["movedown:2.3"],
+      "layout": "a2d4481f340aee30"
     }
   ]
 }

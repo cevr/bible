@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t27 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:1.4: p489-strip1600.jpg system 4 prints one row shared by all four stanzas, where the second half opens on 'O' right after 'weary!', a capital either way. The header's metre on p489-strip0.jpg (13.12.13.7.6.1, its right end cut at the strip's edge) gives that row 7 then 6 syllables, so it fits the split rather than showing it wrong (it fits the database's one 12-word line less well). split:2.4: p489-strip1600.jpg system 4 prints one row shared by all four stanzas, where the second half opens on 'O' right after 'weary!', a capital either way. The header's metre on p489-strip0.jpg (13.12.13.7.6.1, its right end cut at the strip's edge) gives that row 7 then 6 syllables, so it fits the split rather than showing it wrong (it fits the database's one 12-word line less well). split:3.4: p489-strip1600.jpg system 4 prints one row shared by all four stanzas, where the second half opens on 'O' right after 'weary!', a capital either way. The header's metre on p489-strip0.jpg (13.12.13.7.6.1, its right end cut at the strip's edge) gives that row 7 then 6 syllables, so it fits the split rather than showing it wrong (it fits the database's one 12-word line less well). split:4.4: p489-strip1600.jpg system 4 prints one row shared by all four stanzas, where the second half opens on 'O' right after 'weary!', a capital either way. The header's metre on p489-strip0.jpg (13.12.13.7.6.1, its right end cut at the strip's edge) gives that row 7 then 6 syllables, so it fits the split rather than showing it wrong (it fits the database's one 12-word line less well).",
-      "unreachable": ["split:1.4", "split:2.4", "split:3.4", "split:4.4"]
+      "unreachable": ["split:1.4", "split:2.4", "split:3.4", "split:4.4"],
+      "layout": "57cedff7703114be"
     },
     {
       "sites": [],
@@ -60,7 +61,8 @@
       ],
       "judge": "reach-judge-reach-t27 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.3: can: p490-strip0.jpg refrain system 2 prints the same words to the same music as the stanzas' last system (p489-strip1600.jpg system 4), which the header's metre on p489-strip0.jpg gives as 7.6; the join makes one 13-syllable line that this metre breaks. The capital 'O' after 'weary!' alone would not tell, and the metre's own refrain part is cut at the strip's right edge after its first '1'.",
-      "gaps": ["join:refrain.1.3"]
+      "gaps": ["join:refrain.1.3"],
+      "layout": "57cedff7703114be"
     }
   ]
 }

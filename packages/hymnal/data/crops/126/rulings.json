@@ -57,7 +57,8 @@
       ],
       "judge": "reach-judge-reach-t05 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:3.2: 126-strip0.jpg system 1, stanza 3's row ends on a question mark (am?), so the moved word (If) on 126-strip800.jpg system 2 takes its capital anyway as a sentence's start, and the word the change opens line 3 on is I. The header prints Irregular, no metre that fixes the lines. movedown:3.7: 126-strip1600.jpg system 4, stanza 3's row: the moved word is a pronoun of God printed with a capital (Him?), and the word after it (Give) follows a question mark, a capital anyway. The header prints Irregular, no metre that fixes the lines.",
-      "unreachable": ["moveup:3.2", "movedown:3.7"]
+      "unreachable": ["moveup:3.2", "movedown:3.7"],
+      "layout": "a8a120cca04c39f2"
     },
     {
       "sites": [],
@@ -84,7 +85,8 @@
       ],
       "judge": "reach-judge-reach-t05 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.4: can: 126-strip800.jpg system 2, stanza 2's row ends on a colon (air:) and system 3's row opens on But with a capital; after a colon it is no name of God, I, O or word after a full stop, so only a line opening explains the capital, and the change that ends line 4 on it is wrong.",
-      "gaps": ["moveup:2.4"]
+      "gaps": ["moveup:2.4"],
+      "layout": "a8a120cca04c39f2"
     }
   ]
 }

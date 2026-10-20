@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t33 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.3: p610-strip1600.jpg, the refrain's second system: the fourth line opens, after a semicolon, on a name of God printed with a capital anyway. The header's L.M.Ref. on p610-strip0.jpg fixes the stanza lines only, not the refrain's, and no text stands below the music.",
-      "unreachable": ["join:refrain.1.3"]
+      "unreachable": ["join:refrain.1.3"],
+      "layout": "5cb70955fdaee1c9"
     }
   ]
 }

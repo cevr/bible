@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t37 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.4: can: p665-strip1600.jpg, 684's system 2: line 4 ends with a full stop, then a quarter rest and a double bar, and line 5's one word (the closing response) is sung alone in the two measures after the double bar. The join puts it inside line 4 across that double bar; the header (p665-strip800.jpg) prints no metre, so the double bar is the tell.",
-      "gaps": ["join:1.4"]
+      "gaps": ["join:1.4"],
+      "layout": "0e1acd1ed8a9d832"
     }
   ]
 }

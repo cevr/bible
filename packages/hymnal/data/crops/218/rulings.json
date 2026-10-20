@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t11 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p213-strip800.jpg and p213-strip1600.jpg system 3 (the refrain), its row: the second line opens on 'His', a divine pronoun the page prints with a capital mid-row too (p213-strip0.jpg system 1, stanza 1's row), and the header's 8.6.8.5.Ref. gives the refrain no metre.",
-      "unreachable": ["join:refrain.1.1"]
+      "unreachable": ["join:refrain.1.1"],
+      "layout": "dc926d176a3b5bd5"
     }
   ]
 }

@@ -4,53 +4,6 @@
     {
       "sites": [],
       "row": "",
-      "readings": ["the shape readings of the page (data/shapes.json)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "614.png",
-          "crop": "614-strip800.jpg",
-          "box": [0, 800, 1274, 850],
-          "sha": "a244b12fd0db4bf5",
-          "shows": ""
-        }
-      ],
-      "judge": "reach-judge-reach-t32 (Opus, effort max)",
-      "why": "The page cannot tell these changes from the row: join:refrain.1.3: 614-strip800.jpg system 4, the refrain's row: line 4's first word is a name of Christ after an exclamation mark, capitalised either way; the header prints no metre, so nothing tells the joined line from two.",
-      "unreachable": ["join:refrain.1.3"]
-    },
-    {
-      "sites": [],
-      "row": "",
-      "readings": ["the shape readings of the page (data/shapes.json)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "614.png",
-          "crop": "614-strip0.jpg",
-          "box": [0, 0, 1274, 1000],
-          "sha": "fb105dc7471d3cdc",
-          "shows": ""
-        },
-        {
-          "image": "614.png",
-          "crop": "614-strip800.jpg",
-          "box": [0, 800, 1274, 850],
-          "sha": "a244b12fd0db4bf5",
-          "shows": ""
-        }
-      ],
-      "judge": "reach-judge-reach-t32 (Opus, effort max)",
-      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: System 3 (the refrain's first), its row: line 2's first word is printed with a capital after an exclamation mark, while the same row prints a lowercase word after its first exclamation mark (as stanza 1's row does too) and opens its half-lines lowercase, so the capital marks the line opening the join removes. No metre is printed; in the stanzas the page capitalises every half-line, which the database holds mid-line, so this holds for the refrain's row only.",
-      "gaps": ["join:refrain.1.1"]
-    },
-    {
-      "sites": [],
-      "row": "",
       "readings": ["shape2-68 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
@@ -91,6 +44,55 @@
       "settles": [
         "614 shape (shape2-68): stanza 3 row 2 prints word 5 with a capital inside a line of stanza 3, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "614.png",
+          "crop": "614-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "a244b12fd0db4bf5",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: 614-strip800.jpg system 4, the refrain's row: line 4's first word is a name of Christ after an exclamation mark, capitalised either way; the header prints no metre, so nothing tells the joined line from two.",
+      "unreachable": ["join:refrain.1.3"],
+      "layout": "fb90e500b674a617"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "614.png",
+          "crop": "614-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "fb105dc7471d3cdc",
+          "shows": ""
+        },
+        {
+          "image": "614.png",
+          "crop": "614-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "a244b12fd0db4bf5",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: System 3 (the refrain's first), its row: line 2's first word is printed with a capital after an exclamation mark, while the same row prints a lowercase word after its first exclamation mark (as stanza 1's row does too) and opens its half-lines lowercase, so the capital marks the line opening the join removes. No metre is printed; in the stanzas the page capitalises every half-line, which the database holds mid-line, so this holds for the refrain's row only.",
+      "gaps": ["join:refrain.1.1"],
+      "layout": "fb90e500b674a617"
     }
   ]
 }

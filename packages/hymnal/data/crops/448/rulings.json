@@ -113,7 +113,8 @@
       ],
       "judge": "reach-judge-reach-t24 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: 448-strip800.jpg system 4, the refrain's row: line 2's first word is printed with a capital right after an exclamation mark, a capital it takes anyway; the page prints no metre (448-strip0.jpg header) and the refrain has one row, so nothing tells the joined line apart. moveup:refrain.1.1: 448-strip800.jpg system 4, the refrain's row: the moved word follows an exclamation mark and the word after it is the first-person pronoun, so both are capitalised anyway; with no metre printed (448-strip0.jpg), nothing shows which of the two opens the line.",
-      "unreachable": ["join:refrain.1.1", "moveup:refrain.1.1"]
+      "unreachable": ["join:refrain.1.1", "moveup:refrain.1.1"],
+      "layout": "26f656048295f5bf"
     },
     {
       "sites": [],
@@ -140,7 +141,8 @@
       ],
       "judge": "reach-judge-reach-t24 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.3: can: 448-strip0.jpg system 3 (bars 10-14): the moved word is a divine title and line 4's opener follows a full stop, so stanza 3's own capitals do not show it, and no metre is printed. But under the same notes stanzas 1 and 2 end line 3 on a lowercase word with a comma and open line 4 with a capital on the next note; stanza 3's moved word sits on that same last note, so line 4 opens after it. split:refrain.1.1: can: 448-strip800.jpg system 4 (bars 17-20), the refrain's row: the word the split would open a line with is printed lowercase, after a comma, so no line opens there. movedown:refrain.1.1: can: 448-strip800.jpg system 4, the refrain's row: the moved word is printed lowercase (with an exclamation mark after it), so it cannot open line 2; the next word, printed with a capital, opens it. split:refrain.1.2: can: 448-strip800.jpg system 4, the refrain's row: the word the split would open a line with is printed lowercase mid-phrase, so no line opens there.",
-      "gaps": ["movedown:3.3", "split:refrain.1.1", "movedown:refrain.1.1", "split:refrain.1.2"]
+      "gaps": ["movedown:3.3", "split:refrain.1.1", "movedown:refrain.1.1", "split:refrain.1.2"],
+      "layout": "26f656048295f5bf"
     }
   ]
 }

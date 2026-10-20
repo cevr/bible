@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t20 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: p370-strip1600.jpg refrain, system 1's row: line 2's word 3, where the split opens a line, is a name of God printed with a capital anyway. The header prints 7.7.7.7.Ref., no metre for the refrain, so nothing fixes the break.",
-      "unreachable": ["split:refrain.1.2"]
+      "unreachable": ["split:refrain.1.2"],
+      "layout": "bd21d47f7a3e3e4f"
     }
   ]
 }

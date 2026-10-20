@@ -122,7 +122,8 @@
       ],
       "judge": "reach-judge-reach-t22 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:3.1: 414-strip0.jpg system 1, stanza 3's row: the moved word (the row's 6th word) is printed with a capital, a title of Christ, and the 7th word, a name, is capitalised too; the header prints no metre. No words quoted: 414-strip800.jpg prints a 1984 copyright on the words.",
-      "unreachable": ["movedown:3.1"]
+      "unreachable": ["movedown:3.1"],
+      "layout": "d2e3519d7676ae21"
     }
   ]
 }

@@ -83,7 +83,8 @@
       ],
       "judge": "reach-judge-reach-t23 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:2.1: 435-strip0.jpg, page system 1, stanza 2's row: line 2 opens on the pronoun I, printed with a capital wherever it stands. The page prints no metre (stanzas 1 and 3 open a line on that note, but no printed metre carries that to stanza 2).",
-      "unreachable": ["join:2.1"]
+      "unreachable": ["join:2.1"],
+      "layout": "9e198daa9c43be55"
     },
     {
       "sites": [],
@@ -112,7 +113,8 @@
         "join:3.3",
         "moveup:3.3",
         "split:3.4"
-      ]
+      ],
+      "layout": "9e198daa9c43be55"
     }
   ]
 }

@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t11 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p208-strip1600.jpg system 3 (the refrain), its one row: the second line opens on 'Je-sus', a name the page prints with a capital anywhere, and the header's 10.7.10.7.Ref. gives the refrain no metre.",
-      "unreachable": ["join:refrain.1.1"]
+      "unreachable": ["join:refrain.1.1"],
+      "layout": "ac373251a3f1742a"
     }
   ]
 }

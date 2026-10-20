@@ -291,7 +291,8 @@
       ],
       "judge": "reach-judge-reach-t08 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p175-strip800.jpg system 3 (Refrain), row 1: line 2's first word is printed with a capital after line 1's question mark, capitalized anyway, and neither row prints it again. The header (p175-strip0.jpg) prints 9.7.9.7.Ref., no counts for the refrain. split:refrain.1.2: p175-strip1600.jpg system 4, row 1: the word that would open the new line is printed with a capital after the question mark that closes line 2's first half (end of system 3), capitalized anyway, and neither row prints it again. The header (p175-strip0.jpg) prints no counts for the refrain.",
-      "unreachable": ["join:refrain.1.1", "split:refrain.1.2"]
+      "unreachable": ["join:refrain.1.1", "split:refrain.1.2"],
+      "layout": "db7e5b25202ddf5d"
     },
     {
       "sites": [],
@@ -334,7 +335,8 @@
         "movedown:refrain.1.2",
         "moveup:refrain.1.2",
         "split:refrain.1.3"
-      ]
+      ],
+      "layout": "db7e5b25202ddf5d"
     }
   ]
 }

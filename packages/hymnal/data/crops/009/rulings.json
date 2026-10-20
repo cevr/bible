@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-r01 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:1.2: 009-strip0.jpg system 2 (bars 6-10), stanza 1's row: the moved 'King' has a capital (a name of God), and 'The' after it follows an exclamation mark and has a capital anyway. The page prints no metre. movedown:2.2: 009-strip0.jpg system 2 (bars 6-10), stanza 2's row: the moved 'King' has a capital (a name of God), and 'The' after it follows an exclamation mark and has a capital anyway. The page prints no metre.",
-      "unreachable": ["movedown:1.2", "movedown:2.2"]
+      "unreachable": ["movedown:1.2", "movedown:2.2"],
+      "layout": "1c1febfc1b3ca508"
     }
   ]
 }

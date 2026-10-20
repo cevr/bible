@@ -48,7 +48,8 @@
       ],
       "judge": "reach-judge-reach-t31 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:4.3: 578-strip0.jpg system 2, stanza 4's row: the word that would open the split's second line opens a quotation (an opening quote mark stands before it), so it is printed with a capital in either layout. The page prints no metre and no text below the music. split:4.4: 578-strip800.jpg system 3, stanza 4's row: the word that would open the split's second line is a divine pronoun, printed with a capital wherever it stands. The page prints no metre and no text below the music. join:4.4: 578-strip800.jpg systems 3 and 4 (the ending marked 4.), stanza 4's row: the word that opens line 5 follows an exclamation mark and opens a new quotation, so it is printed with a capital in either layout. The page prints no metre and no text below the music. split:4.5: 578-strip800.jpg system 4, stanza 4's row: the word that would open the split's second line is a divine pronoun, printed with a capital wherever it stands; the capital after the comma that follows it stands mid-line in both layouts. The page prints no metre and no text below the music.",
-      "unreachable": ["split:4.3", "split:4.4", "join:4.4", "split:4.5"]
+      "unreachable": ["split:4.3", "split:4.4", "join:4.4", "split:4.5"],
+      "layout": "f0a1a84a0e163b57"
     }
   ]
 }

@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t09 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.2: can: The header prints 8.7.8.7.D. (p181-strip0.jpg). Stanza 1's row sings line 2 in 7 syllables at the end of system 1 and line 3 in 8 at the start of system 2 (p181-strip800.jpg); with line 2's last word moved over they would sing 6 and 9, which the printed metre breaks.",
-      "gaps": ["movedown:1.2"]
+      "gaps": ["movedown:1.2"],
+      "layout": "9798b679a3438098"
     }
   ]
 }

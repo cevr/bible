@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t06 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: p138-strip800.jpg system 2 (Refrain), refrain row: 'Christ' is printed with a capital (a name of God), so a line can open there; the header's 8.7.8.7. counts the stanza lines and 'Ref.' gives the refrain no count that fixes its lines.",
-      "unreachable": ["split:refrain.1.1"]
+      "unreachable": ["split:refrain.1.1"],
+      "layout": "497447e9cb93a0ab"
     }
   ]
 }

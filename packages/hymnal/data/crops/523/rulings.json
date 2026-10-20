@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t28 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p512-strip800.jpg and p512-strip1600.jpg system 3, the refrain row: line 2 opens on the pronoun I, printed with a capital wherever it stands, right after line 1's last word. The header on p512-strip0.jpg prints C.M.Ref., which counts the stanzas' lines but gives the refrain none, and no text below the music prints the lines.",
-      "unreachable": ["join:refrain.1.1"]
+      "unreachable": ["join:refrain.1.1"],
+      "layout": "e3a224dfc5bba3fa"
     }
   ]
 }

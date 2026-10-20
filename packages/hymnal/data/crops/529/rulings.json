@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t29 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.2: p518-strip1600.jpg refrain systems 4 to 5: refrain line 3's first word is printed with a capital, but it follows the question mark that ends line 2, so it takes a capital as a sentence opening whether or not a line opens there. The header's metre (11.10.11.10. Ref.) gives the refrain no line lengths. moveup:refrain.1.2: p518-strip1600.jpg system 5, refrain row: the moved word's capital is explained by the question mark before it, and the word that would then open line 3 (word 2) is a divine pronoun printed with a capital anyway. The header's metre covers only the stanzas, so nothing fixes where the refrain's lines end.",
-      "unreachable": ["join:refrain.1.2", "moveup:refrain.1.2"]
+      "unreachable": ["join:refrain.1.2", "moveup:refrain.1.2"],
+      "layout": "2de9a39ffaf71840"
     }
   ]
 }

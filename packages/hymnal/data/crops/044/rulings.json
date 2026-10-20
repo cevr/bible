@@ -209,7 +209,8 @@
       ],
       "judge": "reach-judge-reach-t01 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.2: can: 044-strip0.jpg system 2, stanza 2's row: \"grass.\" is printed lowercase and closes its sentence with a full stop, and the move opens line 3 on it; the next word, \"Praise\", is the capital that opens the line.",
-      "gaps": ["movedown:2.2"]
+      "gaps": ["movedown:2.2"],
+      "layout": "78a285a43ac73817"
     }
   ]
 }

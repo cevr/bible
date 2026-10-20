@@ -1736,7 +1736,8 @@
       ],
       "judge": "reach-judge-reach-t12 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:1.4: 220-strip0.jpg system 2, stanza 1's row, measure 4: line 5's first word follows an exclamation mark, so its capital is a sentence's, and line 5's second word is the first-person pronoun, always a capital; the header prints no metre.",
-      "unreachable": ["moveup:1.4"]
+      "unreachable": ["moveup:1.4"],
+      "layout": "d4820abb7cab88b8"
     },
     {
       "sites": [],
@@ -1833,7 +1834,8 @@
         "moveup:varies.3.3.1",
         "swaplines:1.4",
         "swaplines:2.4"
-      ]
+      ],
+      "layout": "d4820abb7cab88b8"
     }
   ]
 }

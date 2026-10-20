@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t37 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.1: can: p663-strip800.jpg: the header prints C.M. (8.6.8.6.), and system 1's row (p663-strip800.jpg, p663-strip1600.jpg) sings line 1 in 8 syllables and line 2 in 6. Joined they make a 14-syllable line in a 3-line stanza, which C.M. rules out; the word at the join is a divine pronoun after a semicolon, capitalized anyway, so the metre is the tell. join:1.2: can: Header C.M. (p663-strip800.jpg): line 2 (6 syllables, end of system 1) and line 3 (8 syllables, start of system 2 on p663-strip1600.jpg) joined make a 14-syllable line in a 3-line stanza, which C.M. rules out. The word at the join follows a full stop, capitalized anyway.",
-      "gaps": ["join:1.1", "join:1.2"]
+      "gaps": ["join:1.1", "join:1.2"],
+      "layout": "32f3b93ddd485acb"
     }
   ]
 }

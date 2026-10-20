@@ -200,7 +200,8 @@
       ],
       "judge": "reach-judge-reach-t04 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: p099-strip1600.jpg system 4 (Refrain), its one row: the second 'Great' follows an exclamation mark and is printed with a capital just like the first. The header (p099-strip0.jpg) gives the refrain no metre ('Ref.'), so a line opening there looks the same as none. join:refrain.1.1: p099-strip1600.jpg system 4 (Refrain), its one row: 'Morning' follows an exclamation mark, so its capital is one the page would print mid-line anyway, and the header gives the refrain no metre ('Ref.'). Nothing else marks a line opening there. split:refrain.1.3: p100-strip0.jpg system 1, refrain row: 'Thy' (the line's word 5, last word of the system) is printed with a capital, as the page prints it mid-line everywhere (a name of God). The refrain has no metre in the header ('Ref.'), so a line opening at it looks the same.",
-      "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "split:refrain.1.3"]
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "split:refrain.1.3"],
+      "layout": "0cfcb09301fc8899"
     },
     {
       "sites": [],
@@ -227,7 +228,8 @@
       ],
       "judge": "reach-judge-reach-t04 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.2: can: The moved 'Thee' is printed with a capital (p099-strip800.jpg system 2, stanza 1's row), but the header on p099-strip0.jpg prints the metre 11.10.11.10. and stanza 1's page syllables count 11.10.11.10 as the database lays them; the move makes lines 2 and 3 nine and twelve syllables, which the metre breaks.",
-      "gaps": ["movedown:1.2"]
+      "gaps": ["movedown:1.2"],
+      "layout": "0cfcb09301fc8899"
     }
   ]
 }

@@ -395,7 +395,8 @@
       ],
       "judge": "reach-judge-reach-t11 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.1: can: 214-strip0.jpg system 1, stanza 2's row ends on the moved word, a name of God printed with a capital and a comma after it; 214-strip800.jpg system 2, stanza 2's row opens on an ordinary pronoun printed with a capital, which the move leaves second in its line after that comma, where only a line opening explains its capital. (The page prints a copyright line: no words written.)",
-      "gaps": ["movedown:2.1"]
+      "gaps": ["movedown:2.1"],
+      "layout": "cb514cc61e0b34e9"
     }
   ]
 }

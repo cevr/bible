@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t18 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: p333-strip1600.jpg system 4 (the refrain's second system), main row: the word the split opens a line on is 'He', a pronoun of God the page prints with a capital anyway (mid-line in p333-strip800.jpg system 2, stanza 1's row: 'cross He'). The header's '8.7.8.7. Ref' gives the stanzas' metre only, and the page prints no text below the music. split:refrain.1.3: p333-strip1600.jpg system 4, main row: the word the split opens a line on is 'He', a pronoun of God printed with a capital anyway (mid-line in p333-strip800.jpg system 2, stanza 1's row); the line ends on p334-strip0.jpg system 1. The refrain has no printed metre that fixes its lines.",
-      "unreachable": ["split:refrain.1.2", "split:refrain.1.3"]
+      "unreachable": ["split:refrain.1.2", "split:refrain.1.3"],
+      "layout": "50425e06e4aac720"
     },
     {
       "sites": [],
@@ -53,7 +54,8 @@
       ],
       "judge": "reach-judge-reach-t18 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.2: can: p333-strip1600.jpg system 4, main row: line 3 opens mid-row on 'On', printed with a capital right after a semicolon. 'On' is no name, 'I' or 'O', and a semicolon brings no capital, so only a line opening explains it; the join puts it mid-line.",
-      "gaps": ["join:refrain.1.2"]
+      "gaps": ["join:refrain.1.2"],
+      "layout": "50425e06e4aac720"
     }
   ]
 }

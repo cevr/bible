@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t19 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:2.4: 363-strip800.jpg system 3 (bar 8), stanza 2's row: line 4 ends on a word with a full stop, so the moved word is printed with a capital anyway, and the word after it, the new opener, is a pronoun of God with a capital (the row capitalizes such pronouns mid-line). The header prints no metre.",
-      "unreachable": ["moveup:2.4"]
+      "unreachable": ["moveup:2.4"],
+      "layout": "7070fec91f8fe8b3"
     }
   ]
 }

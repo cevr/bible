@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t35 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.4: can: p648-strip0.jpg header prints PICARDY 8.7.8.7.8.7. On p648-strip800.jpg line 4 runs from the end of system 2's row into system 3's row at 7 syllables and line 5 follows in system 3's row at 8; line 5 opens on a capitalised divine name, but joined they make one 15-syllable line in a five-line stanza, which the metre forbids.",
-      "gaps": ["join:1.4"]
+      "gaps": ["join:1.4"],
+      "layout": "f0b29919fbfa1f70"
     }
   ]
 }

@@ -376,7 +376,8 @@
       ],
       "judge": "reach-judge-reach-t34 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.4: 632-p2-strip1600.jpg system 4, the refrain's last row: the word the split opens on (word 4) is a name of God, printed with a capital anyway. The header metre gives only 'Ref.' for the refrain, so no metre fixes its lines.",
-      "unreachable": ["split:refrain.1.4"]
+      "unreachable": ["split:refrain.1.4"],
+      "layout": "934f9e6679be7628"
     }
   ]
 }

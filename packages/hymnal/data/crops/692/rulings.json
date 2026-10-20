@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t38 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:1.5: p671-strip800.jpg, 692's system 3 row: line 6's one word follows a full stop, so its capital is printed in either layout; a double bar sets its music apart, but the row prints no line break and the header (tune name only) no metre. movedown:1.5: p671-strip800.jpg, 692's system 3 row: the moved word is a pronoun of God, which this page capitalises mid-line (692's system 1 row on p671-strip0.jpg), and line 6's word keeps its capital after the full stop; no metre fixes the lines.",
-      "unreachable": ["join:1.5", "movedown:1.5"]
+      "unreachable": ["join:1.5", "movedown:1.5"],
+      "layout": "9d5ad123686df7ab"
     }
   ]
 }

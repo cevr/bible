@@ -64,7 +64,8 @@
       ],
       "judge": "reach-judge-reach-t17 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.3: p308-strip1600.jpg, the page's last system (the refrain's second), one row: line 3's word 4, where the split opens a line, is a divine pronoun printed with a capital anyway, so the row reads the same either way. The header's C.M.Ref. (p308-strip0.jpg) fixes only the stanzas' metre, not the refrain's, and no text below the music prints the refrain's lines.",
-      "unreachable": ["split:refrain.1.3"]
+      "unreachable": ["split:refrain.1.3"],
+      "layout": "946e4336edac5628"
     }
   ]
 }

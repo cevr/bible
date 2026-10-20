@@ -251,6 +251,35 @@
     {
       "sites": [],
       "row": "",
+      "readings": ["shape2-61 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "834d65799989bd2c",
+          "shows": ""
+        },
+        {
+          "image": "547.jpg",
+          "crop": "547-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "3060e08e37ef1dbe",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f03 (Opus, effort max)",
+      "why": "547-strip0.jpg system 1, stanza 2 row: word 5 'Be' after 'wisdom,' marks the second half of a long line, as the page also capitalises 'Save' and 'By' mid-row in stanza 1 (547-strip800.jpg systems 2 and 3). SLANE 10.10.9.10. counts 10 syllables across the whole row, so the database's line 1 is the page's whole poem line, and no word moves between lines.",
+      "settles": [
+        "547 shape (shape2-61): stanza 2 row 1 prints word 5 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
       "readings": ["the shape readings of the page (data/shapes.json)"],
       "printed": "",
       "sung": "",
@@ -280,36 +309,8 @@
       ],
       "judge": "reach-judge-reach-t30 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:4.2: can: The header on 547-strip0.jpg prints the metre 10.10.9.10. On 547-strip800.jpg system 2, stanza 4's row sings exactly 10 syllables (its ninth a two-syllable word printed unhyphenated under one note) and ends on the moved word under the system's last note. The change leaves line 2 at 9 syllables and line 3 at 11, which breaks the metre. The moved word's capital alone would not tell, since it is a name of Christ.",
-      "gaps": ["movedown:4.2"]
-    },
-    {
-      "sites": [],
-      "row": "",
-      "readings": ["shape2-61 (the shape reading of the page)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "547.jpg",
-          "crop": "547-strip0.jpg",
-          "box": [0, 0, 2268, 1000],
-          "sha": "834d65799989bd2c",
-          "shows": ""
-        },
-        {
-          "image": "547.jpg",
-          "crop": "547-strip800.jpg",
-          "box": [0, 800, 2268, 1000],
-          "sha": "3060e08e37ef1dbe",
-          "shows": ""
-        }
-      ],
-      "judge": "shape-judge-judge-f03 (Opus, effort max)",
-      "why": "547-strip0.jpg system 1, stanza 2 row: word 5 'Be' after 'wisdom,' marks the second half of a long line, as the page also capitalises 'Save' and 'By' mid-row in stanza 1 (547-strip800.jpg systems 2 and 3). SLANE 10.10.9.10. counts 10 syllables across the whole row, so the database's line 1 is the page's whole poem line, and no word moves between lines.",
-      "settles": [
-        "547 shape (shape2-61): stanza 2 row 1 prints word 5 with a capital inside a line of stanza 2, where no line or sentence opens"
-      ]
+      "gaps": ["movedown:4.2"],
+      "layout": "3e8920f695fbd8ec"
     }
   ]
 }

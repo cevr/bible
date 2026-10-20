@@ -62,7 +62,8 @@
       ],
       "judge": "reach-judge-reach-t02 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:3.4: can: The header prints L.M. (8.8.8.8), and stanza 3's row on p069-strip1600.jpg, last system, fills line 4's 8 syllables ending 'e-ter-nal-ly.'; the joined line would hold 10. The page also sets 'A-men.' apart after a double bar, under its own music.",
-      "gaps": ["join:3.4"]
+      "gaps": ["join:3.4"],
+      "layout": "811b2746560ac10d"
     }
   ]
 }

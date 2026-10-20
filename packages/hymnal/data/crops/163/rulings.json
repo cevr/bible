@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t07 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: p159-strip0.jpg header prints C.M. (8.6.8.6.); stanza 1's line 2 closes the first system at 6 sung syllables and line 3 opens the second system (p159-strip800.jpg) at 8. Moving \"Would\" up makes them 7 and 7, which the metre breaks.",
-      "gaps": ["moveup:1.2"]
+      "gaps": ["moveup:1.2"],
+      "layout": "12544d9606e587ca"
     }
   ]
 }

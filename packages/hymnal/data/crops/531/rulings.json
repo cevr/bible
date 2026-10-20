@@ -202,7 +202,8 @@
       ],
       "judge": "reach-judge-reach-t29 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.3: p520-strip1600.jpg system 4: refrain line 3's word 5, where the split opens a line, is the title of Christ that the page prints with a capital at every place it stands. The header's metre (9.8.9.7. Ref.) gives the refrain no line lengths.",
-      "unreachable": ["split:refrain.1.3"]
+      "unreachable": ["split:refrain.1.3"],
+      "layout": "9d6b28c8d76bbf4f"
     },
     {
       "sites": [],
@@ -237,7 +238,8 @@
         "movedown:refrain.1.3",
         "moveup:refrain.1.3",
         "split:refrain.1.4"
-      ]
+      ],
+      "layout": "9d6b28c8d76bbf4f"
     }
   ]
 }

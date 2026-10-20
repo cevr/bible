@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-r01 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:2.4: In 005-strip800.jpg system 3 (bars 9-12), stanza 2's row, 'But' follows a full stop and has a capital anyway. The word that opens line 5 after the change is 'God's', also a capital (a name of God). The page prints no metre. movedown:4.4: Stanza 4's row runs from system 2 of 005-strip0.jpg into system 3 of 005-strip800.jpg. There the moved 'Son' has a capital (a name of God), and 'Christ' after it has a capital both as a name and after a full stop. The page prints no metre.",
-      "unreachable": ["moveup:2.4", "movedown:4.4"]
+      "unreachable": ["moveup:2.4", "movedown:4.4"],
+      "layout": "322ef719af82a7fb"
     }
   ]
 }

@@ -325,7 +325,8 @@
       ],
       "judge": "reach-judge-reach-t17 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.2: can: p321-strip800.jpg (repeated at the top of p321-strip1600.jpg), stanza 3's row (the third): the moved word opens system 3's row with a capital although it is no name of God, no I or O, and follows a semicolon, so a line opens on it and the change ends line 2 on it. The header's 7.6.7.6.D. (p321-strip0.jpg) also makes each database line 7 plus 6 syllables, and the change makes lines 2 and 3 fourteen and twelve.",
-      "gaps": ["moveup:3.2"]
+      "gaps": ["moveup:3.2"],
+      "layout": "9abc935a9fc13265"
     }
   ]
 }

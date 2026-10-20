@@ -184,7 +184,8 @@
       ],
       "judge": "reach-judge-reach-t28 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.2: p500-strip1600.jpg system 4, the refrain row: the word that opens line 3 is the name Jesus, printed with a capital wherever it stands, right after line 2's last word. The header's metre on p500-strip0.jpg (9.9.9.6.Ref.) gives the refrain no syllable counts, so nothing fixes where its lines break.",
-      "unreachable": ["join:refrain.1.2"]
+      "unreachable": ["join:refrain.1.2"],
+      "layout": "988bf268ccfa347a"
     }
   ]
 }

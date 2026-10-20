@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t28 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.2: p509-strip1600.jpg system 4, the refrain row: line 3 opens on a pronoun of God, which this page prints with a capital wherever it stands (mid-row on p509-strip0.jpg system 1 and twice on p510-strip0.jpg system 5), after a semicolon. The header (11.8.11.8. Ref.) gives the refrain no syllable counts, so nothing fixes the break.",
-      "unreachable": ["join:refrain.1.2"]
+      "unreachable": ["join:refrain.1.2"],
+      "layout": "d3bbf0d8df86f050"
     }
   ]
 }

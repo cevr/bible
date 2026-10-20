@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t05 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: p115-strip800.jpg system 3, stanza 3's row and p115-strip1600.jpg system 4 print all four Noels with a capital, so the third opens with a capital whether or not a line opens there; the header prints Irregular, no metre that fixes the lines. split:refrain.1.2: p115-strip1600.jpg system 4, the refrain row prints King with a capital (a title of Christ), so a line opening on it looks the same; the header prints Irregular, no metre that fixes the lines.",
-      "unreachable": ["split:refrain.1.1", "split:refrain.1.2"]
+      "unreachable": ["split:refrain.1.1", "split:refrain.1.2"],
+      "layout": "143656366203624d"
     },
     {
       "sites": [],
@@ -53,7 +54,8 @@
       ],
       "judge": "reach-judge-reach-t05 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:4.1: can: p115-strip0.jpg system 1, stanza 4's row prints the moved word with a capital (O'er) after a comma, and it is no name of God, I, O or word after a full stop; only a line opening there explains the capital, so the change that puts it at the end of line 1 is wrong.",
-      "gaps": ["moveup:4.1"]
+      "gaps": ["moveup:4.1"],
+      "layout": "143656366203624d"
     }
   ]
 }

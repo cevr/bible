@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t30 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.2: can: 550-strip0.jpg system 2: the three stanza rows sit note for note under one tune. On the note that holds stanza 3's database line-3 opener (word 4 of the row), stanzas 1 and 2 open their line 3 with a capital that only a line opening explains (after a colon, after a comma), and the note before it carries their line 2's last word. The change opens stanza 3's line one note early. Stanza 3's row alone would not tell (the moved word is a name of God, the old opener follows a full stop, no metre is printed), so this ruling rests on the alignment across stanzas.",
-      "gaps": ["movedown:3.2"]
+      "gaps": ["movedown:3.2"],
+      "layout": "16e1aeb38fedbb1e"
     }
   ]
 }

@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t20 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.6: can: The header on p373-strip0.jpg prints 7.7.7.7.7.7., and stanza 2's line 6 (p373-strip800.jpg system 3, row 2) is seven syllables ending on the moved word. The move leaves line 6 six syllables and line 7 (p373-strip1600.jpg system 4) eight, which the metre does not allow. movedown:4.6: can: The header on p373-strip0.jpg prints 7.7.7.7.7.7., and stanza 4's line 6 (p373-strip800.jpg system 3, row 4) is seven syllables ending on the moved word. The move leaves line 6 six syllables and line 7 (p373-strip1600.jpg system 4) eight, which the metre does not allow.",
-      "gaps": ["movedown:2.6", "movedown:4.6"]
+      "gaps": ["movedown:2.6", "movedown:4.6"],
+      "layout": "e464d8243b0a0eec"
     }
   ]
 }

@@ -243,7 +243,8 @@
       ],
       "judge": "reach-judge-reach-t36 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:1.4: 669-strip0.jpg system 3 (repeated at the top of 669-strip800.jpg): line 5's first word is printed lowercase in both rows, after a comma, so nothing marks a line opening there, and the header prints no metre. join:1.6: 669-strip800.jpg last system: the Amen is printed with a capital right after a full stop ending line 6, so its capital is expected anyway (a double bar and a first-ending bracket set it apart in the music, but the row prints no line break), and the header prints no metre.",
-      "unreachable": ["join:1.4", "join:1.6"]
+      "unreachable": ["join:1.4", "join:1.6"],
+      "layout": "ed6563a60e9a0e4f"
     },
     {
       "sites": [],
@@ -263,7 +264,8 @@
       ],
       "judge": "reach-judge-reach-t36 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.3: can: 669-strip0.jpg system 2, lower row: the word is printed with a capital after a semicolon ending the 8-word line, at the end of the system, which marks it as opening line 4; it is not a name of God, I or O. The top row of the same system prints it lowercase after a rest, so the two rows disagree, but the lower row's capital tells the change apart.",
-      "gaps": ["moveup:1.3"]
+      "gaps": ["moveup:1.3"],
+      "layout": "ed6563a60e9a0e4f"
     }
   ]
 }

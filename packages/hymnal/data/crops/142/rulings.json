@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t06 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:4.2: 142-strip0.jpg system 1 (bars 1-5), stanza 4's row: 'Ma-ry,' and 'Jo-seph,' are both names, printed with a capital wherever they stand, so a line can open on either; the header prints no metre.",
-      "unreachable": ["moveup:4.2"]
+      "unreachable": ["moveup:4.2"],
+      "layout": "74b2f74e465bf823"
     }
   ]
 }

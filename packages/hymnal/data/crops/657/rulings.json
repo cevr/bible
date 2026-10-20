@@ -263,7 +263,8 @@
       ],
       "judge": "reach-judge-reach-t34 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:4.2: can: 657-strip1600.jpg system 3, stanza 4's row: the moved word and the word after it both take capitals anyway (a pronoun and a name of God), but the header metre 10.10.10.10 (657-strip0.jpg) fits lines 2 and 3 as the database holds them (10 and 10 syllables, 657-strip800.jpg system 2 and 657-strip1600.jpg system 3); the change makes them 11 and 9.",
-      "gaps": ["moveup:4.2"]
+      "gaps": ["moveup:4.2"],
+      "layout": "fe831f5eb491283c"
     }
   ]
 }

@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t08 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:4.3: can: The header prints L.M. (p172-strip0.jpg); stanza 4's row prints line 3 as eight syllables across systems 2-3 (p172-strip800.jpg, p172-strip1600.jpg) and line 4 as eight. The moved word's capital (a name of Christ) does not decide it, but the change makes the lines nine and seven, which the metre breaks.",
-      "gaps": ["moveup:4.3"]
+      "gaps": ["moveup:4.3"],
+      "layout": "3755c8eb1ca1c800"
     }
   ]
 }

@@ -386,7 +386,8 @@
       ],
       "judge": "reach-judge-reach-t12 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: 231-strip0.jpg header prints 7.6.7.6.D.; line 2 (system 1, the opening printed once for every stanza) has 6 syllables ending in an exclamation mark, and the moved word, the first of stanza 1's numbered row in system 2 (231-strip800.jpg), makes it 7, which the metre's second line rejects. The capitals alone would not tell: the moved word follows the exclamation mark and the next is a pronoun of God.",
-      "gaps": ["moveup:1.2"]
+      "gaps": ["moveup:1.2"],
+      "layout": "f0c2e8f993a43ad5"
     }
   ]
 }

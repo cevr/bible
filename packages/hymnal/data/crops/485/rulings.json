@@ -48,7 +48,8 @@
         "split:refrain.1.3",
         "join:refrain.1.3",
         "movedown:refrain.1.3"
-      ]
+      ],
+      "layout": "867e90f12af5fc55"
     }
   ]
 }

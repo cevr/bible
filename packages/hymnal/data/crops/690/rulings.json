@@ -50,7 +50,8 @@
       ],
       "judge": "reach-judge-reach-t37 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:1.4: 690-strip800.jpg system 3, the one lyric row: line 4's word 5 is a divine pronoun printed with a capital, as the page prints another form of that pronoun mid-line in lines 2 and 4 (690-strip0.jpg system 1, 690-strip800.jpg system 3). No punctuation, rest, bar mark or metre fixes a break there.",
-      "unreachable": ["split:1.4"]
+      "unreachable": ["split:1.4"],
+      "layout": "73d08541e70d387a"
     },
     {
       "sites": [],
@@ -70,7 +71,8 @@
       ],
       "judge": "reach-judge-reach-t37 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.4: can: 690-strip800.jpg system 3: line 4 ends with a full stop, then a quarter rest and a double bar, and line 5's one word (the closing response) is sung alone in the measure after the double bar. The join puts it inside line 4 across that double bar.",
-      "gaps": ["join:1.4"]
+      "gaps": ["join:1.4"],
+      "layout": "73d08541e70d387a"
     }
   ]
 }

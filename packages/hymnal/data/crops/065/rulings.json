@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t01 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.3: p063-strip0.jpg top system, refrain's upper row: \"God\" is a name of God, a capital anyway, and the header's \"9.8.8.9.Ref.\" gives the refrain no syllable counts. The music holds both \"meet,\" and \"God\" under fermatas, so it marks no break between them either.",
-      "unreachable": ["join:refrain.1.3"]
+      "unreachable": ["join:refrain.1.3"],
+      "layout": "19108888db2d528d"
     }
   ]
 }

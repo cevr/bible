@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t02 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:4.4: System 2, stanza 4's row ends 'a-gain.' with a full stop, and the '4.' ending (system 3) opens 'gain. Like': 'Like' takes its capital after the full stop anyway. The header prints no metre, so nothing on the page marks a line open on it. moveup:4.4: System 3, the '4.' ending's row: 'Like' follows a full stop and 'Je-sus' is a name, so both carry a capital in either layout. The header prints no metre that fixes the lines.",
-      "unreachable": ["join:4.4", "moveup:4.4"]
+      "unreachable": ["join:4.4", "moveup:4.4"],
+      "layout": "daf030997fc5df6f"
     }
   ]
 }

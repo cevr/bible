@@ -298,7 +298,8 @@
       ],
       "judge": "reach-judge-reach-t04 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: Capitals do not tell it: system 3, stanza 1's row (102-b-strip1600.jpg, the same on 102-c-strip1600.jpg and 102-strip1600.jpg) prints 'From' after a question mark and 'God' (a name of God), both with capitals. But the header (102-b-strip0.jpg) prints the metre 10.4.10.4.10.10., whose line ends the database's lines keep (14.14.10.10 syllables); the move makes lines 2 and 3 fifteen and nine syllables, which no line or run of lines of the metre gives.",
-      "gaps": ["moveup:1.2"]
+      "gaps": ["moveup:1.2"],
+      "layout": "0ad3d2cddce548ca"
     }
   ]
 }

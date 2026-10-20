@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t03 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.6: can: The header (p091-strip0.jpg) prints S.M.D. (6.6.8.6. doubled); counted from stanza 3's start, its lines 1-6 fill 6, 6, 8, 6, 6, 6 syllables exactly, so line 6 ends on \"sad?\" (p091-strip800.jpg system 3, stanza 3's row) and the change's 7-syllable line 6 breaks the metre. The capitals alone could not tell: \"The\" follows a \"?\" and \"Lord\" is a name; line 7's extra syllable is the split eighth pair on system 4's fourth beat, inside line 7 either way.",
-      "gaps": ["moveup:3.6"]
+      "gaps": ["moveup:3.6"],
+      "layout": "d3c77ec1162d3b2a"
     }
   ]
 }

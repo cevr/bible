@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t24 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:6.1: can: p443-strip0.jpg system 1, stanza 6's row: the moved word is printed with a capital right after a colon, a line-opening capital, and is hyphenated to the next syllable on p443-strip800.jpg system 2 as one word; every other stanza's row opens line 2 with a capital on that same note. The header's C.M. fixes line 1 at 8 syllables and the change makes it 9 (line 2 then 5).",
-      "gaps": ["moveup:6.1"]
+      "gaps": ["moveup:6.1"],
+      "layout": "3970131423d228b2"
     }
   ]
 }

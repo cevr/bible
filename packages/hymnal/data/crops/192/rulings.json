@@ -4,33 +4,6 @@
     {
       "sites": [],
       "row": "",
-      "readings": ["the shape readings of the page (data/shapes.json)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "192.png",
-          "crop": "192-strip0.jpg",
-          "box": [0, 0, 1274, 1000],
-          "sha": "13829864690a1f49",
-          "shows": ""
-        },
-        {
-          "image": "192.png",
-          "crop": "192-strip800.jpg",
-          "box": [0, 800, 1274, 850],
-          "sha": "5fa34f9095f32f35",
-          "shows": ""
-        }
-      ],
-      "judge": "reach-judge-reach-t09 (Opus, effort max)",
-      "why": "The page cannot tell these changes from the row: movedown:1.4: 192-strip0.jpg system 2, stanza 1's row: the moved word is a pronoun for God, printed with a capital where it ends line 4 (and line 8) in the database's layout, and line 5's first word follows a full stop and is a pronoun for God too. The page prints no metre. movedown:2.4: 192-strip0.jpg system 2, stanza 2's row: the moved word is a place name, printed with a capital where it ends line 4 in the database's layout, and line 5's first word follows a full stop. The page prints no metre. movedown:3.2: 192-strip0.jpg system 1, stanza 3's row: the moved word is a pronoun for God, printed with a capital where it ends line 2 in the database's layout, and line 3's first word follows a full stop and a closing quotation mark and is a pronoun for God too. The page prints no metre. movedown:3.4: 192-strip0.jpg system 2, stanza 3's row: the moved word ends a title and is printed with a capital where it ends line 4 in the database's layout, and line 5's first word is the first-person pronoun, always a capital, after a full stop. The page prints no metre.",
-      "unreachable": ["movedown:1.4", "movedown:2.4", "movedown:3.2", "movedown:3.4"]
-    },
-    {
-      "sites": [],
-      "row": "",
       "readings": ["shape2-22 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
@@ -93,6 +66,34 @@
       "settles": [
         "192 shape (shape2-22): stanza 3 row 4 prints word 5 with a capital inside a line of stanza 3, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "192.png",
+          "crop": "192-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "13829864690a1f49",
+          "shows": ""
+        },
+        {
+          "image": "192.png",
+          "crop": "192-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "5fa34f9095f32f35",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t09 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.4: 192-strip0.jpg system 2, stanza 1's row: the moved word is a pronoun for God, printed with a capital where it ends line 4 (and line 8) in the database's layout, and line 5's first word follows a full stop and is a pronoun for God too. The page prints no metre. movedown:2.4: 192-strip0.jpg system 2, stanza 2's row: the moved word is a place name, printed with a capital where it ends line 4 in the database's layout, and line 5's first word follows a full stop. The page prints no metre. movedown:3.2: 192-strip0.jpg system 1, stanza 3's row: the moved word is a pronoun for God, printed with a capital where it ends line 2 in the database's layout, and line 3's first word follows a full stop and a closing quotation mark and is a pronoun for God too. The page prints no metre. movedown:3.4: 192-strip0.jpg system 2, stanza 3's row: the moved word ends a title and is printed with a capital where it ends line 4 in the database's layout, and line 5's first word is the first-person pronoun, always a capital, after a full stop. The page prints no metre.",
+      "unreachable": ["movedown:1.4", "movedown:2.4", "movedown:3.2", "movedown:3.4"],
+      "layout": "6194906b0add07d3"
     }
   ]
 }

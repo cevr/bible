@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t33 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:2.6: 622-strip0.jpg and 622-strip800.jpg system 3 (bars 9-12), stanza 2's row: the moved word is printed with a capital (a title of God) before a colon, and the word the change leaves mid-line is the vocative O, a capital anyway. The header prints no metre and no text stands below the music.",
-      "unreachable": ["movedown:2.6"]
+      "unreachable": ["movedown:2.6"],
+      "layout": "bd7821778580a6f8"
     }
   ]
 }

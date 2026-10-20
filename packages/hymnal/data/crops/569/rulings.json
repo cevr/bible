@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t31 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: p555-strip4000.jpg, the refrain's second system, its one row: the word that would open the split's second line is a divine pronoun, printed with a capital wherever it stands. The header's metre (p555-strip0.jpg, 8.5.8.5. Ref.) gives the refrain no counts, and the page prints no text below the music.",
-      "unreachable": ["split:refrain.1.2"]
+      "unreachable": ["split:refrain.1.2"],
+      "layout": "c9e4463a1c996d48"
     }
   ]
 }

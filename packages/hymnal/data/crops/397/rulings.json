@@ -191,7 +191,8 @@
       ],
       "judge": "reach-judge-reach-t21 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.2: can: 397-strip800.jpg system 2, stanza 2's row: the moved word follows a full stop, so its capital alone tells nothing, but the header on 397-strip0.jpg prints 9.8.9.8.: the database's lines 2 and 3 sing 8 and 9 syllables as the metre asks, and the change makes them 9 and 8. Words under copyright (page footer): no words written.",
-      "gaps": ["moveup:2.2"]
+      "gaps": ["moveup:2.2"],
+      "layout": "579a6d280239bb25"
     }
   ]
 }

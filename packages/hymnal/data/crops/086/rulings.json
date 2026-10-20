@@ -603,7 +603,8 @@
         "split:4.4",
         "join:refrain.1.2",
         "split:refrain.1.4"
-      ]
+      ],
+      "layout": "6b31389a20c200b1"
     }
   ]
 }

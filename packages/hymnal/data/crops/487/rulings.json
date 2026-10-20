@@ -256,7 +256,8 @@
       ],
       "judge": "reach-judge-reach-t26 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: p475-strip1600.jpg system 4, the refrain's row: the word the split opens on is the first-person pronoun, a capital anyway, sung mid-measure on a beamed eighth. The header on p475-strip0.jpg prints the metre as Irregular, so nothing fixes the lines.",
-      "unreachable": ["split:refrain.1.2"]
+      "unreachable": ["split:refrain.1.2"],
+      "layout": "d0f3f9d329e3bebf"
     }
   ]
 }

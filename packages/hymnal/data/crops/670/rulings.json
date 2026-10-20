@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t36 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:1.4: 670-strip0.jpg system 2, the one row: the word that would open the new line is a name of God, printed with a capital anyway, right after a capital O, and the header prints no metre to fix the lines. 670-strip800.jpg is blank.",
-      "unreachable": ["split:1.4"]
+      "unreachable": ["split:1.4"],
+      "layout": "a893d5cfbd180a8d"
     }
   ]
 }

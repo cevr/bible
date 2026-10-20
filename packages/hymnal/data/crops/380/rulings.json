@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t20 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:3.1: 380-strip0.jpg system 1, stanza 3's row: the moved word is a name of God, printed with a capital anyway, and line 2's first word follows an exclamation mark, so its capital comes anyway too. The re-engraved page prints no metre.",
-      "unreachable": ["movedown:3.1"]
+      "unreachable": ["movedown:3.1"],
+      "layout": "50fc94550352b869"
     }
   ]
 }

@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t37 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:1.2: 679-strip0.jpg, end of system 1 into system 2, the one lyric row: line 2 ends with a full stop and line 3 opens on a name of God, printed with a capital anyway. No rest or bar mark sits between them, and the header prints no metre. join:1.4: 679-strip0.jpg, end of system 2 into system 3: line 4 ends with a full stop and line 5 opens on the same name of God, capitalized anyway. No rest, bar mark or metre fixes the break.",
-      "unreachable": ["join:1.2", "join:1.4"]
+      "unreachable": ["join:1.2", "join:1.4"],
+      "layout": "2134885f98b54b74"
     },
     {
       "sites": [],
@@ -46,7 +47,8 @@
       ],
       "judge": "reach-judge-reach-t37 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.6: can: 679-strip0.jpg system 3 (again at the top of 679-strip800.jpg): line 7's first word, a two-letter interjection (not the one-letter vocative), follows a semicolon yet is printed with a capital, as the page capitalizes the conjunction that opens each even line after a comma. That capital marks a line opening, which the join removes. moveup:1.6: can: 679-strip0.jpg system 3, last word of the row: the interjection is printed with a capital after a semicolon, so it opens a line. Moved to close line 6, it would stand mid-sentence with a capital nothing else explains (the name of God the change opens line 7 on is capitalized anyway).",
-      "gaps": ["join:1.6", "moveup:1.6"]
+      "gaps": ["join:1.6", "moveup:1.6"],
+      "layout": "2134885f98b54b74"
     }
   ]
 }

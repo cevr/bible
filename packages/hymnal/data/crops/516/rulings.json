@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t28 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: The header on p505-strip0.jpg prints LOWRY 8.7.8.7.D. Stanza 1's row sings line 2 as 7 syllables at the end of system 1 (p505-strip0.jpg) and line 3 as 8 at the start of system 2 (p505-strip800.jpg); the moved word makes them 8 and 7, which breaks the metre. The moved word's capital follows a question mark, so the capital alone would not show it.",
-      "gaps": ["moveup:1.2"]
+      "gaps": ["moveup:1.2"],
+      "layout": "e94db0148360cdca"
     }
   ]
 }

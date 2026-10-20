@@ -253,7 +253,8 @@
       ],
       "judge": "reach-judge-reach-t03 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:1.6: Tongues2 systems 6-7 (bars 21-28), stanza 1's row: \"Lord\" is printed with a capital (a name of God) and the \"You\" after it is capitalized too (a divine pronoun, as the mid-row \"Your\" shows), so either can open the line. The header prints no metre and no text block is printed; system 7 opens on \"Lord,\" but a system break is no line mark. moveup:2.6: Tongues2 systems 6-7 (bars 21-28), stanza 2's row: \"Lord\" and the \"You\" after it are both printed with capitals (a name of God; a divine pronoun, as the mid-row \"Your\" shows), so either can open the line. No metre and no text block are printed; the system break before \"Lord,\" is no line mark. moveup:3.6: Tongues2 systems 6-7 (bars 21-28), stanza 3's row: \"Lord\" and the \"You\" after it are both printed with capitals (a name of God; a divine pronoun, as the mid-row \"Your\" shows), so either can open the line. No metre and no text block are printed; the system break before \"Lord,\" is no line mark.",
-      "unreachable": ["moveup:1.6", "moveup:2.6", "moveup:3.6"]
+      "unreachable": ["moveup:1.6", "moveup:2.6", "moveup:3.6"],
+      "layout": "e9d22a57d0ba3ffd"
     }
   ]
 }

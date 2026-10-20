@@ -53,7 +53,8 @@
         "split:4.6",
         "join:4.6",
         "movedown:4.6"
-      ]
+      ],
+      "layout": "041bc34371874bce"
     },
     {
       "sites": [],
@@ -80,7 +81,8 @@
       ],
       "judge": "reach-judge-reach-t12 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: 228-strip0.jpg system 2, stanza 1's row, measure 4: the moved Alleluia is printed with a capital straight after line 2's last word with no punctuation, and this page prints alleluia lowercase mid-line (228-strip800.jpg system 4), so only a line's start explains that capital; the change ends line 2 on it. moveup:4.2: can: 228-strip0.jpg system 2, stanza 4's row, measure 4: the moved Alleluia is printed with a capital after a colon, not a full stop, and this page prints alleluia lowercase mid-line (228-strip800.jpg system 4), so only a line's start explains that capital; the change ends line 2 on it.",
-      "gaps": ["moveup:1.2", "moveup:4.2"]
+      "gaps": ["moveup:1.2", "moveup:4.2"],
+      "layout": "041bc34371874bce"
     }
   ]
 }

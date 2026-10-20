@@ -158,7 +158,8 @@
       ],
       "judge": "reach-judge-reach-t30 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.4: can: 556-strip800.jpg system 3: the three stanza rows sit note for note under one tune. On the note after the system's opening whole note, where stanza 3's database line 5 opens, stanza 1's row prints a capital after a semicolon that only a line opening explains. On the next note, where the change would open stanza 3's line, stanza 1 prints a lowercase word. Stanza 3's row alone would not tell (the moved word is the vocative particle and the new opener a name of God, both capitals anyway, and the header prints no metre), so this ruling rests on the alignment across stanzas.",
-      "gaps": ["moveup:3.4"]
+      "gaps": ["moveup:3.4"],
+      "layout": "14f4733fee3c98e8"
     }
   ]
 }

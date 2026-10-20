@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t18 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: Refrain line 1 ends the row of p325-strip800.jpg system 3 on an exclamation mark, and p325-strip1600.jpg system 4's row opens on 'What' with a capital: no name, 'I' or 'O'. This page prints a lowercase word after a mid-line exclamation mark (system 2, stanza 1's row: 're-deemed! the'), so the capital marks a line opening the join removes. movedown:refrain.1.1: can: The moved word is a name with a capital anyway, but the move leaves 'What' (p325-strip1600.jpg system 4's row, word 1, capital) mid-line after an exclamation mark. This page prints lowercase after a mid-line exclamation mark (p325-strip800.jpg system 2, stanza 1's row: 're-deemed! the'), so that capital marks a line opening.",
-      "gaps": ["join:refrain.1.1", "movedown:refrain.1.1"]
+      "gaps": ["join:refrain.1.1", "movedown:refrain.1.1"],
+      "layout": "9ccbf346feb3a749"
     }
   ]
 }

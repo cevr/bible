@@ -46,7 +46,8 @@
         "movedown:4.1",
         "movedown:4.2",
         "movedown:4.3"
-      ]
+      ],
+      "layout": "526b2aae74660fde"
     },
     {
       "sites": [],
@@ -73,7 +74,8 @@
       ],
       "judge": "reach-judge-reach-t07 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.1: can: The header's 7.7.7.7. Alleluias (p162-strip0.jpg) fixes each line at 7 syllables before its Alleluia; stanza 2's line 1 (first system) and line 2 (p162-strip800.jpg, second system) print 7 each. Moving \"Where\" up makes them 8 and 6, which the metre breaks. moveup:2.2: can: The header's 7.7.7.7. Alleluias (p162-strip0.jpg) fixes each line at 7 syllables before its Alleluia; on p162-strip800.jpg stanza 2's line 2 (second system) and line 3 (third system) print 7 each. Moving \"Once\" up makes them 8 and 6, which the metre breaks.",
-      "gaps": ["moveup:2.1", "moveup:2.2"]
+      "gaps": ["moveup:2.1", "moveup:2.2"],
+      "layout": "526b2aae74660fde"
     }
   ]
 }

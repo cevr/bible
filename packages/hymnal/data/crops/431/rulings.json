@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t23 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: p418-strip1600.jpg, page system 4 (the strip's first system), the refrain's upper row: the word the split puts at a line's head is the pronoun I, printed with a capital wherever it stands. The header prints 7.6.7.7.Ref., no metre for the refrain, which has music of its own, so nothing fixes where its lines break.",
-      "unreachable": ["split:refrain.1.2"]
+      "unreachable": ["split:refrain.1.2"],
+      "layout": "fc76606d0530cc88"
     }
   ]
 }

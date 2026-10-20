@@ -152,7 +152,8 @@
       ],
       "judge": "reach-judge-reach-t25 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.4: can: Words under copyright, so no words quoted. 460-strip800.jpg system 1 (460-strip0.jpg system 3), stanza 1's row: line 4's last word ends with a semicolon and line 5's first word is printed with a capital, but line 5's second word, where the change opens the line, is printed lowercase.",
-      "gaps": ["moveup:1.4"]
+      "gaps": ["moveup:1.4"],
+      "layout": "0197a876decb0cec"
     }
   ]
 }

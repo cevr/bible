@@ -88,7 +88,8 @@
       ],
       "judge": "reach-judge-reach-t03 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:2.4: 087-strip0.jpg system 2 into system 3, stanza 2's row: the moved word \"Son\" is printed with a capital (a name of Christ), and the \"He\" it pushes mid-line is capitalized anyway (the page prints \"His\" mid-row). No metre is printed; the system break before \"He\" is no line mark, as system 1's rows break mid-line.",
-      "unreachable": ["movedown:2.4"]
+      "unreachable": ["movedown:2.4"],
+      "layout": "6c507e3e08d234ea"
     }
   ]
 }

@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t03 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.2: p098-strip1600.jpg system 4, the refrain row: \"He\" is a divine pronoun printed with a capital (the stanza rows print \"He\" and \"His\" mid-line too) and follows a semicolon, so it reads the same mid-line. The header's C.M.Ref. (p098-strip0.jpg) gives no metre for the refrain, whose lines run 6.8.6.6, so nothing fixes the line; the system break before it is no line mark. join:refrain.1.3: p098-strip1600.jpg system 4, the refrain row: \"God\" after \"you,\" is printed with a capital (a name of God), so it reads the same mid-line; the header's C.M.Ref. (p098-strip0.jpg) gives no metre for the refrain, so nothing fixes the line.",
-      "unreachable": ["join:refrain.1.2", "join:refrain.1.3"]
+      "unreachable": ["join:refrain.1.2", "join:refrain.1.3"],
+      "layout": "a700d73eb992d2aa"
     }
   ]
 }

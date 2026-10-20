@@ -55,7 +55,8 @@
       ],
       "judge": "reach-judge-reach-t21 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.1: can: The page tells the two layouts apart, but it sides with the change, not the database: 402-strip800.jpg (same photo as 401-strip800.jpg) system 1, stanza 2's row prints the moved word lowercase with no stop after it and the next word with a capital (not a name of God), and the header's 8.8.8.4. gives line 1 eight syllables only with the moved word on it (the database's split sings 7 then 9). The database's stanza 2 break sits one word early; it needs the fix.",
-      "gaps": ["moveup:2.1"]
+      "gaps": ["moveup:2.1"],
+      "layout": "3948b0ecf8ca7fc4"
     }
   ]
 }

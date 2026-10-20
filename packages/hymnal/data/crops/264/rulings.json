@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t14 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.2: can: The header prints L.M. (8.8.8.8), and stanza 2's lines 2 and 3 each sing 8 syllables in system 2's row (p259-strip800.jpg). Moving the one-syllable Thine leaves 7 and 9, which the metre breaks; the capitals alone would not tell, since Thine is a pronoun of God and the next word follows a question mark.",
-      "gaps": ["movedown:2.2"]
+      "gaps": ["movedown:2.2"],
+      "layout": "12487c02125757a6"
     }
   ]
 }

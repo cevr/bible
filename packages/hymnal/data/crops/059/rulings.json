@@ -208,7 +208,8 @@
       ],
       "judge": "reach-judge-reach-r04 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:1.4: 059-strip800.jpg system 3, stanza 1's row: the moved word is a name of God printed with a capital and a full stop after it, so line 5's first word carries a capital after a full stop either way; the page prints no metre (059-strip0.jpg). (Positions only: the words are under copyright.)",
-      "unreachable": ["movedown:1.4"]
+      "unreachable": ["movedown:1.4"],
+      "layout": "b8a078dce7643237"
     }
   ]
 }

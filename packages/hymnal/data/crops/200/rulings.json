@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t10 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.2: can: 200-strip0.jpg system 2, stanza 3's row: \"And\" is printed with a capital after a comma (no name of God) and \"none\" after it is printed lowercase. The change opens line 3 on the lowercase \"none\".",
-      "gaps": ["moveup:3.2"]
+      "gaps": ["moveup:3.2"],
+      "layout": "065aa0186905e523"
     }
   ]
 }

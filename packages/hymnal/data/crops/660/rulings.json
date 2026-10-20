@@ -135,7 +135,8 @@
         "join:1.6",
         "moveup:1.6",
         "split:1.7"
-      ]
+      ],
+      "layout": "8ac1ab9908e3e214"
     }
   ]
 }

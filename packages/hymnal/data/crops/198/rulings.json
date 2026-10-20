@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t10 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:1.2: 198-strip0.jpg system 2, stanza 1's row: \"Died\" follows a question mark, so it takes a capital as a sentence's first word, and the next word \"He\" is printed with a capital (a name of God). The header prints no metre, so nothing fixes which of the two opens the line.",
-      "unreachable": ["moveup:1.2"]
+      "unreachable": ["moveup:1.2"],
+      "layout": "002ab1cfeeac924a"
     },
     {
       "sites": [],
@@ -39,7 +40,8 @@
       ],
       "judge": "reach-judge-reach-t10 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.2: can: 198-strip0.jpg system 2, stanza 2's row: \"Emptied\" is printed with a capital after a semicolon; it is no name of God and follows no full stop, so only a line opening explains the capital. The change puts it at the end of line 2, mid-line.",
-      "gaps": ["moveup:2.2"]
+      "gaps": ["moveup:2.2"],
+      "layout": "002ab1cfeeac924a"
     }
   ]
 }

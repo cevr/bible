@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t10 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.4: can: p199-strip800.jpg systems 2 and 3, stanza 1's row: \"Thee\" (a name of God) and the place name after it both carry capitals anyway, but the header on p199-strip0.jpg prints 8.7.8.7.D., which gives line 4 seven syllables and line 5 eight. The change makes them 6 and 9.",
-      "gaps": ["movedown:1.4"]
+      "gaps": ["movedown:1.4"],
+      "layout": "e5144cf9cd7c6b13"
     }
   ]
 }

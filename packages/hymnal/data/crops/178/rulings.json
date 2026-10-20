@@ -98,7 +98,8 @@
       ],
       "judge": "reach-judge-reach-t08 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: 178-strip800.jpg system 3 (Refrain), its one row: the word that would open the new line is printed with a capital as part of a title of Christ, and the page prints this line once. The header (178-strip0.jpg) prints 8.7.8.7.Ref., no counts for the refrain. join:refrain.1.1: 178-strip800.jpg system 3 (Refrain), its one row: line 2 opens on the vocative interjection, printed with a capital after line 1's exclamation mark, and the page prints line 2 once. The header (178-strip0.jpg) prints 8.7.8.7.Ref., no counts for the refrain. movedown:refrain.1.1: 178-strip800.jpg system 3 (Refrain), its one row: the moved word is printed with a capital as part of a title of Christ, and line 2's first word after it is capitalized after an exclamation mark anyway; the page prints these lines once. The header (178-strip0.jpg) prints no counts for the refrain.",
-      "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "movedown:refrain.1.1"]
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "movedown:refrain.1.1"],
+      "layout": "59c641b17e8c5d50"
     },
     {
       "sites": [],
@@ -139,7 +140,8 @@
       ],
       "judge": "reach-judge-reach-t08 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.2: can: At the place (end of 178-strip800.jpg system 3, start of 178-strip1600.jpg system 4) line 3's first word is an interjection capitalized after an exclamation mark, and the header gives the refrain no counts. But the page prints line 3's words again as line 5 (178-p2-strip0.jpg, first system), where that word is capitalized right after line 4's semicolon, which only a line start explains; so the same line opens on it here too. moveup:refrain.1.2: can: At the place (178-strip1600.jpg system 4) the moved interjection follows line 2's exclamation mark and the next word is a divine pronoun, both capitalized anyway, and the header gives the refrain no counts. But the page prints line 3's words again as line 5 (178-p2-strip0.jpg, first system), where the interjection is capitalized right after line 4's semicolon, which only a line start explains; so line 3 opens on it, not on the word after.",
-      "gaps": ["join:refrain.1.2", "moveup:refrain.1.2"]
+      "gaps": ["join:refrain.1.2", "moveup:refrain.1.2"],
+      "layout": "59c641b17e8c5d50"
     }
   ]
 }

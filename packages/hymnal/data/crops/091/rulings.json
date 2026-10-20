@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t03 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: 091-strip1600.jpg systems 3-4, the refrain row: every Alleluia is printed with a capital and the row prints no line breaks; the split falls in the header's closing \"Alleluias\" (091-strip0.jpg), which counts no syllables or lines, and the six 8s stay whole.",
-      "unreachable": ["split:refrain.1.2"]
+      "unreachable": ["split:refrain.1.2"],
+      "layout": "0472a1018692a165"
     },
     {
       "sites": [],
@@ -71,7 +72,8 @@
         "movedown:refrain.1.1",
         "moveup:refrain.1.1",
         "swaplines:refrain.1.1"
-      ]
+      ],
+      "layout": "0472a1018692a165"
     }
   ]
 }

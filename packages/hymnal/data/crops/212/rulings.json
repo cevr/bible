@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t11 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p207-strip800.jpg and p207-strip1600.jpg system 3, the refrain's first row: the second line opens on 'O' after 'day!', a word the page prints with a capital anyway, and the header's metre covers the stanza only, so nothing fixes the refrain's lines. join:refrain.1.2: p207-strip1600.jpg system 4: the third line opens on 'The' right after 'day!', an exclamation that ends the sentence, so its capital is one the page prints anyway; the refrain has no metre. join:refrain.1.4: p208-strip0.jpg system 5 (the refrain's last): the fifth line opens on 'O' after 'on;', a word printed with a capital anyway; the refrain has no metre.",
-      "unreachable": ["join:refrain.1.1", "join:refrain.1.2", "join:refrain.1.4"]
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2", "join:refrain.1.4"],
+      "layout": "23d69918759f8f99"
     }
   ]
 }

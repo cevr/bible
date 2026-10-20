@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t34 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.4: can: 658-strip0.jpg system 2's last note: the moved word (a pronoun of God) and the next word (after a full stop) take capitals anyway and no metre is printed, but stanzas 2 and 3, under the same notes, print a word's last syllable on that note and open line 5 on the next note (system 3, 658-strip800.jpg), so no line opens where the change opens one. moveup:3.2: can: 658-strip0.jpg system 2, stanza 3's row: the moved word (after a full stop) and the next word (a pronoun of God) take capitals anyway and no metre is printed, but stanzas 1 and 2, under the same notes, open line 3 on the system's first note and print lowercase words on the note where the change opens line 3.",
-      "gaps": ["movedown:1.4", "moveup:3.2"]
+      "gaps": ["movedown:1.4", "moveup:3.2"],
+      "layout": "61ee28bdd361d421"
     }
   ]
 }

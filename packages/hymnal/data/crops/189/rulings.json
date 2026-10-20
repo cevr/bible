@@ -88,7 +88,8 @@
       ],
       "judge": "reach-judge-reach-t09 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p184-strip800.jpg system 3, the refrain's row: line 2's first word is a pronoun for Christ, printed with a capital as such pronouns are mid-line in the stanza rows (p184-strip0.jpg system 1, stanzas 1 and 3). The header's 8.7.8.7.Ref. gives the stanzas' metre only, so no metre fixes the refrain's lines. movedown:refrain.1.1: p184-strip800.jpg system 3, the refrain's row: the moved word is the name of Christ, a capital wherever it stands, and line 2's first word is a pronoun for Christ, printed with a capital mid-line in the stanza rows (p184-strip0.jpg system 1). The header gives no metre for the refrain. split:refrain.1.4: p184-strip1600.jpg system 4, the refrain's row: the word that would open the split's second line is a title of God, printed with a capital as line 4's fourth word in the database's layout. The header gives no metre for the refrain.",
-      "unreachable": ["join:refrain.1.1", "movedown:refrain.1.1", "split:refrain.1.4"]
+      "unreachable": ["join:refrain.1.1", "movedown:refrain.1.1", "split:refrain.1.4"],
+      "layout": "6ea845843edf3379"
     }
   ]
 }

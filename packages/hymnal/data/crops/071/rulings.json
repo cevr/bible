@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t02 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:3.1: System 1, stanza 3's row: 'Com-fort-er' is printed with a capital as a name of God, and the next word 'Thy' is a capitalised pronoun of God, so the capitals read the same in either layout. The header prints no metre that fixes the lines.",
-      "unreachable": ["movedown:3.1"]
+      "unreachable": ["movedown:3.1"],
+      "layout": "4a504b918e37edba"
     }
   ]
 }

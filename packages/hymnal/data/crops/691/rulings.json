@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t38 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:1.2: 691-strip0.jpg: line 3's first word opens system 3's row right after the full stop that ends system 2's row, so it is capitalised in either layout; the header prints no metre and the page no text block, so nothing fixes the line. split:1.3: 691-strip0.jpg system 3's row (repeated atop 691-strip800.jpg): the word that would open the new line, the row's word 4, is a pronoun of God, which the page capitalises mid-line too (systems 1 and 2 rows); no metre fixes the lines. join:1.3: 691-strip0.jpg system 3's row (repeated atop 691-strip800.jpg): line 4's first word, the row's word 7, is a name of God, which the page capitalises mid-line too (system 1's row, word 3); no metre fixes the lines. movedown:1.3: 691-strip0.jpg system 3's row (repeated atop 691-strip800.jpg): the moved word, the row's word 6, is a pronoun of God, and the word it displaces from line 4's start is a name of God; both are capitalised wherever they stand, and no metre fixes the lines.",
-      "unreachable": ["join:1.2", "split:1.3", "join:1.3", "movedown:1.3"]
+      "unreachable": ["join:1.2", "split:1.3", "join:1.3", "movedown:1.3"],
+      "layout": "dca2a0bb2a30d25b"
     }
   ]
 }

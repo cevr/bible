@@ -50,7 +50,8 @@
       ],
       "judge": "reach-judge-reach-r01 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.1: can: In system 1, stanza 1's row, the moved word 8 is a name of God and line 2's word 1 follows an exclamation mark, so both have capitals anyway. But the header metre '8.6. Amens' fixes these lines at 8 and 6 syllables, and the change gives 7 and 7. The canon mark '2.' is also printed over the bar where line 2's word 1 is sung. moveup:1.1: can: In system 1, stanza 1's row, the moved word follows an exclamation mark, and line 2's new first word is a pronoun of God, so both have capitals anyway. But the metre '8.6. Amens' fixes these lines at 8 and 6 syllables, and the change gives 9 and 5. The canon mark '2.' is also printed over the moved word's bar.",
-      "gaps": ["movedown:1.1", "moveup:1.1"]
+      "gaps": ["movedown:1.1", "moveup:1.1"],
+      "layout": "306d825d5d6f2145"
     }
   ]
 }

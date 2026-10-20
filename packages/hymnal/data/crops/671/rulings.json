@@ -48,7 +48,8 @@
       ],
       "judge": "reach-judge-reach-t36 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:1.1: 671-strip0.jpg system 1, the one row: line 2's first word is printed lowercase after a comma, so nothing marks a line opening there, and the header prints no metre. join:1.4: 671-strip0.jpg system 2, end of the row: line 5's first word follows a full stop, so its capital is expected anyway, and the header prints no metre to fix the lines. join:1.6: 671-strip0.jpg system 3 (repeated at the top of 671-strip800.jpg), end of the row: line 7's first word follows a full stop, so its capital is expected anyway, and the header prints no metre.",
-      "unreachable": ["join:1.1", "join:1.4", "join:1.6"]
+      "unreachable": ["join:1.1", "join:1.4", "join:1.6"],
+      "layout": "076bc1bcfb83261a"
     }
   ]
 }

@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t13 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:1.1: 244-strip0.jpg system 1, stanza 1's row: the moved word is the name 'Je-sus,' printed with a capital, and the next word 'His' is capitalised too; the header prints no metre, so nothing fixes which of the two opens line 2. movedown:3.7: 244-strip800.jpg system 4, stanza 3's row: the moved word is the name 'Je-sus' printed with a capital, followed by the capital 'I'll' with no stop between; 244-strip0.jpg shows the header prints no metre.",
-      "unreachable": ["movedown:1.1", "movedown:3.7"]
+      "unreachable": ["movedown:1.1", "movedown:3.7"],
+      "layout": "a411cea1ee87b4f8"
     }
   ]
 }

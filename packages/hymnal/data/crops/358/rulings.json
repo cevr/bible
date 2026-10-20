@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t19 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p348-strip800.jpg, the refrain's first system (seen again atop p348-strip1600.jpg): line 1 is a whole sentence ending on an exclamation mark, so the second line's opener is printed with a capital as a sentence opener anyway. The header (p348-strip0.jpg) prints 8.7.8.7. for the stanza and only Ref. for the refrain, so no metre fixes the refrain's lines.",
-      "unreachable": ["join:refrain.1.1"]
+      "unreachable": ["join:refrain.1.1"],
+      "layout": "54a01cadc8acd96b"
     }
   ]
 }

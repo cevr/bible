@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t16 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.4: p300-strip1600.jpg, the refrain's second system (the hymn's fourth), its main row: the word where the split opens a line is a name of God, printed with a capital anyway, after 'O'. The header (p300-strip0.jpg) prints 9.6.9.5. for the stanzas and only 'Ref.' for the refrain, so no metre fixes the refrain's lines.",
-      "unreachable": ["split:refrain.1.4"]
+      "unreachable": ["split:refrain.1.4"],
+      "layout": "eb366622bb7e8be4"
     }
   ]
 }

@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t08 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.1: can: The header (p171-strip0.jpg) prints 7.7.7.7 with Alleluias; stanza 3's row prints line 1 as seven syllables on system 1 and line 2's first word under system 2's first note (p171-strip800.jpg), after line 1's Alleluia. Both words carry capitals anyway, but the change leaves line 2 six syllables before its Alleluia and puts a syllable after line 1's. moveup:3.2: can: The header (p171-strip0.jpg) prints 7.7.7.7 with Alleluias; p171-strip800.jpg stanza 3's row prints line 2 as seven syllables on system 2 and line 3's first word under system 3's first note. Both words carry capitals anyway, but the change leaves line 3 six syllables before its Alleluia and puts a syllable after line 2's. moveup:4.2: can: The header (p171-strip0.jpg) prints 7.7.7.7 with Alleluias; p171-strip800.jpg stanza 4's row prints line 2 as seven syllables on system 2 and line 3's first word under system 3's first note. Both words carry capitals anyway, but the change leaves line 3 six syllables before its Alleluia and puts a syllable after line 2's.",
-      "gaps": ["moveup:3.1", "moveup:3.2", "moveup:4.2"]
+      "gaps": ["moveup:3.1", "moveup:3.2", "moveup:4.2"],
+      "layout": "681de3aa24e3ed97"
     }
   ]
 }

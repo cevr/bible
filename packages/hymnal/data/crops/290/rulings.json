@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t15 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: 290-strip800.jpg system 2 (from bar 20), the refrain's row: the split opens a line on \"His\", a pronoun of God that the page capitalizes anyway (as it does mid-line in the stanzas); the header prints no metre. split:refrain.1.4: 290-strip800.jpg system 3 (from bar 27), the refrain's row: the split opens a line on \"His\", a pronoun of God printed with a capital anyway; the header prints no metre.",
-      "unreachable": ["split:refrain.1.2", "split:refrain.1.4"]
+      "unreachable": ["split:refrain.1.2", "split:refrain.1.4"],
+      "layout": "15d968800f0f0c3b"
     }
   ]
 }

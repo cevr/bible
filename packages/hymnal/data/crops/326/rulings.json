@@ -57,7 +57,8 @@
       ],
       "judge": "reach-judge-reach-t17 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: p316-strip800.jpg (repeated at the top of p316-strip1600.jpg), the refrain's first system, one row: line 2's word 4, where the split opens a line, is a divine pronoun printed with a capital anyway, right after a name of God and a comma, so the row reads the same either way. The header (p316-strip0.jpg) prints Irregular, so no metre fixes the lines, and no text below the music prints them.",
-      "unreachable": ["split:refrain.1.2"]
+      "unreachable": ["split:refrain.1.2"],
+      "layout": "57f8f8ee1e8097c5"
     }
   ]
 }

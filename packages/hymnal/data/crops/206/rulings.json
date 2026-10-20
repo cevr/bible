@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t10 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.3: p201-strip4000.jpg system 4, the refrain's row: \"I\" is printed with a capital anyway (the pronoun), and the header on p201-strip0.jpg prints only \"Ref.\" after the stanzas' 8.7.8.7., so no metre fixes the refrain's lines. The fermata over the syllable before (bottom of p201-strip3200.jpg) marks the music, not the line (the refrain's line 1 ends with none). split:refrain.1.4: p201-strip4000.jpg system 4, the refrain's row: \"Him\" is printed with a capital anyway (a name of God), and nothing else marks a line there. The header on p201-strip0.jpg prints only \"Ref.\" after the stanzas' 8.7.8.7., so no metre fixes the refrain's lines.",
-      "unreachable": ["join:refrain.1.3", "split:refrain.1.4"]
+      "unreachable": ["join:refrain.1.3", "split:refrain.1.4"],
+      "layout": "903df78e19ac91b9"
     }
   ]
 }

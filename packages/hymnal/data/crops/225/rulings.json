@@ -74,7 +74,8 @@
       ],
       "judge": "reach-judge-reach-t12 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.3: can: 225-strip800.jpg system 2, stanza 3's row: the moved word is printed with a capital straight after \"truth\" with no punctuation, which only a line's start explains, and the next word, which would open line 4, is printed lowercase; the header prints the metre Irregular.",
-      "gaps": ["moveup:3.3"]
+      "gaps": ["moveup:3.3"],
+      "layout": "db21ede1083da76b"
     }
   ]
 }

@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t22 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p402-strip1600.jpg, the page's system 4, refrain row: the second half opens on a capital right after a question mark (\"day? How\"), a capital the sentence's end explains anyway, and both halves are printed with the same words; the header's 11.8.9.7.Ref. gives no syllables for the refrain. join:refrain.1.2: p402-strip1600.jpg, the page's system 4, refrain row: the word that stops opening a line follows a question mark (\"day? Shall\"), so its capital is explained either way; the header's 11.8.9.7.Ref. gives no syllables for the refrain lines. join:refrain.1.3: p402-strip1600.jpg, the page's system 5, refrain row: the word that stops opening a line follows a question mark (\"want-ing? Or\"), so its capital is explained either way; the header's 11.8.9.7.Ref. gives no syllables for the refrain lines.",
-      "unreachable": ["join:refrain.1.1", "join:refrain.1.2", "join:refrain.1.3"]
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2", "join:refrain.1.3"],
+      "layout": "fd9c69cba394e388"
     }
   ]
 }

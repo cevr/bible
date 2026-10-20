@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t24 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p431-strip800.jpg system 3 and p431-strip1600.jpg system 4, the refrain's row: the second line opens on the first-person pronoun, which the page capitalises anywhere (the same row prints it mid-line twice more), after a semicolon. The header's 9.11.10.10.Ref. (p431-strip0.jpg) gives the refrain no syllable count, so nothing fixes where its lines break.",
-      "unreachable": ["join:refrain.1.1"]
+      "unreachable": ["join:refrain.1.1"],
+      "layout": "22a680c12b3802f7"
     }
   ]
 }

@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t13 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.3: p248-strip1600.jpg system 4 (the refrain's second row): line 4 opens on the name 'Je-sus,' printed with a capital wherever it stands, after the dash on 'sung'; p248-strip0.jpg header 8.7.8.7.Ref. gives the refrain no syllable counts.",
-      "unreachable": ["join:refrain.1.3"]
+      "unreachable": ["join:refrain.1.3"],
+      "layout": "28856b1a3383a5c1"
     }
   ]
 }

@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t16 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p302-strip800.jpg and p302-strip1600.jpg, the refrain's first system (the hymn's third), its one row: the second line opens on the first-person pronoun, printed with a capital anyway. The header (p302-strip0.jpg) prints 8.7.8.7. for the stanzas and only 'Ref.' for the refrain, so no metre fixes the refrain's lines. movedown:refrain.1.1: p302-strip800.jpg and p302-strip1600.jpg, the refrain's first system, its one row: the moved word is a name printed with a capital, and the first-person pronoun after it is printed with a capital anyway. The header (p302-strip0.jpg) gives the refrain no syllable counts, so no metre fixes its lines. join:refrain.1.3: p302-strip1600.jpg, the refrain's second system (the hymn's fourth), its one row: the second line opens on the first-person pronoun, printed with a capital anyway. The header (p302-strip0.jpg) gives the refrain no syllable counts, only 'Ref.', so no metre fixes its lines.",
-      "unreachable": ["join:refrain.1.1", "movedown:refrain.1.1", "join:refrain.1.3"]
+      "unreachable": ["join:refrain.1.1", "movedown:refrain.1.1", "join:refrain.1.3"],
+      "layout": "b1ec51805afc4b8a"
     }
   ]
 }

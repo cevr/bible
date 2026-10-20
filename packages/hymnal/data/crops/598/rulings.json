@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t32 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.2: System 3, the refrain's row: line 2's word 4 follows a comma and is a pronoun of God, printed with a capital wherever it stands (also mid-line in lines 1 and 2); the header prints no metre for the refrain, so nothing marks a line opening there or rules one out. join:refrain.1.2: Systems 3 and 4: line 2 ends system 3 with an exclamation mark, and line 3's first word (opening system 4) is a name, capitalised either way; the refrain has no printed metre, so nothing tells the joined line from two.",
-      "unreachable": ["split:refrain.1.2", "join:refrain.1.2"]
+      "unreachable": ["split:refrain.1.2", "join:refrain.1.2"],
+      "layout": "5300c9f5803b8f61"
     },
     {
       "sites": [],
@@ -66,7 +67,8 @@
         "moveup:refrain.1.1",
         "join:refrain.1.3",
         "movedown:refrain.1.3"
-      ]
+      ],
+      "layout": "5300c9f5803b8f61"
     }
   ]
 }

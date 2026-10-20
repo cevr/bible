@@ -208,7 +208,8 @@
       ],
       "judge": "reach-judge-reach-t26 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.1: can: 497-b-p2-strip800.jpg header and system 1, stanza 3's row: the moved word, a one-letter article, is printed with a capital with no stop before it, and the word after it, which the change makes open line 2, is printed lowercase. The header's 11.10.11.10. also breaks (line 1 goes from 11 syllables to 12), and stanzas 1, 2 and 4 open line 2 on the same note with a capital.",
-      "gaps": ["moveup:3.1"]
+      "gaps": ["moveup:3.1"],
+      "layout": "07246963195cdf9f"
     }
   ]
 }

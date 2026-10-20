@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t19 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:2.4: Stanza 2's row: system 2 (347-strip0.jpg) ends the line on a word with a full stop, so the moved word that opens system 3 (347-strip800.jpg) is printed with a capital anyway, and the word after it, the new opener, is a capital pronoun of God. The header prints no metre. moveup:4.1: 347-strip0.jpg system 1, stanza 4's row: the moved word is a name of God printed with a capital, and the word after it, the new opener, is a capital pronoun of God. The header prints no metre.",
-      "unreachable": ["moveup:2.4", "moveup:4.1"]
+      "unreachable": ["moveup:2.4", "moveup:4.1"],
+      "layout": "f5c8eebb83ab1022"
     }
   ]
 }

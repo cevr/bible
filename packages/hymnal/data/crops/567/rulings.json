@@ -28,7 +28,8 @@
         "moveup:3.1",
         "movedown:4.1",
         "moveup:4.1"
-      ]
+      ],
+      "layout": "017239a3ae7c7afa"
     },
     {
       "sites": [],
@@ -62,7 +63,8 @@
       ],
       "judge": "reach-judge-reach-t30 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.3: can: p553-strip800.jpg system 2: the four stanza rows sit note for note under one tune. On the note where stanza 1's database line 4 opens (the first quarter after two dotted halves), stanzas 3 and 4 print capitals after unpunctuated words, which only a line opening explains. On the system's first note, where the change would open the line, stanzas 2 to 4 print lowercase syllables. Stanza 1's row alone would not tell (the moved word is a title of God, the old opener the first-person pronoun), and the metre keeps lines 3 and 4 at 9 together, so this ruling rests on the alignment across stanzas. movedown:3.6: can: The header on p553-strip0.jpg prints 9.9.9.9. On p553-strip800.jpg systems 2 and 3, stanza 3's database lines 5+6 and 7+8 each sing 9 syllables, and the change moves a word across the boundary between those two 9-syllable lines, which leaves 8 and 10 and breaks the metre. The alignment agrees: on system 3, stanzas 1 and 2 open line 7 with capitals after commas on the note after the moved word.",
-      "gaps": ["movedown:1.3", "movedown:3.6"]
+      "gaps": ["movedown:1.3", "movedown:3.6"],
+      "layout": "017239a3ae7c7afa"
     }
   ]
 }

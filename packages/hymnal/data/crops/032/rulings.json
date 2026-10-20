@@ -302,7 +302,36 @@
       ],
       "judge": "reach-judge-reach-r03 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:4.3: 032-strip800.jpg system 4 (the ending marked 4.), its one row: the one-word line is printed with a capital after a colon that introduces it as the words sung, so the capital reads the same whether a line opens there or not; the header prints no metre.",
-      "unreachable": ["join:4.3"]
+      "unreachable": ["join:4.3"],
+      "layout": "54ee704ca4b1d20b"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0de6482611b3019e",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "f81e05b9212011fe",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-u01 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: insertline:4.2/1.4: can: 032-strip0.jpg system 1, stanza 4's row: line 1's last word (closed by a semicolon) is followed at once by line 2's capitalised first word, with no word sung between, so the page has no one-word line there. Stanza 4's only one-word line is printed at its end, in the 4. ending (032-strip800.jpg system 2), and stanza 1's own stays in the 1, 2, 3. ending (032-strip800.jpg system 1, row 1). insertline:4.2/2.4: can: 032-strip0.jpg system 1, stanza 4's row: line 1's last word (closed by a semicolon) is followed at once by line 2's capitalised first word, with no word sung between, so the page has no one-word line there. Stanza 4's only one-word line is printed at its end, in the 4. ending (032-strip800.jpg system 2), and stanza 2's own stays in the 1, 2, 3. ending (032-strip800.jpg system 1, row 2). insertline:4.2/3.4: can: 032-strip0.jpg system 1, stanza 4's row: line 1's last word (closed by a semicolon) is followed at once by line 2's capitalised first word, with no word sung between, so the page has no one-word line there. Stanza 4's only one-word line is printed at its end, in the 4. ending (032-strip800.jpg system 2), and stanza 3's own stays in the 1, 2, 3. ending (032-strip800.jpg system 1, row 3).",
+      "gaps": ["insertline:4.2/1.4", "insertline:4.2/2.4", "insertline:4.2/3.4"],
+      "layout": "54ee704ca4b1d20b"
     }
   ]
 }

@@ -172,7 +172,8 @@
       ],
       "judge": "reach-judge-reach-t11 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:3.1: p211-strip0.jpg system 1, stanza 3's row: the moved 'Mas-ter' is capitalized as a title of Christ, and the database's own opener after it, 'from', is printed lowercase, so the page marks no break on either side; the header's 15 fixes only the two lines' sum, which the move keeps.",
-      "unreachable": ["movedown:3.1"]
+      "unreachable": ["movedown:3.1"],
+      "layout": "8dd4f5f52dc9e579"
     }
   ]
 }

@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t17 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: p319-strip800.jpg (repeated at the top of p319-strip1600.jpg), the refrain's first system, one row: line 2 opens on the interjection Oh right after line 1's last word, which ends on an exclamation mark, so its capital comes anyway. The header's 8.7.8.7. Ref. (p319-strip0.jpg) is printed as the stanzas' metre with none for the refrain (the refrain happens to sing the same counts), and no text below the music prints its lines. join:refrain.1.2: The refrain's first system (p319-strip800.jpg, repeated on p319-strip1600.jpg) ends line 2 on an exclamation mark and its second system (p319-strip1600.jpg) opens line 3 on the interjection Oh, whose capital comes anyway after it. The header's 8.7.8.7. Ref. (p319-strip0.jpg) is printed as the stanzas' metre with none for the refrain (the refrain happens to sing the same counts), and no text below the music prints its lines.",
-      "unreachable": ["join:refrain.1.1", "join:refrain.1.2"]
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2"],
+      "layout": "018b2f219e0cd038"
     }
   ]
 }

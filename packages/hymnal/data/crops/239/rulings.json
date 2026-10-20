@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t13 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.6: can: p234-strip0.jpg header prints the metre 6.6.5.D.7.8.6 (lines of 6,6,5,6,6,5,7,8,6 syllables). p234-strip800.jpg system 3, stanza 1's row: moving the capitalised pronoun after 'for' leaves line 6 with 4 syllables and gives line 7 8, where the metre fixes 5 and 7. moveup:1.6: can: p234-strip0.jpg header metre 6.6.5.D.7.8.6 fixes line 6 at 5 syllables and line 7 at 7. p234-strip800.jpg system 3, stanza 1's row: the moved word gives line 6 6 syllables and leaves line 7 with 6 (opening on the capital 'I'), so the metre breaks though the capitals do not tell it. movedown:1.7: can: p234-strip0.jpg header metre 6.6.5.D.7.8.6 fixes line 7 at 7 syllables and line 8 at 8. p234-strip800.jpg system 3 ends stanza 1's row on the capitalised 'Lamb,'; moving it to open line 8 (p234-strip1600.jpg system 4) gives 6 and 9 syllables, which the metre rules out.",
-      "gaps": ["movedown:1.6", "moveup:1.6", "movedown:1.7"]
+      "gaps": ["movedown:1.6", "moveup:1.6", "movedown:1.7"],
+      "layout": "a531adec2d9f6b7f"
     }
   ]
 }

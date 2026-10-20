@@ -281,7 +281,8 @@
       ],
       "judge": "reach-judge-reach-t05 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.1: 122-b-p2-strip0.jpg, the refrain's one system: the second line's first word (Glory) is printed with a capital after an opening quotation mark, a capital it takes anyway as the first word of a quoted sentence. The header's 7.7.7.7.D. counts the stanzas and Ref. gives the refrain no metre (stanza 1 prints the same words, but only there does the metre fix them), so nothing fixes the refrain's lines.",
-      "unreachable": ["join:refrain.1.1"]
+      "unreachable": ["join:refrain.1.1"],
+      "layout": "22b49473a91da57a"
     },
     {
       "sites": [],
@@ -315,7 +316,8 @@
       ],
       "judge": "reach-judge-reach-t05 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.1: can: The header prints 7.7.7.7.D. (122-strip0.jpg), and system 1, stanza 3's row sets line 1 (Hail ... Peace!) to 7 notes, heaven on one note, and line 2 to 7. Moving the last word down makes line 1 six syllables and line 2 eight, which the metre breaks; the capitals alone (Peace a title of Christ, Hail after an exclamation) would not show it.",
-      "gaps": ["movedown:3.1"]
+      "gaps": ["movedown:3.1"],
+      "layout": "22b49473a91da57a"
     }
   ]
 }

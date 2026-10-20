@@ -50,7 +50,8 @@
       ],
       "judge": "reach-judge-reach-t29 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:3.4: 536-strip0.jpg system 2 to 536-strip800.jpg system 3, stanza 3's row: the moved word is a divine pronoun printed with a capital, and the word after it (line 5 word 1) follows a full stop, so both carry capitals wherever the line ends. The header prints no metre; the system break there is no line mark.",
-      "unreachable": ["movedown:3.4"]
+      "unreachable": ["movedown:3.4"],
+      "layout": "f0c55e5327d67bba"
     }
   ]
 }

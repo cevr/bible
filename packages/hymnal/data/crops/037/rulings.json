@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-r03 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.2: can: The header on p037-strip0.jpg prints 8.7.8.7.8.8.7., fixing line 2 at 7 syllables and line 3 at 8; the change makes them 6 and 9. The moved word (a pronoun of God, first on system 2's stanza 3 row, p037-strip800.jpg) and the word after it both print with a capital anyway, so the metre alone tells the two apart.",
-      "gaps": ["movedown:3.2"]
+      "gaps": ["movedown:3.2"],
+      "layout": "e542f2733981cf4e"
     }
   ]
 }

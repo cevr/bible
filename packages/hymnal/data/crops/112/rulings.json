@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t04 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: swap:1-4: can: 112-strip800.jpg system 1: the stanzas are not printed alike. The row numbered 1 prints 'with a' as line 1's words 3 and 4, and the row numbered 4 prints 'then with' there (their line 2s match), so the swap puts stanza 4's line 1 under the number 1.",
-      "gaps": ["swap:1-4"]
+      "gaps": ["swap:1-4"],
+      "layout": "080cd8075a5f8c10"
     }
   ]
 }

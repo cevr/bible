@@ -114,7 +114,8 @@
       ],
       "judge": "reach-judge-reach-t24 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: join:refrain.1.4: p434-strip1600.jpg system 7, the refrain's row: the word that opens line 5 in the database is printed lowercase, straight after line 4's last word with no capital to mark a line, and the header's C.M.Ref. gives the refrain no metre; nothing on the page tells the joined line apart. moveup:refrain.1.4: p434-strip1600.jpg system 7, the refrain's row: the moved word is printed lowercase and the word after it is a place name, capitalised anyway; with no metre for the refrain (C.M.Ref.), nothing on the page shows which of the two opens the line.",
-      "unreachable": ["join:refrain.1.4", "moveup:refrain.1.4"]
+      "unreachable": ["join:refrain.1.4", "moveup:refrain.1.4"],
+      "layout": "986eeaef78a41ea5"
     },
     {
       "sites": [],
@@ -155,7 +156,8 @@
       ],
       "judge": "reach-judge-reach-t24 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.7: can: p434-strip0.jpg system 5, stanza 1's row: the moved word is printed lowercase with a comma after it, and the next word (line 8's first) is printed with a capital right after that comma. A lowercase word cannot open line 8, and the changed lines (7 and 7 syllables) break the 8.6 of the repeated lines 3-4 under the header's C.M. movedown:2.4: can: The moved word is a divine title, capitalised anyway, and line 5's first word follows a full stop, so capitals alone do not show it; but the header's C.M. (p433-strip0.jpg) fixes line 4 at 6 syllables and the change leaves it 5. Under the same notes (p433-strip800.jpg system 3) stanzas 1, 3 and 4 end line 4 on a lowercase word and open line 5 with a capital, so the break falls after the moved word.",
-      "gaps": ["movedown:1.7", "movedown:2.4"]
+      "gaps": ["movedown:1.7", "movedown:2.4"],
+      "layout": "986eeaef78a41ea5"
     }
   ]
 }

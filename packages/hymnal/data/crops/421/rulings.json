@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t22 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:1.4: p406-strip1600.jpg system 3 prints the two Alleluias in one row, the second capitalised after the first one's exclamation mark, and the two are printed alike; the header's 'Alleluias' gives no line count, so one line or two read the same. split:2.4: p406-strip1600.jpg system 3 prints the two Alleluias in one row, the second capitalised after the first one's exclamation mark, and the two are printed alike; the header's 'Alleluias' gives no line count, so one line or two read the same. split:3.4: p406-strip1600.jpg system 3 prints the two Alleluias in one row, the second capitalised after the first one's exclamation mark, and the two are printed alike; the header's 'Alleluias' gives no line count, so one line or two read the same. split:4.4: p406-strip1600.jpg system 3 prints the two Alleluias in one row, the second capitalised after the first one's exclamation mark, and the two are printed alike; the header's 'Alleluias' gives no line count, so one line or two read the same. split:5.4: p406-strip1600.jpg system 3 prints the two Alleluias in one row, the second capitalised after the first one's exclamation mark, and the two are printed alike; the header's 'Alleluias' gives no line count, so one line or two read the same.",
-      "unreachable": ["split:1.4", "split:2.4", "split:3.4", "split:4.4", "split:5.4"]
+      "unreachable": ["split:1.4", "split:2.4", "split:3.4", "split:4.4", "split:5.4"],
+      "layout": "817c8e026c851987"
     },
     {
       "sites": [],
@@ -68,7 +69,8 @@
         "moveup:3.3",
         "moveup:4.3",
         "moveup:5.3"
-      ]
+      ],
+      "layout": "817c8e026c851987"
     }
   ]
 }

@@ -50,7 +50,8 @@
       ],
       "judge": "reach-judge-reach-t15 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.2: can: p284-strip0.jpg header prints the metre 8.8.8.8.8.8.; stanza 3's rows on p284-strip0.jpg system 1 and p284-strip800.jpg system 2 sing line 2 as eight syllables ending on the moved word and line 3 as eight, so the change makes them seven and nine and breaks the metre. Capitals alone would not tell it: the moved word and the word after it are both pronouns of God.",
-      "gaps": ["movedown:3.2"]
+      "gaps": ["movedown:3.2"],
+      "layout": "abef1cf3af454d72"
     }
   ]
 }

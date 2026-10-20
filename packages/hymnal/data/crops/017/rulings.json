@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-r02 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:4.3: can: p017-strip800.jpg system 2, stanza 4's row prints 'We' with a capital straight after 'throne' with no stop, which marks line 4's opening. The change also makes line 3 nine syllables and line 4 seven against the header's L.M.",
-      "gaps": ["moveup:4.3"]
+      "gaps": ["moveup:4.3"],
+      "layout": "b96fa11593fd0d63"
     }
   ]
 }

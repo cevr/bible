@@ -139,7 +139,8 @@
       ],
       "judge": "reach-judge-reach-t05 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.4: p134-strip1600.jpg system 4, the refrain row prints the word the split opens on (Thy) with a capital, so it looks the same whether or not a line opens there. The header's 8.8.8.6. fits the stanzas only (the refrain runs 8.7.8.7), so no metre fixes the refrain's lines.",
-      "unreachable": ["split:refrain.1.4"]
+      "unreachable": ["split:refrain.1.4"],
+      "layout": "773ac1629828ae60"
     }
   ]
 }

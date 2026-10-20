@@ -33,7 +33,8 @@
       ],
       "judge": "reach-judge-reach-t32 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: p597-strip800.jpg/p597-strip1600.jpg system 3's end, the refrain's row: the word the split opens a line on is a proper adjective, which the page prints with a capital mid-line too (p597-strip0.jpg system 1, stanza 1's line 1, a line the metre fixes); the header's 6.5.6.5.D covers the stanzas and only Ref. the refrain, so no metre fixes the refrain's lines, though they repeat stanza 1's opening words. join:refrain.1.1: p597-strip1600.jpg system 4, the refrain's row: line 1 ends with an exclamation mark, so line 2's first word carries a capital anyway (nowhere on the page does a lowercase word follow an exclamation mark); the refrain has no printed metre, so nothing tells the joined line from two.",
-      "unreachable": ["split:refrain.1.1", "join:refrain.1.1"]
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.1"],
+      "layout": "15b9499830e946fd"
     }
   ]
 }

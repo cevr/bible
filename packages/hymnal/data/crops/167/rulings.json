@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t07 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: movedown:1.1: 167-strip0.jpg, the system from bar 1, stanza 1's row: the moved word \"Jesus\" is printed with a capital (a name of God), and \"His\", which no longer opens a line, is a capital anyway (a pronoun of God); the header prints no metre. moveup:1.2: 167-strip0.jpg, stanza 1's row: \"Al-le-lu-ia!\" opens the system from bar 9 with the capital this hymnal gives that word of praise wherever it stands, and the changed line opens on \"His\", a capital anyway (a pronoun of God); the header prints no metre. moveup:2.2: 167-strip0.jpg, stanza 2's row: \"Al-le-lu-ia!\" opens the system from bar 9 with the capital this hymnal gives that word of praise wherever it stands, and the changed line opens on \"He\", a capital anyway (a pronoun of God); the header prints no metre.",
-      "unreachable": ["movedown:1.1", "moveup:1.2", "moveup:2.2"]
+      "unreachable": ["movedown:1.1", "moveup:1.2", "moveup:2.2"],
+      "layout": "401f383bb1ae9b22"
     }
   ]
 }

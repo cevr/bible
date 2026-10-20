@@ -280,53 +280,6 @@
     {
       "sites": [],
       "row": "",
-      "readings": ["the shape readings of the page (data/shapes.json)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "593.png",
-          "crop": "593-strip0.jpg",
-          "box": [0, 0, 1274, 1000],
-          "sha": "ee69052d0cc6bf7c",
-          "shows": ""
-        },
-        {
-          "image": "593.png",
-          "crop": "593-strip800.jpg",
-          "box": [0, 800, 1274, 850],
-          "sha": "0322482bff184b1a",
-          "shows": ""
-        }
-      ],
-      "judge": "reach-judge-reach-t31 (Opus, effort max)",
-      "why": "The page cannot tell these changes from the row: split:refrain.1.1: 593-strip0.jpg system 3 (again at the top of 593-strip800.jpg), the refrain's row: the word that would open the split's second line is printed with a capital after a comma, which fits a line opening, so nothing on the page shows the split wrong. That capital fits the changed layout better than the database's, where it stands mid-line. The page prints no metre. split:refrain.1.2: 593-strip800.jpg system 4, the refrain's row: the word that would open the split's second line is a name of Christ, printed with a capital wherever it stands; the capital after the comma that follows it stands mid-line in both layouts. The page prints no metre and no text below the music. split:varies.3.2.1: 593-strip800.jpg systems 4 and 5, the row marked 3.: the word that would open the split's second line (the row's word 4) is the pronoun I (contracted), printed with a capital in either layout. The page prints no metre and no text below the music.",
-      "unreachable": ["split:refrain.1.1", "split:refrain.1.2", "split:varies.3.2.1"]
-    },
-    {
-      "sites": [],
-      "row": "",
-      "readings": ["the shape readings of the page (data/shapes.json)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "593.png",
-          "crop": "593-strip800.jpg",
-          "box": [0, 800, 1274, 850],
-          "sha": "0322482bff184b1a",
-          "shows": ""
-        }
-      ],
-      "judge": "reach-judge-reach-t31 (Opus, effort max)",
-      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:varies.3.1.1: can: 593-strip800.jpg system 5, the row marked 1, 2.: the word that opens line 2 is printed with a capital right after a word with no stop or comma, which only a line opening explains; the join puts that capital mid-line.",
-      "gaps": ["join:varies.3.1.1"]
-    },
-    {
-      "sites": [],
-      "row": "",
       "readings": ["shape2-66 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
@@ -410,6 +363,55 @@
       "settles": [
         "593 shape (shape2-66): the refrain after stanza 3: row 2 prints word 5 with a capital inside a line of stanza 3, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ee69052d0cc6bf7c",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0322482bff184b1a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t31 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: 593-strip0.jpg system 3 (again at the top of 593-strip800.jpg), the refrain's row: the word that would open the split's second line is printed with a capital after a comma, which fits a line opening, so nothing on the page shows the split wrong. That capital fits the changed layout better than the database's, where it stands mid-line. The page prints no metre. split:refrain.1.2: 593-strip800.jpg system 4, the refrain's row: the word that would open the split's second line is a name of Christ, printed with a capital wherever it stands; the capital after the comma that follows it stands mid-line in both layouts. The page prints no metre and no text below the music. split:varies.3.2.1: 593-strip800.jpg systems 4 and 5, the row marked 3.: the word that would open the split's second line (the row's word 4) is the pronoun I (contracted), printed with a capital in either layout. The page prints no metre and no text below the music.",
+      "unreachable": ["split:refrain.1.1", "split:refrain.1.2", "split:varies.3.2.1"],
+      "layout": "93c8183d9086ebfe"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0322482bff184b1a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t31 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:varies.3.1.1: can: 593-strip800.jpg system 5, the row marked 1, 2.: the word that opens line 2 is printed with a capital right after a word with no stop or comma, which only a line opening explains; the join puts that capital mid-line.",
+      "gaps": ["join:varies.3.1.1"],
+      "layout": "93c8183d9086ebfe"
     }
   ]
 }

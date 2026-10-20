@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t08 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: 173-strip800.jpg system 4 (Refrain): its one row prints the same word three times, each with a capital after an exclamation mark, so a line opening on the second looks the same. The page prints no metre and the refrain once.",
-      "unreachable": ["split:refrain.1.1"]
+      "unreachable": ["split:refrain.1.1"],
+      "layout": "01549b3f60e9a3a0"
     },
     {
       "sites": [],
@@ -46,7 +47,8 @@
       ],
       "judge": "reach-judge-reach-t08 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.2: can: Stanza 1's row alone does not decide it: the moved word (end of system 2, a title of Christ) and line 3's first word (start of system 3, after an exclamation mark) both carry capitals anyway, and no metre is printed. But every stanza sets eight syllables per system, and stanzas 2-4 open line 3 at system 3's first note with capitals no other rule explains (after a semicolon, a comma, no stop), so the page fixes stanza 1's break there and the change moves it a note early.",
-      "gaps": ["movedown:1.2"]
+      "gaps": ["movedown:1.2"],
+      "layout": "01549b3f60e9a3a0"
     }
   ]
 }

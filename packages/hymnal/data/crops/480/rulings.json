@@ -19,7 +19,8 @@
       ],
       "judge": "reach-judge-reach-t26 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.1: can: p469-strip0.jpg header and system 1, stanza 3's row: the moved word is a place name printed with a capital, but the header prints the metre 8.6.8.8.6. and the change turns lines 1 and 2 from 8 and 6 syllables into 5 and 9. Stanzas 1, 2 and 4 also open line 2 on the next note with a capitalised common word.",
-      "gaps": ["movedown:3.1"]
+      "gaps": ["movedown:3.1"],
+      "layout": "1e7b7b92e842e6cd"
     }
   ]
 }

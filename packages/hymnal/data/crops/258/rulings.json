@@ -249,6 +249,35 @@
     {
       "sites": [],
       "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p253.jpg",
+          "crop": "p253-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "4b80f82e970d7d35",
+          "shows": ""
+        },
+        {
+          "image": "p253.jpg",
+          "crop": "p253-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "9b8dd0eac0b77276",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f02 (Opus, effort max)",
+      "why": "p253-strip800.jpg system 2, stanza 2's row: words 1-6 sing the 6-syllable third line of the header metre 5.5.6.5 (p253-strip0.jpg), and the capital at word 7 opens the 5-syllable fourth line. The database writes those two whole poem lines as its line 2, as each stanza's two lines join poem lines 1-2 and 3-4, words the same.",
+      "settles": [
+        "258 shape (shape2-29): stanza 2 row 2 prints word 7 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
       "readings": ["the shape readings of the page (data/shapes.json)"],
       "printed": "",
       "sung": "",
@@ -276,7 +305,8 @@
         "split:varies.1.1.2",
         "split:varies.1.2.1",
         "split:varies.1.2.2"
-      ]
+      ],
+      "layout": "06b0deed3ebea9f5"
     },
     {
       "sites": [],
@@ -303,36 +333,8 @@
       ],
       "judge": "reach-judge-reach-t14 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:varies.1.1.1: can: Refrain system 2, first row (p253-strip1600.jpg): With, a plain preposition, is printed with a capital right after the comma that ends system 1's row. That capital marks a line opening, which the join removes.",
-      "gaps": ["join:varies.1.1.1"]
-    },
-    {
-      "sites": [],
-      "row": "",
-      "readings": ["shape2-29 (the shape reading of the page)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "p253.jpg",
-          "crop": "p253-strip0.jpg",
-          "box": [0, 0, 1758, 1000],
-          "sha": "4b80f82e970d7d35",
-          "shows": ""
-        },
-        {
-          "image": "p253.jpg",
-          "crop": "p253-strip800.jpg",
-          "box": [0, 800, 1758, 1000],
-          "sha": "9b8dd0eac0b77276",
-          "shows": ""
-        }
-      ],
-      "judge": "shape-judge-judge-f02 (Opus, effort max)",
-      "why": "p253-strip800.jpg system 2, stanza 2's row: words 1-6 sing the 6-syllable third line of the header metre 5.5.6.5 (p253-strip0.jpg), and the capital at word 7 opens the 5-syllable fourth line. The database writes those two whole poem lines as its line 2, as each stanza's two lines join poem lines 1-2 and 3-4, words the same.",
-      "settles": [
-        "258 shape (shape2-29): stanza 2 row 2 prints word 7 with a capital inside a line of stanza 2, where no line or sentence opens"
-      ]
+      "gaps": ["join:varies.1.1.1"],
+      "layout": "06b0deed3ebea9f5"
     }
   ]
 }

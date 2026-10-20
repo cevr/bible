@@ -26,7 +26,8 @@
       ],
       "judge": "reach-judge-reach-t37 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.4: can: 687-strip800.jpg, left page, 686's last system: line 4's last word carries a fermata and a full stop, a double bar follows, and line 5's one word (the closing response) is set alone after it. The header's L.M. (687-strip0.jpg) also holds line 4 to 8 syllables, which the join makes 10.",
-      "gaps": ["join:1.4"]
+      "gaps": ["join:1.4"],
+      "layout": "e5ff115b9ab5d76f"
     }
   ]
 }
