@@ -108,6 +108,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Owner questions
 
+- hymnrows (2026-10-20): the rewrite failed its 3 rounds (r6 changes: M1, repeat of r5 M1). The data at head `ebb5933da` is sound by every check: 0 census problems, 518 crops re-cut byte-identical, 584 matches its crop, and the gate is green. The defect is the census's reach: 115 hand-made layout mutants in 25 hymns pass it unseen. Options: (A, recommended) merge the data now and open unit `census2` with the 115 mutants as red fixtures first; (B) one more rewrite before anything merges; (C) merge the data and drop the census's layout check. Answer: pending.
+
 - glass/android: may the Android build tools be downloaded onto the Mac: NDK 27.1.12297006 (via Android Studio's sdkmanager) and a JDK 17 (e.g. `brew install --cask zulu@17`)? The `pixel_api36` emulator boots (measured), but a native build needs both. Recommendation: yes, so a later `android` unit verifies the Android glass (One.UI.Blur). Until then the run is iOS-only. — answer: "yes you can download" (owner, 2026-10-18). Unit `android`: tools now; the app's Android build after appbase merges.
 - simtools: trust the `facebook/fb` tap for idb? — withdrawn: the owner pointed at https://tester.army/e2e (2026-10-17); its driver `agent-device` (Callstack, MIT, npm) needs no tap trust. Decided: agent-device for taps. Then the owner ran `brew trust --formula facebook/fb/idb-companion` (2026-10-17): install both; idb serves the `ios-simulator-skill` scripts.
 
