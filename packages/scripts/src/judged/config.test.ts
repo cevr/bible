@@ -30,7 +30,7 @@ const readJudgedConfig = (text: string) =>
     return yield* lintOf(dir);
   }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
-const SETTINGS = '"settings": { "judged": { "model": "m", "cache": "tmp/c.json" } }';
+const SETTINGS = '"settings": { "judged": { "model": "m", "store": "judged/s.json" } }';
 
 /** A config's text: its settings and `rules`. */
 const configOf = (rules: string) => `{ ${SETTINGS}, "rules": { ${rules} } }`;
@@ -67,7 +67,7 @@ describe("the judged rules in the repo's lint config", () => {
         ['b', 'error'],
       ]);
       expect(config.ignorePatterns).toEqual(['**/dist/**']);
-      expect(config.settings).toEqual({ model: 'm', cache: 'tmp/c.json' });
+      expect(config.settings).toEqual({ model: 'm', store: 'judged/s.json' });
     }),
   );
 
@@ -81,7 +81,7 @@ describe("the judged rules in the repo's lint config", () => {
       expect(yield* refused('{ "rules": [')).toEqual(['LintConfigUnreadable', 'not JSONC']);
       expect(yield* refused('{ "rules": {} }')).toEqual([
         'LintConfigUnreadable',
-        'it has no settings.judged (model, cache)',
+        'it has no settings.judged (model, store)',
       ]);
       expect(yield* refused(configOf('"judged/a": "warn"'))).toEqual([
         'LintConfigUnreadable',

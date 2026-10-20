@@ -80,7 +80,7 @@ const readJudgedConfig = Effect.fn('judged.readConfig')(function* (file: string,
   );
   const settings = yield* Effect.fromOption(Option.fromUndefinedOr(config.settings?.judged)).pipe(
     Effect.mapError(() =>
-      LintConfigUnreadable.make({ file, detail: 'it has no settings.judged (model, cache)' }),
+      LintConfigUnreadable.make({ file, detail: 'it has no settings.judged (model, store)' }),
     ),
   );
   const rules = yield* Effect.forEach(

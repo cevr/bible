@@ -3882,8 +3882,9 @@ the config's `ignorePatterns` aside; a series script's Markdown in its tables
 and its `**say:**` and `**picture:**` paragraphs), and asks TypeSafe's model
 about all those the store does not answer in one request, split past 200
 items or about 60,000 estimated input tokens, a part the model still refuses
-as too long asked again in halves. The store (`settings.judged.cache`, under
-the repo's ignored tmp folder) is keyed by content: a hash of the words the
+as too long asked again in halves. The store (`settings.judged.store`, in
+git's common dir, which every checkout and worktree of the repo shares, a
+merge audit's scratch worktrees too) is keyed by content: a hash of the words the
 model reads for the rule (subject, instructions, criteria), the model, and
 the item's key: what of it a formatter does not change, code by its parsed
 form (each node's type and fields, not where it stands or how a number or
@@ -3891,8 +3892,9 @@ a string is spelt; a template's raw text stays) and comments and prose by their 
 space (`packages/scripts/src/judged/items.ts`). So a rerun asks only for an
 item or rule words it has not seen, an edit a parser sees or to a rule's
 words asks again, a threshold or a message changes no
-answer, and a moved, copied or re-indented item keeps its answer; the store
-keeps the answers of the working tree's items alone, and drops the rest. The plugin (`packages/scripts/lint/judged.ts`) hashes
+answer, and a moved, copied or re-indented item keeps its answer; a run
+marks each answer its tree reads seen that day, and drops an answer no
+checkout has read for 30 days (`MAX_AGE_DAYS`), never one another tree reads. The plugin (`packages/scripts/lint/judged.ts`) hashes
 each item of the file it lints the same way and reports the kept answer at
 or over its rule's threshold at its line, wherever the text now lives; it
 asks no model, so a checkout with no store reports nothing. The runner
@@ -3909,7 +3911,7 @@ rate limit or a part past 5 s, no part not yet sent is sent), and prints
 `detail=<tag>`, a store that does not decode is read as empty with one
 `[judged] store unread` line, and answers the store cannot keep are asked
 again next run. Two runs keep their answers under one lock, SQLite's write
-lock on a file beside the store (`.cache.json.lock`, never removed), held
+lock on a file beside the store (`.store.json.lock`, never removed), held
 from the read to the write: the kernel lets it go when its run ends, so a
 run that dies leaves none to take. The store is written whole through a
 temporary file, removed if the write fails, so neither run loses the

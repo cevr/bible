@@ -10,12 +10,12 @@
 // an error when its rule's severity is `error`.
 
 import type { Duration } from 'effect';
-import { Console, Effect, Option, Predicate, Ref, Result, Schema } from 'effect';
+import { Clock, Console, Effect, Option, Predicate, Ref, Result, Schema } from 'effect';
 import { type AiError, Decision, DecisionModel } from 'effect/ai';
 
-import { keepAnswers, readCache } from './cache.js';
+import { changes, keepAnswers, readCache } from './cache.js';
 import { type JudgedRule, ruleKey } from './rule.js';
-import { type Answer, cacheKey } from './store.js';
+import { type Verdict, cacheKey, dayOf } from './store.js';
 
 /** Why a rule judged none of some items: what its skip line says. */
 type SkipReason =
@@ -48,7 +48,7 @@ export const questionKey = (question: Question) => `${question.rule.id}\0${quest
 
 /** The model's answers for the questions it was asked (by `questionKey`), and why the rest went unanswered. */
 interface Asked {
-  readonly answers: ReadonlyMap<string, Answer>;
+  readonly answers: ReadonlyMap<string, Verdict>;
   readonly unanswered: ReadonlyArray<Question>;
   readonly reason: Option.Option<SkipReason>;
   readonly usage: { readonly inputTokens: number; readonly outputTokens: number };
@@ -136,7 +136,7 @@ const askPart = (questions: ReadonlyArray<Question>, deadline: Duration.Input) =
                 Option.toArray(
                   Option.map(
                     Option.fromUndefinedOr(answers[`c${i}`]),
-                    (answer): [string, Answer] => [
+                    (answer): [string, Verdict] => [
                       questionKey(question),
                       { label: answer.label, probabilities: { ...answer.probabilities } },
                     ],
@@ -200,7 +200,7 @@ export const partsOf = (
 /** What asking one part came to: its answers by `questionKey` and its tokens, or why it went unanswered. */
 type PartResult = Result.Result<
   {
-    readonly answers: ReadonlyArray<readonly [string, Answer]>;
+    readonly answers: ReadonlyArray<readonly [string, Verdict]>;
     readonly inputTokens: number;
     readonly outputTokens: number;
   },
@@ -271,7 +271,7 @@ export const ask = Effect.fn('judged.ask')(function* (
     (part) => askSplitting(part, limits.deadline, halt),
     { concurrency: PARTS_AT_ONCE },
   );
-  const answers = new Map<string, Answer>();
+  const answers = new Map<string, Verdict>();
   const unanswered: Array<Question> = [];
   const reasons: Array<SkipReason> = [];
   let inputTokens = 0;
@@ -343,17 +343,18 @@ interface Outcome {
   readonly skip: Option.Option<{ readonly reason: SkipReason; readonly items: number }>;
 }
 
-/** Where a run keeps its answers and which model's they are. */
+/** Where a run keeps its answers (the store every checkout shares) and which model's they are. */
 interface Judging extends Limits {
   readonly model: string;
-  readonly cacheFile: string;
+  readonly storeFile: string;
 }
 
 /**
- * Judges `items` by their rules: the cache's answers first, then one request
+ * Judges `items` by their rules: the store's answers first, then one request
  * for the rest of every rule, kept; answers an outcome for each of `rules`.
- * The store keeps the answers of `items` alone: an answer no item has a key
- * for (an edited or deleted item's, an old rule's or model's) is dropped.
+ * The store is every checkout's: each answer `items` read is marked seen
+ * today, and an answer no run read for `MAX_AGE_DAYS` (an edited or deleted
+ * item's, an old rule's or model's) is dropped (`cache.ts`).
  */
 export const judge = Effect.fn('judged.judge')(function* (
   rules: ReadonlyArray<JudgedRule>,
@@ -375,7 +376,8 @@ export const judge = Effect.fn('judged.judge')(function* (
       return key;
     });
   };
-  const cache = yield* readCache(judging.cacheFile);
+  const cache = yield* readCache(judging.storeFile);
+  const day = dayOf(yield* Clock.currentTimeMillis);
   const isCached = (item: RuleItem) => cache.has(keyOf(item));
   const fresh = [
     ...new Map(items.filter((item) => !isCached(item)).map((item) => [keyOf(item), item])).values(),
@@ -388,16 +390,15 @@ export const judge = Effect.fn('judged.judge')(function* (
       Option.toArray(
         Option.map(
           Option.fromUndefinedOr(asked.answers.get(questionKey(question))),
-          (answer): [string, Answer] => [keyOf(question), answer],
+          (answer): [string, Verdict] => [keyOf(question), answer],
         ),
       ),
     ),
   );
-  const live = new Set(items.map(keyOf));
-  const stale = new Set([...cache.keys()].filter((key) => !live.has(key)));
+  const keeping = { fresh: answered, read: new Set(items.map(keyOf)), day };
   const kept =
-    (answered.size === 0 && stale.size === 0) ||
-    (yield* keepAnswers(judging.cacheFile, answered, stale).pipe(
+    !changes(cache, keeping) ||
+    (yield* keepAnswers(judging.storeFile, keeping).pipe(
       Effect.as(true),
       Effect.catch((error) =>
         Console.error(

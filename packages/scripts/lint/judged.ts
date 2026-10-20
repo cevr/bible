@@ -10,19 +10,19 @@
 // open.
 //
 // oxlint runs its plugins in Node, so this reads the store with node's file
-// system, from the folder oxlint runs in (the repo's root, where the config's
-// `settings.judged.cache` is rooted). Each rule's id is named here once; the
+// system, from the git common dir of the folder oxlint runs in (the repo's
+// root): `settings.judged.store` is rooted there, and every checkout shares it. Each rule's id is named here once; the
 // config test (`src/judged/config.test.ts`) holds the names to the config's
 // `judged/*` entries.
 
 import { readFileSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { relative } from 'node:path';
 import { Effect, Option, Schema } from 'effect';
 import { Diagnostic, Plugin, Rule, RuleContext, Visitor } from 'oxlint-plugin-effect/rule-bindings';
 
 import { SELECTORS, itemsOf, parse, selects } from '../src/judged/items.ts';
 import { RuleOptions, Settings, cacheModel, ruleKey } from '../src/judged/rule.ts';
-import { type Answer, Store, cacheKey } from '../src/judged/store.ts';
+import { type Answer, Store, cacheKey, storeFileOf } from '../src/judged/store.ts';
 
 /** A file parsed, as the selectors read it. */
 type Source = ReturnType<typeof parse>;
@@ -117,7 +117,7 @@ const judgedRule = (id: string) =>
       const file = relative(context.cwd, context.filename);
       const settings = Schema.decodeUnknownOption(SharedSettings)(context.settings);
       const kept = Option.flatMap(settings, ({ judged }) =>
-        storeAt(resolve(context.cwd, judged.cache)),
+        storeAt(storeFileOf(context.cwd, judged.store)),
       );
       if (Option.isNone(kept) || Option.isNone(settings) || !selects(options.selector, file))
         return Visitor.on('Program', () => Effect.void);

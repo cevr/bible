@@ -200,8 +200,9 @@
   "settings": {
     // The model the judged rules ask, by its exact id (their thresholds were
     // measured on it; an alias such as jev-latest moves under them), and
-    // where their answers are kept, from the repo's root.
-    "judged": { "model": "jev-1.13.0", "cache": "tmp/judged/cache.json" },
+    // where their answers are kept, from git's common dir (.git), which every
+    // checkout and worktree of the repo shares.
+    "judged": { "model": "jev-1.13.0", "store": "judged/store.json" },
     // Test code besides `*.test.*` and `*.spec.*` modules: the harness helpers
     // the fixed-wait rule and effect's other test-aware rules read as tests.
     "effect": {

@@ -5,7 +5,7 @@
 // layer for the config's model name, so a test runs the whole command
 // in-process over a model of its own.
 
-import { Cause, Console, Effect, Layer, Option, Path, Ref, Runtime, Schema } from 'effect';
+import { Cause, Console, Effect, Layer, Option, Ref, Runtime, Schema } from 'effect';
 import type { DecisionModel } from 'effect/ai';
 import { Command, Flag } from 'effect/cli';
 
@@ -14,6 +14,7 @@ import { JudgedLint, judgedLintLayer } from './config.js';
 import { cacheModel } from './rule.js';
 import { LIMITS, detailOf, findingLine, judge, runLine } from './run.js';
 import { repoItems } from './sources.js';
+import { storeFileOf } from './store.js';
 
 /** Findings that fail the run: a rule at `error`, or any finding under `--strict`. */
 class GatingFindings extends Schema.TaggedError<GatingFindings>()('GatingFindings', {
@@ -29,7 +30,6 @@ type ModelOf<E, R> = (model: string) => Layer.Layer<DecisionModel.DecisionModel,
 
 /** Lints the repo's items; `read` holds how many items the selectors found. */
 const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<number>) {
-  const path = yield* Path.Path;
   const config = yield* JudgedLint;
   const root = config.root;
   const found = yield* repoItems(root, config.ignorePatterns, [
@@ -49,7 +49,7 @@ const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<n
   yield* Ref.set(read, items.length);
   const outcomes = yield* judge(config.rules, items, {
     model: cacheModel(config.settings.model),
-    cacheFile: path.join(root, config.settings.cache),
+    storeFile: storeFileOf(root, config.settings.store),
     ...LIMITS,
   });
   // oxlint reports, at the rule's severity, every finding the plugin can

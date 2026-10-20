@@ -1,18 +1,18 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Database } from 'bun:sqlite';
-import { Console, Deferred, Effect, Fiber, FileSystem, Layer, Path, Ref } from 'effect';
+import { Clock, Console, Deferred, Effect, Fiber, FileSystem, Layer, Path, Ref } from 'effect';
 import { DecisionModel } from 'effect/ai';
 import { describe, expect, it } from 'effect-bun-test';
 import { TestClock } from 'effect/testing';
 
-import { keepAnswers, readCache } from './cache.js';
+import { changes, keepAnswers, readCache } from './cache.js';
 import { judgedModel } from './model.js';
 import { type JudgedRule, ruleKey } from './rule.js';
 import { findingLine, judge, partsOf, runLine } from './run.js';
 
 /** An item a judged rule reads. */
 type RuleItem = Parameters<typeof judge>[1][number];
-import { cacheKey } from './store.js';
+import { type Answer, type Verdict, MAX_AGE_DAYS, cacheKey, dayOf } from './store.js';
 import { env, historyComment, missing, typesafeHttp } from './testing.js';
 
 const labelOf = (p: number) => {
@@ -84,20 +84,26 @@ const P = new Map([
   ['Before the batch this read argv.', 0.89],
 ]);
 
-/** A run's limits, its cache in a temporary folder. */
+/** A run's limits, its store in a temporary folder. */
 const judging = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-run-' });
   const options: Parameters<typeof judge>[2] = {
     model: 'fake/model',
-    cacheFile: path.join(dir, 'tmp', 'judged', 'cache.json'),
+    storeFile: path.join(dir, '.git', 'judged', 'store.json'),
     bound: 200,
     budget: 60_000,
     deadline: '20 seconds',
   };
   return options;
 });
+
+/** Keeps `fresh` in the store at `file` on the clock's day, as a run that read nothing else. */
+const keep = (file: string, fresh: ReadonlyMap<string, Verdict>) =>
+  Effect.flatMap(Clock.currentTimeMillis, (now) =>
+    keepAnswers(file, { fresh, read: new Set(), day: dayOf(now) }),
+  );
 
 const withFs = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.scoped, Effect.provide(BunServices.layer));
@@ -425,30 +431,30 @@ describe("a judged rule's store", () => {
 
   it.live("keeps both runs' answers when two keep theirs at once", () =>
     Effect.gen(function* () {
-      const { cacheFile } = yield* judging;
+      const { storeFile } = yield* judging;
       const runs = Array.from(
         { length: 6 },
         (_, run) =>
           new Map(Array.from({ length: 50 }, (_, i) => [`run${run}-key${i}`, answer] as const)),
       );
-      yield* Effect.forEach(runs, (fresh) => keepAnswers(cacheFile, fresh, new Set()), {
+      yield* Effect.forEach(runs, (fresh) => keep(storeFile, fresh), {
         concurrency: 6,
       });
-      expect((yield* readCache(cacheFile)).size).toBe(300);
+      expect((yield* readCache(storeFile)).size).toBe(300);
     }).pipe(withFs),
   );
 
-  /** The store's lock file beside `cacheFile`. */
-  const lockOf = (cacheFile: string) => cacheFile.replace(/cache\.json$/, '.cache.json.lock');
+  /** The store's lock file beside `storeFile`. */
+  const lockOf = (storeFile: string) => storeFile.replace(/store\.json$/, '.store.json.lock');
 
   /** SQLite's write lock on the store's lock file, held for the scope, as another run would hold it. */
-  const holding = (cacheFile: string) =>
+  const holding = (storeFile: string) =>
     Effect.acquireRelease(
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        yield* fs.makeDirectory(path.dirname(cacheFile), { recursive: true });
-        const db = new Database(lockOf(cacheFile), { create: true });
+        yield* fs.makeDirectory(path.dirname(storeFile), { recursive: true });
+        const db = new Database(lockOf(storeFile), { create: true });
         db.exec('PRAGMA journal_mode = MEMORY');
         db.exec('BEGIN IMMEDIATE');
         return db;
@@ -459,13 +465,13 @@ describe("a judged rule's store", () => {
   it.effect('waits for a run that holds the lock, and writes nothing while it does', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const { cacheFile } = yield* judging;
+      const { storeFile } = yield* judging;
       const written = yield* Effect.scoped(
         Effect.gen(function* () {
-          yield* holding(cacheFile);
+          yield* holding(storeFile);
           const done = yield* Ref.make(false);
           const waiting = yield* Effect.forkChild(
-            Effect.exit(keepAnswers(cacheFile, new Map([['a', answer]]), new Set())).pipe(
+            Effect.exit(keep(storeFile, new Map([['a', answer]]))).pipe(
               Effect.ensuring(Ref.set(done, true)),
             ),
           );
@@ -476,20 +482,20 @@ describe("a judged rule's store", () => {
         }),
       );
       expect(written._tag).toBe('Failure');
-      expect(yield* fs.exists(cacheFile)).toBe(false);
-      yield* keepAnswers(cacheFile, new Map([['a', answer]]), new Set());
-      expect([...(yield* readCache(cacheFile)).keys()]).toEqual(['a']);
+      expect(yield* fs.exists(storeFile)).toBe(false);
+      yield* keep(storeFile, new Map([['a', answer]]));
+      expect([...(yield* readCache(storeFile)).keys()]).toEqual(['a']);
     }).pipe(withFs),
   );
 
   it.live('takes the lock of a run that let it go: the file stays, the lock does not', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const { cacheFile } = yield* judging;
-      yield* Effect.scoped(holding(cacheFile));
-      yield* keepAnswers(cacheFile, new Map([['a', answer]]), new Set());
-      expect([...(yield* readCache(cacheFile)).keys()]).toEqual(['a']);
-      expect(yield* fs.exists(lockOf(cacheFile))).toBe(true);
+      const { storeFile } = yield* judging;
+      yield* Effect.scoped(holding(storeFile));
+      yield* keep(storeFile, new Map([['a', answer]]));
+      expect([...(yield* readCache(storeFile)).keys()]).toEqual(['a']);
+      expect(yield* fs.exists(lockOf(storeFile))).toBe(true);
     }).pipe(withFs),
   );
 
@@ -517,13 +523,11 @@ describe("a judged rule's store", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const { cacheFile } = yield* judging;
-      const written = yield* Effect.exit(
-        keepAnswers(cacheFile, new Map([['a', answer]]), new Set()),
-      );
+      const { storeFile } = yield* judging;
+      const written = yield* Effect.exit(keep(storeFile, new Map([['a', answer]])));
       expect(written._tag).toBe('Failure');
-      expect(yield* fs.readDirectory(path.dirname(cacheFile))).toEqual(['.cache.json.lock']);
-      yield* Effect.scoped(holding(cacheFile));
+      expect(yield* fs.readDirectory(path.dirname(storeFile))).toEqual(['.store.json.lock']);
+      yield* Effect.scoped(holding(storeFile));
     }).pipe(
       Effect.scoped,
       Effect.provide(
@@ -534,19 +538,50 @@ describe("a judged rule's store", () => {
     ),
   );
 
-  it.effect('drops the answers it is told are stale, and keeps one another run added', () =>
-    Effect.gen(function* () {
-      const { cacheFile } = yield* judging;
-      yield* keepAnswers(
-        cacheFile,
-        new Map([
-          ['old', answer],
-          ['other', answer],
-        ]),
-        new Set(),
+  it.effect(
+    'drops an answer no run read for its age, and keeps one only another checkout reads',
+    () =>
+      Effect.gen(function* () {
+        const { storeFile } = yield* judging;
+        const keepOn = (day: number, fresh: ReadonlyArray<string>, read: ReadonlyArray<string>) =>
+          keepAnswers(storeFile, {
+            fresh: new Map(fresh.map((key) => [key, answer])),
+            read: new Set(read),
+            day,
+          });
+        const store = Effect.map(readCache(storeFile), (kept) =>
+          [...kept].map(([key, { seen }]) => `${key}@${seen}`),
+        );
+        yield* keepOn(0, ['old'], []);
+        yield* keepOn(5, ['elsewhere'], []);
+        yield* keepOn(20, ['new'], ['old', 'gone']);
+        expect(yield* store).toEqual(['old@20', 'elsewhere@5', 'new@20']);
+        yield* keepOn(5 + MAX_AGE_DAYS, [], []);
+        expect(yield* store).toEqual(['old@20', 'elsewhere@5', 'new@20']);
+        yield* keepOn(6 + MAX_AGE_DAYS, [], []);
+        expect(yield* store).toEqual(['old@20', 'new@20']);
+      }).pipe(withFs),
+  );
+
+  it.effect('writes nothing for a run that read only answers seen that day, and asked none', () =>
+    Effect.sync(() => {
+      const kept = new Map<string, Answer>([['a', { ...answer, seen: 7 }]]);
+      const run = { fresh: new Map(), read: new Set(['a', 'gone']) };
+      expect(changes(kept, { ...run, day: 7 })).toBe(false);
+      expect(changes(kept, { ...run, day: 8 })).toBe(true);
+      expect(changes(kept, { ...run, day: 7, fresh: new Map([['b', answer]]) })).toBe(true);
+      expect(changes(kept, { fresh: new Map(), read: new Set(), day: 8 + MAX_AGE_DAYS })).toBe(
+        true,
       );
-      yield* keepAnswers(cacheFile, new Map([['new', answer]]), new Set(['old']));
-      expect([...(yield* readCache(cacheFile)).keys()].sort()).toEqual(['new', 'other']);
+    }),
+  );
+
+  it.effect('keeps an answer another run added, under the lock', () =>
+    Effect.gen(function* () {
+      const { storeFile } = yield* judging;
+      yield* keep(storeFile, new Map([['other', answer]]));
+      yield* keep(storeFile, new Map([['new', answer]]));
+      expect([...(yield* readCache(storeFile)).keys()].sort()).toEqual(['new', 'other']);
     }).pipe(withFs),
   );
 
@@ -554,9 +589,9 @@ describe("a judged rule's store", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const { cacheFile } = yield* judging;
-      yield* fs.makeDirectory(path.dirname(cacheFile), { recursive: true });
-      yield* fs.writeFileString(cacheFile, '{"answers":{},"files":[1]');
+      const { storeFile } = yield* judging;
+      yield* fs.makeDirectory(path.dirname(storeFile), { recursive: true });
+      yield* fs.writeFileString(storeFile, '{"answers":{},"files":[1]');
       const lines: Array<string> = [];
       const recording: Console.Console = {
         ...Console.Console.defaultValue(),
@@ -564,11 +599,11 @@ describe("a judged rule's store", () => {
           lines.push(parts.map(String).join(' '));
         },
       };
-      const read = yield* readCache(cacheFile).pipe(
+      const read = yield* readCache(storeFile).pipe(
         Effect.provideService(Console.Console, recording),
       );
       expect(read.size).toBe(0);
-      expect(lines).toEqual([`[judged] store unread file=${cacheFile} reason=decode`]);
+      expect(lines).toEqual([`[judged] store unread file=${storeFile} reason=decode`]);
     }).pipe(withFs),
   );
 });
@@ -722,15 +757,14 @@ describe('a judged rule never fails on its model', () => {
       return Effect.gen(function* () {
         const options = yield* judging;
         const kept = ITEMS[0]!.text;
-        yield* keepAnswers(
-          options.cacheFile,
+        yield* keep(
+          options.storeFile,
           new Map([
             [
               cacheKey(ruleKey(historyComment), options.model, kept),
               { label: 'history', probabilities: { today: 0.03, history: 0.97 } },
             ],
           ]),
-          new Set(),
         );
         const outcome = yield* judgeBy(historyComment, ITEMS, options);
         expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97, kept: true }]);

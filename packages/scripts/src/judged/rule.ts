@@ -48,8 +48,8 @@ export interface JudgedRule extends RuleOptions {
 export const Settings = Schema.Struct({
   /** The TypeSafe model the rules ask, by its exact id: their thresholds were measured on it. */
   model: Schema.String,
-  /** Where the answers are kept, from the repo's root. */
-  cache: Schema.String,
+  /** Where the answers are kept, from git's common dir, so every checkout shares them (`store.ts`). */
+  store: Schema.String,
 });
 
 export type Settings = typeof Settings.Type;

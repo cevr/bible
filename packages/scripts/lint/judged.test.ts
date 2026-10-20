@@ -66,7 +66,7 @@ const oxlint = (cwd: string) =>
     }),
   );
 
-/** A scratch repo linted by historyComment alone at `severity` (its selector `selector`), its store `kept.json`. */
+/** A scratch repo linted by historyComment alone at `severity` (its selector `selector`), its store `.git/kept.json`. */
 const scratch = (severity: 'warn' | 'error', selector: string = historyComment.selector) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -79,11 +79,12 @@ const scratch = (severity: 'warn' | 'error', selector: string = historyComment.s
         categories: { correctness: 'off' },
         plugins: [],
         jsPlugins: [PLUGIN],
-        settings: { judged: { model: 'jev-1.13.0', cache: 'kept.json' } },
+        settings: { judged: { model: 'jev-1.13.0', store: 'kept.json' } },
         rules: { [`judged/${id}`]: [severity, { ...options, selector }] },
       }),
     );
     yield* fs.makeDirectory(path.join(dir, 'src'));
+    yield* fs.makeDirectory(path.join(dir, '.git'));
     return dir;
   });
 
@@ -98,6 +99,7 @@ const storeOf = (ps: ReadonlyArray<number>) => {
         {
           label: 'history',
           probabilities: { today: 1 - (ps[i] ?? 0), history: ps[i] ?? 0 },
+          seen: 0,
         },
       ]),
     ),
@@ -116,13 +118,16 @@ describe('the judged plugin', () => {
         const path = yield* Path.Path;
         const dir = yield* scratch('warn');
         yield* fs.writeFileString(path.join(dir, 'src/x.ts'), SOURCE);
-        yield* fs.writeFileString(path.join(dir, 'kept.json'), yield* storeOf([0.95, 0.89, 0.9]));
+        yield* fs.writeFileString(
+          path.join(dir, '.git', 'kept.json'),
+          yield* storeOf([0.95, 0.89, 0.9]),
+        );
         expect((yield* oxlint(dir)).lines).toEqual([
           `src/x.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
           `src/x.ts:7:1: ${REPORT} p=0.90 [Warning/judged(historyComment)]`,
         ]);
         // No store: the rule says nothing.
-        yield* fs.remove(path.join(dir, 'kept.json'));
+        yield* fs.remove(path.join(dir, '.git', 'kept.json'));
         expect((yield* oxlint(dir)).lines).toEqual([]);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     SPAWNS_MS,
@@ -135,7 +140,10 @@ describe('the judged plugin', () => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const dir = yield* scratch('error');
-        yield* fs.writeFileString(path.join(dir, 'kept.json'), yield* storeOf([0.95, 0.02, 0.02]));
+        yield* fs.writeFileString(
+          path.join(dir, '.git', 'kept.json'),
+          yield* storeOf([0.95, 0.02, 0.02]),
+        );
         // The store was written for src/x.ts; the text is now in src/y/z.ts alone.
         yield* fs.makeDirectory(path.join(dir, 'src/y'));
         yield* fs.writeFileString(path.join(dir, 'src/y/z.ts'), MOVED);

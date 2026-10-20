@@ -276,14 +276,13 @@ describe('the judged lint fails open', () => {
     ),
   );
 
-  it.live('prints its findings and succeeds when the cache folder cannot be written', () =>
+  it.live('prints its findings and succeeds when the store folder cannot be written', () =>
     withFs(
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const dir = yield* repo;
-        yield* fs.makeDirectory(path.join(dir, 'tmp'));
-        yield* fs.writeFileString(path.join(dir, 'tmp', 'judged'), 'a file, not a folder\n');
+        yield* fs.writeFileString(path.join(dir, '.git', 'judged'), 'a file, not a folder\n');
         const model = historyModel();
         const lint = yield* inProcess(dir, [], model.layer);
         expect(Exit.isSuccess(lint.exit)).toBe(true);
@@ -310,7 +309,7 @@ describe('the judged lint fails open', () => {
           expect(lint.out).toEqual([
             '[judged] rule=historyComment items=1 cached=0 asked=1 findings=1',
           ]);
-          const store = yield* fs.readFileString(path.join(dir, 'tmp', 'judged', 'cache.json'));
+          const store = yield* fs.readFileString(path.join(dir, '.git', 'judged', 'store.json'));
           expect(Object.keys((yield* Schema.decodeEffect(Store)(store)).answers)).toHaveLength(1);
           expect(store).not.toContain('src/a.ts');
         }),
@@ -402,6 +401,29 @@ describe('the judged lint reads the whole repo, by content', () => {
         }),
       ),
     SPAWNS_MS,
+  );
+
+  it.live(
+    'a worktree of the repo reads the answers another checkout kept, and asks none again',
+    () =>
+      withFs(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* repo;
+          const model = historyModel();
+          const first = yield* inProcess(dir, [], model.layer);
+          expect(first.out).toEqual([
+            '[judged] rule=historyComment items=1 cached=0 asked=1 findings=1',
+          ]);
+          const tree = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-worktree-' });
+          yield* git(dir, 'worktree', 'add', '-q', '--detach', tree, 'topic');
+          const second = yield* inProcess(tree, [], model.layer);
+          expect(second.out).toEqual([
+            '[judged] rule=historyComment items=1 cached=1 asked=0 findings=1',
+          ]);
+          expect(model.requests).toHaveLength(1);
+        }),
+      ),
   );
 
   it.live('judges a new file never staged, as a committed one', () =>

@@ -2,7 +2,8 @@
 // The judged lint's runner: the rules a model decides, each a `judged/<id>`
 // entry of the repo's `.oxlintrc.json` (`judged/rule.ts`), run over every
 // item its selector reads in the working tree, tracked or new. The store
-// (the config's `settings.judged.cache`) keeps each answer by the item's
+// (the config's `settings.judged.store`, in git's common dir, one for every
+// checkout of the repo) keeps each answer by the item's
 // content (`judged/store.ts`), so only an item whose text, or whose rule's
 // words, it has not seen goes to TypeSafe's model, every rule's in one
 // request, and the answers are kept. `bun run lint` runs this

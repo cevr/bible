@@ -10,11 +10,14 @@
 // another. The file is never removed: removing a lock file another run holds
 // would let a third take a new one beside it. A missing store is an empty
 // one; a store that does not decode is an empty one, said on one line.
+// Every checkout shares the store (`store.ts`), so a write drops the answers
+// by their age alone, under the lock: an answer another checkout's tree reads
+// is kept however this tree has changed.
 
 import { Database } from 'bun:sqlite';
 import { Console, Effect, FileSystem, Option, Path, Result, Schedule, Schema } from 'effect';
 
-import { type Answer, Store } from './store.js';
+import { type Answer, MAX_AGE_DAYS, Store, type Verdict } from './store.js';
 
 /** How often, and how many times, a run tries for the lock another run holds: 2 s in all. */
 const LOCK_TRIES = { every: '25 millis', times: 80 } as const;
@@ -82,15 +85,50 @@ export const readCache = Effect.fn('judged.readCache')(function* (file: string) 
   return new Map(Object.entries(store.answers));
 });
 
+/** What a run keeps: its new answers, the kept keys it read, and its day (`store.ts`'s `dayOf`). */
+interface Keeping {
+  readonly fresh: ReadonlyMap<string, Verdict>;
+  readonly read: ReadonlySet<string>;
+  readonly day: number;
+}
+
 /**
- * Adds `fresh` to the answers in `file` and drops those of `stale`, under
- * its lock, written whole through a temporary file beside it: an answer
- * another run kept meanwhile is in neither, and stays.
+ * The answers `kept` hold once a run keeps `keeping`: `fresh` added and each
+ * key of `read` marked seen on `day`, and every answer last seen more than
+ * `MAX_AGE_DAYS` before it dropped.
+ */
+const keptAfter = (kept: ReadonlyMap<string, Answer>, keeping: Keeping) => {
+  const after = new Map(kept);
+  for (const key of keeping.read)
+    Option.map(Option.fromUndefinedOr(after.get(key)), (answer) =>
+      after.set(key, { ...answer, seen: keeping.day }),
+    );
+  for (const [key, answer] of keeping.fresh) after.set(key, { ...answer, seen: keeping.day });
+  for (const [key, answer] of after)
+    if (keeping.day - answer.seen > MAX_AGE_DAYS) after.delete(key);
+  return after;
+};
+
+/**
+ * Whether keeping `keeping` changes `kept`: a fresh answer, a read answer
+ * not yet seen on its day, or an answer past its age. A run that changes
+ * nothing writes nothing.
+ */
+export const changes = (kept: ReadonlyMap<string, Answer>, keeping: Keeping) =>
+  keeping.fresh.size > 0 ||
+  [...keeping.read].some((key) =>
+    Option.exists(Option.fromUndefinedOr(kept.get(key)), (answer) => answer.seen !== keeping.day),
+  ) ||
+  [...kept.values()].some((answer) => keeping.day - answer.seen > MAX_AGE_DAYS);
+
+/**
+ * Keeps `keeping` in the store at `file` (`keptAfter`), under its lock,
+ * written whole through a temporary file beside it: an answer another run
+ * kept meanwhile is read under the lock, and stays.
  */
 export const keepAnswers = Effect.fn('judged.keepAnswers')(function* (
   file: string,
-  fresh: ReadonlyMap<string, Answer>,
-  stale: ReadonlySet<string>,
+  keeping: Keeping,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -98,9 +136,7 @@ export const keepAnswers = Effect.fn('judged.keepAnswers')(function* (
   yield* Effect.scoped(
     Effect.gen(function* () {
       yield* locked(path.join(path.dirname(file), `.${path.basename(file)}.lock`));
-      const kept = yield* readCache(file);
-      for (const key of stale) kept.delete(key);
-      for (const [key, answer] of fresh) kept.set(key, answer);
+      const kept = keptAfter(yield* readCache(file), keeping);
       const json = yield* Schema.encodeEffect(Store)({ answers: Object.fromEntries(kept) });
       const partial = `${file}.${process.pid}.partial`;
       yield* Effect.gen(function* () {
