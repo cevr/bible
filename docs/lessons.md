@@ -832,7 +832,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-9.md F1
 - **Wrong:** The reach check left out a test file that imports its runner under another name (`import { test as scenario } from /* runner */ 'bun:test'`), so no script had to reach it.
 - **Cause:** The reader took a file named as a test for one only when a regex found a runner import or a line that calls `describe`, `it` or `test`, and a comment or an alias hid both.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are each a file named as a test that is not data, in the deepest workspace`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are each a file named as a test that is not data, in the deepest workspace or in none`
 
 ### reach-refuses-folder-moves
 

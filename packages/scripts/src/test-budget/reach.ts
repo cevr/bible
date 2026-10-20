@@ -669,8 +669,9 @@ interface Source {
 
 /**
  * How each test file of `files` is reached: each file named as a test that
- * is not data (`isData`), inside a workspace (the deepest that holds it), with the
- * script that reaches it (`test`, `test:e2e`), none when no script does.
+ * is not data (`isData`), with the script of the deepest workspace that holds
+ * it that reaches it (`test`, `test:e2e`); none when no script does, or no
+ * workspace holds it (no workspace's script runs it).
  */
 export const reachesIn = (
   workspaces: ReadonlyArray<Workspace>,
@@ -678,16 +679,17 @@ export const reachesIn = (
 ): ReadonlyArray<{ readonly file: string; readonly by: Option.Option<string> }> =>
   files
     .filter(({ file, text }) => isTestFile(file) && !isData(file, text))
-    .flatMap(({ file }) =>
-      workspaces
-        .filter(({ dir }) => file.startsWith(`${dir}/`))
-        .toSorted((a, b) => b.dir.length - a.dir.length)
-        .slice(0, 1)
-        .map((workspace) => ({
-          file,
-          by: reachOf(workspace, file.slice(workspace.dir.length + 1)),
-        })),
-    );
+    .map(({ file }) => ({
+      file,
+      by: Option.flatMap(
+        Option.fromUndefinedOr(
+          workspaces
+            .filter(({ dir }) => file.startsWith(`${dir}/`))
+            .toSorted((a, b) => b.dir.length - a.dir.length)[0],
+        ),
+        (workspace) => reachOf(workspace, file.slice(workspace.dir.length + 1)),
+      ),
+    }));
 
 /**
  * The texts of the playwright configs a workspace's scripts can read, by

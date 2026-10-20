@@ -26,97 +26,103 @@ const reaches = (
   ).map(({ file, by }) => `${file.slice(2)}: ${Option.getOrElse(by, () => 'none')}`);
 
 describe("a workspace's test files", () => {
-  it.effect('are each a file named as a test that is not data, in the deepest workspace', () =>
-    Effect.sync(() => {
-      const test = { test: 'bun test' };
-      const of = (file: string, text: string) => ({ file, text });
-      expect(
-        reachesIn(
-          [
-            {
-              dir: 'w',
-              absolute: '/repo/w',
-              scripts: test,
-              configs: {},
-              gitignores: {},
-              bunfig: '',
-            },
-            {
-              dir: 'w/nested',
-              absolute: '/repo/w/nested',
-              scripts: {},
-              configs: {},
-              gitignores: {},
-              bunfig: '',
-            },
-          ],
-          [
-            of('w/a.test.ts', RUNNER),
-            of('w/a_test.tsx', "import { it } from 'effect-bun-test';"),
-            of('w/b.spec.js', "import { test } from '@playwright/test';"),
-            of('w/c_spec.mts', "test('runs on the global', () => {});"),
-            of('w/d.test.ts', '  describe.each(rows)("a row", () => {});'),
-            of('w/e.ts', RUNNER),
-            of(
-              'w/study.spec.js',
-              '// a study: it (the spec) is read by the CLI\nexport default {};',
-            ),
-            of(
-              'w/data.spec.js',
-              "export default { title: 'a', tags: ['x', `y`], at: { n: 1, ok: true, none: null } };",
-            ),
-            of(
-              'w/h.test.ts',
-              "import { test as scenario } from /* runner */ 'bun:test';\nscenario('case', () => {});",
-            ),
-            of('w/i.test.ts', "import { scenario } from './harness';\nscenario('case', () => {});"),
-            of('w/j.spec.js', 'export default { at: Date.now() };'),
-            of('w/k.spec.js', 'export default { ...base };'),
-            of('w/l.spec.js', 'export default { [key]: 1 };'),
-            of('w/m.spec.js', 'export default { title: `${name}` };'),
-            of('w/n.spec.js', "export default { title: 'a' };\nexport const more = 1;"),
-            of('w/o.spec.js', 'export default {'),
-            of('w/nested/f.test.ts', RUNNER),
-            of('loose/g.test.ts', RUNNER),
-          ],
-        ).map(({ file, by }) => `${file}: ${Option.getOrElse(by, () => 'none')}`),
-      ).toEqual([
-        'w/a.test.ts: test',
-        'w/a_test.tsx: test',
-        'w/b.spec.js: test',
-        'w/c_spec.mts: test',
-        'w/d.test.ts: test',
-        'w/h.test.ts: test',
-        'w/i.test.ts: test',
-        'w/j.spec.js: test',
-        'w/k.spec.js: test',
-        'w/l.spec.js: test',
-        'w/m.spec.js: test',
-        'w/n.spec.js: test',
-        'w/o.spec.js: test',
-        'w/nested/f.test.ts: none',
-      ]);
-      expect(
-        reachesIn(
-          [
-            {
-              dir: 'w',
-              absolute: '/repo/w',
-              scripts: { test: 'bun test src' },
-              configs: {},
-              gitignores: {},
-              bunfig: '',
-            },
-          ],
-          [
-            of(
-              'w/other/a.test.ts',
-              "import { test as scenario } from /* runner */ 'bun:test';\nscenario('case', () => {});",
-            ),
-          ],
-        ).map(({ file, by }) => `${file}: ${Option.getOrElse(by, () => 'none')}`),
-      ).toEqual(['w/other/a.test.ts: none']);
-    }),
+  it.effect(
+    'are each a file named as a test that is not data, in the deepest workspace or in none',
+    () =>
+      Effect.sync(() => {
+        const test = { test: 'bun test' };
+        const of = (file: string, text: string) => ({ file, text });
+        expect(
+          reachesIn(
+            [
+              {
+                dir: 'w',
+                absolute: '/repo/w',
+                scripts: test,
+                configs: {},
+                gitignores: {},
+                bunfig: '',
+              },
+              {
+                dir: 'w/nested',
+                absolute: '/repo/w/nested',
+                scripts: {},
+                configs: {},
+                gitignores: {},
+                bunfig: '',
+              },
+            ],
+            [
+              of('w/a.test.ts', RUNNER),
+              of('w/a_test.tsx', "import { it } from 'effect-bun-test';"),
+              of('w/b.spec.js', "import { test } from '@playwright/test';"),
+              of('w/c_spec.mts', "test('runs on the global', () => {});"),
+              of('w/d.test.ts', '  describe.each(rows)("a row", () => {});'),
+              of('w/e.ts', RUNNER),
+              of(
+                'w/study.spec.js',
+                '// a study: it (the spec) is read by the CLI\nexport default {};',
+              ),
+              of(
+                'w/data.spec.js',
+                "export default { title: 'a', tags: ['x', `y`], at: { n: 1, ok: true, none: null } };",
+              ),
+              of(
+                'w/h.test.ts',
+                "import { test as scenario } from /* runner */ 'bun:test';\nscenario('case', () => {});",
+              ),
+              of(
+                'w/i.test.ts',
+                "import { scenario } from './harness';\nscenario('case', () => {});",
+              ),
+              of('w/j.spec.js', 'export default { at: Date.now() };'),
+              of('w/k.spec.js', 'export default { ...base };'),
+              of('w/l.spec.js', 'export default { [key]: 1 };'),
+              of('w/m.spec.js', 'export default { title: `${name}` };'),
+              of('w/n.spec.js', "export default { title: 'a' };\nexport const more = 1;"),
+              of('w/o.spec.js', 'export default {'),
+              of('w/nested/f.test.ts', RUNNER),
+              of('loose/g.test.ts', RUNNER),
+            ],
+          ).map(({ file, by }) => `${file}: ${Option.getOrElse(by, () => 'none')}`),
+        ).toEqual([
+          'w/a.test.ts: test',
+          'w/a_test.tsx: test',
+          'w/b.spec.js: test',
+          'w/c_spec.mts: test',
+          'w/d.test.ts: test',
+          'w/h.test.ts: test',
+          'w/i.test.ts: test',
+          'w/j.spec.js: test',
+          'w/k.spec.js: test',
+          'w/l.spec.js: test',
+          'w/m.spec.js: test',
+          'w/n.spec.js: test',
+          'w/o.spec.js: test',
+          'w/nested/f.test.ts: none',
+          'loose/g.test.ts: none',
+        ]);
+        expect(
+          reachesIn(
+            [
+              {
+                dir: 'w',
+                absolute: '/repo/w',
+                scripts: { test: 'bun test src' },
+                configs: {},
+                gitignores: {},
+                bunfig: '',
+              },
+            ],
+            [
+              of(
+                'w/other/a.test.ts',
+                "import { test as scenario } from /* runner */ 'bun:test';\nscenario('case', () => {});",
+              ),
+            ],
+          ).map(({ file, by }) => `${file}: ${Option.getOrElse(by, () => 'none')}`),
+        ).toEqual(['w/other/a.test.ts: none']);
+      }),
   );
 
   it.effect('are taken by a bun test that names no filter, a path, or a part of one', () =>
