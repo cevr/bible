@@ -76,7 +76,8 @@ export interface Hymnal {
   /**
    * Moves the list to its top as soon as it comes back: in the microtask
    * after the change to the page that drew it at an offset, as a reader's
-   * move at once would. Answers that offset when it has moved it.
+   * move at once would. Answers that offset when it has moved it, or 0
+   * when no list came back at an offset within two seconds.
    */
   readonly early: () => Promise<number>;
   /**
@@ -259,10 +260,15 @@ window.hymnal = {
     }),
   early: () =>
     new Promise<number>((done) => {
+      const late = setTimeout(() => {
+        observer.disconnect();
+        done(0);
+      }, 2000);
       const observer = new MutationObserver(() => {
         const node = scroller();
         if (node === undefined || node.scrollTop <= 0) return;
         observer.disconnect();
+        clearTimeout(late);
         const at = node.scrollTop;
         node.scrollTop = 0;
         left = { node, top: node.scrollTop };
@@ -280,10 +286,19 @@ window.hymnal = {
     node.scrollTop = top > max / 2 ? top - nudge : top + nudge;
     left = { node, top: node.scrollTop };
     const at = node.scrollTop;
-    // Past the list's scroll end, which it tells 100 ms after the scroll's event.
-    return new Promise<number>((done) =>
-      node.addEventListener('scroll', () => setTimeout(() => done(at), 150), { once: true }),
-    );
+    // Past the list's scroll end, which it tells 100 ms after the scroll's
+    // event; a scroll with no event within a second fails, as a wait does.
+    return new Promise<number>((done, fail) => {
+      const late = setTimeout(() => fail(new Error(`no scroll event at ${at}`)), 1000);
+      node.addEventListener(
+        'scroll',
+        () => {
+          clearTimeout(late);
+          setTimeout(() => done(at), 150);
+        },
+        { once: true },
+      );
+    });
   },
   leave: (top, tab) => {
     const node = scroller();
