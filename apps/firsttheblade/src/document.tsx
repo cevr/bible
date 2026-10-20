@@ -1,14 +1,15 @@
 /**
  * A page's whole document: its head (title, description, canonical URL, the
- * link card, icons, the stylesheet and the fonts the first screen sets) and
+ * link card, the structured data, icons, the stylesheet and the fonts the first screen sets) and
  * its body. The phone menu's script is the only script.
  */
-import { For } from '@solidjs/web';
+import { For, Show } from '@solidjs/web';
 import type { JSX } from '@solidjs/web';
 
 import { THEME_COLOR } from './meta.ts';
 import { absolute, type Page } from './pages.ts';
 import { CHANNEL } from './site.ts';
+import { graphOf, jsonLd } from './structured.ts';
 
 /** What the browser build produced, as the prerender read it from Vite's manifest. */
 export interface Build {
@@ -56,6 +57,9 @@ export const Document = (props: DocumentProps) => {
         <meta name="twitter:description" content={page.description} />
         <meta name="twitter:image" content={image} />
         <meta name="twitter:image:alt" content={page.imageAlt} />
+        <Show when={graphOf(page).length > 0}>
+          <script type="application/ld+json" innerHTML={jsonLd(page)} />
+        </Show>
 
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

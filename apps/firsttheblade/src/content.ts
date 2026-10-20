@@ -21,6 +21,8 @@ export interface Episode {
   readonly title: string;
   /** The YouTube video id (`watch?v=<id>`). */
   readonly youtubeId: string;
+  /** The day it was published on YouTube (`2026-11-07`): the sitemap's date and the search result's. */
+  readonly published: string;
   readonly summary: string;
 }
 

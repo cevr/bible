@@ -1,6 +1,6 @@
 /**
  * The prerender: draws every page (`./pages.ts`) to a whole HTML file in
- * `dist/`, beside the browser build, and writes the sitemap, robots.txt and
+ * `dist/`, beside the browser build, and writes the sitemap, robots.txt, llms.txt and
  * the web app manifest. The package's `build` script builds this module
  * with Vite (`--ssr`, so the pages compile to Solid's server output and the
  * art they import is emitted) and then runs it with Bun.
@@ -13,7 +13,7 @@ import { NoHydration, renderToString } from '@solidjs/web';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 
 import { type Build, Document } from './document.tsx';
-import { robots, sitemap, webManifest } from './meta.ts';
+import { llmsTxt, robots, sitemap, webManifest } from './meta.ts';
 import { PAGES, type Page } from './pages.ts';
 import { View } from './views.tsx';
 
@@ -101,6 +101,7 @@ const prerender = Effect.gen(function* () {
   const manifest = yield* Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown))(webManifest());
   yield* fs.writeFileString(path.join(dist, 'sitemap.xml'), sitemap(PAGES));
   yield* fs.writeFileString(path.join(dist, 'robots.txt'), robots());
+  yield* fs.writeFileString(path.join(dist, 'llms.txt'), llmsTxt(PAGES));
   yield* fs.writeFileString(path.join(dist, 'site.webmanifest'), `${manifest}\n`);
 
   // Vite's manifest has been read; the site does not serve it.

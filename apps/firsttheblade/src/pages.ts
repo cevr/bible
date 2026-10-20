@@ -28,7 +28,7 @@ export interface Page {
   readonly view: PageView;
 }
 
-const DESCRIPTION =
+export const DESCRIPTION =
   'Short films and plain talks that set the Bible out one step at a time, for anyone who will come and see. New on YouTube.';
 
 const title = (name: string) => `${name} · ${CHANNEL.name}`;
