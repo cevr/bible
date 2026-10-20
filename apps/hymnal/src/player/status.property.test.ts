@@ -57,8 +57,9 @@
  *   each Play (any path), seek while playing, and return of the connection
  *   shows Playing within `boundOf` the network: the model's time to the
  *   first sound and a second.
- * Each run ends with the connection back, Retry or Play pressed, and the
- * page showing Playing within that bound.
+ * Each run ends with the connection back, Retry or Play pressed, the
+ * page showing Playing within that bound, and a second on, the recording
+ * announced to the lock screen and the Media Session.
  */
 
 import { describe, expect, it } from 'effect-bun-test';
@@ -929,6 +930,10 @@ const session = (platform: Platform, network: Network, clock: TestClock.TestCloc
     }
     if (broken.length === 0 && !reader.played)
       miss(`the closing Play shows no Playing within ${bound} ms`);
+    // The recording that plays is on the lock screen and in the Media Session, a second on.
+    yield* pass(within);
+    if (broken.length === 0 && !device.media.session)
+      miss('the recording plays and was never announced');
     return end;
   });
   return {
@@ -1089,6 +1094,10 @@ describe('each defect found before, as a fixed run: every act done, and the page
     ends('android', g3, [wait(2100), { _tag: 'Drop' }, wait(spinnerLimit + 2000)], 'Failed'),
   );
   it.effect(
+    'playerfix r2 m1: the Media Session’s play during the first load cuts no announce off: Playing',
+    () => ends('web', g3, [wait(1000), { _tag: 'Remote', kind: 'play' }, wait(6000)], 'Playing'),
+  );
+  it.effect(
     'playerfix r2 M1: the Media Session’s pause during the first load stops it, and its play then plays: Playing',
     () =>
       ends(
@@ -1137,6 +1146,22 @@ describe('each defect found before, as a fixed run: every act done, and the page
         'android',
         g3,
         [wait(2100), { _tag: 'Drop' }, wait(16_000), { _tag: 'Back' }, wait(5000)],
+        'Failed',
+      ),
+  );
+  it.effect(
+    'playerfix r2 o3: a press while the first load stalls does not restart its 15 s: Failed',
+    () =>
+      ends(
+        'web',
+        g3,
+        [
+          wait(2100),
+          { _tag: 'Drop' },
+          wait(10_000),
+          { _tag: 'Remote', kind: 'play' },
+          wait(10_000),
+        ],
         'Failed',
       ),
   );
