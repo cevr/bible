@@ -16,11 +16,16 @@ export const color = Platform.select({
     separator: PlatformColor('separator'),
     grouped: PlatformColor('secondarySystemBackground'),
   },
+  // Each a theme attribute that resolves to one colour: React Native reads a
+  // resolved attribute's value as the colour, so an attribute that resolves
+  // to a colour state list (`textColorPrimary`, `textColorSecondary`) or a
+  // drawable (`listDivider`) draws a wrong colour. The theme has no plain
+  // colour for secondary text, so it takes the label's.
   default: {
-    label: PlatformColor('?android:attr/textColorPrimary'),
-    secondaryLabel: PlatformColor('?android:attr/textColorSecondary'),
+    label: PlatformColor('?android:attr/colorForeground'),
+    secondaryLabel: PlatformColor('?android:attr/colorForeground'),
     background: PlatformColor('?android:attr/colorBackground'),
-    separator: PlatformColor('?android:attr/listDivider'),
+    separator: PlatformColor('?android:attr/colorControlHighlight'),
     grouped: PlatformColor('?android:attr/colorBackgroundFloating'),
   },
 }) satisfies Record<string, ColorValue>;
