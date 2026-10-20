@@ -743,3 +743,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** The unit's log still said the counted film budget run was pending when it was reviewed.
 - **Cause:** The machine's 5-minute load stayed over its 12 cores while other units ran; the counted run, once both averages fell, took 9.4 s at load 2.8 and 11.9.
 - **Guard:** code: `packages/scripts/src/test-budget/budget.ts` `notMeasured`
+
+### reach-matches-absolute-paths
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check still accepts tests Playwright excludes"
+- **Source:** p6-guardloop/review-4.md F1
+- **Wrong:** The reach check called reached a spec that a `testIgnore` regex with its folder in it (`/\/test\/browser\/a\.spec\.ts$/`) leaves out.
+- **Cause:** Playwright tests a regex against a test file's absolute path; the reader tested it against the path from the workspace, so a regex that names a leading `/` matched nothing.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### judged-findings-day-of-renewal
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A midnight run gives findings a later expiry than their backing answers"
+- **Source:** p6-guardloop/review-4.md F2
+- **Wrong:** A judged run that crossed UTC midnight wrote its findings file under the day after the one it marked its answers seen, so the file outlived those answers by a day.
+- **Cause:** The runner read the clock again after `judge` for the findings file's day; `judge` had read it before it asked.
+- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `answers the day it marked its answers seen: a run that crosses midnight answers the day it began`
