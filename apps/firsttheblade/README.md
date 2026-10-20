@@ -81,6 +81,8 @@ template editor and no analytics.
 - **Where it lives:** the list is D1 (`migrations/`, applied on deploy), the
   emails go through Cloudflare Email Sending from `films@firsttheblade.com`,
   and the Worker binds both with the Queue and a Rate Limit (`src/worker/mail.ts`).
+  The routes are `src/mail/routes.ts`; the logs name ids and counts only
+  (`[mail] <action> key=value`), never an address or a token.
   The stack owns the sending domain (`src/worker/domain.ts`): it onboards
   firsttheblade.com to Email Sending, with its DNS records, and turns
   message previews off. Email Sending has no open or click tracking to turn
@@ -93,13 +95,12 @@ template editor and no analytics.
   only to a verified destination, so the rule is declared once `.env` says
   the inbox is verified (`MAIL_FORWARD_VERIFIED=true`), on the deploy after
   the owner opens Cloudflare's verification link.
+  The flag stays set: a prod deploy without it removes the rule.
 - **No postal address yet** (owner, 2026-10-20). A letter that asks for
   support is commercial email, which must carry one, so the P.O. box goes
   into `POSTAL_ADDRESS` (`src/mail/letters.ts`) before the first letter
   mentions Patreon: `src/mail/letters.test.ts` fails while any letter does
   and none is set. Once set, it is at the foot of every letter.
-  The routes are `src/mail/routes.ts`; the logs name ids and counts only
-  (`[mail] <action> key=value`), never an address or a token.
 
 Two secrets sign the links and guard the send route, and prod needs the
 inbox the contact address is forwarded to. They live in
