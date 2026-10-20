@@ -7,6 +7,7 @@ import { hymns } from '~/hymns/hymns';
 import { indexOf, search } from '~/hymns/search';
 import { HymnList } from '~/reader/HymnList';
 import { searchOffset, searchQuery } from '~/reader/place';
+import { color, useAccent } from '~/color';
 import { SearchField } from '~/web/SearchField';
 
 const index = indexOf(hymns);
@@ -15,6 +16,7 @@ const label = 'Number, title or first line';
 export default function Search() {
   const [query, setQuery] = useAtom(searchQuery);
   const shown = useDeferredValue(query);
+  const accent = useAccent();
   return (
     <View style={styles.screen}>
       <Stack.Screen
@@ -23,6 +25,8 @@ export default function Search() {
             placeholder: label,
             autoCapitalize: 'none',
             hideWhenScrolling: false,
+            tintColor: accent,
+            textColor: color.ink,
             onChange: (event) => setQuery(event.nativeEvent.text),
           },
         }}

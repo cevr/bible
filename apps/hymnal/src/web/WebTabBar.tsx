@@ -42,12 +42,12 @@ export function WebTabBar({ tabs }: { readonly tabs: ReadonlyArray<WebTab> }) {
 }
 
 const styles = StyleSheet.create({
-  window: { flex: 1, minHeight: 0, backgroundColor: color.background },
+  window: { flex: 1, minHeight: 0, backgroundColor: color.ground },
   content: { flex: 1, minHeight: 0 },
   bar: {
     flexDirection: 'row',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: color.separator,
+    borderTopColor: color.line,
   },
   tab: {
     flex: 1,
@@ -56,6 +56,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'none',
     fontSize: 13,
     fontWeight: '600',
-    color: color.secondaryLabel,
+    color: color.muted,
   },
 });

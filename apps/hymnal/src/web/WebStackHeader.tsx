@@ -50,6 +50,6 @@ const styles = StyleSheet.create({
   window: { flex: 1, minHeight: 0 },
   header: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
   back: { fontSize: 17, textDecorationLine: 'none' },
-  title: { fontSize: 28, fontWeight: '700', color: color.label },
+  title: { fontSize: 28, fontWeight: '700', color: color.ink },
   content: { flex: 1, minHeight: 0 },
 });

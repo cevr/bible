@@ -1,8 +1,7 @@
 /**
  * A hymn's words in the order it is sung: its number and title, then each
  * stanza under its number and the refrain, marked, each time it is sung.
- * Plain system text on the system background, scaled with the reader's text
- * size.
+ * The theme's ink on its ground, scaled with the reader's text size.
  */
 
 import type { ReactNode } from 'react';
@@ -101,10 +100,10 @@ const styles = StyleSheet.create({
   page: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48, gap: 24 },
   head: { gap: 2 },
   number: { fontSize: 22, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  title: { fontSize: 22, fontWeight: '700', color: color.label },
+  title: { fontSize: 22, fontWeight: '700', color: color.ink },
   section: { gap: 4 },
-  label: { fontSize: 13, fontWeight: '600', color: color.secondaryLabel },
+  label: { fontSize: 13, fontWeight: '600', color: color.muted },
   refrain: { paddingLeft: 16 },
-  line: { fontSize: 17, lineHeight: 24, color: color.label },
+  line: { fontSize: 17, lineHeight: 24, color: color.ink },
   refrainLine: { fontStyle: 'italic' },
 });

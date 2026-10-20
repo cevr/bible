@@ -7,6 +7,7 @@ import { Option } from 'effect';
 import { Stack, useParams } from 'one';
 
 import { hymnAt, hymns } from '~/hymns/hymns';
+import { pushedOptions } from '~/stack';
 
 import { HymnPage, NoHymn } from './HymnPage';
 
@@ -19,13 +20,13 @@ export function HymnScreen() {
   return Option.match(hymnAt(asked), {
     onNone: () => (
       <>
-        <Stack.Screen options={{ title: `No hymn ${asked}` }} />
+        <Stack.Screen options={{ ...pushedOptions, title: `No hymn ${asked}` }} />
         <NoHymn number={asked} />
       </>
     ),
     onSome: (hymn) => (
       <>
-        <Stack.Screen options={{ title: hymn.title }} />
+        <Stack.Screen options={{ ...pushedOptions, title: hymn.title }} />
         <HymnPage hymn={hymn} />
       </>
     ),

@@ -21,7 +21,7 @@ export function SearchField({
       role="searchbox"
       aria-label={label}
       placeholder={label}
-      placeholderTextColor={color.secondaryLabel}
+      placeholderTextColor={color.muted}
       autoFocus
       value={value}
       onChangeText={onChangeText}
@@ -38,7 +38,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    color: color.label,
-    backgroundColor: color.separator,
+    color: color.ink,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.line,
   },
 });

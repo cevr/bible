@@ -50,10 +50,15 @@ const styles = StyleSheet.create({
   heading: {
     marginLeft: 16,
     fontSize: 13,
-    color: color.secondaryLabel,
+    color: color.muted,
     textTransform: 'uppercase',
   },
-  group: { borderRadius: 12, overflow: 'hidden', backgroundColor: color.grouped },
+  group: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.line,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -61,8 +66,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 11,
   },
-  divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.separator },
-  pressed: { backgroundColor: color.separator },
-  label: { flex: 1, fontSize: 17, color: color.label },
+  divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: color.line },
+  pressed: { backgroundColor: color.soft },
+  label: { flex: 1, fontSize: 17, color: color.ink },
   check: { fontSize: 17, fontWeight: '600' },
 });

@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
   },
-  pressed: { backgroundColor: color.separator },
+  pressed: { backgroundColor: color.soft },
   number: {
     minWidth: 36,
     fontSize: 17,
@@ -147,14 +147,14 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     textAlign: 'right',
   },
-  title: { flex: 1, fontSize: 17, lineHeight: line, color: color.label },
-  empty: { padding: 16, fontSize: 17, color: color.secondaryLabel },
+  title: { flex: 1, fontSize: 17, lineHeight: line, color: color.ink },
+  empty: { padding: 16, fontSize: 17, color: color.muted },
   separator: {
     position: 'absolute',
     left: 64,
     right: 0,
     bottom: 0,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: color.separator,
+    backgroundColor: color.line,
   },
 });
