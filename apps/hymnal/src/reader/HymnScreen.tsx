@@ -7,6 +7,7 @@ import { Option } from 'effect';
 import { Stack, useParams } from 'one';
 
 import { hymnAt, hymns } from '~/hymns/hymns';
+import { PlayerControl } from '~/player/PlayerControl';
 import { pushedOptions } from '~/stack';
 
 import { HymnPage, NoHymn } from './HymnPage';
@@ -27,7 +28,9 @@ export function HymnScreen() {
     onSome: (hymn) => (
       <>
         <Stack.Screen options={{ ...pushedOptions, title: hymn.title }} />
-        <HymnPage hymn={hymn} />
+        <HymnPage hymn={hymn}>
+          <PlayerControl track={hymn} />
+        </HymnPage>
       </>
     ),
   });

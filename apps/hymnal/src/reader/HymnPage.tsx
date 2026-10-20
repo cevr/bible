@@ -10,7 +10,14 @@ import { ScrollView, type StyleProp, StyleSheet, Text, type TextStyle, View } fr
 import type { HymnText, Section } from '~/hymns/hymns';
 import { color, useAccent } from '~/color';
 
-export function HymnPage({ hymn }: { readonly hymn: HymnText }) {
+/** The hymn's words, with `children` (its recording's control) under its title. */
+export function HymnPage({
+  hymn,
+  children,
+}: {
+  readonly hymn: HymnText;
+  readonly children?: ReactNode;
+}) {
   const accent = useAccent();
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.page}>
@@ -22,6 +29,7 @@ export function HymnPage({ hymn }: { readonly hymn: HymnText }) {
           {hymn.title}
         </Text>
       </View>
+      {children}
       {hymn.sections.map((section, k) => (
         <SectionView key={k} section={section} />
       ))}

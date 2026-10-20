@@ -33,6 +33,8 @@ const contrast = (a: string, b: string) => {
 /**
  * Every text role on every role it is drawn on, with WCAG AA's least ratio
  * for its smallest size there: all are body sizes (13 to 17 points), so 4.5.
+ * The player draws on the ground only: its title in ink, its caption and
+ * times in muted, the hymn number and the play button in accent.
  */
 const pairs: ReadonlyArray<readonly [text: keyof Roles, on: keyof Roles]> = [
   ['ink', 'ground'],

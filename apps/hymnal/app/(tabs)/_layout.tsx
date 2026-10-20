@@ -1,7 +1,10 @@
+import { Option } from 'effect';
 import { Tabs } from 'one';
 import { Platform } from 'react-native';
 
 import { useAccent } from '~/color';
+import { LivePlayer } from '~/player/LivePlayer';
+import { NowPlayingBar, useHolding } from '~/player/NowPlayingBar';
 import { type WebTab, WebTabBar } from '~/web/WebTabBar';
 import { webOnly } from '~/web/webOnly';
 
@@ -13,18 +16,33 @@ const settings = {
   href: '/settings',
 } as const satisfies WebTab;
 
+/** The now-playing bar in the tab bar's accessory (iOS 26), there only while a hymn is held. */
+const nowPlaying = () => <NowPlayingBar />;
+
 /**
  * The system tab bar on a phone (iOS 26's glass bar, Android's navigation
- * bar); on the web, One draws no bar, so `WebTabBar` draws a small one.
+ * bar); on the web, One draws no bar, so `WebTabBar` draws a small one. The
+ * app's player plays on across every tab; the now-playing bar sits above
+ * the tab bar.
  */
 export default function TabsLayout() {
+  return (
+    <LivePlayer>
+      <PlayerTabs />
+    </LivePlayer>
+  );
+}
+
+function PlayerTabs() {
   const accent = useAccent();
+  const holding = useHolding();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: accent,
         tabBarMinimizeBehavior: 'onScrollDown',
+        bottomAccessory: Option.getOrUndefined(Option.liftPredicate(nowPlaying, () => holding)),
       }}
     >
       <Tabs.Screen
@@ -59,7 +77,11 @@ export default function TabsLayout() {
           }),
         }}
       />
-      {webOnly(<WebTabBar tabs={[hymns, search, settings]} />)}
+      {webOnly(
+        <WebTabBar tabs={[hymns, search, settings]}>
+          <NowPlayingBar />
+        </WebTabBar>,
+      )}
     </Tabs>
   );
 }

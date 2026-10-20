@@ -5,6 +5,7 @@
  */
 
 import { type Href, Link, useTabs } from 'one';
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { color, useAccent } from '~/color';
@@ -16,12 +17,20 @@ export interface WebTab {
   readonly href: Href;
 }
 
-export function WebTabBar({ tabs }: { readonly tabs: ReadonlyArray<WebTab> }) {
+/** The tabs, with `children` (the now-playing bar) between the focused tab and the bar. */
+export function WebTabBar({
+  tabs,
+  children,
+}: {
+  readonly tabs: ReadonlyArray<WebTab>;
+  readonly children?: ReactNode;
+}) {
   const { focused } = useTabs();
   const accent = useAccent();
   return (
     <View style={styles.window}>
       <View style={styles.content}>{focused.element}</View>
+      {children}
       <View role="navigation" style={styles.bar}>
         {tabs.map((tab) => {
           const current = tab.name === focused.name;
