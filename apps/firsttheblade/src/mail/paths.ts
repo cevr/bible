@@ -9,7 +9,7 @@
 export const MAIL_ROUTES = {
   /** POST: the sign-up form. */
   subscribe: '/subscribe',
-  /** GET: the link in the confirm letter. */
+  /** GET: the confirm page for the token in the confirm letter's link; POST: confirm (the page's button). */
   confirm: '/subscribe/confirm',
   /** GET: the leave page for a token; POST: leave (the page's button, or a mail app's one click). */
   unsubscribe: '/unsubscribe',
@@ -21,6 +21,8 @@ export const MAIL_ROUTES = {
 export const MAIL_PAGES = {
   /** After a sign-up, whoever signed up. */
   check: '/subscribe/check',
+  /** The one-button page; served only at the confirm route, with its token. */
+  confirm: '/subscribe/confirm',
   confirmed: '/subscribe/confirmed',
   /** A confirm link that ran out or was replaced. */
   expired: '/subscribe/expired',

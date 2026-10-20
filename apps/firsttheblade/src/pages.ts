@@ -10,7 +10,7 @@ import { MAIL_PAGES } from './mail/paths.ts';
 import { CHANNEL, ORIGIN } from './site.ts';
 
 /** The email list's pages that tell how a step went, each by its key in `MAIL_PAGES`. */
-export type NoticeId = Exclude<keyof typeof MAIL_PAGES, 'leave'>;
+export type NoticeId = Exclude<keyof typeof MAIL_PAGES, 'confirm' | 'leave'>;
 
 export type PageView =
   | { readonly _tag: 'Home' }
@@ -18,6 +18,7 @@ export type PageView =
   | { readonly _tag: 'Series'; readonly series: Series }
   | { readonly _tag: 'Privacy' }
   | { readonly _tag: 'Notice'; readonly notice: NoticeId }
+  | { readonly _tag: 'Confirm' }
   | { readonly _tag: 'Leave' }
   | { readonly _tag: 'NotFound' };
 
@@ -125,6 +126,7 @@ export const PAGES: ReadonlyArray<Page> = [
   ...NOTICES.map((notice) =>
     listPage(MAIL_PAGES[notice], NOTICE_TITLES[notice], { _tag: 'Notice', notice }),
   ),
+  listPage(MAIL_PAGES.confirm, 'Confirm your email', { _tag: 'Confirm' }),
   listPage(MAIL_PAGES.leave, 'Leave the list', { _tag: 'Leave' }),
   {
     path: '/404',

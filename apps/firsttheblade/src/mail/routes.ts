@@ -9,8 +9,10 @@
  *   work on the address (`./background.ts`), so neither the page nor the
  *   time it takes tells who is on the list; only a new or pending address (at most
  *   once an hour) is sent a confirm letter.
- * - `GET /subscribe/confirm?token=`: confirms, 303 to the confirmed page; a
- *   link that ran out or was replaced goes to a page that signs up again.
+ * - `GET /subscribe/confirm?token=`: the one-button page, and nothing more,
+ *   since mail scanners open links; `POST` (its button) confirms, 303 to the
+ *   confirmed page. A link that ran out or was replaced goes to a page that
+ *   signs up again, from either.
  * - `GET /unsubscribe?token=`: the one-button page; `POST` leaves, from that
  *   button or from a mail app's one click (RFC 8058), and answers the left
  *   page, 200, never a redirect. Leaving twice is leaving.
@@ -168,14 +170,42 @@ const claimOf = (read: Token, now: number): Option.Option<ConfirmClaim> => {
   return Option.some({ subscriber: read.subscriber, issued: read.issued });
 };
 
-const confirm = Effect.fn('Mail.confirm')(function* (request: HttpServerRequest.HttpServerRequest) {
+/** The claim a confirm link makes at `now`, when its token reads as one. */
+const confirmClaimOf = Effect.fn('Mail.confirmClaimOf')(function* (
+  request: HttpServerRequest.HttpServerRequest,
+  now: number,
+) {
   const tokens = yield* Tokens;
-  const now = yield* Clock.currentTimeMillis;
   const token = yield* Option.match(queryOf(request, 'token'), {
     onNone: () => Effect.succeedNone,
     onSome: tokens.read,
   });
-  const claim = Option.flatMap(token, (read) => claimOf(read, now));
+  return Option.flatMap(token, (read) => claimOf(read, now));
+});
+
+/**
+ * The confirm page, for a link that has not run out. Opening it changes
+ * nothing: a mail scanner that opens every link confirms no one.
+ */
+const confirmPage = Effect.fn('Mail.confirmPage')(function* (
+  request: HttpServerRequest.HttpServerRequest,
+) {
+  const claim = yield* confirmClaimOf(request, yield* Clock.currentTimeMillis);
+  if (Option.isNone(claim)) {
+    yield* logMail('confirm.expired');
+    return see(MAIL_PAGES.expired);
+  }
+  return yield* page(request, MAIL_PAGES.confirm, 200);
+});
+
+/**
+ * Confirming, from the confirm page's button. The token in the address is
+ * the proof, so a post from anywhere else can do no more than the link's
+ * holder can.
+ */
+const confirm = Effect.fn('Mail.confirm')(function* (request: HttpServerRequest.HttpServerRequest) {
+  const now = yield* Clock.currentTimeMillis;
+  const claim = yield* confirmClaimOf(request, now);
   if (Option.isNone(claim)) {
     yield* logMail('confirm.expired');
     return see(MAIL_PAGES.expired);
@@ -293,7 +323,13 @@ type Handler = (
 /** Each route's handlers, by method. */
 const ROUTES = new Map<string, ReadonlyMap<string, Handler>>([
   [MAIL_ROUTES.subscribe, new Map([['POST', subscribe]])],
-  [MAIL_ROUTES.confirm, new Map([['GET', confirm]])],
+  [
+    MAIL_ROUTES.confirm,
+    new Map<string, Handler>([
+      ['GET', confirmPage],
+      ['POST', confirm],
+    ]),
+  ],
   [
     MAIL_ROUTES.unsubscribe,
     new Map<string, Handler>([

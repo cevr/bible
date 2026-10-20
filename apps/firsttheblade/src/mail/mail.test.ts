@@ -120,14 +120,21 @@ const letters = Effect.gen(function* () {
   return yield* (yield* Mailbox).letters;
 });
 
+/** The confirm link in a letter's text, as a path on the site. */
+const confirmLinkIn = (text: string) =>
+  `/subscribe/confirm?token=${encodeURIComponent(tokenIn(text))}`;
+
+/** Opens a confirm link and presses its page's button: the answer to the press. */
+const pressConfirm = Effect.fn('Test.pressConfirm')(function* (link: string) {
+  const opened = yield* call(link);
+  expect(opened.status).toBe(200);
+  return yield* call(link, { method: 'POST' });
+});
+
 /** Signs `address` up and confirms it from its letter. */
 const joined = Effect.fn('Test.joined')(function* (address: string) {
   yield* signUp({ email: address });
-  const sent = yield* letters;
-  const letter = Option.getOrThrow(Option.fromNullishOr(sent.at(-1)));
-  const confirmed = yield* call(
-    `/subscribe/confirm?token=${encodeURIComponent(tokenIn(letter.text))}`,
-  );
+  const confirmed = yield* pressConfirm(confirmLinkIn((yield* letters).at(-1)?.text ?? ''));
   expect(header(confirmed, 'location')).toBe(MAIL_PAGES.confirmed);
 });
 
@@ -220,9 +227,7 @@ describe('signing up', () => {
       yield* (yield* Held).settle;
       const letter = (yield* letters).at(-1);
       expect(letter?.subject).toStartWith('Confirm');
-      const confirmed = yield* call(
-        `/subscribe/confirm?token=${encodeURIComponent(tokenIn(letter?.text ?? ''))}`,
-      );
+      const confirmed = yield* pressConfirm(confirmLinkIn(letter?.text ?? ''));
       expect(header(confirmed, 'location')).toBe(MAIL_PAGES.confirmed);
     }));
 
@@ -298,15 +303,30 @@ describe('signing up', () => {
 });
 
 describe('confirming', () => {
-  test('the link confirms, and opening it twice confirms once', () =>
+  test('opening the link only shows the one-button page, as often as a mail scanner opens it', () =>
     Effect.gen(function* () {
       yield* signUp({ email: ANN });
-      const [letter] = yield* letters;
-      const link = `/subscribe/confirm?token=${encodeURIComponent(tokenIn(letter?.text ?? ''))}`;
-      const first = yield* call(link);
+      const link = confirmLinkIn((yield* letters)[0]?.text ?? '');
+      for (let n = 0; n < 3; n += 1) {
+        const opened = yield* call(link);
+        expect(opened.status).toBe(200);
+        expect(header(opened, 'location')).toBe('');
+        expect(header(opened, 'cache-control')).toBe(CACHE.never);
+        const body = yield* Effect.promise(() => HttpServerResponse.toWeb(opened).text());
+        expect(body).toContain(MAIL_PAGES.confirm);
+      }
+      const list = yield* List;
+      expect((yield* list.counts(FILM)).confirmed).toBe(0);
+    }));
+
+  test("the page's button confirms, and pressing it twice confirms once", () =>
+    Effect.gen(function* () {
+      yield* signUp({ email: ANN });
+      const link = confirmLinkIn((yield* letters)[0]?.text ?? '');
+      const first = yield* pressConfirm(link);
       expect(first.status).toBe(303);
       expect(header(first, 'location')).toBe(MAIL_PAGES.confirmed);
-      const second = yield* call(link);
+      const second = yield* call(link, { method: 'POST' });
       expect(header(second, 'location')).toBe(MAIL_PAGES.confirmed);
       const list = yield* List;
       expect((yield* list.counts(FILM)).confirmed).toBe(1);
@@ -324,12 +344,16 @@ describe('confirming', () => {
         ...others.map((other) => `/subscribe/confirm?token=${encodeURIComponent(other)}`),
         '/subscribe/confirm',
       ];
-      for (const link of links) {
-        expect(header(yield* call(link), 'location')).toBe(MAIL_PAGES.expired);
+      const late = `/subscribe/confirm?token=${encodeURIComponent(token)}`;
+      for (const method of ['GET', 'POST']) {
+        for (const link of links) {
+          expect(header(yield* call(link, { method }), 'location')).toBe(MAIL_PAGES.expired);
+        }
       }
       yield* TestClock.adjust(Duration.days(7));
-      const late = yield* call(`/subscribe/confirm?token=${encodeURIComponent(token)}`);
-      expect(header(late, 'location')).toBe(MAIL_PAGES.expired);
+      for (const method of ['GET', 'POST']) {
+        expect(header(yield* call(late, { method }), 'location')).toBe(MAIL_PAGES.expired);
+      }
       const list = yield* List;
       expect((yield* list.counts(FILM)).confirmed).toBe(0);
     }));

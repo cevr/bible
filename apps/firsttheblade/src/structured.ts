@@ -147,6 +147,7 @@ export const graphOf = (page: Page) =>
         ];
       },
       Notice: () => [],
+      Confirm: () => [],
       Leave: () => [],
       NotFound: () => [],
     }),

@@ -15,7 +15,7 @@ import type { Page, PageView } from './pages.ts';
 import { CHANNEL } from './site.ts';
 import { EMBLEMS, MARK } from './ui/art.ts';
 import { Header } from './ui/header.tsx';
-import { Leave, Notice } from './ui/mail.tsx';
+import { Confirm, Leave, Notice } from './ui/mail.tsx';
 import {
   Cards,
   Dusk,
@@ -341,6 +341,12 @@ const body = Match.type<PageView>().pipe(
     Notice: (view) => (
       <main id="main">
         <Notice notice={view.notice} />
+        <Dusk />
+      </main>
+    ),
+    Confirm: () => (
+      <main id="main">
+        <Confirm />
         <Dusk />
       </main>
     ),

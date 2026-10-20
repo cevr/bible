@@ -1,7 +1,8 @@
 /**
  * The email list on the page: the sign-up form in the night close, the
- * notices its routes send people to, and the leave page's one button (the
- * privacy page is with the other pages, in `../views.tsx`). Every form posts to this site with no script
+ * notices its routes send people to, and the confirm and leave pages, one
+ * button each (the privacy page is with the other pages, in
+ * `../views.tsx`). Every form posts to this site with no script
  * (`../mail/routes.ts`), and no page says whether an address is on the list.
  */
 import { For } from '@solidjs/web';
@@ -147,6 +148,22 @@ export const Notice = (props: NoticeProps) => {
     </Lost>
   );
 };
+
+/**
+ * The confirm page. Opening the link in the confirm letter only shows it,
+ * since mail scanners open links; its button confirms. Its form names no
+ * action, so it posts back to the page's own address, the token with it.
+ */
+export const Confirm = () => (
+  <Lost title="Confirm your email">
+    <p>Press the button and we will send you one email for each new film, and nothing else.</p>
+    <form method="post">
+      <button class="button" type="submit">
+        <span class="button-label">Confirm my email</span>
+      </button>
+    </form>
+  </Lost>
+);
 
 /**
  * The leave page. Its form names no action, so it posts back to the page's

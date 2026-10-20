@@ -58,9 +58,11 @@ template editor and no analytics.
   answer, and the answer does not wait for the work on the address, so neither
   the page nor its timing tells who is on the list. A new or pending address is sent one
   email to confirm, at most once an hour, even across leaving and joining again.
-- **Confirm** is the link in that email, `GET /subscribe/confirm?token=`. A
-  link works for seven days, and only the newest one, sent since the address
-  last left, works.
+- **Confirm** is the link in that email, `GET /subscribe/confirm?token=`.
+  Opening it only shows a page with one button, "Confirm my email", since
+  mail scanners open links; the button's `POST` to the same address confirms.
+  A GET never changes the list. A link works for seven days, and only the
+  newest one, sent since the address last left, works.
 - **Leave** is the link at the foot of every film's email, `GET /unsubscribe`
   (one button), and its `POST`, which a mail app's one-click unsubscribe also
   sends (`List-Unsubscribe`, RFC 8058); it answers 200, never a redirect.
