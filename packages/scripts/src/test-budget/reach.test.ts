@@ -1,6 +1,7 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Option, Path } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { fileURLToPath } from 'node:url';
 import { reachesIn, repoTests } from './reach.ts';
 
 /** A test file's text: one that imports its runner. */
@@ -198,11 +199,12 @@ describe("a workspace's test files", () => {
           'test/c.spec.ts: none',
         ]);
         // A file its testIgnore names is not taken, by a glob (read as playwright reads one:
-        // any folder before it, any case) or a regex, its key bare or quoted.
+        // any folder before it, any case, minimatch's extglobs) or a regex, its key bare or quoted.
         // A regex is of the absolute path, as playwright tests it.
         for (const ignore of [
           "testIgnore: '**/a.spec.ts'",
           "testIgnore: 'A.spec.ts'",
+          "testIgnore: '*.@(spec|xyz).ts'",
           '"testIgnore": /a\\.spec/',
           'testIgnore: /\\/test\\/browser\\/a\\.spec\\.ts$/',
           'testIgnore: /^\\/repo\\/w\\/test\\/browser\\/a/',
@@ -240,6 +242,22 @@ describe("a workspace's test files", () => {
             'playwright.config.ts': "export default { testDir: './e2e' };",
           }),
         ).toEqual(['e2e/x.spec.ts: test:browser']);
+      }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    'are read by a glob as playwright reads one, with the minimatch playwright bundles',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const fileOf = (name: string) => fileURLToPath(import.meta.resolve(name));
+        const own = yield* Schema.decodeEffect(
+          Schema.fromJsonString(Schema.Struct({ version: Schema.String })),
+        )(yield* fs.readFileString(fileOf('minimatch/package.json')));
+        const core = path.dirname(fileOf('playwright-core/package.json'));
+        const notices = yield* fs.readFileString(path.join(core, 'lib', 'utilsBundle.js.LICENSE'));
+        expect(/minimatch@[\d.]+/.exec(notices)?.[0]).toBe(`minimatch@${own.version}`);
       }),
   );
 

@@ -13,15 +13,18 @@
 // its globs match. `bun run <script>` runs that script of the workspace.
 // `playwright test` takes a file as its config sets it (`playwrightRun`):
 // under the config's `testDir`, its absolute path matched by its
-// `testMatch`, not by its `testIgnore` (a glob as playwright reads one: `**/`
-// before it, any case), and by one of the command's filters when it names
-// any; a config the reader cannot read (none, a `testDir`, `testMatch` or
-// `testIgnore` named as anything but a literal, `projects`) takes none. A by-hand script's other commands (a wrapper of `bun test`) reach a
-// file only by naming it, or a folder that holds it, by its path. A file
-// named as a test that registers none (`holdsTests`) needs no script.
+// `testMatch` and not by its `testIgnore`, each read as playwright's file
+// matcher reads it (a regex as written, a glob by `globMatcher`), and by one
+// of the command's filters when it names any; a config the reader cannot
+// read (none, a `testDir`, `testMatch` or `testIgnore` named as anything but
+// a literal, `projects`) takes none. A by-hand script's other commands (a
+// wrapper of `bun test`) reach a file only by naming it, or a folder that
+// holds it, by its path. A file named as a test that registers none
+// (`holdsTests`) needs no script.
 
 import { Glob } from 'bun';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { minimatch } from 'minimatch';
 import { gateFiles } from '../guard/files.ts';
 import { commandsOf } from './shell.ts';
 
@@ -171,8 +174,8 @@ const PLAYWRIGHT_CONFIGS = ['ts', 'js', 'mts', 'mjs', 'cts', 'cjs'].map(
   (ext) => `playwright.config.${ext}`,
 );
 
-/** Playwright's own `testMatch` when its config sets none: `**\/*.@(spec|test).?(c|m)[jt]s?(x)`. */
-const PLAYWRIGHT_MATCH = /\.(?:spec|test)\.[cm]?[jt]sx?$/;
+/** Playwright's own `testMatch` when its config sets none. */
+const PLAYWRIGHT_MATCH = '**/*.@(spec|test).?(c|m)[jt]s?(x)';
 
 /** Where a config sets `key`: the key, bare or quoted, and its colon. */
 const keyAt = (key: string) => `\\b${key}['"]?\\s*:\\s*`;
@@ -191,22 +194,22 @@ const literalOf = (text: string, key: string): Option.Option<Option.Option<strin
 };
 
 /**
- * A glob of a config as playwright reads it: `**\/` before it unless it
- * starts so, matched with no regard to case, as playwright's file matcher
- * does.
+ * A test of a file's absolute path by a glob, as playwright's
+ * `createFileMatcher` makes one: `**\/` before it unless it starts so, read
+ * by minimatch (the version playwright bundles, held by `reach.test.ts`)
+ * with no regard to case and dot files taken. A regex it tests as written.
  */
-const globOf = (pattern: string) => {
+const globMatcher = (pattern: string) => {
   let glob = pattern;
   if (!glob.startsWith('**/')) glob = `**/${glob}`;
-  const matcher = new Glob(glob.toLowerCase());
-  return (file: string) => matcher.match(file.toLowerCase());
+  return (file: string) => minimatch(file, glob, { nocase: true, dot: true });
 };
 
 /**
  * A config's `key` (`testMatch`, `testIgnore`) as a test of a file's
- * absolute path, as playwright tests it: a regex literal or a quoted glob,
- * `absent` when the config sets none; none when it sets it some other way (a
- * list, a name), which this does not read.
+ * absolute path, as playwright tests it: a regex literal or a quoted
+ * glob, `absent` when the config sets none; none when it sets it some other
+ * way (a list, a name), which this does not read.
  */
 const patternOf = (
   text: string,
@@ -224,7 +227,7 @@ const patternOf = (
       },
       onNone: () =>
         Option.map(literalOf(text, key), (glob) =>
-          Option.match(glob, { onNone: () => absent, onSome: globOf }),
+          Option.match(glob, { onNone: () => absent, onSome: globMatcher }),
         ),
     },
   );
@@ -273,7 +276,7 @@ const playwrightRun = (
         Option.flatMap(pathOf([...folder, Option.getOrElse(dir, () => '.')].join('/')), (root) =>
           Option.map(
             Option.all([
-              patternOf(text, 'testMatch', (path) => PLAYWRIGHT_MATCH.test(path)),
+              patternOf(text, 'testMatch', globMatcher(PLAYWRIGHT_MATCH)),
               patternOf(text, 'testIgnore', () => false),
             ]),
             ([matches, ignored]) =>
