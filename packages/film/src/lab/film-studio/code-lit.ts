@@ -1,21 +1,25 @@
 // What the studio's code view (`code.tsx`) lights at a frame, from its
-// scene's clock then (the cues playing, `liveAt` in core/timeline.ts, and
-// the marks said), the names the frame read off it (`Player.hearClock`), and
-// where the scene's code writes and reads them (`SceneCode`). A cue's literal is lit by the clock
-// alone, as the strip's lane is. A read of the clock fires while the frame
-// read its name and the clock plays it (a cue's read while its cue is live,
-// a mark's on its word's frame, a `spoken` read from its mark to its end),
-// and its line glows while one fires and fades over `TRAIL` after; the band
-// over the code names the beat the frame is on. Each is a pure function of
-// the frame (the same frame reads the same names), so a link with `#t=`
-// lights what its sender saw. The browser paints the ranges
+// scene's clock then (its rows' states, `core/scene-steps.ts`, and the marks
+// said), the names the frame read off it (`Player.hearClock`), and where the
+// scene's code writes and reads them (`SceneCode`). A row is lit where the
+// code writes it (a cue row on its cue's literal) by its state alone, as the
+// strip's lane is: live on the playhead's tint with a meter, held brighter
+// than the code around it, waiting or released dim. A read of the clock
+// fires while the frame read its name and the clock plays it (a cue's read
+// while its cue is live, a mark's on its word's frame, a `spoken` read from
+// its mark to its end), and its line glows while one fires and fades over
+// `TRAIL` after. The band over the code names the beat the frame is on, how
+// many rows are live, and the next to start and when. Each is a pure
+// function of the frame (the same frame reads the same names), so a link
+// with `#t=` lights what its sender saw. The browser paints the ranges
 // (`browser/highlights.ts`), the view scrolls to `followLine`, and a tap
 // seeks to `nextFiring` over the scene's `firingsOf`, built once for it.
 
 import { Array as Arr, Option, Order } from 'effect';
 import { lastLineOf, lineOf, lineStarts } from '../../core/lines.ts';
 import type { CodeRange, ResolvedCue, SceneCode } from '../../core/schema.ts';
-import { type SceneClock, liveAt, liveEnd } from '../../core/timeline.ts';
+import { type StepRow, StepState, nextStep, stepStateAt } from '../../core/scene-steps.ts';
+import { type SceneClock, liveEnd } from '../../core/timeline.ts';
 
 /** Film seconds a line glows on after what fired on it ends, fading to nothing. */
 const TRAIL = 0.6;
@@ -31,12 +35,14 @@ export interface CodeClock {
   readonly fps: number;
   /** The scene's cues as the preview draws them (`StageOps.cuesOf`). */
   readonly cues: ReadonlyMap<string, ResolvedCue>;
+  /** The scene's rows (`stepRowsOf`), each lit by its state at `t`. */
+  readonly rows: ReadonlyArray<StepRow>;
   readonly voice: Voice;
   /** The names the frame read off the scene's clock (`Player.hearClock`). */
   readonly heard: { readonly cues: ReadonlySet<string>; readonly marks: ReadonlySet<string> };
 }
 
-/** A live cue's meter: its name, the line its literal is written on, and how far through it the clock is. */
+/** A live row's meter: its cue's name, the line its literal is written on, and how far through it the clock is. */
 interface Meter {
   readonly name: string;
   readonly line: number;
@@ -187,16 +193,29 @@ const leadOf = (
     (l) => l.at,
   );
 
+/** The next row to start, as the band and its line say it: its words, how long until it starts, and the line that writes it. */
+interface Next {
+  readonly words: string;
+  readonly in: number;
+  readonly line: Option.Option<number>;
+}
+
 /** What is lit at a frame. */
 export interface Lit {
-  /** The playing cues' literals in the `timeline`: lit by the clock alone, as the strip's lanes are. */
+  /** The live rows' spans: lit by the clock alone, as the strip's lanes are. */
   readonly literals: ReadonlyArray<CodeRange>;
+  /** The held rows' spans, brighter than the code around them. */
+  readonly held: ReadonlyArray<CodeRange>;
+  /** The spans of the rows that wait or are released, dim. */
+  readonly dim: ReadonlyArray<CodeRange>;
   /** The reads of the clock firing: the frame read the name, and the clock plays it. */
   readonly reads: ReadonlyArray<CodeRange>;
-  /** One meter per playing cue the code writes as a literal. */
+  /** One meter per live row the code writes. */
   readonly meters: ReadonlyArray<Meter>;
-  /** The playing cues' names the code writes, in the order they play: what the view says is live. */
-  readonly names: ReadonlyArray<string>;
+  /** How many of the scene's rows are live, written in the code or not. */
+  readonly live: number;
+  /** The next row to start, written in the code or not; none once every row has begun. */
+  readonly next: Option.Option<Next>;
   /** Each line a read of the clock glows on, by its number, and how brightly: 1 while one fires, fading over `TRAIL` after. */
   readonly glows: ReadonlyMap<number, number>;
   /** The read the frame made, or the literal, that began last by the frame, playing or not: what the view follows (`leadOf`). */
@@ -257,43 +276,93 @@ const glowsOn = (
       return glows.set(line, Math.max(glow, had));
     }, new Map<number, number>());
 
+/** Where `code` writes `row`: a cue row's literal; none where the parse found none (a field it refuses). */
+const siteOf = (code: SceneCode, row: StepRow): Option.Option<CodeRange> =>
+  Option.map(
+    Arr.findFirst(code.cues, (c) => c.name === row.cue),
+    (c) => c.at,
+  );
+
 /**
- * What `code` lights at `clock`'s frame: the playing cues' literals, the
- * reads of the clock firing and the lines they glow on. A cue the code does
- * not write as a literal lights no literal.
+ * What `code` lights at `clock`'s frame: each row's span by its state, the
+ * reads of the clock firing and the lines they glow on. A row the code does
+ * not write lights no span, though the band still counts it.
  */
 export const litNow = (code: SceneCode, clock: CodeClock): Lit => {
-  const found = liveAt(clock.cues, clock.t, clock.fps).flatMap((l) =>
-    Option.match(
-      Arr.findFirst(code.cues, (c) => c.name === l.name),
-      { onNone: () => [], onSome: (site) => [{ site, progress: l.progress }] },
-    ),
+  const states = stepStateAt(clock.rows, clock.t);
+  const sited = Arr.zip(clock.rows, states).flatMap(([row, state]) =>
+    Option.toArray(Option.map(siteOf(code, row), (at) => ({ row, at, state }))),
   );
+  const spans = (tags: ReadonlyArray<StepState['_tag']>) =>
+    sited.filter((s) => tags.includes(s.state._tag)).map((s) => s.at);
   const reads = clockReads(code, clock);
   const firing = reads.filter((r) => fires(r, clock.t));
   return {
-    literals: found.map(({ site }) => site.at),
+    literals: spans(['Live']),
+    held: spans(['Held']),
+    dim: spans(['Waits', 'Released']),
     reads: firing.map((r) => r.at),
-    meters: found.map(({ site, progress }) => ({
-      name: site.name,
-      line: lineAt(code, site.at[0]),
-      progress,
+    meters: sited.flatMap(({ row, at, state }) =>
+      Option.toArray(
+        Option.map(Option.liftPredicate(state, StepState.$is('Live')), (live) => ({
+          name: row.cue,
+          line: lineAt(code, at[0]),
+          progress: live.progress,
+        })),
+      ),
+    ),
+    live: states.filter(StepState.$is('Live')).length,
+    next: Option.map(nextStep(clock.rows, clock.t), (n) => ({
+      words: n.row.words,
+      in: n.in,
+      line: Option.map(siteOf(code, n.row), (at) => lineAt(code, at[0])),
     })),
-    names: found.map(({ site }) => site.name),
     glows: glowsOn(code, reads, clock.t),
     lead: leadOf(code, clock, reads),
   };
 };
 
+/** Seconds to come as the view says them, to a tenth: `in 0.5 s`. */
+const inWords = (seconds: number): string => `in ${seconds.toFixed(1)} s`;
+
+/** A live row's progress as the view says it, in whole percent: `59 %`. */
+const percentWords = (progress: number): string => `${Math.floor(progress * 100)} %`;
+
 /**
- * What the band over the code says plays: the playing cues' names, else
- * that nothing plays. Why the parse refused a field (`SceneCode.refused`) is
- * `film check`'s and the lab MCP's to say, never the owner's screen.
+ * What the band over the code says plays: how many rows are live (or that
+ * nothing plays), and the next to start, in its words, and when: `2 live ·
+ * next: 'fall', in 0.3 s`. Why the parse refused a field
+ * (`SceneCode.refused`) is `film check`'s and the lab MCP's to say, never
+ * the owner's screen.
  */
 export const liveWords = (lit: Lit): string =>
-  Option.getOrElse(
-    Option.liftPredicate(lit.names.join(' · '), (words) => words !== ''),
-    () => 'nothing playing',
+  [
+    Option.getOrElse(
+      Option.map(
+        Option.liftPredicate(lit.live, (n) => n > 0),
+        (n) => `${n} live`,
+      ),
+      () => 'nothing playing',
+    ),
+    ...Option.toArray(Option.map(lit.next, (n) => `next: '${n.words}', ${inWords(n.in)}`)),
+  ].join(' · ');
+
+/**
+ * What line `line`'s status says at the frame: the first live row's
+ * percent on it, else when the next row starts, when it is written there;
+ * none for any other line.
+ */
+export const statusOn = (lit: Lit, line: number): Option.Option<string> =>
+  Option.orElse(
+    Option.map(
+      Arr.findFirst(lit.meters, (m) => m.line === line),
+      (m) => percentWords(m.progress),
+    ),
+    () =>
+      Option.map(
+        Option.filter(lit.next, (n) => Option.contains(n.line, line)),
+        (n) => inWords(n.in),
+      ),
   );
 
 /** The mark `voice` last said by scene time `t`: the band's live chip. None before its first. */
@@ -335,7 +404,7 @@ export const followLine = (code: SceneCode, lit: Lit): Option.Option<number> =>
   Option.map(lit.lead, (range) => lineAt(code, range[0]));
 
 /** A scene as the staged film places it, apart from any frame: what its clock plays, and when. */
-export type StagedScene = Pick<CodeClock, 'fps' | 'cues' | 'voice'>;
+export type StagedScene = Pick<CodeClock, 'fps' | 'cues' | 'rows' | 'voice'>;
 
 /**
  * Each line of a scene's code that reads or writes what its clock plays,

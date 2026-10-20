@@ -1,7 +1,9 @@
 // The studio's code view over the probe film, on a laptop (1440 × 900) and a
 // phone (390 × 844): the inspector's Code section shows scene one's file lit
 // by the playhead while it is in the beat (the playing cue's literal and the
-// read that fires, a meter under its line, the band naming it), unlit once it
+// read that fires, a meter under its line and its percent beside it, the cue
+// that waits dim and saying when it starts, a cue played held, the band
+// counting what plays and naming the next), unlit once it
 // leaves, and unlit on a version kept in its own folder; the band sets the
 // beat's line with a chip at each mark, the live one lit, three whole rows of
 // a long line in sight, and a chip seeks to its mark; a tap on a line, its
@@ -95,6 +97,7 @@ const CODE = {
 };
 
 const RISE_LINE = lineOf("rise: { mark: 'rise'");
+const FALL_LINE = lineOf("fall: { mark: 'fall'");
 const RISE_READ_LINE = lineOf("f.at('rise')");
 const FALL_READ_LINE = lineOf("f.at('fall')");
 /** A line that plays twice: on the word each mark is said on. */
@@ -120,7 +123,20 @@ const into = (s: number) => s + 0.5 / film.fps;
 const HASH_T = `Number(new URLSearchParams(location.hash.slice(1)).get('t'))`;
 
 /** What the code view paints as playing: the highlight's ranges, read back as the text they cover. */
-const PAINTED = `[...(CSS.highlights.get('code-live') ?? [])].map((r) => r.toString()).sort()`;
+/** What the code view paints as highlight `name`, read back as the text it covers. */
+const painted = (name: string) =>
+  `[...(CSS.highlights.get('${name}') ?? [])].map((r) => r.toString()).sort()`;
+
+/** What the code view paints as playing. */
+const PAINTED = painted('code-live');
+
+/** The band while rise plays: one row live, fall the next to start. */
+const RISE_PLAYS = /^1 live · next: 'fall', in \d+\.\d s$/;
+/** The band while fall plays: one row live, none to come. */
+const FALL_PLAYS = /^1 live$/;
+
+/** The status at the right of line `n` of `view`. */
+const statusOf = (view: string, n: number) => `${view} .st-code-line[data-line="${n}"] .st-code-st`;
 
 /** The inspector's Code section. */
 const CODE_SECTION = '.st-pane .st-sec[data-section="Code"]';
@@ -295,12 +311,12 @@ const codeAt = (viewport: Viewport, T: number, v = 0, say = SAY) =>
 for (const size of SIZES)
   describe(`the studio's code view on ${size.name}`, () => {
     it.live(
-      'lights the cue playing and its read, names it in the band, and meters its line',
+      'lights the cue playing and its read, counts it in the band, and meters its line',
       () =>
         Effect.gen(function* () {
           const { page, errors } = yield* codeAt(size.viewport, middle('rise'));
           yield* attributeIs(page, `${CODE_SECTION} .st-code`, 'data-lit', 'true');
-          yield* textIs(page, `${CODE_SECTION} .st-code-live`, 'rise');
+          yield* textIs(page, `${CODE_SECTION} .st-code-live`, RISE_PLAYS);
           yield* evaluates(page, PAINTED, ["f.at('rise')", "rise: { mark: 'rise', dur: 0.6 }"]);
           yield* attributeIs(
             page,
@@ -308,6 +324,25 @@ for (const size of SIZES)
             'data-cue',
             'rise',
           );
+          yield* textIs(page, statusOf(CODE_SECTION, RISE_LINE), /^\d{1,2} %$/);
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+    it.live(
+      'dims the cue that waits and says when it starts, then holds the cue played as the next plays',
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* codeAt(size.viewport, middle('rise'));
+          yield* evaluates(page, painted('code-dim'), ["fall: { mark: 'fall', dur: 0.4 }"]);
+          yield* textIs(page, statusOf(CODE_SECTION, FALL_LINE), /^in \d+\.\d s$/);
+          yield* evaluates(page, painted('code-held'), []);
+          yield* page.click(`${CODE_SECTION} .st-code-line[data-line="${FALL_LINE}"] .st-code-t`);
+          yield* textIs(page, `${CODE_SECTION} .st-code-live`, FALL_PLAYS);
+          yield* evaluates(page, painted('code-held'), ["rise: { mark: 'rise', dur: 0.6 }"]);
+          yield* evaluates(page, painted('code-dim'), []);
+          yield* textIs(page, statusOf(CODE_SECTION, RISE_LINE), '');
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
       SLOW,
@@ -322,7 +357,7 @@ for (const size of SIZES)
             `${CODE_SECTION} .st-code-line[data-line="${FALL_READ_LINE}"] .st-code-t`,
           );
           yield* until(page, `Math.abs(${HASH_T} - ${into(span('fall').start)}) < 0.002`);
-          yield* textIs(page, `${CODE_SECTION} .st-code-live`, 'fall');
+          yield* textIs(page, `${CODE_SECTION} .st-code-live`, FALL_PLAYS);
           yield* evaluates(page, `new URLSearchParams(location.search).get('sel')`, 'beat:one');
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
@@ -338,12 +373,12 @@ for (const size of SIZES)
           // Between the line's two plays: to the second, and the playhead stays there.
           yield* page.click(n);
           yield* until(page, `Math.abs(${HASH_T} - ${into(said('fall'))}) < 0.002`);
-          yield* textIs(page, `${CODE_SECTION} .st-code-live`, 'fall');
+          yield* textIs(page, `${CODE_SECTION} .st-code-live`, FALL_PLAYS);
           // Past its last: round to the first.
           yield* page.focus(n);
           yield* page.press('Enter');
           yield* until(page, `Math.abs(${HASH_T} - ${into(said('rise'))}) < 0.002`);
-          yield* textIs(page, `${CODE_SECTION} .st-code-live`, 'rise');
+          yield* textIs(page, `${CODE_SECTION} .st-code-live`, RISE_PLAYS);
           yield* evaluates(page, `new URLSearchParams(location.search).get('sel')`, 'beat:one');
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
@@ -469,11 +504,11 @@ describe("the studio's Script pane", () => {
         yield* attributeIs(page, `${PANE} .st-code`, 'data-lit', 'true');
         yield* evaluates(page, PANE_Q, 'script');
         yield* attributeIs(page, '.st-key[data-act="studio.script"]', 'aria-pressed', 'true');
-        yield* textIs(page, `${PANE} .st-code-live`, 'rise');
+        yield* textIs(page, `${PANE} .st-code-live`, RISE_PLAYS);
         yield* until(page, inView(RISE_READ_LINE, false));
         // Play: the fall's read begins far down the file, and the view scrolls to it.
         yield* page.click(PLAY);
-        yield* textIs(page, `${PANE} .st-code-live`, 'fall');
+        yield* textIs(page, `${PANE} .st-code-live`, FALL_PLAYS);
         yield* until(page, inView(FALL_READ_LINE, true));
         yield* page.click(PLAY);
         yield* page.press('s');
@@ -493,12 +528,12 @@ describe("the studio's Script pane", () => {
         yield* evaluates(page, PAINTED, []);
         yield* scrub(page, 0.1, middle('rise'));
         yield* until(page, `Math.abs(${HASH_T} - ${middle('rise')}) < 0.1`);
-        yield* textIs(page, `${PANE} .st-code-live`, 'rise');
+        yield* textIs(page, `${PANE} .st-code-live`, RISE_PLAYS);
         yield* evaluates(page, PAINTED, ["f.at('rise')", "rise: { mark: 'rise', dur: 0.6 }"]);
         // A tap on the fall's read: the playhead goes where it next plays, the view with it.
         yield* page.click(`${PANE} .st-code-line[data-line="${FALL_READ_LINE}"] .st-code-t`);
         yield* until(page, `Math.abs(${HASH_T} - ${into(span('fall').start)}) < 0.002`);
-        yield* textIs(page, `${PANE} .st-code-live`, 'fall');
+        yield* textIs(page, `${PANE} .st-code-live`, FALL_PLAYS);
         yield* until(page, inView(FALL_READ_LINE, true));
         yield* evaluates(page, `new URLSearchParams(location.search).get('sel') ?? ''`, '');
         expect(errors).toEqual([]);

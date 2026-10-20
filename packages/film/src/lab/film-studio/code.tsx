@@ -1,9 +1,12 @@
 // The studio's code view: a scene's file as it
 // stands, a row to a line, numbered, a long line wrapped under its number,
-// lit by the playhead as the staged film plays it (`code-lit.ts`): a cue's
-// literal while its cue plays, a meter under its line, and each call that
-// reads the clock while it fires, its line glowing and fading after. The
-// band over the code names the beat the frame is on and what plays, and sets
+// lit by the playhead as the staged film plays it (`code-lit.ts`): each of
+// the scene's rows (`core/scene-steps.ts`, a cue's literal for a cue row) by
+// its state, live with a meter under its line and its percent beside it,
+// held brighter, waiting or released dim, the next to start saying when;
+// and each call that reads the clock while it fires, its line glowing and
+// fading after. The band over the code names the beat the frame is on, how
+// many rows are live and the next to start, and sets
 // the beat's line (the reader's words, `words/line.ts`) with a chip at each
 // mark, the live one lit; a chip seeks to its mark. A tap on
 // a line, its number or its text, seeks to where it next fires
@@ -27,7 +30,8 @@ import { type Accessor, createEffect, createMemo, createSignal, untrack } from '
 import type { Host } from '../../browser/host.ts';
 import type { ClockReads, Film } from '../../canvas/film.ts';
 import { type Placed, sceneClock, sceneOf } from '../../core/layout.ts';
-import type { CodeRange, SceneCode } from '../../core/schema.ts';
+import type { SceneCode } from '../../core/schema.ts';
+import { stepRowsOf } from '../../core/scene-steps.ts';
 import { LabApi } from '../api.ts';
 import { hubKeys } from '../command/changes.ts';
 import { pressed } from '../pressed.ts';
@@ -47,6 +51,7 @@ import {
   nextFiring,
   rowsOf,
   saidAt,
+  statusOn,
 } from './code-lit.ts';
 import { LinePiece, piecesOf } from '../words/line.ts';
 import { parse } from '../../core/narration.ts';
@@ -77,15 +82,6 @@ interface Staging {
 const sameStaging = Option.makeEquivalence<Staging>(
   (a, b) => a.film === b.film && a.placed === b.placed,
 );
-
-/**
- * A step of a scene written as steps, its span lit while it plays: what the
- * view paints beside a draw's lighting. No scene carries steps yet, so the
- * studio passes none.
- */
-interface LitStep {
-  readonly at: CodeRange;
-}
 
 /** Why the code is unlit where no staged film plays the version shown. */
 const UNLIT = 'Lit for the open version';
@@ -123,7 +119,12 @@ const useSceneLight = (
   const staged = createMemo(() =>
     Option.map(staging(), ({ film, placed }) => ({
       start: placed.start,
-      staged: { fps: film.fps, cues: placed.cues, voice: sceneClock(placed) },
+      staged: {
+        fps: film.fps,
+        cues: placed.cues,
+        rows: stepRowsOf(placed, film.fps),
+        voice: sceneClock(placed),
+      },
     })),
   );
   // The reads of the staged film's frames, heard while the view is lit; each frame drawn moves `drawn`.
@@ -249,7 +250,7 @@ const Band = (props: {
         <span
           class="st-code-live"
           data-empty={pressed(
-            Option.match(props.lit, { onNone: () => true, onSome: (l) => l.names.length === 0 }),
+            Option.match(props.lit, { onNone: () => true, onSome: (l) => l.live === 0 }),
           )}
         >
           {Option.getOrElse(
@@ -302,15 +303,14 @@ const Band = (props: {
 
 /**
  * A scene's code, lit by `light` (none: unlit, `unlit` saying why when it is
- * the version's, not the playhead's), with `steps` painted beside it; a tap
- * on a line seeks (`seek`, film seconds) to where it next fires.
+ * the version's, not the playhead's); a tap on a line seeks (`seek`, film
+ * seconds) to where it next fires.
  */
 const CodeView = (props: {
   readonly host: Host;
   readonly code: SceneCode;
   readonly light: Accessor<Option.Option<SceneLight>>;
   readonly unlit: Accessor<Option.Option<string>>;
-  readonly steps: Accessor<ReadonlyArray<LitStep>>;
   /** The beat's line split at its marks (the reader's words), set in the band. */
   readonly said: Accessor<ReadonlyArray<LinePiece>>;
   readonly seek: (T: number) => void;
@@ -405,15 +405,15 @@ const CodeView = (props: {
   usePainted(
     props.host,
     () => page,
-    () => ({
-      'code-live': [
-        ...Option.match(lit(), {
-          onNone: () => [],
-          onSome: (l) => [...l.literals, ...l.reads],
+    () =>
+      Option.match(lit(), {
+        onNone: () => ({ 'code-live': [], 'code-held': [], 'code-dim': [] }),
+        onSome: (l) => ({
+          'code-live': [...l.literals, ...l.reads],
+          'code-held': l.held,
+          'code-dim': l.dim,
         }),
-        ...props.steps().map((s) => s.at),
-      ],
-    }),
+      }),
   );
   // A tap on a row seeks to where the line next fires: the one seek of a line, its number's (a button, so the
   // keys' too) and its text's alike, as a click on the number bubbles here. A tap on the text while text is
@@ -493,6 +493,12 @@ const CodeView = (props: {
                 <span class="st-code-t" data-from={row.from}>
                   {row.text}
                 </span>
+                <span class="st-code-st" data-role="status">
+                  {Option.getOrElse(
+                    Option.flatMap(lit(), (l) => statusOn(l, row.n)),
+                    () => '',
+                  )}
+                </span>
                 {/* A meter is its cue's: keyed by the name, its element stays as each frame moves its progress. */}
                 <For each={meters(row.n)} keyed={(m) => m.name}>
                   {(m) => (
@@ -565,7 +571,6 @@ export const StudioCode = (props: { readonly scene: string; readonly lit: Access
           code={c()}
           light={light}
           unlit={() => Option.liftPredicate(UNLIT, () => Option.isNone(meta.drawn()))}
-          steps={() => []}
           said={said}
           seek={actions.seek}
           clock={{ drawn: state.T, playing: state.playing }}

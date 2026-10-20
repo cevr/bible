@@ -1389,11 +1389,16 @@ the owner opens or shuts stays so while the selection stands.
 - **Code**: the scene's file read only (`GET …/scenes/<scene>/code`), only
   when the beat has a scene: the studio's code view (`code.tsx`, the Script
   pane's too), a row to a
-  line, lit while the playhead is in the beat (`code-lit.ts`): a playing
-  cue's literal, a meter under its line, and each call that reads the clock
-  while the frame read it and the clock plays it (`Player.hearClock`), its
-  line glowing and fading after. The band over the code names the beat and
-  what plays, and sets the beat's line as the script says it now (the
+  line, lit while the playhead is in the beat (`code-lit.ts`): each of the
+  scene's rows (`core/scene-steps.ts`: a draw's are its cues, each on its
+  literal) by its state, live on the playhead's tint with a meter under its
+  line and its percent at the line's right, held brighter than the code
+  around it, waiting or released dim, the next to start saying when at its
+  line's right; and each call that reads the clock while the frame read it
+  and the clock plays it (`Player.hearClock`), its line glowing and fading
+  after. The band over the code names the beat, how many rows are live and
+  the next to start (`1 live · next: 'fall', in 0.3 s`), and sets the beat's
+  line as the script says it now (the
   reader's words, `lab/words/line.ts`) with a chip at each `{mark}`, the
   mark last said lit, three whole rows of it in sight (each as tall as a
   chip, the scroll on a row's top); a chip puts the playhead on

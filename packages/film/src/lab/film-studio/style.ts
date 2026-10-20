@@ -417,10 +417,11 @@ export const INSPECTOR_CSS = `
 /**
  * The studio's code view (`code.tsx`): the scene's file in the mono face on
  * the panel's surface, a row to a line, a long line wrapping under its
- * number; what plays lit by `::highlight(code-live)`, a meter under each
- * playing literal's line, a line a read fires on glowing (`--glow`, 1 to 0),
- * and the band held over the code. It rides with the view, out of the
- * page's head.
+ * number, a status at its right; lit, its rows by their state: live on
+ * `::highlight(code-live)` with a meter under its line, held brighter than
+ * the code around it (`code-held`), waiting or released dim (`code-dim`); a
+ * line a read fires on glowing (`--glow`, 1 to 0), and the band held over
+ * the code. It rides with the view, out of the page's head.
  */
 export const CODE_CSS = `
 .st-code { margin: 0; display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; min-height: 0; }
@@ -428,7 +429,7 @@ export const CODE_CSS = `
 .st-code-where { flex: 1; min-width: 0; margin: 0; font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); overflow-wrap: anywhere; font-variant-numeric: tabular-nums slashed-zero; }
 .st-code-follow { flex: none; }
 .st-code-scroll { max-height: 360px; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; overflow-anchor: none; border-radius: var(--r-1); background: var(--surface-2); }
-.st-code-page { --code-lh: var(--lh-2); --code-gutter: calc(var(--digits) * 1ch + var(--s-3) + var(--s-2)); position: relative; padding-bottom: var(--s-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--code-lh); tab-size: 2; color: var(--text-1); }
+.st-code-page { --code-lh: var(--lh-2); --code-gutter: calc(var(--digits) * 1ch + var(--s-3) + var(--s-2)); --code-st: calc(9ch + var(--s-3)); position: relative; padding-bottom: var(--s-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--code-lh); tab-size: 2; color: var(--text-1); }
 .st-code-band { position: sticky; top: 0; z-index: 3; display: flex; flex-direction: column; gap: var(--s-1); min-height: var(--code-lh); padding: var(--s-1) var(--s-3); background: var(--surface-2); border-bottom: var(--border); color: var(--text-2); user-select: none; -webkit-user-select: none; }
 .st-code-band-top { display: flex; gap: var(--s-2); min-width: 0; }
 .st-code-band-top > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -442,7 +443,11 @@ export const CODE_CSS = `
 .st-app button.st-code-chip[data-live="true"] { color: var(--state-live); border-color: var(--state-live); }
 .st-code-live { flex: 1 1 auto; text-align: right; color: var(--state-live); }
 .st-code-live[data-empty="true"] { color: var(--text-3); }
-.st-code-line { position: relative; display: grid; grid-template-columns: var(--code-gutter) minmax(0, 1fr); min-height: var(--code-lh); background: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 12%), transparent); }
+/* Lit, the code stands a step back, so a held row reads brighter than the code around it. Unlit, the status
+   column is a gutter. */
+.st-code[data-lit="true"] .st-code-page { color: var(--text-2); }
+.st-code[data-lit="false"] .st-code-page { --code-st: var(--s-1); }
+.st-code-line { position: relative; display: grid; grid-template-columns: var(--code-gutter) minmax(0, 1fr) var(--code-st); min-height: var(--code-lh); background: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 12%), transparent); }
 .st-code-line::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--state-live); opacity: var(--glow, 0); pointer-events: none; }
 /* A hand only where a tap seeks: a line that reads or writes what the clock plays. */
 .st-code-line[data-seeks="true"] { cursor: pointer; }
@@ -450,7 +455,11 @@ export const CODE_CSS = `
 .st-code-n { align-self: start; padding: 0 var(--s-2) 0 var(--s-3); text-align: right; user-select: none; -webkit-user-select: none; color: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 100%), var(--text-3)); }
 .st-app button.st-code-n { width: auto; height: auto; min-height: 0; padding: 0 var(--s-2) 0 var(--s-3); border: 0; border-radius: 0; background: none; font: inherit; cursor: pointer; }
 .st-app button.st-code-n:hover { color: var(--text-1); text-decoration: underline; }
-.st-code-t { padding: 0 var(--s-3) 0 var(--s-2); white-space: pre-wrap; overflow-wrap: anywhere; }
-.st-code-meter { position: absolute; pointer-events: none; --meter-from: calc(var(--code-gutter) + var(--s-2)); z-index: 2; bottom: 0; left: var(--meter-from); height: 2px; width: calc(var(--done) * (100% - var(--meter-from) - var(--s-3))); background: var(--state-live); }
+.st-code-t { padding: 0 var(--s-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* A live row's percent, or when the next row starts, at the right of its line's first row. */
+.st-code-st { align-self: start; overflow: hidden; padding-right: var(--s-3); text-align: right; white-space: nowrap; color: var(--text-2); font-variant-numeric: tabular-nums; user-select: none; -webkit-user-select: none; }
+.st-code-meter { position: absolute; pointer-events: none; --meter-from: calc(var(--code-gutter) + var(--s-2)); z-index: 2; bottom: 0; left: var(--meter-from); height: 2px; width: calc(var(--done) * (100% - var(--meter-from) - var(--code-st) - var(--s-2))); background: var(--state-live); }
 ::highlight(code-live) { background-color: color-mix(in srgb, var(--state-live) 26%, transparent); color: var(--text-1); }
+::highlight(code-held) { color: var(--text-1); }
+::highlight(code-dim) { color: var(--text-3); }
 `;

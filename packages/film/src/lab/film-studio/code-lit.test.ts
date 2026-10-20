@@ -1,5 +1,7 @@
-// What the studio's code view lights, pure: the cues playing at a time light the
-// literals that write them by the clock; a read of the clock fires while the
+// What the studio's code view lights, pure: each cue row lights the literal
+// that writes it by its state at a time (live with a meter and its percent,
+// held, or waiting dim, the next to start saying when), and the band counts
+// the live rows and names the next; a read of the clock fires while the
 // frame read its name and the clock plays it, and its line glows while one
 // fires and fades after; a cue the code does not write lights nothing; the
 // view follows what began last, and a tap seeks to a line's next.
@@ -18,7 +20,9 @@ import {
   firingsOf,
   nextFiring,
   rowsOf,
+  statusOn,
 } from './code-lit.ts';
+import { stepRowsOf } from '../../core/scene-steps.ts';
 
 /** Where a tap on `line` seeks at `clock`'s frame: through the scene's firings, built for the frame's staged scene. */
 const tapFrom = (of: SceneCode, line: number, clock: ReturnType<typeof clockAt>) =>
@@ -75,11 +79,12 @@ const ALL = {
   marks: new Set(['take', 'held', 'gone']),
 };
 
-/** The scene's clock at scene time `t`, of a film at 30 fps, its frame having read `heard`. */
+/** The scene's clock at scene time `t`, of a 10 s scene in a film at 30 fps, its frame having read `heard`. */
 const clockAt = (t: number, of = cues, voice = SILENT, heard = ALL) => ({
   t,
   fps: 30,
   cues: of,
+  rows: stepRowsOf({ cues: of, dur: 10 }, 30),
   voice,
   heard,
 });
@@ -87,15 +92,40 @@ const clockAt = (t: number, of = cues, voice = SILENT, heard = ALL) => ({
 describe('what is lit at a frame', () => {
   test('the playing cue lights its literal and its reads, and meters its line', () => {
     const lit = litNow(code, clockAt(0.5));
-    expect(lit.names).toEqual(['rise']);
     expect(lit.literals).toEqual([range('rise: { dur: 1 }')]);
     expect(lit.reads).toEqual([range('f.at("rise")')]);
     expect(lit.meters).toEqual([{ name: 'rise', line: 3, progress: 0.5 }]);
   });
 
-  test('a cue the code does not write lights nothing; a frame between cues lights nothing', () => {
-    expect(litNow(code, clockAt(1, new Map([['unwritten', cue(0, 2)]]))).names).toEqual([]);
-    expect(litNow(code, clockAt(5)).names).toEqual([]);
+  test('each written row is lit by its state: live, held after it plays, dim while it waits', () => {
+    const playing = litNow(code, clockAt(0.5));
+    expect(playing.held).toEqual([]);
+    expect(playing.dim).toEqual([range('fall: { after: "rise", dur: 1 }')]);
+    const later = litNow(code, clockAt(1.5));
+    expect(later.literals).toEqual([range('fall: { after: "rise", dur: 1 }')]);
+    expect(later.held).toEqual([range('rise: { dur: 1 }')]);
+    expect(later.dim).toEqual([]);
+    const done = litNow(code, clockAt(5));
+    expect(done.literals).toEqual([]);
+    expect(done.held).toEqual([
+      range('rise: { dur: 1 }'),
+      range('fall: { after: "rise", dur: 1 }'),
+    ]);
+  });
+
+  test('a cue the code does not write lights nothing, though the band counts it', () => {
+    const lit = litNow(code, clockAt(1, new Map([['unwritten', cue(0, 2)]])));
+    expect([...lit.literals, ...lit.held, ...lit.dim, ...lit.meters]).toEqual([]);
+    expect(lit.live).toBe(1);
+  });
+
+  test("a line's status: its live row's percent, else when the next row written there starts", () => {
+    const lit = litNow(code, clockAt(0.5));
+    expect(statusOn(lit, 3)).toEqual(Option.some('50 %'));
+    expect(statusOn(lit, 4)).toEqual(Option.some('in 0.5 s'));
+    expect(statusOn(lit, 6)).toEqual(Option.none());
+    // Once every row has begun, no line says when.
+    expect(statusOn(litNow(code, clockAt(1.5)), 3)).toEqual(Option.none());
   });
 
   test('the same time lights the same ranges, whatever came before it', () => {
@@ -157,15 +187,20 @@ describe('what is lit at a frame', () => {
     expect(follow(5)).toEqual(Option.some(7));
   });
 
-  test('the head names what plays, else that nothing plays; a refused field says no more (REV6-Q1)', () => {
-    expect(liveWords(litNow(code, clockAt(0.5)))).toBe('rise');
+  test('the band counts what plays and names the next to start, else that nothing plays; a refused field says no more (REV6-Q1)', () => {
+    expect(liveWords(litNow(code, clockAt(0.5)))).toBe("2 live · next: 'fall', in 0.5 s");
+    expect(liveWords(litNow(code, clockAt(1.5)))).toBe('2 live');
     expect(liveWords(litNow(code, clockAt(5)))).toBe('nothing playing');
+    const late = new Map([['rise', cue(2, 1)]]);
+    expect(liveWords(litNow(code, clockAt(0.25, late)))).toBe(
+      "nothing playing · next: 'rise', in 1.8 s",
+    );
     const computed: SceneCode = {
       ...code,
       cues: [],
       refused: [{ field: 'timeline', reason: 'it is `make()`, not an object literal' }],
     };
-    expect(liveWords(litNow(computed, clockAt(0.5)))).toBe('nothing playing');
+    expect(liveWords(litNow(computed, clockAt(5)))).toBe('nothing playing');
   });
 });
 
