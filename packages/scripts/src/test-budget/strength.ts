@@ -8,7 +8,7 @@
 //
 // Refused, in each `bun test` command of the script (a script may chain
 // several with `&&`, `||` or `;`, and set variables before one, bare or
-// through `env`): `--timeout` over bun's 5 s default, of 0 or under (which
+// through `env`, a value quoted or not): `--timeout` over bun's 5 s default, of 0 or under (which
 // sets none), or one that is not a number, `--retry`, `--only` and `-t` /
 // `--test-name-pattern` (`-t` with its value attached too, `-tfast`).
 
@@ -35,11 +35,22 @@ const programOf = (words: ReadonlyArray<string>) => {
   return words.slice(at);
 };
 
+/** A shell word: a run of bare characters and quoted strings, with no space outside the quotes. */
+const WORD = /(?:[^\s'"]+|'[^']*'|"(?:[^"\\]|\\.)*")+/g;
+
+/** A command's words as the shell reads them: split at spaces outside quotes, the quotes gone. */
+const wordsOf = (command: string) =>
+  (command.match(WORD) ?? []).map((word) =>
+    word.replace(/'([^']*)'|"((?:[^"\\]|\\.)*)"/g, (_, single, double) =>
+      String(single ?? double ?? '').replace(/\\(.)/g, '$1'),
+    ),
+  );
+
 /** The words of each `bun test` command in a script, after `test`. */
 const bunTests = (script: string): ReadonlyArray<ReadonlyArray<string>> =>
   script
     .split(/&&|\|\||;/)
-    .map((command) => programOf(command.trim().split(/\s+/)))
+    .map((command) => programOf(wordsOf(command)))
     .filter((words) => words[0] === 'bun' && words.includes('test'))
     .map((words) => words.slice(words.indexOf('test') + 1));
 

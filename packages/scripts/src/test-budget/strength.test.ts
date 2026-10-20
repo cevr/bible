@@ -43,6 +43,10 @@ describe("a workspace's test script", () => {
       expect(weakeningFlags('bun test --timeout=0')).toHaveLength(1);
       expect(weakeningFlags('CI=1 bun test --timeout 60000')).toHaveLength(1);
       expect(weakeningFlags('env CI=1 bun test --timeout 60000')).toHaveLength(1);
+      expect(
+        weakeningFlags("NODE_OPTIONS='--conditions=one --conditions=two' bun test --timeout 60000"),
+      ).toHaveLength(1);
+      expect(weakeningFlags('A="x y" bun test "--timeout" 9000')).toHaveLength(1);
       expect(weakeningFlags('bun test -tfast')).toHaveLength(1);
     }),
   );
