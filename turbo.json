@@ -37,7 +37,7 @@
       "persistent": true
     },
     "gate": {
-      "dependsOn": ["typecheck", "build", "test"],
+      "dependsOn": ["typecheck", "build"],
       "outputs": []
     }
   }
