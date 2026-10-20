@@ -1,0 +1,22 @@
+{
+  "production": "in-its-order",
+  "title": "In Its Order",
+  "film": "in-its-order",
+  "blurb": "The Path of the Just, episode 1: the Bible serves its truth in order, from the first steps to Christ our Priest, and growing up into Him is normal and glad.",
+  "versions": [
+    {
+      "at": 1792518371059,
+      "title": "From the kept script"
+    }
+  ],
+  "said": [
+    {
+      "_tag": "Decided",
+      "at": 1792518428926,
+      "text": "The owner kept the script of In Its Order and moved it on to the concept and the Board.",
+      "quote": "Keep it: go on to the concept and the Board",
+      "by": "in-its-order unit (Claude)"
+    }
+  ],
+  "filed": []
+}
