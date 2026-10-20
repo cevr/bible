@@ -96,6 +96,18 @@ export const wordsOf = (text: string) =>
     .split(/[^\p{L}\p{N}]+/u)
     .filter((word) => word !== '');
 
+/**
+ * The words a ruling's crops print, crop after crop. A word the page breaks
+ * over a line end (`re-` on one system, `member` on the next) is one word:
+ * a crop's words that end in a hyphen join the next crop's first word.
+ */
+export const printedOf = (crops: ReadonlyArray<{ readonly shows: string }>) =>
+  crops
+    .map((one) => one.shows.trim())
+    .filter((shows) => shows !== '')
+    .join(' ')
+    .replace(/-\s+/g, '');
+
 const same = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((word, i) => word === b[i]);
 
@@ -261,7 +273,7 @@ const Kind = Schema.Literals([
  * One crop a ruling read: the page image it was cut from, its file, its box
  * on that image, the first 16 hex digits of its bytes' sha256, and the words
  * the judge saw it print at the place (`printed` is every crop's words in
- * order).
+ * order, `printedOf`).
  */
 const RulingCrop = Schema.Struct({
   image: Schema.String,
@@ -305,12 +317,48 @@ export interface Span {
  * each ruling's words stand in them, and each ruling whose site does not
  * hold its row words in the base. Sites apply from the last to the first in
  * each unit; trailing units left empty are dropped.
+ *
+ * Two readings can find runs of different extent at one place (`our` and
+ * `out our unexpressed o`), each ruled. A ruling whose words lie inside a
+ * wider ruling's is not applied again, and must agree with it: its words
+ * stand in the wider ruling's, or it takes words away where the wider one
+ * does. Rulings of one stretch with neither inside the other (words that
+ * overlap, or an insertion at the edge of another's words) come from one
+ * judge, so they read the page one way (two that keep their words read it
+ * alike, whoever judged them); two of overlapping words disagree,
+ * and so do two of the same words that sing them differently.
  */
 export const applyRulings = (
   base: ReadonlyArray<readonly string[]>,
   rulings: readonly Ruling[],
 ) => {
-  const edits = rulings
+  const edits = editsOf(rulings);
+  const count = Math.max(base.length, ...edits.map((edit) => edit.unit));
+  const units = Array.from({ length: count }, (_, u) => [...(base[u] ?? [])]);
+  const misplaced = siteProblems(base, edits);
+  if (misplaced.length > 0) return { units, spans: [] as Span[], misplaced };
+  const covered = coveredOf(edits);
+  const disagree = [...nestingProblems(edits), ...stretchProblems(edits)];
+  if (disagree.length > 0) return { units, spans: [] as Span[], misplaced: disagree };
+  const applied = appliedOf(edits, covered);
+  for (const edit of applied.toSorted((a, b) => b.unit - a.unit || b.at - a.at))
+    units[edit.unit - 1]?.splice(edit.at, edit.row.length, ...edit.sung);
+  const spans = edits.map((edit) => spanIn(applied, covered, edit));
+  while (units.length > 0 && units[units.length - 1]?.length === 0) units.pop();
+  return { units, spans, misplaced };
+};
+
+/** One site of a ruling, with its row words and its sung words. */
+interface Edit {
+  readonly unit: number;
+  readonly at: number;
+  readonly ruling: Ruling;
+  readonly row: readonly string[];
+  readonly sung: readonly string[];
+}
+
+const editsOf = (rulings: readonly Ruling[]): Edit[] =>
+  rulings
     .filter((ruling) => ruling.kind !== 'unreadable')
     .flatMap((ruling) =>
       ruling.sites.map((site) => ({
@@ -320,31 +368,124 @@ export const applyRulings = (
         sung: wordsOf(ruling.sung),
       })),
     );
-  const misplaced: string[] = [];
-  const count = Math.max(base.length, ...edits.map((edit) => edit.unit));
-  const units = Array.from({ length: count }, (_, u) => [...(base[u] ?? [])]);
-  for (const edit of edits) {
-    const unit = base[edit.unit - 1] ?? [];
-    if (!same(unit.slice(edit.at, edit.at + edit.row.length), edit.row))
-      misplaced.push(`unit ${edit.unit} at ${edit.at} holds no ${quoted(edit.row)}`);
-  }
-  if (misplaced.length > 0) return { units, spans: [] as Span[], misplaced };
-  for (const edit of edits.toSorted((a, b) => b.unit - a.unit || b.at - a.at))
-    units[edit.unit - 1]?.splice(edit.at, edit.row.length, ...edit.sung);
-  // An edit's words move by what every earlier edit of its unit adds or takes away.
-  const spans = edits.map((edit): Span => {
-    const shift = edits
-      .filter((other) => other.unit === edit.unit && other.at < edit.at)
-      .reduce((sum, other) => sum + other.sung.length - other.row.length, 0);
+
+/** Each site that does not hold its ruling's row words in the base. */
+const siteProblems = (base: ReadonlyArray<readonly string[]>, edits: readonly Edit[]) =>
+  edits
+    .filter((edit) => {
+      const unit = base[edit.unit - 1] ?? [];
+      return !same(unit.slice(edit.at, edit.at + edit.row.length), edit.row);
+    })
+    .map((edit) => `unit ${edit.unit} at ${edit.at} holds no ${quoted(edit.row)}`);
+
+const endOf = (edit: Edit) => edit.at + edit.row.length;
+
+/** `inner` lies inside `outer`: its words within outer's, an insertion strictly inside. */
+const inside = (inner: Edit, outer: Edit) =>
+  inner !== outer &&
+  inner.unit === outer.unit &&
+  outer.row.length > inner.row.length &&
+  (inner.row.length === 0
+    ? outer.at < inner.at && inner.at < endOf(outer)
+    : outer.at <= inner.at && endOf(inner) <= endOf(outer));
+
+/** An insertion stands at or inside the words of `edit`. */
+const insertedAt = (insertion: Edit, edit: Edit) =>
+  edit.at <= insertion.at && insertion.at <= endOf(edit);
+
+/** Two rulings of one stretch: their words overlap, or an insertion stands at or inside the other's words. */
+const touch = (a: Edit, b: Edit) => {
+  if (a.unit !== b.unit) return false;
+  if (a.row.length === 0) return insertedAt(a, b);
+  if (b.row.length === 0) return insertedAt(b, a);
+  return a.at < endOf(b) && b.at < endOf(a);
+};
+
+const contains = (outer: readonly string[], inner: readonly string[]) =>
+  inner.length === 0 || outer.some((_, i) => same(outer.slice(i, i + inner.length), inner));
+
+/** The edits that lie inside a wider one, and are applied through it. */
+const coveredOf = (edits: readonly Edit[]) =>
+  new Set(edits.filter((one) => edits.some((outer) => inside(one, outer))));
+
+/** An inner ruling agrees when its words stand in the wider ruling's, or it takes words away where the wider one does. */
+const agrees = (one: Edit, outer: Edit) =>
+  one.sung.length === 0
+    ? one.row.length === 0 || outer.sung.length < outer.row.length
+    : contains(outer.sung, one.sung);
+
+const nestingProblems = (edits: readonly Edit[]) =>
+  edits.flatMap((outer) =>
+    edits
+      .filter((one) => inside(one, outer) && !agrees(one, outer))
+      .map(
+        (one) =>
+          `unit ${outer.unit} at ${outer.at} is ruled ${quoted(outer.sung)}, and a ruling inside it at ${one.at} ${quoted(one.sung)}`,
+      ),
+  );
+
+const keeps = (edit: Edit) => same(edit.row, edit.sung);
+
+/** What two rulings of one stretch, neither inside the other, say wrong together, if anything. */
+const pairProblem = (a: Edit, b: Edit): string | undefined => {
+  const twice = `unit ${a.unit} at ${a.at} and at ${b.at} are ruled twice, and the rulings disagree`;
+  if (same(a.row, b.row) && a.at === b.at) return same(a.sung, b.sung) ? undefined : twice;
+  if (a.ruling.judge !== b.ruling.judge && !(keeps(a) && keeps(b)))
+    return `unit ${a.unit} at ${a.at} and at ${b.at} rule one stretch, by two judges`;
+  return a.row.length > 0 && b.row.length > 0 ? twice : undefined;
+};
+
+const stretchProblems = (edits: readonly Edit[]) =>
+  edits.flatMap((a, i) =>
+    edits
+      .slice(i + 1)
+      .filter((b) => touch(a, b) && !inside(a, b) && !inside(b, a))
+      .flatMap((b) => pairProblem(a, b) ?? []),
+  );
+
+const sameSite = (a: Edit, b: Edit) => a.unit === b.unit && a.at === b.at && same(a.row, b.row);
+
+/** One ruling stands for each stretch: the widest; those inside it, and a second ruling of the same words, apply once. */
+const appliedOf = (edits: readonly Edit[], covered: ReadonlySet<Edit>) =>
+  edits.filter(
+    (edit, i) => !covered.has(edit) && !edits.slice(0, i).some((other) => sameSite(other, edit)),
+  );
+
+/** An applied edit's words move by what every earlier applied edit of its unit adds or takes away. */
+const spanOf = (applied: readonly Edit[], edit: Edit): Omit<Span, 'ruling'> => {
+  const shift = applied
+    .filter((other) => other.unit === edit.unit && other.at < edit.at)
+    .reduce((sum, other) => sum + other.sung.length - other.row.length, 0);
+  return { unit: edit.unit, start: edit.at + shift, length: edit.sung.length };
+};
+
+/**
+ * A ruling applied through a wider one stands at its own words within the wider one's: where its
+ * sung words stand in the wider one's sung words nearest its own place (none, for words taken away).
+ */
+const within = (applied: readonly Edit[], edit: Edit, outer: Edit): Omit<Span, 'ruling'> => {
+  const span = spanOf(applied, outer);
+  const near = edit.at - outer.at;
+  if (edit.sung.length === 0)
+    return { unit: span.unit, start: span.start + Math.min(near, outer.sung.length), length: 0 };
+  const offsets = outer.sung
+    .map((_, i) => i)
+    .filter((i) => same(outer.sung.slice(i, i + edit.sung.length), edit.sung));
+  const offset = offsets.toSorted((a, b) => Math.abs(a - near) - Math.abs(b - near))[0] ?? 0;
+  return { unit: span.unit, start: span.start + offset, length: edit.sung.length };
+};
+
+/** Where an edit's words stand in the units: its own, its wider ruling's, or its twin's. */
+const spanIn = (applied: readonly Edit[], covered: ReadonlySet<Edit>, edit: Edit): Span => {
+  if (covered.has(edit)) {
+    const outer = applied.find((one) => inside(edit, one));
     return {
       ruling: edit.ruling,
-      unit: edit.unit,
-      start: edit.at + shift,
-      length: edit.sung.length,
+      ...(outer === undefined ? spanOf(applied, edit) : within(applied, edit, outer)),
     };
-  });
-  while (units.length > 0 && units[units.length - 1]?.length === 0) units.pop();
-  return { units, spans, misplaced };
+  }
+  const twin = applied.includes(edit) ? edit : applied.find((one) => sameSite(one, edit));
+  return { ruling: edit.ruling, ...spanOf(applied, twin ?? edit) };
 };
 
 // ----------------------------------------------------------------------------
@@ -927,10 +1068,7 @@ const rulingProblems = (
     return [
       ...(ruling.crops.length === 0 ? [`${what} names no crop`] : []),
       ...ruling.crops.flatMap((one) => cropProblems(what, n, deciding, one, crops)),
-      ...(same(
-        wordsOf(ruling.printed),
-        ruling.crops.flatMap((one) => wordsOf(one.shows)),
-      )
+      ...(same(wordsOf(ruling.printed), wordsOf(printedOf(ruling.crops)))
         ? []
         : [`${what} prints "${ruling.printed}", not the words its crops show`]),
       ...named

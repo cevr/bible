@@ -30,6 +30,7 @@ import {
   lentReadings,
   loadSources,
   photoProblem,
+  printedOf,
   problemsOf,
   readingProblems,
   type Reading,
@@ -179,7 +180,7 @@ describe('census', () => {
         expect(
           [...states].every((state) => ['matches', 'fixed', 'unsettled', 'nopage'].includes(state)),
         ).toBe(true);
-        // Red until the data is read again: the new checks over 9290e532e's data.
+        // Red until the data is read again: the new checks over 6004746d3's data.
         const fs = yield* FileSystem.FileSystem;
         const red = yield* Schema.decodeEffect(Schema.fromJsonString(Schema.Array(Schema.String)))(
           yield* fs.readFileString(new URL('census.red.json', import.meta.url).pathname),
@@ -526,6 +527,98 @@ describe('census', () => {
           expect(about(census, withRulings(sources, n, [words]), n)).toContain(
             `${n} ruling 1 sings "${one.row} more", not the words it prints`,
           );
+        }),
+    );
+
+    it.effect(
+      'applies a ruling inside a wider one once, and flags rulings of one stretch that disagree',
+      () =>
+        Effect.sync(() => {
+          const ruling = (at: number, row: string, sung: string): Ruling => ({
+            sites: [{ unit: 1, at }],
+            row,
+            readings: [''],
+            printed: sung,
+            sung,
+            kind: 'words',
+            crops: [],
+            judge: 'test',
+            why: 'test',
+          });
+          const base = [['out', 'our', 'unexpressed', 'o', 'to', 'the', 'sky', 'to', 'the', 'sky']];
+          const wide = ruling(0, 'out our unexpressed o', 'out or unexpressed o');
+          const agreed = applyRulings(base, [wide, ruling(1, 'our', 'or')]);
+          expect(agreed.misplaced).toEqual([]);
+          expect(agreed.units[0]).toEqual([
+            'out',
+            'or',
+            'unexpressed',
+            'o',
+            'to',
+            'the',
+            'sky',
+            'to',
+            'the',
+            'sky',
+          ]);
+          // The inner ruling stands at its own word, so its crop answers for that word alone.
+          expect(agreed.spans.map(({ start, length }) => [start, length])).toEqual([
+            [0, 4],
+            [1, 1],
+          ]);
+          expect(applyRulings(base, [wide, ruling(1, 'our', 'and')]).misplaced).toEqual([
+            'unit 1 at 0 is ruled "out or unexpressed o", and a ruling inside it at 1 "and"',
+          ]);
+          // 220's refrain: a line ruled printed once, and its echo's words ruled away one by one.
+          const once = ruling(4, 'to the sky to the sky', 'to the sky');
+          const echo = applyRulings(base, [once, ruling(7, 'to', ''), ruling(9, 'sky', '')]);
+          expect(echo.misplaced).toEqual([]);
+          expect(echo.units[0]).toEqual(['out', 'our', 'unexpressed', 'o', 'to', 'the', 'sky']);
+          expect(
+            applyRulings(base, [ruling(5, 'the sky', 'a sky'), ruling(6, 'sky to', 'sky at')])
+              .misplaced,
+          ).toEqual(['unit 1 at 5 and at 6 are ruled twice, and the rulings disagree']);
+          // 122: two judges read "light and life" against "Life and light" two ways; mixed, they write neither.
+          const other = (one: Ruling): Ruling => ({ ...one, judge: 'another' });
+          expect(
+            applyRulings(base, [ruling(1, 'our', 'or'), other(ruling(2, '', 'and'))]).misplaced,
+          ).toEqual(['unit 1 at 1 and at 2 rule one stretch, by two judges']);
+          // A ruling of an earlier round inside a wider one of this round agrees, whoever judged it.
+          expect(applyRulings(base, [once, other(ruling(7, 'to', ''))]).misplaced).toEqual([]);
+        }),
+    );
+
+    it.effect(
+      'reads a word the page breaks over two crops as one word, and flags a word given to two crops',
+      () =>
+        Effect.gen(function* () {
+          const { census, sources } = yield* read;
+          const [n, all] = [...sources.rulings].find(([, one]) => one.length > 0)!;
+          const one = all[0]!;
+          const first = one.crops[0]!;
+          const split = (top: string, bottom: string): Ruling => ({
+            ...one,
+            printed: 'revealed',
+            crops: [
+              { ...first, shows: top },
+              {
+                ...first,
+                box: [first.box[0], first.box[1] + first.box[3], first.box[2], first.box[3]],
+                shows: bottom,
+              },
+            ],
+          });
+          expect(printedOf(split('re-', 'vealed').crops)).toBe('revealed');
+          expect(
+            about(census, withRulings(sources, n, [split('re-', 'vealed'), ...all.slice(1)]), n),
+          ).not.toContainEqual(expect.stringMatching(/^\d+ ruling 1 prints /));
+          expect(
+            about(
+              census,
+              withRulings(sources, n, [split('revealed', 'revealed'), ...all.slice(1)]),
+              n,
+            ),
+          ).toContain(`${n} ruling 1 prints "revealed", not the words its crops show`);
         }),
     );
 
