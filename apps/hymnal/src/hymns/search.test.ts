@@ -37,12 +37,15 @@ describe('search', () => {
   });
 
   it('reads a word still being typed as a prefix, and needs every word', () => {
-    expect(numbers('great is thy faith')).toContain(100);
-    expect(numbers('great is thy faith')).not.toContain(1);
+    // "great" alone finds nine hymns; with the other words, only 100 holds them all.
+    expect(numbers('great').length).toBeGreaterThan(1);
+    expect(numbers('great is thy faith')).toEqual([100]);
   });
 
   it('ignores case, accents and punctuation', () => {
     expect(fold('O’er the Hills, Café!')).toBe('oer the hills cafe');
+    // Hymn 172 holds "o'er"; a curly apostrophe and capitals find it too.
+    expect(numbers("o'er")).toContain(172);
     expect(numbers("o'er")).toEqual(numbers('O’ER'));
   });
 
