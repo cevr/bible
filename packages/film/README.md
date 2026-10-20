@@ -3906,8 +3906,8 @@ hash (`items.json`), so a run parses only the files changed since, and the
 run's findings by file (`findings.json`). The plugin (`packages/scripts/lint/judged.ts`)
 reports a file's findings from the last run when the file hashes as it did
 then, the rule's words, selector, label, threshold and model are the same,
-the code that makes the items is the run's, and the run is no older than
-`MAX_AGE_DAYS`; otherwise it hashes each item of the file the same way the runner does and
+the code that makes the items is the run's, the run read the store the
+settings name now, and the run is no older than `MAX_AGE_DAYS`; otherwise it hashes each item of the file the same way the runner does and
 reports the kept answer at or over its rule's threshold at its line,
 wherever the text now lives. It asks no model, so a checkout with no store
 reports nothing. The runner
