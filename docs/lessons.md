@@ -380,6 +380,16 @@ The form of an entry, each field on its own line:
 - **Cause:** A lock recommended on ratio rows and colours; the match read the farmer's head and body as one outline, and the head's angle and the pose were never compared.
 - **Guard:** code: `packages/film/src/core/match.ts` `facingRows` (the roll flagged on rain 14.19 s, the turn read on his skin alone and not flagged; 87e023029); `packages/film/src/core/render-artifacts.ts` `ARTIFACT_KINDS` (its `weather`, rain across a face; 051f07561); `packages/film/src/core/critique.ts` `critiquePacket` (the pose and the face: the critique names the raised hand, cec4b84a2); `packages/film/src/core/review-record.ts` `evidenceProblems` (a keep of him needs a review of him in rain; 0c7db02db)
 
+### close-shot-line-thinner
+
+- **Date:** 2026-10-18
+- **Kind:** owner
+- **Said:** chose: "About 25% thinner in close shots"
+- **Source:** ask a9e82d17477 (`line`: thin); apps/animations/productions/righteousness-by-faith.json (2026-10-18 12:57); out/rbf-v3-cast-2026-10-18/docs/r3.md F7
+- **Wrong:** The figures' line was one width at every shot, so in a close shot (the farmer of the rain, Christ close in court) it read heavier than the concept's.
+- **Cause:** The ink's widths were written into the print as numbers; no shot could reach them.
+- **Guard:** code: `packages/film/src/style/rig/parts.ts` `inkBind` (every ink stroke of a figure and its hands binds its width to `ink`); `packages/film/src/style/house.ts` `inkAt` (0.75 from a head three tenths of the frame); `packages/film/src/style/figures-file.test.ts` `a figure's ink, bound to its view model's ink` (cfd2a1ed7); `packages/film/src/rive/rive.test.ts` `draws an ink stroke as wide as its number maps it` (the runtime maps a bound width linearly; 039ae92ba)
+
 ## Figures and the cast
 
 ### bookend-the-setting
