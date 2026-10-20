@@ -311,6 +311,27 @@ describe("Dialog.Popup return focus after the owner's own close", () => {
     expect(await asked(page)).toEqual([false]);
     expect(await ringed(page)).toBe(false);
   });
+
+  /** Open the dialog from the `opener` input with the focus on it, then close it by a pointer. */
+  const closedByPointerFrom = async (opener: 'range' | 'text') => {
+    const page = await h.open('dialog', { query: { closes: 'owner', opener } });
+    await page.focus('#open');
+    await page.evaluate(() => (window as unknown as { __open: () => void }).__open());
+    await see.poll(() => focused(page)).toBe('first');
+    await askedRings(page);
+    await page.click('#owner-close-row');
+    await see(page.locator('#popup')).toHaveCount(0);
+    await see.poll(() => focused(page)).toBe('open');
+    return asked(page);
+  };
+
+  it('shows no ring on a range opener when a pointer closed it: a range is pressed, not typed in', async () => {
+    expect(await closedByPointerFrom('range')).toEqual([false]);
+  });
+
+  it('shows the ring on a text field opener when a pointer closed it, as a click on one does', async () => {
+    expect(await closedByPointerFrom('text')).toEqual([true]);
+  });
 });
 
 describe('dialogs side by side', () => {

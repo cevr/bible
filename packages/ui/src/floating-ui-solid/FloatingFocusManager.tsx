@@ -30,7 +30,12 @@ import { useAnimationFrame, useTimeout } from '../utils/timers.ts';
 import type { FloatingRootContext } from './FloatingRootContext.ts';
 import { type MaybeRef, resolveRef, usePortalContext } from './FloatingPortal.tsx';
 import { isElementVisible } from './utils/composite.ts';
-import { createAttribute, getFloatingFocusElement, isTypeableElement } from './utils/element.ts';
+import {
+  createAttribute,
+  getFloatingFocusElement,
+  isTextField,
+  isTypeableElement,
+} from './utils/element.ts';
 import { enqueueFocus, isVirtualClick, isVirtualPointerEvent, stopEvent } from './utils/event.ts';
 import { markOthers } from './utils/markOthers.ts';
 import {
@@ -675,9 +680,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
             // the other look lets it go first, since a focus it already has changes nothing.
             const type = closeType || lastInteractionType;
             const shows =
-              type === ''
-                ? undefined
-                : type === 'keyboard' || isTypeableElement(tabbableReturnElement);
+              type === '' ? undefined : type === 'keyboard' || isTextField(tabbableReturnElement);
             if (
               shows !== undefined &&
               tabbableReturnElement === activeElement(doc) &&

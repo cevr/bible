@@ -6,7 +6,9 @@
 // `tall=true` for a page that scrolls, `titles=two` for a second title
 // after the first, which `window.__dropTitle()` unmounts, `portal=inline`
 // for a portal rendered in place, `closes=owner` for a button and a row that
-// close it by the owner's `open` alone. `animated` fades in and out over 200 ms.
+// close it by the owner's `open` alone, `opener=range` or `opener=text` for an
+// opener that is that input, the dialog opened by `window.__open()` while it has
+// the focus. `animated` fades in and out over 200 ms.
 import type { JSX } from '@solidjs/web';
 import { createSignal, Show } from 'solid-js';
 
@@ -28,12 +30,14 @@ function BasicDialog(): JSX.Element {
   const owner = ownerOpen('open');
   const [firstTitle, setFirstTitle] = createSignal(true);
   (window as unknown as { __dropTitle: () => void }).__dropTitle = () => setFirstTitle(false);
+  const opener = param('opener') === 'range' ? 'range' : param('opener') === 'text' ? 'text' : null;
+  (window as unknown as { __open: () => void }).__open = () => owner.setOpen(true);
   return (
     <div style={{ padding: '20px', height: param('tall') === 'true' ? '3000px' : undefined }}>
       <button type="button" id="outside">
         outside
       </button>
-      <owner.Opener>Open</owner.Opener>
+      {opener === null ? <owner.Opener>Open</owner.Opener> : <input id="open" type={opener} />}
       <Dialog.Root
         open={owner.open()}
         modal={param('modal') !== 'false'}

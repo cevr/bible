@@ -1633,3 +1633,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The focus property's Record case failed 1 run in 24 alone and 4 in 6 under load, naming the recorder's Close as moved to by a key with no ring, though a pointer had opened the recorder.
 - **Cause:** The kit's initial focus lands a frame after the recorder mounts; the case reopened the recorder by a click and armed its watch for the next command before that frame ran.
 - **Guard:** code: `packages/film/e2e/lab/focus-follows-input.dom.test.ts` `FRAMES_SETTLED`
+
+### kit-return-ring-on-text-fields-only
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "pointer return focus treats sliders and checkboxes as text fields"
+- **Source:** p6-studio-cssdocs/review-1.md F2
+- **Wrong:** The kit's return focus after a pointer close asked for the ring on any enabled input, so a range or a checkbox the popup gave the focus back to rang though the pointer closed it.
+- **Cause:** The ring rule reused `isTypeableElement`, which means any input a key reaches, where the rule needs a field the user types into.
+- **Guard:** code: `packages/ui/test/browser/dialog.test.ts` `shows no ring on a range opener when a pointer closed it: a range is pressed, not typed in`
