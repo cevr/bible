@@ -126,10 +126,41 @@ const SHELL_CHANGES = new Set([
 ]);
 
 /**
+ * The shell's reserved words: a command that opens with one is not a
+ * program but the shell's grammar (`! exit 0` passes, `time exit 0` ends the
+ * script, `{ ...; }` groups), which this reader does not follow.
+ */
+const RESERVED = new Set([
+  '!',
+  '{',
+  '}',
+  '[[',
+  ']]',
+  'case',
+  'do',
+  'done',
+  'elif',
+  'else',
+  'esac',
+  'fi',
+  'for',
+  'function',
+  'if',
+  'in',
+  'select',
+  'then',
+  'time',
+  'coproc',
+  'until',
+  'while',
+]);
+
+/**
  * Whether a command of a script sets a variable, bare or through `env`
  * (`CI=1 bun test`, `env BUN_OPTIONS=-t bun test`), or is one of the shell's
  * own that changes what later commands run with, or ends the script
- * (`SHELL_CHANGES`: `export BUN_OPTIONS=-t`, `exit 0`): a variable such as
+ * (`SHELL_CHANGES`: `export BUN_OPTIONS=-t`, `exit 0`), or opens with a
+ * reserved word (`RESERVED`: `! exit 0`, `time exit 0`): a variable such as
  * `BUN_OPTIONS` or `NODE_OPTIONS` hands a program flags its words do not
  * show, and `exit 0 && bun test` passes with no test run. A script that
  * holds a `$` or a backtick anywhere changes them too: an expansion
@@ -151,7 +182,12 @@ export const changesShell = (script: string) => {
     read.expands ||
     read.commands.some((words) => {
       const program = words[0] ?? '';
-      return program === 'env' || ASSIGNMENT.test(program) || SHELL_CHANGES.has(program);
+      return (
+        program === 'env' ||
+        ASSIGNMENT.test(program) ||
+        SHELL_CHANGES.has(program) ||
+        RESERVED.has(program)
+      );
     })
   );
 };

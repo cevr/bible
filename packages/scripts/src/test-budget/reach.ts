@@ -17,8 +17,8 @@
 // unreached that runs, never call one reached that its runner does not
 // take. A script reaches files only when its commands are joined by `&&`
 // alone (`andChained`), none sets a variable or changes the shell
-// (`changesShell`: `BUN_OPTIONS`, `export`, `exit`, a `$`, a glob the shell
-// expands, a redirection), none runs in another folder (`movesFolder`: `cd`, a subshell, `--cwd`), and each holds only
+// (`changesShell`: `BUN_OPTIONS`, `export`, `exit`, `! cmd`, a `$`, a glob
+// the shell expands, a redirection), none runs in another folder (`movesFolder`: `cd`, a subshell, `--cwd`), and each holds only
 // flags that leave what runs, and how bun reads it, as it is (`BUN_FLAGS`,
 // `PLAYWRIGHT_FLAGS`; an unknown one, a narrowing one such as `--changed`,
 // `-t`, `--grep`, `--shard`, `--list`, one such as `--loader` that changes
@@ -29,12 +29,14 @@
 // `[test]` key outside `BUNFIG_TEST_KEYS` (`root`, `pathIgnorePatterns`),
 // or a table outside `BUNFIG_TABLES` (`[loader]`, `define`), reaches nothing.
 //
-// A `bun test` command takes a file as bun does: with no filter, every file
-// named as a test (`*.test.ts`, `*_test.ts`, `*.spec.ts`, `*_spec.ts`, in
-// any of bun's script extensions); a filter that starts with `./` names a
-// file or a folder by its path from the workspace; any other filter takes
-// each test file whose path holds it; `--path-ignore-patterns` takes none
-// its globs match.
+// A `bun test` command takes a file as bun 1.4 does, measured (`runsFile`):
+// with no filter, every file its scan finds named as a test (`*.test.ts`,
+// `*_test.ts`, `*.spec.ts`, `*_spec.ts`, in one of `BUN_EXTENSION`), the
+// scan entering no `node_modules` and no folder whose name starts with `.`;
+// a filter that starts with `./` names a file or a folder by its path from
+// the workspace; any other filter takes each file the scan finds whose path
+// holds it; `--path-ignore-patterns` takes no file its globs match, nor any
+// under a folder they match.
 // `playwright test` takes a file as its config sets it (`playwrightRun`):
 // under the config's `testDir`, its absolute path matched by its
 // `testMatch` and not by its `testIgnore`, each read as playwright's file
@@ -332,19 +334,40 @@ const pathOf = (filter: string): Option.Option<string> => {
   );
 };
 
-/** Whether a command takes `file` (its path from the workspace, `/` between its parts). */
+/** The extensions bun's runner reads a test file in (`.mtsx` and its kin are none of them). */
+const BUN_EXTENSION = /\.(?:[cm]?[jt]s|[jt]sx)$/;
+
+/** Whether bun's scan takes a file for a test by its name: a test's name, in one of `BUN_EXTENSION`. */
+const isBunTestName = (file: string) =>
+  /(?:\.test|_test|\.spec|_spec)\.[^./]+$/.test(file) && BUN_EXTENSION.test(file);
+
+/**
+ * Whether a command takes `file` (its path from the workspace, `/` between
+ * its parts). A `bun test` takes a file as bun 1.4 does, measured: its scan
+ * enters no `node_modules` and no folder whose name starts with `.`, takes
+ * a file by its name (`isBunTestName`), and skips each folder and file an
+ * ignore pattern matches with all under it; a `./` path to a file takes it
+ * by its path, in one of `BUN_EXTENSION`, unless a pattern skips it.
+ */
 const runsFile = (run: Run, file: string) => {
   if (file.split('/').includes('node_modules')) return false;
   if (run.kind === 'playwright') return run.takes(file);
-  if (run.ignores.some((pattern) => new Glob(pattern).match(file))) return false;
-  const named = isTestFile(file);
-  if (run.filters.length === 0) return named;
+  // Bun's scan skips a folder or a file an ignore pattern matches, and
+  // every file under such a folder (`**/guard` skips `src/guard/a.test.ts`).
+  const parts = file.split('/');
+  const ignored = parts
+    .map((_, at) => parts.slice(0, at + 1).join('/'))
+    .some((path) => run.ignores.some((pattern) => new Glob(pattern).match(path)));
+  if (ignored || !BUN_EXTENSION.test(file)) return false;
+  const scanned = isBunTestName(file) && !parts.slice(0, -1).some((part) => part.startsWith('.'));
+  if (run.filters.length === 0) return scanned;
   return run.filters.some((filter) => {
     const asPath = Option.liftPredicate(filter, (f) => f.startsWith('./'));
     return Option.match(Option.flatMap(asPath, pathOf), {
-      onNone: () => named && file.includes(filter),
-      // `./` is the workspace itself: every file named as a test under it.
-      onSome: (at) => (at === '' && named) || file === at || (named && file.startsWith(`${at}/`)),
+      onNone: () => scanned && file.includes(filter),
+      // `./` is the workspace itself: every file its scan takes.
+      onSome: (at) =>
+        (at === '' && scanned) || file === at || (scanned && file.startsWith(`${at}/`)),
     });
   });
 };
@@ -870,7 +893,7 @@ const playwrightRun = (
                       const under = root === '' || path.startsWith(`${root}/`);
                       const file = `${absolute}/${path}`;
                       const named =
-                        filters.length === 0 || filters.some((f) => new RegExp(f).test(file));
+                        filters.length === 0 || filters.some((f) => argumentMatches(f, file));
                       return (
                         under &&
                         walked(root, path, respectsGit, gitignores) &&
@@ -889,6 +912,21 @@ const playwrightRun = (
     kind: 'playwright',
     takes: Option.getOrElse(takes, () => () => false),
   };
+};
+
+/**
+ * Whether a filter of `playwright test` takes a file's absolute path, as
+ * playwright's `forceRegExp` reads it: `/<pattern>/<flags>` as that regex
+ * (its flags `g` and `i` alone), anything else as a regex with no regard
+ * to case (`gi`), tested from the path's start.
+ */
+const argumentMatches = (filter: string, file: string) => {
+  const written = /^\/(.*)\/([gi]*)$/.exec(filter);
+  const regex = Option.match(Option.fromNullOr(written), {
+    onNone: () => new RegExp(filter, 'gi'),
+    onSome: ([, pattern = '', flags = '']) => new RegExp(pattern, flags),
+  });
+  return regex.test(file);
 };
 
 /** A command's words from its program on, a package runner (`bunx`, `npx`) before it gone. */

@@ -136,6 +136,36 @@ describe("a workspace's test files", () => {
 
   it.effect('are taken by a bun test that names no filter, a path, or a part of one', () =>
     Effect.sync(() => {
+      // Bun's scan, measured on 1.4.3: no folder whose name starts with `.`, a file that
+      // does is taken; its extensions are js, jsx, ts, tsx and their m and c kin, no `.mtsx`.
+      expect(
+        reaches({ test: 'bun test' }, [
+          'src/.hidden/a.test.ts',
+          'src/.d.test.ts',
+          'src/b.test.mts',
+          'src/c.test.cjs',
+          'src/d.test.mtsx',
+          'src/e.test.ctsx',
+          'src/f.test.mjsx',
+          'src/g.test.cjsx',
+        ]),
+      ).toEqual([
+        'src/.hidden/a.test.ts: none',
+        'src/.d.test.ts: test',
+        'src/b.test.mts: test',
+        'src/c.test.cjs: test',
+        'src/d.test.mtsx: none',
+        'src/e.test.ctsx: none',
+        'src/f.test.mjsx: none',
+        'src/g.test.cjsx: none',
+      ]);
+      // A path names its file wherever it is; a part of one is the scan's.
+      expect(
+        reaches({ test: 'bun test ./src/.hidden/a.test.ts' }, ['src/.hidden/a.test.ts']),
+      ).toEqual(['src/.hidden/a.test.ts: test']);
+      expect(reaches({ test: 'bun test hidden' }, ['src/.hidden/a.test.ts'])).toEqual([
+        'src/.hidden/a.test.ts: none',
+      ]);
       const files = ['src/a.test.ts', 'lint/b.test.ts', 'other/c.test.ts'];
       expect(reaches({ test: 'bun test' }, files)).toEqual([
         'src/a.test.ts: test',
@@ -187,6 +217,21 @@ describe("a workspace's test files", () => {
           'src/x/slow.test.ts',
         ]),
       ).toEqual(['src/x/slow.test.ts: none']);
+      // A pattern that matches a folder skips every file under it, bun's scan measured.
+      for (const test of [
+        'bun test --pass-with-no-tests --path-ignore-patterns=src/guard src/guard/parts.test.ts',
+        'bun test --path-ignore-patterns=src src',
+        "bun test --path-ignore-patterns='**/guard' src",
+        "bun test --path-ignore-patterns='src/guard/**' src",
+      ])
+        expect([test, ...reaches({ test }, ['src/guard/parts.test.ts'])]).toEqual([
+          test,
+          'src/guard/parts.test.ts: none',
+        ]);
+      // A pattern is of the whole path: a bare name matches no folder deeper down.
+      expect(
+        reaches({ test: 'bun test --path-ignore-patterns=guard src' }, ['src/guard/parts.test.ts']),
+      ).toEqual(['src/guard/parts.test.ts: test']);
       expect(
         reaches({ test: 'bun --conditions=browser --conditions development test src' }, [
           'src/a.test.ts',
@@ -493,6 +538,11 @@ describe("a workspace's test files", () => {
           'export BUN_OPTIONS=-ttie && bun test',
           'source ./env.sh && bun test',
           'alias bun=true && bun test',
+          // A reserved word opens the shell's grammar, not a program: each of these passes.
+          '! exit 0 && bun test',
+          '! exec true && bun test',
+          'time exit 0 && bun test',
+          '! bun test',
         ])
           expect([test, ...reaches({ test }, ['src/a.test.ts'])]).toEqual([
             test,
@@ -613,6 +663,32 @@ describe("a workspace's test files", () => {
           'test/browser/b.test.ts: test:browser',
           'test/c.spec.ts: none',
         ]);
+        // A filter is a regex with no regard to case (playwright's forceRegExp), or one
+        // written as /<pattern>/<flags> with the flags it gives.
+        for (const [filter, a, b] of [
+          ['B\\.TEST', 'none', 'test:browser'],
+          // No `A` in a path: case-sensitive, a.spec.ts would pass; playwright reads `a` too.
+          ["'^(?!.*A).*'", 'none', 'test:browser'],
+          ["'/b\\.test/'", 'none', 'test:browser'],
+          ["'/B\\.TEST/'", 'none', 'none'],
+          ["'/B\\.TEST/i'", 'none', 'test:browser'],
+          // Flags other than g and i make no regex form: the whole is a pattern.
+          ["'/B\\.TEST/m'", 'none', 'none'],
+          ["'/B\\.TEST/gi'", 'none', 'test:browser'],
+        ])
+          expect([
+            filter,
+            ...reaches(
+              { 'test:browser': `bunx playwright test -c test/browser/pw.config.ts ${filter}` },
+              files,
+              config('export default {};'),
+            ),
+          ]).toEqual([
+            filter,
+            `test/browser/a.spec.ts: ${a}`,
+            `test/browser/b.test.ts: ${b}`,
+            'test/c.spec.ts: none',
+          ]);
         // A file its testIgnore names is not taken, by a glob (read as playwright reads one:
         // any folder before it, any case, minimatch's extglobs) or a regex, its key bare or quoted.
         // A regex is of the absolute path, as playwright tests it.
