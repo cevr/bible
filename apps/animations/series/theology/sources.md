@@ -245,6 +245,50 @@ Counsel's one item for the owner, 04b as the arc's problem episode, is in the wr
 
 After the fixes: `bun cli.ts drafts` passes all three; the verifier passes every record (03b 13 and 13, 04b 15 and 14, 06b 15 and 15); the 21 spoken KJV spans match `bible verse`.
 
+## 08 · Faith Toward God
+
+Gathered 2026-10-19 for `scripts/08-faith-toward-god.md`. Every KJV line in the script was printed by `bible verse` that day; every pioneer line below was printed by `bible egw lookup` (or `bible egw search`) that day and is copied verbatim. The excerpts the script paraphrases are in `quotes-08.jsonl`, and the frame's verifier passes all 12 (`python3 .claude/skills/film/frame/verify-quotes.py apps/animations/series/theology/quotes-08.jsonl`: 12 EXACT, 0 failing; rerun after the review, 2026-10-19).
+
+Searches (scope: query; lexical index, no vector index on the laptop):
+
+- all: faith is trusting God · he is thy life, and the length of thy days · faith cometh by hearing · the law is a transcript of his character · to know him is to love him · as a man doth bear his son (Bible versions only) · to whom shall we go thou hast the words of eternal life (Bible versions and a reading plan) · ye will not come to me, that ye might have life
+
+Lookups: ST August 24, 1891, par. 1 · RH February 22, 1898, par. 7 · RH June 21, 1906, par. 7–8 · DA 390.3–390.4, 391.1–391.4, 392.1–392.3, 393.1–393.4, 394.1–394.2, 497.3–497.4, 498.1–498.2 · Ed 253.1, 253.3, 253.4, 254.1 · 13LtMs, Ms 167, 1898, par. 9–12 · SC 63.1 · WOR 169.15–169.18.
+
+Used (credits), each with the words the script stays inside:
+
+- **DA 392.2** (Ellen G. White) — "They go away offended, even as the disciples left Jesus, murmuring, “This is an hard saying; who can hear it?”" → `cold` (`hard`, `walk`)
+- **DA 393.3** (Ellen G. White) — "Without attempting to hinder those who were leaving Him, Jesus turned to the twelve and said, “Will ye also go away?”" → `cold` (`stop`, `twelve`)
+- **DA 498.2** (Ellen G. White) — "The lawyer found himself a lawbreaker." → `keep` (`found`; "and none of us has" rests on Romans 3:23)
+- **ST August 24, 1891, par. 1** (Ellen G. White) — "The knowledge of God and of Christ is the only knowledge which can lead to true and eternal happiness. This knowledge all may obtain" → `know`
+- **DA 498.1** (Ellen G. White) — "“This do, and thou shalt live,” Jesus said. He presented the law as a divine unity … Supreme love to God and impartial love to man are the principles to be wrought out in the life." → `keep`
+- **13LtMs, Ms 167, 1898, par. 11** (Ellen G. White; "this lesson" is Luke 10, par. 9–10) — "Those who study this lesson aright will see that in order to keep the law, it is necessary to have a knowledge of God, for the law is a transcript of His character." → `keep` (`law`, `john`), `himself` (`law`)
+- **RH June 21, 1906, par. 7** (Ellen G. White) — "Again he pleaded: “I have set before you life and death; ... choose life, that both thou and thy seed may live: that thou mayest love the Lord thy God, and that thou mayest obey his voice, and that thou mayest cleave unto him: for he is thy life, and the length of thy days.”" → `one`
+- **Ed 253.1** (Ellen G. White) — "Faith is trusting God—believing that He loves us and knows best what is for our good." → `voice` (`trust`)
+- **Ed 253.4** (Ellen G. White) — "It grows as exercised in appropriating the word of 254 God. In order to strengthen faith, we must often bring it in contact with the word." → `voice` (`grows`)
+- **DA 390.4** (Ellen G. White) — "And every soul is to receive life from God’s word for himself. As we must eat for ourselves in order to receive nourishment, so we must receive the word for ourselves. We are not to obtain it merely through the medium of another’s mind." → `voice` (`own`)
+- **DA 392.1** (Ellen G. White) — "They had made their choice,—had taken the form without the spirit, the husk without the kernel. Their decision was never afterward reversed; for they walked no more with Jesus." → `come`
+- **DA 393.4** (Ellen G. White) — "Peter replied by asking, “Lord, to whom shall we go?” “Thou hast the words of eternal life,” he added. “And we believe and are sure that Thou art that Christ, the Son of the living God.”" → `name`
+
+Found, not used:
+
+- RH February 22, 1898, par. 7 (a lead from `what-is-salvation.md`) — "A right knowledge of God and of Jesus Christ whom he has sent is eternal life to all who believe." A second witness for `know`; ST August 24, 1891 carries it.
+- DA 391.1 (a lead) — "As they feed upon His word, they find that it is spirit and life. The word destroys the natural, earthly nature, and imparts a new life in Christ Jesus." Left out: the word's power to make a new life is 18b's ground.
+- DA 390.3 — "The life of Christ that gives life to the world is in His word. It was by His word that Jesus healed disease and cast out demons". Left out for the same reason.
+- Ed 253.3 ("“The seed is the word of God.” … so surely is the gift of God in His promise") and Ed 254.1 (creation by the word, Ps 33:9, Rom 4:17). 18b's ground.
+- DA 497.3, 497.4 — the lawyer's answer and his sincerity. 02b tells this scene; `keep` keeps to verse 28, DA 498.1 and the first line of DA 498.2.
+- 13LtMs, Ms 167, 1898, par. 10 — "But he had not overcome his dislike sufficiently to give credit to the Samaritan by name." It agrees with 02b's landing (DA 503.4).
+- RH June 21, 1906, par. 8 — "“It is not a vain thing for you,” he declared; “because it is your life”" (Deut 32:47). A witness for the word as life; not needed.
+- DA 391.3–391.4, 392.3, 393.1–393.2, 394.1–394.2 — the test in the synagogue, the departure, and Jesus' sorrow ("With a yearning heart, Jesus saw those who had been His disciples departing from Him"). `cold`'s picture draws on 393.2 (sorrow, no anger), unspoken.
+- WOR 169.15–169.18 (E. J. Waggoner, Romans 10) — the question "How do faith and hearing come?" with the verse; no paraphrase needed.
+- 2LtMs, Ms 2, 1874, par. 31 and 4MR 340.4 — quote 1 John 2:3–5 only.
+- SC 63.1 — "Our only ground of hope is in the righteousness of Christ imputed to us". 18b's ground.
+
+Not found:
+
+- A pioneer passage on Deuteronomy 1:31 ("as a man doth bear his son"). `carried` rests on the verse alone.
+- A pioneer passage that pairs Christ's three sayings on eternal life (John 17:3; Luke 10:28; John 14:6) with their Old Testament witnesses. The pairing is the owner's study (`what-is-salvation.md`, 2026-10-19); the script says only what each verse says.
+
 ## 04–37 (research notes per episode)
 
 Three research agents gathered 04–37 with the same brief (`brief-for-research-agents.txt`) and the same two tools. Their rules:
