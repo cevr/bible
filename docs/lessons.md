@@ -1063,3 +1063,43 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check credited `true \` and `# comment && bun test` on the next line, which the shell joins into `true` and a comment, and `bun test src<U+00A0>lint`, which the shell hands bun as one filter.
 - **Cause:** The script reader split words on JavaScript's whitespace and read a comment before it joined continued lines, where the shell splits on a space, a tab and a line's end alone and joins lines first.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script that holds a character the shell may read otherwise than the reader`
+
+### reach-refuses-reserved-words
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Shell prefixes bypass the refusal of commands that end the script"
+- **Source:** p6-guardloop/review-18.md F1
+- **Wrong:** The reach check credited `! exit 0 && bun test` and `time exit 0 && bun test`, which the shell passes without running bun.
+- **Cause:** The reader asked whether a command's first word ends the script, and a reserved word (`!`, `time`) put the command that does behind it.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
+
+### reach-prunes-ignored-folders
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Bun directory exclusions still credit the files beneath them"
+- **Source:** p6-guardloop/review-18.md F2
+- **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test --path-ignore-patterns='**/guard' src`, though bun's scan skips the folder the pattern matches and all under it.
+- **Cause:** The reader matched an ignore pattern against the file's path alone, not against each folder on it.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `leave out what a flag's value or an ignore pattern names`
+
+### reach-reads-filter-flags
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Playwright argument filters use different regex flags"
+- **Source:** p6-guardloop/review-18.md F3
+- **Wrong:** The reach check credited `a.spec.ts` to the filter `^(?!.*A).*`, though playwright reads a filter with no regard to case and takes no path that holds an `a`.
+- **Cause:** The reader built a filter's regex with no flags, where playwright's `forceRegExp` gives `gi`, or the flags of a `/<pattern>/<flags>` form.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### reach-reads-bun-scan
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Bun default discovery credits hidden directories and unsupported extensions"
+- **Source:** p6-guardloop/review-18.md F4
+- **Wrong:** The reach check credited `src/.hidden/a.test.ts` and `a.test.mtsx` to `bun test`, though bun's scan enters no folder whose name starts with `.` and reads no `.mtsx` (measured on bun 1.4.3).
+- **Cause:** The reader used the repo's inventory of test names for bun's scan, which is narrower.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by a bun test that names no filter, a path, or a part of one`
