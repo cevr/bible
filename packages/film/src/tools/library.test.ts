@@ -264,24 +264,25 @@ const all = {
 
 /**
  * What `make` leaves of the fixture's generated sounds (every candidate's
- * FLAC and the lock), made once per file: the cases that start from a made
- * library are given a copy, not a make of their own (six FLAC encodes each).
+ * FLAC and the lock), made once, as the file loads, in a fixture of its own:
+ * the cases that start from a made library are given a copy, not a make of
+ * their own (six FLAC encodes each). Made at load, its cost is in no case's
+ * time limit, and no case's paid calls are its.
  */
-const madeOnce = Effect.runSync(
-  Effect.cached(
-    Effect.gen(function* () {
-      const { dir } = yield* Fixture;
-      const fs = yield* FileSystem.FileSystem;
-      yield* (yield* SoundLibrary).make(all);
-      const names = yield* fs.readDirectory(`${dir}/files`, { recursive: true });
-      const files = yield* Effect.forEach(
-        names.filter((name) => name.endsWith('.flac')),
-        (name) =>
-          Effect.map(fs.readFile(`${dir}/files/${name}`), (bytes) => [name, bytes] as const),
-      );
-      return { files, lock: yield* fs.readFileString(`${dir}/library.lock.json`) };
-    }).pipe(Effect.provide(fixture), Effect.orDie),
-  ),
+// oxlint-disable-next-line effect/noAsyncFunction -- built once as the file loads, so no case's time limit holds its cost
+const madeOnce = await Effect.runPromise(
+  Effect.gen(function* () {
+    const { dir } = yield* Fixture;
+    const fs = yield* FileSystem.FileSystem;
+    yield* (yield* SoundLibrary).make(all);
+    const names = yield* fs.readDirectory(`${dir}/files`, { recursive: true });
+    const files = yield* Effect.forEach(
+      names.filter((name) => name.endsWith('.flac')),
+      (name) => Effect.map(fs.readFile(`${dir}/files/${name}`), (bytes) => [name, bytes] as const),
+      { concurrency: 8 },
+    );
+    return { files, lock: yield* fs.readFileString(`${dir}/library.lock.json`) };
+  }).pipe(Effect.provide(fixture), Effect.orDie),
 );
 
 /** The fixture with its generated sounds already made: `madeOnce` written into it. */
@@ -290,13 +291,18 @@ const made = Layer.effectDiscard(
     const { dir } = yield* Fixture;
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const snapshot = yield* madeOnce;
-    for (const [name, bytes] of snapshot.files) {
-      const file = path.join(dir, 'files', name);
-      yield* fs.makeDirectory(path.dirname(file), { recursive: true });
-      yield* fs.writeFile(file, bytes);
-    }
-    yield* fs.writeFileString(`${dir}/library.lock.json`, snapshot.lock);
+    yield* Effect.forEach(
+      madeOnce.files,
+      ([name, bytes]) => {
+        const file = path.join(dir, 'files', name);
+        return Effect.andThen(
+          fs.makeDirectory(path.dirname(file), { recursive: true }),
+          fs.writeFile(file, bytes),
+        );
+      },
+      { concurrency: 8 },
+    );
+    yield* fs.writeFileString(`${dir}/library.lock.json`, madeOnce.lock);
   }).pipe(Effect.orDie),
 ).pipe(Layer.provideMerge(fixture));
 
@@ -394,7 +400,7 @@ describe('channelsFor', () => {
   });
 });
 
-describe.concurrent('SoundLibrary', () => {
+describe('SoundLibrary', () => {
   it.effect.layer(fixture)('plans only generated sounds, by their candidates and seconds', () =>
     withLibrary(() =>
       Effect.gen(function* () {
@@ -1307,8 +1313,6 @@ describe.concurrent('SoundLibrary', () => {
       withLibrary(({ dir, calls, sheets, cards }) =>
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
-          // The first case on a made library makes it, in its own fixture: count from here.
-          const paid = calls.length;
           const out = `${dir}/../ab`;
           yield* library.keep(
             'paper.slide',
@@ -1345,7 +1349,7 @@ describe.concurrent('SoundLibrary', () => {
             'tone.tick.now.mp4',
             'tone.tick.now.png',
           ]);
-          expect(calls).toHaveLength(paid);
+          expect(calls).toHaveLength(0);
         }),
       ),
   );
@@ -1356,8 +1360,6 @@ describe.concurrent('SoundLibrary', () => {
       withLibrary(({ dir, calls, cards }) =>
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
-          // The first case on a made library makes it, in its own fixture: count from here.
-          const paid = calls.length;
           const out = `${dir}/../ab`;
           const unkept = yield* Effect.flip(library.ab('amb.court', out));
           expect(unkept).toMatchObject({ _tag: 'SoundUnmade', name: 'amb.court', candidates: 2 });
@@ -1374,7 +1376,7 @@ describe.concurrent('SoundLibrary', () => {
           expect(both?.pcm.frames).toBe(44100 + 44100 + 2 * (22050 + 22050));
           // A clip cuts a bed where it ends: no loop is marked.
           expect(marksOn(both?.image ?? NO_SHEET)).toEqual([]);
-          expect(calls).toHaveLength(paid);
+          expect(calls).toHaveLength(0);
         }),
       ),
   );
