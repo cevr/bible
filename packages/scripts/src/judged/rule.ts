@@ -27,6 +27,12 @@ export const RuleOptions = Schema.Struct({
   /** The probability of `reports` at and above which an item reports. */
   threshold: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   message: Schema.String,
+  /**
+   * How many characters of this rule's items a token of the model's input
+   * holds, as measured over a sample of them: the runner budgets a request
+   * by it (`run.ts`); 3.2, under the least any rule measured, when left out.
+   */
+  charsPerToken: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThan(0))),
 }).check(
   Schema.makeFilter(
     (options) =>
@@ -58,7 +64,8 @@ export type Settings = typeof Settings.Type;
  * A rule's part of the cache's keys: a hash of the words the model reads for
  * it, its subject, its instructions and each label and its meaning, so an
  * edit to any of them asks again. Its id, selector, threshold, reporting
- * label and message are no part of it: the model reads none of them.
+ * label, message and characters a token are no part of it: the model reads
+ * none of them.
  */
 export const ruleKey = (rule: Pick<RuleOptions, 'subject' | 'instructions' | 'criteria'>) =>
   createHash('sha256')

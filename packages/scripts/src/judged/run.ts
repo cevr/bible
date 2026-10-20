@@ -1,8 +1,8 @@
 // The judged rules' runner. Every item of a run the cache does not answer,
 // of every rule, goes to the model in ONE request (a classify per item, each
 // with its own rule's instructions and labels, keys c0…cN), split only past
-// `bound` items or `budget` estimated input tokens, the parts sent eight at
-// a time. A part refused for a rate limit or an overloaded host is sent again
+// `bound` items, `budget` estimated input tokens or `perQuestion` for the
+// state and its longest question, the parts sent eight at a time. A part refused for a rate limit or an overloaded host is sent again
 // while its deadline allows (`retrying`). A run never fails on the model: no
 // key, no credits, a request past its deadline, a rate limit or an
 // overloaded host past its retries, an HTTP error or an answer that misses
@@ -32,11 +32,13 @@ type SkipReason =
 
 /**
  * How many items one request holds at most, how many input tokens (as
- * `partsOf` estimates them), and how long one request may take.
+ * `partsOf` estimates them) in all and for any one question (its state, the
+ * part's texts, and its own words), and how long one request may take.
  */
 interface Limits {
   readonly bound: number;
   readonly budget: number;
+  readonly perQuestion: number;
   readonly deadline: Duration.Input;
 }
 
@@ -63,8 +65,17 @@ interface Asked {
  * (65,322), and refused 215 blocks and 320 lines `max_tokens_exceeded`, so
  * its input ends near 65,536 tokens; 182 blocks took 0.4–0.9 s, so a part
  * past 5 s is a host that hangs, and the lint skips it rather than wait.
+ * TypeSafe also holds the state and any one question to 32,768 tokens (its
+ * models page, "per-question context"): a cold fill sent 56 testOracle parts
+ * under the 60,000 budget and had 23 refused, so a part's state is held
+ * under 30,000 with its longest question.
  */
-export const LIMITS: Limits = { bound: 200, budget: 60_000, deadline: '5 seconds' };
+export const LIMITS: Limits = {
+  bound: 200,
+  budget: 60_000,
+  perQuestion: 30_000,
+  deadline: '5 seconds',
+};
 
 const PARTS_AT_ONCE = 8;
 
@@ -200,15 +211,24 @@ const askPart = (questions: ReadonlyArray<Question>, deadline: Duration.Input) =
 /** The tokens a UTF-16 unit past ASCII costs in `tokensOf`. */
 const WIDE = 1.3;
 
+/** The ASCII characters a token of a rule's own words (its instructions and criteria) holds. */
+const RULE_CHARS_PER_TOKEN = 3.2;
+
+/** The tokens an item's key (`c17`) and its place in the state cost, beyond its text. */
+const KEY_TOKENS = 9;
+
 /**
- * A text's share of a request's input tokens, from its characters and its
- * classify's: 3.2 ASCII characters a token, and `WIDE` tokens for each
- * UTF-16 unit past ASCII. Over what TypeSafe's Jev counted: 55,326 tokens
- * for the corpus' 182 comment blocks (an estimate of 58,800), 38,716 for
- * their lines (39,500), and 24,828 for 50 Greek-dense blocks, which hold
- * 10,700 units past ASCII: at 1 a unit the estimate was 22,350, so a unit
- * cost about 1.23. At 1.3 the estimate is 25,550, a little over the count,
- * so a part stays under the limit.
+ * A question's share of a request's input tokens: its text in the state,
+ * and its classify's words. Its text at its rule's `charsPerToken` ASCII
+ * characters a token (measured per rule, 2026-10-19: a seeded sample of
+ * each rule's items as the state under one tiny question, Jev counting
+ * historyComment's at 3.79, scriptSpeech's 3.64, silentDrop's 3.42,
+ * commentClaimsCode's 3.41 and testOracle's 3.37; 3.2 when a rule names
+ * none), `WIDE` tokens for each UTF-16 unit past ASCII, and `KEY_TOKENS`
+ * (its key cost 7.8 to 8.7); the classify's words at 3.2 a token. Jev
+ * counted 24,828 tokens for 50 Greek-dense comment blocks, which hold 10,700
+ * units past ASCII: at 1 a unit the estimate was 22,350, so a unit cost
+ * about 1.23; at 1.3 the estimate is a little over the count.
  */
 const tokensOf = ({ rule, text }: Question) => {
   const criteria = Object.entries(rule.criteria).reduce(
@@ -216,27 +236,44 @@ const tokensOf = ({ rule, text }: Question) => {
     0,
   );
   const wide = text.split('').filter((unit) => unit.charCodeAt(0) > 0x7f).length;
-  const ascii = instructionsFor(rule, 'c000').length + criteria + text.length - wide;
-  return Math.ceil(ascii / 3.2 + wide * WIDE) + 8;
+  const perToken = rule.charsPerToken ?? RULE_CHARS_PER_TOKEN;
+  return {
+    state: Math.ceil((text.length - wide) / perToken + wide * WIDE) + KEY_TOKENS,
+    question: Math.ceil((instructionsFor(rule, 'c000').length + criteria) / RULE_CHARS_PER_TOKEN),
+  };
 };
 
-/** `questions` in order, cut into parts of at most `bound` questions and `budget` estimated tokens. */
+/**
+ * `questions` in order, cut into parts of at most `bound` questions, `budget`
+ * estimated tokens in all (the state and every question), and `perQuestion`
+ * for the state with its longest question.
+ */
 export const partsOf = (
   questions: ReadonlyArray<Question>,
-  limits: Pick<Limits, 'bound' | 'budget'>,
+  limits: Pick<Limits, 'bound' | 'budget' | 'perQuestion'>,
 ) => {
   const parts: Array<Array<Question>> = [];
   let part: Array<Question> = [];
-  let tokens = 0;
+  let state = 0;
+  let asked = 0;
+  let longest = 0;
   for (const question of questions) {
     const cost = tokensOf(question);
-    if (part.length > 0 && (part.length >= limits.bound || tokens + cost > limits.budget)) {
+    const full =
+      part.length >= limits.bound ||
+      state + cost.state + asked + cost.question > limits.budget ||
+      state + cost.state + Math.max(longest, cost.question) > limits.perQuestion;
+    if (part.length > 0 && full) {
       parts.push(part);
       part = [];
-      tokens = 0;
+      state = 0;
+      asked = 0;
+      longest = 0;
     }
     part.push(question);
-    tokens += cost;
+    state += cost.state;
+    asked += cost.question;
+    longest = Math.max(longest, cost.question);
   }
   if (part.length > 0) parts.push(part);
   return parts;

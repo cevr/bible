@@ -92,7 +92,9 @@
     // wherever their text lives, at each rule's severity. Each entry's
     // options are the rule (rule.ts); a rule is `warn` until its labelled
     // corpus (judged/fixtures) shows the precision a gate needs, measured by
-    // `bun run --cwd packages/scripts judged:measure --rule <id>`.
+    // `bun run --cwd packages/scripts judged:measure --rule <id>`. Each
+    // rule's charsPerToken is what Jev counted over a seeded sample of its
+    // items (2026-10-19): the runner budgets each request by it.
     //
     // A comment that narrates the code's past instead of what it does today
     // and why. Measured on Jev over its 182 cases (169 texts, 3 history) in
@@ -110,7 +112,8 @@
         },
         "reports": "history",
         "threshold": 0.9,
-        "message": "the comment tells the code's history: say what it does today and why; how it got here lives in git log"
+        "message": "the comment tells the code's history: say what it does today and why; how it got here lives in git log",
+        "charsPerToken": 3.79
       }
     ],
     // A comment or doc line that claims more than the code it sits on does:
@@ -131,7 +134,8 @@
         },
         "reports": "overclaims",
         "threshold": 0.7,
-        "message": "the comment claims more than the code under it does: make it say what the code does, or the code do what it says"
+        "message": "the comment claims more than the code under it does: make it say what the code does, or the code do what it says",
+        "charsPerToken": 3.41
       }
     ],
     // A test whose expected value comes from the code it tests, so a defect
@@ -151,7 +155,8 @@
         },
         "reports": "tautological",
         "threshold": 0.9,
-        "message": "the test's oracle is the code it tests: write the expected value out, or derive it another way"
+        "message": "the test's oracle is the code it tests: write the expected value out, or derive it another way",
+        "charsPerToken": 3.37
       }
     ],
     // A function that, given what it cannot handle, drops it, substitutes a
@@ -173,7 +178,8 @@
         },
         "reports": "silent",
         "threshold": 0.9,
-        "message": "the function drops what it cannot handle and says nothing: refuse it typed, report it, or name the fallback"
+        "message": "the function drops what it cannot handle and says nothing: refuse it typed, report it, or name the fallback",
+        "charsPerToken": 3.42
       }
     ],
     // A film's speech or picture that quotes or names Ellen White, an Adventist
@@ -193,7 +199,8 @@
         },
         "reports": "breach",
         "threshold": 0.7,
-        "message": "the beat names its sources or church history: teach it from Scripture, the idea unnamed"
+        "message": "the beat names its sources or church history: teach it from Scripture, the idea unnamed",
+        "charsPerToken": 3.64
       }
     ]
   },

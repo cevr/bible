@@ -94,6 +94,7 @@ const judging = Effect.gen(function* () {
     storeFile: path.join(dir, '.git', 'judged', 'store.json'),
     bound: 200,
     budget: 60_000,
+    perQuestion: 30_000,
     deadline: '20 seconds',
   };
   return options;
@@ -123,15 +124,15 @@ const judgeBy = (
     (outcomes) => outcomes[0]!,
   );
 
-/** `texts` asked by `rule`, cut into parts: each part's texts. */
+/** `texts` asked by `rule`, cut into parts (a question's own limit 30,000 unless `limits` names one): each part's texts. */
 const partsOfTexts = (
   rule: JudgedRule,
   texts: ReadonlyArray<string>,
-  limits: Parameters<typeof partsOf>[1],
+  limits: Omit<Parameters<typeof partsOf>[1], 'perQuestion'> & { readonly perQuestion?: number },
 ) =>
   partsOf(
     texts.map((text) => ({ rule, text })),
-    limits,
+    { perQuestion: 30_000, ...limits },
   ).map((part) => part.map((q) => q.text));
 
 describe('a judged rule', () => {
@@ -215,6 +216,29 @@ describe('a judged rule', () => {
         [long],
         ['b'],
       ]);
+    }),
+  );
+
+  it.effect("holds a part's state, with its longest question, to the one question's limit", () =>
+    Effect.sync(() => {
+      // 3,000 characters at historyComment's 3.79 a token: 801 tokens of
+      // state each with its key, its words about 190. Under a budget of 60,000, a
+      // question's limit of 2,000 holds two texts and the words, not three.
+      const text = (letter: string) => letter.repeat(3_000);
+      const texts = ['a', 'b', 'c', 'd', 'e'].map(text);
+      expect(
+        partsOfTexts(historyComment, texts, { bound: 200, budget: 60_000, perQuestion: 2_000 }),
+      ).toEqual([texts.slice(0, 2), texts.slice(2, 4), texts.slice(4)]);
+      // A rule that names no characters a token is read at 3.2: 947 tokens
+      // a text, so one alone with the words fits 2,000, and two do not.
+      const { charsPerToken: _, ...unmeasured } = historyComment;
+      expect(
+        partsOfTexts(unmeasured, texts.slice(0, 2), {
+          bound: 200,
+          budget: 60_000,
+          perQuestion: 2_000,
+        }),
+      ).toEqual([texts.slice(0, 1), texts.slice(1, 2)]);
     }),
   );
 

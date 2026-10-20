@@ -3881,8 +3881,10 @@ of every rule in the working tree, tracked or new (git's ignored files and
 the config's `ignorePatterns` aside; a series script's Markdown in its tables
 and its `**say:**` and `**picture:**` paragraphs), and asks TypeSafe's model
 about all those the store does not answer in one request, split past 200
-items or about 60,000 estimated input tokens, a part the model still refuses
-as too long asked again in halves. The store (`settings.judged.store`, in
+items, about 60,000 estimated input tokens, or 30,000 for the state and any
+one question (TypeSafe holds a question to 32,768; each rule's
+`charsPerToken` is what Jev counted over its items), a part the model still
+refuses as too long asked again in halves. The store (`settings.judged.store`, in
 git's common dir, which every checkout and worktree of the repo shares, a
 merge audit's scratch worktrees too) is keyed by content: a hash of the words the
 model reads for the rule (subject, instructions, criteria), the model, and

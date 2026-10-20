@@ -87,6 +87,7 @@ const OPTIONS_SCHEMA = [
       reports: { type: 'string' },
       threshold: { type: 'number', minimum: 0, maximum: 1 },
       message: { type: 'string' },
+      charsPerToken: { type: 'number', exclusiveMinimum: 0 },
     },
     required: [
       'selector',

@@ -34,6 +34,7 @@ export const historyComment: JudgedRule = {
   threshold: 0.9,
   message:
     "the comment tells the code's history: say what it does today and why; how it got here lives in git log",
+  charsPerToken: 3.79,
 };
 
 /** A keychain whose `security` prints `printed` and exits with `exitCode`; it counts the runs. */
