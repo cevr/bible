@@ -269,17 +269,23 @@ const quoted = (words: readonly string[]) => `"${words.join(' ')}"`;
  *   which the row sings where it does; or the page's words in the row's
  *   order, which the row divides into lines otherwise than the page's
  *   capitals do (a poem line written as two lines, two written as one, a
- *   stanza a line longer than its siblings): the row keeps its own division;
+ *   stanza a line longer than its siblings): the row keeps its own division.
+ *   A reach ruling (`unreachable`, `gaps`) is a `layout` ruling too: it
+ *   rules on the mutants of the row's layout, not on a site;
  * - `slip`: the page prints there what the row sings, and a shape reader
  *   miscounted, missed a capital or placed a row elsewhere (a ruling that
- *   settles shape lines only, with no site);
+ *   settles shape lines only, with no site); a reader who read the page
+ *   right is no slip: where the row divides its lines otherwise, the ruling
+ *   is `layout`, and where the check's own assumption fails (a metre the
+ *   header names and the music does not keep), its `why` says which;
  * - `disputed`: the page lays the row's words out otherwise than the row, in
  *   no way a row's own convention explains (a poem line opened at another
  *   word, in no whole split or join of the row's lines; a block sung where
- *   the page does not sing it), or two judges found a shape line's place
+ *   the page does not sing it), or a judge found a shape line's place
  *   printing a word otherwise than the row (an Amen the row leaves out): the
  *   row keeps its words and layout and waits on the owner, the hymn
- *   `unsettled` (a ruling that settles shape lines only, with no site);
+ *   `unsettled` (a ruling that settles shape lines only, with no site). It
+ *   may rest on one judge: the owner decides it;
  * - `unreadable`: the crop does not show the words clearly enough to say;
  * - `owner`: words a judge saw the crop print but would not transcribe
  *   (copyright), copied by the owner from his own book at that place: read
@@ -326,10 +332,12 @@ const Ruling = Schema.Struct({
   judge: Schema.String,
   why: Schema.String,
   /**
-   * The layout lines (`layoutLinesOf`, `formatProblems`) this ruling settles: the
-   * judge read the place on its crops and found the printed source right
-   * there, the shape reader's slip (or a part, such as an echo, the row
-   * rightly leaves out). A ruling that settles a difference may have no site.
+   * The layout lines (`layoutLinesOf`, `formatProblems`) this ruling quiets,
+   * each read on its crops: the judge found the printed source right there
+   * (a shape reader's slip, or a part, such as an echo, the row rightly
+   * leaves out), or the division is the row's own (`layout`), or the row is
+   * disputed (`disputed`: the line waits on the owner, its hymn
+   * `unsettled`). A ruling that settles a difference may have no site.
    */
   settles: Schema.optionalKey(Schema.Array(Schema.String)),
   /**
@@ -1488,7 +1496,10 @@ const anchorsOf = (row: OutlineRow) => {
 /**
  * How far a row's place may stand from where the counts put it: a blind
  * count can be one off where the page elides or splits a word (`heav'n`,
- * `in stead`), and a line's words are never fewer than two.
+ * `in stead`). A line may hold one word (20 of the committed stanza lines,
+ * in 13 hymns): a one-word line dropped, repeated or put in moves a row's
+ * anchors a word, within the slack, so the property lists each such mutant
+ * the page cannot tell apart (`unreachable`) or the check misses (`gaps`).
  */
 const SLACK = 1;
 
@@ -1659,7 +1670,10 @@ const placeRow = (text: Text, row: OutlineRow, pos: number, held: boolean) => {
  * fixed by its count: a row opens where the row before ends, ends its count
  * of words later, and holds its middle words at its middle place, each
  * within `SLACK`. An anchor not at its place is a problem line, and so is
- * one that stands at two places within `SLACK` of it (unresolved). A row
+ * one that stands at two places in reach, neither of them the place its
+ * count gives (unresolved): an anchor that stands at its counted place is
+ * found there, wherever else it stands (`oneOf`), since a phrase the hymn
+ * repeats in reach would else leave a right row unplaced. A row
  * whose anchor is not at its place is placed by the one place of the anchor
  * within its count of words (a reader's slip moves only its own row), else
  * by its count, and the rows after it are placed and checked as before.

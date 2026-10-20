@@ -259,12 +259,16 @@ is sung, and the rows it prints for some stanzas only), and any other row
 lyrics. `--readings <dir>` holds the committed readings to the readers'
 reports.
 
-The printed source is the layout the check holds (`layoutOf`): the fix's
-stanzas and refrain, else the row's, each as lines of words, and the
-refrain's order from `data/fixes/refrains.json`. Each stanza is compared as
+The printed source is the text the check holds (`printedTextOf`): the fix's
+stanzas and refrain, else the row's, and the refrain's order from
+`data/fixes/refrains.json`, read into lines of words by the census's reader
+(`readText`, `layoutOf`). Each stanza is compared as
 it is sung (the stanza, then the refrain after it): each row of the page is
 placed at the word its count puts it at, its three anchors held there
-within one word, an anchor that stands twice in reach unresolved. A row
+within one word. An anchor that stands at the place its count gives is
+found there, wherever else it stands (a phrase the hymn repeats in reach);
+one that stands at two places in reach, neither the counted one, is
+unresolved. A row
 whose count is one off (a word the page elides or splits) places each word
 on one side of the slip only: its first word where its first words stand,
 and the side its middle words, found in place, leave the slip on. Each
@@ -276,13 +280,13 @@ property of the layout, the page's evidence for it, and the mutation of
 | stanza count      | the stanzas the page prints                                                               | drop any stanza, repeat any stanza                                                                     |
 | stanza order      | each stanza's rows, in their place                                                        | swap any two stanzas whose words differ                                                                |
 | stanza split      | each stanza's rows, in their place                                                        | split a stanza at each line; join two neighbours; move a boundary one line either way                  |
-| line presence     | each row's count and anchors                                                              | drop any line, repeat any line, put in a neighbouring stanza's line                                    |
+| line presence     | each row's count and anchors                                                              | drop any line, repeat any line, put any line of another stanza in at any place of a stanza             |
 | line order        | each row's count and anchors                                                              | swap two neighbouring lines whose words differ; swap a stanza's first and last lines                   |
 | line break        | the capitals, the metre, a stanza printed as text, stanzas printed under the same systems | move a word over a line's end either way, join two neighbouring lines, split a line at its middle word |
 | indent            | none: the row format holds no indent                                                      | indent any line                                                                                        |
 | refrain presence  | the refrain the page prints                                                               | drop the refrain; make a stanza's last line a refrain                                                  |
 | refrain placement | where the page prints and sings it                                                        | every other order; the refrain inside one stanza only                                                  |
-| refrain varies    | refrain rows printed for some stanzas only                                                | drop a varying part; sing its parts as one refrain after every stanza                                  |
+| refrain varies    | refrain rows printed for some stanzas only                                                | drop one varying part (its siblings kept), drop the item whole; sing its parts as one                  |
 | unnumbered rows   | the page's other rows, an echo or a descant                                               | drop the words of a row that is no echo and no descant                                                 |
 
 The page prints no line breaks under the music, so the check reads a line
@@ -290,7 +294,8 @@ break five ways: each line of the source opens on a word the page prints
 with a capital; a capital the page prints inside a line opens a line of the
 source, a sentence (after `.`, `!` or `?`, or a quote), or is a word the
 book capitalises inside a line elsewhere (`capitalsOf`: a name of God,
-`I`, `O`); stanzas printed under the same systems have as many lines; two
+`I`, `O`), and the source's own capital there excuses nothing (two lines
+joined keep the second's capital); stanzas printed under the same systems have as many lines; two
 neighbouring lines never miss the header's metre by opposite amounts; and a
 stanza printed as text below the music has its lines. A row whose words the
 page prints but whose lines it divides otherwise (a long poem line written
@@ -298,8 +303,9 @@ as two lines, a stanza a line longer than its siblings) keeps its own
 division: its ruling is a `layout` that settles the line.
 
 `src/layout.test.ts` runs the generated property over every hymn with a
-deciding page (`domainOf`): each hymn's every mutation is held to its shape
-readings by the same check (`reachOf`, through `layoutLinesOf` and
+deciding page (`domainOf`): each hymn's every mutation is made on its
+printed text and read again by the census's reader (`readText`), so no mark
+of the source is carried over, and held to its shape readings by the same check (`reachOf`, through `layoutLinesOf` and
 `formatProblems`, never `problemsOf`), and the test prints how many
 mutations each property makes, how many no layout line tells apart, and
 how many each committed list holds. A mutation no check tells apart goes to
@@ -313,9 +319,16 @@ them; a stanza the page prints twice). A `can` or an `unclear` is on the
 gap list: a ruling's `gaps` names it, on the crops that show it, a place
 the check misses and the page does not. A mutation a list names that a
 check reaches, one on both lists, and one it reaches not that no list
-names, are each a failure. The 115 mutants of the hymnrows review
-(`data/layout-mutants.json`, made from recipes) each print a layout line
-too.
+names, are each a failure. A stanza a mutation changes is placed again from
+the hymn as committed: the rows before the first word it changes keep their
+place (`placing`), so every line of another stanza is put in at every place
+(234,540 mutations), each placing again only the rows from its change on. Each reach ruling holds the
+fingerprint of the printed text it was ruled on (`layout`, `fingerprintOf`):
+a row changed since leaves its list stale, a failure, since its names would
+mean other mutations. The committed fixtures (`data/layout-mutants.json`)
+each print a layout line too: the 115 mutants of the hymnrows review, made
+from recipes, and the 619 line-break mutants the census let through at its
+first review, by name and the fingerprint of the text they were found on.
 
 What no check sees: a line break the page shows only by a capital it
 prints anyway, where no metre or text stanza fixes the lines; the order of
@@ -332,10 +345,11 @@ opens on a word the book capitalises anyway, where the old line's opener is
 a sentence's first word, and only the page's punctuation or its music shows
 the break (the shape readings hold no punctuation); a metre missed within
 the count's noise; and refrain lines, which the header's metre rarely
-covers. Of the 470 (2026-10-20): 145 in rows it cannot place, 141 a line
+covers. Of the 480 (2026-10-20): 145 in rows it cannot place, 141 a line
 opening on a word the book capitalises anyway, 118 in refrain lines, 16 of
-line order, line presence and stanza order, 33 others, and 17 a judge
-could not tell; 62 of them are 220's, which waits on the owner.
+line order, line presence and stanza order, 33 others, 17 a judge could not
+tell, and 10 in 18, 32 and 319 (a one-word line put in within a row's
+slack, a line put in at a stanza's end, a word moved over a line's end); 62 of them are 220's, which waits on the owner.
 
 Each difference the check prints goes to a fresh judge on crops: a ruling
 that finds the source right there (`slip`, `layout`, `echo`, `repeat`)

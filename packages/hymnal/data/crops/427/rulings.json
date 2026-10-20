@@ -51,7 +51,7 @@
       "readings": ["shape2-47 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
-      "kind": "slip",
+      "kind": "layout",
       "crops": [
         {
           "image": "427.png",
