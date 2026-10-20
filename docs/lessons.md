@@ -923,3 +923,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check read `export default defineConfig({ testDir: 'e2e' })` by its object, though the config's own `defineConfig` added a `testIgnore` that leaves a spec out.
 - **Cause:** The reader took a call by its callee's spelling, and did not ask what the name is bound to.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### reach-refuses-reading-flags
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Loader overrides credit tests that Bun never runs"
+- **Source:** p6-guardloop/review-14.md F1
+- **Wrong:** The reach check took `bun test --loader=.ts:text --pass-with-no-tests src` as a run of every test file in `src`, though bun reads each file as text and runs no case.
+- **Cause:** The flag allow-list asked whether a flag narrows which files a run takes, and not whether it changes how bun reads the files it takes (`--loader`, `--define`, `--tsconfig-override`, `--env-file`).
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no bun test run that changes how bun reads a file`
+
+### reach-reads-config-load
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "CommonJS assignments can replace the config the reader trusts"
+- **Source:** p6-guardloop/review-14.md F2
+- **Wrong:** The reach check read `export default { testDir: '.' }; module.exports = { testDir: 'narrow' };` by its default export, though playwright loads the object `module.exports` holds and takes only `narrow`.
+- **Cause:** The reader read the export statement alone, and did not ask what else loading the config does: a statement, a function or a name it does not bind can replace or change the export.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
