@@ -50,6 +50,8 @@ describe("a workspace's test script", () => {
       expect(weakeningFlags("A='x;y' bun test --timeout 60000")).toHaveLength(1);
       expect(weakeningFlags('A="x && y" bun test --retry 2')).toHaveLength(1);
       expect(weakeningFlags('bun run build | bun test --only')).toHaveLength(1);
+      expect(weakeningFlags('A=x\\|y bun test --only')).toHaveLength(1);
+      expect(weakeningFlags('bun test src \\\n  --timeout 60000')).toHaveLength(1);
       expect(weakeningFlags('bun test -tfast')).toHaveLength(1);
     }),
   );
@@ -60,6 +62,7 @@ describe("a workspace's test script", () => {
         [],
       );
       expect(weakeningFlags('bun test --timeout 5000 src')).toEqual([]);
+      expect(weakeningFlags('echo \\| bun test --only')).toEqual([]);
       expect(weakeningFlags('bun test --timeout=1000')).toEqual([]);
       expect(weakeningFlags('turbo run test')).toEqual([]);
       expect(weakeningFlags('./scripts/workspace.sh test')).toEqual([]);

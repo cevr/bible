@@ -13,7 +13,7 @@
 // sets none), or one that is not a number, `--retry`, `--only` and `-t` /
 // `--test-name-pattern` (`-t` with its value attached too, `-tfast`).
 
-import { Option } from 'effect';
+import { Option, Predicate } from 'effect';
 
 /** bun's own timeout for a test that names none, in milliseconds. */
 const BUN_DEFAULT_MS = 5_000;
@@ -39,21 +39,23 @@ const programOf = (words: ReadonlyArray<string>) => {
 /**
  * A script as the shell reads it, a token at a time: a separator between
  * commands (`&&`, `||`, `;`, `&`, `|` or a line's end), or a word, a run of
- * bare characters and quoted strings; a separator or a space inside quotes is
- * the word's.
+ * bare characters, escaped characters (`\|`) and quoted strings; a
+ * separator or a space escaped or inside quotes is the word's.
  */
-const TOKEN = /(&&|\|\||[;&|\n])|((?:[^\s'";&|]+|'[^']*'|"(?:[^"\\]|\\.)*")+)/g;
+const TOKEN = /(&&|\|\||[;&|\n])|((?:\\[\s\S]|[^\s'";&|\\]+|'[^']*'|"(?:[^"\\]|\\[\s\S])*")+)/g;
 
-/** A word as its command reads it: its quotes gone. */
+/** A word as its command reads it: its quotes and escapes gone. */
 const unquoted = (word: string) =>
-  word.replace(/'([^']*)'|"((?:[^"\\]|\\.)*)"/g, (_, single, double) =>
-    String(single ?? double ?? '').replace(/\\(.)/g, '$1'),
-  );
+  word.replace(/'([^']*)'|"((?:[^"\\]|\\[\s\S])*)"|\\([\s\S])/g, (_, single, double, bare) => {
+    if (Predicate.isString(single)) return single;
+    if (Predicate.isString(double)) return double.replace(/\\([\s\S])/g, '$1');
+    return String(bare);
+  });
 
-/** A script's commands, each its words as the shell reads them. */
+/** A script's commands, each its words as the shell reads them: a backslash before a line's end joins the lines. */
 const commandsOf = (script: string) => {
   const commands: Array<Array<string>> = [[]];
-  for (const [, separator, word] of script.matchAll(TOKEN)) {
+  for (const [, separator, word] of script.replaceAll('\\\n', '').matchAll(TOKEN)) {
     if (separator) commands.push([]);
     else commands[commands.length - 1]?.push(unquoted(word ?? ''));
   }
