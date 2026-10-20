@@ -25,9 +25,9 @@ describe('the pages', () => {
     expect(absolute('/about')).toBe(`${ORIGIN}/about`);
   });
 
-  test('the custom domain is off until the domain is registered', () => {
-    expect(SERVED_FROM).toBe('workers.dev');
-    expect(ORIGIN).toEndWith('.workers.dev');
+  test('the site is served from its custom domain', () => {
+    expect(SERVED_FROM).toBe('custom-domain');
+    expect(ORIGIN).toBe('https://firsttheblade.com');
   });
 });
 

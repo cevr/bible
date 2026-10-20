@@ -47,17 +47,17 @@ Deploying needs the Alchemy Cloudflare profile
 
 ## The domain
 
-The site is served from its `workers.dev` URL until firsttheblade.com is
-registered in this Cloudflare account. The switch is one line in `src/site.ts`:
+The site is served from firsttheblade.com, which is in this Cloudflare
+account. The switch is one line in `src/site.ts`:
 
 ```ts
 export const SERVED_FROM: ServedFrom = 'custom-domain';
 ```
 
-Then `bun run deploy`. The Worker takes `firsttheblade.com`, `www.firsttheblade.com`
-redirects to it, the `workers.dev` URL is switched off, and the canonical URL,
-the link cards, the sitemap and robots.txt all follow, since they read the
-same value.
+With it, `bun run deploy` gives the Worker `firsttheblade.com`, redirects
+`www.firsttheblade.com` to it and switches the `workers.dev` URL off. The
+canonical URL, the link cards, the sitemap and robots.txt follow, since they
+read the same value. `'workers.dev'` serves the site from that URL instead.
 
 `WORKERS_DEV_SUBDOMAIN` in the same file is the account's `workers.dev`
 subdomain; the canonical URL on the `workers.dev` host is built from it.
