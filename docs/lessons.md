@@ -1653,3 +1653,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reset guard refused `:where(.a) > :where(button)` and a list of `:where`s, which weigh nothing, and let `.a button { font : inherit; }` pass, which weighs (0,1,1).
 - **Cause:** It read a rule's whole selector list as one selector, a combinator as weight, and the declaration by one spelling.
 - **Guard:** code: `packages/film/src/lab/resets.test.ts` `weighs`
+
+### doc-token-is-the-one-read
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the new studio prose names the wrong width token"
+- **Source:** p6-studio-cssdocs/review-1.md F4
+- **Wrong:** The design language said the studio's inspector sits at `--inspector-w` (320 px, the review's inspector sheet), while the studio's grid reads `--st-insp-w`, 460 px from `INSPECTOR_W`.
+- **Cause:** The prose named the token by its role, and two tokens share the role; nothing reads a token in prose against the selector that consumes it.
+- **Guard:** skill: which token a part reads is a claim about a rule's `var(--…)`, and a token of the same name role exists elsewhere, so no anchor check can tell them apart. Carried by `design-language/design-language.md`: "A token this document names for a part is the one that part's own rule reads"
