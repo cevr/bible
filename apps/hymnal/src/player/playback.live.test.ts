@@ -2,7 +2,8 @@
  * The live playback's remote presses (`playback.live.ts`) over a device and
  * a Media Session the test holds: on the web each press reaches the player
  * at once and asks One for nothing, after One's `play` dropped the
- * handlers and after its `setNowPlayingInfo` set its own; on a phone One's
+ * handlers, after its `setNowPlayingInfo` set its own, and after its `stop`
+ * dropped them with the recording; on a phone One's
  * lock-screen events reach the player as presses.
  */
 
@@ -17,8 +18,8 @@ type Handler = Parameters<Session['setActionHandler']>[1];
 type Listener = Parameters<Device['audio']['watchRemoteCommands']>[0];
 
 /**
- * One's web `Audio` as far as the presses go: `play` drops the Media
- * Session's handlers and loads (its promise waits), `setNowPlayingInfo` sets
+ * One's web `Audio` as far as the presses go: `play` and `stop` drop the
+ * Media Session's handlers, `play` loads (its promise waits), `setNowPlayingInfo` sets
  * One's own (each would resume, pause or seek, and only then tell), and
  * each call is kept. `watchRemoteCommands` keeps its listener, as a phone's
  * session does.
@@ -54,6 +55,13 @@ const fake = () => {
       resume: () => said('resume'),
       seek: (positionMs) => said(`seek ${positionMs}`),
       getPlaybackStatus: () => said('status'),
+      stop: () =>
+        Effect.runPromise(
+          Effect.sync(() => {
+            asked.push('stop');
+            handlers.clear();
+          }),
+        ),
       setNowPlayingInfo: () =>
         Effect.runPromise(
           Effect.sync(() => {
@@ -117,6 +125,26 @@ describe('the live playback’s remote presses', () => {
         Remote.Seek({ seconds: Option.none() }),
       ]);
       expect(asked).toEqual(['play https://hymns.cvr.im/audio/sdah/100.mp3']);
+    }),
+  );
+
+  it.effect('on the web, still reach the player after One’s stop let the recording go', () =>
+    Effect.gen(function* () {
+      const { session, asked, device, press } = fake();
+      const playback = playbackOn(() => device, Option.some(session));
+      const presses = yield* heard(
+        playback,
+        1,
+        Effect.gen(function* () {
+          yield* Effect.forkChild(playback.play('https://hymns.cvr.im/audio/sdah/100.mp3'), {
+            startImmediately: true,
+          });
+          yield* playback.stop;
+          yield* press('play');
+        }).pipe(Effect.orDie),
+      );
+      expect(presses).toEqual([Remote.Play()]);
+      expect(asked).toEqual(['play https://hymns.cvr.im/audio/sdah/100.mp3', 'stop']);
     }),
   );
 

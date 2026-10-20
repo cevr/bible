@@ -31,6 +31,8 @@ export const fakeDevice = () => {
      */
     waiting: 0,
     announced: new Array<Announcement>(),
+    /** How many times the player let the recording go (`stop`). */
+    stopped: 0,
     /** The lock screen's play or pause: the session moves to `next`, then tells the app. */
     press: (kind: 'play' | 'pause', next: Status) => {
       device.now = next;
@@ -94,6 +96,10 @@ export const fakeDevice = () => {
         const now = said(device.now);
         device.waiting = Math.max(0, device.waiting - 1);
         return now;
+      }),
+      stop: Effect.sync(() => {
+        device.stopped += 1;
+        device.now = { state: 'idle', positionMs: 0 };
       }),
       online: Effect.sync(() => device.online),
       announce: (announcement) => Effect.sync(() => void device.announced.push(announcement)),

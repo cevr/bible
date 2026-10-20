@@ -32,6 +32,7 @@ const caption: (player: Player) => string = Player.$match({
   Buffering: () => 'Loading the recording…',
   Paused: () => 'Paused',
   Ended: () => 'Played to the end',
+  Stopped: () => 'Paused',
   Failed: ({ offline }) =>
     Option.match(Option.liftPredicate(offline, Boolean), {
       onNone: () => 'The recording could not be played.',
@@ -61,6 +62,7 @@ function Control({ player, track }: { readonly player: HymnPlayer; readonly trac
         Ended: ({ length }) => (
           <Position at={Option.getOrElse(length, () => 0)} length={length} onSeek={seek} />
         ),
+        Stopped: () => <></>,
         Failed: () => <></>,
       })}
     </View>

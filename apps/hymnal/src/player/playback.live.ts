@@ -10,8 +10,8 @@
  * the page would show the old state for as long as the recording loads.
  * There the page owns the handlers: each press is told at once and does
  * nothing else, and the player's command asks One. One drops the handlers
- * at each `play` and sets its own at each `setNowPlayingInfo`, so the page
- * sets its own after both.
+ * at each `play` and `stop` and sets its own at each `setNowPlayingInfo`,
+ * so the page sets its own after each.
  */
 
 import { Effect, Layer, Match, Option, Queue, Stream } from 'effect';
@@ -28,6 +28,7 @@ export interface Device {
     | 'pause'
     | 'resume'
     | 'seek'
+    | 'stop'
     | 'getPlaybackStatus'
     | 'setNowPlayingInfo'
     | 'watchRemoteCommands'
@@ -96,6 +97,9 @@ export const playbackOn = (device: () => Device, session: Option.Option<Session>
     resume: call('resume', () => audio().resume()),
     seek: (positionMs) => call('seek', () => audio().seek(positionMs)),
     status: call('status', () => audio().getPlaybackStatus()),
+    // One drops the Media Session's handlers with the recording; the page's
+    // Play starts it again, so its handlers stay.
+    stop: call('stop', () => audio().stop()).pipe(Effect.tap(() => Effect.sync(own))),
     // A device whose connection cannot be read is taken as online, so a
     // failure says the recording could not play, never that it needs a
     // connection the device may have.

@@ -77,16 +77,24 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   so a Start or a Retry is read from its press.
 - A recording that cannot play says so on the page: "The recording needs a
   connection." when the device is offline, else "The recording could not be
-  played.", with Retry beside it. A recording that still loads 15 s
-  after its Start or Retry (the web's element waits with no error when the
-  connection drops mid-load) fails the same way.
-- The app announces the hymn to the lock screen and Control Center, and
-  follows their play, pause and seek: each press is a command of the
+  played.", with Retry beside it. A first load whose status shows no
+  progress for 15 s (the web's element waits with no error when the
+  connection drops mid-load) fails the same way, and the device lets the
+  recording go (One's `stop`).
+- A Pause before the first sound (the lock screen's, or the Media
+  Session's) stops the recording: the page shows Paused with Play, and the
+  device lets it go, since no device keeps such a pause (the web rejects
+  the waiting `play()` and keeps a failure; Android's MediaPlayer starts
+  once prepared). From there, and from a failure, any Play starts the
+  recording again from its start; a seek has nothing to act on.
+- The app announces the hymn to the lock screen and Control Center once
+  per recording, once the device holds it, and follows their play, pause
+  and seek: each press is a command of the
   player, as the page's own buttons are. On a phone the session moves
   first and tells the app; on the web the page sets the Media Session's
-  handlers itself, after One's `play` and `setNowPlayingInfo` (One's
-  handlers wait for the element to play before they tell), so a press
-  shows on the page at once (`src/player/playback.live.test.ts`).
+  handlers itself, after One's `play`, `stop` and `setNowPlayingInfo`
+  (One's handlers wait for the element to play before they tell), so a
+  press shows on the page at once (`src/player/playback.live.test.ts`).
   `vite.config.ts` turns on
   `native.app.audio.background`, so the prebuild writes the `audio`
   background mode (iOS) and the media playback service (Android).
@@ -110,17 +118,23 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   played part of the track is in the accent, the rest in the line role;
   while the length is unknown the bar is disabled and its thumb is muted.
 - `src/player/bar.property.test.tsx` holds the web bar to these rules over
-  seeded runs of presses, all eight step keys (held, repeated, their keyup
-  lost), other pointers and buttons, a screen reader's steps and
+  seeded runs of presses, all eight step keys (held, repeated with
+  `repeat` set, their keyup lost) and modifiers held (each event says
+  them), other pointers and buttons, a screen reader's steps and
   playback's ticks, from anywhere on the bar and often its ends, in
   Chrome's event order.
 - `src/player/status.property.test.ts` holds the page to the reader's Play
-  over seeded runs on each device's playback (the web, iOS, Android) and a
-  network that loads at once, at Slow 4G or at 3G, with Plays and Pauses
-  from the page, the bar's seeks and the lock screen or Media Session, the
-  connection dropped and back, and errors with Retry: after a Play the page
-  never shows Paused, the status is read while the device answers, a
-  spinner ends, and a device that fails shows Failed with Retry.
+  over seeded runs on each device's playback (the web's element, AVPlayer,
+  MediaPlayer, each modelled from One's source) and a network that loads
+  at once, at Slow 4G, at 3G or at 3 kB/s (Chrome's slowest), with Plays
+  and Pauses from the page, the bar's seeks and the lock screen or Media
+  Session, the connection dropped and back, and errors with Retry: after a
+  Play the page never shows Paused, the status is read while the device
+  answers, a spinner ends, a paused device makes no sound, a sound shows
+  Playing, Failed shows only for a recording that failed or lost its
+  connection, and on a working network each Play shows Playing within the
+  model's time to the first sound and a second. Its fixed cases each
+  assert every act ran and the page each ends on.
 - The tests run the player over a device the test holds
   (`src/test/device.ts`): each state and move in `src/player/player.test.ts`,
   and the page's control and the bar, pressed in a document, in

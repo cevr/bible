@@ -1,7 +1,8 @@
 /**
  * The player's one button for a hymn, as the player stands: Play when it
- * holds another hymn or none, Pause while it plays or buffers, Play while paused, Play
- * again once ended and Retry once failed; a spinner while it loads. The
+ * holds another hymn or none, Pause while it plays or buffers, Play while paused
+ * (from the start when paused before its first sound), Play again once ended
+ * and Retry once failed; a spinner while it loads. The
  * button is in the accent (`AccentButton`): a `UIButton`'s title on iOS, an
  * accent fill under `onAccent` on the web and Android.
  */
@@ -43,6 +44,7 @@ export function Toggle({
     Buffering: () => button('Pause', `Pause hymn ${track.number}`, Command.Pause()),
     Paused: () => button('Play', `Play hymn ${track.number}`, Command.Resume()),
     Ended: () => button('Play again', `Play hymn ${track.number} again`, Command.Resume()),
+    Stopped: () => button('Play', `Play hymn ${track.number}`, Command.Start({ track })),
     Failed: () => button('Retry', `Retry hymn ${track.number}`, Command.Start({ track })),
   });
 }

@@ -257,6 +257,47 @@ describe('the player', () => {
     }),
   );
 
+  it.live(
+    'lets the first load go at a Pause before its first sound, and Play starts it again',
+    () =>
+      Effect.gen(function* () {
+        using app = open();
+        app.send(Command.Start({ track: morning }));
+        yield* app.until(Player.$is('Loading'));
+
+        // The lock screen's pause while the recording loads: nothing has sounded yet.
+        app.device.press('pause', { state: 'loading', positionMs: 0 });
+        expect(yield* app.until(Player.$is('Stopped'))).toEqual(Player.Stopped({ track: morning }));
+        expect(app.device.stopped).toBe(1);
+
+        // The lock screen's play, or the page's: the recording from its start.
+        app.device.press('play', { state: 'idle', positionMs: 0 });
+        expect(yield* app.until(Player.$is('Loading'))).toEqual(Player.Loading({ track: morning }));
+        expect(app.device.played).toEqual([audioUrl(100), audioUrl(100)]);
+        app.device.now = { state: 'playing', positionMs: 0, durationMs: 151_000 };
+        yield* app.until(Player.$is('Playing'));
+        // Once per recording the device held: the one let go, and this one.
+        expect(app.device.announced).toHaveLength(2);
+      }),
+  );
+
+  it.live('starts the recording again from Failed at the lock screen’s play', () =>
+    Effect.gen(function* () {
+      using app = open();
+      app.send(Command.Start({ track: morning }));
+      app.device.now = { state: 'failed', positionMs: 0 };
+      yield* app.until(Player.$is('Failed'));
+
+      // A seek or a pause has nothing to act on.
+      app.send(Command.Seek({ seconds: 30 }));
+      app.send(Command.Pause());
+      expect(app.device.sought).toEqual([]);
+      app.device.press('play', { state: 'loading', positionMs: 0 });
+      expect(yield* app.until(Player.$is('Loading'))).toEqual(Player.Loading({ track: morning }));
+      expect(app.device.played).toEqual([audioUrl(100), audioUrl(100)]);
+    }),
+  );
+
   it.live('shows Paused at once after Pause while the device still loads (the web)', () =>
     Effect.gen(function* () {
       using app = open();
