@@ -235,7 +235,7 @@ split alone (`for ever` against `forever`) is no run. A fresh judge (an
 Opus subagent at max effort that never saw a reading whole) rules each run
 on 1:1 crops of the page, one for each system the run lies on, and writes
 what each crop prints there. A ruling is `words`, `misprint`, `echo`,
-`repeat`, `shared`, `layout`, `owner` or `unreadable`; a place no crop holds
+`repeat`, `shared`, `layout`, `slip`, `disputed`, `owner` or `unreadable`; a place no crop holds
 is `unreadable`. An `owner` ruling holds words a judge saw the crop print and
 would not transcribe, copied by the owner from his own book (584's stanzas 6
 and 7, printed as text below the music). Applying every ruling to the base row gives the row. Two
@@ -247,43 +247,122 @@ line of a fix names the image, system and row it is printed in, placed by
 a reader that looked at the page, on an image the line's ruling has a crop
 of.
 
-The shape is read off the page alone. OCR lays the page's words over the
-row's own stanzas, lines and refrain, so it cannot see a refrain, a line or
-an order the row lacks. `data/shapes.json` holds a shape reading of every
-hymn whose words only OCR read, and of every hymn a model reading prints
-with a refrain that varies by stanza: a fresh Opus reader at max effort,
-shown 1:1 strips of the deciding page and never the row, reports the
-stanzas the page prints, each one's row under each system by its first and
-last two words, the refrain (where it is printed, and the rows it prints
-for some stanzas only), and any other row (an echo, a descant). It writes
-counts, positions and anchors, never the lyrics. The plain run holds each
-shape to the printed source (the fix, else the row), stanza by stanza on
-what is sung (the stanza, then the refrain sung after it): as many stanzas;
-each row's anchors in order, a stanza's last row ending before the refrain
-sung after it; no three words sung that no row prints; no
-refrain the page does not print; each group of refrain rows printed for
-some stanzas only a `varies` part after those stanzas; and no other row the
-source lacks but an echo or a descant. A hymn only OCR read, with no shape
-reading, is a problem. A shape cannot see a line added inside one system's
-row; the word runs of its reading do. Each difference goes to a fresh judge
-on crops, and a ruling that finds the source right there `settles` the
-difference's line (it needs no site); a ruling that settles a line the
-census no longer prints is a problem.
+The shape of a hymn (its stanzas, lines and refrain) is held to its
+deciding page apart from its words. `data/shapes.json` holds a shape
+reading of every hymn with a deciding page: a fresh Opus reader at max
+effort, shown 1:1 strips of the page and never the row, reports the header's
+metre, the stanzas the page prints, each lyric row under each system (its
+word count, its first, middle and last two words, and the places of the
+words it prints with a capital), the refrain (where it is printed, where it
+is sung, and the rows it prints for some stanzas only), and any other row
+(an echo, a descant). It writes counts, positions and anchors, never the
+lyrics. `--readings <dir>` holds the committed readings to the readers'
+reports.
 
-The four states (2026-10-20: 695 hymns, 985 rulings):
+The printed source is the layout the check holds (`layoutOf`): the fix's
+stanzas and refrain, else the row's, each as lines of words, and the
+refrain's order from `data/fixes/refrains.json`. Each stanza is compared as
+it is sung (the stanza, then the refrain after it): each row of the page is
+placed at the word its count puts it at, its three anchors held there
+within one word, an anchor that stands twice in reach unresolved. A row
+whose count is one off (a word the page elides or splits) places each word
+on one side of the slip only: its first word where its first words stand,
+and the side its middle words, found in place, leave the slip on. Each
+property of the layout, the page's evidence for it, and the mutation of
+`scripts/layout.ts` (`mutantsOf`) that a wrong row would be:
 
-| State       | Hymns | Deciding page                     | Blind readings of it                                                | Rulings that decided it                                                                                                                          |
-| ----------- | ----- | --------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `matches`   | 608   | 366 scan, 180 engraving, 62 photo | 519 1 reader, 71 1 OCR, 15 2 reader, 2 1 reader + 1 OCR, 1 3 reader | 521 hymns with no ruling; 87 with 563 rulings: 0 change words, 563 keep the row (471 words, 38 layout, 36 echo, 10 shared, 7 repeat, 1 misprint) |
-| `fixed`     | 81    | 55 photo, 26 scan                 | 30 1 OCR, 24 2 reader, 24 1 reader, 3 1 reader + 1 OCR              | 0 hymns with no ruling; 81 with 371 rulings: 160 change words (148 words, 10 repeat, 2 owner), 211 keep the row (211 words)                      |
-| `unsettled` | 2     | 2 engraving                       | 2 1 OCR                                                             | 0 hymns with no ruling; 2 with 51 rulings: 21 change words (19 words, 2 shared), 30 keep the row (12 echo, 11 words, 7 layout)                   |
-| `nopage`    | 4     | 4 none                            | 4 none                                                              | none: 4 hymns with no ruling                                                                                                                     |
+| Property          | The page's evidence                                                                       | Mutations                                                                                              |
+| ----------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| stanza count      | the stanzas the page prints                                                               | drop any stanza, repeat any stanza                                                                     |
+| stanza order      | each stanza's rows, in their place                                                        | swap any two stanzas whose words differ                                                                |
+| stanza split      | each stanza's rows, in their place                                                        | split a stanza at each line; join two neighbours; move a boundary one line either way                  |
+| line presence     | each row's count and anchors                                                              | drop any line, repeat any line, put in a neighbouring stanza's line                                    |
+| line order        | each row's count and anchors                                                              | swap two neighbouring lines whose words differ; swap a stanza's first and last lines                   |
+| line break        | the capitals, the metre, a stanza printed as text, stanzas printed under the same systems | move a word over a line's end either way, join two neighbouring lines, split a line at its middle word |
+| indent            | none: the row format holds no indent                                                      | indent any line                                                                                        |
+| refrain presence  | the refrain the page prints                                                               | drop the refrain; make a stanza's last line a refrain                                                  |
+| refrain placement | where the page prints and sings it                                                        | every other order; the refrain inside one stanza only                                                  |
+| refrain varies    | refrain rows printed for some stanzas only                                                | drop a varying part; sing its parts as one refrain after every stanza                                  |
+| unnumbered rows   | the page's other rows, an echo or a descant                                               | drop the words of a row that is no echo and no descant                                                 |
+
+The page prints no line breaks under the music, so the check reads a line
+break five ways: each line of the source opens on a word the page prints
+with a capital; a capital the page prints inside a line opens a line of the
+source, a sentence (after `.`, `!` or `?`, or a quote), or is a word the
+book capitalises inside a line elsewhere (`capitalsOf`: a name of God,
+`I`, `O`); stanzas printed under the same systems have as many lines; two
+neighbouring lines never miss the header's metre by opposite amounts; and a
+stanza printed as text below the music has its lines. A row whose words the
+page prints but whose lines it divides otherwise (a long poem line written
+as two lines, a stanza a line longer than its siblings) keeps its own
+division: its ruling is a `layout` that settles the line.
+
+`src/layout.test.ts` runs the generated property over every hymn with a
+deciding page (`domainOf`): each hymn's every mutation is held to its shape
+readings by the same check (`reachOf`, through `layoutLinesOf` and
+`formatProblems`, never `problemsOf`), and the test prints how many
+mutations each property makes, how many no layout line tells apart, and
+how many each committed list holds. A mutation no check tells apart goes to
+a fresh reach judge on 1:1 strips of the page, who rules it `cannot` (the
+page cannot tell it from the row), `can` (the page shows it wrong) or
+`unclear`. A `cannot` is on the unreachable list: a ruling's `unreachable`
+names it, on crops of the page that show it cannot be told apart (a word
+moved onto a word the page capitalises anyway, two lines joined where the
+second opens on one, in a hymn whose header prints no metre that fixes
+them; a stanza the page prints twice). A `can` or an `unclear` is on the
+gap list: a ruling's `gaps` names it, on the crops that show it, a place
+the check misses and the page does not. A mutation a list names that a
+check reaches, one on both lists, and one it reaches not that no list
+names, are each a failure. The 115 mutants of the hymnrows review
+(`data/layout-mutants.json`, made from recipes) each print a layout line
+too.
+
+What no check sees: a line break the page shows only by a capital it
+prints anyway, where no metre or text stanza fixes the lines; the order of
+two lines, or two stanzas, the page prints alike; a refrain the source
+writes inside its stanzas that the page prints once, where the page has no
+`refrains.json` order to hold it to. Each such mutation is on the
+unreachable list.
+
+What the check misses that the page shows (the gap list): a row it cannot
+place, so no rule reads its words (a row counting echo words the source
+keeps apart, a hymn whose rows the page prints in two passes, a row of a
+hymn whose page lays it out otherwise and waits on the owner); a line that
+opens on a word the book capitalises anyway, where the old line's opener is
+a sentence's first word, and only the page's punctuation or its music shows
+the break (the shape readings hold no punctuation); a metre missed within
+the count's noise; and refrain lines, which the header's metre rarely
+covers. Of the 470 (2026-10-20): 145 in rows it cannot place, 141 a line
+opening on a word the book capitalises anyway, 118 in refrain lines, 16 of
+line order, line presence and stanza order, 33 others, and 17 a judge
+could not tell; 62 of them are 220's, which waits on the owner.
+
+Each difference the check prints goes to a fresh judge on crops: a ruling
+that finds the source right there (`slip`, `layout`, `echo`, `repeat`)
+`settles` the difference's line (it needs no site); a ruling that finds the
+page lays the row out otherwise (`disputed`) settles it too, and leaves the
+hymn `unsettled` for the owner; a ruling that settles a line the census no
+longer prints is a problem.
+
+The four states (2026-10-20: 695 hymns, 1652 rulings; 1149 of the 139595
+layout mutations unreached, 679 on the unreachable list and 470 on the gap
+list, in 308 hymns):
+
+| State       | Hymns | Deciding page                     | Blind readings of it                                                | Rulings that decided it                                                                                                                                                                            |
+| ----------- | ----- | --------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `matches`   | 600   | 364 scan, 176 engraving, 60 photo | 513 1 reader, 70 1 OCR, 14 2 reader, 2 1 reader + 1 OCR, 1 3 reader | 283 hymns with no ruling; 317 with 1113 rulings: 0 change words, 1113 keep the row (465 words, 208 unreachable list, 191 layout, 115 gap list, 76 echo, 30 repeat, 17 slip, 10 shared, 1 misprint) |
+| `fixed`     | 80    | 54 photo, 26 scan                 | 29 1 OCR, 24 2 reader, 24 1 reader, 3 1 reader + 1 OCR              | 0 hymns with no ruling; 80 with 413 rulings: 158 change words (146 words, 10 repeat, 2 owner), 255 keep the row (200 words, 18 layout, 15 gap list, 12 unreachable list, 9 repeat, 1 slip)         |
+| `unsettled` | 11    | 6 engraving, 3 photo, 2 scan      | 6 1 reader, 4 1 OCR, 1 2 reader                                     | 0 hymns with no ruling; 11 with 126 rulings: 23 change words (21 words, 2 shared), 103 keep the row (38 disputed, 28 words, 13 layout, 12 echo, 7 unreachable list, 5 gap list)                    |
+| `nopage`    | 4     | 4 none                            | 4 none                                                              | none: 4 hymns with no ruling                                                                                                                                                                       |
 
 A `fixed` row is the base row with each ruling applied, written from its
 `data/fixes/NNN.json`. One reading is enough to fix a row: a reading only
 finds a run, and the judge's crops decide it. An `unsettled` or `nopage` row
 stays the base row, and the hymn waits on the owner's photo of its page;
-`bun run census` prints each with its note.
+`bun run census` prints each with its note. A hymn whose page a judge found
+laid out otherwise than its row (a `disputed` ruling: a poem line opened at
+another word, a block sung where the page does not sing it) is `unsettled`
+too, its row as it is, and waits on the owner's word.
 
 `src/census.test.ts` reads the census, the inventory, the rulings, the
 crops, the fixes and hymnal.db, and checks each entry against them: its
