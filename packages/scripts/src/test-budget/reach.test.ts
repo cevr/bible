@@ -244,6 +244,9 @@ describe("a workspace's test files", () => {
           'bun test --only src',
           'bun test --config other.toml src',
           'bun -c=other.toml test src',
+          'bun test -tfast src',
+          'bun test --list src',
+          'bun --silent test src',
         ])
           expect([test, ...reaches({ test }, files)]).toEqual([test, 'src/a.test.ts: none']);
       }),
@@ -289,6 +292,11 @@ describe("a workspace's test files", () => {
           'playwright test --shard=1/2',
           'playwright test --last-failed',
           'playwright test --only-changed',
+          'playwright test -gfast',
+          'playwright test -Gslow',
+          'playwright test --list',
+          'playwright test --ui',
+          'playwright test --project=chromium',
         ])
           expect([
             browser,
@@ -302,6 +310,7 @@ describe("a workspace's test files", () => {
           'grep: /fast/',
           'grepInvert: /slow/',
           'shard: { total: 2, current: 1 }',
+          'somethingNew: 1',
         ])
           expect([
             setting,
@@ -329,11 +338,45 @@ describe("a workspace's test files", () => {
         reaches({ test: 'bun test src # and all' }, ['src/a.test.ts', 'all/c.test.ts']),
       ).toEqual(['src/a.test.ts: test', 'all/c.test.ts: none']);
       expect(
-        reaches({ test: 'bun test src # one; bun test all\nbun test lib' }, [
-          'all/c.test.ts',
-          'lib/d.test.ts',
-        ]),
-      ).toEqual(['all/c.test.ts: none', 'lib/d.test.ts: test']);
+        reaches({ test: 'bun test src # one; bun test all' }, ['src/a.test.ts', 'all/c.test.ts']),
+      ).toEqual(['src/a.test.ts: test', 'all/c.test.ts: none']);
+    }),
+  );
+
+  it.effect('are reached by no script whose commands are joined by anything but &&', () =>
+    Effect.sync(() => {
+      for (const test of [
+        'true || bun test',
+        'bun test; true',
+        'bun test | tee out.txt',
+        'bun test &',
+        'false\nbun test',
+        'bun test src # all\nbun test',
+      ])
+        expect([test, ...reaches({ test }, ['src/a.test.ts'])]).toEqual([
+          test,
+          'src/a.test.ts: none',
+        ]);
+      expect(reaches({ test: 'bun run build && bun test' }, ['src/a.test.ts'])).toEqual([
+        'src/a.test.ts: test',
+      ]);
+    }),
+  );
+
+  it.effect('are reached by no script that hands a script it runs more words', () =>
+    Effect.sync(() => {
+      for (const test of [
+        'bun run suite ./src',
+        'bun run suite --shard=1/2',
+        'bun run suite -- -t x',
+      ])
+        expect([
+          test,
+          ...reaches({ test, suite: 'bun test' }, ['src/a.test.ts', 'other/b.test.ts']),
+        ]).toEqual([test, 'src/a.test.ts: none', 'other/b.test.ts: none']);
+      expect(reaches({ test: 'bun run suite', suite: 'bun test' }, ['other/b.test.ts'])).toEqual([
+        'other/b.test.ts: test',
+      ]);
     }),
   );
 
