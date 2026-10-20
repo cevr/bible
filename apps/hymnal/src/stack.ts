@@ -1,9 +1,10 @@
 import { color, useAccent } from './color';
 
 /**
- * Every tab's stack: each screen on the theme's ground, its native header's
- * titles in ink and its back button in the accent. One's web stacks are
- * headless, so on the web only `contentStyle` draws.
+ * Every tab's stack: each screen on the theme's ground and its native
+ * header's titles in ink. The header's tint is the accent, but iOS 26's glass
+ * back button draws its chevron and label in the system colour regardless.
+ * One's web stacks are headless, so on the web only `contentStyle` draws.
  */
 export const useStackOptions = () => {
   const accent = useAccent();

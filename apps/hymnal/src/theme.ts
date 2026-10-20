@@ -12,7 +12,7 @@
  * 3.75:1 on a pressed row).
  */
 
-export const wada167 = {
+const wada167 = {
   ecru: '#c2ae93',
   paleKingsBlue: '#a7d4e4',
   vandarPoelsBlue: '#064f6e',
@@ -38,7 +38,7 @@ type Rgb = readonly [number, number, number];
 const channel = (hex: string, at: number) => Number.parseInt(hex.slice(at, at + 2), 16);
 
 /** A hex colour's red, green and blue, 0 to 255. */
-export const rgb = (hex: string): Rgb => [channel(hex, 1), channel(hex, 3), channel(hex, 5)];
+const rgb = (hex: string): Rgb => [channel(hex, 1), channel(hex, 3), channel(hex, 5)];
 
 const hex = (channels: Rgb) =>
   `#${channels
@@ -50,7 +50,7 @@ const hex = (channels: Rgb) =>
     .join('')}`;
 
 /** `a` mixed `t` of the way toward `b`, per sRGB channel, as the palette page mixes. */
-export const mix = (a: string, b: string, t: number): string => {
+const mix = (a: string, b: string, t: number): string => {
   const [r, g, bl] = rgb(a);
   const [r2, g2, b2] = rgb(b);
   return hex([r + (r2 - r) * t, g + (g2 - g) * t, bl + (b2 - bl) * t]);
