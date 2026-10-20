@@ -553,8 +553,13 @@ describe("a judged rule's store", () => {
             ),
           );
           // Each try is one synchronous call, then a sleep on the test clock.
-          for (let tick = 0; tick < 200 && !(yield* Ref.get(done)); tick++)
+          // The run makes the store's folder first, by real I/O, so the clock
+          // moves until the run is done, yielding to the event loop between
+          // ticks: a count of ticks runs out before a slow folder is made.
+          while (!(yield* Ref.get(done))) {
             yield* TestClock.adjust('25 millis');
+            yield* Effect.yieldNow;
+          }
           return yield* Fiber.join(waiting);
         }),
       );
