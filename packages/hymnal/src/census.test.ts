@@ -48,9 +48,10 @@ import {
 
 const data = (file: string) => new URL(`../data/${file}`, import.meta.url).pathname;
 
-/** The census and its sources, read once for this file. */
-const read = Effect.runSync(
-  Effect.cached(
+/** The census and its sources, read once as the file loads: no case's time limit holds the read. */
+const read = Effect.succeed(
+  // oxlint-disable-next-line effect/noAsyncFunction -- built once as the file loads, so no case's time limit holds its cost
+  await Effect.runPromise(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const census = yield* decodeCensus(yield* fs.readFileString(data('census.json')));

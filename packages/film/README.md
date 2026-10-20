@@ -3814,6 +3814,13 @@ jest and vitest rules see no runner imported from `bun:test` or
 its own timeouts (`{ "timeouts": false }`). A spawn the rule cannot see (one
 inside a provided service) is said where it stands, by a disable comment
 that names it.
+`film/no-lazy-test-fixture` (`lint/no-lazy-test-fixture.ts`) holds every
+test file of the repo: a fixture the file's cases share is not a memo made
+as the file loads (`Effect.cached` and its TTL forms, outside every function
+but a `describe` body), which the first case to ask builds inside its own
+time limit, so the case that pays moves with the order the cases run in. It
+is built as the file loads (`const x = await Effect.runPromise(…)`, beside
+an `effect/noAsyncFunction` disable that says so), or in each case.
 `film/touches-serial` (`lint/touches-serial.ts`) holds the browser tests
 (`e2e/`): a finger (`page.finger`, one or two) is read, and the touch gesture
 (`touch`, `lab/fixtures/gestures.ts`) called, only inside a `test.serial(…)`

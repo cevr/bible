@@ -204,16 +204,17 @@ interface Compiled {
   readonly hymn: Result.Result<Hymn, string>;
 }
 
-/** Where each listed refrain is sung, read by the oracle's own schema. */
-const orders = Effect.runSync(
-  Effect.cached(
+/** Where each listed refrain is sung, read by the oracle's own schema as the file loads. */
+const orders = Effect.succeed(
+  // oxlint-disable-next-line effect/noAsyncFunction -- built once as the file loads, so no case's time limit holds its cost
+  await Effect.runPromise(
     Effect.gen(function* () {
       const text = yield* (yield* FileSystem.FileSystem).readFileString(
         data('fixes/refrains.json'),
       );
       const listed = yield* Schema.decodeEffect(Refrains)(text);
       return { printed: new Map(listed.hymns.map((hymn) => [hymn.number, hymn.order])) };
-    }),
+    }).pipe(Effect.provide(BunServices.layer)),
   ),
 );
 
@@ -275,12 +276,12 @@ const compileIn = (
 
 /**
  * Each hymn's compile, as a place `fidelity-worker.ts` settles. The workers
- * start on the first hymn asked for, in a runtime of their own (a test's
+ * start as the file loads, in a runtime of their own (a test's
  * clock is not theirs); worker k takes every WORKERS-th hymn from the k-th,
  * so each chunk's hymns are done early.
  */
-const compiles = Effect.runSync(
-  Effect.cached(
+const compiles = Effect.succeed(
+  Effect.runSync(
     Effect.sync(() => {
       const waiting = new Map(ALL.map((n) => [n, Deferred.makeUnsafe<Hymn, string>()]));
       Effect.runFork(

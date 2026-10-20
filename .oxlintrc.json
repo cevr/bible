@@ -1405,6 +1405,15 @@
       }
     },
     {
+      // A fixture a test file's cases share is built as the file loads, never
+      // by the first case that asks, inside its time limit
+      // (packages/film/lint/no-lazy-test-fixture.ts).
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "film/no-lazy-test-fixture": "error"
+      }
+    },
+    {
       // The film's browser suite (`test:e2e`) runs outside the budget, on
       // real Chrome workers, and sizes its own timeouts; it still runs every
       // test (packages/film/README.md, the E2E suite).

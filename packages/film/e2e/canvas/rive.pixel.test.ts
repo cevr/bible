@@ -22,29 +22,32 @@ const TARGETS = [0.1, 0.6, 1.1, 1.6, 1.95];
 const HISTORY_A = [3.9, 0.3, 2.2];
 const HISTORY_B = [1.0, 3.1];
 
-/** The fixture page's script and the files it loads (the runtimes' wasm, the rig), bundled once for the file. */
-const fixture = Effect.cached(
-  Effect.promise(() =>
-    Bun.build({
-      entrypoints: [`${import.meta.dir}/../../src/canvas/fixtures/rive-pixels.ts`],
-      target: 'browser',
-      format: 'iife',
-      publicPath: '/',
-    }),
-  ).pipe(
-    Effect.flatMap((built) =>
-      Effect.forEach(built.outputs, (out) =>
-        Effect.promise(() => out.arrayBuffer()).pipe(
-          Effect.map((buffer) => ({
-            kind: out.kind,
-            path: out.path.split('/').pop() ?? '',
-            bytes: new Uint8Array(buffer),
-          })),
+/** The fixture page's script and the files it loads (the runtimes' wasm, the rig), bundled once, as the file loads. */
+const fixture = Effect.succeed(
+  // oxlint-disable-next-line effect/noAsyncFunction -- built once as the file loads, so no case's time limit holds its cost
+  await Effect.runPromise(
+    Effect.promise(() =>
+      Bun.build({
+        entrypoints: [`${import.meta.dir}/../../src/canvas/fixtures/rive-pixels.ts`],
+        target: 'browser',
+        format: 'iife',
+        publicPath: '/',
+      }),
+    ).pipe(
+      Effect.flatMap((built) =>
+        Effect.forEach(built.outputs, (out) =>
+          Effect.promise(() => out.arrayBuffer()).pipe(
+            Effect.map((buffer) => ({
+              kind: out.kind,
+              path: out.path.split('/').pop() ?? '',
+              bytes: new Uint8Array(buffer),
+            })),
+          ),
         ),
       ),
     ),
   ),
-).pipe(Effect.runSync);
+);
 
 /** Times as JSON, to hand to the page. */
 const json = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.Finite)));
