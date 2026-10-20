@@ -19,7 +19,7 @@
 // and refuses words after the script's name (bun hands them on). A bun
 // command in a workspace whose `bunfig.toml` does not parse, or sets a
 // `[test]` key outside `BUNFIG_TEST_KEYS` (`root`, `pathIgnorePatterns`),
-// reaches nothing.
+// or a table outside `BUNFIG_TABLES` (`[loader]`, `define`), reaches nothing.
 //
 // A `bun test` command takes a file as bun does: with no filter, every file
 // named as a test (`*.test.ts`, `*_test.ts`, `*.spec.ts`, `*_spec.ts`, in
@@ -276,13 +276,25 @@ const BUNFIG_TEST_KEYS = new Set([
   'coverageIgnoreSourcemaps',
 ]);
 
-const Bunfig = Schema.Struct({
-  test: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
-});
+/**
+ * The tables a workspace's `bunfig.toml` may set: `[test]` (its keys read
+ * against `BUNFIG_TEST_KEYS`) and `[install]`, which changes what is
+ * installed, not how a run reads its files. Any other (`[loader]`,
+ * `define`, `jsx`, one this does not know) may change how bun reads a test
+ * file, and `[loader] ".ts" = "text"` runs none of its cases.
+ */
+const BUNFIG_TABLES = new Set(['test', 'install']);
+
+/** A table's keys, each by its name. */
+const Table = Schema.Record(Schema.String, Schema.Unknown);
+
+/** A bunfig: its tables by name, its `[test]` (when it sets one) a table. */
+const Bunfig = Schema.StructWithRest(Schema.Struct({ test: Schema.optionalKey(Table) }), [Table]);
 
 /**
  * Whether a workspace's `bunfig.toml` (its text, `''` when it has none)
- * may narrow what a `bun test` run there takes: it does not parse, or its
+ * may narrow what a `bun test` run there takes, or change how it reads a
+ * file: it does not parse, sets a table not in `BUNFIG_TABLES`, or its
  * `[test]` sets a key not in `BUNFIG_TEST_KEYS`.
  */
 const bunfigNarrows = (text: string) =>
@@ -290,7 +302,9 @@ const bunfigNarrows = (text: string) =>
     Option.flatMap(Option.liftThrowable(TOML.parse)(text), Schema.decodeUnknownOption(Bunfig)),
     {
       onNone: () => true,
-      onSome: ({ test = {} }) => Object.keys(test).some((key) => !BUNFIG_TEST_KEYS.has(key)),
+      onSome: ({ test = {}, ...tables }) =>
+        Object.keys(tables).some((table) => !BUNFIG_TABLES.has(table)) ||
+        Object.keys(test).some((key) => !BUNFIG_TEST_KEYS.has(key)),
     },
   );
 
@@ -482,8 +496,11 @@ const importsDefineConfig = (program: Program) => {
   return bindings.length === 1 && bindings[0] === 'playwright';
 };
 
-/** The names of the language a config may read unbound: values that run none of the config's code. */
-const CONFIG_GLOBALS = new Set(['Number', 'String', 'Boolean', 'undefined', 'NaN', 'Infinity']);
+/** The values of the language a config may read unbound. */
+const CONFIG_VALUES = new Set(['undefined', 'NaN', 'Infinity']);
+
+/** The functions of the language a config may call unbound, and only call: a value's conversion. */
+const CONFIG_CALLS = new Set(['Number', 'String', 'Boolean']);
 
 /** Whether a top-level statement of a config binds names and runs nothing else: an import from playwright, a `const` of plain names, the default export. */
 const isConfigStatement = (node: TopLevel) => {
@@ -511,11 +528,14 @@ const boundNames = (program: Program) =>
  * Whether loading a config does nothing but build the object it exports, so
  * that object is the config playwright takes: its top-level statements are
  * `isConfigStatement`s; it holds no function or class (code the reader does
- * not follow), no assignment, `++`, `delete`, `this`, `import()` or
- * `import.meta`; and every name it reads is one it binds, one of
- * `CONFIG_GLOBALS`, or `process` read as `process.env`. A config that can
- * reach anything else (`module.exports`, `exports`, `globalThis`,
- * `require`, `Object.assign`) can replace or change what it exports.
+ * not follow), no assignment, `++`, `delete`, `this`, `new`, a tagged
+ * template, `import()` or `import.meta`; it calls only `CONFIG_CALLS` by
+ * name and playwright's `defineConfig` (`importsDefineConfig`); and every
+ * other name it reads is one it binds, one of `CONFIG_VALUES`, or `process`
+ * read as `process.env`. A config that can reach anything else
+ * (`module.exports`, `exports`, `globalThis`, `require`, `Object.assign`,
+ * `Number.constructor`) can replace or change what it exports, or end the
+ * run before it starts.
  */
 const buildsOnlyItsExport = (program: Program) => {
   if (!program.body.every(isConfigStatement)) return false;
@@ -523,6 +543,8 @@ const buildsOnlyItsExport = (program: Program) => {
   const read: Array<{ readonly name: string }> = [];
   const named = new Set<object>();
   const env = new Set<object>();
+  const called = new Set<object>();
+  const defines = importsDefineConfig(program);
   const refuse = () => {
     runs = true;
   };
@@ -537,6 +559,14 @@ const buildsOnlyItsExport = (program: Program) => {
     ThisExpression: refuse,
     ImportExpression: refuse,
     MetaProperty: refuse,
+    NewExpression: refuse,
+    TaggedTemplateExpression: refuse,
+    CallExpression: (node) => {
+      const { callee } = node;
+      if (callee.type === 'Identifier' && CONFIG_CALLS.has(callee.name)) called.add(callee);
+      else if (!(callee.type === 'Identifier' && callee.name === 'defineConfig' && defines))
+        refuse();
+    },
     UnaryExpression: (node) => {
       if (node.operator === 'delete') refuse();
     },
@@ -575,7 +605,10 @@ const buildsOnlyItsExport = (program: Program) => {
     !runs &&
     read
       .filter((node) => !named.has(node))
-      .every((node) => bound.has(node.name) || CONFIG_GLOBALS.has(node.name) || env.has(node))
+      .every(
+        (node) =>
+          called.has(node) || env.has(node) || bound.has(node.name) || CONFIG_VALUES.has(node.name),
+      )
   );
 };
 

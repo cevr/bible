@@ -277,7 +277,7 @@ describe("a workspace's test files", () => {
   );
 
   it.effect(
-    'are reached by no bun test run whose bunfig may narrow it, and by one whose bunfig does not',
+    'are reached by no bun test run whose bunfig may narrow it or change how bun reads a file, and by one whose bunfig does neither',
     () =>
       Effect.sync(() => {
         const files = ['src/a.test.ts'];
@@ -287,6 +287,10 @@ describe("a workspace's test files", () => {
           '[test]\nsomethingNew = 1\n',
           'test = 1\n',
           '[test\n',
+          // A text loader reads a test file as a string: it registers no case.
+          '[loader]\n".ts" = "text"\n',
+          'define = { "describe" = "undefined" }\n',
+          '[test]\npreload = ["./setup.ts"]\n[somethingNew]\nx = 1\n',
         ])
           expect([bunfig, ...reaches({ test: 'bun test src' }, files, {}, {}, bunfig)]).toEqual([
             bunfig,
@@ -616,6 +620,17 @@ describe("a workspace's test files", () => {
           config('if (true) {}\nexport default {};'),
           config("export default { testDir: '.', use: { get x() { return 1; } } };"),
           config("export default { testDir: '.', use: { x: delete process.env.A } };"),
+          // A call it does not name may run anything: here, end the run before it starts.
+          config("const stopped = Number.constructor('process.exit(0)')();\nexport default {};"),
+          config('const convert = Number;\nexport default {};'),
+          config('const set = new Number(1);\nexport default {};'),
+          config('const set = String.raw`x`;\nexport default {};'),
+          config(
+            "import { devices } from '@playwright/test';\nconst set = devices['Desktop Chrome'].constructor('x');\nexport default {};",
+          ),
+          config(
+            "import { defineConfig, devices } from './helpers';\nconst set = defineConfig({});\nexport default {};",
+          ),
           {},
         ])
           expect(reaches(scripts, files, configs).map((line) => line.endsWith(': none'))).toEqual([
