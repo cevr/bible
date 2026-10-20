@@ -25,8 +25,9 @@
 // (`respectGitIgnore: true`, or neither it nor `testDir` set) it reads each
 // `.gitignore` from `testDir` down by minimatch, as `collectFiles` does. A by-hand script's other commands (a
 // wrapper of `bun test`) reach a file only by naming it, or a folder that
-// holds it, by its path. A file named as a test that registers none
-// (`holdsTests`) needs no script.
+// holds it, by its path. A file named as a test needs a script unless it is
+// data (`isData`): it parses and exports by default only an object or array
+// of literals, which runs nothing when loaded and so registers no test.
 
 import { Glob } from 'bun';
 import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
@@ -39,14 +40,54 @@ import { commandsOf } from './shell.ts';
 const isTestFile = (file: string) => /(?:\.test|_test|\.spec|_spec)\.[cm]?[jt]sx?$/.test(file);
 
 /**
- * Whether a file's text registers tests: it imports a test runner (`bun:test`,
- * `effect-bun-test`, playwright's, vitest), or a line opens with a call of
- * bun's global `describe`, `it` or `test`. A file named as a test that does
- * neither (a study's `*.spec.js` that the CLI reads) holds none to run.
+ * Whether a value runs nothing when it is read: a literal, a template with no
+ * expression in it, or an array or object of such values, every key a plain
+ * name or a literal (no spread, no computed key, no method, getter or
+ * shorthand).
  */
-const holdsTests = (text: string) =>
-  /from\s+['"](?:bun:test|effect-bun-test|@playwright\/test|vitest)['"]/.test(text) ||
-  /^\s*(?:describe|it|test)(?:\.\w+)*\s*\(/m.test(text);
+const isInert = (value: Expression): boolean => {
+  if (value.type === 'Literal') return true;
+  if (value.type === 'TemplateLiteral') return value.expressions.length === 0;
+  if (value.type === 'ArrayExpression')
+    return value.elements.every((element) =>
+      Option.match(Option.fromNullOr(element), {
+        onNone: () => true,
+        onSome: (held) => held.type !== 'SpreadElement' && isInert(held),
+      }),
+    );
+  if (value.type === 'ObjectExpression')
+    return value.properties.every(
+      (property) =>
+        property.type === 'Property' &&
+        !property.computed &&
+        !property.method &&
+        !property.shorthand &&
+        property.kind === 'init' &&
+        (property.key.type === 'Identifier' || property.key.type === 'Literal') &&
+        isInert(property.value),
+    );
+  return false;
+};
+
+/**
+ * Whether a file named as a test is data, not a test (a study's `*.spec.js`
+ * that the CLI reads): it parses, and its one statement exports by default an
+ * inert object or array (`isInert`). Loading it calls nothing, so it
+ * registers no test. Any other file named as a test is taken to register
+ * one, however it imports or names its runner.
+ */
+const isData = (file: string, text: string) => {
+  const parsed = parseSync(file, text);
+  if (parsed.errors.length > 0) return false;
+  const [only, ...more] = parsed.program.body;
+  if (more.length > 0) return false;
+  return Option.exists(Option.fromUndefinedOr(only), (statement) => {
+    if (statement.type !== 'ExportDefaultDeclaration') return false;
+    const value = statement.declaration;
+    if (value.type !== 'ObjectExpression' && value.type !== 'ArrayExpression') return false;
+    return isInert(value);
+  });
+};
 
 /** The flags of `bun test` (and of bun itself) that take the next word as their value. */
 const VALUED = new Set([
@@ -516,7 +557,7 @@ interface Source {
 
 /**
  * How each test file of `files` is reached: each file named as a test that
- * registers one, inside a workspace (the deepest that holds it), with the
+ * is not data (`isData`), inside a workspace (the deepest that holds it), with the
  * script that reaches it (`test`, `test:e2e`), none when no script does.
  */
 export const reachesIn = (
@@ -524,7 +565,7 @@ export const reachesIn = (
   files: ReadonlyArray<Source>,
 ): ReadonlyArray<{ readonly file: string; readonly by: Option.Option<string> }> =>
   files
-    .filter(({ file, text }) => isTestFile(file) && holdsTests(text))
+    .filter(({ file, text }) => isTestFile(file) && !isData(file, text))
     .flatMap(({ file }) =>
       workspaces
         .filter(({ dir }) => file.startsWith(`${dir}/`))
