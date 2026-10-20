@@ -35,7 +35,8 @@ const contrast = (a: string, b: string) => {
  * for its smallest size there: all are body sizes (13 to 17 points), so 4.5.
  * The player draws on the ground: its title in ink, its caption and times
  * in muted, the hymn number and iOS's play button in accent; the web's and
- * Android's play button is an accent fill under onAccent.
+ * Android's play button is an accent fill under onAccent, and while pressed
+ * a pressed fill under onPressed.
  */
 const pairs: ReadonlyArray<readonly [text: keyof Roles, on: keyof Roles]> = [
   ['ink', 'ground'],
@@ -44,6 +45,7 @@ const pairs: ReadonlyArray<readonly [text: keyof Roles, on: keyof Roles]> = [
   ['ink', 'soft'],
   ['accent', 'soft'],
   ['onAccent', 'accent'],
+  ['onPressed', 'pressed'],
 ];
 
 describe('the palette meets WCAG AA', () => {
@@ -106,6 +108,8 @@ test('the roles are palette A', () => {
       accent: '#064f6e',
       soft: '#bddfeb',
       onAccent: '#ffffff',
+      pressed: '#346e85',
+      onPressed: '#ffffff',
     },
     dark: {
       ground: '#032431',
@@ -115,6 +119,8 @@ test('the roles are palette A', () => {
       accent: '#a7d4e4',
       soft: '#345967',
       onAccent: '#111314',
+      pressed: '#86b1c0',
+      onPressed: '#111314',
     },
   });
 });

@@ -43,20 +43,29 @@ export const color = Platform.select({
     line: PlatformColor('?android:attr/colorControlHighlight'),
     soft: PlatformColor('?android:attr/colorControlHighlight'),
   }),
-})() satisfies Record<Exclude<keyof Roles, 'accent' | 'onAccent'>, ColorValue>;
+})() satisfies Record<Exclude<keyof Roles, Fill>, ColorValue>;
 
-/** The theme's `role` in the scheme showing now. */
-const useRole = (role: 'accent' | 'onAccent'): ColorValue =>
+/** The roles a screen reads through a hook: the accent fill and its text, pressed or not. */
+type Fill = 'accent' | 'onAccent' | 'pressed' | 'onPressed';
+
+/** The theme's roles in the scheme showing now. */
+const useRoles = (): Roles =>
   Match.value(useColorScheme()).pipe(
-    Match.when('dark', () => theme.dark[role]),
-    Match.orElse(() => theme.light[role]),
+    Match.when('dark', () => theme.dark),
+    Match.orElse(() => theme.light),
   );
 
 /** The accent in the scheme showing now. */
-export const useAccent = (): ColorValue => useRole('accent');
+export const useAccent = (): ColorValue => useRoles().accent;
 
 /** Text on the accent in the scheme showing now. */
-export const useOnAccent = (): ColorValue => useRole('onAccent');
+export const useOnAccent = (): ColorValue => useRoles().onAccent;
+
+/** The accent fill while pressed, and its text, in the scheme showing now. */
+export const usePressed = () => {
+  const roles = useRoles();
+  return { fill: roles.pressed, text: roles.onPressed };
+};
 
 /** The web's CSS: a phone writes none. */
 export const webColors = '';

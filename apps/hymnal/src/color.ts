@@ -16,6 +16,8 @@ const roles = [
   'accent',
   'soft',
   'onAccent',
+  'pressed',
+  'onPressed',
 ] as const satisfies ReadonlyArray<keyof Roles>;
 
 export const color = {
@@ -24,13 +26,22 @@ export const color = {
   muted: 'var(--muted)',
   line: 'var(--line)',
   soft: 'var(--soft)',
-} satisfies Record<Exclude<keyof Roles, 'accent' | 'onAccent'>, ColorValue>;
+} satisfies Record<Exclude<keyof Roles, Fill>, ColorValue>;
+
+/** The roles a screen reads through a hook: the accent fill and its text, pressed or not. */
+type Fill = 'accent' | 'onAccent' | 'pressed' | 'onPressed';
 
 /** The accent in the scheme showing now. */
 export const useAccent = (): ColorValue => 'var(--accent)';
 
 /** Text on the accent in the scheme showing now. */
 export const useOnAccent = (): ColorValue => 'var(--onAccent)';
+
+/** The accent fill while pressed, and its text, in the scheme showing now. */
+export const usePressed = () => ({
+  fill: 'var(--pressed)',
+  text: 'var(--onPressed)',
+});
 
 export const webColors = `
 :root {

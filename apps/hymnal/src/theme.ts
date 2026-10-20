@@ -11,7 +11,9 @@
  * 3.32:1), and dark soft mixes 70% toward the ground (55% leaves the ink at
  * 3.75:1 on a pressed row). Text on the accent (`onAccent`) is the page's
  * near-black where it meets AA on the fill, else white, else black
- * (`onColor`), so any accent a palette gives has AA text on it.
+ * (`onColor`), so any accent a palette gives has AA text on it. A pressed
+ * accent is a fill of its own (`pressed`), with its own text (`onPressed`),
+ * so the pressed state keeps AA too.
  */
 
 const wada167 = {
@@ -35,6 +37,10 @@ export interface Roles {
   readonly soft: string;
   /** Text drawn on an accent fill: the play button's label on the web and Android. */
   readonly onAccent: string;
+  /** The accent fill while it is pressed: the accent mixed a fifth toward the ground. */
+  readonly pressed: string;
+  /** Text drawn on the pressed fill, picked for it as `onAccent` is for the accent. */
+  readonly onPressed: string;
 }
 
 type Rgb = readonly [number, number, number];
@@ -91,6 +97,8 @@ export const onColor = (fill: string) =>
 const lightGround = mix(wada167.ecru, '#ffffff', 0.72);
 const darkGround = mix(wada167.vandarPoelsBlue, '#000000', 0.55);
 const darkInk = mix(wada167.ecru, '#ffffff', 0.55);
+const lightPressed = mix(wada167.vandarPoelsBlue, lightGround, 0.2);
+const darkPressed = mix(wada167.paleKingsBlue, darkGround, 0.2);
 
 export const theme = {
   light: {
@@ -101,6 +109,8 @@ export const theme = {
     accent: wada167.vandarPoelsBlue,
     soft: mix(wada167.paleKingsBlue, '#ffffff', 0.25),
     onAccent: onColor(wada167.vandarPoelsBlue),
+    pressed: lightPressed,
+    onPressed: onColor(lightPressed),
   },
   dark: {
     ground: darkGround,
@@ -110,5 +120,7 @@ export const theme = {
     accent: wada167.paleKingsBlue,
     soft: mix(wada167.paleKingsBlue, darkGround, 0.7),
     onAccent: onColor(wada167.paleKingsBlue),
+    pressed: darkPressed,
+    onPressed: onColor(darkPressed),
   },
 } as const satisfies { readonly light: Roles; readonly dark: Roles };

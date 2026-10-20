@@ -486,6 +486,21 @@ describe('the hymn page’s recording control', () => {
       page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
       yield* page.until(Player.$is('Playing'));
       each('Pause hymn 100');
+
+      // Held down (Space, until its keyup), the button draws the pressed fill under that fill's own text.
+      const held = Option.getOrThrow(page.find('[aria-label="Pause hymn 100"]'));
+      act(() => {
+        held.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: ' ' }),
+        );
+      });
+      for (const scheme of schemes) {
+        using _ = showing(scheme);
+        expect(drawn('Pause hymn 100')).toEqual({
+          fill: rgbOf(theme[scheme].pressed),
+          title: rgbOf(theme[scheme].onPressed),
+        });
+      }
     }),
   );
 
