@@ -202,36 +202,44 @@ const inEntryScope = (file: string) =>
   file.startsWith('packages/film/e2e/') ||
   file.startsWith('packages/film/lint/fixtures/');
 
-/** Both entry guards read one fresh source graph for this test invocation. */
-const graph = Effect.runSync(
-  Effect.cached(
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const root = path.resolve(import.meta.dir, '../../..');
-      const films = path.join(root, 'packages/film');
-      const read = (dir: string) =>
-        Effect.map(fs.readDirectory(path.join(root, dir), { recursive: true }), (found) =>
-          found.map((f) => `${dir}/${f}`),
-        );
-      const files = Arr.filter(
-        [
-          ...(yield* read('apps')),
-          ...(yield* read('packages/film/src')),
-          ...(yield* read('packages/film/e2e')),
-          ...(yield* read('packages/film/lint')),
-        ],
-        (file) =>
-          /\.tsx?$/.test(file) &&
-          !file.includes('node_modules') &&
-          !/^apps\/[^/]+\/out\//.test(file),
+/**
+ * The source graph both entry guards read, read once as the file loads, every
+ * file at once: its cost is in no case's time limit.
+ */
+// oxlint-disable-next-line effect/noAsyncFunction -- built once as the file loads, so no case's time limit holds its cost
+const graph = await Effect.runPromise(
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const root = path.resolve(import.meta.dir, '../../..');
+    const films = path.join(root, 'packages/film');
+    const read = (dir: string) =>
+      Effect.map(fs.readDirectory(path.join(root, dir), { recursive: true }), (found) =>
+        found.map((f) => `${dir}/${f}`),
       );
-      const records = new Map<string, ModuleRecord>();
-      for (const file of files)
-        records.set(file, recordOf(file, yield* fs.readFileString(path.join(root, file))));
-      return { root, films, records };
-    }).pipe(Effect.provide(BunServices.layer)),
-  ),
+    const files = Arr.filter(
+      [
+        ...(yield* read('apps')),
+        ...(yield* read('packages/film/src')),
+        ...(yield* read('packages/film/e2e')),
+        ...(yield* read('packages/film/lint')),
+      ],
+      (file) =>
+        /\.tsx?$/.test(file) && !file.includes('node_modules') && !/^apps\/[^/]+\/out\//.test(file),
+    );
+    const records = new Map<string, ModuleRecord>(
+      yield* Effect.forEach(
+        files,
+        (file) =>
+          Effect.map(
+            fs.readFileString(path.join(root, file)),
+            (source) => [file, recordOf(file, source)] as const,
+          ),
+        { concurrency: 64 },
+      ),
+    );
+    return { root, films, records };
+  }).pipe(Effect.provide(BunServices.layer)),
 );
 
 describe('the package entries', () => {
@@ -261,7 +269,7 @@ describe('the package entries', () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const { root, films, records } = yield* graph;
+      const { root, films, records } = graph;
       const users = [...records].filter(
         ([file]) => inEntryScope(file) && (isUser(file) || TOOL_USERS.has(file)),
       );
@@ -297,7 +305,7 @@ describe('the package entries', () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const { root, films, records } = yield* graph;
+      const { root, films, records } = graph;
       const specifiers = yield* Schema.decodeEffect(PackageExports)(
         yield* fs.readFileString(path.join(films, 'package.json')),
       );

@@ -330,33 +330,53 @@ const PackageExports = Schema.fromJsonString(
   Schema.Struct({ exports: Schema.Record(Schema.String, Schema.String) }),
 );
 
-/** The repo's own modules, read from disk, the film package's entries, and the root. */
-const disk = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const repo = path.resolve(import.meta.dir, '../../../..');
-  const film = `${repo}/packages/film`;
-  const { exports } = yield* Schema.decodeEffect(PackageExports)(
-    yield* fs.readFileString(`${film}/package.json`),
-  );
-  const world: World = {
-    read: (file) => Effect.option(fs.readFileString(file)),
-    packages: new Map(
-      Object.entries(exports).map(([entry, file]) => [
-        `@bible/film${entry.slice(1)}`,
-        path.resolve(film, file),
-      ]),
-    ),
-  };
-  const swept = yield* Effect.forEach(SWEPT, ({ dir, recursive }) =>
-    Effect.map(fs.readDirectory(`${repo}/${dir}`, { recursive }), (files) =>
-      files
-        .filter((file) => SOURCE.test(file) && !TESTS.test(file))
-        .map((file) => `${repo}/${dir}/${file}`),
-    ),
-  );
-  return { world, files: swept.flat(), repo, root: `${film}/src/tools/film-services.ts` };
-});
+/**
+ * The repo's own modules, the film package's entries, and the root, read as
+ * the file loads: every swept module's source at once, so a case's time is
+ * its own traversal. A module outside the sweep (a file a swept one imports
+ * from elsewhere) is read when the guard follows it there.
+ */
+// oxlint-disable-next-line effect/noAsyncFunction -- built once as the file loads, so no case's time limit holds its cost
+const disk = await Effect.runPromise(
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const repo = path.resolve(import.meta.dir, '../../../..');
+    const film = `${repo}/packages/film`;
+    const { exports } = yield* Schema.decodeEffect(PackageExports)(
+      yield* fs.readFileString(`${film}/package.json`),
+    );
+    const swept = yield* Effect.forEach(SWEPT, ({ dir, recursive }) =>
+      Effect.map(fs.readDirectory(`${repo}/${dir}`, { recursive }), (files) =>
+        files
+          .filter((file) => SOURCE.test(file) && !TESTS.test(file))
+          .map((file) => `${repo}/${dir}/${file}`),
+      ),
+    );
+    const files = swept.flat();
+    const sources = new Map(
+      yield* Effect.forEach(
+        files,
+        (file) => Effect.map(fs.readFileString(file), (source) => [file, source] as const),
+        { concurrency: 64 },
+      ),
+    );
+    const world: World = {
+      read: (file) =>
+        Option.match(Option.fromUndefinedOr(sources.get(file)), {
+          onSome: Effect.succeedSome,
+          onNone: () => Effect.option(fs.readFileString(file)),
+        }),
+      packages: new Map(
+        Object.entries(exports).map(([entry, file]) => [
+          `@bible/film${entry.slice(1)}`,
+          path.resolve(film, file),
+        ]),
+      ),
+    };
+    return { world, files, repo, root: `${film}/src/tools/film-services.ts` };
+  }).pipe(Effect.provide(BunServices.layer)),
+);
 
 /** A world of `modules` alone, under `/w/`, beside a root of the same shape as the real one. */
 const made = (modules: Readonly<Record<string, string>>) => {
@@ -393,7 +413,7 @@ const findings = (modules: Readonly<Record<string, string>>) =>
 describe("the film's composition root", () => {
   it.effect('no module but the root builds its layers', () =>
     Effect.gen(function* () {
-      const { world, files, root } = yield* disk;
+      const { world, files, root } = disk;
       const built = yield* builtIn(world, root, files);
       // The root's own builds are found: the guard reads it as it reads the rest.
       expect(built.filter((line) => line.startsWith(`${root}:`)).length).toBeGreaterThan(0);
@@ -403,7 +423,7 @@ describe("the film's composition root", () => {
 
   it.effect('its consumers are the CLI and the studio harness', () =>
     Effect.gen(function* () {
-      const { world, files, repo, root } = yield* disk;
+      const { world, files, repo, root } = disk;
       expect((yield* consumersIn(world, root, files)).map((f) => f.slice(repo.length + 1))).toEqual(
         ['apps/animations/studio-harness.ts', 'packages/film/src/tools/cli.ts'],
       );
