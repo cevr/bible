@@ -230,14 +230,15 @@ const open = async ({
 
   /**
    * Presses the row nearest the list's middle: as a pointer does, or `now`,
-   * in the same task as a last small scroll. Answers the row and where he
-   * left the list.
+   * in the same task as his last scroll, back to `at` from three rows away.
+   * Answers the row and where he left the list.
    */
-  const press = async (list: ListName, when: Press) => {
+  const press = async (list: ListName, when: Press, at: number) => {
     if (when === 'now') {
       // A row he can press is drawn.
       await middleRow();
-      const left = await page.evaluate(() => window.hymnal.leave());
+      await page.evaluate((y) => window.hymnal.away(y), at);
+      const left = await page.evaluate((y) => window.hymnal.leave(y), at);
       await opened(list, left.label);
       return left;
     }
@@ -335,32 +336,36 @@ const seed = ((given) =>
 
 /**
  * The ways back to a list after the reader leaves it, and how he leaves it
- * for each: `when` he presses or clicks after his scroll. Each answers where
- * he left the list, and the first frame of the list come back.
+ * for each: `when` he presses or clicks after his scroll to `top`. Each
+ * answers where he left the list, and the first frame of the list come back.
  */
 const paths = {
   /** He opens a hymn from a row, then presses the browser's Back. */
-  back: async (app: Session, list: ListName, when: Press) => {
-    const { top, label } = await app.press(list, when);
+  back: async (app: Session, list: ListName, when: Press, at: number) => {
+    const { top, label } = await app.press(list, when, at);
     return { top, first: await app.comeBack(list, label, () => app.page.goBack()) };
   },
   /** He opens a hymn from a row, then follows the header's back link to the list. */
-  header: async (app: Session, list: ListName, when: Press) => {
-    const { top, label } = await app.press(list, when);
+  header: async (app: Session, list: ListName, when: Press, at: number) => {
+    const { top, label } = await app.press(list, when, at);
     const first = await app.comeBack(list, label, () =>
       app.page.getByText(`‹ ${lists[list].title}`, { exact: true }).click(),
     );
     return { top, first };
   },
   /** He switches to the other list's tab, then back to this one's. */
-  tab: async (app: Session, list: ListName, when: Press) => {
+  tab: async (app: Session, list: ListName, when: Press, at: number) => {
     const other = list === 'hymns' ? 'search' : 'hymns';
     const { top, label } =
       when === 'now'
         ? await app
             .middleRow()
+            .then(() => app.page.evaluate((y) => window.hymnal.away(y), at))
             .then(() =>
-              app.page.evaluate((title) => window.hymnal.leave(title), lists[other].title),
+              app.page.evaluate(([y, title]) => window.hymnal.leave(y, title), [
+                at,
+                lists[other].title,
+              ] as const),
             )
         : { top: (await app.place()).top, label: (await app.middleRow()).label };
     if (when === 'later') await app.tab(other);
@@ -372,7 +377,7 @@ const paths = {
   },
 } as const satisfies Record<
   Way,
-  (app: Session, list: ListName, when: Press) => Promise<{ top: number; first: First }>
+  (app: Session, list: ListName, when: Press, at: number) => Promise<{ top: number; first: First }>
 >;
 
 /**
@@ -488,7 +493,7 @@ const visit = async (list: ListName, visits: ReadonlyArray<Visit>) => {
     const target = Math.round(max * v.share);
     await app.scrollTo(target);
     if (v.press === 'later') await app.settle(150);
-    const { top: left, first } = await paths[v.way](app, list, v.press);
+    const { top: left, first } = await paths[v.way](app, list, v.press, target);
     const { top: found } = await app.place();
     const after = await moves[v.move](app);
     seen.push({ ...v, target, left, found, first, jumps: await app.jumps(), after });
@@ -531,7 +536,7 @@ describe('a list comes back where the reader left it', () => {
     const { max } = await app.place();
     const left = await app.scrollTo(max);
     await app.settle(150);
-    const row = await app.press('search', 'later');
+    const row = await app.press('search', 'later', left);
     // Taller than the 13 results: the list comes back at its top.
     await app.resize(874);
     await app.comeBack('search', row.label, () => app.page.goBack());

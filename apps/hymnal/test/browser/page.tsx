@@ -66,12 +66,18 @@ export interface Hymnal {
   /** The last `watch` asked for. */
   watching?: Promise<First>;
   /**
-   * Leaves the list in one task, as a reader who scrolls and presses at
-   * once: scrolls it three rows, then clicks the fully shown row nearest
-   * its middle, or the tab bar's link named `tab`. Answers the offset it
-   * left at and the row.
+   * Scrolls the list three rows from `top` toward its middle, as the
+   * reader's last scroll but one, and answers once the list has had that
+   * scroll's event and its end: the list then knows that offset, not `top`.
    */
-  readonly leave: (tab?: string) => { readonly top: number; readonly label: string };
+  readonly away: (top: number) => Promise<number>;
+  /**
+   * Leaves the list in one task, as a reader who scrolls and presses at
+   * once: scrolls it to `top`, then clicks the fully shown row nearest its
+   * middle, or the tab bar's link named `tab`. Answers the offset it left
+   * at and the row.
+   */
+  readonly leave: (top: number, tab?: string) => { readonly top: number; readonly label: string };
 }
 
 declare global {
@@ -242,13 +248,25 @@ window.hymnal = {
       };
       requestAnimationFrame(look);
     }),
-  leave: (tab) => {
+  away: (top) => {
     const node = scroller();
     if (node === undefined) throw new Error('the list is not shown');
     // Three rows: more than the one row a return may miss by, so a list that
     // kept the offset of its last scroll event, not the one it is at, misses.
     const nudge = 3 * 44;
-    node.scrollTop += node.scrollTop >= nudge ? -nudge : nudge;
+    const max = node.scrollHeight - node.clientHeight;
+    node.scrollTop = top > max / 2 ? top - nudge : top + nudge;
+    left = { node, top: node.scrollTop };
+    const at = node.scrollTop;
+    // Past the list's scroll end, which it tells 100 ms after the scroll's event.
+    return new Promise<number>((done) =>
+      node.addEventListener('scroll', () => setTimeout(() => done(at), 150), { once: true }),
+    );
+  },
+  leave: (top, tab) => {
+    const node = scroller();
+    if (node === undefined) throw new Error('the list is not shown');
+    node.scrollTop = top;
     left = { node, top: node.scrollTop };
     const { row } = middleOf(node);
     const target =
