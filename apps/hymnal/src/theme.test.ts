@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { Match } from 'effect';
 
-import { type Roles, theme } from './theme';
+import { onColor, type Roles, theme } from './theme';
 
 /** A hex colour's red, green and blue, parsed here apart from the theme's own mixing. */
 const rgb = (hex: string) =>
@@ -55,6 +55,33 @@ describe('the palette meets WCAG AA', () => {
       });
     }
   }
+});
+
+/**
+ * Every fill whose channels step by 17 (`#000` to `#fff`, 4096 of them), and
+ * the accents of the Wada palettes the owner was shown (A's two, and D's
+ * and E's `#099197`, between the luminances near-black and white each miss).
+ */
+const fills = [
+  ...Array.from({ length: 4096 }, (_, index) =>
+    [index >> 8, (index >> 4) & 15, index & 15]
+      .map((digit) => digit.toString(16).repeat(2))
+      .reduce((hex, pair) => `${hex}${pair}`, '#'),
+  ),
+  '#064f6e',
+  '#a7d4e4',
+  '#099197',
+];
+
+test('text on any fill, as onColor picks it, meets WCAG AA', () => {
+  const under = fills.filter((fill) => contrast(onColor(fill), fill) < 4.5);
+  expect(under).toEqual([]);
+  // The page's near-black where it reaches AA: on palette A's dark accent, and on D's and E's.
+  expect([onColor('#a7d4e4'), onColor('#099197'), onColor('#064f6e')]).toEqual([
+    '#111314',
+    '#111314',
+    '#ffffff',
+  ]);
 });
 
 test('the contrast ratio is WCAG 2’s', () => {

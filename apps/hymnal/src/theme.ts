@@ -9,8 +9,9 @@
  * shallower than the page's so each text role meets WCAG AA on what it sits
  * on (`theme.test.ts`): light muted mixes 20% toward the ground (35% reads at
  * 3.32:1), and dark soft mixes 70% toward the ground (55% leaves the ink at
- * 3.75:1 on a pressed row). Text on the accent (`onAccent`) is near-black or
- * white, as the page's `onColor` picks it for a fill.
+ * 3.75:1 on a pressed row). Text on the accent (`onAccent`) is the page's
+ * near-black where it meets AA on the fill, else white, else black
+ * (`onColor`), so any accent a palette gives has AA text on it.
  */
 
 const wada167 = {
@@ -72,11 +73,20 @@ const luminance = (color: string) => {
   return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 };
 
-/** Text on a fill of `fill`, as the palette page's `onColor` picks it: near-black on a light fill, else white. */
-const onColor = (fill: string) => {
-  if (luminance(fill) > 0.35) return '#111314';
-  return '#ffffff';
+/** WCAG 2's contrast ratio between two colours, 1 to 21. */
+const contrast = (a: string, b: string) => {
+  const [la, lb] = [luminance(a), luminance(b)];
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 };
+
+/**
+ * Text on a fill of `fill`: the palette page's near-black where it meets
+ * WCAG AA (4.5:1), else white where it does, else black. White and black
+ * between them meet AA on every fill; the page's own pick by luminance
+ * (near-black above 0.35) leaves fills between 0.1833 and 0.35 under it.
+ */
+export const onColor = (fill: string) =>
+  ['#111314', '#ffffff'].find((text) => contrast(text, fill) >= 4.5) ?? '#000000';
 
 const lightGround = mix(wada167.ecru, '#ffffff', 0.72);
 const darkGround = mix(wada167.vandarPoelsBlue, '#000000', 0.55);
