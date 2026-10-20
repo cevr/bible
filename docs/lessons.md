@@ -673,3 +673,43 @@ The form of an entry, each field on its own line:
 - **Wrong:** `bun test ./` read as a filter no file matched, so a workspace's every test file was called unreached.
 - **Cause:** `./` normalised to an empty path, and a path filter matched only under a leading slash.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `bun test ./`
+
+### judged-report-by-store-after-write
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The initial cache still overrides the reconciled store"
+- **Source:** p6-guardloop/review-2.md F1
+- **Wrong:** A run reported an item cached when it started by that answer, though another run had dropped it and kept another for its key before this run's write.
+- **Cause:** The run read an item's answer from the store as it first read it, before the store its write returned.
+- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `reports a cached item by the store as its write left it`
+
+### judged-unkept-rule-left-out
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Failed store writes create empty snapshots that suppress findings"
+- **Source:** p6-guardloop/review-2.md F2
+- **Wrong:** When the store could not be written, the findings file held the rule with no findings for the file, so the plugin reported nothing there even after another checkout kept a finding.
+- **Cause:** A rule was left out of a file only for an item no answer came for, not for an answer the store does not keep.
+- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `names the files whose answers the store does not keep when its write fails`, `packages/scripts/src/judged/cli.test.ts` `leaves the rule out of their file for the plugin`
+
+### reach-reads-playwright-ignore
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check accepts tests excluded by Playwright"
+- **Source:** p6-guardloop/review-2.md F3
+- **Wrong:** The reach check called a spec reached that the config's `testIgnore` leaves out.
+- **Cause:** The config reader read `testDir` and `testMatch` and not `testIgnore`.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### film-budget-counted-run
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The film budget still has no accepted measurement"
+- **Source:** p6-guardloop/review-2.md F4
+- **Wrong:** The unit gave the film suite's time at one load average, which the budget does not admit.
+- **Cause:** The budget admits a run only when both the 1- and the 5-minute averages are at or below the cores, and the machine was busy with other units.
+- **Guard:** code: `packages/scripts/src/test-budget/budget.ts` `notMeasured`
