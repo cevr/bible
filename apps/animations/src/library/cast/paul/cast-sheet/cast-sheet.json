@@ -163,6 +163,182 @@
           ],
           "squash": 34.67857142857144,
           "at": "2026-10-20T18:01:01.859Z"
+        },
+        {
+          "n": 5,
+          "file": "turnaround-5.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw him six times in one row, evenly spaced across the sheet, standing at rest with both arms hanging in their sleeves at the sides, each hand at its sleeve's end, left to right: one, facing the viewer straight on; two, turned three-quarters toward the viewer's left; three, in full profile facing the viewer's left; four, seen from directly behind; five, in full profile facing the viewer's right; six, turned three-quarters toward the viewer's right. In profile one eye shows; from behind no face shows, only the back of the hair or headcloth and the garment's back.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under every figure, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person at the same size: the same height, the same head size, the same garment length and the same hand size, their soles on the one ground line. The person stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png"
+          ],
+          "underlay": false,
+          "flags": [
+            {
+              "check": "facing",
+              "views": [1]
+            },
+            {
+              "check": "facing",
+              "views": [2]
+            },
+            {
+              "check": "sameWay",
+              "views": [2, 6]
+            },
+            {
+              "check": "profileWay",
+              "views": [2, 3]
+            },
+            {
+              "check": "squash",
+              "views": [1]
+            },
+            {
+              "check": "head",
+              "views": [2, 1]
+            },
+            {
+              "check": "head",
+              "views": [6, 1]
+            },
+            {
+              "check": "hand",
+              "views": [2, 1]
+            },
+            {
+              "check": "papers",
+              "views": [4, 1]
+            },
+            {
+              "check": "lit",
+              "views": [5]
+            },
+            {
+              "check": "bareArm",
+              "views": [6]
+            }
+          ],
+          "squash": -10.39775910364147,
+          "at": "2026-10-20T20:51:31.954Z"
+        },
+        {
+          "n": 6,
+          "file": "turnaround-6.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw him six times in one row, evenly spaced across the sheet, standing at rest with both arms hanging in their sleeves at the sides, each hand at its sleeve's end, left to right: one, facing the viewer straight on; two, turned three-quarters toward the viewer's left; three, in full profile facing the viewer's left; four, seen from directly behind; five, in full profile facing the viewer's right; six, turned three-quarters toward the viewer's right. In profile one eye shows; from behind no face shows, only the back of the hair or headcloth and the garment's back.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under every figure, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person at the same size: the same height, the same head size, the same garment length and the same hand size, their soles on the one ground line. The person stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png"
+          ],
+          "underlay": false,
+          "flags": [
+            {
+              "check": "squash",
+              "views": [1]
+            },
+            {
+              "check": "hairBeard",
+              "views": [2]
+            },
+            {
+              "check": "hairBeard",
+              "views": [6]
+            }
+          ],
+          "squash": 15.437939110070253,
+          "at": "2026-10-20T20:51:45.288Z"
+        },
+        {
+          "n": 7,
+          "file": "turnaround-7.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes. Image 4 is a layout, never a look: blank figures standing level, each turned the way its figure on this sheet faces and each about three and a third of its own heads tall. Take each figure's facing, place and size from it, and nothing else.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw him six times in one row, evenly spaced across the sheet, standing at rest with both arms hanging in their sleeves at the sides, each hand at its sleeve's end, left to right: one, facing the viewer straight on; two, turned three-quarters toward the viewer's left; three, in full profile facing the viewer's left; four, seen from directly behind; five, in full profile facing the viewer's right; six, turned three-quarters toward the viewer's right. In profile one eye shows; from behind no face shows, only the back of the hair or headcloth and the garment's back.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under every figure, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person at the same size: the same height, the same head size, the same garment length and the same hand size, their soles on the one ground line. The person stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.\n\nThis sheet is drawn again: Figure 1 faces the viewer straight on: its eyes, nose and feet point that way. Figure 2 faces the viewer's left: its eyes, nose and feet point that way. Figures 2 and 6 face opposite ways, each its own drawing. Figures 2 and 3 face the same way: the profile looks where the three-quarter beside it looks. Every figure stands about three and a third of its own heads tall, as the underlay's figures do. Figure 2's head is as big as figure 1's: 167 pixels tall on this sheet, about a third of the figure's whole height (32 %). Figure 6's head is as big as figure 1's: 167 pixels tall on this sheet, about a third of the figure's whole height (32 %). Figure 2's round hands are as big as figure 1's: each about 51 pixels across, about a third of the head's height (0.31), as the kept concept draws them. Figure 4 wears the same papers as figure 1: grey (#5d5c6f), grey (#797c86) and orange (#e7c9ac); its shade a deeper hue toward violet, never grey. Figure 5 is lit from the upper left too: its left side is the lit one. In figure 6 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png",
+            "../../../../../out/in-its-order/cast/paul/underlay-turnaround.png"
+          ],
+          "underlay": true,
+          "retryOf": 5,
+          "flags": [
+            {
+              "check": "facing",
+              "views": [1]
+            },
+            {
+              "check": "squash",
+              "views": [1]
+            },
+            {
+              "check": "head",
+              "views": [6, 1]
+            },
+            {
+              "check": "papers",
+              "views": [4, 1]
+            },
+            {
+              "check": "lit",
+              "views": [5]
+            },
+            {
+              "check": "hairBeard",
+              "views": [6]
+            }
+          ],
+          "squash": 19.17808219178082,
+          "at": "2026-10-20T20:52:22.854Z"
+        },
+        {
+          "n": 8,
+          "file": "turnaround-8.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes. Image 4 is a layout, never a look: blank figures standing level, each turned the way its figure on this sheet faces and each about three and a third of its own heads tall. Take each figure's facing, place and size from it, and nothing else.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw him six times in one row, evenly spaced across the sheet, standing at rest with both arms hanging in their sleeves at the sides, each hand at its sleeve's end, left to right: one, facing the viewer straight on; two, turned three-quarters toward the viewer's left; three, in full profile facing the viewer's left; four, seen from directly behind; five, in full profile facing the viewer's right; six, turned three-quarters toward the viewer's right. In profile one eye shows; from behind no face shows, only the back of the hair or headcloth and the garment's back.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under every figure, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person at the same size: the same height, the same head size, the same garment length and the same hand size, their soles on the one ground line. The person stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.\n\nThis sheet is drawn again: Every figure stands about three and a third of its own heads tall, as the underlay's figures do. In figure 2 a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair. In figure 6 a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png",
+            "../../../../../out/in-its-order/cast/paul/underlay-turnaround.png"
+          ],
+          "underlay": true,
+          "retryOf": 6,
+          "flags": [
+            {
+              "check": "squash",
+              "views": [1]
+            },
+            {
+              "check": "head",
+              "views": [6, 1]
+            },
+            {
+              "check": "grey",
+              "views": [3]
+            },
+            {
+              "check": "papers",
+              "views": [4, 1]
+            },
+            {
+              "check": "grey",
+              "views": [5]
+            },
+            {
+              "check": "hairBeard",
+              "views": [2]
+            },
+            {
+              "check": "lit",
+              "views": [6]
+            },
+            {
+              "check": "hairBeard",
+              "views": [6]
+            }
+          ],
+          "squash": 17.832460732984302,
+          "at": "2026-10-20T20:52:30.543Z"
         }
       ]
     },
@@ -350,6 +526,144 @@
             }
           ],
           "at": "2026-10-20T18:02:49.793Z"
+        },
+        {
+          "n": 5,
+          "file": "poses-5.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw him five times in one row, evenly spaced, each a pose the film gives him, left to right: one, seated on a low stool at a low table, turned three-quarters toward the viewer's left, writing on a sheet of parchment with a reed pen in his near hand, a small clay oil lamp lit on the table beside it; two, seated the same way, the reed pen lifted from the page, his head raised a little, thinking, tired and fond; three, standing at rest facing the viewer, his travel cloak about his shoulders, both hands low; four, standing facing the viewer, holding a rolled parchment against his chest in both hands; five, walking toward the viewer's left, three-quarters, his travel cloak swung back, a staff in his near hand.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing figure stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png"
+          ],
+          "underlay": false,
+          "flags": [
+            {
+              "check": "head",
+              "views": [2, 3]
+            },
+            {
+              "check": "hand",
+              "views": [2, 3]
+            },
+            {
+              "check": "hairBeard",
+              "views": [5]
+            }
+          ],
+          "squash": 1.5014005602241087,
+          "at": "2026-10-20T20:53:25.127Z"
+        },
+        {
+          "n": 6,
+          "file": "poses-6.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw him five times in one row, evenly spaced, each a pose the film gives him, left to right: one, seated on a low stool at a low table, turned three-quarters toward the viewer's left, writing on a sheet of parchment with a reed pen in his near hand, a small clay oil lamp lit on the table beside it; two, seated the same way, the reed pen lifted from the page, his head raised a little, thinking, tired and fond; three, standing at rest facing the viewer, his travel cloak about his shoulders, both hands low; four, standing facing the viewer, holding a rolled parchment against his chest in both hands; five, walking toward the viewer's left, three-quarters, his travel cloak swung back, a staff in his near hand.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing figure stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png"
+          ],
+          "underlay": false,
+          "flags": [
+            {
+              "check": "facing",
+              "views": [5]
+            },
+            {
+              "check": "head",
+              "views": [1, 3]
+            },
+            {
+              "check": "hand",
+              "views": [1, 3]
+            },
+            {
+              "check": "papers",
+              "views": [1, 3]
+            },
+            {
+              "check": "hairBeard",
+              "views": [1]
+            },
+            {
+              "check": "lit",
+              "views": [5]
+            },
+            {
+              "check": "hairBeard",
+              "views": [5]
+            }
+          ],
+          "squash": -3.5313351498637457,
+          "at": "2026-10-20T20:53:27.501Z"
+        },
+        {
+          "n": 7,
+          "file": "poses-7.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes. Image 4 is a layout, never a look: blank figures standing level, each turned the way its figure on this sheet faces and each about three and a third of its own heads tall. Take each figure's facing, place and size from it, and nothing else.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw him five times in one row, evenly spaced, each a pose the film gives him, left to right: one, seated on a low stool at a low table, turned three-quarters toward the viewer's left, writing on a sheet of parchment with a reed pen in his near hand, a small clay oil lamp lit on the table beside it; two, seated the same way, the reed pen lifted from the page, his head raised a little, thinking, tired and fond; three, standing at rest facing the viewer, his travel cloak about his shoulders, both hands low; four, standing facing the viewer, holding a rolled parchment against his chest in both hands; five, walking toward the viewer's left, three-quarters, his travel cloak swung back, a staff in his near hand.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing figure stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.\n\nThis sheet is drawn again: Figure 5 faces the viewer's left: its eyes, nose and feet point that way. Figure 1's head is as big as figure 3's: 161 pixels tall on this sheet, about a third of the figure's whole height (30 %). Figure 1's round hands are as big as figure 3's: each about 54 pixels across, about a third of the head's height (0.33), as the kept concept draws them. Figure 1 wears the same papers as figure 3: grey (#686374), gold (#d3b393) and grey (#7c8190); its shade a deeper hue toward violet, never grey. In figure 1 a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair. Figure 5 is lit from the upper left too: its left side is the lit one. In figure 5 a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png",
+            "../../../../../out/in-its-order/cast/paul/underlay-poses.png"
+          ],
+          "underlay": true,
+          "retryOf": 6,
+          "flags": [
+            {
+              "check": "ground",
+              "views": [1]
+            },
+            {
+              "check": "ground",
+              "views": [2]
+            },
+            {
+              "check": "papers",
+              "views": [2, 3]
+            },
+            {
+              "check": "papers",
+              "views": [4, 3]
+            },
+            {
+              "check": "papers",
+              "views": [5, 3]
+            }
+          ],
+          "at": "2026-10-20T20:54:18.579Z"
+        },
+        {
+          "n": 8,
+          "file": "poses-8.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw him five times in one row, evenly spaced, each a pose the film gives him, left to right: one, seated on a low stool at a low table, turned three-quarters toward the viewer's left, writing on a sheet of parchment with a reed pen in his near hand, a small clay oil lamp lit on the table beside it; two, seated the same way, the reed pen lifted from the page, his head raised a little, thinking, tired and fond; three, standing at rest facing the viewer, his travel cloak about his shoulders, both hands low; four, standing facing the viewer, holding a rolled parchment against his chest in both hands; five, walking toward the viewer's left, three-quarters, his travel cloak swung back, a staff in his near hand.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing figure stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.\n\nThis sheet is drawn again: Figure 2's head is as big as figure 3's: 149 pixels tall on this sheet, about a third of the figure's whole height (29 %). Figure 2's round hands are as big as figure 3's: each about 53 pixels across, about a third of the head's height (0.36), as the kept concept draws them. In figure 5 a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png"
+          ],
+          "underlay": false,
+          "retryOf": 5,
+          "flags": [
+            {
+              "check": "papers",
+              "views": [1, 3]
+            },
+            {
+              "check": "papers",
+              "views": [2, 3]
+            },
+            {
+              "check": "papers",
+              "views": [5, 3]
+            },
+            {
+              "check": "lit",
+              "views": [1]
+            }
+          ],
+          "squash": 3.0949720670391145,
+          "at": "2026-10-20T20:54:23.426Z"
         }
       ]
     },
@@ -428,6 +742,98 @@
             }
           ],
           "at": "2026-10-20T18:04:25.106Z"
+        },
+        {
+          "n": 4,
+          "file": "heads-4.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw only his head and the top of his shoulders, six times in a row, evenly spaced, all the same size. One to three are turned three-quarters toward the viewer's left: one, level, at rest; two, bowed, looking down at a page, intent; three, level, tired and fond, a small soft smile, the lids heavy. Four to six face the viewer straight on: four, level, at rest; five, level, tired and fond, a small soft smile; six, lifted a little, earnest, speaking, the mouth a little open inside the beard.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, and nothing under the heads. Every head on the sheet is the same person at the same size: the same head size and the same hair, each head with the top of its shoulders only. No hands, no arms and no skin show below the neck. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png"
+          ],
+          "underlay": false,
+          "flags": [
+            {
+              "check": "head",
+              "views": [1, 4]
+            },
+            {
+              "check": "hairBeard",
+              "views": [1]
+            }
+          ],
+          "at": "2026-10-20T20:55:05.153Z"
+        },
+        {
+          "n": 5,
+          "file": "heads-5.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw only his head and the top of his shoulders, six times in a row, evenly spaced, all the same size. One to three are turned three-quarters toward the viewer's left: one, level, at rest; two, bowed, looking down at a page, intent; three, level, tired and fond, a small soft smile, the lids heavy. Four to six face the viewer straight on: four, level, at rest; five, level, tired and fond, a small soft smile; six, lifted a little, earnest, speaking, the mouth a little open inside the beard.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, and nothing under the heads. Every head on the sheet is the same person at the same size: the same head size and the same hair, each head with the top of its shoulders only. No hands, no arms and no skin show below the neck. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png"
+          ],
+          "underlay": false,
+          "flags": [
+            {
+              "check": "head",
+              "views": [3, 4]
+            },
+            {
+              "check": "head",
+              "views": [2, 1]
+            },
+            {
+              "check": "head",
+              "views": [3, 1]
+            },
+            {
+              "check": "head",
+              "views": [6, 4]
+            },
+            {
+              "check": "hairBeard",
+              "views": [1]
+            },
+            {
+              "check": "hairBeard",
+              "views": [2]
+            },
+            {
+              "check": "hairBeard",
+              "views": [3]
+            }
+          ],
+          "at": "2026-10-20T20:55:14.057Z"
+        },
+        {
+          "n": 6,
+          "file": "heads-6.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw only his head and the top of his shoulders, six times in a row, evenly spaced, all the same size. One to three are turned three-quarters toward the viewer's left: one, level, at rest; two, bowed, looking down at a page, intent; three, level, tired and fond, a small soft smile, the lids heavy. Four to six face the viewer straight on: four, level, at rest; five, level, tired and fond, a small soft smile; six, lifted a little, earnest, speaking, the mouth a little open inside the beard.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, and nothing under the heads. Every head on the sheet is the same person at the same size: the same head size and the same hair, each head with the top of its shoulders only. No hands, no arms and no skin show below the neck. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.\n\nThis sheet is drawn again: Figure 1's head is the size of figure 4's, which turns the same way: its eyes about 50 pixels apart. In figure 1 a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png"
+          ],
+          "underlay": false,
+          "retryOf": 4,
+          "flags": [],
+          "at": "2026-10-20T20:55:44.881Z"
+        },
+        {
+          "n": 7,
+          "file": "heads-7.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is a Bible man as the house draws him now: a long garment with its sleeve to the wrist, each round hand at its sleeve's end, a headcloth over the hair; the build and the line only, never his white robe or his face. Image 3 is the house's figures side by side: the line, the paper, the three-mark faces and the shading turned toward violet; the style only, never their clothes.\n\nThe person is the apostle Paul as the films draw him: a man of middle age, slight and narrow in build, a little shorter than the other grown men (\"his bodily presence is weak\", 2 Corinthians 10:10), no halo and no glow. Short dark-brown hair round the sides and back only, the top of his head bare skin in every view (a balding crown), with no headcloth; a short beard of grey-brown (#8a7d74), lighter and greyer than his hair, his mouth inside it, parted from the side hair by a clear strip of cheek skin; warm tan skin; small dark oval eyes, short dark brows. A plain linen tunic (#d1c6b4) to the ankles with its sleeves to the wrist, and over it a dusty slate-blue travel cloak (#727c8a, its far side turned toward violet #5c5a72), a cool muted blue-grey and not brown in any shade, wrapped round both shoulders and over his upper arms like a cape closed at the neck, one piece falling to his shins, never two straight bands down his front, with no clasp, pattern or trim; brown sandals. Each round hand at the end of its sleeve, no thumbs. His head is one simple shape. His face is calm, tired or fond at rest: level brows, never knitted, no lines under the eyes or on the forehead. What he carries, and only where a pose names it: a reed pen, a sheet or roll of parchment, a small clay oil lamp, a plain staff.\n\nDraw only his head and the top of his shoulders, six times in a row, evenly spaced, all the same size. One to three are turned three-quarters toward the viewer's left: one, level, at rest; two, bowed, looking down at a page, intent; three, level, tired and fond, a small soft smile, the lids heavy. Four to six face the viewer straight on: four, level, at rest; five, level, tired and fond, a small soft smile; six, lifted a little, earnest, speaking, the mouth a little open inside the beard.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, and nothing under the heads. Every head on the sheet is the same person at the same size: the same head size and the same hair, each head with the top of its shoulders only. No hands, no arms and no skin show below the neck. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.\n\nThis sheet is drawn again: Figure 3's head is the size of figure 4's, which turns the same way: its eyes about 42 pixels apart. Figure 2's head is the size of figure 1's, which turns the same way: its eyes about 39 pixels apart. Figure 3's head is the size of figure 1's, which turns the same way: its eyes about 39 pixels apart. Figure 6's head is the size of figure 4's, which turns the same way: its eyes about 42 pixels apart. In figure 1 a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair. In figure 2 a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair. In figure 3 a narrow dark band, the deep shade of the brown, runs between the beard and each lock of hair: the beard never runs into the hair.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "farmer-robe-5-middle.png",
+            "k1-minimal-lineup.png"
+          ],
+          "underlay": false,
+          "retryOf": 5,
+          "flags": [],
+          "at": "2026-10-20T20:55:54.115Z"
         }
       ]
     }
