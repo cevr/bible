@@ -16,6 +16,39 @@
       "text": "The owner kept the script of In Its Order and moved it on to the concept and the Board.",
       "quote": "Keep it: go on to the concept and the Board",
       "by": "in-its-order unit (Claude)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792534894200,
+      "text": "In Its Order: the concept frames and the cast sheets (ask a26a8a83f89)",
+      "set": "in-its-order-concept-2026-10-20",
+      "ask": "a26a8a83f89",
+      "by": "coordinator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792535185645,
+      "text": "In Its Order: the concept frames and the cast sheets (ask a26a8a83f89): frames: Keep cold, stones and sum; redraw the priest and the name · lead: A human man, as in RBF · card: Yes, \"Grow in grace\" · colours: Keep the new colours · height: Every figure on the cast canon, 3.36 heads · sheets: Go on: lock the sheets offered, and redraw Paul's and Jeremiah's turnarounds and poses · cast_notes: just remember to redraw the plain, thatll be the lead from now on - ensure Jesus uses the library not the concept when its incorrect",
+      "quote": "just remember to redraw the plain, thatll be the lead from now on - ensure Jesus uses the library not the concept when its incorrect",
+      "set": "in-its-order-concept-2026-10-20",
+      "ask": "a26a8a83f89",
+      "picks": {
+        "frames": "keep3-redraw2",
+        "lead": "human",
+        "card": "keep",
+        "colours": "keep",
+        "height": "canon",
+        "sheets": "go-on"
+      },
+      "by": "coordinator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792535217478,
+      "text": "The human lead (redrawn from the plain figure) is the lead from now on. Christ is drawn from the cast library wherever a concept of Him is wrong.",
+      "quote": "just remember to redraw the plain, thatll be the lead from now on - ensure Jesus uses the library not the concept when its incorrect",
+      "set": "in-its-order-concept-2026-10-20",
+      "by": "coordinator"
     }
   ],
   "filed": []
