@@ -973,22 +973,31 @@ const play = (platform: Platform, network: Network, acts: ReadonlyArray<Act>) =>
 /** Seeded runs for each network on `platform`. */
 const runs = 24;
 
-const property = (platform: Platform) =>
+const property = (platform: Platform, network: Network) =>
   Effect.gen(function* () {
     const broken = new Array<string>();
-    for (const network of networks) {
-      for (const seed of Array.from({ length: runs }, (_, i) => i)) {
-        const outcome = yield* play(platform, network, runOf(seed));
-        if (Option.isSome(outcome.broken)) broken.push(`seed ${seed}: ${outcome.broken.value}`);
-      }
+    for (const seed of Array.from({ length: runs }, (_, i) => i)) {
+      const outcome = yield* play(platform, network, runOf(seed));
+      if (Option.isSome(outcome.broken)) broken.push(`seed ${seed}: ${outcome.broken.value}`);
     }
     expect(broken.slice(0, 3)).toEqual([]);
   });
 
+// A case for each platform and network: each a small share of its timeout
+// while the browser test runs beside it.
 describe('from the reader’s Play, by any path, the player never shows Paused and plays on a working network', () => {
-  it.effect('on the web, whose play() waits until the element plays', () => property('web'));
-  it.effect('on iOS, whose resume answers while AVPlayer waits to play', () => property('ios'));
-  it.effect('on Android, whose MediaPlayer starts once prepared', () => property('android'));
+  for (const network of networks) {
+    it.effect(`on the web, whose play() waits until the element plays, over ${network.name}`, () =>
+      property('web', network),
+    );
+    it.effect(
+      `on iOS, whose resume answers while AVPlayer waits to play, over ${network.name}`,
+      () => property('ios', network),
+    );
+    it.effect(`on Android, whose MediaPlayer starts once prepared, over ${network.name}`, () =>
+      property('android', network),
+    );
+  }
 });
 
 describe('each defect found before, as a fixed run: every act done, and the page where its name says', () => {

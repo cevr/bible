@@ -759,16 +759,21 @@ const runOf = (seed: number): Run =>
     }).pipe(Random.withSeed(seed)),
   );
 
-/** How many seeded runs the property tries. */
+/** How many seeded runs the property tries, in cases of `slice` seeds each. */
 const runs = 400;
+const slice = 50;
 
 describe('the web position bar under any run of input', () => {
-  test('keeps its rules over seeded runs of presses, keys, pointers and ticks', () => {
-    const broken = Array.from({ length: runs }, (_, seed) =>
-      Option.map(play(runOf(seed)), (line) => `seed ${seed}: ${line}`),
-    ).filter(Option.isSome);
-    expect(broken.slice(0, 3).map((it) => it.value)).toEqual([]);
-  });
+  // Each case its own slice of the seeds: every seed runs, and each case
+  // stays a small share of its timeout while the browser test runs beside it.
+  for (const from of Array.from({ length: runs / slice }, (_, i) => i * slice)) {
+    test(`keeps its rules over seeded runs ${from} to ${from + slice - 1} of presses, keys, pointers and ticks`, () => {
+      const broken = Array.from({ length: slice }, (_, i) => from + i)
+        .map((seed) => Option.map(play(runOf(seed)), (line) => `seed ${seed}: ${line}`))
+        .filter(Option.isSome);
+      expect(broken.slice(0, 3).map((it) => it.value)).toEqual([]);
+    });
+  }
 
   // Each defect found before, as a fixed run of steps that shows it.
   const drag = (to: ReadonlyArray<number>): Array<Step> =>
