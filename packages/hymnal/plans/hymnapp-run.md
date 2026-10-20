@@ -183,6 +183,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 - While online, Buffering that lasts 15 s offers Retry beside the Buffering state; Retry keeps the place, and the device is not stopped (reversible UX default; the offline give-up stays as Decided 3). A Play from a place sounds first at that place on Android too; if One 2.8.1 has no path for it, the lead-in is a known gap for the One upgrade. (playstall r1 F10, F5; never-block-on-the-human)
 
+- Android's Retry from a place sounds about 100 ms from 0:00 before its seek lands: a known gap of One 2.8.1 against Decided 5 (its MediaPlayer starts at prepare and refuses a seek until then; the managed player that can wait paused does not drive the lock screen). Kept as a gap, not worked around. (playstall r2 F5, `blocked.md` "r2 F5")
+
 ## Owner questions
 
 - hymnrows (2026-10-20): the rewrite failed its 3 rounds (r6 changes: M1, repeat of r5 M1). The data at head `ebb5933da` is sound by every check: 0 census problems, 518 crops re-cut byte-identical, 584 matches its crop, and the gate is green. The defect is the census's reach: 115 hand-made layout mutants in 25 hymns pass it unseen. Options: (A, recommended) merge the data now and open unit `census2` with the 115 mutants as red fixtures first; (B) one more rewrite before anything merges; (C) merge the data and drop the census's layout check. Answer: pending.
@@ -197,6 +199,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 - census2: rows the page contradicts, each `unsettled` with its row unchanged: 3, 18, 58, 162, 207, 214, 220, 243, 398, 402 (table and crops in census2's `blocked.md`). Recommendation: one ask after census2 merges, each row a choice (change the row to the page / keep the row), the page's crop beside it. Answer: —
 
 ## Follow-ups
+
+- One upgrade: Android play from a place (prepare paused at a seek, with the lock screen), closing playstall's F5 gap.
 
 - Responsive readings 696-920 (the old app had them; the new app stops at 695): compile them from the scans, after checking each reading's Scripture version for copyright. (old-app read, 2026-10-20)
 - A store-review prompt counted by settled opens (old-app idea), once the app ships to a store.
