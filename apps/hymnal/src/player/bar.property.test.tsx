@@ -761,7 +761,7 @@ const runOf = (seed: number): Run =>
 
 /** How many seeded runs the property tries, in cases of `slice` seeds each. */
 const runs = 400;
-const slice = 50;
+const slice = 10;
 
 describe('the web position bar under any run of input', () => {
   // Each case its own slice of the seeds: every seed runs, and each case
