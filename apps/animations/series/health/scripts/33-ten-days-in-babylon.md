@@ -16,6 +16,47 @@ plate, what it proved, and what it did not.
 **Standing line (on screen 0–3 s; first line of the description):**
 _Principles from Scripture, not medical advice. Don't stop or change any treatment without your doctor._
 
+## Cast
+
+This is a talk. The speaker is filmed. Its Bible scenes are generated Illustration stills in the sermon decks' painting style, with no rigs (casting.md §4 item 11). Its one everyday moment, the seeds in a palm in beat 9, is a cut-paper insert (ensemble.md, open choice 6).
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The speaker (the owner, on camera) | on camera, not drawn | series | n/a | `1`, `6`, `7`, `12`, `14`, `15` | none (filmed) |
+| Daniel (casting.md #30) | Bible figure, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4), not drawn | `3`, `10` | no sheet (Illustration). `3`: one of the four youths at Babylon's gate, still, chin level (three-quarter), his name card swapping to Belteshazzar. `10`: his face in the row of four (front). Indigo over linen |
+| Hananiah, Mishael and Azariah (casting.md #31) | Bible figures, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4), not drawn | `3`, `10` | no sheet (Illustration). `3`: beside Daniel at the gate, four youths of four heights (three-quarter), their name cards swapping. `10`: their faces in the row of four (front). Cloth as casting.md #31 gives it |
+| The court youths (casting.md #33, Babylon's court and captives) | Bible crowd, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4, crowd), not drawn | `10` | no sheet (Illustration): a row of faces beside the four (front); never a caricature |
+| Nebuchadnezzar (casting.md #32) | Bible figure, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4), not drawn | `11` | no sheet (Illustration): on the throne, leaning forward (three-quarter); royal purple, a brass crown that does not glow; a person, not a menace |
+| The palm holding seeds | the plain lead's hand (character-design 2.3), a cut-paper insert (ensemble.md, open choice 6) | shared (the one plain lead) | the plain lead's sheet exists (drawn before the sleeves rule) | `9` | close on an open circle hand at its sleeve's end, seeds in it (top-down); sleeves to the wrist |
+
+Named, not shown: Melzar, the steward (casting.md 1.6; beat 10 shows the faces only).
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The speaker's set (filmed, not drawn) | series | `1`, `6`, `7`, `12`, `14`, `15` | as filmed |
+| Babylon's palace table: roast meat and wine (Illustration) | shared (E19's banquet; casting.md Prototype 3) | `1`, `15` | as painted |
+| Babylon's gate (Illustration) | shared (E19) | `3` | as painted |
+| The royal kitchen under altar smoke (Illustration) | film | `5` | as painted |
+| Eden's garden (Illustration) | shared (Eden; T03 and C01 draw it in cut paper) | `9` | as painted |
+| The throne room (Illustration) | shared (E19) | `11` | as painted |
+| The card page: the hook card, the series card, the Scripture cards, the word card, the callout | series | `1`, `2`, `4`, `8`, `9`, `10`, `11`, `12` | the series' card style |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The king's roast meat and wine (the hook's table) | shared (E19's banquet) | `1`, `15` |
+| The name cards, Daniel to Belteshazzar | shared (E19's name tag) | `3` |
+| Daniel's plate of pulse | shared (Daniel's identity feature, casting.md #30) | `15` |
+| The seeds | film | `9` |
+| The overhead plate, its four ingredients cut on each noun | series (01's bowl of fruit and grain) | `13` |
+
+New to the library: the plain lead's open hand with seeds (one pose). The Illustration stills (the four, the court youths, the king, the table, the gate, the kitchen, Eden, the throne room) are generated, so they add no rig.
+
+## Beats
+
 | #                       | Spoken (owner, to lens)                                                                                                                                                                                                                            | On screen / B-roll                                                                                                                          | Source note                                                                                                                                                                                     |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1 · Hook                | Four young captives once risked their necks on a ten-day test of what they {*}ate. {/} It's in the Bible, and it {*}worked.                                                                                                                        | Frame 0 owner; 0.9 s: a palace table, roast meat and wine (generated, "Illustration"). Hook card: "Does what you eat change how you think?" | Dan 1:10, 1:12–15                                                                                                                                                                               |

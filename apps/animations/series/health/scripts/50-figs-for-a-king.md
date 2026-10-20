@@ -16,6 +16,37 @@ hook_card: 'Is taking medicine a lack of faith?'
 _Principles from Scripture, not medical advice. Don't stop or change any treatment without your doctor._
 In this video the standing line is also spoken (beat 8), because the subject is treatment itself.
 
+## Cast
+
+This is a talk. The speaker is filmed. Its Bible scene is a generated Illustration still in the sermon decks' painting style, with no rig (casting.md §4 item 11). The figs are stock footage, so it has no cut-paper insert (ensemble.md, open choice 6).
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The speaker (the owner, on camera) | on camera, not drawn | series | n/a | `1`, `4`, `5`, `7`, `8` | none (filmed) |
+| Hezekiah (casting.md #34) | Bible figure, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4), not drawn | `2`, `3` | no sheet (Illustration). `2`: a king on his bed, his face turned to the wall, his back to the room (three-quarter, from behind); linen sick-garment, royal purple coverlet. `3`: hands at their sleeves' ends laying the lump of figs on the boil (close), no faces ("they took and laid it", 2 Kgs 20:7) |
+| The hand that lifts the figs | filmed with the stock figs, not drawn | film | n/a | `9` | none (filmed) |
+
+Named, not shown: Isaiah, "the prophet" of beat 3 (casting.md 1.1); Paul and Luke in beat 6, which shows cards only (casting.md 1.1 and 1.6).
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The speaker's set (filmed, not drawn) | series | `1`, `4`, `5`, `7`, `8` | as filmed |
+| Hezekiah's room: the bed against the wall (Illustration) | series (H41 plans him again) | `2`, `3` | as painted |
+| The cloth with the figs (stock, not drawn) | film | `1`, `9` | as filmed |
+| The card page: the hook card, the Scripture cards, the callout, the standing line | series | `1`, `2`, `3`, `6`, `7`, `8` | the series' card style |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The lump of pressed figs (the hook's figs: stock in `1` and `9`, painted in `3`) | film | `1`, `3`, `9` |
+
+New to the library: nothing drawn. The Illustration stills (Hezekiah on his bed, the hands with the figs) are generated, so they add no rig; the figs are stock.
+
+## Beats
+
 | #                         | Spoken (owner, to lens)                                                                                                        | On screen / B-roll                                                                                       | Source note                                                                                                                                                                                        |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1 · Hook                  | God promised a dying king fifteen more {*}years. {/} Then He prescribed {*}figs.                                               | Frame 0 owner; 1.0 s: a lump of pressed figs on a cloth (stock). Hook card.                              | 2 Kgs 20:1, 6–7                                                                                                                                                                                    |

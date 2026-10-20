@@ -15,6 +15,39 @@ hook_card: 'Is resting a lack of commitment?'
 **Standing line (on screen 0–3 s; first line of the description):**
 _Principles from Scripture, not medical advice. Don't stop or change any treatment without your doctor._
 
+## Cast
+
+This is a talk. The speaker is filmed. Its Bible scenes are generated Illustration stills in the sermon decks' painting style, with no rigs (casting.md §4 item 11). Its everyday pictures (the bedroom, the fields) are B-roll of places, with no figure, so it has no cut-paper insert (ensemble.md, open choice 6).
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The speaker (the owner, on camera) | on camera, not drawn | series | n/a | `1`, `4`, `5`, `8`, `9` | none (filmed) |
+| Jesus Christ (`christ`, casting.md #1) | Bible figure, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | yes: `src/library/cast/christ` (the rig is not used here) | `2`, `3` | no sheet (Illustration). `2`: at the centre of the twelve as they talk over each other (three-quarter). `3`: in the boat as it pushes off (wide, three-quarter). An ordinary man in his earthly dress, the linen coat and walnut mantle; never a portrait, no halo or glow, never the tallest among them |
+| The twelve (casting.md #10) | Bible figures, a group, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P3), not drawn | `2`, `3` | no sheet (Illustration). `2`: round him, back from their mission, talking over each other (three-quarter, front). `3`: in the boat as it pushes off (wide). Grown men of mixed ages and heights, no two alike; the fishers in indigo |
+| The lakeshore crowd (casting.md #3, gospel crowds) | Bible crowd, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P1 as a kit), not drawn | `1` | no sheet (Illustration): crowded along the shore at dusk (wide); pity, not menace |
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The speaker's set (filmed, not drawn) | series | `1`, `4`, `5`, `8`, `9` | as filmed |
+| The Galilee lakeshore and the water (Illustration) | shared (T05's lake) | `1`, `3`, `9` | dusk in `1`; still water in `9` |
+| A dark bedroom with a clock, then a sunrise (B-roll, not drawn) | series (01's bed and sunrise) | `6` | dark, then sunrise |
+| Fields, woods, a bird on a branch (B-roll, not drawn) | series | `7` | as filmed |
+| The card page: the hook card, the Scripture cards | series | `1`, `3`, `8` | the series' card style |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The boat | shared (T05's boat in the storm) | `3`, `9` |
+| The clock by the bed | film | `6` |
+| The phone, face-down | series (06's phone) | `7` |
+
+New to the library: nothing drawn. The Illustration stills (Christ and the twelve, the lakeshore crowd, the boat) are generated, so they add no rig; the bedroom and the fields are B-roll.
+
+## Beats
+
 | #                      | Spoken (owner, to lens)                                                                                                         | On screen / B-roll                                                                        | Source note                                                                                                                                                                                                                                            |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1 · Hook               | The crowds kept coming, and Jesus told His disciples to {*}stop.                                                                | Frame 0 owner; 0.8 s: a crowded lakeshore at dusk (generated, "Illustration"). Hook card. | Mark 6:31                                                                                                                                                                                                                                              |

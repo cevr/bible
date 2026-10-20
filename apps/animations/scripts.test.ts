@@ -1,24 +1,14 @@
 // Every series script lists its cast (series README, "Every script lists its
-// cast"): the concept stage draws its cast sheets from that list. The scripts
-// written before the rule are named here; the list only shrinks, so a script
-// given its cast must leave it.
+// cast"): the concept stage draws its cast sheets from that list.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, FileSystem } from 'effect';
 
-const BEFORE_THE_RULE = [
-  'series/health/scripts/01-the-lord-that-healeth-thee.md',
-  'series/health/scripts/06-the-breath-he-gave.md',
-  'series/health/scripts/20-rest-a-while.md',
-  'series/health/scripts/33-ten-days-in-babylon.md',
-  'series/health/scripts/50-figs-for-a-king.md',
-];
-
 const hasCast = (text: string) => text.split('\n').some((line) => line.trim() === '## Cast');
 
 describe('the series scripts', () => {
-  it.effect('every script lists its cast, or was written before the rule', () =>
+  it.effect('every script lists its cast', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const series = yield* fs.readDirectory('series');
@@ -34,18 +24,8 @@ describe('the series scripts', () => {
       const read = yield* Effect.forEach(scripts, (path) =>
         Effect.map(fs.readFileString(path), (text) => ({ path, cast: hasCast(text) })),
       );
-      const missing = read
-        .filter((s) => !s.cast && !BEFORE_THE_RULE.includes(s.path))
-        .map((s) => s.path);
-      const listedButCast = read
-        .filter((s) => s.cast && BEFORE_THE_RULE.includes(s.path))
-        .map((s) => s.path);
-      const listedButGone = BEFORE_THE_RULE.filter((path) => !scripts.includes(path));
-      expect({ missing, listedButCast, listedButGone }).toEqual({
-        missing: [],
-        listedButCast: [],
-        listedButGone: [],
-      });
+      expect(scripts.length).toBeGreaterThan(0);
+      expect(read.filter((s) => !s.cast).map((s) => s.path)).toEqual([]);
     }).pipe(Effect.provide(BunServices.layer)),
   );
 });

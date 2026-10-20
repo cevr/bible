@@ -15,6 +15,42 @@ hook_card: "Why is air on God's list of remedies?"
 **Standing line (on screen 0–3 s; first line of the description):**
 _Principles from Scripture, not medical advice. Don't stop or change any treatment without your doctor._
 
+## Cast
+
+This is a talk. The speaker is filmed. Its Bible scene is a generated Illustration still in the sermon decks' painting style, with no rig (casting.md §4 item 11). Its everyday moment, the stooped figure in beat 5, is a cut-paper insert (ensemble.md, open choice 6).
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The speaker (the owner, on camera) | on camera, not drawn | series | n/a | `1`, `3`, `5`, `6`, `9` | none (filmed) |
+| Adam, as the clay figure (casting.md #5, garment stage 4) | Bible figure, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P2), not drawn | `1`, `9` | no sheet (Illustration). `1`: the figure of clay lying on the ground, a breath of light over it (wide, three-quarter). `9`: the same figure from the same angle, now breathing. The breath is light only, as the script pictures it |
+| The stooped figure at the desk, the phone and the wheel | the plain lead (character-design 2.3), a cut-paper insert (ensemble.md, open choice 6) | shared (the one plain lead) | the plain lead's sheet exists (drawn before the sleeves rule) | `5` | stooped over a desk (profile); hunched over a phone held low (profile); leaning over a steering wheel (three-quarter); the chest closed in each; sleeves to the wrist |
+
+Named, not shown: Paul (casting.md 1.1; beat 8 shows the Areopagus stones only).
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The speaker's set (filmed, not drawn) | series | `1`, `3`, `5`, `6`, `9` | as filmed |
+| The ground where the clay figure lies (Illustration) | shared (Adam's; T03 and C01 draw Eden in cut paper) | `1`, `9` | as painted |
+| The desk (casting.md 2.4, the desk worker's workplace) | series (H27 and H30 plan it) | `5` | not set by the script |
+| A car seat at the wheel | film | `5` | not set by the script |
+| A room with a window | series (01's open window) | `7` | not set by the script |
+| The Areopagus stones (B-roll, not drawn) | film | `8` | as filmed or painted |
+| The card page: the hook card, the Scripture cards, the three timers (weeks, days, minutes) | series | `1`, `2`, `3`, `8` | the series' card style |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The window thrown open, the curtains lifting | series (01's open window; the Pure air strand) | `7` |
+| The phone | series (20 lays it face-down) | `5` |
+| The lungs and the current along an arm (a diagram) | film | `4` |
+
+New to the library: the plain lead stooped (three poses); the desk set (casting.md 2.4 plans it for H27 and H30; this talk needs it first); the car seat; the room with the window. The clay figure is a generated still, so it adds no rig.
+
+## Beats
+
 | #                      | Spoken (owner, to lens)                                                                                                | On screen / B-roll                                                                                              | Source note                                                                                                                                                                                                       |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1 · Hook               | The first thing God gave a human being went in through the {*}nose.                                                    | Frame 0 owner; 0.9 s: a figure of clay on the ground, a breath of light (generated, "Illustration"). Hook card. | Gen 2:7                                                                                                                                                                                                           |
