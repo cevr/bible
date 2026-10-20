@@ -1038,17 +1038,17 @@ describe('a judged rule never fails on its model', () => {
 
   it.effect('sends no part after one the account refuses, for credits or a rate limit', () =>
     Effect.gen(function* () {
-      for (const [status, body, reason] of [
-        [402, { detail: { error_type: 'billing_error' } }, 'no-credits'],
-        [429, { message: 'Rate limit exceeded' }, 'rate-limit'],
+      // Twenty parts of one item, eight in flight at once: only those already in
+      // flight are sent, once each for credits, with three retries each for a rate limit.
+      for (const [status, body, reason, sent] of [
+        [402, { detail: { error_type: 'billing_error' } }, 'no-credits', 8],
+        [429, { message: 'Rate limit exceeded' }, 'rate-limit', 8 * 4],
       ] as const) {
         const typesafe = typesafeAnswering(status, () => body);
         expect(yield* ticking(onePartEachOver(typesafe.layer))).toBe(
           `[judged] skipped rule=historyComment reason=${reason} items=20`,
         );
-        // Twenty parts of one item; only those already in flight are sent, a
-        // rate-limited one with its three retries.
-        expect(typesafe.requests.length).toBeLessThanOrEqual(8 * 4);
+        expect([status, typesafe.requests.length <= sent]).toEqual([status, true]);
       }
     }),
   );
