@@ -437,8 +437,9 @@ export const CODE_CSS = `
 /* Three rows of it at a time, the live chip's row on top (\`Band\`); the rest scrolls under a hand. A row is as
    tall as a chip (its line and its border), and a chip stands centred in its row, so three rows fit the box whole. */
 .st-code-said { --chip-h: calc(var(--lh-1) + 2px); --said-row: max(var(--lh-2), var(--chip-h)); position: relative; margin: 0; max-height: calc(3 * var(--said-row)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; font-family: var(--font); font-size: var(--fs-2); line-height: var(--said-row); color: var(--text-1); text-wrap: pretty; }
-.st-code-chip { display: inline-block; box-sizing: border-box; height: var(--chip-h); margin: calc((var(--said-row) - var(--chip-h)) / 2) 0.3em; padding: 0 var(--s-1); border-radius: var(--r-1); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); vertical-align: top; overflow: clip; }
-.st-app button.st-code-chip { border: 1px solid var(--line-strong); padding: 0 var(--s-1); }
+/* A chip names a \`{mark}\` as the code does, in the mono face, a button's as a plain one's: the rule outranks the bare
+   button's reset. */
+.st-app .st-code-chip { display: inline-block; box-sizing: border-box; height: var(--chip-h); margin: calc((var(--said-row) - var(--chip-h)) / 2) 0.3em; padding: 0 var(--s-1); border-radius: var(--r-1); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); vertical-align: top; overflow: clip; }
 .st-app button.st-code-chip:hover { color: var(--text-1); border-color: var(--text-2); }
 .st-app button.st-code-chip[data-live="true"] { color: var(--state-live); border-color: var(--state-live); }
 .st-code-live { flex: 1 1 auto; text-align: right; color: var(--state-live); }

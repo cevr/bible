@@ -3,10 +3,10 @@
 // by the playhead while it is in the beat (the playing cue's literal and the
 // read that fires, a meter under its line and its percent beside it, the cue
 // that waits dim and saying when it starts, a cue played held, the band
-// counting what plays and naming the next), unlit once it
-// leaves, and unlit on a version kept in its own folder; the band sets the
-// beat's line with a chip at each mark, the live one lit, three whole rows of
-// a long line in sight, and a chip seeks to its mark; a tap on a line, its
+// counting what plays and naming the next), unlit once it leaves, and unlit
+// on a version kept in its own folder; the band sets the beat's line with a
+// chip at each mark in the code's face, the live one lit, three whole rows
+// of a long line in sight, and a chip seeks to its mark; a tap on a line, its
 // text or its number, and Enter on its number, put the playhead where the
 // line next plays, once, and select nothing; the number seeks with text
 // selected in the code or outside the pane, and a drag that selects a line's
@@ -466,6 +466,16 @@ for (const size of SIZES)
           );
           yield* attributeIs(page, `${band} .st-code-chip[data-mark="rise"]`, 'data-live', 'true');
           yield* attributeIs(page, `${band} .st-code-chip[data-mark="fall"]`, 'data-live', 'false');
+          // A chip that seeks is a button, set in the code's own face as a plain chip is.
+          yield* evaluates(
+            page,
+            `(() => {
+              const chip = getComputedStyle(document.querySelector('${band} button.st-code-chip'));
+              const code = getComputedStyle(document.querySelector('${CODE_SECTION} .st-code-page'));
+              return [chip.fontFamily === code.fontFamily, chip.fontSize === code.fontSize];
+            })()`,
+            [true, true],
+          );
           yield* page.click(`${band} .st-code-chip[data-mark="fall"]`);
           yield* until(page, `Math.abs(${HASH_T} - ${into(said('fall'))}) < 0.002`);
           yield* attributeIs(page, `${band} .st-code-chip[data-mark="fall"]`, 'data-live', 'true');
