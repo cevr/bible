@@ -1,20 +1,28 @@
 /* oxlint-disable effect/noGlobals, effect/noAsyncFunction, eslint/no-await-in-loop, effect/noNewPromise, effect/noThrowStatement, effect/noNewError, effect/noNullish, effect/noTernary, effect/noTestLifecycleHooks -- a browser harness, a host boundary: it builds the page with Bun, serves it, and drives Chromium one step after another through Playwright's promises, as packages/ui's browser tests do. */
 
 /**
- * The Hymns list in a real browser (Chromium, through Playwright), because
- * a scroll place needs layout and a fake DOM has none. On the web a list is
- * mounted anew when the reader comes back to it (Back from a hymn, or its
- * tab), and it must come back where he left it:
- * - Back and a tab switch return to the saved offset (the spec asks within
- *   one row; the list keeps it to the pixel, and so does this test), at
- *   offsets across the whole list, from hymn 1 to the very end;
- * - once the reader scrolls, the list never moves by itself;
+ * The Hymns and Search lists in a real browser (Chromium, through
+ * Playwright), because a scroll place needs layout and a fake DOM has none.
+ * Each page is the app's HTML rendered on the server (`server.tsx`, with no
+ * window, as One's server and its static build render it) and hydrated in
+ * the browser with `hydrateRoot` (`page.tsx`). On the web a list is mounted
+ * anew when the reader comes back to it, and it must come back as he left
+ * it:
+ * - hydration keeps the server's list: no hydration error, at window
+ *   heights from a small phone's to a tall Mac window's, and a scroll made
+ *   before it or after it is never undone, its rows drawn;
+ * - Back, the header's back link and a tab switch return to the saved
+ *   offset within one row, its row drawn in the first frame, at offsets
+ *   across the whole list and window heights across the same range;
+ * - after a return, the list never moves by itself once the reader scrolls,
+ *   and it draws every row on screen after a move straight to the top, a
+ *   fling to the top, or a search with no result cleared again;
  * - a press right after a scroll saves the true offset.
  * A row is a real link: Enter opens it inside the app, and a Cmd- or
- * Ctrl-click leaves it to the browser, which opens it in a new tab.
+ * Ctrl-click leaves it to the browser, which opens the hymn in a new tab.
  *
- * The page (`page.tsx`) is bundled here with the boundaries the app's other
- * tests use (`src/test/setup.ts`): react-native-web, the real words, and
+ * The page is bundled here with the boundaries the app's other tests use
+ * (`src/test/setup.ts`): react-native-web, the real words, and
  * `src/test/one.tsx` for the router. Each case has a page of its own, so
  * the cases run at once. It needs Playwright's Chromium
  * (`bunx playwright install chromium`).
@@ -25,9 +33,20 @@ import { chromium, type Browser, type BrowserContext, type Page } from '@playwri
 import type { BunPlugin } from 'bun';
 
 import { readWords } from '../../vite/words';
+import { type ListName, lists } from './routes';
+import { render } from './server';
 
-/** The page's window: a phone's width and height, in CSS pixels. */
-const viewport = { width: 402, height: 874 };
+/** A row's height at the web's text size. */
+const rowHeight = 44;
+
+/** Window heights, in CSS pixels: a small phone's to a tall Mac window's. */
+const heights = [320, 568, 874, 1400];
+
+/** A window of `height`: a phone's width, or a Mac window's when it is tall. */
+const windowOf = (height: number) => ({ width: height > 1000 ? 1024 : 402, height });
+
+/** The offsets sampled, by share of the list's height: its first rows to its very end. */
+const shares = [0.005, 0.1, 0.33, 0.6, 0.85, 1];
 
 /** The bundler boundaries, as `src/test/setup.ts` sets them for the other tests. */
 const boundaries: BunPlugin = {
@@ -60,26 +79,25 @@ const bundle = async (): Promise<string> => {
   return script.text();
 };
 
-const html =
-  '<!doctype html><html><head><meta charset="utf-8"></head><body><div id="root"></div><script type="module" src="/page.js"></script></body></html>';
-
 let server: ReturnType<typeof Bun.serve>;
 let browser: Browser;
 
-/** The offsets sampled, by share of the list's height: its first rows to its very end. */
-const shares = [0.005, 0.1, 0.33, 0.6, 0.85, 1];
-
-/** The offsets each list case visits, measured once by scrolling to the list's end. */
-let offsets: ReadonlyArray<number> = [];
-
 /**
- * A page of the app of its own, in a window of `size`, at the list's top,
- * and what a case does on it: each step waits for the page as a reader's
- * next move would.
+ * A page of the app of its own, loaded cold at `path` in a window of
+ * `height`, and what a case does on it: each step waits for the page as a
+ * reader's next move would. With `hold`, the page waits to hydrate until
+ * the case says.
  */
-const open = async (size = viewport) => {
-  const context: BrowserContext = await browser.newContext({ viewport: size });
+const open = async ({
+  path = '/',
+  height = 874,
+  hold = false,
+}: { path?: string; height?: number; hold?: boolean } = {}) => {
+  const context: BrowserContext = await browser.newContext({ viewport: windowOf(height) });
+  // A step that waits waits for a reader's moment, not for ever: a list that draws no row fails here.
+  context.setDefaultTimeout(3000);
   const page: Page = await context.newPage();
+  let size = windowOf(height);
 
   /** Waits `ms`, then two frames. */
   const settle = (ms: number) =>
@@ -91,10 +109,22 @@ const open = async (size = viewport) => {
       ms,
     );
 
-  /** Waits for the list to be on screen, then for two frames, so a restore has run. */
+  /** Waits for a list to be on screen with its rows, then for two frames. */
   const shown = async () => {
-    await page.waitForFunction(() => window.hymnal?.place() !== undefined);
+    await page.waitForFunction(() => window.hymnal?.showing() === true);
     await settle(0);
+  };
+
+  /** Waits for the page to hydrate. */
+  const hydrated = () => page.waitForFunction(() => window.hymnal.hydrated);
+
+  /** Resizes the window to `height`. */
+  const resize = async (to: number) => {
+    size = windowOf(to);
+    await page.setViewportSize(size);
+    await settle(0);
+    // A shorter window can scroll less: the browser moves the list in, and the reader did that.
+    await page.evaluate(() => window.hymnal.jumps.splice(0));
   };
 
   /** The list's scroll offset now, and the most it can scroll. */
@@ -108,13 +138,16 @@ const open = async (size = viewport) => {
   const scroll = (top: number) => page.evaluate((y) => window.hymnal.scroll(y), top);
 
   /**
-   * Scrolls the list to `top` as a reader does: eight screens at a time,
+   * Scrolls the list to `top` as a reader does: eight windows at a time,
    * until the list is there or can go no further. Answers where it stopped.
    */
   const scrollTo = async (top: number) => {
     for (let step = 0; step < 200; step++) {
       const now = await place();
-      const to = Math.min(top, now.top + viewport.height * 8, now.max);
+      const to =
+        top > now.top
+          ? Math.min(top, now.top + size.height * 8, now.max)
+          : Math.max(top, now.top - size.height * 8);
       if (now.top === to && (to === top || to === now.max)) {
         await settle(40);
         const after = await place();
@@ -127,65 +160,80 @@ const open = async (size = viewport) => {
     return (await place()).top;
   };
 
-  /** Each time the list moved by itself since the reader last scrolled it. */
-  const jumps = () => page.evaluate(() => [...window.hymnal.jumps]);
+  /** Each time the list moved by itself since the last time this was asked. */
+  const jumps = () => page.evaluate(() => window.hymnal.jumps.splice(0));
 
-  /** The row nearest the window's middle. */
-  const middleRow = () => page.evaluate(() => window.hymnal.middle());
+  /**
+   * How many pixels of the list's shown rows stay blank: rows the list
+   * draws within a second (it draws them after a scroll, in its own time)
+   * are not blank.
+   */
+  const blank = async () => {
+    await page
+      .waitForFunction(() => window.hymnal.blank() === 0, undefined, { timeout: 1000 })
+      .catch(() => undefined);
+    return page.evaluate(() => window.hymnal.blank());
+  };
 
-  /** Presses the row nearest the window's middle, as a pointer does; answers the row. */
-  const press = async () => {
+  /** What hydration reported. */
+  const errors = () => page.evaluate(() => [...window.hymnal.errors]);
+
+  /** The fully shown row nearest the list's middle, once the list draws one. */
+  const middleRow = async () => {
+    await page.waitForFunction(() => window.hymnal.showing(), undefined, { timeout: 2000 });
+    return page.evaluate(() => window.hymnal.middle());
+  };
+
+  /** Presses the row nearest the list's middle, as a pointer does; answers the row. */
+  const press = async (list: ListName) => {
     const row = await middleRow();
     await page.mouse.click(row.x, row.y);
-    const opened = await page.evaluate(() => window.hymnal.opened.at(-1));
-    expect(opened).toBe(`/hymns/${row.label.split(',')[0]}`);
+    const prefix = list === 'hymns' ? '/hymns' : '/search';
+    const want = `${prefix}/${row.label.split(',')[0]}`;
+    await page.waitForURL((url) => url.pathname === want, { timeout: 2000 });
     return row;
   };
 
+  /** Clicks the tab bar's link to `list`. */
+  const tab = (list: ListName) =>
+    page.getByRole('navigation').getByText(lists[list].title, { exact: true }).click();
+
   /**
-   * Shows the list again; answers whether the row named `label` was on
-   * screen in the first frame that drew the list (none named: not asked).
+   * Does `go`, which shows `list`; answers whether the row named `label`
+   * was fully on screen in the first frame that drew the list.
    */
-  const back = async (label?: string) => {
-    const drawn = await page.evaluate(
-      (name) =>
-        new Promise<boolean>((done) => {
-          window.hymnal.back();
-          const look = () => {
-            const rows = [...document.querySelectorAll('[aria-label]')];
-            if (!rows.some((node) => /^\d+, /.test(node.getAttribute('aria-label') ?? ''))) {
-              requestAnimationFrame(look);
-              return;
-            }
-            const box = rows
-              .find((node) => node.getAttribute('aria-label') === name)
-              ?.getBoundingClientRect();
-            done(
-              name === undefined ||
-                (box !== undefined && box.top >= 0 && box.bottom <= innerHeight),
-            );
-          };
-          requestAnimationFrame(look);
-        }),
-      label,
+  const comeBack = async (list: ListName, label: string, go: () => Promise<unknown>) => {
+    await page.evaluate(
+      ([path, name]) => {
+        window.hymnal.watching = window.hymnal.watch(path, name);
+      },
+      [lists[list].path, label] as const,
     );
+    await go();
+    const drawn = await page.evaluate(() => window.hymnal.watching);
     await shown();
-    return drawn;
+    return drawn === true;
   };
 
-  await page.goto(server.url.href);
+  await page.goto(`${server.url.href.replace(/\/$/, '')}${path}${hold ? '?hold' : ''}`);
+  if (!hold) await hydrated();
   await shown();
   return {
     page,
     context,
     settle,
+    hydrated,
+    resize,
     place,
     scroll,
     scrollTo,
     jumps,
+    blank,
+    errors,
     middleRow,
     press,
-    back,
+    tab,
+    comeBack,
     [Symbol.asyncDispose]: () => context.close(),
   };
 };
@@ -195,19 +243,15 @@ type Session = Awaited<ReturnType<typeof open>>;
 beforeAll(async () => {
   const [script, launched] = await Promise.all([bundle(), chromium.launch()]);
   browser = launched;
-  // Every path is the page, so a link opened in a new tab loads it too.
   server = Bun.serve({
     port: 0,
-    fetch: (request) =>
-      new URL(request.url).pathname === '/page.js'
+    fetch: (request) => {
+      const { pathname } = new URL(request.url);
+      return pathname === '/page.js'
         ? new Response(script, { headers: { 'content-type': 'text/javascript' } })
-        : new Response(html, { headers: { 'content-type': 'text/html' } }),
+        : new Response(render(pathname), { headers: { 'content-type': 'text/html' } });
+    },
   });
-  await using app = await open();
-  await app.scrollTo(Number.MAX_SAFE_INTEGER);
-  const { max } = await app.place();
-  expect(max).toBeGreaterThan(viewport.height * 20);
-  offsets = shares.map((share) => Math.round(max * share));
 });
 
 afterAll(async () => {
@@ -215,98 +259,184 @@ afterAll(async () => {
   await server?.stop(true);
 });
 
+/** The ways back to a list after the reader leaves it, and how he leaves it for each. */
+const paths = {
+  /** He opens a hymn from a row, then presses the browser's Back. */
+  back: async (app: Session, list: ListName, label: string) => {
+    await app.press(list);
+    return app.comeBack(list, label, () => app.page.goBack());
+  },
+  /** He opens a hymn from a row, then follows the header's back link to the list. */
+  header: async (app: Session, list: ListName, label: string) => {
+    await app.press(list);
+    return app.comeBack(list, label, () =>
+      app.page.getByText(`‹ ${lists[list].title}`, { exact: true }).click(),
+    );
+  },
+  /** He switches to the other list's tab, then back to this one's. */
+  tab: async (app: Session, list: ListName, label: string) => {
+    await app.tab(list === 'hymns' ? 'search' : 'hymns');
+    await app.page.waitForFunction(
+      (path) => location.pathname === path && window.hymnal.place() !== undefined,
+      lists[list === 'hymns' ? 'search' : 'hymns'].path,
+    );
+    return app.comeBack(list, label, () => app.tab(list));
+  },
+} as const;
+
+type Way = keyof typeof paths;
+
+/** What the reader does after the list is back; answers how many pixels of rows on screen were blank. */
+const moves = {
+  /** He moves it straight to the top, in one step (the scroll bar, a key). */
+  top: async (app: Session) => {
+    await app.scroll(0);
+    await app.settle(100);
+    return app.blank();
+  },
+  /** He flings it to the top: a burst of wheel turns, the last ones small. */
+  fling: async (app: Session) => {
+    const { top } = await app.place();
+    const row = await app.middleRow();
+    await app.page.mouse.move(row.x, row.y);
+    const turns = [
+      ...Array.from({ length: Math.ceil(top / 2400) }, () => 2400),
+      400,
+      200,
+      100,
+      50,
+      25,
+      12,
+    ];
+    for (const turn of turns) await app.page.mouse.wheel(0, -turn);
+    await app.settle(150);
+    return app.blank();
+  },
+  /** He searches for what no hymn has, then clears the search (the Search list only). */
+  nothing: async (app: Session) => {
+    const field = app.page.getByRole('searchbox');
+    await field.fill('zzqxj');
+    await app.page.getByText('No hymn matches', { exact: false }).waitFor();
+    await field.fill('');
+    await app.page.waitForFunction(() => window.hymnal.showing());
+    await app.settle(150);
+    return app.blank();
+  },
+  /** He scrolls on, up then down, a window at a time. */
+  onward: async (app: Session) => {
+    const { top, max } = await app.place();
+    for (const want of [top / 2, 0, max / 3, max]) {
+      await app.scrollTo(Math.round(want));
+      await app.settle(0);
+    }
+    await app.settle(150);
+    return app.blank();
+  },
+} as const;
+
+type Move = keyof typeof moves;
+
+/** The moves each list's visits take in turn. */
+const movesOf: Record<ListName, ReadonlyArray<Move>> = {
+  hymns: ['top', 'fling', 'onward'],
+  search: ['top', 'fling', 'nothing', 'onward'],
+};
+
 interface Visit {
-  readonly offset: number;
+  readonly height: number;
+  readonly share: number;
   /** Where the reader left the list. */
   readonly left: number;
   /** Where the list was when it was shown again. */
   readonly found: number;
   /** Whether the row the reader left was on screen in the first frame of the list shown again. */
   readonly drawn: boolean;
+  /** Times the list moved by itself: as he scrolled to leave it, and after it came back. */
   readonly jumps: ReadonlyArray<unknown>;
+  readonly move: Move;
+  /** Pixels of rows on screen left blank after the move. */
+  readonly blank: number;
 }
 
 /**
- * The visits that did not come back to the pixel, did not draw the
- * reader's row at once, or saw the list move by itself.
+ * The visits that did not come back within one row, did not draw the
+ * reader's row at once, saw the list move by itself, or left rows blank.
  */
 const missed = (visits: ReadonlyArray<Visit>) =>
-  visits.filter((v) => Math.abs(v.found - v.left) > 1 || !v.drawn || v.jumps.length > 0);
+  visits.filter(
+    (v) => Math.abs(v.found - v.left) > rowHeight || !v.drawn || v.jumps.length > 0 || v.blank > 0,
+  );
 
 /**
- * Visits each offset in turn on a page of its own: `leave` scrolls to it
- * and leaves the list, answering the row in the window's middle; then the
- * list is shown again and read. Every jump the scroll saw before leaving
- * is kept.
+ * On a page of its own, cold-loaded at `list`, visits each share of the
+ * list's height in turn: at a window height that turns with the visit and
+ * the case (`turn`), so every height meets every share and every way back,
+ * the reader scrolls there and leaves the list (pressing a row 150 ms after
+ * his scroll on even visits, at once on odd ones); he comes back the `way`
+ * the case names, then makes the visit's move.
  */
-const visit = async (
-  leave: (
-    app: Session,
-    offset: number,
-  ) => Promise<{ left: number; row: { label: string; height: number } }>,
-) => {
-  await using app = await open();
+const visit = async (list: ListName, way: Way, turn: number) => {
+  await using app = await open({ path: lists[list].path });
+  const hydration = await app.errors();
   const visits: Array<Visit> = [];
-  for (const offset of offsets) {
-    const { left, row } = await leave(app, offset);
-    const seen = await app.jumps();
-    const drawn = await app.back(row.label);
+  for (const [index, share] of shares.entries()) {
+    const height = heights[(index + turn) % heights.length] ?? 874;
+    await app.resize(height);
+    const { max } = await app.place();
+    const left = await app.scrollTo(Math.round(max * share));
+    await app.settle(index % 2 === 0 ? 150 : 0);
+    const row = await app.middleRow();
+    const drawn = await paths[way](app, list, row.label);
     const { top: found } = await app.place();
-    visits.push({ offset, left, found, drawn, jumps: seen });
+    const move = movesOf[list][index % movesOf[list].length] ?? 'top';
+    const blank = await moves[move](app);
+    visits.push({ height, share, left, found, drawn, jumps: await app.jumps(), move, blank });
   }
-  return missed(visits);
+  return { hydration, misses: missed(visits) };
 };
 
-describe('the Hymns list comes back where the reader left it', () => {
-  it.concurrent('after Back from a hymn opened from a row, at offsets across the whole list', async () => {
-    const misses = await visit(async (app, offset) => {
-      const left = await app.scrollTo(offset);
-      // Past the 100 ms after a scroll in which react-native-web reports its end.
-      await app.settle(150);
-      return { left, row: await app.press() };
+describe('a list comes back where the reader left it', () => {
+  for (const [turn, [list, way]] of (
+    [
+      ['hymns', 'back'],
+      ['hymns', 'header'],
+      ['hymns', 'tab'],
+      ['search', 'back'],
+      ['search', 'header'],
+      ['search', 'tab'],
+    ] as const
+  ).entries()) {
+    it.concurrent(`the ${list} list, by ${way}, at offsets and heights across their range`, async () => {
+      expect(await visit(list, way, turn)).toEqual({ hydration: [], misses: [] });
     });
-    expect(misses).toEqual([]);
-  });
+  }
+});
 
-  it.concurrent('after a tab switch right after a scroll, at offsets across the whole list', async () => {
-    const misses = await visit(async (app, offset) => {
-      await app.scrollTo(Math.max(0, offset - viewport.height));
-      const left = await app.scroll(offset);
-      await app.settle(0);
-      const row = await app.middleRow();
-      await app.page.evaluate(() => window.hymnal.away());
-      await app.settle(150);
-      return { left, row };
-    });
-    expect(misses).toEqual([]);
-  });
-
-  it.concurrent('saves the true offset when a row is pressed right after a scroll', async () => {
-    const misses = await visit(async (app, offset) => {
-      await app.scrollTo(Math.max(0, offset - viewport.height));
-      const left = await app.scroll(offset);
-      await app.settle(0);
-      const row = await app.press();
-      await app.settle(150);
-      return { left, row };
-    });
-    expect(misses).toEqual([]);
-  });
-
-  it.concurrent('never moves by itself once the reader scrolls, after coming back deep in the list', async () => {
-    await using app = await open();
-    await app.scrollTo(offsets.at(-2) ?? 0);
-    await app.settle(150);
-    await app.press();
-    await app.back();
-    // The reader scrolls up to the top, then down past where he was, to the end.
-    for (const want of [...offsets.slice(0, 4).toReversed(), 0, ...offsets]) {
-      await app.scrollTo(want);
-      await app.settle(0);
+describe('a list loaded cold hydrates the server’s list', () => {
+  for (const list of ['hymns', 'search'] as const) {
+    for (const [index, height] of heights.entries()) {
+      it.concurrent(`the ${list} list, ${height} px high, keeps a scroll made before and after hydration`, async () => {
+        await using app = await open({ path: lists[list].path, height, hold: true });
+        const { max } = await app.place();
+        const before = await app.scroll(Math.round(max * (shares[index + 1] ?? 1)));
+        await app.page.evaluate(() => window.hymnal.hydrate());
+        await app.hydrated();
+        await app.settle(150);
+        const kept = (await app.place()).top;
+        const blankBefore = await app.blank();
+        const after = await app.scroll(Math.round(max * (shares[index + 2] ?? 0)));
+        await app.settle(150);
+        expect({
+          errors: await app.errors(),
+          kept: kept - before,
+          blankBefore,
+          moved: (await app.place()).top - after,
+          blankAfter: await app.blank(),
+          jumps: await app.jumps(),
+        }).toEqual({ errors: [], kept: 0, blankBefore: 0, moved: 0, blankAfter: 0, jumps: [] });
+      });
     }
-    await app.settle(150);
-    expect(await app.jumps()).toEqual([]);
-  });
+  }
 });
 
 describe('a row', () => {
@@ -323,7 +453,9 @@ describe('a row', () => {
 
   it.concurrent('keeps a long title on one line, in a row of the height the list counts on', async () => {
     // The narrowest phone the app meets (an iPhone SE), where the longest titles reach the edge.
-    await using app = await open({ width: 320, height: 568 });
+    await using app = await open({ height: 568 });
+    await app.page.setViewportSize({ width: 320, height: 568 });
+    await app.settle(0);
     const sizes = await app.page.evaluate(() => {
       const row = document.querySelector(
         '[aria-label="9, Let All the World in Every Corner Sing"]',
@@ -334,7 +466,7 @@ describe('a row', () => {
         lines: texts.map((text) => Math.round(text.getBoundingClientRect().height)),
       };
     });
-    expect(sizes).toEqual({ row: 44, lines: [22, 22] });
+    expect(sizes).toEqual({ row: rowHeight, lines: [22, 22] });
   });
 
   it.concurrent('opens its hymn inside the app on Enter, never loading the page anew', async () => {
@@ -342,13 +474,12 @@ describe('a row', () => {
     await app.page.evaluate(() => Object.assign(window, { kept: true }));
     await app.page.focus(second);
     await app.page.keyboard.press('Enter');
-    await app.settle(0);
+    await app.page.getByText('Hymn 2', { exact: true }).waitFor();
     const after = await app.page.evaluate(() => ({
-      opened: [...window.hymnal.opened],
       kept: 'kept' in window,
       path: location.pathname,
     }));
-    expect(after).toEqual({ opened: ['/hymns/2'], kept: true, path: '/' });
+    expect(after).toEqual({ kept: true, path: '/hymns/2' });
   });
 
   it.concurrent('leaves a Cmd- or Ctrl-click to the browser, which opens the hymn in a new tab', async () => {
@@ -357,8 +488,10 @@ describe('a row', () => {
       app.context.waitForEvent('page', { timeout: 5000 }),
       app.page.locator(second).click({ modifiers: ['ControlOrMeta'] }),
     ]);
-    await tab.waitForLoadState();
-    const opened = await app.page.evaluate(() => [...window.hymnal.opened]);
-    expect({ tab: new URL(tab.url()).pathname, opened }).toEqual({ tab: '/hymns/2', opened: [] });
+    await tab.getByText('Hymn 2', { exact: true }).waitFor();
+    expect({
+      tab: new URL(tab.url()).pathname,
+      here: new URL(app.page.url()).pathname,
+    }).toEqual({ tab: '/hymns/2', here: '/' });
   });
 });

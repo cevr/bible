@@ -34,10 +34,12 @@ under its number, and the refrain written out each time it is sung.
   preload: react-native-web for `react-native`, the real words for
   `virtual:hymnal`, a happy-dom document for the tests that press and type),
   the browser tests and the infra's.
-- `bun run test:browser` (`test/browser/`) bundles the Hymns list into a page
-  and drives it in Playwright's Chromium: Back, a tab switch and a press at
-  offsets across the whole list come back to the pixel, and a row is a real
-  link. It needs Chromium installed once (`bunx playwright install chromium`).
+- `bun run test:browser` (`test/browser/`) renders the Hymns and Search
+  screens on a server, hydrates them in Playwright's Chromium, and drives
+  them: hydration keeps the server's list and a scroll made before it; Back,
+  the header's back link and a tab switch, at offsets across the whole list
+  and window heights from 320 to 1400 px, come back within one row with
+  every row on screen drawn; and a row is a real link. It needs Chromium installed once (`bunx playwright install chromium`).
 
 ## The player
 
