@@ -216,7 +216,14 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 - **Promise:** Every life will be weighed by God. The judge is Jesus, the Son of man who walked in our flesh, and for His own He is also the advocate, so the judgment is good news. It is "eternal" because its verdict is final.
 - **Core KJV:** Heb 6:2; Eccl 12:14; Acts 17:31; 2 Cor 5:10; John 5:22, 27; 1 John 2:1; 1 John 4:17; Heb 9:27.
 - **Sources:** RH November 22, 1898, par. 8; GC 484.2; GC 421.3, last sentence only (EGW); JEO 103.3 (J. N. Andrews); MOI 86.2 (Uriah Smith); TAR 130.2 (Andrews, frame).
-- **Builds on:** 05, 06, 08, 12. **Length:** about 5½ min. **History:** OK at milk level. Say nothing about when the judgment sits; that is 23–24. The ending hands off to Hebrews 7: "and where does this Judge stand now?"
+- **Builds on:** 05, 06, 08, 12. **Length:** about 5½ min. **History:** OK at milk level. Say nothing about when the judgment sits; that is 23–24. The ending hands off to 13b: the six stones are laid, and Hebrews says "let us go on unto perfection" (6:1).
+
+**13b · Unto Perfection** (Christian perfection; added 2026-10-20 from the owner's message: "One thing I want to talk about is Christian perfection as well")
+
+- **Promise:** God asks us to be perfect as the Father is, and to stop sinning, and He gives the power: His Word, the seed, and His Spirit, who puts the flesh under now. Perfection is by growth. The rising sun is the perfect sun at dawn, and the blade is a perfect plant before the ear; a baby who cannot run is not a faulty baby. The one failure is a life that does not grow: the fig tree with no fruit after three years.
+- **Core KJV:** Matt 5:48; Heb 6:1; Prov 4:18; Mark 4:28; 1 Pet 1:23; Ezek 36:26–27; Rom 8:2–4; Gal 5:16; Phil 3:12–15; Luke 13:6–9; Jude 24.
+- **Sources:** COL 65.2 ("At every stage of development our life may be perfect"); 8T 64.1; CT 141.1; SC 69.1 (EGW); LOF_ATJ 136.1–153.3, A. T. Jones's "Christian Perfection" (Review, July 18 to August 1, 1899), key line 152.2. All checked in the owner's Sabbath message, `packages/cli/outputs/teachings/christian-perfection/christian-perfection.md` (`bible check`: 78 quotations, 0 problems).
+- **Builds on:** 08, 11, 13. **Length:** about 6 min. **Note:** this is the series' own thesis, the verse of its name said outright: light that "shineth more and more unto the perfect day". Keep 11 on how growth works; 13b claims that a believer is perfect at every stage and is meant to stop sinning. Hold both ditches (claiming sinlessness; despair at a fall, 1 John 2:1). The ending hands off to Hebrews 7: "and where does our Priest stand now?"
 
 ### Tier Two · Meat: "an high priest for ever after the order of Melchisedec" (Heb 5:10–11; 6:20; 7–10)
 
