@@ -866,6 +866,9 @@
       "set": "rbf-lead-candidates-2026-10-18",
       "point": "item:lead",
       "ask": "a2da36439f3",
+      "picks": {
+        "lead": "9"
+      },
       "by": "RBF v3 painter"
     },
     {
@@ -884,6 +887,9 @@
       "set": "rbf-lead-sheets-2026-10-19",
       "point": "item:lead",
       "ask": "a8fb2170353",
+      "picks": {
+        "keep": "keep"
+      },
       "by": "RBF v3 painter"
     },
     {
@@ -891,6 +897,10 @@
       "at": 1792458517183,
       "text": "RBF: what does the given robe turn white? (ask a17e13cb6ba): robe: His top alone; his khaki trousers stay · under: Stays covered, as now",
       "ask": "a17e13cb6ba",
+      "picks": {
+        "robe": "top",
+        "under": "covered"
+      },
       "by": "coordinator"
     },
     {
