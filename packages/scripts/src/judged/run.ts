@@ -483,19 +483,25 @@ export const judge = Effect.fn('judged.judge')(function* <E>(
     ),
   );
   const keeping = { fresh: answered, read: new Set(items.map((item) => item.key)), day };
-  const kept =
-    !changes(cache, keeping) ||
-    (yield* keepAnswers(judging.storeFile, keeping).pipe(
-      Effect.as(true),
+  // The store as kept: an answer another run kept for a key meanwhile is the
+  // one this run reports, as the store does. None when nothing was kept.
+  let store: Option.Option<ReadonlyMap<string, Verdict>> = Option.some(cache);
+  if (changes(cache, keeping))
+    store = yield* keepAnswers(judging.storeFile, keeping).pipe(
+      Effect.asSome,
       Effect.catch((error) =>
         Console.error(
           `[judged] answers not kept rule=${[...new Set(fresh.map((q) => q.rule.id))].join(',')} detail=${detailOf(error)}`,
-        ).pipe(Effect.as(false)),
+        ).pipe(Effect.as(Option.none<ReadonlyMap<string, Verdict>>())),
       ),
-    ));
-  const answerOf = (item: RuleItem) =>
+    );
+  const kept = Option.isSome(store);
+  const answerOf = (item: RuleItem): Option.Option<Verdict> =>
     Option.orElse(Option.fromUndefinedOr(cache.get(item.key)), () =>
-      Option.fromUndefinedOr(answered.get(item.key)),
+      Option.orElse(
+        Option.flatMap(store, (after) => Option.fromUndefinedOr(after.get(item.key))),
+        () => Option.fromUndefinedOr(answered.get(item.key)),
+      ),
     );
   const keyOfQuestion = new Map(questions.map((question) => [questionKey(question), question]));
   const unanswered = new Set(

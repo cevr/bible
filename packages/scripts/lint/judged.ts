@@ -6,7 +6,8 @@
 //
 // A file the checkout's last run read as it stands is reported from that
 // run's findings (`src/judged/findings.ts`), by the file's hash and the
-// rule's signature, with no parse. Any other file is read item by item:
+// rule's signature, when the run's item code is this code's and the run is
+// no older than the store keeps answers, with no parse. Any other file is read item by item:
 // the store is keyed by content (`src/judged/store.ts`), so each item of the
 // file is hashed and its answer read by its text, wherever the text now
 // lives, and a moved or copied breach reports at its new place. An item no
@@ -22,13 +23,26 @@
 
 import { readFileSync } from 'node:fs';
 import { relative } from 'node:path';
-import { Effect, Option, Schema } from 'effect';
+import { Clock, Effect, Option, Schema } from 'effect';
 import { Diagnostic, Plugin, Rule, RuleContext, Visitor } from 'oxlint-plugin-effect/rule-bindings';
 
-import { Findings, findingsFileOf, ruleSignature, textHash } from '../src/judged/findings.ts';
+import {
+  Findings,
+  findingsFileOf,
+  makersHash,
+  ruleSignature,
+  textHash,
+} from '../src/judged/findings.ts';
 import { SELECTORS, itemsOf, parse, selects } from '../src/judged/items.ts';
 import { RuleOptions, Settings, cacheModel, ruleKey } from '../src/judged/rule.ts';
-import { type Answer, Store, cacheKey, storeFileOf } from '../src/judged/store.ts';
+import {
+  type Answer,
+  MAX_AGE_DAYS,
+  Store,
+  cacheKey,
+  dayOf,
+  storeFileOf,
+} from '../src/judged/store.ts';
 
 /** A file parsed, as the selectors read it. */
 type Source = ReturnType<typeof parse>;
@@ -144,8 +158,10 @@ interface Reported {
 /**
  * The findings of rule `id` (its options `options`) in `file`, whose text is
  * `text`, as the last run of the checkout at `cwd` wrote them: none when the
- * file's text, or the rule's words, label, threshold or model, are not what
- * the run read, or the run could not judge the rule there.
+ * file's text, or the rule's words, selector, label, threshold or model, are
+ * not what the run read, the run could not judge the rule there, the code
+ * that makes the items is not the run's, or the run is more than
+ * `MAX_AGE_DAYS` old (the store may have dropped its answers).
  */
 const lastRunOf = (
   cwd: string,
@@ -156,6 +172,11 @@ const lastRunOf = (
   text: string,
 ): Option.Option<ReadonlyArray<Reported>> =>
   findingsAt(findingsFileOf(cwd, settings.checkout)).pipe(
+    Option.filter(
+      (findings) =>
+        findings.makers === makersHash() &&
+        dayOf(Effect.runSync(Clock.currentTimeMillis)) - findings.day <= MAX_AGE_DAYS,
+    ),
     Option.filter(
       (findings) => findings.rules[id] === ruleSignature(cacheModel(settings.model), options),
     ),

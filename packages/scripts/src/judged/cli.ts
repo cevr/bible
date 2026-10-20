@@ -9,6 +9,7 @@
 
 import {
   Cause,
+  Clock,
   Console,
   Effect,
   FileSystem,
@@ -22,13 +23,13 @@ import {
 import type { DecisionModel } from 'effect/ai';
 import { Command, Flag } from 'effect/cli';
 
-import { Findings, findingsFileOf, ruleSignature } from './findings.js';
+import { Findings, findingsFileOf, makersHash, ruleSignature } from './findings.js';
 import { readByOxlint } from './items.js';
 import { JudgedLint, judgedLintLayer } from './config.js';
 import { cacheModel } from './rule.js';
 import { LIMITS, detailOf, findingLine, judge, runLine } from './run.js';
 import { repoItems } from './sources.js';
-import { storeFileOf } from './store.js';
+import { dayOf, storeFileOf } from './store.js';
 
 /** Findings that fail the run: a rule at `error`, or any finding under `--strict`. */
 class GatingFindings extends Schema.TaggedError<GatingFindings>()('GatingFindings', {
@@ -43,15 +44,19 @@ const isGatingFindings = Schema.is(GatingFindings);
 type ModelOf<E, R> = (model: string) => Layer.Layer<DecisionModel.DecisionModel, E, R>;
 
 /**
- * The findings file of a run: each file the run read, by its hash, with the
- * findings the store keeps of each rule that judged all its items there, for
- * the plugin to report; a Markdown file oxlint never reads holds none.
+ * The findings file of a run on `day`: each file the run read, by its hash,
+ * with the findings the store keeps of each rule that judged all its items
+ * there, for the plugin to report; a Markdown file oxlint never reads holds
+ * none.
  */
 const findingsOf = (
+  day: number,
   model: string,
   outcomes: Effect.Success<ReturnType<typeof judge>>['outcomes'],
   files: ReadonlyArray<{ readonly file: string; readonly hash: string }>,
 ): Findings => ({
+  day,
+  makers: makersHash(),
   rules: Object.fromEntries(
     outcomes.map((outcome) => [outcome.rule.id, ruleSignature(model, outcome.rule)]),
   ),
@@ -111,7 +116,7 @@ const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<n
     yield* Console.error(`[judged] tokens input=${usage.inputTokens} output=${usage.outputTokens}`);
   yield* writeFindings(
     findingsFileOf(root, config.settings.checkout),
-    findingsOf(model, outcomes, tree.files),
+    findingsOf(dayOf(yield* Clock.currentTimeMillis), model, outcomes, tree.files),
   );
   // oxlint reports, at the rule's severity, every finding the plugin can
   // read; the runner prints and gates on the rest (a series script, an

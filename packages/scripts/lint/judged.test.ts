@@ -4,14 +4,14 @@
 // threshold, wherever their text lives.
 
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Effect, FileSystem, Path, Schema, Stream } from 'effect';
+import { Clock, Effect, FileSystem, Path, Schema, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
-import { Findings, ruleSignature, textHash } from '../src/judged/findings.ts';
+import { Findings, makersHash, ruleSignature, textHash } from '../src/judged/findings.ts';
 import { itemsOf, parse } from '../src/judged/items.ts';
 import { ruleKey } from '../src/judged/rule.ts';
-import { Store, cacheKey } from '../src/judged/store.ts';
+import { MAX_AGE_DAYS, Store, cacheKey, dayOf } from '../src/judged/store.ts';
 import { historyComment } from '../src/judged/testing.ts';
 
 /** The timeout of a test here that spawns (oxlint): a cold start's time is the machine's. */
@@ -158,7 +158,7 @@ describe('the judged plugin', () => {
   );
 
   it.live(
-    "reports the last run's findings of a file as it stands, and the store's for a file changed since or a rule of other words",
+    "reports the last run's findings of a file as it stands, and the store's for a file changed since, a rule of other words or selector, other item code, or a run past the store's age",
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
@@ -173,9 +173,17 @@ describe('the judged plugin', () => {
         );
         // The run found the second comment alone: the store, read, would say the first.
         const run = [{ start: SOURCE.indexOf('// The key'), p: 0.97 }];
-        const findings = (signature: string) =>
+        const today = dayOf(yield* Clock.currentTimeMillis);
+        const findings = (
+          signature: string,
+          made: { readonly day: number; readonly makers: string } = {
+            day: today,
+            makers: makersHash(),
+          },
+        ) =>
           Effect.flatMap(
             Schema.encodeEffect(Findings)({
+              ...made,
               rules: { historyComment: signature },
               files: {
                 'src/x.ts': { hash: textHash(SOURCE), rules: { historyComment: run } },
@@ -190,13 +198,23 @@ describe('the judged plugin', () => {
           `src/w.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
           `src/x.ts:4:1: ${REPORT} p=0.97 [Warning/judged(historyComment)]`,
         ]);
+        const fromStore = [
+          `src/w.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
+          `src/x.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
+        ];
+        const signature = ruleSignature('typesafe/jev-1.13.0', historyComment);
         yield* findings(
           ruleSignature('typesafe/jev-1.13.0', { ...historyComment, threshold: 0.5 }),
         );
-        expect((yield* oxlint(dir)).lines).toEqual([
-          `src/w.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
-          `src/x.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
-        ]);
+        expect((yield* oxlint(dir)).lines).toEqual(fromStore);
+        yield* findings(
+          ruleSignature('typesafe/jev-1.13.0', { ...historyComment, selector: 'functions' }),
+        );
+        expect((yield* oxlint(dir)).lines).toEqual(fromStore);
+        yield* findings(signature, { day: today, makers: textHash('other item code') });
+        expect((yield* oxlint(dir)).lines).toEqual(fromStore);
+        yield* findings(signature, { day: today - MAX_AGE_DAYS - 1, makers: makersHash() });
+        expect((yield* oxlint(dir)).lines).toEqual(fromStore);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     SPAWNS_MS,
   );

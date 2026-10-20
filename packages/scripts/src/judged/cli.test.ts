@@ -6,7 +6,18 @@
 
 import { BunHttpServer } from '@effect/platform-bun';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Config, Console, Effect, Exit, FileSystem, Layer, Path, Schema, Stream } from 'effect';
+import {
+  Clock,
+  Config,
+  Console,
+  Effect,
+  Exit,
+  FileSystem,
+  Layer,
+  Path,
+  Schema,
+  Stream,
+} from 'effect';
 import { DecisionModel } from 'effect/ai';
 import { describe, expect, it } from 'effect-bun-test';
 import { HttpServer, HttpServerResponse } from 'effect/http';
@@ -15,8 +26,8 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { lintJudged } from './cli.js';
 import { JudgedLint, judgedLintLayer } from './config.js';
 import { judgedModel } from './model.js';
-import { Findings, textHash } from './findings.js';
-import { Store } from './store.js';
+import { Findings, makersHash, textHash } from './findings.js';
+import { Store, dayOf } from './store.js';
 import { env, missing, typesafeHttp } from './testing.js';
 
 const PACKAGES = new URL('../../../', import.meta.url).pathname;
@@ -417,7 +428,7 @@ describe('the judged lint reads the whole repo, by content', () => {
   );
 
   it.live(
-    "writes each file it read by its hash, with each rule's kept findings, and no rule where an item went unjudged",
+    "writes the run's day and item code, each file it read by its hash, with each rule's kept findings, and no rule where an item went unjudged",
     () =>
       withFs(
         Effect.gen(function* () {
@@ -428,9 +439,14 @@ describe('the judged lint reads the whole repo, by content', () => {
             fs.readFileString(path.join(dir, 'tmp/judged/findings.json')),
             Schema.decodeEffect(Findings),
           );
+          const before = dayOf(yield* Clock.currentTimeMillis);
           yield* inProcess(dir, [], historyModel().layer);
+          const after = dayOf(yield* Clock.currentTimeMillis);
           const a = yield* fs.readFileString(path.join(dir, 'src/a.ts'));
-          expect((yield* findingsOf).files).toEqual({
+          const written = yield* findingsOf;
+          expect(written.makers).toBe(makersHash());
+          expect([before, after]).toContain(written.day);
+          expect(written.files).toEqual({
             'src/a.ts': { hash: textHash(a), rules: { historyComment: [{ start: 0, p: 0.97 }] } },
           });
           const b = '// We switched to Rive in the spring.\nconst b = 2;\n';

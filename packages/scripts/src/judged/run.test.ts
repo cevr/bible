@@ -375,6 +375,41 @@ describe('a judged rule', () => {
   );
 
   it.effect(
+    "keeps the first answer kept for a key, and reports by it: a run that asked meanwhile keeps the store's",
+    () => {
+      // This run's model reads the comment as today's; another checkout kept it as history first.
+      const model = countingModel(() => 0.01);
+      return Effect.gen(function* () {
+        const options = yield* judging;
+        const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
+        const item = ITEMS[0]!;
+        const key = cacheKey(ruleKey(historyComment), options.model, item.text);
+        const other = { label: 'history', probabilities: { history: 0.99, today: 0.01 } };
+        const outcomes = yield* judge(
+          [historyComment],
+          [{ ...item, rule: historyComment, start: 0, key }],
+          {
+            ...options,
+            // The other run keeps its answer while this one reads the texts it asks about.
+            textsOf: (asked) =>
+              Effect.as(
+                Effect.provide(keep(options.storeFile, new Map([[key, other]])), services),
+                asked.map(() => item.text),
+              ),
+          },
+        );
+        expect(model.requests).toHaveLength(1);
+        expect(outcomes.outcomes[0]?.findings).toEqual([
+          { file: 'src/a.ts', line: 3, start: 0, p: 0.99, kept: true },
+        ]);
+        expect((yield* readCache(options.storeFile)).get(key)?.probabilities).toEqual(
+          other.probabilities,
+        );
+      }).pipe(Effect.provide(model.layer), withFs);
+    },
+  );
+
+  it.effect(
     "asks again when the rule's subject, instructions or criteria change, and not for its threshold or message",
     () => {
       const model = countingModel((text) => P.get(text) ?? 0.99);

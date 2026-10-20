@@ -12,7 +12,10 @@
 // one; a store that does not decode is an empty one, said on one line.
 // Every checkout shares the store (`store.ts`), so a write drops the answers
 // by their age alone, under the lock: an answer another checkout's tree reads
-// is kept however this tree has changed.
+// is kept however this tree has changed. The first answer kept for a key is
+// the store's: a run that asked about a key another run kept meanwhile keeps
+// that one, not its own, and reports by it, so two checkouts never report
+// one item two ways.
 
 import { Database } from 'bun:sqlite';
 import { Console, Effect, FileSystem, Option, Path, Result, Schedule, Schema } from 'effect';
@@ -93,17 +96,19 @@ interface Keeping {
 }
 
 /**
- * The answers `kept` hold once a run keeps `keeping`: `fresh` added and each
- * key of `read` marked seen on `day`, and every answer last seen more than
- * `MAX_AGE_DAYS` before it dropped.
+ * The answers `kept` hold once a run keeps `keeping`: each answer of `fresh`
+ * whose key `kept` lacks added, each key of `read` and `fresh` marked seen on
+ * `day`, and every answer last seen more than `MAX_AGE_DAYS` before it
+ * dropped. A key `kept` holds keeps its answer: the first kept is the store's.
  */
 const keptAfter = (kept: ReadonlyMap<string, Answer>, keeping: Keeping) => {
   const after = new Map(kept);
-  for (const key of keeping.read)
+  for (const key of [...keeping.read, ...keeping.fresh.keys()])
     Option.map(Option.fromUndefinedOr(after.get(key)), (answer) =>
       after.set(key, { ...answer, seen: keeping.day }),
     );
-  for (const [key, answer] of keeping.fresh) after.set(key, { ...answer, seen: keeping.day });
+  for (const [key, answer] of keeping.fresh)
+    if (!kept.has(key)) after.set(key, { ...answer, seen: keeping.day });
   for (const [key, answer] of after)
     if (keeping.day - answer.seen > MAX_AGE_DAYS) after.delete(key);
   return after;
@@ -124,7 +129,8 @@ export const changes = (kept: ReadonlyMap<string, Answer>, keeping: Keeping) =>
 /**
  * Keeps `keeping` in the store at `file` (`keptAfter`), under its lock,
  * written whole through a temporary file beside it: an answer another run
- * kept meanwhile is read under the lock, and stays.
+ * kept meanwhile is read under the lock, and stays. Answers the store as
+ * written, the answers to report by.
  */
 export const keepAnswers = Effect.fn('judged.keepAnswers')(function* (
   file: string,
@@ -133,7 +139,7 @@ export const keepAnswers = Effect.fn('judged.keepAnswers')(function* (
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   yield* fs.makeDirectory(path.dirname(file), { recursive: true });
-  yield* Effect.scoped(
+  return yield* Effect.scoped(
     Effect.gen(function* () {
       yield* locked(path.join(path.dirname(file), `.${path.basename(file)}.lock`));
       const kept = keptAfter(yield* readCache(file), keeping);
@@ -143,6 +149,7 @@ export const keepAnswers = Effect.fn('judged.keepAnswers')(function* (
         yield* fs.writeFileString(partial, json);
         yield* fs.rename(partial, file);
       }).pipe(Effect.ensuring(Effect.ignore(fs.remove(partial, { force: true }))));
+      return kept;
     }),
   );
 });

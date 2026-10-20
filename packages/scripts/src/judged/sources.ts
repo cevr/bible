@@ -15,9 +15,9 @@
 // hashes as the memo has it is not parsed again; the texts of the items a
 // run asks about are read again from their files (`textsOf`). The memo holds
 // the form it was made in: a hash of the model, each rule's id, selector and
-// words, and the code that makes the items and their keys (this module,
-// `items.ts`, `store.ts` and the parser's version), so a memo made any other
-// way is read as none. A missing or unreadable memo is none; it is written
+// words, and the code that makes the items and their keys (`findings.ts`'s
+// `makersHash`: this module, `items.ts`, `store.ts` and the parser's
+// version), so a memo made any other way is read as none. A missing or unreadable memo is none; it is written
 // whole, through a temporary file renamed over it, when the run read a file
 // it did not hold or no longer reads one it held, and a memo that cannot be
 // written is said on one line and never fails the run.
@@ -26,7 +26,7 @@ import { Glob } from 'bun';
 import { Console, Effect, FileSystem, Option, Path, Schema } from 'effect';
 
 import { gateFiles } from '../guard/files.js';
-import { textHash } from './findings.js';
+import { makersHash, textHash } from './findings.js';
 import { type Item, type Selector, itemsOf, markdownBeats, parse, selects } from './items.js';
 import { type JudgedRule, ruleKey } from './rule.js';
 import { cacheKey } from './store.js';
@@ -96,31 +96,17 @@ const itemsIn = (
   );
 };
 
-/** The code that makes the items and their keys, by its files beside this one: a memo made by other code is none. */
-const MAKERS = ['sources.ts', 'items.ts', 'store.ts'];
-
-/** The form of a memo made for `rules` on `model` by this code: a hash of them all. */
-const formOf = Effect.fn('judged.memoForm')(function* (
-  rules: ReadonlyArray<JudgedRule>,
-  model: string,
-) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const code = yield* Effect.forEach(
-    [
-      ...MAKERS.map((file) => path.join(import.meta.dir, file)),
-      Bun.resolveSync('oxc-parser/package.json', import.meta.dir),
-    ],
-    (file) => fs.readFileString(file),
+/** The form of a memo made for `rules` on `model` by this code (`makersHash`): a hash of them all. */
+const formOf = (rules: ReadonlyArray<JudgedRule>, model: string) =>
+  Effect.sync(() =>
+    textHash(
+      [
+        model,
+        ...rules.flatMap((rule) => [rule.id, rule.selector, ruleKey(rule)]),
+        makersHash(),
+      ].join('\0'),
+    ),
   );
-  return textHash(
-    [
-      model,
-      ...rules.flatMap((rule) => [rule.id, rule.selector, ruleKey(rule)]),
-      ...code.map(textHash),
-    ].join('\0'),
-  );
-});
 
 /** The memo at `file` if it was made in `form`; none when it is missing, does not read, or was made otherwise. */
 const readMemo = (file: string, form: string) =>
