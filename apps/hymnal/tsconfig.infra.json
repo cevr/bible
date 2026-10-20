@@ -9,6 +9,7 @@
     "infra/**/*.ts",
     "scripts/**/*.ts",
     "src/remote.ts",
+    "vite/prebuild.ts",
     "vite/words.ts"
   ],
   "exclude": ["node_modules", "dist", "ios", "android"]
