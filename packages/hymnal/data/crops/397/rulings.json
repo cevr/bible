@@ -165,6 +165,33 @@
       ],
       "judge": "judge-362 (Opus, effort max)",
       "why": "397-518.jpg row 4 ends 'He loves be-' and 397-994.jpg row 4 begins 'yond our ut-ter-most'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "397.jpg",
+          "crop": "397-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "74eced8e9598d6da",
+          "shows": ""
+        },
+        {
+          "image": "397.jpg",
+          "crop": "397-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "e85d914587c9f1b0",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t21 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.2: can: 397-strip800.jpg system 2, stanza 2's row: the moved word follows a full stop, so its capital alone tells nothing, but the header on 397-strip0.jpg prints 9.8.9.8.: the database's lines 2 and 3 sing 8 and 9 syllables as the metre asks, and the change makes them 9 and 8. Words under copyright (page footer): no words written.",
+      "gaps": ["moveup:2.2"]
     }
   ]
 }

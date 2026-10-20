@@ -1,0 +1,39 @@
+{
+  "number": 222,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p218.jpg",
+          "crop": "p218-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "2f8c2d960f8484bc",
+          "shows": ""
+        },
+        {
+          "image": "p218.jpg",
+          "crop": "p218-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "f46395fe75d191f9",
+          "shows": ""
+        },
+        {
+          "image": "p218.jpg",
+          "crop": "p218-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "98e101e4dae0d546",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t12 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.6: can: p218-strip0.jpg header prints 8.7.8.7.7.7.8.6.; stanza 1's line 6 is 7 syllables (p218-strip800.jpg system 3, top row, ending on p218-strip1600.jpg system 4 with a full stop), so ending it with the 4-syllable moved word makes 11, which the metre's sixth line rejects. The capitals alone would not tell: each Alleluia follows a full stop or exclamation mark. moveup:2.6: can: p218-strip0.jpg header prints 8.7.8.7.7.7.8.6.; stanza 2's line 6 is 7 syllables (p218-strip800.jpg system 3, third row, ending on p218-strip1600.jpg system 4 with a full stop), so ending it with the 4-syllable moved word makes 11, which the metre's sixth line rejects. movedown:3.6: can: p218-strip0.jpg header prints 8.7.8.7.7.7.8.6.; stanza 3's line 6 is 7 syllables (p218-strip800.jpg system 3, fifth row, ending on p218-strip1600.jpg system 4), so moving its last word off leaves 6, which the metre's sixth line rejects. The moved word is a title of Christ, capital anyway, so the capitals alone would not tell. moveup:3.6: can: p218-strip0.jpg header prints 8.7.8.7.7.7.8.6.; stanza 3's line 6 is 7 syllables (p218-strip800.jpg system 3, fifth row, ending on p218-strip1600.jpg system 4 with an exclamation mark), so ending it with the 4-syllable moved word makes 11, which the metre's sixth line rejects.",
+      "gaps": ["moveup:1.6", "moveup:2.6", "movedown:3.6", "moveup:3.6"]
+    }
+  ]
+}

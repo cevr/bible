@@ -1,0 +1,32 @@
+{
+  "number": 622,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "622.png",
+          "crop": "622-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "b94d26ab67dce41c",
+          "shows": ""
+        },
+        {
+          "image": "622.png",
+          "crop": "622-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "97915aef085516fa",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t33 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:2.6: 622-strip0.jpg and 622-strip800.jpg system 3 (bars 9-12), stanza 2's row: the moved word is printed with a capital (a title of God) before a colon, and the word the change leaves mid-line is the vocative O, a capital anyway. The header prints no metre and no text stands below the music.",
+      "unreachable": ["movedown:2.6"]
+    }
+  ]
+}

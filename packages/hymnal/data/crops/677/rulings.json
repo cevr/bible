@@ -24,6 +24,47 @@
       ],
       "judge": "judge-657 (Opus, effort max)",
       "why": "677-1919.jpg's lyric row ends 'may know. A-men.' under the bars after the double bar."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "677.jpg",
+          "crop": "677-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "74eec59cae2e7fd3",
+          "shows": ""
+        },
+        {
+          "image": "677.jpg",
+          "crop": "677-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "37751dda67f18945",
+          "shows": ""
+        },
+        {
+          "image": "677.jpg",
+          "crop": "677-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "57c3a38eb5908783",
+          "shows": ""
+        },
+        {
+          "image": "677.jpg",
+          "crop": "677-strip2400.jpg",
+          "box": [0, 2400, 2268, 624],
+          "sha": "cf02bc8379693aa1",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t36 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:1.1: 677-strip0.jpg system 1, the one row: the word that would open the new line (line 1's word 4) is a pronoun of God, printed with a capital anyway, and the header prints no metre (only the author and composer). split:1.3: 677-strip800.jpg system 2, the one row: the word that would open the new line (line 3's word 4) is a pronoun of God, printed with a capital anyway, and the header prints no metre. join:1.6: 677-strip1600.jpg system 4: the one-word closing line follows a full stop, so its capital is expected anyway (a double bar sets it apart in the music, but the row prints no line break), and the header prints no metre.",
+      "unreachable": ["split:1.1", "split:1.3", "join:1.6"]
     }
   ]
 }

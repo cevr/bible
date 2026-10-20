@@ -116,6 +116,26 @@
       "settles": [
         "422 shape (shape2-47): a row \"heavenly zion\" (second, shorter row under the refrain's second system (under 'Zion, The'): other words for the lower voices beside the main refrain row) is in no part of the printed source"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p407.jpg",
+          "crop": "p407-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "8595bcda6bc810d1",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t22 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: p407-strip1600.jpg, the first Refrain system, top row: the word that stops opening a line is printed with a capital after a comma (\"Zi-on, Beau-ti-ful,\") while its repeat right after is lowercase; it is no name, I or O and follows no stop, so only a line's opening explains that capital. movedown:refrain.1.1: can: p407-strip1600.jpg, the first Refrain system, top row: the moved name is capitalised either way, but the old opener after it is printed with a capital after a comma and its repeat is lowercase, so the change leaves that capital mid-line with nothing to explain it.",
+      "gaps": ["join:refrain.1.1", "movedown:refrain.1.1"]
     }
   ]
 }

@@ -1,0 +1,39 @@
+{
+  "number": 514,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p502.jpg",
+          "crop": "p502-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6d34244d9f563e54",
+          "shows": ""
+        },
+        {
+          "image": "p502.jpg",
+          "crop": "p502-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "b16b59b88943b7ce",
+          "shows": ""
+        },
+        {
+          "image": "p502.jpg",
+          "crop": "p502-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "00e0671d87706a31",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t28 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.3: can: The header on p502-strip0.jpg prints the metre 11.11.11.5. On p502-strip800.jpg system 3 and p502-strip1600.jpg system 4, stanza 1's line 3 sings 11 syllables and line 4 sings 5 (the other stanzas' last lines are 5 too). The moved word makes them 12 and 4, which breaks the metre; the capital on the moved name alone would not show it.",
+      "gaps": ["moveup:1.3"]
+    }
+  ]
+}

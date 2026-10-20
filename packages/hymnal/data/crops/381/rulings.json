@@ -1,0 +1,32 @@
+{
+  "number": 381,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p370.jpg",
+          "crop": "p370-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "de2131ca62cc964e",
+          "shows": ""
+        },
+        {
+          "image": "p370.jpg",
+          "crop": "p370-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "fe89a4b98b2a1130",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t20 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.2: p370-strip1600.jpg refrain, system 1's row: line 2's word 3, where the split opens a line, is a name of God printed with a capital anyway. The header prints 7.7.7.7.Ref., no metre for the refrain, so nothing fixes the break.",
+      "unreachable": ["split:refrain.1.2"]
+    }
+  ]
+}

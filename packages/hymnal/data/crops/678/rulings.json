@@ -1,0 +1,32 @@
+{
+  "number": 678,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "678.png",
+          "crop": "678-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8c746f8125dcffe6",
+          "shows": ""
+        },
+        {
+          "image": "678.png",
+          "crop": "678-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "4ae1e005cdc968ee",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t36 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.1: 678-strip0.jpg, end of system 1 to start of system 2, the one row: line 2's first word is a name of God, printed with a capital anyway, after a semicolon, and the header prints no metre. join:1.2: 678-strip0.jpg system 2, mid-row: line 3's first word is a name of God, printed with a capital anyway, after a semicolon, and the header prints no metre. join:1.3: 678-strip0.jpg system 3 (repeated at the top of 678-strip800.jpg), the one row: line 4's first word is a name of God, printed with a capital anyway, after a semicolon, and the header prints no metre. join:1.4: 678-strip800.jpg, end of system 3 to start of system 4: line 5's first word is a name of God, printed with a capital anyway, after a semicolon, and the header prints no metre.",
+      "unreachable": ["join:1.1", "join:1.2", "join:1.3", "join:1.4"]
+    }
+  ]
+}

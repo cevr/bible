@@ -1,0 +1,32 @@
+{
+  "number": 159,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "159.png",
+          "crop": "159-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "02ef2dae4fc9048f",
+          "shows": ""
+        },
+        {
+          "image": "159.png",
+          "crop": "159-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "b8fd1bf19ff9853f",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t07 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:2.3: 159-strip0.jpg, the system from bar 4, stanza 2's row: \"God\" is printed with a capital (a name of God), as are two other words of the same line, and the header prints no metre, so nothing on the page marks whether a line opens there. join:refrain.1.2: 159-strip800.jpg, the system from bar 13, the refrain's row: the second line opens on \"I\", printed with a capital anyway (the line before also prints a mid-line \"I\"); the refrain is printed once, with no text below the music, and the header prints no metre.",
+      "unreachable": ["split:2.3", "join:refrain.1.2"]
+    }
+  ]
+}

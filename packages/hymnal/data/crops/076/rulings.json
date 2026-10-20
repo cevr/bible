@@ -1,0 +1,25 @@
+{
+  "number": 76,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "076.png",
+          "crop": "076-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "3f67e03b13361bee",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t02 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.2: Stanza 1's row: system 1 ends on 'in' and system 2 opens 'Thee; I'. 'Thee' is a capitalised pronoun of God and 'I' is always a capital, so the capitals read the same in either layout. The header prints no metre that fixes the lines. movedown:3.2: Stanza 3's row: system 1 ends on 'to' and system 2 opens 'Thee; I'. Both words carry a capital anyway (a pronoun of God, then 'I'). The header prints no metre that fixes the lines. movedown:4.2: Stanza 4's row: system 1 ends on 'from' and system 2 opens 'Thee; I'. Both words carry a capital anyway (a pronoun of God, then 'I'). The header prints no metre that fixes the lines.",
+      "unreachable": ["movedown:1.2", "movedown:3.2", "movedown:4.2"]
+    }
+  ]
+}

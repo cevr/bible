@@ -1,0 +1,32 @@
+{
+  "number": 661,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p647.jpg",
+          "crop": "p647-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "8c154ff6b03fb9de",
+          "shows": ""
+        },
+        {
+          "image": "p647.jpg",
+          "crop": "p647-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "60a6bb5476b74bdc",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t35 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.4: can: p647-strip0.jpg header prints the metre 6.5.6.5.D. On p647-strip800.jpg stanza 1's row in system 2 closes line 4 at 5 syllables and its row in system 3 sings line 5 at 6; the moved word is a capitalised divine name, but the move gives lines of 4 and 7 syllables, which the metre forbids. movedown:2.4: can: p647-strip0.jpg header prints the metre 6.5.6.5.D. On p647-strip800.jpg stanza 2's row in system 2 closes line 4 at 5 syllables and its row in system 3 sings line 5 at 6; the moved word is a capitalised divine name, but the move gives lines of 4 and 7 syllables, which the metre forbids.",
+      "gaps": ["movedown:1.4", "movedown:2.4"]
+    }
+  ]
+}

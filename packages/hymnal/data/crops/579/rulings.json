@@ -1,0 +1,39 @@
+{
+  "number": 579,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p565.jpg",
+          "crop": "p565-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "f3878e2cf5641226",
+          "shows": ""
+        },
+        {
+          "image": "p565.jpg",
+          "crop": "p565-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "4d12b46c43c7576d",
+          "shows": ""
+        },
+        {
+          "image": "p565.jpg",
+          "crop": "p565-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "67195c5830676d60",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t31 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p565-strip800.jpg, the refrain's first system, its one row: the word that opens line 2 follows a full stop and is a name of God, so it is printed with a capital in either layout. The header's metre (p565-strip0.jpg, 7.6.8.6.Ref.) gives the refrain no counts, and no text below the music. join:refrain.1.2: p565-strip1600.jpg, the refrain's second system, its one row: the word that opens line 3 follows a full stop, so it is printed with a capital in either layout. The header's metre gives the refrain no counts (only the stanzas carry 7.6.8.6.), and no text below the music. movedown:refrain.1.2: p565-strip800.jpg end of the refrain's first system and p565-strip1600.jpg start of its second: the moved word is a divine pronoun and the word after it follows a full stop, both printed with a capital in either layout. The header's metre gives the refrain no counts, and no text below the music.",
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2", "movedown:refrain.1.2"]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "number": 679,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "679.png",
+          "crop": "679-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "5aad37283a8f86d5",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t37 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.2: 679-strip0.jpg, end of system 1 into system 2, the one lyric row: line 2 ends with a full stop and line 3 opens on a name of God, printed with a capital anyway. No rest or bar mark sits between them, and the header prints no metre. join:1.4: 679-strip0.jpg, end of system 2 into system 3: line 4 ends with a full stop and line 5 opens on the same name of God, capitalized anyway. No rest, bar mark or metre fixes the break.",
+      "unreachable": ["join:1.2", "join:1.4"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "679.png",
+          "crop": "679-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "5aad37283a8f86d5",
+          "shows": ""
+        },
+        {
+          "image": "679.png",
+          "crop": "679-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "fbd14abf6b951ab2",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t37 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.6: can: 679-strip0.jpg system 3 (again at the top of 679-strip800.jpg): line 7's first word, a two-letter interjection (not the one-letter vocative), follows a semicolon yet is printed with a capital, as the page capitalizes the conjunction that opens each even line after a comma. That capital marks a line opening, which the join removes. moveup:1.6: can: 679-strip0.jpg system 3, last word of the row: the interjection is printed with a capital after a semicolon, so it opens a line. Moved to close line 6, it would stand mid-sentence with a capital nothing else explains (the name of God the change opens line 7 on is capitalized anyway).",
+      "gaps": ["join:1.6", "moveup:1.6"]
+    }
+  ]
+}

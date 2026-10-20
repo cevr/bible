@@ -29,6 +29,41 @@
       "settles": [
         "58 shape (shape2-07): stanza 1 sings 4 words from \"jubilate jubilate\" on, in no row the page prints"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "058.png",
+          "crop": "058-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "871bfddd35ade857",
+          "shows": ""
+        },
+        {
+          "image": "058.png",
+          "crop": "058-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "412d353c8cec61d3",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t01 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: dropline:1.3: 058-strip0.jpg system 2: stanza 1's row ends on \"clear;\" (a semicolon) at an end-repeat that sends bars 1-5 round for stanza 2's row, and the Jubilate row is printed once, unnumbered, after that repeat (058-strip800.jpg system 3 closes it with its own repeat). Nothing on the page sings a Jubilate line after stanza 1 alone, so it does not show the drop wrong; its repeats sing that line only after stanza 2's row. join:1.2: 058-strip0.jpg system 2: every \"Jubilate\" and the \"Amen\" are printed with a capital, mid-line too, so the capital does not mark a line opening, and the header prints no metre; nothing tells the joined line from the two. moveup:1.2: 058-strip0.jpg system 2: the moved word and the next one are both \"Jubilate\", printed with a capital at every occurrence, and no metre is printed, so nothing marks which of them opens the line. split:1.3: 058-strip800.jpg system 3: the third \"Jubilate\" is printed with a capital like every other, and no metre is printed, so nothing marks whether a line opens on it. join:2.2: 058-strip0.jpg system 2: \"Jubilate\" follows stanza 2's full stop and is printed with a capital at every occurrence, and no metre is printed, so nothing tells the joined line from the two. moveup:2.2: 058-strip0.jpg system 2: as in stanza 1, the moved word and the next are both \"Jubilate\", capitals at every occurrence, and no metre is printed, so nothing marks which opens the line. split:2.3: 058-strip800.jpg system 3: the third \"Jubilate\" is a capital like every other one and no metre is printed; the page prints the Jubilate row once for both stanza rows, so nothing tells this split apart.",
+      "unreachable": [
+        "dropline:1.3",
+        "join:1.2",
+        "moveup:1.2",
+        "split:1.3",
+        "join:2.2",
+        "moveup:2.2",
+        "split:2.3"
+      ]
     }
   ]
 }

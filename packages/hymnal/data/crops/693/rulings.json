@@ -22,6 +22,33 @@
       "settles": [
         "693 shape (shape2-77): stanza 1 line 2 opens on word 6 of stanza 1 row 1, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p671.jpg",
+          "crop": "p671-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1d634e3128c95961",
+          "shows": ""
+        },
+        {
+          "image": "p671.jpg",
+          "crop": "p671-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "5e19a605f8b25aa1",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t38 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.1: p671-strip1600.jpg, 693's system 1 row: line 2's first word, the row's last, is a conjunction printed lowercase after a comma, so no capital marks a line there in either layout and no metre fixes the lines. The page shows the join no more wrong than the database's own break, which its lowercase word does not support. join:1.2: p671-strip1600.jpg, 693's system 2 row: line 3's one word follows a full stop, so its capital is printed in either layout; a double bar sets its music apart, but the row prints no line break and the header no metre. movedown:1.2: p671-strip1600.jpg, 693's system 2 row: the moved word is a pronoun of God, capitalised anyway (this page prints such pronouns mid-line, 692's system 1 row on p671-strip0.jpg), and line 3's word keeps its capital after the full stop; no metre fixes the lines.",
+      "unreachable": ["join:1.1", "join:1.2", "movedown:1.2"]
     }
   ]
 }

@@ -336,6 +336,33 @@
       ],
       "judge": "judge-140 (Opus, effort max)",
       "why": "The '5.' refrain row on p137-2031 ends 'for me.'"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p137.jpg",
+          "crop": "p137-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "88dd46eb27c93e7c",
+          "shows": ""
+        },
+        {
+          "image": "p137.jpg",
+          "crop": "p137-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "dfc1d08aba3f959d",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t06 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:3.4: p137-strip800.jpg system 2 to system 3, stanza 3's row: after 'sod,' the page prints 'O' (always a capital) and then 'Thou' (a name of God, also a capital), so a line can open on either word; the header prints 'Irregular Ref.', no metre that fixes the lines.",
+      "unreachable": ["moveup:3.4"]
     }
   ]
 }

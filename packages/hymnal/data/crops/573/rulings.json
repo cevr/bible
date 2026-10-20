@@ -1,0 +1,78 @@
+{
+  "number": 573,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p559.jpg",
+          "crop": "p559-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "87ec4b74333b0237",
+          "shows": ""
+        },
+        {
+          "image": "p559.jpg",
+          "crop": "p559-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "7db4550632701c40",
+          "shows": ""
+        },
+        {
+          "image": "p560.jpg",
+          "crop": "p560-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "9a3a3dc0c41470b2",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t31 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.7: p559-strip1600.jpg system 4, stanza 1's row: the moved word is a divine pronoun and the word after it is the pronoun I, both printed with a capital in either layout. The header's 9.7.9.7.D. fits neither layout at lines 7 and 8: the database's lines sing 10 and 8 syllables, the changed ones 9 and 9. join:refrain.1.2: p560-strip0.jpg, the refrain's two systems: the word that opens line 3 (first word of the second system's row) is the pronoun I, printed with a capital in either layout. The header's metre (9.7.9.7.D.R) gives the refrain no counts, and no text below the music. join:refrain.1.3: p560-strip0.jpg, the refrain's second system: the word that opens line 4 follows a comma and is the pronoun I, printed with a capital in either layout. The header's metre gives the refrain no counts, and no text below the music. movedown:refrain.1.3: p560-strip0.jpg, the refrain's second system: the moved word is a name of God and the word after it is the pronoun I, both printed with a capital in either layout. The header's metre gives the refrain no counts, and no text below the music.",
+      "unreachable": [
+        "movedown:1.7",
+        "join:refrain.1.2",
+        "join:refrain.1.3",
+        "movedown:refrain.1.3"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p559.jpg",
+          "crop": "p559-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "87ec4b74333b0237",
+          "shows": ""
+        },
+        {
+          "image": "p559.jpg",
+          "crop": "p559-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "5f0adbb074e97b8d",
+          "shows": ""
+        },
+        {
+          "image": "p559.jpg",
+          "crop": "p559-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "7db4550632701c40",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t31 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.4: can: p559-strip800.jpg, stanza 2's row at the end of system 2 and the start of system 3: the database's lines 4 and 5 sing 7 and 9 syllables, exactly the header's 9.7.9.7.D.; the change makes them 8 and 8. The capitals alone fit either layout (a vocative after a full stop, then a name of Christ). movedown:3.4: can: p559-strip800.jpg, stanza 3's row at the end of system 2 and the start of system 3: the database's lines 4 and 5 sing 7 and 9 syllables, as the header's 9.7.9.7.D. says; the change makes them 4 and 12. The capitals alone fit either layout (a title of Christ, then a word after a full stop).",
+      "gaps": ["moveup:2.4", "movedown:3.4"]
+    }
+  ]
+}

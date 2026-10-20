@@ -1,0 +1,46 @@
+{
+  "number": 190,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p185.jpg",
+          "crop": "p185-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "9bb476ff95a48a69",
+          "shows": ""
+        },
+        {
+          "image": "p185.jpg",
+          "crop": "p185-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "92ebfe2b106d0f82",
+          "shows": ""
+        },
+        {
+          "image": "p185.jpg",
+          "crop": "p185-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "01d334996905686a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t09 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p185-strip800.jpg system 3, the refrain's row: line 2's first word follows an exclamation mark that closes a sentence, so its capital stands whether or not it opens a line (the page's lowercase after an exclamation mark, stanza 1's row of system 1, comes only inside a sentence). The header's 7.7.7.7.Ref. (p185-strip0.jpg) fits the stanzas, not the refrain's shorter lines, so no metre fixes the refrain's lines. moveup:refrain.1.1: p185-strip800.jpg system 3, the refrain's row: the moved word follows an exclamation mark that closes a sentence, so its capital stands at a line's end, and the word it leaves to open line 2 is the name of Christ, a capital anyway. The header gives no metre for the refrain. join:refrain.1.2: p185-strip1600.jpg, the refrain's row: line 3's first word opens system 4 after line 2 ends system 3 on an exclamation mark that closes a sentence, so its capital stands whether or not it opens a line. The header gives no metre for the refrain. moveup:refrain.1.2: p185-strip800.jpg and p185-strip1600.jpg, the refrain's row at the turn from system 3 to system 4: the moved word follows an exclamation mark that closes a sentence, and the word it leaves to open line 3 is the name of Christ, so both capitals stand in either layout. The header gives no metre for the refrain. join:refrain.1.3: p185-strip1600.jpg system 4, the refrain's row: line 4's first word follows an exclamation mark that closes a sentence, so its capital stands whether or not it opens a line. The header gives no metre for the refrain. moveup:refrain.1.3: p185-strip1600.jpg system 4, the refrain's row: the moved word follows an exclamation mark that closes a sentence, and the word it leaves to open line 4 is a proper noun the page prints with a capital mid-line in stanza 1's row (p185-strip0.jpg system 1). The header gives no metre for the refrain.",
+      "unreachable": [
+        "join:refrain.1.1",
+        "moveup:refrain.1.1",
+        "join:refrain.1.2",
+        "moveup:refrain.1.2",
+        "join:refrain.1.3",
+        "moveup:refrain.1.3"
+      ]
+    }
+  ]
+}

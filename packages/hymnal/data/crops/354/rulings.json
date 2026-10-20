@@ -1,0 +1,25 @@
+{
+  "number": 354,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "354.png",
+          "crop": "354-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9b31b8e2ee6d0780",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t19 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:1.3: 354-strip800.jpg, stanza 1's row: the moved word, last on system 3, is a pronoun of God printed with a capital (the page capitalizes it mid-line elsewhere), and the word after it, opening system 4 and the new opener, is a name of God (the Spirit) with a capital. The header prints no metre.",
+      "unreachable": ["moveup:1.3"]
+    }
+  ]
+}

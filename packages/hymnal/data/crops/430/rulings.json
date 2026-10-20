@@ -58,6 +58,33 @@
       "settles": [
         "430 shape (shape2-48): the refrain after stanza 3: row 1 opens \"joy joy\" at word 23, its count gives word 21"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p417.jpg",
+          "crop": "p417-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1cb363901e0e14ab",
+          "shows": ""
+        },
+        {
+          "image": "p417.jpg",
+          "crop": "p417-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ac71dc987b23bb4e",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t23 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:1.4: Page system 2, stanza 1's row ends on line 4's first two words, and page system 3's one shared row (p417-strip800.jpg) prints the rest; the word the split puts at a line's head is part of a city's name, printed with a capital anyway. The header prints Irregular, so no metre fixes the lines. split:2.3: p417-strip800.jpg, page system 2, stanza 2's row: the word the split puts at a line's head is a name of God, printed with a capital anyway. The header prints Irregular, so no metre fixes the lines (stanzas 1 and 3 print lowercase words on that note, but no printed metre carries that to stanza 2). split:2.4: p417-strip800.jpg, page system 2, stanza 2's row ends on line 4's first two words, and page system 3's shared row prints the rest; the word the split puts at a line's head is part of a city's name, printed with a capital anyway. The header prints Irregular, so no metre fixes the lines. join:3.2: p417-strip800.jpg, page system 2, stanza 3's row: line 3 opens on a name, printed with a capital anyway, after a semicolon. The header prints Irregular, so no metre fixes the lines (stanzas 1 and 2 open a line on that note, but no printed metre carries that to stanza 3). moveup:3.2: p417-strip800.jpg, page system 2, stanza 3's row: the moved word is a name and the word that then opens line 3 is a pronoun of God, both printed with a capital anyway. The header prints Irregular, so no metre fixes the line lengths. split:3.4: p417-strip800.jpg, page system 2, stanza 3's row ends on line 4's first two words, and page system 3's shared row prints the rest; the word the split puts at a line's head is part of a city's name, printed with a capital anyway. The header prints Irregular, so no metre fixes the lines.",
+      "unreachable": ["split:1.4", "split:2.3", "split:2.4", "join:3.2", "moveup:3.2", "split:3.4"]
     }
   ]
 }

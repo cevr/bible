@@ -378,6 +378,33 @@
       ],
       "judge": "judge-275 (Opus, effort max)",
       "why": "p303-2040.jpg's refrain row prints 'all day long! I would be like Je-sus.'"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "88507507eac38361",
+          "shows": ""
+        },
+        {
+          "image": "p303.jpg",
+          "crop": "p303-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "71be1950e1a9d660",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t17 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: p303-strip1600.jpg, the page's last system (the refrain's second), one row: the word that opens line 4 is the pronoun I, printed with a capital anyway, right after line 3's last word, which ends on an exclamation mark. The header's C.M.R (p303-strip0.jpg) gives no metre for the refrain and no text below the music prints its lines; the fermata over line 3's last note is a pause in the music, not a mark in the words.",
+      "unreachable": ["join:refrain.1.3"]
     }
   ]
 }

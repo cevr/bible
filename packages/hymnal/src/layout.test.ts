@@ -12,7 +12,7 @@
  * before the census, which no fix touches).
  */
 
-import { Effect, Result } from 'effect';
+import { Console, Effect, Result } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import {
@@ -25,7 +25,13 @@ import {
   type Sources,
   type Verses,
 } from '../scripts/census.js';
-import { applyRecipe, layoutMutants, printedSourceOf, rowOfSource } from '../scripts/layout.js';
+import {
+  applyRecipe,
+  domainOf,
+  layoutMutants,
+  printedSourceOf,
+  rowOfSource,
+} from '../scripts/layout.js';
 
 const fixtures = layoutMutants();
 
@@ -110,6 +116,31 @@ describe('layout', () => {
         ).filter((line) => line.startsWith('512 shape ('));
         expect(lines).not.toEqual([]);
       }),
+    );
+  });
+
+  describe('the generated property', () => {
+    it.effect(
+      'every mutation of every hymn with a deciding page prints a layout line, but those a ruling lists',
+      () =>
+        Effect.gen(function* () {
+          const { sources } = yield* readCensusOnce;
+          const domain = domainOf(sources);
+          for (const [property, one] of domain.properties)
+            yield* Console.log(
+              `layout ${property}: mutants=${one.mutants} unreached=${one.unreached}`,
+            );
+          yield* Console.log(
+            `layout lists: unreachable=${domain.lists.unreachable} gaps=${domain.lists.gaps}`,
+          );
+          expect(domain.hymns).toBe(691);
+          expect(domain.unread).toEqual([]);
+          // A mutant no layout line reaches is on a committed list, with its ruling on crops.
+          expect(domain.unlisted).toEqual([]);
+          // A mutant a list names is one the census cannot reach, on one list only.
+          expect(domain.reached).toEqual([]);
+          for (const one of domain.properties.values()) expect(one.mutants).toBeGreaterThan(0);
+        }),
     );
   });
 });

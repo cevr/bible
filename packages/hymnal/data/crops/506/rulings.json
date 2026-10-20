@@ -323,6 +323,40 @@
       ],
       "judge": "judge-505 (Opus, effort max)",
       "why": "506-1605.jpg row 4 ends 'His king-dom is for-ev - er.'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "71f0142a58f14b45",
+          "shows": ""
+        },
+        {
+          "image": "506.jpg",
+          "crop": "506-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "ab22e9961af14d78",
+          "shows": ""
+        },
+        {
+          "image": "506.jpg",
+          "crop": "506-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "c9811750bfba5ded",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t27 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.6: can: 506-strip800.jpg system 3, stanza 2's row: the moved word 'He' is printed with a capital either way, but the header's metre on 506-strip0.jpg (8.7.8.7.6.6.6.6.7.) gives lines 6 and 7 six syllables each, as the database has them. The change makes them 5 and 7 (line 7 runs on to system 4 on 506-strip1600.jpg), which breaks the metre.",
+      "gaps": ["movedown:2.6"]
     }
   ]
 }

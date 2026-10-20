@@ -428,6 +428,67 @@
       "settles": [
         "33 shape (shape2-04): stanza 3 has 4 lines, which the metre the page prints fits in no way, where stanza 4's 5 fit it"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "6841fa9457e5aa80",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "7a7ea1f6bd5dadc9",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t01 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:4.3: 033-strip800.jpg system 2, stanza 4's row: \"He\" is a divine pronoun, a capital anyway. The metre's 6.5. pair is run together as one line by the page's own rows in stanzas 1 and 3, where the word at that place is printed lowercase, so the metre does not fix this break and nothing tells the joined stanza 4 from the split one.",
+      "unreachable": ["join:4.3"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "fd7a02ca623c6dfa",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "6841fa9457e5aa80",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "7a7ea1f6bd5dadc9",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t01 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.1: can: 033-strip0.jpg system 1, stanza 1's row: \"Lord,\" is the 7th syllable of line 1, and the header metre 7.7.6.5.8. fixes lines 1 and 2 at 7 each; the move makes them 6 and 8. Capitals alone would not tell (a name of God, then a divine pronoun). moveup:3.1: can: 033-strip0.jpg system 1, stanza 3's row: the header metre fixes lines 1 and 2 at 7 syllables each, and the move makes them 9 and 5. Capitals alone would not tell (\"Publish\" follows a full stop, the next word is a divine pronoun). join:4.2: can: Systems 1 and 2, stanza 4's row: the header metre 7.7.6.5.8. ends line 2 after 7 syllables, at the full stop before \"In\"; the join makes a 13-syllable line that no reading of the metre gives. The capital on \"In\" alone would not tell (it follows a full stop). join:4.4: can: 033-strip1600.jpg systems 3 and 4, stanza 4's row: \"O\" follows a full stop, a capital anyway, but the header metre closes the stanza on an 8-syllable line of its own; the join makes a 13-syllable line that no reading of the metre gives. swapends:1: can: 033-strip0.jpg system 1: stanza 1's row opens after \"1.\" on the 7-syllable line with no \"O\", and 033-strip1600.jpg systems 3 and 4 close it on the 8-syllable line that opens with \"O\". The header metre's 7 first and 8 last also break under the swap.",
+      "gaps": ["movedown:1.1", "moveup:3.1", "join:4.2", "join:4.4", "swapends:1"]
     }
   ]
 }

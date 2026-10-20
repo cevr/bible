@@ -36,6 +36,33 @@
       "settles": [
         "72 shape (shape2-08): stanza 3 has 5 lines, which the metre the page prints fits in no way, where stanza 1's 4 fit it"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p069.jpg",
+          "crop": "p069-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "7208cf91f341874b",
+          "shows": ""
+        },
+        {
+          "image": "p069.jpg",
+          "crop": "p069-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "8432dc18d6cef5c4",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t02 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:3.4: can: The header prints L.M. (8.8.8.8), and stanza 3's row on p069-strip1600.jpg, last system, fills line 4's 8 syllables ending 'e-ter-nal-ly.'; the joined line would hold 10. The page also sets 'A-men.' apart after a double bar, under its own music.",
+      "gaps": ["join:3.4"]
     }
   ]
 }

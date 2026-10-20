@@ -24,6 +24,33 @@
       ],
       "judge": "judge-532 (Opus, effort max)",
       "why": "536-483.jpg row 1 prints 'Through the si-lent fields of space'; the OCR kept only 'lent'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "536.png",
+          "crop": "536-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "9fec62c438e34a45",
+          "shows": ""
+        },
+        {
+          "image": "536.png",
+          "crop": "536-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "b70436ad6eef08fc",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t29 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:3.4: 536-strip0.jpg system 2 to 536-strip800.jpg system 3, stanza 3's row: the moved word is a divine pronoun printed with a capital, and the word after it (line 5 word 1) follows a full stop, so both carry capitals wherever the line ends. The header prints no metre; the system break there is no line mark.",
+      "unreachable": ["movedown:3.4"]
     }
   ]
 }

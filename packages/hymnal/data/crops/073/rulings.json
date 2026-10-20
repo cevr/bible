@@ -1,0 +1,25 @@
+{
+  "number": 73,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p070.jpg",
+          "crop": "p070-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "30fd5592901aeb3e",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t02 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:4.1: can: The header's metre opens 11 (its end is hidden by a punch hole), and system 1, stanza 4's row fills exactly 11 syllables ending 'Al-might-y!' as the other three rows do; the moved 'All' makes line 1 twelve. 'All' also sits under measure 5's pickup, where every other stanza opens its line 2.",
+      "gaps": ["moveup:4.1"]
+    }
+  ]
+}

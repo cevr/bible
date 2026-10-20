@@ -1,0 +1,32 @@
+{
+  "number": 141,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p138.jpg",
+          "crop": "p138-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "acdcbf4a4a3b4e75",
+          "shows": ""
+        },
+        {
+          "image": "p138.jpg",
+          "crop": "p138-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "77e0d7844be1af33",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t06 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p138-strip800.jpg system 2 (Refrain), refrain row: 'Christ' is printed with a capital (a name of God), so a line can open there; the header's 8.7.8.7. counts the stanza lines and 'Ref.' gives the refrain no count that fixes its lines.",
+      "unreachable": ["split:refrain.1.1"]
+    }
+  ]
+}

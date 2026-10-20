@@ -1,0 +1,25 @@
+{
+  "number": 9,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "009.png",
+          "crop": "009-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "e9de5abc32870394",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-r01 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.2: 009-strip0.jpg system 2 (bars 6-10), stanza 1's row: the moved 'King' has a capital (a name of God), and 'The' after it follows an exclamation mark and has a capital anyway. The page prints no metre. movedown:2.2: 009-strip0.jpg system 2 (bars 6-10), stanza 2's row: the moved 'King' has a capital (a name of God), and 'The' after it follows an exclamation mark and has a capital anyway. The page prints no metre.",
+      "unreachable": ["movedown:1.2", "movedown:2.2"]
+    }
+  ]
+}

@@ -819,6 +819,47 @@
       ],
       "judge": "judge-626 (Opus, effort max)",
       "why": "626-b-p2-770.jpg refrain row prints 'In a lit-tle while we're go-ing home.'"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "750d0be20e5562fe",
+          "shows": ""
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "65ffb4714576f9cc",
+          "shows": ""
+        },
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "b42b18fb155ab2ac",
+          "shows": ""
+        },
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "37341d1dc8e57830",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t33 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: 626-b-strip1600.jpg and 626-strip1600.jpg, the refrain's first system (left page): both voice rows sing the same four-word phrase twice and print its second opening word with a capital after a comma, so a line break there and the database's mid-line capital read the same, and the two halves are printed alike. The header's 12.9.12.9. Ref. on 626-b-strip0.jpg and 626-strip0.jpg gives no metre for the refrain, and no text stands below the music.",
+      "unreachable": ["split:refrain.1.1"]
     }
   ]
 }

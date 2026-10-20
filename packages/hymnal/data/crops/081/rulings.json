@@ -227,6 +227,33 @@
       ],
       "judge": "judge-033 (Opus, effort max)",
       "why": "Though_I_Speak_With_Tongues2-86.jpg row 3 prints 'With-out love I am no bet-ter'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "Though_I_Speak_With_Tongues2.png",
+          "crop": "Though_I_Speak_With_Tongues2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0f9b38cfdb0f50db",
+          "shows": ""
+        },
+        {
+          "image": "Though_I_Speak_With_Tongues2.png",
+          "crop": "Though_I_Speak_With_Tongues2-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "df8402fe7c7546d1",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t03 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:1.6: Tongues2 systems 6-7 (bars 21-28), stanza 1's row: \"Lord\" is printed with a capital (a name of God) and the \"You\" after it is capitalized too (a divine pronoun, as the mid-row \"Your\" shows), so either can open the line. The header prints no metre and no text block is printed; system 7 opens on \"Lord,\" but a system break is no line mark. moveup:2.6: Tongues2 systems 6-7 (bars 21-28), stanza 2's row: \"Lord\" and the \"You\" after it are both printed with capitals (a name of God; a divine pronoun, as the mid-row \"Your\" shows), so either can open the line. No metre and no text block are printed; the system break before \"Lord,\" is no line mark. moveup:3.6: Tongues2 systems 6-7 (bars 21-28), stanza 3's row: \"Lord\" and the \"You\" after it are both printed with capitals (a name of God; a divine pronoun, as the mid-row \"Your\" shows), so either can open the line. No metre and no text block are printed; the system break before \"Lord,\" is no line mark.",
+      "unreachable": ["moveup:1.6", "moveup:2.6", "moveup:3.6"]
     }
   ]
 }

@@ -283,6 +283,26 @@
       ],
       "judge": "judge-003 (Opus, effort max)",
       "why": "032-1283.jpg, the last ending, prints 'sing al - ways: Al - le - lu - ia!', joined 'Alleluia'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "f81e05b9212011fe",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-r03 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:4.3: 032-strip800.jpg system 4 (the ending marked 4.), its one row: the one-word line is printed with a capital after a colon that introduces it as the words sung, so the capital reads the same whether a line opens there or not; the header prints no metre.",
+      "unreachable": ["join:4.3"]
     }
   ]
 }

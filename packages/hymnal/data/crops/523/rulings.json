@@ -1,0 +1,39 @@
+{
+  "number": 523,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p512.jpg",
+          "crop": "p512-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "193f95ce9a353d28",
+          "shows": ""
+        },
+        {
+          "image": "p512.jpg",
+          "crop": "p512-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "e8d2631e5c0f45d8",
+          "shows": ""
+        },
+        {
+          "image": "p512.jpg",
+          "crop": "p512-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "255a6696b0f83e3d",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t28 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p512-strip800.jpg and p512-strip1600.jpg system 3, the refrain row: line 2 opens on the pronoun I, printed with a capital wherever it stands, right after line 1's last word. The header on p512-strip0.jpg prints C.M.Ref., which counts the stanzas' lines but gives the refrain none, and no text below the music prints the lines.",
+      "unreachable": ["join:refrain.1.1"]
+    }
+  ]
+}

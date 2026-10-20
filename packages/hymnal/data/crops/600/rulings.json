@@ -24,6 +24,33 @@
       ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 2. ends 'He comes to all oth - ers', plural with the s."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p585.jpg",
+          "crop": "p585-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "7a3a5bede532633e",
+          "shows": ""
+        },
+        {
+          "image": "p585.jpg",
+          "crop": "p585-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d03b7256cad1a9d0",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p585-strip1600.jpg system 4, the refrain's row: line 2's first word follows a dash and an opening quotation mark and begins a quoted sentence, so its capital stands wherever the line breaks; the header prints 10.11.10.11 for the stanzas and only Ref. for the refrain, so no metre fixes the refrain's lines. join:refrain.1.2: p585-strip1600.jpg system 4, the refrain's row: line 2 ends with a full stop inside its closing quotation mark, and line 3's first word opens a new quotation, so it carries a capital anyway; the refrain has no printed metre, so nothing tells the joined line from two.",
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2"]
     }
   ]
 }

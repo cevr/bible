@@ -1,0 +1,25 @@
+{
+  "number": 290,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "290.png",
+          "crop": "290-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "77268a650577360c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t15 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.2: 290-strip800.jpg system 2 (from bar 20), the refrain's row: the split opens a line on \"His\", a pronoun of God that the page capitalizes anyway (as it does mid-line in the stanzas); the header prints no metre. split:refrain.1.4: 290-strip800.jpg system 3 (from bar 27), the refrain's row: the split opens a line on \"His\", a pronoun of God printed with a capital anyway; the header prints no metre.",
+      "unreachable": ["split:refrain.1.2", "split:refrain.1.4"]
+    }
+  ]
+}

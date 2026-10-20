@@ -24,6 +24,33 @@
       ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop 128-800, top (stanza 1) row of the fourth system opens 'in fan - cy,' after 'now weak in' ends the third system (crop 128-696): the syllables of 'infancy' (this re-engraving drops the hyphen after 'in', as it does in 'beau teous'), so the reading lost the 'in' syllable."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "128.png",
+          "crop": "128-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "7dc0b48b19bd952f",
+          "shows": ""
+        },
+        {
+          "image": "128.png",
+          "crop": "128-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "732441406ed194c1",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t05 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:1.4: 128-strip0.jpg system 3 (bars 7-9), stanza 1's row: the moved word (This) follows a full stop (warning.), a capital anyway, and the change opens line 5 on Child, a title of Christ printed with a capital. The page prints no metre; the fermata on the note before is a pause in the tune (it falls only at every second line's end), not a line mark.",
+      "unreachable": ["moveup:1.4"]
     }
   ]
 }

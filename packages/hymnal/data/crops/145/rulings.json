@@ -1,0 +1,32 @@
+{
+  "number": 145,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "145.jpg",
+          "crop": "145-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "c8ad99b3d0ed704d",
+          "shows": ""
+        },
+        {
+          "image": "145.jpg",
+          "crop": "145-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "71fd66be5ff9e4d2",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t06 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.1: can: 145-strip0.jpg header prints 'RILEY 7.7.7.7.D.' (lines of 7 syllables); system 1, stanza 1's row prints 7 syllables up to 'praise,' and 7 from 'Je-sus,' to 'raise,'. Moving 'Je-sus' up makes lines of 9 and 5 syllables, which the metre breaks on. join:varies.1.1.1: can: 145-strip1600.jpg system 4, the '1,2,3.' row: 'God' is a capital printed anyway, but the header's 7.7.7.7.D. counts 8 lines of 7 and the stanza rows hold only 6, so this row's 14 syllables are two lines of 7; joined they make one line of 14. split:varies.1.2.1: can: 145-strip1600.jpg system 4, the '4.' row: 'You' is a capital printed anyway (a name of God), but under the header's 7.7.7.7.D. the row's first 7 syllables (to 'blest,') are one line; the split gives lines of 3 and 4 syllables. join:varies.1.2.1: can: 145-strip1600.jpg system 4, the '4.' row: 'God' is a capital printed anyway, but under the header's 7.7.7.7.D. the row's 14 syllables are two lines of 7 (the 7th and 8th of the D); the join makes one line of 14.",
+      "gaps": ["moveup:1.1", "join:varies.1.1.1", "split:varies.1.2.1", "join:varies.1.2.1"]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "number": 37,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p037.jpg",
+          "crop": "p037-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "7bb4bcbf58cfb9d5",
+          "shows": ""
+        },
+        {
+          "image": "p037.jpg",
+          "crop": "p037-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "51aa5b13d29a27fc",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-r03 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.2: can: The header on p037-strip0.jpg prints 8.7.8.7.8.8.7., fixing line 2 at 7 syllables and line 3 at 8; the change makes them 6 and 9. The moved word (a pronoun of God, first on system 2's stanza 3 row, p037-strip800.jpg) and the word after it both print with a capital anyway, so the metre alone tells the two apart.",
+      "gaps": ["movedown:3.2"]
+    }
+  ]
+}

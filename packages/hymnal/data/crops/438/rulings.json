@@ -145,6 +145,26 @@
       "settles": [
         "438 shape (shape2-49): stanza 5 line 8 opens on word 6 of the refrain after stanza 5: row 2, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "438.jpg",
+          "crop": "438-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "c51de578d678ab0b",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t23 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: 438-strip1600.jpg, page system 4 (the refrain's second system): the word at the seam, refrain line 4's first, is printed lowercase with no punctuation before it, so the page marks no line opening there for either layout. The header prints 8.8.8.5.Ref., no metre for the refrain, which has music of its own, so nothing fixes where its lines break.",
+      "unreachable": ["join:refrain.1.3"]
     }
   ]
 }

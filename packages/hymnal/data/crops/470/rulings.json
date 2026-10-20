@@ -1,0 +1,32 @@
+{
+  "number": 470,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p459.jpg",
+          "crop": "p459-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "736b95fcba69c88d",
+          "shows": ""
+        },
+        {
+          "image": "p459.jpg",
+          "crop": "p459-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "a885696bcea6facd",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t25 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.3: p459-strip1600.jpg system 2, the refrain's last row: word 4, where the split opens a line, is a pronoun of God, printed with a capital anyway. The header's C.M.Ref. (p459-strip0.jpg) gives the stanzas' metre only, so no metre fixes the refrain's lines.",
+      "unreachable": ["split:refrain.1.3"]
+    }
+  ]
+}

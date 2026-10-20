@@ -1,0 +1,39 @@
+{
+  "number": 205,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p200.jpg",
+          "crop": "p200-strip0.jpg",
+          "box": [0, 0, 3518, 1000],
+          "sha": "ebd6b6960295e521",
+          "shows": ""
+        },
+        {
+          "image": "p200.jpg",
+          "crop": "p200-strip2400.jpg",
+          "box": [0, 2400, 3518, 1000],
+          "sha": "7ef3a41ca863de1e",
+          "shows": ""
+        },
+        {
+          "image": "p200.jpg",
+          "crop": "p200-strip3200.jpg",
+          "box": [0, 3200, 3518, 1000],
+          "sha": "e899df41a2975fc8",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t10 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.2: p200-strip3200.jpg system 4, the refrain's row: \"O\" is printed with a capital anyway (the vocative O, after an exclamation mark), and the header on p200-strip0.jpg prints only \"Ref.\" after the stanzas' 10.5.10.5., so no metre fixes the refrain's lines. The fermata over the word before marks the music, not the line (the refrain's line 1, on p200-strip2400.jpg, ends with none).",
+      "unreachable": ["join:refrain.1.2"]
+    }
+  ]
+}

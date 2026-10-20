@@ -1,0 +1,39 @@
+{
+  "number": 384,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p373.jpg",
+          "crop": "p373-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "9dbcb7df52013467",
+          "shows": ""
+        },
+        {
+          "image": "p373.jpg",
+          "crop": "p373-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "d91ada4f230fb661",
+          "shows": ""
+        },
+        {
+          "image": "p373.jpg",
+          "crop": "p373-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "674cebac9615aef3",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t20 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.6: can: The header on p373-strip0.jpg prints 7.7.7.7.7.7., and stanza 2's line 6 (p373-strip800.jpg system 3, row 2) is seven syllables ending on the moved word. The move leaves line 6 six syllables and line 7 (p373-strip1600.jpg system 4) eight, which the metre does not allow. movedown:4.6: can: The header on p373-strip0.jpg prints 7.7.7.7.7.7., and stanza 4's line 6 (p373-strip800.jpg system 3, row 4) is seven syllables ending on the moved word. The move leaves line 6 six syllables and line 7 (p373-strip1600.jpg system 4) eight, which the metre does not allow.",
+      "gaps": ["movedown:2.6", "movedown:4.6"]
+    }
+  ]
+}

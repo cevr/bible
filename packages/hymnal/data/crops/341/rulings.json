@@ -1,0 +1,39 @@
+{
+  "number": 341,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "341.jpg",
+          "crop": "341-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "855dae6a3799439e",
+          "shows": ""
+        },
+        {
+          "image": "341.jpg",
+          "crop": "341-strip2400.jpg",
+          "box": [0, 2400, 2268, 624],
+          "sha": "7ac2509779d98df8",
+          "shows": ""
+        },
+        {
+          "image": "341-p2.jpg",
+          "crop": "341-p2-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "4fbdd05a52317d3c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t18 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.4: 341-strip1600.jpg system 5 (the refrain's second system), its one row: line 5 opens mid-row, after a semicolon, on the interjection 'O', printed with a capital anyway. The header's '11.11.11.11. Ref.' gives the stanzas' metre only; the refrain has none printed, and the page prints no text below the music. split:refrain.1.5: 341-strip1600.jpg system 5, its one row: the word the split opens a line on is 'Father', a name of God printed with a capital anyway; the line runs on to the right page's first system (341-p2-strip0.jpg). The refrain has no printed metre that fixes its lines.",
+      "unreachable": ["join:refrain.1.4", "split:refrain.1.5"]
+    }
+  ]
+}

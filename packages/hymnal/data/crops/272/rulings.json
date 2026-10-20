@@ -98,6 +98,74 @@
       ],
       "judge": "judge-261 (Opus, effort max)",
       "why": "The page prints three stanzas only; this crop's row 'ho-ly mes-sage shin-ing, Thy light shall guide me in the nar-row way' and p266's top row are the refrain, which the database already has after each stanza."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p265.jpg",
+          "crop": "p265-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "4b0004999faf5e86",
+          "shows": ""
+        },
+        {
+          "image": "p265.jpg",
+          "crop": "p265-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "54f138a86f316212",
+          "shows": ""
+        },
+        {
+          "image": "p265.jpg",
+          "crop": "p265-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "ae4049f9e0a96cfc",
+          "shows": ""
+        },
+        {
+          "image": "p266.jpg",
+          "crop": "p266-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "5b7d0225f3ecdeb8",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t14 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: Refrain, end of system 3's middle row: Bible is printed with a capital as a proper name, as it is mid-line in every stanza's first row on p265-strip0.jpg. The word before it carries no mark, and the header's 11.10.11.10 holds the stanzas only (Ref., no refrain metre). join:refrain.1.2: Refrain system 5's row (p266-strip0.jpg): its first word, Precept, follows the full stop that ends system 4's row on p265-strip1600.jpg, so its capital stands anyway. The header gives the refrain no metre.",
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.2"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p265.jpg",
+          "crop": "p265-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "54f138a86f316212",
+          "shows": ""
+        },
+        {
+          "image": "p265.jpg",
+          "crop": "p265-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "ae4049f9e0a96cfc",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t14 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: Refrain system 4's row (p265-strip1600.jpg): Thy is printed with a capital after a comma. It addresses the holy message shining just before it (the Bible), which the page prints lowercase, so it is no pronoun of God and its capital marks a line opening, which the join removes.",
+      "gaps": ["join:refrain.1.1"]
     }
   ]
 }

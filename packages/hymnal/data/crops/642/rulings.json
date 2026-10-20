@@ -1,0 +1,25 @@
+{
+  "number": 642,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "642.png",
+          "crop": "642-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "f04cf77812f8ac2e",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t34 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.2: can: 642-strip0.jpg system 2: in stanza 2's row the moved word (a pronoun of God) and the word after it (a name of God) both take capitals anyway and no metre is printed, but stanzas 1 and 3, under the same notes, open line 3 on the moved word's note with a capital after a semicolon, and stanza 3 prints a lowercase word on the note where the change opens line 3. The change gives stanza 2's lines 2 and 3 7 and 7 syllables where the other stanzas sing 6 and 8.",
+      "gaps": ["moveup:2.2"]
+    }
+  ]
+}

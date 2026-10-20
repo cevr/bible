@@ -272,6 +272,45 @@
       ],
       "judge": "judge-467 (Opus, effort max)",
       "why": "p480-1494.jpg, the refrain row, prints the second 'I would be like Je-sus!'; the OCR missed 'I'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "edca69a9bd7370df",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "df978f623de5dd3c",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "57a91ffa48e60b28",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t26 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p480-strip800.jpg system 3, the refrain's row: line 2 opens mid-row on the first-person pronoun, a capital anyway, so the joined line prints the same capitals. The header on p480-strip0.jpg prints 7.7.7.6. Ref., the stanzas' metre only, so no metre fixes the refrain's lines. movedown:refrain.1.1: p480-strip800.jpg system 3, the refrain's row: the moved word is a name of God printed with a capital, and the pronoun after it is a capital anyway. The header's 7.7.7.6. Ref. gives the refrain no metre. join:refrain.1.2: Line 2 ends system 3's refrain row (p480-strip800.jpg) on an exclamation mark, so line 3's first word, which opens system 4 (p480-strip1600.jpg), is a capital anyway as a new sentence's first word. A system break marks no poem line, and the header's 7.7.7.6. Ref. gives the refrain no metre. movedown:refrain.1.2: The moved word, last on system 3's refrain row (p480-strip800.jpg), is a name of God printed with a capital, and the word after its exclamation mark, first on system 4 (p480-strip1600.jpg), is a capital anyway as a new sentence's first word. The header's 7.7.7.6. Ref. gives the refrain no metre.",
+      "unreachable": [
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "join:refrain.1.2",
+        "movedown:refrain.1.2"
+      ]
     }
   ]
 }

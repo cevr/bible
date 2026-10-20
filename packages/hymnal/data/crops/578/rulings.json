@@ -22,6 +22,33 @@
       "settles": [
         "578 shape (shape2-64): the refrain after stanza 4: row 1 prints word 7 with a capital inside a line of stanza 4, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "578.png",
+          "crop": "578-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "59efce742716df07",
+          "shows": ""
+        },
+        {
+          "image": "578.png",
+          "crop": "578-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "abfc6a974b6ef9fb",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t31 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:4.3: 578-strip0.jpg system 2, stanza 4's row: the word that would open the split's second line opens a quotation (an opening quote mark stands before it), so it is printed with a capital in either layout. The page prints no metre and no text below the music. split:4.4: 578-strip800.jpg system 3, stanza 4's row: the word that would open the split's second line is a divine pronoun, printed with a capital wherever it stands. The page prints no metre and no text below the music. join:4.4: 578-strip800.jpg systems 3 and 4 (the ending marked 4.), stanza 4's row: the word that opens line 5 follows an exclamation mark and opens a new quotation, so it is printed with a capital in either layout. The page prints no metre and no text below the music. split:4.5: 578-strip800.jpg system 4, stanza 4's row: the word that would open the split's second line is a divine pronoun, printed with a capital wherever it stands; the capital after the comma that follows it stands mid-line in both layouts. The page prints no metre and no text below the music.",
+      "unreachable": ["split:4.3", "split:4.4", "join:4.4", "split:4.5"]
     }
   ]
 }

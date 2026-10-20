@@ -153,6 +153,26 @@
       "settles": [
         "216 shape (shape2-24): stanza 3 line 5 opens on word 4 of stanza 3 row 3, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "5821604fba3da559",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t11 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:3.1: p211-strip0.jpg system 1, stanza 3's row: the moved 'Mas-ter' is capitalized as a title of Christ, and the database's own opener after it, 'from', is printed lowercase, so the page marks no break on either side; the header's 15 fixes only the two lines' sum, which the move keeps.",
+      "unreachable": ["movedown:3.1"]
     }
   ]
 }

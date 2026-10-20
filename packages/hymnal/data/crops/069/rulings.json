@@ -1,0 +1,32 @@
+{
+  "number": 69,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "069.png",
+          "crop": "069-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "5e3f22f89cf61be3",
+          "shows": ""
+        },
+        {
+          "image": "069.png",
+          "crop": "069-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "76029916774a94bb",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t02 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:4.4: System 2, stanza 4's row ends 'a-gain.' with a full stop, and the '4.' ending (system 3) opens 'gain. Like': 'Like' takes its capital after the full stop anyway. The header prints no metre, so nothing on the page marks a line open on it. moveup:4.4: System 3, the '4.' ending's row: 'Like' follows a full stop and 'Je-sus' is a name, so both carry a capital in either layout. The header prints no metre that fixes the lines.",
+      "unreachable": ["join:4.4", "moveup:4.4"]
+    }
+  ]
+}

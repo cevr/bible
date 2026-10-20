@@ -292,6 +292,40 @@
       "settles": [
         "331 shape (shape2-37): stanza 3 row 4 prints word 7 with a capital inside a line of stanza 3, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "7c1e504ad153df73",
+          "shows": ""
+        },
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "428ac5a2b19c8741",
+          "shows": ""
+        },
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3211494151717a79",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t17 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.2: can: p321-strip800.jpg (repeated at the top of p321-strip1600.jpg), stanza 3's row (the third): the moved word opens system 3's row with a capital although it is no name of God, no I or O, and follows a semicolon, so a line opens on it and the change ends line 2 on it. The header's 7.6.7.6.D. (p321-strip0.jpg) also makes each database line 7 plus 6 syllables, and the change makes lines 2 and 3 fourteen and twelve.",
+      "gaps": ["moveup:3.2"]
     }
   ]
 }

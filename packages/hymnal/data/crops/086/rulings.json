@@ -551,6 +551,59 @@
       "settles": [
         "86 shape (shape2-10): the refrain after stanza 4: row 2 prints word 15 with a capital inside a line of stanza 4, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "086.png",
+          "crop": "086-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "7270e719a9cc5f6d",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "daba4581171427c9",
+          "shows": ""
+        },
+        {
+          "image": "How_Great_Thou_Art2.png",
+          "crop": "How_Great_Thou_Art2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "b11a0512f748e126",
+          "shows": ""
+        },
+        {
+          "image": "How_Great_Thou_Art2.png",
+          "crop": "How_Great_Thou_Art2-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "f3c37ef6123c2b85",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t03 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:1.2: 086-strip0.jpg system 1, stanza 1's row: line 2's word 5 is a divine pronoun printed with a capital (the page capitalizes such pronouns mid-row throughout), so a line opening on it reads the same; the header prints no metre and no text block is printed. join:1.2: 086-strip0.jpg system 2, stanza 1's row: line 3's opener is the first-person pronoun, always printed with a capital, so it reads the same mid-line; no metre is printed. split:1.3: 086-strip0.jpg system 2, stanza 1's row: line 3's word 5 is the first-person pronoun, always printed with a capital, so a line opening on it reads the same; no metre is printed. join:1.3: 086-strip0.jpg system 2, stanza 1's row: line 4's opener is a divine pronoun, printed with a capital as the same pronoun is mid-row in system 1, so it reads the same mid-line; no metre is printed. split:3.1: 086-strip0.jpg system 1, stanza 3's row: line 1's word 6 is a name of God, printed with a capital, so a line opening on it reads the same; no metre is printed. join:3.3: 086-strip0.jpg system 2, stanza 3's row: line 4's opener is a divine pronoun, printed with a capital as the page prints other divine pronouns mid-row in system 1's stanza 3, so it reads the same mid-line; no metre is printed. join:4.2: 086-strip0.jpg system 2, stanza 4's row (and the optional ending's row from bar 23): line 3's opener follows an exclamation mark that ends a sentence, so its capital reads the same mid-line; no metre is printed. moveup:4.2: 086-strip0.jpg system 2, stanza 4's row (and the optional ending's row from bar 23): the moved word follows an exclamation mark, so its capital reads the same at a line's end, and line 3's word 2, the new opener, is the first-person pronoun, always capitalized; no metre is printed. split:4.4: 086-strip0.jpg system 2, stanza 4's row (and the optional ending's row from bar 23): line 4's word 5 is a name of God, printed with a capital, so a line opening on it reads the same; no metre is printed. join:refrain.1.2: 086-strip800.jpg system 4 (bar 13), the refrain row (and again from bar 33): line 3's opener follows an exclamation mark that ends a sentence, so its capital reads the same mid-line; no metre is printed. split:refrain.1.4: 086-strip800.jpg system 4 (bar 13), the refrain row (and again from bar 33): line 4's word 5 is printed with a capital, so a line opening on it reads the same (the page marks it as an opener if anything); no metre is printed.",
+      "unreachable": [
+        "split:1.2",
+        "join:1.2",
+        "split:1.3",
+        "join:1.3",
+        "split:3.1",
+        "join:3.3",
+        "join:4.2",
+        "moveup:4.2",
+        "split:4.4",
+        "join:refrain.1.2",
+        "split:refrain.1.4"
+      ]
     }
   ]
 }

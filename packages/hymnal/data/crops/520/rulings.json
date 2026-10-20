@@ -1,0 +1,39 @@
+{
+  "number": 520,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p509.jpg",
+          "crop": "p509-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "bfc1e8db7aea9260",
+          "shows": ""
+        },
+        {
+          "image": "p509.jpg",
+          "crop": "p509-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "faa2d774810c91dc",
+          "shows": ""
+        },
+        {
+          "image": "p510.jpg",
+          "crop": "p510-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1ebc0ff87e59b935",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t28 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.2: p509-strip1600.jpg system 4, the refrain row: line 3 opens on a pronoun of God, which this page prints with a capital wherever it stands (mid-row on p509-strip0.jpg system 1 and twice on p510-strip0.jpg system 5), after a semicolon. The header (11.8.11.8. Ref.) gives the refrain no syllable counts, so nothing fixes the break.",
+      "unreachable": ["join:refrain.1.2"]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "number": 260,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p255.jpg",
+          "crop": "p255-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "654d27e541d18ed6",
+          "shows": ""
+        },
+        {
+          "image": "p255.jpg",
+          "crop": "p255-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d0f8f47d0b576222",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t14 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: Refrain system 1's row: the word that opens the database's line 2, Jesus, is a name of God printed with a capital anyway, after a comma in the same row. The header prints 8.7.8.7.Ref., no metre for the refrain. join:refrain.1.2: Refrain system 2's row (p255-strip1600.jpg): its first word, Fill, follows the full stop that ends system 1's row, so its capital stands anyway. The header gives the refrain no metre that fixes its lines. split:refrain.1.3: Refrain system 2's row: the word that would open the new line, Thy, is a pronoun of God printed with a capital anyway, after a word with no mark. The header's 8.7.8.7 holds the stanzas only and gives the refrain no metre.",
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2", "split:refrain.1.3"]
+    }
+  ]
+}

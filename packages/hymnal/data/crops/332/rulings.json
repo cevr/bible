@@ -1,0 +1,38 @@
+{
+  "number": 332,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p322.jpg",
+          "crop": "p322-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "1b4c47bf218dcbae",
+          "shows": ""
+        },
+        {
+          "image": "p322.jpg",
+          "crop": "p322-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "fac4ec06e9ec6435",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t18 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p322-strip800.jpg system 3 (Refrain), its one row: the word the split opens a line on is the pronoun 'I', printed with a capital anyway, after word 3 with no stop. The header's 'C.M. Ref.' gives no metre for the refrain, and the page prints no text below the music. join:refrain.1.1: p322-strip800.jpg system 3 (Refrain), its one row: the word that would no longer open a line is the pronoun 'I', printed with a capital anyway, mid-row. The refrain has no printed metre and no text below the music. split:refrain.1.2: p322-strip800.jpg system 3 (Refrain), its one row: the word the split opens a line on is the interjection 'O', printed with a capital anyway, mid-row. The refrain has no printed metre that fixes its lines. join:refrain.1.2: Refrain line 2 ends the row of p322-strip800.jpg system 3 and line 3 opens the row of p322-strip1600.jpg system 4 on the interjection 'O', printed with a capital anyway (after an exclamation mark). A system break marks no line, and the refrain has no printed metre. split:refrain.1.3: p322-strip1600.jpg system 4 (Refrain, second system), its one row: the word the split opens a line on is 'Lord', a name of God printed with a capital anyway. The refrain has no printed metre and no text below the music.",
+      "unreachable": [
+        "split:refrain.1.1",
+        "join:refrain.1.1",
+        "split:refrain.1.2",
+        "join:refrain.1.2",
+        "split:refrain.1.3"
+      ]
+    }
+  ]
+}

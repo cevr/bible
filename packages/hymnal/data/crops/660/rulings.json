@@ -102,6 +102,40 @@
       "settles": [
         "660 shape (shape2-73): stanza 1 line 6 opens on word 6 of stanza 1 row 3, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p646.jpg",
+          "crop": "p646-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "6772821cc8adcde3",
+          "shows": ""
+        },
+        {
+          "image": "p646.jpg",
+          "crop": "p646-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "0d9b43af8ac25c48",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t34 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.1: p646-strip800.jpg system 1: the moved word is a name of God, printed with a capital anyway. The header names the tune with no metre, and the page prints the first words of the database's own lines 2, 3, 5 and 6 lowercase, so its capitals mark no lines in this text. movedown:1.2: p646-strip800.jpg system 1: the moved word is a name of God, printed with a capital anyway, and line 2's own first word is lowercase; no metre is printed, so nothing marks where line 2 ends. join:1.5: p646-strip1600.jpg system 3: line 6's first word is printed lowercase, as the page prints the first words of the database's lines 2, 3 and 5, so nothing marks a line opening there; the header prints no metre. join:1.6: p646-strip1600.jpg system 3: line 7's first word follows a full stop and takes a capital anyway; no metre is printed. moveup:1.6: p646-strip1600.jpg system 3: line 7 is one word printed twice, each time with a capital (the first after a full stop, the second after a comma, which the database already holds mid-line), so either layout reads the same; no metre is printed. split:1.7: p646-strip1600.jpg system 3: the word the split opens on is printed with a capital after a comma, as it is where the database holds it mid-line, so the capital marks nothing; no metre is printed.",
+      "unreachable": [
+        "movedown:1.1",
+        "movedown:1.2",
+        "join:1.5",
+        "join:1.6",
+        "moveup:1.6",
+        "split:1.7"
+      ]
     }
   ]
 }

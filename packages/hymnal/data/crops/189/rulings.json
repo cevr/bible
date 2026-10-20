@@ -55,6 +55,40 @@
       ],
       "judge": "judge-122 (Opus, effort max)",
       "why": "p184-312.jpg row 4 begins '4. By the crys-tal flow-ing riv-er'; the OCR missed 'By'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p184.jpg",
+          "crop": "p184-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "2fa709490d27129d",
+          "shows": ""
+        },
+        {
+          "image": "p184.jpg",
+          "crop": "p184-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "a2cb388d3c4c204f",
+          "shows": ""
+        },
+        {
+          "image": "p184.jpg",
+          "crop": "p184-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "be9a0e7e051e9b2d",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t09 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p184-strip800.jpg system 3, the refrain's row: line 2's first word is a pronoun for Christ, printed with a capital as such pronouns are mid-line in the stanza rows (p184-strip0.jpg system 1, stanzas 1 and 3). The header's 8.7.8.7.Ref. gives the stanzas' metre only, so no metre fixes the refrain's lines. movedown:refrain.1.1: p184-strip800.jpg system 3, the refrain's row: the moved word is the name of Christ, a capital wherever it stands, and line 2's first word is a pronoun for Christ, printed with a capital mid-line in the stanza rows (p184-strip0.jpg system 1). The header gives no metre for the refrain. split:refrain.1.4: p184-strip1600.jpg system 4, the refrain's row: the word that would open the split's second line is a title of God, printed with a capital as line 4's fourth word in the database's layout. The header gives no metre for the refrain.",
+      "unreachable": ["join:refrain.1.1", "movedown:refrain.1.1", "split:refrain.1.4"]
     }
   ]
 }

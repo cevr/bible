@@ -1,0 +1,32 @@
+{
+  "number": 475,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p464.jpg",
+          "crop": "p464-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "a21b53537a36da97",
+          "shows": ""
+        },
+        {
+          "image": "p464.jpg",
+          "crop": "p464-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "139693dde35ae04b",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t25 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: split:refrain.1.1: can: p464-strip0.jpg: the header prints C.M.D. with no Ref., and the stanza is only four lines, so the refrain is the other half of the 8.6.8.6 pairs. The refrain's row (system 1) counts exactly 8 then 6 syllables, the 8 ending on word 6; word 6 has a capital anyway (a place name), but a line opening on it cuts the metre's 8-syllable line after 5. The database's own line holds 8+6 whole. split:refrain.1.2: can: p464-strip800.jpg system 1, the refrain's second row: under the header's C.M.D. it counts exactly 8 then 6 syllables, the 8 ending on word 6. Word 6 has a capital anyway (a place name), but a line opening on it cuts the metre's 8-syllable line after 5. The database's own line holds 8+6 whole.",
+      "gaps": ["split:refrain.1.1", "split:refrain.1.2"]
+    }
+  ]
+}

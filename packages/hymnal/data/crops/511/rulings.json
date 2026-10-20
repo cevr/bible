@@ -116,6 +116,40 @@
       "settles": [
         "511 shape (shape2-57): stanza 4 line 6 opens on word 8 of the refrain after stanza 4: row 1, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "3424d96add752617",
+          "shows": ""
+        },
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "5d9bb356c3218d42",
+          "shows": ""
+        },
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "496d02ff90ff99b4",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t27 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p499-strip800.jpg refrain system 1 (repeated at the top of p499-strip1600.jpg): the word that opens database line 2, 'and', is printed lowercase after 'be-liev-ed,', so the page marks no line opening there, unlike the capitals that open lines 3 and 4 on system 2. The header's metre on p499-strip0.jpg ('C.M.Re', cut at the strip's edge) numbers only the stanza, so nothing shows the join wrong; the lowercase fits the join rather than the database's break.",
+      "unreachable": ["join:refrain.1.1"]
     }
   ]
 }

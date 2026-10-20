@@ -66,6 +66,26 @@
       "settles": [
         "34 shape (shape2-04): stanza 3 line 10 opens on word 7 of the refrain after stanza 3: row 1, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p035.jpg",
+          "crop": "p035-strip0.jpg",
+          "box": [0, 0, 1820, 1000],
+          "sha": "1bf168ff99420b34",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t01 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p035-strip0.jpg refrain system 1, upper row: the word that opens the database's line 2 is printed lowercase (\"the\"), so no capital marks a line there, and the header's \"Ref.\" gives the refrain no syllable counts. The page fits the joined line at least as well as the database's two.",
+      "unreachable": ["join:refrain.1.1"]
     }
   ]
 }

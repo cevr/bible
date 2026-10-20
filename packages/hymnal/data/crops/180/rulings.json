@@ -258,6 +258,83 @@
         "180 shape (shape2-20): the refrain after stanza 3: row 4 holds its middle \"it thou\" at no place its count gives",
         "180 shape (shape2-20): the refrain after stanza 3: row 4 ends \"heaven interceding\" at no place its count gives"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "718c88b548711826",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "df9f2614a64ae012",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t08 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p175-strip800.jpg system 3 (Refrain), row 1: line 2's first word is printed with a capital after line 1's question mark, capitalized anyway, and neither row prints it again. The header (p175-strip0.jpg) prints 9.7.9.7.Ref., no counts for the refrain. split:refrain.1.2: p175-strip1600.jpg system 4, row 1: the word that would open the new line is printed with a capital after the question mark that closes line 2's first half (end of system 3), capitalized anyway, and neither row prints it again. The header (p175-strip0.jpg) prints no counts for the refrain.",
+      "unreachable": ["join:refrain.1.1", "split:refrain.1.2"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "718c88b548711826",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "df9f2614a64ae012",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t08 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: repeatline:refrain.1.2: can: The refrain's row 1 prints line 2 once: its first half ends system 3 (p175-strip800.jpg, p175-strip1600.jpg) and its second half opens system 4 (p175-strip1600.jpg), followed at once by line 3. There is no repeat sign, and row 2 does not print line 2's words. dropline:refrain.1.3: can: p175-strip1600.jpg system 4 prints line 3 to close the refrain, in row 1 after line 2's words and again in row 2. The change drops a line the page prints. movedown:3.1: can: p175-strip0.jpg: the header prints 9.7.9.7; system 1, stanza 3's row sets line 1 at nine syllables and line 2 at seven. The moved word (two syllables, capitalized as a name of Christ, so the capital does not decide it) makes them seven and nine, which the metre breaks. moveup:3.1: can: p175-strip0.jpg: the header prints 9.7.9.7; system 1, stanza 3's row. The capitals do not decide it (the moved word follows a question mark, the next is a divine pronoun), but the change makes lines 1 and 2 ten and six syllables, which the metre breaks. join:refrain.1.2: can: p175-strip1600.jpg system 4: row 1 prints line 3's first word after a question mark, but row 2 prints the same line 3 with that word capitalized after a comma; it is no name of God, so only a line start explains the capital. The page marks the word as opening a line. movedown:refrain.1.2: can: p175-strip1600.jpg system 4, row 1: the moved word (line 2's last) is printed lowercase with a question mark after it, so it cannot open line 3. moveup:refrain.1.2: can: p175-strip1600.jpg system 4: line 3's second word, which the change makes open the line, is printed lowercase in both rows, and row 2 capitalizes line 3's first word after a comma, marking it as the line's start. split:refrain.1.3: can: p175-strip1600.jpg system 4: the word that would open the new line is printed lowercase in both rows, mid-phrase.",
+      "gaps": [
+        "repeatline:refrain.1.2",
+        "dropline:refrain.1.3",
+        "movedown:3.1",
+        "moveup:3.1",
+        "join:refrain.1.2",
+        "movedown:refrain.1.2",
+        "moveup:refrain.1.2",
+        "split:refrain.1.3"
+      ]
     }
   ]
 }

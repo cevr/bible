@@ -1,0 +1,77 @@
+{
+  "number": 91,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "091.jpg",
+          "crop": "091-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "c72382a9ca212622",
+          "shows": ""
+        },
+        {
+          "image": "091.jpg",
+          "crop": "091-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "6806b9008c732cba",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t03 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.2: 091-strip1600.jpg systems 3-4, the refrain row: every Alleluia is printed with a capital and the row prints no line breaks; the split falls in the header's closing \"Alleluias\" (091-strip0.jpg), which counts no syllables or lines, and the six 8s stay whole.",
+      "unreachable": ["split:refrain.1.2"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "091.jpg",
+          "crop": "091-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "c72382a9ca212622",
+          "shows": ""
+        },
+        {
+          "image": "091.jpg",
+          "crop": "091-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "a7035a82d0c48633",
+          "shows": ""
+        },
+        {
+          "image": "091.jpg",
+          "crop": "091-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "6806b9008c732cba",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t03 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.3: can: 091-strip0.jpg's header prints the metre 8.8.8.8.8.8. Alleluias, and 091-strip800.jpg system 2, stanza 1's row sings lines 3 and 4 at 8 syllables each. The change leaves line 3 with 4 syllables and line 4 with 12, which the metre breaks (the capitals alone could not tell: the moved word is always capitalized and the next follows a \"!\"). movedown:2.3: can: 091-strip0.jpg's header prints the metre 8.8.8.8.8.8. Alleluias; 091-strip800.jpg system 2, stanza 2's row sings lines 3 and 4 at 8 syllables each. The change leaves line 3 with 4 syllables and line 4 with about 12, which the metre breaks. moveup:3.2: can: 091-strip0.jpg's header prints the metre 8.8.8.8.8.8. Alleluias; stanza 3's row (091-strip0.jpg system 1, 091-strip800.jpg system 2) sings lines 2 and 3 at 8 syllables each. The change makes line 2 12 syllables and line 3 4, which the metre breaks. movedown:3.3: can: 091-strip0.jpg's header prints the metre 8.8.8.8.8.8. Alleluias; 091-strip800.jpg system 2, stanza 3's row sings lines 3 and 4 at 8 syllables each. The change leaves line 3 with 4 syllables and line 4 with 12, which the metre breaks. moveup:3.3: can: 091-strip0.jpg's header prints the metre 8.8.8.8.8.8. Alleluias; 091-strip800.jpg system 2, stanza 3's row sings lines 3 and 4 at 8 syllables each. The change makes them 9 and 7, which the metre breaks (the capitals alone could not tell: \"To\" follows a \"!\" and \"God\" is a name). split:refrain.1.1: can: The header (091-strip0.jpg) prints six 8s then Alleluias; the stanza rows give five 8-syllable lines, so the sixth 8 is the refrain's first two Alleluias (091-strip1600.jpg systems 3-4, the refrain row). The split makes that line 4 + 4 syllables, which the metre breaks. join:refrain.1.1: can: The header (091-strip0.jpg) prints six 8s then Alleluias, and the stanza gives only five 8-syllable lines, so the refrain's first line must be 8 syllables (two Alleluias, 091-strip1600.jpg systems 3-4). The join makes the refrain one 20-syllable line, which the metre breaks. movedown:refrain.1.1: can: The header (091-strip0.jpg) prints six 8s then Alleluias, and the stanza gives only five 8-syllable lines, so the refrain's first line must be 8 syllables (091-strip1600.jpg systems 3-4). The change makes it 4 syllables (one Alleluia), which the metre breaks. moveup:refrain.1.1: can: The header (091-strip0.jpg) prints six 8s then Alleluias, and the stanza gives only five 8-syllable lines, so the refrain's first line must be 8 syllables (091-strip1600.jpg systems 3-4). The change makes it 12 syllables (three Alleluias), which the metre breaks. swaplines:refrain.1.1: can: The header (091-strip0.jpg) prints six 8s then Alleluias, and the stanza gives only five 8-syllable lines, so the refrain's first line must be 8 syllables (091-strip1600.jpg systems 3-4). The swap puts the three-Alleluia line (12 syllables) first, which the metre breaks, though the words read the same.",
+      "gaps": [
+        "movedown:1.3",
+        "movedown:2.3",
+        "moveup:3.2",
+        "movedown:3.3",
+        "moveup:3.3",
+        "split:refrain.1.1",
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "moveup:refrain.1.1",
+        "swaplines:refrain.1.1"
+      ]
+    }
+  ]
+}

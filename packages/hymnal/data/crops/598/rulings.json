@@ -1,0 +1,72 @@
+{
+  "number": 598,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p583.jpg",
+          "crop": "p583-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "fb1f24d56c8fb99c",
+          "shows": ""
+        },
+        {
+          "image": "p583.jpg",
+          "crop": "p583-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d06e1387424b0990",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.2: System 3, the refrain's row: line 2's word 4 follows a comma and is a pronoun of God, printed with a capital wherever it stands (also mid-line in lines 1 and 2); the header prints no metre for the refrain, so nothing marks a line opening there or rules one out. join:refrain.1.2: Systems 3 and 4: line 2 ends system 3 with an exclamation mark, and line 3's first word (opening system 4) is a name, capitalised either way; the refrain has no printed metre, so nothing tells the joined line from two.",
+      "unreachable": ["split:refrain.1.2", "join:refrain.1.2"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p583.jpg",
+          "crop": "p583-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "c71af91e00a5f230",
+          "shows": ""
+        },
+        {
+          "image": "p583.jpg",
+          "crop": "p583-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "fb1f24d56c8fb99c",
+          "shows": ""
+        },
+        {
+          "image": "p583.jpg",
+          "crop": "p583-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d06e1387424b0990",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:4.1: can: p583-strip0.jpg header and system 1, stanza 4's row: the header prints L.M. (lines of 8 syllables) and the row's first 8 syllables end on line 1's last word, so the moved word is syllable 9 and opens line 2; the change makes line 1 nine syllables and line 2 seven. The moved word and the next are a name and a pronoun of God, capitalised either way, so only the metre tells. join:refrain.1.1: can: System 3, the refrain's row: line 2's first word is printed with a capital right after a semicolon, while the same word is printed lowercase mid-line in line 1 (its word 4), so the capital marks the line opening the join removes. The refrain has no printed metre. moveup:refrain.1.1: can: System 3, the refrain's row: the moved word (line 2's first) is printed with a capital after a semicolon, while the same word is lowercase mid-line in line 1, so its capital marks line 2's opening; the change leaves it at line 1's end (the word after it, a pronoun of God, is capitalised either way). join:refrain.1.3: can: p583-strip1600.jpg system 4, the refrain's row: line 3's last word is printed with a capital right after a comma (the same word is lowercase mid-line in line 1), which marks a line opening before it, and the joined line has none. Line 4's first word, a pronoun of God, is capitalised either way. The database's own split also lacks that opening, so the page is at odds with the database here too. movedown:refrain.1.3: unclear: p583-strip1600.jpg system 4, the refrain's row: the moved word is printed with a capital right after a comma (lowercase mid-line in line 1), which marks a line opening before it, exactly where the change puts one. The page tells the two layouts apart in the change's favour: the database's own split here is at odds with the page, so neither can nor cannot holds until the database is read again.",
+      "gaps": [
+        "moveup:4.1",
+        "join:refrain.1.1",
+        "moveup:refrain.1.1",
+        "join:refrain.1.3",
+        "movedown:refrain.1.3"
+      ]
+    }
+  ]
+}

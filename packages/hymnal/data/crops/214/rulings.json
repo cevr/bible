@@ -369,6 +369,33 @@
       "settles": [
         "214 shape (shape2-24): stanza 2 line 9 opens on word 5 of stanza 2 row 7, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "6c69d408c4b538b0",
+          "shows": ""
+        },
+        {
+          "image": "214.jpg",
+          "crop": "214-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "5c9e93fe7ecb8aa0",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t11 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.1: can: 214-strip0.jpg system 1, stanza 2's row ends on the moved word, a name of God printed with a capital and a comma after it; 214-strip800.jpg system 2, stanza 2's row opens on an ordinary pronoun printed with a capital, which the move leaves second in its line after that comma, where only a line opening explains its capital. (The page prints a copyright line: no words written.)",
+      "gaps": ["movedown:2.1"]
     }
   ]
 }

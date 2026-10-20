@@ -1,0 +1,32 @@
+{
+  "number": 481,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p469.jpg",
+          "crop": "p469-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "12e12ba47e0e3ed0",
+          "shows": ""
+        },
+        {
+          "image": "p470.jpg",
+          "crop": "p470-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "eaf000c4f3470daa",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t26 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: split:1.1: can: p469-strip1600.jpg header and hymn 481's system 1, the one stanza row: the word the split opens on is a name of God printed with a capital, but the header prints the metre 8.6.8.8.6. and the split cuts the 8-syllable line 1 into 3 and 5 syllables, six lines against the metre's five. split:1.4: can: p470-strip0.jpg, the end of hymn 481's system 2 and the start of system 3: the word the split opens on is a pronoun of God printed with a capital, but the header on p469-strip1600.jpg prints the metre 8.6.8.8.6. and the split cuts the 8-syllable line 4 into 4 and 4 syllables.",
+      "gaps": ["split:1.1", "split:1.4"]
+    }
+  ]
+}

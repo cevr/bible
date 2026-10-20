@@ -132,6 +132,33 @@
       "settles": [
         "556 shape (shape2-62): stanza 2 row 3 prints word 3 with a capital inside a line of stanza 2, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "556.png",
+          "crop": "556-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d1bb16cb3eed38a5",
+          "shows": ""
+        },
+        {
+          "image": "556.png",
+          "crop": "556-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "009c79a175625adf",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t30 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.4: can: 556-strip800.jpg system 3: the three stanza rows sit note for note under one tune. On the note after the system's opening whole note, where stanza 3's database line 5 opens, stanza 1's row prints a capital after a semicolon that only a line opening explains. On the next note, where the change would open stanza 3's line, stanza 1 prints a lowercase word. Stanza 3's row alone would not tell (the moved word is the vocative particle and the new opener a name of God, both capitals anyway, and the header prints no metre), so this ruling rests on the alignment across stanzas.",
+      "gaps": ["moveup:3.4"]
     }
   ]
 }

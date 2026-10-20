@@ -214,6 +214,47 @@
       "settles": [
         "171 shape (shape2-19): stanza 2 row 2 prints word 9 with a capital inside a line of stanza 2, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p167.jpg",
+          "crop": "p167-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "704b5dd1228c3a21",
+          "shows": ""
+        },
+        {
+          "image": "p167.jpg",
+          "crop": "p167-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "d03bb8362a91bca8",
+          "shows": ""
+        },
+        {
+          "image": "p167.jpg",
+          "crop": "p167-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "8a12aadadefe1290",
+          "shows": ""
+        },
+        {
+          "image": "p168.jpg",
+          "crop": "p168-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "bcfa8d70b53b4b32",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t08 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.3: can: p168-strip0.jpg system 1, the refrain's row: line 4 opens on a divine pronoun the hymn capitalizes throughout, and the header's metre counts only the stanza, so neither marks the break alone. But the refrain (p167-strip1600.jpg system 4, p168-strip0.jpg system 1) repeats stanza 1's lines 1-4 word for word under the same notes (p167-strip0.jpg system 1, p167-strip800.jpg system 2), where the 5.5.6.5 metre makes lines 3 and 4 six and five syllables; the joined 11-syllable line breaks it.",
+      "gaps": ["join:refrain.1.3"]
     }
   ]
 }

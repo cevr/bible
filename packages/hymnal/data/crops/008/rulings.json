@@ -1,0 +1,39 @@
+{
+  "number": 8,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p009.jpg",
+          "crop": "p009-strip0.jpg",
+          "box": [0, 0, 1710, 1000],
+          "sha": "642d29b7ca99c377",
+          "shows": ""
+        },
+        {
+          "image": "p009.jpg",
+          "crop": "p009-strip800.jpg",
+          "box": [0, 800, 1710, 1000],
+          "sha": "c856da92552000ae",
+          "shows": ""
+        },
+        {
+          "image": "p009.jpg",
+          "crop": "p009-strip1600.jpg",
+          "box": [0, 1600, 1710, 1000],
+          "sha": "d32e4f88d5a6652b",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-r01 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:2.3: p009-strip1600.jpg system 4, stanza 2's row: the moved 'Thou' and the 'Lord' that opens line 4 after the change both have capitals (names of God). The header (p009-strip0.jpg) prints the metre as Irregular, so no syllable counts fix the lines. moveup:3.2: p009-strip800.jpg system 3, stanza 3's row: 'Let' follows the full stop that ends system 2 and has a capital anyway. 'Thy', which opens line 3 after the change, has a capital (a name of God). The header (p009-strip0.jpg) prints the metre as Irregular.",
+      "unreachable": ["moveup:2.3", "moveup:3.2"]
+    }
+  ]
+}

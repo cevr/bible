@@ -244,6 +244,61 @@
       ],
       "judge": "judge-100 (Opus, effort max)",
       "why": "102-b-p2-347.jpg row 4 prints 'Shall keep thee hence-forth, yea, for-ev-er-more.'; 102-b-1771.jpg holds none of it, and the reader left the line out."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "102.jpg",
+          "crop": "102-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "e17bc2b148a0b0f3",
+          "shows": ""
+        },
+        {
+          "image": "102-b.jpg",
+          "crop": "102-b-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "39b7568dfd5f46af",
+          "shows": ""
+        },
+        {
+          "image": "102-b.jpg",
+          "crop": "102-b-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "716647c0618468b8",
+          "shows": ""
+        },
+        {
+          "image": "102-b.jpg",
+          "crop": "102-b-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "53ca64105be4ed85",
+          "shows": ""
+        },
+        {
+          "image": "102-b-p2.jpg",
+          "crop": "102-b-p2-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "843ae0572de25555",
+          "shows": ""
+        },
+        {
+          "image": "102-c.jpg",
+          "crop": "102-c-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "42b5c1b819515492",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t04 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: Capitals do not tell it: system 3, stanza 1's row (102-b-strip1600.jpg, the same on 102-c-strip1600.jpg and 102-strip1600.jpg) prints 'From' after a question mark and 'God' (a name of God), both with capitals. But the header (102-b-strip0.jpg) prints the metre 10.4.10.4.10.10., whose line ends the database's lines keep (14.14.10.10 syllables); the move makes lines 2 and 3 fifteen and nine syllables, which no line or run of lines of the metre gives.",
+      "gaps": ["moveup:1.2"]
     }
   ]
 }

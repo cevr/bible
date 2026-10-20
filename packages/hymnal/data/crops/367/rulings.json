@@ -1,0 +1,25 @@
+{
+  "number": 367,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p357.jpg",
+          "crop": "p357-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "6c8f381c19a5b537",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t20 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.2: p357-strip1600.jpg refrain: system 1's row ends line 2 with a semicolon and system 2's row opens line 3 on a name of Christ, printed with a capital as a name anyway. The header prints 6.5.10.6.5.10.Ref., no metre for the refrain, so nothing fixes where its lines break. join:refrain.1.3: p357-strip1600.jpg refrain, system 2's row: line 4 opens after a comma on the same name of Christ that opens line 3, capitalised as a name anyway. The header gives the refrain no metre (Ref. only), so the joined layout looks the same on the page.",
+      "unreachable": ["join:refrain.1.2", "join:refrain.1.3"]
+    }
+  ]
+}

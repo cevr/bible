@@ -1,0 +1,38 @@
+{
+  "number": 369,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p359.jpg",
+          "crop": "p359-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "704a3f4605f6f834",
+          "shows": ""
+        },
+        {
+          "image": "p360.jpg",
+          "crop": "p360-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "ff346edd95c2faab",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t20 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p359-strip1600.jpg system 1, refrain row after the double bar: line 1's word 5 is printed with a capital after a comma, the mark the page gives an opening, so a split there looks the same. The header gives the refrain no metre (12.11.12.11.Ref.). split:refrain.1.2: p359-strip1600.jpg system 2's row: line 2's word 5 is printed with a capital after a comma, the mark the page gives an opening, so the split cannot be told apart. No refrain metre is printed. join:refrain.1.2: p359-strip1600.jpg system 2's row: line 3's first word has a capital after a semicolon, but the refrain prints that same word with a capital at every place, also at word 5 of each line where the database runs the line on. With no refrain metre printed, nothing sets this capital apart as a line opening. split:refrain.1.3: Line 3's word 5 opens the row of p360-strip0.jpg system 1, after p359-strip1600.jpg system 2 ends on a comma, and is printed with a capital as an opening would be. The refrain has no printed metre, so the split looks the same. split:refrain.1.4: p360-strip0.jpg system 1's row: line 4's word 5 is printed with a capital after a comma, as an opening would be. The header gives the refrain no metre, so the split cannot be told apart.",
+      "unreachable": [
+        "split:refrain.1.1",
+        "split:refrain.1.2",
+        "join:refrain.1.2",
+        "split:refrain.1.3",
+        "split:refrain.1.4"
+      ]
+    }
+  ]
+}

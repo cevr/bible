@@ -1,0 +1,25 @@
+{
+  "number": 71,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "071.png",
+          "crop": "071-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "eaed01c0a301ad1e",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t02 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:3.1: System 1, stanza 3's row: 'Com-fort-er' is printed with a capital as a name of God, and the next word 'Thy' is a capitalised pronoun of God, so the capitals read the same in either layout. The header prints no metre that fixes the lines.",
+      "unreachable": ["movedown:3.1"]
+    }
+  ]
+}

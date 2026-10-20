@@ -1,0 +1,37 @@
+{
+  "number": 508,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p496.jpg",
+          "crop": "p496-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "97f4f852ab5f71f6",
+          "shows": ""
+        },
+        {
+          "image": "p496.jpg",
+          "crop": "p496-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "a4d8dad23c3df3a5",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t27 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p496-strip1600.jpg refrain system 1: line 2 opens on 'Fear', which follows an exclamation mark and opens a new clause, so it carries a capital either way (the lowercase second 'anywhere!' before it only repeats the exclamation). The header's metre on p496-strip0.jpg, '11.11.11.11.Ref.', leaves the refrain unnumbered; the joined row would be one 11-syllable line, like the stanza's lines. moveup:refrain.1.1: p496-strip1600.jpg refrain system 1: the moved word 'Fear' follows an exclamation mark and opens a new clause, a capital either way, and the word the change makes open line 2 is the pronoun 'I', also a capital either way. The header's metre on p496-strip0.jpg leaves the refrain unnumbered ('Ref.'), so nothing fixes where that line breaks. join:refrain.1.3: p496-strip1600.jpg refrain system 2: line 4 opens on 'I', the pronoun, a capital either way, with no punctuation before it; the header's metre on p496-strip0.jpg leaves the refrain unnumbered. The same words make stanza 1's first line (p496-strip0.jpg system 1), one 11-syllable line under the metre, but to other notes, so no metre reaches the refrain (carried over, it would fit the join). movedown:refrain.1.3: p496-strip1600.jpg refrain system 2: the moved word 'Jesus' is a name, printed with a capital either way, with no punctuation on either side of it. The header's metre on p496-strip0.jpg leaves the refrain unnumbered ('Ref.'), so nothing fixes where that line breaks.",
+      "unreachable": [
+        "join:refrain.1.1",
+        "moveup:refrain.1.1",
+        "join:refrain.1.3",
+        "movedown:refrain.1.3"
+      ]
+    }
+  ]
+}

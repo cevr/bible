@@ -96,6 +96,40 @@
       ],
       "judge": "judge-100 (Opus, effort max)",
       "why": "p107-2023.jpg's refrain row prints 'than all our sin!', the refrain sung after stanza 3."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p107.jpg",
+          "crop": "p107-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "e129e1b392fbc4ba",
+          "shows": ""
+        },
+        {
+          "image": "p107.jpg",
+          "crop": "p107-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ec3a716203421224",
+          "shows": ""
+        },
+        {
+          "image": "p107.jpg",
+          "crop": "p107-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "e63f25ea15a7bc49",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t04 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: The refrain's first row opens on p107-strip800.jpg system 3 ('Grace, grace,') and goes on at the start of system 4 (p107-strip1600.jpg) with 'God's', printed with a capital as a name of God would be anyway. The header (p107-strip0.jpg) gives the refrain no metre ('9.9.9.9.Ref.'), so a line opening at 'God's' looks the same as none. split:refrain.1.3: p107-strip1600.jpg system 5, refrain row: 'God's' (the line's word 3) is printed with a capital as a name of God would be anyway, and the header gives the refrain no metre ('Ref.'). Nothing else on the page marks a line opening there.",
+      "unreachable": ["split:refrain.1.1", "split:refrain.1.3"]
     }
   ]
 }

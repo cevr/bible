@@ -1,0 +1,32 @@
+{
+  "number": 65,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p062.jpg",
+          "crop": "p062-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "4fe151e3a2acb856",
+          "shows": ""
+        },
+        {
+          "image": "p063.jpg",
+          "crop": "p063-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "ff6e9b2c4e771420",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t01 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: p063-strip0.jpg top system, refrain's upper row: \"God\" is a name of God, a capital anyway, and the header's \"9.8.8.9.Ref.\" gives the refrain no syllable counts. The music holds both \"meet,\" and \"God\" under fermatas, so it marks no break between them either.",
+      "unreachable": ["join:refrain.1.3"]
+    }
+  ]
+}

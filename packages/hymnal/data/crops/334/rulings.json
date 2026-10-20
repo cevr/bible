@@ -1,0 +1,39 @@
+{
+  "number": 334,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p324.jpg",
+          "crop": "p324-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "65555dee973bc138",
+          "shows": ""
+        },
+        {
+          "image": "p324.jpg",
+          "crop": "p324-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "0fac917eef1bb368",
+          "shows": ""
+        },
+        {
+          "image": "p324.jpg",
+          "crop": "p324-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "2669e773cf219f2c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t18 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.6: can: The moved word 'God' has a capital anyway, but p324-strip0.jpg's header prints 8.7.8.7. D. On p324-strip800.jpg system 3, stanza 2's row, line 6 is sung in 7 syllables ending on 'God;' and line 7 opens system 4 (p324-strip1600.jpg) in 8 syllables; the move makes them 6 and 9, which the metre refuses.",
+      "gaps": ["movedown:2.6"]
+    }
+  ]
+}

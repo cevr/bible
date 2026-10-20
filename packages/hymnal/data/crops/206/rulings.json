@@ -1,0 +1,39 @@
+{
+  "number": 206,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p201.jpg",
+          "crop": "p201-strip0.jpg",
+          "box": [0, 0, 3518, 1000],
+          "sha": "a5a4e8473b95511e",
+          "shows": ""
+        },
+        {
+          "image": "p201.jpg",
+          "crop": "p201-strip3200.jpg",
+          "box": [0, 3200, 3518, 1000],
+          "sha": "0be46446e1f5a1a1",
+          "shows": ""
+        },
+        {
+          "image": "p201.jpg",
+          "crop": "p201-strip4000.jpg",
+          "box": [0, 4000, 3518, 1000],
+          "sha": "5ff9714d267d87cf",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t10 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: p201-strip4000.jpg system 4, the refrain's row: \"I\" is printed with a capital anyway (the pronoun), and the header on p201-strip0.jpg prints only \"Ref.\" after the stanzas' 8.7.8.7., so no metre fixes the refrain's lines. The fermata over the syllable before (bottom of p201-strip3200.jpg) marks the music, not the line (the refrain's line 1 ends with none). split:refrain.1.4: p201-strip4000.jpg system 4, the refrain's row: \"Him\" is printed with a capital anyway (a name of God), and nothing else marks a line there. The header on p201-strip0.jpg prints only \"Ref.\" after the stanzas' 8.7.8.7., so no metre fixes the refrain's lines.",
+      "unreachable": ["join:refrain.1.3", "split:refrain.1.4"]
+    }
+  ]
+}

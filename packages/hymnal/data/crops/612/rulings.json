@@ -1,0 +1,39 @@
+{
+  "number": 612,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p597.jpg",
+          "crop": "p597-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "f3d1f321dc011655",
+          "shows": ""
+        },
+        {
+          "image": "p597.jpg",
+          "crop": "p597-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "354e6bd57db33059",
+          "shows": ""
+        },
+        {
+          "image": "p597.jpg",
+          "crop": "p597-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "4da7e3658789726c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p597-strip800.jpg/p597-strip1600.jpg system 3's end, the refrain's row: the word the split opens a line on is a proper adjective, which the page prints with a capital mid-line too (p597-strip0.jpg system 1, stanza 1's line 1, a line the metre fixes); the header's 6.5.6.5.D covers the stanzas and only Ref. the refrain, so no metre fixes the refrain's lines, though they repeat stanza 1's opening words. join:refrain.1.1: p597-strip1600.jpg system 4, the refrain's row: line 1 ends with an exclamation mark, so line 2's first word carries a capital anyway (nowhere on the page does a lowercase word follow an exclamation mark); the refrain has no printed metre, so nothing tells the joined line from two.",
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.1"]
+    }
+  ]
+}

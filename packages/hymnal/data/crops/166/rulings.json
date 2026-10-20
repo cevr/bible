@@ -1,0 +1,79 @@
+{
+  "number": 166,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p162.jpg",
+          "crop": "p162-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "b3d7bbdff0c038b6",
+          "shows": ""
+        },
+        {
+          "image": "p162.jpg",
+          "crop": "p162-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "bfbc9f2dc4931da9",
+          "shows": ""
+        },
+        {
+          "image": "p162.jpg",
+          "crop": "p162-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "830708c35d9a3461",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t07 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.1: Stanza 1's row prints \"Al-le-lu-ia!\" with a capital after line 1 (p162-strip0.jpg, first system), and line 2's first word follows its \"!\" with a capital anyway (p162-strip800.jpg). The header's 7.7.7.7. Alleluias counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:1.2: p162-strip800.jpg, stanza 1's row prints \"Al-le-lu-ia!\" with a capital after line 2 (second system), and line 3's first word follows its \"!\" with a capital anyway (third system). The header's 7.7.7.7. Alleluias (p162-strip0.jpg) counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:1.3: Stanza 1's row prints \"Al-le-lu-ia!\" with a capital after line 3 (p162-strip800.jpg, third system), and line 4's first word follows its \"!\" with a capital anyway (p162-strip1600.jpg, fourth system). The header's 7.7.7.7. Alleluias (p162-strip0.jpg) counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:2.1: Stanza 2's row prints \"Al-le-lu-ia!\" with a capital after line 1 (p162-strip0.jpg, first system), and line 2's first word follows its \"!\" with a capital anyway (p162-strip800.jpg). The header's 7.7.7.7. Alleluias counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:2.2: p162-strip800.jpg, stanza 2's row prints \"Al-le-lu-ia!\" with a capital after line 2 (second system), and line 3's first word follows its \"!\" with a capital anyway (third system). The header's 7.7.7.7. Alleluias (p162-strip0.jpg) counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:2.3: Stanza 2's row prints \"Al-le-lu-ia!\" with a capital after line 3 (p162-strip800.jpg, third system), and line 4's first word follows its \"!\" with a capital anyway (p162-strip1600.jpg, fourth system). The header's 7.7.7.7. Alleluias (p162-strip0.jpg) counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:3.1: Stanza 3's row prints \"Al-le-lu-ia!\" with a capital after line 1 (p162-strip0.jpg, first system), and line 2's first word follows its \"!\" with a capital anyway (p162-strip800.jpg). The header's 7.7.7.7. Alleluias counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:3.2: p162-strip800.jpg, stanza 3's row prints \"Al-le-lu-ia!\" with a capital after line 2 (second system), and line 3's first word follows its \"!\" with a capital anyway (third system). The header's 7.7.7.7. Alleluias (p162-strip0.jpg) counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:3.3: Stanza 3's row prints \"Al-le-lu-ia!\" with a capital after line 3 (p162-strip800.jpg, third system), and line 4 opens on \"Christ\", a capital anyway (p162-strip1600.jpg, fourth system). The header's 7.7.7.7. Alleluias (p162-strip0.jpg) counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:4.1: Stanza 4's row prints \"Al-le-lu-ia!\" with a capital after line 1 (p162-strip0.jpg, first system), and line 2's first word follows its \"!\" with a capital anyway (p162-strip800.jpg). The header's 7.7.7.7. Alleluias counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:4.2: p162-strip800.jpg, stanza 4's row prints \"Al-le-lu-ia!\" with a capital after line 2 (second system), and line 3's first word follows its \"!\" with a capital anyway (third system). The header's 7.7.7.7. Alleluias (p162-strip0.jpg) counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to. movedown:4.3: Stanza 4's row prints \"Al-le-lu-ia!\" with a capital after line 3 (p162-strip800.jpg, third system), and line 4's first word follows its \"!\" with a capital anyway (p162-strip1600.jpg, fourth system). The header's 7.7.7.7. Alleluias (p162-strip0.jpg) counts the Alleluias apart from the 7-syllable lines, so nothing fixes which line the Alleluia belongs to.",
+      "unreachable": [
+        "movedown:1.1",
+        "movedown:1.2",
+        "movedown:1.3",
+        "movedown:2.1",
+        "movedown:2.2",
+        "movedown:2.3",
+        "movedown:3.1",
+        "movedown:3.2",
+        "movedown:3.3",
+        "movedown:4.1",
+        "movedown:4.2",
+        "movedown:4.3"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p162.jpg",
+          "crop": "p162-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "b3d7bbdff0c038b6",
+          "shows": ""
+        },
+        {
+          "image": "p162.jpg",
+          "crop": "p162-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "bfbc9f2dc4931da9",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t07 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.1: can: The header's 7.7.7.7. Alleluias (p162-strip0.jpg) fixes each line at 7 syllables before its Alleluia; stanza 2's line 1 (first system) and line 2 (p162-strip800.jpg, second system) print 7 each. Moving \"Where\" up makes them 8 and 6, which the metre breaks. moveup:2.2: can: The header's 7.7.7.7. Alleluias (p162-strip0.jpg) fixes each line at 7 syllables before its Alleluia; on p162-strip800.jpg stanza 2's line 2 (second system) and line 3 (third system) print 7 each. Moving \"Once\" up makes them 8 and 6, which the metre breaks.",
+      "gaps": ["moveup:2.1", "moveup:2.2"]
+    }
+  ]
+}

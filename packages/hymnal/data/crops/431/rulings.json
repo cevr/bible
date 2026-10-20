@@ -1,0 +1,32 @@
+{
+  "number": 431,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p418.jpg",
+          "crop": "p418-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "604525969d374d39",
+          "shows": ""
+        },
+        {
+          "image": "p418.jpg",
+          "crop": "p418-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "34f423fbef2c9b1d",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t23 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.2: p418-strip1600.jpg, page system 4 (the strip's first system), the refrain's upper row: the word the split puts at a line's head is the pronoun I, printed with a capital wherever it stands. The header prints 7.6.7.7.Ref., no metre for the refrain, which has music of its own, so nothing fixes where its lines break.",
+      "unreachable": ["split:refrain.1.2"]
+    }
+  ]
+}

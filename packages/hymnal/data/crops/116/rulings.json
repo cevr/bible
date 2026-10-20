@@ -1,0 +1,32 @@
+{
+  "number": 116,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p113.jpg",
+          "crop": "p113-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "c64ebbdac500b5a9",
+          "shows": ""
+        },
+        {
+          "image": "p113.jpg",
+          "crop": "p113-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "92b2c926f66335f7",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t04 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.3: can: Capitals do not tell it: p113-strip800.jpg system 2, stanza 1's row prints 'Omega' (a title of Christ) and the 'He' after it with capitals anyway. But the header (p113-strip0.jpg) prints the metre 8.7.8.7.8.7 (its end under a punch hole), and lines 3 and 4 count eight and seven syllables as the database lays them; moving the three-syllable word makes them five and ten, which the metre breaks.",
+      "gaps": ["movedown:1.3"]
+    }
+  ]
+}

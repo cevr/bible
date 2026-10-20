@@ -1,0 +1,32 @@
+{
+  "number": 143,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "143.png",
+          "crop": "143-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "86579b8e36183f0f",
+          "shows": ""
+        },
+        {
+          "image": "143.png",
+          "crop": "143-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "07d0e7fdf196299c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t06 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:1.3: 143-strip0.jpg system 2 (bars 5-8), stanza 1's row: 'Ho-ly' follows 'child!' (a sentence end) and 'In-fant' is a name of Christ, both printed with a capital, so a line can open on either; the header prints no metre. movedown:2.4: 143-strip0.jpg system 2 to 143-strip800.jpg system 3, stanza 2's row: 'King!' and the next word 'Christ' are both names of God printed with a capital, so a line can open on either; no metre. moveup:3.4: 143-strip0.jpg system 2 to 143-strip800.jpg system 3, stanza 3's row: after 'grace,' the page prints 'Je-sus,' then 'Lord,', both names of God with a capital, so a line can open on either; no metre. moveup:3.5: 143-strip800.jpg system 3 (bars 9-12), stanza 3's row: the second 'Je-sus,' and the 'Lord,' after it are both names of God printed with a capital, so a line can open on either; no metre. movedown:4.4: 143-strip0.jpg system 2 to 143-strip800.jpg system 3, stanza 4's row: 'King;' and the next word 'Christ' are both names of God printed with a capital, so a line can open on either; no metre.",
+      "unreachable": ["moveup:1.3", "movedown:2.4", "moveup:3.4", "moveup:3.5", "movedown:4.4"]
+    }
+  ]
+}

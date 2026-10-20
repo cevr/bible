@@ -1,0 +1,32 @@
+{
+  "number": 590,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p575.jpg",
+          "crop": "p575-strip1600.jpg",
+          "box": [0, 1600, 3518, 1000],
+          "sha": "f54a1e88e37b2011",
+          "shows": ""
+        },
+        {
+          "image": "p575.jpg",
+          "crop": "p575-strip2400.jpg",
+          "box": [0, 2400, 3518, 1000],
+          "sha": "0833129bf44936a8",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t31 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: swaplines:2.4: can: p575-strip1600.jpg system 2, stanza 2's row: the page prints line 4 before line 5, in the database's order, and the two lines differ in their words 3 and 6, so the swap puts words where the page does not sing them. swaplines:5.4: can: p575-strip1600.jpg system 2, stanza 5's row (again at the top of p575-strip2400.jpg): the page prints line 4 before line 5, in the database's order, and the two lines differ in their words 1, 3 and 6, so the swap puts words where the page does not sing them.",
+      "gaps": ["swaplines:2.4", "swaplines:5.4"]
+    }
+  ]
+}

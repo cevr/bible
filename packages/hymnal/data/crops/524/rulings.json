@@ -1,0 +1,46 @@
+{
+  "number": 524,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p513.jpg",
+          "crop": "p513-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "ab4c32afb3c764ff",
+          "shows": ""
+        },
+        {
+          "image": "p513.jpg",
+          "crop": "p513-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "845a1e9705f2332f",
+          "shows": ""
+        },
+        {
+          "image": "p513.jpg",
+          "crop": "p513-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "10abbc112b7a68db",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t28 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p513-strip800.jpg and p513-strip1600.jpg system 3, the refrain row: the word where the split opens a line is the pronoun I, printed with a capital wherever it stands. The header on p513-strip0.jpg (8.7.8.7.Ref) gives the refrain no syllable counts, so nothing shows that no line opens there. split:refrain.1.2: p513-strip1600.jpg system 3, the refrain row: the word where the split opens a line is a pronoun of God, which this page prints with a capital wherever it stands (mid-row in stanza 1's row on p513-strip0.jpg system 1 and twice in the refrain). The refrain has no syllable counts in the header. join:refrain.1.2: p513-strip1600.jpg, the end of system 3 and the start of system 4: line 3 opens on the name Jesus, printed with a capital wherever it stands, after line 2's closing exclamation mark. The header (8.7.8.7.Ref) gives the refrain no syllable counts, so nothing fixes the break. moveup:refrain.1.2: p513-strip1600.jpg system 4, the refrain row: the moved word and the word that would then open line 3 are both the name Jesus, each printed with a capital wherever it stands. The header (8.7.8.7.Ref) gives the refrain no syllable counts, so nothing shows where line 3 opens. join:refrain.1.3: p513-strip1600.jpg system 4, the refrain row: line 4 opens on the interjection O, printed with a capital wherever it stands, after line 3's closing exclamation mark. The header (8.7.8.7.Ref) gives the refrain no syllable counts, so nothing fixes the break. movedown:refrain.1.3: p513-strip1600.jpg system 4, the refrain row: the moved word is the name Jesus, printed with a capital wherever it stands, and the word it would push mid-line is the interjection O, also always a capital. The header (8.7.8.7.Ref) gives the refrain no syllable counts, so nothing fixes the break.",
+      "unreachable": [
+        "split:refrain.1.1",
+        "split:refrain.1.2",
+        "join:refrain.1.2",
+        "moveup:refrain.1.2",
+        "join:refrain.1.3",
+        "movedown:refrain.1.3"
+      ]
+    }
+  ]
+}

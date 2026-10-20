@@ -1,0 +1,25 @@
+{
+  "number": 298,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "298.png",
+          "crop": "298-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "338751dc6de6fc09",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t16 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.2: 298-strip0.jpg, stanza 1's row of system 1 ends on the moved word, a name of God printed with a capital, and system 2's row goes on with a pronoun of God, also printed with a capital. The page prints no metre, so nothing fixes where line 3 opens. movedown:3.2: 298-strip0.jpg, stanza 3's row of system 1 ends on the moved word, a pronoun of God printed with a capital, and system 2's row goes on with another pronoun of God, also printed with a capital. The page prints no metre, so nothing fixes where line 3 opens.",
+      "unreachable": ["movedown:1.2", "movedown:3.2"]
+    }
+  ]
+}

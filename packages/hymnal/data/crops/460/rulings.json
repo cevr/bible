@@ -126,6 +126,33 @@
       "settles": [
         "460 shape (shape2-51): stanza 1 line 6 opens on word 6 of stanza 1 row 3, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "460.png",
+          "crop": "460-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "39f5b541ae872124",
+          "shows": ""
+        },
+        {
+          "image": "460.png",
+          "crop": "460-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "65cba74d173e128d",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t25 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.4: can: Words under copyright, so no words quoted. 460-strip800.jpg system 1 (460-strip0.jpg system 3), stanza 1's row: line 4's last word ends with a semicolon and line 5's first word is printed with a capital, but line 5's second word, where the change opens the line, is printed lowercase.",
+      "gaps": ["moveup:1.4"]
     }
   ]
 }

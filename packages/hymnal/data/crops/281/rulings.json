@@ -1,0 +1,39 @@
+{
+  "number": 281,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p274.jpg",
+          "crop": "p274-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "b153795896818068",
+          "shows": ""
+        },
+        {
+          "image": "p274.jpg",
+          "crop": "p274-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "c1f77878f81d5a7b",
+          "shows": ""
+        },
+        {
+          "image": "p274.jpg",
+          "crop": "p274-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "daf6b7087dd8ea02",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t15 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.6: can: p274-strip0.jpg header prints 6.6.6.6.6.6.; p274-strip800.jpg system 3, stanza 1's row: line 6 sings six syllables (its fourth word on one beamed pair) and ends on the moved word at the system's last tied note, so the change leaves it five against the metre (line 5's eight come from two words the page prints twice). Capitals alone would not tell it: the moved word is a pronoun of God and the next word is \"I\". movedown:2.6: can: p274-strip0.jpg header prints 6.6.6.6.6.6.; p274-strip800.jpg system 3, stanza 2's row: line 6 sings six syllables and ends on the moved word at the system's last tied note, so the change leaves it five against the metre (line 5's eight come from two words the page prints twice). Capitals alone would not tell it: the moved word is a pronoun of God and the next word is \"I\". movedown:3.6: can: p274-strip0.jpg header prints 6.6.6.6.6.6.; p274-strip800.jpg system 3, stanza 3's row: line 6 sings six syllables (its fourth word on one beamed pair) and ends on the moved word at the system's last tied note, so the change leaves it five against the metre (line 5's eight come from two words the page prints twice). Capitals alone would not tell it: the moved word is a pronoun of God and the next word opens with a capital I.",
+      "gaps": ["movedown:1.6", "movedown:2.6", "movedown:3.6"]
+    }
+  ]
+}

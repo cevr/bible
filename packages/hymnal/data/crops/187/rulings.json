@@ -168,6 +168,46 @@
       ],
       "judge": "judge-122 (Opus, effort max)",
       "why": "p182-2032.jpg's one refrain row, sung after each stanza, prints 'He is with me to the end'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p182.jpg",
+          "crop": "p182-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "aef9c97b486bb2df",
+          "shows": ""
+        },
+        {
+          "image": "p182.jpg",
+          "crop": "p182-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "9d2394822cebf178",
+          "shows": ""
+        },
+        {
+          "image": "p182.jpg",
+          "crop": "p182-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "83ab533e6c27dde5",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t09 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p182-strip800.jpg system 3, the refrain's row: line 2's first word follows an exclamation mark that closes a sentence, so it takes a capital whether or not it opens a line (the row's lowercase after an exclamation mark comes only inside a sentence). The header's 8.7.8.7.Ref. gives the stanzas' metre only (p182-strip0.jpg), so no metre fixes the refrain's lines. movedown:refrain.1.1: p182-strip800.jpg system 3, the refrain's row: the moved word is a title of Christ, printed with a capital mid-line in stanza 1's row of system 2, and line 2's first word follows an exclamation mark that closes a sentence, so both capitals stand in either layout. The header gives no metre for the refrain. join:refrain.1.2: p182-strip1600.jpg, the refrain's row: line 3's first word opens system 4 after line 2 ends system 3 on an exclamation mark that closes a sentence, so its capital stands whether or not it opens a line. The header gives no metre for the refrain. movedown:refrain.1.2: p182-strip1600.jpg, the refrain's row at the turn from system 3 to system 4: the moved word is a title of Christ, printed with a capital mid-line in stanza 1's row (p182-strip0.jpg system 1), and line 3's first word follows an exclamation mark that closes a sentence. The header gives no metre for the refrain. join:refrain.1.3: p182-strip1600.jpg system 4, the refrain's row: line 4's first word is a pronoun for Christ, printed with a capital mid-line in stanza 4's row (p182-strip800.jpg system 2). The header gives no metre for the refrain.",
+      "unreachable": [
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "join:refrain.1.2",
+        "movedown:refrain.1.2",
+        "join:refrain.1.3"
+      ]
     }
   ]
 }

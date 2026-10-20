@@ -176,6 +176,32 @@
       "settles": [
         "78 shape (shape2-09): stanza 4 line 8 opens on word 12 of the refrain after stanza 4: row 1, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "078.png",
+          "crop": "078-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "31270c5d38fc26c3",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t03 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:2.1: 078-strip0.jpg system 1, stanza 2's row: the moved word \"Sav-ior\" is printed with a capital (a name of Christ), so a line opening on it reads the same; the header prints no metre and no text block is printed below. movedown:2.2: 078-strip0.jpg system 1, stanza 2's row: the moved word \"Re-deem-er\" is printed with a capital (a title of Christ), and the \"He\" it pushes mid-line is capitalized anyway (the page capitalizes divine pronouns mid-row, as \"His\" in the refrain); no metre is printed. movedown:2.3: 078-strip0.jpg system 1, stanza 2's row: the second \"Sav-ior\" is printed with a capital (a name of Christ), and the old opener \"to\" is lowercase, so the page marks neither layout; no metre is printed. moveup:4.1: 078-strip0.jpg system 1, stanza 4's row: \"O\" is printed with a capital as always, and the word after it, \"Love\", is capitalized too (a name of God), so either can open the line; the header prints no metre. join:refrain.1.3: 078-strip0.jpg system 2, the refrain row: \"loves\" after \"chil-dren,\" is printed lowercase, so nothing marks a line opening there; the page prints no metre and no text block below.",
+      "unreachable": [
+        "movedown:2.1",
+        "movedown:2.2",
+        "movedown:2.3",
+        "moveup:4.1",
+        "join:refrain.1.3"
+      ]
     }
   ]
 }

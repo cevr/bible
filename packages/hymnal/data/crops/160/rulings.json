@@ -1,0 +1,25 @@
+{
+  "number": 160,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "160.png",
+          "crop": "160-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "58ff82c4f0c779b4",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t07 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:1.2: 160-strip0.jpg, the system from bar 4, stanza 1's row: the moved word \"O\" is a capital anyway, and the word the changed line opens on, \"Savior\", is printed with a capital (a name of Christ); the header prints no metre. moveup:2.2: 160-strip0.jpg, the system from bar 4, stanza 2's row: the moved word \"O\" is a capital anyway, and the word the changed line opens on, \"Christ\", is printed with a capital (a name of God); the header prints no metre.",
+      "unreachable": ["moveup:1.2", "moveup:2.2"]
+    }
+  ]
+}

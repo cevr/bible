@@ -51,6 +51,33 @@
       "settles": [
         "682 shape (shape2-76): stanza 1 line 6 opens on word 4 of stanza 1 row 4, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "682.png",
+          "crop": "682-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "22f0a501efdbdda2",
+          "shows": ""
+        },
+        {
+          "image": "682.png",
+          "crop": "682-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "fe209501e6e3ebc4",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t37 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.5: 682-strip800.jpg system 4, the one lyric row: line 6's first word is printed lowercase after a comma, with no rest or bar mark before it, so the page marks no line opening there. The header prints no metre. split:1.6: 682-strip800.jpg system 4: line 6's word 4 is a divine pronoun printed with a capital, as the page prints those pronouns mid-line in lines 1 to 3 (682-strip0.jpg systems 1 and 2). No rest, bar mark or metre fixes a break there.",
+      "unreachable": ["join:1.5", "split:1.6"]
     }
   ]
 }

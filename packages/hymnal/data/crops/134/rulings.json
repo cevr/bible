@@ -1,0 +1,39 @@
+{
+  "number": 134,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "134.png",
+          "crop": "134-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8b129a90369fe5c5",
+          "shows": ""
+        },
+        {
+          "image": "134.png",
+          "crop": "134-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "cdbd637da69622c8",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t05 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:1.1: 134-strip0.jpg system 1 (bars 1-5), stanza 1's row: the moved word is a pronoun of God (Thy), which the page capitalises mid-line too (Thou in system 2's same row), and the change opens line 2 on Father's, a name of God. The page prints no metre. moveup:1.4: 134-strip800.jpg system 4 (bars 16-20), stanza 1's row: the moved word is O after a full stop (own. O), a capital anyway, and the change opens line 5 on Jesus, a name of God. The page prints no metre. moveup:2.4: 134-strip800.jpg system 4 (bars 16-20), stanza 2's row: the moved word is O after a full stop (thrall. O), a capital anyway, and the change opens line 5 on Jesus, a name of God. The page prints no metre. moveup:3.4: 134-strip800.jpg system 4 (bars 16-20), stanza 3's row: the moved word is O after a full stop (sire. O), a capital anyway, and the change opens line 5 on Jesus, a name of God. The page prints no metre. movedown:4.3: 134-strip800.jpg system 3 (bars 11-15), stanza 4's row: the moved word is a pronoun of God printed with a capital (Thee:), and the word after it is O, a capital anyway. The page prints no metre. moveup:4.4: 134-strip800.jpg system 4 (bars 16-20), stanza 4's row: the moved word is O after a full stop (be. O), a capital anyway, and the change opens line 5 on Jesus, a name of God. The page prints no metre.",
+      "unreachable": [
+        "moveup:1.1",
+        "moveup:1.4",
+        "moveup:2.4",
+        "moveup:3.4",
+        "movedown:4.3",
+        "moveup:4.4"
+      ]
+    }
+  ]
+}

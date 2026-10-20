@@ -1,0 +1,68 @@
+{
+  "number": 567,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p553.jpg",
+          "crop": "p553-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "95e194172112c3c7",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t30 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.1: p553-strip0.jpg system 1: all four stanza rows print the same words here, and the moved word (a name of God) and the old opener after it (a word after an exclamation mark) are capitals anyway. The header's metre 9.9.9.9. counts database lines 1 and 2 together as one 9-syllable line, and the change keeps that pair at 9 (5+4 becomes 4+5), so nothing fixes the break inside it. moveup:1.1: p553-strip0.jpg system 1: all four stanza rows print the same words here. The moved word follows an exclamation mark and the new opener is a pronoun of God, both capitals anyway. The metre 9.9.9.9. counts lines 1 and 2 together as one 9-syllable line, and the change keeps the pair at 9 (5+4 becomes 6+3). movedown:2.1: p553-strip0.jpg system 1: all four stanza rows print the same words here, and the moved word (a name of God) and the old opener after it (a word after an exclamation mark) are capitals anyway. The metre 9.9.9.9. counts lines 1 and 2 together as one 9-syllable line, and the change keeps the pair at 9 (5+4 becomes 4+5). moveup:2.1: p553-strip0.jpg system 1: all four stanza rows print the same words here. The moved word follows an exclamation mark and the new opener is a pronoun of God, both capitals anyway. The metre 9.9.9.9. counts lines 1 and 2 together as one 9-syllable line, and the change keeps the pair at 9 (5+4 becomes 6+3). movedown:3.1: p553-strip0.jpg system 1: all four stanza rows print the same words here, and the moved word (a name of God) and the old opener after it (a word after an exclamation mark) are capitals anyway. The metre 9.9.9.9. counts lines 1 and 2 together as one 9-syllable line, and the change keeps the pair at 9 (5+4 becomes 4+5). moveup:3.1: p553-strip0.jpg system 1: all four stanza rows print the same words here. The moved word follows an exclamation mark and the new opener is a pronoun of God, both capitals anyway. The metre 9.9.9.9. counts lines 1 and 2 together as one 9-syllable line, and the change keeps the pair at 9 (5+4 becomes 6+3). movedown:4.1: p553-strip0.jpg system 1: all four stanza rows print the same words here, and the moved word (a name of God) and the old opener after it (a word after an exclamation mark) are capitals anyway. The metre 9.9.9.9. counts lines 1 and 2 together as one 9-syllable line, and the change keeps the pair at 9 (5+4 becomes 4+5). moveup:4.1: p553-strip0.jpg system 1: all four stanza rows print the same words here. The moved word follows an exclamation mark and the new opener is a pronoun of God, both capitals anyway. The metre 9.9.9.9. counts lines 1 and 2 together as one 9-syllable line, and the change keeps the pair at 9 (5+4 becomes 6+3).",
+      "unreachable": [
+        "movedown:1.1",
+        "moveup:1.1",
+        "movedown:2.1",
+        "moveup:2.1",
+        "movedown:3.1",
+        "moveup:3.1",
+        "movedown:4.1",
+        "moveup:4.1"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p553.jpg",
+          "crop": "p553-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "95e194172112c3c7",
+          "shows": ""
+        },
+        {
+          "image": "p553.jpg",
+          "crop": "p553-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "385b8e5193691867",
+          "shows": ""
+        },
+        {
+          "image": "p553.jpg",
+          "crop": "p553-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "f5f444ee1ba23636",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t30 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.3: can: p553-strip800.jpg system 2: the four stanza rows sit note for note under one tune. On the note where stanza 1's database line 4 opens (the first quarter after two dotted halves), stanzas 3 and 4 print capitals after unpunctuated words, which only a line opening explains. On the system's first note, where the change would open the line, stanzas 2 to 4 print lowercase syllables. Stanza 1's row alone would not tell (the moved word is a title of God, the old opener the first-person pronoun), and the metre keeps lines 3 and 4 at 9 together, so this ruling rests on the alignment across stanzas. movedown:3.6: can: The header on p553-strip0.jpg prints 9.9.9.9. On p553-strip800.jpg systems 2 and 3, stanza 3's database lines 5+6 and 7+8 each sing 9 syllables, and the change moves a word across the boundary between those two 9-syllable lines, which leaves 8 and 10 and breaks the metre. The alignment agrees: on system 3, stanzas 1 and 2 open line 7 with capitals after commas on the note after the moved word.",
+      "gaps": ["movedown:1.3", "movedown:3.6"]
+    }
+  ]
+}

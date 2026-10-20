@@ -255,6 +255,67 @@
       ],
       "judge": "judge-122 (Opus, effort max)",
       "why": "122-c-2072.jpg row 3 prints 'Born to raise the sons of earth'; 122-c-927.jpg ends the line before at 'more may die'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "122-b-p2.jpg",
+          "crop": "122-b-p2-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "2c58655ddce8ace5",
+          "shows": ""
+        },
+        {
+          "image": "122-b-p2.jpg",
+          "crop": "122-b-p2-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "56ec8a47c1fee552",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t05 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: 122-b-p2-strip0.jpg, the refrain's one system: the second line's first word (Glory) is printed with a capital after an opening quotation mark, a capital it takes anyway as the first word of a quoted sentence. The header's 7.7.7.7.D. counts the stanzas and Ref. gives the refrain no metre (stanza 1 prints the same words, but only there does the metre fix them), so nothing fixes the refrain's lines.",
+      "unreachable": ["join:refrain.1.1"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "122.jpg",
+          "crop": "122-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "bb4ff64bdda901ff",
+          "shows": ""
+        },
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "fafbdff42d639f52",
+          "shows": ""
+        },
+        {
+          "image": "122-c.jpg",
+          "crop": "122-c-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "3ea10370d69cb174",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t05 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.1: can: The header prints 7.7.7.7.D. (122-strip0.jpg), and system 1, stanza 3's row sets line 1 (Hail ... Peace!) to 7 notes, heaven on one note, and line 2 to 7. Moving the last word down makes line 1 six syllables and line 2 eight, which the metre breaks; the capitals alone (Peace a title of Christ, Hail after an exclamation) would not show it.",
+      "gaps": ["movedown:3.1"]
     }
   ]
 }

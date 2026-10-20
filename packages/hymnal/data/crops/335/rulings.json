@@ -1,0 +1,32 @@
+{
+  "number": 335,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p325.jpg",
+          "crop": "p325-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "2a8742f4b3a3ed7b",
+          "shows": ""
+        },
+        {
+          "image": "p325.jpg",
+          "crop": "p325-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "9050779bdc665f18",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t18 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: Refrain line 1 ends the row of p325-strip800.jpg system 3 on an exclamation mark, and p325-strip1600.jpg system 4's row opens on 'What' with a capital: no name, 'I' or 'O'. This page prints a lowercase word after a mid-line exclamation mark (system 2, stanza 1's row: 're-deemed! the'), so the capital marks a line opening the join removes. movedown:refrain.1.1: can: The moved word is a name with a capital anyway, but the move leaves 'What' (p325-strip1600.jpg system 4's row, word 1, capital) mid-line after an exclamation mark. This page prints lowercase after a mid-line exclamation mark (p325-strip800.jpg system 2, stanza 1's row: 're-deemed! the'), so that capital marks a line opening.",
+      "gaps": ["join:refrain.1.1", "movedown:refrain.1.1"]
+    }
+  ]
+}

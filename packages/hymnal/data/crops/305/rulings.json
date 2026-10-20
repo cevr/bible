@@ -1,0 +1,52 @@
+{
+  "number": 305,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "305.png",
+          "crop": "305-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "1cd605bac9cecb7a",
+          "shows": ""
+        },
+        {
+          "image": "305.png",
+          "crop": "305-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "1122751fd2466aa1",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t16 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: 305-strip800.jpg, the refrain's first system (the hymn's third), its one row: the word where the split opens a line, the second 'Give', is printed with a capital after a comma, which marks a line opening there just as the split has it, and the page (305-strip0.jpg) prints no metre. Nothing shows the split wrong; that capital questions the database's own unbroken line instead.",
+      "unreachable": ["split:refrain.1.1"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "305.png",
+          "crop": "305-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "1122751fd2466aa1",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t16 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.2: can: 305-strip800.jpg, the refrain's second system (the hymn's fourth), its one row: the word the join puts mid-line, 'Give' after 'world,', is printed with a capital and is no name of God, 'I' or 'O' and follows no full stop, so the page marks a line opening there.",
+      "gaps": ["join:refrain.1.2"]
+    }
+  ]
+}

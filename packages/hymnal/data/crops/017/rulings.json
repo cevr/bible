@@ -1,0 +1,39 @@
+{
+  "number": 17,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p017.jpg",
+          "crop": "p017-strip0.jpg",
+          "box": [0, 0, 1778, 1000],
+          "sha": "58b30a95d9436f31",
+          "shows": ""
+        },
+        {
+          "image": "p017.jpg",
+          "crop": "p017-strip800.jpg",
+          "box": [0, 800, 1778, 1000],
+          "sha": "661772a568e5106f",
+          "shows": ""
+        },
+        {
+          "image": "p017.jpg",
+          "crop": "p017-strip1600.jpg",
+          "box": [0, 1600, 1778, 1000],
+          "sha": "a3f66d1ec2e4605f",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-r02 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:4.3: can: p017-strip800.jpg system 2, stanza 4's row prints 'We' with a capital straight after 'throne' with no stop, which marks line 4's opening. The change also makes line 3 nine syllables and line 4 seven against the header's L.M.",
+      "gaps": ["moveup:4.3"]
+    }
+  ]
+}

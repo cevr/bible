@@ -1,0 +1,39 @@
+{
+  "number": 202,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p197.jpg",
+          "crop": "p197-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "090e8721d8052c8b",
+          "shows": ""
+        },
+        {
+          "image": "p197.jpg",
+          "crop": "p197-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "dea2051a63a141e0",
+          "shows": ""
+        },
+        {
+          "image": "p197.jpg",
+          "crop": "p197-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d545cc49e1a65bad",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t10 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p197-strip800.jpg system 3 (again at the top of p197-strip1600.jpg), the refrain's row: \"King\" is printed with a capital anyway (a name of Christ). The header (p197-strip0.jpg) prints 10.5.10.6. for the stanzas and only \"Ref.\" for the refrain, so no metre fixes the refrain's lines. join:refrain.1.3: p197-strip1600.jpg system 4, the refrain's row: \"Jesus\" is printed with a capital anyway (a name of Christ, inside an opening quotation mark), and nothing else marks a line there. The header (p197-strip0.jpg) prints only \"Ref.\" for the refrain, so no metre fixes its lines.",
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.3"]
+    }
+  ]
+}

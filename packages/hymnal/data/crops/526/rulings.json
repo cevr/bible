@@ -1,0 +1,52 @@
+{
+  "number": 526,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "526.png",
+          "crop": "526-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "094262e6628e3392",
+          "shows": ""
+        },
+        {
+          "image": "526.png",
+          "crop": "526-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "5afa86d43c4efe88",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t29 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.1: 526-strip0.jpg system 1, stanza 1's row: the moved word (stanza 1 line 1 word 8) is a name printed with a capital, and the word after it (line 2 word 1) is a divine pronoun printed with a capital too. The header prints no metre and the page prints no text below the music, so nothing fixes where the line ends. split:refrain.1.1: 526-strip0.jpg system 3 (refrain start) to 526-strip800.jpg system 4: the refrain line 1's word 4, where the split opens a line, is the first-person pronoun, printed with a capital wherever it stands; the split falls at the system break, which is no line mark. No metre in the header fixes the lines. split:refrain.1.3: 526-strip800.jpg systems 4 to 5: the refrain line 3's word 4, where the split opens a line, is a divine pronoun printed with a capital wherever it stands. No metre in the header fixes the lines.",
+      "unreachable": ["movedown:1.1", "split:refrain.1.1", "split:refrain.1.3"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "526.png",
+          "crop": "526-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "5afa86d43c4efe88",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t29 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.3: can: 526-strip800.jpg system 5: refrain line 4's first word is printed with a capital mid-row after a comma, and it is no name, no pronoun I or O and follows no full stop; that capital marks a line opening there, which the join removes.",
+      "gaps": ["join:refrain.1.3"]
+    }
+  ]
+}

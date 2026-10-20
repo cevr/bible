@@ -151,6 +151,33 @@
       ],
       "judge": "judge-122 (Opus, effort max)",
       "why": "203-238.jpg row 3 begins '3. This is the three-fold truth'; the OCR missed 'This'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "203.jpg",
+          "crop": "203-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "7950a3fb592bf452",
+          "shows": ""
+        },
+        {
+          "image": "203.jpg",
+          "crop": "203-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "433ed27bf2c51fdc",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t10 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: The page prints a 1980 words copyright, so no words are written here. 203-strip1600.jpg, the refrain's one system and row: the word that opens line 2 has a capital anyway (a name of God), but the header on 203-strip0.jpg prints the metre 6.6.6.6.3.4.5.Ref.; the stanzas fill 6.6.6.6., so the refrain's lines sing 3, 4 and 5 syllables, and the joined line would sing 7. join:refrain.1.2: can: The page prints a 1980 words copyright, so no words are written here. 203-strip1600.jpg, the refrain's one system and row: the word that opens line 3 has a capital anyway (a name of God), but the header on 203-strip0.jpg prints 6.6.6.6.3.4.5.Ref., which gives the refrain's lines 3, 4 and 5 syllables; the joined line would sing 9.",
+      "gaps": ["join:refrain.1.1", "join:refrain.1.2"]
     }
   ]
 }

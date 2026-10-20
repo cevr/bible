@@ -1,0 +1,32 @@
+{
+  "number": 454,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "454.png",
+          "crop": "454-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "5d446a92aa5b7cf9",
+          "shows": ""
+        },
+        {
+          "image": "454.png",
+          "crop": "454-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "87c192b894f3fc3a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t24 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.2: End of 454-strip0.jpg system 2 into system 3 (454-strip800.jpg), the refrain's row: line 3's first word is printed with a capital right after a question mark, a capital it takes anyway; the refrain has one row and no metre is printed (454-strip0.jpg header), so nothing tells the joined line apart. moveup:refrain.1.2: 454-strip800.jpg system 3, the refrain's row: the moved word follows a question mark and the word after it is the always-capitalised interjection after an exclamation mark, so both carry capitals anyway; with no metre printed, nothing shows which of the two opens line 3.",
+      "unreachable": ["join:refrain.1.2", "moveup:refrain.1.2"]
+    }
+  ]
+}

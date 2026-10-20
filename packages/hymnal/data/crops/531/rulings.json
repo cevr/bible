@@ -183,6 +183,61 @@
         "531 shape (shape2-59): the refrain after stanza 3: row 3 holds its middle \"solid rock\" at no place its count gives",
         "531 shape (shape2-59): the refrain after stanza 3: row 3 ends \"mighty rock\" at word 51, its count gives word 60"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d3a93dfcd0d67f1e",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t29 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.3: p520-strip1600.jpg system 4: refrain line 3's word 5, where the split opens a line, is the title of Christ that the page prints with a capital at every place it stands. The header's metre (9.8.9.7. Ref.) gives the refrain no line lengths.",
+      "unreachable": ["split:refrain.1.3"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "147edf12955b2910",
+          "shows": ""
+        },
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d3a93dfcd0d67f1e",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t29 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.2: can: p520-strip1600.jpg system 4 (the refrain's second system): refrain line 3's first word, a plural-pronoun contraction, is printed with a capital after the semicolon that ends system 3's upper refrain row. It is no name, no I or O and follows no full stop, so the capital marks a line opening the join removes. movedown:refrain.1.2: can: p520-strip1600.jpg system 4: the moved word is a title printed with a capital anyway, but the word after it (refrain line 3's word 1, a plural-pronoun contraction) is printed with a capital after a semicolon. That capital marks a line opening there, and the change puts that word mid-line. moveup:refrain.1.2: can: p520-strip1600.jpg system 4: refrain line 3's word 2, which the change makes open a line, is printed lowercase; and the moved word keeps a capital after a semicolon that only a line opening explains. join:refrain.1.3: can: p520-strip1600.jpg system 4: refrain line 4's first word, a preposition, is printed with a capital mid-row after a comma; it is no name, no I or O and follows no full stop, so it marks a line opening the join removes. movedown:refrain.1.3: can: p520-strip1600.jpg system 4: the moved word is a title printed with a capital anyway, but the word after it (refrain line 4's word 1, a preposition) is printed with a capital after a comma, which marks a line opening there; the change puts that word mid-line. moveup:refrain.1.3: can: p520-strip1600.jpg system 4: the moved word, a preposition, is printed with a capital after a comma; only a line opening explains that capital, and the change puts the word at a line's end. split:refrain.1.4: can: p520-strip1600.jpg system 4: refrain line 4's word 3, an article, is printed lowercase, so no line opens there as the split would have it.",
+      "gaps": [
+        "join:refrain.1.2",
+        "movedown:refrain.1.2",
+        "moveup:refrain.1.2",
+        "join:refrain.1.3",
+        "movedown:refrain.1.3",
+        "moveup:refrain.1.3",
+        "split:refrain.1.4"
+      ]
     }
   ]
 }

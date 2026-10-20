@@ -24,6 +24,40 @@
       ],
       "judge": "judge-220-2 (Opus, effort max)",
       "why": "Row 3. of p316-310.jpg prints 'ev - ery-where', which joins to 'everywhere', not 'ev'rywhere'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p316.jpg",
+          "crop": "p316-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "082e51e2fe06adea",
+          "shows": ""
+        },
+        {
+          "image": "p316.jpg",
+          "crop": "p316-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "f00bc2fab14b2aa1",
+          "shows": ""
+        },
+        {
+          "image": "p316.jpg",
+          "crop": "p316-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "9c213f1377bc170f",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t17 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.2: p316-strip800.jpg (repeated at the top of p316-strip1600.jpg), the refrain's first system, one row: line 2's word 4, where the split opens a line, is a divine pronoun printed with a capital anyway, right after a name of God and a comma, so the row reads the same either way. The header (p316-strip0.jpg) prints Irregular, so no metre fixes the lines, and no text below the music prints them.",
+      "unreachable": ["split:refrain.1.2"]
     }
   ]
 }

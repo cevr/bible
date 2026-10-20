@@ -1,0 +1,52 @@
+{
+  "number": 403,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "403.png",
+          "crop": "403-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "33944d94122ad39b",
+          "shows": ""
+        },
+        {
+          "image": "403.png",
+          "crop": "403-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "aba27d0353eece72",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t21 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.2: 403-strip800.jpg system 4, the refrain's row: line 3 opens on a one-letter vocative interjection, which the page prints with a capital anyway, and the word after it is a name of God; the header prints no metre and no text is printed below the music, so nothing marks a line opening there. moveup:refrain.1.2: 403-strip800.jpg system 4, the refrain's row: the moved word is a one-letter vocative interjection and the word the change opens line 3 on is a name of God, both printed with a capital anyway; the header prints no metre, so nothing tells which of the two opens the line.",
+      "unreachable": ["join:refrain.1.2", "moveup:refrain.1.2"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "403.png",
+          "crop": "403-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "33944d94122ad39b",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t21 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: swap:1-2: can: 403-strip0.jpg systems 1 and 2: the page numbers the rows 1., 2., 3., and stanza 1's and stanza 2's rows differ in their third and fourth words, so the page prints each stanza where it is sung and a swap puts stanza 2's words first.",
+      "gaps": ["swap:1-2"]
+    }
+  ]
+}

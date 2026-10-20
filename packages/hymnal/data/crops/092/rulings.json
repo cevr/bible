@@ -1,0 +1,39 @@
+{
+  "number": 92,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p091.jpg",
+          "crop": "p091-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "96ab4a559ec4d28e",
+          "shows": ""
+        },
+        {
+          "image": "p091.jpg",
+          "crop": "p091-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "33511def4d2f2b1f",
+          "shows": ""
+        },
+        {
+          "image": "p091.jpg",
+          "crop": "p091-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "ec5b867c3cd5c710",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t03 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.6: can: The header (p091-strip0.jpg) prints S.M.D. (6.6.8.6. doubled); counted from stanza 3's start, its lines 1-6 fill 6, 6, 8, 6, 6, 6 syllables exactly, so line 6 ends on \"sad?\" (p091-strip800.jpg system 3, stanza 3's row) and the change's 7-syllable line 6 breaks the metre. The capitals alone could not tell: \"The\" follows a \"?\" and \"Lord\" is a name; line 7's extra syllable is the split eighth pair on system 4's fourth beat, inside line 7 either way.",
+      "gaps": ["moveup:3.6"]
+    }
+  ]
+}

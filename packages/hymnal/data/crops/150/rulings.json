@@ -1,0 +1,54 @@
+{
+  "number": 150,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "150.png",
+          "crop": "150-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "2bfd675a3dd3f61d",
+          "shows": ""
+        },
+        {
+          "image": "150.png",
+          "crop": "150-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "c9e31451fb6d8733",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t06 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.2: 150-strip0.jpg: stanza 1's row in system 1 ends 'fall?' and the shared row of system 2 opens on ''Tis', a capital after a question mark (a sentence end), so it is printed anyway; the header prints no metre. split:1.3: 150-strip0.jpg system 2 (bars 5-9), the one row all seven stanzas share: 'O' after 'Lord,' is always printed with a capital, so a line can open on it or not; no metre fixes the lines. join:2.2: 150-strip0.jpg: stanza 2's row in system 1 ends 'wil-der-ness?' and the shared row of system 2 opens on ''Tis', a capital after a question mark (a sentence end), so it is printed anyway; no metre. split:2.3: 150-strip0.jpg system 2, the shared row: 'O' after 'Lord,' is always printed with a capital, so a line can open on it or not; no metre. join:3.2: 150-strip0.jpg: stanza 3's row in system 1 ends 'song?' and the shared row of system 2 opens on ''Tis', a capital after a question mark (a sentence end), so it is printed anyway; no metre. split:3.3: 150-strip0.jpg system 2, the shared row: 'O' after 'Lord,' is always printed with a capital, so a line can open on it or not; no metre. join:4.2: 150-strip0.jpg: stanza 4's row in system 1 ends 'Geth-sem-a-ne?' and the shared row of system 2 opens on ''Tis', a capital after a question mark (a sentence end), so it is printed anyway; no metre. split:4.3: 150-strip0.jpg system 2, the shared row: 'O' after 'Lord,' is always printed with a capital, so a line can open on it or not; no metre. join:5.2: 150-strip0.jpg: stanza 5's row in system 1 ends 'a-go-ny?' and the shared row of system 2 opens on ''Tis', a capital after a question mark (a sentence end), so it is printed anyway; no metre. split:5.3: 150-strip0.jpg system 2, the shared row: 'O' after 'Lord,' is always printed with a capital, so a line can open on it or not; no metre. join:6.2: 150-strip0.jpg: stanza 6's row in system 1 ends 'save?' and the shared row of system 2 opens on ''Tis', a capital after a question mark (a sentence end), so it is printed anyway; no metre. split:6.3: 150-strip0.jpg system 2, the shared row: 'O' after 'Lord,' is always printed with a capital, so a line can open on it or not; no metre. join:7.2: 150-strip0.jpg: stanza 7's row in system 1 ends 'a-lone?' and the shared row of system 2 opens on ''Tis', a capital after a question mark (a sentence end), so it is printed anyway; no metre. split:7.3: 150-strip0.jpg system 2, the shared row: 'O' after 'Lord,' is always printed with a capital, so a line can open on it or not; no metre. split:refrain.1.2: 150-strip0.jpg system 3 (Refrain, bars 10-13): the second 'Him' (after lowercase 'crown') is a name of God printed with a capital, so a line can open on it; no metre. join:refrain.1.2: System 3 ends 'of all.' and 150-strip800.jpg system 4 (bars 14-17) opens on 'At', a capital after a full stop, so it is printed anyway; no metre. moveup:refrain.1.2: 150-strip800.jpg system 4, bar 14: 'At' follows 'all.' (a full stop) and the next word 'His' is a name of God, both printed with a capital, so a line can open on either; no metre. join:refrain.1.3: 150-strip800.jpg system 4, bar 17: 'Crown' follows 'all.' with a full stop, so its capital is printed anyway; no metre. moveup:refrain.1.3: 150-strip800.jpg system 4, bar 17: 'Crown' follows 'all.' (a full stop) and the next word 'Him,' is a name of God, both printed with a capital, so a line can open on either; no metre. split:refrain.1.4: 150-strip800.jpg system 5, bar 18: the 'Him' after lowercase 'crown' is a name of God printed with a capital, so a line can open on it; no metre. split:refrain.1.5: 150-strip800.jpg system 5, bars 20-21: 'Lord' is a name of God printed with a capital, so a line can open on it; no metre.",
+      "unreachable": [
+        "join:1.2",
+        "split:1.3",
+        "join:2.2",
+        "split:2.3",
+        "join:3.2",
+        "split:3.3",
+        "join:4.2",
+        "split:4.3",
+        "join:5.2",
+        "split:5.3",
+        "join:6.2",
+        "split:6.3",
+        "join:7.2",
+        "split:7.3",
+        "split:refrain.1.2",
+        "join:refrain.1.2",
+        "moveup:refrain.1.2",
+        "join:refrain.1.3",
+        "moveup:refrain.1.3",
+        "split:refrain.1.4",
+        "split:refrain.1.5"
+      ]
+    }
+  ]
+}

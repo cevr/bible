@@ -1,0 +1,32 @@
+{
+  "number": 413,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "413.png",
+          "crop": "413-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "c1ee7a3f97bfbf66",
+          "shows": ""
+        },
+        {
+          "image": "413.png",
+          "crop": "413-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "f13dbf3c2609b572",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t22 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.4: 413-strip0.jpg system 2, stanza 1's row ends on the moved word printed with a capital (a name of God) and a full stop, and system 3's row (also 413-strip800.jpg system 1) opens on a capital after that stop; the header prints no metre, so both layouts read alike. movedown:2.1: 413-strip0.jpg system 1, stanza 2's row: the moved word is printed with a capital (a name of Christ), and line 2's opener after it is a capitalised name too; the header prints no metre, so nothing marks which of the two opens the line.",
+      "unreachable": ["movedown:1.4", "movedown:2.1"]
+    }
+  ]
+}

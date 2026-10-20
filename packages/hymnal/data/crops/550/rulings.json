@@ -1,0 +1,32 @@
+{
+  "number": 550,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "550.png",
+          "crop": "550-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "c7f302df42efafd8",
+          "shows": ""
+        },
+        {
+          "image": "550.png",
+          "crop": "550-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "4bc592c1a8d0cf55",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t30 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.2: can: 550-strip0.jpg system 2: the three stanza rows sit note for note under one tune. On the note that holds stanza 3's database line-3 opener (word 4 of the row), stanzas 1 and 2 open their line 3 with a capital that only a line opening explains (after a colon, after a comma), and the note before it carries their line 2's last word. The change opens stanza 3's line one note early. Stanza 3's row alone would not tell (the moved word is a name of God, the old opener follows a full stop, no metre is printed), so this ruling rests on the alignment across stanzas.",
+      "gaps": ["movedown:3.2"]
+    }
+  ]
+}

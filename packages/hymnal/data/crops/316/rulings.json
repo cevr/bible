@@ -1,0 +1,39 @@
+{
+  "number": 316,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p307.jpg",
+          "crop": "p307-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "46ad6216889ce073",
+          "shows": ""
+        },
+        {
+          "image": "p307.jpg",
+          "crop": "p307-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ccfc5afbd79b1d09",
+          "shows": ""
+        },
+        {
+          "image": "p307.jpg",
+          "crop": "p307-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d94f5ffbb0db8a5a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t17 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:4.6: can: The header on p307-strip0.jpg prints 7.6.7.6.D. Stanza 4's line 6 is the last 6 syllables of the fourth row of system 3 (p307-strip800.jpg) and line 7 opens the fourth row of system 4 (p307-strip1600.jpg) with 7 syllables; moving line 7's first word up makes them 7 and 6, which the printed metre breaks (the capitals alone would not show it: the moved word follows an exclamation mark and the new opener is a divine pronoun).",
+      "gaps": ["moveup:4.6"]
+    }
+  ]
+}

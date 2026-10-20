@@ -1,0 +1,32 @@
+{
+  "number": 569,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p555.jpg",
+          "crop": "p555-strip0.jpg",
+          "box": [0, 0, 3518, 1000],
+          "sha": "1941eeab8e6a95e8",
+          "shows": ""
+        },
+        {
+          "image": "p555.jpg",
+          "crop": "p555-strip4000.jpg",
+          "box": [0, 4000, 3518, 1000],
+          "sha": "8019407d9495d114",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t31 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.2: p555-strip4000.jpg, the refrain's second system, its one row: the word that would open the split's second line is a divine pronoun, printed with a capital wherever it stands. The header's metre (p555-strip0.jpg, 8.5.8.5. Ref.) gives the refrain no counts, and the page prints no text below the music.",
+      "unreachable": ["split:refrain.1.2"]
+    }
+  ]
+}

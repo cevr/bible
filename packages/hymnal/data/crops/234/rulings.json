@@ -366,6 +366,43 @@
       "settles": [
         "234 shape (shape2-26): stanza 4 line 3 opens on word 1 of stanza 4 row 2, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "053d3fa157c505bb",
+          "shows": ""
+        },
+        {
+          "image": "234.png",
+          "crop": "234-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0a814f25e75a983a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t12 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.1: 234-strip0.jpg system 1, stanza 1's row: the moved word is printed with a capital as a title of Christ (it keeps that capital at the end of the database's line 1), and line 2's first word is a pronoun of God, capital anyway; the header prints no metre. movedown:1.5: 234-strip800.jpg system 3, stanza 1's row: the moved word is a pronoun of God, capital anyway, and the database's own line-6 opener is printed lowercase (as is every stanza's line-3 opener on system 2), so the page's capitals mark neither break; the header prints no metre. movedown:2.1: 234-strip0.jpg system 1, stanza 2's row: the moved word is printed with a capital as a title of Christ (it keeps that capital at the end of the database's line 1), and line 2's first word is a pronoun of God, capital anyway; the header prints no metre. movedown:2.3: 234-strip0.jpg system 2, stanza 2's row: the moved word is a pronoun of God, capital anyway, and the database's own line-4 opener is printed lowercase (as is every stanza's line-3 opener on this system), so the page's capitals mark neither break; the header prints no metre. movedown:2.6: 234-strip800.jpg systems 3-4, stanza 2's row: the moved word is a name of God, capital anyway, and line 7's first word follows a question mark, so its capital is a sentence's; no metre is printed, and the system's end the change crosses marks no line. movedown:3.1: 234-strip0.jpg system 1, stanza 3's row: the moved word is printed with a capital as a title of Christ (it keeps that capital at the end of the database's line 1), and line 2's first word is a pronoun of God, capital anyway; the header prints no metre. movedown:3.6: 234-strip800.jpg systems 3-4, stanza 3's row: the moved word is a name of God, capital anyway, and line 7's first word follows a full stop, so its capital is a sentence's; no metre is printed, and the system's end the change crosses marks no line. moveup:4.2: 234-strip0.jpg systems 1-2, stanza 4's row: the moved word, the database's line-3 opener, is printed lowercase (as every stanza's line 3 opens on system 2), and the word that would open line 3 instead is a name of God, capital anyway, so the capitals mark neither break; no metre is printed, and a system's end marks no line. moveup:4.3: 234-strip0.jpg system 2, stanza 4's row: the moved word and the next, which would open line 4, are both names of God, printed with capitals anyway; no metre is printed.",
+      "unreachable": [
+        "movedown:1.1",
+        "movedown:1.5",
+        "movedown:2.1",
+        "movedown:2.3",
+        "movedown:2.6",
+        "movedown:3.1",
+        "movedown:3.6",
+        "moveup:4.2",
+        "moveup:4.3"
+      ]
     }
   ]
 }

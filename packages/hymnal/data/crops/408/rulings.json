@@ -173,6 +173,40 @@
       "settles": [
         "408 shape (shape2-45): stanza 3 has 5 lines, which the metre the page prints fits in no way, where stanza 4's 6 fit it"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "99e2f4192d2f7936",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "08754ce5bb5f80be",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "98e224bd26d2926a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t21 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.4: can: p395-strip800.jpg system 3 (top of p395-strip1600.jpg), stanza 1's row: the moved word follows a full stop and the word after it is a name of God, so capitals tell nothing, but the header on p395-strip0.jpg prints 8.7.8.7.4.7: line 4 ends after 7 syllables and the moved word (4 syllables) is a line of its own, so the change's line 4 sings 11. The database's own line 5 also joins the metre's lines 5 and 6. moveup:2.4: can: p395-strip800.jpg system 3 (top of p395-strip1600.jpg), stanza 2's row: the moved word follows a full stop (a capital anyway), but the header's 8.7.8.7.4.7 ends line 4 after 7 syllables and gives the moved word (4 syllables) a line of its own, so the change's line 4 sings 11. The word after it is printed with a capital after a comma (not a name of God), so the database's own line 5 also joins the metre's lines 5 and 6. moveup:3.3: can: p395-strip800.jpg system 2, stanza 3's row: the moved word is printed with a capital right after a lowercase word with no stop (not a name of God), and the change would open line 4 on a lowercase syllable. The header's 8.7.8.7.4.7 also breaks: 9 then 6. moveup:3.4: can: p395-strip1600.jpg system 3, stanza 3's row: the moved word follows a full stop (a capital anyway), but the header's 8.7.8.7.4.7 ends line 4 after 7 syllables and gives the moved word (4 syllables) a line of its own, so the change's line 4 sings 11. The word after it is printed with a capital after a comma (not a name of God), so the database's own line 5 also joins the metre's lines 5 and 6. join:4.4: can: p395-strip1600.jpg system 3, stanza 4's row: the second line's word follows a full stop (a capital anyway), but the header's 8.7.8.7.4.7 gives line 4 seven syllables and line 5 four, which the database's stanza 4 matches line for line; the joined line sings 11.",
+      "gaps": ["moveup:1.4", "moveup:2.4", "moveup:3.3", "moveup:3.4", "join:4.4"]
     }
   ]
 }

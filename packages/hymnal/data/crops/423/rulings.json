@@ -1,0 +1,32 @@
+{
+  "number": 423,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p408.jpg",
+          "crop": "p408-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "3d952b2f6095cc8e",
+          "shows": ""
+        },
+        {
+          "image": "p408.jpg",
+          "crop": "p408-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "35b5185e3855fa52",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t22 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.2: can: The header (p408-strip0.jpg) prints 8.7.8.7.D.; stanza 1's line 2 on system 1 sings 7 syllables to the capitalised moved word, and line 3 on system 2 (p408-strip800.jpg) sings 8. Moving the word down makes them 6 and 9, which breaks the metre.",
+      "gaps": ["movedown:1.2"]
+    }
+  ]
+}

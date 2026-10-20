@@ -1,0 +1,50 @@
+{
+  "number": 280,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "280.png",
+          "crop": "280-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "fdb235c423325af5",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t15 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: 280-strip800.jpg system 3 (Refrain), its one row: \"He\" is printed with a capital, but it is a pronoun of God, which the page capitalizes mid-line too (\"His\" later in the same row); the header prints no metre. movedown:refrain.1.1: 280-strip800.jpg system 3 (Refrain), its one row: the moved word \"Je-sus\" is a name of God printed with a capital, and \"He\" after it is a pronoun of God capitalized anyway; the header prints no metre. join:refrain.1.3: 280-strip800.jpg system 4, the refrain's row: the second line opens on \"O\", which is printed with a capital anyway; the header prints no metre. movedown:refrain.1.3: 280-strip800.jpg system 4, the refrain's row: the moved word \"Sav-ior\" is a name of God printed with a capital, and \"O\" after it is capitalized anyway; the header prints no metre.",
+      "unreachable": [
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "join:refrain.1.3",
+        "movedown:refrain.1.3"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "280.png",
+          "crop": "280-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "b93b52d78151bf93",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t15 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:4.1: can: 280-strip0.jpg system 1, stanza 4's row: the moved word is printed lowercase (\"as-cend-ed\") after a comma, and the next word \"Pleads\" is printed with a capital, at the same bar where every stanza opens its line 2; a line cannot open on the lowercase word.",
+      "gaps": ["movedown:4.1"]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "number": 625,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p610.jpg",
+          "crop": "p610-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "e2de20994d42416a",
+          "shows": ""
+        },
+        {
+          "image": "p610.jpg",
+          "crop": "p610-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "a39719aedcf2a513",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t33 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: p610-strip1600.jpg, the refrain's second system: the fourth line opens, after a semicolon, on a name of God printed with a capital anyway. The header's L.M.Ref. on p610-strip0.jpg fixes the stanza lines only, not the refrain's, and no text stands below the music.",
+      "unreachable": ["join:refrain.1.3"]
+    }
+  ]
+}

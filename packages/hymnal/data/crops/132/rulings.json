@@ -1,0 +1,40 @@
+{
+  "number": 132,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p129.jpg",
+          "crop": "p129-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "d21fd12e5f1dceb5",
+          "shows": ""
+        },
+        {
+          "image": "p129.jpg",
+          "crop": "p129-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "9f44e86fca9b4dcf",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t05 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.2: p129-strip800.jpg system 2, stanza 1's row: the moved word is a place name printed with a capital (Bethlehem!), and the word after it (Come) follows an exclamation mark, a capital anyway. The header prints Irregular, no metre that fixes the lines. join:refrain.1.1: p129-strip800.jpg system 3, stanza 2's row ends the refrain's first line on Him, O: the second line opens on O, printed with a capital anyway. The header prints Irregular, no metre that fixes the lines. movedown:refrain.1.1: p129-strip800.jpg system 3, stanza 2's row: the moved word is a pronoun of God printed with a capital (Him), and the word after it is O, a capital anyway. The header prints Irregular, no metre that fixes the lines. join:refrain.1.2: p129-strip1600.jpg system 4, the refrain row: the third line opens on O, printed with a capital anyway; the three lines print the same words. The header prints Irregular, no metre that fixes the lines. movedown:refrain.1.2: p129-strip1600.jpg system 4, the refrain row: the moved word is a pronoun of God printed with a capital (Him), and the word after it is O, a capital anyway. The header prints Irregular, no metre that fixes the lines. join:refrain.1.3: p129-strip1600.jpg system 4, the refrain row: the last line opens on Christ, a name of God printed with a capital anyway. The header prints Irregular, no metre that fixes the lines. movedown:refrain.1.3: p129-strip1600.jpg system 4, the refrain row: the moved word is a pronoun of God printed with a capital (Him), and the word after it is Christ, a name of God. The header prints Irregular, no metre that fixes the lines.",
+      "unreachable": [
+        "movedown:1.2",
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "join:refrain.1.2",
+        "movedown:refrain.1.2",
+        "join:refrain.1.3",
+        "movedown:refrain.1.3"
+      ]
+    }
+  ]
+}

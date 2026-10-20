@@ -22,6 +22,33 @@
       "settles": [
         "671 shape (shape2-75): stanza 1 line 2 opens on word 7 of stanza 1 row 1, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "671.png",
+          "crop": "671-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8e9769371dd05407",
+          "shows": ""
+        },
+        {
+          "image": "671.png",
+          "crop": "671-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "4977b0bc4d46415b",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t36 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.1: 671-strip0.jpg system 1, the one row: line 2's first word is printed lowercase after a comma, so nothing marks a line opening there, and the header prints no metre. join:1.4: 671-strip0.jpg system 2, end of the row: line 5's first word follows a full stop, so its capital is expected anyway, and the header prints no metre to fix the lines. join:1.6: 671-strip0.jpg system 3 (repeated at the top of 671-strip800.jpg), end of the row: line 7's first word follows a full stop, so its capital is expected anyway, and the header prints no metre.",
+      "unreachable": ["join:1.1", "join:1.4", "join:1.6"]
     }
   ]
 }

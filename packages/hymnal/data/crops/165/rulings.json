@@ -24,6 +24,76 @@
       ],
       "judge": "judge-158 (Opus, effort max)",
       "why": "Row 2. of p161-312.jpg ends 'Je - sus brings;' with a plain final s."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p161.jpg",
+          "crop": "p161-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "bb393e205d579aba",
+          "shows": ""
+        },
+        {
+          "image": "p161.jpg",
+          "crop": "p161-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "a120fde4872e01e7",
+          "shows": ""
+        },
+        {
+          "image": "p161.jpg",
+          "crop": "p161-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "42577eb8e5929d1d",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t07 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.5: The page's third system (p161-strip800.jpg, p161-strip1600.jpg) prints the 12-word \"Crown Him!\" row once for all stanzas, every word a capital. The header's 4.4.4 breaks it after syllables 4 and 8, which neither the database's break (after 6) nor the changed one (after 5) meets, so the page does not tell them apart. moveup:1.5: The page's third system (p161-strip800.jpg, p161-strip1600.jpg) prints the 12-word \"Crown Him!\" row once for all stanzas, every word a capital. The header's 4.4.4 breaks it after syllables 4 and 8, which neither the database's break (after 6) nor the changed one (after 7) meets, so the page does not tell them apart. movedown:2.5: The page's third system (p161-strip800.jpg, p161-strip1600.jpg) prints the 12-word \"Crown Him!\" row once for all stanzas, every word a capital. The header's 4.4.4 breaks it after syllables 4 and 8, which neither the database's break (after 6) nor the changed one (after 5) meets, so the page does not tell them apart. moveup:2.5: The page's third system (p161-strip800.jpg, p161-strip1600.jpg) prints the 12-word \"Crown Him!\" row once for all stanzas, every word a capital. The header's 4.4.4 breaks it after syllables 4 and 8, which neither the database's break (after 6) nor the changed one (after 7) meets, so the page does not tell them apart. movedown:3.5: The page's third system (p161-strip800.jpg, p161-strip1600.jpg) prints the 12-word \"Crown Him!\" row once for all stanzas, every word a capital. The header's 4.4.4 breaks it after syllables 4 and 8, which neither the database's break (after 6) nor the changed one (after 5) meets, so the page does not tell them apart. moveup:3.5: The page's third system (p161-strip800.jpg, p161-strip1600.jpg) prints the 12-word \"Crown Him!\" row once for all stanzas, every word a capital. The header's 4.4.4 breaks it after syllables 4 and 8, which neither the database's break (after 6) nor the changed one (after 7) meets, so the page does not tell them apart. movedown:4.5: The page's third system (p161-strip800.jpg, p161-strip1600.jpg) prints the 12-word \"Crown Him!\" row once for all stanzas, every word a capital. The header's 4.4.4 breaks it after syllables 4 and 8, which neither the database's break (after 6) nor the changed one (after 5) meets, so the page does not tell them apart. moveup:4.5: The page's third system (p161-strip800.jpg, p161-strip1600.jpg) prints the 12-word \"Crown Him!\" row once for all stanzas, every word a capital. The header's 4.4.4 breaks it after syllables 4 and 8, which neither the database's break (after 6) nor the changed one (after 7) meets, so the page does not tell them apart.",
+      "unreachable": [
+        "movedown:1.5",
+        "moveup:1.5",
+        "movedown:2.5",
+        "moveup:2.5",
+        "movedown:3.5",
+        "moveup:3.5",
+        "movedown:4.5",
+        "moveup:4.5"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p161.jpg",
+          "crop": "p161-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "bb393e205d579aba",
+          "shows": ""
+        },
+        {
+          "image": "p161.jpg",
+          "crop": "p161-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "a120fde4872e01e7",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t07 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.4: can: p161-strip0.jpg header prints 8.7.8.7.4.4.4.7; on p161-strip800.jpg stanza 1's line 4 closes the page's second system at 7 sung syllables. Moving \"Crown\" up from the third system's row makes it 8, which the metre breaks. moveup:2.4: can: p161-strip0.jpg header prints 8.7.8.7.4.4.4.7; on p161-strip800.jpg stanza 2's line 4 closes the page's second system at 7 sung syllables. Moving \"Crown\" up from the third system's row makes it 8, which the metre breaks. moveup:3.4: can: p161-strip0.jpg header prints 8.7.8.7.4.4.4.7; on p161-strip800.jpg stanza 3's line 4 closes the page's second system at 7 sung syllables. Moving \"Crown\" up from the third system's row makes it 8, which the metre breaks. moveup:4.4: can: p161-strip0.jpg header prints 8.7.8.7.4.4.4.7; on p161-strip800.jpg stanza 4's line 4 closes the page's second system at 7 sung syllables. Moving \"Crown\" up from the third system's row makes it 8, which the metre breaks.",
+      "gaps": ["moveup:1.4", "moveup:2.4", "moveup:3.4", "moveup:4.4"]
     }
   ]
 }

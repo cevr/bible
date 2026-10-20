@@ -24,6 +24,67 @@
       ],
       "judge": "judge-074 (Opus, effort max)",
       "why": "Row 1 (stanza 1) of the last system prints 'In the bleak mid - win - ter, Long a - go.', so the database's 'minwinter' is its own slip."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "126.jpg",
+          "crop": "126-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "78876096229082c2",
+          "shows": ""
+        },
+        {
+          "image": "126.jpg",
+          "crop": "126-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "49e2559dcb47b1f2",
+          "shows": ""
+        },
+        {
+          "image": "126.jpg",
+          "crop": "126-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "1c3f351d5ff34a3f",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t05 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:3.2: 126-strip0.jpg system 1, stanza 3's row ends on a question mark (am?), so the moved word (If) on 126-strip800.jpg system 2 takes its capital anyway as a sentence's start, and the word the change opens line 3 on is I. The header prints Irregular, no metre that fixes the lines. movedown:3.7: 126-strip1600.jpg system 4, stanza 3's row: the moved word is a pronoun of God printed with a capital (Him?), and the word after it (Give) follows a question mark, a capital anyway. The header prints Irregular, no metre that fixes the lines.",
+      "unreachable": ["moveup:3.2", "movedown:3.7"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "126.jpg",
+          "crop": "126-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "49e2559dcb47b1f2",
+          "shows": ""
+        },
+        {
+          "image": "126.jpg",
+          "crop": "126-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "1c3f351d5ff34a3f",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t05 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.4: can: 126-strip800.jpg system 2, stanza 2's row ends on a colon (air:) and system 3's row opens on But with a capital; after a colon it is no name of God, I, O or word after a full stop, so only a line opening explains the capital, and the change that ends line 4 on it is wrong.",
+      "gaps": ["moveup:2.4"]
     }
   ]
 }

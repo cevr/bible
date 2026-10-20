@@ -151,6 +151,40 @@
       ],
       "judge": "judge-505 (Opus, effort max)",
       "why": "p500-29.jpg row 4 ends 'An-swer-ing when up -' and p500-736.jpg row 4 goes on 'on Him I call;'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p500.jpg",
+          "crop": "p500-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "2dc6405380ede7f0",
+          "shows": ""
+        },
+        {
+          "image": "p500.jpg",
+          "crop": "p500-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "b3800ca62966fc84",
+          "shows": ""
+        },
+        {
+          "image": "p500.jpg",
+          "crop": "p500-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "7ac46521eff440ce",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t28 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.2: p500-strip1600.jpg system 4, the refrain row: the word that opens line 3 is the name Jesus, printed with a capital wherever it stands, right after line 2's last word. The header's metre on p500-strip0.jpg (9.9.9.6.Ref.) gives the refrain no syllable counts, so nothing fixes where its lines break.",
+      "unreachable": ["join:refrain.1.2"]
     }
   ]
 }

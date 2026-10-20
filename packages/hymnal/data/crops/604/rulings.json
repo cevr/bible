@@ -1,0 +1,39 @@
+{
+  "number": 604,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p589.jpg",
+          "crop": "p589-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "eac395e1b4b87fb0",
+          "shows": ""
+        },
+        {
+          "image": "p589.jpg",
+          "crop": "p589-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "032b569605a9e02b",
+          "shows": ""
+        },
+        {
+          "image": "p590.jpg",
+          "crop": "p590-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "45696c66f4bbf93d",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p589-strip1600.jpg system 3 (the refrain's first), its main row: line 2's first word follows a semicolon and is a pronoun of God, which the page prints with a capital mid-line too (p589-strip800.jpg system 2, stanza 1's line 3); the header prints 12.12.12.6 for the stanzas and only Ref. for the refrain, so no metre fixes the refrain's lines. join:refrain.1.2: p590-strip0.jpg system 1, the refrain's main row: line 3's first word follows an exclamation mark and is a pronoun of God, so it carries a capital anyway; the refrain has no printed metre, so nothing tells the joined line from two.",
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2"]
+    }
+  ]
+}

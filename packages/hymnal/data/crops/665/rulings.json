@@ -1,0 +1,32 @@
+{
+  "number": 665,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p650.jpg",
+          "crop": "p650-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "1da1b82498f23679",
+          "shows": ""
+        },
+        {
+          "image": "p650.jpg",
+          "crop": "p650-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "067c3d14319d6a54",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t35 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.2: p650-strip1600.jpg system 2 row: line 2's last word carries a full stop, and past a double bar the Amen follows, printed with a capital as any word after a full stop is. The header prints only a scripture reference and a source, no metre, so nothing in the row tells the Amen as its own line from the end of line 2. movedown:1.2: p650-strip1600.jpg system 2 row: the moved word, a pronoun of God, is printed with a capital, and system 1's row prints the same pronoun with a capital mid-line in line 1. No metre is printed, so nothing tells whether it ends line 2 or opens the Amen's line.",
+      "unreachable": ["join:1.2", "movedown:1.2"]
+    }
+  ]
+}

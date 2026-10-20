@@ -1,0 +1,32 @@
+{
+  "number": 455,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p443.jpg",
+          "crop": "p443-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "c15cc1e6aa60661e",
+          "shows": ""
+        },
+        {
+          "image": "p443.jpg",
+          "crop": "p443-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "9dc987704204c5d6",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t24 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:6.1: can: p443-strip0.jpg system 1, stanza 6's row: the moved word is printed with a capital right after a colon, a line-opening capital, and is hyphenated to the next syllable on p443-strip800.jpg system 2 as one word; every other stanza's row opens line 2 with a capital on that same note. The header's C.M. fixes line 1 at 8 syllables and the change makes it 9 (line 2 then 5).",
+      "gaps": ["moveup:6.1"]
+    }
+  ]
+}

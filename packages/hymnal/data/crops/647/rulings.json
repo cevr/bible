@@ -1,0 +1,71 @@
+{
+  "number": 647,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p633.jpg",
+          "crop": "p633-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "eda8cc15a437a25a",
+          "shows": ""
+        },
+        {
+          "image": "p634.jpg",
+          "crop": "p634-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "64089b93b268f750",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t34 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: p634-strip1600.jpg system 3: line 4's first word is a pronoun of God, printed with a capital anyway (as in every stanza), and the header (p633-strip0.jpg) prints 15.15.15.6.Ref., no metre for the refrain's lines. movedown:refrain.1.3: p634-strip1600.jpg system 3: the moved word is printed with a capital, as it is mid-line in every pair, and line 4's first word is a pronoun of God, capital anyway, so the capitals read the same in both layouts; the header gives no metre for the refrain.",
+      "unreachable": ["join:refrain.1.3", "movedown:refrain.1.3"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p634.jpg",
+          "crop": "p634-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "8b13773dad0c72fe",
+          "shows": ""
+        },
+        {
+          "image": "p634.jpg",
+          "crop": "p634-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "e6b870ec4029fa8e",
+          "shows": ""
+        },
+        {
+          "image": "p634.jpg",
+          "crop": "p634-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "64089b93b268f750",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t34 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: p634-strip800.jpg system 2: the refrain prints each pair's second word lowercase right after an exclamation mark, so on this page that mark brings no capital; the capital on line 2's first word (after line 1's closing exclamation) marks a line opening, and the join puts it mid-line. movedown:refrain.1.1: can: p634-strip800.jpg system 2: the move leaves line 2's capitalized first word as word 2 of the new line 2, after an exclamation mark; the refrain prints each pair's second word lowercase after the same mark, so that capital marks a line opening the change removes. join:refrain.1.2: can: p634-strip1600.jpg system 3: line 3's first word is printed with a capital after an exclamation mark, while each pair's second word after the same mark is printed lowercase (systems 1 to 3), so the capital marks a line opening that the join puts mid-line. movedown:refrain.1.2: can: p634-strip1600.jpg system 3: the move leaves line 3's capitalized first word mid-line after an exclamation mark; the refrain prints each pair's second word lowercase after the same mark, so that capital marks a line opening the change removes.",
+      "gaps": [
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "join:refrain.1.2",
+        "movedown:refrain.1.2"
+      ]
+    }
+  ]
+}

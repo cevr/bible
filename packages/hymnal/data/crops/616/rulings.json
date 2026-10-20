@@ -1,0 +1,25 @@
+{
+  "number": 616,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "616.png",
+          "crop": "616-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "08436259b7b5a60c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t33 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:3.6: 616-strip800.jpg system 3 (bars 9-12), stanza 3's row: the moved word is printed with a capital as a quoted cry inside quotation marks with an exclamation, and the word after it, which the change leaves mid-line, is capitalised anyway after that exclamation. The header prints no metre and no text stands below the music. moveup:3.6: 616-strip800.jpg system 3 ends stanza 3's row on the moved word, printed with a capital after an exclamation, and system 4 opens the row on a name of Christ, printed with a capital anyway, so the changed line opening reads the same. The header prints no metre and no text stands below the music.",
+      "unreachable": ["movedown:3.6", "moveup:3.6"]
+    }
+  ]
+}

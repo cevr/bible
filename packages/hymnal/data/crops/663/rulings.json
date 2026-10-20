@@ -120,6 +120,40 @@
       ],
       "judge": "judge-663 (Opus, effort max)",
       "why": "Amen F (Danish), the sixth lettered Amen, prints 'A-men, A-men, A - men.' in its lyric row."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "663.jpg",
+          "crop": "663-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "e2c55a1c68ebbf4f",
+          "shows": ""
+        },
+        {
+          "image": "663.jpg",
+          "crop": "663-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "9e1d0ffe4cd3ce8d",
+          "shows": ""
+        },
+        {
+          "image": "663.jpg",
+          "crop": "663-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "28c4c423ab7caa9c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t35 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.1: 663-strip0.jpg, part A's row: two Amens, the second after a comma and printed with a capital, as the page prints every Amen (parts D and F too, after commas). No metre is printed, so nothing marks a line break between the two. split:4.1: 663-strip800.jpg, part D's row: an Amen, then a second Amen in parentheses after a comma, printed with a capital like every Amen on the page. No metre is printed, so nothing tells whether the second opens a line. split:6.1: 663-strip1600.jpg, part F's row: three Amens, the second and third after commas, each printed with a capital. No metre is printed, so the second reads the same whether or not it opens a line.",
+      "unreachable": ["join:1.1", "split:4.1", "split:6.1"]
     }
   ]
 }

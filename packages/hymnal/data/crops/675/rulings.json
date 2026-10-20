@@ -1,0 +1,32 @@
+{
+  "number": 675,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "675.png",
+          "crop": "675-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "56e0169e0e61bef5",
+          "shows": ""
+        },
+        {
+          "image": "675.png",
+          "crop": "675-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "4de99dee0d8c4223",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t36 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.1: 675-strip0.jpg system 2, the one row: the first Amen follows the full stop ending line 1, so its capital is expected anyway, and the header prints no metre. 675-strip800.jpg is blank. moveup:1.1: 675-strip0.jpg system 2: the moved Amen follows a full stop (capital anyway), and the second Amen, which would then open line 2, is printed with a capital after a comma, as the change needs; no metre fixes the lines. split:1.2: 675-strip0.jpg system 2: both Amens are printed with a capital, the second after a comma, which fits it opening a line as the split makes it; no metre fixes the lines.",
+      "unreachable": ["join:1.1", "moveup:1.1", "split:1.2"]
+    }
+  ]
+}

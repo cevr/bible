@@ -1,0 +1,45 @@
+{
+  "number": 468,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p457.jpg",
+          "crop": "p457-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "f46567641e578efe",
+          "shows": ""
+        },
+        {
+          "image": "p457.jpg",
+          "crop": "p457-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "046416f38b871030",
+          "shows": ""
+        },
+        {
+          "image": "p457.jpg",
+          "crop": "p457-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3a51e0acc962c083",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t25 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:3.2: p457-strip800.jpg system 2, stanza 3's row: the moved word follows an exclamation mark, so it has a capital anyway, and the word that would then open line 3 is a contraction of the pronoun I, also capitalized. The header metre 10.11.10.11 does not fix the break: this stanza's line 1 (p457-strip0.jpg system 1) has 11 syllables in both layouts, and other stanzas run a syllable over on lines 3 and 4 (stanza 2's line 4 has 12). split:refrain.1.1: p457-strip1600.jpg system 2, the refrain's row: word 6, where the split opens a line, is a name of God and is printed with a capital anyway. The header prints only R for the refrain, so no metre fixes its lines. join:refrain.1.1: p457-strip1600.jpg system 2, the refrain's row: line 2's first word follows an exclamation mark that ends line 1, so it has a capital anyway. The header prints only R for the refrain, so no metre fixes its lines. movedown:refrain.1.1: p457-strip1600.jpg system 2, the refrain's row: the moved word is a name of God, printed with a capital anyway, so it can open line 2. The header prints only R for the refrain, so no metre fixes its lines. moveup:refrain.1.1: p457-strip1600.jpg system 2, the refrain's row: the moved word follows an exclamation mark (a capital anyway), and the word that would then open line 2 is a name of God, also printed with a capital. The header prints only R for the refrain, so no metre fixes its lines.",
+      "unreachable": [
+        "moveup:3.2",
+        "split:refrain.1.1",
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "moveup:refrain.1.1"
+      ]
+    }
+  ]
+}

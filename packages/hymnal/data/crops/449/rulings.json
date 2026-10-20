@@ -1,0 +1,37 @@
+{
+  "number": 449,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "449.png",
+          "crop": "449-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "338127f2e385685f",
+          "shows": ""
+        },
+        {
+          "image": "449.png",
+          "crop": "449-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "4be808387ced50a1",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t24 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.4: 449-strip800.jpg system 4 (bars 16-21), the refrain's row: line 5's first word is printed with a capital right after a full stop, a capital it takes anyway; the page prints no metre (449-strip0.jpg header) and the refrain has one row, so nothing tells the joined line apart. moveup:refrain.1.4: 449-strip800.jpg system 4, the refrain's row: the moved word follows a full stop and the word after it follows the moved word's exclamation mark, so both are capitalised anyway; with no metre printed, nothing shows which of the two opens the line. split:refrain.1.5: 449-strip800.jpg system 4, the refrain's row: the word the split would open a line with is printed with a capital right after a question mark, a capital it takes anyway, and no metre is printed; nothing tells the split line apart. split:refrain.1.6: 449-strip800.jpg end of system 4, the refrain's row: the word the split would open a line with is printed with a capital right after a question mark, a capital it takes anyway, and no metre is printed; nothing tells the split line apart.",
+      "unreachable": [
+        "join:refrain.1.4",
+        "moveup:refrain.1.4",
+        "split:refrain.1.5",
+        "split:refrain.1.6"
+      ]
+    }
+  ]
+}

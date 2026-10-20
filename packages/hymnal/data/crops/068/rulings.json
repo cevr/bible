@@ -1,0 +1,59 @@
+{
+  "number": 68,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p065.jpg",
+          "crop": "p065-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "92e38b0df3f66155",
+          "shows": ""
+        },
+        {
+          "image": "p065.jpg",
+          "crop": "p065-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "2346b1280f8ede7c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t02 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: p065-strip1600.jpg, refrain system 2 (its one row): 'O' is printed with a capital, as the interjection always is, and the header's metre on p065-strip0.jpg counts the stanza only ('.Ref.' gives the refrain no count). Nothing else marks a line open there. split:refrain.1.4: p065-strip1600.jpg, refrain system 2: 'God' is printed with a capital, as a name of God always is, and no metre fixes the refrain's lines ('.Ref.' gives no count). The page shows nothing that tells a line does not open on it.",
+      "unreachable": ["join:refrain.1.3", "split:refrain.1.4"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p065.jpg",
+          "crop": "p065-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "92e38b0df3f66155",
+          "shows": ""
+        },
+        {
+          "image": "p065.jpg",
+          "crop": "p065-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "5b650323f550d0a3",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t02 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.5: can: Page systems 2 and 3, stanza 1's row: 'with-' ends system 2 and 'in,' opens system 3, both lowercase where the change opens line 6. The 6.5.6.5.D metre also breaks: line 5 becomes 7 syllables and line 6 becomes 4.",
+      "gaps": ["moveup:1.5"]
+    }
+  ]
+}

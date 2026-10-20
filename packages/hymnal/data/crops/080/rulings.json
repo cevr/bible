@@ -263,6 +263,26 @@
       "settles": [
         "80 shape (shape2-09): stanza 3 line 8 opens on word 8 of stanza 3 row 4, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "d76575f45c3c7947",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t03 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:3.7: 080-strip800.jpg system 4 (from bar 16), stanza 3's row: \"the\" after \"God,\" is printed lowercase, as the page prints every even line's opener in this hymn, so nothing marks a line opening there; the header prints no metre and no text block is printed. movedown:3.7: 080-strip800.jpg system 4 (from bar 16), stanza 3's row: the moved word \"God\" is printed with a capital (a name of God) and the old opener \"the\" is lowercase, so a line opening on \"God\" reads the same; no metre is printed.",
+      "unreachable": ["join:3.7", "movedown:3.7"]
     }
   ]
 }

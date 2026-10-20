@@ -1,0 +1,32 @@
+{
+  "number": 229,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p225.jpg",
+          "crop": "p225-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "e0724e8c08844166",
+          "shows": ""
+        },
+        {
+          "image": "p225.jpg",
+          "crop": "p225-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "cd91edb4e612f468",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t12 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.4: can: p225-strip0.jpg header prints C.M. (8.6.8.6.); p225-strip800.jpg system 3, stanza 2's row: line 4 is 6 syllables ending in an exclamation mark, and the moved word makes it 7, which the metre's fourth line rejects. The capitals alone would not tell: the moved word follows the exclamation mark and the next is a pronoun of God. moveup:3.4: can: p225-strip0.jpg header prints C.M. (8.6.8.6.); p225-strip800.jpg system 3, stanza 3's row: line 4 is 6 syllables ending in an exclamation mark, and the moved word makes it 7, which the metre's fourth line rejects. The capitals alone would not tell: the moved word follows the exclamation mark and the next is a pronoun of God.",
+      "gaps": ["moveup:2.4", "moveup:3.4"]
+    }
+  ]
+}

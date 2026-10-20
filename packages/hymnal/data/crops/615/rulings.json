@@ -1,0 +1,25 @@
+{
+  "number": 615,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "615.png",
+          "crop": "615-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "84d08cb39a376be9",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t33 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.1: 615-strip0.jpg system 1, stanza 1's row: the moved word is printed with a capital (a name of God) and an exclamation mark, and the next word is capitalised anyway (a pronoun of God, after the exclamation). The header prints no metre, and no text below the music fixes the lines. movedown:4.1: 615-strip0.jpg system 1, stanza 4's row: the moved word is printed with a capital (a name of Christ) and an exclamation mark, and the next word is capitalised anyway after the exclamation. The header prints no metre, and no text below the music fixes the lines.",
+      "unreachable": ["movedown:1.1", "movedown:4.1"]
+    }
+  ]
+}

@@ -120,6 +120,26 @@
       ],
       "judge": "judge-074 (Opus, effort max)",
       "why": "The listed p134-768 holds the stanzas' second system, not the refrain; the Refrain row on p134-1547 prints 'O star of won-der', a lone 'O'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p134.jpg",
+          "crop": "p134-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "bddbec80af318106",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t05 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.4: p134-strip1600.jpg system 4, the refrain row prints the word the split opens on (Thy) with a capital, so it looks the same whether or not a line opens there. The header's 8.8.8.6. fits the stanzas only (the refrain runs 8.7.8.7), so no metre fixes the refrain's lines.",
+      "unreachable": ["split:refrain.1.4"]
     }
   ]
 }

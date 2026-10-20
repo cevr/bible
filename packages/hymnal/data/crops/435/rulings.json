@@ -64,6 +64,55 @@
       "judge": "shape-judge-judge-a05 (Opus, effort max)",
       "why": "435-strip0.jpg: stanza 2 opens its poem lines at When (system 1, word 1), I (system 1, word 9), Just (system 2, word 1) and Will (system 2, word 11), as the database's 4 lines (8, 7, 10, 8 words) do. Stanza 1 opens at When (system 1, word 1), And (system 1, word 9) and Just (system 2, word 1), as the database's lines 1-3 (8, 8, 9 words) do; its line 4 is the shared 'Will through ...' line, printed once on stanza 2's row and sung by every stanza, so only 3 of stanza 1's lines stand on its own rows while the database writes all 4.",
       "settles": ["435 shape (shape2-48): stanza 2 has 4 lines, stanza 1 3, under the same systems"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "435.png",
+          "crop": "435-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "734a05d5cd6c5ac7",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t23 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:2.1: 435-strip0.jpg, page system 1, stanza 2's row: line 2 opens on the pronoun I, printed with a capital wherever it stands. The page prints no metre (stanzas 1 and 3 open a line on that note, but no printed metre carries that to stanza 2).",
+      "unreachable": ["join:2.1"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "435.png",
+          "crop": "435-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "734a05d5cd6c5ac7",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t23 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: dropline:1.4: can: 435-strip0.jpg, page system 2, bars 7-8: the line is printed once, in the middle row, under notes every stanza sings on its way to the refrain; stanza 1's row holds no other words there, so dropping the line leaves those notes without words. dropline:3.4: can: 435-strip0.jpg, page system 2, bars 7-8: the shared line is printed once in the middle row, under notes every stanza sings; stanza 3's row is blank there, so dropping the line leaves stanza 3 with no words for those notes. join:1.3: can: 435-strip0.jpg, page system 2: the shared line every stanza sings after line 3 opens on Will, printed with a capital after a comma (stanza 1's row ends on a comma), so it opens a line of its own. moveup:1.3: can: 435-strip0.jpg, page system 2, the shared line in the middle row: the moved word (Will) is printed with a capital, so it opens line 4, and the word the change puts at line 4's head is printed lowercase. split:1.4: can: 435-strip0.jpg, page system 2, the shared line in the middle row: the word the split puts at a line's head (be) is printed lowercase mid-line, so nothing marks a line opening there. join:3.3: can: 435-strip0.jpg, page system 2: stanza 3's row ends line 3 on a comma, and the shared line in the middle row that follows opens on Will, printed with a capital, so it opens a line of its own. moveup:3.3: can: 435-strip0.jpg, page system 2, the shared line in the middle row: the moved word (Will) is printed with a capital, so it opens line 4, and the word the change puts at line 4's head is printed lowercase. split:3.4: can: 435-strip0.jpg, page system 2, the shared line in the middle row: the word the split puts at a line's head (be) is printed lowercase mid-line, so nothing marks a line opening there.",
+      "gaps": [
+        "dropline:1.4",
+        "dropline:3.4",
+        "join:1.3",
+        "moveup:1.3",
+        "split:1.4",
+        "join:3.3",
+        "moveup:3.3",
+        "split:3.4"
+      ]
     }
   ]
 }

@@ -29,6 +29,67 @@
       "settles": [
         "507 shape (shape2-56): stanza 3 row 1 ends \"drop and\" at word 12, its count gives word 14"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p495.jpg",
+          "crop": "p495-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "60b3ab652f9314b6",
+          "shows": ""
+        },
+        {
+          "image": "p495.jpg",
+          "crop": "p495-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "c5cccb6dcdaef09e",
+          "shows": ""
+        },
+        {
+          "image": "p495.jpg",
+          "crop": "p495-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "65a1c1399baa754c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t27 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.2: p495-strip1600.jpg system 4: the split opens a line on 'I've', a capital either way (the pronoun I). The header's metre on p495-strip0.jpg numbers only the stanza (10.10.10.10) and leaves the refrain unnumbered ('R', cut at the strip's edge), and these words are in no stanza row, so nothing fixes the refrain's line there. split:refrain.1.4: p495-strip1600.jpg system 5: the split opens a line on 'Lord', a capital either way (a name of God), right after 'O'; the header's metre numbers only the stanza and leaves the refrain unnumbered. The same words close stanza 1 (p495-strip800.jpg system 3) as one metred 10-syllable line, but to other notes, so no metre on the page reaches the refrain (carried over, it would tell against the split).",
+      "unreachable": ["split:refrain.1.2", "split:refrain.1.4"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p495.jpg",
+          "crop": "p495-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "60b3ab652f9314b6",
+          "shows": ""
+        },
+        {
+          "image": "p495.jpg",
+          "crop": "p495-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "c5cccb6dcdaef09e",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t27 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.1: can: p495-strip0.jpg system 1, stanza 3's row: the change opens line 2 on 'groan', printed lowercase, and leaves the capitalised 'Never' after it mid-line. The header's metre (10.10.10.10.R, cut at the strip's edge) gives lines 1 and 2 ten syllables each; the change makes them 9 and 11. moveup:3.1: can: p495-strip0.jpg system 1, stanza 3's row: the change ends line 1 on the capitalised 'Never' and opens line 2 on 'a', printed lowercase. The header's metre (10.10.10.10.R, cut at the strip's edge) gives lines 1 and 2 ten syllables each; the change makes them 12 and 8.",
+      "gaps": ["movedown:3.1", "moveup:3.1"]
     }
   ]
 }

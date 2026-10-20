@@ -1,0 +1,32 @@
+{
+  "number": 692,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p671.jpg",
+          "crop": "p671-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1d634e3128c95961",
+          "shows": ""
+        },
+        {
+          "image": "p671.jpg",
+          "crop": "p671-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "03a8834f1801f8f3",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t38 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.5: p671-strip800.jpg, 692's system 3 row: line 6's one word follows a full stop, so its capital is printed in either layout; a double bar sets its music apart, but the row prints no line break and the header (tune name only) no metre. movedown:1.5: p671-strip800.jpg, 692's system 3 row: the moved word is a pronoun of God, which this page capitalises mid-line (692's system 1 row on p671-strip0.jpg), and line 6's word keeps its capital after the full stop; no metre fixes the lines.",
+      "unreachable": ["join:1.5", "movedown:1.5"]
+    }
+  ]
+}

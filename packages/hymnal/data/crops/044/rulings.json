@@ -190,6 +190,26 @@
       "settles": [
         "44 shape (shape2-05): stanza 2 row 3 prints word 5 with a capital inside a line of stanza 2, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "044.png",
+          "crop": "044-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0769702d4c4435e6",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t01 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.2: can: 044-strip0.jpg system 2, stanza 2's row: \"grass.\" is printed lowercase and closes its sentence with a full stop, and the move opens line 3 on it; the next word, \"Praise\", is the capital that opens the line.",
+      "gaps": ["movedown:2.2"]
     }
   ]
 }

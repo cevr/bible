@@ -1,0 +1,32 @@
+{
+  "number": 563,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "563.png",
+          "crop": "563-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "fbbe3f0125af5ca9",
+          "shows": ""
+        },
+        {
+          "image": "563.png",
+          "crop": "563-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "6789c7d3aec6e214",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t30 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.2: 563-strip0.jpg: system 2's one row ends on a full stop, and system 3's row opens on a word printed with a capital after that full stop, so the capital needs no line opening. The hymn has one stanza (no other row under its notes), and the header prints no metre.",
+      "unreachable": ["join:1.2"]
+    }
+  ]
+}

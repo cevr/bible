@@ -1,0 +1,39 @@
+{
+  "number": 366,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p356.jpg",
+          "crop": "p356-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6b26a5728f60ff59",
+          "shows": ""
+        },
+        {
+          "image": "p356.jpg",
+          "crop": "p356-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "363e8a1ff5083135",
+          "shows": ""
+        },
+        {
+          "image": "p356.jpg",
+          "crop": "p356-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "7307614dd38e55e4",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t19 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p356-strip800.jpg, system 3 after the double bar, the refrain printed in stanza 2's row: word 5 is the interjection O, printed with a capital wherever it stands, and it follows a question mark. The header (p356-strip0.jpg) prints 10.10.10.10. for the stanza and only Ref. for the refrain, so no metre fixes the refrain's lines. join:refrain.1.2: p356-strip1600.jpg, the refrain's system 1 ends on a question mark and then the interjection O, printed with a capital wherever it stands, which opens line 3. The header (p356-strip0.jpg) prints only Ref. for the refrain, so no metre fixes its lines.",
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.2"]
+    }
+  ]
+}

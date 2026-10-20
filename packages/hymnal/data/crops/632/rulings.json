@@ -350,6 +350,33 @@
       ],
       "judge": "judge-626 (Opus, effort max)",
       "why": "632-p2-1375.jpg refrain row prints 'be-hold the cit-y'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "6f8d1540e2dc80b0",
+          "shows": ""
+        },
+        {
+          "image": "632-p2.jpg",
+          "crop": "632-p2-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "8e30369a0729504a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t34 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.4: 632-p2-strip1600.jpg system 4, the refrain's last row: the word the split opens on (word 4) is a name of God, printed with a capital anyway. The header metre gives only 'Ref.' for the refrain, so no metre fixes its lines.",
+      "unreachable": ["split:refrain.1.4"]
     }
   ]
 }

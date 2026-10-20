@@ -38,6 +38,26 @@
       ],
       "judge": "judge-100 (Opus, effort max)",
       "why": "p118-1381.jpg row 1 ends 'by night, Be-', p118-1756.jpg holds no lyric row, and p118-1968.jpg row 1 begins 'hold through-out', together 'Behold'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p118.jpg",
+          "crop": "p118-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "e871fed272bb5fc6",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t05 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.4: p118-strip800.jpg system 2, the refrain row: the word the split opens on (word 3 of line 4) is a name of Christ, printed with a capital anyway. The header's 7.6.7.6. fits the stanzas only (the refrain's line 2 runs 8 syllables), so no metre fixes the refrain's lines.",
+      "unreachable": ["split:refrain.1.4"]
     }
   ]
 }

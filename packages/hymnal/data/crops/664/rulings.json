@@ -1,0 +1,32 @@
+{
+  "number": 664,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p650.jpg",
+          "crop": "p650-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "61cdd67b43a18e84",
+          "shows": ""
+        },
+        {
+          "image": "p650.jpg",
+          "crop": "p650-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "1da1b82498f23679",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t35 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:1.1: p650-strip0.jpg system 1 rows (treble and bass) print the Amens one after another, each after a comma and each with a capital, the fourth among them; p650-strip800.jpg system 2 ends them. The header prints no metre, so nothing tells a line break before the fourth Amen.",
+      "unreachable": ["split:1.1"]
+    }
+  ]
+}

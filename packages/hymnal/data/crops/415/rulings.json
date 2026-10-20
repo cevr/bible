@@ -72,6 +72,40 @@
         "415 shape (shape2-46): stanza 3 row 4 holds its middle \"is coming\" at no place its count gives",
         "415 shape (shape2-46): stanza 3 row 4 ends \"the clouds\" at two places its count gives"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "415.png",
+          "crop": "415-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "29b00c74277afd7d",
+          "shows": ""
+        },
+        {
+          "image": "415.png",
+          "crop": "415-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "1c25a6494381f312",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t22 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.6: can: 415-strip800.jpg system 4, stanza 1's row: its first word, the moved word, is printed lowercase, right after system 3's row ends line 6 mid-phrase; a lowercase word cannot open the changed line 7. moveup:1.6: can: 415-strip800.jpg system 4, stanza 1's row: the word after the moved capitalised name is printed lowercase, so the changed line 7 would open on a lowercase word. movedown:2.6: can: 415-strip800.jpg system 4, stanza 2's row: its first word, the moved word, is printed lowercase, right after system 3's row ends line 6 mid-phrase; a lowercase word cannot open the changed line 7. moveup:2.6: can: 415-strip800.jpg system 4, stanza 2's row: the word after the moved capitalised name is printed lowercase, so the changed line 7 would open on a lowercase word. movedown:3.6: can: 415-strip800.jpg system 4, stanza 3's row: its first word, the moved word, is printed lowercase, right after system 3's row ends line 6 mid-phrase; a lowercase word cannot open the changed line 7. moveup:3.6: can: 415-strip800.jpg system 4, stanza 3's row: the word after the moved capitalised name is printed lowercase, so the changed line 7 would open on a lowercase word.",
+      "gaps": [
+        "movedown:1.6",
+        "moveup:1.6",
+        "movedown:2.6",
+        "moveup:2.6",
+        "movedown:3.6",
+        "moveup:3.6"
+      ]
     }
   ]
 }

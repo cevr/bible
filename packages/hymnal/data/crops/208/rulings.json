@@ -174,6 +174,49 @@
       "settles": [
         "208 shape (shape2-23): the refrain after stanza 3: row 2 ends \"therell be\" at word 44, its count gives word 38"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "03d9a88c64d402ab",
+          "shows": ""
+        },
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d42d0a770dbb5fef",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t11 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: dropline:refrain.1.1: can: p203-strip800.jpg system 3 after the Refrain mark, on into p203-strip1600.jpg system 4 row 1: the page prints this six-word line twice in a row before 'There'll be', so a refrain with one of them dropped sings six words fewer than the page prints. dropline:refrain.1.2: can: p203-strip800.jpg system 3 after the Refrain mark, on into p203-strip1600.jpg system 4 row 1: the page prints the six-word line twice before 'There'll be'; dropping the second leaves one where the page sings two. movedown:1.3: can: p203-strip800.jpg system 3, the one row every stanza shares: the moved 'comes' is printed lowercase at the row's start, and the header's 10.10.10.7 holds line 3 at ten syllables and line 4 at seven, which the move breaks. moveup:1.3: can: p203-strip800.jpg system 3, the shared row: line 4 would open on 'gath-er', printed lowercase, and line 3 would run past the header's ten syllables. movedown:2.3: can: p203-strip800.jpg system 3, the one row every stanza shares: the moved 'comes' is printed lowercase, and the header's 10.10.10.7 holds line 3 at ten syllables and line 4 at seven. moveup:2.3: can: p203-strip800.jpg system 3, the shared row: line 4 would open on 'gath-er', printed lowercase, and the header's metre holds line 4 at seven syllables. moveup:3.3: can: p203-strip800.jpg system 3, the shared row: line 4 would open on 'gath-er', printed lowercase, and the header's metre holds line 4 at seven syllables. split:refrain.1.1: can: p203-strip800.jpg system 3, after the Refrain mark: 'loved' is printed lowercase, so it cannot open a line. join:refrain.1.1: can: p203-strip1600.jpg system 4 row 1: the second line's 'To' is printed with a capital after 'home,' (a comma), an ordinary word whose capital only a line opening explains. movedown:refrain.1.1: can: p203-strip1600.jpg system 4 row 1: the moved 'home,' is printed lowercase, so it cannot open a line. moveup:refrain.1.1: can: p203-strip1600.jpg system 4 row 1: line 2 would open on 'gath-er', printed lowercase. split:refrain.1.2: can: p203-strip1600.jpg system 4 row 1: 'loved' in the refrain's second line is printed lowercase, so it cannot open a line. join:refrain.1.2: can: p203-strip1600.jpg system 4 row 1: 'There'll' is printed with a capital after 'home;' (a semicolon, not a full stop), so its capital marks the line opening the join removes. movedown:refrain.1.2: can: p203-strip1600.jpg system 4 row 1: the moved 'home;' is printed lowercase, so it cannot open a line. moveup:refrain.1.2: can: p203-strip1600.jpg system 4 row 1, at its end: line 3 would open on 'be', printed lowercase.",
+      "gaps": [
+        "dropline:refrain.1.1",
+        "dropline:refrain.1.2",
+        "movedown:1.3",
+        "moveup:1.3",
+        "movedown:2.3",
+        "moveup:2.3",
+        "moveup:3.3",
+        "split:refrain.1.1",
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "moveup:refrain.1.1",
+        "split:refrain.1.2",
+        "join:refrain.1.2",
+        "movedown:refrain.1.2",
+        "moveup:refrain.1.2"
+      ]
     }
   ]
 }

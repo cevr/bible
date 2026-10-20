@@ -1,0 +1,25 @@
+{
+  "number": 142,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "142.png",
+          "crop": "142-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "4dd9a80a074e802f",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t06 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:4.2: 142-strip0.jpg system 1 (bars 1-5), stanza 4's row: 'Ma-ry,' and 'Jo-seph,' are both names, printed with a capital wherever they stand, so a line can open on either; the header prints no metre.",
+      "unreachable": ["moveup:4.2"]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "number": 444,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p431.jpg",
+          "crop": "p431-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "a6e35d650bb2df59",
+          "shows": ""
+        },
+        {
+          "image": "p431.jpg",
+          "crop": "p431-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "72491edae96b9755",
+          "shows": ""
+        },
+        {
+          "image": "p431.jpg",
+          "crop": "p431-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "82019f607bbe87ce",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t24 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p431-strip800.jpg system 3 and p431-strip1600.jpg system 4, the refrain's row: the second line opens on the first-person pronoun, which the page capitalises anywhere (the same row prints it mid-line twice more), after a semicolon. The header's 9.11.10.10.Ref. (p431-strip0.jpg) gives the refrain no syllable count, so nothing fixes where its lines break.",
+      "unreachable": ["join:refrain.1.1"]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "number": 518,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p507.jpg",
+          "crop": "p507-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "ef4614d6c5a84c9c",
+          "shows": ""
+        },
+        {
+          "image": "p508.jpg",
+          "crop": "p508-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "94b0f774d5bab211",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t28 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: p508-strip0.jpg system 6, the refrain's melody row: line 4 opens on the contraction of the pronoun I, printed with a capital wherever it stands, right after line 3's last word. The header on p507-strip0.jpg (11.11.11.9. Ref.) gives the refrain no syllable counts, so nothing on the page fixes the break.",
+      "unreachable": ["join:refrain.1.3"]
+    }
+  ]
+}

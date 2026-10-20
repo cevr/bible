@@ -230,6 +230,40 @@
       ],
       "judge": "judge-657 (Opus, effort max)",
       "why": "657-1984.jpg row 4 prints 'in Christ the ba-sis of their love.' with nothing between 'the' and 'basis'; the OCR's 'es' is row 3's 'chang-es'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "657.jpg",
+          "crop": "657-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "e43c84331354f7e4",
+          "shows": ""
+        },
+        {
+          "image": "657.jpg",
+          "crop": "657-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "7f00202c7989cfa0",
+          "shows": ""
+        },
+        {
+          "image": "657.jpg",
+          "crop": "657-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "175f0b5068c96f12",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t34 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:4.2: can: 657-strip1600.jpg system 3, stanza 4's row: the moved word and the word after it both take capitals anyway (a pronoun and a name of God), but the header metre 10.10.10.10 (657-strip0.jpg) fits lines 2 and 3 as the database holds them (10 and 10 syllables, 657-strip800.jpg system 2 and 657-strip1600.jpg system 3); the change makes them 11 and 9.",
+      "gaps": ["moveup:4.2"]
     }
   ]
 }

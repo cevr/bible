@@ -1,0 +1,39 @@
+{
+  "number": 310,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p302.jpg",
+          "crop": "p302-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "05d8947514942515",
+          "shows": ""
+        },
+        {
+          "image": "p302.jpg",
+          "crop": "p302-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "3e16ccbe61c2969d",
+          "shows": ""
+        },
+        {
+          "image": "p302.jpg",
+          "crop": "p302-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "30e8702f24ab6678",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t16 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p302-strip800.jpg and p302-strip1600.jpg, the refrain's first system (the hymn's third), its one row: the second line opens on the first-person pronoun, printed with a capital anyway. The header (p302-strip0.jpg) prints 8.7.8.7. for the stanzas and only 'Ref.' for the refrain, so no metre fixes the refrain's lines. movedown:refrain.1.1: p302-strip800.jpg and p302-strip1600.jpg, the refrain's first system, its one row: the moved word is a name printed with a capital, and the first-person pronoun after it is printed with a capital anyway. The header (p302-strip0.jpg) gives the refrain no syllable counts, so no metre fixes its lines. join:refrain.1.3: p302-strip1600.jpg, the refrain's second system (the hymn's fourth), its one row: the second line opens on the first-person pronoun, printed with a capital anyway. The header (p302-strip0.jpg) gives the refrain no syllable counts, only 'Ref.', so no metre fixes its lines.",
+      "unreachable": ["join:refrain.1.1", "movedown:refrain.1.1", "join:refrain.1.3"]
+    }
+  ]
+}

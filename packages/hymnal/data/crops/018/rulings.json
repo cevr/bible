@@ -120,6 +120,45 @@
       "settles": [
         "18 shape (shape2-02): stanza 3 row 4 prints word 4 with a capital inside a line of stanza 3, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "018.png",
+          "crop": "018-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "2dee01b72f9cb41b",
+          "shows": ""
+        },
+        {
+          "image": "018.png",
+          "crop": "018-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "a2e4e66a538934ad",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t01 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:1.3: 018-strip0.jpg system 2, stanza 1's row: \"Of\" follows \"cy!\" and the next word is a name, both capitals anyway, and the header prints no metre. The music's only sign there is a fermata over \"cy!\", a hold rather than a line mark (it alone would put \"Of\" with the next phrase). moveup:2.3: 018-strip0.jpg system 2, stanza 2's row: \"Your\" follows a full stop and the next word is a name of God, both capitals anyway, and the header prints no metre. The music's only sign there is the fermata over \"sure.\", a hold rather than a line mark. split:2.4: 018-strip0.jpg system 2, stanza 2's row: \"Spirit\" is printed with a capital (a name of God) mid-phrase, and the header prints no metre, so nothing marks whether a line opens on it. moveup:2.6: 018-strip800.jpg system 3, stanza 2's row: \"Let\" follows \"!\" and the next word is a divine pronoun, both capitals anyway, and the header prints no metre. split:2.7: 018-strip800.jpg system 3, stanza 2's row: \"Warm\" is printed with a capital after a word with no stop, which marks a line opening, so the page fits the split rather than showing it wrong; it is the database's unsplit line 7 that runs past that capital. No metre is printed. split:2.8: 018-strip800.jpg system 4, stanza 2's row: \"For\" follows \"!\" and is a capital anyway, and the header prints no metre, so nothing tells whether a line opens on it. split:2.9: 018-strip800.jpg system 4, stanza 2's row: \"You\" is printed with a capital as a divine pronoun throughout the hymn, and no metre is printed, so nothing marks a line there. movedown:3.1: 018-strip0.jpg system 1, stanza 3's row: \"Son\" (a name of God) and the next word, a divine pronoun, are both capitals anyway, and no metre is printed. moveup:3.3: 018-strip0.jpg system 2, stanza 3's row: \"Your\" follows \"tion!\" and the next word is a name of God, both capitals anyway, and the header prints no metre. The music's only sign there is the fermata over \"tion!\", a hold rather than a line mark. moveup:3.6: 018-strip800.jpg system 3, stanza 3's row: \"Alleluia\" follows a full stop and the next word is a name of God, both capitals anyway, and the header prints no metre. moveup:4.3: 018-strip0.jpg system 2, stanza 4's row: \"For\" follows \"ing!\" and the next word is a name, both capitals anyway, and the header prints no metre. The music's only sign there is the fermata over \"ing!\", a hold rather than a line mark.",
+      "unreachable": [
+        "moveup:1.3",
+        "moveup:2.3",
+        "split:2.4",
+        "moveup:2.6",
+        "split:2.7",
+        "split:2.8",
+        "split:2.9",
+        "movedown:3.1",
+        "moveup:3.3",
+        "moveup:3.6",
+        "moveup:4.3"
+      ]
     }
   ]
 }

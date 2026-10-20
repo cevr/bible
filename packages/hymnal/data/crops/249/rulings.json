@@ -1,0 +1,39 @@
+{
+  "number": 249,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p243.jpg",
+          "crop": "p243-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "0c8554d40c57ad4c",
+          "shows": ""
+        },
+        {
+          "image": "p243.jpg",
+          "crop": "p243-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "af0aeb86dd636714",
+          "shows": ""
+        },
+        {
+          "image": "p243.jpg",
+          "crop": "p243-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "2bd3bb3ad7dd0a22",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t13 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.1: can: p243-strip0.jpg header prints the metre 12.10.12.10.11.10.Ref. System 1, stanza 1's row ends line 1 on 'Re-deem-er!' (12 syllables) before the capital 'Sing, O'; moving that word up makes lines 1 and 2 13 and 9 syllables (line 2 runs on in p243-strip800.jpg system 2), which the metre rules out though both openers are capitals. moveup:2.4: can: Header metre 12.10.12.10.11.10.Ref. (p243-strip0.jpg) fixes lines 4 and 5 at 10 and 11 syllables. Stanza 2's row: line 4 ends on 'fied.' at the end of system 3 (p243-strip800.jpg/p243-strip1600.jpg) and system 4 opens on 'Sound His'; the move gives 11 and 10, so the metre breaks though 'His' is a capital too. movedown:3.4: can: Header metre 12.10.12.10.11.10.Ref. (p243-strip0.jpg) fixes lines 4 and 5 at 10 and 11 syllables. Stanza 3's row: system 3 ends line 4 on the capitalised 'King!' and system 4 (p243-strip1600.jpg) opens on 'Christ'; the move gives 9 and 12, which the metre rules out.",
+      "gaps": ["moveup:1.1", "moveup:2.4", "movedown:3.4"]
+    }
+  ]
+}

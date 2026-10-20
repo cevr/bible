@@ -1,0 +1,38 @@
+{
+  "number": 75,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "075.png",
+          "crop": "075-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "4b1e7ba463450500",
+          "shows": ""
+        },
+        {
+          "image": "075.png",
+          "crop": "075-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "bbbc42db085e1faf",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t02 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: System 3, the refrain's row (measures 16 to 20): 'The' follows the exclamation mark of 'all!', so it carries a capital in either layout. The header prints no metre that fixes the lines. join:refrain.1.2: System 4, the refrain's row opens 'all! Just': 'Just' follows the exclamation mark, so it carries a capital in either layout. The header prints no metre that fixes the lines. join:refrain.1.3: System 4, the refrain's row: 'O,' is the interjection and follows the full stop of 'me.', so it carries a capital in either layout. The header prints no metre that fixes the lines. join:refrain.1.4: System 4's end, the refrain's row: 'The' follows the exclamation mark of 'all!', so it carries a capital in either layout. The header prints no metre that fixes the lines. join:refrain.1.5: System 5, the refrain's row: 'Just' follows the exclamation mark of 'all!', so it carries a capital in either layout. The header prints no metre that fixes the lines.",
+      "unreachable": [
+        "join:refrain.1.1",
+        "join:refrain.1.2",
+        "join:refrain.1.3",
+        "join:refrain.1.4",
+        "join:refrain.1.5"
+      ]
+    }
+  ]
+}

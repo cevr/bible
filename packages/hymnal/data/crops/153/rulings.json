@@ -1,0 +1,25 @@
+{
+  "number": 153,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "153.png",
+          "crop": "153-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "89cdf2a907d2e755",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t07 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: swaplines:3.1: can: 153-strip0.jpg, the system from bar 1, stanza 3's row prints the line ending \"be done\" first, then the line ending \"be one\" (closing on the first word of the system from bar 4). The two lines differ in words (\"not mine\" against \"and mine\"), so the page's sung order shows the swap is wrong.",
+      "gaps": ["swaplines:3.1"]
+    }
+  ]
+}

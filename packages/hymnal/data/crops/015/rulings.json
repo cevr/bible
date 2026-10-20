@@ -1,0 +1,32 @@
+{
+  "number": 15,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p016.jpg",
+          "crop": "p016-strip0.jpg",
+          "box": [0, 0, 1692, 1000],
+          "sha": "103c2498b7b56d05",
+          "shows": ""
+        },
+        {
+          "image": "p016.jpg",
+          "crop": "p016-strip800.jpg",
+          "box": [0, 800, 1692, 1000],
+          "sha": "d521ae798a9f8159",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-r01 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.4: can: In p016-strip800.jpg system 3, stanza 2's row, the moved 'My' follows the full stop that ends system 2, and 'God' is a name of God, so capitals do not separate the layouts. But the header's S.M. (6.6.8.6.) fixes line 4 at 6 syllables, and the change gives it 7. Line 5, the repeat of line 3's 8, gets 7. movedown:4.4: can: In p016-strip800.jpg, systems 2 and 3, stanza 4's row, the moved 'Thine' has a capital (a name of God) and 'Let' follows a full stop, so capitals do not separate the layouts. But the header's S.M. (6.6.8.6.) fixes line 4 at 6 syllables, and the change gives it 5. Line 5, a repeat of line 3's 8, gets 9.",
+      "gaps": ["moveup:2.4", "movedown:4.4"]
+    }
+  ]
+}

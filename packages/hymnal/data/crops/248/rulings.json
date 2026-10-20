@@ -1,0 +1,47 @@
+{
+  "number": 248,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p242.jpg",
+          "crop": "p242-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "604e8fa85f2bf42f",
+          "shows": ""
+        },
+        {
+          "image": "p242.jpg",
+          "crop": "p242-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "4a24d88427f84692",
+          "shows": ""
+        },
+        {
+          "image": "p242.jpg",
+          "crop": "p242-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "688202a0339666ab",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t13 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p242-strip800.jpg/p242-strip1600.jpg system 3 (Refrain), first phrase: the new opening word 'I' is always printed with a capital; p242-strip0.jpg header C.M.Ref. gives the refrain no syllable counts. join:refrain.1.1: System 3 (Refrain) on p242-strip800.jpg/p242-strip1600.jpg: the second phrase opens on the vocative 'O,' which is printed with a capital wherever it stands, and the header C.M.Ref. (p242-strip0.jpg) counts no refrain lines. movedown:refrain.1.1: System 3 (Refrain) on p242-strip800.jpg/p242-strip1600.jpg: the moved word is the name 'Je-sus,' printed with a capital, followed by the capital 'O,'; the header C.M.Ref. (p242-strip0.jpg) fixes no refrain line lengths. split:refrain.1.2: System 3 (Refrain) on p242-strip800.jpg/p242-strip1600.jpg, second phrase: the new opening word 'I' is always printed with a capital, and the refrain has no metre (header C.M.Ref., p242-strip0.jpg). join:refrain.1.2: p242-strip1600.jpg: system 3's refrain row ends on 'Je-sus,' and system 4 opens on the vocative 'O,' printed with a capital wherever it stands; the three phrases are printed alike and the header C.M.Ref. (p242-strip0.jpg) counts no refrain lines. movedown:refrain.1.2: p242-strip1600.jpg system 3 ends the refrain row on the name 'Je-sus,' printed with a capital, and system 4 opens on the capital 'O,'; no refrain metre (header C.M.Ref., p242-strip0.jpg) fixes the line ends. split:refrain.1.3: p242-strip1600.jpg system 4, the refrain row's first phrase: the new opening word 'I' is always printed with a capital, and the header C.M.Ref. (p242-strip0.jpg) gives the refrain no syllable counts.",
+      "unreachable": [
+        "split:refrain.1.1",
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "split:refrain.1.2",
+        "join:refrain.1.2",
+        "movedown:refrain.1.2",
+        "split:refrain.1.3"
+      ]
+    }
+  ]
+}

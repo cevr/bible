@@ -1,0 +1,32 @@
+{
+  "number": 363,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "363.png",
+          "crop": "363-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8d481093f1f677fd",
+          "shows": ""
+        },
+        {
+          "image": "363.png",
+          "crop": "363-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "6833ecba74aa06a5",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t19 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:2.4: 363-strip800.jpg system 3 (bar 8), stanza 2's row: line 4 ends on a word with a full stop, so the moved word is printed with a capital anyway, and the word after it, the new opener, is a pronoun of God with a capital (the row capitalizes such pronouns mid-line). The header prints no metre.",
+      "unreachable": ["moveup:2.4"]
+    }
+  ]
+}

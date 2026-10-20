@@ -200,6 +200,68 @@
       "settles": [
         "596 shape (shape2-66): stanza 2 row 2 prints word 11 with a capital inside a line of stanza 2, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "ff90295c9a40f3bb",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.2: 596-strip800.jpg systems 3 and 4: line 2's last word ends system 3 with a full stop, so line 3's first word (opening system 4) carries a capital anyway; the header prints no metre, so nothing tells the joined line from two.",
+      "unreachable": ["join:refrain.1.2"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8464a05341f758f7",
+          "shows": ""
+        },
+        {
+          "image": "596.png",
+          "crop": "596-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "ff90295c9a40f3bb",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.1: can: 596-strip0.jpg system 1, stanza 1's row: the moved word (line 1's last) is printed lowercase with a comma after it, and line 2's first word follows with a capital; the change opens line 2 on a lowercase word. moveup:1.1: can: 596-strip0.jpg system 1, stanza 1's row: line 2's first word is printed with a capital after a comma, and its second word is printed lowercase; the change opens line 2 on that lowercase word. split:refrain.1.1: can: 596-strip800.jpg system 3 (the refrain's first), its row: refrain line 1's word 6 is printed lowercase after a comma; the change opens a line on it. join:refrain.1.1: can: 596-strip800.jpg system 3, the refrain's row: line 2's first word is printed with a capital right after a comma and is no name, while the row opens its half-lines lowercase, so the capital marks a line opening that the join removes. movedown:refrain.1.1: can: 596-strip800.jpg system 3, the refrain's row: the moved word (line 1's last) is printed lowercase with a comma after it; the change opens line 2 on it. moveup:refrain.1.1: can: 596-strip800.jpg system 3, the refrain's row: line 2's second word is printed lowercase; the change opens line 2 on it and leaves line 2's capitalised first word at line 1's end after a comma. split:refrain.1.2: can: 596-strip800.jpg system 3, the refrain's row: line 2's word 5 is printed lowercase after a comma; the change opens a line on it. movedown:refrain.1.2: can: 596-strip800.jpg system 3's end: the moved word (line 2's last) is printed lowercase before its full stop; the change opens line 3 on it. moveup:refrain.1.2: can: 596-strip800.jpg system 4, the refrain's row: line 3's second word is printed lowercase; the change opens line 3 on it. split:refrain.1.3: can: 596-strip800.jpg system 4, the refrain's row: line 3's word 6 is printed lowercase after a comma; the change opens a line on it. join:refrain.1.3: can: 596-strip800.jpg system 4, the refrain's row: line 4's first word is printed with a capital right after a semicolon (no full stop) and is no name, while the row opens its half-lines lowercase, so the capital marks a line opening that the join removes. movedown:refrain.1.3: can: 596-strip800.jpg system 4, the refrain's row: the moved word (line 3's last) is printed lowercase with a semicolon after it; the change opens line 4 on it. moveup:refrain.1.3: can: 596-strip800.jpg system 4, the refrain's row: line 4's second word is printed lowercase; the change opens line 4 on it and leaves line 4's capitalised first word at line 3's end after a semicolon. split:refrain.1.4: can: 596-strip800.jpg system 4, the refrain's row: line 4's word 3 is printed lowercase; the change opens a line on it.",
+      "gaps": [
+        "movedown:1.1",
+        "moveup:1.1",
+        "split:refrain.1.1",
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "moveup:refrain.1.1",
+        "split:refrain.1.2",
+        "movedown:refrain.1.2",
+        "moveup:refrain.1.2",
+        "split:refrain.1.3",
+        "join:refrain.1.3",
+        "movedown:refrain.1.3",
+        "moveup:refrain.1.3",
+        "split:refrain.1.4"
+      ]
     }
   ]
 }

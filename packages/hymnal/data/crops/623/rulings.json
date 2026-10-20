@@ -1,0 +1,45 @@
+{
+  "number": 623,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p608.jpg",
+          "crop": "p608-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "35100c8c4521c8ab",
+          "shows": ""
+        },
+        {
+          "image": "p608.jpg",
+          "crop": "p608-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "7341ad095b5d7fc8",
+          "shows": ""
+        },
+        {
+          "image": "p608.jpg",
+          "crop": "p608-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "eb86c8d0abd5c368",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t33 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p608-strip800.jpg and p608-strip1600.jpg, the refrain's first system: the word the split puts at a line's head is a pronoun of God, printed with a capital anyway. The header's 8.7.8.7. Ref. on p608-strip0.jpg gives metre for the stanzas only, none for the refrain, and no text stands below the music. join:refrain.1.1: p608-strip800.jpg and p608-strip1600.jpg, the refrain's first system: the second line opens, after a comma, on a pronoun of God printed with a capital anyway. The header's 8.7.8.7. Ref. on p608-strip0.jpg gives no metre for the refrain's lines, and no text stands below the music. movedown:refrain.1.1: p608-strip800.jpg and p608-strip1600.jpg, the refrain's first system: the moved word is a title of Christ printed with a capital anyway, and the pronoun of God the change leaves mid-line is a capital anyway. The header's 8.7.8.7. Ref. on p608-strip0.jpg gives no metre for the refrain's lines. split:refrain.1.2: p608-strip800.jpg and p608-strip1600.jpg, the refrain's first system: the split opens on a possessive pronoun of God, printed with a capital anyway. The header's 8.7.8.7. Ref. on p608-strip0.jpg gives no metre for the refrain's lines, and no text stands below the music. split:refrain.1.4: p608-strip1600.jpg, the refrain's second system: the split opens on a contraction of the pronoun I, printed with a capital anyway. The header's 8.7.8.7. Ref. on p608-strip0.jpg gives no metre for the refrain's lines, and no text stands below the music.",
+      "unreachable": [
+        "split:refrain.1.1",
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "split:refrain.1.2",
+        "split:refrain.1.4"
+      ]
+    }
+  ]
+}

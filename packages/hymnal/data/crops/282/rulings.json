@@ -1,0 +1,37 @@
+{
+  "number": 282,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "282-1.jpg",
+          "crop": "282-1-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "840feae57decda5a",
+          "shows": ""
+        },
+        {
+          "image": "282-1.jpg",
+          "crop": "282-1-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "4b5c84fded6dafa3",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t15 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: 282-1-strip1600.jpg system 3 (Refrain), its one row: the second line's first word \"Com-ing\" is printed with a capital, but it follows an exclamation mark that ends the sentence, so it is capitalized anyway; the header's \"S.M. Ref.\" (282-1-strip0.jpg) gives the refrain no metre. movedown:refrain.1.1: 282-1-strip1600.jpg system 3 (Refrain), its one row: the moved word \"Lord!\" is a name of God printed with a capital, and \"Com-ing\" after its exclamation mark is capitalized anyway; the header's \"S.M. Ref.\" gives the refrain no metre. join:refrain.1.2: 282-1-strip1600.jpg system 3 ends the row on an exclamation mark and system 4's row opens on \"Wash\" with a capital, which follows the sentence's end and is capitalized anyway; the header's \"S.M. Ref.\" gives the refrain no metre. movedown:refrain.1.2: 282-1-strip1600.jpg system 3's row, last word: the moved word \"Thee!\" is a pronoun of God printed with a capital, and \"Wash\" opening system 4's row follows its exclamation mark, so it is capitalized anyway; the header's \"S.M. Ref.\" gives the refrain no metre.",
+      "unreachable": [
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "join:refrain.1.2",
+        "movedown:refrain.1.2"
+      ]
+    }
+  ]
+}

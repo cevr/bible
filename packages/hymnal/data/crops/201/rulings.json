@@ -1,0 +1,39 @@
+{
+  "number": 201,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p196.jpg",
+          "crop": "p196-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "a194bfed5517adb9",
+          "shows": ""
+        },
+        {
+          "image": "p196.jpg",
+          "crop": "p196-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "9f69955bbcf0b1b7",
+          "shows": ""
+        },
+        {
+          "image": "p196.jpg",
+          "crop": "p196-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3030b55d3d741d0a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t10 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.6: can: p196-strip0.jpg header prints the metre 8.7.8.7.8.7.7., so lines 6 and 7 sing 7 syllables each (p196-strip800.jpg system 3 end and p196-strip1600.jpg system 4, stanza 1's row). The capital on \"Peace\" (a name of Christ) does not tell the lines apart, but the change makes them 6 and 8 syllables, which the metre breaks. moveup:1.6: can: p196-strip0.jpg header prints the metre 8.7.8.7.8.7.7., so lines 6 and 7 sing 7 syllables each (p196-strip800.jpg system 3 end and p196-strip1600.jpg system 4, stanza 1's row). \"Thou\" is printed with a capital anyway (a name of God), but the change makes the lines 8 and 6 syllables, which the metre breaks.",
+      "gaps": ["movedown:1.6", "moveup:1.6"]
+    }
+  ]
+}

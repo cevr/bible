@@ -1,0 +1,86 @@
+{
+  "number": 228,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "228.png",
+          "crop": "228-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "b6f12d2d756c6a1d",
+          "shows": ""
+        },
+        {
+          "image": "228.png",
+          "crop": "228-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "8b166182868abec4",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t12 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:1.3: 228-strip0.jpg system 2, stanza 1's row, measures 5-6: the moved Alleluia follows an exclamation mark, so its capital is a sentence's, and line 4's first word is a name of Christ, capital anyway; the header prints no metre. join:1.5: 228-strip800.jpg system 3, top row, measure 10: line 6's first Alleluia follows a full stop, so its capital is a sentence's whether or not a line opens there; the header prints no metre. moveup:1.5: 228-strip800.jpg systems 3-4, top row, measures 10-12: the moved Alleluia follows a full stop and the next one follows an exclamation mark, so both capitals are a sentence's; no metre is printed. split:1.6: 228-strip800.jpg systems 3-4, top row, measures 11-12: line 6's second Alleluia follows an exclamation mark, so its capital is a sentence's whether or not a line opens there; no metre is printed. join:1.6: 228-strip800.jpg system 4, measure 12: line 7's first Alleluia follows an exclamation mark, so its capital is a sentence's; the lowercase alleluias are inside line 7 either way; no metre is printed. movedown:1.6: 228-strip800.jpg systems 3-4, measures 11-12: the moved Alleluia and line 7's first one each follow an exclamation mark, so both capitals are a sentence's; no metre is printed. moveup:2.2: 228-strip0.jpg system 2, stanza 2's row, measures 4-5: the moved Alleluia follows a full stop and the next one an exclamation mark, so both capitals are a sentence's; no metre is printed. movedown:2.3: 228-strip0.jpg system 2, stanza 2's row, measures 5-6: the moved Alleluia and line 4's first word each follow an exclamation mark, so both capitals are a sentence's; no metre is printed. join:2.5: 228-strip800.jpg system 3: stanza 2's row ends line 5 on a full stop at measure 10, and the closing Alleluias are printed once, on the top row, for every stanza; line 6's first follows that full stop, so its capital is a sentence's; no metre is printed. moveup:2.5: 228-strip800.jpg systems 3-4: the moved Alleluia follows stanza 2's full stop (measure 10) and the next one, on the top row printed for every stanza, follows an exclamation mark, so both capitals are a sentence's; no metre is printed. split:2.6: 228-strip800.jpg systems 3-4, top row printed for every stanza, measures 11-12: line 6's second Alleluia follows an exclamation mark, so its capital is a sentence's whether or not a line opens there; no metre is printed. join:2.6: 228-strip800.jpg system 4, top row printed for every stanza, measure 12: line 7's first Alleluia follows an exclamation mark, so its capital is a sentence's; no metre is printed. movedown:2.6: 228-strip800.jpg systems 3-4, top row printed for every stanza, measures 11-12: the moved Alleluia and line 7's first one each follow an exclamation mark, so both capitals are a sentence's; no metre is printed. moveup:3.2: 228-strip0.jpg system 2, stanza 3's row, measures 4-5: the moved Alleluia follows a full stop and the next one an exclamation mark, so both capitals are a sentence's; no metre is printed. movedown:3.3: 228-strip0.jpg system 2, stanza 3's row, measures 5-6: the moved Alleluia and line 4's first word each follow an exclamation mark, so both capitals are a sentence's; no metre is printed. join:3.5: 228-strip800.jpg system 3: stanza 3's row ends line 5 on a full stop at measure 10, and the closing Alleluias are printed once, on the top row, for every stanza; line 6's first follows that full stop, so its capital is a sentence's; no metre is printed. moveup:3.5: 228-strip800.jpg systems 3-4: the moved Alleluia follows stanza 3's full stop (measure 10) and the next one, on the top row printed for every stanza, follows an exclamation mark, so both capitals are a sentence's; no metre is printed. split:3.6: 228-strip800.jpg systems 3-4, top row printed for every stanza, measures 11-12: line 6's second Alleluia follows an exclamation mark, so its capital is a sentence's whether or not a line opens there; no metre is printed. join:3.6: 228-strip800.jpg system 4, top row printed for every stanza, measure 12: line 7's first Alleluia follows an exclamation mark, so its capital is a sentence's; no metre is printed. movedown:3.6: 228-strip800.jpg systems 3-4, top row printed for every stanza, measures 11-12: the moved Alleluia and line 7's first one each follow an exclamation mark, so both capitals are a sentence's; no metre is printed. movedown:4.3: 228-strip0.jpg system 2, stanza 4's row, measures 5-6: the moved Alleluia follows an exclamation mark, and line 4's first word is a pronoun of God that also follows one, so both capitals are explained without a line's start; no metre is printed. join:4.5: 228-strip800.jpg system 3: stanza 4's row ends line 5 on a full stop at measure 10, and the closing Alleluias are printed once, on the top row, for every stanza; line 6's first follows that full stop, so its capital is a sentence's; no metre is printed. moveup:4.5: 228-strip800.jpg systems 3-4: the moved Alleluia follows stanza 4's full stop (measure 10) and the next one, on the top row printed for every stanza, follows an exclamation mark, so both capitals are a sentence's; no metre is printed. split:4.6: 228-strip800.jpg systems 3-4, top row printed for every stanza, measures 11-12: line 6's second Alleluia follows an exclamation mark, so its capital is a sentence's whether or not a line opens there; no metre is printed. join:4.6: 228-strip800.jpg system 4, top row printed for every stanza, measure 12: line 7's first Alleluia follows an exclamation mark, so its capital is a sentence's; no metre is printed. movedown:4.6: 228-strip800.jpg systems 3-4, top row printed for every stanza, measures 11-12: the moved Alleluia and line 7's first one each follow an exclamation mark, so both capitals are a sentence's; no metre is printed.",
+      "unreachable": [
+        "movedown:1.3",
+        "join:1.5",
+        "moveup:1.5",
+        "split:1.6",
+        "join:1.6",
+        "movedown:1.6",
+        "moveup:2.2",
+        "movedown:2.3",
+        "join:2.5",
+        "moveup:2.5",
+        "split:2.6",
+        "join:2.6",
+        "movedown:2.6",
+        "moveup:3.2",
+        "movedown:3.3",
+        "join:3.5",
+        "moveup:3.5",
+        "split:3.6",
+        "join:3.6",
+        "movedown:3.6",
+        "movedown:4.3",
+        "join:4.5",
+        "moveup:4.5",
+        "split:4.6",
+        "join:4.6",
+        "movedown:4.6"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "228.png",
+          "crop": "228-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "b6f12d2d756c6a1d",
+          "shows": ""
+        },
+        {
+          "image": "228.png",
+          "crop": "228-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "8b166182868abec4",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t12 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: 228-strip0.jpg system 2, stanza 1's row, measure 4: the moved Alleluia is printed with a capital straight after line 2's last word with no punctuation, and this page prints alleluia lowercase mid-line (228-strip800.jpg system 4), so only a line's start explains that capital; the change ends line 2 on it. moveup:4.2: can: 228-strip0.jpg system 2, stanza 4's row, measure 4: the moved Alleluia is printed with a capital after a colon, not a full stop, and this page prints alleluia lowercase mid-line (228-strip800.jpg system 4), so only a line's start explains that capital; the change ends line 2 on it.",
+      "gaps": ["moveup:1.2", "moveup:4.2"]
+    }
+  ]
+}

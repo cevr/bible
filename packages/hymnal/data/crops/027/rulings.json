@@ -1,0 +1,39 @@
+{
+  "number": 27,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p027.jpg",
+          "crop": "p027-strip0.jpg",
+          "box": [0, 0, 1752, 1000],
+          "sha": "0a9845e43432fe7f",
+          "shows": ""
+        },
+        {
+          "image": "p027.jpg",
+          "crop": "p027-strip800.jpg",
+          "box": [0, 800, 1752, 1000],
+          "sha": "1012884cbe6ea2e3",
+          "shows": ""
+        },
+        {
+          "image": "p027.jpg",
+          "crop": "p027-strip1600.jpg",
+          "box": [0, 1600, 1752, 1000],
+          "sha": "d9ed54713fbc64f9",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-r02 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p027-strip1600.jpg system 3, the Refrain's top row: the first two words are the same word, each printed with a capital and an exclamation mark, so the second has a capital anyway after a sentence end. The header's S.M.Ref. gives the refrain no syllable count. join:refrain.1.1: p027-strip1600.jpg system 3, the Refrain's top row: line 2's opener follows an exclamation mark, so its capital is there anyway and marks no line. The header's S.M.Ref. gives the refrain no syllable count. movedown:refrain.1.1: p027-strip1600.jpg system 3, the Refrain's top row: the moved word and line 2's opener are the same word, each with a capital after an exclamation mark, so either can open the line. The header's S.M.Ref. gives the refrain no syllable count.",
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "movedown:refrain.1.1"]
+    }
+  ]
+}

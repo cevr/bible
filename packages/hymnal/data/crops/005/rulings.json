@@ -1,0 +1,32 @@
+{
+  "number": 5,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "005.png",
+          "crop": "005-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "3e811dd4ce999d09",
+          "shows": ""
+        },
+        {
+          "image": "005.png",
+          "crop": "005-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9dda5071ba41ae22",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-r01 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:2.4: In 005-strip800.jpg system 3 (bars 9-12), stanza 2's row, 'But' follows a full stop and has a capital anyway. The word that opens line 5 after the change is 'God's', also a capital (a name of God). The page prints no metre. movedown:4.4: Stanza 4's row runs from system 2 of 005-strip0.jpg into system 3 of 005-strip800.jpg. There the moved 'Son' has a capital (a name of God), and 'Christ' after it has a capital both as a name and after a full stop. The page prints no metre.",
+      "unreachable": ["moveup:2.4", "movedown:4.4"]
+    }
+  ]
+}

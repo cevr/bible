@@ -24,6 +24,53 @@
       ],
       "judge": "judge-663 (Opus, effort max)",
       "why": "The crop's row prints 'Save in Thy king - dom Thine be the praise.' and then 'A - men.' under the last two bars."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "690.png",
+          "crop": "690-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc4e29861386b06b",
+          "shows": ""
+        },
+        {
+          "image": "690.png",
+          "crop": "690-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "cfa21a405f1eb087",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t37 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:1.4: 690-strip800.jpg system 3, the one lyric row: line 4's word 5 is a divine pronoun printed with a capital, as the page prints another form of that pronoun mid-line in lines 2 and 4 (690-strip0.jpg system 1, 690-strip800.jpg system 3). No punctuation, rest, bar mark or metre fixes a break there.",
+      "unreachable": ["split:1.4"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "690.png",
+          "crop": "690-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "cfa21a405f1eb087",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t37 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.4: can: 690-strip800.jpg system 3: line 4 ends with a full stop, then a quarter rest and a double bar, and line 5's one word (the closing response) is sung alone in the measure after the double bar. The join puts it inside line 4 across that double bar.",
+      "gaps": ["join:1.4"]
     }
   ]
 }

@@ -62,6 +62,33 @@
       ],
       "judge": "judge-033 (Opus, effort max)",
       "why": "087-483.jpg row 2 ends 'through His Son;' and 087-849.jpg row 2 begins 'He who calls the earth'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "087.png",
+          "crop": "087-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "e22c5b4fbda8ea8c",
+          "shows": ""
+        },
+        {
+          "image": "087.png",
+          "crop": "087-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "bf8cbc7ad9c30b44",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t03 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:2.4: 087-strip0.jpg system 2 into system 3, stanza 2's row: the moved word \"Son\" is printed with a capital (a name of Christ), and the \"He\" it pushes mid-line is capitalized anyway (the page prints \"His\" mid-row). No metre is printed; the system break before \"He\" is no line mark, as system 1's rows break mid-line.",
+      "unreachable": ["movedown:2.4"]
     }
   ]
 }

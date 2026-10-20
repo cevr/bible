@@ -24,6 +24,33 @@
       ],
       "judge": "judge-261 (Opus, effort max)",
       "why": "Row 1 (stanza 1) of the crop prints 'The things of earth have filled our thought' plainly."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p284.jpg",
+          "crop": "p284-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "ff2621e96c749c3c",
+          "shows": ""
+        },
+        {
+          "image": "p284.jpg",
+          "crop": "p284-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "fafc278baa1e53e6",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t15 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:3.2: can: p284-strip0.jpg header prints the metre 8.8.8.8.8.8.; stanza 3's rows on p284-strip0.jpg system 1 and p284-strip800.jpg system 2 sing line 2 as eight syllables ending on the moved word and line 3 as eight, so the change makes them seven and nine and breaks the metre. Capitals alone would not tell it: the moved word and the word after it are both pronouns of God.",
+      "gaps": ["movedown:3.2"]
     }
   ]
 }

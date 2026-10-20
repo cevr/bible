@@ -48,6 +48,33 @@
       ],
       "judge": "judge-225 (Opus, effort max)",
       "why": "Row 2 (stanza 2) of the third system prints 'Give ear to me, ye con - ti - nents, Ye', with a t, not an f."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "225.jpg",
+          "crop": "225-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "109eabe2cf032480",
+          "shows": ""
+        },
+        {
+          "image": "225-p2.jpg",
+          "crop": "225-p2-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "73282453f641f27a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t12 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.3: can: 225-strip800.jpg system 2, stanza 3's row: the moved word is printed with a capital straight after \"truth\" with no punctuation, which only a line's start explains, and the next word, which would open line 4, is printed lowercase; the header prints the metre Irregular.",
+      "gaps": ["moveup:3.3"]
     }
   ]
 }

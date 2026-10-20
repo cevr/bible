@@ -1,0 +1,39 @@
+{
+  "number": 309,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p301.jpg",
+          "crop": "p301-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "8b8bca5213c25c89",
+          "shows": ""
+        },
+        {
+          "image": "p301.jpg",
+          "crop": "p301-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "5c1936078f5cc293",
+          "shows": ""
+        },
+        {
+          "image": "p301.jpg",
+          "crop": "p301-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "bff16ecec135b00e",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t16 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p301-strip800.jpg and p301-strip1600.jpg, the refrain's first system (the hymn's third), its main row: the second line opens on 'I', printed with a capital anyway, and the two lines print the same words. The header (p301-strip0.jpg) prints 8.7.8.7. for the stanzas and only 'Ref.' for the refrain, so no metre fixes the refrain's lines. join:refrain.1.3: p301-strip1600.jpg, the refrain's second system (the hymn's fourth), its one row: the second line opens on 'I', printed with a capital anyway. The header (p301-strip0.jpg) gives the refrain no syllable counts, only 'Ref.', so no metre fixes its lines. movedown:refrain.1.3: p301-strip1600.jpg, the refrain's second system, its one row: the moved word is a title of Christ printed with a capital, and 'I' after it is printed with a capital anyway. The header (p301-strip0.jpg) gives the refrain no syllable counts, so no metre fixes its lines.",
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.3", "movedown:refrain.1.3"]
+    }
+  ]
+}

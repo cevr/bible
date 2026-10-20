@@ -244,6 +244,26 @@
       "settles": [
         "571 shape (shape2-63): stanza 2 row 2 prints word 9 with a capital inside a line of stanza 2, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "571.png",
+          "crop": "571-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "728fb7aecfe00e69",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t31 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:2.1: 571-strip0.jpg system 1, stanza 2's row: the moved word follows a question mark, so it is printed with a capital in either layout, and the word that would then open line 2 is a name of God, capitalized anyway. The page prints no metre and no text below the music. moveup:3.1: 571-strip0.jpg system 1, stanza 3's row: the moved word follows a question mark, so it is printed with a capital in either layout, and the word that would then open line 2 is a name of Christ, capitalized anyway. The page prints no metre and no text below the music.",
+      "unreachable": ["moveup:2.1", "moveup:3.1"]
     }
   ]
 }

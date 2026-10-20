@@ -1,0 +1,39 @@
+{
+  "number": 358,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p348.jpg",
+          "crop": "p348-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "736b52b0835d0f9b",
+          "shows": ""
+        },
+        {
+          "image": "p348.jpg",
+          "crop": "p348-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "01159c9d0dc3d9b9",
+          "shows": ""
+        },
+        {
+          "image": "p348.jpg",
+          "crop": "p348-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "b9760a6744d29a40",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t19 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p348-strip800.jpg, the refrain's first system (seen again atop p348-strip1600.jpg): line 1 is a whole sentence ending on an exclamation mark, so the second line's opener is printed with a capital as a sentence opener anyway. The header (p348-strip0.jpg) prints 8.7.8.7. for the stanza and only Ref. for the refrain, so no metre fixes the refrain's lines.",
+      "unreachable": ["join:refrain.1.1"]
+    }
+  ]
+}

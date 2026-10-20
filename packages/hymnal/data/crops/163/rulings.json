@@ -1,0 +1,32 @@
+{
+  "number": 163,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p159.jpg",
+          "crop": "p159-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "ed363967ad89df7a",
+          "shows": ""
+        },
+        {
+          "image": "p159.jpg",
+          "crop": "p159-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "18c06f028d90f6d2",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t07 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: p159-strip0.jpg header prints C.M. (8.6.8.6.); stanza 1's line 2 closes the first system at 6 sung syllables and line 3 opens the second system (p159-strip800.jpg) at 8. Moving \"Would\" up makes them 7 and 7, which the metre breaks.",
+      "gaps": ["moveup:1.2"]
+    }
+  ]
+}

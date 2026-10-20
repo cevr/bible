@@ -203,6 +203,47 @@
       ],
       "judge": "judge-234 (Opus, effort max)",
       "why": "259-1481.jpg row 3 prints 'be. Al-le-lu-ia! Al-le-' and 259-1984.jpg row 3 goes on 'lu-ia! We will serve', a second 'Alleluia'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "259.jpg",
+          "crop": "259-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "aef76e567c3b11ed",
+          "shows": ""
+        },
+        {
+          "image": "259.jpg",
+          "crop": "259-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "5e0d1c39c6d921de",
+          "shows": ""
+        },
+        {
+          "image": "259.jpg",
+          "crop": "259-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "c04b9581d6bd093c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t14 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:1.4: System 3, stanza 1's row: the moved Alleluia, after a semicolon, is an acclamation the book prints with a capital anyway, and a whole 4-syllable metre line. The header's 8.7.8.7.4.4.7 has a line end on both sides of it, and the database already joins the 4.4 pair, so joining it to the line before fits the metre no less. movedown:1.5: Systems 3 to 4, stanza 1's row: the second Alleluia and the next line's first word each follow an exclamation mark, so their capitals stand anyway. The header's 8.7.8.7.4.4.7 has a line end on both sides of that Alleluia, and the database already joins the 4.4 pair, so joining it to the line after fits the metre no less. moveup:2.4: System 3, stanza 2's row: the moved Alleluia, after a comma, is an acclamation the book prints with a capital anyway, and a whole 4-syllable metre line. With the database already joining the 4.4 pair, joining it to the line before fits the header's metre no less. movedown:2.5: Systems 3 to 4, stanza 2's row: the second Alleluia and the next line's first word each follow an exclamation mark, so their capitals stand anyway. With the database already joining the 4.4 pair, joining that Alleluia to the line after fits the header's metre no less. moveup:3.4: System 3, stanza 3's row: the moved Alleluia follows a full stop, so its capital stands anyway, and it is a whole 4-syllable metre line. With the database already joining the 4.4 pair, joining it to the line before fits the header's metre no less. movedown:3.5: Systems 3 to 4, stanza 3's row: the second Alleluia and the next line's first word each follow an exclamation mark, so their capitals stand anyway. With the database already joining the 4.4 pair, joining that Alleluia to the line after fits the header's metre no less.",
+      "unreachable": [
+        "moveup:1.4",
+        "movedown:1.5",
+        "moveup:2.4",
+        "movedown:2.5",
+        "moveup:3.4",
+        "movedown:3.5"
+      ]
     }
   ]
 }

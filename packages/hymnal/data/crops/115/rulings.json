@@ -1,0 +1,39 @@
+{
+  "number": 115,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p112.jpg",
+          "crop": "p112-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "b27ffbcbf825bb43",
+          "shows": ""
+        },
+        {
+          "image": "p112.jpg",
+          "crop": "p112-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "54f58085118f5b39",
+          "shows": ""
+        },
+        {
+          "image": "p112.jpg",
+          "crop": "p112-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "cc3701c753e26aee",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t04 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: split:refrain.1.1: can: The second 'Rejoice!' (p112-strip800.jpg system 3, the refrain in the middle row) follows an exclamation mark, so its capital is no sign. But the header (p112-strip0.jpg) prints 8.8.8.8.8.8. with no 'Ref.': the stanza's four lines and the refrain's two each count eight syllables (refrain ends on p112-strip1600.jpg system 4), and a split after word 2 makes lines of two and six syllables, which the metre breaks.",
+      "gaps": ["split:refrain.1.1"]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "number": 112,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "112.jpg",
+          "crop": "112-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "1dd00c4ab4227d83",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t04 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: swap:1-4: can: 112-strip800.jpg system 1: the stanzas are not printed alike. The row numbered 1 prints 'with a' as line 1's words 3 and 4, and the row numbered 4 prints 'then with' there (their line 2s match), so the swap puts stanza 4's line 1 under the number 1.",
+      "gaps": ["swap:1-4"]
+    }
+  ]
+}

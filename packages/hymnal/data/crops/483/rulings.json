@@ -1,0 +1,46 @@
+{
+  "number": 483,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p471.jpg",
+          "crop": "p471-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "79e43266562ec350",
+          "shows": ""
+        },
+        {
+          "image": "p471.jpg",
+          "crop": "p471-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "55181e160db85abb",
+          "shows": ""
+        },
+        {
+          "image": "p471.jpg",
+          "crop": "p471-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "a44f7dfaff4b882a",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t26 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p471-strip800.jpg system 3, the refrain's row: the word the split opens on is the one-letter interjection, always printed as a capital, mid-measure. The header on p471-strip0.jpg prints the metre for the stanzas only (6.4.6.4. Ref.), so no metre fixes the refrain's lines. split:refrain.1.2: p471-strip800.jpg system 3, the second half of the refrain's row: the word the split opens on is the first-person pronoun, printed as a capital anyway. The header gives no metre for the refrain (6.4.6.4. Ref.), so nothing fixes its lines. join:refrain.1.2: Line 2 ends system 3's refrain row (p471-strip800.jpg) on an exclamation mark and line 3 opens system 4's row (p471-strip1600.jpg) on the one-letter interjection, a capital anyway. A system break marks no poem line, and no metre fixes the refrain (6.4.6.4. Ref.). movedown:refrain.1.2: The moved word, last on system 3's refrain row (p471-strip800.jpg), is a pronoun of God printed with a capital, and the interjection that then falls mid-line on system 4 (p471-strip1600.jpg) is a capital anyway. Both layouts show the same capitals, and no metre fixes the refrain (6.4.6.4. Ref.). join:refrain.1.3: p471-strip1600.jpg system 4, the refrain's row: line 4 opens mid-measure, after a dash, on the first-person pronoun, a capital anyway. The header gives no metre for the refrain (6.4.6.4. Ref.), so nothing fixes its lines. movedown:refrain.1.3: p471-strip1600.jpg system 4, the refrain's row: the moved word is a name of God printed with a capital, and the pronoun after it is a capital anyway. No metre fixes the refrain's lines (6.4.6.4. Ref.).",
+      "unreachable": [
+        "split:refrain.1.1",
+        "split:refrain.1.2",
+        "join:refrain.1.2",
+        "movedown:refrain.1.2",
+        "join:refrain.1.3",
+        "movedown:refrain.1.3"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "number": 395,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "395.png",
+          "crop": "395-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "1e3421163e04a73c",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t21 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.1: can: 395-strip0.jpg, stanza 2's row: the moved word is printed with a capital right after the comma that ends line 1 (system 1's last syllable, where every stanza's row opens line 2 on a capital), and it is the first syllable of a hyphenated word whose lowercase rest opens system 2, the place the change would open line 2.",
+      "gaps": ["moveup:2.1"]
+    }
+  ]
+}

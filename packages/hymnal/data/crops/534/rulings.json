@@ -1,0 +1,25 @@
+{
+  "number": 534,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p524.jpg",
+          "crop": "p524-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "9f0c8320607d4f0d",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t29 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.3: p524-strip0.jpg, page 2 system 1 (the refrain's second system): refrain line 3's word 4, where the split opens a line, is a title of Christ printed with a capital, which it carries whether or not a line opens there. The header's metre (10.9.10.9. Ref.) gives the refrain no line lengths.",
+      "unreachable": ["split:refrain.1.3"]
+    }
+  ]
+}

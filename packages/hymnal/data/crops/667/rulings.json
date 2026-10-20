@@ -1,0 +1,52 @@
+{
+  "number": 667,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p652.jpg",
+          "crop": "p652-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1e0f0355919f3e49",
+          "shows": ""
+        },
+        {
+          "image": "p652.jpg",
+          "crop": "p652-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "7b18be8481658096",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t35 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.4: p652-strip0.jpg system 2 row: line 4 ends with a full stop, then past a double bar come two Amens, each printed with a capital. C.M. is filled by the four lines before the double bar and counts no Amen, and the row prints no line break, so nothing tells the Amens as their own line from the end of line 4. moveup:1.4: p652-strip0.jpg system 2 row: both Amens follow line 4's full stop past a double bar, each printed with a capital and nothing between them. C.M. counts only the four lines before the double bar, so nothing tells the first Amen closing line 4 from opening its own line. split:1.5: p652-strip0.jpg system 2 row: the two Amens are printed each with a capital and no punctuation between them, as the book prints every Amen with a capital (hymn 664 on another hymn's page, after commas). They stand outside the C.M. count and the row prints no line break, so the second reads the same whether or not it opens a line.",
+      "unreachable": ["join:1.4", "moveup:1.4", "split:1.5"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p652.jpg",
+          "crop": "p652-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1e0f0355919f3e49",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t35 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: split:1.2: can: p652-strip0.jpg header prints BENEDICTION C.M. (8.6.8.6.); system 1 row sings line 2 at 6 syllables. The split's opening word is a pronoun of God, capitalised mid-line in line 1 too, but the split gives lines of 2 and 4 syllables, which C.M. forbids.",
+      "gaps": ["split:1.2"]
+    }
+  ]
+}

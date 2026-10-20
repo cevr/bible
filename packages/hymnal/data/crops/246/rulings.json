@@ -1,0 +1,44 @@
+{
+  "number": 246,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p240.jpg",
+          "crop": "p240-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "ae6586b5236f04ca",
+          "shows": ""
+        },
+        {
+          "image": "p240.jpg",
+          "crop": "p240-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "d9a3dcde4e70c42f",
+          "shows": ""
+        },
+        {
+          "image": "p240.jpg",
+          "crop": "p240-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "27c22d1e4faeb3e8",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t13 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: p240-strip800.jpg system 3 (Refrain), its one row: 'Praise' follows 'jah!', so it is printed with a capital after the exclamation either way; p240-strip0.jpg header metre 7.7.7.3.Ref. gives the refrain no syllable counts. moveup:refrain.1.1: p240-strip800.jpg system 3 (Refrain): 'Praise' is capitalised after 'jah!' and the next word 'Him' is a capitalised pronoun of God, so either can open the line; the header metre (p240-strip0.jpg) counts no refrain lines. split:refrain.1.2: p240-strip800.jpg system 3 (Refrain): the new opening word 'Him' is printed with a capital as a pronoun of God, and the header metre 7.7.7.3.Ref. (p240-strip0.jpg) fixes no refrain line lengths. join:refrain.1.2: p240-strip800.jpg system 3 ends the refrain row on 'jah!'; p240-strip1600.jpg system 4 opens on 'Glo-ry,' printed with a capital after that exclamation either way. The header metre (p240-strip0.jpg) counts no refrain lines.",
+      "unreachable": [
+        "join:refrain.1.1",
+        "moveup:refrain.1.1",
+        "split:refrain.1.2",
+        "join:refrain.1.2"
+      ]
+    }
+  ]
+}

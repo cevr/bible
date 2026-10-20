@@ -499,6 +499,55 @@
       "settles": [
         "440 shape (shape2-49): stanza 3 is printed as 4 lines of text, the printed source writes 6 other lines"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "0d68c41bf3bb2905",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "1250d2365722a2e8",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "65d5d2d2275e1d4b",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip2400.jpg",
+          "box": [0, 2400, 1758, 228],
+          "sha": "e7126c95a908cfcb",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t24 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.2: can: p427-strip0.jpg header prints C.M. (8.6.8.6.). Stanza 1's row in systems 1-2 (p427-strip0.jpg, p427-strip800.jpg) sings line 2 as 6 syllables and line 3 as 8; the joined line would be 14 syllables, which the metre does not allow (the second line's opening capital follows an exclamation mark, so the capital alone would not show it). moveup:2.4: can: p427-strip1600.jpg text below the music prints stanza 2's line 4 as its own line of 4 words ending in a full stop, and line 3 (which the music repeats as line 5, as stanza 1's row shows on p427-strip800.jpg and p427-strip1600.jpg) whole from its capitalised first word. The change makes line 4 five words (7 syllables) and the repeated line 7 syllables, breaking the header's C.M. (p427-strip0.jpg). movedown:2.5: can: p427-strip1600.jpg text below the music: the moved word is printed lowercase as the last word of stanza 2's line 3 (the line the music repeats as line 5), followed by a comma, and line 4 opens on a capitalised word. A lowercase word cannot open line 6, and the changed lines (7 and 7 syllables) break C.M.'s 8.6. moveup:2.5: can: p427-strip1600.jpg text below the music: stanza 2's line 4 (repeated as line 6) opens on the moved word printed with a capital right after a comma, a line-opening capital; the change puts it mid-line and makes the lines 9 and 5 syllables against C.M.'s 8.6. moveup:3.4: can: p427-strip1600.jpg right-hand text block prints stanza 3's line 4 as its own line of 5 words ending in a full stop, and line 3 (repeated as line 5 by the music, as stanza 1's row shows) whole from its capitalised first word. The change makes line 4 six words (7 syllables) and the repeated line 7 syllables, breaking the header's C.M. (p427-strip0.jpg). movedown:3.5: can: p427-strip1600.jpg right-hand text block: the moved word is printed lowercase as the last word of stanza 3's line 3 (repeated as line 5), followed by a comma, and line 4 opens on a capitalised word. A lowercase word cannot open line 6, and the changed lines (7 and 7 syllables) break C.M.'s 8.6. moveup:3.5: can: p427-strip1600.jpg right-hand text block: stanza 3's line 4 (repeated as line 6) opens on the moved word printed with a capital right after a comma, a line-opening capital; the change puts it mid-line and makes the lines 9 and 5 syllables against C.M.'s 8.6.",
+      "gaps": [
+        "join:1.2",
+        "moveup:2.4",
+        "movedown:2.5",
+        "moveup:2.5",
+        "moveup:3.4",
+        "movedown:3.5",
+        "moveup:3.5"
+      ]
     }
   ]
 }

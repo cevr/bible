@@ -110,6 +110,36 @@
       "settles": [
         "427 shape (shape2-47): a row \"and they\" (second refrain row under system 4: the lower voices' words to their own rhythm, with 'by years' sung again) is in no part of the printed source"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "427.png",
+          "crop": "427-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "60964501b0c079fb",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t23 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: 427-strip0.jpg, page system 2, stanza 1's row: the moved word (It) is printed with a capital after a semicolon, so it opens a line, and the next word, which the change puts at line 3's head, is printed lowercase. movedown:1.3: can: 427-strip0.jpg, page system 2, stanza 1's row: the moved word is printed lowercase with a comma after it, and the next word (And) is printed with a capital, so line 4 opens on And, not on the moved word. moveup:1.3: can: 427-strip0.jpg, page system 2, stanza 1's row: the moved word (And) is printed with a capital after a comma, so it opens line 4; the word the change puts at line 4's head is printed lowercase. moveup:2.2: can: 427-strip0.jpg, page system 2, stanza 2's row: the moved word (All) is printed with a capital after a semicolon, so it opens line 3; the word the change puts at line 3's head is printed lowercase. movedown:2.3: can: 427-strip0.jpg, page system 2, stanza 2's row: the moved word is printed lowercase with a comma after it, and the next word (And) is printed with a capital, so line 4 opens on And. moveup:2.3: can: 427-strip0.jpg, page system 2, stanza 2's row: the moved word (And) is printed with a capital after a comma, so it opens line 4; the word the change puts at line 4's head is printed lowercase. moveup:4.2: can: 427-strip0.jpg, page system 2, stanza 4's row: the moved word (For) is printed with a capital after a comma, so it opens line 3; the word the change puts at line 3's head is printed lowercase. movedown:4.3: can: 427-strip0.jpg, page system 2, stanza 4's row: the moved word is printed lowercase with a comma after it, and the next word (And) is printed with a capital, so line 4 opens on And. moveup:4.3: can: 427-strip0.jpg, page system 2, stanza 4's row: the moved word (And) is printed with a capital after a comma, so it opens line 4; the word the change puts at line 4's head is printed lowercase.",
+      "gaps": [
+        "moveup:1.2",
+        "movedown:1.3",
+        "moveup:1.3",
+        "moveup:2.2",
+        "movedown:2.3",
+        "moveup:2.3",
+        "moveup:4.2",
+        "movedown:4.3",
+        "moveup:4.3"
+      ]
     }
   ]
 }

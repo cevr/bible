@@ -1,0 +1,45 @@
+{
+  "number": 307,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p299.jpg",
+          "crop": "p299-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "3880ca44ed0f8912",
+          "shows": ""
+        },
+        {
+          "image": "p299.jpg",
+          "crop": "p299-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "35f8dff96d78a50a",
+          "shows": ""
+        },
+        {
+          "image": "p299.jpg",
+          "crop": "p299-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "a24e5812769b6b01",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t16 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p299-strip800.jpg and p299-strip1600.jpg, the refrain's first system (the hymn's third), its one row: the word where the split opens a line is a name of God, printed with a capital anyway. The header (p299-strip0.jpg) prints 7.7.7.7. for the stanzas and only 'Ref.' for the refrain, so no metre fixes the refrain's lines. join:refrain.1.1: p299-strip800.jpg and p299-strip1600.jpg, the refrain's first system, its one row: the second line opens on 'O', printed with a capital anyway. The header (p299-strip0.jpg) gives the refrain no syllable counts, only 'Ref.', so no metre fixes its lines. movedown:refrain.1.1: p299-strip800.jpg and p299-strip1600.jpg, the refrain's first system, its one row: the moved word is a pronoun of God printed with a capital, and 'O' after it is printed with a capital too. The header (p299-strip0.jpg) gives the refrain no syllable counts, so no metre fixes its lines. moveup:refrain.1.1: p299-strip800.jpg and p299-strip1600.jpg, the refrain's first system, its one row: the moved word is 'O', printed with a capital anyway, and the changed line 2 opens on a pronoun of God, printed with a capital. The header (p299-strip0.jpg) gives the refrain no syllable counts, so no metre fixes its lines. split:refrain.1.2: p299-strip800.jpg and p299-strip1600.jpg, the refrain's first system, its one row: the word where the split opens a line is a title of Christ, printed with a capital anyway (the page capitalizes it mid-line in stanza 4 too). The header (p299-strip0.jpg) gives the refrain no syllable counts, so no metre fixes its lines.",
+      "unreachable": [
+        "split:refrain.1.1",
+        "join:refrain.1.1",
+        "movedown:refrain.1.1",
+        "moveup:refrain.1.1",
+        "split:refrain.1.2"
+      ]
+    }
+  ]
+}

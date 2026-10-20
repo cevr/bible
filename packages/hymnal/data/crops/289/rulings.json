@@ -1,0 +1,32 @@
+{
+  "number": 289,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "289.png",
+          "crop": "289-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "e35f2c583186cbf5",
+          "shows": ""
+        },
+        {
+          "image": "289.png",
+          "crop": "289-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0f3a914948df5b86",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t15 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: 289-strip0.jpg system 3, the Refrain's row after the double bar (again at the top of 289-strip800.jpg): the split opens a line on a pronoun of God, which the page prints with a capital anyway (the same pronoun stands capitalized mid-line in the refrain's next line, 289-strip800.jpg system 1); the header prints no metre. join:refrain.1.3: 289-strip800.jpg system 2 (from bar 26), the refrain's row: the second line opens on the one-letter interjection, which is always printed with a capital, after a colon; the header prints no metre.",
+      "unreachable": ["split:refrain.1.1", "join:refrain.1.3"]
+    }
+  ]
+}

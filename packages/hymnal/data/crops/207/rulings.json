@@ -87,6 +87,52 @@
       "settles": [
         "207 shape (shape2-23): stanza 3 line 8 opens on word 2 of the refrain after stanza 3: row 2, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p202.jpg",
+          "crop": "p202-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "4f5f9735095d58bb",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t11 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.3: p202-strip1600.jpg system 5 (the refrain's second), its one row: the word the join takes off a line's start is the second 'hallelujah', printed lowercase right after 'Hallelujah!', so the page marks no line opening there (the database's own break there is unmarked too); the header gives the refrain no metre. movedown:refrain.1.3: p202-strip1600.jpg system 5, its one row: the moved word, the first 'Hallelujah', is printed with a capital, so it can open a line, and the word it lands on is printed lowercase, so it can sit mid-line; no refrain metre. The page fits this break at least as well as the database's, whose line 4 opens on a lowercase word. moveup:refrain.1.3: p202-strip1600.jpg system 5, its one row: the moved word is printed lowercase, so it can end a line, and the new opener 'A-men,' is printed with a capital; the header gives the refrain no metre. split:refrain.1.4: p202-strip1600.jpg system 5, its one row: the new opener 'A-men,' is printed with a capital, and the header gives the refrain no metre to fix its lines. split:refrain.1.5: p202-strip1600.jpg system 5, its one row: the new opener, the closing 'A-men.', is printed with a capital, and the header gives the refrain no metre to fix its lines.",
+      "unreachable": [
+        "join:refrain.1.3",
+        "movedown:refrain.1.3",
+        "moveup:refrain.1.3",
+        "split:refrain.1.4",
+        "split:refrain.1.5"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p202.jpg",
+          "crop": "p202-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "4f5f9735095d58bb",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t11 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.4: can: p202-strip1600.jpg system 5, its one row: the third 'Hallelujah' is printed with a capital after 'A-men,' (a comma) while the same row prints the word lowercase two words earlier, so its capital marks the line opening the join removes. movedown:refrain.1.4: can: p202-strip1600.jpg system 5, its one row: the move leaves the third 'Hallelujah' second in its line, but the page prints it with a capital after a comma where the same row prints the word lowercase, so a line opens at it. moveup:refrain.1.4: can: p202-strip1600.jpg system 5, its one row: the moved word, the third 'Hallelujah', is printed with a capital after a comma where the same row prints the word lowercase, so its capital marks a line opening that the move takes away.",
+      "gaps": ["join:refrain.1.4", "movedown:refrain.1.4", "moveup:refrain.1.4"]
     }
   ]
 }

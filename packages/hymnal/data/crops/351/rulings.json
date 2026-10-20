@@ -1,0 +1,25 @@
+{
+  "number": 351,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "351.png",
+          "crop": "351-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "2c143077d06091bb",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t19 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:3.2: 351-strip0.jpg, stanza 3's row: the moved word, last on system 1, is a pronoun of God printed with a capital (the page capitalizes every such pronoun mid-line), and the word after it, opening system 2 and the new opener, is a name of God with a capital. The header prints no metre.",
+      "unreachable": ["moveup:3.2"]
+    }
+  ]
+}

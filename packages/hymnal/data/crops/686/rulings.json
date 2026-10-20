@@ -1,0 +1,32 @@
+{
+  "number": 686,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "687.jpg",
+          "crop": "687-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "fb77b69a042939b0",
+          "shows": ""
+        },
+        {
+          "image": "687.jpg",
+          "crop": "687-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "85c2052687c9eae4",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t37 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:1.4: can: 687-strip800.jpg, left page, 686's last system: line 4's last word carries a fermata and a full stop, a double bar follows, and line 5's one word (the closing response) is set alone after it. The header's L.M. (687-strip0.jpg) also holds line 4 to 8 syllables, which the join makes 10.",
+      "gaps": ["join:1.4"]
+    }
+  ]
+}

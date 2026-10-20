@@ -70,6 +70,33 @@
       "settles": [
         "503 shape (shape2-56): stanza 1 line 6 opens on word 15 of stanza 1 row 2, which the page prints with no capital"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "503.png",
+          "crop": "503-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "abe25c2b41ce9268",
+          "shows": ""
+        },
+        {
+          "image": "503.png",
+          "crop": "503-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "822eaf39e38d52d4",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t27 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:1.5: 503-strip0.jpg system 2 (bars 7-13): the word that opens database line 6 is printed lowercase at the row's end, right after line 5's last word (a pronoun of God, capitalised); the page prints no metre and no text below the music. Nothing marks a line opening there, so the joined line reads just as the page does (the lowercase start fits the join, not the database's break). movedown:1.5: 503-strip0.jpg system 2: the moved word (line 5's last) is a pronoun of God, printed with a capital either way, and the word after it, which opens line 6 in the database, is printed lowercase. No metre and no text below the music say which of the two opens the line. join:1.6: 503-strip0.jpg system 3 (repeated at the top of 503-strip800.jpg): line 7's first word is printed with a capital right after the full stop that ends line 6, a capital it carries either way. The page prints no metre and no text below the music to fix the lines. join:1.10: 503-strip800.jpg systems 4-5: line 11's first word is the first-person pronoun, printed with a capital either way, and follows line 10's last word with no punctuation. The page prints no metre and no text below the music to fix the lines.",
+      "unreachable": ["join:1.5", "movedown:1.5", "join:1.6", "join:1.10"]
     }
   ]
 }

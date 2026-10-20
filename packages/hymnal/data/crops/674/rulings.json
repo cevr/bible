@@ -1,0 +1,32 @@
+{
+  "number": 674,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "674.png",
+          "crop": "674-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "87c55658ea92f9c2",
+          "shows": ""
+        },
+        {
+          "image": "674.png",
+          "crop": "674-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "4de99dee0d8c4223",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t36 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:3.2: 674-strip0.jpg system 1, stanza 3's row, last word: the moved word follows a full stop, so its capital is expected anyway, and the word that would open line 3 instead (system 2, first word) is a name of God, capital anyway; the header prints no metre. 674-strip800.jpg is blank.",
+      "unreachable": ["moveup:3.2"]
+    }
+  ]
+}

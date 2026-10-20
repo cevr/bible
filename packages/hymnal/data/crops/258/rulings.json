@@ -245,6 +245,65 @@
       "settles": [
         "258 shape (shape2-29): stanza 3 row 2 prints word 6 with a capital inside a line of stanza 3, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p253.jpg",
+          "crop": "p253-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "9b8dd0eac0b77276",
+          "shows": ""
+        },
+        {
+          "image": "p253.jpg",
+          "crop": "p253-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "79d7571d267276cf",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t14 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:varies.1.1.1: Refrain system 1, first row: the word that would open the new line, Lord, is a name of God printed with a capital anyway, after a comma. The header prints only Ref. for the refrain, no metre that fixes its lines. split:varies.1.1.2: Refrain system 2, first row: Spirit is printed with a capital as a name of God, so its capital says nothing about a line opening; the word before it carries no mark. The header gives the refrain no metre. split:varies.1.2.1: Refrain system 1, the (Last vs.) row: the second Thee is a pronoun of God printed with a capital anyway, as the first Thee in the row is. The header gives the refrain no metre that fixes a break. split:varies.1.2.2: Refrain system 2, second (last verse) row: Thee is a pronoun of God printed with a capital anyway, after a word with no mark. The header gives the refrain no metre that fixes a break.",
+      "unreachable": [
+        "split:varies.1.1.1",
+        "split:varies.1.1.2",
+        "split:varies.1.2.1",
+        "split:varies.1.2.2"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p253.jpg",
+          "crop": "p253-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "9b8dd0eac0b77276",
+          "shows": ""
+        },
+        {
+          "image": "p253.jpg",
+          "crop": "p253-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "79d7571d267276cf",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t14 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:varies.1.1.1: can: Refrain system 2, first row (p253-strip1600.jpg): With, a plain preposition, is printed with a capital right after the comma that ends system 1's row. That capital marks a line opening, which the join removes.",
+      "gaps": ["join:varies.1.1.1"]
     }
   ]
 }

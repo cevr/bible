@@ -1,0 +1,32 @@
+{
+  "number": 609,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p594.jpg",
+          "crop": "p594-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "97e89085ed9b0459",
+          "shows": ""
+        },
+        {
+          "image": "p594.jpg",
+          "crop": "p594-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "64c953ccad2605d5",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t32 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.2: can: p594-strip800.jpg header prints C.M. (8.6.8.6), and system 1, stanza 1's row gives line 2 six syllables ending on the moved word; the change makes line 2 five syllables and line 3 (p594-strip1600.jpg system 2) nine. The moved word is a name of Christ and line 3's first word follows a question mark, both capitalised either way, so only the metre tells.",
+      "gaps": ["movedown:1.2"]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "number": 361,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p351.jpg",
+          "crop": "p351-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "178a887051b1594d",
+          "shows": ""
+        },
+        {
+          "image": "p351.jpg",
+          "crop": "p351-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "08d88422475fae13",
+          "shows": ""
+        },
+        {
+          "image": "p351.jpg",
+          "crop": "p351-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "98eb0f51caa27b50",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t19 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.1: p351-strip800.jpg, the refrain's first system (again atop p351-strip1600.jpg): the page prints all six of the refrain's repeated opening verbs with a capital, after commas too, so word 4 looks the same mid-line or opening a line. The header (p351-strip0.jpg) prints L.M. for the stanzas and only Ref for the refrain, so no metre fixes the refrain's lines. join:refrain.1.1: p351-strip800.jpg, the refrain's first system: line 2's opener is the repeated verb the page prints with a capital at every one of its six places, mid-line after a comma as well, so it reads the same joined. The header prints only Ref for the refrain, so no metre fixes its lines. join:refrain.1.2: p351-strip800.jpg ends the refrain's first system on a semicolon, and line 3's opener, first on the second system (p351-strip1600.jpg), is the repeated verb the page capitalizes at all six places, mid-line too. The header prints only Ref for the refrain, so no metre fixes its lines. split:refrain.1.3: p351-strip1600.jpg, the refrain's second system: word 4 of line 3 is the repeated verb the page prints with a capital at all six places, after commas too, so it looks the same mid-line or opening a line. The header (p351-strip0.jpg) prints only Ref for the refrain, so no metre fixes its lines. join:refrain.1.3: p351-strip1600.jpg, the refrain's second system: line 4's opener follows a comma and is the repeated verb the page capitalizes at all six places, mid-line too, so it reads the same joined. The header (p351-strip0.jpg) prints only Ref for the refrain, so no metre fixes its lines.",
+      "unreachable": [
+        "split:refrain.1.1",
+        "join:refrain.1.1",
+        "join:refrain.1.2",
+        "split:refrain.1.3",
+        "join:refrain.1.3"
+      ]
+    }
+  ]
+}

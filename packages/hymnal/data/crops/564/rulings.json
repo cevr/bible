@@ -1,0 +1,32 @@
+{
+  "number": 564,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "564.png",
+          "crop": "564-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "40ece1288b8bd7ed",
+          "shows": ""
+        },
+        {
+          "image": "564.png",
+          "crop": "564-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "01c2880385a8d47e",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t30 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.4: can: 564-strip0.jpg system 2: the two stanza rows sit note for note under one tune. On the system's last note, where stanza 2's database line 5 opens, stanza 1's row prints a capital after a comma that only a line opening explains. On system 3's first note, where the change would open stanza 2's line, stanza 1 prints a lowercase first syllable of a word. Stanza 2's row alone would not tell (the moved word is the vocative particle and the new opener a name of God, both capitals anyway, and no metre is printed), so this ruling rests on the alignment across stanzas.",
+      "gaps": ["moveup:2.4"]
+    }
+  ]
+}

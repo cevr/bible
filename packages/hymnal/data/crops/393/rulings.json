@@ -29,6 +29,33 @@
       "settles": [
         "393 shape (shape2-44): stanza 1 row 3 ends \"worn breast\" at two places its count gives"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p381.jpg",
+          "crop": "p381-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "4ee969e5eb2c4db2",
+          "shows": ""
+        },
+        {
+          "image": "p381.jpg",
+          "crop": "p381-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1464935059b34d55",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t21 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.4: can: p381-strip800.jpg system 3 (top of p381-strip1600.jpg), stanza 1's row: the moved word is printed lowercase with a comma after it, and the word after it (the repeat's first) is printed with a capital, so the line breaks after the moved word, not before it. The header's L.M. (8 syllables a line) also breaks: 7 then 9. moveup:1.4: can: p381-strip800.jpg system 3 (top of p381-strip1600.jpg), stanza 1's row: the moved word, an article, is printed with a capital right after the comma that ends line 4, and the word the change would open line 5 on is printed lowercase. The header's L.M. also breaks: 9 then 7.",
+      "gaps": ["movedown:1.4", "moveup:1.4"]
     }
   ]
 }

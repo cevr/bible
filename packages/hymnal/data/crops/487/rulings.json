@@ -230,6 +230,33 @@
       ],
       "judge": "judge-467 (Opus, effort max)",
       "why": "p475-2011.jpg, the refrain row sung after each stanza, prints 'tells me I am His own'; the OCR missed 'I'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "4ee3404bbf557c5b",
+          "shows": ""
+        },
+        {
+          "image": "p475.jpg",
+          "crop": "p475-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "f77156519c228e3f",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t26 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:refrain.1.2: p475-strip1600.jpg system 4, the refrain's row: the word the split opens on is the first-person pronoun, a capital anyway, sung mid-measure on a beamed eighth. The header on p475-strip0.jpg prints the metre as Irregular, so nothing fixes the lines.",
+      "unreachable": ["split:refrain.1.2"]
     }
   ]
 }

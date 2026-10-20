@@ -1,0 +1,32 @@
+{
+  "number": 620,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "620.jpg",
+          "crop": "620-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "119c86875e58960e",
+          "shows": ""
+        },
+        {
+          "image": "620.jpg",
+          "crop": "620-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "a0347ebe2a4732a8",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t33 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.1: 620-strip1600.jpg refrain system (system 3): the second refrain line opens on the pronoun I, printed with a capital anyway, after a comma. The header's C.M.Ref. on 620-strip0.jpg fixes the stanza lines only, not the refrain's, and no text stands below the music. join:refrain.1.2: 620-strip1600.jpg system 4 opens the refrain's third line on the vocative O, printed with a capital anyway, after a semicolon. The header's C.M.Ref. on 620-strip0.jpg gives no metre for the refrain's lines, and no text stands below the music. join:refrain.1.3: 620-strip1600.jpg system 4: the refrain's fourth line opens on the pronoun I after a question mark, printed with a capital anyway. The header's C.M.Ref. on 620-strip0.jpg gives no metre for the refrain's lines, and no text stands below the music.",
+      "unreachable": ["join:refrain.1.1", "join:refrain.1.2", "join:refrain.1.3"]
+    }
+  ]
+}

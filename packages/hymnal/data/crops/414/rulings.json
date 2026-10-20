@@ -96,6 +96,33 @@
       ],
       "judge": "judge-362 (Opus, effort max)",
       "why": "414-500.jpg row 3 ends 'and self-con-trol.', the compound self-control."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "414.png",
+          "crop": "414-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "6ad7109d47a06179",
+          "shows": ""
+        },
+        {
+          "image": "414.png",
+          "crop": "414-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "39f45340cf110912",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t22 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:3.1: 414-strip0.jpg system 1, stanza 3's row: the moved word (the row's 6th word) is printed with a capital, a title of Christ, and the 7th word, a name, is capitalised too; the header prints no metre. No words quoted: 414-strip800.jpg prints a 1984 copyright on the words.",
+      "unreachable": ["movedown:3.1"]
     }
   ]
 }

@@ -1,0 +1,39 @@
+{
+  "number": 633,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p619.jpg",
+          "crop": "p619-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6b6dd73d681035a3",
+          "shows": ""
+        },
+        {
+          "image": "p619.jpg",
+          "crop": "p619-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "58a602ffcfa90fbf",
+          "shows": ""
+        },
+        {
+          "image": "p619.jpg",
+          "crop": "p619-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "e772e451587b30c7",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t34 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: join:refrain.1.2: p619-strip1600.jpg system 4, the refrain's row: the word that opens line 3 is printed with a capital, but it follows a word that ends in an exclamation mark, so it takes a capital anyway. The header (p619-strip0.jpg) prints 8.7.8.7. Ref., no metre for the refrain's lines.",
+      "unreachable": ["join:refrain.1.2"]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "number": 670,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "670.png",
+          "crop": "670-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "23610656906c8f8c",
+          "shows": ""
+        },
+        {
+          "image": "670.png",
+          "crop": "670-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "4de99dee0d8c4223",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t36 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: split:1.4: 670-strip0.jpg system 2, the one row: the word that would open the new line is a name of God, printed with a capital anyway, right after a capital O, and the header prints no metre to fix the lines. 670-strip800.jpg is blank.",
+      "unreachable": ["split:1.4"]
+    }
+  ]
+}

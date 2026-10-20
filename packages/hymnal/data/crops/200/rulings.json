@@ -1,0 +1,25 @@
+{
+  "number": 200,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "200.png",
+          "crop": "200-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "9a632f73e39fa456",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t10 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:3.2: can: 200-strip0.jpg system 2, stanza 3's row: \"And\" is printed with a capital after a comma (no name of God) and \"none\" after it is printed lowercase. The change opens line 3 on the lowercase \"none\".",
+      "gaps": ["moveup:3.2"]
+    }
+  ]
+}

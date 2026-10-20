@@ -1,0 +1,32 @@
+{
+  "number": 252,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["the shape readings of the page (data/shapes.json)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "252.png",
+          "crop": "252-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "c66e0d67720d562e",
+          "shows": ""
+        },
+        {
+          "image": "252.png",
+          "crop": "252-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "60fe25dedca59c1f",
+          "shows": ""
+        }
+      ],
+      "judge": "reach-judge-reach-t13 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:2.3: 252-strip800.jpg system 4, stanza 2's row opens on 'God:', a name of God printed with a capital, and the quoted 'Wor-thy' after it is a capital too; 252-strip0.jpg shows the header prints no metre, so nothing fixes which line holds it.",
+      "unreachable": ["movedown:2.3"]
+    }
+  ]
+}
