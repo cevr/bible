@@ -613,3 +613,63 @@ The form of an entry, each field on its own line:
 - **Wrong:** testOracle reported determinism, purity, round-trip and metamorphic tests as tautologies, 18 of 18 its reviewers read.
 - **Cause:** Its words gave "the same function called again" as a tautology with no bound, which is the shape of every property check.
 - **Guard:** skill: a rule's words are content the model reads, and its corpus now holds the 18 as independent cases. Carried by `.oxlintrc.json`: "are INDEPENDENT: each is its own oracle"
+
+### judged-findings-agree-with-store
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Findings can disagree with the shared store"
+- **Source:** p6-guardloop/review-1.md F1
+- **Wrong:** Two checkouts that asked about one item at once each kept their own answer, the later over the earlier, and the first checkout's findings file still reported its answer; a findings file older than the store's age still reported answers the store had dropped.
+- **Cause:** The store took each run's fresh answers over the ones kept meanwhile, and the run reported by its own answers, not the store's; the findings file kept no day.
+- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `keeps the first answer kept for a key, and reports by it`, `packages/scripts/lint/judged.test.ts` `or a run past the store`
+
+### judged-findings-know-their-item-code
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Findings survive changes to item extraction"
+- **Source:** p6-guardloop/review-1.md F2
+- **Wrong:** The plugin reported a run's findings after a rule's selector or the code that makes the items changed, so a finding could sit on an item the rule no longer reads.
+- **Cause:** A rule's signature held its words, label, threshold and model but not its selector, and the findings file held no hash of the item code.
+- **Guard:** code: `packages/scripts/lint/judged.test.ts` `a rule of other words or selector, other item code`, `packages/scripts/src/judged/findings.ts` `makersHash`
+
+### reach-reads-playwright-config
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check accepts tests Playwright never runs"
+- **Source:** p6-guardloop/review-1.md F3
+- **Wrong:** The reach check read `playwright test --config=…` as a run of every file under a folder named `test`, so a spec outside the config's testDir counted as reached.
+- **Cause:** Every command that was not a bun test was read as a list of path filters.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir and testMatch set them`
+
+### each-commit-runs-film-exports
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Intermediate commits fail the existing film suite"
+- **Source:** p6-guardloop/review-1.md F4
+- **Wrong:** A commit of the unit exported a name no file imports, and the film's package entries test was red on it until a later fix commit.
+- **Cause:** `merge-audit --each` runs `bun run guard` on each commit, and the guard did not run the film's exports test.
+- **Guard:** code: `packages/film/package.json` `bun test ./src/docs.test.ts ./src/exports.test.ts`, `package.json` `bun run --cwd packages/film test:guard`
+
+### film-budget-measured-quiet
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The film budget requirement remains unverified"
+- **Source:** p6-guardloop/review-1.md F5
+- **Wrong:** The unit left the film suite's budget with no counted measure: each run was at a load over the core count, which the budget does not count, and took 10.4 to 12.6 s.
+- **Cause:** The machine was busy with other units; the suite's long pole was one test file (`cast-sheet.test.ts`, 10.4 s inside the suite).
+- **Guard:** code: `packages/scripts/src/test-budget/budget.ts` `notMeasured`
+
+### reach-takes-workspace-dot
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check rejects `bun test ./`"
+- **Source:** p6-guardloop/review-1.md F6
+- **Wrong:** `bun test ./` read as a filter no file matched, so a workspace's every test file was called unreached.
+- **Cause:** `./` normalised to an empty path, and a path filter matched only under a leading slash.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `bun test ./`
