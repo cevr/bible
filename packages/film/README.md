@@ -2052,20 +2052,20 @@ joins the `Layer.mergeAll` in `labHandler`, and the page calls
 
 ### Script
 
-The studio's Words section reads a film's script beside its staged film. What the film
-plays (each beat's line, its words and their times, its marks and cues) is
-the staged film's; the reader lays each line out with its `{mark}`s kept by
-the word each stands before (`lineRows`, `lab/words/line.ts`), drawing no
-chip for them at rest, and the code view's band sets the line with a chip at
-each (`piecesOf`). What it leaves out (`scenesOf` drops each beat's
-`picture` and `cite`) the page reads from the script as it stands, through a
-fresh process (`film read script <film>`, `FreshFilm.script`) kept under the
-film's source stamp, so a brief fixed while the lab is open is read again
-once.
+The studio's Words section, and an ask's script block, read a film's script
+as its `script.ts` stands: each beat's line as it says it (its `{mark}`s and
+cues in braces), its picture and its sources, through a fresh process (`film
+read script <film>`, `FreshFilm.script`) kept under the film's source stamp,
+so a line or a brief fixed while the lab is open is read again once. The
+reader shows each line's spoken words with their delivery marks (`lineRows`,
+`lab/words/line.ts`): its `{mark}`s are kept by the word each stands before
+and drawn as no chip, and its cues are not shown. A word's time is its
+staging take's (`Ready`), lit while the take plays. The code view's band
+sets the same line with a chip at each `{mark}` (`piecesOf`).
 
 | Route                                      | What it does                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/script`             | `ScriptBeats`: each beat of `script.ts` in order, its `picture` (when it has one) and its `cite`; none for no script                                                                                                                                                                                                                                                                                                        |
+| `GET /api/films/<film>/script`             | `ScriptBeats`: each beat of `script.ts` in order, its line (`say`, when it says one), its `picture` (when it has one) and its `cite`; none for no script                                                                                                                                                                                                                                                                    |
 | `GET /api/films/<film>/script/voice`       | `ScriptVoice`: each spoken beat's staging take in the voice and marks it has now (`Ready` with its words' times, `Voicing`, `Unvoiced`, `Refused`), and the day's spend against its cap                                                                                                                                                                                                                                     |
 | `GET /api/films/<film>/script/takes/:file` | a staging take's audio, by the name `Ready` gives it (immutable: named by its request's key); any other name a 404                                                                                                                                                                                                                                                                                                          |
 | `POST /api/films/<film>/script/marks`      | `MarksPost` (`{ beat, marks, read: { spoken, marks } }`): the beat's delivery marks rewritten in its `say` as one write of `script.ts` (`LabWrite`), its words unchanged; `read` is the line as the page read it, words and marks, and a write whose line says other words or carries other marks now (marked elsewhere), a mark that does not fit, or a post with no `read` (a tab older than the lab: reload it) is a 422 |

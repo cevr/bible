@@ -764,9 +764,9 @@ class TalkGroup extends HttpApiGroup.make('talk').add(
 ) {}
 
 /**
- * The film's script as the words reader reads it beside the staged film: each
- * beat's picture and sources, each beat's staging take and its audio, and a
- * beat's delivery marks written.
+ * The film's script as the words reader reads it: each beat's line, picture
+ * and sources, each beat's staging take and its audio, and a beat's delivery
+ * marks written.
  */
 class ScriptGroup extends HttpApiGroup.make('script').add(
   HttpApiEndpoint.get('beats', `${FILM}/script`, {

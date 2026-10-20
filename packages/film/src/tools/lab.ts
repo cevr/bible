@@ -319,10 +319,10 @@ const stagingTakeAnswer = (request: HttpServerRequest.HttpServerRequest, file: s
   });
 
 /**
- * The film's script as the words reader reads it beside the staged film:
- * each beat's picture and sources, read fresh (`FreshFilm.script`) and kept
- * under the film's source stamp, so a brief fixed while the lab is open is
- * read once after the change. A failed read is not kept.
+ * The film's script as the words reader reads it: each beat's line, picture
+ * and sources, read fresh (`FreshFilm.script`) and kept under the film's
+ * source stamp, so a line or a brief fixed while the lab is open is read once
+ * after the change. A failed read is not kept.
  */
 const scriptGroup = HttpApiBuilder.group(LabHttpApi, 'script', (handlers) =>
   Effect.gen(function* () {

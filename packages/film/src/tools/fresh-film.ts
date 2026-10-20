@@ -108,7 +108,7 @@ export class VoiceRead extends Schema.TaggedClass<VoiceRead>()('VoiceRead', {
   reading: StudioReading,
 }) {}
 
-/** `film read script`'s answer: each beat's picture and sources, as the words reader reads them. */
+/** `film read script`'s answer: each beat's line, picture and sources, as the words reader reads them. */
 export class ScriptRead extends Schema.TaggedClass<ScriptRead>()('ScriptRead', {
   beats: ScriptBeats.fields.beats,
 }) {}
@@ -369,7 +369,7 @@ export interface FreshFilmService {
   ) => Effect.Effect<void, FreshError>;
   /** What the studio reads of the film's script and voice (`film read voice`). */
   readonly reading: (film: FilmName) => Effect.Effect<StudioReading, FreshError>;
-  /** Each beat of the film's script, its picture and sources (`film read script`). */
+  /** Each beat of the film's script, its line, picture and sources (`film read script`). */
   readonly script: (film: FilmName) => Effect.Effect<ReadonlyArray<ScriptBeat>, FreshError>;
   /**
    * `cue` on `scene`'s clock as the film's files now declare it, `spans` in

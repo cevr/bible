@@ -431,7 +431,7 @@ const script = Command.make(
   }, answering),
 ).pipe(
   Command.withDescription(
-    "What the lab's words reader reads of the film's script (each beat's picture and sources), as one line of JSON",
+    "What the lab's words reader reads of the film's script (each beat's line, picture and sources), as one line of JSON",
   ),
 );
 
