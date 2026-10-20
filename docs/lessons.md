@@ -1733,3 +1733,83 @@ The form of an entry, each field on its own line:
 - **Wrong:** The confirm page showed its words and button, then reloaded into the confirmed page: two pages and a flash for one step.
 - **Cause:** The one-step confirm submitted the form as the page opened, so the browser loaded a second page, and the press stayed visible until it did.
 - **Guard:** code: `apps/firsttheblade/src/confirm.test.ts` `never reloads: the answer is drawn in place, and the press waits hidden for a browser with no script`
+
+### lead-hands-off-cuffs
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "hand diameter: no round hand beside the body"
+- **Source:** rbf-lead/findings.md F2
+- **Wrong:** After the lead was traced with sleeves, every scene still drew his circle hands at the plain lead's rest points, 30 to 60 units off his cuffs, bobbing on their own.
+- **Cause:** Each host kept its own hand points, and nothing tied a hand to the arm it ends.
+- **Guard:** code: `apps/animations/src/films/righteousness-by-faith/rigs/lead-rig.ts` `reachHands`
+
+### elbow-on-its-rest-side
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the near arm held the open hand out with its upper sleeve level from the shoulder"
+- **Source:** rbf-lead/findings.md F3
+- **Wrong:** The reach chose the elbow out from the body, which for a hand held out beside him is the elbow above the line, and a choice by a fixed direction flipped the elbow as a hand swept across it.
+- **Cause:** Of the two elbows that reach a point, the choice was a fixed direction, not the side the arm comes from.
+- **Guard:** code: `packages/film/src/style/figure.test.ts` `bends with the elbow on the side of the line to the point its hand hangs on at rest`
+
+### traced-ink-spikes
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the silhouette's line jagged along the arms and zigzagged in loops where the neck meets the shoulders"
+- **Source:** rbf-lead/findings.md F4
+- **Wrong:** The lead's first trace took a point at every 3 to 4 sheet pixels, and the house's smoothing turned their wobble into spikes and loops.
+- **Cause:** The tracer followed the sheet's edge pixel by pixel.
+- **Guard:** skill: the trace is a tool run by hand on a sheet, outside the repo's code. Carried by `.claude/skills/film/RIVE.md`: "A figure's outlines traced from its concept sheet take a point every 8 sheet pixels or more"
+
+### traced-row-astray
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "a bump on the near arm's outer edge at its elbow"
+- **Source:** rbf-lead/findings.md F5
+- **Wrong:** One row of the sheet read the near sleeve's edge 10 px out, off a curl of the hair, and the sleeve kept a knob there.
+- **Cause:** Each row's edge was taken alone.
+- **Guard:** skill: the trace is a tool run by hand on a sheet, outside the repo's code. Carried by `.claude/skills/film/RIVE.md`: "An edge read row by row takes the median of three rows"
+
+### traced-hair-over-face
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A long lock of hair sweeps from the crown down across the right side of the face"
+- **Source:** rbf-lead/findings.md F6
+- **Wrong:** The lead's traced hair ran a lock over his far temple and brow, and his fringe kept a notch where skin showed through.
+- **Cause:** The trace closed the hair with the ears behind it and never cut the face's skin or the brows out again; the dark between two curls left a gap open to the face.
+- **Guard:** skill: the trace is a tool run by hand on a sheet, outside the repo's code. Carried by `.claude/skills/film/RIVE.md`: "A mass traced from a sheet and closed to fill its gaps (the hair) is cut again by the parts in front of it after the closing"
+
+### hem-ink-over-trousers
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The band across the waist under the sweater hem is outline-black, where the concept's is brown."
+- **Source:** rbf-lead/findings.md F7
+- **Wrong:** The lead's top drew its outline along its hem over his trousers, where the sheet draws no line.
+- **Cause:** The garment's line ran round its whole outline, and the trousers lay behind all of it.
+- **Guard:** code: `packages/film/src/style/figure.test.ts` `a garment over trousers draws its line just behind the trousers' line, so their paper covers it under the hem; over other feet, no rule`
+
+### shoulder-turns-with-arm
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The right shoulder rides up against the jaw while the left slopes away"
+- **Source:** rbf-lead/findings.md F8
+- **Wrong:** When the lead held his hand out, his far shoulder rose against his jaw.
+- **Cause:** The upper sleeve held the whole shoulder from the neck, so the shoulder turned with the arm about its pivot.
+- **Guard:** skill: the sleeve's shape is traced by hand from a sheet, outside the repo's code. Carried by `.claude/skills/film/RIVE.md`: "A jointed arm's upper sleeve ends at its shoulder in a ball about its pivot"
+
+### leg-split-ragged
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The dark split between the legs starts below the hem in a ragged tip."
+- **Source:** rbf-lead/findings.md F9
+- **Wrong:** The split between the lead's legs began in a ragged notch.
+- **Cause:** The two legs met edge to edge above the split, and each one's boil opened a notch where they parted.
+- **Guard:** skill: the legs are traced by hand from a sheet, outside the repo's code. Carried by `.claude/skills/film/RIVE.md`: "Two legs traced side by side run past the middle at their tops so they overlap"
