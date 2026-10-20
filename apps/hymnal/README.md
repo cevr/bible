@@ -39,13 +39,20 @@ under its number, and the refrain written out each time it is sung.
 - `bun run test` runs the app's tests (`src`, with `src/test/setup.ts` as the
   preload: react-native-web for `react-native`, the real words for
   `virtual:hymnal`, a happy-dom document for the tests that press and type),
-  the browser tests and the infra's.
+  the browser tests and the infra's: the browser tests beside the other two,
+  which run one after the other, and it fails when any of them fails.
+  `HYMNAL_LIST_SEED` reaches the browser tests through turbo too (`bun run
+  gate`, `bun run test:budget`).
 - `bun run test:browser` (`test/browser/`) renders the Hymns and Search
   screens on a server, hydrates them in Playwright's Chromium, and drives
-  them: hydration keeps the server's list and a scroll made before it; Back,
+  them: hydration keeps the server's list and a scroll made before it (the
+  page hydrates once that scroll's own event has come, so the list must be
+  told of it); Back,
   the header's back link and a tab switch, at offsets across the whole list
   and window heights from 320 to 1400 px, come back within one row with
-  every row on screen drawn; the search field keeps the reader's focus;
+  every row on screen drawn (a press at once whose list heard of the last
+  scroll before it left is made again, up to three tries, and the run prints
+  how many were); the search field keeps the reader's focus;
   and a row is a real link. Its cases are drawn from that whole domain by a
   seeded sampler (`test/browser/visits.ts`), every pair of values meeting in
   each run and each visit leaving from its own offset; the run prints its
