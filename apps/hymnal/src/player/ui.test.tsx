@@ -20,8 +20,28 @@ import { PlayerContext } from './context';
 import { NowPlayingBar } from './NowPlayingBar';
 import { Command, Player, playerOn } from './player';
 import { PlayerControl } from './PlayerControl';
+import { useCommitAtRest, useScrub } from './scrub';
 
 const morning = Option.getOrThrow(hymnAt('100'));
+
+const setValue = (input: HTMLInputElement, value: string) =>
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, value);
+
+/** The reader moves the bar to `value`: the browser sets it and says `input`. */
+const drag = (bar: HTMLInputElement, value: string) => {
+  setValue(bar, value);
+  bar.dispatchEvent(new Event('input', { bubbles: true }));
+};
+
+/**
+ * The browser ends the drag: it fits the bar's value to its step, as Chrome
+ * does and happy-dom does not, then says `change`.
+ */
+const release = (bar: HTMLInputElement) => {
+  const step = Number(bar.step) || 1;
+  setValue(bar, String(Math.round(Number(bar.value) / step) * step));
+  bar.dispatchEvent(new Event('change', { bubbles: true }));
+};
 const praise = Option.getOrThrow(hymnAt('1'));
 
 /**
@@ -65,6 +85,14 @@ const mount = (shown = morning) => {
       ),
     );
   const find = (selector: string) => Option.fromNullishOr(host.querySelector(selector));
+  /** The position bar, once it shows. */
+  const bar = () =>
+    Option.getOrThrow(
+      Option.filter(
+        find('input[type="range"]'),
+        (found): found is HTMLInputElement => found instanceof HTMLInputElement,
+      ),
+    );
   const press = (label: string) =>
     act(() => {
       const target = Option.getOrThrow(find(`[aria-label="${label}"]`));
@@ -74,6 +102,7 @@ const mount = (shown = morning) => {
     device,
     until,
     find,
+    bar,
     press,
     /** A command from elsewhere in the app: another hymn's page, or the lock screen. */
     send: (command: Command) => act(() => registry.set(player.send, command)),
@@ -81,6 +110,7 @@ const mount = (shown = morning) => {
     [Symbol.dispose]: () => {
       act(() => root.unmount());
       host.remove();
+      registry.dispose();
     },
   };
 };
@@ -98,7 +128,7 @@ describe('the hymn page’s recording control', () => {
 
       page.device.now = { state: 'playing', positionMs: 62_000, durationMs: 151_000 };
       yield* page.until(Player.$is('Playing'));
-      const bar = Option.getOrThrow(page.find('input[type="range"]'));
+      const bar = page.bar();
       expect({
         value: bar.getAttribute('value'),
         max: bar.getAttribute('max'),
@@ -114,22 +144,98 @@ describe('the hymn page’s recording control', () => {
     }),
   );
 
-  it.live('seeks where the reader lets go of the bar', () =>
+  it.live('seeks once the reader lets go of the bar, and the bar then follows playback', () =>
+    Effect.gen(function* () {
+      using page = mount();
+      page.press('Play hymn 100');
+      page.device.now = { state: 'playing', positionMs: 10_400, durationMs: 151_000 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 10.4);
+      const bar = page.bar();
+
+      act(() => drag(bar, '75'));
+      expect(page.device.sought).toEqual([]);
+      act(() => void bar.dispatchEvent(new Event('pointerup', { bubbles: true })));
+      // Playing on between the pointer's release and the browser's `change`.
+      page.device.now = { ...page.device.now, positionMs: 75_400 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 75.4);
+      act(() => release(bar));
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 75);
+      expect(page.device.sought).toEqual([75_000]);
+
+      page.device.now = { ...page.device.now, positionMs: 80_400 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 80.4);
+      expect(bar.getAttribute('aria-valuetext')).toBe('1:20 of 2:31');
+      // A key's release with no step (a bare Shift) sends nothing.
+      act(
+        () => void bar.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Shift' })),
+      );
+      act(() => void bar.dispatchEvent(new Event('change', { bubbles: true })));
+      expect(page.device.sought).toEqual([75_000]);
+    }),
+  );
+
+  it.live('holds the place it sent until the player reaches it', () =>
     Effect.gen(function* () {
       using page = mount();
       page.press('Play hymn 100');
       page.device.now = { state: 'playing', positionMs: 10_000, durationMs: 151_000 };
       yield* page.until(Player.$is('Playing'));
+      const bar = page.bar();
 
-      const bar = Option.getOrThrow(page.find('input[type="range"]'));
-      const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+      page.device.lagging = true;
       act(() => {
-        setValue?.call(bar, '75');
-        bar.dispatchEvent(new Event('input', { bubbles: true }));
+        drag(bar, '75');
+        release(bar);
       });
-      act(() => void bar.dispatchEvent(new Event('pointerup', { bubbles: true })));
-      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 75);
-      expect(page.device.now.positionMs).toBe(75_000);
+      expect(page.device.sought).toEqual([75_000]);
+      // The device still plays at the old place while its seek goes.
+      page.device.now = { ...page.device.now, positionMs: 10_500 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 10.5);
+      expect(bar.getAttribute('aria-valuetext')).toBe('1:15 of 2:31');
+
+      // The seek lands, and the bar follows the player again.
+      page.device.now = { ...page.device.now, positionMs: 75_200 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 75.2);
+      page.device.now = { ...page.device.now, positionMs: 80_000 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 80);
+      expect(bar.getAttribute('aria-valuetext')).toBe('1:20 of 2:31');
+    }),
+  );
+
+  it.live('drops a drag the page takes away, unsent', () =>
+    Effect.gen(function* () {
+      using page = mount();
+      page.press('Play hymn 100');
+      page.device.now = { state: 'playing', positionMs: 10_000, durationMs: 151_000 };
+      yield* page.until(Player.$is('Playing'));
+      const bar = page.bar();
+
+      act(() => {
+        drag(bar, '95');
+        bar.dispatchEvent(new Event('pointercancel', { bubbles: true }));
+      });
+      page.device.now = { ...page.device.now, positionMs: 80_000 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 80);
+      expect(bar.getAttribute('aria-valuetext')).toBe('1:20 of 2:31');
+      expect(page.device.sought).toEqual([]);
+    }),
+  );
+
+  it.live('keeps the bar and Pause while the recording loads again mid-hymn', () =>
+    Effect.gen(function* () {
+      using page = mount();
+      page.press('Play hymn 100');
+      page.device.now = { state: 'playing', positionMs: 60_000, durationMs: 151_000 };
+      yield* page.until(Player.$is('Playing'));
+
+      page.device.now = { state: 'loading', positionMs: 61_000 };
+      yield* page.until(Player.$is('Buffering'));
+      expect(page.text()).toContain('Loading the recording…');
+      expect(page.bar().getAttribute('aria-valuetext')).toBe('1:01 of 2:31');
+
+      page.press('Pause hymn 100');
+      yield* page.until(Player.$is('Paused'));
+      expect(page.device.now.state).toBe('paused');
     }),
   );
 
@@ -203,6 +309,54 @@ describe('the now-playing bar', () => {
       expect(Option.getOrThrow(page.find('[aria-label="Now playing"]')).textContent).toBe(
         `100${morning.title}Play`,
       );
+    }),
+  );
+});
+
+describe('a bar that tells no drag’s end (iOS, Android)', () => {
+  /** A bar over `useScrub` that sends its drag once it rests for `rest`, its seeks kept. */
+  const resting = () => {
+    const sought = new Array<number>();
+    const bar = { change: (_seconds: number) => {} };
+    function Bar() {
+      const scrub = useScrub({ at: 10, length: Option.some(151), onSeek: (s) => sought.push(s) });
+      useCommitAtRest(scrub, Duration.millis(20));
+      bar.change = scrub.change;
+      return <></>;
+    }
+    const host = document.createElement('div');
+    const root = createRoot(host);
+    act(() => root.render(<Bar />));
+    return {
+      sought,
+      change: (seconds: number) => act(() => bar.change(seconds)),
+      /** Wait while the bar rests past its `rest`. */
+      rest: Effect.promise(() => act(() => Effect.runPromise(Effect.sleep(Duration.millis(60))))),
+      unmount: () => act(() => root.unmount()),
+    };
+  };
+
+  it.live('sends the drag once, where it rests, and nothing while it moves', () =>
+    Effect.gen(function* () {
+      const bar = resting();
+      bar.change(40);
+      bar.change(70);
+      expect(bar.sought).toEqual([]);
+      yield* bar.rest;
+      expect(bar.sought).toEqual([70]);
+      yield* bar.rest;
+      expect(bar.sought).toEqual([70]);
+      bar.unmount();
+    }),
+  );
+
+  it.live('sends nothing once the bar is gone before the drag rests', () =>
+    Effect.gen(function* () {
+      const bar = resting();
+      bar.change(40);
+      bar.unmount();
+      yield* bar.rest;
+      expect(bar.sought).toEqual([]);
     }),
   );
 });
