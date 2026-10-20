@@ -49,12 +49,15 @@ a press on it opens the hymn. Playing another hymn replaces the first.
 
 - `src/player/player.ts` holds the player: its states (idle, loading,
   playing, buffering, paused, ended, failed) as an Effect atom, and the
-  commands that move it. A recording that loads again mid-hymn (a stall, or
-  a seek past what the device holds) buffers: the page keeps its bar, its
-  times and Pause. It plays through the `Playback` service; `playback.live.ts` is
-  One's `Audio` session (AVPlayer on iOS, an `<audio>` element on the web).
-  One's `Audio` sends no status events, so the player reads the status
-  every 250 ms while a recording loads or plays.
+  commands that move it. A recording that loads again mid-hymn keeps its
+  bar and its times, and shows the reader's last ask: after a play it
+  buffers with Pause (a stall, a seek past what the device holds, or iOS's
+  wait of a few ms after a resume); after a pause it is paused (the web
+  loads a paused place it does not hold). It plays through the `Playback`
+  service; `playback.live.ts` is One's `Audio` session (AVPlayer on iOS, an
+  `<audio>` element on the web). One's `Audio` sends no status events, so
+  the player reads the status every 250 ms while the device says it loads
+  or plays, whatever the page shows.
 - A recording that cannot play says so on the page: "The recording needs a
   connection." when the device is offline, else "The recording could not be
   played.", with Retry beside it.
@@ -67,9 +70,15 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   before 26 show no bar; the lock screen still controls the recording.
 - The seek bar is `One.iOS.Slider` on iOS (it seeks once the thumb rests for
   300 ms, as the slider reports no release), `One.Android.Slider` on Android
-  and a range input on the web (it seeks on the browser's `change`, the
-  drag's end; a cancelled gesture seeks nothing). After a seek, each bar
-  holds the place sent until the player reaches it, or for 2 s.
+  and a range input on the web. On the web the pointer bounds a press: it
+  opens at `pointerdown` and ends at the first `pointerup` (the drag seeks
+  when it ends on another second than it began on), `pointercancel` or
+  `lostpointercapture` (the drag is dropped). The browser's `change` ends
+  nothing, as Chrome sends none for a drag that comes back to where it
+  began, and a key's step seeks at once. After a seek, each bar holds the
+  place sent until the player reaches it, or for 2 s.
+- `src/player/bar.property.test.tsx` holds the web bar to these rules over
+  seeded runs of presses, keys and playback's ticks, in Chrome's event order.
 - The tests run the player over a device the test holds
   (`src/test/device.ts`): each state and move in `src/player/player.test.ts`,
   and the page's control and the bar, pressed in a document, in
