@@ -381,17 +381,22 @@ const handOn = (pivot: Pt, sleeve: ReadonlyArray<Pt>, radius: number) =>
   );
 
 /**
- * A decode of a jointed arm's elbow: a point inside both its upper sleeve
- * and its forearm's, so the joint stays covered however it bends.
+ * A decode of a jointed arm's elbow: a point off its shoulder's `pivot`, so
+ * its upper sleeve has a length to turn by (a reach takes its hand to a
+ * point by that length), and inside both its upper sleeve and its forearm's,
+ * so the joint stays covered however it bends.
  */
-const elbowIn = (upper: ReadonlyArray<Pt>, forearm: ReadonlyArray<Pt>) =>
+const elbowIn = (pivot: Pt, upper: ReadonlyArray<Pt>, forearm: ReadonlyArray<Pt>) =>
   decoder(
     Point.check(
-      Schema.makeFilter((elbow: Pt) =>
-        inside(elbow, upper) && inside(elbow, forearm)
+      Schema.makeFilter((elbow: Pt) => {
+        if (elbow[0] === pivot[0] && elbow[1] === pivot[1]) {
+          return `its elbow (${elbow.join(', ')}) lies on its pivot: an upper sleeve runs from its shoulder to its elbow`;
+        }
+        return inside(elbow, upper) && inside(elbow, forearm)
           ? true
-          : `its elbow (${elbow.join(', ')}) lies outside its upper sleeve or its forearm: an elbow lies inside both`,
-      ),
+          : `its elbow (${elbow.join(', ')}) lies outside its upper sleeve or its forearm: an elbow lies inside both`;
+      }),
     ),
   );
 
@@ -416,7 +421,7 @@ const armsOf = (arms: Arms, body: Garment, radius: number): Arms => {
     if (checked._tag === 'Arm') {
       handOn(checked.pivot, checked.outline, radius)(checked.hand, part);
     } else {
-      elbowIn(checked.outline, checked.forearm)(checked.elbow, part);
+      elbowIn(checked.pivot, checked.outline, checked.forearm)(checked.elbow, part);
       handOn(checked.elbow, checked.forearm, radius)(checked.hand, part);
     }
     return checked;

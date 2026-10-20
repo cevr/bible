@@ -66,7 +66,7 @@ describe("RBF's figures", () => {
         expect(FIGURES.baked).toBe(false);
         // Each rig sets its ink from the shot it is drawn in (`inkAt`): as cut far off, 0.75 close.
         expect([0, 1].map((scale) => FIGURES.shot.ink?.(scale))).toEqual([1, 0.75]);
-        // The lead (a round head) and the judge (a cut silhouette) with their hands, laid as the
+        // The lead (a traced head) and the judge (a cut silhouette) with their hands, laid as the
         // file lays them: the whole file's print is two 37 MB texts, too slow for this test.
         const rml = figuresRml(
           figuresFile({

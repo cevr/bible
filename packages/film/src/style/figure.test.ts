@@ -1807,10 +1807,14 @@ describe('an arm bent at its elbow, trousers, and an open chin', () => {
     expect([set.knobs.farArm, set.knobs.farElbow]).toEqual([0.2, -0.3]);
   });
 
-  test("whose elbow lies outside either sleeve, or whose hand lies short of its forearm's end, is refused", () => {
+  test("whose elbow lies outside either sleeve or on its shoulder's pivot, or whose hand lies short of its forearm's end, is refused", () => {
     const out = JointedArm({ ...bentOf(bent), elbow: [10, -200] });
     expect(() => figure({ ...standingOf(), arms: { far: out } })).toThrow(
       /arms\.far refused: [^]*its elbow \(10, -200\) lies outside its upper sleeve or its forearm: an elbow lies inside both/,
+    );
+    const shut = JointedArm({ ...bentOf(bent), pivot: bent.elbow });
+    expect(() => figure({ ...standingOf(), arms: { far: shut } })).toThrow(
+      /arms\.far refused: [^]*its elbow \(56, -200\) lies on its pivot: an upper sleeve runs from its shoulder to its elbow/,
     );
     const short = JointedArm({ ...bentOf(bent), hand: [58, -150] });
     expect(() => figure({ ...standingOf(), arms: { far: short } })).toThrow(

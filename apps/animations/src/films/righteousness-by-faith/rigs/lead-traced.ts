@@ -27,20 +27,6 @@ export const PANEL = { scale: 0.69291, head: [121, 112], feet: [121, 644] } as c
 /** His chin: the head's lowest row, where the top's neck meets it by a shade step. */
 export const CHIN = 206;
 
-/** The sheet's colours, each the median inside its region. */
-export const COLOURS = {
-  hair: '#613f2a',
-  skin: '#f6b378',
-  teal: '#6e8683',
-  far: '#556e70',
-  near: '#6f8785',
-  khaki: '#b89568',
-  shoe: '#594438',
-  waist: '#725a3b',
-  neckShade: '#b37245',
-  hand: '#f6b278',
-} as const;
-
 /** His head's paper: his face and his ears, and his skull's dome under his hair. */
 export const HEAD: Pt[] = [
   [122.5, 27.5],
