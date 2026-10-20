@@ -218,6 +218,16 @@ The form of an entry, each field on its own line:
 - **Cause:** Not recorded.
 - **Guard:** code: `packages/film/src/tools/ask-cli.ts` `wait` (`film ask wait`; 8db69f813; `--page` 76f991de4)
 
+### repo-json-as-formatter-leaves-it
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the cast record is written unformatted"
+- **Source:** p6-casttools/findings.md F4
+- **Wrong:** `repoJson` wrote two-space JSON with one array item a line, so each write of a `cast-sheet.json` left a diff for `bun run fmt`.
+- **Cause:** It wrote `JSON.stringify` with two spaces, and the formatter sets a short array on one line.
+- **Guard:** code: `packages/film/src/core/schema.test.ts` `writes back every committed cast record and production byte for byte`
+
 ## The look
 
 ### floating-circle-hands-no-arms

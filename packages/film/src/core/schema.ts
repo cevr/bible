@@ -4,24 +4,109 @@
 // from these, so a decoded file and a hand-written film module share one
 // definition. Pure: Schema runs in the browser, the tools and the tests alike.
 
-import { Array as Arr, Option, Schema, SchemaTransformation, Struct } from 'effect';
+import { Array as Arr, Option, Predicate, Schema, SchemaTransformation, Struct } from 'effect';
 import { ActName, Address, PartId } from './address-schema.ts';
 import { SketchItem } from './sketch.ts';
 import type { ease } from './time.ts';
 
+/** The line the repo's formatter (oxfmt, `.oxfmtrc.json`) fits a printed value within. */
+const PRINT_WIDTH = 100;
+
+/** A JSON value's text as JSON writes it alone: a scalar, a key. */
+const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.Json));
+
+/** JSON text read back as its value. */
+const jsonValue = Schema.decodeSync(Schema.fromJsonString(Schema.Json));
+
+type Json = Schema.Json;
+
+/** Whether a JSON value is an array. */
+const isArray = (value: Json): value is Schema.JsonArray => Array.isArray(value);
+
+/** Whether a JSON value is an object. */
+const isObject = (value: Json): value is Schema.JsonObject =>
+  Predicate.isObject(value) && !isArray(value);
+
+/** An object's entries; none for any other value. */
+const entriesOf = (value: Json): ReadonlyArray<readonly [string, Json]> =>
+  (isObject(value) && Object.entries(value)) || [];
+
+/** A JSON value's own text on one line, as the formatter prints it flat: `[1, 2]`, `{ "a": 1 }`. */
+const flatJson = (value: Json): string => {
+  if (isArray(value)) return `[${value.map(flatJson).join(', ')}]`;
+  if (!isObject(value)) return jsonText(value);
+  const entries = entriesOf(value);
+  if (entries.length === 0) return '{}';
+  return `{ ${entries.map(([k, v]) => `${jsonText(k)}: ${flatJson(v)}`).join(', ')} }`;
+};
+
+/** Whether the formatter breaks `value` whatever room it has: an object with a key (the tools write its first key on its own line, and the formatter keeps an object broken so), or an array holding one. */
+const breaksAlways = (value: Json): boolean =>
+  (isArray(value) && value.some(breaksAlways)) || entriesOf(value).length > 0;
+
+/** Two or more arrays or objects, each of two or more items: the formatter prints each on its own line. */
+const isMatrix = (items: ReadonlyArray<Json>): boolean =>
+  items.length > 1 && items.every((v) => (isArray(v) && v.length > 1) || entriesOf(v).length > 1);
+
+/** Numbers as the formatter fills them: as many to a line, after `indent`, as fit. */
+const filled = (numbers: ReadonlyArray<string>, indent: string): ReadonlyArray<string> => {
+  const lines: Array<string> = [];
+  for (const n of numbers) {
+    const last = lines.at(-1);
+    if (Predicate.isNotUndefined(last) && indent.length + last.length + 2 + n.length <= PRINT_WIDTH)
+      lines[lines.length - 1] = `${last}, ${n}`;
+    else lines.push(n);
+  }
+  return lines;
+};
+
 /**
- * `schema` as a JSON file the repo keeps: two-space indent and a final
- * newline, as the formatter writes it, so a file the tools rewrite churns
- * only where the formatter differs: it sets a short array of strings on one
- * line, where this writes one per line.
+ * `value` printed as oxfmt prints a JSON file: an object one key a line; an
+ * array on one line when it fits in `PRINT_WIDTH` from `column` with the
+ * `tail` that follows it (a comma), else one item a line (numbers filled
+ * as many to a line as fit), and always broken when it holds an object or
+ * is two or more arrays or objects of two or more items each.
+ */
+const printJson = (value: Json, indent: string, column: number, tail: number): string => {
+  const inner = `${indent}  `;
+  if (isArray(value)) {
+    if (value.length === 0) return '[]';
+    const flat = flatJson(value);
+    if (!isMatrix(value) && !breaksAlways(value) && column + flat.length + tail <= PRINT_WIDTH)
+      return flat;
+    const lines =
+      (value.every(Predicate.isNumber) &&
+        filled(
+          value.map((n) => jsonText(n)),
+          inner,
+        )) ||
+      value.map((v, k) => printJson(v, inner, inner.length, (k < value.length - 1 && 1) || 0));
+    return `[\n${lines.map((line) => `${inner}${line}`).join(',\n')}\n${indent}]`;
+  }
+  if (!isObject(value)) return jsonText(value);
+  const entries = entriesOf(value);
+  if (entries.length === 0) return '{}';
+  const lines = entries.map(([k, v], i) => {
+    const key = `${jsonText(k)}: `;
+    const rest = (i < entries.length - 1 && 1) || 0;
+    return `${inner}${key}${printJson(v, inner, inner.length + key.length, rest)}`;
+  });
+  return `{\n${lines.join(',\n')}\n${indent}}`;
+};
+
+/**
+ * `schema` as a JSON file the repo keeps, printed as the repo's formatter
+ * prints it (`printJson`) with a final newline, so a file the tools rewrite
+ * reads as one the formatter left: a record a tool writes passes the gate's
+ * format check unchanged.
  */
 export const repoJson = <S extends Parameters<typeof Schema.fromJsonString>[0]>(schema: S) =>
   Schema.String.pipe(
     Schema.decodeTo(
-      Schema.fromJsonString(schema, { space: 2 }),
+      Schema.fromJsonString(schema),
       SchemaTransformation.transform<string, string>({
         decode: (text) => text,
-        encode: (json) => `${json}\n`,
+        encode: (json) => `${printJson(jsonValue(json), '', 0, 0)}\n`,
       }),
     ),
   );

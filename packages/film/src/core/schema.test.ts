@@ -1,8 +1,11 @@
+import { BunServices } from '@effect/platform-bun';
 import { describe, expect, test } from 'bun:test';
-import { Result, Schema } from 'effect';
+import { it } from 'effect-bun-test';
+import { Array as Arr, Effect, FileSystem, Result, Schema } from 'effect';
 import {
   CuePatch,
   Look,
+  repoJson,
   type Span,
   Timed,
   Timings,
@@ -12,6 +15,11 @@ import {
   type TakeWord,
 } from './schema.ts';
 import { voicedAt } from './voiced.ts';
+
+/** The app's folder, whose tool-written records the formatter has already passed over. */
+const APP = new URL('../../../../apps/animations/', import.meta.url).pathname;
+
+const JsonFile = repoJson(Schema.Json);
 
 const take: VoiceTiming = {
   hash: 'h',
@@ -251,4 +259,68 @@ describe('Voice', () => {
     expect(cast('eleven_v4', '{"similarity":0.75}')).toBe(false);
     expect(cast('eleven_v4', '{"stability":0.5,"speed":1}')).toBe(false);
   });
+});
+
+describe('repoJson', () => {
+  const printed = (value: Schema.Json) => Schema.encodeSync(JsonFile)(value);
+
+  test('prints a record as the formatter leaves it: short arrays on a line, objects open', () => {
+    const record = {
+      member: 'paul',
+      sheets: [{ kind: 'turnaround', slots: ['front', 'left'], standing: [1, 2] }],
+    };
+    expect(printed(record)).toBe(
+      [
+        '{',
+        '  "member": "paul",',
+        '  "sheets": [',
+        '    {',
+        '      "kind": "turnaround",',
+        '      "slots": ["front", "left"],',
+        '      "standing": [1, 2]',
+        '    }',
+        '  ]',
+        '}',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  test('fills a long array of numbers within the line, and breaks one that holds objects', () => {
+    const value = { box: Arr.makeBy(40, (i) => i * 100), parts: [{ a: 1 }] };
+    const lines = printed(value).split('\n');
+    expect(lines.every((line) => line.length <= 100)).toBe(true);
+    expect(lines.slice(1, 4)).toEqual([
+      '  "box": [',
+      '    0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700,',
+      '    1800, 1900, 2000, 2100, 2200, 2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300,',
+    ]);
+    expect(printed({ parts: [{ a: 1 }] })).toBe(
+      '{\n  "parts": [\n    {\n      "a": 1\n    }\n  ]\n}\n',
+    );
+  });
+
+  it.effect('writes back every committed cast record and production byte for byte', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const under = (dir: string, keep: (name: string) => boolean) =>
+        Effect.map(fs.readDirectory(`${APP}${dir}`, { recursive: true }), (names) =>
+          names.filter(keep).map((name) => `${APP}${dir}/${name}`),
+        );
+      const files = [
+        ...(yield* under('src/library/cast', (name) =>
+          name.endsWith('/cast-sheet/cast-sheet.json'),
+        )),
+        ...(yield* under('productions', (name) => !name.includes('/') && name.endsWith('.json'))),
+      ];
+      expect(files.length).toBeGreaterThan(3);
+      const changed = yield* Effect.filter(files, (file) =>
+        Effect.map(
+          fs.readFileString(file),
+          (text) => printed(Schema.decodeSync(JsonFile)(text)) !== text,
+        ),
+      );
+      expect(changed).toEqual([]);
+    }).pipe(Effect.provide(BunServices.layer)),
+  );
 });
