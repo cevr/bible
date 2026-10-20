@@ -29,7 +29,7 @@
     "test:perf": "turbo run test:perf --concurrency=1",
     "test:budget": "bun packages/scripts/src/test-budget.ts",
     "gate": "concurrently -n style,turbo -c yellow,cyan \"bun run guard\" \"turbo run gate\"",
-    "guard": "concurrently -g -n lint,fmt,dead-exports,film \"bun run lint\" \"bun run fmt:check\" \"bun run dead-exports\" \"bun run --cwd packages/film test:guard\"",
+    "guard": "concurrently -g -n lint,fmt,dead-exports,film \"nice -n 10 bun run lint\" \"nice -n 10 bun run fmt:check\" \"nice -n 10 bun run dead-exports\" \"bun run --cwd packages/film test:guard\"",
     "dead-exports": "bun packages/scripts/src/dead-exports.ts",
     "merge-audit": "bun packages/scripts/src/merge-audit.ts",
     "redfirst": "bun packages/scripts/src/redfirst.ts",
