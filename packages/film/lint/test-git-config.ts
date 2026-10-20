@@ -11,8 +11,10 @@
 // string, git's form of one setting on its command line. An array is git's
 // arguments when it starts at a `'git'` element, when a call is handed it
 // beside a `'git'` argument or by a name that says git (`git(dir, [...])`),
-// or when a name that says git holds it (`const GIT = [...]`); another
-// program's `-c` (`tar -c`) is its own. The config turns it on over every
+// or when a name that says git holds it (`const GIT = [...]`); an array
+// held by any other name is git's when git's arguments spread it
+// (`const AS_TEST = [...]`, then `git(dir, [...AS_TEST, 'commit'])`).
+// Another program's `-c` (`tar -c`) is its own. The config turns it on over every
 // test file.
 
 import { Array as Arr, Effect, Option, Predicate } from 'effect';
@@ -61,6 +63,39 @@ const isGitArguments = (array: ESTree.ArrayExpression) => {
   return false;
 };
 
+/** The `-c` elements of an array that each set one setting. */
+const settingsIn = (array: ESTree.ArrayExpression): ReadonlyArray<ESTree.Node> =>
+  array.elements.flatMap((element, i) =>
+    Option.toArray(
+      Option.filter(
+        Option.fromNullishOr(element),
+        () =>
+          Option.contains(textOf(element), '-c') &&
+          Option.exists(Option.flatMap(Arr.get(array.elements, i + 1), textOf), isSetting),
+      ),
+    ),
+  );
+
+/** The names an array spreads: `AS_TEST` in `[...AS_TEST, 'commit']`. */
+const spreadsIn = (array: ESTree.ArrayExpression): ReadonlyArray<string> =>
+  array.elements.flatMap((element) =>
+    Option.toArray(
+      Option.flatMap(Option.fromNullishOr(element), (e) => {
+        if (e.type === 'SpreadElement' && e.argument.type === 'Identifier')
+          return Option.some(e.argument.name);
+        return Option.none();
+      }),
+    ),
+  );
+
+/** The name a declaration gives an array, if it is one: `AS_TEST` in `const AS_TEST = [...]`. */
+const nameOf = (array: ESTree.ArrayExpression): Option.Option<string> => {
+  const parent = array.parent;
+  if (parent.type === 'VariableDeclarator' && parent.id.type === 'Identifier')
+    return Option.some(parent.id.name);
+  return Option.none();
+};
+
 export const testGitConfig = Rule.define({
   name: 'test-git-config',
   meta: Rule.meta({
@@ -70,21 +105,31 @@ export const testGitConfig = Rule.define({
   }),
   create: function* () {
     const context = yield* RuleContext;
-    return Visitor.on('ArrayExpression', (node) =>
+    const report = (flags: ReadonlyArray<ESTree.Node>) =>
       Effect.forEach(
-        node.elements,
-        (element, i) =>
-          Effect.when(
-            Effect.forEach(Option.toArray(Option.fromNullishOr(element)), (flag) =>
-              context.report(Diagnostic.make({ node: flag, message: MESSAGE })),
-            ),
-            Effect.succeed(
-              isGitArguments(node) &&
-                Option.contains(textOf(element), '-c') &&
-                Option.exists(Option.flatMap(Arr.get(node.elements, i + 1), textOf), isSetting),
-            ),
-          ),
+        flags,
+        (flag) => context.report(Diagnostic.make({ node: flag, message: MESSAGE })),
         { discard: true },
+      );
+    /** Arrays of settings held by a name, reported at the file's end if git's arguments spread it. */
+    const held: Array<{ readonly name: string; readonly flags: ReadonlyArray<ESTree.Node> }> = [];
+    const spread = new Set<string>();
+    return Visitor.merge(
+      Visitor.on('ArrayExpression', (node) =>
+        Effect.suspend(() => {
+          const flags = settingsIn(node);
+          if (!isGitArguments(node)) {
+            if (flags.length > 0) Option.map(nameOf(node), (name) => held.push({ name, flags }));
+            return Effect.void;
+          }
+          spreadsIn(node).forEach((name) => spread.add(name));
+          return report(flags);
+        }),
+      ),
+      Visitor.onExit('Program', () =>
+        Effect.suspend(() =>
+          report(held.filter(({ name }) => spread.has(name)).flatMap(({ flags }) => flags)),
+        ),
       ),
     );
   },

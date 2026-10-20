@@ -70,7 +70,7 @@ const MESSAGES = {
     "a step part way through a cue, written in the draw: declare the instant as its own cue ({ with: cue, offset, dur: 0 }) and read f.at(instant) > 0, where the lab can reach it and a sound can follow it; an instant the drawing's own shape makes is read from that shape (Math.cos(f.at('flip') * Math.PI) < 0).",
   'pages-in-case-scope.ts:10 film/pages-in-case-scope':
     "a scope made by hand in a browser test: a step that fails before it is closed keeps its page open, and the process's next touching case dies. Open the page in the case's scope, or in Scope.fork(yield* Effect.scope) to close it early.",
-  'no-lazy-test-fixture.ts:11 film/no-lazy-test-fixture':
+  'no-lazy-test-fixture.ts:12 film/no-lazy-test-fixture':
     "a fixture the file's cases share, made on first use: the case that asks first builds it inside its time limit, and which case pays moves with their order. Build it as the file loads (const x = await Effect.runPromise(…)), or make it in each case.",
   'test-git-config.ts:10 film/test-git-config':
     "a git config written in a test file: run a test repository's git with TEST_GIT (packages/scripts/src/testing.ts) ahead of its arguments, which also turns git's automatic maintenance off, whose lock file breaks the folder's delete.",

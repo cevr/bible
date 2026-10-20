@@ -9,10 +9,13 @@
 // (`const x = await Effect.runPromise(…)`), where no case's limit holds its
 // cost, or make it in each case that needs it.
 //
-// A memo is made by `cached(read)`, by a TTL form given its effect, or by a
-// memo maker a pipe applies (`read.pipe(Effect.cached)`,
-// `read.pipe(Effect.cachedWithTTL(ttl))`); a TTL form given its ttl alone and
-// kept for later is a helper, which makes nothing until applied. `Effect` is
+// A memo is made by a memo maker given its effect (`cached(read)`,
+// `cachedWithTTL(read, ttl)`), by a memo maker applied, directly or by a
+// name that holds it (`cachedWithTTL(ttl)(read)`, `withinMinute(read)`), or
+// by one a pipe applies (`read.pipe(Effect.cached)`). A TTL form given its
+// ttl alone, or a `flow(…)` with a memo maker among its steps, is a helper
+// that makes nothing until applied, and only its use where the file loads is
+// reported. `Effect` is
 // effect's, imported from `effect` (or an alias), or
 // `effect/Effect`, imported whole or by name. A memo made inside a case, a helper or a
 // layer's build is that call's own, and is not reported. The config turns
@@ -50,29 +53,68 @@ const memoNamed = (b: Bindings, node: ESTree.Node): Option.Option<string> => {
   return Option.fromNullishOr(MEMOS.find((name) => b.importsAs(node, isEffectModule, name)));
 };
 
-/** Whether a node is an argument of the call that holds it: a pipe step, for one. */
-const isArgument = (node: ESTree.Node) =>
-  Option.exists(
-    Option.fromNullishOr(node.parent),
-    (parent) =>
-      parent.type === 'CallExpression' && parent.arguments.some((argument) => argument === node),
-  );
+const isFunctionModule: Module = (from) => from === 'effect/Function';
+
+/** Whether a callee is effect's `name` (`pipe`, `flow`), off `effect` or `effect/Function`. */
+const isEffectFunction = (b: Bindings, callee: ESTree.Node, name: string) =>
+  b.importsAs(callee, isEffect, name) || b.importsAs(callee, isFunctionModule, name);
 
 /**
- * Whether a call makes a memo: `cached(read)`, a TTL form given its effect
- * (`cachedWithTTL(read, ttl)`), or a TTL form given its ttl alone where a
- * pipe applies it (`read.pipe(cachedWithTTL(ttl))`). A TTL form given its
- * ttl and kept for later is a helper, which makes nothing until applied.
+ * Whether a call applies its steps to a value: `read.pipe(…)`, or
+ * `pipe(read, …)` off effect. A `flow(…)` composes a function, which applies
+ * nothing until it is called.
+ */
+const isPipe = (b: Bindings, call: ESTree.CallExpression) =>
+  (call.callee.type === 'MemberExpression' && Option.contains(memberName(call.callee), 'pipe')) ||
+  isEffectFunction(b, call.callee, 'pipe');
+
+/** How many definitions deep a name is followed to what it holds. */
+const DEPTH = 4;
+
+/**
+ * Whether a node is a memo maker, a function that makes a memo when applied
+ * to an effect: a memo maker itself (`Effect.cached`), a TTL form given its
+ * ttl alone (`Effect.cachedWithTTL(ttl)`), a `flow(…)` with one among its
+ * steps, or a name a file's own definition binds to one of these.
+ */
+const isMaker = (b: Bindings, node: ESTree.Node, depth = 0): boolean => {
+  if (depth > DEPTH) return false;
+  if (Option.isSome(memoNamed(b, node))) return true;
+  if (node.type === 'CallExpression') {
+    if (Option.exists(memoNamed(b, node.callee), (name) => name !== 'cached'))
+      return node.arguments.length === 1;
+    return (
+      isEffectFunction(b, node.callee, 'flow') &&
+      node.arguments.some((step) => isMaker(b, step, depth + 1))
+    );
+  }
+  if (node.type !== 'Identifier') return false;
+  return Option.exists(
+    b.definitionOf(node),
+    ({ node: declared }) =>
+      declared.type === 'VariableDeclarator' &&
+      Option.exists(Option.fromNullishOr(declared.init), (init) => isMaker(b, init, depth + 1)),
+  );
+};
+
+/**
+ * Whether a call makes a memo: a memo maker given its effect (`cached(read)`,
+ * `cachedWithTTL(read, ttl)`), or a memo maker applied
+ * (`cachedWithTTL(ttl)(read)`, `withinMinute(read)`).
  */
 const makesMemo = (b: Bindings, call: ESTree.CallExpression) =>
-  Option.exists(
-    memoNamed(b, call.callee),
-    (name) => name === 'cached' || call.arguments.length >= 2 || isArgument(call),
-  );
+  Option.match(memoNamed(b, call.callee), {
+    onSome: (name) => call.arguments.length >= 1 + Number(name !== 'cached'),
+    onNone: () => call.arguments.length >= 1 && isMaker(b, call.callee),
+  });
 
-/** The arguments of a call that are a memo maker itself, handed to a pipe: `read.pipe(Effect.cached)`. */
-const memosPiped = (b: Bindings, call: ESTree.CallExpression) =>
-  call.arguments.filter((argument) => Option.isSome(memoNamed(b, argument)));
+/** The steps of a pipe that are a memo maker: `read.pipe(Effect.cached)`, `pipe(read, cachedWithTTL(ttl))`. */
+const memosPiped = (b: Bindings, call: ESTree.CallExpression) => {
+  if (!isPipe(b, call)) return [];
+  if (call.callee.type === 'MemberExpression')
+    return call.arguments.filter((step) => isMaker(b, step));
+  return call.arguments.slice(1).filter((step) => isMaker(b, step));
+};
 
 /** The node a callee chain starts at: `describe` for `describe.each(rows)(…)`. */
 const rootOf = (n: ESTree.Node): Option.Option<ESTree.Node> => {
