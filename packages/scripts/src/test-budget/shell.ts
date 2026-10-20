@@ -107,6 +107,7 @@ const SHELL_CHANGES = new Set([
   'cd',
   'pushd',
   'popd',
+  'kill',
 ]);
 
 /**
@@ -115,9 +116,12 @@ const SHELL_CHANGES = new Set([
  * own that changes what later commands run with, or ends the script
  * (`SHELL_CHANGES`: `export BUN_OPTIONS=-t`, `exit 0`): a variable such as
  * `BUN_OPTIONS` or `NODE_OPTIONS` hands a program flags its words do not
- * show, and `exit 0 && bun test` passes with no test run.
+ * show, and `exit 0 && bun test` passes with no test run. A script that
+ * holds a `$` or a backtick anywhere changes them too: an expansion
+ * (`bun test src $EXTRA`) may hand a program words its text does not show.
  */
 export const changesShell = (script: string) =>
+  /[$`]/.test(script) ||
   readOf(script).commands.some((words) => {
     const program = words[0] ?? '';
     return program === 'env' || ASSIGNMENT.test(program) || SHELL_CHANGES.has(program);

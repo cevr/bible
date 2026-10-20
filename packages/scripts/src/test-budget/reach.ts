@@ -9,7 +9,7 @@
 // script it cannot read reaches nothing, so the check can call a file
 // unreached that runs, never the reverse. A script reaches files only when
 // its commands are joined by `&&` alone (`andChained`), none sets a variable
-// or changes the shell (`changesShell`: `BUN_OPTIONS`, `export`), none runs
+// or changes the shell (`changesShell`: `BUN_OPTIONS`, `export`, `exit`, a `$`), none runs
 // in another folder (`movesFolder`: `cd`, a subshell, `--cwd`), and each holds only
 // flags that leave what runs as it is (`BUN_FLAGS`, `PLAYWRIGHT_FLAGS`; an
 // unknown one, a narrowing one such as `--changed`, `-t`, `--grep`,
