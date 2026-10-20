@@ -469,3 +469,15 @@ The owner kept candidate 9's three cast sheets as the lead (ask a8fb2170353, set
 ## 2026-10-20T17:54:00Z · film
 
 Unbaked ink (BAKED false): on a 0.5 s grid over the 9 drawn scenes, 255 of 543 stills are byte-equal to the baked ones and 288 differ, each a close shot; there the figures' line, hands, brows and mouth read about a quarter thinner while the set's ink (the dock's rails, the bench, the table) keeps its width, so close up the figures' line reads lighter than the set's (court mark:power, cold mark:judge).
+
+## 2026-10-20T22:41:44Z · look
+
+The traced lead at mark:faith against candidate 9's turnaround (build .147): head height +0%, jaw +3%, body 0.35 and 0.7 under the chin +5%, hand +5%, eyes, mouth within 4%, brow length +8% (its weight 6.5 px); his line is +37% the sheet's, so the body's widths at 0.1 and 0.35 under the chin (+10%, +5%) read 2% and 1% narrower inside it.
+
+## 2026-10-20T22:41:44Z · look
+
+At mark:hand his far hand reaches the seed on its cuff with the elbow on its rest side, and the shoulder over the turned sleeve stays level; the frame cuts his hair at its top, so the head's ratios do not read there.
+
+## 2026-10-20T22:41:45Z · film
+
+Over the 77 stills of the lead's scenes, 30 are byte-equal before and after the traced lead, every scene without him among them (woman, priest, robe, rain, the court's beside, look's pole to lifted); his scenes' HeldShare rose in word (61 to 68%) and seed (67 to 74%) with the hands' bob gone, and word draws his face at 345 px (FaceSmall).
