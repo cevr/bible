@@ -410,6 +410,71 @@ describe('a judged rule', () => {
   );
 
   it.effect(
+    'reports a cached item by the store as its write left it: one another run dropped and kept anew meanwhile reports its new answer',
+    () => {
+      const model = countingModel((text) => P.get(text) ?? 0.99);
+      return Effect.gen(function* () {
+        const options = yield* judging;
+        const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
+        const [cachedItem, freshItem] = [ITEMS[0]!, ITEMS[1]!];
+        const keyOf = (text: string) => cacheKey(ruleKey(historyComment), options.model, text);
+        const at = (p: number) => ({
+          label: 'history',
+          probabilities: { history: p, today: 1 - p },
+        });
+        const textOf = new Map(
+          [cachedItem, freshItem].map((item) => [keyOf(item.text), item.text]),
+        );
+        yield* keep(options.storeFile, new Map([[keyOf(cachedItem.text), at(0.99)]]));
+        const today = dayOf(yield* Clock.currentTimeMillis);
+        const later = { read: new Set<string>(), day: today + MAX_AGE_DAYS + 1 };
+        // Another run, past the store's age, drops the cached answer and keeps another for its key.
+        const meanwhile = Effect.andThen(
+          keepAnswers(options.storeFile, { ...later, fresh: new Map() }),
+          keepAnswers(options.storeFile, {
+            ...later,
+            fresh: new Map([[keyOf(cachedItem.text), at(0.01)]]),
+          }),
+        );
+        const outcomes = yield* judge(
+          [historyComment],
+          [cachedItem, freshItem].map((item) => ({
+            ...item,
+            rule: historyComment,
+            start: 0,
+            key: keyOf(item.text),
+          })),
+          {
+            ...options,
+            textsOf: (asked) =>
+              Effect.as(
+                Effect.provide(meanwhile, services),
+                asked.map((item) => textOf.get(item.key) ?? ''),
+              ),
+          },
+        );
+        expect(model.requests).toHaveLength(1);
+        expect(outcomes.outcomes[0]?.findings).toEqual([]);
+        expect(outcomes.outcomes[0]?.unkept).toEqual(new Set());
+      }).pipe(Effect.provide(model.layer), withFs);
+    },
+  );
+
+  it.effect('names the files whose answers the store does not keep when its write fails', () => {
+    const model = countingModel((text) => P.get(text) ?? 0.99);
+    return Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const options = yield* judging;
+      yield* fs.makeDirectory(path.dirname(path.dirname(options.storeFile)), { recursive: true });
+      yield* fs.writeFileString(path.dirname(options.storeFile), 'a file, not a folder\n');
+      const outcome = yield* judgeBy(historyComment, ITEMS, options);
+      expect(outcome.findings.map((f) => [f.file, f.kept])).toEqual([['src/a.ts', false]]);
+      expect(outcome.unkept).toEqual(new Set(['src/a.ts', 'src/b.ts']));
+    }).pipe(Effect.provide(model.layer), withFs);
+  });
+
+  it.effect(
     "asks again when the rule's subject, instructions or criteria change, and not for its threshold or message",
     () => {
       const model = countingModel((text) => P.get(text) ?? 0.99);

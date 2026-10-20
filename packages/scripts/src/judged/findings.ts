@@ -10,12 +10,12 @@
 // keeps an answer no run reads (`MAX_AGE_DAYS`): the store may have dropped
 // the answers its findings came from.
 //
-// Each file the run read holds the findings of each rule that judged all
-// its items; a rule the run could not finish on a file (an item no answer
-// came for) is left out of that file, so the plugin reads the store for it.
-// A finding holds its item's offset and the probability of the rule's
-// reporting label; only findings whose answers the store keeps are here, as
-// the plugin would find them in the store.
+// Each file the run read holds the findings of each rule whose every item
+// in it has an answer the store keeps, as the store held it after the run's
+// write; a rule with an item there the store keeps no answer for (none came,
+// or the write failed) is left out of that file, so the plugin reads the
+// store for it. A finding holds its item's offset and the probability of the
+// rule's reporting label, as the plugin would find them in the store.
 //
 // The file is the checkout's own (`settings.judged.checkout`, from its
 // root): it says what this tree held at the run. The plugin runs in Node, so

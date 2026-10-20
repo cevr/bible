@@ -423,7 +423,8 @@ interface Finding {
  * What a rule's run came to: its findings, how many items it read, how many
  * of those the cache answered and how many it asked about (`items` is
  * `cached + asked`; items of one key go in the request once), its skip, and
- * the files of the items it could not judge.
+ * the files of the items whose answer the store does not keep (unanswered,
+ * or answered and not kept).
  */
 interface Outcome {
   readonly rule: JudgedRule;
@@ -432,7 +433,7 @@ interface Outcome {
   readonly cached: number;
   readonly asked: number;
   readonly skip: Option.Option<{ readonly reason: SkipReason; readonly items: number }>;
-  readonly unjudged: ReadonlySet<string>;
+  readonly unkept: ReadonlySet<string>;
 }
 
 /**
@@ -483,8 +484,9 @@ export const judge = Effect.fn('judged.judge')(function* <E>(
     ),
   );
   const keeping = { fresh: answered, read: new Set(items.map((item) => item.key)), day };
-  // The store as kept: an answer another run kept for a key meanwhile is the
-  // one this run reports, as the store does. None when nothing was kept.
+  // The store as kept: an answer another run kept or dropped for a key
+  // meanwhile is what this run reports, as the store does. None when the
+  // write failed: then the store's answers are those it held when read.
   let store: Option.Option<ReadonlyMap<string, Verdict>> = Option.some(cache);
   if (changes(cache, keeping))
     store = yield* keepAnswers(judging.storeFile, keeping).pipe(
@@ -495,13 +497,18 @@ export const judge = Effect.fn('judged.judge')(function* <E>(
         ).pipe(Effect.as(Option.none<ReadonlyMap<string, Verdict>>())),
       ),
     );
-  const kept = Option.isSome(store);
-  const answerOf = (item: RuleItem): Option.Option<Verdict> =>
-    Option.orElse(Option.fromUndefinedOr(cache.get(item.key)), () =>
-      Option.orElse(
-        Option.flatMap(store, (after) => Option.fromUndefinedOr(after.get(item.key))),
-        () => Option.fromUndefinedOr(answered.get(item.key)),
-      ),
+  const held = Option.getOrElse(store, () => cache);
+  /** An item's answer, and whether the store keeps it: the store's, else this run's own, not kept. */
+  const answerOf = (item: RuleItem): Option.Option<{ answer: Verdict; kept: boolean }> =>
+    Option.orElse(
+      Option.map(Option.fromUndefinedOr(held.get(item.key)), (answer) => ({ answer, kept: true })),
+      () =>
+        Option.map(
+          Option.orElse(Option.fromUndefinedOr(answered.get(item.key)), () =>
+            Option.fromUndefinedOr(cache.get(item.key)),
+          ),
+          (answer) => ({ answer, kept: false }),
+        ),
     );
   const keyOfQuestion = new Map(questions.map((question) => [questionKey(question), question]));
   const unanswered = new Set(
@@ -521,14 +528,14 @@ export const judge = Effect.fn('judged.judge')(function* <E>(
       rule,
       findings: own.flatMap((item) =>
         Option.toArray(
-          Option.flatMap(answerOf(item), (answer) =>
+          Option.flatMap(answerOf(item), ({ answer, kept }) =>
             Option.liftPredicate(
               {
                 file: item.file,
                 line: item.line,
                 start: item.start,
                 p: answer.probabilities[rule.reports] ?? 0,
-                kept: isCached(item) || kept,
+                kept,
               },
               (finding) => finding.p >= rule.threshold,
             ),
@@ -541,7 +548,11 @@ export const judge = Effect.fn('judged.judge')(function* <E>(
       skip: Option.flatMap(asked.reason, (reason) =>
         Option.liftPredicate({ reason, items: left.length }, () => left.length > 0),
       ),
-      unjudged: new Set(left.map((item) => item.file)),
+      unkept: new Set(
+        own
+          .filter((item) => !Option.exists(answerOf(item), ({ kept }) => kept))
+          .map((item) => item.file),
+      ),
     };
   });
   return { outcomes, usage: asked.usage };

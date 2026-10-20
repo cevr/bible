@@ -300,24 +300,32 @@ describe('the judged lint fails open', () => {
     ),
   );
 
-  it.live('prints its findings and succeeds when the store folder cannot be written', () =>
-    withFs(
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
-        const dir = yield* repo;
-        yield* fs.writeFileString(path.join(dir, '.git', 'judged'), 'a file, not a folder\n');
-        const model = historyModel();
-        const lint = yield* inProcess(dir, [], model.layer);
-        expect(Exit.isSuccess(lint.exit)).toBe(true);
-        expect(lint.out).toEqual([
-          FINDING,
-          '[judged] rule=historyComment items=1 cached=0 asked=1 findings=1',
-        ]);
-        expect(lint.err.join('\n')).toContain('[judged] answers not kept rule=historyComment');
-        expect(model.requests).toHaveLength(1);
-      }),
-    ),
+  it.live(
+    'prints its findings and succeeds when the store folder cannot be written, and leaves the rule out of their file for the plugin',
+    () =>
+      withFs(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const dir = yield* repo;
+          yield* fs.writeFileString(path.join(dir, '.git', 'judged'), 'a file, not a folder\n');
+          const model = historyModel();
+          const lint = yield* inProcess(dir, [], model.layer);
+          expect(Exit.isSuccess(lint.exit)).toBe(true);
+          expect(lint.out).toEqual([
+            FINDING,
+            '[judged] rule=historyComment items=1 cached=0 asked=1 findings=1',
+          ]);
+          expect(lint.err.join('\n')).toContain('[judged] answers not kept rule=historyComment');
+          expect(model.requests).toHaveLength(1);
+          // The plugin reads the store for the file: an answer another checkout keeps there reports.
+          const written = yield* Effect.flatMap(
+            fs.readFileString(path.join(dir, 'tmp/judged/findings.json')),
+            Schema.decodeEffect(Findings),
+          );
+          expect(Object.values(written.files).map((entry) => entry.rules)).toEqual([{}]);
+        }),
+      ),
   );
 
   it.live(

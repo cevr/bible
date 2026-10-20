@@ -45,9 +45,9 @@ type ModelOf<E, R> = (model: string) => Layer.Layer<DecisionModel.DecisionModel,
 
 /**
  * The findings file of a run on `day`: each file the run read, by its hash,
- * with the findings the store keeps of each rule that judged all its items
- * there, for the plugin to report; a Markdown file oxlint never reads holds
- * none.
+ * with the findings of each rule whose every item there has an answer the
+ * store keeps, for the plugin to report; a Markdown file oxlint never reads
+ * holds none.
  */
 const findingsOf = (
   day: number,
@@ -69,7 +69,7 @@ const findingsOf = (
           hash,
           rules: Object.fromEntries(
             outcomes
-              .filter((outcome) => !outcome.unjudged.has(file))
+              .filter((outcome) => !outcome.unkept.has(file))
               .map((outcome) => [
                 outcome.rule.id,
                 outcome.findings
