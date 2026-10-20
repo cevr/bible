@@ -460,6 +460,36 @@ describe('a judged rule', () => {
     },
   );
 
+  it.effect(
+    'answers the day it marked its answers seen: a run that crosses midnight answers the day it began',
+    () => {
+      const model = countingModel((text) => P.get(text) ?? 0.99);
+      return Effect.gen(function* () {
+        const options = yield* judging;
+        const item = ITEMS[0]!;
+        const key = cacheKey(ruleKey(historyComment), options.model, item.text);
+        const begun = 20_000 * 86_400_000 - 60_000;
+        yield* TestClock.setTime(begun);
+        const judged = yield* judge(
+          [historyComment],
+          [{ ...item, rule: historyComment, start: 0, key }],
+          {
+            ...options,
+            // The run reads its texts across midnight.
+            textsOf: (asked) =>
+              Effect.as(
+                TestClock.adjust('2 minutes'),
+                asked.map(() => item.text),
+              ),
+          },
+        );
+        expect(dayOf(yield* Clock.currentTimeMillis)).toBe(20_000);
+        expect(judged.day).toBe(19_999);
+        expect((yield* readCache(options.storeFile)).get(key)?.seen).toBe(judged.day);
+      }).pipe(Effect.provide(model.layer), withFs);
+    },
+  );
+
   it.effect('names the files whose answers the store does not keep when its write fails', () => {
     const model = countingModel((text) => P.get(text) ?? 0.99);
     return Effect.gen(function* () {

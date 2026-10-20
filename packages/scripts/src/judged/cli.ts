@@ -9,7 +9,6 @@
 
 import {
   Cause,
-  Clock,
   Console,
   Effect,
   FileSystem,
@@ -29,7 +28,7 @@ import { JudgedLint, judgedLintLayer } from './config.js';
 import { cacheModel } from './rule.js';
 import { LIMITS, detailOf, findingLine, judge, runLine } from './run.js';
 import { repoItems } from './sources.js';
-import { dayOf, storeFileOf } from './store.js';
+import { storeFileOf } from './store.js';
 
 /** Findings that fail the run: a rule at `error`, or any finding under `--strict`. */
 class GatingFindings extends Schema.TaggedError<GatingFindings>()('GatingFindings', {
@@ -44,7 +43,8 @@ const isGatingFindings = Schema.is(GatingFindings);
 type ModelOf<E, R> = (model: string) => Layer.Layer<DecisionModel.DecisionModel, E, R>;
 
 /**
- * The findings file of a run on `day`: each file the run read, by its hash,
+ * The findings file of a run that marked its answers seen on `day` (so it
+ * expires no later than they do): each file the run read, by its hash,
  * with the findings of each rule whose every item there has an answer the
  * store keeps, for the plugin to report; a Markdown file oxlint never reads
  * holds none.
@@ -106,7 +106,7 @@ const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<n
     file: path.join(root, config.settings.checkout, 'items.json'),
   });
   yield* Ref.set(read, tree.items.length);
-  const { outcomes, usage } = yield* judge(config.rules, tree.items, {
+  const { outcomes, usage, day } = yield* judge(config.rules, tree.items, {
     model,
     storeFile: storeFileOf(root, config.settings.store),
     textsOf: tree.textsOf,
@@ -116,7 +116,7 @@ const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<n
     yield* Console.error(`[judged] tokens input=${usage.inputTokens} output=${usage.outputTokens}`);
   yield* writeFindings(
     findingsFileOf(root, config.settings.checkout),
-    findingsOf(dayOf(yield* Clock.currentTimeMillis), model, outcomes, tree.files),
+    findingsOf(day, model, outcomes, tree.files),
   );
   // oxlint reports, at the rule's severity, every finding the plugin can
   // read; the runner prints and gates on the rest (a series script, an
