@@ -12,10 +12,10 @@
 // each test file whose path holds it; `--path-ignore-patterns` takes none
 // its globs match. `bun run <script>` runs that script of the workspace.
 // `playwright test` takes a file as its config sets it (`playwrightRun`):
-// under the config's `testDir`, matched by its `testMatch`, and by one of
-// the command's filters when it names any; a config the reader cannot read
-// (none, a `testDir` or `testMatch` that is not a literal, `projects`) takes
-// none. A by-hand script's other commands (a wrapper of `bun test`) reach a
+// under the config's `testDir`, matched by its `testMatch`, not by its
+// `testIgnore`, and by one of the command's filters when it names any; a
+// config the reader cannot read (none, a `testDir`, `testMatch` or
+// `testIgnore` that is not a literal, `projects`) takes none. A by-hand script's other commands (a wrapper of `bun test`) reach a
 // file only by naming it, or a folder that holds it, by its path. A file
 // named as a test that registers none (`holdsTests`) needs no script.
 
@@ -185,19 +185,29 @@ const literalOf = (text: string, key: string): Option.Option<Option.Option<strin
   );
 };
 
-/** A config's `testMatch` as a test of a path: a regex literal, a quoted glob, or playwright's own. */
-const testMatchOf = (text: string): Option.Option<(file: string) => boolean> =>
+/**
+ * A config's `key` (`testMatch`, `testIgnore`) as a test of a path: a regex
+ * literal or a quoted glob, `absent` when the config sets none; none when it
+ * sets it some other way (a list, a name), which this does not read.
+ */
+const patternOf = (
+  text: string,
+  key: string,
+  absent: (file: string) => boolean,
+): Option.Option<(file: string) => boolean> =>
   Option.match(
-    Option.fromNullishOr(/\btestMatch\s*:\s*\/((?:\\.|[^/\\\n])+)\/([a-z]*)/.exec(text)),
+    Option.fromNullishOr(
+      new RegExp(`\\b${key}\\s*:\\s*\\/((?:\\\\.|[^/\\\\\\n])+)\\/([a-z]*)`).exec(text),
+    ),
     {
       onSome: (regex) => {
         const match = new RegExp(regex[1] ?? '', regex[2]);
         return Option.some((file: string) => match.test(file));
       },
       onNone: () =>
-        Option.map(literalOf(text, 'testMatch'), (glob) =>
+        Option.map(literalOf(text, key), (glob) =>
           Option.match(glob, {
-            onNone: () => (file: string) => PLAYWRIGHT_MATCH.test(file),
+            onNone: () => absent,
             onSome: (pattern) => {
               const matcher = new Glob(pattern);
               return (file: string) => matcher.match(file);
@@ -211,7 +221,7 @@ const testMatchOf = (text: string): Option.Option<(file: string) => boolean> =>
  * The files `playwright test` takes with `words` (the command's words past
  * `test`), its configs by their path from the workspace: those under the
  * config's `testDir` (from the config's folder; the folder itself when it
- * sets none) its `testMatch` takes, and one of the command's filters (each
+ * sets none) its `testMatch` takes and its `testIgnore` does not, and one of the command's filters (each
  * a pattern of the file's path) when it names any. None when the config is
  * missing or sets its files in a way this does not read.
  */
@@ -247,11 +257,18 @@ const playwrightRun = (
       const folder = at.split('/').slice(0, -1);
       return Option.flatMap(literalOf(text, 'testDir'), (dir) =>
         Option.flatMap(pathOf([...folder, Option.getOrElse(dir, () => '.')].join('/')), (root) =>
-          Option.map(testMatchOf(text), (matches) => (path: string) => {
-            const under = root === '' || path.startsWith(`${root}/`);
-            const named = filters.length === 0 || filters.some((f) => new RegExp(f).test(path));
-            return under && matches(path) && named;
-          }),
+          Option.map(
+            Option.all([
+              patternOf(text, 'testMatch', (path) => PLAYWRIGHT_MATCH.test(path)),
+              patternOf(text, 'testIgnore', () => false),
+            ]),
+            ([matches, ignored]) =>
+              (path: string) => {
+                const under = root === '' || path.startsWith(`${root}/`);
+                const named = filters.length === 0 || filters.some((f) => new RegExp(f).test(path));
+                return under && matches(path) && !ignored(path) && named;
+              },
+          ),
         ),
       );
     }),

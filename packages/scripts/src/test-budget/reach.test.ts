@@ -160,59 +160,71 @@ describe("a workspace's test files", () => {
     }),
   );
 
-  it.effect("are taken by playwright as its config's testDir and testMatch set them", () =>
-    Effect.sync(() => {
-      const scripts = { 'test:browser': 'playwright test --config=test/browser/pw.config.ts' };
-      const files = ['test/browser/a.spec.ts', 'test/browser/b.test.ts', 'test/c.spec.ts'];
-      const config = (text: string) => ({ 'test/browser/pw.config.ts': text });
-      // `test` is playwright's command, not a folder: a file outside the config's folder is not taken.
-      expect(
-        reaches(
-          scripts,
-          files,
-          config("export default { testDir: '.', testMatch: /\\.spec\\.ts$/ };"),
-        ),
-      ).toEqual([
-        'test/browser/a.spec.ts: test:browser',
-        'test/browser/b.test.ts: none',
-        'test/c.spec.ts: none',
-      ]);
-      // No testMatch: playwright's own, a `.spec` or `.test` file.
-      expect(reaches(scripts, files, config('export default {};'))).toEqual([
-        'test/browser/a.spec.ts: test:browser',
-        'test/browser/b.test.ts: test:browser',
-        'test/c.spec.ts: none',
-      ]);
-      // A filter takes only the files whose path it matches.
-      expect(
-        reaches(
-          { 'test:browser': 'bunx playwright test -c test/browser/pw.config.ts b\\.test' },
-          files,
-          config('export default {};'),
-        ),
-      ).toEqual([
-        'test/browser/a.spec.ts: none',
-        'test/browser/b.test.ts: test:browser',
-        'test/c.spec.ts: none',
-      ]);
-      // A config it cannot read, or none, takes nothing.
-      for (const configs of [
-        config('export default { testDir: here };'),
-        config('export default { projects: [] };'),
-        {},
-      ])
-        expect(reaches(scripts, files, configs).map((line) => line.endsWith(': none'))).toEqual([
-          true,
-          true,
-          true,
+  it.effect(
+    "are taken by playwright as its config's testDir, testMatch and testIgnore set them",
+    () =>
+      Effect.sync(() => {
+        const scripts = { 'test:browser': 'playwright test --config=test/browser/pw.config.ts' };
+        const files = ['test/browser/a.spec.ts', 'test/browser/b.test.ts', 'test/c.spec.ts'];
+        const config = (text: string) => ({ 'test/browser/pw.config.ts': text });
+        // `test` is playwright's command, not a folder: a file outside the config's folder is not taken.
+        expect(
+          reaches(
+            scripts,
+            files,
+            config("export default { testDir: '.', testMatch: /\\.spec\\.ts$/ };"),
+          ),
+        ).toEqual([
+          'test/browser/a.spec.ts: test:browser',
+          'test/browser/b.test.ts: none',
+          'test/c.spec.ts: none',
         ]);
-      // With no --config, playwright's own name in the workspace's folder.
-      expect(
-        reaches({ 'test:browser': 'playwright test' }, ['e2e/x.spec.ts'], {
-          'playwright.config.ts': "export default { testDir: './e2e' };",
-        }),
-      ).toEqual(['e2e/x.spec.ts: test:browser']);
-    }),
+        // No testMatch: playwright's own, a `.spec` or `.test` file.
+        expect(reaches(scripts, files, config('export default {};'))).toEqual([
+          'test/browser/a.spec.ts: test:browser',
+          'test/browser/b.test.ts: test:browser',
+          'test/c.spec.ts: none',
+        ]);
+        // A filter takes only the files whose path it matches.
+        expect(
+          reaches(
+            { 'test:browser': 'bunx playwright test -c test/browser/pw.config.ts b\\.test' },
+            files,
+            config('export default {};'),
+          ),
+        ).toEqual([
+          'test/browser/a.spec.ts: none',
+          'test/browser/b.test.ts: test:browser',
+          'test/c.spec.ts: none',
+        ]);
+        // A file its testIgnore names is not taken, by a glob or a regex.
+        for (const ignore of ["'**/a.spec.ts'", '/a\\.spec/'])
+          expect(
+            reaches(scripts, files, config(`export default { testIgnore: ${ignore} };`)),
+          ).toEqual([
+            'test/browser/a.spec.ts: none',
+            'test/browser/b.test.ts: test:browser',
+            'test/c.spec.ts: none',
+          ]);
+        // A config it cannot read, or none, takes nothing.
+        for (const configs of [
+          config('export default { testDir: here };'),
+          config("export default { testIgnore: ['**/a.spec.ts'] };"),
+          config('export default { projects: [] };'),
+          {},
+        ])
+          expect(reaches(scripts, files, configs).map((line) => line.endsWith(': none'))).toEqual([
+            true,
+            true,
+            true,
+          ]);
+        // With no --config, playwright's own name in the workspace's folder.
+        expect(
+          reaches({ 'test:browser': 'playwright test' }, ['e2e/x.spec.ts'], {
+            'playwright.config.ts': "export default { testDir: './e2e' };",
+          }),
+        ).toEqual(['e2e/x.spec.ts: test:browser']);
+      }),
   );
 
   it.effect.layer(BunServices.layer)(

@@ -642,7 +642,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-1.md F3
 - **Wrong:** The reach check read `playwright test --config=…` as a run of every file under a folder named `test`, so a spec outside the config's testDir counted as reached.
 - **Cause:** Every command that was not a bun test was read as a list of path filters.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir and testMatch set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### each-commit-runs-film-exports
 
