@@ -1,10 +1,10 @@
 ---
 created_at: '2026-10-20T16:10:51Z'
 topic: christian-perfection
-title: 'Christian Perfection'
+title: Christian Perfection
 kind: message
+apple_note_id: 'x-coredata://CF342100-3178-4D1E-A270-0C3B275F6425/ICNote/p2309'
 ---
-
 # Christian Perfection
 
 **God commands perfection and gives the power: by His Word and His Spirit we can stop sinning now, perfect at every stage of the path, and the one failure is a life that does not grow.**
@@ -22,12 +22,13 @@ Central verse:
 3. The means: the Seed and the Spirit — 1 Pet 1:23; Ezek 36:26-27
 4. Power over the flesh, now — Rom 8:2-4
 5. Perfect in its sphere — Mark 4:28
-6. "Not already perfect" and "as many as be perfect" — Phil 3:12-15
-7. The real test: is it growing? — Luke 13:6-9
-8. Two ditches — 1 John 1:8; 1 John 2:1
-9. Appeal — Jude 1:24
+6. Shown as we can bear it — John 16:12
+7. "Not already perfect" and "as many as be perfect" — Phil 3:12-15
+8. The real test: is it growing? — Luke 13:6-9
+9. Two ditches — 1 John 1:8; 1 John 2:1
+10. Appeal — Jude 1:24
 
-[Q] index: does God really expect it? →1 · isn't this salvation by works? →3 · Romans 7? →4 · "nobody's perfect"? →5 · then why "not already perfect"? →6 · 1 John 1:8? →8 · am I lost when I fall? →8 · "I am sinless"? →8
+[Q] index: does God really expect it? →1 · isn't this salvation by works? →3 · Romans 7? →4 · "nobody's perfect"? →5 · I see more sin than when I began? →6 · then why "not already perfect"? →7 · 1 John 1:8? →9 · am I lost when I fall? →9 · "I am sinless"? →9
 
 ---
 
@@ -174,11 +175,33 @@ Central verse:
 
 [SOP 8T 64.1] "As God is perfect in His sphere, so man may be perfect in his sphere." — the sphere is the key word
 
-[→] perfect at the stage is not finished at the goal — Paul holds both in one paragraph, §6
+[→] perfect at the stage, and shown only what the stage can bear — §6
 
 ---
 
-## 6. "Not Already Perfect" and "As Many as Be Perfect" — Phil 3:12-15
+## 6. Shown As We Can Bear It — John 16:12
+
+> God shows us our sinfulness step by step. Seen all at once, it would crush us into discouragement. So He counts us perfect at our stage, and each new sight of sin is a sign of growth, not of failure.
+
+[WB]: MORE LIGHT → MORE SIN SEEN → MORE NEED OF HIM → MORE GROWTH
+
+- _John 16:12._ "I have yet many things to say unto you, but ye cannot bear them now" — Christ holds back what we cannot yet carry
+- _Mark 4:33._ "with many such parables spake he the word unto them, as they were able to hear it" — the measure is the hearer's strength
+- _Deut 7:22._ "the LORD thy God will put out those nations before thee by little and little: thou mayest not consume them at once" — the land was taken by little and little, lest the wild beasts overrun it; so is the heart
+- _Heb 5:14._ "But strong meat belongeth to them that are of full age" — strong meat is truth given before the hearer can bear it, not a higher class of doctrine
+
+[SOP Ev 57.3] "little by little, as they were able to bear it, He unfolded to them the great truths of the kingdom" — Christ's own method with truth, and with the truth about us
+
+[SOP SC 64.2] "The closer you come to Jesus, the more faulty you will appear in your own eyes; for your vision will be clearer" — a growing sight of sin is evidence of nearness
+
+[Q] I see more sin in me now than when I began; am I going backward?
+→ no: the light is brighter, not the heart darker; seeing more of our need is how we grow — SC 64.2; Prov 4:18
+
+[→] perfect at the stage is not finished at the goal — Paul holds both in one paragraph, §7
+
+---
+
+## 7. "Not Already Perfect" and "As Many as Be Perfect" — Phil 3:12-15
 
 > Paul uses the word both ways in four verses: not yet perfect at the goal, and perfect in the way. Both are true of every growing Christian.
 
@@ -203,11 +226,11 @@ Central verse:
 
 [SOP AA 561.1] "None of the apostles and prophets ever claimed to be without sin." — the holiest claimed it least
 
-[→] if every stage can be perfect, the test is not "have I arrived?" but "am I growing?" — §7
+[→] if every stage can be perfect, the test is not "have I arrived?" but "am I growing?" — §8
 
 ---
 
-## 7. The Real Test: Is It Growing? — Luke 13:6-9
+## 8. The Real Test: Is It Growing? — Luke 13:6-9
 
 > God is not offended by a blade. He is grieved by a tree that bears no fruit after three years, a sun that never climbs, a baby that never grows up.
 
@@ -231,11 +254,11 @@ Central verse:
 
 [RQ] What milestone has God passed you through this year? Where has the growth stopped?
 
-[→] growth by His life guards against two errors: claiming arrival and excusing a standstill — §8
+[→] growth by His life guards against two errors: claiming arrival and excusing a standstill — §9
 
 ---
 
-## 8. Two Ditches — 1 John 1:8; 1 John 2:1
+## 9. Two Ditches — 1 John 1:8; 1 John 2:1
 
 > Yes to victory over sin now, by the Spirit and the Word. No to perfectionism that claims sinlessness or measures others. John holds both.
 
@@ -267,11 +290,11 @@ Central verse:
 
 [SOP SC 64.1] "Even if we are overcome by the enemy, we are not cast off, not forsaken and rejected of God." — a fall is not a verdict
 
-[→] victory is the aim, humility the climate, the Advocate the safety — and the whole work is His — §9
+[→] victory is the aim, humility the climate, the Advocate the safety — and the whole work is His — §10
 
 ---
 
-## 9. Appeal — Jude 1:24
+## 10. Appeal — Jude 1:24
 
 > He is able to keep you from falling now, and to finish what He began. Yield to the seed, walk in the Spirit, and keep growing.
 
