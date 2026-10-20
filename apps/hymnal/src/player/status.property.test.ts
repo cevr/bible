@@ -41,8 +41,8 @@
  * lock screen or the Media Session plays, pauses and seeks. The world drops
  * the connection and brings it back, and fails the recording. In every run,
  * at every look at the page:
- * - from a Play (any path), at its press, until the next Pause, the page
- *   never shows Paused or Stopped;
+ * - from a Play (any path), at its press, until the next Pause or the
+ *   recording's end, the page never shows Paused or Stopped;
  * - while the device has not answered a play, a resume or a seek, the
  *   player reads its status at least every two `statusEvery`, until the
  *   page shows Failed or Stopped;
@@ -176,6 +176,8 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
     /** Its metadata (the web), its item ready (iOS), prepared (Android). */
     ready: false,
     ended: false,
+    /** When it last played to its end. */
+    endedAt: Number.NEGATIVE_INFINITY,
     /** One's `playbackPaused` (iOS, Android). */
     marked: false,
     /** The web: One's `Audio.play` promise, while it waits, and the status `failed` it keeps once rejected. */
@@ -193,8 +195,8 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
     askedAt: 0,
     /** When the app last read the status. */
     readAt: 0,
-    /** The place the app last asked the device to seek to (seconds). */
-    sought: Option.none<number>(),
+    /** Each place the app asked the device to seek to (seconds), and when. */
+    sought: new Array<{ readonly to: number; readonly at: number }>(),
   };
   const failed = () => media.loaded && now() >= media.failsAt;
   const endOf = (range: Range, t: number) =>
@@ -274,6 +276,7 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
         media.position = Math.min(length, media.position + dt / 1000);
         if (media.position >= length) {
           media.ended = true;
+          media.endedAt = media.since + dt;
           media.engine = false;
         }
       }
@@ -468,7 +471,7 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
       Effect.suspend(() => {
         advance();
         const at = Math.min(positionMs / 1000, length);
-        media.sought = Option.some(at);
+        media.sought.push({ to: at, at: now() });
         if (!media.loaded || !media.ready || failed()) return refused('seek');
         if (platform === 'web' && at === media.position) return answer(Effect.sync(status));
         place(at);
@@ -685,9 +688,13 @@ const session = (platform: Platform, network: Network, clock: TestClock.TestCloc
   const miss = (rule: string) => void broken.push(`${rule}: ${where()}`);
   const judge = (state: Player) => {
     const tag = tagOf(state);
+    // A play ends with the recording, shown or not yet read: a seek after it leaves it still, until the next Play.
+    const over = tag === 'Ended' || device.media.endedAt >= reader.at;
+    if (reader.wants === 'play' && over) Object.assign(reader, { wants: 'pause', at: t() });
     if (reader.wants === 'play' && (tag === 'Paused' || tag === 'Stopped'))
       miss(`${tag} shown after a play`);
     if (tag === 'Playing' || tag === 'Ended') reader.played = true;
+    since.loading = held(since.loading, tag === 'Loading');
     if (tag === 'Failed' && !device.media.trouble)
       miss('Failed shown for a recording that neither failed nor lost its connection');
   };
@@ -748,7 +755,10 @@ const session = (platform: Platform, network: Network, clock: TestClock.TestCloc
     if (Option.exists(since.unshown, (from) => now - from > heard))
       miss(`the device plays and the page shows ${tag}`);
     plays(tag, now);
-    scrub = Option.filter(scrub, ({ to }) => !Option.contains(device.media.sought, to));
+    scrub = Option.filter(
+      scrub,
+      ({ to, at }) => !device.media.sought.some((asked) => asked.to === to && asked.at >= at),
+    );
     if (Option.exists(scrub, ({ at }) => now - at > within))
       miss('a remote seek was never asked of the device');
   };
