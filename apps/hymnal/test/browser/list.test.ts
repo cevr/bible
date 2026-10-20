@@ -437,6 +437,8 @@ const moves = {
 >;
 
 interface Seen extends Visit {
+  /** Where the visit's share puts the list: `round(max × share)`. */
+  readonly target: number;
   /** Where the reader left the list. */
   readonly left: number;
   /** Where the list was when it was shown again. */
@@ -450,13 +452,16 @@ interface Seen extends Visit {
 }
 
 /**
- * The visits that did not come back within one row, did not draw the
- * reader's row in the first frame with every row on screen, saw the list
- * move by itself, or after the move left rows blank or the list elsewhere.
+ * The visits that left the list more than one row from their share's
+ * offset (so a visit is the case its values name, whatever the way it
+ * leaves), did not come back within one row, did not draw the reader's row
+ * in the first frame with every row on screen, saw the list move by itself,
+ * or after the move left rows blank or the list elsewhere.
  */
 const missed = (visits: ReadonlyArray<Seen>) =>
   visits.filter(
     (v) =>
+      Math.abs(v.left - v.target) > rowHeight ||
       Math.abs(v.found - v.left) > rowHeight ||
       !v.first.drawn ||
       v.first.blank > 0 ||
@@ -480,12 +485,13 @@ const visit = async (list: ListName, visits: ReadonlyArray<Visit>) => {
   for (const v of visits) {
     await app.resize(v.height);
     const { max } = await app.place();
-    await app.scrollTo(Math.round(max * v.share));
+    const target = Math.round(max * v.share);
+    await app.scrollTo(target);
     if (v.press === 'later') await app.settle(150);
     const { top: left, first } = await paths[v.way](app, list, v.press);
     const { top: found } = await app.place();
     const after = await moves[v.move](app);
-    seen.push({ ...v, left, found, first, jumps: await app.jumps(), after });
+    seen.push({ ...v, target, left, found, first, jumps: await app.jumps(), after });
   }
   return { seed, hydration, misses: missed(seen) };
 };
