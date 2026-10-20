@@ -1643,3 +1643,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The kit's return focus after a pointer close asked for the ring on any enabled input, so a range or a checkbox the popup gave the focus back to rang though the pointer closed it.
 - **Cause:** The ring rule reused `isTypeableElement`, which means any input a key reaches, where the rule needs a field the user types into.
 - **Guard:** code: `packages/ui/test/browser/dialog.test.ts` `shows no ring on a range opener when a pointer closed it: a range is pressed, not typed in`
+
+### reset-guard-reads-specificity
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the reset guard checks syntax instead of specificity"
+- **Source:** p6-studio-cssdocs/review-1.md F3
+- **Wrong:** The reset guard refused `:where(.a) > :where(button)` and a list of `:where`s, which weigh nothing, and let `.a button { font : inherit; }` pass, which weighs (0,1,1).
+- **Cause:** It read a rule's whole selector list as one selector, a combinator as weight, and the declaration by one spelling.
+- **Guard:** code: `packages/film/src/lab/resets.test.ts` `weighs`

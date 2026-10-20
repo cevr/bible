@@ -29,24 +29,57 @@ const outsideWhere = (selector: string): string => {
   return out;
 };
 
-/** Each rule of `css` that resets a button by its type, and weighs something. */
+/** `list` split at its top-level commas: each complex selector of a selector list. */
+const complexSelectors = (list: string): ReadonlyArray<string> => {
+  const out: Array<string> = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] === '(') depth++;
+    else if (list[i] === ')') depth--;
+    else if (list[i] === ',' && depth === 0) {
+      out.push(list.slice(start, i));
+      start = i + 1;
+    }
+  }
+  return [...out, list.slice(start)].map((selector) => selector.trim());
+};
+
+/** Whether `selector` weighs anything: some simple selector stands outside `:where`. */
+const weighs = (selector: string): boolean => outsideWhere(selector).replace(/[\s>+~]/g, '') !== '';
+
+/** Each selector of `css` that resets a button by its type (`font: inherit`), and weighs something. */
 const weighedResets = (css: string): ReadonlyArray<string> =>
   [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-    .filter(([, , body]) => /font:\s*inherit/.test(body ?? ''))
-    .map(([, selector]) => (selector ?? '').trim())
+    .filter(([, , body]) => /(^|[\s;])font\s*:\s*inherit\b/.test(body ?? ''))
+    .flatMap(([, list]) => complexSelectors(list ?? ''))
     .filter((selector) => /(^|[\s>+~,(])button\b/.test(selector))
-    .filter((selector) => outsideWhere(selector).trim() !== '');
+    .filter(weighs);
 
 describe("a bare button's reset", () => {
-  it.effect('is found weighing when any of its selector stands outside `:where`', () =>
-    Effect.sync(() => {
-      expect(
-        weighedResets(
-          '.st-app button:where(:not(.sh-btn)) { font: inherit; } :where(.a) :where(button) { font: inherit; } .chip { font: inherit; }',
-        ),
-      ).toEqual(['.st-app button:where(:not(.sh-btn))']);
-    }),
-  );
+  const cases: ReadonlyArray<readonly [string, string, ReadonlyArray<string>]> = [
+    [
+      'a class before it',
+      '.st-app button:where(:not(.sh-btn)) { font: inherit; }',
+      ['.st-app button:where(:not(.sh-btn))'],
+    ],
+    ['its declaration spaced', '.a button { font : inherit; }', ['.a button']],
+    ['one selector of a list', ':where(.a button), .b button { font: inherit; }', ['.b button']],
+    ['its type alone', 'button { color: red; font: inherit; }', ['button']],
+    ['all of it in `:where`', ':where(.a) :where(button) { font: inherit; }', []],
+    ['a combinator between two `:where`s', ':where(.a) > :where(button) { font: inherit; }', []],
+    ['a list of `:where`s', ':where(.a button), :where(.b button) { font: inherit; }', []],
+    ['a class with no button', '.chip { font: inherit; }', []],
+    ['another font', '.a button { font: 12px mono; }', []],
+  ];
+  for (const [what, css, found] of cases)
+    it.effect(
+      `with ${what}, is found weighing iff a selector of it stands outside \`:where\``,
+      () =>
+        Effect.sync(() => {
+          expect(weighedResets(css)).toEqual(found);
+        }),
+    );
 
   it.effect.layer(BunServices.layer)("weighs nothing in every one of the lab's sheets", () =>
     Effect.gen(function* () {
