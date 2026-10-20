@@ -36,8 +36,7 @@ Quoted Scripture: 7 passages, 97 of 573 spoken words (16.9 %; recounted 2026-10-
 | Paul and Silas (casting.md #8, #21) | Bible figures, Paul main in his beat, Silas supporting | shared | listed, not drawn (P2, P3) | `cold`, `name` | coming in at a door, dust on their hems (three-quarter); Paul speaking with an open hand at the sleeve's end (front), smiling (front, close), standing beside the table (profile); travel cloaks |
 | The Bereans (casting.md #22), the older woman among them | crowd from the story crowd kit, one featured face | shared | the crowd kit (casting.md 2.6) | `cold`, `name`, `thesis` | carrying scroll cases (back, three-quarter), bent over scrolls at a long table, a finger along a line (three-quarter); the older woman looking up and nodding (front, close); varied heights and headcloths, no group marker |
 | Moses (casting.md #2) | Bible figure, minor | shared | listed, not drawn (P1) | `oracles` | small on the mountain's slope holding two blank tablets, then a clay lamp (three-quarter, far) |
-| Jesus Christ (`christ`, casting.md #1) | Bible figure, the locked figure in the court canon height band, never short | shared | yes: `src/library/cast/christ` | `figure`, `emmaus` | walking the Jordan's bank (profile, three-quarter); walking with two travellers, unrolling a small scroll as he walks (three-quarter), gold threads settling round his shoulders (front); his earthly dress per casting.md (the linen coat and walnut mantle; the script's "white robe, gold sash" is conflict item 1, waiting on OQ5) |
-| John the Baptist (casting.md #15) | Bible figure, supporting | shared | listed, not drawn (P3) | `figure` | standing in the water, turning and pointing (three-quarter, front); rough cloak |
+| Jesus Christ (`christ`, casting.md #1) | Bible figure, the locked figure in the court canon height band, never short | shared | yes: `src/library/cast/christ` | `emmaus` | his earthly dress (casting.md: the linen coat and walnut mantle, OQ5): walking with two travellers, unrolling a small scroll as he walks (three-quarter), gold threads settling round his shoulders (front). Sleeves to the wrist |
 | Cleopas and his companion (casting.md #23) | Bible figures, supporting | shared | listed, not drawn (P3) | `emmaus` | walking with downcast faces (three-quarter), one a woman; one face beginning to burn with recognition (front, close) |
 | The IDEA voices: the scholar, the council table, the majority, the feeler | minor and crowd (casting.md 2.2: the scholar is §5's official body with a mortarboard; the table and the majority from the crowd kit) | shared | §5's official and the crowd kit | `rule` | flat paper, each under a speech balloon; no robes or emblems of any church |
 | The frowning reader and the tall teacher | plain lead (2.3) and §5's official body (casting.md 2.2) | series (the reader); shared (the official) | the plain lead's sheet exists | `guess` | the reader frowning at an open book, scratching the head (three-quarter), pushing a balloon aside (front); the teacher leaning in over the reader's shoulder (profile) |
@@ -49,8 +48,6 @@ Settings:
 | --- | --- | --- | --- |
 | The synagogue at Berea: a small room, a long table, a high window, the door to the road | film | `cold`, `title`, `name`, `thesis`, `end` | peach lamplight; the landing teal to yellow; sunrise |
 | The mountain in cloud, the people far below (Sinai; T03's and 03b's `sinai` from afar) | series | `oracles` | dawn |
-| The Jordan at noon: reeds, a clay bank | shared | `figure` | noon |
-| A night street of mud-brick houses, a doorframe marked scarlet (the Passover) | shared | `figure` | night |
 | The road to Emmaus at sunset between low hills | shared | `emmaus` | sunset, the film's deepest light |
 | The parchment page | series | `oracles`, `rule`, `guess`, `plain`, `gather`, `emmaus` (its close), `simple` | peach |
 
@@ -61,11 +58,10 @@ Props:
 | The clay lamp | film | `title`, `oracles`, `simple`, `name` |
 | The gold measuring rod (02b brings it back) | series | `rule`, `guess`, `name` |
 | The gold threads and their knot | series (02b's dictionary and 06b's `one` use gold threads) | `gather`, `emmaus` |
-| The three cards, turned over in turn | film | `plain`, `figure`, `gather` |
+| The blank card, turned over | film | `gather` |
 | The cup of milk from 01, by a modern open book | series | `name` |
-| A small lamb | shared (06's) | `figure` |
 
-New to the library: the Berea synagogue; Paul and Silas; the Bereans' older woman; Cleopas and his companion; John at the Jordan; the measuring rod.
+New to the library: the Berea synagogue; Paul and Silas; the Bereans' older woman; Cleopas and his companion; the measuring rod.
 
 ## Beats
 
@@ -124,7 +120,7 @@ New to the library: the Berea synagogue; Paul and Silas; the Bereans' older woma
 
 **say:** {whole}Read it whole, {centre}and you find it has a {*}centre. {/} {road}On the day he rose, Jesus walked to Emmaus with two puzzled friends. {/} {beginning}And “beginning at Moses and all the prophets, he expounded unto them in all the scriptures the things concerning himself.” {//} {all}{*}All the scriptures. {/} {himself}About himself. {/} {story}The Bible is one story, from a garden to a city. {/} {war}It is a war between two ways of living, {rescue}and a {*}rescue.
 **cite:** Luke 24:13–27; John 5:39; Ellen G. White, Education, 190
-**picture:** STORY: a dusty road at sunset between low hills, the film's deepest light; two travellers (grey, one a woman, faces downcast) and a third who has fallen in with them (Jesus, white robe, gold sash; they do not yet know him). On `beginning` he unrolls a small scroll as they walk; on `all` gold threads (the `gather` motif) lift out of the scroll's columns one after another, and on `himself` every thread runs to him and settles round his shoulders like light. Close on one traveller's face, beginning to burn with recognition. On `story` pull back to IDEA: one long strip of parchment unrolls from a garden at its left end to a city at its right; on `war` two paths (gold and grey) run tangled along it; on `rescue` a gold figure walks the length of it.
+**picture:** STORY: a dusty road at sunset between low hills, the film's deepest light; two travellers (grey, one a woman, faces downcast) and a third who has fallen in with them (Jesus, in the seamless linen coat and the walnut mantle; they do not yet know him). On `beginning` he unrolls a small scroll as they walk; on `all` gold threads (the `gather` motif) lift out of the scroll's columns one after another, and on `himself` every thread runs to him and settles round his shoulders like light. Close on one traveller's face, beginning to burn with recognition. On `story` pull back to IDEA: one long strip of parchment unrolls from a garden at its left end to a city at its right; on `war` two paths (gold and grey) run tangled along it; on `rescue` a gold figure walks the length of it.
 **paraphrase sources (not spoken):**
 
 - Ed 190.2 (Ellen G. White) — "He should gain a knowledge of its grand central theme, of God's original purpose for the world, of the rise of the great controversy, and of the work of redemption. He should understand the nature of the two principles that are contending for supremacy" → `story`, `war`, `rescue`

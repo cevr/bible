@@ -184,7 +184,8 @@ All of this follows the guide's section 3 exactly. Christ, the angels and Satan 
 
 - Shown, film:
   - T01: entering the veil as Priest, from behind; the host of the wedding feast at the landing.
-  - T02: on the Jordan's bank; on the Emmaus road.
+  - T02: on the Emmaus road.
+  - T02b: walking by the river (John 1:29), in `figure`.
   - T03: in the upper room with Philip; touching a leper; the hillside crowd; a child on His knee; weeping over the city; the cross.
   - T05: on the Galilee road with the twelve; in the temple court as stones are taken up; asleep in the storm; kneeling to a child; as a baby with Mary and Joseph; on the throne beside the Father, with crown and sceptre, and at the landing with the marks in His hands.
   - RBF: carrying the scarlet up the hill; the cross in silhouette; the empty tomb; High Priest in the holy and most holy places; Capernaum (Mark 2); the temple court (John 8); the centurion; the Angel of Zech 3; Advocate at the landing; seated with the robed figure on the rooftop in the coda.
@@ -1264,7 +1265,7 @@ It is the most-planned single scene (C04, C15, C19; edu ep 29; T14). It waits on
 Each item gives where the conflict is and what the guide says. A recommendation is given where the guide or the ensemble already settles the conflict.
 
 1. **Christ's earthly dress.**
-   - Where: T01's host, T02 (the Jordan and Emmaus), T03 (the upper room), T05 (the Galilee road) and RBF (`roof`, `woman`, `centurion`) dress His earthly ministry in a "white robe, gold sash".
+   - Where: RBF (`roof`, `woman`, `centurion`) dresses His earthly ministry in a "white robe, gold sash".
    - The guide: §3.2 (OQ5) gives the earthly ministry the seamless undyed-linen coat (John 19:23), and keeps the white robe and golden girdle for Priest, Advocate and glory.
    - The owner chose the guide (2026-10-19). The theology drafts are restaged to the linen coat; RBF's scenes wait until RBF resumes (owner, 2026-10-19: RBF is paused).
 2. **The seraphim's colour.**

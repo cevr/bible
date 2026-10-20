@@ -772,6 +772,20 @@
       "point": "item:lead",
       "ask": "a8fb2170353",
       "by": "RBF v3 painter"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792458517183,
+      "text": "RBF: what does the given robe turn white? (ask a17e13cb6ba): robe: His top alone; his khaki trousers stay · under: Stays covered, as now",
+      "ask": "a17e13cb6ba",
+      "by": "coordinator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792458588107,
+      "text": "RBF is paused; its work continues when the series reaches that film (18b).",
+      "quote": "lets pause on RBF for now, we'll ocntinue once we get to that film",
+      "by": "coordinator"
     }
   ],
   "filed": [
