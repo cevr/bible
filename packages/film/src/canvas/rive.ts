@@ -11,7 +11,8 @@
 // artboard instance of its own, made from the loaded file and deleted when
 // the frame is drawn, bound to a view-model instance of its own (the model's
 // defaults, then the pose's numbers), with the pose's timelines applied in
-// order and the artboard advanced by no time. Nothing a frame does to an
+// order and the artboard advanced by no time. A rig that follows the shot
+// (`ink`) has its ink set from the frame's scale before the pose's numbers. Nothing a frame does to an
 // instance outlives it: no path a shape keeps from an earlier frame's
 // rounding (`PathComposer` remakes a shape's paths only when their geometry
 // or their transform moves past a tolerance), no constraint solved from the
@@ -72,6 +73,22 @@ interface RiveSource<Tl extends string = string, N extends string = string> {
 }
 
 /**
+ * The view-model number a rig's ink binds its widths to, as the house prints
+ * every figure's and hand's: 1 draws the line as it was cut.
+ */
+export const INK_NUMBER = 'ink';
+
+/**
+ * The shot's scale under `ctx`'s transform: frame heights per unit of the
+ * current space (`sqrt(|det|)` over the canvas's height), the same at any
+ * size the frame is drawn at.
+ */
+const shotScale = (ctx: CanvasRenderingContext2D) => {
+  const m = ctx.getTransform();
+  return Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) / ctx.canvas.height;
+};
+
+/**
  * A rig as a drawing declares it (`drawing({ rigs: { accused: … } })`): its
  * source, the engine that draws it, its name in errors (`key`), which
  * artboard point stands at our (0, 0), and the node whose place is its face.
@@ -89,6 +106,14 @@ export interface RivePropSpec<Tl extends string = string, N extends string = str
    * a concept is a figure `match` reads; a hand has neither.
    */
   readonly concept?: ConceptRef;
+  /**
+   * The rig's ink as the shot draws it: the number `ink` (`INK_NUMBER`) at
+   * the shot's scale where the rig is drawn (`shotScale`), set each frame
+   * before the pose's numbers, so a pose that names `ink` sets it itself
+   * (`inkAt`, `@bible/film/style`). Left out, the ink stays at the model's
+   * default. A rig whose view model has no number `ink` is refused at load.
+   */
+  readonly ink?: (scale: number) => number;
 }
 
 /**
@@ -285,7 +310,8 @@ const unposable = (spec: RivePropSpec, rig: LoadedRig, pose: RivePose): string |
 
 /**
  * `artboard`, a frame's own, set to `pose`: its view-model instance (`vm`,
- * the frame's own too) bound and given the pose's numbers, the pose's
+ * the frame's own too) bound and given its `ink` (none when undefined), then
+ * the pose's numbers, the pose's
  * timelines applied in order, each on an instance made for it (held in the
  * frame's slot, deleted with the frame), then the artboard advanced by no
  * time, which applies the binds.
@@ -295,9 +321,11 @@ const posed = (
   artboard: Artboard,
   vm: ViewModelInstance | undefined,
   pose: RivePose,
+  ink: number | undefined,
 ) => {
   if (vm !== undefined) {
     artboard.bindViewModelInstance(vm);
+    if (ink !== undefined) vm.number(INK_NUMBER).value = ink;
     const numbers = pose.numbers ?? NO_NUMBERS;
     for (const name in numbers) {
       const value = numbers[name];
@@ -452,7 +480,8 @@ const declareFigure = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, artboa
 };
 
 /**
- * Pose a new instance of `rig` (as `spec` declares it) to `pose` and draw it
+ * Pose a new instance of `rig` (as `spec` declares it) to `pose`, its ink
+ * at the shot's scale when it follows the shot (`spec.ink`), and draw it
  * at our origin under the context's transform, declaring its face, then
  * delete it: nothing once drawn, else why it cannot be (the pose names what
  * the rig lacks, or no WebGL 2 context can be made for a `webgl2` rig's
@@ -474,7 +503,7 @@ export const drawRig = (
   rig.frame.free();
   const artboard = rig.frame.hold(rig.file.artboardByName(spec.source.artboard));
   const vm = rig.model === undefined ? undefined : rig.frame.hold(rig.model.defaultInstance());
-  posed(rig, artboard, vm, pose);
+  posed(rig, artboard, vm, pose, spec.ink?.(shotScale(ctx)));
   if (rig.paints && spec.engine === 'canvas') paintCanvas(ctx, spec, rig, artboard);
   const painted =
     rig.paints && spec.engine === 'webgl2' ? paintGl(ctx, spec, rig, artboard) : undefined;

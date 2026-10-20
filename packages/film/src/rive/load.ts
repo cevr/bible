@@ -7,13 +7,20 @@
 // matrix, the surfaces it draws on, what a frame that threw left in its
 // in-flight slot) is the load scope's and freed when it closes; the rigs
 // stand on the film until then. Each name a declaration
-// gives is checked against the file here, so a missing one fails the load,
-// listing what the file has, and nothing is drawn.
+// gives is checked against the file here, and so is the number `ink` of a
+// rig that follows the shot (`RivePropSpec.ink`), so a missing one fails the
+// load, listing what the file has, and nothing is drawn.
 
 import type { Artboard, File, LinearAnimation, RiveCanvas } from '@rive-app/webgl2-advanced';
 import { Effect, Exit, Option, Scope } from 'effect';
 import type { Film } from '../canvas/film.ts';
-import { type LoadedRig, type RivePropSpec, inFlight, rigSurfaces } from '../canvas/rive.ts';
+import {
+  INK_NUMBER,
+  type LoadedRig,
+  type RivePropSpec,
+  inFlight,
+  rigSurfaces,
+} from '../canvas/rive.ts';
 import { RigNameMissing, RigUnloadable } from '../core/errors.ts';
 import { RiveRuntime } from './runtime.ts';
 
@@ -112,6 +119,9 @@ const loadRig = Effect.fn('Rive.loadRig')(function* (spec: RivePropSpec) {
   const numbers = numberNames(spec, vmNumbers);
   for (const name of numbers)
     if (!vmNumbers.includes(name)) return yield* missing('view-model number', name, vmNumbers)();
+  // A rig that follows the shot binds its ink to the number the frame sets.
+  if (Option.isSome(Option.fromNullishOr(spec.ink)) && !vmNumbers.includes(INK_NUMBER))
+    return yield* missing('view-model number', INK_NUMBER, vmNumbers)();
 
   for (const { node } of Option.toArray(Option.fromNullishOr(spec.face)))
     yield* found(artboard.node(node), missing('node', node, []));

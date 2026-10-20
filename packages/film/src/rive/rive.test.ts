@@ -4,7 +4,11 @@
 // instance of its own), so after any history, the IK held full on or let go
 // among it, the paths Rive's Canvas 2D renderer draws are a newly loaded
 // rig's, number for number; and a declaration that names what the rig lacks
-// fails the load, listing what it has, with nothing stood on the film.
+// fails the load, listing what it has, with nothing stood on the film. A
+// rig's ink (`ink/ink.rml`: a stroke bound through a range mapper to the
+// number `ink` above the width its light core covers, and a centred one) is
+// drawn at the width its number maps it to, set from the shot's scale when
+// the rig follows the shot.
 
 import canvasWasm from '@rive-app/canvas-advanced/rive.wasm' with { type: 'file' };
 import { BunFileSystem } from '@effect/platform-bun';
@@ -13,12 +17,19 @@ import { Deferred, Effect, Exit, Fiber, FileSystem, Layer, Option, Schema, Scope
 import type { Film } from '../canvas/film.ts';
 import { countedRive } from '../canvas/fixtures/rive-counted.ts';
 import { recorder, standInDom } from '../canvas/fixtures/stand-in.ts';
-import { type LoadedRig, type RiveEngine, type RivePropSpec, drawRig } from '../canvas/rive.ts';
+import {
+  INK_NUMBER,
+  type LoadedRig,
+  type RiveEngine,
+  type RivePropSpec,
+  drawRig,
+} from '../canvas/rive.ts';
 import { RigNameMissing, RigUnloadable } from '../core/errors.ts';
 import { type ArmPose, armFilm, armPose, armRig, armScene } from '../canvas/fixtures/arm.ts';
 import { loadRigs } from './load.ts';
 import { RiveRuntime } from './runtime.ts';
 import { RiveRuntimeBun } from './runtime-bun.ts';
+import inkRiv from './fixtures/ink/build/ink.riv' with { type: 'file' };
 
 /**
  * A `Path2D` that writes its commands down, so two drawings compare number
@@ -181,6 +192,66 @@ const reaches = (drawn: string) =>
         ),
     ),
   );
+
+/** The ink fixture (`fixtures/ink/ink.rml`), its ink at the model's default. */
+const INK_RIG: RivePropSpec<never, typeof INK_NUMBER> = {
+  source: { riv: inkRiv, artboard: 'Ink', timelines: [], numbers: [INK_NUMBER] },
+  engine: 'canvas',
+  key: 'fixtures/ink',
+  origin: [50, 50],
+};
+
+/** The fixture's strokes in the order drawn, at ink 1: the sash's centred ink, then the disc's ink and its light core over it. */
+const INK_AT_REST = [5, 14, 2] as const;
+
+/**
+ * A 2D context `height` pixels high, `pixels` per unit of the space it draws
+ * in, that writes down each stroke's width (`lineWidth` as the stroke is
+ * made) and answers nothing else.
+ */
+const strokedContext = (widths: number[], pixels = 1, height = 100): CanvasRenderingContext2D => {
+  const quiet = () => {};
+  const ctx: CanvasRenderingContext2D = Schema.decodeSync(Schema.Any)({
+    canvas: { width: height, height, getContext: () => ctx },
+    lineWidth: 1,
+    save: quiet,
+    restore: quiet,
+    translate: quiet,
+    resetTransform: quiet,
+    setTransform: quiet,
+    transform: quiet,
+    fill: quiet,
+    clip: quiet,
+    drawImage: quiet,
+    getTransform: () => ({ a: pixels, b: 0, c: 0, d: pixels, e: 0, f: 0 }),
+    stroke: () => widths.push(ctx.lineWidth),
+  });
+  return ctx;
+};
+
+/** The ink fixture loaded with its Canvas 2D renderer painting, in a scope of its own. */
+const inkLoaded = (spec: RivePropSpec) =>
+  Effect.gen(function* () {
+    const { film, stood } = watched(
+      armFilm([{ id: 'ink', min: 4, rigs: { ink: spec }, draw: () => {} }]),
+    );
+    const scope = yield* Scope.make();
+    yield* Scope.provide(loadRigs(film), scope);
+    const rig = yield* Effect.fromOption(Option.fromNullishOr(stood[0]?.get(spec)));
+    return { rig, scope };
+  });
+
+/** Each stroke's width as `spec`'s rig draws at `pose`, `pixels` per unit of a 100 px frame. */
+const strokeWidths = (
+  spec: RivePropSpec,
+  rig: LoadedRig,
+  pose: { readonly timelines: []; readonly numbers?: Record<string, number> },
+  pixels = 1,
+) => {
+  const widths: number[] = [];
+  expect(drawRig(strokedContext(widths, pixels), spec, rig, pose)).toBeUndefined();
+  return widths;
+};
 
 /** Two histories: one reaching far with the IK full on, one lifted and slack. */
 const HISTORY_A: ReadonlyArray<ArmPose> = [
@@ -375,6 +446,53 @@ describe('the Rive engine', () => {
     }).pipe(Effect.provide(RiveRuntimePainted)),
   );
 
+  it.effect(
+    'draws an ink stroke as wide as its number maps it: as cut at 1, three quarters of the ink past its floor at 0.75',
+    () =>
+      Effect.gen(function* () {
+        const spec = INK_RIG;
+        const { rig, scope } = yield* inkLoaded(spec);
+        expect(strokeWidths(spec, rig, { timelines: [] })).toEqual([...INK_AT_REST]);
+        expect(strokeWidths(spec, rig, { timelines: [], numbers: { ink: 1 } })).toEqual([
+          ...INK_AT_REST,
+        ]);
+        const [sash = 0, disc = 0, core = 0] = strokeWidths(spec, rig, {
+          timelines: [],
+          numbers: { ink: 0.75 },
+        });
+        // What shows of the disc's ink past its light core, and the sash's whole line.
+        expect((disc - core) / (INK_AT_REST[1] - INK_AT_REST[2])).toBeCloseTo(0.75, 5);
+        expect(core).toBe(INK_AT_REST[2]);
+        expect(sash / INK_AT_REST[0]).toBeCloseTo(0.75, 5);
+        yield* Scope.close(scope, Exit.void);
+      }).pipe(Effect.provide(RiveRuntimePainted)),
+  );
+
+  it.effect(
+    'a rig that follows the shot sets its ink from the scale it is drawn at, and a pose that names its ink sets it itself',
+    () =>
+      Effect.gen(function* () {
+        const scales: number[] = [];
+        // Half the ink from 0.02 of the frame's height a unit.
+        const spec: RivePropSpec = {
+          ...INK_RIG,
+          ink: (scale) => {
+            scales.push(scale);
+            return 1 - 0.5 * Number(scale >= 0.02);
+          },
+        };
+        const { rig, scope } = yield* inkLoaded(spec);
+        expect(strokeWidths(spec, rig, { timelines: [] }, 1)).toEqual([...INK_AT_REST]);
+        expect(strokeWidths(spec, rig, { timelines: [] }, 4)).toEqual([2.5, 8, 2]);
+        // 1 px a unit of a 100 px frame is 0.01 of its height a unit; 4 px, 0.04.
+        expect(scales.map((v) => Math.round(v * 1e6) / 1e6)).toEqual([0.01, 0.04]);
+        expect(strokeWidths(spec, rig, { timelines: [], numbers: { ink: 1 } }, 4)).toEqual([
+          ...INK_AT_REST,
+        ]);
+        yield* Scope.close(scope, Exit.void);
+      }).pipe(Effect.provide(RiveRuntimePainted)),
+  );
+
   it.effect('refuses a name the rig lacks, listing what it has, and stands nothing', () =>
     Effect.gen(function* () {
       const arm = armRig('webgl2');
@@ -416,6 +534,8 @@ describe('the Rive engine', () => {
         ['lift', 'reach'],
       );
       yield* lacks({ ...arm, face: { node: 'eye', height: 4 } }, 'node', 'eye', []);
+      // A rig that follows the shot has the number its ink binds to.
+      yield* lacks({ ...arm, ink: () => 1 }, 'view-model number', INK_NUMBER, ['lift', 'reach']);
       const unreadable = yield* missing({ ...arm, source: { ...arm.source, riv: '/no/such.riv' } });
       expect(unreadable._tag).toBe('RigUnloadable');
     }).pipe(Effect.provide(RiveRuntimeBun)),
