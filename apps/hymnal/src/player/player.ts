@@ -200,6 +200,38 @@ export const fromStatus = (
   }
 };
 
+/**
+ * The player as the reader's `intent` shows it, before the device answers:
+ * a Play shows a paused or ended recording waiting to play (an ended one
+ * from its start), a Pause shows a playing one paused, each at its place.
+ */
+export const asked = (player: Player, intent: Intent): Player =>
+  Match.value(intent).pipe(
+    Match.when('play', () =>
+      Player.$match(player, {
+        Paused: ({ track, at, length }) => Player.Buffering({ track, at, length }),
+        Ended: ({ track, length }) => Player.Buffering({ track, at: 0, length }),
+        Idle: () => player,
+        Loading: () => player,
+        Playing: () => player,
+        Buffering: () => player,
+        Failed: () => player,
+      }),
+    ),
+    Match.when('pause', () =>
+      Player.$match(player, {
+        Playing: ({ track, at, length }) => Player.Paused({ track, at, length }),
+        Buffering: ({ track, at, length }) => Player.Paused({ track, at, length }),
+        Idle: () => player,
+        Loading: () => player,
+        Paused: () => player,
+        Ended: () => player,
+        Failed: () => player,
+      }),
+    ),
+    Match.exhaustive,
+  );
+
 /** The player's atoms over the device's `playback`, reading its status every `every` while it moves. */
 export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input) => {
   const runtime = Atom.runtime(playback);
@@ -235,24 +267,47 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               ),
             ),
           );
+        /**
+         * Show the device's status until its playback stops moving and no ask
+         * is `pending`: the last read starts after the device has answered.
+         */
+        const watch = (track: Track, pending: () => boolean) =>
+          Effect.suspend(() => {
+            const asking = pending();
+            return Effect.map(read(track), (moving) => moving || asking);
+          }).pipe(
+            Effect.repeat({ while: (more) => more, schedule: Schedule.spaced(every) }),
+            Effect.asVoid,
+          );
         /** Show the device's status until its playback stops moving, whatever the page shows. */
-        const follow = (track: Track) =>
-          read(track).pipe(
-            Effect.repeat({ while: (moving) => moving, schedule: Schedule.spaced(every) }),
-            Effect.asVoid,
-          );
-        const intend = (intent: Intent) => Effect.sync(() => get.set(wants, intent));
-        /** Ask the device; a refused ask is logged and the status shown as it is. */
+        const follow = (track: Track) => watch(track, () => false);
+        /** The reader's ask, shown at once: the device's status follows it. */
+        const intend = (intent: Intent) =>
+          Effect.sync(() => {
+            get.set(wants, intent);
+            get.set(state, asked(get.registry.get(state), intent));
+          });
+        /**
+         * Ask the device, and show its status while it answers and after: a web
+         * `resume` answers only once the element plays, and a `seek` once it
+         * holds the new place. A refused ask is logged and the status shown as it is.
+         */
         const ask = (track: Track, operation: Effect.Effect<Status, PlaybackError>) =>
-          operation.pipe(
-            Effect.asVoid,
-            Effect.catchTag('PlaybackError', (error) =>
-              Effect.logWarning('player.command.failed').pipe(
-                Effect.annotateLogs({ operation: error.operation, message: error.message }),
+          Effect.gen(function* () {
+            let pending = true;
+            // Started at once, so the device has the ask before the first read.
+            yield* operation.pipe(
+              Effect.asVoid,
+              Effect.catchTag('PlaybackError', (error) =>
+                Effect.logWarning('player.command.failed').pipe(
+                  Effect.annotateLogs({ operation: error.operation, message: error.message }),
+                ),
               ),
-            ),
-            Effect.andThen(follow(track)),
-          );
+              Effect.ensuring(Effect.sync(() => void (pending = false))),
+              Effect.forkChild({ startImmediately: true }),
+            );
+            yield* watch(track, () => pending);
+          });
         const holding = trackOf(get.registry.get(state));
         /** Run `act` on the hymn the player holds; with none, nothing. */
         const held = (act: (track: Track) => Effect.Effect<void>) =>
@@ -264,7 +319,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
         );
         return yield* Command.$match(command, {
           Start: ({ track }) =>
-            intend('play').pipe(
+            Effect.sync(() => get.set(wants, 'play')).pipe(
               Effect.andThen(show(Player.Loading({ track }))),
               Effect.andThen(device.play(audioUrl(track.number))),
               Effect.andThen(

@@ -13,6 +13,10 @@ import { audioUrl } from '~/remote';
 import { fakeDevice } from '../test/device';
 import { Command, Player, playerOn } from './player';
 
+/** The states in the order they came, each once however many reads repeat it. */
+const moves = (tags: ReadonlyArray<Player['_tag']>) =>
+  tags.filter((tag, index) => index === 0 || tag !== tags[index - 1]);
+
 const morning = { number: 100, title: 'Great Is Thy Faithfulness' };
 const praise = { number: 1, title: 'Praise to the Lord' };
 
@@ -230,7 +234,7 @@ describe('the player', () => {
       expect(yield* app.until(Player.$is('Playing'))).toEqual(
         Player.Playing({ track: morning, at: 60, length: Option.some(151) }),
       );
-      expect(shown()).toEqual(['Buffering', 'Buffering', 'Buffering', 'Playing']);
+      expect(moves(shown())).toEqual(['Buffering', 'Playing']);
     }),
   );
 
@@ -249,7 +253,7 @@ describe('the player', () => {
       expect(yield* app.until(Player.$is('Playing'))).toEqual(
         Player.Playing({ track: morning, at: 11, length: Option.some(151) }),
       );
-      expect(shown()).toEqual(['Buffering', 'Buffering', 'Playing']);
+      expect(moves(shown())).toEqual(['Buffering', 'Playing']);
     }),
   );
 

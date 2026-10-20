@@ -67,9 +67,12 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   wait of a few ms after a resume); after a pause it is paused (the web
   loads a paused place it does not hold). It plays through the `Playback`
   service; `playback.live.ts` is One's `Audio` session (AVPlayer on iOS, an
-  `<audio>` element on the web). One's `Audio` sends no status events, so
-  the player reads the status every 250 ms while the device says it loads
-  or plays, whatever the page shows.
+  `<audio>` element on the web). The page shows the reader's ask at once
+  (a Play buffers, a Pause pauses), before the device answers it. One's
+  `Audio` sends no status events, so the player reads the status every
+  250 ms while the device says it loads or plays, and while it has not
+  answered a resume or a seek (the web's `play()` waits until the element
+  plays), whatever the page shows.
 - A recording that cannot play says so on the page: "The recording needs a
   connection." when the device is offline, else "The recording could not be
   played.", with Retry beside it.
@@ -95,6 +98,10 @@ a press on it opens the hymn. Playing another hymn replaces the first.
 - `src/player/bar.property.test.tsx` holds the web bar to these rules over
   seeded runs of presses, keys, other pointers and buttons, a screen
   reader's steps and playback's ticks, in Chrome's event order.
+- `src/player/status.property.test.ts` holds the page to the reader's Play
+  over seeded runs on each device's playback (the web, iOS, Android) and a
+  network that loads at once, at Slow 4G or at 3G: after a Play the page
+  never shows Paused, and the status is read while the device answers.
 - The tests run the player over a device the test holds
   (`src/test/device.ts`): each state and move in `src/player/player.test.ts`,
   and the page's control and the bar, pressed in a document, in
