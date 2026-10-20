@@ -567,11 +567,10 @@ describe('a list comes back where the reader left it', () => {
 
 describe('a list come back', () => {
   for (const list of ['hymns', 'search'] as const) {
-    it.concurrent(`the ${list} list, moved to its top as it is drawn back deep, stays at its top, each way back`, async () => {
-      await using app = await open({ path: lists[list].path });
-      const other = list === 'hymns' ? 'search' : 'hymns';
-      const seen: Array<unknown> = [];
-      for (const way of ['back', 'header', 'tab'] as const) {
+    const other = list === 'hymns' ? 'search' : 'hymns';
+    for (const way of ['back', 'header', 'tab'] as const) {
+      it.concurrent(`the ${list} list, moved to its top as it is drawn back deep by ${way}, stays at its top`, async () => {
+        await using app = await open({ path: lists[list].path });
         await app.scrollTo(20_000);
         await app.settle(150);
         if (way === 'tab') {
@@ -589,12 +588,13 @@ describe('a list come back', () => {
             : app.tab(list));
         const restored = await early;
         await app.settle(150);
-        seen.push({ way, restored, top: (await app.place()).top, jumps: await app.jumps() });
-      }
-      expect(seen).toEqual(
-        ['back', 'header', 'tab'].map((way) => ({ way, restored: 20_000, top: 0, jumps: [] })),
-      );
-    });
+        expect({ restored, top: (await app.place()).top, jumps: await app.jumps() }).toEqual({
+          restored: 20_000,
+          top: 0,
+          jumps: [],
+        });
+      });
+    }
   }
 });
 
