@@ -78,8 +78,8 @@ describe('a place named exempt from a guard', () => {
 /** The roles the command surfaces' sources name: `data-role="…"`, or the `role="…-menu"` a menu hands its popup (an ARIA role has no hyphen before `menu`). */
 const ROLE = /(?:data-role="([\w-]+)"|\brole="([\w-]+-menu)")/g;
 
-/** The roles in those sources that are a part of a surface (a toast, a legend, a hint), not one. */
-const PARTS: ReadonlySet<string> = new Set(['receipt', 'keys-legend', 'inspector-hint']);
+/** The roles in those sources that are a part of a surface (a toast, a hint), not one. */
+const PARTS: ReadonlySet<string> = new Set(['receipt', 'inspector-hint']);
 
 /** The command surfaces `sources` name, each by its `data-role`. */
 const surfacesOf = (sources: ReadonlyArray<string>): ReadonlyArray<string> =>

@@ -209,7 +209,7 @@ interface ReviewWith {
 /** The review: its shell, the page it is on, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
 const ReviewPage = (props: ReviewWith) => (
   <Root host={props.host} hub={props.hub} client={props.client}>
-    <StudioFrame hub={props.hub} scope="review" legend={false}>
+    <StudioFrame hub={props.hub} scope="review">
       <Inspecting hub={props.hub}>
         <Shell>
           <Page />

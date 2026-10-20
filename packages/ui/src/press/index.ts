@@ -5,9 +5,4 @@
 // press at its lift (`liftHeldByOther`), so an open menu's press never
 // completes the drag either. Kept apart from
 // `context-menu` so a drag loads no component.
-export {
-  LONG_PRESS_DELAY,
-  LONG_PRESS_MOVE_THRESHOLD,
-  claimPress,
-  liftHeldByOther,
-} from '../utils/press.ts';
+export { LONG_PRESS_MOVE_THRESHOLD, claimPress, liftHeldByOther } from '../utils/press.ts';

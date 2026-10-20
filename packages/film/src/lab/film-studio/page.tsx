@@ -71,7 +71,7 @@ export const studioPageOn = (host: Host, body: FilmBody) =>
     const Body = clientOnly(() => body(hub));
     return () => (
       <RegistryProvider initialValues={[[UrlAtom.layer, hostLayer(host)]]}>
-        <StudioFrame hub={hub} scope={`studio:${name}`} legend={false}>
+        <StudioFrame hub={hub} scope={`studio:${name}`}>
           <Body fallback={<Opening name={name} />} />
         </StudioFrame>
       </RegistryProvider>

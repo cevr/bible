@@ -7,8 +7,6 @@
 
 import type { ClockReads, Film, RenderOptions } from '../canvas/film.ts';
 import type { FilmUnloadable } from './narrated.ts';
-import { timelineTicks } from '../core/ticks.ts';
-import { timecode } from '../core/time.ts';
 import { Cause, Effect, Option, Scope } from 'effect';
 import type { Fiber } from 'effect';
 import { parseHref } from '@bible/url-state';
@@ -24,18 +22,11 @@ import {
 } from '../browser/footage.ts';
 import { makeClock } from '../browser/media-clock.ts';
 import { Frames } from '../browser/frames.ts';
-import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
 import type { Hub } from '../command/hub.ts';
-import { Pointer, Surface } from '../browser/pointer.ts';
-import { required } from './dom.ts';
 import { pictureFacesWait } from './face.ts';
-import { narration, narrationNote } from './narration.ts';
+import { narration } from './narration.ts';
 import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
-import { legendHtml, transportCommands } from './transport.ts';
-
-/** How long a tick's name stays after the finger that held it lifts, in ms. */
-const TIP_READ_MS = 1500;
 
 /** What the lab drives: the preview's clock, its canvas and its timeline. */
 export interface Player {
@@ -43,9 +34,6 @@ export interface Player {
   readonly canvas: HTMLCanvasElement;
   readonly ctx: CanvasRenderingContext2D;
   readonly captions: { on: boolean };
-  /** The panel under the canvas, and the timeline in it. */
-  readonly bar: HTMLDivElement;
-  readonly track: HTMLDivElement;
   /** Film seconds shown now. */
   now(): number;
   /** Show `T` and settle there (`#t=` written at once). */
@@ -82,8 +70,7 @@ export interface Player {
   ): Effect.Effect<void, FootageFrameMissing>;
   /**
    * Whether the preview draws frames: once the faces its film draws in have
-   * loaded (`pictureFacesWait`). Until then its bar shows where the film is,
-   * and its canvas nothing.
+   * loaded (`pictureFacesWait`). Until then its canvas shows nothing.
    */
   drawable(): boolean;
   /**
@@ -168,19 +155,10 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
 };
 
 /**
- * Whose commands a preview's transport is: its own (`own`: play, the frame
- * and scene steps, the captions), or the page's that drives its clock (`page`:
- * the film's studio keys its own, and the preview registers none).
- */
-type PreviewTransport = 'own' | 'page';
-
-/**
- * The scrubbable preview of a staged film: its bar and timeline, its clock,
- * and its transport, registered as commands with the page's `hub` (whose
- * keymap binds their keys, which the `?` sheet lists). Its legend (the
- * stripes and the ticks) is hidden at rest. Its film's faces failing to
- * load fail the page (`fail`: it ends, and says
- * why).
+ * The scrubbable preview of a staged film: its clock and its narration, its
+ * picture a click plays or pauses. The page that mounts it keys its
+ * transport and draws its timeline (the film's studio). Its film's faces
+ * failing to load fail the page (`fail`: it ends, and says why).
  */
 export const mountPreview = (
   { film, canvas, ctx, captions }: Staged,
@@ -188,113 +166,10 @@ export const mountPreview = (
   time: TimeInUrl,
   hub: Hub,
   fail: (why: string) => Effect.Effect<void>,
-  transport: PreviewTransport,
 ): Player => {
-  const bar = document.createElement('div');
-  bar.className = 'bar';
-  bar.innerHTML = `
-    <div class="row">
-      <button class="sh-tool" data-act="play" aria-label="Play"><span aria-hidden="true">▶︎</span></button>
-      <span class="time"><span class="tc"></span><span class="of"></span><span class="narration" role="status"></span></span>
-      <span class="scene"></span>
-      <span class="say"></span>
-      <button class="sh-tool" data-act="captions">CC</button>
-    </div>
-    <div class="track"><div class="head"></div></div>
-    <div class="tip" hidden></div>
-    <div class="keys" hidden>${legendHtml()}</div>`;
-  document.body.append(bar);
-  const q = <T extends Element>(sel: string) => required<T>(bar, sel);
-  const track = q<HTMLDivElement>('.track');
-  const head = q<HTMLDivElement>('.head');
-  const timecodeEl = q<HTMLSpanElement>('.tc');
-  const lengthEl = q<HTMLSpanElement>('.of');
-  const narrationEl = q<HTMLSpanElement>('.narration');
-  const sceneEl = q<HTMLSpanElement>('.scene');
-  const sayEl = q<HTMLSpanElement>('.say');
-  const playBtn = q<HTMLButtonElement>('[data-act="play"]');
-  // Named by its word, Play or Pause; the glyph beside it is drawn, not read.
-  const playGlyph = q<HTMLSpanElement>('[data-act="play"] > span');
-  const captionsBtn = q<HTMLButtonElement>('[data-act="captions"]');
-  const tip = q<HTMLDivElement>('.tip');
-
-  const hue = (i: number) => `hsl(${(i * 47) % 360} var(--scene-sat) var(--scene-light))`;
-  for (const p of film.placed) {
-    const seg = document.createElement('div');
-    seg.className = `seg${p.voice.duration > 0 && !p.voice.recorded ? ' estimated' : ''}`;
-    seg.style.left = `${(p.start / film.duration) * 100}%`;
-    seg.style.width = `${(p.dur / film.duration) * 100}%`;
-    seg.style.backgroundColor = hue(p.index);
-    seg.innerHTML = `<span>${p.spec.id}</span>`;
-    track.append(seg);
-  }
-
-  // Marks, cue spans, sound effects and music acts, from the same placements the render uses.
-  const pct = (secs: number) => `${(secs / film.duration) * 100}%`;
-  for (const tick of timelineTicks(film.placed, Option.fromNullishOr(film.sound))) {
-    const el = document.createElement('div');
-    el.className = `tick ${tick.kind}`;
-    el.dataset['name'] = `${tick.name} · ${timecode(tick.at, film.fps)}`;
-    el.dataset['tick'] = tick.name;
-    el.style.left = pct(tick.at);
-    if (tick.kind === 'cue') el.style.width = pct(tick.dur);
-    track.insertBefore(el, head);
-  }
-  // A tick's name: shown while a mouse is over it, or once a finger has held
-  // it as long as a long press takes, without moving off into a
-  // scrub (the press stays free until a drag claims it, `@bible/ui/press`).
-  // A lifted finger's name lingers on one hide timer: a name shown since
-  // drops it, so an older linger never hides a newer name.
-  const tipTimers = timersOn(host);
-  let lingering = Option.none<number>();
-  const hideLater = () => {
-    lingering = Option.some(tipTimers.set(() => (tip.hidden = true), TIP_READ_MS));
-  };
-  const showTip = (target: EventTarget | null) => {
-    const name = target instanceof HTMLElement ? target.dataset['name'] : undefined;
-    if (name === undefined) return;
-    Option.map(lingering, tipTimers.clear);
-    lingering = Option.none();
-    const t = target instanceof HTMLElement ? target.getBoundingClientRect() : undefined;
-    const b = bar.getBoundingClientRect();
-    tip.textContent = name;
-    tip.hidden = false;
-    tip.style.left = `${(t?.left ?? 0) + (t?.width ?? 0) / 2 - b.left}px`;
-    tip.style.top = `${track.offsetTop - 26}px`;
-  };
-  track.addEventListener('pointerover', (e) => {
-    if (e.pointerType === 'mouse') showTip(e.target);
-  });
-  track.addEventListener('pointerout', (e) => {
-    if (e.pointerType === 'mouse') tip.hidden = true;
-  });
-  // A finger held on a tick (not a mouse, which hovers) names it as the
-  // long press would open a menu: the press is claimed for the name, so it
-  // scrubs no further; lifted, the name stays a moment to be read.
-  const TICK_NAME = Symbol('tick-name');
-  const holdTick = (e: PointerEvent): (() => void) => {
-    const held = e.target;
-    const named = held instanceof HTMLElement && held.dataset['name'] !== undefined;
-    if (e.pointerType === 'mouse' || !named) return () => undefined;
-    let shown = false;
-    const timer = tipTimers.set(() => {
-      shown = claimPress(e.pointerId, TICK_NAME, document);
-      if (shown) showTip(held);
-    }, LONG_PRESS_DELAY);
-    return () => {
-      tipTimers.clear(timer);
-      if (shown) hideLater();
-    };
-  };
-
-  // The narration says what it can play once it knows (a missing master, a
-  // play refused until a click), and the row says it: its own piece, apart
-  // from the length the docked phone row hides, and a polite status written
-  // only as the narration changes, so a screen reader hears it once (WCAG 4.1.3).
-  const voice = narration(film.audio, host, (state) => {
-    narrationEl.textContent = narrationNote(state);
-    draw();
-  });
+  // The narration's state redraws the frame shown as it changes (a master
+  // loaded, a play refused until a click).
+  const voice = narration(film.audio, host, () => draw());
   let T = Math.min(Math.max(time.at(addressOn(host).href()), 0), film.duration);
   let playing = false;
   /** The play loop, while the film plays (`Frames.loop`). */
@@ -333,12 +208,9 @@ export const mountPreview = (
   /**
    * Whether frames are drawn: once the faces the film draws in have loaded
    * (`pictureFacesWait`), at once when they are in already. Until then the
-   * bar shows where the film is, its canvas nothing, so no frame is ever
-   * drawn in a fallback face.
+   * canvas shows nothing, so no frame is ever drawn in a fallback face.
    */
   let drawable = false;
-
-  const page = hub.context().page;
 
   /**
    * The frames of footage the preview asks for: a decode that lands after a
@@ -386,19 +258,6 @@ export const mountPreview = (
       withFootage(at, (shown) => paintShown(at, shown));
     }
     movedTo.call(T);
-    const cur = film.sceneAt(T);
-    head.style.left = `${(T / film.duration) * 100}%`;
-    timecodeEl.textContent = timecode(T, film.fps);
-    lengthEl.textContent = ` / ${timecode(film.duration, film.fps)}`;
-    sceneEl.textContent = cur.spec.id;
-    sayEl.textContent = cur.voice.spoken;
-    const playWord = playing ? 'Pause' : 'Play';
-    if (playBtn.ariaLabel !== playWord) {
-      playBtn.ariaLabel = playWord;
-      playGlyph.textContent = playing ? '❚❚' : '▶︎';
-    }
-    // The captions' button is a toggle, its state said to a reader and drawn as the kit's pressed look.
-    captionsBtn.ariaPressed = String(captions.on);
     url.moved();
   };
 
@@ -463,73 +322,13 @@ export const mountPreview = (
     return playing;
   };
 
-  // A press on the track is told by how it ends. Lifted where it was put
-  // down (no drag claimed it: a mouse that never moved, a finger within the
-  // long press's slop), it is a tap: a jump there, a step Back walks across a
-  // scene. Moved, it is a drag: it scrubs from its first move, following the
-  // URL in place, and settles where it ends, lifted or taken by the browser
-  // (a page pan); its press and its release enter nothing in history. The
-  // track follows one press at a time (`TRACK`): a second finger put down
-  // while the first holds it neither scrubs, nor jumps, nor names a tick.
-  const TRACK = new Surface('track');
-  track.addEventListener('pointerdown', (e) => {
-    const r = track.getBoundingClientRect();
-    const tAt = (ev: PointerEvent) => ((ev.clientX - r.left) / r.width) * film.duration;
-    let dragged = false;
-    const move = (ev: PointerEvent) => {
-      dragged = true;
-      scrub(tAt(ev));
-    };
-    Effect.runForkWith(host)(
-      Pointer.use((pointer) =>
-        pointer.press(e, TRACK, () => {
-          const letGo = holdTick(e);
-          return Option.some({
-            move,
-            end: (lifted: Option.Option<PointerEvent>) => {
-              letGo();
-              if (dragged) url.settled();
-              else Option.map(lifted, () => seek(tAt(e)));
-            },
-          });
-        }),
-      ),
-    );
-  });
-  playBtn.addEventListener('click', toggle);
-  // The captions' button.
-  captionsBtn.addEventListener('click', () => {
-    captions.on = !captions.on;
-    draw();
-  });
-  // The transport, as the page's commands: its keys are the page's keymap's. A page that
-  // drives the preview's clock itself keys its own transport, which these would repeat.
-  if (transport === 'own')
-    hub.commands.register(
-      ...transportCommands(page, {
-        toggle,
-        stepFrames: (frames) => seek(T + frames / film.fps),
-        nextScene: () => {
-          const cur = film.sceneAt(T);
-          seek((film.placed[cur.index + 1] ?? cur).start);
-        },
-        previousScene: () => {
-          const cur = film.sceneAt(T);
-          seek(T - cur.start > 0.5 ? cur.start : (film.placed[cur.index - 1] ?? cur).start);
-        },
-        toggleCaptions: () => {
-          captions.on = !captions.on;
-          draw();
-        },
-      }),
-    );
   hub.refine((now) => ({ ...now, playing }));
   // The picture: a click plays or pauses.
   canvas.addEventListener('click', () => toggle());
   // The first frame: at once when the film's faces are in, else once they
-  // have loaded (the bar stands meanwhile). A face that will not load fails
-  // the page, as a film that will not load does: the film stops, and the
-  // page ends and says why in its place (`fail`).
+  // have loaded. A face that will not load fails the page, as a film that
+  // will not load does: the film stops, and the page ends and says why in
+  // its place (`fail`).
   Option.match(pictureFacesWait(document.fonts), {
     onNone: () => {
       drawable = true;
@@ -561,8 +360,6 @@ export const mountPreview = (
     canvas,
     ctx,
     captions,
-    bar,
-    track,
     now: () => T,
     seek,
     scrub,

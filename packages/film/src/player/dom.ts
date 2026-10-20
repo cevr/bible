@@ -1,14 +1,7 @@
-// The player's DOM helpers: a child the markup must have, a page's failure in
-// its place, bytes or a canvas as base64, and a canvas's luma.
+// The player's DOM helpers: a page's failure in its place, bytes or a canvas
+// as base64, and a canvas's luma.
 
 import type { LumaArea } from '../core/export-handle.ts';
-
-/** The element `sel` finds under `root`: markup the caller wrote, so a missing one is a bug. */
-export const required = <T extends Element>(root: ParentNode, sel: string): T => {
-  const found = root.querySelector<T>(sel);
-  if (found === null) throw new Error(`missing ${sel}`);
-  return found;
-};
 
 /**
  * A page that could not start: the error, in place of the page, as text (an

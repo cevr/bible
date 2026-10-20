@@ -1,14 +1,13 @@
 // The transport's rates as commands: the rate chip offers every rate but the
 // one it plays at, K plays at 1× again, J and L step a rate slower or faster
-// and are not offered past either end; and where a phone plays and turns the
-// captions, by page.
+// and are not offered past either end.
 
 import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { BY_BUTTON, type Command } from '../command/command.ts';
 import { contextAt } from '../command/context.ts';
-import { chipRows, contextRows } from '../command/menu.ts';
-import { rateCommands, rateId, rateText, transportCommands } from './transport.ts';
+import { chipRows } from '../command/menu.ts';
+import { rateCommands, rateId, rateText } from './transport.ts';
 
 const ctx = contextAt('player', '/films/f/studio');
 
@@ -54,54 +53,5 @@ describe('the rate chip', () => {
     expect(t.byId(rateId(1)).keys).toEqual(['k']);
     t.run(rateId(1));
     expect(t.rates.at).toBe(1);
-  });
-});
-
-describe('the steps, a finger away (AA-8)', () => {
-  test("a press on the picture's nothing lists the frame and scene steps, the frames' also ×10", () => {
-    const moved: Array<string> = [];
-    const commands = transportCommands('player', {
-      toggle: () => moved.push('toggle'),
-      stepFrames: (n) => moved.push(`frames ${n}`),
-      nextScene: () => moved.push('next scene'),
-      previousScene: () => moved.push('previous scene'),
-      toggleCaptions: () => moved.push('captions'),
-    });
-    const rows = contextRows(commands, ctx).flatMap(([, r]) => r);
-    expect(rows.map((r) => r.label)).toEqual([
-      'Next frame',
-      'Next frame ×10',
-      'Previous frame',
-      'Previous frame ×10',
-      'Next scene',
-      'Scene start, or the scene before',
-    ]);
-    for (const row of rows)
-      Effect.runSync(row.command.run(ctx, { step: row.step, via: 'menu', input: 'pointer' }));
-    expect(moved).toEqual([
-      'frames 1',
-      'frames 10',
-      'frames -1',
-      'frames -10',
-      'next scene',
-      'previous scene',
-    ]);
-  });
-});
-
-describe('the captions and play, a finger away', () => {
-  test("the studio's captions are its command menu's, the review's its CC button, and a tap on the film plays", () => {
-    const transport = {
-      toggle: () => undefined,
-      stepFrames: () => undefined,
-      nextScene: () => undefined,
-      previousScene: () => undefined,
-      toggleCaptions: () => undefined,
-    };
-    const touchOf = (page: 'review' | 'player', id: string) =>
-      transportCommands(page, transport).find((c) => c.id === id)?.touch;
-    expect(touchOf('review', 'view.captions')).toBe('the CC button');
-    expect(touchOf('player', 'view.captions')).toBe('the command menu, then Captions on or off');
-    expect(touchOf('player', 'play.toggle')).toBe('tap the film');
   });
 });

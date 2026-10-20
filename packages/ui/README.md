@@ -8,7 +8,7 @@ Every part takes `class` and `style` (a value or a function of the part's state)
 
 ### Press
 
-`@bible/ui/press` renders no element and sets no attributes. It holds `claimPress`, `liftHeldByOther`, `LONG_PRESS_DELAY` and `LONG_PRESS_MOVE_THRESHOLD`: one owner per press, shared with the context menu's long press. The parts read the text direction as `ltr`; upstream's `DirectionProvider`, `useRender` and the `mergeProps` subpath are left out.
+`@bible/ui/press` renders no element and sets no attributes. It holds `claimPress`, `liftHeldByOther` and `LONG_PRESS_MOVE_THRESHOLD`: one owner per press, shared with the context menu's long press. The parts read the text direction as `ltr`; upstream's `DirectionProvider`, `useRender` and the `mergeProps` subpath are left out.
 
 ### Menu
 
