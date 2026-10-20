@@ -3884,8 +3884,8 @@ as too long asked again in halves. The store (`settings.judged.cache`, under
 the repo's ignored tmp folder) is keyed by content: a hash of the words the
 model reads for the rule (subject, instructions, criteria), the model, and
 the item's key: what of it a formatter does not change, code by its parsed
-form (each node's type and fields, not where it stands or how a literal is
-spelt) and comments and prose by their words, each run of whitespace one
+form (each node's type and fields, not where it stands or how a number or
+a string is spelt; a template's raw text stays) and comments and prose by their words, each run of whitespace one
 space (`packages/scripts/src/judged/items.ts`). So a rerun asks only for an
 item or rule words it has not seen, an edit a parser sees or to a rule's
 words asks again, a threshold or a message changes no
@@ -3900,7 +3900,8 @@ series script, an answer the store could not keep), and one line a rule;
 model or its host: no key (`TYPESAFE_API_KEY`, else the keychain item
 `typesafe-api-key` within 2 s), a part past 5 s, an account with no
 credits left, a rate limit, an HTTP error, one item alone past the input
-limit or an answer that misses items passes, and prints
+limit or an answer that misses items passes (after no key, no credits, a
+rate limit or a part past 5 s, no part not yet sent is sent), and prints
 `[judged] skipped rule=<rule> reason=<reason> items=<n>`; any other failure
 (git, the lint config, a defect) is `rule=* reason=error` with
 `detail=<tag>`, a store that does not decode is read as empty with one
