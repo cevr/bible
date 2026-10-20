@@ -35,6 +35,11 @@ import {
   readingProblems,
   type Reading,
   type Ruling,
+  type Outline,
+  outlineOfReport,
+  outlineProblems,
+  outlineReportProblems,
+  outlineVaries,
   type Sources,
   unitsOf,
   type Verses,
@@ -92,6 +97,56 @@ const withFix = (sources: Sources, n: number, units: ReadonlyArray<readonly stri
     ]),
     replaces: baseOf(sources, n),
   });
+
+/** Hymn `n` with no fix file: its row as committed is its printed source. */
+const withoutFix = (sources: Sources, n: number): Sources => ({
+  ...sources,
+  fixes: new Map([...sources.fixes].filter(([one]) => one !== n)),
+});
+
+/** Hymn `n`'s row and base row both `row`: a row wrong since before the census, which no fix touches. */
+const withBase = (sources: Sources, n: number, row: Verses): Sources => ({
+  ...withoutFix(withRow(sources, n, row), n),
+  base: new Map([...sources.base, [n, row]]),
+});
+
+const withOutlines = (sources: Sources, n: number, outlines: readonly Outline[]): Sources => ({
+  ...sources,
+  outlines: new Map([...sources.outlines, [n, outlines]]),
+});
+
+/** The one shape reading of hymn `n`. */
+const outlineOf = (sources: Sources, n: number) =>
+  Option.getOrThrowWith(
+    Option.fromNullishOr(sources.outlines.get(n)?.[0]),
+    () => `no shape of ${n}`,
+  );
+
+/**
+ * The review's row mutants (r5 findings, `ocr-mutant.ts`): the refrain
+ * dropped, stanzas 2 and 3 swapped, the last stanza dropped, the last line
+ * of the stanza at index k dropped.
+ */
+const mutate = (truth: Verses, mode: string): Verses => {
+  const stanzas = truth.filter((v) => v.id >= 0).toSorted((a, b) => a.id - b.id);
+  const refrain = truth.filter((v) => v.id < 0);
+  if (mode === 'norefrain') return stanzas;
+  if (mode === 'swap23')
+    return [
+      ...stanzas.map((v, i) =>
+        i === 1 || i === 2 ? { id: v.id, text: stanzas[3 - i]?.text ?? v.text } : v,
+      ),
+      ...refrain,
+    ];
+  if (mode === 'droplast') return [...stanzas.slice(0, -1), ...refrain];
+  const k = Number(mode.split(':')[1]);
+  return [
+    ...stanzas.map((v, i) =>
+      i === k ? { id: v.id, text: v.text.split('\n').slice(0, -1).join('\n') } : v,
+    ),
+    ...refrain,
+  ];
+};
 
 const withInventory = (sources: Sources, change: (inventory: Inventory) => Inventory): Sources => ({
   ...sources,
@@ -525,63 +580,142 @@ describe('census', () => {
         }),
     );
 
-    it.effect(
-      'applies a ruling inside a wider one once, and flags rulings of one stretch that disagree',
-      () =>
-        Effect.sync(() => {
-          const ruling = (at: number, row: string, sung: string): Ruling => ({
-            sites: [{ unit: 1, at }],
-            row,
-            readings: [''],
-            printed: sung,
-            sung,
-            kind: 'words',
-            crops: [],
-            judge: 'test',
-            why: 'test',
-          });
-          const base = [['out', 'our', 'unexpressed', 'o', 'to', 'the', 'sky', 'to', 'the', 'sky']];
-          const wide = ruling(0, 'out our unexpressed o', 'out or unexpressed o');
-          const agreed = applyRulings(base, [wide, ruling(1, 'our', 'or')]);
-          expect(agreed.misplaced).toEqual([]);
-          expect(agreed.units[0]).toEqual([
-            'out',
-            'or',
-            'unexpressed',
-            'o',
-            'to',
-            'the',
-            'sky',
-            'to',
-            'the',
-            'sky',
-          ]);
+    describe('rulings of one stretch read the page one way (M3)', () => {
+      /** A ruling of hymn `n`'s unit 1 at `at`: its row words, the words it sings, its crops those of `like`. */
+      const ruling = (like: Ruling, at: number, row: string, sung: string): Ruling => ({
+        ...like,
+        sites: [{ unit: 1, at }],
+        row,
+        readings: [''],
+        printed: sung,
+        sung,
+        kind: 'words',
+        crops: like.crops.map((crop, i) => ({ ...crop, shows: i === 0 ? sung : '' })),
+        judge: 'test',
+      });
+      const other = (one: Ruling): Ruling => ({ ...one, judge: 'another' });
+      /** Hymn 23, its base unit 1's words, and its first ruling (the crops every case reads). */
+      const hymn23 = Effect.map(read, ({ census, sources }) => ({
+        census,
+        sources,
+        words: unitsOf(baseOf(sources, 23))[0]!,
+        like: sources.rulings.get(23)![0]!,
+      }));
+      const disagree = /ruled twice|inside it|two judges|holds no/;
+
+      it.effect('applies a ruling inside a wider one once, when they agree', () =>
+        Effect.gen(function* () {
+          const { census, sources, words, like } = yield* hymn23;
+          const wide = ruling(
+            like,
+            0,
+            words.slice(0, 4).join(' '),
+            ['x', ...words.slice(1, 4)].join(' '),
+          );
+          const inner = ruling(like, 0, words[0]!, 'x');
+          const problems = about(census, withRulings(sources, 23, [wide, inner]), 23);
+          expect(problems.filter((p) => disagree.test(p))).toEqual([]);
+          const agreed = applyRulings([words], [wide, inner]);
+          expect(agreed.units[0]).toEqual(['x', ...words.slice(1)]);
           // The inner ruling stands at its own word, so its crop answers for that word alone.
           expect(agreed.spans.map(({ start, length }) => [start, length])).toEqual([
             [0, 4],
-            [1, 1],
+            [0, 1],
           ]);
-          expect(applyRulings(base, [wide, ruling(1, 'our', 'and')]).misplaced).toEqual([
-            'unit 1 at 0 is ruled "out or unexpressed o", and a ruling inside it at 1 "and"',
-          ]);
-          // 220's refrain: a line ruled printed once, and its echo's words ruled away one by one.
-          const once = ruling(4, 'to the sky to the sky', 'to the sky');
-          const echo = applyRulings(base, [once, ruling(7, 'to', ''), ruling(9, 'sky', '')]);
-          expect(echo.misplaced).toEqual([]);
-          expect(echo.units[0]).toEqual(['out', 'our', 'unexpressed', 'o', 'to', 'the', 'sky']);
-          expect(
-            applyRulings(base, [ruling(5, 'the sky', 'a sky'), ruling(6, 'sky to', 'sky at')])
-              .misplaced,
-          ).toEqual(['unit 1 at 5 and at 6 are ruled twice, and the rulings disagree']);
-          // 122: two judges read "light and life" against "Life and light" two ways; mixed, they write neither.
-          const other = (one: Ruling): Ruling => ({ ...one, judge: 'another' });
-          expect(
-            applyRulings(base, [ruling(1, 'our', 'or'), other(ruling(2, '', 'and'))]).misplaced,
-          ).toEqual(['unit 1 at 1 and at 2 rule one stretch, by two judges']);
-          // A ruling of an earlier round inside a wider one of this round agrees, whoever judged it.
-          expect(applyRulings(base, [once, other(ruling(7, 'to', ''))]).misplaced).toEqual([]);
         }),
-    );
+      );
+
+      it.effect('flags a ruling inside a wider one that sings other words at its place', () =>
+        Effect.gen(function* () {
+          const { census, sources, words, like } = yield* hymn23;
+          const kept = words.slice(0, 4).join(' ');
+          const wide = ruling(like, 0, kept, kept);
+          expect(
+            about(census, withRulings(sources, 23, [wide, ruling(like, 1, words[1]!, 'and')]), 23),
+          ).toContain(
+            `23 rulings: unit 1 at 0 is ruled "${kept}", and a ruling inside it at 1 "and"`,
+          );
+        }),
+      );
+
+      it.effect(
+        "flags two rulings of overlapping words, and two judges' rulings of one stretch",
+        () =>
+          Effect.gen(function* () {
+            const { census, sources, words, like } = yield* hymn23;
+            const [w5, w6, w7] = [words[5]!, words[6]!, words[7]!];
+            expect(
+              about(
+                census,
+                withRulings(sources, 23, [
+                  ruling(like, 5, `${w5} ${w6}`, `a ${w6}`),
+                  ruling(like, 6, `${w6} ${w7}`, `${w6} at`),
+                ]),
+                23,
+              ),
+            ).toContain(
+              '23 rulings: unit 1 at 5 and at 6 are ruled twice, and the rulings disagree',
+            );
+            expect(
+              about(
+                census,
+                withRulings(sources, 23, [
+                  ruling(like, 1, words[1]!, 'or'),
+                  other(ruling(like, 2, '', 'and')),
+                ]),
+                23,
+              ),
+            ).toContain('23 rulings: unit 1 at 1 and at 2 rule one stretch, by two judges');
+          }),
+      );
+
+      it.effect(
+        "flags hymn 23's ruling ruled again by a second judge who reads the row's words",
+        () =>
+          Effect.gen(function* () {
+            const { census, sources } = yield* hymn23;
+            const rulings = sources.rulings.get(23)!;
+            const changing = rulings.find(
+              (one) => wordsOf(one.row).join(' ') !== wordsOf(one.sung).join(' '),
+            )!;
+            const again: Ruling = {
+              ...changing,
+              judge: `${changing.judge} (second judge)`,
+              printed: changing.row,
+              sung: changing.row,
+              crops: changing.crops.map((crop, i) => ({
+                ...crop,
+                shows: i === 0 ? changing.row : '',
+              })),
+            };
+            const site = changing.sites[0]!;
+            const counted = withEntry(census, 23, (one) => ({
+              ...one,
+              rulings: { ...one.rulings, all: one.rulings.all + 1 },
+            }));
+            expect(about(counted, withRulings(sources, 23, [...rulings, again]), 23)).toContain(
+              `23 rulings: unit ${site.unit} at ${site.at} and at ${site.at} are ruled twice, and the rulings disagree`,
+            );
+          }),
+      );
+
+      it.effect(
+        'flags an inner ruling that sings a word the wider one keeps elsewhere (alpha)',
+        () =>
+          Effect.gen(function* () {
+            const { census, sources, like } = yield* hymn23;
+            const words = ['alpha', 'beta', 'gamma', 'alpha'];
+            const kept = words.join(' ');
+            const mutated = withRulings(withBase(sources, 23, rowOfUnits([words])), 23, [
+              ruling(like, 0, kept, kept),
+              ruling(like, 1, 'beta', 'alpha'),
+            ]);
+            expect(about(census, mutated, 23)).toContain(
+              `23 rulings: unit 1 at 0 is ruled "${kept}", and a ruling inside it at 1 "alpha"`,
+            );
+          }),
+      );
+    });
 
     it.effect(
       'reads a word the page breaks over two crops as one word, and flags a word given to two crops',
@@ -738,27 +872,241 @@ describe('census', () => {
     );
 
     it.effect(
-      'flags a census fix that writes no varies where a blind reading prints a refrain that varies',
+      'flags a blind reading that prints a refrain varying by stanza where no shape reading says how',
       () =>
         Effect.gen(function* () {
           const { census, sources } = yield* read;
-          const entry = first(
-            census,
-            'fixed',
-            (one) => sources.fixes.get(one.number)?.replaces !== undefined,
-          );
+          const entry = first(census, 'matches', (one) => !sources.outlines.has(one.number));
           const n = entry.number;
           const deciding = decidingOf(sources.inventory).get(n)!;
           const base = baseOf(sources, n);
-          const flat: Fix = { number: n, stanzas: sources.fixes.get(n)!.stanzas, replaces: base };
           const varying = reading(n, deciding.images, unitsOf(base), {
             refrain: 'first row',
             refrainRows: ['first row', 'second row'],
           });
+          expect(readingProblems(entry, deciding, base, [], [varying])).toContain(
+            `${n} readings print a refrain that varies by stanza, and no shape reading of its page says how`,
+          );
+          // A shape reading that prints no varying rows, and no ruling of a repeat or an echo that says why.
+          const outline = outlineOf(sources, 187);
           expect(
-            readingProblems(entry, deciding, base, sources.rulings.get(n) ?? [], [varying], flat),
-          ).toContain(`${n} readings print a refrain that varies by stanza, its fix writes none`);
+            readingProblems(entry, deciding, base, [], [varying], [{ ...outline, number: n }]),
+          ).toContain(
+            `${n} a reading prints a refrain that varies by stanza, its shape reading none, and no ruling says why`,
+          );
         }),
+    );
+  });
+
+  describe('the shape is read off the page alone (P1)', () => {
+    it.effect('reads every committed shape the same whatever the row holds', () =>
+      Effect.gen(function* () {
+        const { sources } = yield* read;
+        expect(sources.outlines.size).toBeGreaterThanOrEqual(103);
+        for (const [n, outlines] of sources.outlines)
+          for (const outline of outlines) {
+            const { reader, ...report } = outline;
+            const before = outlineOfReport(report, reader);
+            const changed = withRow(sources, n, mutate(sources.rows.get(n) ?? [], 'swap23'));
+            // @ts-expect-error the shape reader is given the report and its name: never a row
+            outlineOfReport(report, reader, changed.rows.get(n));
+            expect(outlineOfReport(report, reader)).toStrictEqual(before);
+            expect(before).toStrictEqual(outline);
+          }
+      }),
+    );
+
+    it.effect(
+      "flags a committed shape that is no reader's report, and a report not committed",
+      () =>
+        Effect.gen(function* () {
+          const { sources } = yield* read;
+          const outline = outlineOf(sources, 187);
+          const reports = [...sources.outlines.values()].flat();
+          expect(outlineReportProblems(sources, reports)).toEqual([]);
+          const dropped = { ...outline, refrain: null };
+          expect(outlineReportProblems(withOutlines(sources, 187, [dropped]), reports)).toEqual([
+            `187 shape (${outline.reader}) is no shape reader's report`,
+            `187 shape (${outline.reader}) is reported but not committed`,
+          ]);
+        }),
+    );
+
+    const mutants: ReadonlyArray<readonly [number, readonly string[]]> = [
+      [187, ['norefrain', 'swap23', 'droplast', 'dropline:3']],
+      [121, ['norefrain', 'swap23']],
+      [362, ['norefrain', 'swap23']],
+      [505, ['norefrain', 'swap23']],
+      [31, ['swap23']],
+    ];
+    for (const [n, modes] of mutants)
+      for (const mode of modes)
+        it.effect(`flags ${n} with the row's ${mode} mutant made the base row`, () =>
+          Effect.gen(function* () {
+            const { census, sources } = yield* read;
+            const row = sources.rows.get(n)!;
+            const outline = outlineOf(sources, n);
+            expect(entryOf(census, n).readings.reader).toBe(0);
+            expect(outlineProblems(n, outline, row, sources.fixes.get(n), false)).toEqual([]);
+            const mutant = mutate(row, mode);
+            expect(mutant).not.toEqual(row);
+            expect(outlineProblems(n, outline, mutant, undefined, false)).not.toEqual([]);
+            expect(
+              about(census, withBase(sources, n, mutant), n).some((p) =>
+                p.startsWith(`${n} shape (${outline.reader}): `),
+              ),
+            ).toBe(true);
+          }),
+        );
+
+    it.effect(
+      'flags each shape the rule names: refrain, unnumbered row, line order, a line the page lacks',
+      () =>
+        Effect.gen(function* () {
+          const { sources } = yield* read;
+          const n = 187;
+          const outline = outlineOf(sources, n);
+          const row = sources.rows.get(n)!;
+          const what = `${n} shape (${outline.reader})`;
+          // The page prints no refrain, the row writes one.
+          expect(
+            outlineProblems(n, { ...outline, refrain: null }, row, undefined, false),
+          ).toContain(`${what}: the page prints no refrain, the printed source has one`);
+          // An unnumbered row the page prints, which the row lacks.
+          const unnumbered = {
+            system: 1,
+            strip: 'x.jpg',
+            first: 'quorum vellum',
+            last: 'zephyr quartz',
+            why: 'a row with no number',
+          };
+          expect(
+            outlineProblems(n, { ...outline, extra: [unnumbered] }, row, undefined, false),
+          ).toContain(
+            `${what}: a row "quorum vellum" (a row with no number) is in no part of the printed source`,
+          );
+          // Stanza 1's first and last lines swapped.
+          const swapped = row.map((v) => {
+            if (v.id !== 0) return v;
+            const lines = v.text.split('\n');
+            return { ...v, text: [lines.at(-1)!, ...lines.slice(1, -1), lines[0]!].join('\n') };
+          });
+          expect(
+            outlineProblems(n, outline, swapped, undefined, false).some((p) =>
+              p.startsWith(`${what}: stanza 1 `),
+            ),
+          ).toBe(true);
+          // A line the page never prints, at the end of stanza 1 (before the refrain sung after it).
+          const added = row.map((v) => {
+            if (v.id !== 0) return v;
+            const lines = v.text.split('\n');
+            return {
+              ...v,
+              text: [...lines, 'quorum vellum zephyr quartz'].join('\n'),
+            };
+          });
+          expect(outlineProblems(n, outline, added, undefined, false)).toContain(
+            `${what}: stanza 1 sings "quorum vellum" and on, in no row the page prints`,
+          );
+          // A line the page never prints at the refrain's end, closing on the
+          // last words of stanza 1's last row: that row stops at its stanza's end.
+          const closing = outline.stanzas[0]!.rows.at(-1)!.last;
+          const tail = row.map((v) =>
+            v.id < 0 ? { ...v, text: `${v.text}\nquorum vellum zephyr ${closing}` } : v,
+          );
+          expect(outlineProblems(n, outline, tail, undefined, false)).toContain(
+            `${what}: stanza 1 sings "quorum vellum" and on, in no row the page prints`,
+          );
+        }),
+    );
+
+    it.effect("flags the refrain's end a photo cuts off, after the last stanza too", () =>
+      Effect.gen(function* () {
+        const { sources } = yield* read;
+        const outline = (sources.outlines.get(86) ?? []).find((one) => one.reader === 'shape-14')!;
+        const problems = outlineProblems(
+          86,
+          outline,
+          sources.rows.get(86)!,
+          sources.fixes.get(86),
+          false,
+        );
+        for (const i of [1, 2, 3, 4])
+          expect(problems).toContain(
+            `86 shape (shape-14): stanza ${i} sings "soul my" and on, in no row the page prints`,
+          );
+      }),
+    );
+  });
+
+  describe('a refrain the page varies by stanza is written varying (P5)', () => {
+    it.effect(
+      'holds every shape reading that varies to a printed source with those varies parts',
+      () =>
+        Effect.gen(function* () {
+          const { census, sources } = yield* read;
+          const problems = problemsOf(census, sources);
+          const varying = [...sources.outlines].filter(([, outlines]) =>
+            outlines.some((outline) => outlineVaries(outline).length > 0),
+          );
+          expect(varying.map(([n]) => n)).toEqual(expect.arrayContaining([140, 258, 593]));
+          for (const [n] of varying) {
+            const parts = (sources.fixes.get(n)?.refrain?.lines ?? []).some(
+              (item) => 'varies' in item,
+            );
+            expect(parts || problems.some((p) => p.startsWith(`${n} shape (`))).toBe(true);
+          }
+        }),
+    );
+
+    for (const n of [140, 258, 593, 326])
+      it.effect(`flags ${n} with its fix's varies parts dropped`, () =>
+        Effect.gen(function* () {
+          const { census, sources } = yield* read;
+          const fix = sources.fixes.get(n)!;
+          const outline = outlineOf(sources, n);
+          expect(outlineVaries(outline)).not.toEqual([]);
+          expect(fix.refrain?.lines.some((item) => 'varies' in item)).toBe(true);
+          // The row as it stands sings each stanza's own refrain, with no varies part: no fix.
+          expect(about(census, withoutFix(sources, n), n)).toContain(
+            `${n} shape (${outline.reader}): the page prints refrain rows for stanzas ${outlineVaries(
+              outline,
+            )
+              .map((group) => `[${group.join(', ')}]`)
+              .join(' and ')} only, and the printed source sings no varies part after them`,
+          );
+        }),
+      );
+
+    it.effect('flags 220 with its varies parts sung as one refrain after every stanza', () =>
+      Effect.gen(function* () {
+        const { census, sources } = yield* read;
+        const fix = sources.fixes.get(220)!;
+        const lines = fix.refrain!.lines.flatMap((item) =>
+          'varies' in item ? item.varies[0]!.lines : [item],
+        );
+        const flat = withFixFile(sources, 220, { ...fix, refrain: { lines } });
+        expect(
+          about(census, flat, 220).some((p) =>
+            p.startsWith(`220 shape (${outlineOf(sources, 220).reader}): stanza 2 `),
+          ),
+        ).toBe(true);
+      }),
+    );
+  });
+
+  describe('the fixes before the census stay (M2)', () => {
+    it.effect('holds every fix file of the base commit at head', () =>
+      Effect.gen(function* () {
+        const { census, sources } = yield* read;
+        expect(sources.baseFixes).toEqual(
+          expect.arrayContaining([138, 203, 220, 438, 593, 620, 628]),
+        );
+        for (const n of sources.baseFixes) expect(sources.fixes.has(n)).toBe(true);
+        expect(about(census, withoutFix(sources, 138), 138)).toContain(
+          '138 fix file at the base commit is gone',
+        );
+      }),
     );
   });
 

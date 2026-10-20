@@ -66,7 +66,7 @@ import { HymnalService, HymnId } from '@bible/core/hymnal';
 import { layerHymnalBun } from '@bible/core/hymnal/bun';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Database } from 'bun:sqlite';
-import { ConfigProvider, Effect, FileSystem, Layer, Option, Schema } from 'effect';
+import { ConfigProvider, Effect, FileSystem, Layer, Option, Schema, Struct } from 'effect';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 
@@ -254,7 +254,10 @@ const quoted = (words: readonly string[]) => `"${words.join(' ')}"`;
  * - `layout`: the row's words printed at another place of the hymn (a refrain
  *   printed before the first stanza, a stanza's lines in another system),
  *   which the row sings where it does;
- * - `unreadable`: the crop does not show the words clearly enough to say.
+ * - `unreadable`: the crop does not show the words clearly enough to say;
+ * - `owner`: words a judge saw the crop print but would not transcribe
+ *   (copyright), copied by the owner from his own book at that place: read
+ *   like `words`, on the crop that shows them.
  * `sung` is what the row writes there under Decided 5: the printed words
  * for `words`, the meant word for a misprint, the line in every stanza that
  * sings it, the repeat where it is sung, an echo row noted, not written, a layout as the row has it.
@@ -267,6 +270,7 @@ const Kind = Schema.Literals([
   'shared',
   'layout',
   'unreadable',
+  'owner',
 ]);
 
 /**
@@ -293,6 +297,13 @@ const Ruling = Schema.Struct({
   crops: Schema.Array(RulingCrop),
   judge: Schema.String,
   why: Schema.String,
+  /**
+   * The shape differences (`shapeProblems`' lines) this ruling settles: the
+   * judge read the place on its crops and found the printed source right
+   * there, the shape reader's slip (or a part, such as an echo, the row
+   * rightly leaves out). A ruling that settles a difference may have no site.
+   */
+  settles: Schema.optionalKey(Schema.Array(Schema.String)),
 });
 export type Ruling = typeof Ruling.Type;
 
@@ -313,20 +324,68 @@ export interface Span {
 }
 
 /**
+ * What can be wrong with a hymn's rulings taken together:
+ * - `site`: a ruling's site does not hold its row words in the base;
+ * - `nesting`: a ruling inside a wider one sings other words at its own place in the wider one;
+ * - `twice`: two rulings of one stretch, neither inside the other, sing it differently;
+ * - `judges`: two rulings of one stretch, neither inside the other, come from two judges.
+ */
+export type RulingConflict =
+  | {
+      readonly kind: 'site';
+      readonly unit: number;
+      readonly at: number;
+      readonly row: readonly string[];
+    }
+  | {
+      readonly kind: 'nesting';
+      readonly unit: number;
+      readonly at: number;
+      readonly sung: readonly string[];
+      readonly inner: number;
+      readonly innerSung: readonly string[];
+    }
+  | { readonly kind: 'twice'; readonly unit: number; readonly at: number; readonly other: number }
+  | { readonly kind: 'judges'; readonly unit: number; readonly at: number; readonly other: number };
+
+/**
+ * One line for each kind of conflict: a record over the whole union, so a
+ * kind added to `RulingConflict` fails the typecheck until it is said here.
+ */
+const conflictLine = {
+  site: (c) => `unit ${c.unit} at ${c.at} holds no ${quoted(c.row)}`,
+  nesting: (c) =>
+    `unit ${c.unit} at ${c.at} is ruled ${quoted(c.sung)}, and a ruling inside it at ${c.inner} ${quoted(c.innerSung)}`,
+  twice: (c) =>
+    `unit ${c.unit} at ${c.at} and at ${c.other} are ruled twice, and the rulings disagree`,
+  judges: (c) => `unit ${c.unit} at ${c.at} and at ${c.other} rule one stretch, by two judges`,
+} satisfies {
+  readonly [K in RulingConflict['kind']]: (
+    conflict: Extract<RulingConflict, { kind: K }>,
+  ) => string;
+};
+
+/** A conflict as the census prints it. */
+export const lineOfConflict = (conflict: RulingConflict): string =>
+  (conflictLine[conflict.kind] as (c: RulingConflict) => string)(conflict);
+
+/**
  * The base units with every ruling's sung words put in at its sites, where
- * each ruling's words stand in them, and each ruling whose site does not
- * hold its row words in the base. Sites apply from the last to the first in
- * each unit; trailing units left empty are dropped.
+ * each ruling's words stand in them, and each conflict among the rulings
+ * (`RulingConflict`). Sites apply from the last to the first in each unit;
+ * trailing units left empty are dropped. Rulings in conflict apply none:
+ * the units are the base's, and the conflicts say why.
  *
  * Two readings can find runs of different extent at one place (`our` and
  * `out our unexpressed o`), each ruled. A ruling whose words lie inside a
- * wider ruling's is not applied again, and must agree with it: its words
- * stand in the wider ruling's, or it takes words away where the wider one
- * does. Rulings of one stretch with neither inside the other (words that
- * overlap, or an insertion at the edge of another's words) come from one
- * judge, so they read the page one way (two that keep their words read it
- * alike, whoever judged them); two of overlapping words disagree,
- * and so do two of the same words that sing them differently.
+ * wider ruling's is not applied again, and must agree with it at its own
+ * place: the wider ruling's sung words that stand where its row words stood
+ * (by the wider ruling's word alignment) are its sung words. Rulings of one
+ * stretch with neither inside the other (words that overlap, or an insertion
+ * at the edge of another's words) come from one judge, so they read the page
+ * one way (two that keep their words read it alike, whoever judged them);
+ * two of overlapping words disagree, and so do two of the same words that
+ * sing them differently.
  */
 export const applyRulings = (
   base: ReadonlyArray<readonly string[]>,
@@ -336,16 +395,17 @@ export const applyRulings = (
   const count = Math.max(base.length, ...edits.map((edit) => edit.unit));
   const units = Array.from({ length: count }, (_, u) => [...(base[u] ?? [])]);
   const misplaced = siteProblems(base, edits);
-  if (misplaced.length > 0) return { units, spans: [] as Span[], misplaced };
+  const none = { units, spans: [] as Span[], applied: [] as Ruling[] };
+  if (misplaced.length > 0) return { ...none, misplaced };
   const covered = coveredOf(edits);
   const disagree = [...nestingProblems(edits), ...stretchProblems(edits)];
-  if (disagree.length > 0) return { units, spans: [] as Span[], misplaced: disagree };
+  if (disagree.length > 0) return { ...none, misplaced: disagree };
   const applied = appliedOf(edits, covered);
   for (const edit of applied.toSorted((a, b) => b.unit - a.unit || b.at - a.at))
     units[edit.unit - 1]?.splice(edit.at, edit.row.length, ...edit.sung);
   const spans = edits.map((edit) => spanIn(applied, covered, edit));
   while (units.length > 0 && units[units.length - 1]?.length === 0) units.pop();
-  return { units, spans, misplaced };
+  return { units, spans, misplaced, applied: rulings.filter((r) => r.kind !== 'unreadable') };
 };
 
 /** One site of a ruling, with its row words and its sung words. */
@@ -370,13 +430,16 @@ const editsOf = (rulings: readonly Ruling[]): Edit[] =>
     );
 
 /** Each site that does not hold its ruling's row words in the base. */
-const siteProblems = (base: ReadonlyArray<readonly string[]>, edits: readonly Edit[]) =>
+const siteProblems = (
+  base: ReadonlyArray<readonly string[]>,
+  edits: readonly Edit[],
+): RulingConflict[] =>
   edits
     .filter((edit) => {
       const unit = base[edit.unit - 1] ?? [];
       return !same(unit.slice(edit.at, edit.at + edit.row.length), edit.row);
     })
-    .map((edit) => `unit ${edit.unit} at ${edit.at} holds no ${quoted(edit.row)}`);
+    .map((edit) => ({ kind: 'site', unit: edit.unit, at: edit.at, row: edit.row }));
 
 const endOf = (edit: Edit) => edit.at + edit.row.length;
 
@@ -401,41 +464,72 @@ const touch = (a: Edit, b: Edit) => {
   return a.at < endOf(b) && b.at < endOf(a);
 };
 
-const contains = (outer: readonly string[], inner: readonly string[]) =>
-  inner.length === 0 || outer.some((_, i) => same(outer.slice(i, i + inner.length), inner));
-
 /** The edits that lie inside a wider one, and are applied through it. */
 const coveredOf = (edits: readonly Edit[]) =>
   new Set(edits.filter((one) => edits.some((outer) => inside(one, outer))));
 
-/** An inner ruling agrees when its words stand in the wider ruling's, or it takes words away where the wider one does. */
-const agrees = (one: Edit, outer: Edit) =>
-  one.sung.length === 0
-    ? one.row.length === 0 || outer.sung.length < outer.row.length
-    : contains(outer.sung, one.sung);
+/** Each word of `a` matched to a word of `b` by a word-level LCS (the first match taken), as [i, j] pairs. */
+const alignmentOf = (a: readonly string[], b: readonly string[]) => {
+  const at = lcsTable(a, b);
+  const pairs: Array<readonly [number, number]> = [];
+  let [i, j] = [0, 0];
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) pairs.push([i++, j++]);
+    else if (at(i + 1, j) >= at(i, j + 1)) i++;
+    else j++;
+  }
+  return pairs;
+};
 
-const nestingProblems = (edits: readonly Edit[]) =>
+/**
+ * The wider ruling's sung words that stand where its row words `from` to
+ * `to` (exclusive, counted in its row) stood: those between the last row
+ * word before `from` and the first row word at or after `to` that the
+ * alignment keeps.
+ */
+const sungAt = (outer: Edit, from: number, to: number) => {
+  const pairs = alignmentOf(outer.row, outer.sung);
+  const before = pairs.filter(([i]) => i < from).at(-1);
+  const after = pairs.find(([i]) => i >= to);
+  return outer.sung.slice(
+    before === undefined ? 0 : before[1] + 1,
+    after === undefined ? outer.sung.length : after[1],
+  );
+};
+
+/** An inner ruling agrees when the wider ruling sings its sung words at its own place. */
+const agrees = (one: Edit, outer: Edit) => {
+  const from = one.at - outer.at;
+  return same(sungAt(outer, from, from + one.row.length), one.sung);
+};
+
+const nestingProblems = (edits: readonly Edit[]): RulingConflict[] =>
   edits.flatMap((outer) =>
     edits
       .filter((one) => inside(one, outer) && !agrees(one, outer))
-      .map(
-        (one) =>
-          `unit ${outer.unit} at ${outer.at} is ruled ${quoted(outer.sung)}, and a ruling inside it at ${one.at} ${quoted(one.sung)}`,
-      ),
+      .map((one) => ({
+        kind: 'nesting' as const,
+        unit: outer.unit,
+        at: outer.at,
+        sung: outer.sung,
+        inner: one.at,
+        innerSung: one.sung,
+      })),
   );
 
 const keeps = (edit: Edit) => same(edit.row, edit.sung);
 
 /** What two rulings of one stretch, neither inside the other, say wrong together, if anything. */
-const pairProblem = (a: Edit, b: Edit): string | undefined => {
-  const twice = `unit ${a.unit} at ${a.at} and at ${b.at} are ruled twice, and the rulings disagree`;
-  if (same(a.row, b.row) && a.at === b.at) return same(a.sung, b.sung) ? undefined : twice;
+const pairProblem = (a: Edit, b: Edit): RulingConflict | undefined => {
+  const place = { unit: a.unit, at: a.at, other: b.at };
+  if (same(a.row, b.row) && a.at === b.at)
+    return same(a.sung, b.sung) ? undefined : { kind: 'twice', ...place };
   if (a.ruling.judge !== b.ruling.judge && !(keeps(a) && keeps(b)))
-    return `unit ${a.unit} at ${a.at} and at ${b.at} rule one stretch, by two judges`;
-  return a.row.length > 0 && b.row.length > 0 ? twice : undefined;
+    return { kind: 'judges', ...place };
+  return a.row.length > 0 && b.row.length > 0 ? { kind: 'twice', ...place } : undefined;
 };
 
-const stretchProblems = (edits: readonly Edit[]) =>
+const stretchProblems = (edits: readonly Edit[]): RulingConflict[] =>
   edits.flatMap((a, i) =>
     edits
       .slice(i + 1)
@@ -870,6 +964,341 @@ export const fixUnitLinesOf = (fix: Fix): Array<Array<typeof Line.Type>> =>
     ),
   ]);
 
+// ----------------------------------------------------------------------------
+// The shape of the page
+// ----------------------------------------------------------------------------
+
+/** One lyric row as a shape reader saw it: its system, the strip it read it on, its first and last two words. */
+const OutlineRow = Schema.Struct({
+  system: Schema.Int,
+  strip: Schema.String,
+  first: Schema.String,
+  last: Schema.String,
+});
+
+/**
+ * A shape reading of one hymn's page (`data/shapes.json`): which stanzas the
+ * page prints and the lyric rows of each, in printed order; the refrain, if
+ * any, where it is printed, and its rows (a row printed once for some
+ * stanzas names them in `stanzas`: a refrain that varies by stanza); other
+ * rows (`extra`: echoes, descants); and the reader's doubts (`odd`). A fresh
+ * model reader wrote it off 1:1 strips of the deciding page, never shown the
+ * row (`reader` names its task): counts, positions and two-word anchors,
+ * never the lyrics.
+ */
+const Outline = Schema.Struct({
+  number: Schema.Int,
+  reader: Schema.String,
+  images: Schema.Array(Schema.String),
+  systems: Schema.Int,
+  stanzas: Schema.Array(
+    Schema.Struct({ number: Schema.NullOr(Schema.Int), rows: Schema.Array(OutlineRow) }),
+  ),
+  refrain: Schema.NullOr(
+    Schema.Struct({
+      label: Schema.NullOr(Schema.String),
+      at: Schema.Literals(['after', 'before', 'inside']),
+      rows: Schema.Array(
+        Schema.Struct({ ...OutlineRow.fields, stanzas: Schema.Array(Schema.Int) }),
+      ),
+    }),
+  ),
+  extra: Schema.Array(Schema.Struct({ ...OutlineRow.fields, why: Schema.String })),
+  odd: Schema.String,
+});
+export type Outline = typeof Outline.Type;
+
+/** A shape reading as its reader reports it: the reading without its reader's name. */
+const OutlineReport = Schema.Struct(Struct.omit(Outline.fields, ['reader']));
+type OutlineReport = typeof OutlineReport.Type;
+const ReportFile = Schema.Struct({ hymns: Schema.Array(OutlineReport) });
+
+const OutlinesFile = Schema.Struct({ print: Schema.String, hymns: Schema.Array(Outline) });
+export const decodeOutlines = Schema.decodeEffect(Schema.fromJsonString(OutlinesFile));
+
+/**
+ * A shape reader's report as the census keeps it: decoded, with the reader
+ * named. The report is all it reads: the type takes no row, so the shape
+ * cannot follow one.
+ */
+export const outlineOfReport = (report: OutlineReport, reader: string): Outline =>
+  Schema.decodeSync(Outline)({ ...report, reader });
+
+/**
+ * The refrain rows a shape reading prints for some stanzas only, grouped by
+ * the stanzas each group follows (sorted): empty when the refrain is the same
+ * after every stanza. A row marked for every stanza is a shared row.
+ */
+export const outlineVaries = (outline: Outline): number[][] => {
+  const all = outline.stanzas.length;
+  const groups = new Map<string, number[]>();
+  for (const row of outline.refrain?.rows ?? []) {
+    const after = [...new Set(row.stanzas)].toSorted((a, b) => a - b);
+    if (after.length === 0 || after.length >= all) continue;
+    groups.set(after.join(','), after);
+  }
+  return [...groups.values()].toSorted((a, b) => (a[0] ?? 0) - (b[0] ?? 0));
+};
+
+/** The printed source's shape: each stanza's words, the refrain sung after stanza i (1-based), and its varying parts. */
+interface PrintedOutline {
+  readonly stanzas: ReadonlyArray<readonly string[]>;
+  readonly refrain: boolean;
+  readonly refrainAfter: (stanza: number) => readonly string[];
+  readonly varies: ReadonlyArray<readonly number[]>;
+}
+
+const linesWords = (lines: ReadonlyArray<{ readonly text: string }>) =>
+  wordsOf(lines.map((line) => line.text).join('\n'));
+
+/** The printed source the fidelity oracle reads: the fix file when there is one, else the row. */
+const printedOutlineOf = (row: Verses, fix: Fix | undefined): PrintedOutline => {
+  if (fix !== undefined) {
+    const items = fix.refrain?.lines ?? [];
+    return {
+      stanzas: fix.stanzas.map(linesWords),
+      refrain: fix.refrain !== undefined,
+      refrainAfter: (stanza) =>
+        linesWords(
+          items.flatMap((item) =>
+            'varies' in item
+              ? (item.varies.find((part) => part.after.includes(stanza))?.lines ?? [])
+              : [item],
+          ),
+        ),
+      varies: items.flatMap((item) =>
+        'varies' in item
+          ? item.varies.map((part) => [...part.after].toSorted((a, b) => a - b))
+          : [],
+      ),
+    };
+  }
+  const refrain = wordsOf(
+    row
+      .filter((verse) => verse.id < 0)
+      .map((verse) => verse.text)
+      .join('\n'),
+  );
+  return {
+    stanzas: row
+      .filter((verse) => verse.id >= 0)
+      .toSorted((a, b) => a.id - b.id)
+      .map((verse) => wordsOf(verse.text)),
+    refrain: refrain.length > 0,
+    refrainAfter: () => refrain,
+    varies: [],
+  };
+};
+
+/** The edit distance of two words, up to 2 (2 means 2 or more). */
+const distance = (a: string, b: string) => {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > 1) return 2;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i];
+    for (let j = 1; j <= b.length; j++)
+      next[j] = Math.min(
+        (prev[j] ?? 0) + 1,
+        (next[j - 1] ?? 0) + 1,
+        (prev[j - 1] ?? 0) + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    prev = next;
+  }
+  return Math.min(2, prev[b.length] ?? 2);
+};
+
+/**
+ * Where an anchor (a row's first or last words) stands in `words` at or after
+ * `from`: the words there spell it letter for letter, or one letter off when
+ * it has four letters or more (a reader's slip on one letter is the word
+ * census's business, not the shape's), over as many words or one more or
+ * fewer (`heart ache` against `heartache`), or the tail of the first word or
+ * the head of the last (`stead of` against `instead of`: a word split alone
+ * is no difference, as in the word runs); the exact spelling a word on wins
+ * over a near one.
+ */
+const anchorAt = (words: readonly string[], anchor: readonly string[], from: number) => {
+  const want = anchor.join('');
+  if (want === '') return { at: from, length: 0 };
+  const lengths = [anchor.length, anchor.length + 1, anchor.length - 1];
+  const spelt = (at: number, near: boolean) => {
+    for (const length of lengths) {
+      if (length < 1 || at < 0 || at + length > words.length) continue;
+      const span = words.slice(at, at + length);
+      const have = span.join('');
+      // A word split alone is no difference (`in stead` against `instead`): the
+      // anchor may hold the tail of the span's first word or the head of its last.
+      const split =
+        (have.endsWith(want) && have.length - want.length < (span[0]?.length ?? 0)) ||
+        (have.startsWith(want) && have.length - want.length < (span.at(-1)?.length ?? 0));
+      if (have === want || split || (near && want.length >= 4 && distance(have, want) <= 1))
+        return { at, length };
+    }
+    return undefined;
+  };
+  for (let at = Math.max(0, from); at < words.length; at++) {
+    const exact = spelt(at, false);
+    if (exact !== undefined) return exact;
+    // A near spelling gives way to the exact one a word on (`i know he` against `know he`).
+    if (spelt(at, true) !== undefined) return spelt(at + 1, false) ?? spelt(at, true);
+  }
+  return undefined;
+};
+
+/** Where one row stands in `words`: its first word and one past its last. */
+interface Found {
+  readonly start: number;
+  readonly end: number;
+}
+
+/**
+ * Each row's anchors, first then last, found in order in `words`: the rows
+ * found (each one's span), and the first that is not, if any. The last row
+ * stretches to a later place of its last words no further than `upto`.
+ */
+interface RowsFound {
+  readonly found: readonly Found[];
+  readonly miss?: string;
+}
+
+const rowsIn = (
+  words: readonly string[],
+  rows: ReadonlyArray<{ readonly first: string; readonly last: string }>,
+  upto: number = words.length,
+): RowsFound => {
+  const found: Found[] = [];
+  let from = 0;
+  for (const [r, row] of rows.entries()) {
+    const first = anchorAt(words, wordsOf(row.first), from);
+    if (first === undefined)
+      return { found, miss: `row ${r + 1} opens ${quoted(wordsOf(row.first))}` };
+    const last = anchorAt(words, wordsOf(row.last), first.at);
+    if (last === undefined)
+      return { found, miss: `row ${r + 1} ends ${quoted(wordsOf(row.last))}` };
+    found.push({ start: first.at, end: last.at + last.length });
+    from = last.at + last.length;
+  }
+  // A row's last words can stand more than once in it (`like Jesus` twice in
+  // one row): it ends at their last place before the next row opens.
+  return {
+    found: found.map((one, r) => {
+      const until = found[r + 1]?.start ?? Math.max(upto, one.end);
+      const anchor = wordsOf(rows[r]?.last ?? '');
+      let end = one.end;
+      for (let at = one.end; at < until; at++) {
+        const next = anchorAt(words, anchor, at);
+        if (next === undefined || next.at + next.length > until) break;
+        end = next.at + next.length;
+        at = next.at;
+      }
+      return { start: one.start, end };
+    }),
+  };
+};
+
+/** The runs of three or more words that no found row covers, each as its first two words. */
+const uncovered = (words: readonly string[], found: readonly Found[]): string[] => {
+  const covered = words.map(() => false);
+  for (const one of found) for (let k = one.start; k < one.end; k++) covered[k] = true;
+  const runs: string[] = [];
+  for (let k = 0; k < words.length;) {
+    if (covered[k] === true) {
+      k++;
+      continue;
+    }
+    let end = k;
+    while (end < words.length && covered[end] !== true) end++;
+    if (end - k >= 3) runs.push(quoted(words.slice(k, k + 2)));
+    k = end;
+  }
+  return runs;
+};
+
+/**
+ * Stanza `i`'s rows and the refrain rows the page prints for it, each in
+ * order in what the source sings for it (`words`), and every three words of
+ * it in some row.
+ */
+const stanzaRowProblems = (
+  what: string,
+  outline: Outline,
+  printed: PrintedOutline,
+  i: number,
+  rows: Outline['stanzas'][number]['rows'],
+  words: readonly string[],
+): string[] => {
+  const problems: string[] = [];
+  const page = outline.stanzas.length;
+  // The stanza's last row stretches over no word of the refrain after it.
+  const own = rowsIn(words, rows, printed.stanzas[i - 1]?.length ?? 0);
+  if (own.miss !== undefined)
+    problems.push(`${what}: stanza ${i} ${own.miss}, not in what it sings`);
+  const refrainRows = (outline.refrain?.rows ?? []).filter(
+    (one) => one.stanzas.length === 0 || one.stanzas.length >= page || one.stanzas.includes(i),
+  );
+  const refrain = rowsIn(words, refrainRows);
+  if (refrain.miss !== undefined)
+    problems.push(`${what}: the refrain after stanza ${i}: ${refrain.miss}, not in what it sings`);
+  if (own.miss === undefined && refrain.miss === undefined)
+    for (const run of uncovered(words, [...own.found, ...refrain.found]))
+      problems.push(`${what}: stanza ${i} sings ${run} and on, in no row the page prints`);
+  return problems;
+};
+
+/**
+ * One shape reading against the printed source, stanza by stanza, on what is
+ * sung: the stanza's words, then the refrain sung after it (a refrain the
+ * row writes inside each stanza sings the same). The page prints as many
+ * stanzas (a hymn that lends the rest of its stanzas from another prints no
+ * more); each stanza's rows, and the refrain rows sung after it, stand in
+ * order in what the source sings for it, and every three words it sings
+ * stand in a row the page prints; a refrain the source writes apart is one
+ * the page prints; each group of refrain rows the page prints for some
+ * stanzas only is a `varies` part of the source after those stanzas (a part
+ * the page prints as each stanza's own rows sings the same, and is checked
+ * as sung); and no other row the source lacks but an echo or a descant.
+ */
+export const outlineProblems = (
+  n: number,
+  outline: Outline,
+  row: Verses,
+  fix: Fix | undefined,
+  borrower: boolean,
+): string[] => {
+  const printed = printedOutlineOf(row, fix);
+  const what = `${n} shape (${outline.reader})`;
+  const problems: string[] = [];
+  const [page, source] = [outline.stanzas.length, printed.stanzas.length];
+  if (borrower ? page > source : page !== source)
+    problems.push(`${what}: the page prints ${page} stanzas, the printed source ${source}`);
+  const sungOf = (i: number) => [
+    ...(printed.stanzas[i - 1] ?? []),
+    ...(printed.refrain ? printed.refrainAfter(i) : []),
+  ];
+  for (const [k, stanza] of outline.stanzas.slice(0, source).entries())
+    problems.push(...stanzaRowProblems(what, outline, printed, k + 1, stanza.rows, sungOf(k + 1)));
+  if (outline.refrain === null && printed.refrain)
+    problems.push(`${what}: the page prints no refrain, the printed source has one`);
+  const key = (group: readonly number[]) => group.join(', ');
+  const parts = new Set(printed.varies.map(key));
+  const unvaried = outlineVaries(outline).filter((group) => !parts.has(key(group)));
+  if (unvaried.length > 0)
+    problems.push(
+      `${what}: the page prints refrain rows for stanzas ${unvaried.map((group) => `[${key(group)}]`).join(' and ')} only, and the printed source sings no varies part after them`,
+    );
+  const everywhere = Array.from({ length: source }, (_, k) => sungOf(k + 1));
+  for (const extra of outline.extra)
+    if (
+      !/echo|descant|parenthes/i.test(extra.why) &&
+      !everywhere.some((words) => rowsIn(words, [extra]).miss === undefined)
+    )
+      problems.push(
+        `${what}: a row ${quoted(wordsOf(extra.first))} (${extra.why}) is in no part of the printed source`,
+      );
+  return problems;
+};
+
 /** What the checks read: all committed, and the base rows read from git. */
 export interface Sources {
   readonly inventory: Inventory;
@@ -885,6 +1314,10 @@ export interface Sources {
     { readonly width: number; readonly height: number; readonly sha: string }
   >;
   readonly photos: ReadonlyMap<string, Uint8Array>;
+  /** Each hymn's shape readings (`data/shapes.json`). */
+  readonly outlines: ReadonlyMap<number, readonly Outline[]>;
+  /** The hymns with a fix file at the census's base commit, read from git. */
+  readonly baseFixes: readonly number[];
 }
 
 /** The base row of a hymn: its row at the base commit, read from git. */
@@ -976,14 +1409,19 @@ const on1985 = (ruling: Ruling) =>
  * A hymn's state from its rulings alone: `unsettled` when a ruling could not
  * read its crops or a ruling that changes words rests on an engraving's
  * crop, `fixed` when rulings on crops of the 1985 book change words, else
- * `matches`. A `nopage` entry is its own claim: the readings run holds it.
+ * `matches`. Only rulings that apply count: rulings in conflict
+ * (`misplaced`) apply none, and the census prints each conflict. A
+ * `nopage` entry is its own claim: the readings run holds it.
  */
 export const derive = (
   base: ReadonlyArray<readonly string[]>,
   rulings: readonly Ruling[],
-): Derived & { readonly misplaced: readonly string[]; readonly spans: readonly Span[] } => {
+): Derived & {
+  readonly misplaced: readonly RulingConflict[];
+  readonly spans: readonly Span[];
+} => {
   const applied = applyRulings(base, rulings);
-  const changing = rulings.filter(changes);
+  const changing = applied.applied.filter(changes);
   const unreadable = rulings.some((ruling) => ruling.kind === 'unreadable');
   const row: Entry['row'] =
     unreadable || changing.some((ruling) => !on1985(ruling))
@@ -994,7 +1432,7 @@ export const derive = (
   return {
     row,
     units: row === 'fixed' ? applied.units : base.map((unit) => [...unit]),
-    changes: changing.length,
+    changes: rulings.filter(changes).length,
     misplaced: applied.misplaced,
     spans: applied.spans,
   };
@@ -1074,17 +1512,20 @@ const rulingProblems = (
       ...named
         .filter((image) => !crops.has(`${pad(n)}/${image}`))
         .map((image) => `${what} reads ${image}, which is no committed crop`),
-      ...(ruling.sites.length === 0 ? [`${what} has no site`] : []),
+      ...(ruling.sites.length === 0 && (ruling.settles ?? []).length === 0
+        ? [`${what} has no site`]
+        : []),
       ...(ruling.readings.length === 0 ? [`${what} names no reading`] : []),
       ...(ruling.judge === '' ? [`${what} names no judge`] : []),
-      ...(ruling.kind === 'words' && !same(wordsOf(ruling.sung), wordsOf(ruling.printed))
+      ...((ruling.kind === 'words' || ruling.kind === 'owner') &&
+      !same(wordsOf(ruling.sung), wordsOf(ruling.printed))
         ? [`${what} sings "${ruling.sung}", not the words it prints`]
         : []),
       ...((ruling.kind === 'echo' || ruling.kind === 'layout') &&
       !same(wordsOf(ruling.sung), wordsOf(ruling.row))
         ? [`${what} is ${ruling.kind === 'echo' ? 'an echo' : 'a layout'} but changes the row`]
         : []),
-      ...applyRulings(base, [ruling]).misplaced.map((why) => `${what} ${why}`),
+      ...applyRulings(base, [ruling]).misplaced.map((one) => `${what} ${lineOfConflict(one)}`),
     ];
   });
 
@@ -1121,7 +1562,9 @@ const stateProblems = (
 /**
  * An entry's fix file: it sings what the row sings, unit by unit and variant
  * by variant. A census fix keeps its base row as `replaces`, belongs to a
- * `fixed` entry and names in every line's `from` a deciding image of the
+ * `fixed` entry (or to a `matches` entry whose page prints a refrain that
+ * varies by stanza: it changes no word, only writes the refrain as varying)
+ * and names in every line's `from` a deciding image of the
  * hymn, a system and a row; origin/main's prior fixes carry none.
  */
 const fixFileProblems = (
@@ -1142,7 +1585,9 @@ const fixFileProblems = (
     return PRIOR_FIXES.has(n) ? own : [...own, `${n} fix file carries no replaces`];
   return [
     ...own,
-    ...(entry.row === 'fixed' ? [] : [`${n} has a fix file of its own but says ${entry.row}`]),
+    ...(entry.row === 'fixed' || (entry.row === 'matches' && fixVaries(fix) && sings === undefined)
+      ? []
+      : [`${n} has a fix file of its own but says ${entry.row}`]),
     ...fixLines(fix)
       .filter((line) => !FROM.test(line.from))
       .map((line) => `${n} fix line "${line.text}" from "${line.from}"`),
@@ -1212,6 +1657,7 @@ const entryProblems = (entry: Entry, deciding: Deciding, sources: Sources): stri
         ]),
     ...(entry.base === baseDigestOf(base) ? [] : [`${n} base row is not the one the census read`]),
     ...rulingProblems(n, deciding, base, rulings, sources.crops),
+    ...derived.misplaced.map((one) => `${n} rulings: ${lineOfConflict(one)}`),
     ...stateProblems(entry, deciding, rulings, derived),
     ...(differs === undefined ? [] : [`${n} row: ${differs}`]),
     ...(entry.rulings.all === rulings.length && entry.rulings.changes === derived.changes
@@ -1224,6 +1670,44 @@ const entryProblems = (entry: Entry, deciding: Deciding, sources: Sources): stri
       : [`${n} claims ${entry.stanzas} stanzas, refrain ${entry.refrain}`]),
     ...fixFileProblems(entry, deciding, fix, row),
     ...(fix?.replaces === undefined ? [] : spanProblems(n, fix, rulings, derived.spans)),
+    ...outlineEntryProblems(entry, deciding, sources),
+  ];
+};
+
+/**
+ * An entry against its shape readings: a hymn whose page no model reader
+ * transcribed (machine OCR places the page's words over the row's own
+ * stanzas, lines and refrain, so it reads no shape) has a shape reading of
+ * its deciding page; each shape reading is of that page, and agrees with
+ * the printed source (`shapeProblems`).
+ */
+const outlineEntryProblems = (entry: Entry, deciding: Deciding, sources: Sources): string[] => {
+  const n = entry.number;
+  const outlines = sources.outlines.get(n) ?? [];
+  const borrower = sources.inventory.lent.some((one) => one.hymn === n);
+  const found = outlines.flatMap((outline) =>
+    outlineProblems(n, outline, sources.rows.get(n) ?? [], sources.fixes.get(n), borrower),
+  );
+  const settled = new Set((sources.rulings.get(n) ?? []).flatMap((ruling) => ruling.settles ?? []));
+  return [
+    ...(entry.row !== 'nopage' &&
+    entry.readings.reader === 0 &&
+    entry.readings.ocr > 0 &&
+    outlines.length === 0
+      ? [`${n} says ${entry.row} on machine OCR alone, with no shape reading of its page`]
+      : []),
+    ...outlines
+      .filter((outline) => !ofPage(outline.images, deciding))
+      .map(
+        (outline) =>
+          `${n} shape (${outline.reader}) reads ${outline.images.join(', ')}, not the deciding page`,
+      ),
+    ...found.filter((line) => !settled.has(line)),
+    ...[...settled]
+      .filter((line) => !found.includes(line))
+      .map(
+        (line) => `${n} a ruling settles "${line}", a shape difference the census does not find`,
+      ),
   ];
 };
 
@@ -1253,9 +1737,9 @@ export const problemsOf = (census: Census, sources: Sources): string[] => {
     ...census.hymns.flatMap((entry) =>
       entryProblems(entry, deciding.get(entry.number) ?? NO_PAGE, sources),
     ),
-    ...[...sources.rulings.keys()]
+    ...[...sources.rulings.keys(), ...sources.outlines.keys()]
       .filter((n) => !census.hymns.some((entry) => entry.number === n))
-      .map((n) => `${n} has rulings but no entry`),
+      .map((n) => `${n} has rulings or a shape but no entry`),
     ...[...sources.crops.keys()]
       .filter((key) => {
         const [dir = '', file = ''] = key.split('/');
@@ -1270,7 +1754,9 @@ export const problemsOf = (census: Census, sources: Sources): string[] => {
 
 /**
  * Each hymn's base row read from git, and each census fix's `replaces`
- * against it: the base row is never what the census's builder wrote.
+ * against it: the base row is never what the census's builder wrote. Every
+ * fix file the base commit holds is still held: a printed source read off a
+ * page is never dropped (it may be written again, never lost).
  */
 export const baseProblems = (sources: Sources): string[] => {
   const problems: string[] = [];
@@ -1280,6 +1766,8 @@ export const baseProblems = (sources: Sources): string[] => {
       problems.push(`${n} has no row at the base commit`);
       continue;
     }
+    if (sources.baseFixes.includes(n) && !sources.fixes.has(n))
+      problems.push(`${n} fix file at the base commit is gone`);
     const replaces = sources.fixes.get(n)?.replaces;
     if (replaces !== undefined && JSON.stringify(want) !== JSON.stringify(replaces))
       problems.push(`${n} fix replaces a row that is not the base commit's`);
@@ -1318,8 +1806,9 @@ const ofPage = (images: readonly string[], deciding: Deciding) =>
  * One hymn against its blind readings: `unread` when it is not `nopage` and
  * no blind reading transcribed its deciding page (a refusal transcribes
  * nothing), `read` when it is `nopage` and one did, each run of each reading
- * no ruling covers, a census fix that writes no varying refrain where a
- * reading prints one, and each count the entry claims that the readings do
+ * no ruling covers, a reading that prints a refrain varying by stanza where
+ * no shape reading of the page says how it varies (the shape decides, in the
+ * plain run), and each count the entry claims that the readings do
  * not give. Only blind readings count: a record shown the row finds nothing
  * here.
  */
@@ -1329,7 +1818,7 @@ export const readingProblems = (
   baseRow: Verses,
   rulings: readonly Ruling[],
   readings: readonly Reading[],
-  fix?: Fix,
+  outlines: readonly Outline[] = [],
 ): string[] => {
   const n = entry.number;
   const read = readings.filter(
@@ -1353,8 +1842,19 @@ export const readingProblems = (
     problems.push(
       `${n} unruled unit ${run.unit} at ${run.at} row=${quoted(run.row)} page=${quoted(run.page)}`,
     );
-  if (fix?.replaces !== undefined && read.some(readsVarying) && !fixVaries(fix))
-    problems.push(`${n} readings print a refrain that varies by stanza, its fix writes none`);
+  if (read.some(readsVarying) && outlines.length === 0)
+    problems.push(
+      `${n} readings print a refrain that varies by stanza, and no shape reading of its page says how`,
+    );
+  if (
+    read.some(readsVarying) &&
+    outlines.length > 0 &&
+    outlines.every((outline) => outlineVaries(outline).length === 0) &&
+    !rulings.some((ruling) => ruling.kind === 'repeat' || ruling.kind === 'echo')
+  )
+    problems.push(
+      `${n} a reading prints a refrain that varies by stanza, its shape reading none, and no ruling says why`,
+    );
   return problems;
 };
 
@@ -1476,6 +1976,24 @@ export const baseRowsAt = (commit: string) =>
     return rowsOfDb(shown.stdout);
   });
 
+/** The hymns with a fix file in the repository at `commit`, read from git; a commit git cannot give is a defect. */
+export const baseFixesAt = (commit: string) =>
+  Effect.gen(function* () {
+    const listed = Bun.spawnSync(
+      ['git', 'ls-tree', '--full-tree', '--name-only', `${commit}:packages/hymnal/data/fixes`],
+      { cwd: DATA, stdout: 'pipe', stderr: 'pipe' },
+    );
+    if (listed.exitCode !== 0)
+      return yield* Effect.die(
+        `census: git cannot list the fix files at the base commit ${commit}: ${listed.stderr.toString().trim()}`,
+      );
+    return listed.stdout
+      .toString()
+      .split('\n')
+      .filter((name) => /^\d{3}\.json$/.test(name))
+      .map((name) => Number.parseInt(name, 10));
+  });
+
 /**
  * Reads the inventory, every hymn's row, its row at the census's base commit
  * (from git), the fixes, the rulings, the crops' sizes and digests, and the
@@ -1510,7 +2028,23 @@ export const loadSources = Effect.gen(function* () {
   const photos = new Map<string, Uint8Array>();
   for (const name of yield* filesUnder(photoDir, '.jpg'))
     photos.set(name, yield* fs.readFile(path.join(photoDir, name)));
-  const sources: Sources = { inventory, rows, base, fixes, rulings, crops, photos };
+  const outlines = new Map<number, Outline[]>();
+  for (const outline of (yield* decodeOutlines(
+    yield* fs.readFileString(path.join(DATA, 'shapes.json')),
+  )).hymns)
+    outlines.set(outline.number, [...(outlines.get(outline.number) ?? []), outline]);
+  const baseFixes = yield* baseFixesAt(census.base.commit);
+  const sources: Sources = {
+    inventory,
+    rows,
+    base,
+    fixes,
+    rulings,
+    crops,
+    photos,
+    outlines,
+    baseFixes,
+  };
   return sources;
 });
 
@@ -1560,21 +2094,61 @@ const loadReadings = (root: string) =>
 // The script
 // ----------------------------------------------------------------------------
 
+/**
+ * The shape readers' reports under `root` (`shape/*.json`, each
+ * `{ hymns: [...] }`), each named by its file (`shape-NN`).
+ */
+const loadOutlineReports = (root: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const outlines: Outline[] = [];
+    for (const file of yield* filesUnder(path.join(root, 'shape'), '.json')) {
+      const record = yield* Schema.decodeEffect(Schema.fromJsonString(ReportFile))(
+        yield* fs.readFileString(path.join(root, 'shape', file)),
+      );
+      outlines.push(
+        ...record.hymns.map((one) => outlineOfReport(one, path.basename(file, '.json'))),
+      );
+    }
+    return outlines;
+  });
+
+/** Each committed shape reading that no shape reader's report gives as it is, and each report not committed. */
+export const outlineReportProblems = (sources: Sources, reports: readonly Outline[]): string[] => {
+  const key = (outline: Outline) => JSON.stringify(outline);
+  const given = new Set(reports.map(key));
+  const committed = [...sources.outlines.values()].flat();
+  const kept = new Set(committed.map(key));
+  return [
+    ...committed
+      .filter((outline) => !given.has(key(outline)))
+      .map((outline) => `${outline.number} shape (${outline.reader}) is no shape reader's report`),
+    ...reports
+      .filter((outline) => !kept.has(key(outline)))
+      .map(
+        (outline) => `${outline.number} shape (${outline.reader}) is reported but not committed`,
+      ),
+  ];
+};
+
 /** Every entry against the blind readings under `root`: the readings run. */
 const readingsRun = (census: Census, sources: Sources, root: string) =>
   Effect.gen(function* () {
     const deciding = decidingOf(sources.inventory);
     const readings = lentReadings(sources.inventory, deciding, yield* loadReadings(root));
-    return census.hymns.flatMap((entry) =>
-      readingProblems(
-        entry,
-        deciding.get(entry.number) ?? NO_PAGE,
-        baseOf(sources, entry.number),
-        sources.rulings.get(entry.number) ?? [],
-        readings,
-        sources.fixes.get(entry.number),
+    return [
+      ...census.hymns.flatMap((entry) =>
+        readingProblems(
+          entry,
+          deciding.get(entry.number) ?? NO_PAGE,
+          baseOf(sources, entry.number),
+          sources.rulings.get(entry.number) ?? [],
+          readings,
+          sources.outlines.get(entry.number) ?? [],
+        ),
       ),
-    );
+      ...outlineReportProblems(sources, yield* loadOutlineReports(root)),
+    ];
   });
 
 /** Each entry's witness digest against the hunks between its row and the witness under `root`, each hunk printed. */
