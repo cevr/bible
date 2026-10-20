@@ -388,7 +388,7 @@ The form of an entry, each field on its own line:
 - **Source:** ask a9e82d17477 (`line`: thin); apps/animations/productions/righteousness-by-faith.json (2026-10-18 12:57); out/rbf-v3-cast-2026-10-18/docs/r3.md F7
 - **Wrong:** The figures' line was one width at every shot, so in a close shot (the farmer of the rain, Christ close in court) it read heavier than the concept's.
 - **Cause:** The ink's widths were written into the print as numbers; no shot could reach them.
-- **Guard:** code: `packages/film/src/style/rig/parts.ts` `inkBind` (every ink stroke of a figure and its hands binds its width to `ink`); `packages/film/src/style/house.ts` `inkAt` (0.75 from a head three tenths of the frame); `packages/film/src/style/figures-file.test.ts` `a figure's ink, bound to its view model's ink` (cfd2a1ed7); `packages/film/src/rive/rive.test.ts` `draws an ink stroke as wide as its number maps it` (the runtime maps a bound width linearly; 039ae92ba)
+- **Guard:** code: `packages/film/src/style/rig/parts.ts` `inkBind` (every ink stroke of a figure and its hands binds its width to `ink`); `packages/film/src/style/house.ts` `inkAt` (0.75 from a head three tenths of the frame); `packages/film/src/style/figures-file.test.ts` `a figure's ink, bound to its view model's ink` (02dd143f6); `packages/film/src/rive/rive.test.ts` `draws an ink stroke as wide as its number maps it` (the runtime maps a bound width linearly; 202e1b3b3)
 
 ### hand-follows-its-figures-shot
 
