@@ -98,6 +98,24 @@ let server: ReturnType<typeof Bun.serve>;
 let browser: Browser;
 
 /**
+ * How many pages are open at once: one a core, so that in a gate run, where
+ * every workspace's tests share the cores, the pages do not starve the
+ * other tests, nor each other's waits. A page waits for a place to open.
+ */
+const places = navigator.hardwareConcurrency;
+let taken = 0;
+const queue: Array<() => void> = [];
+const take = () =>
+  taken < places
+    ? Promise.resolve(void (taken += 1))
+    : new Promise<void>((done) => queue.push(done));
+const give = () => {
+  const next = queue.shift();
+  if (next) next();
+  else taken -= 1;
+};
+
+/**
  * A page of the app of its own, loaded cold at `path` in a window of
  * `height`, and what a case does on it: each step waits for the page as a
  * reader's next move would. With `hold`, the page waits to hydrate until
@@ -109,6 +127,7 @@ const open = async ({
   hold = false,
   touch = false,
 }: { path?: string; height?: number; hold?: boolean; touch?: boolean } = {}) => {
+  await take();
   const context: BrowserContext = await browser.newContext({
     viewport: windowOf(height),
     hasTouch: touch,
@@ -277,7 +296,7 @@ const open = async ({
     tab,
     comeBack,
     load,
-    [Symbol.asyncDispose]: () => context.close(),
+    [Symbol.asyncDispose]: () => context.close().finally(give),
   };
 };
 
@@ -487,9 +506,9 @@ describe('a list comes back where the reader left it', () => {
   });
 
   for (const list of ['hymns', 'search'] as const) {
-    // A list's visits in pages of four at once.
-    for (const [page, part] of groups(visitsOf(list, seed), 4).entries()) {
-      it.concurrent(`the ${list} list, visits ${page * 4 + 1} to ${page * 4 + part.length}`, async () => {
+    // A list's visits in pages of three at once.
+    for (const [page, part] of groups(visitsOf(list, seed), 3).entries()) {
+      it.concurrent(`the ${list} list, visits ${page * 3 + 1} to ${page * 3 + part.length}`, async () => {
         expect(await visit(list, part)).toEqual({ seed, hydration: [], misses: [] });
       });
     }
