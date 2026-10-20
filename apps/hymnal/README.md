@@ -19,9 +19,13 @@ under its number, and the refrain written out each time it is sung.
   on the web (`src/color.ts`).
 - One's web navigators are headless, so `src/web/` draws a small tab bar,
   header and search field on the web. A phone never renders them.
+- On the web a screen is mounted anew when the reader comes back to it, so
+  the search's query and each list's scroll offset live in the app's
+  registry (`src/reader/place.ts`), not in the screen.
 - `bun run test` runs the app's tests (`src`, with `src/test/setup.ts` as the
   preload: react-native-web for `react-native`, the real words for
-  `virtual:hymnal`) and the infra's.
+  `virtual:hymnal`, a happy-dom document for the tests that press and type)
+  and the infra's.
 
 ## Recordings: R2 at hymns.cvr.im
 

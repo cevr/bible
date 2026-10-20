@@ -38,6 +38,7 @@
     "@distilled.cloud/core": "1.0.0-rc.15",
     "@effect/platform-bun": "catalog:",
     "@effect/platform-node": "catalog:",
+    "@happy-dom/global-registrator": "21.0.3",
     "@react-native-community/template": "0.88.0",
     "@types/react": "19.3.0",
     "alchemy": "2.0.0-beta.83",

@@ -2,16 +2,25 @@
 
 /**
  * The app's tests run its screens under Bun, rendered to HTML as the web
- * build renders them. Three boundaries stand in, as the bundler and the
+ * build renders them, or mounted in a browser's document (happy-dom) where a
+ * test presses and types. Three boundaries stand in, as the bundler and the
  * router would provide them:
  * - `react-native` is react-native-web, as on the web;
  * - `virtual:hymnal` is the same words the bundler plugin derives (`vite/words.ts`);
- * - `one` is `src/test/one.tsx`: a link is an anchor, a screen's options are dropped.
+ * - `one` is `src/test/one.tsx`: a link opens its href in the app, a screen's options are dropped.
  */
 
+import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { plugin } from 'bun';
 
 import { readWords } from '../../vite/words';
+
+GlobalRegistrator.register({
+  url: 'http://localhost/',
+  // A link the app does not handle must stay unfollowed, as a test reads it.
+  settings: { navigation: { disableMainFrameNavigation: true } },
+});
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 plugin({
   name: 'hymnal-test-boundaries',

@@ -9,9 +9,11 @@ import { color } from '~/color';
 
 export function SearchField({
   label,
+  value,
   onChangeText,
 }: {
   readonly label: string;
+  readonly value: string;
   readonly onChangeText: (text: string) => void;
 }) {
   return (
@@ -21,6 +23,7 @@ export function SearchField({
       placeholder={label}
       placeholderTextColor={color.secondaryLabel}
       autoFocus
+      value={value}
       onChangeText={onChangeText}
       style={styles.field}
     />

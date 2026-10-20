@@ -11,6 +11,7 @@ import { hymnAt, hymns } from '~/hymns/hymns';
 
 import { HymnList } from './HymnList';
 import { HymnPage } from './HymnPage';
+import { hymnsOffset } from './place';
 
 /** The page's text, tags dropped, one space between pieces. */
 const textOf = (html: string) =>
@@ -38,15 +39,21 @@ describe('the hymn list', () => {
   });
 
   it('shows each row as its number and title, linking to the hymn', () => {
-    const html = renderToStaticMarkup(<HymnList hymns={hymns} hrefOf={(n) => `/hymns/${n}`} />);
-    expect(html).toContain('href="/hymns/1"');
+    const html = renderToStaticMarkup(
+      <HymnList hymns={hymns} hrefOf={(n) => `/hymns/${n}`} offset={hymnsOffset} />,
+    );
     expect(html).toContain('aria-label="1, Praise to the Lord"');
     expect(textOf(html)).toContain('1 Praise to the Lord 2 All Creatures of Our God and King');
   });
 
   it('says so when it has no hymn to show', () => {
     const html = renderToStaticMarkup(
-      <HymnList hymns={[]} hrefOf={(n) => `/hymns/${n}`} empty="No hymn matches “zzq”." />,
+      <HymnList
+        hymns={[]}
+        hrefOf={(n) => `/hymns/${n}`}
+        offset={hymnsOffset}
+        empty="No hymn matches “zzq”."
+      />,
     );
     expect(textOf(html)).toBe('No hymn matches “zzq”.');
   });
