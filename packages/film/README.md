@@ -4064,7 +4064,9 @@ file only, and the script runs several files in one process
 take theirs from `--timeout`. A browser-free test is never given more time
 than bun's 5 s, but a test that spawns names its spawn budget
 (`film/tests-keep-their-strength`, `effect/requireSpawnBudget`): a slow test
-is made fast. A browser test given more time gives it a timeout of its own: a
+is made fast. A file whose cases each work on the CPU (an encode, a decode, a
+make) runs them one after another (`describe`, not `describe.concurrent`):
+at once, each case's limit holds its siblings' work too. A browser test given more time gives it a timeout of its own: a
 different `--timeout` on the command line reaches only plain tests and hooks
 in files after a process's first, never
 the runner cases. On CI the runner takes eight workers, or the host's core count when smaller;

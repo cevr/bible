@@ -250,7 +250,9 @@ const tempDir = Effect.gen(function* () {
   return yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
 });
 
-describe.concurrent('Media', () => {
+// The cases run one after another: each encodes or decodes on the CPU, and
+// at once each case's 5 s limit holds its siblings' work too.
+describe('Media', () => {
   it.effect.layer(MediaOnFixtures)(
     'a WAV written reads back as the same 16-bit samples, and measures its length',
     () =>
