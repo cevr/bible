@@ -21,7 +21,11 @@
 // frees (`figureOverrides`), each saying what it cites (`citedBy`: the owner's
 // words or his pick on an ask); a circle hand's artboard is `HAND_ART` times
 // its size, and the timelines a pose names on each artboard are the house's
-// (`FIGURE_TIMELINES`, `HAND_TIMELINES`). `@bible/film/style/build` builds the
+// (`FIGURE_TIMELINES`, `HAND_TIMELINES`). Every ink stroke of a figure and its
+// hands binds its width to the artboard's number `ink` (`INK_NUMBER`,
+// `@bible/film/rive`) unless the file bakes it, and the file's rigs follow
+// the shot (`shot`, spread into each rig's spec), their line drawn thinner in
+// a close shot. `@bible/film/style/build` builds the
 // file, holding each override's citation to the owner's decision on its figure
 // on his production's ledger (`unsaid`), and each locked figure's print to its
 // lock and the lock to the decision it names (`unlocked`).

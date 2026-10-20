@@ -17,10 +17,11 @@
 //
 // Pure: the same code writes the same markup.
 
+import { INK_NUMBER } from '../../canvas/rive.ts';
 import { rng } from '../../core/random.ts';
 import { type Direction, LIGHT, inkOf, ramps as R } from '../house.ts';
 import type { Crease } from '../paper.ts';
-import { type Element, argb, el } from './rml.ts';
+import { type Element, argb, el, num } from './rml.ts';
 
 export type Pt = readonly [number, number];
 
@@ -235,17 +236,24 @@ const inkCover = (d: Direction, weight: keyof typeof INK | 'none') => {
 };
 
 /**
- * A piece's edge under `d`'s outline and in its ink, as the strokes under
- * its paper and over it (`edgeWidths`); its light core in `light`.
+ * A piece's edge under its figure's outline and in its ink, as the strokes
+ * under its paper and over it (`edgeWidths`); its light core in `light`.
+ * Each ink stroke binds its width to the figure's `ink` (`Figure.inkBind`)
+ * above the width the paper and the core (`cored`: the piece lays one) cover,
+ * so the ink that shows past them is `ink` times its width.
  */
-const edgeOf = (d: Direction, weight: keyof typeof INK, light: string) => {
-  const ink = (thickness: number) =>
-    el('Stroke', { thickness, join: 'round', cap: 'round', name: 'Ink' }, [solid(inkOf(d))]);
+const edgeOf = (fig: Figure, weight: keyof typeof INK, light: string, cored: boolean) => {
+  const d = fig.direction;
+  const ink = (thickness: number, floor: number) =>
+    el('Stroke', { thickness, join: 'round', cap: 'round', name: 'Ink' }, [
+      solid(inkOf(d)),
+      ...fig.inkBind(thickness, floor),
+    ]);
   const w = edgeWidths(d, weight);
   return {
-    under: w.under > 0 ? [ink(w.under)] : [],
+    under: w.under > 0 ? [ink(w.under, cored ? w.core : 0)] : [],
     over: [
-      ...(w.centred > 0 ? [ink(w.centred)] : []),
+      ...(w.centred > 0 ? [ink(w.centred, 0)] : []),
       ...(w.core > 0
         ? [
             el('Stroke', { thickness: w.core, join: 'round', cap: 'round', name: 'Core' }, [
@@ -311,7 +319,8 @@ const castOf = (d: Direction, look: PieceLook) =>
  * all its parts (`silhouette`). A piece with a rim (`look.rim`) lays no light
  * core: its rim is the light on its edge (`rimOf`).
  */
-const paints = (d: Direction, look: PieceLook, box: Box, inside = false): Element[] => {
+const paints = (fig: Figure, look: PieceLook, box: Box, inside = false): Element[] => {
+  const d = fig.direction;
   const paper = el('Fill', { name: 'Paper' }, [
     look.shade === undefined
       ? solid(look.color)
@@ -327,7 +336,9 @@ const paints = (d: Direction, look: PieceLook, box: Box, inside = false): Elemen
     out.push(shadowFill(look.cast ?? R.paper.shade, liftOf(look)));
   const weight = look.ink ?? 'outer';
   const edge: { under: Element[]; over: Element[] } =
-    weight === 'none' ? { under: [], over: [] } : edgeOf(d, weight, look.light);
+    weight === 'none'
+      ? { under: [], over: [] }
+      : edgeOf(fig, weight, look.light, look.rim === undefined);
   out.push(...edge.under, paper, ...(look.rim === undefined ? edge.over : []));
   return out;
 };
@@ -355,6 +366,15 @@ export interface Figure {
   readonly idOf: (name: string) => string;
   /** A bind of view-model number `knob` into the property `key` of the element it sits in. */
   readonly bind: (knob: string, key: number) => Element;
+  /**
+   * The bind of an ink stroke's width to the view model's `ink` (`INK_NUMBER`),
+   * none when its direction bakes the ink (`Direction.baked`): `ink` 1 draws
+   * it `full` units wide, and each step of `ink` moves it by `full - floor`,
+   * where `floor` is the width its paper and its light core cover.
+   */
+  readonly inkBind: (full: number, floor: number) => ReadonlyArray<Element>;
+  /** The converters its ink binds through (`inkBind`), one per width, for the file's root. */
+  readonly converters: () => ReadonlyArray<Element>;
   /** Key each of `pts` (the vertices `key.i`) to crawl within `amp` units of where it is cut, on the boil's ticks. */
   readonly boil: (key: string, pts: ReadonlyArray<Pt>, amp: number) => void;
   /**
@@ -365,6 +385,9 @@ export interface Figure {
   readonly echo: (key: string, like: string, n: number, shift?: ReadonlyArray<Pt>) => void;
   readonly boilTracks: () => Tracks;
 }
+
+/** A stroke's `thickness`, as a bind's property key (`rive schema Stroke`). */
+const THICKNESS = 47;
 
 /** A figure of the project in `direction`, its ids from `next` (one counter for the whole file). */
 export const figure = (
@@ -384,6 +407,23 @@ export const figure = (
   };
   const tracks: Record<string, Record<string, K[]>> = {};
   const r = rng(seed);
+  const converters = new Map<string, Element>();
+  const inkVia = (full: number, floor: number) => {
+    const key = `ink:${num(floor)}:${num(full)}`;
+    if (!converters.has(key))
+      converters.set(
+        key,
+        el('DataConverterRangeMapper', {
+          minInput: 0,
+          maxInput: 1,
+          minOutput: floor,
+          maxOutput: full,
+          name: 'Ink',
+          id: idOf(key),
+        }),
+      );
+    return idOf(key);
+  };
   return {
     name,
     direction,
@@ -394,6 +434,17 @@ export const figure = (
         sourcePathIds: `${idOf('vm')}-${idOf(`vm:${knob}`)}`,
         propertyKey: key,
       }),
+    inkBind: (full, floor) =>
+      direction.baked === true
+        ? []
+        : [
+            el('DataBindContext', {
+              sourcePathIds: `${idOf('vm')}-${idOf(`vm:${INK_NUMBER}`)}`,
+              propertyKey: THICKNESS,
+              converterId: inkVia(full, floor),
+            }),
+          ],
+    converters: () => [...converters.values()],
     boil: (key, pts, amp) =>
       pts.forEach((p, i) => {
         const [dx, dy] = [crawl(r, amp), crawl(r, amp)];
@@ -505,7 +556,7 @@ const paperOf = (fig: Figure, part: Part, inside: boolean): Element => {
   const box = boxOf(pts);
   const shape = el('Shape', { name: key, id: fig.idOf(key) }, [
     smoothPath(fig, key, pts),
-    ...paints(fig.direction, look, box, inside),
+    ...paints(fig, look, box, inside),
   ]);
   const crescent = look.shade === undefined ? undefined : look.crease?.crescent;
   const onTop = [
@@ -691,7 +742,7 @@ export const silhouette = (
     el(
       'Stroke',
       { thickness: silhouetteInk(d, weight), join: 'round', cap: 'round', name: 'Ink' },
-      [solid(inkOf(d))],
+      [solid(inkOf(d)), ...fig.inkBind(silhouetteInk(d, weight), 0)],
     ),
   ]);
   return el('Node', { name: key, id: fig.idOf(key) }, [...drawn, ink]);
@@ -1050,18 +1101,22 @@ export const boilTimeline = (fig: Figure) =>
 // ─── the artboard ────────────────────────────────────────────────────────────
 
 /**
- * The figure's artboard: `width` × `height`, its content and timelines and,
- * given `knobs`, the view model `Figure` whose numbers they are: the
- * artboard's default, which the film binds an instance of to each frame's own
- * artboard (`f.rive`), so no state machine is needed to apply its binds.
+ * The figure's artboard: `width` × `height`, its content and timelines and
+ * the view model `Figure` whose numbers its parts bind: `given`'s, and the
+ * ink's (`INK_NUMBER`, 1) unless its direction bakes the ink; the artboard's
+ * default, which the film binds an instance of to each frame's own artboard
+ * (`f.rive`), so no state machine is needed to apply its binds. Beside the
+ * artboard lie the converters its ink binds through (`Figure.inkBind`). A
+ * baked artboard given no numbers has no view model.
  */
 export const artboard = (
   fig: Figure,
   size: { readonly width: number; readonly height: number },
   content: ReadonlyArray<Element>,
   timelines: ReadonlyArray<Element>,
-  knobs?: Numbers,
+  given?: Numbers,
 ): Element[] => {
+  const knobs = fig.direction.baked === true ? given : { ...given, [INK_NUMBER]: 1 };
   const vm = knobs === undefined ? undefined : fig.idOf('vm');
   const board = el(
     'Artboard',
@@ -1082,6 +1137,7 @@ export const artboard = (
   const names = Object.keys(knobs);
   return [
     board,
+    ...fig.converters(),
     el('ViewModel', { defaultInstanceId: fig.idOf('vm:default'), name: fig.name, id: vm }, [
       ...names.map((k) => el('ViewModelPropertyNumber', { name: k, id: fig.idOf(`vm:${k}`) })),
       el(

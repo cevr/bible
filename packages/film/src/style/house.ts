@@ -4,9 +4,11 @@
 // how a paper shades under it (CRAFT 12), the people's papers, the rim, the
 // one light's angle, and the figure's line: the edge of a cut and its ink, from
 // the RimWorld study's questions
-// (`.claude/skills/film/reference/rimworld-study.md` §3), A3 in B1.
+// (`.claude/skills/film/reference/rimworld-study.md` §3), A3 in B1, and how
+// thin the line draws in a close shot (`CLOSE_SHOT`, `inkAt`).
 
 import { type Hex, type Ramp, type Shading, ramp } from '../canvas/colour.ts';
+import { lerp, progress } from '../core/time.ts';
 
 /**
  * The key light, by its colour: a pale gold, the warm cream a lamp throws on
@@ -90,6 +92,13 @@ export interface Direction {
    * default): a film whose concept draws its people's line heavier sets it.
    */
   readonly weight?: number;
+  /**
+   * The ink's widths written into the print, bound to no `ink` number, so
+   * the shot cannot thin them (`inkAt`): for a film whose locked prints hold
+   * the line as it was cut. Left out, every ink stroke of the figure and its
+   * hands binds its width to its view model's `ink`.
+   */
+  readonly baked?: boolean;
 }
 
 /** The figures' line: K1's, A3 in B1. */
@@ -97,3 +106,33 @@ export const DIRECTION: Direction = { outline: 'both', ink: 'warm' };
 
 /** The ink of `d`. */
 export const inkOf = (d: Direction): Hex => INKS[d.ink];
+
+/**
+ * A house head's height, units: the plain lead's (`r` 72 high, twice). The
+ * house cuts every rig at one scale, so a shot's scale reads as how much of
+ * the frame a head fills.
+ */
+const HEAD = 144;
+
+/**
+ * The close shot, where the figures' line is drawn thinner (the owner's answer
+ * `line`: thin, on RBF's cast): a head filling `from` of the frame's height or less keeps
+ * the line as cut (the court's wide shot fills 0.15); one filling `full` or
+ * more (the farmer of the rain, 0.31) draws it `ink` times as wide; between,
+ * the line eases from one to the other, so a push-in thins it as it closes
+ * and never pops it.
+ */
+const CLOSE_SHOT = { from: 0.2, full: 0.3, ink: 0.75 } as const;
+
+/**
+ * The figures' ink at a shot's scale (frame heights per unit, as the
+ * engine reads the shot, `@bible/film/rive`): 1 in a wide shot,
+ * `CLOSE_SHOT.ink` in a close one. A figures file's rigs follow the shot
+ * with it (`RivePropSpec.ink`) unless the file bakes its ink. Pure.
+ */
+export const inkAt = (scale: number): number =>
+  lerp(
+    1,
+    CLOSE_SHOT.ink,
+    progress(HEAD * scale, CLOSE_SHOT.from, CLOSE_SHOT.full - CLOSE_SHOT.from),
+  );

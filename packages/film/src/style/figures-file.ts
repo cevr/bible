@@ -4,7 +4,8 @@
 // seed its paper's boil crawls by and its place on the editor's stage, and
 // draws a composed figure (`figure`, with the artboard its hands are drawn
 // on) or a circle hand of a paper at a size. The figures' ink is the house
-// look's line at the film's weight. A file that names one artboard twice,
+// look's line at the film's weight, its widths bound to each artboard's
+// `ink` number unless the film bakes them. A file that names one artboard twice,
 // lays a figure's hands on a hand of another paper, or lays a figure
 // `figure` did not return (a copy of one with a part changed, its parts
 // never checked), is refused as the module that lays it loads, and the
@@ -17,7 +18,8 @@
 import { Record as Rec, Schema } from 'effect';
 import { decoder } from './decode.ts';
 import { type ComposedFigure, isComposed } from './figure.ts';
-import { DIRECTION, type Direction } from './house.ts';
+import type { RivePropSpec } from '../canvas/rive.ts';
+import { DIRECTION, type Direction, inkAt } from './house.ts';
 import { type Laid, overridesIn } from './override.ts';
 import { Paper } from './paper.ts';
 import { Length } from './parts/measure.ts';
@@ -55,17 +57,37 @@ type HandKey<B> = { readonly [k in keyof B]: B[k] extends HandBoard ? k : never 
 /** Each artboard of a file by its key: a figure's, its hands laid on a hand's of the same file, or a hand's. */
 type Boards<B> = { readonly [k in keyof B]: FigureBoard<HandKey<B> & string> | HandBoard };
 
-/** A film's figures file as the house prints it: the figures' ink weight, and each artboard by its key, in the file's order. */
+/**
+ * A film's figures file as the house prints it: the figures' ink weight,
+ * whether the file bakes their ink's widths (`Direction.baked`), and each
+ * artboard by its key, in the file's order.
+ */
 interface LaidFile {
   readonly weight: number;
+  readonly baked?: boolean;
   readonly boards: Readonly<Record<string, Board>>;
 }
 
-/** A film's figures file, laid and checked (`figuresFile`), with each artboard's name by its key. */
+/** How a rig follows the shot: the part of its spec (`RivePropSpec.ink`) that sets its ink from the shot's scale. */
+type Shot = Pick<RivePropSpec, 'ink'>;
+
+/** A bound file's rigs follow the shot by the house's close shot (`inkAt`). */
+const FOLLOWS: Shot = { ink: inkAt };
+
+/** A baked file's rigs have no number `ink` to follow it by. */
+const STILL: Shot = {};
+
+/**
+ * A film's figures file, laid and checked (`figuresFile`), with each
+ * artboard's name by its key, and how each of its rigs follows the shot
+ * (`shot`, spread into each rig's spec).
+ */
 interface FiguresFile<B> {
   readonly weight: number;
+  readonly baked: boolean;
   readonly boards: B;
   readonly artboards: { readonly [k in keyof B & string]: string };
+  readonly shot: Shot;
 }
 
 /** Where an artboard lies, as checked. */
@@ -92,6 +114,7 @@ const HandBoardFields = Schema.Struct({
 });
 const FileFields = Schema.Struct({
   weight: Length,
+  baked: Schema.optionalKey(Schema.Boolean),
   boards: Schema.Record(Schema.String, Schema.Union([FigureBoardFields, HandBoardFields])),
 });
 
@@ -130,21 +153,34 @@ const namesOf = <K extends string>(boards: { readonly [k in K]: Placed }) =>
  * A film's figures file, checked as it is laid: `boards` each artboard by
  * its key, in the order the file draws them; `weight` the figures' ink
  * against the house look's line (`DIRECTION`), as heavy against a head as
- * the film's kept concept draws it.
+ * the film's kept concept draws it; `baked` true writes the ink's widths
+ * into the print, bound to no `ink` number, so the shot cannot thin them.
+ * Its rigs follow the shot (`shot`): their ink thins in a close shot unless
+ * the file bakes it.
  */
 export const figuresFile = <const B extends Boards<B>>(file: {
   readonly weight: number;
+  readonly baked?: boolean;
   readonly boards: B;
 }): FiguresFile<B> => {
   checkFile(file, 'figuresFile');
-  return { ...file, artboards: namesOf<keyof B & string>(file.boards) };
+  return {
+    ...file,
+    baked: file.baked ?? false,
+    artboards: namesOf<keyof B & string>(file.boards),
+    shot: file.baked === true ? STILL : FOLLOWS,
+  };
 };
 
 /** Whether `board` draws a composed figure. */
 const isFigureBoard = (board: Board): board is FigureBoard => 'figure' in board;
 
-/** The figures' line: the house look's, at the file's weight. */
-const lineOf = (file: LaidFile): Direction => ({ ...DIRECTION, weight: file.weight });
+/** The figures' line: the house look's, at the file's weight, its ink bound or baked as the file lays it. */
+const lineOf = (file: LaidFile): Direction => ({
+  ...DIRECTION,
+  weight: file.weight,
+  baked: file.baked === true,
+});
 
 /** `board`'s rig, its ids from `next`, laid at `stage`: its place in the file, or the stage's start. */
 const rigOfBoard = (next: () => string, board: Board, line: Direction, stage = board.stage) =>

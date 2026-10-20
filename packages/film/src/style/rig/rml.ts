@@ -45,7 +45,7 @@ export const fragment = (elements: ReadonlyArray<Element>): string =>
   `${print(el('Rive', { version: '1', kind: 'fragment' }, elements), 0)}\n`;
 
 /** A number as RML writes it: six decimals at most. */
-const num = (n: number): number => Math.round(n * 1e6) / 1e6;
+export const num = (n: number): number => Math.round(n * 1e6) / 1e6;
 
 /** A colour as RML writes it: `#rrggbb` with an alpha 0..1 as `AARRGGBB`. */
 export const argb = (hex: string, alpha = 1): string => {

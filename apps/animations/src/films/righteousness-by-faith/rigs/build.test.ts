@@ -53,6 +53,27 @@ describe("RBF's figures", () => {
     }),
   );
 
+  it.effect(
+    "bake their ink, and bound would bind every ink stroke but each face's brows and mouth to `ink`",
+    () =>
+      Effect.sync(() => {
+        const blocks = (rml: string) =>
+          Array.from(
+            rml.matchAll(/<Stroke [^>]*name="Ink">([\s\S]*?)<\/Stroke>/g),
+            (m) => m[1] ?? '',
+          );
+        const binds = (rml: string) => blocks(rml).filter((b) => b.includes('propertyKey="47"'));
+        expect(FIGURES.baked).toBe(true);
+        // Its rigs follow no shot: they have no number `ink` to follow it by.
+        expect(FIGURES.shot).toEqual({});
+        expect(binds(figuresRml(FIGURES))).toEqual([]);
+        const bound = figuresRml({ ...FIGURES, baked: false });
+        const faces = Object.values(FIGURES.boards).filter((b) => 'figure' in b).length;
+        expect(blocks(bound).length - binds(bound).length).toBe(3 * faces);
+        expect(binds(bound).length).toBeGreaterThan(3 * faces);
+      }),
+  );
+
   it.effect.layer(BunServices.layer)(
     'the lead, the judge and the prosecutor are drawn as the owner locked them',
     () =>
@@ -154,6 +175,7 @@ describe("RBF's figures", () => {
 const laid = (him: typeof prosecutor) =>
   figuresFile({
     weight: FIGURES.weight,
+    baked: FIGURES.baked,
     boards: { ...FIGURES.boards, prosecutor: { ...FIGURES.boards.prosecutor, figure: him } },
   });
 

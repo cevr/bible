@@ -7,7 +7,7 @@
 // views, and the farmer. Or it draws a circle hand: Christ's is held out to
 // us at each size it grows through (`hand-rig.ts`). The figures' ink is the
 // house look's line, as heavy against a head as the kept concept draws it
-// (`WEIGHT`). The house prints each locked figure's print alone, which its
+// (`WEIGHT`), its widths baked into the print (`BAKED`). The house prints each locked figure's print alone, which its
 // lock holds (`lockedPrints`), as the file draws it, and lists every
 // override the figures carry with the artboard it is laid on
 // (`figureOverrides`), to be held to the owner's decisions on that figure
@@ -27,9 +27,20 @@ import { prosecutor } from './prosecutor-rig.ts';
  */
 const WEIGHT = 1.45;
 
+/**
+ * The ink's widths written into the print, bound to no `ink` number: the
+ * locks of the lead, the judge and the prosecutor hold their prints as cut,
+ * and a bound print is other text. The owner chose a thinner line in close
+ * shots (his answer `line`: thin, on the cast's ask); the film binds its ink once he says
+ * so of each locked figure (`item:<item>` on its ledger), which frees the
+ * new print (`FigureLock.override`).
+ */
+const BAKED = true;
+
 /** RBF's figures file: each artboard by its key, in the order the file draws them, left to right on the stage. */
 export const FIGURES = figuresFile({
   weight: WEIGHT,
+  baked: BAKED,
   boards: {
     lead: { name: 'Lead', seed: 2301, stage: 0, figure: lead, hands: 'leadHand' },
     leadHand: { name: 'LeadHand', seed: 2302, stage: 400, hand: lead.hands.paper },

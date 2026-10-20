@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { figure } from './figure.ts';
 import { figureOverrides, figuresFile, figuresRml, lockedPrints } from './figures-file.ts';
+import { DIRECTION } from './house.ts';
 import { paper } from './paper.ts';
 import { Tunic } from './parts/body.ts';
 import { StubLegs } from './parts/feet.ts';
@@ -10,6 +11,10 @@ import { Head } from './parts/head.ts';
 import { KitA } from './parts/kit.ts';
 import { Stance } from './parts/stance.ts';
 import { Stature } from './parts/stature.ts';
+import { drawFigure, drawHand } from './rig/draw.ts';
+import { INK_NUMBER } from '../canvas/rive.ts';
+import { figure as rigOf } from './rig/parts.ts';
+import { type Element, ids } from './rig/rml.ts';
 
 // A film's figures file, laid as the film lays it and printed by the house:
 // only figures `figure` returned, its artboards in its keys' order with one
@@ -225,5 +230,121 @@ describe("a film's figures file", () => {
       },
     });
     expect(figureOverrides(freed)).toEqual([{ item: 'lead', override: OVERRIDE, since: LOCK.at }]);
+  });
+});
+
+/** `e` and every element under it, front first; none under a node `skip` names. */
+const under = (e: Element, skip = ''): Element[] =>
+  nameOf(e) === skip && e.name === 'Node' ? [] : [e, ...e.children.flatMap((c) => under(c, skip))];
+const attr = (e: Element, key: string) => e.attrs.find(([k]) => k === key)?.[1];
+const nameOf = (e: Element) => attr(e, 'name');
+
+/** A range mapper's output for `v`, as Rive maps it: linear, unclamped. */
+const mapped = (c: Element, v: number) => {
+  const n = (key: string) => Number(attr(c, key));
+  return (
+    n('minOutput') +
+    ((v - n('minInput')) / (n('maxInput') - n('minInput'))) * (n('maxOutput') - n('minOutput'))
+  );
+};
+
+/** The plain lead's artboard and his hand's, drawn in `direction`, as their root elements. */
+const drawnIn = (direction: typeof DIRECTION) => {
+  const next = ids();
+  return [
+    ...drawFigure(rigOf(next, 'Lead', 1, 0, direction), lead),
+    ...drawHand(rigOf(next, 'LeadHand', 2, 400, direction), SKIN),
+  ];
+};
+
+/** Each ink stroke under `roots` but the face's marks, with the shape it lies in. */
+const inkStrokes = (roots: ReadonlyArray<Element>) =>
+  roots.flatMap((root) =>
+    under(root, 'face')
+      .filter((e) => e.name === 'Shape')
+      .flatMap((shape) =>
+        shape.children
+          .filter((c) => c.name === 'Stroke' && nameOf(c) === 'Ink')
+          .map((stroke) => ({ shape, stroke })),
+      ),
+  );
+
+describe("a figure's ink, bound to its view model's ink", () => {
+  const roots = drawnIn(DIRECTION);
+  const converters = new Map(
+    roots
+      .filter((r) => r.name === 'DataConverterRangeMapper')
+      .map((c) => [String(attr(c, 'id')), c] as const),
+  );
+  const models = roots.filter((r) => r.name === 'ViewModel');
+  const strokes = inkStrokes(roots);
+
+  test('binds every ink stroke of a figure and its hands, the face marks aside, to the number `ink`, 1 at rest', () => {
+    expect(models.map(nameOf)).toEqual(['Lead', 'LeadHand']);
+    for (const vm of models) {
+      const ink = vm.children.find(
+        (c) => c.name === 'ViewModelPropertyNumber' && nameOf(c) === INK_NUMBER,
+      );
+      expect(ink).toBeDefined();
+      const rest = vm.children
+        .flatMap((c) => c.children)
+        .find((c) => attr(c, 'viewModelPropertyId') === attr(ink ?? c, 'id'));
+      expect(attr(rest ?? vm, 'propertyValue')).toBe(1);
+    }
+    // The head's, the tunic's and each leg's line, and the hand's on its own artboard.
+    expect(strokes.map(({ shape }) => nameOf(shape))).toEqual([
+      'headPaper',
+      'tunic',
+      'legL',
+      'legR',
+      'palm',
+    ]);
+    for (const { stroke } of strokes) {
+      const binds = stroke.children.filter((c) => c.name === 'DataBindContext');
+      expect(binds.map((b) => attr(b, 'propertyKey'))).toEqual([47]);
+      expect(String(attr(binds[0] ?? stroke, 'sourcePathIds'))).toMatch(/^1:\d+-1:\d+$/);
+      expect(converters.has(String(attr(binds[0] ?? stroke, 'converterId')))).toBe(true);
+    }
+  });
+
+  test('at ink 1 draws each stroke as wide as the print writes it; at 0.75 the ink showing past its paper and its light core is three quarters as wide', () => {
+    for (const { shape, stroke } of strokes) {
+      const bind = stroke.children.find((c) => c.name === 'DataBindContext') ?? stroke;
+      const via = converters.get(String(attr(bind, 'converterId'))) ?? stroke;
+      const full = Number(attr(stroke, 'thickness'));
+      // The light core straddles the cut over the ink: what shows of the ink is past it.
+      const core = shape.children.find((c) => c.name === 'Stroke' && nameOf(c) === 'Core');
+      const covered = core === undefined ? 0 : Number(attr(core, 'thickness'));
+      const shows = (v: number) => (mapped(via, v) - covered) / 2;
+      expect(mapped(via, 1)).toBeCloseTo(full, 6);
+      expect(shows(1)).toBeGreaterThan(0);
+      expect(shows(0.75) / shows(1)).toBeCloseTo(0.75, 6);
+    }
+  });
+
+  test('a baked line binds none: no converter, no number `ink`, a hand with no view model', () => {
+    const baked = drawnIn({ ...DIRECTION, baked: true });
+    expect(baked.filter((r) => r.name === 'DataConverterRangeMapper')).toEqual([]);
+    expect(baked.filter((r) => r.name === 'ViewModel').map(nameOf)).toEqual(['Lead']);
+    expect(
+      baked
+        .flatMap((r) => under(r))
+        .filter((e) => attr(e, 'name') === INK_NUMBER && e.name !== 'Stroke'),
+    ).toEqual([]);
+    for (const { stroke } of inkStrokes(baked))
+      expect(stroke.children.filter((c) => c.name === 'DataBindContext')).toEqual([]);
+  });
+
+  test("a file's rigs follow the shot, their line a quarter thinner in a close one, unless it bakes its ink", () => {
+    expect(FILE.shot.ink?.(0.00104)).toBe(1);
+    expect(FILE.shot.ink?.(0.00305)).toBe(0.75);
+    expect(figuresFile({ weight: 1, baked: true, boards: FILE.boards }).shot).toEqual({});
+  });
+
+  test('a file that bakes its ink prints every stroke at the width a bound one draws at rest', () => {
+    const widths = (rml: string) =>
+      Array.from(rml.matchAll(/<Stroke thickness="([^"]+)"/g), (m) => m[1]);
+    expect(widths(figuresRml({ ...FILE, baked: true }))).toEqual(widths(figuresRml(FILE)));
+    expect(figuresRml({ ...FILE, baked: true })).not.toMatch(/DataConverter|converterId/);
   });
 });

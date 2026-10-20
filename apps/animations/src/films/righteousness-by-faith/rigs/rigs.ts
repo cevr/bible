@@ -1,7 +1,9 @@
 // RBF's figure rigs as a drawing declares them (`drawing({ rigs })`): each
 // artboard of `figures.riv` (`figures.ts`) with the timelines a pose may
-// name, the view model's numbers it may set, and where on it our origin
-// stands. Canvas 2D is the engine, and every scene draws them the same way.
+// name, the view model's numbers it may set, where on it our origin stands,
+// and how it follows the shot (`FIGURES.shot`: the house's close shot thins
+// its line when the file binds its ink; baked, it follows none). Canvas 2D is
+// the engine, and every scene draws them the same way.
 
 import type { RivePropSpec } from '@bible/film/rive';
 import {
@@ -12,7 +14,7 @@ import {
   type HandTimeline,
 } from '@bible/film/style';
 import { Record as Rec } from 'effect';
-import { ARTBOARDS } from './figures.ts';
+import { ARTBOARDS, FIGURES } from './figures.ts';
 import figuresRiv from './figures.riv' with { type: 'file' };
 import {
   CHRIST_FACE_CHECK,
@@ -37,6 +39,7 @@ export const leadProp: RivePropSpec<FigureTimeline, keyof typeof LEAD_KNOBS> = {
     numbers: Rec.keys(LEAD_KNOBS),
   },
   engine: 'canvas',
+  ...FIGURES.shot,
   key: 'righteousness-by-faith/lead',
   origin: lead.art.feet,
   face: LEAD_FACE_CHECK,
@@ -52,6 +55,7 @@ export const judgeProp: RivePropSpec<FigureTimeline, keyof typeof JUDGE_KNOBS> =
     numbers: Rec.keys(JUDGE_KNOBS),
   },
   engine: 'canvas',
+  ...FIGURES.shot,
   key: 'righteousness-by-faith/judge',
   origin: judge.art.head,
   face: JUDGE_FACE_CHECK,
@@ -67,6 +71,7 @@ export const prosecutorProp: RivePropSpec<FigureTimeline, keyof typeof PROSECUTO
     numbers: Rec.keys(PROSECUTOR_KNOBS),
   },
   engine: 'canvas',
+  ...FIGURES.shot,
   key: 'righteousness-by-faith/prosecutor',
   origin: prosecutor.art.feet,
   face: PROSECUTOR_FACE_CHECK,
@@ -82,6 +87,7 @@ export const christProp: RivePropSpec<FigureTimeline, keyof typeof CHRIST_KNOBS>
     numbers: Rec.keys(CHRIST_KNOBS),
   },
   engine: 'canvas',
+  ...FIGURES.shot,
   key: 'righteousness-by-faith/christ',
   origin: christ.art.feet,
   face: CHRIST_FACE_CHECK,
@@ -97,6 +103,7 @@ export const christFrontProp: RivePropSpec<FigureTimeline, keyof typeof CHRIST_F
     numbers: Rec.keys(CHRIST_FRONT_KNOBS),
   },
   engine: 'canvas',
+  ...FIGURES.shot,
   key: 'righteousness-by-faith/christ-front',
   origin: christFront.art.feet,
   face: CHRIST_FRONT_FACE_CHECK,
@@ -112,6 +119,7 @@ export const farmerProp: RivePropSpec<FigureTimeline, keyof typeof FARMER_KNOBS>
     numbers: Rec.keys(FARMER_KNOBS),
   },
   engine: 'canvas',
+  ...FIGURES.shot,
   key: 'righteousness-by-faith/farmer',
   origin: farmer.art.feet,
   face: FARMER_FACE_CHECK,
@@ -122,6 +130,7 @@ export const farmerProp: RivePropSpec<FigureTimeline, keyof typeof FARMER_KNOBS>
 const handProp = (artboard: string, key: string, size = 1): RivePropSpec<HandTimeline, never> => ({
   source: { riv: figuresRiv, artboard, timelines: HAND_TIMELINES, numbers: [] },
   engine: 'canvas',
+  ...FIGURES.shot,
   key: `righteousness-by-faith/${key}`,
   origin: [(HAND_ART.width * size) / 2, (HAND_ART.height * size) / 2],
 });

@@ -96,6 +96,25 @@ describe('silhouette', () => {
     expect(ink?.children.filter((c) => c.name.endsWith('Path'))).toHaveLength(3);
   });
 
+  test("binds its ink's width to the figure's number `ink`, as cut at 1 and nothing at 0; a baked line binds none", () => {
+    const [stroke] = named(node, 'Stroke');
+    const attr = (e: Element | undefined, key: string) => e?.attrs.find(([k]) => k === key)?.[1];
+    const binds = (stroke?.children ?? []).filter((c) => c.name === 'DataBindContext');
+    expect(binds.map((b) => attr(b, 'propertyKey'))).toEqual([47]);
+    expect(attr(binds[0], 'sourcePathIds')).toBe(`${fig.idOf('vm')}-${fig.idOf('vm:ink')}`);
+    const via = fig.converters().find((c) => attr(c, 'id') === attr(binds[0], 'converterId'));
+    expect([attr(via, 'minOutput'), attr(via, 'maxOutput')]).toEqual([
+      0,
+      attr(stroke, 'thickness'),
+    ]);
+    const baked = figure(ids(), 'Test', 7, 0, { ...DIRECTION, baked: true });
+    const still = silhouette(baked, 'headCut', [
+      { key: 'face', pts: ellipse(0, 0, 55, 70, 24), look },
+    ]);
+    expect(named(still, 'DataBindContext')).toEqual([]);
+    expect(baked.converters()).toEqual([]);
+  });
+
   test('lays each part as paper alone, front first in the order given', () => {
     const papers = node.children.slice(0, -1);
     expect(papers).toHaveLength(3);
