@@ -1313,3 +1313,33 @@ The form of an entry, each field on its own line:
 - **Wrong:** `logs a callback by its origin alone` failed once in a loaded gate.
 - **Cause:** Not recorded: 25 runs under 24 busy loops, and 6 film suites under 12, gave no failure.
 - **Guard:** none: a guard for a cause not seen would guess at it; the phased gate runs the film's tests alone, and the case stays open.
+
+### lazy-fixture-rule-reads-pipes
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Piped caches bypass the lazy-fixture guard"
+- **Source:** p6-testspeed/review-1.md F1
+- **Wrong:** `film/no-lazy-test-fixture` passed `read.pipe(Effect.cached, Effect.runSync)` where the file loads, a memo the first case to ask builds inside its time limit.
+- **Cause:** The rule read only a call of a memo maker, not a memo maker handed to a pipe.
+- **Guard:** lint:film/no-lazy-test-fixture, proof `packages/film/lint/fixtures/no-lazy-test-fixture.ts` `export const piped = read.pipe(Fx.cached, Fx.runSync); // RED film/no-lazy-test-fixture`
+
+### lazy-fixture-rule-spares-helpers
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The fixture guard rejects an unapplied TTL helper"
+- **Source:** p6-testspeed/review-1.md F2
+- **Wrong:** `film/no-lazy-test-fixture` reported `const withinMinute = Effect.cachedWithTTL('1 minute')`, a helper that makes no memo until a case applies it.
+- **Cause:** The rule read every call of a TTL form as a memo, whether it was given its effect or its ttl alone.
+- **Guard:** code: `packages/film/lint/fixtures/no-lazy-test-fixture.ts` `it.effect('applies a helper in its own case', () => Fx.flatten(withinMinute(read)));`
+
+### test-git-rule-reads-git-arguments
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The Git rule reports arguments belonging to other programs"
+- **Source:** p6-testspeed/review-1.md F3
+- **Wrong:** `film/test-git-config` reported `ChildProcess.make('tar', ['-c', 'archive.entry=fixture'])`, where `archive.entry=fixture` is a file name.
+- **Cause:** The rule read every array's `-c` as git's, with no sign the array was git's arguments.
+- **Guard:** code: `packages/film/lint/fixtures/test-git-config.ts` `make('tar', ['-c', 'archive.entry=fixture']);`
