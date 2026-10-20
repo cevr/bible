@@ -61,7 +61,9 @@ template editor and no analytics.
 - **Confirm** is the link in that email, `GET /subscribe/confirm?token=`.
   Opening it only shows a page with one button, "Confirm my email", since
   mail scanners open links; the button's `POST` to the same address confirms.
-  A GET never changes the list. A link works for seven days, and only the
+  In a browser the page's script presses the button as it opens, so a person
+  confirms in one step (owner, 2026-10-20); with no script the button is there
+  to press. A GET never changes the list. A link works for seven days, and only the
   newest one, sent since the address last left, works.
 - **Sign-ups never confirmed** are undone 30 days after the address last
   signed up, by the Worker's daily cron trigger (`src/mail/purge.ts`, 04:17

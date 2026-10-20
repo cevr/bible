@@ -1603,3 +1603,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** Every postal test passed the address to the letters explicitly, while the list's own calls take the default, so a default that stopped reading `POSTAL_ADDRESS` stayed green.
 - **Cause:** The test was written against the parameter it added, not the call the product makes.
 - **Guard:** code: `apps/firsttheblade/src/mail/letters.test.ts` `the letters the list sends carry POSTAL_ADDRESS`
+
+### confirm-in-one-step
+
+- **Date:** 2026-10-20
+- **Kind:** owner
+- **Said:** "I had to press the confirm on the email and then I had to press confirm again on the website. Let's make that one step"
+- **Source:** the owner's live test of the email list on the stage agent-mailtest, 2026-10-20
+- **Wrong:** Confirming took two presses: the button in the letter, then the button on the confirm page.
+- **Cause:** The confirm page waited for its button so mail scanners, which open links, would confirm no one, and nothing pressed it for a person who had already pressed once in the letter.
+- **Guard:** code: `apps/firsttheblade/src/confirm.test.ts` `is one step: the confirm page's form carries the id the browser's entry submits as it opens`

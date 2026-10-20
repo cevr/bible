@@ -43,3 +43,6 @@ export const SIGNUP_FIELDS = {
   /** The honeypot: a field no person sees, which a bot that fills every field fills. */
   honeypot: 'website',
 } as const;
+
+/** The confirm page's form, which the browser's entry (`../client.tsx`) submits as the page opens. */
+export const CONFIRM_FORM_ID = 'confirm';

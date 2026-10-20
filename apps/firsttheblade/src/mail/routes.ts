@@ -10,8 +10,8 @@
  *   time it takes tells who is on the list; only a new or pending address (at most
  *   once an hour) is sent a confirm letter.
  * - `GET /subscribe/confirm?token=`: the one-button page, and nothing more,
- *   since mail scanners open links; `POST` (its button) confirms, 303 to the
- *   confirmed page. A link that ran out or was replaced goes to a page that
+ *   since mail scanners open links; a browser's script presses its button
+ *   as it opens, and `POST` (the button) confirms, 303 to the confirmed page. A link that ran out or was replaced goes to a page that
  *   signs up again, from either.
  * - `GET /unsubscribe?token=`: the one-button page; `POST` leaves, from that
  *   button or from a mail app's one click (RFC 8058), and answers the left
@@ -170,7 +170,8 @@ const confirmClaimOf = Effect.fn('Mail.confirmClaimOf')(function* (
 
 /**
  * The confirm page, for a link that has not run out. Opening it changes
- * nothing: a mail scanner that opens every link confirms no one.
+ * nothing: a mail scanner that fetches every link confirms no one, and a
+ * browser confirms by the page's own script pressing its button.
  */
 const confirmPage = Effect.fn('Mail.confirmPage')(function* (
   request: HttpServerRequest.HttpServerRequest,
