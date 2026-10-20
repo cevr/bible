@@ -903,3 +903,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check called `other/a.test.ts` reached by `echo ./other`, which runs no test.
 - **Cause:** The reader read any command it did not know as a wrapper of `bun test` that runs the files it names by path.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are run by hand by a script of their own: a bun test, a wrapper of it the repo names, or playwright`
+
+### reach-refuses-early-exits
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A successful shell exit credits tests that never run"
+- **Source:** p6-guardloop/review-13.md F1
+- **Wrong:** The reach check called every test file reached by `exit 0 && bun test`, which passes and runs no test.
+- **Cause:** The shell refusal listed the commands that change what later commands run with, and not those that end the script before them (`exit`, `return`).
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
+
+### reach-binds-define-config
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Config discovery trusts any function named defineConfig"
+- **Source:** p6-guardloop/review-13.md F2
+- **Wrong:** The reach check read `export default defineConfig({ testDir: 'e2e' })` by its object, though the config's own `defineConfig` added a `testIgnore` that leaves a spec out.
+- **Cause:** The reader took a call by its callee's spelling, and did not ask what the name is bound to.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
