@@ -3898,13 +3898,16 @@ words asks again, a threshold or a message changes no
 answer, and a moved, copied or re-indented item keeps its answer; a run
 marks each answer its tree reads seen that day, and drops an answer no
 checkout has read for 30 days (`MAX_AGE_DAYS`), never one another tree reads.
+Two runs that ask one item at once keep the answer kept first, and each
+reports by the store's answer.
 The checkout keeps its own two files beside (`settings.judged.checkout`,
 `tmp/judged`): a memo of each file's items and their keys by the file's
 hash (`items.json`), so a run parses only the files changed since, and the
 run's findings by file (`findings.json`). The plugin (`packages/scripts/lint/judged.ts`)
 reports a file's findings from the last run when the file hashes as it did
-then and the rule's words, label, threshold and model are the same;
-otherwise it hashes each item of the file the same way the runner does and
+then, the rule's words, selector, label, threshold and model are the same,
+the code that makes the items is the run's, and the run is no older than
+`MAX_AGE_DAYS`; otherwise it hashes each item of the file the same way the runner does and
 reports the kept answer at or over its rule's threshold at its line,
 wherever the text now lives. It asks no model, so a checkout with no store
 reports nothing. The runner
