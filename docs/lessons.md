@@ -833,3 +833,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check left out a test file that imports its runner under another name (`import { test as scenario } from /* runner */ 'bun:test'`), so no script had to reach it.
 - **Cause:** The reader took a file named as a test for one only when a regex found a runner import or a line that calls `describe`, `it` or `test`, and a comment or an alias hid both.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are each a file named as a test that is not data, in the deepest workspace`
+
+### reach-refuses-folder-moves
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check ignores working-directory changes"
+- **Source:** p6-guardloop/review-10.md F1
+- **Wrong:** The reach check called every test file of a workspace reached by `cd src/test-budget && bun test`, which runs only the files under that folder.
+- **Cause:** The reader read each command of a script on its own, every path from the workspace's folder, and lost the folder a `cd` moved the script to.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script that runs in another folder than its workspace`
