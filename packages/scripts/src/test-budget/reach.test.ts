@@ -231,8 +231,9 @@ describe("a workspace's test files", () => {
         takes('bun test --path-ignore-patterns=src src', 'none', 'none');
         takes('bun test --path-ignore-patterns=./ src', 'none', 'none');
         takes('bun test --path-ignore-patterns=guard src', 'test', 'test');
-        // Bun's scan matches a folder by a glob in a way the reader does not reproduce
-        // (measured: `**/guard/` skips src/guard, `src/**/` skips every file): a glob reaches none.
+        // Bun's scan matches a folder by a glob or an escape in a way the reader does not
+        // reproduce (measured: `**/guard/` and `src\/guard` skip src/guard, `src/**/` every
+        // file), and a `..` or empty segment it may resolve: such a pattern reaches none.
         for (const test of [
           "bun test --path-ignore-patterns='**/guard/' src",
           "bun test --path-ignore-patterns='**/gu*/' src",
@@ -241,6 +242,12 @@ describe("a workspace's test files", () => {
           "bun test --path-ignore-patterns='**/{guard}/' src",
           "bun test --path-ignore-patterns='src/gu?rd' src",
           "bun test --path-ignore-patterns='!src/guard' src",
+          "bun test --path-ignore-patterns='src\\/guard' src",
+          "bun test --path-ignore-patterns='src/guard/parts.test.t\\s' src",
+          "bun test --path-ignore-patterns='src/x/../guard' src",
+          "bun test --path-ignore-patterns='src//guard' src",
+          "bun test --path-ignore-patterns='src/./guard' src",
+          "bun test --path-ignore-patterns='src/gu(a)rd' src",
         ])
           takes(test, 'none', 'none');
         expect(

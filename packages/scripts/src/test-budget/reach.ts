@@ -254,39 +254,53 @@ type Run =
       readonly takes: (file: string, text: string) => boolean;
     };
 
-/** A character that makes an ignore pattern a glob. */
-const GLOB = /[*?[\]{}!]/;
+/** An ignore pattern with its leading `./` and closing `/` gone. */
+const bareIgnore = (pattern: string) => pattern.replace(/^(?:\.\/)+/, '').replace(/\/+$/, '');
+
+/** A segment of a plain ignore pattern: letters, digits, `.`, `_` and `-`, not `.` or `..`. */
+const PLAIN_SEGMENT = /^(?!\.{1,2}$)[A-Za-z0-9._-]+$/;
+
+/**
+ * Whether an ignore pattern is plain: bare (`bareIgnore`), it is empty, `.`,
+ * or `/`-joined plain segments (`PLAIN_SEGMENT`). Any other character (a
+ * glob's `*?[]{}!`, a backslash bun reads as an escape) or segment (`..`,
+ * an empty one) makes it a pattern the reader does not read.
+ */
+const isPlainIgnore = (pattern: string) => {
+  const bare = bareIgnore(pattern);
+  return (
+    bare === '' || bare === '.' || bare.split('/').every((segment) => PLAIN_SEGMENT.test(segment))
+  );
+};
 
 /**
  * A `bun test`'s arguments read as bun reads them: its filters, and its
  * ignore patterns; nothing when it holds a flag outside `BUN_FLAGS`, or an
- * ignore pattern that is a glob (`GLOB`): bun's scan matches a folder by
- * one in a way the reader does not reproduce (measured on bun 1.4.3: a
- * glob of any folder `guard` with a closing slash skips `src/guard`, and
- * `src/guard/` skips nothing).
+ * ignore pattern that is not plain (`isPlainIgnore`): bun's scan matches a
+ * folder by a glob or an escape in a way the reader does not reproduce
+ * (measured on bun 1.4.3: a glob of any folder `guard` with a closing slash
+ * skips `src/guard`, `src/guard/` skips nothing, and `src\/guard` skips
+ * `src/guard`).
  */
 const bunTestOf = (words: ReadonlyArray<string>): ReadonlyArray<Run> =>
   Option.match(argumentsOf(words, BUN_FLAGS), {
     onNone: () => [],
     onSome: ({ positionals, given }) => {
       const ignores = valuesOf(given, ['--path-ignore-patterns']);
-      if (ignores.some((pattern) => GLOB.test(pattern))) return [];
+      if (!ignores.every(isPlainIgnore)) return [];
       return [{ kind: 'bunTest', filters: positionals, ignores }];
     },
   });
 
 /**
- * Whether a plain ignore pattern (no `GLOB`) skips `file`: it names the
- * file, or a folder the file is under, by its path from the workspace
+ * Whether a plain ignore pattern (`isPlainIgnore`) skips `file`: it names
+ * the file, or a folder the file is under, by its path from the workspace
  * (measured on bun 1.4.3: `src/guard` skips `src/guard/a.test.ts`, `guard`
- * skips nothing deeper). Read with no regard to case, a leading `./` and a
- * closing `/` gone, so it may skip more than bun does, never less.
+ * skips nothing deeper). Read bare (`bareIgnore`) and with no regard to
+ * case, so it may skip more than bun does, never less.
  */
 const skips = (pattern: string, file: string) => {
-  const at = pattern
-    .replace(/^(?:\.\/)+/, '')
-    .replace(/\/+$/, '')
-    .toLowerCase();
+  const at = bareIgnore(pattern).toLowerCase();
   const path = file.toLowerCase();
   return at === '' || at === '.' || path === at || path.startsWith(`${at}/`);
 };
