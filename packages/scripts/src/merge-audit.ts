@@ -20,6 +20,16 @@
 // that is not a merge prints its refusal alone. `--each` exits non-zero on a
 // red commit, on a checkout or an install that fails, and when git cannot
 // list the commits.
+//
+//   bun run merge-audit --review <file> [--review <file>…]
+//
+// The unit's reviews against the lessons ledger (`lessons/ledger.ts`): prints
+// `merge-audit review <unit>/<file> F<n> routed <entry>` for each finding an
+// entry of `docs/lessons.md` cites, `… unrouted` for one none does, `… no
+// guard class` or `… no cheapest guard` for one that leaves its line out, and
+// `merge-audit ledger <problem>` for an entry whose guard its file does not
+// hold. It exits non-zero on any of them: the merge flow lands no unit whose
+// folded findings are not routed to a guard.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
@@ -28,6 +38,7 @@ import { Argument, Command, Flag } from 'effect/cli';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
+import { ledgerProblems, reviewRoutes } from './lessons/ledger.js';
 import {
   conflictedPaths,
   fileLines,
@@ -235,6 +246,43 @@ const each = Effect.fn('mergeAudit.each')(function* (base: string) {
   if (red.length > 0) return yield* GuardRed.make({ commits: red });
 });
 
+/** A review whose findings are not all routed to the ledger, or a ledger whose guards do not hold. */
+class Unrouted extends Schema.TaggedError<Unrouted>()('Unrouted', {
+  problems: Schema.Finite,
+}) {
+  override get message() {
+    return `merge-audit review: ${this.problems} problem(s); route each finding to an entry of docs/lessons.md, its Source citing <unit>/<file> F<n>`;
+  }
+  override readonly [Runtime.errorReported] = false;
+}
+
+/**
+ * `--review <file>…`: each finding of the reviews routed to the ledger entry
+ * that cites it, each finding's guard lines read, and the ledger held to its
+ * guards, at the checkout's root.
+ */
+const review = Effect.fn('mergeAudit.review')(function* (files: ReadonlyArray<string>) {
+  const root = (yield* gitChecked(['rev-parse', '--show-toplevel'])).trim();
+  const routes = yield* reviewRoutes(root, files);
+  const ledger = yield* ledgerProblems(root);
+  const lines = [
+    ...routes.flatMap((route) => [
+      `merge-audit review ${route.ref} ${Option.match(route.by, { onNone: () => 'unrouted', onSome: (entry) => `routed ${entry}` })}`,
+      ...[`merge-audit review ${route.ref} no guard class`].filter(() => !route.classed),
+      ...[`merge-audit review ${route.ref} no cheapest guard`].filter(() => !route.guarded),
+    ]),
+    ...ledger.problems.map((problem) => `merge-audit ledger ${problem}`),
+  ];
+  yield* Effect.forEach(lines, (line) => Console.log(line), { discard: true });
+  const problems =
+    routes.filter((route) => Option.isNone(route.by) || !route.classed || !route.guarded).length +
+    ledger.problems.length;
+  yield* Console.log(
+    `merge-audit review ${routes.length} finding(s), ${ledger.entries} ledger entries: ${problems} problem(s)`,
+  );
+  if (problems > 0) return yield* Unrouted.make({ problems });
+});
+
 const command = Command.make(
   'merge-audit',
   {
@@ -245,9 +293,20 @@ const command = Command.make(
         'run `bun run guard` on each commit of <base>..HEAD instead, in a scratch worktree',
       ),
     ),
+    reviews: Flag.String('review').pipe(
+      Flag.atLeast(0),
+      Flag.withDescription(
+        "route each finding of a unit's review to its lessons ledger entry instead (repeatable)",
+      ),
+    ),
   },
-  ({ merge, each: base }) =>
+  ({ merge, each: base, reviews }) =>
     Effect.gen(function* () {
+      if (reviews.length > 0)
+        return yield* review(reviews).pipe(
+          Effect.tapErrorTag('Unrouted', (error) => Console.error(error.message)),
+          Effect.tapErrorTag('GitFailed', (error) => Console.error(error.message)),
+        );
       if (Option.isSome(base)) {
         return yield* Effect.scoped(each(base.value)).pipe(
           Effect.tapErrorTag('GuardRed', (error) => Console.error(error.message)),

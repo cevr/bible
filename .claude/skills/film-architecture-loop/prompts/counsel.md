@@ -19,7 +19,7 @@ Real defects only, each with file:line and a concrete failure (input → wrong o
 
 <One numbered question per risky commit, naming the invariant that could break.>
 
-Answer OK or the defect per question, with severity and reproduced yes/no. No style nits. End with the list of files you read.
+Answer OK or the defect per question, with severity and reproduced yes/no. No style nits. Head each defect `### F<n> <severity>: <what>`, and under it give two lines: `Guard class: lint | judged | skill | code | none` (what could catch this class of defect next time: a deterministic oxlint rule, a judged rule, a skill line, a check or test in code, or nothing, with why) and `Cheapest guard: <the guard, by file and rule or name>`. End with the list of files you read.
 ```
 
-Fix each defect with a test that is red first, in one fix commit. A defect not fixed gets a written rejection in the ledger.
+Fix each defect with a test that is red first, in one fix commit. A defect not fixed gets a written rejection in the ledger. Each folded finding is an entry of the lessons ledger, [`docs/lessons.md`](../../../../docs/lessons.md) (Kind `review`, Source `<unit>/<review file> F<n>`), whose Guard is the cheapest guard the finding named or a better one; a judged rule guards only when its corpus measures it at error, so a rule whose false findings run high is a skill line instead. Before the merge, `bun run merge-audit --review <review file>` refuses a review with a finding no entry cites, or one that gives no guard class or no cheapest guard.

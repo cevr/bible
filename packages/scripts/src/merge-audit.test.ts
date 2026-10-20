@@ -204,6 +204,77 @@ describe('merge audit, each commit', () => {
   );
 });
 
+// `--review` over a repository whose ledger cites one of a review's two
+// findings: the cited one is routed, the other is not, and the run fails.
+const runReview = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-review-' });
+  const { git } = fixture(dir);
+  yield* git('init', '-q', '-b', 'main');
+  yield* fs.makeDirectory(path.join(dir, 'docs'));
+  yield* fs.writeFileString(path.join(dir, '.oxlintrc.json'), '{ "rules": {} }\n');
+  yield* fs.writeFileString(
+    path.join(dir, 'docs', 'lessons.md'),
+    [
+      '# Lessons',
+      '### routed-one',
+      '- **Date:** 2026-10-19',
+      '- **Kind:** review',
+      '- **Said:** "the parts drop a file"',
+      '- **Source:** p6-x/review-1.md F1',
+      '- **Wrong:** a part dropped a file.',
+      '- **Cause:** Not recorded.',
+      '- **Guard:** none: the fix carries its own test',
+      '',
+    ].join('\n'),
+  );
+  yield* fs.makeDirectory(path.join(dir, 'p6-x'));
+  const review = path.join(dir, 'p6-x', 'review-1.md');
+  yield* fs.writeFileString(
+    review,
+    [
+      '### F1 High: the parts drop a file',
+      'Guard class: code',
+      'Cheapest guard: a test',
+      '### F2 Low: a name',
+      'Guard class: none',
+      'Cheapest guard: none',
+      '',
+    ].join('\n'),
+  );
+  const spawner = yield* ChildProcessSpawner;
+  const child = yield* spawner.spawn(
+    ChildProcess.make('bun', [path.join(import.meta.dir, 'merge-audit.ts'), '--review', review], {
+      cwd: dir,
+      forceKillAfter: '5 seconds',
+    }),
+  );
+  const [out, code] = yield* Effect.all(
+    [Stream.mkString(Stream.decodeText(child.stdout)), child.exitCode],
+    { concurrency: 2 },
+  );
+  return { lines: out.trim().split('\n'), code: Number(code) };
+}).pipe(Effect.scoped, Effect.provide(BunServices.layer));
+
+describe('merge audit, review', () => {
+  test(
+    'routes each finding to the ledger entry citing it, and fails on one no entry cites',
+    () =>
+      Effect.runPromise(
+        Effect.map(runReview, ({ lines, code }) => {
+          expect(lines).toEqual([
+            'merge-audit review p6-x/review-1.md F1 routed routed-one',
+            'merge-audit review p6-x/review-1.md F2 unrouted',
+            'merge-audit review 2 finding(s), 1 ledger entries: 1 problem(s)',
+          ]);
+          expect(code).not.toBe(0);
+        }),
+      ),
+    30_000,
+  );
+});
+
 describe('merge audit, run', () => {
   test(
     "names the edits a branch's own merge of main lost, under the merge of the branch",
