@@ -3,7 +3,7 @@ import { Effect, Layer, Option } from 'effect';
 import { Headers, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import { Assets } from './assets.ts';
-import { CACHE, CONTENT_SECURITY_POLICY, respond } from './respond.ts';
+import { CACHE, CONTENT_SECURITY_POLICY, respond, withCharset } from './respond.ts';
 
 /** The site's files as a map from path to body and type. */
 const FILES = new Map<string, readonly [string, string]>([
@@ -12,6 +12,7 @@ const FILES = new Map<string, readonly [string, string]>([
   ['/404', ['<h1>Page not found</h1>', 'text/html; charset=utf-8']],
   ['/assets/client-abc12345.css', ['body{}', 'text/css']],
   ['/favicon.ico', ['ico', 'image/x-icon']],
+  ['/llms.txt', ['# First the Blade', 'text/plain']],
 ]);
 
 const AssetsTest = Layer.succeed(
@@ -86,5 +87,13 @@ describe('the Worker policy', () => {
         expect(header(response, 'x-frame-options')).toBe('DENY');
         expect(header(response, 'strict-transport-security')).toBe('max-age=31536000');
       }
+    }));
+
+  test('a text file says it is UTF-8, and a picture is left as it is', () =>
+    Effect.gen(function* () {
+      expect(header(yield* get('/llms.txt'), 'content-type')).toBe('text/plain; charset=utf-8');
+      expect(header(yield* get('/favicon.ico'), 'content-type')).toBe('image/x-icon');
+      expect(withCharset('application/xml')).toBe('application/xml; charset=utf-8');
+      expect(withCharset('text/html; charset=utf-8')).toBe('text/html; charset=utf-8');
     }));
 });

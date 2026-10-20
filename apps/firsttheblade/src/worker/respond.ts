@@ -7,7 +7,9 @@
  *   `/assets/` for a year, pages not at all without asking again, and the
  *   rest (icons, link cards, the sitemap) for a day;
  * - every response carries the security headers: the content policy, no
- *   sniffing, no framing, a strict referrer and HTTPS only.
+ *   sniffing, no framing, a strict referrer and HTTPS only;
+ * - a text file (a page, llms.txt, the sitemap) says it is UTF-8, which
+ *   every file the prerender writes is.
  */
 import { Effect, Option } from 'effect';
 import { Headers, HttpServerRequest, HttpServerResponse } from 'effect/http';
@@ -71,10 +73,24 @@ export const cacheControl = (
   return CACHE.day;
 };
 
+const TEXT_TYPES = ['text/', 'application/xml', 'application/json', 'application/manifest+json'];
+
+/** The content type with its charset: a text type the host left without one is UTF-8. */
+export const withCharset = (contentType: string) => {
+  if (contentType.includes('charset=')) return contentType;
+  if (!TEXT_TYPES.some((type) => contentType.startsWith(type))) return contentType;
+  return `${contentType}; charset=utf-8`;
+};
+
 const finish = (pathname: string, response: HttpServerResponse.HttpServerResponse) =>
   response.pipe(
     HttpServerResponse.setHeaders(SECURITY_HEADERS),
     HttpServerResponse.setHeader('cache-control', cacheControl(pathname, response)),
+    (finished) =>
+      Option.match(Headers.get(finished.headers, 'content-type'), {
+        onNone: () => finished,
+        onSome: (type) => HttpServerResponse.setHeader(finished, 'content-type', withCharset(type)),
+      }),
   );
 
 /** The request a host's static files answer with the not-found page. */
