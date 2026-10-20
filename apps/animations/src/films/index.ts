@@ -10,6 +10,7 @@ import { shorts as righteousnessByFaithShorts } from './righteousness-by-faith/s
 
 const righteousnessByFaith = () => import('./righteousness-by-faith/film.ts');
 const coldStudies = () => import('./cold-studies/film.ts');
+const inItsOrder = () => import('./in-its-order/film.ts');
 
 /**
  * The films, by folder: each key names a folder under `src/films`, and the
@@ -22,6 +23,7 @@ export const films = narratedFilms(
   {
     'righteousness-by-faith': righteousnessByFaith,
     'cold-studies': coldStudies,
+    'in-its-order': inItsOrder,
     ...talkFilms({}),
   },
   faces,
