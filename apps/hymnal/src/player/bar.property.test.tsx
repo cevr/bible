@@ -33,7 +33,9 @@
  * the page prevents its default, steps the value (`range_input_type.cc`: an
  * arrow a step, a page key a tenth of the range, Home and End its ends,
  * fitted to the step and the range) and says `input` and `change` when the
- * value moved, nothing when it did not; a range input fits each value
+ * value moved, nothing when it did not, whatever modifier is down and
+ * whether the `keydown` repeats a key held (`repeat: true`); every key and
+ * pointer event says the modifiers down then; a range input fits each value
  * written to it to its step (`fitted`), and after a press `change` comes
  * only when the value differs from the one at the last `change` (the
  * press's start, or a key's step in it). Chrome captures the pointer of a
@@ -260,6 +262,14 @@ const play = (run: Run): Option.Option<string> => {
     });
     return open;
   };
+  /** The keys down now: Chrome says a key down again a repeat, and every event says the modifiers down. */
+  const down = new Set<string>();
+  const modified = () => ({
+    shiftKey: down.has('Shift'),
+    altKey: down.has('Alt'),
+    ctrlKey: down.has('Control'),
+    metaKey: down.has('Meta'),
+  });
   const pointer = (
     type: string,
     kind: Pointer,
@@ -278,10 +288,24 @@ const play = (run: Run): Option.Option<string> => {
         pointerId: id,
         pointerType: kind,
         isPrimary: id === first,
+        ...modified(),
       }),
     );
-  const key = (type: 'keydown' | 'keyup', name: string, at: EventTarget = bar) =>
-    fire(new KeyboardEvent(type, { bubbles: true, cancelable: true, key: name }), at);
+  const key = (type: 'keydown' | 'keyup', name: string, at: EventTarget = bar) => {
+    const repeat = type === 'keydown' && down.has(name);
+    if (type === 'keydown') down.add(name);
+    else down.delete(name);
+    return fire(
+      new KeyboardEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        key: name,
+        repeat,
+        ...modified(),
+      }),
+      at,
+    );
+  };
   /** The browser sets the value and says `input`. */
   const input = (to: number) => {
     valueOf?.set?.call(bar, fitted(bar, String(to)));
@@ -975,6 +999,45 @@ describe('the web position bar under any run of input', () => {
           { _tag: 'KeyDown', key: 'End' },
           ...drag([23]),
           { _tag: 'Up' },
+          { _tag: 'Change', dropped: false },
+          ...closing,
+        ],
+      }),
+    ).toEqual(Option.none());
+  });
+
+  test('playerfix r2 M3: ArrowRight held for three repeats inside a mouse press: three steps sent at once', () => {
+    expect(
+      play({
+        at: 60,
+        playing: false,
+        steps: [
+          { _tag: 'Down', pointer: 'mouse' },
+          { _tag: 'KeyDown', key: 'ArrowRight' },
+          { _tag: 'KeyDown', key: 'ArrowRight' },
+          { _tag: 'KeyDown', key: 'ArrowRight' },
+          { _tag: 'KeyUp', key: 'ArrowRight', lost: false },
+          { _tag: 'Tick', seconds: 0.25 },
+          { _tag: 'Up' },
+          { _tag: 'Change', dropped: false },
+          ...closing,
+        ],
+      }),
+    ).toEqual(Option.none());
+  });
+
+  test('playerfix r2 M3: Shift held, then ArrowLeft inside a touch press: one step sent at once', () => {
+    expect(
+      play({
+        at: 100,
+        playing: true,
+        steps: [
+          { _tag: 'Down', pointer: 'touch' },
+          { _tag: 'Hold', key: 'Shift' },
+          ...tap('ArrowLeft'),
+          { _tag: 'Tick', seconds: 0.25 },
+          { _tag: 'Up' },
+          { _tag: 'Free', key: 'Shift' },
           { _tag: 'Change', dropped: false },
           ...closing,
         ],
