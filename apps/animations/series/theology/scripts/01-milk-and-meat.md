@@ -28,6 +28,46 @@ Registers: IDEA (parchment, flat figures, one gold prop) for `milk`, `stones`, `
 
 Quoted Scripture: 9 passages, 130 of 750 spoken words (17.3 %; recounted 2026-10-15 after the wording revision; sources.md's verifier table holds the earlier count). One quotation per beat. 2 Peter 3:18 (`thesis`) is quoted from "Grow", its opening "But" dropped.
 
+## Cast
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The grown man at the feast | plain lead (character-design 2.3; casting.md 2.2, the wedding feast) | series (the series' plain lead) | the plain lead's sheet exists | `cold`, `milk`, `bottle`, `teeth`, `name`, `thesis` | standing tall at the table holding up a baby's bottle (three-quarter), wincing (front, close), tipping a plate into his mouth (profile), seated chewing, thinking (three-quarter), tasting at the host's side, delight (front, close); festive clothes, sleeves |
+| The mother and the baby at the cup | plain figures (2.3; the baby differs by size) | series | the plain lead's sheet exists | `cold` | the mother lifting a cup to the baby's lips (three-quarter); the baby's glad face (close) |
+| The wedding guests | crowd from the crowd kit (casting.md 2.2; §5 if the courtyard is the parable's world) | shared | the crowd kit | `cold`, `name` | seated along a long table, turning to stare (three-quarter, back) |
+| The recurring cast | background only (ensemble.md) | shared | yes: ensemble.md | `cold`, `name` (among the guests, optional) | their sheets as they stand |
+| Jesus Christ (`christ`, casting.md #1) | Bible figure, the locked figure in the court canon height band, never short | shared | yes: `src/library/cast/christ` | `priest` (from behind), `name` (the host) | in a priest's white robe and breastplate, passing in through the veil (back); the host at the head of the table, a hand at the sleeve's end gesturing to the set place (three-quarter, front), in the dress OQ5 settles (casting.md §4 item 1); the priest's robe, girdle and breastplate as the owner answered (§4 item 13) |
+| Paul (casting.md #8) | Bible figure, supporting | shared | listed, not drawn (P2) | `bottle` | seated writing by a lamp with a reed pen (three-quarter), close on his face, tired and fond (front); travel cloak |
+| The Corinthian church (casting.md #28) | crowd from the story crowd kit | shared | the crowd kit (casting.md 2.6) | `bottle` | two knots of figures arguing, fingers pointing (three-quarter), turning their backs (back), one from each knot offering a hand (profile) |
+| The sower (casting.md, parable figures) | parable figure | shared | listed, not drawn (P3) | `grain` | scattering seed in an arc from a seed bag (three-quarter), walking off (back); story cloth |
+| Jeremiah (casting.md #19) | Bible figure, supporting | shared | listed, not drawn (P3) | `eat` | seated with a scroll on his knees, reading (three-quarter), face lifting (front), laughing aloud (front, close); linen with a camel mantle |
+| The IDEA figures: the drinkers, the child at the slate, the eater and the watcher | plain figures (2.3) | series | the plain lead's sheet exists | `milk`, `stones`, `teeth`, `math`, `eat` | flat paper: a row of every height drinking from one cup; a baby grinning with one tooth; a child at a slate growing taller in three steps; one figure eating, one watching, then picking up a spoon |
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The village wedding courtyard: lanterns, a long table | film | `cold`, `title`, `name`, `thesis`, `end` | teal day; the landing teal to yellow |
+| A Corinthian house at dusk | shared (Paul's) | `bottle` | dusk, a lamp |
+| A hillside field with a low stone wall | shared (the sower's field; RBF's `grain` and the country series can reuse it) | `grain`, `thesis` | peach morning |
+| A small room in Jerusalem | shared (Jeremiah's) | `eat` | lamplight |
+| The veil with gold light behind it (Tier Two's motif) | series | `priest` | gold behind the veil |
+| The series map: the long hill, the six stones at its foot, the path to the city | series | `path`, `thesis` | dawn |
+| The parchment page | series | `milk`, `stones`, `teeth`, `math`, `path`, `eat` (its close) | peach; dawn coming in `math` |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The cup of milk and the loaf (the series' title motif; 02 brings the cup back) | series | `cold`, `title`, `milk`, `math`, `name` |
+| The baby's bottle | film | `cold`, `name` |
+| The six stones (Tier One's map) | series | `stones`, `priest`, `path`, `name` |
+| The gold cross whose light widens | series | `priest`, `path`, `name` |
+| The slate (the arc's 04b and 06b reuse it) | series | `math` |
+| The scroll with a gold seal | film | `cold` |
+
+New to the library: the grown man's festive dress on the plain lead; the wedding courtyard; Christ's priestly robe and breastplate (back view); the sower; the series map hill.
+
 ## Beats
 
 ### `cold` · STORY · ~33 s

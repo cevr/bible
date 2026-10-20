@@ -52,6 +52,51 @@ Frame (god-christ.md):
 
 Quoted Scripture: 11 passages, 132 of 671 spoken words (19.7 %). One quotation per beat.
 
+## Cast
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| Isaiah (casting.md #12) | Bible figure, main in `cold` and the landing | shared | listed, not drawn (P3; draw him with the seraph) | `cold`, `return`, `end` | young, standing in the temple court looking up (three-quarter), his hand over his mouth, on his knees (profile), close on his face afraid (front); in the landing lifting his face, not afraid (front, close); linen, a mantle, sleeves to the wrist |
+| The seraphim and the host (casting.md #7) | Bible figures, a rig (the seraph; the man in white is the first angel rig) | shared | listed, not drawn (P2) | `cold`, `manger`, `return` | the seraphim in gold and cream paper (casting.md §3.5; the script's "flame-red" is conflict item 2) with six wings, two over the face and two over the feet (Isa 6:2), above the throne (front); the host over the hillside as men in white without wings (Luke 2:13; the script's "same wings" is conflict item 3), turning and bowing toward the town (three-quarter, back) |
+| The Father (casting.md #4) | asset, not a rig: a cloud of glorious light, the form hidden, never a face | shared | listed, not drawn (owner-decided 2026-10-13) | `cold`, `beginning`, `one`, `laid`, `storm`, `return` | the brightness on the throne; one glow that divides into two seated figures, the Father's light beside the Son; the spring of light at the top of the page; the veiled light closing round the sceptre, no hand drawn |
+| Jesus Christ (`christ`, casting.md #1) | Bible figure, the locked figure in the court canon height band, never short | shared | yes: `src/library/cast/christ` | `john`, `beginning`, `name`, `laid`, `storm`, `manger`, `with`, `return` | walking a Galilee road, turning to the camera (three-quarter); seated on the throne beside the Father's light, the face shown (front); calm in the temple court (front, close); standing, lifting the robe and crown off and laying them on the step (three-quarter), going down the steps (back); asleep in the stern (profile), standing with a lifted hand (three-quarter); as a baby in the straw; kneeling to a child's height, taking a small hand (profile); in the landing crowned, the nail marks in his hands (front); his earthly dress per casting.md (the linen coat and walnut mantle; the script's "white robe, gold sash" is conflict item 1, waiting on OQ5) on earth; the gold robe, crown and sceptre on the throne |
+| John the apostle (casting.md #18) | Bible figure, supporting | shared | listed, not drawn | `john` | old, at a rough table by lamplight, writing on a scroll (three-quarter), close on his face (front); his young self among the twelve |
+| The twelve (casting.md #10) | Bible figures, a group | shared | listed, not drawn | `john`, `storm` | walking a road behind Jesus (three-quarter, back); soaked in the boat, faces in panic (front), staring at him, then at one another (three-quarter) |
+| Moses (casting.md #2) | Bible figure, minor | shared | listed, not drawn (P1) | `name` | taking off his sandals by the bush, his face lit (profile); camel mantle, staff |
+| The temple crowd (casting.md #3, gospel crowds) | crowd from the story crowd kit | shared | listed (T03, T05, RBF) | `name` | a ring of grey faces round Jesus (three-quarter); hands stooping for stones; faces hardening |
+| Mary and Joseph (casting.md #11, #13) | Bible figures, supporting | shared | listed, not drawn | `manger` | in the stable by the manger, faces at a third of the frame (three-quarter); Mary kneeling by the straw, Joseph standing with a lamp |
+| The shepherds of Bethlehem (casting.md #24) | Bible figures, a group of 3–4 | shared | listed, not drawn | `manger` | by a tent and a fire with the sheep (three-quarter), shading their eyes against the host (front) |
+| The child in the village street | plain figure (2.3) | series | the plain lead's sheet exists | `with` | a small child reaching up to the hand held out (profile) |
+| The small grey figures kneeling | plain figures (2.3) | series | the plain lead's sheet exists | `one` | kneeling, facing the light (back, three-quarter) |
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The temple court at Jerusalem: pillars, steps, the far city; the roof that lifts like a lid; the throne and its train | shared (RBF's `woman` court and T03's) | `cold`, `title`, `return`, `thesis`, `end` | cool teal dusk to gold; the landing teal to yellow |
+| John's room by lamplight | film | `john` | lamplight |
+| A Galilee road | shared (T03 and T05) | `john`, `with` | morning peach |
+| The throne before the world, then in dimension with the host in rows | series (the arc's 03b `cold` light and 06b's Bethel light are its kin) | `beginning`, `laid` | dawn gold; gold to peach and dusk |
+| Horeb in red rock, the bush that burns | shared | `name` | noon |
+| The temple court where they take up stones | shared (with `cold`'s court) | `name` | day |
+| The lake in a storm, the boat | shared (H20's boat) | `storm` | storm blues at night |
+| A Bethlehem hillside with sheep, the stable below | shared | `manger` | deep blue with gold |
+| A village street | shared | `with` | peach day |
+| The parchment page | series | `beginning`, `one`, `with` | peach |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The gold robe, the crown and the sceptre | series | `laid`, `storm`, `return` |
+| The scroll with the family seal | film | `name` |
+| The portrait frame from 03 (the arc's frame); light only: the script's Jesus' face in it is conflict item 4 (casting.md §4), restaged as his face in the story | series | `with` |
+| The tents, one gold-edged among them | film | `manger`, `with` |
+| The paper manger | shared | `title`, `manger` |
+| The stones in the temple court | shared (RBF's `woman`) | `name` |
+
+New to the library: Isaiah; the seraph rig; the Father and the Son on one throne; John the apostle old; the twelve; Mary and Joseph; the shepherds; the throne before the world.
+
 ## Beats
 
 ### `cold` · STORY · ~28 s

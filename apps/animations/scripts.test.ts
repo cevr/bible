@@ -19,11 +19,6 @@ const BEFORE_THE_RULE = [
   'series/health/scripts/20-rest-a-while.md',
   'series/health/scripts/33-ten-days-in-babylon.md',
   'series/health/scripts/50-figs-for-a-king.md',
-  'series/theology/scripts/01-milk-and-meat.md',
-  'series/theology/scripts/02-the-oracles-of-god.md',
-  'series/theology/scripts/03-god-is-love.md',
-  'series/theology/scripts/05-the-word-made-flesh.md',
-  'series/theology/scripts/18b-righteousness-by-faith.md',
 ];
 
 const hasCast = (text: string) => text.split('\n').some((line) => line.trim() === '## Cast');

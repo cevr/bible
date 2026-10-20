@@ -51,7 +51,7 @@ Read against `docs/casting.md` (Part A numbers and sections) and `docs/ensemble.
 | Moses (#2, casting.md 1.3) | Bible figure, minor | shared | a sheet in casting.md, not drawn | `rain` | as flat IDEA paper: an old man singing with an open hand (profile); camel mantle |
 | The good Samaritan (casting.md 1.5, P5, for H54, H63), the beaten man, the priest, the Levite (Luke 10:30–35) | parable figures | shared | the Samaritan listed, not drawn; the other three new | `name` | flat cut-paper, standing in the STORY frame: the man lying (profile), two in temple dress passing (back, three-quarter), the Samaritan kneeling to bind with a small jar (three-quarter), walking beside his beast (profile) |
 | The plain readers (two in `two`, three in `endless`, one in `spirit`), and the reader of our own day in a city coat (`across`) | plain figures (character-design 2.3; casting.md 2.2, "IDEA everyday figures") | series | the plain lead's sheet exists | `two`, `across`, `endless`, `spirit` | seated at a table with a hand mirror (front, three-quarter), bending over a page (profile), peeling a page's corner (three-quarter), eyes opening wide (front, close); contemporary dress, sleeves to the wrist |
-| The mother and the small boy | a plain lead and a second plain figure (character-design 2.3; the boy differs by height) | series | the plain lead's sheet exists | `child` | the mother kneeling to the boy's height (three-quarter), holding his hand near the stove (profile), wrapping a blanket round him (front), reading to him and walking with him (back, three-quarter); the boy about 0.62; contemporary dress |
+| The mother and the small boy (the boy is the arc's plain boy; his father is the plain lead in 03b, 04b and 06b) | a plain figure and a second plain figure (character-design 2.3; the boy differs by height) | series | the plain lead's sheet exists; the mother is new to it | `child` | the mother kneeling to the boy's height (three-quarter), holding his hand near the stove (profile), wrapping a blanket round him (front), reading to him and walking with him (back, three-quarter); the boy about 0.62; contemporary dress |
 | Max (ensemble) | recurring cast, background only | shared | yes: ensemble.md | `endless` (standing behind the readers), `child` (across the landing with his takeaway cup) | his sheet as it stands |
 | The hillside crowd (#3, gospel crowds) | crowd | shared | the story crowd kit (casting.md 2.6) | `cold`, `name`, `thesis`, `end` | seated on the slope, listening; headcloths, varied heights |
 
@@ -61,7 +61,7 @@ Settings:
 | --- | --- | --- | --- |
 | The teaching hillside in Galilee (a slope, a few olive trees, a road below) | shared (the gospel hillside of #3) | `cold`, `title`, `name`, `thesis`, `end` | teal day; the landing teal to yellow; evening in the credits |
 | Jairus's house, the girl's room by lamplight | shared (new) | `talitha` | peach |
-| A kitchen in a flat of the city building, its window on the landing (ensemble.md, Homes) | shared (the city building exists as a layout; this kitchen is a new room in it) | `child` | dawn |
+| The plain kitchen with a stove and a window on the landing (new here; 03b, 04b and 06b reuse it). It sits in the city building's layout (ensemble.md, Homes), so Max can pass on the landing | series | `child` | dawn |
 | The parchment page | series | `one`, `two`, `endless`, `across`, `waters`, `rain`, `figure`, `spirit` | peach |
 
 Props:
@@ -76,7 +76,7 @@ Props:
 | The four beasts of Daniel 7, folding into crowns | shared (28 uses them) | `figure` |
 | The Samaritan's beast and his small jar | shared (with the Samaritan) | `name` |
 
-New to the library: the teacher of the law, Jairus with his wife and daughter, Amos, the parable's beaten man, priest and Levite (all shared); the girl's room and the city-building kitchen (shared); the dictionary (series); the mirror and the scroll (film).
+New to the library: the teacher of the law, Jairus with his wife and daughter, Amos, the parable's beaten man, priest and Levite (all shared); the girl's room (shared); the plain kitchen (series); the plain mother (series); the dictionary (series); the mirror and the scroll (film).
 
 ## Beats
 

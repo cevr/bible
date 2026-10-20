@@ -7,6 +7,57 @@ Status: the v3 rewrite of the made film, kept (2026-10-15) and now the film's sc
 
 Each beat gives its register (STORY is the Bible scene, IDEA the parchment page), where it starts (at the marked pace), its line, its picture in one line and its sources. In a line, braces are never spoken: a name in braces is where the picture changes, `{*}` stresses the word after it, `{/}` is a breath, and `{//}` a hold of 0.6 s, or of the seconds it names. Words in “quotation marks” are the KJV, read as it reads.
 
+## Cast
+
+The built film draws its figures with the rigs in `src/films/righteousness-by-faith/rigs` (`rigs.ts`); the ids below are theirs.
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The accused, the film's lead (rigs `lead`, `leadHand`) | the film's lead: candidate 9, a young man of today, thick wavy mid-brown hair, no beard, a plain muted teal long-sleeved crew-neck top, khaki trousers, dark brown shoes (owner kept all three sheets, ask a8fb2170353) | film (his sheets are this film's; a later film may reuse him) | kept sheets in set `rbf-lead-sheets-2026-10-19` (picked from `rbf-lead-candidates-2026-10-18`), not in `src/library/cast` | `cold`, `title`, `word`, `seed`, `spoke`, `look`, `within`, `court`, `thesis` | his three kept sheets as they stand: stained in the dock, the gold seal on his top; beside the tablets, coming up short; the seed in his open palm; the tablets settling into his chest; the stride at "arose" (owner OK, ask a1cfb45a7cf); in white in the dock at the landing |
+| The judge (rig `judge`, hands `skinHand`) | §5's official (casting.md 2.1: 50, 0.98, deep slate, gavel, warm brows, "a fair official"; cold.13's judge) | shared (§5's minor set) | the film's rig | `cold`, `title`, `court` | at the bench screen-right, saying one word (front, three-quarter) |
+| The prosecutor (rig `prosecutor`, hands `skinHand`) | film minor: a head taller than the lead, jet-black hair (owner's pick in cold.21) | film | the film's rig | `cold`, `court` (his place empty) | reading the charge, pointing at the evidence (three-quarter) |
+| Jesus Christ (rigs `christ`, `christFront`, `christHand`, `christHandOut1`–`4`; casting.md #1) | Bible figure, the locked figure in the court canon height band, never short | shared | yes: `src/library/cast/christ`; the film's rigs are traced from it | `roof`, `woman`, `grain`, `priest`, `accuser`, `robe`, `court` | on earth his earthly dress per casting.md (the linen coat and walnut mantle; the script's "white robe, gold sash" is conflict item 1, waiting on OQ5): looking up at the four, stooping to write in the dust; the cross in silhouette; the High Priest in the first room before the veil; the Angel at the bench in white and gold, holding the filthy garments; the Advocate beside the accused in the dock |
+| The paralytic and the four (casting.md #17) | Bible figures | shared | listed, not drawn | `roof` | the four lifting tiles and lowering the bed on ropes (three-quarter, from above); the man rising, the bed under his arm |
+| The house crowd and the scribes (casting.md #3, #25) | crowd from the story crowd kit | shared | listed | `roof` | packed into the room, varied heights and headcloths, never cloned; the scribes' faces hardening |
+| The woman taken in adultery and her accusers (casting.md #26, #25) | Bible figures; the accusers a crowd from the kit | shared | listed, not drawn; the film draws her (`scenes/look.ts`, `scenes/within.ts`) | `woman`, `within` | standing head bowed, a flat scarlet blot soaked into the garment (front); walking out upright, screen-left (profile); the accusers holding stones, one holding up a scroll, the stones dropping |
+| Moses and the bitten camp (casting.md #2, #14) | Bible figures; the camp a crowd from the kit | shared | listed, not drawn | `look` | Moses lifting the bronze serpent on the pole (three-quarter); the bitten turning to look (front) |
+| Joshua the high priest (casting.md #16) | Bible figure, main in his beats | shared | listed, not drawn | `accuser`, `robe` | in a priest's turban, head bowed, garments with flat scarlet blots (front, three-quarter); clean, looking down at the white robe (front, close) |
+| Satan, the accuser (casting.md #9) | Bible figure, minor: tall, angular, shadow-violet, his head no higher than the Advocate's (casting.md §4 item 15) | shared | listed, not drawn | `accuser`, `robe` | stepping up at Joshua's right hand and pointing (profile); silenced, in shadow at the court's edge (three-quarter) |
+| Those that stand by (casting.md #7, angels) | Bible figures, a group | shared | listed, not drawn | `robe` | lifting the filthy garments off Joshua (three-quarter) |
+| Rosa, the grandmother (ensemble.md, the recurring cast) | the recurring cast, cast by the owner as `garden`'s figure (2026-10-16) | shared | yes: ensemble.md | `garden` | kneeling at a bed (three-quarter), pressing seeds in and watering, sitting back on her heels, putting down her tools on the seventh day; plum skirt and shawl, wide garden hat |
+| The farmer (rigs `farmer`, `farmerHand`) | film minor, James's farmer, no cast | film | the film's rig | `rain` | at the field's edge lifting his face to the rain (three-quarter, close); sleeves to the wrist (owner rule) |
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The courtroom: a diorama on the parchment in `cold`, cardboard in the paper world at the landing (the bench screen-right, the dock screen-left, the high window) | series (T13, Judge and Advocate, can stand in it) | `cold`, `title`, `court`, `thesis`, `end` | warm sunlight from the high window; the landing's teal, the film's most saturated |
+| The parchment page | series | `word`, `seed`, `spoke`, `look`, `within`, `garden` | peach |
+| Genesis 1: the dark paper world, the sun, land and water | shared | `spoke` | black to dawn to teal |
+| A house in Capernaum | shared | `roof` | peach afternoon |
+| The temple court (05's court) | shared | `woman` | early morning peach |
+| The desert camp with the pole | shared | `look` | peach |
+| The hill at sunset with the cross, the ploughed field below (03's cross hill) | shared | `grain`, `priest` | sunset to black to dawn |
+| The empty tomb | shared | `priest` | dawn |
+| The sanctuary in heaven, two rooms in gold light | series (T14, Priest) | `priest` | teal and gold |
+| Heaven's court in Zech 3, laid out as the cold open's court | series (T24) | `accuser`, `robe` | gold dawn |
+| Rosa's garden in the hills: a gate, the beds, a bench under a fig tree | shared (ensemble.md, Rosa's gate) | `garden` | morning |
+| Wide paper fields | shared (01's hillside field) | `rain` | the landing's teal; gold and silver rain |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The gold wax seal that turns over into a seed | film | `cold`, `seed`, `spoke`, `look`, `within`, `court` |
+| The two stone tablets (03's and 03b's) | series | `word`, `within` |
+| The three icons: the open hand, the white cloth, the green blade | film | `spoke`, `look`, `grain`, `robe`, `within` |
+| The bronze serpent on its pole | shared | `look` |
+| The grain of wheat and the furrow | film | `grain`, `priest` |
+| The filthy garments and the white robe, the gold loom | series (the arc's robe of light is its kin) | `accuser`, `robe`, `court` |
+| The judge's gavel | shared (§5's official) | `cold` |
+
+New to the library: the lead (candidate 9) once a second film uses him; the courtroom set; Joshua; the accuser; the woman; Rosa's garden.
+
 ## 1. The verdict
 
 _How can God call a guilty man righteous?_ · teal day

@@ -105,6 +105,146 @@ Searches — egw: Nature and revelation alike testify of God's love · Satan led
 Used (credits): SC 9.3, 10.1, 10.2, 10.3, 11.1, 12.1, 13.2 (Steps to Christ, 1892; the manuscript is 7LtMs, Ms 41, 1892, par. 4, 7, 15) · COL 203.1 (first printed GCB December 1, 1895, Art. A, par. 8) · PTUK September 27, 1888, page 292.5 (Waggoner; the same in SITI December 22, 1887, 775.1: "the love of God runs parallel with his law") · SITI December 7, 1888, page 742.6 (Waggoner: "This does not mean that God has love for his creatures, but that he is love itself … goodness is tenderness").
 Found, not used: COL 415.3 ("It is the darkness of misapprehension of God that is enshrouding the world"); 22LtMs, Ms 139, 1907, par. 4 ("He loved before He gave"); GCDB February 5, 1893, page 146.2 (Moses in the cleft, the Sabbath as love; the hit is tagged with the Bulletin's editor and the speaker is not named in the paragraph, so it is not credited to anyone; 146.4 beside it tells 1844 movement history, not used).
 
+# Sources and searches · the salvation arc (03b, 04b, 06b)
+
+Written 2026-10-19 beside `sources.md`, to be folded into it (the coordinator's rule: another writer edits `sources.md` today). Same form as `sources.md`: the searches, what the credits name, what was found and not used, what was not found. Every snippet below was printed in this session by `bible egw lookup` or `bible egw search` and copied verbatim; every KJV line in the three scripts was printed by `bible verse` the same day.
+
+## Tools
+
+- **KJV:** `bible verse "<ref>"`. A check run over every “…” span in the three scripts' `say` lines found each one inside its verse as printed, with the supplied-word brackets dropped (21 spans, 21 found).
+- **EGW and pioneers:** `bible egw search "<query>" --scope egw|pioneer --limit N` and `bible egw lookup "<refcode>"`, over `~/.bible/egw-paragraphs.db`. The search is lexical only on this machine ("the embedding model is not available"), so a long query of exact words can return 0 hits where a shorter one finds the passage; the 0-hit queries below are listed with that in mind.
+- **Verifier:** `.claude/skills/film/frame/verify-quotes.py`, run on two record sets per film: the quotes files made for each episode (`quotes-03b.jsonl`, `quotes-04b.jsonl` and `quotes-06b.jsonl` beside this file, with topic, ref, author, work and year), and every paraphrase-source snippet pulled straight out of the scripts. Results are at the end of each section.
+
+## 03b · In Our Image
+
+Searches — egw: God is a being and man was made in his image (6) · Let us make man in our image the Father and the Son (6) · the Father and the Son engaged in the mighty wondrous work of creating (5) · Though formed from the dust Adam was the son of God (5) · an all-pervading principle an actuating energy God is a spirit yet He is a personal being (5); and lookups of the series leads (8T 263.1, CTr 339.2, 13LtMs, Ms 167, 1898, par. 11, FP1889 147.2, Broadside1 April 6, 1846, par. 7) and of PP 44.3–45.3. pioneer: God is a person with a body and form image of God (8) · made in the image of God form likeness personal God (3) · God is a Spirit being like the angels (6) · the law is a transcript of the character of God (6).
+
+Used (credits):
+
+- 3SG 33.2 (Ellen G. White, 1864) — "the Father and Son carried out their purpose … to make man in their own image … And now God says to his Son, “Let us make man in our image.”" → `cold`
+- 13LtMs, Ms 117, 1898, par. 9 (Ellen G. White; the source of 3MR 304.1) — "After God created man in His image, the form was perfect in all its arrangements, but it had no vitality. Then a personal, self-existing God breathed into that form the breath of life" → `cold`
+- PP 44.3 — "Though formed from the dust, Adam was “the son of God.”" → `start`
+- Broadside1 April 6, 1846, par. 7 (frame) — "I asked Jesus if his Father had a form like himself. He said he had" → `face`
+- MOI 10.1 (Uriah Smith, _Mortal or Immortal? Which?_; the same paragraph in ARSH September 1, 1859, page 114.3, corpus tag Uriah Smith) — "Here is an express declaration that God has a person, and of that person Christ is the express image." → `face`, `express`
+- Ed 131.5 (1903; the same words in 8T 263.1, 1904, and MH 413.1, 1905) — "The mighty power that works through all nature … is not, as some men of science claim, merely an all-pervading principle, an actuating energy. God is a spirit; yet He is a personal being, for man was made in His image." (print page 132 sits inside the paragraph; the verifier reads it as PAGENUM) → `force`
+- PP 45.2 — "Man was to bear God’s image, both in outward resemblance and in character. Christ alone is “the express image” (Hebrews 1:3) of the Father; but man was formed in the likeness of God. His nature was in harmony with the will of God. His mind was capable of comprehending divine things." → `name`, `express`
+- ST November 30, 1904, Art. A, par. 7 — "God’s character is revealed in the precepts of His law… It is a transcript of God’s character" → `law`
+- SITI June 29, 1888, page 390.15 (E. J. Waggoner) — "God’s law is the verbal picture of his pure and holy character, it is an expression of the love that springs naturally from his heart." → `law`
+- PP 45.3 — "they were clothed with a covering of light and glory, such as the angels wear" → `robe`
+- Ed 15.1 — "Face-to-face, heart-to-heart communion with his Maker" → `robe`
+
+Found, not used:
+
+- 13LtMs, Ms 167, 1898, par. 11 (a series lead) — "in order to keep the law, it is necessary to have a knowledge of God, for the law is a transcript of His character". Kept for 08 or 19; ST 1904 says the same in fewer words.
+- FP1889 147.2 (frame; "one God, a personal, spiritual being"). Not credited here: the work's title names a church. The frame still governs the picture.
+- CGD 5.1, AMS December 25, 1889, page 377.4, SITI September 18, 1893, page 420.52 (E. J. Waggoner, one sentence printed three times: the law "the transcript of his character"). The 1888 Signs line pictures it better.
+- MOI 11.1 (Uriah Smith): the image of Col 3:10 is "put on" at conversion; "the race has become divested of that image". Not used: 06b speaks of the image restored from Ellen White and Prescott.
+- Strong's G5481, χαρακτήρ: "a graver … engraving … the figure stamped, i.e. an exact copy … — express image", in the New Testament only at Heb 1:3. The basis of the `express` word card; not credited as a work.
+- SITI July 21, 1887, page 440.6 (corpus tag A. T. Jones, byline not confirmed): "God is a person and has a person", with Rev 22:4. Not used: the paragraph ends on a polemic against a church.
+- ARSH December 23, 1862, page 25.16 and ARSH January 5, 1860, page 52.1 (corpus tag James White, bylines not confirmed): the image as a body of another substance, a "spiritual body". Not used.
+
+Not found: the original of CTr 339.2 (a compilation; ST November 30, 1904 and Ms 167, 1898 carry the same thought and stand in for it).
+
+A tension, recorded and not voiced:
+
+- Ellen White: "both in outward resemblance and in character" (PP 45.2, 1890). The script follows this.
+- J. N. Loughborough, MPC 32.1 (_An Examination of the Scripture Testimony Concerning Man's Present Condition_; the corpus prints no year): "The foregoing testimony settles the point, that the image of God does not refer to character but to form."
+- ARSH July 8, 1858, page 60.10 (corpus tag Uriah Smith, byline not confirmed): God "referred to his personal and visible form".
+
+Verifier: `03b.jsonl` 13 records (11 used, 2 for the tension), 12 EXACT and 1 PAGENUM (Ed 131.5), 0 failing. The script's own 13 snippets: 12 EXACT, 1 PAGENUM, 0 failing.
+
+## 04b · What Was Lost
+
+Searches — egw: Seth in his own likeness after his image fallen nature (1) · children not punished for the parents guilt except as they participate in their sins (2) · As related to the first Adam men receive from him nothing but guilt and the sentence of death (4) · Separated from God existence may be ours for a little time but we do not possess life (2) · the glory of His presence would consume sinful man God in mercy hid (0) · man could not look upon the face of God and live sin separated (0) · To sin wherever found our God is a consuming fire (6) · presence of God sinner could not endure would be a consuming fire (0) · sinner could not live in the presence of a holy God would be consuming fire heaven would be torture (0) · God could not look upon sin hid his face mercy that we might not be consumed (0) · it is in mercy that God hides himself his glory would slay (0) · the sinner could not endure the glory of God presence would be to them a consuming fire (0) · in mercy God veiled his glory lest man be consumed (0) · veiled his glory lest (0) · presence a consuming fire (6) · God is the fountain of life sin separated (1); and lookups of the series leads (FLB 176.9, RC 377.4) and of PP 60.2–62.2, PP 80.1–81.1, SC 17.1, SC 18.1. pioneer: our God is a consuming fire sin cannot exist in his presence (0) · restore the image of God in man (6) · the carnal mind is enmity against God not subject to the law bondage (6).
+
+Used (credits):
+
+- GCDB February 12, 1897, page 9.21 (W. W. Prescott: the corpus heads the talk at page 9, puborder 151, "True Education. - No. 1. W. W. PRESCOTT. (Tuesday Afternoon, Feb. 9, 1897.)"; the paragraphs above it, 9.1–9.15, close an earlier study) — "Man was created in the image of God; all have sinned, have lost the image of God, and have the earthly image; it is the purpose of God to restore that lost image." → `start`
+- PP 80.1 — "Seth … resembled Adam more closely than did his other sons. He was a worthy character, following in the steps of Abel. Yet he inherited no more natural goodness than did Cain. … While Adam was created sinless, in the likeness of God, Seth, like Cain, inherited the fallen nature of his parents." → `image`; "But he received also the knowledge of the Redeemer and instruction in righteousness." → `gate`
+- SC 17.1 — "through disobedience, his powers were perverted, and selfishness took the place of love." → `image`; "His nature became so weakened through transgression that it was impossible for him, in his own strength, to resist the power of evil. He was made captive by Satan" → `bondage`
+- PP 306.3 — "they are not punished for the parents’ guilt, except as they participate in their sins. … By inheritance and example the sons become partakers of the father’s sin." → `image`
+- DA 107.4 (the source of FLB 176.9) — "To sin, wherever found, “our God is a consuming fire.” … if men cling to sin, they become identified with it. Then the glory of God, which destroys sin, must destroy them. … The light of the glory of God, which imparts life to the righteous, will slay the wicked." → `fire`
+- MB 62.1 — "If you choose sin, and refuse to separate from it, the presence of God, which consumes sin, must consume you." → `fire`
+- MB 61.2 (the source of RC 377.4) — "God is the fountain of life, and we can have life only as we are in communion with Him. Separated from God, existence may be ours for a little time, but we do not possess life." → `death`
+- PP 62.1 — "As they witnessed in drooping flower and falling leaf the first signs of decay, Adam and his companion mourned more deeply than men now mourn over their dead." → `death`
+- PP 60.3 — "after man’s fall, holy angels were immediately commissioned to guard the tree of life. … hence there is not an immortal sinner." → `death`
+- SC 18.1 — "It is impossible for us, of ourselves, to escape from the pit of sin in which we are sunken. Our hearts are evil, and we cannot change them." → `bondage`
+- PTUK November 17, 1892, page 354.5 (E. J. Waggoner) — "Sin binds its victims. … therefore the bondage is that of a law-breaker." → `bondage`
+- PP 62.2 — "At the cherubim-guarded gate of Paradise the divine glory was revealed. Hither came Adam and his sons to worship God." → `gate`
+
+Found, not used:
+
+- DA 764.1 — "God is the fountain of life; and when one chooses the service of sin, he separates from God, and thus cuts himself off from life. … His very presence is to them a consuming fire." The same thought as MB 61.2 and DA 107.4, set at the final judgment; left for 13.
+- TA 295.1 (a compilation; the same thought as DA 764.1).
+- PP 60.2 (the sentence of death pronounced the day they ate) and PP 80.2–80.3 (Gen 4:26; the first parents kept the Sabbath after the fall). PP 80.3 belongs with 20.
+- SITI June 29, 1888, page 390.15 (E. J. Waggoner, used in 03b): the carnal mind's enmity is "all on the side of man". It fits `bondage`; 03b already credits the paragraph.
+- ARSH October 7, 1851, page 37.6 (unsigned Review editorial): man "brought under the dominion of “the carnal mind”". Not used: unsigned.
+- PP 67.1 ("All that was lost by the first Adam will be restored by the second") and PP 68.1 (the first sacrifice). Both belong to 06b's answer or to 06; 06b uses Ed 15.2 instead.
+
+Not found: an Ellen White line that says in so many words that God hides his glory in mercy, lest sinners be consumed (twelve query forms, listed above). The script's "So he keeps us back … To keep us alive" rests on DA 107.4, MB 62.1 and PP 60.3 (the tree of life guarded, "there is not an immortal sinner"), and on the parenting likeness.
+
+A tension, recorded and not voiced:
+
+- 14LtMs, Lt 68, 1899, par. 15 (= 6BC 1074.7): "As related to the first Adam, men receive from him nothing but guilt and the sentence of death."
+- PP 306.3 (1890): children "are not punished for the parents’ guilt, except as they participate in their sins". The owner's line, "until we sin ourselves", follows PP 306.3 and Ezek 18:20. The letter's next sentences speak of what Christ undoes ("He redeems Adam’s disgraceful failure"); the film does not take up the question.
+
+Verifier: `04b.jsonl` 15 records (14 used, 1 for the tension), 15 EXACT, 0 failing. The script's own 14 snippets: 14 EXACT, 0 failing.
+
+## 06b · What Is Salvation?
+
+Searches — egw: The ladder represents Jesus the appointed medium of communication bridged the gulf that sin had made (4) · Jacob feared that he had been cast off by God weary wanderer stone pillow (0) · by beholding we become changed (6) · changed from glory to glory what is glory character (10) · Jacob name changed Israel supplanter prince record of his victory (0) · Bethel Jacob returned pillar vow twenty years (0) · the name of Jacob was changed to Israel (6) · Jacob returned to Bethel (0) · his name shall be in their foreheads (8) · they shall see his face and his name shall be in their foreheads character (0); and lookups of the series leads (FLB 142.2, CI 6.4, ST August 24, 1891, par. 1, RH February 22, 1898, par. 7, DA 391.1) and of PP 183.2–184.2, PP 197.1–198.2, PP 205.1–206.2, Ed 302.3–304.1, MB 114.1. pioneer: restore the image of God in man (6) · the ladder Jacob saw is Christ (6).
+
+Used (credits):
+
+- PP 183.2 — "He felt that he was an outcast, and he knew that all this trouble had been brought upon him by his own wrong course. … With weeping and deep humiliation he confessed his sin … he feared that the God of his fathers had cast him off." → `cold`
+- Ed 15.2 (the source of CI 6.4) — "Through sin the divine likeness was marred, and well-nigh obliterated. … To restore in man the image of his Maker, to bring him back to the perfection in which he was created … this was to be the work of redemption." (print page 16 inside; PAGENUM) → `losses`
+- TDOC 126.1 (W. W. Prescott, _The Doctrine of Christ_; the corpus prints no year) — "The full purpose of the gospel is to undo the ruin which sin has caused, to restore the image of God in man, to bring man into personal fellowship with God in his immediate presence" → `losses`
+- PP 184.2 (first printed ST July 31, 1884, par. 8) — "the sin of Adam and Eve separated earth from heaven, so that man could not have communion with his Maker. … The ladder represents Jesus, the appointed medium of communication. Had He not with His own merits bridged the gulf that sin had made … Christ connects man in his weakness and helplessness with the source of infinite power." → `ladder`
+- EVCO 138.2 (E. J. Waggoner, _The Everlasting Covenant_; the same in PTUK July 30, 1896, page 484.4) — "There was a ladder set up on the earth, reaching up to heaven, connecting God with man. Jesus Christ, the only begotten Son of God, is the connecting link between heaven and earth, between God and man." → `ladder`
+- MB 61.2 — "God is the fountain of life, and we can have life only as we are in communion with Him." → `life`
+- MB 114.1 — "God’s forgiveness is not merely a judicial act by which He sets us free from condemnation. It is not only forgiveness for sin, but reclaiming from sin. It is the outflow of redeeming love that transforms the heart." → `forgiven`
+- SC 18.1 — "There must be a power working from within, a new life from above, before men can be changed from sin to holiness. That power is Christ." → `forgiven`
+- 9LtMs, Ms 10, 1894, par. 5 (the source of SD 337.5 and 1SAT 228.3) — "By beholding Christ, by talking of Him, by beholding the loveliness of His character, we become changed. Changed from glory to glory. And what is glory? Character" → `image`
+- DA 37.3 (the source of FLB 142.2) — "Then Jesus came to restore in man the image of his Maker. None but Christ can fashion anew the character that has been ruined by sin. … to reshape the marred character after the pattern of His divine character" (print page 38 inside; PAGENUM) → `image`
+- DA 391.1 — "As they feed upon His word, they find that it is spirit and life. The word destroys the natural, earthly nature, and imparts a new life in Christ Jesus. … the image of God is reproduced in the disciple; he becomes a new creature." → `one`
+- ST August 24, 1891, par. 1 — "The knowledge of God and of Christ is the only knowledge which can lead to true and eternal happiness." → `one`
+- PP 197.2 (the same in ST May 20, 1903, par. 5 and 18LtMs, Ms 2, 1903, par. 32) — "As an evidence that he had been forgiven, his name was changed from one that was a reminder of his sin, to one that commemorated his victory." → `bethel` (`here`: "the name that recalled his sin"; Gen 27:36, "Is not he rightly named Jacob? for he hath supplanted me")
+- PP 196.3 — "It was Christ, “the Angel of the covenant,” who had revealed Himself to Jacob." → `bethel`, the picture only: the wrestler at the Jabbok is the locked Christ figure; the narration does not name him
+- DA 107.4 — "Jacob had been guilty of a great sin in his conduct toward Esau; but he had repented. His transgression had been forgiven, and his sin purged; therefore he could endure the revelation of God’s presence." → `bethel`
+
+Found, not used:
+
+- PP 183.3 ("The Lord compassionately revealed just what Jacob needed—a Saviour") and PP 184.1 ("the repentant fugitive"). Both fit `cold`; PP 183.2 carries the beat alone.
+- PP 197.1, PP 198.1 (Peniel: "sweet was the peace of reconciliation with God"), PP 205.2–205.3 (Jacob's household puts away its idols on the way to Bethel), PP 206.1 (at Bethel "the Lord again appeared to Jacob"). The landing pictures PP 205–206 without crediting them; credit them if you keep the household.
+- SRE 65.4, SR 95.2, 3SG 130.1, CTr 89.6 (Jacob's name changed; compilations or earlier tellings of PP 197.2).
+- RH February 22, 1898, par. 7 (a series lead on John 17:3). Left to 08 with the rest of the eternal-life study.
+- AA 307.2 ("to be changed from character to character"); 20LtMs, Lt 102, 1905, par. 11 and 15LtMs, Lt 124, 1900, par. 44 (by beholding we become changed). Ms 10, 1894 says it with "what is glory? Character".
+- GCDB February 15, 1897, page 27.1 (W. W. Prescott, "True Education. - No. 2", headed at page 26: "The true object of education is to restore the image of God in the soul"); TDOC 123.3 and GBJ January 1897, page 40.1 (Prescott, quoting "I am that ladder which Jacob saw"); PTUK August 8, 1895, page 502.3 and AMS August 25, 1898, page 517.9 (the ladder against Babel).
+- Ed 303.3 and its neighbours (Rev 22:4 quoted, with no comment that ties the name in the forehead to character).
+
+Not found: a line that reads "his name … in their foreheads" (Rev 22:4) as his character. So 06b's thesis is 1 John 3:2, not Rev 22:4.
+
+Verifier: `06b.jsonl` 14 records, 12 EXACT and 2 PAGENUM (Ed 15.2, DA 37.3), 0 failing. The script's own 14 snippets: 12 EXACT, 2 PAGENUM, 0 failing. After the review (PP 196.3 added): `06b.jsonl` 15 records, 0 failing; the script's own 15 snippets, 0 failing.
+
+## The review (counsel, deep, 2026-10-19)
+
+One review, by okra counsel (deep; codex, read-only). Verdict: ship after fixes. It ran the verifier (every record passing) and checked the 21 spoken KJV spans (all matching) and the quoted shares (12.1 %, 10.7 %, 17.8 %). Each finding and what was done:
+
+1. **04b: wrong author.** GCDB February 12, 1897, page 9.21 is W. W. Prescott's talk, not A. T. Jones's (the corpus heading above it, quoted under 04b). Fixed in the script, the credits, this file and `04b.jsonl`. The same check moved GCDB February 15, 1897, page 27.1 (found, not used) to Prescott.
+2. **03b `express`, 06b `image` and `one`: Jesus' face in the portrait frame.** casting.md forbids a framed portrait of Christ. Fixed: the frame holds only light; Jesus is seen in the story, kneeling with the basin (03b's upper room, which 06b's `image` reuses as a vignette).
+3. **03b `robe`: a dry leaf before the fall.** PP 62.1 sets the first falling leaf after the fall. Fixed: the leaf is gone from 03b; the tree in the garden's middle stands unchanged at the frame's edge. 04b's `death` now drops the film's first dry leaf.
+4. **06b: the Peniel wrestler as a new figure of light.** PP 196.3 names him as Christ. Fixed: the locked Christ figure, his face turned from the camera at night; the narration still says only "he wrestled with God".
+5. **The three thesis pictures wrote the words in the sky.** CRAFT rule 1 allows narration only on a full-screen card. Fixed: each thesis is a hard cut to a card of 12 words or fewer (03b the whole verse, 8 words; 04b its last clause, 10 words; 06b its first clause, 5 words), then a hard cut back to the bookend for the music.
+6. **Landing length and the 3 s hold.** Fixed: the in-line `{//3}` holds are gone; the landing's hold is the seam into the thesis, as RBF's `script.ts` places it. 04b's `gate` and 06b's `bethel` were cut to bring the landing through the thesis's last word to 34.5 s and 35.0 s (with the hold); 03b's is 27.5 s. The stated seams are now CRAFT 9's 0.6 s, and 03b's cold open lost three words and two breaths so its title starts at 9.9 %. Not done as written: counsel asked for the 3 s hold before the thesis's last word; the house places it before the thesis line (RBF), and a 3 s gap inside a KJV verse breaks its reading.
+7. **Cast inventories missed pictured items.** Fixed: each table was rebuilt from its pictures, beat by beat (03b adds the disciple at the basin, the upper room, the dawn hillside, the basin and towel, Eden's creatures and the film props; 04b adds the baby, the serpent's shadow, the ledger, the basket, the flower and thorn, the cup, the coin; 06b adds the disciple, Adam and Eve, the prodigal and his father, the father and boy, the Spirit's sign, the ford, the bread, the coins, the heart, the cup). Christ's rows give his earthly dress as casting.md's (OQ5) and his glory robe where he is in glory.
+8. **06b `ladder`: Nathanael's two moments combined.** Fixed: he walks up to Jesus (John 1:47), and a breath's look back shows him under the fig tree (John 1:48); the line says "an honest man he had seen under a fig tree".
+9. **06b `cold`: "sure" against PP 183.2's "feared".** Fixed: "afraid that God has cast him off".
+10. **Turns that opened on statements.** Fixed: 03b `face` opens "Does God have a form?", 03b `express` "But can words on stone show him?", 04b `bondage` "If every debt we owed were paid today, would it be over?", 06b `forgiven` "Is being forgiven the whole of it?".
+
+Counsel's one item for the owner, 04b as the arc's problem episode, is in the writer's report.
+
+After the fixes: `bun cli.ts drafts` passes all three; the verifier passes every record (03b 13 and 13, 04b 15 and 14, 06b 15 and 15); the 21 spoken KJV spans match `bible verse`.
+
 ## 04–37 (research notes per episode)
 
 Three research agents gathered 04–37 with the same brief (`brief-for-research-agents.txt`) and the same two tools. Their rules:
