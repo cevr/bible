@@ -4025,7 +4025,7 @@ properties `getScope`, `getDeclaredVariables`, `scopeManager`,
 reader.
 `lint/plugin.test.ts` runs oxlint over the marked fixtures: every RED
 location must report its rule, with no extra findings. Each of the plugin's
-twenty-five rules (`lint/plugin.ts`) also has a diagnostic whose corrective
+twenty-seven rules (`lint/plugin.ts`) also has a diagnostic whose corrective
 message is asserted, including the distinct anchor-end and cue-part repairs,
 so a rule that fires but gives the wrong advice fails the fixture suite; the
 test holds that list to the plugin's rules.

@@ -98,8 +98,10 @@ bun run contrast   # every built page at 390 and 1440 px, and each link under th
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
 ```
 
-The app's `gate` is `bun run contrast`: `bun run gate` runs it after the
-build, and so does CI's gate job, in the runner's Google Chrome.
+The app's `gate:timed` is `bun run contrast`: `bun run gate` runs it after
+the build, with the tests, alone under the host's test lock, since its
+browser holds a 30 s limit on each shot; so does CI's gate job, in the
+runner's Google Chrome.
 
 ## The art and the fonts
 
