@@ -4,6 +4,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 import { gateFiles, lintIgnored } from './files.js';
+import { TEST_GIT } from '../testing.js';
 
 /** Runs `git <args>` in `cwd`, to the end. */
 const git = (cwd: string, args: ReadonlyArray<string>) =>
@@ -11,15 +12,12 @@ const git = (cwd: string, args: ReadonlyArray<string>) =>
     Effect.gen(function* () {
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
       const handle = yield* spawner.spawn(
-        ChildProcess.make('git', args, { cwd, forceKillAfter: '5 seconds' }),
+        ChildProcess.make('git', [...TEST_GIT, ...args], { cwd, forceKillAfter: '5 seconds' }),
       );
       yield* Stream.runDrain(handle.stdout);
       return yield* handle.exitCode;
     }),
   );
-
-/** A config that keeps git's own name, mail and signing out of the test repo's commits. */
-const AS_TEST = ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false'];
 
 /** Writes `files` (each its text) under `dir`. */
 const write = (dir: string, files: Record<string, string>) =>
@@ -42,7 +40,7 @@ const repo = (committed: Record<string, string>, tree: Record<string, string>) =
     yield* git(dir, ['init', '-q', '-b', 'main']);
     yield* write(dir, committed);
     yield* git(dir, ['add', '-A']);
-    yield* git(dir, [...AS_TEST, 'commit', '-qm', 'base']);
+    yield* git(dir, ['commit', '-qm', 'base']);
     yield* write(dir, tree);
     return dir;
   });

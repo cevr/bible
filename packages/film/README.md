@@ -3821,6 +3821,14 @@ but a `describe` body), which the first case to ask builds inside its own
 time limit, so the case that pays moves with the order the cases run in. It
 is built as the file loads (`const x = await Effect.runPromise(…)`, beside
 an `effect/noAsyncFunction` disable that says so), or in each case.
+`film/test-git-config` (`lint/test-git-config.ts`) holds every test file of
+the repo: a test repository's git takes no `-c key=value` written in the
+file; it runs with `TEST_GIT` (`packages/scripts/src/testing.ts`) ahead of
+its arguments, which keeps the machine's name, mail, signing, hooks and
+editor out and turns git's automatic maintenance off. Git starts that
+maintenance detached after a commit, and its `.git/objects/maintenance.lock`
+comes and goes while the test's scope deletes the folder, so the delete
+fails (ENOENT) and the case with it.
 `film/touches-serial` (`lint/touches-serial.ts`) holds the browser tests
 (`e2e/`): a finger (`page.finger`, one or two) is read, and the touch gesture
 (`touch`, `lab/fixtures/gestures.ts`) called, only inside a `test.serial(…)`

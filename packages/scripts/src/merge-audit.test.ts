@@ -10,20 +10,7 @@ import { describe, expect, test } from 'bun:test';
 import { Effect, FileSystem, Path, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
-
-/** Git in the fixture repository, kept from the machine's own config (hooks, signing). */
-const GIT = [
-  '-c',
-  'user.name=probe',
-  '-c',
-  'user.email=probe@example.com',
-  '-c',
-  'commit.gpgsign=false',
-  '-c',
-  'core.hooksPath=/nonexistent/film-probe-hooks',
-  '-c',
-  'core.editor=true',
-];
+import { TEST_GIT as GIT } from './testing.js';
 
 const fixture = (dir: string) => {
   /** A command's stdout in the fixture, whatever its exit code (the merge of main conflicts). */

@@ -5,6 +5,7 @@ import { Effect, Exit, FileSystem, Option, Path, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 import { grownOver } from './base.js';
+import { TEST_GIT } from '../testing.js';
 
 const FILES: Parameters<typeof grownOver>[1] = { check: 'd/check.ts', debt: 'd/debt.txt' };
 
@@ -15,11 +16,7 @@ const git = (cwd: string, ...args: ReadonlyArray<string>) =>
     return yield* Effect.scoped(
       Effect.gen(function* () {
         const handle = yield* spawner.spawn(
-          ChildProcess.make(
-            'git',
-            ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args],
-            { cwd, forceKillAfter: '5 seconds' },
-          ),
+          ChildProcess.make('git', [...TEST_GIT, ...args], { cwd, forceKillAfter: '5 seconds' }),
         );
         const out = yield* Stream.decodeText(handle.stdout).pipe(Stream.mkString);
         yield* handle.exitCode;

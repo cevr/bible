@@ -7,6 +7,7 @@ import type { Selector } from './items.js';
 import type { JudgedRule } from './rule.js';
 import { repoItems } from './sources.js';
 import { historyComment } from './testing.js';
+import { TEST_GIT } from '../testing.js';
 
 /** A rule of each of `selectors`, named by it. */
 const rulesOf = (selectors: ReadonlyArray<Selector>): ReadonlyArray<JudgedRule> =>
@@ -56,11 +57,7 @@ const git = (cwd: string, ...args: ReadonlyArray<string>) =>
     return yield* Effect.scoped(
       Effect.gen(function* () {
         const handle = yield* spawner.spawn(
-          ChildProcess.make(
-            'git',
-            ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args],
-            { cwd, forceKillAfter: '5 seconds' },
-          ),
+          ChildProcess.make('git', [...TEST_GIT, ...args], { cwd, forceKillAfter: '5 seconds' }),
         );
         const out = yield* Stream.decodeText(handle.stdout).pipe(Stream.mkString);
         yield* handle.exitCode;

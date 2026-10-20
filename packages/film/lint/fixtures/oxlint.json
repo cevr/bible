@@ -28,6 +28,7 @@
     "film/pages-in-case-scope": "error",
     "film/no-history-comment": "error",
     "film/no-lazy-test-fixture": "error",
+    "film/test-git-config": "error",
     "film/tests-keep-their-strength": "error"
   },
   "overrides": [

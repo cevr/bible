@@ -1414,6 +1414,15 @@
       }
     },
     {
+      // A test repository's git runs with the shared TEST_GIT config, which
+      // turns git's detached maintenance off: its lock file breaks the
+      // folder's delete (packages/film/lint/test-git-config.ts).
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "film/test-git-config": "error"
+      }
+    },
+    {
       // The film's browser suite (`test:e2e`) runs outside the budget, on
       // real Chrome workers, and sizes its own timeouts; it still runs every
       // test (packages/film/README.md, the E2E suite).

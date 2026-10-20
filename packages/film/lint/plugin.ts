@@ -19,6 +19,7 @@ import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
 import { noHistoryComment } from './no-history-comment.ts';
 import { noLazyTestFixture } from './no-lazy-test-fixture.ts';
+import { testGitConfig } from './test-git-config.ts';
 import { noReadOnce } from './no-read-once.ts';
 import { noTestSeam } from './no-test-seam.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
@@ -49,6 +50,7 @@ export default Plugin.define({
     'no-hand-timed-seconds': noHandTimedSeconds,
     'no-history-comment': noHistoryComment,
     'no-lazy-test-fixture': noLazyTestFixture,
+    'test-git-config': testGitConfig,
     'no-read-once': noReadOnce,
     'no-test-seam': noTestSeam,
     'no-unprobed-ink': noUnprobedInk,

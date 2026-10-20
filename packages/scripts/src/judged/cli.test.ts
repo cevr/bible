@@ -29,6 +29,7 @@ import { judgedModel } from './model.js';
 import { Findings, makersHash, textHash } from './findings.js';
 import { Store, dayOf } from './store.js';
 import { env, missing, typesafeHttp } from './testing.js';
+import { TEST_GIT } from '../testing.js';
 
 const PACKAGES = new URL('../../../', import.meta.url).pathname;
 const CLI = new URL('../lint-judged.ts', import.meta.url).pathname;
@@ -74,15 +75,7 @@ const run = (
   );
 
 const git = (cwd: string, ...args: ReadonlyArray<string>) =>
-  run(cwd, 'git', [
-    '-c',
-    'user.name=t',
-    '-c',
-    'user.email=t@t',
-    '-c',
-    'commit.gpgsign=false',
-    ...args,
-  ]);
+  run(cwd, 'git', [...TEST_GIT, ...args]);
 
 /** The repo's own rule `id` and judged settings (`withFs` provides them), with no ignore patterns. */
 const lintConfig = (id: string) =>
