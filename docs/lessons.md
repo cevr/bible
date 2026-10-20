@@ -1663,3 +1663,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The design language said the studio's inspector sits at `--inspector-w` (320 px, the review's inspector sheet), while the studio's grid reads `--st-insp-w`, 460 px from `INSPECTOR_W`.
 - **Cause:** The prose named the token by its role, and two tokens share the role; nothing reads a token in prose against the selector that consumes it.
 - **Guard:** skill: which token a part reads is a claim about a rule's `var(--…)`, and a token of the same name role exists elsewhere, so no anchor check can tell them apart. Carried by `design-language/design-language.md`: "A token this document names for a part is the one that part's own rule reads"
+
+### removed-consumer-strands-an-export
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "bar removal leaves an unused public export"
+- **Source:** p6-studio-cssdocs/review-1.md F1
+- **Wrong:** Removing the preview's bar left `@bible/ui/press` re-exporting `LONG_PRESS_DELAY`, which only the bar's held tick read, and the gate went red on it.
+- **Cause:** The removal followed the bar's own imports out of the film and stopped at the package edge, so the kit's re-export of what the bar alone took stayed.
+- **Guard:** code: `packages/scripts/src/dead-exports/graph.ts` `deadExports`
