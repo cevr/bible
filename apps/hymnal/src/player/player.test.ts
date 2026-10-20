@@ -4,7 +4,7 @@
  * make them. A test waits on the state it expects, never a fixed time.
  */
 
-import { Duration, Effect, Option, Stream } from 'effect';
+import { Duration, Effect, Option, Schedule, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 
@@ -26,6 +26,9 @@ const open = () => {
   const registry = AtomRegistry.make();
   registry.mount(player.send);
   registry.mount(player.remote);
+  /** Each state the player showed, in order. */
+  const shown = new Array<Player['_tag']>();
+  const unwatch = registry.subscribe(player.state, (state) => void shown.push(state._tag));
   /** The player's state once `holds` is true of it. */
   const until = (holds: (player: Player) => boolean) =>
     AtomRegistry.toStream(registry, player.state).pipe(
@@ -41,7 +44,15 @@ const open = () => {
     device,
     until,
     send: (command: Command) => registry.set(player.send, command),
-    [Symbol.dispose]: () => registry.dispose(),
+    /** The states shown from now on, by name. */
+    since: () => {
+      const from = shown.length;
+      return () => shown.slice(from);
+    },
+    [Symbol.dispose]: () => {
+      unwatch();
+      registry.dispose();
+    },
   };
 };
 
@@ -111,7 +122,7 @@ describe('the player', () => {
       app.device.lagging = true;
       app.send(Command.Seek({ seconds: 120 }));
       app.device.now = { state: 'loading', positionMs: 120_000 };
-      app.send(Command.Follow());
+      app.send(Command.Follow({ remote: 'seek' }));
       expect(
         yield* app.until((player) => Player.$is('Paused')(player) && player.at === 120),
       ).toEqual(Player.Paused({ track: morning, at: 120, length: Option.some(151) }));
@@ -200,6 +211,70 @@ describe('the player', () => {
 
       app.device.press('play', { state: 'playing', positionMs: 11_000, durationMs: 151_000 });
       yield* app.until(Player.$is('Playing'));
+    }),
+  );
+
+  it.live('plays on after Resume while the device waits to play, and never shows Paused', () =>
+    Effect.gen(function* () {
+      using app = open();
+      app.send(Command.Start({ track: morning }));
+      app.device.now = { state: 'playing', positionMs: 60_000, durationMs: 151_000 };
+      yield* app.until(Player.$is('Playing'));
+      app.send(Command.Pause());
+      yield* app.until(Player.$is('Paused'));
+
+      // iOS: AVPlayer says it waits to play for its first few ms after a resume.
+      app.device.waiting = 3;
+      const shown = app.since();
+      app.send(Command.Resume());
+      expect(yield* app.until(Player.$is('Playing'))).toEqual(
+        Player.Playing({ track: morning, at: 60, length: Option.some(151) }),
+      );
+      expect(shown()).toEqual(['Buffering', 'Buffering', 'Buffering', 'Playing']);
+    }),
+  );
+
+  it.live('plays on after the lock screen’s play while the device waits, never Paused', () =>
+    Effect.gen(function* () {
+      using app = open();
+      app.send(Command.Start({ track: morning }));
+      app.device.now = { state: 'playing', positionMs: 10_000, durationMs: 151_000 };
+      yield* app.until(Player.$is('Playing'));
+      app.device.press('pause', { state: 'paused', positionMs: 11_000, durationMs: 151_000 });
+      yield* app.until(Player.$is('Paused'));
+
+      app.device.waiting = 2;
+      const shown = app.since();
+      app.device.press('play', { state: 'playing', positionMs: 11_000, durationMs: 151_000 });
+      expect(yield* app.until(Player.$is('Playing'))).toEqual(
+        Player.Playing({ track: morning, at: 11, length: Option.some(151) }),
+      );
+      expect(shown()).toEqual(['Buffering', 'Buffering', 'Playing']);
+    }),
+  );
+
+  it.live('shows Paused at once after Pause while the device still loads (the web)', () =>
+    Effect.gen(function* () {
+      using app = open();
+      app.send(Command.Start({ track: morning }));
+      app.device.now = { state: 'playing', positionMs: 60_000, durationMs: 151_000 };
+      yield* app.until(Player.$is('Playing'));
+
+      // The web: a paused element that holds too little to play says `loading`.
+      app.device.waiting = 3;
+      const shown = app.since();
+      app.send(Command.Pause());
+      yield* app.until(Player.$is('Paused'));
+      // The reads go on while the device says `loading`, and the page stays on Paused.
+      yield* Effect.sync(() => app.device.waiting).pipe(
+        Effect.repeat({
+          until: (left) => left === 0,
+          schedule: Schedule.spaced(Duration.millis(1)),
+        }),
+        Effect.timeout(Duration.seconds(2)),
+      );
+      expect(shown().filter((tag) => tag !== 'Paused')).toEqual([]);
+      expect(app.device.now.state).toBe('paused');
     }),
   );
 });

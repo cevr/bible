@@ -4,8 +4,8 @@
  * The player's state is an atom; the reader acts on it by writing commands
  * to `send`. The device's playback is a service (`Playback`): One's `Audio`
  * on a phone and on the web (`playback.live.ts`), or one a test hands in.
- * One's playback tells no events of its own, so while a recording loads or
- * plays the player reads its status every `every` and shows it.
+ * One's playback tells no events of its own, so while the device says it
+ * loads or plays, the player reads its status every `every` and shows it.
  *
  * Each command runs in place of the one before it: starting a hymn while
  * another loads or plays stops following the old one, and the device swaps
@@ -17,6 +17,7 @@ import {
   Data,
   Duration,
   Effect,
+  Match,
   type Layer,
   Option,
   Schedule,
@@ -62,10 +63,17 @@ export type Command = Data.TaggedEnum<{
   Resume: {};
   /** Move to `seconds` into the recording. */
   Seek: { readonly seconds: number };
-  /** Show the device's playback again: the lock screen or Control Center moved it. */
-  Follow: {};
+  /** Show the device's playback again: the lock screen or Control Center moved it (`remote`). */
+  Follow: { readonly remote: Remote };
 }>;
 export const Command = Data.taggedEnum<Command>();
+
+/**
+ * What the reader last asked of the recording: to hear it (Start, Resume, the
+ * lock screen's play) or not (Pause, the lock screen's pause). A device that
+ * says `loading` mid-recording is read by it: waiting to play, or paused.
+ */
+export type Intent = 'play' | 'pause';
 
 /** The device's playback as One's `Audio` reports it. */
 export interface Status {
@@ -118,9 +126,8 @@ export const trackOf: (player: Player) => Option.Option<Track> = Player.$match({
   Failed: ({ track }) => Option.some(track),
 });
 
-/** Whether the player is waiting on the device: it loads, plays or buffers. */
-export const isMoving = (player: Player) =>
-  Player.$is('Loading')(player) || Player.$is('Playing')(player) || Player.$is('Buffering')(player);
+/** Whether the device's playback moves: it loads or plays, and the player reads it again. */
+const isMoving = (status: Status) => status.state === 'loading' || status.state === 'playing';
 
 const seconds = (ms: number) => ms / 1000;
 
@@ -142,20 +149,29 @@ const lengthOf = (status: Status) =>
   );
 
 /**
- * The player showing `track` at the device's `status`, where it `was` before.
- * A failed recording says whether the device was `offline` when it failed.
- * A device that loads again once `track` has played keeps its place, its
- * length and its button: a playing hymn buffers, a paused one stays paused.
+ * The player showing `track` at the device's `status`, where it `was` before,
+ * as the reader `wants` it. A failed recording says whether the device was
+ * `offline` when it failed. A device that loads again once `track` has
+ * played keeps its place, its length and its button, by the reader's last
+ * ask: after a play it buffers (iOS waits to play on a resume), after a
+ * pause it is paused (the web loads a paused place it does not hold).
  */
 export const fromStatus = (
   track: Track,
   status: Status,
   offline: boolean,
-  was: Player = Player.Idle(),
+  was: Player,
+  wants: Intent,
 ): Player => {
   const at = seconds(status.positionMs);
   const held = Option.filter(trackOf(was), (it) => it.number === track.number);
   const length = Option.orElse(lengthOf(status), () => Option.flatMap(held, () => lengthIn(was)));
+  const placed = () =>
+    Match.value(wants).pipe(
+      Match.when('play', () => Player.Buffering({ track, at, length })),
+      Match.when('pause', () => Player.Paused({ track, at, length })),
+      Match.exhaustive,
+    );
   switch (status.state) {
     case 'idle':
       return Player.Idle();
@@ -164,9 +180,9 @@ export const fromStatus = (
         onNone: () => Player.Loading({ track }),
         onSome: () =>
           Player.$match(was, {
-            Playing: () => Player.Buffering({ track, at, length }),
-            Buffering: () => Player.Buffering({ track, at, length }),
-            Paused: () => Player.Paused({ track, at, length }),
+            Playing: placed,
+            Buffering: placed,
+            Paused: placed,
             Idle: () => Player.Loading({ track }),
             Loading: () => Player.Loading({ track }),
             Ended: () => Player.Loading({ track }),
@@ -188,6 +204,7 @@ export const fromStatus = (
 export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input) => {
   const runtime = Atom.runtime(playback);
   const state = Atom.make<Player>(Player.Idle()).pipe(Atom.keepAlive);
+  const wants = Atom.make<Intent>('play').pipe(Atom.keepAlive);
 
   const send = runtime
     .fn(
@@ -198,26 +215,33 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           Effect.map(device.online, (online) => Player.Failed({ track, offline: !online }));
         const settle = (track: Track, status: Status) =>
           Effect.map(device.online, (online) =>
-            fromStatus(track, status, !online, get.registry.get(state)),
+            fromStatus(track, status, !online, get.registry.get(state), get.registry.get(wants)),
           );
-        /** The device's status, shown; a status the device cannot read is a failure. */
+        /**
+         * The device's status, shown, and whether it still moves; a status the
+         * device cannot read is a failure, and ends the reads.
+         */
         const read = (track: Track) =>
           device.status.pipe(
-            Effect.flatMap((status) => settle(track, status)),
+            Effect.flatMap((status) =>
+              settle(track, status).pipe(Effect.flatMap(show), Effect.as(isMoving(status))),
+            ),
             Effect.catchTag('PlaybackError', (error) =>
               Effect.logWarning('player.status.failed').pipe(
                 Effect.annotateLogs({ message: error.message }),
                 Effect.andThen(failed(track)),
+                Effect.flatMap(show),
+                Effect.as(false),
               ),
             ),
-            Effect.tap(show),
           );
-        /** Show the device's status until the recording stops moving. */
+        /** Show the device's status until its playback stops moving, whatever the page shows. */
         const follow = (track: Track) =>
           read(track).pipe(
-            Effect.repeat({ while: isMoving, schedule: Schedule.spaced(every) }),
+            Effect.repeat({ while: (moving) => moving, schedule: Schedule.spaced(every) }),
             Effect.asVoid,
           );
+        const intend = (intent: Intent) => Effect.sync(() => get.set(wants, intent));
         /** Ask the device; a refused ask is logged and the status shown as it is. */
         const ask = (track: Track, operation: Effect.Effect<Status, PlaybackError>) =>
           operation.pipe(
@@ -240,7 +264,8 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
         );
         return yield* Command.$match(command, {
           Start: ({ track }) =>
-            show(Player.Loading({ track })).pipe(
+            intend('play').pipe(
+              Effect.andThen(show(Player.Loading({ track }))),
               Effect.andThen(device.play(audioUrl(track.number))),
               Effect.andThen(
                 device
@@ -262,11 +287,21 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                 ),
               ),
             ),
-          Pause: () => held((track) => ask(track, device.pause)),
-          Resume: () => held((track) => ask(track, device.resume)),
+          Pause: () =>
+            held((track) => intend('pause').pipe(Effect.andThen(ask(track, device.pause)))),
+          Resume: () =>
+            held((track) => intend('play').pipe(Effect.andThen(ask(track, device.resume)))),
           Seek: ({ seconds: to }) =>
             held((track) => ask(track, device.seek(Math.max(0, to) * 1000))),
-          Follow: () => held(follow),
+          Follow: ({ remote }) =>
+            held((track) =>
+              Match.value(remote).pipe(
+                Match.when('play', () => intend('play')),
+                Match.when('pause', () => intend('pause')),
+                Match.orElse(() => Effect.void),
+                Effect.andThen(follow(track)),
+              ),
+            ),
         }).pipe(
           // A defect is a bug, but the reader still sees the recording fail.
           Effect.catchDefect((defect) =>
@@ -289,8 +324,8 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
   const remote = runtime.atom((get) =>
     Effect.gen(function* () {
       const device = yield* Playback;
-      yield* Stream.runForEach(device.remote, () =>
-        Effect.sync(() => get.set(send, Command.Follow())),
+      yield* Stream.runForEach(device.remote, (remote) =>
+        Effect.sync(() => get.set(send, Command.Follow({ remote }))),
       );
     }),
   );
