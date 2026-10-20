@@ -32,4 +32,6 @@ Research, plans and draft scripts for four content series. Nothing here is narra
 
 Each folder holds `series.md` (the plan and episode list), `sources.md` (every citation and how it was verified against the local corpus with the `bible` CLI) and `scripts/` (drafts).
 
+A plan numbers its episodes 01 to its count, in order, with no letter and no empty slot, and each script's heading and its `N of M` follow it (`scripts.test.ts`). A renumber reads every reference against its old-to-new map, possessives and prose included ("05's landing", "theology 05's heaven"), not the file names alone.
+
 Third-party source material stays out of git, because the repo is public: video transcripts, the OCR of scanned books and the PDFs. It lives in the git-ignored `tmp/content-series/` of the main checkout.

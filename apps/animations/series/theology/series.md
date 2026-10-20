@@ -236,7 +236,7 @@ The "many things … hard to be uttered". The series motif is the veil with gold
 - **Sources:** RDAC 117.4–117.5 (J. H. Waggoner); EVCO 324.1 (E. J. Waggoner); AMS December 10, 1891, 378.7; CWCP 102.2 (A. T. Jones, 1905); TTKGG 2.2 (James White, frame); GC 416.3; RH February 18, 1890, par. 10; 2SP 13.1 (EGW).
 - **Builds on:** 01, 08, 09, 18. **Length:** about 6 min. **History:** OK.
 - **Note:** RDAC is a polemic against another group, so paraphrase only its doctrine. Melchisedec is not Christ.
-- **Added 2026-10-12 (from the 08 round):** the Son's return to His throne as the meat of 05's landing.
+- **Added 2026-10-12 (from the 08 round):** the Son's return to His throne as the meat of 08's landing.
   - Sources: ST May 10, 1899, par. 16–17 ("publicly reinstated in the place of honor and glory which He voluntarily left"); PP 36.2 ("The Son of God shared the Father’s throne"); LIFIN 343.2 ("to both God and the Lamb", frame).
   - KJV: Rev 5:11–13; Zech 6:13 ("between them both").
   - The title is used only under the owner rule in 08 (to clarify an OT reference read in the NT); the dated wordings stay in a note (Open questions 11, answered).

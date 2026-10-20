@@ -123,7 +123,8 @@ describe('the series plans', () => {
 // heading (`# NN · Title`, the same number and the same title), and its
 // `Series:` line states its place as one segment `N of M` (`· 3 of 44 ·`):
 // N its entry's place in the plan, counted from 1, and M the plan's entry
-// blocks. A plan with no entry blocks (the talk series list theirs in
+// blocks. The plan's own entries run 01 to M, in order, with no letter and
+// no empty slot. A plan with no entry blocks (the talk series list theirs in
 // tables) holds no script to it.
 
 /** An entry block's number and title, where its line opens: `**03 · As It Reads**`. */
@@ -134,6 +135,18 @@ const HEADING = /^# (\d{2}) · (.+)$/mu;
 const SERIES_LINE = /^Series: (.+)$/mu;
 /** A place in a series: `3 of 44`. */
 const PLACE = /^(\d+) of (\d+)$/u;
+
+/** What is untrue in `plan`'s numbering: its entries run 01 to their count, in order, no letter. */
+const planFaults = (
+  plan: string,
+  entries: ReadonlyArray<readonly [string, string]>,
+): ReadonlyArray<string> => {
+  const numbers = entries.map(([number]) => number).join(' ');
+  const counted = entries.map((_, i) => String(i + 1).padStart(2, '0')).join(' ');
+  return [`${plan}: its entries are numbered ${numbers}, not 01 to ${entries.length}`].filter(
+    () => numbers !== counted,
+  );
+};
 
 /** What is untrue in `script`'s heading or place against its plan's `entries`. */
 const placeFaults = (
@@ -184,6 +197,7 @@ describe('the series scripts against their plans', () => {
           ([, number = '', title = '']) => [number, title.trim()] as const,
         );
         if (entries.length === 0) continue;
+        faults.push(...planFaults(plan, entries));
         for (const file of yield* fs.readDirectory(folder)) {
           if (!file.endsWith('.md')) continue;
           const path = `${folder}/${file}`;

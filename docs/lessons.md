@@ -1423,3 +1423,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** The theology scripts' headers said "2 of 13", "3 of 13" and "5 of 13" after the plan grew to 44 episodes, and the plan said 43 episodes and kept 26 and 28 empty with lettered numbers between.
 - **Cause:** A header's count is a copy of the plan's size, and nothing read the copy against the plan when an episode was added.
 - **Guard:** code: `apps/animations/scripts.test.ts` `placeFaults`
+
+### renumber-reads-prose-references
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "two episode references remain stale"
+- **Source:** series-tidy/review-1.md F1
+- **Wrong:** After the theology renumber, `series/theology/series.md` still said "05's landing" and `series/delivery.md` "theology 05's heaven", both meaning The Word Made Flesh, now 08.
+- **Cause:** The renumber's scans matched file names, T-codes and bare numbers, and a possessive in prose is none of those; a number in a sentence has no name a test can follow.
+- **Guard:** skill: an episode number in prose is a claim only a reader holds to the renumber's map. Carried by `apps/animations/series/README.md`: "A renumber reads every reference against its old-to-new map, possessives and prose included"
+
+### series-plan-numbered-in-order
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the plan reader accepts letters"
+- **Source:** series-tidy/review-1.md F2
+- **Wrong:** The place test read a plan's entries with an optional letter, so a plan could grow `44b`, a gap or a duplicate again and every test stayed green while no script sat on that entry.
+- **Cause:** The test held scripts to their plan but never held the plan's own numbers to their count.
+- **Guard:** code: `apps/animations/scripts.test.ts` `planFaults`
