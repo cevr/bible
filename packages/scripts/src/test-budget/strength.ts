@@ -7,8 +7,9 @@
 // in the gate, and `test:budget` measures no workspace whose script weakens.
 //
 // Refused, in each `bun test` command of the script (a script may chain
-// several with `&&`, `||` or `;`, and set variables before one, bare or
-// through `env`, a value quoted or not): `--timeout` over bun's 5 s default, of 0 or under (which
+// several with `&&`, `||`, `;`, `&` or `|`, and set variables before one,
+// bare or through `env`, a value quoted or not, a separator in quotes no
+// separator): `--timeout` over bun's 5 s default, of 0 or under (which
 // sets none), or one that is not a number, `--retry`, `--only` and `-t` /
 // `--test-name-pattern` (`-t` with its value attached too, `-tfast`).
 
@@ -35,22 +36,34 @@ const programOf = (words: ReadonlyArray<string>) => {
   return words.slice(at);
 };
 
-/** A shell word: a run of bare characters and quoted strings, with no space outside the quotes. */
-const WORD = /(?:[^\s'"]+|'[^']*'|"(?:[^"\\]|\\.)*")+/g;
+/**
+ * A script as the shell reads it, a token at a time: a separator between
+ * commands (`&&`, `||`, `;`, `&`, `|` or a line's end), or a word, a run of
+ * bare characters and quoted strings; a separator or a space inside quotes is
+ * the word's.
+ */
+const TOKEN = /(&&|\|\||[;&|\n])|((?:[^\s'";&|]+|'[^']*'|"(?:[^"\\]|\\.)*")+)/g;
 
-/** A command's words as the shell reads them: split at spaces outside quotes, the quotes gone. */
-const wordsOf = (command: string) =>
-  (command.match(WORD) ?? []).map((word) =>
-    word.replace(/'([^']*)'|"((?:[^"\\]|\\.)*)"/g, (_, single, double) =>
-      String(single ?? double ?? '').replace(/\\(.)/g, '$1'),
-    ),
+/** A word as its command reads it: its quotes gone. */
+const unquoted = (word: string) =>
+  word.replace(/'([^']*)'|"((?:[^"\\]|\\.)*)"/g, (_, single, double) =>
+    String(single ?? double ?? '').replace(/\\(.)/g, '$1'),
   );
+
+/** A script's commands, each its words as the shell reads them. */
+const commandsOf = (script: string) => {
+  const commands: Array<Array<string>> = [[]];
+  for (const [, separator, word] of script.matchAll(TOKEN)) {
+    if (separator) commands.push([]);
+    else commands[commands.length - 1]?.push(unquoted(word ?? ''));
+  }
+  return commands;
+};
 
 /** The words of each `bun test` command in a script, after `test`. */
 const bunTests = (script: string): ReadonlyArray<ReadonlyArray<string>> =>
-  script
-    .split(/&&|\|\||;/)
-    .map((command) => programOf(wordsOf(command)))
+  commandsOf(script)
+    .map(programOf)
     .filter((words) => words[0] === 'bun' && words.includes('test'))
     .map((words) => words.slice(words.indexOf('test') + 1));
 
