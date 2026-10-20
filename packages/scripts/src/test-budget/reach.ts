@@ -12,7 +12,13 @@
 // each test file whose path holds it; `--path-ignore-patterns` takes none
 // its globs match. `bun run <script>` runs that script of the workspace. A
 // script that runs a command in another folder (`cd`, a subshell, `--cwd`;
-// `movesFolder`) reaches none, since each path is read from the workspace.
+// `movesFolder`) reaches none, since each path is read from the workspace;
+// so does a run that leaves out files or cases by what the reader cannot
+// see: a flag (`--changed`, `--shard`, `-t`, `--only`, another `--config`;
+// playwright's `--grep`, `--shard`, `--last-failed`, `--only-changed`), a
+// bunfig `[test]` key that may narrow it (`root`, `pathIgnorePatterns`, any
+// it does not know), or a playwright config that sets `grep`, `grepInvert`
+// or `shard`.
 // `playwright test` takes a file as its config sets it (`playwrightRun`):
 // under the config's `testDir`, its absolute path matched by its
 // `testMatch` and not by its `testIgnore`, each read as playwright's file
@@ -31,7 +37,7 @@
 // data (`isData`): it parses and exports by default only an object or array
 // of literals, which runs nothing when loaded and so registers no test.
 
-import { Glob } from 'bun';
+import { Glob, TOML } from 'bun';
 import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
 import { Minimatch, minimatch } from 'minimatch';
 import { type Expression, type ObjectExpression, parseSync } from 'oxc-parser';
@@ -144,8 +150,25 @@ type Run =
     }
   | { readonly kind: 'playwright'; readonly takes: (file: string) => boolean };
 
-/** A command's arguments read as `bun test` reads them: its filters, and its ignore patterns. */
-const runOf = (kind: 'bunTest' | 'named', words: ReadonlyArray<string>): Run => {
+/**
+ * The flags of `bun test` that leave out files or cases by what the reader
+ * cannot see (git's changes, a shard, a name, `.only`, another bunfig).
+ */
+const NARROWING = new Set([
+  '--changed',
+  '--shard',
+  '-t',
+  '--test-name-pattern',
+  '--only',
+  '--config',
+  '-c',
+]);
+
+/**
+ * A command's arguments read as `bun test` reads them: its filters, and its
+ * ignore patterns; nothing when a flag narrows what it runs (`NARROWING`).
+ */
+const runOf = (kind: 'bunTest' | 'named', words: ReadonlyArray<string>): ReadonlyArray<Run> => {
   const filters: Array<string> = [];
   const ignores: Array<string> = [];
   for (let at = 0; at < words.length; at++) {
@@ -155,6 +178,7 @@ const runOf = (kind: 'bunTest' | 'named', words: ReadonlyArray<string>): Run => 
       continue;
     }
     const [name = '', inline] = word.split(/=(.*)/s);
+    if (NARROWING.has(name)) return [];
     const value = Option.fromUndefinedOr(inline).pipe(
       Option.orElse(() => {
         const next = words[at + 1] ?? '-';
@@ -165,8 +189,51 @@ const runOf = (kind: 'bunTest' | 'named', words: ReadonlyArray<string>): Run => 
     );
     if (name === '--path-ignore-patterns') ignores.push(...Option.toArray(value));
   }
-  return { kind, filters, ignores };
+  return [{ kind, filters, ignores }];
 };
+
+/**
+ * The keys of a bunfig's `[test]` that leave its files and cases as they
+ * are: any other (`root`, `pathIgnorePatterns`, one this does not know)
+ * may narrow what `bun test` runs.
+ */
+const BUNFIG_TEST_KEYS = new Set([
+  'preload',
+  'smol',
+  'timeout',
+  'retry',
+  'rerunEach',
+  'randomize',
+  'seed',
+  'concurrentTestGlob',
+  'onlyFailures',
+  'reporter',
+  'coverage',
+  'coverageThreshold',
+  'coverageReporter',
+  'coverageDir',
+  'coverageSkipTestFiles',
+  'coveragePathIgnorePatterns',
+  'coverageIgnoreSourcemaps',
+]);
+
+const Bunfig = Schema.Struct({
+  test: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+});
+
+/**
+ * Whether a workspace's `bunfig.toml` (its text, `''` when it has none)
+ * may narrow what a `bun test` run there takes: it does not parse, or its
+ * `[test]` sets a key not in `BUNFIG_TEST_KEYS`.
+ */
+const bunfigNarrows = (text: string) =>
+  Option.match(
+    Option.flatMap(Option.liftThrowable(TOML.parse)(text), Schema.decodeUnknownOption(Bunfig)),
+    {
+      onNone: () => true,
+      onSome: ({ test = {} }) => Object.keys(test).some((key) => !BUNFIG_TEST_KEYS.has(key)),
+    },
+  );
 
 /** A path filter's path from the workspace, `./src/` as `src`; none for one outside it. */
 const pathOf = (filter: string): Option.Option<string> => {
@@ -217,6 +284,21 @@ const PLAYWRIGHT_VALUED = new Set([
   '--global-timeout',
   '--trace',
   '--tsconfig',
+]);
+
+/**
+ * The flags of `playwright test` that leave out files or cases by what the
+ * reader cannot see (a name, a shard, the last run, git's changes, a list).
+ */
+const PLAYWRIGHT_NARROWING = new Set([
+  '--grep',
+  '-g',
+  '--grep-invert',
+  '--shard',
+  '--last-failed',
+  '--only-changed',
+  '--test-list',
+  '--test-list-invert',
 ]);
 
 /** The names playwright looks for its config under, in the folder it runs in, when no `--config` names one. */
@@ -433,6 +515,7 @@ const playwrightRun = (
       continue;
     }
     const [name = '', inline] = word.split(/=(.*)/s);
+    if (PLAYWRIGHT_NARROWING.has(name)) return { kind: 'playwright', takes: () => false };
     const value = Option.fromUndefinedOr(inline).pipe(
       Option.orElse(() => {
         const next = words[at + 1] ?? '-';
@@ -449,7 +532,8 @@ const playwrightRun = (
   const takes = Option.flatMap(file, (at) =>
     Option.flatMap(Option.fromUndefinedOr(configs[at]), (text) =>
       Option.flatMap(settingsOf(at, text), (settings) => {
-        if (settings.has('projects')) return Option.none();
+        if (['projects', 'grep', 'grepInvert', 'shard'].some((key) => settings.has(key)))
+          return Option.none();
         const folder = at.split('/').slice(0, -1);
         const dir = Option.match(Option.fromUndefinedOr(settings.get('testDir')), {
           onNone: () => Option.some('.'),
@@ -522,7 +606,7 @@ const movesFolder = (words: ReadonlyArray<string>) =>
  * nothing it can read.
  */
 const runsOf = (
-  workspace: Pick<Workspace, 'scripts' | 'configs' | 'absolute' | 'gitignores'>,
+  workspace: Pick<Workspace, 'scripts' | 'configs' | 'absolute' | 'gitignores' | 'bunfig'>,
   name: string,
   seen: ReadonlySet<string> = new Set(),
 ): ReadonlyArray<Run> => {
@@ -537,14 +621,16 @@ const runsOf = (
     const words = programWords(command);
     if (words[0] === 'playwright' && words[1] === 'test')
       return [playwrightRun(words.slice(2), { configs, absolute, gitignores })];
-    if (words[0] !== 'bun') return [runOf('named', words.slice(1))];
+    if (words[0] !== 'bun') return runOf('named', words.slice(1));
     const at = subcommandAt(words);
     const sub = words[at] ?? '';
     const next = words[at + 1] ?? '';
     if (sub === 'run' && Option.isSome(Option.fromUndefinedOr(scripts[next])))
       return runsOf(workspace, next, within);
-    if (sub === 'test') return [runOf('bunTest', words.slice(at + 1))];
-    return [runOf('named', words.slice(at))];
+    // Bun reads the workspace's bunfig, and its own flags before `test`, for any file it runs.
+    if (bunfigNarrows(workspace.bunfig)) return [];
+    if (sub === 'test') return runOf('bunTest', [...words.slice(1, at), ...words.slice(at + 1)]);
+    return runOf('named', words.slice(at));
   });
 };
 
@@ -571,6 +657,8 @@ interface Workspace {
   readonly configs: Readonly<Record<string, string>>;
   /** The text of each `.gitignore` of the workspace, by its folder's path from it (`''` its own). */
   readonly gitignores: Readonly<Record<string, string>>;
+  /** The text of the workspace's `bunfig.toml`, `''` when it has none (both set nothing). */
+  readonly bunfig: string;
 }
 
 /** A file of the repo: its path from the root, and its text. */
@@ -681,12 +769,17 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
               ]),
           ),
         );
+        const bunfig = Option.getOrElse(
+          yield* Effect.option(read(path.join(dir, 'bunfig.toml'))),
+          () => '',
+        );
         return {
           dir,
           absolute: path.join(root, dir),
           scripts,
           configs,
           gitignores,
+          bunfig,
         } satisfies Workspace;
       }),
     { concurrency: 16 },

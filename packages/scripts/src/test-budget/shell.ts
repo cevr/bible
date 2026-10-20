@@ -41,11 +41,19 @@ const unquoted = (word: string) =>
     return String(bare);
   });
 
-/** A script's commands, each its words as the shell reads them. */
+/**
+ * A script's commands, each its words as the shell reads them. A word that
+ * opens with a bare `#` starts a comment: the shell reads nothing more of
+ * its line, separators in it included.
+ */
 const wordsOf = (script: string) => {
   const commands: Array<Array<string>> = [[]];
+  let comment = false;
   for (const [, separator, word = ''] of script.matchAll(TOKEN)) {
+    if (separator === '\n') comment = false;
+    if (comment) continue;
     if (separator) commands.push([]);
+    else if (word.startsWith('#')) comment = true;
     else if (!JOIN.test(word)) commands[commands.length - 1]?.push(unquoted(word));
   }
   return commands;

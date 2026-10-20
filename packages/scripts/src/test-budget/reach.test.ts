@@ -9,7 +9,8 @@ const RUNNER = "import { test } from 'bun:test';\n";
 
 /**
  * How `scripts` (a workspace at `w`, `/repo/w`, its playwright configs
- * `configs`, its `.gitignore` texts by folder `gitignores`) reach each of
+ * `configs`, its `.gitignore` texts by folder `gitignores`, its bunfig's
+ * text `bunfig`) reach each of
  * `files` (paths from `w`), as `<file>: <script>`, or `none`.
  */
 const reaches = (
@@ -17,9 +18,10 @@ const reaches = (
   files: ReadonlyArray<string>,
   configs: Record<string, string> = {},
   gitignores: Record<string, string> = {},
+  bunfig = '',
 ) =>
   reachesIn(
-    [{ dir: 'w', absolute: '/repo/w', scripts, configs, gitignores }],
+    [{ dir: 'w', absolute: '/repo/w', scripts, configs, gitignores, bunfig }],
     files.map((file) => ({ file: `w/${file}`, text: RUNNER })),
   ).map(({ file, by }) => `${file.slice(2)}: ${Option.getOrElse(by, () => 'none')}`);
 
@@ -31,13 +33,21 @@ describe("a workspace's test files", () => {
       expect(
         reachesIn(
           [
-            { dir: 'w', absolute: '/repo/w', scripts: test, configs: {}, gitignores: {} },
+            {
+              dir: 'w',
+              absolute: '/repo/w',
+              scripts: test,
+              configs: {},
+              gitignores: {},
+              bunfig: '',
+            },
             {
               dir: 'w/nested',
               absolute: '/repo/w/nested',
               scripts: {},
               configs: {},
               gitignores: {},
+              bunfig: '',
             },
           ],
           [
@@ -95,6 +105,7 @@ describe("a workspace's test files", () => {
               scripts: { test: 'bun test src' },
               configs: {},
               gitignores: {},
+              bunfig: '',
             },
           ],
           [
@@ -210,6 +221,113 @@ describe("a workspace's test files", () => {
       expect(
         reaches({ test: 'bun test src', 'test:e2e': 'cd e2e && bun test' }, ['e2e/c.test.ts']),
       ).toEqual(['e2e/c.test.ts: none']);
+    }),
+  );
+
+  it.effect(
+    'are reached by no bun test run that a flag narrows by what the reader cannot see',
+    () =>
+      Effect.sync(() => {
+        const files = ['src/a.test.ts'];
+        for (const test of [
+          'bun test --changed src',
+          'bun test --changed=main src',
+          'bun test --shard=1/2 src',
+          'bun test -t fast src',
+          'bun test --test-name-pattern=fast src',
+          'bun test --only src',
+          'bun test --config other.toml src',
+          'bun -c=other.toml test src',
+        ])
+          expect([test, ...reaches({ test }, files)]).toEqual([test, 'src/a.test.ts: none']);
+      }),
+  );
+
+  it.effect(
+    'are reached by no bun test run whose bunfig may narrow it, and by one whose bunfig does not',
+    () =>
+      Effect.sync(() => {
+        const files = ['src/a.test.ts'];
+        for (const bunfig of [
+          '[test]\nroot = "lib"\n',
+          '[test]\npathIgnorePatterns = ["src/**"]\n',
+          '[test]\nsomethingNew = 1\n',
+          'test = 1\n',
+          '[test\n',
+        ])
+          expect([bunfig, ...reaches({ test: 'bun test src' }, files, {}, {}, bunfig)]).toEqual([
+            bunfig,
+            'src/a.test.ts: none',
+          ]);
+        expect(
+          reaches(
+            { test: 'bun test src' },
+            files,
+            {},
+            {},
+            '[install]\nexact = true\n[test]\npreload = ["./setup.ts"]\nconcurrentTestGlob = ["**/*.dom.test.ts"]\n',
+          ),
+        ).toEqual(['src/a.test.ts: test']);
+      }),
+  );
+
+  it.effect(
+    'are reached by no playwright run that a flag or its config narrows by name, shard or history',
+    () =>
+      Effect.sync(() => {
+        const config = { 'playwright.config.ts': "export default { testDir: 'e2e' };" };
+        for (const browser of [
+          'playwright test --grep fast',
+          'playwright test -g fast',
+          'playwright test --grep-invert slow',
+          'playwright test --shard=1/2',
+          'playwright test --last-failed',
+          'playwright test --only-changed',
+        ])
+          expect([
+            browser,
+            ...reaches(
+              { test: 'bun test src', 'test:browser': browser },
+              ['e2e/b.spec.ts'],
+              config,
+            ),
+          ]).toEqual([browser, 'e2e/b.spec.ts: none']);
+        for (const setting of [
+          'grep: /fast/',
+          'grepInvert: /slow/',
+          'shard: { total: 2, current: 1 }',
+        ])
+          expect([
+            setting,
+            ...reaches(
+              { test: 'bun test src', 'test:browser': 'playwright test' },
+              ['e2e/b.spec.ts'],
+              {
+                'playwright.config.ts': `export default { testDir: 'e2e', ${setting} };`,
+              },
+            ),
+          ]).toEqual([setting, 'e2e/b.spec.ts: none']);
+        expect(
+          reaches(
+            { test: 'bun test src', 'test:browser': 'playwright test' },
+            ['e2e/b.spec.ts'],
+            config,
+          ),
+        ).toEqual(['e2e/b.spec.ts: test:browser']);
+      }),
+  );
+
+  it.effect("are reached by no words of a script's comment", () =>
+    Effect.sync(() => {
+      expect(
+        reaches({ test: 'bun test src # and all' }, ['src/a.test.ts', 'all/c.test.ts']),
+      ).toEqual(['src/a.test.ts: test', 'all/c.test.ts: none']);
+      expect(
+        reaches({ test: 'bun test src # one; bun test all\nbun test lib' }, [
+          'all/c.test.ts',
+          'lib/d.test.ts',
+        ]),
+      ).toEqual(['all/c.test.ts: none', 'lib/d.test.ts: test']);
     }),
   );
 
