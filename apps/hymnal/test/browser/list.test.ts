@@ -92,8 +92,12 @@ const open = async ({
   path = '/',
   height = 874,
   hold = false,
-}: { path?: string; height?: number; hold?: boolean } = {}) => {
-  const context: BrowserContext = await browser.newContext({ viewport: windowOf(height) });
+  touch = false,
+}: { path?: string; height?: number; hold?: boolean; touch?: boolean } = {}) => {
+  const context: BrowserContext = await browser.newContext({
+    viewport: windowOf(height),
+    hasTouch: touch,
+  });
   // A step that waits waits for a reader's moment, not for ever: a list that draws no row fails here.
   context.setDefaultTimeout(3000);
   const page: Page = await context.newPage();
@@ -472,6 +476,64 @@ describe('a list loaded cold hydrates the server’s list', () => {
       });
     }
   }
+});
+
+describe('the search field', () => {
+  /** Types `text` where the reader's keys go now; answers the focused element's role and the field's text. */
+  const typed = async (app: Session, text: string) => {
+    await app.page.keyboard.type(text);
+    return {
+      focused: await app.page.evaluate(() => document.activeElement?.getAttribute('role')),
+      text: await app.page.getByRole('searchbox').inputValue(),
+    };
+  };
+
+  for (const pressed of [false, true]) {
+    it.concurrent(`keeps the reader's focus and takes his keys after hydration, the list scrolled before it${pressed ? ' and the field pressed' : ''}`, async () => {
+      await using app = await open({ path: lists.search.path, hold: true });
+      const { max } = await app.place();
+      await app.scroll(Math.round(max * 0.33));
+      if (pressed) await app.page.getByRole('searchbox').click();
+      await app.page.evaluate(() => window.hymnal.hydrate());
+      await app.hydrated();
+      // Past the list's scroll end, which it tells 100 ms after a scroll.
+      await app.settle(150);
+      expect(await typed(app, 'lord')).toEqual({ focused: 'searchbox', text: 'lord' });
+    });
+  }
+
+  it.concurrent('keeps its focus and takes the reader’s keys when the list comes back deep', async () => {
+    await using app = await open({ path: lists.search.path });
+    const { max } = await app.place();
+    await app.scrollTo(Math.round(max * 0.6));
+    await app.settle(150);
+    await app.tab('hymns');
+    await app.page.waitForFunction(() => location.pathname === '/');
+    await app.tab('search');
+    await app.page.waitForFunction(
+      () => location.pathname === '/search' && window.hymnal.showing(),
+    );
+    await app.settle(150);
+    expect(await typed(app, 'lord')).toEqual({ focused: 'searchbox', text: 'lord' });
+  });
+
+  it.concurrent('lets go of the reader’s focus, putting the keyboard away, when he drags the list with a finger', async () => {
+    await using app = await open({ path: lists.search.path, touch: true });
+    const row = await app.middleRow();
+    const before = await app.page.evaluate(() => document.activeElement?.getAttribute('role'));
+    const touch = await app.context.newCDPSession(app.page);
+    const at = (y: number) => [{ x: row.x, y }];
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(row.y) });
+    for (const step of [10, 20, 40, 80])
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: at(row.y - step),
+      });
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await app.settle(150);
+    const after = await app.page.evaluate(() => document.activeElement?.getAttribute('role'));
+    expect({ before, after }).toEqual({ before: 'searchbox', after: null });
+  });
 });
 
 describe('a row', () => {
