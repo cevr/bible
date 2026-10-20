@@ -54,7 +54,7 @@ describe("RBF's figures", () => {
   );
 
   it.effect(
-    "bake their ink, and bound would bind every ink stroke to `ink`, each face's brows and mouth too",
+    "bind every ink stroke to `ink`, each face's brows and mouth too, and follow the shot",
     () =>
       Effect.sync(() => {
         const blocks = (rml: string) =>
@@ -63,29 +63,25 @@ describe("RBF's figures", () => {
             (m) => m[1] ?? '',
           );
         const binds = (rml: string) => blocks(rml).filter((b) => b.includes('propertyKey="47"'));
-        expect(FIGURES.baked).toBe(true);
-        // Its rigs follow no shot: they have no number `ink` to follow it by.
-        expect(FIGURES.shot).toEqual({});
+        expect(FIGURES.baked).toBe(false);
+        // Each rig sets its ink from the shot it is drawn in (`inkAt`): as cut far off, 0.75 close.
+        expect([0, 1].map((scale) => FIGURES.shot.ink?.(scale))).toEqual([1, 0.75]);
         // The lead (a round head) and the judge (a cut silhouette) with their hands, laid as the
-        // file lays them, then bound.
-        const two = (baked: boolean) =>
-          figuresRml(
-            figuresFile({
-              weight: FIGURES.weight,
-              baked,
-              boards: {
-                lead: FIGURES.boards.lead,
-                leadHand: FIGURES.boards.leadHand,
-                judge: FIGURES.boards.judge,
-                skinHand: FIGURES.boards.skinHand,
-              },
-            }),
-          );
-        const baked = two(FIGURES.baked);
-        expect(blocks(baked).length).toBeGreaterThan(0);
-        expect(binds(baked)).toEqual([]);
-        const bound = two(false);
-        expect(binds(bound)).toEqual(blocks(bound));
+        // file lays them: the whole file's print is two 37 MB texts, too slow for this test.
+        const rml = figuresRml(
+          figuresFile({
+            weight: FIGURES.weight,
+            baked: FIGURES.baked,
+            boards: {
+              lead: FIGURES.boards.lead,
+              leadHand: FIGURES.boards.leadHand,
+              judge: FIGURES.boards.judge,
+              skinHand: FIGURES.boards.skinHand,
+            },
+          }),
+        );
+        expect(blocks(rml).length).toBeGreaterThan(0);
+        expect(binds(rml)).toEqual(blocks(rml));
       }),
   );
 
@@ -95,7 +91,14 @@ describe("RBF's figures", () => {
       Effect.gen(function* () {
         const locked = lockedPrints(FIGURES);
         expect(locked.map((l) => l.item)).toEqual(['lead', 'judge', 'prosecutor']);
-        expect(yield* unlocked(LEDGER, locked)).toEqual({ broken: [], overridden: [] });
+        // Each print is his bound line, which the override on his lock frees (`figures.ts` `BAKED`).
+        const held = yield* unlocked(LEDGER, locked);
+        expect(held.broken).toEqual([]);
+        expect(held.overridden.map((o) => [o.item, o.override.frees])).toEqual([
+          ['lead', 'a4521ec387f984bfe910d8c3b060a0c9179f8cde1a71de5c8fa346c59ef830a6'],
+          ['judge', 'aa08efaef4ab8786975f2daaa68e7897a00dc9ea4be4162709356f6cba689c98'],
+          ['prosecutor', '55449cb8729ff73d146a092fd13abf9b9add389ac3b1db60653b072527a760ee'],
+        ]);
         // One artboard (SkinHand) draws both their hands, so they are of one paper.
         expect(prosecutor.hands.paper).toEqual(judge.hands.paper);
       }),
@@ -106,8 +109,9 @@ describe("RBF's figures", () => {
     () =>
       Effect.gen(function* () {
         const changed = yield* unlocked(LEDGER, lockedPrints(laid(figure(MOVED))));
+        // His moved print is not the one the override on his lock frees, so it frees nothing.
         expect(changed.broken.map((b) => b.item)).toEqual(['prosecutor']);
-        expect(changed.overridden).toEqual([]);
+        expect(changed.overridden.map((o) => o.item)).toEqual(['lead', 'judge']);
         // His moved print, as the broken lock names it for an override to free.
         const frees = Option.getOrThrow(Arr.head(changed.broken)).hash;
         // A decision of the owner's on RBF's ledger after the lock (2026-10-17), on Christ, at no figure's point.
@@ -123,7 +127,7 @@ describe("RBF's figures", () => {
         expect(still.broken.map((b) => b.why)).toEqual([
           `prosecutor's lock is broken (FigureLock, a locked figure is drawn as the owner kept it, its print the one its lock holds): prosecutor's override of FigureLock at prosecutor is broken: no decision on his production's ledger at the point item:prosecutor, filed after his lock (2026-10-17T23:57:24.576Z) says "${quote}": file his words as a decision there (\`film production decide\` with \`--quote\`, \`--set\` and \`--point item:prosecutor\`), then quote them verbatim`,
         ]);
-        expect(still.overridden).toEqual([]);
+        expect(still.overridden.map((o) => o.item)).toEqual(['lead', 'judge']);
       }),
   );
 

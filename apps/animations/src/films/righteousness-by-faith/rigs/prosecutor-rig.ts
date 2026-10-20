@@ -98,8 +98,19 @@ const TUFT = [{ pts: ellipse(-46, -63, 12, 7, 14), color: '#5e4a47', soft: true 
  * hands are 0.44 of his head across, as the concept draws them.
  */
 export const PROSECUTOR_SPEC = {
-  // The owner locked him (ask `a92f276635e`): his print is the one this lock holds.
-  lock: PROSECUTOR_LOCK,
+  // The owner locked him (ask `a92f276635e`): his print is the one this lock holds but for its
+  // line, which the file binds to the shot (`FIGURES.shot`); the owner's OK on the close-shot
+  // line (2026-10-20, filed at the point item:prosecutor) frees that print.
+  lock: {
+    ...PROSECUTOR_LOCK,
+    override: {
+      rule: 'FigureLock',
+      place: 'prosecutor',
+      reason: 'his ink binds to the shot, about 25% thinner in a close shot',
+      quote: "For the RBF, that's okay.",
+      frees: '55449cb8729ff73d146a092fd13abf9b9add389ac3b1db60653b072527a760ee',
+    },
+  },
   // `film match`'s concept: the prosecutor pointing in cold.34, the kept concept.
   concept: {
     image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },

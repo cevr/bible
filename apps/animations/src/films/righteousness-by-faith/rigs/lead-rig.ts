@@ -90,8 +90,19 @@ export const TUNIC = tunicOutline(TUNIC_PART);
  * His hands are 0.34 of his head across, as the concept draws them.
  */
 export const lead = figure({
-  // The owner locked him (ask `a92f276635e`): his print is the one this lock holds.
-  lock: LEAD_LOCK,
+  // The owner locked him (ask `a92f276635e`): his print is the one this lock holds but for its
+  // line, which the file binds to the shot (`FIGURES.shot`); the owner's OK on the close-shot
+  // line (2026-10-20, filed at the point item:lead) frees that print.
+  lock: {
+    ...LEAD_LOCK,
+    override: {
+      rule: 'FigureLock',
+      place: 'lead',
+      reason: 'his ink binds to the shot, about 25% thinner in a close shot',
+      quote: "For the RBF, that's okay.",
+      frees: 'a4521ec387f984bfe910d8c3b060a0c9179f8cde1a71de5c8fa346c59ef830a6',
+    },
+  },
   // `film match`'s concept: the plain lead's model sheet, his front view.
   concept: {
     image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/0-plain-lead-sheet.png' },

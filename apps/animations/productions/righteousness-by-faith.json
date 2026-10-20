@@ -917,6 +917,33 @@
       "quote": "For the RBF, that's okay.",
       "set": "rbf-v3-cast-2026-10-18",
       "by": "coordinator"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792517631845,
+      "text": "The owner OKs the close-shot line weight on RBF's figures as the stills show it, so the lead's print takes the bound ink: his lock frees that print.",
+      "quote": "For the RBF, that's okay.",
+      "set": "rbf-v3-cast-2026-10-18",
+      "point": "item:lead",
+      "by": "rbf-unbake (Claude)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792517632187,
+      "text": "The owner OKs the close-shot line weight on RBF's figures as the stills show it, so the judge's print takes the bound ink: his lock frees that print.",
+      "quote": "For the RBF, that's okay.",
+      "set": "rbf-v3-cast-2026-10-18",
+      "point": "item:judge",
+      "by": "rbf-unbake (Claude)"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792517632538,
+      "text": "The owner OKs the close-shot line weight on RBF's figures as the stills show it, so the prosecutor's print takes the bound ink: his lock frees that print.",
+      "quote": "For the RBF, that's okay.",
+      "set": "rbf-v3-cast-2026-10-18",
+      "point": "item:prosecutor",
+      "by": "rbf-unbake (Claude)"
     }
   ],
   "filed": [

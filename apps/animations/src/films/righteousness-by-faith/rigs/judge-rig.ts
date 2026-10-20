@@ -96,8 +96,19 @@ const BANDS_FROM = JUDGE.neck + 10;
  * hands are 0.45 of his head across, as the concept draws them.
  */
 export const judge = figure({
-  // The owner locked him (ask `a92f276635e`): his print is the one this lock holds.
-  lock: JUDGE_LOCK,
+  // The owner locked him (ask `a92f276635e`): his print is the one this lock holds but for its
+  // line, which the file binds to the shot (`FIGURES.shot`); the owner's OK on the close-shot
+  // line (2026-10-20, filed at the point item:judge) frees that print.
+  lock: {
+    ...JUDGE_LOCK,
+    override: {
+      rule: 'FigureLock',
+      place: 'judge',
+      reason: 'his ink binds to the shot, about 25% thinner in a close shot',
+      quote: "For the RBF, that's okay.",
+      frees: 'aa08efaef4ab8786975f2daaa68e7897a00dc9ea4be4162709356f6cba689c98',
+    },
+  },
   // `film match`'s concept: the judge at his bench in cold.34, the kept concept.
   concept: {
     image: { set: 'rbf-v3-concepts-2026-10-15', file: 'images/1-cold-34.png' },
