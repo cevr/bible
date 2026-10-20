@@ -34,7 +34,7 @@
     "store:keys": "bun infra/keys.ts --stage prod",
     "seed-look": "bun art/seed-look.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test --parallel ./checkouts.test.ts ./lessons.test.ts ./rules.test.ts ./src/films/righteousness-by-faith/rigs && bun cli.ts drafts"
+    "test": "bun test --parallel ./checkouts.test.ts ./lessons.test.ts ./rules.test.ts ./scripts.test.ts ./src/films/righteousness-by-faith/rigs && bun cli.ts drafts"
   },
   "dependencies": {
     "@bible/film": "workspace:*",
