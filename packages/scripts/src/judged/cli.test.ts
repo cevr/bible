@@ -497,28 +497,23 @@ describe('the judged lint reads the whole repo, by content', () => {
           const fs = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const code = (indent: string, literal: string) =>
-            `${indent}// Joins with a spaced dash.\n${indent}export const join = () => '${literal}';\n`;
+            `${indent}/** Joins with a spaced dash. */\n${indent}export const join = () => '${literal}';\n`;
           const file = 'src/a.ts';
-          const dir = yield* repoOf(
-            'commentClaimsCode',
-            file,
-            code('', 'a - b'),
-            code('', 'a - b'),
-          );
-          const model = answering('holds', 'overclaims');
+          const dir = yield* repoOf('silentDrop', file, code('', 'a - b'), code('', 'a - b'));
+          const model = answering('said', 'silent');
           const first = yield* inProcess(dir, [], model.layer);
           expect(first.out).toEqual([
-            '[judged] rule=commentClaimsCode items=1 cached=0 asked=1 findings=0',
+            '[judged] rule=silentDrop items=1 cached=0 asked=1 findings=0',
           ]);
           yield* fs.writeFileString(path.join(dir, file), code('  ', 'a - b'));
           const reindented = yield* inProcess(dir, [], model.layer);
           expect(reindented.out).toEqual([
-            '[judged] rule=commentClaimsCode items=1 cached=1 asked=0 findings=0',
+            '[judged] rule=silentDrop items=1 cached=1 asked=0 findings=0',
           ]);
           yield* fs.writeFileString(path.join(dir, file), code('', 'a-b'));
           const respaced = yield* inProcess(dir, [], model.layer);
           expect(respaced.out).toEqual([
-            '[judged] rule=commentClaimsCode items=1 cached=0 asked=1 findings=0',
+            '[judged] rule=silentDrop items=1 cached=0 asked=1 findings=0',
           ]);
         }),
       ),

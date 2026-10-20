@@ -118,12 +118,15 @@
     ],
     // A comment or doc line that claims more than the code it sits on does:
     // a wider scope, a number, a guarantee, a caller or a behaviour the code
-    // under it lacks or contradicts. Measured on Jev over its 48 cases (14
-    // overclaims), four runs: precision 0.67 to 0.71 at 0.7, its best, recall
-    // 0.36; clean comments whose numbers come from elsewhere reach 0.96. It
-    // warns.
+    // under it lacks or contradicts. Measured on Jev over its first 48 cases
+    // (14 overclaims), four runs: precision 0.67 to 0.71 at 0.7, recall 0.36.
+    // Over the repo it found nothing: Opus-max reviewers judged all 43 of its
+    // open findings they read false (20 at random, every one at 0.9 or over),
+    // and it was 46 % of every request. It is off, its words and its corpus
+    // (now 90 cases, those 42 texts among them) kept for a better form of it
+    // (docs/lessons.md, comment-claims-code-off).
     "judged/commentClaimsCode": [
-      "warn",
+      "off",
       {
         "selector": "commentedCode",
         "subject": "comment and the code it sits on",
@@ -139,16 +142,21 @@
       }
     ],
     // A test whose expected value comes from the code it tests, so a defect
-    // there cannot fail it. Measured on Jev over its 47 cases (12
-    // tautological, 9 of them by hand), two runs: precision 1.00 at 0.9 but
-    // recall 0.58, and the 3 real ones from reviews at 0.23 to 0.34 (their
-    // tautology runs through another file); clean cases reach 0.84. It warns.
+    // there cannot fail it. Measured on Jev over its 65 cases (12
+    // tautological, 9 of them by hand; 18 of the independent ones the
+    // property checks reviewers found it reporting falsely), two runs:
+    // precision 0.88 and recall 0.58 at 0.8, 0.83 and 0.42 at 0.9; the words
+    // before determinism, purity, round-trip and metamorphic checks were
+    // named held 0.30 at 0.8 and 0.47 at 0.9 over the same cases. The 3 real
+    // tautologies from reviews stay at 0.11 to 0.22 (theirs runs through
+    // another file). Over the repo (4,633 cases) it reports 11 at 0.8, 5 of
+    // them reviewed false, and 1 at 0.9, so it reports at 0.9. It warns.
     "judged/testOracle": [
       "warn",
       {
         "selector": "testCases",
         "subject": "test case",
-        "instructions": "The item is one test case, after its file's imports. TAUTOLOGICAL means the test's expected value is computed by the code under test itself, or the data it checks is built by the very function whose defect the test must catch, so the test passes even when that function is wrong: for example the expectation is the same function called again, or a helper made from it, or the fake is laid out with the function the test is about. INDEPENDENT means the expected value is written out (a literal, a fixture stated in full), or computed another way than the code under test, or a property is checked that a defect there would break. Calling the function under test on the actual side only is INDEPENDENT. Judge only what the case shows.",
+        "instructions": "The item is one test case, after its file's imports. TAUTOLOGICAL means the test's expected value is computed by the code under test itself, or the data it checks is built by the very function whose defect the test must catch, so the test passes even when that function is wrong: for example a test that claims what a function answers expects that same function called again on the same input, or a helper made from it, or the fake is laid out with the function the test is about. INDEPENDENT means the expected value is written out (a literal, a fixture stated in full), or computed another way than the code under test, or a property is checked that a defect there would break. Determinism (two calls on equal inputs compared), purity (an input or a state unchanged by the call), round-trip (decoding what was encoded gives back the input) and metamorphic checks (the answer to a changed input compared with the answer to the first by a relation the test states) are INDEPENDENT: each is its own oracle, though it calls the code under test on both sides. Calling the function under test on the actual side only is INDEPENDENT. Judge only what the case shows.",
         "criteria": {
           "independent": "the expected value is written out or computed apart from the code under test, so a defect there fails the test",
           "tautological": "the expected value or the checked data comes from the code under test, so a defect there passes"

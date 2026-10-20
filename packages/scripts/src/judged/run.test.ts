@@ -138,13 +138,16 @@ const judgeAll = (
     text,
   }));
   const texts = new Map(keyed.map(({ item, text }) => [item.key, text]));
-  return judge(
-    rules,
-    keyed.map(({ item }) => item),
-    {
-      ...options,
-      textsOf: (asked) => Effect.succeed(asked.map((item) => texts.get(item.key) ?? '')),
-    },
+  return Effect.map(
+    judge(
+      rules,
+      keyed.map(({ item }) => item),
+      {
+        ...options,
+        textsOf: (asked) => Effect.succeed(asked.map((item) => texts.get(item.key) ?? '')),
+      },
+    ),
+    ({ outcomes }) => outcomes,
   );
 };
 

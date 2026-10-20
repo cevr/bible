@@ -3865,15 +3865,16 @@ criteria, the label that reports, a threshold and a message;
 `settings.judged` names the model by its exact id (`jev-1.13.0`), whose
 measurements set the thresholds, and where the answers are kept. Its
 severity is its gate: `warn` reports, `error` fails the lint, `off` judges
-nothing. The rules are `historyComment` (a comment's history),
-`commentClaimsCode` (a comment that claims more than its code), `testOracle`
+nothing. The rules are `historyComment` (a comment's history), `testOracle`
 (a test whose oracle is its code), `silentDrop` (a function that drops what
-it cannot handle unsaid), all at `warn`, and `scriptSpeech` (a film beat that
-names its sources or church history), at `error`; over each,
+it cannot handle unsaid), all at `warn`, `scriptSpeech` (a film beat that
+names its sources or church history), at `error`, and `commentClaimsCode` (a
+comment that claims more than its code), `off`: reviewers found none of its
+findings over the repo true (`docs/lessons.md`); over each,
 `.oxlintrc.json` says what its corpus measured. To add one: write its entry
 in `.oxlintrc.json` (at `warn`), add its id to `RULE_IDS` in
 `packages/scripts/lint/judged.ts` (the plugin defines each rule by name, and
-`packages/scripts/src/judged/config.test.ts` holds the two lists equal), write its labelled
+`packages/scripts/src/judged/config.test.ts` holds the two lists equal, an entry at `off` too), write its labelled
 corpus in `packages/scripts/src/judged/fixtures/`, and measure it. `bun run
 lint` (and so the gate) runs the runner (`packages/scripts/src/lint-judged.ts`,
 `bun run lint:judged`) first and oxlint after it. The runner reads every item

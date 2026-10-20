@@ -31,7 +31,8 @@
 // one `[judged] store unread file=<file> reason=decode` line. Any other failure (git, the lint config, a defect) is one
 // `[judged] skipped rule=* reason=error` line, its `detail=` the failure's tag
 // and its words on one stderr line; answers the store cannot keep are asked
-// again next run. Every one passes: the lint never fails on its model or its
+// again next run. A run that asked the model says on stderr what it read and
+// wrote (`[judged] tokens input=<n> output=<n>`). Every one passes: the lint never fails on its model or its
 // host. A finding it prints fails the run when its rule's severity is
 // `error`, or under `--strict`; an interrupt stops it.
 //

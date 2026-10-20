@@ -49,7 +49,7 @@ type ModelOf<E, R> = (model: string) => Layer.Layer<DecisionModel.DecisionModel,
  */
 const findingsOf = (
   model: string,
-  outcomes: ReadonlyArray<Effect.Success<ReturnType<typeof judge>>[number]>,
+  outcomes: Effect.Success<ReturnType<typeof judge>>['outcomes'],
   files: ReadonlyArray<{ readonly file: string; readonly hash: string }>,
 ): Findings => ({
   rules: Object.fromEntries(
@@ -101,12 +101,14 @@ const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<n
     file: path.join(root, config.settings.checkout, 'items.json'),
   });
   yield* Ref.set(read, tree.items.length);
-  const outcomes = yield* judge(config.rules, tree.items, {
+  const { outcomes, usage } = yield* judge(config.rules, tree.items, {
     model,
     storeFile: storeFileOf(root, config.settings.store),
     textsOf: tree.textsOf,
     ...LIMITS,
   });
+  if (usage.inputTokens > 0)
+    yield* Console.error(`[judged] tokens input=${usage.inputTokens} output=${usage.outputTokens}`);
   yield* writeFindings(
     findingsFileOf(root, config.settings.checkout),
     findingsOf(model, outcomes, tree.files),

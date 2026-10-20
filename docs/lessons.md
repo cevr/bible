@@ -593,3 +593,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** Agents waited on CI runs after a push and fixed tests that only CI saw red, so the gate on the machine was not the feedback cycle.
 - **Cause:** The loop skill's merge step told agents to run `bun run ci` and read its verdict.
 - **Guard:** skill: whether an agent reads CI is its choice of action, which no check sees. Carried by `CLAUDE.md`: "Agents never check or wait on CI, and never fix a test only CI sees red"
+
+### comment-claims-code-off
+
+- **Date:** 2026-10-19
+- **Kind:** review
+- **Said:** "commentClaimsCode 0/43 (20 random + all 23 at p>=0.9; 46 % of every ask)"
+- **Source:** judged-efficiency/report.md F3
+- **Wrong:** The judged rule commentClaimsCode warned on 301 items of the repo, and the reviewers found none of the 43 they read true, while its items were 46 % of every request.
+- **Cause:** Its corpus held 48 cases written for it, with no finding of its own from the repo, so its precision of 0.67 to 0.71 on the corpus said nothing of the repo.
+- **Guard:** skill: whether a judged rule is worth its requests is a measure over the repo's own findings, which no check takes. Carried by `.oxlintrc.json`: "It is off, its words and its corpus"
+
+### test-oracle-property-checks
+
+- **Date:** 2026-10-19
+- **Kind:** review
+- **Said:** "testOracle 0/18 (all property checks; the rule's own example names that shape)"
+- **Source:** judged-efficiency/report.md F3
+- **Wrong:** testOracle reported determinism, purity, round-trip and metamorphic tests as tautologies, 18 of 18 its reviewers read.
+- **Cause:** Its words gave "the same function called again" as a tautology with no bound, which is the shape of every property check.
+- **Guard:** skill: a rule's words are content the model reads, and its corpus now holds the 18 as independent cases. Carried by `.oxlintrc.json`: "are INDEPENDENT: each is its own oracle"

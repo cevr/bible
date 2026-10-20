@@ -1,6 +1,6 @@
 {
   "rule": "testOracle",
-  "about": "Test cases (the testCases item: the case and its file's imports) for testOracle, 47 in all: 12 tautological and 35 independent. Real cases come from this repo's test files: 3 tautological ones at the revision before their fix (the ask round trip that guidedask review-1 m4 named, at 9fa41da1e; the encoder config and lookbook head that 02a9e565b replaced with literal oracles), and every independent one, among them those fixes' literal versions and near misses that call the function under test on both sides over different inputs, read a helper on the expected side beside a literal, or compare against another implementation. Reviewed tautologies whose oracle sits outside the case (hymnal chord.test.ts's spell oracle, catalogue.test.ts's renderState matrix, edits-kept.ts, a non-test file) are left out, since the item cannot show them; the 9 hand cases (all tautological) fill that gap in the shapes the reviews named: a self-comparison, a want recomputed by the function, a fake answering with the function under test, an old record made by today's encoder, an expected value copied from the actual, a golden written in the case.",
+  "about": "Test cases (the testCases item: the case and its file's imports) for testOracle, 65 in all: 12 tautological and 53 independent. Real cases come from this repo's test files: 3 tautological ones at the revision before their fix (the ask round trip that guidedask review-1 m4 named, at 9fa41da1e; the encoder config and lookbook head that 02a9e565b replaced with literal oracles), and every independent one, among them those fixes' literal versions and near misses that call the function under test on both sides over different inputs, read a helper on the expected side beside a literal, or compare against another implementation. Reviewed tautologies whose oracle sits outside the case (hymnal chord.test.ts's spell oracle, catalogue.test.ts's renderState matrix, edits-kept.ts, a non-test file) are left out, since the item cannot show them; the 9 hand cases (all tautological) fill that gap in the shapes the reviews named: a self-comparison, a want recomputed by the function, a fake answering with the function under test, an old record made by today's encoder, an expected value copied from the actual, a golden written in the case. The last 18 independent cases are every open finding of the lint that an Opus-max reviewer judged false (2026-10-19, judged-efficiency): property checks (determinism, purity, round-trip and metamorphic), whose oracle is the code under test called again by design; each at 9738c971a with the reviewer's reason as its why.",
   "cases": [
     {
       "source": "9fa41da1e:packages/film/src/core/ask.test.ts:240",
@@ -283,6 +283,114 @@
       "label": "tautological",
       "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { Option } from 'effect';\nimport { staleBy } from './catalogue.ts';\n\nTest:\ntest('a render stamped with other sources is stale by its sources', () => {\n    const now = { key: 'k2', sound: Option.none() };\n    const render = { stamp: { key: 'k1' }, sound: Option.none() };\n    expect(staleBy(render, now)).toEqual(staleBy({ ...render }, now));\n  })",
       "why": "The expected judgement is staleBy over a copy of the same render, so 'stale by sources' is never checked."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/talk.test.ts:303",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, it } from 'bun:test';\nimport { Array as Arr, Option, Result, Schema } from 'effect';\nimport { SYNTHETIC_SOURCE, syntheticTake } from './fixtures/talk-take.ts';\nimport { layout } from './layout.ts';\nimport { noteT } from './notes.ts';\nimport { Timings } from './schema.ts';\nimport { SAFE_ZONES, roomAcross, safeRect } from './shorts.ts';\nimport {\n  TALK_FORMATS,\n  TALK_FPS,\n  TALK_LAYOUT,\n  MarkName,\n  type Talk,\n  Talk as TalkSchema,\n  type TalkCut,\n  type TalkTake,\n  talkCut,\n  talkPhrases,\n  talkTakes,\n  talkTranscripts,\n} from './talk.ts';\n\nTest:\nit('cuts equal edits over equal transcripts to equal plays', () => {\n    const talk = talkOf([\n      { id: 'hook', take: 'a', from: 7, to: 10 },\n      { id: 'claim', take: 'a', from: 0, to: 6, cut: [[2, 2]], marks: { [CHARGE]: 5 } },\n    ]);\n    const take = syntheticTake(WORDS, [0.1, 0.1, 0.1, 0.1, 1.5]);\n    expect(cutOf(structuredClone(talk), structuredClone(take))).toEqual(cutOf(talk, take));\n  })",
+      "why": "talkCut (via cutOf) is checked for purity, with talkCut over the original inputs as the oracle, so hidden state or identity dependence in talkCut fails it ('cuts equal edits over equal transcripts to equal plays')."
+    },
+    {
+      "source": "9738c971a:packages/core/src/wiki/phrase-matcher.test.ts:569",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, it } from 'bun:test';\nimport { Option } from 'effect';\nimport { parseParagraphContent } from '../egw/ast.js';\nimport { segmentVerseText } from '../bible-rendering/segments.js';\nimport * as barrel from './index.js';\nimport * as testing from './testing.js';\nimport { PhraseDictionary, PhraseDictionaryEntry, topicSlug } from './model.js';\nimport { normalizeAlias } from './normalize.js';\nimport {\n  DANIEL_8_9,\n  DANIEL_8_SECTION,\n  PHRASE_FIXTURE_DICTIONARY,\n  PHRASE_FIXTURE_NOTE,\n} from './phrase-fixture.js';\nimport {\n  matchNodes,\n  matchRun,\n  matchSection,\n  matchSegments,\n  PhraseAutomaton,\n  SectionMatchState,\n  type NodeSpans,\n  type PhraseSpan,\n} from './phrase-matcher.js';\n\nTest:\nit('one automaton serves many runs without carrying state between them', () => {\n    // §4.2's construct-once contract. If the automaton held match state, the\n    // second call would differ from the first.\n    const automaton = PhraseAutomaton.make(dictionary('little horn'));\n    expect(matchRun(automaton, DANIEL_8_9)).toEqual(matchRun(automaton, DANIEL_8_9));\n  })",
+      "why": "matchRun over one PhraseAutomaton runs twice to check statelessness, and an automaton that 'held match state' would make the second run differ, so the defect the case names fails it."
+    },
+    {
+      "source": "9738c971a:packages/core/src/wiki/model.test.ts:148",
+      "label": "independent",
+      "text": "Imports:\nimport { Effect, Option, Schema } from 'effect';\nimport { describe, expect, it } from 'effect-bun-test';\nimport {\n  topicSlug,\n  WikiCommentarySection,\n  WikiCrossReferencesSection,\n  WikiEgwStatementsSection,\n  WikiKeyVersesSection,\n  WikiPage,\n  WikiPioneerWitnessesSection,\n  WikiRelatedTopicsSection,\n} from './model.js';\n\nTest:\nit.effect('round-trips a page through its own encoding', () =>\n    Effect.gen(function* () {\n      const decoded = yield* decode(page(LINEUP));\n      const encoded = yield* Schema.encodeEffect(WikiPage)(decoded);\n      // The CLI's `--json` and the RPC payload are both this value, which is the\n      // point of naming it `WikiPageJson`: two seams, one codec.\n      expect(yield* decode(encoded)).toEqual(decoded);\n    }),\n  )",
+      "why": "The WikiPage codec round trip starts from a written-out fixture (page(LINEUP)) and checks that decode(encode(decoded)) equals decoded, so an encode that decode does not invert fails it."
+    },
+    {
+      "source": "9738c971a:apps/egw-search/server/cloudflare/vectorize.test.ts:48",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { Effect, Option } from 'effect';\nimport type { NeighborScope } from '@bible/core/search';\nimport { NO_FILTER, NO_SELECTION } from '@bible/core/writings';\nimport {\n  MAX_TOP_K,\n  UNCLASSIFIED,\n  vectorMetadata,\n  vectorizeFilter,\n  vectorizeNeighbors,\n  type VectorizeQuery,\n} from './vectorize.ts';\n\nTest:\ntest('excluding apparatus narrows nothing more: the index holds none', () => {\n    const filter = { ...NO_FILTER, excludeApparatus: true } as const;\n    expect(vectorizeFilter(scope({ filter }))).toEqual(vectorizeFilter(scope()));\n  })",
+      "why": "vectorizeFilter is checked metamorphically ('excluding apparatus narrows nothing more'), its default output is pinned by a literal in the first case, and a clause added for excludeApparatus would fail it."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/schema.test.ts:41",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { Result, Schema } from 'effect';\nimport {\n  CuePatch,\n  Look,\n  type Span,\n  Timed,\n  Timings,\n  TimingsJson,\n  Voice,\n  type VoiceTiming,\n  type TakeWord,\n} from './schema.ts';\nimport { voicedAt } from './voiced.ts';\n\nTest:\ntest('a well-formed take decodes from its file, and encodes back', () => {\n    const text = Schema.encodeSync(TimingsJson)({ voice: 'v', scenes: { a: take } });\n    expect(Schema.encodeSync(TimingsJson)(Schema.decodeSync(TimingsJson)(text))).toBe(text);\n  })",
+      "why": "The TimingsJson codec round trip runs over a take fixture written out in full, a decode that refuses or changes the encoded text (for example the source transformation) fails it, and literal-text cases beside it pin the file format."
+    },
+    {
+      "source": "9738c971a:packages/scripts/src/topics-compiler/compile.test.ts:507",
+      "label": "independent",
+      "text": "Imports:\nimport { normalizeAlias, type Block, type Inline } from '@bible/core/wiki';\nimport { Cause, Effect, Exit, Option, Schema, SchemaGetter } from 'effect';\nimport { describe, expect, it } from 'effect-bun-test';\nimport { compileTopics, type CatalogLookup, type ParagraphLookup } from './compile.js';\nimport { parseTopicSource, type TopicSource } from './source.js';\n\nTest:\nit.effect('is stable when nothing changes', () =>\n    Effect.gen(function* () {\n      expect(yield* digestOf({})).toBe(yield* digestOf({}));\n    }),\n  )",
+      "why": "compile's sourceDigest is checked for determinism, the complement of the 'changes when' cases beside it, so a digest that varies between runs over equal input fails it."
+    },
+    {
+      "source": "9738c971a:packages/film/src/canvas/camera.test.ts:433",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { type Affine, IDENTITY } from '../core/affine.ts';\nimport {\n  type Camera,\n  DRIFT,\n  type Drift,\n  PLANE_LIFT_MAX,\n  PLANE_LIFT_MIN,\n  type SceneBreath,\n  camera,\n  driftHeld,\n  hearingCameras,\n  inset,\n  insideCamera,\n  knobCamera,\n  lerpCamera,\n  multiplane,\n  planeView,\n  pushInto,\n  shotPath,\n} from './camera.ts';\nimport { heightOf } from './cutout.ts';\nimport { FIBRE_SIZE, PLANE_FIBRE } from './fibre.ts';\nimport { type Recorder, applyAffine, isPattern, recorder, withDom } from './fixtures/stand-in.ts';\n\nTest:\ntest('is pure in the scene time: the same moment frames the same', () => {\n    expect(inside(0.3, CAM)).toEqual(inside(0.3, CAM));\n  })",
+      "why": "The drift camera (camera inside hearingCameras, via the inside helper) is checked to be 'pure in the scene time', so drift read from wall time or accumulated state would make the two frames differ."
+    },
+    {
+      "source": "9738c971a:apps/egw-search/server/cloudflare/sync-pages.test.ts:95",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { Effect, Option } from 'effect';\nimport { HttpRouter } from 'effect/http';\nimport {\n  nameOfKey,\n  reportKey,\n  reportPage,\n  reportPageKey,\n  type ReportStore,\n  syncRoutes,\n} from './sync-pages.ts';\n\nTest:\ntest('a report with no stored page is rendered from its Markdown', () =>\n    run(\n      Effect.gen(function* () {\n        const page = yield* answer('/sync/20261011T090000Z');\n        expect(page.status).toBe(200);\n        expect(page.body).toBe(\n          reportPage('20261011T090000Z', REPORTS.get('20261011T090000Z') ?? ''),\n        );\n        expect(page.cache).toContain('max-age=86400');\n      }),\n    ))",
+      "why": "The function under test is syncAnswer's no-stored-page fallback, not reportPage (its own case pins reportPage by literals), so a route that skips the Markdown or renders the wrong report fails it."
+    },
+    {
+      "source": "9738c971a:packages/ui/src/merge-props/mergeProps.test.ts:177",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, it, mock } from 'bun:test';\nimport { createSignal, flush } from 'solid-js';\nimport type { BaseUIEvent, HTMLProps } from '../internals/types.ts';\nimport { mergeProps, mergePropsN } from './mergeProps.ts';\n\nTest:\nit('keeps a handler the same function across reads', () => {\n    const merged = mergeProps({ onClick() {} }, { onClick() {} });\n    expect(merged['onClick']).toBe(merged['onClick']);\n  })",
+      "why": "mergeProps is checked to return the same handler object across reads (toBe), so a view that builds a fresh merged handler per read, without its handler cache, fails it."
+    },
+    {
+      "source": "9738c971a:apps/egw-search/src/url-state.test.ts:29",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { DEFAULT_LIMIT } from '../server/api.js';\nimport {\n  cycle,\n  EMPTY_PARAMS,\n  MAX_PANES,\n  paneKey,\n  parseWorkspace,\n  toRequest,\n  toWorkspaceString,\n} from './url-state.js';\n\nTest:\ntest('writing then reading gives the same workspace back', () => {\n    const panes = parseWorkspace(\n      '?q=latter+rain&scope=egw&type=book&type=-periodical&noref=1&q2=&section2=bible',\n    );\n    expect(parseWorkspace(toWorkspaceString(panes).slice(1))).toEqual(panes);\n  })",
+      "why": "A toWorkspaceString then parseWorkspace round trip from a literal link, so a writer that drops a key such as noref or section2 fails it, and literal cases pin the parse."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/random.test.ts:50",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { fbm, hash, hash2, noise1, rng, seedOf } from './random.ts';\n\nTest:\ntest('rng draws the same sequence from a seed, and another from another seed', () => {\n    const draw = (seed: number) => {\n      const r = rng(seed);\n      return Array.from({ length: 50 }, () => r());\n    };\n    expect(draw(1889)).toEqual(draw(1889));\n    expect(draw(1889)).not.toEqual(draw(1890));\n    for (const v of draw(1889)) {\n      expect(v).toBeGreaterThanOrEqual(0);\n      expect(v).toBeLessThan(1);\n    }\n  })",
+      "why": "rng is checked for seeded determinism, a different sequence from another seed, and the [0, 1) range, so an unseeded or seed-blind rng fails it."
+    },
+    {
+      "source": "9738c971a:packages/core/src/bible-rendering/segments.test.ts:314",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, it } from 'vitest';\nimport {\n  applyItalicSegments,\n  applyPhraseSegments,\n  applyRedLetterSegments,\n  applySearchHighlights,\n  renderVerseSegments,\n  SEGMENT_APPLICATION_ORDER,\n  segmentVerseText,\n  type SegmentLayer,\n  type TextSegment,\n} from './segments.js';\nimport { PhraseAutomaton, matchSegments } from '../wiki/phrase-matcher.js';\nimport { PHRASE_FIXTURE_DICTIONARY } from '../wiki/phrase-fixture.js';\n\nTest:\nit('with no phrase layer it is exactly segmentVerseText', () => {\n    const raw = '¶ And he said, ‹Suffer [it to be so] now.›';\n    expect(renderVerseSegments({ text: raw })).toEqual(segmentVerseText(raw));\n  })",
+      "why": "renderVerseSegments is held to its documented equivalence with segmentVerseText, a public function pinned by literal cases, so a default phrase layer or mis-defaulted margin notes would break it, though both share composeSegments."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/api.test.ts:89",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { Place } from '@bible/url-state';\nimport { Duration, Option, Schema } from 'effect';\nimport {\n  LabHttpApi,\n  TIME_EVERY_MS,\n  type AppPage,\n  Places,\n  filmOfPage,\n  labUrls,\n  legacyPlace,\n  pageAt,\n  pageHref,\n  reviewFileUrl,\n  servedPlace,\n} from './api.ts';\nimport { declares } from './testing.ts';\nimport { LONGEST_WAIT, WaitTimeout } from './wait.ts';\n\nTest:\ntest('a written link reads back as the same value', () => {\n    for (const [href, name] of LINKS) {\n      const place: Place.Place<unknown> = Places[name];\n      const value = Place.decode(place, href);\n      const again = Option.flatMap(value, (v) => Place.decode(place, Place.href(place, v)));\n      expect(again).toEqual(value);\n    }\n  })",
+      "why": "Place.decode and Place.href for each page place are round-tripped over the written-out LINKS fixture, whose hrefs the case before pins, so an href that decodes to another value fails it."
+    },
+    {
+      "source": "9738c971a:packages/film/src/lab/film-studio/code-lit.test.ts:101",
+      "label": "independent",
+      "text": "Imports:\nimport { Option } from 'effect';\nimport { describe, expect, test } from 'effect-bun-test';\nimport type { ResolvedCue, SceneCode } from '../../core/schema.ts';\nimport {\n  beatWords,\n  liveMark,\n  saidAt,\n  followLine,\n  litNow,\n  liveWords,\n  metersOn,\n  firingsOf,\n  nextFiring,\n  rowsOf,\n} from './code-lit.ts';\n\nTest:\ntest('the same time lights the same ranges, whatever came before it', () => {\n    const a = litNow(code, clockAt(1.5));\n    litNow(code, clockAt(0.2));\n    expect(litNow(code, clockAt(1.5))).toEqual(a);\n  })",
+      "why": "litNow is asked again at 1.5 s after a read at 0.2 s to check that it 'lights the same ranges, whatever came before it', so a litNow that keeps history fails it."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/cast-sheet.test.ts:283",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { Option, Result, Schema } from 'effect';\nimport {\n  measureSheet,\n  SheetMeasure,\n  type SheetOptions,\n  sheetLines,\n  sheetOverlay,\n  sheetTable,\n} from './cast-sheet.ts';\nimport { measureFigure } from './figure.ts';\nimport { drawFigure, drawSheet, type FigureSpec, flipRaster, PLAIN } from './fixtures/figure.ts';\nimport { cropRaster } from './raster.ts';\n\nTest:\ntest('reads its figures as on white paper', () => {\n    const m = read({ ...opaque, rgba }, options);\n    expect(m.views.map((v) => v.box)).toEqual(read(opaque, options).views.map((v) => v.box));\n    expect(flagsOf(m)).toEqual([]);\n  })",
+      "why": "measureSheet (via read) is checked metamorphically, a sheet with transparent paper must box like the opaque one and keep a literal empty flag list, so reading clear pixels as ink fails it."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/lab-events.test.ts:102",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, it } from 'bun:test';\nimport { Option, Record, Result, Schema } from 'effect';\nimport { AskName, AskRecord, AskState } from './ask.ts';\nimport { type BoardFile, BoardName } from './board.ts';\nimport { Catalogue, emptyCatalogue } from './catalogue.ts';\nimport {\n  LAB_EVENTS,\n  LabChange,\n  type LabChangeDraft,\n  askChanges,\n  boardChanges,\n  catalogueChanges,\n  changeOf,\n  gist,\n  namesMatch,\n  noteChanges,\n  notePath,\n  notesNews,\n  productionChanges,\n  setChanges,\n} from './lab-events.ts';\nimport { Said, moveForward, newProduction } from './production.ts';\nimport { addNote, emptyNotes, eventsSince, replyToNote, withdrawNote } from './notes.ts';\nimport type { Note } from './schema.ts';\nimport { Segment } from './segment.ts';\n\nTest:\nit(\"gives a try made after its board was made again an id of its own, though its number is the old one's\", () => {\n    const idOf = (more: Partial<ReturnType<typeof tried>>) =>\n      boardChanges(\n        board({ panels: [{ id: 'cold.judge', beat: COLD, at: JUDGE, tries: [] }] }),\n        board({\n          panels: [{ id: 'cold.judge', beat: COLD, at: JUDGE, tries: [{ ...tried(1), ...more }] }],\n        }),\n        'r1',\n      ).map((draft) => changeOf(draft, 1, 'now', { local: 'http://localhost:8229/' }).id);\n    expect(idOf({})).toEqual(idOf({}));\n    expect(idOf({ at: '2026-10-15T00:00:00.000Z' })).not.toEqual(idOf({}));\n  })",
+      "why": "The boardChanges and changeOf id is checked stable for one try and different for a try made at another time, so an id keyed on the try number alone fails the not.toEqual."
+    },
+    {
+      "source": "9738c971a:packages/scripts/src/vector-compiler/compile.test.ts:151",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, it } from 'bun:test';\nimport {\n  DIMENSIONS,\n  encodeVectorIndex,\n  MODEL_FINGERPRINT,\n  parseVectorIndex,\n  scanVectorIndex,\n  VectorBookRange,\n  VectorManifest,\n} from '@bible/core/search';\nimport { bookRanges, paragraphIds, type VectorSourceRow } from './emit.js';\n\nTest:\nit('is byte-identical across two builds of the same rows', () => {\n    // The digest discipline the supply pipeline rests on: a rebuild over\n    // unchanged input must produce unchanged bytes, or every rebuild looks like\n    // a new content version.\n    expect(new Uint8Array(build(ROWS))).toEqual(new Uint8Array(build(ROWS)));\n  })",
+      "why": "encodeVectorIndex (via build) is checked to be 'byte-identical across two builds of the same rows', so any nondeterminism in the writer fails it."
+    },
+    {
+      "source": "9738c971a:packages/film/src/style/face.test.ts:27",
+      "label": "independent",
+      "text": "Imports:\nimport { describe, expect, test } from 'bun:test';\nimport { EASE, type Expression, acted } from './face.ts';\n\nTest:\ntest('a beat past its end holds there', () => {\n    expect(acted({ ...EASE }, EASE, [[WIDE, 1.5]])).toEqual(acted({ ...EASE }, EASE, [[WIDE, 1]]));\n  })",
+      "why": "acted is checked to clamp a beat past its end (progress 1.5 must equal progress 1), so without the clamp in toward the lerp overshoots and the test fails."
     }
   ]
 }

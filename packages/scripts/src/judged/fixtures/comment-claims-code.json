@@ -1,6 +1,6 @@
 {
   "rule": "commentClaimsCode",
-  "about": "Comment blocks with the code they sit on (the commentedCode item), 48 in all: 14 overclaims and 34 holds. The overclaims are comments reviews or fixes found claiming more than their code: the bones tunicWeights JSDoc (review-3 C2), encode.ts's 31 Mbps over a 37 Mbps bitrate (fixed in aaba2cff8), ask-store's doc on the wrong constant (p6-askname N4), aloneArgs' one-case-at-a-time (p6-truegate review-2), a knob post named by the level route (e433ae1e8), callers and hosts that were deleted (4a08d29e4), a board read's name promised the same in every lab (p6-transports review-3), ReviewFilms' choices (ea1a4fa4b) and launchArgs' same-pixels promise (p6-macgpu); 4 hand cases (a retry count, a concurrency, an atomic write, a lower-casing) fill the rest. The holds are near misses: the same comments after their fixes, and comments that state numbers the code has or derives (frames at a rate, dB, bytes, hsv of the hex given, bone lengths summed to the neck). Each real case's text is the item at the revision named.",
+  "about": "Comment blocks with the code they sit on (the commentedCode item), 90 in all: 14 overclaims and 76 holds. The overclaims are comments reviews or fixes found claiming more than their code: the bones tunicWeights JSDoc (review-3 C2), encode.ts's 31 Mbps over a 37 Mbps bitrate (fixed in aaba2cff8), ask-store's doc on the wrong constant (p6-askname N4), aloneArgs' one-case-at-a-time (p6-truegate review-2), a knob post named by the level route (e433ae1e8), callers and hosts that were deleted (4a08d29e4), a board read's name promised the same in every lab (p6-transports review-3), ReviewFilms' choices (ea1a4fa4b) and launchArgs' same-pixels promise (p6-macgpu); 4 hand cases (a retry count, a concurrency, an atomic write, a lower-casing) fill the rest. The holds are near misses: the same comments after their fixes, and comments that state numbers the code has or derives (frames at a rate, dB, bytes, hsv of the hex given, bone lengths summed to the neck). Each real case's text is the item at the revision named. The last 42 holds are the lint's own open findings that Opus-max reviewers judged false (2026-10-19, judged-efficiency: 20 drawn at random and the 23 at p 0.9 or over, one text twice), each at 9738c971a with the reviewer's reason as its why.",
   "cases": [
     {
       "source": "a6a477f38:apps/animations/src/films/cold-studies/looks/skinned/accused.ts:85",
@@ -289,6 +289,258 @@
       "label": "overclaims",
       "text": "Comment:\nThe lookup key of a beat's words: trimmed and lower-cased, so a lookup ignores case and the edges' spaces.\n\nCode it sits on:\nconst keyOf = (words: string) => words.trim();",
       "why": "Claims lower-casing the code does not do."
+    },
+    {
+      "source": "9738c971a:packages/film/src/lab/film-studio/note-save.test.ts:73",
+      "label": "holds",
+      "text": "Comment:\nThe first save is refused, the second lands.\n\nCode it sits on:\nlet asked = 0;",
+      "why": "Holds: the stub fails while `asked === 1` and succeeds after, and the test waits for Failed, then Saved n9, so the first save is refused and the second lands."
+    },
+    {
+      "source": "9738c971a:packages/ui/test/browser/sheet.test.ts:2632",
+      "label": "holds",
+      "text": "Comment:\nThe gesture ends once its scroll has stood still 300 ms with no finger down.\n\nCode it sits on:\nlet moved = input.t;",
+      "why": "Holds: `moved` moves to every frame with a finger down or a shift, and `end` is the first frame 300 ms past it, so the gesture ends after 300 ms still with no finger down."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/draw-check.test.ts:42",
+      "label": "holds",
+      "text": "Comment:\nThe last frame drawn kept in a module `let`, as a scene that eases from it would.\n\nCode it sits on:\nlet last = 0;",
+      "why": "Holds: the draw reads `last` and sets `last = f.t` every frame, so the last frame drawn is kept outside the draw as the comment says; 'module `let`' names the scene pattern this test-local `let` stands in for, not a behaviour the code lacks."
+    },
+    {
+      "source": "9738c971a:packages/film/src/lab/studio/machine.ts:63",
+      "label": "holds",
+      "text": "Comment:\nA recording as it is posted: a 24-bit mono WAV.\n\nCode it sits on:\nconst Wav = Schema.Uint8Array;",
+      "why": "Holds: the comment says what the bytes are, not what the schema checks, and every Wav comes from `encodeWav` (wav.ts), which writes one channel at 3 bytes (24 bits) a sample."
+    },
+    {
+      "source": "9738c971a:packages/film/src/canvas/short.test.ts:39",
+      "label": "holds",
+      "text": "Comment:\nEach scene's own clock reads the same: short time minus its start is scene time.\n\nCode it sits on:\nconst eight = (fb?.speechStart ?? NaN) + (fb?.voice.marks.get('eight') ?? NaN);",
+      "why": "Holds: the assertion that follows sets scene b's start to minus its frame-rounded span start in scene time, so short time minus start is scene time; 'each scene' restates the createShort invariant the file header states."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/testing.test.ts:150",
+      "label": "holds",
+      "text": "Comment:\nNode's recursive `mkdir` answers the first folder it made, past `void`.\n\nCode it sits on:\n[\n    'makes a folder already there, recursive',\n    (fs, at) => Effect.asVoid(fs.makeDirectory(at('sub'), { recursive: true })),\n  ]",
+      "why": "Holds: Effect's Node `makeDirectory` hands back `mkdir`'s callback result (the first folder made when recursive) past its `void` type, and both recursive cases under the comment wrap it in `Effect.asVoid`."
+    },
+    {
+      "source": "9738c971a:packages/film/e2e/lab/picture-faces.dom.test.ts:139",
+      "label": "holds",
+      "text": "Comment:\nSpace would play the film, and its time would move; long past any pause the feed would make.\n\nCode it sits on:\nyield* page.press('Space');",
+      "why": "Holds: the code presses Space and then runs the clock 10_000 ms, which is the 'long past any pause'; what Space would do and the feed's pause are the page's behaviour, outside the code."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/synth/loudness.test.ts:45",
+      "label": "holds",
+      "text": "Comment:\nOnly the blocks the burst reaches pass the absolute gate: 7 whole, 6 in part.\n\nCode it sits on:\nexpect(measured.integrated).toBeCloseTo(-10.17, 1);",
+      "why": "Holds per the rule (7 and 6 are derived counts, the gating lives in loudness.ts, and -10.17 is the mean of those 13 blocks), but measured: 14 blocks pass the absolute gate, the 4.0-4.4 s block reading -51.67 LUFS from the K-weighting's ring-out, which only the relative gate drops, so the comment's 'only' is wrong about loudness.ts."
+    },
+    {
+      "source": "9738c971a:packages/film/src/canvas/card.test.ts:101",
+      "label": "holds",
+      "text": "Comment:\nReading order, three lines: each below the one before.\n\nCode it sits on:\nconst tops = [...new Set(set.map((x) => x.y))];",
+      "why": "Holds: the distinct tops, in the order the words are set, must equal their ascending sort and number exactly 3, i.e. three lines, each below the one before."
+    },
+    {
+      "source": "9738c971a:packages/film/e2e/lab/review/review.dom.test.ts:667",
+      "label": "holds",
+      "text": "Comment:\nStill playing a beat later: no play asked again turns it off.\n\nCode it sits on:\nyield* page.clock.runFor(500);",
+      "why": "Holds: after `page.clock.runFor(500)` the test checks the video is not paused and the button still shows the pause glyph; why nothing turns it off is the page's behaviour."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/ask-store.ts:116",
+      "label": "holds",
+      "text": "Comment:\nEvery ask, the newest first.\n\nCode it sits on:\nreadonly list: Effect.Effect<ReadonlyArray<AskRecord>, StoreError>;",
+      "why": "Holds: the store's `list` reads every ask file and sorts the records by `created` under `Order.flip`, newest first."
+    },
+    {
+      "source": "9738c971a:packages/film/src/lab/film-studio/machine.ts:229",
+      "label": "holds",
+      "text": "Comment:\nThe transport machine's actor, started, paused.\n\nCode it sits on:\nexport const spawnTransport = Machine.spawn(transportMachine).pipe(\n  Effect.tap((actor) => actor.start),\n);",
+      "why": "Holds: `spawnTransport` spawns the machine and taps `actor.start`, and `transportMachine`'s `initial` is `TransportState.Paused`."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/review.ts:123",
+      "label": "holds",
+      "text": "Comment:\n`GET /api/review/index`: every folder under the roots with something to review, newest first.\n\nCode it sits on:\nexport const ReviewIndex = Schema.Struct({ folders: Schema.Array(ReviewFolder) });",
+      "why": "Holds: the schema orders nothing itself, and the server that answers the endpoint (tools/review.ts `read`) sorts the folders `newestFirst` and keeps those `hasAny`."
+    },
+    {
+      "source": "9738c971a:apps/animations/src/films/righteousness-by-faith/within-props.ts:291",
+      "label": "holds",
+      "text": "Comment:\nA column: its middle, its foot, its shaft's width; its plinth two blocks under it, each wider.\n\nCode it sits on:\ninterface Column {\n  readonly x: number;\n  readonly foot: number;\n  readonly wide: number;\n}",
+      "why": "Holds: x, foot and wide are the middle, foot and shaft width, and `column()` draws the plinth as two blocks under the shaft at 1.5x and 1.3x its width; the interface need not carry the plinth."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/judge.test.ts:271",
+      "label": "holds",
+      "text": "Comment:\nThe stub ranked the labels in reverse: the verdict says so in names.\n\nCode it sits on:\nconst [first, second] = key.versions;",
+      "why": "Holds: the `reversed` stub answers the labels `toReversed()`, and the assertions after the destructure expect the tiers reversed and the verdict's ranking line in version names."
+    },
+    {
+      "source": "9738c971a:packages/cli/test/commands/egw-search-daemon.test.ts:81",
+      "label": "holds",
+      "text": "Comment:\nRetirement: acknowledged over the wire, observed as the fiber's outcome,\nand the socket file is gone — no residue for the next preflight.\n\nCode it sits on:\nexpect(yield* shutdownSearchDaemon(socketPath)).toBe(true);",
+      "why": "Holds: the three assertions check that `shutdownSearchDaemon` answers true, the fiber joins as 'retired', and the socket file no longer exists."
+    },
+    {
+      "source": "9738c971a:apps/animations/src/films/righteousness-by-faith/gospel.ts:528",
+      "label": "holds",
+      "text": "Comment:\nThe rolled bed on his shoulder: its size, where its centre rides from his\nfeet in frame px (on his near shoulder, `MAN_S` × the body's shoulder top,\ntrailing behind his head as he walks out left), its tilt, and his hand\nsteadying its front, in his units.\n\nCode it sits on:\nconst ROLL_W = 110;",
+      "why": "Holds: the five constants are the size (ROLL_W, ROLL_H), the centre from his feet in frame px (ON_SHOULDER, +58 behind his head as he faces left), the tilt and the hand target in his units (ON_ROLL); the shoulder-top tie is to kit.ts's tunic top (-128, so 1.5x is -192 px), on which the roll, centred 30 px higher, rests."
+    },
+    {
+      "source": "9738c971a:packages/film/e2e/lab/review/review.dom.test.ts:397",
+      "label": "holds",
+      "text": "Comment:\nA loose video shows its name; its file is its menu's: Open, Copy link, Info.\n\nCode it sits on:\nyield* textIs(page, '.rv-tall .rv-cap', 'walk.mp4');",
+      "why": "Holds: the test checks that the caption reads walk.mp4, then that the caption's context menu holds review.file-open, link.copy and review.file-info (whose receipt it reads)."
+    },
+    {
+      "source": "9738c971a:apps/animations/src/films/righteousness-by-faith/scenes/look.ts:813",
+      "label": "holds",
+      "text": "Comment:\nHis hands: at his sides; thrown up as he starts; on the pole's near face, one high and one at\nhis chest, changing over each heave; up before his chest, glad, once he lives.\n\nCode it sits on:\nconst poleX = (POLE.x - x) / s - 6;",
+      "why": "Holds: the code that follows builds the rest hands, the startle lift, `hi`/`lo` on the pole's near face (`- 6`, he stands left of it) swapped by `climbed.left` each heave, and the GLAD_HANDS target under `heal`."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/mcp-events.ts:134",
+      "label": "holds",
+      "text": "Comment:\nHow long a subscription lasts: a day unless asked; one asked for less lasts a minute at least, and none more than 30 days.\n\nCode it sits on:\nconst DEFAULT_TTL = Duration.days(1);",
+      "why": "Holds against the three constants it sits on (DEFAULT_TTL 1 day, MIN_TTL 1 minute, MAX_TTL 30 days, applied in `subscribe`); the wider claim misses that a null ttlMs gets no expiry at all, but that lives in `subscribe`, outside this code."
+    },
+    {
+      "source": "9738c971a:packages/film/e2e/lab/review/review.dom.test.ts:2299",
+      "label": "holds",
+      "text": "Comment:\n`a` approves the focused version, as its button does.\n\nCode it sits on:\nyield* page.press('Escape');",
+      "why": "Holds: the comment heads the step after the Escape, which focuses version B, presses `a`, then `i`, and waits for the approve button to read 'approved', and the last call sent is 'Approve', as the button's."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/film-timeline.ts:104",
+      "label": "holds",
+      "text": "Comment:\nA version whose folder holds a script is read from it (`<film>/v<n>/script.ts`).\n\nCode it sits on:\nconst numbers = Option.match(ledger, {\n          onNone: () => [],\n          onSome: (l) => l.versions.map((_, i) => i + 1),\n        });",
+      "why": "Holds: the next lines keep each version number whose `v<n>/script.ts` exists, `versionsOf` marks those versions 'folder', and `filesOf` hands that folder to the clock and board reads."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/figure-artifacts.test.ts:76",
+      "label": "holds",
+      "text": "Comment:\nBy hand on the crop: the cream line runs down the face's right edge, x 362 to 384.\n\nCode it sits on:\nexpect(m.artifacts.some((a) => a.kind === 'sliver' && a.box[0] >= 350)).toBe(true);",
+      "why": "Holds: 'x 362 to 384' is a measurement taken by hand on the crop, and the assertion's `a.box[0] >= 350` is a margin under it, not a different value for the same quantity."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/lab-source.test.ts:48",
+      "label": "holds",
+      "text": "Comment:\nA check that reports one warning, and counts its runs.\n\nCode it sits on:\nconst checks: Array<string> = [];",
+      "why": "Holds: the doc heads `checks` and the `fakeCheck` right after it, which pushes the film into `checks` on every run and returns one finding of level 'warning'."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/timeline.test.ts:479",
+      "label": "holds",
+      "text": "Comment:\nQuotes, commas and case are ignored: “Not, reads not.\n\nCode it sits on:\nexpect(cues.get('open')?.start).toBeCloseTo(0.5 + 3 - 0.3, 9);",
+      "why": "Holds: the clock's word at 3 s is '“Not,' and the pin `word: 'not'` resolves there (start 0.5 + 3 - 0.3), so the quote, the comma and the case are ignored."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/looker.ts:66",
+      "label": "holds",
+      "text": "Comment:\nThe look handle draws without captions whatever the page's switch says.\n\nCode it sits on:\nconst pool = yield* pages.open(film.paths.name, {\n              workers: size,\n              captions: true,\n              server,\n            });",
+      "why": "Holds: `captions: true` is only the page's switch, and the page's `look` handle (player/render.ts) always draws with `captions: false`, so the look ignores the switch."
+    },
+    {
+      "source": "9738c971a:packages/cli/src/commands/egw/study.ts:299",
+      "label": "holds",
+      "text": "Comment:\nWhen author-scoped, keep only hits whose book author matches.\n\nCode it sits on:\nlet filteredResults = rawResults;",
+      "why": "Holds: the next statement is `if (plan.scoped)`, and it filters `rawResults` to the hits whose catalogue author passes `authorMatches`."
+    },
+    {
+      "source": "9738c971a:packages/cli/src/commands/handbook.ts:72",
+      "label": "holds",
+      "text": "Comment:\nStrip any leaked agent narration before the first \"## \" heading, then split\ntitle from body. Returns none (rather than throwing) when no heading is found,\nso the caller can report the offending file and exit cleanly.\n\nCode it sits on:\nfunction parseSection(raw: string): Option.Option<ParsedSection> {\n  const lines = raw.split('\\n');\n  const headingIdx = lines.findIndex((l) => /^##\\s+\\S/.test(l));\n  if (headingIdx === -1) {\n    return Option.none();\n  }\n\n  const headingLine = lines[headingIdx] ?? '';\n  // Drop an existing numeric prefix (\"## 3. Foo\" → \"Foo\") so we can renumber cleanly.\n  const title = headingLine\n    .replace(/^##\\s+/, '')\n    .replace(/^\\d+\\.\\s+/, '')\n    .trim();\n\n  const body = lines.slice(headingIdx).join('\\n').trim();\n  const definedSymbols = extractDefinedSymbols(lines.slice(headingIdx));\n\n  return Option.some({ title, body, definedSymbols });\n}",
+      "why": "Holds: the function drops every line before the first '## ' heading, returns the title and the body from that heading on (as `ParsedSection` documents), and returns `Option.none()` with no heading; the caller does name the file and exit."
+    },
+    {
+      "source": "9738c971a:packages/film/e2e/lab/review/review.dom.test.ts:977",
+      "label": "holds",
+      "text": "Comment:\nSpace plays and pauses; ←/→ step one frame while paused.\n\nCode it sits on:\nyield* page.press('Space');",
+      "why": "Holds: the step presses Space to show the pause glyph, Space again to show the play glyph, then ArrowRight and ArrowLeft move the paused label one frame each (`stoodAt(paused + step)`)."
+    },
+    {
+      "source": "9738c971a:packages/film/e2e/lab/review/review.dom.test.ts:1219",
+      "label": "holds",
+      "text": "Comment:\nBack closes it, as every sheet's opening is a step of its own.\n\nCode it sits on:\nyield* page.press('Enter');",
+      "why": "Holds: Enter reopens the lightbox on the focused still, `page.back` closes it, and the URL goes back to `?view=moments`; the history-step clause is a reason about the page, not this code."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/voiced.test.ts:38",
+      "label": "holds",
+      "text": "Comment:\nThe mirror take: \"How\" aligned 9.48–10.08 s over silence, its voice from 10.1 s,\ninside the next word's span. It cannot be heard before 10.08.\n\nCode it sits on:\nconst pcm = take(1.5, [[1.1, 1.4]]);",
+      "why": "Holds: the comment gives the real mirror take's times, and the fixture is the same case 9 s earlier (span 0.48 to 1.08, voice from 1.1, heard at 1.08)."
+    },
+    {
+      "source": "9738c971a:packages/scripts/src/topics-compiler/compile.test.ts:366",
+      "label": "holds",
+      "text": "Comment:\nThis is exactly the shipped v1 state: forty drafts, nothing approved. The\ncompile must succeed and the artifact must be honestly empty.\n\nCode it sits on:\nconst compiled = yield* compile({\n        files: [\n          ['a.md', page({ slug: 'one', title: 'One', status: 'draft' })],\n          ['b.md', page({ slug: 'two', title: 'Two', status: 'draft' })],\n        ],\n      });",
+      "why": "Holds: 'forty drafts' counts the shipped content, not this fixture, which reproduces its kind (every page a draft, none approved), and the test asserts empty topics, aliases and edges."
+    },
+    {
+      "source": "9738c971a:packages/film/e2e/lab/review/inspector-url.dom.test.ts:116",
+      "label": "holds",
+      "text": "Comment:\nIts row is marked, and only it; none once the sheet is shut.\n\nCode it sits on:\nyield* waitFor(page, `${p.row}[data-selected=\"true\"]`);",
+      "why": "Holds: after the wait the test checks that `MARKED` (every selected row in `.rv-main`) is 1, and that it is 0 once Back shuts the sheet."
+    },
+    {
+      "source": "9738c971a:packages/ui/test/browser/dialog.test.ts:162",
+      "label": "holds",
+      "text": "Comment:\nEvery removal of the portal's node: a move resets the scroll positions inside it.\n\nCode it sits on:\nawait page.evaluate(() => {\n      const removed: Array<string> = [];\n      (window as unknown as { __removed: typeof removed }).__removed = removed;\n      new MutationObserver((records) => {\n        for (const record of records) {\n          for (const node of record.removedNodes) {\n            if (node instanceof HTMLElement && node.id === 'portal') {\n              removed.push(node.id);\n            }\n          }\n        }\n      }).observe(document.getElementById('root') as HTMLElement, {\n        childList: true,\n        subtree: true,\n      });\n    });",
+      "why": "Holds: the observer records each removed node whose id is 'portal' under `#root`, where the inline portal sits; the scroll-reset clause is a reason about the browser."
+    },
+    {
+      "source": "9738c971a:packages/film/src/canvas/film.ts:835",
+      "label": "holds",
+      "text": "Comment:\nEach light's sheet, by `color` and `edge` (`makeLight`), the fewest kept (`SHEETS_KEPT`).\n\nCode it sits on:\nconst lights = new Map<string, HTMLCanvasElement>();",
+      "why": "Holds: `lights` is keyed by the light's color and edge, filled by `makeLight(width, height, light.color, edge)`, and capped by `keepAtMost(..., SHEETS_KEPT)`."
+    },
+    {
+      "source": "9738c971a:packages/film/src/canvas/sketch.test.ts:29",
+      "label": "holds",
+      "text": "Comment:\nThe stand-in's font ascent is 9: the baseline sits that far below each line's top.\n\nCode it sits on:\nconst top = 0.2 * view.h;",
+      "why": "Holds: the stand-in's `measureText` returns `fontBoundingBoxAscent: 9`, `paintSketch` adds that ascent to each line's top, and the test expects `top + 9`."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/cast-sheet.test.ts:213",
+      "label": "holds",
+      "text": "Comment:\nAs the close turnaround, with a lock of view 6's hair drawn out level from its head over view 5's shoulder (a band of ink from x 1244 to its head, never touching view 5): view 6's box now spans view 5's robe on the rows its width is read on.\n\nCode it sits on:\nconst straight = { robeTop: 240, handless: true };",
+      "why": "Holds: the views are the close turnaround's, and the loop paints ink on rows 96 to 103 from x 1244 to 1391, which meets view 6's head outline (near x 1382 there) and stays clear of view 5 (its head ends near x 1217)."
+    },
+    {
+      "source": "9738c971a:packages/ui/src/floating-ui-solid/hooks/useClick.ts:54",
+      "label": "holds",
+      "text": "Comment:\nWait a frame so the mousedown's focus lands on the trigger before the popup takes it.\n\nCode it sits on:\nconst currentTarget = event.currentTarget as HTMLElement;",
+      "why": "Holds: the next line hands `setOpen` to `frame.request`, which calls `requestAnimationFrame`, so the open waits one frame after the mousedown."
+    },
+    {
+      "source": "9738c971a:packages/film/e2e/lab/review/review.dom.test.ts:2286",
+      "label": "holds",
+      "text": "Comment:\nEscape closes it; `i` on a focused version opens it again, `m` at its comment box.\n\nCode it sits on:\nyield* page.press('Escape');",
+      "why": "Holds: Escape brings the inspector count to 0, `i` on version A's focused button opens it again ('1 · Warm'), and `m` on version B's puts the focus in `.rv-comment-input`."
+    },
+    {
+      "source": "9738c971a:packages/film/src/core/cast-sheet-pixels.ts:174",
+      "label": "holds",
+      "text": "Comment:\nThe four neighbours' steps, and the eight's, in the order a flood takes them.\n\nCode it sits on:\nconst STEPS_FOUR = { dx: Int32Array.of(1, -1, 0, 0), dy: Int32Array.of(0, 0, 1, -1) };",
+      "why": "Holds: `STEPS_EIGHT` follows on the next line, and the flood in `componentsOf` takes `steps.dx` and `steps.dy` in array order."
+    },
+    {
+      "source": "9738c971a:packages/film/src/lab/script/voiced.tsx:37",
+      "label": "holds",
+      "text": "Comment:\nA hold's seconds as the reader writes them: `0.6 s`.\n\nCode it sits on:\nconst secondsOf = (seconds: number): string => `${seconds} s`;",
+      "why": "Holds: the template `${seconds} s` turns 0.6 into '0.6 s', the form the hold labels and toggles show."
+    },
+    {
+      "source": "9738c971a:packages/film/src/tools/lab-mcp.test.ts:690",
+      "label": "holds",
+      "text": "Comment:\nThe set's own answer is served, and so is a try on the board.\n\nCode it sits on:\nexpect(yield* showing(published.files[0].src)).toMatchObject({ status: 'asking' });",
+      "why": "Holds: the ask carries the board's try `cold.judge.1.png` and the src that `publish_set` answered, and the lab accepts it with status 'asking'."
     }
   ]
 }

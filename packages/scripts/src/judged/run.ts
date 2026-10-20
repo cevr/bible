@@ -449,7 +449,7 @@ interface Judging<E> extends Limits {
 /**
  * Judges `items` by their rules: the store's answers first, then one request
  * for the rest of every rule, their texts read then, kept; answers an
- * outcome for each of `rules`. The store is every checkout's: each answer
+ * outcome for each of `rules`, and the tokens the model read and wrote. The store is every checkout's: each answer
  * `items` read is marked seen today, and an answer no run read for
  * `MAX_AGE_DAYS` (an edited or deleted item's, an old rule's or model's) is
  * dropped (`cache.ts`).
@@ -508,7 +508,7 @@ export const judge = Effect.fn('judged.judge')(function* <E>(
       ),
     ),
   );
-  return rules.map((rule): Outcome => {
+  const outcomes = rules.map((rule): Outcome => {
     const own = items.filter((item) => item.rule.id === rule.id);
     const left = own.filter((item) => unanswered.has(item.key));
     return {
@@ -538,6 +538,7 @@ export const judge = Effect.fn('judged.judge')(function* <E>(
       unjudged: new Set(left.map((item) => item.file)),
     };
   });
+  return { outcomes, usage: asked.usage };
 });
 
 /** The word a finding's line names its weight by: oxlint's own, `warning` or `error`. */

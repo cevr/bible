@@ -2,13 +2,17 @@
 // reads of it, and that the plugin defines exactly the rules it names.
 
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Effect, FileSystem, Path } from 'effect';
+import { JSONC } from 'bun';
+import { Effect, FileSystem, Path, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 import { JudgedLint, judgedLintLayer } from './config.js';
 import { RULE_IDS } from '../../lint/judged.ts';
 import { historyComment } from './testing.js';
+
+/** What the test reads of a lint config: its rules' names. */
+const Entries = Schema.Struct({ rules: Schema.Record(Schema.String, Schema.Unknown) });
 
 /** The judged lint of the repo at `dir`, as a run reads it. */
 const lintOf = (dir: string) =>
@@ -42,10 +46,17 @@ const OPTIONS = `{
 }`;
 
 describe("the judged rules in the repo's lint config", () => {
-  it.effect('are the rules the plugin defines, and historyComment keeps its words', () =>
+  it.effect('are the rules the plugin defines, on or off, and historyComment keeps its words', () =>
     Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
       const config = yield* lintOf(import.meta.dir);
-      expect(config.rules.map((rule) => rule.id).toSorted()).toEqual([...RULE_IDS].toSorted());
+      const { rules } = yield* Schema.decodeUnknownEffect(Entries)(
+        JSONC.parse(yield* fs.readFileString(`${config.root}/.oxlintrc.json`)),
+      );
+      const entries = Object.keys(rules).filter((name) => name.startsWith('judged/'));
+      expect(entries.map((name) => name.slice('judged/'.length)).toSorted()).toEqual(
+        [...RULE_IDS].toSorted(),
+      );
       expect(config.rules.find((rule) => rule.id === 'historyComment')).toEqual(historyComment);
       expect(config.settings.model).toBe('jev-1.13.0');
     }).pipe(Effect.provide(BunServices.layer)),
