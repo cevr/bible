@@ -63,14 +63,13 @@ export function HymnList({
   const [opening, setOpening] = useState(() =>
     Option.liftPredicate(registry.get(offset), (y) => y > 0),
   );
-  // Whether it has landed: React may run the opening scroll again (its
-  // development StrictMode does), and a list that has landed is the
-  // reader's, so it is not scrolled there again.
-  const arrived = useRef(false);
-  const landed = () => {
-    arrived.current = true;
-    setOpening(Option.none());
-  };
+  // Whether it has scrolled to its opening offset: React may run the
+  // opening scroll again (its development StrictMode does, after a
+  // navigation's transition, once the reader may have moved the list), and
+  // the list is the reader's from its first scroll there, so it is scrolled
+  // there once.
+  const scrolledThere = useRef(false);
+  const landed = () => setOpening(Option.none());
   // The row at the offset it opens at: its first frame is drawn from there.
   const first = Option.map(opening, (y) => Math.min(Math.floor(y / height), hymns.length - 1)).pipe(
     Option.filter((index) => index >= 0),
@@ -87,7 +86,8 @@ export function HymnList({
       const now = () => Option.getOrElse(scrolled(l), () => 0);
       Option.match(opening, {
         onSome: (y) => {
-          if (arrived.current) return;
+          if (scrolledThere.current) return;
+          scrolledThere.current = true;
           l.scrollToOffset({ offset: y, animated: false });
           if (now() === 0) landed();
         },
