@@ -84,20 +84,20 @@
       "readings": [
         "may his spirit fill our praise calling people everywhere d in see istih power toda stay living working in our world we can see his power today"
       ],
-      "printed": "",
-      "sung": "",
-      "kind": "unreadable",
+      "printed": "May His Spirit fill our praise, Guide our thoughts and change our ways. God in Christ has come to stay, We can see His power today.",
+      "sung": "May His Spirit fill our praise, Guide our thoughts and change our ways. God in Christ has come to stay, We can see His power today.",
+      "kind": "owner",
       "crops": [
         {
           "image": "583-p2.jpg",
           "crop": "583-p2-1775.jpg",
           "box": [0, 1775, 2268, 970],
           "sha": "0127df1bedda7b7a",
-          "shows": ""
+          "shows": "May His Spirit fill our praise, Guide our thoughts and change our ways. God in Christ has come to stay, We can see His power today."
         }
       ],
-      "judge": "judge-562 (Opus, effort max)",
-      "why": "583-p2-1775.jpg clearly prints a whole stanza 6 as four text lines under the music, which the database lacks; it is not transcribed here (copyrighted lyrics), so the owner should type it from his book."
+      "judge": "owner (copied from his own 1985 book)",
+      "why": "583-p2-1775.jpg prints a whole stanza 6 as four text lines under the music, which the base row lacks (judge-562 saw them and would not transcribe them); the owner copied the four lines from his own book, and they are the four lines the crop prints there."
     },
     {
       "sites": [
@@ -108,20 +108,20 @@
       ],
       "row": "",
       "readings": ["theres a spirit in the air"],
-      "printed": "",
-      "sung": "",
-      "kind": "unreadable",
+      "printed": "There's a Spirit in the air, Calling people everywhere; Praise the love that Christ revealed: Living, working in our world.",
+      "sung": "There's a Spirit in the air, Calling people everywhere; Praise the love that Christ revealed: Living, working in our world.",
+      "kind": "owner",
       "crops": [
         {
           "image": "583-p2.jpg",
           "crop": "583-p2-1775.jpg",
           "box": [0, 1775, 2268, 970],
           "sha": "0127df1bedda7b7a",
-          "shows": ""
+          "shows": "There's a Spirit in the air, Calling people everywhere; Praise the love that Christ revealed: Living, working in our world."
         }
       ],
-      "judge": "judge-562 (Opus, effort max)",
-      "why": "583-p2-1775.jpg clearly prints a whole stanza 7 as four text lines under the music, which the database lacks; it is not transcribed here (copyrighted lyrics), so the owner should type it from his book."
+      "judge": "owner (copied from his own 1985 book)",
+      "why": "583-p2-1775.jpg prints a whole stanza 7 as four text lines under the music, which the base row lacks (judge-562 saw them and would not transcribe them); the owner copied the four lines from his own book, and they are the four lines the crop prints there."
     }
   ]
 }

@@ -101,10 +101,14 @@ refrain as id -1. A refrain whose lines differ by stanza (`varies`, each
 with the stanzas it follows) cannot be one refrain, so each stanza is
 written with the refrain sung after it inline, and the row has no refrain
 (593's last two lines after stanza 3; 220's middle lines, each stanza's
-own). Seven fixes came before the census, read off the engravings (138,
-203, 220, 438, 593, 620 and 628, `PRIOR_FIXES` in `scripts/census.ts`):
-the census holds them as base rows. Its own 64, each `row: "fixed"` in
-`data/census.json`, keep the row they replace as `replaces`. A line the
+own; 140's, 145's and 258's last two lines). Seven fixes came before the
+census, read off the engravings (138, 203, 220, 438, 593, 620 and 628,
+`PRIOR_FIXES` in `scripts/census.ts`): their files stay, the census holds
+their rows as base rows, and it refuses a fix file of the base commit that
+is gone. Its own fixes keep the row they replace as `replaces`: 81, each
+`row: "fixed"` in `data/census.json`, and three of `matches` hymns (140,
+145 and 258) that change no word and write the refrain the page varies by
+stanza as `varies`. A line the
 page prints once and the music sings again is written where it is sung:
 440's lines 3 and 4 again at the end of each of its three stanzas.
 Each part says how far its placement can be trusted:
@@ -209,7 +213,10 @@ run. Three runs hold these:
 
 - `bun run census --readings <dir>`: every blind reading's runs against the
   rulings, and each entry's counts against the readings. The readings hold
-  the hymns' texts, so they are not committed.
+  the hymns' texts, so they are not committed. It also holds the committed
+  shapes to the shape readers' reports (`<dir>/shape/`), and a reading that
+  prints a refrain varying by stanza to a shape reading that says how, or a
+  `repeat` or `echo` ruling that says why the shape prints none.
 - `bun run census --scans <dir>`: the inventory's scan pages against the
   fetched scans.
 - `bun run census --witness <csycms>`: the rows against the csycms
@@ -228,8 +235,10 @@ split alone (`for ever` against `forever`) is no run. A fresh judge (an
 Opus subagent at max effort that never saw a reading whole) rules each run
 on 1:1 crops of the page, one for each system the run lies on, and writes
 what each crop prints there. A ruling is `words`, `misprint`, `echo`,
-`repeat`, `shared`, `layout` or `unreadable`; a place no crop holds is
-`unreadable`. Applying every ruling to the base row gives the row. Two
+`repeat`, `shared`, `layout`, `owner` or `unreadable`; a place no crop holds
+is `unreadable`. An `owner` ruling holds words a judge saw the crop print and
+would not transcribe, copied by the owner from his own book (584's stanzas 6
+and 7, printed as text below the music). Applying every ruling to the base row gives the row. Two
 readings can find runs of different extent at one place, and each is ruled:
 a ruling inside a wider one is applied once and must agree with it, and
 rulings of one stretch with neither inside the other must come from one
@@ -238,13 +247,36 @@ line of a fix names the image, system and row it is printed in, placed by
 a reader that looked at the page, on an image the line's ruling has a crop
 of.
 
-The four states (2026-10-19: 695 hymns, 976 rulings):
+The shape is read off the page alone. OCR lays the page's words over the
+row's own stanzas, lines and refrain, so it cannot see a refrain, a line or
+an order the row lacks. `data/shapes.json` holds a shape reading of every
+hymn whose words only OCR read, and of every hymn a model reading prints
+with a refrain that varies by stanza: a fresh Opus reader at max effort,
+shown 1:1 strips of the deciding page and never the row, reports the
+stanzas the page prints, each one's row under each system by its first and
+last two words, the refrain (where it is printed, and the rows it prints
+for some stanzas only), and any other row (an echo, a descant). It writes
+counts, positions and anchors, never the lyrics. The plain run holds each
+shape to the printed source (the fix, else the row), stanza by stanza on
+what is sung (the stanza, then the refrain sung after it): as many stanzas;
+each row's anchors in order, a stanza's last row ending before the refrain
+sung after it; no three words sung that no row prints; no
+refrain the page does not print; each group of refrain rows printed for
+some stanzas only a `varies` part after those stanzas; and no other row the
+source lacks but an echo or a descant. A hymn only OCR read, with no shape
+reading, is a problem. A shape cannot see a line added inside one system's
+row; the word runs of its reading do. Each difference goes to a fresh judge
+on crops, and a ruling that finds the source right there `settles` the
+difference's line (it needs no site); a ruling that settles a line the
+census no longer prints is a problem.
+
+The four states (2026-10-20: 695 hymns, 985 rulings):
 
 | State       | Hymns | Deciding page                     | Blind readings of it                                                | Rulings that decided it                                                                                                                          |
 | ----------- | ----- | --------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `matches`   | 608   | 366 scan, 180 engraving, 62 photo | 519 1 reader, 71 1 OCR, 15 2 reader, 2 1 reader + 1 OCR, 1 3 reader | 521 hymns with no ruling; 87 with 557 rulings: 0 change words, 557 keep the row (471 words, 35 layout, 34 echo, 10 shared, 6 repeat, 1 misprint) |
-| `fixed`     | 80    | 54 photo, 26 scan                 | 29 1 OCR, 24 2 reader, 24 1 reader, 3 1 reader + 1 OCR              | 0 hymns with no ruling; 80 with 366 rulings: 157 change words (147 words, 10 repeat), 209 keep the row (209 words)                               |
-| `unsettled` | 3     | 2 engraving, 1 photo              | 3 1 OCR                                                             | 0 hymns with no ruling; 3 with 53 rulings: 22 change words (20 words, 2 shared), 31 keep the row (13 words, 12 echo, 4 layout, 2 unreadable)     |
+| `matches`   | 608   | 366 scan, 180 engraving, 62 photo | 519 1 reader, 71 1 OCR, 15 2 reader, 2 1 reader + 1 OCR, 1 3 reader | 521 hymns with no ruling; 87 with 563 rulings: 0 change words, 563 keep the row (471 words, 38 layout, 36 echo, 10 shared, 7 repeat, 1 misprint) |
+| `fixed`     | 81    | 55 photo, 26 scan                 | 30 1 OCR, 24 2 reader, 24 1 reader, 3 1 reader + 1 OCR              | 0 hymns with no ruling; 81 with 371 rulings: 160 change words (148 words, 10 repeat, 2 owner), 211 keep the row (211 words)                      |
+| `unsettled` | 2     | 2 engraving                       | 2 1 OCR                                                             | 0 hymns with no ruling; 2 with 51 rulings: 21 change words (19 words, 2 shared), 30 keep the row (12 echo, 11 words, 7 layout)                   |
 | `nopage`    | 4     | 4 none                            | 4 none                                                              | none: 4 hymns with no ruling                                                                                                                     |
 
 A `fixed` row is the base row with each ruling applied, written from its

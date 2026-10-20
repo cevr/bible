@@ -72,6 +72,51 @@
       ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 1 of p364-140 prints 'wan-d'rer back a-gain, back a-gain,' into the first ending; row 2's 'Lamb for sin-ners slain, for sin-ners slain' goes with the repeat's second ending."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape-13 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "afd848bd1bfe6f68",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "de2c665b2fe5301c",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip2400.jpg",
+          "box": [0, 2400, 1758, 228],
+          "sha": "fb112e65537b6391",
+          "shows": ""
+        },
+        {
+          "image": "p364.jpg",
+          "crop": "p364-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "631d7a1370bcf351",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-j1 (Opus, effort max)",
+      "why": "p363-strip800.jpg and p363-strip1600.jpg, system 3: the refrain opens at a start-repeat sign with braced rows 'Go-ing a-' over 'In-to the'; p364-strip0.jpg, system 5: row 1 ends 'back a-gain,' in the 1st ending before the end-repeat, and row 2 ends 'sin-ners slain.' in the 2nd ending. So row 1 of systems 4 and 5 is sung first and row 2 of both after the repeat, which is the database's order.",
+      "settles": [
+        "373 shape (shape-13): the refrain after stanza 1: row 3 opens \"bringing the\", not in what it sings",
+        "373 shape (shape-13): the refrain after stanza 2: row 3 opens \"bringing the\", not in what it sings",
+        "373 shape (shape-13): the refrain after stanza 3: row 3 opens \"bringing the\", not in what it sings"
+      ]
     }
   ]
 }

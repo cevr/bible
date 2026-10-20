@@ -1804,7 +1804,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 10,
+        "all": 13,
         "changes": 2
       },
       "stanzas": 4,
@@ -2943,7 +2943,7 @@
         "changes": 0
       },
       "stanzas": 5,
-      "refrain": false,
+      "refrain": true,
       "base": "607ae73341c475d5",
       "witness": {
         "hunks": 5,
@@ -3048,7 +3048,7 @@
         "changes": 0
       },
       "stanzas": 4,
-      "refrain": false,
+      "refrain": true,
       "base": "f4c05907fb5aa827",
       "witness": {
         "hunks": 2,
@@ -4625,7 +4625,7 @@
         "changes": 19
       },
       "stanzas": 3,
-      "refrain": false,
+      "refrain": true,
       "base": "fe3d6dcdcc9022ef",
       "witness": {
         "hunks": 24,
@@ -5424,7 +5424,7 @@
         "changes": 0
       },
       "stanzas": 4,
-      "refrain": false,
+      "refrain": true,
       "base": "cd9bd8ddaf6f429d",
       "witness": {
         "hunks": 4,
@@ -5504,7 +5504,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 3,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 2,
@@ -7836,7 +7836,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 3,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 3,
@@ -8866,7 +8866,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 3,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 4,
@@ -9664,7 +9664,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 3,
@@ -12184,7 +12184,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 17,
+        "all": 18,
         "changes": 0
       },
       "stanzas": 3,
@@ -12260,7 +12260,7 @@
     },
     {
       "number": 584,
-      "row": "unsettled",
+      "row": "fixed",
       "source": "photo",
       "pages": ["583-p2.jpg", "584.jpg"],
       "readings": {
@@ -12269,16 +12269,15 @@
       },
       "rulings": {
         "all": 5,
-        "changes": 1
+        "changes": 3
       },
-      "stanzas": 5,
+      "stanzas": 7,
       "refrain": false,
       "base": "c37365c87ef7cbe9",
       "witness": {
-        "hunks": 3,
-        "digest": "b36cd72198bbebab"
-      },
-      "note": "unreadable at unit 6 (583-p2-1775.jpg): 583-p2-1775.jpg clearly prints a whole stanza 6 as four text lines under the music, which the database lacks; it is not transcribed here (copyrighted lyrics), so the owner should type it from his book.; unreadable at unit 7 (583-p2-1775.jpg): 583-p2-1775.jpg clearly prints a whole stanza 7 as four text lines under the music, which the database lacks; it is not transcribed here (copyrighted lyrics), so the owner should type it from his book."
+        "hunks": 0,
+        "digest": "4f53cda18c2baa0c"
+      }
     },
     {
       "number": 585,
@@ -12458,11 +12457,11 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 8,
+        "all": 9,
         "changes": 0
       },
       "stanzas": 3,
-      "refrain": false,
+      "refrain": true,
       "base": "a4c5727dfa6e6938",
       "witness": {
         "hunks": 5,

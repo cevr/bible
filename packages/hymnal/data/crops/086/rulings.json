@@ -317,6 +317,174 @@
       ],
       "judge": "judge-033 (Opus, effort max)",
       "why": "086-884.jpg row 4 prints 'art!' as stanza 4's last word; How_Great_Thou_Art2-527.jpg's row stops at 'how great Thou'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape-02 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "086.jpg",
+          "crop": "086-jpg-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "f65f1764950a3306",
+          "shows": ""
+        },
+        {
+          "image": "086.jpg",
+          "crop": "086-jpg-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "e5bb4277e884f552",
+          "shows": ""
+        },
+        {
+          "image": "086.jpg",
+          "crop": "086-jpg-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "2c6008af515e0771",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-png-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "9e7b46771502d341",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-png-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "13d234e58cccf066",
+          "shows": ""
+        },
+        {
+          "image": "How_Great_Thou_Art2.png",
+          "crop": "How_Great_Thou_Art2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "5ef37dc6ed51685b",
+          "shows": ""
+        },
+        {
+          "image": "How_Great_Thou_Art2.png",
+          "crop": "How_Great_Thou_Art2-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9fb600af787b9288",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-j3 (Opus, effort max)",
+      "why": "How_Great_Thou_Art2-strip0.jpg system 1: under a heading for an optional ending to verse 4, a '3.' ending bracket, an interlude with no words and a key change lead to one row numbered '4.' opening 'When Christ', which runs through system 2 to 'art!' at system 3 (How_Great_Thou_Art2-strip800.jpg). Its 34 words match row 4 under systems 1-3 of the 086-jpg and 086-png strips word for word, and those strips print stanzas 1-4 only, so it is stanza 4 printed a second time.",
+      "settles": ["86 shape (shape-02): the page prints 5 stanzas, the printed source 4"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape-02 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "086.jpg",
+          "crop": "086-jpg-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "2c6008af515e0771",
+          "shows": ""
+        },
+        {
+          "image": "086.jpg",
+          "crop": "086-jpg-strip2400.jpg",
+          "box": [0, 2400, 2268, 624],
+          "sha": "b1e4e049d75dce5e",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-png-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "13d234e58cccf066",
+          "shows": ""
+        },
+        {
+          "image": "How_Great_Thou_Art2.png",
+          "crop": "How_Great_Thou_Art2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "5ef37dc6ed51685b",
+          "shows": ""
+        },
+        {
+          "image": "How_Great_Thou_Art2.png",
+          "crop": "How_Great_Thou_Art2-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9fb600af787b9288",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-j3 (Opus, effort max)",
+      "why": "How_Great_Thou_Art2-strip800.jpg systems 3-4: after the second stanza 4 ends 'art!', the Refrain rows opening 'Then sings' (16 words) and 'art! Then' (18 words) print the same 34 words, in order, as the refrain rows of 086-png-strip800.jpg systems 3-4 (which close on a '1, 2.' ending and a repeat sign), so they are the one refrain printed again for the optional ending. 086-jpg-strip1600.jpg system 3 prints that refrain as one row after the double bar, under all four stanza rows, so it is sung after each stanza.",
+      "settles": [
+        "86 shape (shape-02): the refrain after stanza 1: row 3 opens \"then sings\", not in what it sings",
+        "86 shape (shape-02): the refrain after stanza 2: row 3 opens \"then sings\", not in what it sings",
+        "86 shape (shape-02): the refrain after stanza 3: row 3 opens \"then sings\", not in what it sings",
+        "86 shape (shape-02): the refrain after stanza 4: row 3 opens \"then sings\", not in what it sings"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape-14 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "086.jpg",
+          "crop": "086-jpg-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "f65f1764950a3306",
+          "shows": ""
+        },
+        {
+          "image": "086.jpg",
+          "crop": "086-jpg-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "2c6008af515e0771",
+          "shows": ""
+        },
+        {
+          "image": "086.jpg",
+          "crop": "086-jpg-strip2400.jpg",
+          "box": [0, 2400, 2268, 624],
+          "sha": "b1e4e049d75dce5e",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-png-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "13d234e58cccf066",
+          "shows": ""
+        },
+        {
+          "image": "How_Great_Thou_Art2.png",
+          "crop": "How_Great_Thou_Art2-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9fb600af787b9288",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-j3 (Opus, effort max)",
+      "why": "086-jpg-strip1600.jpg and 086-jpg-strip2400.jpg: the page's last system (system 4) ends its row on 'Then sings my' at the right margin with no final double bar, and the footnote and copyright follow under it, so the refrain runs on to the facing page, which the strips cut at its clefs (086-jpg-strip0.jpg). 086-png-strip800.jpg and How_Great_Thou_Art2-strip800.jpg system 4 print 14 words after that second 'sings my', opening 'soul, my' and ending 'Thou art!' at the last bar, the database's 14 words to its last line's end by count and anchors.",
+      "settles": [
+        "86 shape (shape-14): stanza 1 sings \"soul my\" and on, in no row the page prints",
+        "86 shape (shape-14): stanza 2 sings \"soul my\" and on, in no row the page prints",
+        "86 shape (shape-14): stanza 3 sings \"soul my\" and on, in no row the page prints",
+        "86 shape (shape-14): stanza 4 sings \"soul my\" and on, in no row the page prints"
+      ]
     }
   ]
 }

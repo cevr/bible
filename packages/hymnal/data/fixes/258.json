@@ -1,0 +1,99 @@
+{
+  "number": 258,
+  "title": "Baptize Us Anew",
+  "print": "the page (p253.jpg), each line placed at its system and row by the shape reading of the page (data/shapes.json); no word changes: the row sings, in each stanza, the refrain the page prints for it, and the page prints the refrain's last 2 lines once for stanzas 1, 2, 3 and once for 4, so they are its varying part.",
+  "stanzas": [
+    [
+      {
+        "text": "Baptize us anew With power from on high,",
+        "from": "p253.jpg system 1, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "With love, O refresh us! Dear Savior, draw nigh.",
+        "from": "p253.jpg system 2, row 1. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "Unworthy we cry, Unholy, unclean,",
+        "from": "p253.jpg system 1, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "O wash us and cleanse us From sin's guilty stain.",
+        "from": "p253.jpg system 2, row 2. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "O heavenly Dove, Descend from on high!",
+        "from": "p253.jpg system 1, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "We plead Thy rich blessing; In mercy draw nigh.",
+        "from": "p253.jpg system 2, row 3. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "O list the glad voice! From heaven it came:",
+        "from": "p253.jpg system 1, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Thou art My beloved, Well pleased I am.",
+        "from": "p253.jpg system 2, row 4. (placed by its shape reading's rows)"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "varies": [
+          {
+            "after": [1, 2, 3],
+            "lines": [
+              {
+                "text": "We humbly beseech Thee, Lord Jesus, we pray,",
+                "from": "p253.jpg system 3, row 1. (placed by its shape reading's rows)"
+              },
+              {
+                "text": "With love and the Spirit baptize us today.",
+                "from": "p253.jpg system 4, row 1. (placed by its shape reading's rows)"
+              }
+            ]
+          },
+          {
+            "after": [4],
+            "lines": [
+              {
+                "text": "We praise Thee, we bless Thee, dear Lamb that was slain,",
+                "from": "p253.jpg system 3, row 2. (placed by its shape reading's rows)"
+              },
+              {
+                "text": "We laud and adore Thee, Amen and Amen.",
+                "from": "p253.jpg system 4, row 2. (placed by its shape reading's rows)"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Baptize us anew With power from on high,\nWith love, O refresh us! Dear Savior, draw nigh.\nWe humbly beseech Thee, Lord Jesus, we pray,\nWith love and the Spirit baptize us today."
+    },
+    {
+      "id": 1,
+      "text": "Unworthy we cry, Unholy, unclean,\nO wash us and cleanse us From sin's guilty stain.\nWe humbly beseech Thee, Lord Jesus, we pray,\nWith love and the Spirit baptize us today."
+    },
+    {
+      "id": 2,
+      "text": "O heavenly Dove, Descend from on high!\nWe plead Thy rich blessing; In mercy draw nigh.\nWe humbly beseech Thee, Lord Jesus, we pray,\nWith love and the Spirit baptize us today."
+    },
+    {
+      "id": 3,
+      "text": "O list the glad voice! From heaven it came:\nThou art My beloved, Well pleased I am.\nWe praise Thee, we bless Thee, dear Lamb that was slain,\nWe laud and adore Thee, Amen and Amen."
+    }
+  ]
+}

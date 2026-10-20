@@ -24,6 +24,47 @@
       ],
       "judge": "judge-436 (Opus, effort max)",
       "why": "460-117.jpg, row 1 prints 'thirst - y', the one word 'thirsty'; the OCR split its syllables."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape-06 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "460.png",
+          "crop": "460-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "f184aa674e0223e0",
+          "shows": ""
+        },
+        {
+          "image": "460.png",
+          "crop": "460-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "68f19b427eff95f8",
+          "shows": ""
+        },
+        {
+          "image": "As_Water_to_the_Thirsty2.png",
+          "crop": "As_Water_to_the_Thirsty2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "a134b7d0297095dc",
+          "shows": ""
+        },
+        {
+          "image": "As_Water_to_the_Thirsty2.png",
+          "crop": "As_Water_to_the_Thirsty2-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "ca76e8b535399b29",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-j2 (Opus, effort max)",
+      "why": "Row 3 under the four systems of 460-strip0.jpg and 460-strip800.jpg (measures 1-16, to the 1. ending and its repeat) is stanza 3. As_Water_to_the_Thirsty2-strip0.jpg marks the 2. ending as an optional ending for verse 3 and, after a wordless interlude, prints '3. As sleep' to 'to me.' alone under measures 24-40 (ending on As_Water_to_the_Thirsty2-strip800.jpg), word for word the same row, so the page has 3 stanzas with stanza 3 printed again for that ending.",
+      "settles": ["460 shape (shape-06): the page prints 4 stanzas, the printed source 3"]
     }
   ]
 }

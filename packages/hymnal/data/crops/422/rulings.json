@@ -72,6 +72,28 @@
       ],
       "judge": "judge-422 (Opus, effort max)",
       "why": "Refrain system 2's main row prints 'The beau-ti-ful cit-y of God.'; the men's answering row under it stops at 'heaven-ly Zi-on,', so the reading that took that row has nothing here."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape-13 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p407.jpg",
+          "crop": "p407-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "172b2ffd38690937",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-j1 (Opus, effort max)",
+      "why": "p407-strip1600.jpg system 5, row 2: 'heaven-ly Zi-on,' is printed under the middle of the system only, unnumbered, beneath row 1's 'Zi - on,', where the bass staff moves while the treble holds 'Zi-'. Row 1 is a whole line without it, so it is a part for the lower voices, as is the half row under system 4.",
+      "settles": [
+        "422 shape (shape-13): a row \"heavenly zion\" (second refrain row under the treble staff, no mark, printed under the middle of the system only: other words for part of the refrain, likely for other voices) is in no part of the printed source"
+      ]
     }
   ]
 }

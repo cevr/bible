@@ -492,6 +492,44 @@
       ],
       "judge": "judge-562 (Opus, effort max)",
       "why": "580-1959.jpg's single row ends with the third 'let it shine'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "a3c3f928aa312bda",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "5dc6b1b35dee2cf3",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "82b4015cbbf8c24a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-j2 (Opus, effort max)",
+      "why": "580-strip0.jpg system 1 and 580-strip800.jpg system 2 end the shared phrase 'let it shine, (shine)': the bracketed word stands under the last measure's lower-voice notes, which move under the melody's held half note on 'shine,', an answering part for other voices. The melody sings 'shine' once there, and system 3 (580-strip1600.jpg), with no lower-voice motion at that place, prints the phrase without it.",
+      "settles": [
+        "580 shape (shape-09): stanza 1 row 1 ends \"shine shine\", not in what it sings",
+        "580 shape (shape-09): stanza 2 row 1 ends \"shine shine\", not in what it sings",
+        "580 shape (shape-09): stanza 3 row 1 ends \"shine shine\", not in what it sings"
+      ]
     }
   ]
 }

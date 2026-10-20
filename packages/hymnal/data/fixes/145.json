@@ -1,0 +1,163 @@
+{
+  "number": 145,
+  "title": "Songs of Thankfulness and Praise",
+  "print": "the page (145.jpg), each line placed at its system and row by the shape reading of the page (data/shapes.json); no word changes: the row sings, in each stanza, the refrain the page prints for it, and the page prints the refrain's last 2 lines once for stanzas 1, 2, 3 and once for 4, so they are its varying part.",
+  "stanzas": [
+    [
+      {
+        "text": "Songs of thankfulness and praise,",
+        "from": "145.jpg system 1, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Jesus, Lord, to You we raise,",
+        "from": "145.jpg system 1, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Manifested by the star",
+        "from": "145.jpg system 2, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "To the sages from afar;",
+        "from": "145.jpg system 2, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Branch of royal David's stem",
+        "from": "145.jpg system 3, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "In Your birth at Bethlehem;",
+        "from": "145.jpg system 3, row 1. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "Manifest at Jordan's stream,",
+        "from": "145.jpg system 1, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Prophet, Priest, and King supreme;",
+        "from": "145.jpg system 1, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "And at Cana, wedding guest,",
+        "from": "145.jpg system 2, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "In Your Godhead manifest;",
+        "from": "145.jpg system 2, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Manifest in power divine,",
+        "from": "145.jpg system 3, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Changing water into wine;",
+        "from": "145.jpg system 3, row 2. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "Manifest in making whole",
+        "from": "145.jpg system 1, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Palsied limbs and fainting soul;",
+        "from": "145.jpg system 1, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Manifest in valiant fight,",
+        "from": "145.jpg system 2, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Quelling all the devil's might;",
+        "from": "145.jpg system 2, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Manifest in gracious will,",
+        "from": "145.jpg system 3, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Ever bringing good from ill;",
+        "from": "145.jpg system 3, row 3. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "Grant us grace to see You, Lord,",
+        "from": "145.jpg system 1, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Mirrored in Your holy Word;",
+        "from": "145.jpg system 1, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "May we imitate Your way,",
+        "from": "145.jpg system 2, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "And be pure, as pure we may,",
+        "from": "145.jpg system 2, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "That we like to You may be",
+        "from": "145.jpg system 3, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "At Your great epiphany;",
+        "from": "145.jpg system 3, row 4. (placed by its shape reading's rows)"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "varies": [
+          {
+            "after": [1, 2, 3],
+            "lines": [
+              {
+                "text": "Anthems be to You addressed,",
+                "from": "145.jpg system 4, row 1. (placed by its shape reading's rows)"
+              },
+              {
+                "text": "God in man made manifest.",
+                "from": "145.jpg system 4, row 1. (placed by its shape reading's rows)"
+              }
+            ]
+          },
+          {
+            "after": [4],
+            "lines": [
+              {
+                "text": "Let us praise You, ever blest,",
+                "from": "145.jpg system 4, row 2. (placed by its shape reading's rows)"
+              },
+              {
+                "text": "God in man made manifest.",
+                "from": "145.jpg system 4, row 2. (placed by its shape reading's rows)"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Songs of thankfulness and praise,\nJesus, Lord, to You we raise,\nManifested by the star\nTo the sages from afar;\nBranch of royal David's stem\nIn Your birth at Bethlehem;\nAnthems be to You addressed,\nGod in man made manifest."
+    },
+    {
+      "id": 1,
+      "text": "Manifest at Jordan's stream,\nProphet, Priest, and King supreme;\nAnd at Cana, wedding guest,\nIn Your Godhead manifest;\nManifest in power divine,\nChanging water into wine;\nAnthems be to You addressed,\nGod in man made manifest."
+    },
+    {
+      "id": 2,
+      "text": "Manifest in making whole\nPalsied limbs and fainting soul;\nManifest in valiant fight,\nQuelling all the devil's might;\nManifest in gracious will,\nEver bringing good from ill;\nAnthems be to You addressed,\nGod in man made manifest."
+    },
+    {
+      "id": 3,
+      "text": "Grant us grace to see You, Lord,\nMirrored in Your holy Word;\nMay we imitate Your way,\nAnd be pure, as pure we may,\nThat we like to You may be\nAt Your great epiphany;\nLet us praise You, ever blest,\nGod in man made manifest."
+    }
+  ]
+}

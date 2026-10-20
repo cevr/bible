@@ -29,13 +29,6 @@
           "shows": ""
         },
         {
-          "image": "013.jpg",
-          "crop": "013-112.jpg",
-          "box": [0, 112, 1275, 249],
-          "sha": "52077bd9c310d35d",
-          "shows": ""
-        },
-        {
           "image": "013-c.jpg",
           "crop": "013-c-413.jpg",
           "box": [0, 413, 2268, 658],
@@ -44,7 +37,7 @@
         }
       ],
       "judge": "judge-again-013-2 (Opus, effort max)",
-      "why": "013-c-413.jpg row 1 prints '1. New songs' plainly, as does 013-0.jpg (shown again, so empty); only the re-engraved crop 013-112.jpg prints 'Now'."
+      "why": "013-c-413.jpg row 1 prints '1. New songs' plainly, as does 013-0.jpg (shown again, so empty)."
     },
     {
       "sites": [

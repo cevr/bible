@@ -1,0 +1,193 @@
+{
+  "number": 140,
+  "title": "Thou Didst Leave Thy Throne",
+  "print": "the page (p137.jpg), each line placed at its system and row by the shape reading of the page (data/shapes.json); no word changes: the row sings, in each stanza, the refrain the page prints for it, and the page prints the refrain's last 2 lines once for stanzas 1, 2, 3, 4 and once for 5, so they are its varying part.",
+  "stanzas": [
+    [
+      {
+        "text": "Thou didst leave Thy throne",
+        "from": "p137.jpg system 1, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "And Thy kingly crown",
+        "from": "p137.jpg system 1, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "When Thou camest to earth for me;",
+        "from": "p137.jpg systems 1-2, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "But in Bethlehem's home",
+        "from": "p137.jpg system 2, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Was there found no room",
+        "from": "p137.jpg system 3, row 1. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "For Thy holy nativity.",
+        "from": "p137.jpg system 3, row 1. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "Heaven's arches rang",
+        "from": "p137.jpg system 1, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "When the angels sang",
+        "from": "p137.jpg system 1, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Proclaiming Thy royal degree;",
+        "from": "p137.jpg systems 1-2, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "But of lowly birth",
+        "from": "p137.jpg system 2, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Didst Thou come to earth,",
+        "from": "p137.jpg system 3, row 2. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "And in greatest humility.",
+        "from": "p137.jpg system 3, row 2. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "The foxes found rest,",
+        "from": "p137.jpg system 1, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "And the birds their nest",
+        "from": "p137.jpg system 1, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "In the shade of the forest tree;",
+        "from": "p137.jpg systems 1-2, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "But Thy couch was the sod,",
+        "from": "p137.jpg system 2, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "O Thou Son of God,",
+        "from": "p137.jpg system 3, row 3. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "In the deserts of Galilee.",
+        "from": "p137.jpg system 3, row 3. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "Thou camest, O Lord,",
+        "from": "p137.jpg system 1, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "With the living word",
+        "from": "p137.jpg system 1, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "That should set Thy people free;",
+        "from": "p137.jpg systems 1-2, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "But with mocking scorn,",
+        "from": "p137.jpg system 2, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "And with crown of thorn,",
+        "from": "p137.jpg system 3, row 4. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "They bore Thee to Calvary.",
+        "from": "p137.jpg system 3, row 4. (placed by its shape reading's rows)"
+      }
+    ],
+    [
+      {
+        "text": "When the heavens shall ring,",
+        "from": "p137.jpg system 1, row 5. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "And the angels sing,",
+        "from": "p137.jpg system 1, row 5. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "At Thy coming to victory,",
+        "from": "p137.jpg systems 1-2, row 5. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Let Thy voice call me home,",
+        "from": "p137.jpg system 2, row 5. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "Saying, \"Yet there is room,",
+        "from": "p137.jpg system 3, row 5. (placed by its shape reading's rows)"
+      },
+      {
+        "text": "There is room at My side for thee.\"",
+        "from": "p137.jpg system 3, row 5. (placed by its shape reading's rows)"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "varies": [
+          {
+            "after": [1, 2, 3, 4],
+            "lines": [
+              {
+                "text": "O come to my heart, Lord Jesus,",
+                "from": "p137.jpg system 4, row 1. (placed by its shape reading's rows)"
+              },
+              {
+                "text": "There is room in my heart for Thee.",
+                "from": "p137.jpg system 4, row 1. (placed by its shape reading's rows)"
+              }
+            ]
+          },
+          {
+            "after": [5],
+            "lines": [
+              {
+                "text": "My heart shall rejoice, Lord Jesus,",
+                "from": "p137.jpg system 4, row 2. (placed by its shape reading's rows)"
+              },
+              {
+                "text": "When Thou comest and callest for me.",
+                "from": "p137.jpg system 4, row 2. (placed by its shape reading's rows)"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Thou didst leave Thy throne\nAnd Thy kingly crown\nWhen Thou camest to earth for me;\nBut in Bethlehem's home\nWas there found no room\nFor Thy holy nativity.\nO come to my heart, Lord Jesus,\nThere is room in my heart for Thee."
+    },
+    {
+      "id": 1,
+      "text": "Heaven's arches rang\nWhen the angels sang\nProclaiming Thy royal degree;\nBut of lowly birth\nDidst Thou come to earth,\nAnd in greatest humility.\nO come to my heart, Lord Jesus,\nThere is room in my heart for Thee."
+    },
+    {
+      "id": 2,
+      "text": "The foxes found rest,\nAnd the birds their nest\nIn the shade of the forest tree;\nBut Thy couch was the sod,\nO Thou Son of God,\nIn the deserts of Galilee.\nO come to my heart, Lord Jesus,\nThere is room in my heart for Thee."
+    },
+    {
+      "id": 3,
+      "text": "Thou camest, O Lord,\nWith the living word\nThat should set Thy people free;\nBut with mocking scorn,\nAnd with crown of thorn,\nThey bore Thee to Calvary.\nO come to my heart, Lord Jesus,\nThere is room in my heart for Thee."
+    },
+    {
+      "id": 4,
+      "text": "When the heavens shall ring,\nAnd the angels sing,\nAt Thy coming to victory,\nLet Thy voice call me home,\nSaying, \"Yet there is room,\nThere is room at My side for thee.\"\nMy heart shall rejoice, Lord Jesus,\nWhen Thou comest and callest for me."
+    }
+  ]
+}

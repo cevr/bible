@@ -93,6 +93,26 @@
       ],
       "judge": "judge-234 (Opus, effort max)",
       "why": "262-439.jpg row 2 ends 'pres-ence of the', and after the repeat sign the second ending prints 'Lord.' then 'Sweet Ho-ly' on the lyric line; 262-511.jpg shows that row again at its top."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape-04 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "621757b89fb98686",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-j1 (Opus, effort max)",
+      "why": "262-strip0.jpg system 2, row 1: the 1st ending prints 'Lord; There are', with 'There are' under the two quarter notes that lead over the end-repeat back to the start-repeat in system 1, where stanza 2's row is blank under the pickup notes and opens 'sweet ex-'. So stanza 1 ends 'the Lord' and 'There are' is stanza 2's lead-in.",
+      "settles": ["262 shape (shape-04): stanza 1 row 2 ends \"there are\", not in what it sings"]
     }
   ]
 }
