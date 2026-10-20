@@ -1563,3 +1563,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The Worker's mail module and the firsttheblade README still said a sign-up's work runs after its answer once the background port said the answer only does not wait for it.
 - **Cause:** The contract's wording was corrected where the finding pointed, and the same claim in other files names no file the change touched.
 - **Guard:** skill: a sentence's claim goes stale with no file named in it changing, which only a reader sees. Carried by `CLAUDE.md`: "A sentence's claim goes stale with no name in it changing, so the docs test cannot see it"
+
+### rebase-leaves-no-marker
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Rebase leaves a conflict marker in the lessons ledger"
+- **Source:** ftb-mail/review-4.md F1
+- **Wrong:** The rebase of ftb-mail onto origin/main kept both sides of each append to `docs/lessons.md` but left diff3's base line, `||||||| parent of …`, in three commits.
+- **Cause:** The resolver read only the two-way conflict form, and git rerere replayed its resolution on the second try.
+- **Guard:** code: `packages/scripts/src/merge-audit.ts` `each: Flag.String('each')`
