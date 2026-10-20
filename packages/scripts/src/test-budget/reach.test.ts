@@ -196,6 +196,31 @@ describe("a workspace's test files", () => {
       expect(
         reaches({ test: 'bun test ./lessons.test.ts' }, ['lessons.test.ts', 'src/lessons.test.ts']),
       ).toEqual(['lessons.test.ts: test', 'src/lessons.test.ts: none']);
+      // Once one filter is a path, bun reads each as one (measured on 1.4.3: `./a.test.ts
+      // parts` runs no parts.test.ts, `/guard` and `..` run none): such a run reaches none,
+      // and filters that are all `./` paths, or all parts, are read.
+      const guard = ['src/guard/parts.test.ts', 'src/a.test.ts'];
+      for (const test of [
+        'bun test --pass-with-no-tests ./missing parts',
+        'bun test --pass-with-no-tests parts ./src/a.test.ts',
+        'bun test --pass-with-no-tests /guard',
+        'bun test --pass-with-no-tests ../src/guard',
+        'bun test --pass-with-no-tests ..',
+        'bun test --pass-with-no-tests . parts',
+      ])
+        expect([test, ...reaches({ test }, guard)]).toEqual([
+          test,
+          'src/guard/parts.test.ts: none',
+          'src/a.test.ts: none',
+        ]);
+      expect(reaches({ test: 'bun test parts a.test' }, guard)).toEqual([
+        'src/guard/parts.test.ts: test',
+        'src/a.test.ts: test',
+      ]);
+      expect(reaches({ test: 'bun test ./src/a.test.ts ./src/guard' }, guard)).toEqual([
+        'src/guard/parts.test.ts: test',
+        'src/a.test.ts: test',
+      ]);
     }),
   );
 
@@ -399,6 +424,10 @@ describe("a workspace's test files", () => {
           'playwright test b.spec.ts:2:5',
           // Another tsconfig may map the config's imports to other modules.
           'playwright test --tsconfig other.json',
+          // A snapshot flag takes a mode or none, so the word after it may be no filter.
+          'playwright test --update-snapshots all b --pass-with-no-tests',
+          'playwright test -u all b --pass-with-no-tests',
+          'playwright test --update-snapshots',
         ])
           expect([
             browser,

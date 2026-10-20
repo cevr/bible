@@ -273,10 +273,16 @@ const isPlainIgnore = (pattern: string) => {
   );
 };
 
+/** A filter bun reads as a path: `.`, `..`, or one that starts with `./`, `../` or `/`. */
+const PATH_FILTER = /^(?:\.{1,2}(?:\/|$)|\/)/;
+
 /**
  * A `bun test`'s arguments read as bun reads them: its filters, and its
- * ignore patterns; nothing when it holds a flag outside `BUN_FLAGS`, or an
- * ignore pattern that is not plain (`isPlainIgnore`): bun's scan matches a
+ * ignore patterns; nothing when it holds a flag outside `BUN_FLAGS`, a
+ * filter that is a path (`PATH_FILTER`) beside one that does not start with
+ * `./` (measured on bun 1.4.3: once one filter is a path, bun reads each as
+ * one, so `./a.test.ts parts` runs no `parts.test.ts`, and `/guard`, `..`
+ * run none), or an ignore pattern that is not plain (`isPlainIgnore`): bun's scan matches a
  * folder by a glob or an escape in a way the reader does not reproduce
  * (measured on bun 1.4.3: a glob of any folder `guard` with a closing slash
  * skips `src/guard`, `src/guard/` skips nothing, and `src\/guard` skips
@@ -287,6 +293,8 @@ const bunTestOf = (words: ReadonlyArray<string>): ReadonlyArray<Run> =>
     onNone: () => [],
     onSome: ({ positionals, given }) => {
       const ignores = valuesOf(given, ['--path-ignore-patterns']);
+      const paths = positionals.some((filter) => PATH_FILTER.test(filter));
+      if (paths && !positionals.every((filter) => filter.startsWith('./'))) return [];
       if (!ignores.every(isPlainIgnore)) return [];
       return [{ kind: 'bunTest', filters: positionals, ignores }];
     },
@@ -415,8 +423,9 @@ const runsFile = (run: Run, file: string, text: string) => {
  * they are, and how it reads them. Any other (`--grep`, `-g`, `-G`,
  * `--grep-invert`, `--project`, `--shard`, `--last-failed`,
  * `--only-changed`, `--list`, `--ui`, an attached short value, one this
- * does not know) may narrow it or run none, and `--tsconfig` may map the
- * config's imports to other modules.
+ * does not know) may narrow it or run none, `--tsconfig` may map the
+ * config's imports to other modules, and `--update-snapshots` (`-u`) takes
+ * a value or none (`[mode]`), so the word after it may be a filter or not.
  */
 const PLAYWRIGHT_FLAGS: Flags = new Map([
   ['--config', true],
@@ -438,8 +447,6 @@ const PLAYWRIGHT_FLAGS: Flags = new Map([
   ['--fully-parallel', false],
   ['--pass-with-no-tests', false],
   ['--quiet', false],
-  ['--update-snapshots', false],
-  ['-u', false],
   ['--ignore-snapshots', false],
   ['--fail-on-flaky-tests', false],
 ]);
