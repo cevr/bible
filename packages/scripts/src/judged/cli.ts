@@ -44,18 +44,20 @@ type ModelOf<E, R> = (model: string) => Layer.Layer<DecisionModel.DecisionModel,
 
 /**
  * The findings file of a run that marked its answers seen on `day` (so it
- * expires no later than they do): each file the run read, by its hash,
+ * expires no later than they do), from the store `store` names: each file the run read, by its hash,
  * with the findings of each rule whose every item there has an answer the
  * store keeps, for the plugin to report; a Markdown file oxlint never reads
  * holds none.
  */
 const findingsOf = (
   day: number,
+  store: string,
   model: string,
   outcomes: Effect.Success<ReturnType<typeof judge>>['outcomes'],
   files: ReadonlyArray<{ readonly file: string; readonly hash: string }>,
 ): Findings => ({
   day,
+  store,
   makers: makersHash(),
   rules: Object.fromEntries(
     outcomes.map((outcome) => [outcome.rule.id, ruleSignature(model, outcome.rule)]),
@@ -116,7 +118,7 @@ const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<n
     yield* Console.error(`[judged] tokens input=${usage.inputTokens} output=${usage.outputTokens}`);
   yield* writeFindings(
     findingsFileOf(root, config.settings.checkout),
-    findingsOf(day, model, outcomes, tree.files),
+    findingsOf(day, config.settings.store, model, outcomes, tree.files),
   );
   // oxlint reports, at the rule's severity, every finding the plugin can
   // read; the runner prints and gates on the rest (a series script, an

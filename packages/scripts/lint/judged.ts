@@ -160,8 +160,9 @@ interface Reported {
  * `text`, as the last run of the checkout at `cwd` wrote them: none when the
  * file's text, or the rule's words, selector, label, threshold or model, are
  * not what the run read, the run could not judge the rule there, the code
- * that makes the items is not the run's, or the run is more than
- * `MAX_AGE_DAYS` old (the store may have dropped its answers).
+ * that makes the items is not the run's, the settings name another store
+ * than the run read, or the run is more than `MAX_AGE_DAYS` old (the store
+ * may have dropped its answers).
  */
 const lastRunOf = (
   cwd: string,
@@ -174,6 +175,7 @@ const lastRunOf = (
   findingsAt(findingsFileOf(cwd, settings.checkout)).pipe(
     Option.filter(
       (findings) =>
+        findings.store === settings.store &&
         findings.makers === makersHash() &&
         dayOf(Effect.runSync(Clock.currentTimeMillis)) - findings.day <= MAX_AGE_DAYS,
     ),

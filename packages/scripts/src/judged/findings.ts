@@ -8,7 +8,9 @@
 // when the code that makes the items and their keys (`makersHash`) is not
 // the code the run read them with, or when the run is older than the store
 // keeps an answer no run reads (`MAX_AGE_DAYS`): the store may have dropped
-// the answers its findings came from.
+// the answers its findings came from; and when the checkout's settings name
+// another store than the run read (`settings.judged.store`): its findings
+// are that store's answers, not this one's.
 //
 // Each file the run read holds the findings of each rule whose every item
 // in it has an answer the store keeps, as the store held it after the run's
@@ -40,12 +42,14 @@ const Finding = Schema.Struct({
 
 /**
  * The file's shape: the day of the run (whole days since 1970, UTC), the
- * hash of the code that made its items, each rule's signature, and each
- * file's hash and each rule's findings in it.
+ * store it read its answers from (`settings.judged.store`), the hash of the
+ * code that made its items, each rule's signature, and each file's hash and
+ * each rule's findings in it.
  */
 export const Findings = Schema.fromJsonString(
   Schema.Struct({
     day: Schema.Finite,
+    store: Schema.String,
     makers: Schema.String,
     rules: Schema.Record(Schema.String, Schema.String),
     files: Schema.Record(

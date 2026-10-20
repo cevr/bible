@@ -158,7 +158,7 @@ describe('the judged plugin', () => {
   );
 
   it.live(
-    "reports the last run's findings of a file as it stands, and the store's for a file changed since, a rule of other words or selector, other item code, or a run past the store's age",
+    "reports the last run's findings of a file as it stands, and the store's for a file changed since, a rule of other words or selector, other item code, a run of another store, or a run past the store's age",
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
@@ -176,8 +176,9 @@ describe('the judged plugin', () => {
         const today = dayOf(yield* Clock.currentTimeMillis);
         const findings = (
           signature: string,
-          made: { readonly day: number; readonly makers: string } = {
+          made: { readonly day: number; readonly store: string; readonly makers: string } = {
             day: today,
+            store: 'kept.json',
             makers: makersHash(),
           },
         ) =>
@@ -211,9 +212,20 @@ describe('the judged plugin', () => {
           ruleSignature('typesafe/jev-1.13.0', { ...historyComment, selector: 'functions' }),
         );
         expect((yield* oxlint(dir)).lines).toEqual(fromStore);
-        yield* findings(signature, { day: today, makers: textHash('other item code') });
+        yield* findings(signature, {
+          day: today,
+          store: 'kept.json',
+          makers: textHash('other item code'),
+        });
         expect((yield* oxlint(dir)).lines).toEqual(fromStore);
-        yield* findings(signature, { day: today - MAX_AGE_DAYS - 1, makers: makersHash() });
+        // A run of another store found what that store kept, not what this one does.
+        yield* findings(signature, { day: today, store: 'old.json', makers: makersHash() });
+        expect((yield* oxlint(dir)).lines).toEqual(fromStore);
+        yield* findings(signature, {
+          day: today - MAX_AGE_DAYS - 1,
+          store: 'kept.json',
+          makers: makersHash(),
+        });
         expect((yield* oxlint(dir)).lines).toEqual(fromStore);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     SPAWNS_MS,
