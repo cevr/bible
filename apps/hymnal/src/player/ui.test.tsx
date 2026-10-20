@@ -6,13 +6,14 @@
 
 import { RegistryContext } from '@effect/atom-react';
 import { describe, expect, it } from 'effect-bun-test';
-import { Duration, Effect, Option, Stream } from 'effect';
+import { Array as Arr, Duration, Effect, Match, Option, Stream } from 'effect';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { hymnAt } from '~/hymns/hymns';
 import { audioUrl } from '~/remote';
+import { theme } from '~/theme';
 
 import { fakeDevice } from '../test/device';
 import { opened } from '../test/one';
@@ -49,6 +50,120 @@ const release = (bar: HTMLInputElement) => {
   bar.dispatchEvent(new Event('change', { bubbles: true }));
 };
 const praise = Option.getOrThrow(hymnAt('1'));
+
+const schemes = ['light', 'dark'] as const;
+
+/**
+ * The page's roles as `scheme` gives them (`color.ts` writes each as a
+ * `light-dark()` of the two, which the test's document does not resolve);
+ * they go when the `using` ends.
+ */
+const showing = (scheme: (typeof schemes)[number]) => {
+  const style = document.createElement('style');
+  style.textContent = `:root { ${Object.entries(theme[scheme])
+    .map(([role, value]) => `--${role}: ${value};`)
+    .join(' ')} }`;
+  document.head.append(style);
+  return { [Symbol.dispose]: () => style.remove() };
+};
+
+/** A CSS colour (`#rgb`, `#rrggbb`, `rgb()` or `rgba()`) as its red, green and blue. */
+const rgbOf = (css: string): string => {
+  const text = css.trim().toLowerCase();
+  const hex = (digits: string) =>
+    Match.value(digits.length).pipe(
+      Match.when(3, () => [...digits].map((digit) => Number.parseInt(digit.repeat(2), 16))),
+      Match.orElse(() => [0, 2, 4].map((at) => Number.parseInt(digits.slice(at, at + 2), 16))),
+    );
+  return Option.fromNullishOr(/^#([0-9a-f]{3}|[0-9a-f]{6})$/.exec(text)?.[1]).pipe(
+    Option.map(hex),
+    Option.orElse(() =>
+      Option.map(Option.fromNullishOr(/^rgba?\(([^)]*)\)$/.exec(text)?.[1]), (channels) =>
+        channels
+          .split(/[\s,/]+/)
+          .slice(0, 3)
+          .map(Number),
+      ),
+    ),
+    Option.map((channels) => `rgb(${channels.join(', ')})`),
+    Option.getOrThrowWith(() => `not a colour: ${css}`),
+  );
+};
+
+/** `text` split at its commas outside parentheses. */
+const topLevel = (text: string) => {
+  const parts = [''];
+  let depth = 0;
+  for (const char of text) {
+    depth += Match.value(char).pipe(
+      Match.when('(', () => 1),
+      Match.when(')', () => -1),
+      Match.orElse(() => 0),
+    );
+    if (char === ',' && depth === 0) parts.push('');
+    else parts.push(`${parts.pop()}${char}`);
+  }
+  return parts.map((part) => part.trim());
+};
+
+/** A gradient's direction (`to right` or `90deg`) in degrees. */
+const degrees = (direction: string) =>
+  Match.value(direction).pipe(
+    Match.when('top', () => 0),
+    Match.when('right', () => 90),
+    Match.when('bottom', () => 180),
+    Match.when('left', () => 270),
+    Match.orElse(Number),
+  );
+
+/**
+ * A `linear-gradient()` as drawn: its angle, and the colour at each share
+ * of its length (0 to 100), or `blend` where two colours meet over a span.
+ * Each stop takes its positions in percent; a stop with none sits at the
+ * start (the first) or the end (the last).
+ */
+const gradientOf = (css: string) => {
+  const inner = Option.getOrThrow(
+    Option.fromNullishOr(/^linear-gradient\((.*)\)$/.exec(css.trim())?.[1]),
+  );
+  const [head = '', ...rest] = topLevel(inner);
+  const turned = Option.fromNullishOr(
+    /^to (\w+)$/.exec(head)?.[1] ?? /^(-?[\d.]+)deg$/.exec(head)?.[1],
+  );
+  const angle = Option.match(turned, { onNone: () => 180, onSome: degrees });
+  const listed = Option.match(turned, { onNone: () => [head, ...rest], onSome: () => rest });
+  const stops = listed.flatMap((stop, index) => {
+    const [colour = '', ...at] = topLevel(stop.replace(/\s+(?=-?[\d.]+%)/g, ','));
+    const places = Match.value(at.length).pipe(
+      Match.when(0, () => [Math.min(index, 1) * 100]),
+      Match.orElse(() => at.map(Number.parseFloat)),
+    );
+    return places.map((place) => ({ colour: rgbOf(colour), place }));
+  });
+  const at = (share: number) => {
+    const before = Arr.findLast(stops, (stop) => stop.place < share);
+    const after = Arr.findFirst(stops, (stop) => stop.place > share);
+    return Option.getOrThrow(
+      Option.firstSomeOf([
+        Option.map(
+          Arr.findFirst(stops, (stop) => stop.place === share),
+          (stop) => stop.colour,
+        ),
+        Option.zipWith(before, after, (from, to) =>
+          Match.value(from.colour === to.colour).pipe(
+            Match.when(true, () => from.colour),
+            Match.orElse(() => 'blend'),
+          ),
+        ),
+        Option.map(
+          Option.orElse(before, () => after),
+          (stop) => stop.colour,
+        ),
+      ]),
+    );
+  };
+  return { angle, at };
+};
 
 /**
  * The bar and hymn `shown`'s control over a fresh player, mounted in the
@@ -340,10 +455,10 @@ describe('the hymn page’s recording control', () => {
         );
       }),
   );
-  it.live('draws Play and Pause in the text on the accent, on an accent fill', () =>
+  it.live('draws Play and Pause in the text on the accent, on an accent fill, in each scheme', () =>
     Effect.gen(function* () {
       using page = mount();
-      /** The button's fill and its title's colour, as the page writes them (inline: each follows the scheme). */
+      /** The button's fill and its title's colour, as the document computes them. */
       const drawn = (label: string) => {
         const button = Option.getOrThrow(
           Option.filter(
@@ -351,32 +466,51 @@ describe('the hymn page’s recording control', () => {
             (found): found is HTMLElement => found instanceof HTMLElement,
           ),
         );
-        const title = Option.getOrThrow(
-          Option.filter(
-            Option.fromNullishOr(button.firstElementChild),
-            (found): found is HTMLElement => found instanceof HTMLElement,
-          ),
-        );
-        return { fill: button.style.backgroundColor, title: title.style.color };
+        const title = Option.getOrThrow(Option.fromNullishOr(button.firstElementChild));
+        return {
+          fill: rgbOf(getComputedStyle(button).backgroundColor),
+          title: rgbOf(getComputedStyle(title).color),
+        };
       };
-      const expected = { fill: 'var(--accent)', title: 'var(--onAccent)' };
-      expect(drawn('Play hymn 100')).toEqual(expected);
+      const each = (label: string) => {
+        for (const scheme of schemes) {
+          using _ = showing(scheme);
+          expect(drawn(label)).toEqual({
+            fill: rgbOf(theme[scheme].accent),
+            title: rgbOf(theme[scheme].onAccent),
+          });
+        }
+      };
+      each('Play hymn 100');
       page.press('Play hymn 100');
       page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
       yield* page.until(Player.$is('Playing'));
-      expect(drawn('Pause hymn 100')).toEqual(expected);
+      each('Pause hymn 100');
     }),
   );
 
-  it.live('draws the part played in the accent and the rest in the line role', () =>
+  it.live('draws the part played in the accent and the rest in the line role, in each scheme', () =>
     Effect.gen(function* () {
       using page = mount();
       page.press('Play hymn 100');
       page.device.now = { state: 'playing', positionMs: 75_000, durationMs: 150_000 };
       yield* page.until(Player.$is('Playing'));
-      expect(page.bar().style.backgroundImage).toBe(
-        'linear-gradient(to right, var(--accent) 50%, var(--line) 50%)',
-      );
+      for (const scheme of schemes) {
+        using _ = showing(scheme);
+        const track = gradientOf(getComputedStyle(page.bar()).backgroundImage);
+        const accent = rgbOf(theme[scheme].accent);
+        const line = rgbOf(theme[scheme].line);
+        // Left to right, at shares of the bar; the place played is half the length.
+        expect(track.angle).toBe(90);
+        expect([0, 25, 49, 51, 75, 100].map(track.at)).toEqual([
+          accent,
+          accent,
+          accent,
+          line,
+          line,
+          line,
+        ]);
+      }
     }),
   );
 });
