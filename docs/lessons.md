@@ -793,3 +793,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check read a `testIgnore` from a comment, or from an object the config does not export, as the config's own, and read a config that spreads another object into its export as if the spread set nothing.
 - **Cause:** The reader matched the config's text with regexes, which cannot tell a setting of the exported object from any other text.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### reach-respects-git-ignore
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check accepts specs excluded by Playwright's Git ignore policy"
+- **Source:** p6-guardloop/review-7.md F1
+- **Wrong:** The reach check called reached a tracked spec that git's ignore rules name, though playwright skips it when its config sets `respectGitIgnore: true` or sets neither it nor `testDir`.
+- **Cause:** The reader took the config's `testDir`, `testMatch` and `testIgnore` for all of playwright's file selection, and did not read `respectGitIgnore` or know which tracked files git ignores.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
