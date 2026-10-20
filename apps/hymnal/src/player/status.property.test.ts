@@ -3,7 +3,8 @@
  * device's playback as One's `Audio` gives it, on a network that loads the
  * recording at once, at Chrome's "Slow 4G" or at its "3G" (latency and
  * throughput), on the test's clock. Each answer of the device reaches the
- * app a turn later, as a promise's does.
+ * app `hop` later, never in the turn that asked: an element's promise
+ * settles in a later task, and a native call crosses to the main thread.
  * - The web (`HTMLAudioElement`): `play()` and `resume()` wait until the
  *   element plays, `seek` waits for `seeked`, and a status read says
  *   `loading` while the element holds too little at its place, paused or
@@ -73,6 +74,13 @@ const networks: ReadonlyArray<Network> = [
   { name: 'Slow 4G', latency: 562, rate: 180_000 / bytesPerSecond / 1000 },
   { name: '3G', latency: 2000, rate: 50_000 / bytesPerSecond / 1000 },
 ];
+
+/**
+ * How long a device's answer takes to reach the app. The atoms' fibers run
+ * the turn a command is sent until they wait on the clock, so an answer that
+ * only yielded would reach the page before the reader's press returned.
+ */
+const hop = Duration.millis(1);
 
 /** The recording's length in seconds. */
 const length = 240;
@@ -189,8 +197,8 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
       ...(known && { durationMs: length * 1000 }),
     };
   };
-  /** The device's answer reaches the app a turn later, as a promise's does (a native call crosses to the main thread). */
-  const answer = <A, E>(reply: Effect.Effect<A, E>) => Effect.andThen(Effect.yieldNow, reply);
+  /** The device's answer reaches the app `hop` after the ask. */
+  const answer = <A, E>(reply: Effect.Effect<A, E>) => Effect.andThen(Effect.sleep(hop), reply);
   const refused = (operation: string) =>
     answer(Effect.fail(PlaybackError.make({ operation, message: `${operation}: not ready` })));
   /** Sleeps until `t` (ms), or a second at most: the requests may change meanwhile. */
