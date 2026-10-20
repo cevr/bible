@@ -11,7 +11,7 @@ import { Tool } from 'effect/ai';
 import { pageHref, reviewFileUrl } from '../core/api.ts';
 import { Catalogue, Render } from '../core/catalogue.ts';
 import { LabLinks, linksAt } from '../core/lab-events.ts';
-import { setNamed } from '../core/production.ts';
+import { ProductionId, VersionNumber, setNamed } from '../core/production.ts';
 import { ReviewManifest, ReviewManifestJson } from '../core/review.ts';
 import { repoJson } from '../core/schema.ts';
 import { Segment } from '../core/segment.ts';
@@ -20,6 +20,7 @@ import { ContentStore, type Manifest, writeWholeWith } from './content-store.ts'
 import { FilmFolder, filmNamed, filmsOut } from './film-repo.ts';
 import { LabAddress, labCommand } from './lab-command.ts';
 import { LabRefused, inside, refused } from './lab-mcp-parts.ts';
+import { ProductionStore, type Stamp, stampedManifest } from './production-store.ts';
 import { Review, filesInMontage, namesInMontage, pathOf, recordsUnder, refOf } from './review.ts';
 
 // ---------------------------------------------------------------------------
@@ -72,9 +73,22 @@ const SetFile = Schema.Struct({
 /**
  * What a publish says of the manifest, as `review.json` writes it: each key
  * given replaces the one there; one left out is kept, a key this lab does
- * not know too. The whole is checked as the review reads it.
+ * not know too. The whole is checked as the review reads it. The production
+ * and its version stamp the set as `film publish` does (`stampedManifest`).
  */
 const ManifestPatch = Schema.Struct({
+  production: Schema.optionalKey(
+    ProductionId.annotate({
+      description:
+        "The production whose timeline the set lands on (a film's, or a track such as `look`): it must keep a ledger. The set is stamped published now, as `film publish` stamps it.",
+    }),
+  ),
+  version: Schema.optionalKey(
+    VersionNumber.annotate({
+      description:
+        "The production's version the set was made for, given with `production`; the version open now when left out.",
+    }),
+  ),
   title: Schema.optionalKey(Schema.String),
   blurb: Schema.optionalKey(Schema.String),
   docs: Schema.optionalKey(Schema.Array(Schema.String)),
@@ -119,7 +133,7 @@ const CatalogueTool = Tool.make('catalogue', {
   failure: LabRefused,
 }).annotate(Tool.Readonly, true);
 
-const Sets = Tool.make('sets', {
+export const SetsTool = Tool.make('sets', {
   description:
     'Every set the lab lists, by ref, as the review lists them (a folder with something to review: a set published with no file in it waits until one lands): montages (a `review.json`) and project folders (a `catalogue.json`), each with its title, lab link and folder.',
   success: Schema.Struct({ sets: Schema.Array(SetRead) }),
@@ -169,6 +183,7 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* () {
   const review = yield* Review;
   const store = yield* ContentStore;
   const catalogues = yield* RenderCatalogue;
+  const productions = yield* ProductionStore;
   const films = yield* Effect.context<FilmFolder>();
   const platform = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
   const out = yield* refused(filmsOut);
@@ -273,6 +288,36 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* () {
     };
   });
 
+  /** The stamp a publish naming a production puts on its set: the production's ledger kept, the version one it opened. */
+  const stampOf = (patch: typeof ManifestPatch.Type) =>
+    Effect.gen(function* () {
+      const version = Option.fromUndefinedOr(patch.version);
+      const named = Option.fromUndefinedOr(patch.production);
+      if (Option.isNone(named)) {
+        if (Option.isNone(version)) return Option.none<Stamp>();
+        return yield* LabRefused.make({
+          reason: 'a version names one of the production given with it: give `production` too',
+        });
+      }
+      const production = named.value;
+      const ledger = yield* refused(productions.read(production));
+      if (Option.isNone(ledger))
+        return yield* LabRefused.make({
+          reason: `production ${production} keeps no ledger: start it (\`film production new ${production}\`), or name one \`film production list\` lists`,
+        });
+      const opened = ledger.value.versions.length;
+      const unopened = Option.filter(version, (n) => n > opened);
+      if (Option.isSome(unopened))
+        return yield* LabRefused.make({
+          reason: `production ${production} has no version ${unopened.value}; it has opened 1 to ${opened}`,
+        });
+      return Option.some<Stamp>({
+        production,
+        version,
+        published: yield* Clock.currentTimeMillis,
+      });
+    });
+
   // A write drops the review's index (`written`), refused or not, so its next read sees the folder as it is.
   const publishSet = Effect.fn('LabMcp.publishSet')(function* (
     name: string,
@@ -315,11 +360,17 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* () {
         return { from: f.from, to };
       }),
     );
+    // The production named, and its version, judged before anything is written: a set stamped onto no timeline is lost to it.
+    const stamp = yield* stampOf(patch);
     // The manifest and every name in it judged before a file is copied: a refused publish writes nothing.
     const written = yield* refused(
       store.transact(manifestAt(dir), (current) =>
         Effect.gen(function* () {
-          const next = { ...current, ...patch };
+          const given = { ...current, ...patch };
+          const next = Option.match(stamp, {
+            onNone: () => given,
+            onSome: (at) => stampedManifest(given, at),
+          });
           const manifest = yield* Schema.decodeUnknownEffect(ReviewManifest)(next).pipe(
             Effect.mapError((e) => LabRefused.make({ reason: `review.json: ${e.message}` })),
           );
@@ -426,7 +477,7 @@ export const setsCommands = [
         l.catalogueOf(Option.fromUndefinedOr(film), Option.fromUndefinedOr(set)),
       ),
   }),
-  labCommand(Sets, {
+  labCommand(SetsTool, {
     run: () => Effect.flatMap(lab, (l) => Effect.map(l.sets, (sets) => ({ sets }))),
   }),
   labCommand(SetTool, { run: ({ set }) => Effect.flatMap(lab, (l) => l.setOf(set)) }),

@@ -16,11 +16,26 @@
 //       file a set published before sets named their production
 //   film publish <folder> --production <production> [--version <n>]
 //       stamp a set's review.json with its production, version and the time
-//       now, so it lands on that production's timeline; the folder must be
-//       one the lab reads (under a review root)
+//       now, so it lands on that production's timeline; then say whether the
+//       running lab (FILM_LAB_URL) lists the set, as that lab answers it: the
+//       lab's own review roots decide, never this checkout's
 
 import { Argument, Command, Flag } from 'effect/cli';
-import { Clock, Console, DateTime, Effect, Match, Option, Path, Result, Schema } from 'effect';
+import {
+  Array as Arr,
+  Clock,
+  Console,
+  Data,
+  DateTime,
+  Effect,
+  FileSystem,
+  Match,
+  Option,
+  Path,
+  Result,
+  Schema,
+} from 'effect';
+import { FetchHttpClient } from 'effect/http';
 import {
   type ProductionFile,
   ProductionId,
@@ -29,7 +44,8 @@ import {
   versionAt,
 } from '../core/production.ts';
 import { ProductionStore } from './production-store.ts';
-import { Review, refOf } from './review.ts';
+import { labClient, labUrl } from './lab-client.ts';
+import { SetsTool } from './sets-mcp.ts';
 
 /** A name that is not a production's (lower case, digits and `-`). */
 class ProductionNameInvalid extends Schema.TaggedError<ProductionNameInvalid>()(
@@ -202,6 +218,43 @@ export const production = Command.make('production').pipe(
   Command.withSubcommands([list, show, create, file]),
 );
 
+/** What the running lab says of a set's folder: listed (its ref and link), not listed, or nothing it could say. */
+type Listing = Data.TaggedEnum<{
+  Listed: { readonly ref: string; readonly link: string };
+  Unlisted: {};
+  Unknown: { readonly reason: string };
+}>;
+const Listing = Data.taggedEnum<Listing>();
+
+/**
+ * Whether the lab at `url` lists the set in `folder`, asked of the lab
+ * itself (its `sets`, its index read fresh): the lab reads its own review
+ * roots, which a command run from another checkout (a worktree) does not
+ * share. A lab that does not answer, or answers in a shape this checkout
+ * does not read, leaves it unknown: the publish has landed either way.
+ */
+const listedByLab = (url: string, folder: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const real = (at: string) => fs.realPath(at).pipe(Effect.orElseSucceed(() => at));
+    const at = yield* real(folder);
+    const client = yield* labClient(url);
+    const { sets } = yield* Effect.scoped(
+      Effect.flatMap(client.session, (session) => client.call(session, SetsTool, {})),
+    );
+    const dirs = yield* Effect.forEach(sets, (set) => real(set.dir));
+    return Option.match(
+      Option.flatMap(
+        Arr.findFirstIndex(dirs, (dir) => dir === at),
+        (i) => Arr.get(sets, i),
+      ),
+      {
+        onNone: () => Listing.Unlisted(),
+        onSome: (set) => Listing.Listed({ ref: set.set, link: set.links.local }),
+      },
+    );
+  }).pipe(Effect.catch((error) => Effect.succeed(Listing.Unknown({ reason: error.message }))));
+
 export const publish = Command.make(
   'publish',
   {
@@ -222,18 +275,21 @@ export const publish = Command.make(
     const folder = path.resolve(input.folder);
     const published = yield* Clock.currentTimeMillis;
     yield* (yield* ProductionStore).publish(folder, id, input.version, published);
-    const ref = refOf((yield* Review).roots, folder, path);
+    const url = yield* labUrl;
+    const landed = `to ${id} at ${iso(published)}`;
     yield* Console.log(
-      Option.match(ref, {
-        onNone: () =>
-          `published ${folder} to ${id} at ${iso(published)}; no review root holds it, so the lab will not list it`,
-        onSome: (r) =>
-          `published ${r} to ${id} at ${iso(published)}  /sets/${encodeURIComponent(r)}`,
+      Listing.$match(yield* listedByLab(url, folder), {
+        Listed: ({ ref, link }) => `published ${ref} ${landed}  ${link}`,
+        Unlisted: () =>
+          `published ${folder} ${landed}; the lab at ${url} does not list it: it lists the folders under its own review roots that hold something to review`,
+        Unknown: ({ reason }) =>
+          `published ${folder} ${landed}; whether the lab at ${url} lists it is unknown (${reason})`,
       }),
     );
   }),
 ).pipe(
   Command.withDescription(
-    "Publish a review set onto a production's timeline: its review.json names the production, the version and when",
+    "Publish a review set onto a production's timeline: its review.json names the production, the version and when; then say whether the running lab (FILM_LAB_URL) lists it",
   ),
+  Command.provide(FetchHttpClient.layer),
 );

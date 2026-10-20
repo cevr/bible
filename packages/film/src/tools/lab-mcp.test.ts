@@ -55,7 +55,7 @@ import { Segment } from '../core/segment.ts';
 import { currentOf, moveForward, productionsOf } from '../core/production.ts';
 import type { ContentStore } from './content-store.ts';
 import { RenderCatalogue } from './catalogue.ts';
-import { production } from './production-cli.ts';
+import { production, publish } from './production-cli.ts';
 import { ProductionStore } from './production-store.ts';
 import { labSubcommands } from './events-cli.ts';
 import { channel } from './lab-channel.ts';
@@ -994,10 +994,11 @@ describe('asks through the MCP', () => {
   );
 });
 
-/** `film production`, `film lab <command>` and `film lab events` as the CLI serves them, this checkout's films folder `/films`. */
+/** `film production`, `film publish`, `film lab <command>` and `film lab events` as the CLI serves them, this checkout's films folder `/films`. */
 const filmCommand = Command.make('film').pipe(
   Command.withSubcommands([
     production,
+    publish,
     Command.make('lab').pipe(Command.withSubcommands(labSubcommands('/films'))),
   ]),
 );
@@ -1793,6 +1794,118 @@ describe('film lab ask', () => {
           expect(down.ok).toBe(false);
           expect(down.failed).toMatch(
             /^LabUnanswered: no lab answered at http:\/\/localhost:4401\/ \(.*\): start one \(from apps\/animations: bun run lab, or LAB_PORT=<port> bun cli\.ts lab\) and point FILM_LAB_URL at it$/,
+          );
+        }),
+      ),
+  );
+});
+
+/** The stamp a publish leaves on a set's review.json. */
+const Stamped = Schema.Struct({
+  production: Schema.optionalKey(Schema.String),
+  version: Schema.optionalKey(Schema.Int),
+  published: Schema.optionalKey(Schema.Finite),
+});
+const StampedJson = Schema.fromJsonString(Stamped);
+
+describe('a set published onto a production through the MCP', () => {
+  it.effect(
+    "lands on the production's timeline, stamped as film publish stamps it; an unknown production or version is refused",
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const { lab } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          yield* (yield* ProductionStore).start('f', {
+            title: 'F',
+            film: Option.some('f'),
+            blurb: Option.none(),
+            first: 'the board',
+            at: 1,
+          });
+          yield* TestClock.adjust('5 seconds');
+          const files = [{ from: '/work/judge-calmer.png', to: 'calmer.png' }];
+          const manifest = { title: 'Judge faces', images: ['calmer.png'] };
+          const publish = (patch: Schema.Json) =>
+            tool('publish_set', { name: 'judge-faces', files, manifest: patch });
+          const review = path.join(path.resolve('out'), 'judge-faces', 'review.json');
+          const stamped = Effect.flatMap(
+            fs.readFileString(review),
+            Schema.decodeEffect(StampedJson),
+          );
+          yield* publish({ ...manifest, production: 'f', version: 1 });
+          expect(yield* stamped).toStrictEqual({ production: 'f', version: 1, published: 5000 });
+          // A publish naming no version drops the one before: the set falls in the version open now.
+          yield* publish({ production: 'f' });
+          expect(yield* stamped).toStrictEqual({ production: 'f', published: 5000 });
+          const folders = (yield* (yield* Review).index(true)).folders;
+          const ledger = Option.getOrThrow(yield* (yield* ProductionStore).read('f'));
+          const entries = productionsOf([ledger], folders).flatMap((h) => currentOf(h).entries);
+          expect(entries.flatMap((e) => (e._tag === 'Published' && [e.folder.ref]) || [])).toEqual([
+            'spare/judge-faces',
+          ]);
+          for (const [patch, reason] of [
+            [{ production: 'nope' }, 'production nope keeps no ledger'],
+            [{ production: 'f', version: 3 }, 'production f has no version 3'],
+            [{ version: 1 }, 'give `production` too'],
+          ] as const) {
+            expect((yield* publish(patch)).refused).toContain(reason);
+          }
+          expect(yield* stamped).toStrictEqual({ production: 'f', published: 5000 });
+        }),
+      ),
+  );
+});
+
+describe('film publish', () => {
+  it.effect(
+    'says whether the running lab lists the set, as the lab answers it, and never claims what no lab said',
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const { lab } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          yield* productionWithSet(tool);
+          const fetch = (request: Request) => lab(request, mcpBound);
+          const listed = yield* filmCli(fetch, [
+            'publish',
+            path.join(path.resolve('out'), 'judge-faces'),
+            '--production',
+            'f',
+          ]);
+          expect(listed.failed).toBe('');
+          expect(listed.lines).toEqual([
+            expect.stringMatching(
+              /^published spare\/judge-faces to f at \S+ {2}http:\/\/localhost:4401\/sets\/spare%2Fjudge-faces$/,
+            ),
+          ]);
+          // A folder no root of the lab's holds: the lab says so.
+          yield* fs.makeDirectory('/work/loose', { recursive: true });
+          yield* fs.writeFileString('/work/loose/review.json', '{}\n');
+          const loose = yield* filmCli(fetch, ['publish', '/work/loose', '--production', 'f']);
+          expect(loose.lines).toEqual([
+            expect.stringMatching(
+              /^published \/work\/loose to f at \S+; the lab at http:\/\/localhost:4401\/ does not list it: /,
+            ),
+          ]);
+          // No lab answering: the set is published, and whether a lab lists it is unknown.
+          const alone = yield* filmCli(
+            // oxlint-disable-next-line effect/noNewPromise, effect/noNewError -- fetch's own contract: a closed port rejects with a TypeError
+            () => Promise.reject(new TypeError('Unable to connect')),
+            ['publish', '/work/loose', '--production', 'f'],
+          );
+          expect(alone.failed).toBe('');
+          expect(alone.lines).toEqual([
+            expect.stringMatching(
+              /^published \/work\/loose to f at \S+; whether the lab at http:\/\/localhost:4401\/ lists it is unknown \(no lab answered at /,
+            ),
+          ]);
+          expect(yield* fs.readFileString('/work/loose/review.json')).toContain(
+            '"production": "f"',
           );
         }),
       ),

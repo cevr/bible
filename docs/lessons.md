@@ -228,6 +228,26 @@ The form of an entry, each field on its own line:
 - **Cause:** It wrote `JSON.stringify` with two spaces, and the formatter sets a short array on one line.
 - **Guard:** code: `packages/film/src/core/schema.test.ts` `writes back every committed cast record and production byte for byte`
 
+### publish-set-keeps-production
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "publish_set drops the production keys"
+- **Source:** p6-casttools/findings.md F5
+- **Wrong:** The lab MCP's `publish_set` stripped `production` and `version` from its manifest, so the set landed on no production's timeline.
+- **Cause:** Its manifest patch is a `Schema.Struct` with no `production` or `version`, and a struct's decode drops the keys it does not name.
+- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `lands on the production's timeline, stamped as film publish stamps it`
+
+### film-publish-asks-the-lab
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "film publish says the lab will not list a set it lists"
+- **Source:** p6-casttools/findings.md F6
+- **Wrong:** Run from a worktree, `film publish` said the lab would not list a set that the lab lists.
+- **Cause:** It judged the set by the command's own review roots, and a worktree's roots leave out the main checkout the lab serves.
+- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `says whether the running lab lists the set, as the lab answers it, and never claims what no lab said`
+
 ## The look
 
 ### floating-circle-hands-no-arms

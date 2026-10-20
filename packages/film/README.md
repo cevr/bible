@@ -3157,7 +3157,8 @@ own names, and the stored and wire words stay as they are.
   leads with the film's board as a stage, one line linked to the Board
   (`Board · 24 panels, 20 kept · 5 of 8 beats approved ›`, `boardStageOf`,
   read from `GET /api/films/<film>/board`). A set lands on a
-  timeline when its `review.json` names the production (`film publish`); an
+  timeline when its `review.json` names the production (`film publish`, or
+  `publish_set` given `production` and `version`); an
   older set is filed by hand (`film production file`). The front door lists
   the productions first (a production that makes one of the app's films is
   that film's only card: under its head, the film's state and its **Studio**

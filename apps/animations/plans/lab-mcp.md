@@ -92,8 +92,9 @@ when `FILM_LAB_HOSTS` names one).
 Resources: `lab://overview`, `lab://changes` (the last 50), `lab://films/{film}/notes`, `lab://films/{film}/board`.
 Prompt: `inbox` (every waiting note across the films, and how to work them).
 
-`publish_set` merges at the JSON level, so keys it does not know (the timeline's `production`, `version`,
-`published`) stay as they were.
+`publish_set` merges at the JSON level, so keys it does not know stay as they were. Given `production` (and
+`version`), it stamps the set onto that production's timeline as `film publish` does (`stampedManifest`): the
+production must keep a ledger, the version must be one it opened, and `published` is the time now.
 
 ## The easel's tools
 
@@ -620,8 +621,7 @@ record of versions and of what waits on the owner; asks file onto it rather than
   one as the reason (`forwardOnDecision`). A stale `after` is refused first (`VersionMoved`); a version with no decision of his is refused (`Undecided`), and a `decision` it does not
   hold, naming those it holds (`DecisionUnknown`). The decision stays his; the tool only carries it out
   (HARNESS6-7).
-- Not built: `publish_set` taking `production`/`version` (calling `ProductionStore.publish`), resources over the
-  ledgers, and `production.*` feed kinds.
+- Not built: resources over the ledgers.
 
 ## Choices the owner may want to change
 

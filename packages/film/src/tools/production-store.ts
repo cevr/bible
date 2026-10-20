@@ -255,31 +255,43 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
 /** A manifest as JSON, every field kept: `publish` stamps three and leaves the rest as written. */
 const ManifestJson = repoJson(Schema.JsonObject);
 
-/** What `publish` writes on a set: the production it lands on, the version it names (if any), when. */
-interface Stamp {
+/** What a publish writes on a set: the production it lands on, the version it names (if any), when. */
+export interface Stamp {
   readonly production: ProductionId;
   readonly version: Option.Option<number>;
   readonly published: number;
 }
 
 /**
- * A manifest's text (`review.json` at `file`) stamped with `stamp`, every
- * other field as written; a version stamped before and none now is dropped.
- * Refused (FileInvalid) when the text is no manifest, or the stamp would
- * make it none.
+ * A manifest's keys stamped with `stamp`, every other key as given; a
+ * version stamped before and none now is dropped, so the set falls in the
+ * version open when it was published. `film publish` and the lab's
+ * `publish_set` stamp a set by it alike.
+ */
+export const stampedManifest = <J extends Readonly<Record<string, Schema.Json>>>(
+  json: J,
+  stamp: Stamp,
+) => {
+  const { version: _was, ...rest } = json;
+  return {
+    ...rest,
+    production: stamp.production,
+    ...Option.match(stamp.version, { onNone: () => ({}), onSome: (version) => ({ version }) }),
+    published: stamp.published,
+  };
+};
+
+/**
+ * A manifest's text (`review.json` at `file`) stamped with `stamp`
+ * (`stampedManifest`). Refused (FileInvalid) when the text is no manifest,
+ * or the stamp would make it none.
  */
 const stampManifest = (file: string, text: string, stamp: Stamp) =>
   Effect.gen(function* () {
     const invalid = (issue: Schema.SchemaError) =>
       FileInvalid.make({ file, reason: issue.message });
     const json = yield* Schema.decodeEffect(ManifestJson)(text).pipe(Effect.mapError(invalid));
-    const { version: _was, ...rest } = json;
-    const stamped = {
-      ...rest,
-      production: stamp.production,
-      ...Option.match(stamp.version, { onNone: () => ({}), onSome: (version) => ({ version }) }),
-      published: stamp.published,
-    };
+    const stamped = stampedManifest(json, stamp);
     yield* Schema.decodeEffect(ReviewManifest)(stamped).pipe(Effect.mapError(invalid));
     return yield* Schema.encodeEffect(ManifestJson)(stamped).pipe(Effect.mapError(invalid));
   });

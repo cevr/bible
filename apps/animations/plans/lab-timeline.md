@@ -107,7 +107,7 @@ bun run lab ask --production righteousness-by-faith --title "Punchy subtitles or
 bun run lab forward --production look --after 5 --title "One Line" --decision <the decision's at>
 ```
 
-`film publish` stamps the set's `review.json` (every other field kept) and prints its `/sets/` link. A unit
+`film publish` stamps the set's `review.json` (every other field kept), then asks the running lab (`FILM_LAB_URL`) whether it lists the set and prints the lab's link when it does; the lab's own review roots decide, so a worktree's command never guesses from its own. A unit
 working in its own worktree needs no ledger to publish: the set names its production and lands by time. An
 agent that records the owner's word from chat uses `decide` or `note`, with the owner's verbatim words in
 `--quote` and its own name in `--by`; `--at` back-dates a word recorded late. Over the lab's MCP the same is
