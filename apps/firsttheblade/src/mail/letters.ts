@@ -9,7 +9,14 @@
  *
  * Links are built on `origin`, the site the request came to, so a copy on a
  * throwaway stage sends links to itself.
+ *
+ * Every letter's foot carries `POSTAL_ADDRESS` once there is one. There is
+ * none yet (owner, 2026-10-20): a letter that asks for support, such as a
+ * Patreon link, must carry one first, and `letters.test.ts` refuses a letter
+ * that mentions Patreon while it is none.
  */
+import { Option } from 'effect';
+
 import { CHANNEL } from '../site.ts';
 import { UNITS } from '../content.ts';
 import { PALETTE } from '../palette.ts';
@@ -48,7 +55,20 @@ const page = (title: string, body: string) =>
     '</div></body></html>',
   ].join('');
 
-const signOff = (origin: string) => [CHANNEL.name, origin.replace(/^https?:\/\//, '')];
+/** The channel's postal address (a P.O. box), at the foot of every letter once it is set. */
+export const POSTAL_ADDRESS: Option.Option<string> = Option.none();
+
+/** The foot's postal address in the HTML letter: a line of its own, or nothing. */
+const postalHtml = (postal: Option.Option<string>) =>
+  Option.toArray(postal)
+    .map((line) => `<br>${escape(line)}`)
+    .join('');
+
+const signOff = (origin: string, postal: Option.Option<string>) => [
+  CHANNEL.name,
+  origin.replace(/^https?:\/\//, ''),
+  ...Option.toArray(postal),
+];
 
 export const confirmLink = (origin: string, token: string) =>
   `${origin}/subscribe/confirm?token=${encodeURIComponent(token)}`;
@@ -57,13 +77,20 @@ export const unsubscribeLink = (origin: string, token: string) =>
   `${origin}/unsubscribe?token=${encodeURIComponent(token)}`;
 
 /** The letter that asks an address to confirm it wants the films. */
-export const confirmLetter = (to: Address, origin: string, token: string): Letter => {
+export const confirmLetter = (
+  to: Address,
+  origin: string,
+  token: string,
+  postal = POSTAL_ADDRESS,
+): Letter => {
   const href = confirmLink(origin, token);
   const subject = `Confirm your email for ${CHANNEL.name}`;
   const ask = `Someone, we hope you, asked for one email from ${CHANNEL.name} each time a new film is out. To confirm, open this link:`;
   const after =
     'The link works for seven days. If you did not ask, you need do nothing: no film will be sent to this address unless the link is opened.';
-  const text = ['Hello,', '', ask, '', href, '', after, '', ...signOff(origin), ''].join('\n');
+  const text = ['Hello,', '', ask, '', href, '', after, '', ...signOff(origin, postal), ''].join(
+    '\n',
+  );
   const html = page(
     subject,
     [
@@ -73,7 +100,7 @@ export const confirmLetter = (to: Address, origin: string, token: string): Lette
       ),
       button(href, 'Confirm my email'),
       para(after),
-      `<p style="margin:24px 0 0;color:${PALETTE.soft};">${escape(CHANNEL.name)}<br>${link(origin, signOff(origin)[1] ?? origin)}</p>`,
+      `<p style="margin:24px 0 0;color:${PALETTE.soft};">${escape(CHANNEL.name)}<br>${link(origin, signOff(origin, postal)[1] ?? origin)}${postalHtml(postal)}</p>`,
     ].join(''),
   );
   return { to, subject, text, html, headers: {} };
@@ -82,7 +109,13 @@ export const confirmLetter = (to: Address, origin: string, token: string): Lette
 const watchUrl = (film: Film) => `https://www.youtube.com/watch?v=${film.episode.youtubeId}`;
 
 /** The letter a film sends to each subscriber when it is out. */
-export const filmLetter = (to: Address, origin: string, film: Film, token: string): Letter => {
+export const filmLetter = (
+  to: Address,
+  origin: string,
+  film: Film,
+  token: string,
+  postal = POSTAL_ADDRESS,
+): Letter => {
   const { series, episode } = film;
   const unit = UNITS[series.form].one;
   const leave = unsubscribeLink(origin, token);
@@ -103,7 +136,7 @@ export const filmLetter = (to: Address, origin: string, film: Film, token: strin
     '',
     `The series: ${seriesUrl}`,
     '',
-    ...signOff(origin),
+    ...signOff(origin, postal),
     '',
     `${why} To leave the list: ${leave}`,
     '',
@@ -116,7 +149,7 @@ export const filmLetter = (to: Address, origin: string, film: Film, token: strin
       para(episode.summary),
       button(watchUrl(film), 'Watch it on YouTube'),
       `<p style="margin:0 0 16px;">The series: ${link(seriesUrl, series.name)}</p>`,
-      `<p style="margin:32px 0 0;font-size:14px;color:${PALETTE.soft};">${escape(why)} ${link(leave, 'Leave the list')}</p>`,
+      `<p style="margin:32px 0 0;font-size:14px;color:${PALETTE.soft};">${escape(why)} ${link(leave, 'Leave the list')}${postalHtml(postal)}</p>`,
     ].join(''),
   );
   return {

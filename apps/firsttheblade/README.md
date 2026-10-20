@@ -90,6 +90,11 @@ template editor and no analytics.
   the privacy page) is forwarded to the owner's inbox by Cloudflare Email
   Routing, which the prod stack sets up: Email Routing on the zone, the
   inbox as a destination, and one rule.
+- **No postal address yet** (owner, 2026-10-20). A letter that asks for
+  support is commercial email, which must carry one, so the P.O. box goes
+  into `POSTAL_ADDRESS` (`src/mail/letters.ts`) before the first letter
+  mentions Patreon: `src/mail/letters.test.ts` fails while any letter does
+  and none is set. Once set, it is at the foot of every letter.
   The routes are `src/mail/routes.ts`; the logs name ids and counts only
   (`[mail] <action> key=value`), never an address or a token.
 
