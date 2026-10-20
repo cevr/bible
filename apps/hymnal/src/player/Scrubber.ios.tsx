@@ -30,6 +30,8 @@ export function Scrubber(props: ScrubberProps) {
         Option.liftPredicate(scrub.max, (max) => max > 0),
         () => 1,
       )}
+      // A second a step. iOS 26 draws a stepped slider's ticks, a faint line
+      // under the bar; One's slider has no form without a step.
       step={1}
       disabled={scrub.still}
       swiftStyle={{ tint: accent }}
