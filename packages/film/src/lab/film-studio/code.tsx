@@ -35,7 +35,8 @@ import { stepRowsOf } from '../../core/scene-steps.ts';
 import { LabApi } from '../api.ts';
 import { hubKeys } from '../command/changes.ts';
 import { pressed } from '../pressed.ts';
-import { type FollowClock, useFollow } from '../follow.ts';
+import { type FollowClock, type Following, createFollowing, useFollow } from '../follow.ts';
+import { FollowButton } from '../follow-button.tsx';
 import { usePainted } from '../transcript/words.ts';
 import {
   type CodeClock,
@@ -176,8 +177,7 @@ const useSceneLight = (
 const Head = (props: {
   readonly code: SceneCode;
   readonly at: Option.Option<number>;
-  readonly following: boolean;
-  readonly follow: () => void;
+  readonly following: Following;
 }) => (
   <div class="st-code-head">
     <p class="st-code-where">
@@ -187,17 +187,7 @@ const Head = (props: {
         ...Option.toArray(Option.map(props.at, (T) => timecode(T))),
       ].join(' · ')}
     </p>
-    <Show when={!props.following}>
-      <button
-        type="button"
-        class="st-btn st-code-follow"
-        data-act="follow-code"
-        title="Scroll with the playhead"
-        onClick={() => props.follow()}
-      >
-        Follow
-      </button>
-    </Show>
+    <FollowButton following={props.following} />
   </div>
 );
 
@@ -336,14 +326,14 @@ const CodeView = (props: {
   /** Whether a tap on line `n` seeks: it reads or writes what the scene's clock plays, at any time. */
   const seeks = (n: number) => Option.exists(firings(), (f) => f.has(n));
   // Whether the view places its box: until a reader scrolls it; Play, Follow or a tap on a line gives it back.
-  const [following, setFollowing] = createSignal(true, { ownedWrite: true });
+  const following = createFollowing();
   /** Seek to where line `n` next fires, when it reads or writes the clock: the view follows it there. */
   const seekLine = (n: number) =>
     Option.map(untrack(props.light), (l) =>
       Option.map(
         Option.flatMap(untrack(firings), (f) => nextFiring(f, n, l.clock.t, l.clock.fps)),
         (at) => {
-          setFollowing(true);
+          following.resume();
           props.seek(l.start + at);
         },
       ),
@@ -353,7 +343,7 @@ const CodeView = (props: {
   const toMark = (name: string) =>
     Option.map(untrack(props.light), (l) =>
       Option.map(saidAt(l.clock.voice, name), (at) => {
-        setFollowing(true);
+        following.resume();
         props.seek(l.start + at + 0.5 / l.clock.fps);
       }),
     );
@@ -396,9 +386,7 @@ const CodeView = (props: {
             return { top: band + 2 * lh, bottom: 2 * lh };
           },
         }),
-      placing: following,
-      reader: () => setFollowing(false),
-      played: () => setFollowing(true),
+      following,
     },
     props.clock,
   );
@@ -437,8 +425,7 @@ const CodeView = (props: {
       <Head
         code={props.code}
         at={Option.map(props.light(), (l) => l.start + l.clock.t)}
-        following={following()}
-        follow={() => setFollowing(true)}
+        following={following}
       />
       <div
         class="st-code-scroll"

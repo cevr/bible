@@ -13,7 +13,8 @@
 // text seeks nothing. The Script
 // pane: closed at rest, S opens it on the beat at the playhead, Play lights a
 // line and the view follows it, a scrub lights the frame's lines, a tap on a
-// line seeks, a selection's inspector covers it and Escape shows it again,
+// line seeks, a reader's scroll shows Follow and a press on it gives the
+// box back, a selection's inspector covers it and Escape shows it again,
 // Escape and S close it, `?pane=script` holds it through Back; under a
 // selection S shows it, the selection let go, and Back gives the selection
 // back; on a phone a tap on the reading block's head opens it, and no Script
@@ -171,6 +172,16 @@ const inView = (n: number, scrolled: boolean) => `(() => {
   const b = box.getBoundingClientRect();
   const r = row.getBoundingClientRect();
   return r.top >= b.top && r.bottom <= b.bottom && (box.scrollTop > 0) === ${scrolled};
+})()`;
+
+/** Whether line `n` of the pane's code stands whole in its box, wherever the box is scrolled. */
+const inSight = (n: number) => `(() => {
+  const box = document.querySelector('${PANE} .st-code-scroll');
+  const row = box?.querySelector('[data-line="${n}"]');
+  if (!box || !row) return false;
+  const b = box.getBoundingClientRect();
+  const r = row.getBoundingClientRect();
+  return r.top >= b.top && r.bottom <= b.bottom;
 })()`;
 
 /**
@@ -536,6 +547,25 @@ describe("the studio's Script pane", () => {
         yield* textIs(page, `${PANE} .st-code-live`, FALL_PLAYS);
         yield* until(page, inView(FALL_READ_LINE, true));
         yield* evaluates(page, `new URLSearchParams(location.search).get('sel') ?? ''`, '');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a reader's scroll takes the box and shows Follow; a press on it gives the box back to the view",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* studioAt(DESK, middle('rise'), 'script');
+        yield* until(page, inSight(RISE_READ_LINE));
+        yield* countIs(page, `${PANE} [data-act="follow"]`, 0);
+        yield* page.evaluate(
+          `document.querySelector('${PANE} .st-code-scroll').scrollTo({ top: 10000, behavior: 'instant' })`,
+        );
+        yield* waitFor(page, `${PANE} .st-code-head [data-act="follow"]`);
+        yield* page.click(`${PANE} [data-act="follow"]`);
+        yield* countIs(page, `${PANE} [data-act="follow"]`, 0);
+        yield* until(page, inSight(RISE_READ_LINE));
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

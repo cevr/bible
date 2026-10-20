@@ -40,7 +40,8 @@ import type { Mark } from '../../core/delivery.ts';
 import { parse } from '../../core/narration.ts';
 import type { LabFailure } from '../api.ts';
 import { Target } from '../command/context-menu.tsx';
-import { type FollowClock, useFollow } from '../follow.ts';
+import { type FollowClock, type Following, createFollowing, useFollow } from '../follow.ts';
+import { FollowButton } from '../follow-button.tsx';
 import { pressed } from '../pressed.ts';
 import { BriefBox } from '../script/brief.tsx';
 import { scriptCommands } from '../script/commands.ts';
@@ -87,7 +88,7 @@ export const READER_CSS = `
 /* A brief behind its disclosure: one quiet line until asked. */
 .rd-brief { margin: 0 0 var(--s-2); color: var(--text-2); }
 .rd-brief > summary { min-height: var(--hit); display: flex; align-items: center; cursor: pointer; }
-.rd-follow { min-height: var(--hit); }
+.rd-head > .lab-follow { min-height: var(--hit); }
 `;
 
 /** A beat as the reader lays it out: its line's words (none for a beat that says nothing) and its marks. */
@@ -395,18 +396,13 @@ export interface ReaderPage {
   readonly noting: Noting;
 }
 
-/** Whether the reader keeps the playhead's beat in sight: until a hand scrolls it, then again on Follow or Play. */
-interface Following {
-  readonly on: Accessor<boolean>;
-  readonly resume: () => void;
-}
-
 /** The beats, the word heard lit, the words selected painted, and the playhead's beat followed. */
 const Beats = (props: {
   readonly page: ReaderPage;
   readonly beats: Accessor<ReadonlyArray<ReadBeat>>;
   readonly selecting: Selecting;
-  readonly following: Following & { readonly suspend: () => void };
+  /** Whether the reader keeps the playhead's beat in sight: until a hand scrolls it, then again on Follow or Play. */
+  readonly following: Following;
   readonly brief: BriefShown;
 }) => {
   const meta = props.page;
@@ -521,9 +517,7 @@ const Beats = (props: {
             (section) => ({ first: section, last: section }),
           ),
         clear: () => ({ top: playhead.clearTop(), bottom: 0 }),
-        placing: props.following.on,
-        reader: props.following.suspend,
-        played: props.following.resume,
+        following: props.following,
       },
       playhead.clock,
     ),
@@ -588,12 +582,7 @@ export const ScriptReader = (props: {
 }) => {
   const meta = props.page;
   const beats = createMemo(() => laidOut(props.beats()));
-  const [on, setOn] = createSignal(true);
-  const following = {
-    on,
-    resume: () => setOn(true),
-    suspend: () => setOn(false),
-  };
+  const following = createFollowing();
   const voice: VoiceSource = {
     // The page's alone: the server's render never waits on the takes, nor queues one.
     reading: meta.runtime
@@ -611,10 +600,8 @@ export const ScriptReader = (props: {
     <VoiceOver source={voice}>
       <div class="rd-head">
         <HearIt beats={beats().map((b) => b.read.id)} />
-        <Show when={Option.isSome(meta.playhead) && !on()}>
-          <button type="button" class="sh-btn rd-follow" onClick={following.resume}>
-            Follow
-          </button>
+        <Show when={Option.isSome(meta.playhead)}>
+          <FollowButton following={following} />
         </Show>
         <Spend cost={props.cost} />
       </div>

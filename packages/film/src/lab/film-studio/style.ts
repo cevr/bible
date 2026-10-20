@@ -427,7 +427,7 @@ export const CODE_CSS = `
 .st-code { margin: 0; display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; min-height: 0; }
 .st-code-head { display: flex; align-items: center; gap: var(--s-2); min-width: 0; }
 .st-code-where { flex: 1; min-width: 0; margin: 0; font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); overflow-wrap: anywhere; font-variant-numeric: tabular-nums slashed-zero; }
-.st-code-follow { flex: none; }
+.st-code-head > .lab-follow { flex: none; }
 .st-code-scroll { max-height: 360px; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; overflow-anchor: none; border-radius: var(--r-1); background: var(--surface-2); }
 .st-code-page { --code-lh: var(--lh-2); --code-gutter: calc(var(--digits) * 1ch + var(--s-3) + var(--s-2)); --code-st: calc(9ch + var(--s-3)); position: relative; padding-bottom: var(--s-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--code-lh); tab-size: 2; color: var(--text-1); }
 .st-code-band { position: sticky; top: 0; z-index: 3; display: flex; flex-direction: column; gap: var(--s-1); min-height: var(--code-lh); padding: var(--s-1) var(--s-3); background: var(--surface-2); border-bottom: var(--border); color: var(--text-2); user-select: none; -webkit-user-select: none; }
