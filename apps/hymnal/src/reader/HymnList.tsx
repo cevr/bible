@@ -29,6 +29,7 @@ import {
 import type { HymnText } from '~/hymns/hymns';
 import { color, useAccent } from '~/color';
 
+import { dismissal } from './keyboard';
 import { scrolled, told } from './scrolled';
 
 /** A row's line of text, and the space above and below it, at the reader's usual text size. */
@@ -114,7 +115,7 @@ export function HymnList({
       )}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
+      {...dismissal}
       ListEmptyComponent={<Text style={styles.empty}>{empty}</Text>}
       renderItem={({ item }) => (
         <Row hymn={item} href={hrefOf(item.number)} height={height} accent={accent} />
