@@ -137,6 +137,10 @@ describe('the list', () => {
       yield* list.releaseSend('path/01', ann);
       expect(yield* list.waiting('path/01', 0, 10)).toEqual([ann]);
       expect(yield* list.counts('path/01')).toMatchObject({ waiting: 1, unsure: 1, sent: 0 });
+      // A subscriber who left is not claimed for.
+      const cal = yield* confirmed(Address.make('cal@example.com'), 1000);
+      yield* list.unsubscribe(cal, 2000);
+      expect(yield* list.claimSend('path/01', cal, 2001)).toBe(false);
       // A kept outcome is not given back.
       yield* list.recordSend('path/01', ben, 'sent', 2001);
       yield* list.releaseSend('path/01', ben);

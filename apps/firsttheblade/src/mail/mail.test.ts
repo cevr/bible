@@ -1,6 +1,6 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Deferred, Duration, Effect, Layer, Logger, Option, Scope } from 'effect';
+import { Context, Deferred, Duration, Effect, Fiber, Layer, Logger, Option, Scope } from 'effect';
 import { TestClock } from 'effect/testing';
 import { Headers, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
@@ -457,6 +457,40 @@ describe('sending a film', () => {
       const films = (yield* letters).filter((letter) => letter.subject.startsWith('A new'));
       expect(films).toHaveLength(1);
       expect(yield* list.counts(FILM)).toMatchObject({ sent: 1, unsure: 0 });
+    }));
+
+  test('a subscriber who leaves while their letter is made is not sent it', () =>
+    Effect.gen(function* () {
+      yield* joined(ANN);
+      yield* admin(`{"film":"${FILM}"}`);
+      const deliveries = yield* (yield* Queued).deliveries;
+      const tokens = yield* Tokens;
+      const paused = yield* Deferred.make<boolean>();
+      const go = yield* Deferred.make<boolean>();
+      const slow = Tokens.of({
+        ...tokens,
+        sign: (token) =>
+          Deferred.succeed(paused, true).pipe(
+            Effect.andThen(Deferred.await(go)),
+            Effect.andThen(tokens.sign(token)),
+          ),
+      });
+      const delivering = yield* Effect.forkChild(
+        deliver(deliveries).pipe(Effect.provideService(Tokens, slow)),
+      );
+      yield* Deferred.await(paused);
+      const { subscriber } = Option.getOrThrow(Option.fromNullishOr(deliveries[0]));
+      const leave = yield* tokens.sign({ _tag: 'Unsubscribe', subscriber });
+      const left = yield* call(`/unsubscribe?token=${encodeURIComponent(leave)}`, {
+        method: 'POST',
+      });
+      expect(left.status).toBe(200);
+      yield* Deferred.succeed(go, true);
+      yield* Fiber.join(delivering);
+      expect((yield* letters).filter((letter) => letter.subject.startsWith('A new'))).toHaveLength(
+        0,
+      );
+      expect(yield* (yield* List).counts(FILM)).toMatchObject({ sent: 0, refused: 0, unsure: 0 });
     }));
 
   test('a letter sent whose outcome could not be kept is never sent again', () =>

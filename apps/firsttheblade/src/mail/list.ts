@@ -76,7 +76,7 @@ export interface ListService {
   /**
    * Claims the film's email to a subscriber before it is sent: true when
    * this call took it, false when it was taken before (sent, refused, or
-   * being sent).
+   * being sent) or the subscriber is no longer confirmed.
    */
   readonly claimSend: (
     film: string,
@@ -160,7 +160,8 @@ const RECIPIENT = statement(
 
 const CLAIM_SEND = statement(
   'list.claimSend',
-  `INSERT INTO sends (film, subscriber_id, outcome, at) VALUES (?, ?, 'sending', ?)
+  `INSERT INTO sends (film, subscriber_id, outcome, at)
+   SELECT ?, s.id, 'sending', ? FROM subscribers s WHERE s.id = ? AND s.status = 'confirmed'
    ON CONFLICT (film, subscriber_id) DO NOTHING`,
 );
 
@@ -263,7 +264,7 @@ export const layer = Layer.effect(
       subscriber: number,
       now: number,
     ) {
-      return (yield* sql.run(CLAIM_SEND, [film, subscriber, now])) > 0;
+      return (yield* sql.run(CLAIM_SEND, [film, now, subscriber])) > 0;
     });
 
     const releaseSend = Effect.fn('List.releaseSend')(function* (film: string, subscriber: number) {

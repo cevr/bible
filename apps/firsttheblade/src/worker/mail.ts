@@ -10,8 +10,8 @@
  * - `SignupLimit`: the sign-up limit (`SIGNUPS`), a Rate Limiting binding.
  *
  * The bindings' clients answer only in the running Worker (`RuntimeContext`),
- * as does the request's `waitUntil`, which runs a sign-up's work after its
- * answer (`../mail/background.ts`).
+ * as does the request's `waitUntil`, which keeps a sign-up's work running
+ * while its answer goes without waiting for it (`../mail/background.ts`).
  * `layerCloudflare` is built in it, keeps that context, and gives services
  * that need nothing more.
  */

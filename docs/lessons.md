@@ -1543,3 +1543,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** The test that the sign-up answers before its work held the work until it was settled, while Alchemy's `waitUntil` starts it at once, and the doc said the work runs after the answer.
 - **Cause:** The test double was built for the order wanted, not the one the host gives.
 - **Guard:** code: `apps/firsttheblade/src/mail/mail.test.ts` `a sign-up is answered while its letter is still being sent`
+
+### send-claim-checks-the-subscriber
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A completed unsubscribe does not prevent a new send claim"
+- **Source:** ftb-mail/review-3.md F1
+- **Wrong:** The delivery checked that the subscriber was confirmed, made the letter, then claimed the send by its key alone, so one who left while the letter was made was still sent the film.
+- **Cause:** The check and the claim were two statements, and work was put between them.
+- **Guard:** code: `apps/firsttheblade/src/mail/mail.test.ts` `a subscriber who leaves while their letter is made is not sent it`
+
+### docs-follow-a-changed-contract
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Two descriptions retain the incorrect response ordering"
+- **Source:** ftb-mail/review-3.md F2
+- **Wrong:** The Worker's mail module and the firsttheblade README still said a sign-up's work runs after its answer once the background port said the answer only does not wait for it.
+- **Cause:** The contract's wording was corrected where the finding pointed, and the same claim in other files names no file the change touched.
+- **Guard:** skill: a sentence's claim goes stale with no file named in it changing, which only a reader sees. Carried by `CLAUDE.md`: "A sentence's claim goes stale with no name in it changing, so the docs test cannot see it"

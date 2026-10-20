@@ -55,8 +55,8 @@ template editor and no analytics.
 - **Sign-up** is the form in the night close (`src/ui/mail.tsx`). It posts to
   `POST /subscribe` with no script; a honeypot field and a limit of five tries
   a minute from one connection keep bots out. Every address gets the same
-  answer, and the address is looked up only after it, so neither the page nor
-  its timing tells who is on the list. A new or pending address is sent one
+  answer, and the answer does not wait for the work on the address, so neither
+  the page nor its timing tells who is on the list. A new or pending address is sent one
   email to confirm, at most once an hour, even across leaving and joining again.
 - **Confirm** is the link in that email, `GET /subscribe/confirm?token=`. A
   link works for seven days, and only the newest one, sent since the address
