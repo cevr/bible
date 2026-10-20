@@ -547,10 +547,11 @@ export const ARM_PIVOT: Pt = [558, 674];
 /**
  * His hands' centres, each at the end of its sleeve: the near one at his
  * near cuff; the far one at rest by his side, its sleeve hanging, and raised
- * to the panel's open hand beside him as the rain comes on.
+ * at the raised sleeve's cuff, over the cuff's open end in its shade, a
+ * little past the sleeve's farthest point, as the rain comes on.
  */
 export const HANDS = {
   near: [330, 815],
   far: [614, 795],
-  raised: [690, 655],
+  raised: [704, 708],
 } as const satisfies Record<string, Pt>;

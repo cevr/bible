@@ -7,12 +7,16 @@
 // swings. It lies behind the garment's paper, cut in one outline with it, so
 // the sleeve grows out of the garment with no line where it leaves it; an arm
 // that lies on the garment is a tone of it. The host draws the figure's circle
-// hand at its cuff: a hand ends its sleeve (the owner's sleeves, look ledger,
-// 2026-10-18). How it is cut and drawn is the house's (`rig/draw.ts`). Pure.
+// hand at its cuff (`armHand`), where the arm says its hand is: past its
+// sleeve's end, the hand's circle touching the sleeve, so a hand ends its
+// sleeve (the owner's sleeves, look ledger, 2026-10-18; a figure refuses a
+// hand anywhere else). How it is cut and drawn is the house's
+// (`rig/draw.ts`). Pure.
 
 import { Schema } from 'effect';
 import { decoder } from '../decode.ts';
 import { GarmentTones, Paper } from '../paper.ts';
+import type { Pt } from '../rig/parts.ts';
 import { Outline, Point } from './measure.ts';
 
 /** An arm: where it turns, its turn at rest, its sleeve's outline, its paper and the colour on it. */
@@ -27,6 +31,13 @@ const ArmPart = Schema.TaggedStruct('Arm', {
   rest: Schema.Finite,
   /** Its sleeve to the wrist in the pose it is traced in, units from the figure's origin. */
   outline: Outline,
+  /**
+   * Its hand's centre in the pose it is traced in, units from the figure's
+   * origin: past its sleeve's end, as far from the pivot as any point of the
+   * sleeve or farther, and its circle touching the sleeve (a figure refuses
+   * any other).
+   */
+  hand: Point,
   paper: Paper,
   /** Colour laid on it with no line of its own, clipped to it, in order: the light on it, its cuff's shade, the skin past its cuff (marked `skin`). */
   tones: Schema.optionalKey(GarmentTones),
@@ -42,3 +53,11 @@ export const decodeArm = decoder(ArmPart, { fields: { ink: 'InteriorInk' } });
 
 /** An arm in its sleeve (the farmer's far arm, which the host swings up to the rain). */
 export const Arm = (o: Omit<Arm, '_tag'>): Arm => decodeArm({ _tag: 'Arm', ...o }, 'Arm');
+
+/** Where `arm`'s hand's centre lies with its number at `turn` (radians; 0 the pose it is traced in): its traced hand turned about its pivot. */
+export const armHand = (arm: Arm, turn: number): Pt => {
+  const [px, py] = arm.pivot;
+  const [dx, dy] = [arm.hand[0] - px, arm.hand[1] - py];
+  const [cos, sin] = [Math.cos(turn), Math.sin(turn)];
+  return [px + dx * cos - dy * sin, py + dx * sin + dy * cos];
+};

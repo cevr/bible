@@ -36,7 +36,7 @@ export { figureOverrides, figuresFile, figuresRml, lockedPrints } from './figure
 export { RIM, keyLight, parchment, peoplePaper, shading } from './house.ts';
 export { citedBy } from './override.ts';
 export { type Crease, papers, rampedPaper } from './paper.ts';
-export { Arm } from './parts/arm.ts';
+export { Arm, armHand } from './parts/arm.ts';
 export { Beard } from './parts/beard.ts';
 export { Robe, Tunic } from './parts/body.ts';
 export { Ear } from './parts/ear.ts';

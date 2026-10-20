@@ -4,7 +4,7 @@ import { DIRECTION } from './house.ts';
 import { figure, isComposed } from './figure.ts';
 import { overridesIn } from './override.ts';
 import { paper } from './paper.ts';
-import { ARM_SIDES, Arm } from './parts/arm.ts';
+import { ARM_SIDES, Arm, armHand } from './parts/arm.ts';
 import { Beard } from './parts/beard.ts';
 import { Robe, Tunic } from './parts/body.ts';
 import { Ear } from './parts/ear.ts';
@@ -218,10 +218,20 @@ const SLEEVE_LIT: Pt[] = [
   [120, -430],
   [110, -435],
 ];
+/** A hand past the end of the sleeve `outline` turning on `pivot`: 2 units beyond its point farthest from the pivot, along the line from it. */
+const pastEnd = (pivot: Pt, outline: ReadonlyArray<Pt>): Pt => {
+  const from = ([x, y]: Pt) => Math.hypot(x - pivot[0], y - pivot[1]);
+  const end = outline.reduce((a, b) => (from(b) > from(a) ? b : a));
+  const d = from(end);
+  return [end[0] + ((end[0] - pivot[0]) * 2) / d, end[1] + ((end[1] - pivot[1]) * 2) / d];
+};
+/** An arm's fields, to make it again with one changed. */
+const armOf = ({ _tag: _arm, ...fields }: Arm) => fields;
 const sleeve = Arm({
   pivot: [30, -290],
   rest: 1.2,
   outline: SLEEVE,
+  hand: pastEnd([30, -290], SLEEVE),
   paper: FLAT,
   tones: [{ pts: SLEEVE_LIT, color: '#efca9a' }],
 });
@@ -277,22 +287,25 @@ const HANGING_LIT: Pt[] = [
   [80, -100],
   [70, -98],
 ];
+const HANGING_NEAR: Pt[] = [
+  [-50, -220],
+  [-20, -215],
+  [-60, -95],
+  [-80, -100],
+];
 const hanging = {
   near: Arm({
     pivot: [-30, -200],
     rest: 0,
-    outline: [
-      [-50, -220],
-      [-20, -215],
-      [-60, -95],
-      [-80, -100],
-    ],
+    outline: HANGING_NEAR,
+    hand: pastEnd([-30, -200], HANGING_NEAR),
     paper: FLAT,
   }),
   far: Arm({
     pivot: [30, -200],
     rest: 0,
     outline: HANGING,
+    hand: pastEnd([30, -200], HANGING),
     paper: FLAT,
     tones: [{ pts: HANGING_LIT, color: '#efca9a' }],
   }),
@@ -313,7 +326,13 @@ const RESTING: Pt[] = [
   [-70, 205],
   [-90, 200],
 ];
-const resting = Arm({ pivot: [-30, 80], rest: 0, outline: RESTING, paper: FLAT });
+const resting = Arm({
+  pivot: [-30, 80],
+  rest: 0,
+  outline: RESTING,
+  hand: pastEnd([-30, 80], RESTING),
+  paper: FLAT,
+});
 
 /** Sandals: each bare foot cut from its corners, a strap across the near one. */
 const NEAR_FOOT: Pt[] = [
@@ -856,7 +875,13 @@ describe('an arm in its sleeve', () => {
   });
 
   test('turned about a point outside its garment is refused, on either side, on a tunic or a cut or traced robe, standing or seated', () => {
-    const astray = Arm({ pivot: [400, 0], rest: 0, outline: ASTRAY, paper: FLAT });
+    const astray = Arm({
+      pivot: [400, 0],
+      rest: 0,
+      outline: ASTRAY,
+      hand: pastEnd([400, 0], ASTRAY),
+      paper: FLAT,
+    });
     expect(() => figure({ ...standingOf(), arms: { far: astray } })).toThrow(
       /arms\.far refused: [^]*its pivot \(400, 0\) lies outside its garment: an arm turns inside it/,
     );
@@ -879,26 +904,72 @@ describe('an arm in its sleeve', () => {
 
   test("whose sleeve lies as far from its pivot as its garment's edge, or farther, is refused, unless the pivot lies inside the sleeve", () => {
     // The pivot lies inside the cut robe, 16.4 from its edge.
-    const away = Arm({ pivot: [30, -290], rest: 0, outline: ASTRAY, paper: FLAT });
+    const away = Arm({
+      pivot: [30, -290],
+      rest: 0,
+      outline: ASTRAY,
+      hand: pastEnd([30, -290], ASTRAY),
+      paper: FLAT,
+    });
     expect(() => figure({ ...standingOf(), arms: { far: away } })).toThrow(
       /arms\.far refused: [^]*its sleeve lies 442\.0 from its pivot, its garment's edge 16\.4: a sleeve lies nearer its pivot than the edge/,
     );
     // The raised sleeve lies 13.4 from it and is taken; moved 6 out, it lies 16.5 from it.
     expect(figure({ ...standingOf(), arms: { far: sleeve } }).arms.far).toEqual(sleeve);
     const out = SLEEVE.map(([x, y]): Pt => [x + 6, y - 6]);
-    const moved = Arm({ pivot: [30, -290], rest: 1.2, outline: out, paper: FLAT });
+    const moved = Arm({
+      pivot: [30, -290],
+      rest: 1.2,
+      outline: out,
+      hand: pastEnd([30, -290], out),
+      paper: FLAT,
+    });
     expect(() => figure({ ...standingOf(), arms: { far: moved } })).toThrow(
       /arms\.far refused: [^]*its sleeve lies 16\.5 from its pivot, its garment's edge 16\.4/,
     );
     // A sleeve round its pivot, its edge 30 from it, keeps that point under the garment's paper.
-    const round = Arm({ pivot: [30, -290], rest: 0, outline: ROUND, paper: FLAT });
+    const round = Arm({
+      pivot: [30, -290],
+      rest: 0,
+      outline: ROUND,
+      hand: pastEnd([30, -290], ROUND),
+      paper: FLAT,
+    });
     expect(figure({ ...standingOf(), arms: { far: round } }).arms.far).toEqual(round);
     // A sleeve exactly as far from its pivot as the garment's edge is refused.
     const square = Robe.Traced({ outline: SQUARE, hem: 0, paper: SKIN });
-    const level = Arm({ pivot: [0, -300], rest: 0, outline: LEVEL, paper: FLAT });
+    const level = Arm({
+      pivot: [0, -300],
+      rest: 0,
+      outline: LEVEL,
+      hand: pastEnd([0, -300], LEVEL),
+      paper: FLAT,
+    });
     expect(() => figure({ ...standingOf(), body: square, arms: { far: level } })).toThrow(
       /arms\.far refused: [^]*its sleeve lies 100\.0 from its pivot, its garment's edge 100\.0/,
     );
+  });
+
+  test("whose hand lies short of its sleeve's end, or past it with its circle clear of the sleeve, is refused", () => {
+    // The raised sleeve's end lies 166.4 from its pivot; the figure's hand is 0.44 of a head 100 across.
+    const short = Arm({ ...armOf(sleeve), hand: [60, -350] });
+    expect(() => figure({ ...standingOf(), arms: { far: short } })).toThrow(
+      /arms\.far refused: [^]*its hand \(60, -350\) lies 67\.1 from its pivot, its sleeve's end 166\.4: a hand lies past its sleeve's end/,
+    );
+    const astray = Arm({ ...armOf(sleeve), hand: [150, -480] });
+    expect(() => figure({ ...standingOf(), arms: { near: astray } })).toThrow(
+      /arms\.near refused: [^]*its hand \(150, -480\) lies [\d.]+ from its sleeve, its circle 22\.0 across from its centre: a hand touches its sleeve/,
+    );
+    expect(figure({ ...standingOf(), arms: { far: sleeve } }).arms.far?.hand).toEqual(sleeve.hand);
+  });
+
+  test('carries its hand round its pivot by its number: at 0 where it is traced', () => {
+    expect(armHand(sleeve, 0)).toEqual(sleeve.hand);
+    const [x, y] = armHand(sleeve, Math.PI / 2);
+    const [hx, hy] = sleeve.hand;
+    // A quarter turn clockwise on screen (y down) takes (dx, dy) from the pivot to (-dy, dx).
+    expect(x).toBeCloseTo(30 - (hy + 290), 9);
+    expect(y).toBeCloseTo(-290 + (hx - 30), 9);
   });
 
   test('is frozen with its figure: a change made in it throws, and it stays as composed', () => {
@@ -1052,6 +1123,7 @@ describe('an arm in its sleeve', () => {
       pivot: [30, -290],
       rest: 1.2,
       outline: SLEEVE,
+      hand: sleeve.hand,
       paper: FLAT,
       tones: [
         { pts: SLEEVE_LIT, color: '#efca9a' },
@@ -1159,7 +1231,7 @@ describe('an arm in its sleeve', () => {
     const { _tag: _seated, ...seatedCut } = seatedOf().body;
     const seatedRobe = (tones: RobeTones) => Robe.Cut({ ...seatedCut, tones });
     const raised = (tones: NonNullable<Parameters<typeof Arm>[0]['tones']>) =>
-      Arm({ pivot: [30, -290], rest: 1.2, outline: SLEEVE, paper: FLAT, tones });
+      Arm({ pivot: [30, -290], rest: 1.2, outline: SLEEVE, hand: sleeve.hand, paper: FLAT, tones });
     /** The standing figure in the garment `body`, its far arm `far`, its near arm `near`. */
     const robed = (
       body: Garment,
@@ -1312,10 +1384,10 @@ describe('the parts', () => {
       [90, -290],
       [45, -290],
     ];
-    expect(() => Arm({ pivot, rest: 0, outline: point, paper: FLAT })).toThrow(
+    expect(() => Arm({ pivot, rest: 0, outline: point, hand: pivot, paper: FLAT })).toThrow(
       /Arm refused: [^]*its points all lie at \(30, -290\), so it encloses no area/,
     );
-    expect(() => Arm({ pivot, rest: 0, outline: flat, paper: FLAT })).toThrow(
+    expect(() => Arm({ pivot, rest: 0, outline: flat, hand: pivot, paper: FLAT })).toThrow(
       /Arm refused: [^]*its points all lie on one line, so it encloses no area/,
     );
     // A figure given such a sleeve says so, not how far the sleeve lies from its pivot.
@@ -1344,7 +1416,7 @@ describe('the parts', () => {
       30 + r * Math.cos(0.7),
       -290 + r * Math.sin(0.7),
     ]);
-    expect(() => Arm({ pivot, rest: 0, outline: along, paper: FLAT })).toThrow(
+    expect(() => Arm({ pivot, rest: 0, outline: along, hand: pivot, paper: FLAT })).toThrow(
       /Arm refused: [^]*its points all lie on one line/,
     );
     const sliver: Pt[] = [
@@ -1352,7 +1424,7 @@ describe('the parts', () => {
       [2000, 0],
       [1000, 1e-6],
     ];
-    expect(() => Arm({ pivot, rest: 0, outline: sliver, paper: FLAT })).toThrow(
+    expect(() => Arm({ pivot, rest: 0, outline: sliver, hand: pivot, paper: FLAT })).toThrow(
       /Arm refused: [^]*its points all lie on one line/,
     );
     // Three points, one a hundredth of a unit off the line through the others, do not lie on one line.
@@ -1361,7 +1433,7 @@ describe('the parts', () => {
       [60, -290],
       [45, -289.99],
     ];
-    expect(Arm({ pivot, rest: 0, outline: thin, paper: FLAT }).outline).toEqual(thin);
+    expect(Arm({ pivot, rest: 0, outline: thin, hand: pivot, paper: FLAT }).outline).toEqual(thin);
   });
 
   test('a paper with an ink of its own is refused by InteriorInk', () => {

@@ -12,7 +12,8 @@
 // above what hides its feet drawn; an arm that reaches past its garment is
 // in its sleeve, cut in one outline with the garment, and turns about a
 // point inside it nearer the sleeve than the garment's edge, so the sleeve's
-// root stays under its paper however it swings. Its view model's numbers are
+// root stays under its paper however it swings, its hand past its sleeve's
+// end and touching it. Its view model's numbers are
 // its parts', in one order, never listed by hand (`knobsOf`). How it is
 // drawn is the house's (`rig/draw.ts`). A figure the owner locked carries
 // its lock, checked here, and its film holds its print to it (`lock.ts`).
@@ -337,13 +338,50 @@ const pivotOn = (garment: ReadonlyArray<Pt>, sleeve: ReadonlyArray<Pt>) =>
     ),
   );
 
-/** Its arms by side, each checked as an arm and its pivot as one on `body`'s outline (`pivotOn`). */
-const armsOf = (arms: Arms, body: Garment): Arms => {
+/**
+ * A decode of the hand of an arm turning on `pivot` whose sleeve is
+ * `sleeve`, its circle `radius` across from its centre: past the sleeve's
+ * end, as far from the pivot as any point of the sleeve or farther, and its
+ * circle touching the sleeve (`radius` from its edge or nearer), so the
+ * hand ends its sleeve however the arm turns.
+ */
+const handOn = (pivot: Pt, sleeve: ReadonlyArray<Pt>, radius: number) =>
+  decoder(
+    Point.check(
+      Schema.makeFilter((hand: Pt) => {
+        const from = ([x, y]: Pt) => Math.hypot(x - pivot[0], y - pivot[1]);
+        const end = Math.max(...sleeve.map(from));
+        if (from(hand) < end) {
+          const [h, e] = [from(hand).toFixed(1), end.toFixed(1)];
+          return `its hand (${hand.join(', ')}) lies ${h} from its pivot, its sleeve's end ${e}: a hand lies past its sleeve's end`;
+        }
+        const gap = inside(hand, sleeve) ? 0 : fromEdge(hand, sleeve);
+        if (gap <= radius) return true;
+        const [g, r] = [gap.toFixed(1), radius.toFixed(1)];
+        return `its hand (${hand.join(', ')}) lies ${g} from its sleeve, its circle ${r} across from its centre: a hand touches its sleeve`;
+      }),
+    ),
+  );
+
+/** A head's width, units: a round head's two half-widths, a traced one's outline across. */
+const widthOf = (head: Head) => {
+  if (head._tag === 'RoundHead') return 2 * head.r[0];
+  const xs = head.outline.map(([x]) => x);
+  return Math.max(...xs) - Math.min(...xs);
+};
+
+/**
+ * Its arms by side, each checked as an arm, its pivot as one on `body`'s
+ * outline (`pivotOn`) and its hand as one at its sleeve's end (`handOn`),
+ * the hand's circle `radius` across from its centre.
+ */
+const armsOf = (arms: Arms, body: Garment, radius: number): Arms => {
   const garment = garmentOutline(body);
   const armOn = (arm: Arm | undefined, part: string) => {
     if (arm === undefined) return undefined;
     const checked = decodeArm(arm, part);
     pivotOn(garment, checked.outline)(checked.pivot, part);
+    handOn(checked.pivot, checked.outline, radius)(checked.hand, part);
     return checked;
   };
   return { near: armOn(arms.near, 'arms.near'), far: armOn(arms.far, 'arms.far') };
@@ -383,11 +421,13 @@ const skinUnderRobe = (f: Pick<ComposedParts, 'body' | 'arms'>) => {
  */
 const composedOf = (spec: FigureSpec, concept: ConceptRef): ComposedParts => {
   const body = decodeGarment(spec.body, 'body');
+  const head = decodeHead(spec.head, 'head');
+  const hands = decodeHands(spec.hands, 'hands');
   const parts: ComposedParts = {
     lock: spec.lock === undefined ? undefined : decodeLock(spec.lock, 'lock'),
     concept,
     stature: decodeStature(spec.stature, 'stature'),
-    head: decodeHead(spec.head, 'head'),
+    head,
     beard: spec.beard === undefined ? undefined : decodeBeard(spec.beard, 'beard'),
     hair: spec.hair === undefined ? undefined : decodeHair(spec.hair, 'hair'),
     headcloth:
@@ -396,10 +436,10 @@ const composedOf = (spec: FigureSpec, concept: ConceptRef): ComposedParts => {
     face: decodeKit(spec.face, 'face'),
     mouth: spec.mouth === undefined ? undefined : decodeMouth(spec.mouth, 'mouth'),
     body,
-    arms: armsOf(spec.arms ?? {}, body),
+    arms: armsOf(spec.arms ?? {}, body, (hands.share * widthOf(head)) / 2),
     over: spec.over === undefined ? undefined : decodeOver(spec.over, 'over'),
     states: statesOf(spec.states ?? []),
-    hands: decodeHands(spec.hands, 'hands'),
+    hands,
   };
   if (parts.states.robe !== undefined) skinUnderRobe(parts);
   return parts;

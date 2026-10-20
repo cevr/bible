@@ -280,6 +280,16 @@ The form of an entry, each field on its own line:
 - **Cause:** The rig followed the floating-hand rule over the concept.
 - **Guard:** skill: a rig's arm is drawn by its painter and read by the critique's pose. Carried by `.claude/skills/film/reference/character-design.md`: "A raised hand is the house hand raised at the end of its sleeve, as the concept draws it"
 
+### hand-past-its-cuff
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Neither hand is at the end of a sleeve: both are bare circles laid over the robe at hip height with the robe running on below them"
+- **Source:** rbf-lead/findings.md F1 (the rbf-unbake critique of `rain` at mark:rain, fcb2d4ad6)
+- **Wrong:** The farmer's raised hand was drawn at the top corner of his far sleeve's cuff, so the sleeve ran on below it and the hand floated beside the sleeve at `rain` 17 s.
+- **Cause:** The scene placed the hand at a point traced by eye and turned it with the arm, and nothing held that point to the sleeve's end.
+- **Guard:** code: `packages/film/src/style/figure.ts` `handOn` (an arm's hand lies past its sleeve's end and touches it; the host draws it at `armHand`)
+
 ### faces-more-interesting
 
 - **Date:** 2026-10-13

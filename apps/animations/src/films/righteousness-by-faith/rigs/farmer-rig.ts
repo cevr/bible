@@ -39,6 +39,7 @@ import {
   Stance,
   Stature,
   figure,
+  armHand,
   tracedKit,
 } from '@bible/film/style';
 import {
@@ -176,22 +177,28 @@ export const FARMER_HANDS = {
   raised: fromFeet(HANDS.raised),
 } as const;
 
-/**
- * His far arm: where it turns (units from his feet), and its turn at rest,
- * radians from the raised pose it is traced in, that brings the raised hand
- * to the hand at rest; `hand` is the centre of its hand at its cuff at a turn.
- */
-export const FARMER_ARM = (() => {
-  const pivot = fromFeet(ARM_PIVOT);
-  const { far, raised } = FARMER_HANDS;
-  const angle = ([x, y]: Pt) => Math.atan2(y - pivot[1], x - pivot[0]);
-  const reach: Pt = [raised[0] - pivot[0], raised[1] - pivot[1]];
-  const hand = (turn: number): Pt => {
-    const [cos, sin] = [Math.cos(turn), Math.sin(turn)];
-    return [pivot[0] + reach[0] * cos - reach[1] * sin, pivot[1] + reach[0] * sin + reach[1] * cos];
-  };
-  return { pivot, rest: +(angle(far) - angle(raised)).toFixed(4), hand } as const;
+/** His far arm's pivot, and its hand raised at its cuff: the pose its sleeve is traced in (`HANDS.raised`). */
+const PIVOT = fromFeet(ARM_PIVOT);
+const RAISED = FARMER_HANDS.raised;
+
+/** The turn about `PIVOT` that takes the raised hand to the hand at rest by his side: his far arm's number at rest. */
+const REST = (() => {
+  const angle = ([x, y]: Pt) => Math.atan2(y - PIVOT[1], x - PIVOT[0]);
+  return +(angle(FARMER_HANDS.far) - angle(RAISED)).toFixed(4);
 })();
+
+/** His far arm in its sleeve, traced raised, its paper his tunic's sleeve's with the light along its top and its cuff's shade. */
+const FAR_ARM = Arm({
+  pivot: PIVOT,
+  rest: REST,
+  outline: bodyParts(FAR_SLEEVE),
+  hand: RAISED,
+  paper: PAPERS.farmerSleeve,
+  tones: [
+    { pts: bodyParts(FAR_SLEEVE_LIT), color: PAPERS.linen.light },
+    { pts: bodyParts(FAR_CUFF), color: CUFF_SHADE },
+  ],
+});
 
 /**
  * The farmer in rain.rain: his headcloth, his beard with his lip in it, his
@@ -269,20 +276,20 @@ export const farmer = figure({
     ],
   }),
   arms: {
-    far: Arm({
-      pivot: FARMER_ARM.pivot,
-      rest: FARMER_ARM.rest,
-      outline: bodyParts(FAR_SLEEVE),
-      paper: PAPERS.farmerSleeve,
-      tones: [
-        { pts: bodyParts(FAR_SLEEVE_LIT), color: PAPERS.linen.light },
-        { pts: bodyParts(FAR_CUFF), color: CUFF_SHADE },
-      ],
-    }),
+    far: FAR_ARM,
   },
   feet: SANDALS,
   hands: Hands({ paper: PAPERS.farmerHand, share: 0.4 }),
 });
+
+/**
+ * His far arm: its turn at rest, radians from the raised pose it is traced
+ * in, and `hand`, the centre of its hand at its cuff at a turn (`armHand`).
+ */
+export const FARMER_ARM = {
+  rest: REST,
+  hand: (turn: number): Pt => armHand(FAR_ARM, turn),
+} as const;
 
 /** His numbers at rest: his face lifted to the rain at screen right, the smile rain.rain draws, his far arm down. */
 export const FARMER_KNOBS = farmer.knobs;
