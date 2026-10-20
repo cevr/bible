@@ -713,3 +713,33 @@ The form of an entry, each field on its own line:
 - **Wrong:** The unit gave the film suite's time at one load average, which the budget does not admit.
 - **Cause:** The budget admits a run only when both the 1- and the 5-minute averages are at or below the cores, and the machine was busy with other units.
 - **Guard:** code: `packages/scripts/src/test-budget/budget.ts` `notMeasured`
+
+### judged-unrenewed-answers-unkept
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Failed store renewal gives expired answers a fresh snapshot"
+- **Source:** p6-guardloop/review-3.md F1
+- **Wrong:** When the store could not be written, a run's findings file held cached answers under today's day, though their own day in the store was not renewed and the store could drop them first.
+- **Cause:** A failed write left the cached answers counted as kept for the findings file, and the file's day was the run's, not the answers'.
+- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `names every file unkept when the store kept its answers but could not renew their day`
+
+### reach-reads-playwright-globs
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check still accepts files Playwright ignores"
+- **Source:** p6-guardloop/review-3.md F2
+- **Wrong:** The reach check read a `testIgnore` glob with no folder (`unreached.spec.ts`) as a path from the workspace, and missed a quoted `"testIgnore"` key, so it called reached a spec playwright leaves out.
+- **Cause:** Playwright puts `**/` before a glob that does not start so and matches it with no regard to case; the reader matched the glob as written and looked for the key unquoted only.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### film-budget-admitted
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The film budget still has no accepted measurement"
+- **Source:** p6-guardloop/review-3.md F3
+- **Wrong:** The unit's log still said the counted film budget run was pending when it was reviewed.
+- **Cause:** The machine's 5-minute load stayed over its 12 cores while other units ran; the counted run, once both averages fell, took 9.4 s at load 2.8 and 11.9.
+- **Guard:** code: `packages/scripts/src/test-budget/budget.ts` `notMeasured`
